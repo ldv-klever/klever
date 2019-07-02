@@ -142,17 +142,20 @@ class VRP(core.components.Component):
 
                 # Plan for processing new tasks
                 if len(pending) > 0:
-                    tasks_statuses = session.get_tasks_statuses(list(pending.keys()))
-                    for task in list(pending.keys()):
-                        if task in tasks_statuses['finished']:
-                            submit_processing_task('finished', task)
-                            del pending[task]
-                        elif task in tasks_statuses['error']:
-                            submit_processing_task('error', task)
-                            del pending[task]
-                        elif task not in tasks_statuses['processing'] and task not in tasks_statuses['pending']:
-                            raise KeyError("Cannot find task {!r} in either finished, processing, pending or erroneus "
-                                           "tasks".format(task))
+                    tasks_statuses = session.get_tasks_statuses()
+                    for item in tasks_statuses:
+                        task = str(item['id'])
+                        if task in pending.keys():
+                            if item['status'] == 'FINISHED':
+                                submit_processing_task('FINISHED', task)
+                                del pending[task]
+                            elif item['status'] == 'ERROR':
+                                submit_processing_task('error', task)
+                                del pending[task]
+                            elif item['status'] in ('PENDING', 'PROCESSING'):
+                                pass
+                            else:
+                                raise NotImplementedError('Unknown task status {!r}'.format(item['status']))
 
                 if not receiving and len(pending) == 0:
                     # Wait for all rest tasks, no tasks can come currently
@@ -294,13 +297,13 @@ class RP(core.components.Component):
         self.vals['task solution triples'][self.results_key] = data
 
         try:
-            if status == 'finished':
+            if status == 'FINISHED':
                 self.process_finished_task(task_id, opts, verifier)
                 # Raise exception just here sinse the method above has callbacks.
                 if self.__exception:
                     self.logger.warning("Raising the saved exception")
                     raise self.__exception
-            elif status == 'error':
+            elif status == 'ERROR':
                 self.process_failed_task(task_id)
                 # Raise exception just here sinse the method above has callbacks.
                 raise RuntimeError('Failed to decide verification task: {0}'.format(self.task_error))

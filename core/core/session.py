@@ -64,7 +64,7 @@ class Session:
             try:
                 resp = self.session.request(method, url, **kwargs)
 
-                if resp.status_code not in (200, 201):
+                if resp.status_code not in (200, 201, 204):
                     if resp.headers['content-type'] == 'application/json':
                         # TODO: analize resp.json()
                         self.error = resp.json()
@@ -85,30 +85,29 @@ class Session:
 
     def start_job_decision(self, job_format, archive):
         self.__download_archive('job', 'jobs/api/download-files/' + self.job_id,
-                                {'job format': job_format},
-                                archive)
+                                {'job format': job_format}, archive)
 
     def schedule_task(self, task_file, archive):
         with open(task_file, 'r', encoding='utf8') as fp:
             data = fp.read()
 
         resp = self.__upload_archive('service/tasks/', {'job': str(self.job_id), 'description': data}, [archive])
-        return resp.json()['id']
+        return resp['id']
 
-    def get_tasks_statuses(self, task_ids):
+    def get_tasks_statuses(self):
         resp = self.__request('service/tasks/?job={}&fields=status&fields=id'.format(self.job_id), method='GET')
-        statuses = resp.json()['tasks statuses']
-        return json.loads(statuses)
+        return resp.json()
 
     def get_task_error(self, task_id):
         resp = self.__request('service/solution/{}'.format(task_id), method='GET')
         return resp.json()['task error']
 
     def download_decision(self, task_id):
-        self.__download_archive('decision', 'service/solution/{}/download'.format(task_id), 'decision result files.zip')
+        self.__download_archive('decision', 'service/solution/{}/download/'.format(task_id),
+                                archive='decision result files.zip')
 
     def remove_task(self, task_id):
-        self.__request('service/task/{}'.format(task_id), method='DELETE')
+        self.__request('service/tasks/{}'.format(task_id), method='DELETE')
 
     def sign_out(self):
         self.logger.info('Finish session')
@@ -163,7 +162,7 @@ class Session:
             try:
                 resp = self.__request(path_url, 'POST', data=data, files=[('file', open(archive, 'rb', buffering=0))
                                                                           for archive in archives], stream=True)
-                return resp
+                return resp.json()
             except BridgeError:
                 if self.error == 'ZIP error':
                     self.logger.exception('Could not upload ZIP archive')
