@@ -151,7 +151,7 @@ class Session:
         while True:
             resp = None
             try:
-                resp = self.__request(endpoint, 'POST', data=data, files={'archive': open(archive, 'rb', buffering=0)},
+                resp = self.__request(endpoint, 'POST', data=data, files={'file': open(archive, 'rb', buffering=0)},
                                       stream=True)
                 break
             except BridgeError:

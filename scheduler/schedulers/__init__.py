@@ -253,7 +253,6 @@ class Scheduler:
                             # CANCELLED
                             if identifier in self.__tasks:
                                 del self.__tasks[identifier]
-                            self.server.delete_task(identifier)
                         else:
                             raise NotImplementedError('Unknown task status {!r}'.format(status))
             except queue.Empty:
