@@ -53,7 +53,6 @@ class ReportUnsafeCache(models.Model):
     attrs = JSONField(default=dict)
     marks_total = models.PositiveIntegerField(default=0)
     marks_confirmed = models.PositiveIntegerField(default=0)
-    total_similarity = models.FloatField(default=0)
     verdict = models.CharField(max_length=1, choices=UNSAFE_VERDICTS, default=UNSAFE_VERDICTS[5][0])
     tags = JSONField(default=dict)
 
@@ -98,8 +97,6 @@ class UnsafeMarkAssociationChanges(models.Model):
     verdict_new = models.CharField(max_length=1, choices=UNSAFE_VERDICTS)
     tags_old = JSONField()
     tags_new = JSONField()
-    total_similarity_old = models.FloatField()
-    total_similarity_new = models.FloatField()
 
     class Meta:
         db_table = 'cache_unsafe_mark_associations_changes'

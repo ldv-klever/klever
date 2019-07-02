@@ -27,20 +27,20 @@
 {% endblock %}
 
 {% block body_block %}
-    <div class="ui text small menu">
-        {% if tabledata.is_manager %}
-            <div class="ui dropdown item">
-                <i class="ui check square outline icon"></i>{% trans 'Selected marks' %}
-                <i class="dropdown icon"></i>
-                <div class="menu">
-                    <div id="remove_marks_modal_show" class="item"><i class="ui remove icon"></i>{% trans 'Delete' %}</div>
+    <div class="ui grid">
+        <div class="eight wide column">
+            {% if tabledata.is_manager %}
+                <div class="ui dropdown">
+                    <i class="ui check square outline icon"></i>{% trans 'Selected marks' %}
+                    <i class="dropdown icon"></i>
+                    <div class="menu">
+                        <div id="remove_marks_modal_show" class="item"><i class="ui remove icon"></i>{% trans 'Delete' %}</div>
+                    </div>
                 </div>
-            </div>
-        {% endif %}
-        <div class="right menu">
-            <div class="item">
-                <button id="view_show_form_btn_{{ tabledata.view.type }}" class="ui violet button">{{ tabledata.view.viewtitle }}</button>
-            </div>
+            {% endif %}
+        </div>
+        <div class="eight wide column right aligned">
+            <button id="view_show_form_btn_{{ tabledata.view.type }}" class="ui small violet button">{{ tabledata.view.viewtitle }}</button>
         </div>
     </div>
 

@@ -77,7 +77,6 @@ MARK_TITLES = {
     'likes': format_lazy('{0}/{1}', _('Likes'), _('Dislikes')),
     'buttons': '',
     'description': _('Description'),
-    'total_similarity': _('Total similarity'),
     'identifier': _('Identifier')
 }
 
@@ -632,7 +631,7 @@ class UnsafeMarksTable(MarksTableBase):
     mark_type = 'unsafe'
     mark_table = 'mark_unsafe'
     columns_list = [
-        'num_of_links', 'verdict', 'total_similarity', 'tags', 'status',
+        'num_of_links', 'verdict', 'tags', 'status',
         'author', 'change_date', 'format', 'source', 'identifier'
     ]
     attrs_model = MarkUnsafeAttr
@@ -660,8 +659,6 @@ class UnsafeMarksTable(MarksTableBase):
         if column == 'verdict':
             val = mark_version.get_verdict_display()
             color = UNSAFE_COLOR[mark_version.verdict]
-        elif column == 'total_similarity':
-            val = '%d%%' % int(self.total_similarities.get(mark_version.mark_id, 0) * 100)
         return val, href, color
 
 

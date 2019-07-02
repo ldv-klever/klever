@@ -22,8 +22,10 @@
 {% block title %}{% trans 'Error Trace Fullscreen' %}{% endblock %}
 
 {% block head_block %}
+    <script type="text/javascript" src="{% static 'reports/js/source.js' %}"></script>
     <script type="text/javascript" src="{% static 'reports/js/ETV.js' %}"></script>
     <script type="text/javascript" src="{% static 'reports/js/ETV-windows.js' %}"></script>
+    <link href="{% static 'reports/css/source.css' %}" rel="stylesheet">
     <link href="{% static 'reports/css/ETV.css' %}" rel="stylesheet">
 {% endblock %}
 

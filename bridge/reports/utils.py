@@ -52,8 +52,7 @@ REP_MARK_TITLES = {
     'verifiers:cpu': _('CPU time'),
     'verifiers:wall': _('Wall time'),
     'verifiers:memory': _('RAM'),
-    'problems': _('Problems'),
-    'total_similarity': _('Total similarity')
+    'problems': _('Problems')
 }
 
 MARK_COLUMNS = ['mark_verdict', 'mark_result', 'mark_status']
@@ -376,8 +375,7 @@ class SafesTable:
 
 class UnsafesTable:
     cache_table = 'cache_unsafe'
-    columns_list = ['marks_number', 'report_verdict', 'total_similarity',
-                    'tags', 'verifiers:cpu', 'verifiers:wall', 'verifiers:memory']
+    columns_list = ['marks_number', 'report_verdict', 'tags', 'verifiers:cpu', 'verifiers:wall', 'verifiers:memory']
     columns_set = set(columns_list)
 
     def __init__(self, user, report, view, query_params):
@@ -493,10 +491,6 @@ class UnsafesTable:
                 (self.view['order'][2],)
             )
             ordering = 'ordering_attr'
-
-        # Order by total similarity
-        if 'order' in self.view and self.view['order'][1] == 'total_similarity':
-            ordering = 'cache__total_similarity'
 
         # Order direction
         if 'order' in self.view and self.view['order'][0] == 'up':
@@ -625,8 +619,6 @@ class UnsafesTable:
                     val = HumanizedValue(report.wall_time, user=self.user).timedelta
                 elif col == 'verifiers:memory':
                     val = HumanizedValue(report.memory, user=self.user).memory
-                elif col == 'total_similarity':
-                    val = HumanizedValue(report.cache.total_similarity, user=self.user).float
                 values_row.append({'value': val, 'color': color, 'href': href})
             values_data.append(values_row)
             cnt += 1
