@@ -54,8 +54,8 @@ class FillComparisonView(LoggedCallMixin, APIView):
     def post(self, request, job1_id, job2_id):
         r1 = get_object_or_404(ReportRoot, job_id=job1_id)
         r2 = get_object_or_404(ReportRoot, job_id=job2_id)
-        if not JobAccess(self.request.user, job=r1.job).can_view() \
-                or not JobAccess(self.request.user, job=r2.job).can_view():
+        if not JobAccess(self.request.user, job=r1.job).can_view \
+                or not JobAccess(self.request.user, job=r2.job).can_view:
             raise PermissionDenied(_("You don't have an access to one of the selected jobs"))
         try:
             CompareJobsInfo.objects.get(user=self.request.user, root1=r1, root2=r2)
@@ -154,7 +154,7 @@ class ClearVerificationFilesView(LoggedCallMixin, DestroyAPIView):
 
     def check_object_permissions(self, request, obj):
         super().check_object_permissions(request, obj)
-        if not JobAccess(request.user, obj).can_clear_verifications():
+        if not JobAccess(request.user, obj).can_clear_verifications:
             self.permission_denied(request, message=_("You can't remove verification files of this job"))
 
     def perform_destroy(self, instance):

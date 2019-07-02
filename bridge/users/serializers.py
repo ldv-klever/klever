@@ -56,7 +56,7 @@ class JobsChangesSerializer(serializers.ModelSerializer):
         if not isinstance(instance, JobHistory):
             raise exceptions.APIException('Wrong serializer usage')
         value = super().to_representation(instance)
-        if JobAccess(self.context['request'].user, instance.job).can_view():
+        if JobAccess(self.context['request'].user, instance.job).can_view:
             value['href'] = reverse('jobs:job', args=[instance.job_id])
         if len(value['comment']) > 50:
             value['display_comment'] = value['comment'][:47] + '...'

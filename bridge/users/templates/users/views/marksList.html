@@ -58,13 +58,7 @@
                     <input id="order_by_repnum__{{ view.type }}" type="radio" name="view_{{ view.type }}__radio_order" value="num_of_links"{% if view.order.1 == 'num_of_links' %} checked{% endif %}>
                     <label for="order_by_repnum__{{ view.type }}">{% trans 'Order by the number of associated leaf reports' %}</label>
                 </div>
-                {% if view.type == '7' %}
-                    <br>
-                    <div class="ui radio checkbox">
-                        <input id="order_by_similarity__{{ view.type }}" type="radio" name="view_{{ view.type }}__radio_order" value="total_similarity"{% if view.order.1 == 'total_similarity' %} checked{% endif %}>
-                        <label for="order_by_similarity__{{ view.type }}">{% trans 'Order by total similarity' %}</label>
-                    </div>
-                {% elif view.type == '9' %}
+                {% if view.type == '9' %}
                     <br>
                     <div class="ui radio checkbox">
                         <input id="order_by_component__{{ view.type }}" type="radio" name="view_{{ view.type }}__radio_order" value="component"{% if view.order.1 == 'component' %} checked{% endif %}>

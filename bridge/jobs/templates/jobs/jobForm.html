@@ -126,11 +126,11 @@
 
     <script type="application/javascript">
         jQuery(function () {
-            var job_id = "{{ object.id }}", versions_selector = $('#job_version_selector');
+            let job_id = "{{ object.id }}", versions_selector = $('#job_version_selector');
 
             versions_selector.dropdown();
 
-            var job_form = new JobForm(job_id, "{{ action }}"),
+            let job_form = new JobForm(job_id, "{{ action }}"),
                 roles_form = new UserRoleForm('user_roles_form'),
                 files_form = new FilesTree('filestree', 'editor_container');
 
@@ -167,7 +167,7 @@
             });
 
             function get_version_data() {
-                var version = versions_selector.children('option:selected').val();
+                let version = versions_selector.children('option:selected').val();
 
                 $.get('/jobs/api/job-version/{0}/{1}/'.format(job_id, version), {}, function (data) {
                     if (data.error) return err_notify(data.error);
@@ -193,7 +193,7 @@
             $('#confirm_save_job_btn').click(save_job);
 
             $('#save_job_btn').click(function () {
-                files_form.ready_for_save() ? save_job() : $('#file_not_commited_modal').modal('show');
+                files_form.not_commited() ? $('#file_not_commited_modal').modal('show') : save_job();
             });
 
             versions_selector.change(get_version_data);

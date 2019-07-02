@@ -46,10 +46,10 @@ COVERAGE_CLASSES = {
 
 def coverage_color(curr_cov, max_cov, delta=0):
     if curr_cov == 0:
-        return 'rgb(200, 190, 255)'
-    green = 140 + int(100 * (1 - curr_cov / max_cov))
-    blue = 140 + int(100 * (1 - curr_cov / max_cov)) - delta
-    return 'rgb(255, %s, %s)' % (green, blue)
+        return 'rgb(255, 200, 200)'
+    red = 130 + int(110 * (1 - curr_cov / max_cov))
+    blue = 130 + int(110 * (1 - curr_cov / max_cov)) - delta
+    return 'rgb(%s, 255, %s)' % (red, blue)
 
 
 class SourceLine:
@@ -273,7 +273,7 @@ class GetSource:
             coverage_data[line_num] = {
                 'value': cov_value,
                 'color': coverage_color(cov_value, max_cov, 40),
-                'icon': 'blue checkmark' if cov_value else 'red remove'
+                'icon': 'blue check' if cov_value else 'red remove'
             }
         return coverage_data
 

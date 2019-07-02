@@ -512,7 +512,7 @@ class UploadReport:
     def __create_verification_report(self, data):
         data['attr_data'] = self.__upload_attrs_files(self.__get_archive(data.get('attr_data')))
         data['log'] = self.__get_archive(data.get('log'))
-        data['verifier_input'] = self.__get_archive(data.pop('input files of static verifiers', None))
+        data['verifier_input'] = self.__get_archive(data.pop('verifier_input', None))
 
         serializer = ReportVerificationSerializer(data=data, fullweight=self._is_fullweight, reportroot=self.root)
         serializer.is_valid(raise_exception=True)

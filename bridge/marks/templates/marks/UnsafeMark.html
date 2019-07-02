@@ -39,8 +39,12 @@
                 <div class="ui inverted popup bottom left transition hidden">
                     <a href="{% url 'marks:unsafe-download' mark.pk %}" class="item">{% trans 'Download' %}</a>
                     <a href="{% url 'marks:unsafe-download-preset' mark.pk %}" class="item">{% trans 'Download in preset format' %}</a>
-                    <a href="{% url 'marks:unsafe-edit' mark.pk %}" class="item{% if not access.can_edit %} disabled{% endif %}">{% trans 'Edit' %}</a>
-                    <a id="remove_mark_modal_show" class="item{% if not access.can_delete %} disabled{% endif %}">{% trans 'Delete' %}</a>
+                    {% if access.can_edit %}
+                        <a href="{% url 'marks:unsafe-edit' mark.pk %}" class="item">{% trans 'Edit' %}</a>
+                    {% endif %}
+                    {% if access.can_delete %}
+                        <a id="remove_mark_modal_show" class="item">{% trans 'Delete' %}</a>
+                    {% endif %}
                 </div>
             </div>
             <table class="ui selectable compact inverted violet table attached">

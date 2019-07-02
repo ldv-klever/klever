@@ -154,7 +154,7 @@ class ReportComponentView(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, De
 
     def get_context_data(self, **kwargs):
         job = self.object.root.job
-        if not JobAccess(self.request.user, job).can_view():
+        if not JobAccess(self.request.user, job).can_view:
             raise BridgeException(code=400)
         if job.weight == JOB_WEIGHT[1][0]:
             raise BridgeException(_('Reports pages for lightweight jobs are closed'))
@@ -187,7 +187,7 @@ class ComponentLogView(LoginRequiredMixin, LoggedCallMixin, SingleObjectMixin, S
 
     def get_generator(self):
         instance = self.get_object()
-        if not JobAccess(self.request.user, instance.root.job).can_view():
+        if not JobAccess(self.request.user, instance.root.job).can_view:
             return BridgeErrorResponse(400)
         return ComponentLogGenerator(instance)
 
@@ -198,7 +198,7 @@ class ComponentLogContentView(LoggedCallMixin, JSONResponseMixin, DetailView):
 
     def get(self, *args, **kwargs):
         report = self.get_object()
-        if not JobAccess(self.request.user, report.root.job).can_view():
+        if not JobAccess(self.request.user, report.root.job).can_view:
             raise BridgeException(code=400)
         if not report.log:
             raise BridgeException(_("The component doesn't have log"))
@@ -216,7 +216,7 @@ class AttrDataFileView(LoginRequiredMixin, LoggedCallMixin, SingleObjectMixin, S
 
     def get_generator(self):
         instance = self.get_object()
-        if not JobAccess(self.request.user, instance.report.root.job).can_view():
+        if not JobAccess(self.request.user, instance.report.root.job).can_view:
             return BridgeErrorResponse(400)
         return AttrDataGenerator(instance)
 
@@ -226,7 +226,7 @@ class AttrDataContentView(LoggedCallMixin, JSONResponseMixin, DetailView):
 
     def get(self, *args, **kwargs):
         instance = self.get_object()
-        if not JobAccess(self.request.user, instance.report.root.job).can_view():
+        if not JobAccess(self.request.user, instance.report.root.job).can_view:
             raise BridgeException(code=400)
         if not instance.data:
             raise BridgeException(_("The attribute doesn't have data"))
@@ -244,7 +244,7 @@ class DownloadVerifierFiles(LoginRequiredMixin, LoggedCallMixin, SingleObjectMix
 
     def get_generator(self):
         instance = self.get_object()
-        if not JobAccess(self.request.user, instance.report.root.job).can_view():
+        if not JobAccess(self.request.user, instance.report.root.job).can_view:
             return BridgeErrorResponse(400)
         return VerifierFilesGenerator(instance)
 
@@ -262,7 +262,7 @@ class SafesListView(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, DetailVi
         self.object = self.get_object()
 
         # Check job access
-        if not JobAccess(self.request.user, self.object.root.job).can_view():
+        if not JobAccess(self.request.user, self.object.root.job).can_view:
             raise BridgeException(code=400)
 
         # Get safes data
@@ -292,7 +292,7 @@ class UnsafesListView(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, Detail
         self.object = self.get_object()
 
         # Check job access
-        if not JobAccess(self.request.user, self.object.root.job).can_view():
+        if not JobAccess(self.request.user, self.object.root.job).can_view:
             raise BridgeException(code=400)
 
         # Get unsafes data
@@ -322,7 +322,7 @@ class UnknownsListView(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, Detai
         self.object = self.get_object()
 
         # Check job access
-        if not JobAccess(self.request.user, self.object.root.job).can_view():
+        if not JobAccess(self.request.user, self.object.root.job).can_view:
             raise BridgeException(code=400)
 
         # Get unknowns data
@@ -344,7 +344,7 @@ class ReportSafeView(LoggedCallMixin, DataViewMixin, DetailView):
     model = ReportSafe
 
     def get_context_data(self, **kwargs):
-        if not JobAccess(self.request.user, self.object.root.job).can_view():
+        if not JobAccess(self.request.user, self.object.root.job).can_view:
             raise BridgeException(code=400)
 
         proof_content = None
@@ -370,7 +370,7 @@ class ReportUnsafeView(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, Detai
     slug_field = 'trace_id'
 
     def get_context_data(self, **kwargs):
-        if not JobAccess(self.request.user, self.object.root.job).can_view():
+        if not JobAccess(self.request.user, self.object.root.job).can_view:
             raise BridgeException(code=400)
         try:
             etv = GetETV(ArchiveFileContent(self.object, 'error_trace', ERROR_TRACE_FILE).content.decode('utf8'),
@@ -396,7 +396,7 @@ class ReportUnknownView(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, Deta
     model = ReportUnknown
 
     def get_context_data(self, **kwargs):
-        if not JobAccess(self.request.user, self.object.root.job).can_view():
+        if not JobAccess(self.request.user, self.object.root.job).can_view:
             raise BridgeException(code=400)
         context = super().get_context_data(**kwargs)
         context.update({
@@ -419,7 +419,7 @@ class FullscreenReportUnsafe(LoginRequiredMixin, LoggedCallMixin, DetailView):
     slug_field = 'trace_id'
 
     def get_context_data(self, **kwargs):
-        if not JobAccess(self.request.user, self.object.root.job).can_view():
+        if not JobAccess(self.request.user, self.object.root.job).can_view:
             raise BridgeException(code=400)
         return {'report': self.object, 'include_jquery_ui': True, 'etv': GetETV(
             ArchiveFileContent(self.object, 'error_trace', ERROR_TRACE_FILE).content.decode('utf8'),
@@ -444,8 +444,8 @@ class ReportsComparisonView(LoginRequiredMixin, LoggedCallMixin, TemplateView):
             root2 = ReportRoot.objects.get(job_id=self.kwargs['job2_id'])
         except ReportRoot.DoesNotExist:
             raise BridgeException(code=406)
-        if not JobAccess(self.request.user, job=root1.job).can_view()\
-                or not JobAccess(self.request.user, job=root2.job).can_view():
+        if not JobAccess(self.request.user, job=root1.job).can_view\
+                or not JobAccess(self.request.user, job=root2.job).can_view:
             raise BridgeException(code=401)
         return {
             'job1': root1.job, 'job2': root2.job,

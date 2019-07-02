@@ -56,9 +56,9 @@ class TaskAPIViewset(LoggedCallMixin, ModelViewSet):
         if self.request.method == 'GET':
             fields = self.request.query_params.getlist('fields')
         elif self.request.method == 'POST':
-            fields = {'job', 'file', 'description'}
+            fields = {'id', 'job', 'file', 'description'}
         elif self.request.method in {'PUT', 'PATCH'}:
-            fields = {'status', 'error'}
+            fields = {'id', 'status', 'error'}
         return super().get_serializer(*args, fields=fields, **kwargs)
 
     def filter_queryset(self, queryset):

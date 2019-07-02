@@ -21,10 +21,9 @@ from datetime import datetime
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Count, Case, When, IntegerField, F, BooleanField
 from django.urls import reverse
+from django.utils.functional import cached_property
 from django.utils.text import format_lazy
 from django.utils.translation import ugettext_lazy as _
-from django.utils.timezone import pytz
-from django.utils.functional import cached_property
 
 from bridge.vars import (
     JOB_STATUS, USER_ROLES, JOB_ROLES, JOB_WEIGHT, SAFE_VERDICTS, UNSAFE_VERDICTS, ASSOCIATION_TYPE, SUBJOB_NAME
@@ -33,7 +32,7 @@ from bridge.utils import BridgeException, file_get_or_create
 
 from users.models import User
 from jobs.models import Job, JobHistory, FileSystem, UserRole, JobFile
-from reports.models import ReportComponent, ReportSafe, ReportUnsafe, ReportUnknown, ReportAttr
+from reports.models import ReportRoot, ReportComponent, ReportSafe, ReportUnsafe, ReportUnknown, ReportAttr
 from marks.models import MarkSafeReport, MarkSafeTag, MarkUnsafeReport, MarkUnsafeTag, MarkUnknownReport
 from service.models import Decision
 
@@ -150,7 +149,7 @@ def get_job_parents(user, job):
     parent_set.reverse()
     parents = []
     for parent in parent_set:
-        if JobAccess(user, parent).can_view():
+        if JobAccess(user, parent).can_view:
             job_id = parent.pk
         else:
             job_id = None
@@ -161,7 +160,7 @@ def get_job_parents(user, job):
 def get_job_children(user, job):
     children = []
     for child in job.children.order_by('name'):
-        if JobAccess(user, child).can_view():
+        if JobAccess(user, child).can_view:
             children.append({'pk': child.pk, 'name': child.name})
     return children
 
@@ -176,6 +175,12 @@ class JobAccess:
         self._is_service = (self.user.role == USER_ROLES[4][0])
 
     @cached_property
+    def _root(self):
+        if self.job is None:
+            return False
+        return ReportRoot.objects.filter(job=self.job).select_related('user').first()
+
+    @cached_property
     def _job_role(self):
         if self.job is None:
             return None
@@ -185,13 +190,7 @@ class JobAccess:
 
     @cached_property
     def _is_operator(self):
-        if self.job is None:
-            return False
-        try:
-            return self.user == self.job.reportroot.user
-        except ObjectDoesNotExist:
-            pass
-        return False
+        return self._root and self._root.user == self.user
 
     @cached_property
     def _is_finished(self):
@@ -222,34 +221,38 @@ class JobAccess:
         jobs_ids = self.can_view_jobs(queryset)
         return len(jobs_ids) == len(queryset)
 
-    def klever_core_access(self):
-        return self.job is not None and (self._is_manager or self._is_service)
-
+    @cached_property
     def can_decide(self):
         return self._is_finished and (self._is_manager or self._is_author or
                                       self._job_role in {JOB_ROLES[3][0], JOB_ROLES[4][0]})
 
     def can_upload_reports(self):
-        return self.can_decide()
+        return self.can_decide
 
+    @cached_property
     def can_view(self):
         if self.job is None:
             return False
         return self._is_manager or self._is_author or self._is_expert or self._job_role != JOB_ROLES[0][0]
 
+    @cached_property
     def can_create(self):
         return self.user.role not in {USER_ROLES[0][0], USER_ROLES[4][0]}
 
+    @cached_property
     def can_edit(self):
         return self._is_finished and (self._is_author or self._is_manager)
 
+    @cached_property
     def can_stop(self):
         return self.job is not None and self.job.status in {JOB_STATUS[1][0], JOB_STATUS[2][0]} \
                and (self._is_operator or self._is_manager)
 
+    @cached_property
     def can_download(self):
-        return self._is_finished and self.can_view()
+        return self._is_finished and self.can_view
 
+    @cached_property
     def can_delete(self):
         if self.job is None:
             return False
@@ -259,20 +262,25 @@ class JobAccess:
                 return False
         return True
 
+    @cached_property
     def can_collapse(self):
         return self._is_finished and (self._is_author or self._is_manager) \
                and self.job.weight == JOB_WEIGHT[0][0] \
                and ReportComponent.objects.filter(component=SUBJOB_NAME).count() == 0
 
-    def can_clear_verifications(self):
-        queryset = ReportComponent.objects\
-            .filter(root=self.job.reportroot, verification=True).exclude(verifier_input='')
-        return self._is_finished and (self._is_author or self._is_manager) and queryset.exists()
+    @cached_property
+    def _has_verifier_input(self):
+        if not self._root:
+            return False
+        return ReportComponent.objects.filter(root=self._root, verification=True).exclude(verifier_input='').exists()
 
-    def can_dfc(self):
-        return self.job is not None and self.job.status not in {
-            JOB_STATUS[0][0], JOB_STATUS[1][0], JOB_STATUS[2][0], JOB_STATUS[6][0]
-        }
+    @cached_property
+    def can_clear_verifications(self):
+        return self._is_finished and (self._is_author or self._is_manager) and self._has_verifier_input
+
+    @cached_property
+    def can_download_verifier_input(self):
+        return self._is_finished and self._has_verifier_input
 
 
 def get_job_by_identifier(identifier):

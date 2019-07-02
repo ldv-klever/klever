@@ -201,8 +201,7 @@ class UpdateUnsafeCachesOnMarkChange:
             old_data[cache_obj.report_id] = {
                 'job_id': cache_obj.job_id,
                 'verdict': cache_obj.verdict,
-                'tags': cache_obj.tags,
-                'total_similarity': cache_obj.total_similarity
+                'tags': cache_obj.tags
             }
         return old_data
 
@@ -215,20 +214,12 @@ class UpdateUnsafeCachesOnMarkChange:
             self._new_data[cache_obj.report_id]['tags'] = {}
             self._new_data[cache_obj.report_id]['marks_total'] = 0
             self._new_data[cache_obj.report_id]['marks_confirmed'] = 0
-            self._new_data[cache_obj.report_id]['total_similarity'] = 0
 
-        result_sum = {}
         for mr in self._markreport_qs:
-            result_sum.setdefault(mr.report_id, 0)
-            result_sum[mr.report_id] += mr.result
-
             self.__add_verdict(mr.report_id, mr.mark.verdict)
             self.__add_tags(mr.report_id, mr.mark.cache_tags)
             self._new_data[mr.report_id]['marks_total'] += 1
             self._new_data[mr.report_id]['marks_confirmed'] += int(mr.type == ASSOCIATION_TYPE[1][0])
-
-        for r_id in result_sum:
-            self._new_data[r_id]['total_similarity'] = result_sum[r_id] / self._new_data[r_id]['marks_total']
 
         self._collected.add('verdicts')
         self._collected.add('tags')
@@ -301,15 +292,12 @@ class UpdateUnsafeCachesOnMarkChange:
             verdict_new = self._new_data[report_id].get('verdict', verdict_old)
             tags_old = self._old_data[report_id]['tags']
             tags_new = self._new_data[report_id].get('tags', tags_old)
-            sim_old = self._old_data[report_id]['total_similarity']
-            sim_new = self._new_data[report_id].get('total_similarity', sim_old)
             changes_objects.append(UnsafeMarkAssociationChanges(
                 identifier=identifier, mark=self._mark,
                 job_id=self._old_data[report_id]['job_id'], report_id=report_id,
                 kind=self._change_kinds[report_id],
                 verdict_old=verdict_old, verdict_new=verdict_new,
-                tags_old=tags_old, tags_new=tags_new,
-                total_similarity_old=sim_old, total_similarity_new=sim_new
+                tags_old=tags_old, tags_new=tags_new
             ))
         UnsafeMarkAssociationChanges.objects.bulk_create(changes_objects)
         return str(identifier)
@@ -422,16 +410,9 @@ class UpdateCachesOnMarkPopulate:
 
     @transaction.atomic
     def __update_unsafes(self):
-        new_results = dict(MarkUnsafeReport.objects.filter(mark=self._mark).values_list('report_id', 'result'))
-
         for cache_obj in ReportUnsafeCache.objects.filter(report_id__in=self._new_links):
-            new_sim_sum = cache_obj.total_similarity * cache_obj.marks_total + new_results[cache_obj.report_id]
-            new_marks_total = cache_obj.marks_total + 1
-            total_similarity = new_sim_sum / new_marks_total
-
             # Populated mark can't be confirmed, so we don't need to update confirmed number
-            cache_obj.marks_total = new_marks_total
-            cache_obj.total_similarity = total_similarity
+            cache_obj.marks_total += 1
             cache_obj.verdict = self.__sum_unsafe_verdict(cache_obj.verdict)
             cache_obj.tags = self.__sum_tags(cache_obj.tags)
             cache_obj.save()
@@ -531,25 +512,21 @@ class UpdateCachesOnMarksDelete:
             new_data[cache_obj.report_id] = {
                 'marks_total': 0,
                 'marks_confirmed': 0,
-                'total_similarity': 0,
                 'tags': {},
                 'verdict': UNSAFE_VERDICTS[5][0]
             }
 
         reports_data = {}
         for mark_report in markreport_qs:
-            reports_data.setdefault(mark_report.report_id, {
-                'tags': [], 'verdicts': set(), 'res_sum': 0
-            })
+            reports_data.setdefault(mark_report.report_id, {'tags': [], 'verdicts': set()})
             reports_data[mark_report.report_id]['tags'] += mark_report.mark.cache_tags
             reports_data[mark_report.report_id]['verdicts'].add(mark_report.mark.verdict)
-            reports_data[mark_report.report_id]['res_sum'] += mark_report.result
 
             new_data[mark_report.report_id]['marks_total'] += 1
             if mark_report.type == ASSOCIATION_TYPE[1][0]:
                 new_data[mark_report.report_id]['marks_confirmed'] += 1
 
-        # Calculate total verdict, tags cache and total similarity
+        # Calculate total verdict and tags cache
         for r_id in reports_data:
             if len(reports_data[r_id]['verdicts']) == 1:
                 new_data[r_id]['verdict'] = reports_data[r_id]['verdicts'].pop()
@@ -557,9 +534,6 @@ class UpdateCachesOnMarksDelete:
                 new_data[r_id]['verdict'] = UNSAFE_VERDICTS[4][0]
 
             new_data[r_id]['tags'] = dict(Counter(reports_data[r_id]['tags']))
-
-            # If r_id in reports data then there is at least one mark association, so marks_total > 0
-            new_data[r_id]['total_similarity'] = reports_data[r_id]['res_sum'] / new_data[r_id]['marks_total']
 
         update_cache_atomic(cache_queryset, new_data)
 
@@ -607,27 +581,20 @@ class UpdateReportCache:
         cache_obj = ReportUnsafeCache.objects.get(report=self._report)
         cache_obj.marks_total = 0
         cache_obj.marks_confirmed = 0
-        cache_obj.total_similarity = 0
 
         verdicts = set()
         tags_list = []
-        similarity_sum = 0
-        for verdict, ass_type, cache_tags, result in MarkUnsafeReport.objects\
+        for verdict, ass_type, cache_tags in MarkUnsafeReport.objects\
                 .filter(report=self._report, result__gt=0).exclude(type=ASSOCIATION_TYPE[2][0])\
-                .values_list('mark__verdict', 'type', 'mark__cache_tags', 'result'):
+                .values_list('mark__verdict', 'type', 'mark__cache_tags'):
             verdicts.add(verdict)
             tags_list += cache_tags
-            similarity_sum += result
 
             cache_obj.marks_total += 1
             cache_obj.marks_confirmed += int(ass_type == ASSOCIATION_TYPE[1][0])
 
         # Calculate tags
         cache_obj.tags = dict(Counter(tags_list))
-
-        # Calculate total similarity
-        if cache_obj.marks_total > 0:
-            cache_obj = similarity_sum / cache_obj.marks_total
 
         # Set total verdict
         if len(verdicts) == 0:
@@ -730,26 +697,17 @@ class RecalculateUnsafeCache:
             new_data[cache_obj.report_id] = {
                 'marks_total': 0,
                 'marks_confirmed': 0,
-                'total_similarity': 0,
                 'tags': {},
                 'verdict': UNSAFE_VERDICTS[5][0]
             }
         return new_data
 
     def __update_cache(self):
-        result_sum = {}
         for mr in self._markreport_qs:
-            result_sum.setdefault(mr.report_id, 0)
-            result_sum[mr.report_id] += mr.result
-
             self.__add_verdict(mr.report_id, mr.mark.verdict)
             self.__add_tags(mr.report_id, mr.mark.cache_tags)
             self._new_data[mr.report_id]['marks_total'] += 1
             self._new_data[mr.report_id]['marks_confirmed'] += int(mr.type == ASSOCIATION_TYPE[1][0])
-
-        for r_id in result_sum:
-            # if r_id in result_sum then marks_total > 0
-            self._new_data[r_id]['total_similarity'] = result_sum[r_id] / self._new_data[r_id]['marks_total']
 
         update_cache_atomic(self._cache_queryset, self._new_data)
 

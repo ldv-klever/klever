@@ -24,8 +24,8 @@ from django.views.generic import DetailView
 from django.views.generic.base import TemplateView
 from django.views.generic.detail import SingleObjectMixin
 
-from bridge.vars import VIEW_TYPES
-from bridge.utils import BridgeException
+from bridge.vars import VIEW_TYPES, PROBLEM_DESC_FILE
+from bridge.utils import BridgeException, ArchiveFileContent
 from bridge.CustomViews import DataViewMixin, StreamingResponseView, JSONResponseMixin
 from tools.profiling import LoggedCallMixin
 
@@ -180,9 +180,10 @@ class UnknownMarkCreateView(MarkCreateViewBase):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        with self.object.problem_description.file as fp:
-            # Add problem description for unknown mark creation
-            context['problem_description'] = fp.read().decode('utf-8')
+        # Add problem description for unknown mark creation
+        context['problem_description'] = ArchiveFileContent(
+            self.object, 'problem_description', PROBLEM_DESC_FILE
+        ).content.decode('utf8')
         return context
 
 

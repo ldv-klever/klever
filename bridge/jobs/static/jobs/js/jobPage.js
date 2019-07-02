@@ -149,19 +149,12 @@ function collapse_reports() {
 
 function clear_verification_files(btn) {
     $('#dimmer_of_page').addClass('active');
-    $.ajax({url: btn.data('url'), success: reload_page});
+    $.ajax({url: btn.data('url'), method: 'DELETE', success: reload_page});
 }
 
 $(document).ready(function () {
     $('.ui.dropdown').dropdown();
     $('#resources-note').popup();
-    $('.menu-link').click(function (event) {
-        if ($(this).hasClass('disabled')) {
-            event.preventDefault();
-            return false;
-        }
-        return true;
-    });
 
     activate_download_for_compet();
     activate_run_history();

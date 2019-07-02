@@ -70,7 +70,7 @@ class JobPage(LoginRequiredMixin, LoggedCallMixin, Bview.DataViewMixin, DetailVi
 
         # Check view access
         context['job_access'] = JobAccess(self.request.user, self.object)
-        if not context['job_access'].can_view():
+        if not context['job_access'].can_view:
             raise PermissionDenied(ERRORS[400])
 
         # Job data
@@ -110,7 +110,7 @@ class JobsFilesComparison(LoginRequiredMixin, LoggedCallMixin, TemplateView):
             job2 = Job.objects.get(id=self.kwargs['job2_id'])
         except ObjectDoesNotExist:
             raise BridgeException(code=405)
-        if not JobAccess(self.request.user, job1).can_view() or not JobAccess(self.request.user, job2).can_view():
+        if not JobAccess(self.request.user, job1).can_view or not JobAccess(self.request.user, job2).can_view:
             raise BridgeException(code=401)
         return {'job1': job1, 'job2': job2, 'data': CompareFileSet(job1, job2).data}
 
@@ -120,7 +120,7 @@ class JobFormPage(LoginRequiredMixin, LoggedCallMixin, DetailView):
     template_name = 'jobs/jobForm.html'
 
     def get_context_data(self, **kwargs):
-        if not JobAccess(self.request.user, self.object).can_view():
+        if not JobAccess(self.request.user, self.object).can_view:
             raise BridgeException(code=400)
         context = super().get_context_data(**kwargs)
         context.update(JobFormSerializerRO(instance=self.object).data)
@@ -145,7 +145,7 @@ class DownloadFilesForCompetition(LoginRequiredMixin, LoggedCallMixin, SingleObj
 
     def get_generator(self):
         instance = self.get_object()
-        if not JobAccess(self.request.user, instance).can_dfc():
+        if not JobAccess(self.request.user, instance).can_download_verifier_input:
             raise BridgeException(code=400)
         if 'filters' not in self.request.GET:
             raise BridgeException()
@@ -157,7 +157,7 @@ class DownloadJobView(LoginRequiredMixin, LoggedCallMixin, SingleObjectMixin, Bv
 
     def get_generator(self):
         instance = self.get_object()
-        if not JobAccess(self.request.user, instance).can_download():
+        if not JobAccess(self.request.user, instance).can_download:
             raise BridgeException(code=400)
         return JobArchiveGenerator(instance)
 
@@ -206,6 +206,6 @@ class DownloadRunConfigurationView(LoginRequiredMixin, LoggedCallMixin, SingleOb
 
     def get_generator(self):
         instance = self.get_object()
-        if not JobAccess(self.request.user, instance.job).can_view():
+        if not JobAccess(self.request.user, instance.job).can_view:
             raise BridgeException(code=400)
         return JobConfGenerator(instance)

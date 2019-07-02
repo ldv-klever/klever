@@ -79,6 +79,10 @@ class MarkAccess:
         return self._user_valid and self.user.role == USER_ROLES[2][0]
 
     @cached_property
+    def _is_author(self):
+        return self._mark_valid and self._user_valid and self.mark.author == self.user
+
+    @cached_property
     def _is_expert(self):
         return self._user_valid and self.user.role == USER_ROLES[3][0]
 
@@ -117,8 +121,8 @@ class MarkAccess:
     def can_edit(self):
         if not self._mark_valid or not self._user_valid:
             return False
-        if self._is_manager:
-            # Only managers can modify non-modifiable marks
+        if self._is_manager or self._is_author:
+            # Only managers and authors can modify non-modifiable marks
             return True
         if not self.mark.is_modifiable:
             return False
@@ -158,7 +162,12 @@ class MarkAccess:
 
     @property
     def can_freeze(self):
-        return self._is_manager
+        if self._is_manager:
+            return True
+        if self.mark:
+            return self.mark.author == self.user
+        # On creation stage all users can freeze their marks
+        return True
 
     def can_remove_version(self, mark_version):
         if not self._user_valid or not self._mark_valid:
