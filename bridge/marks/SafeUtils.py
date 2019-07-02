@@ -73,13 +73,6 @@ def perform_safe_mark_update(user, serializer):
     return cache_upd.save()
 
 
-def recalculate_safe_associations(roots):
-    MarkSafeReport.objects.filter(report__root__in=roots).delete()
-    for mark in MarkSafe.objects.all():
-        ConnectSafeMark(mark)
-    RecalculateSafeCache(roots=roots)
-
-
 def remove_safe_marks(**kwargs):
     queryset = MarkSafe.objects.filter(**kwargs)
     if not queryset.count():
@@ -96,8 +89,15 @@ def confirm_safe_mark(user, mark_report):
     was_unconfirmed = (mark_report.type == ASSOCIATION_TYPE[2][0])
     mark_report.author = user
     mark_report.type = ASSOCIATION_TYPE[1][0]
+    mark_report.associated = True
     mark_report.save()
-    if was_unconfirmed:
+
+    # Do not count automatic associations as there is already confirmed one
+    change_num = MarkSafeReport.objects.filter(
+        report_id=mark_report.report_id, associated=True, type=ASSOCIATION_TYPE[0][0]
+    ).update(associated=False)
+
+    if was_unconfirmed or change_num:
         RecalculateSafeCache(reports=[mark_report.report_id])
     else:
         cache_obj = ReportSafeCache.objects.get(report_id=mark_report.report_id)
@@ -108,9 +108,19 @@ def confirm_safe_mark(user, mark_report):
 def unconfirm_safe_mark(user, mark_report):
     if mark_report.type == ASSOCIATION_TYPE[2][0]:
         return
+    was_confirmed = bool(mark_report.type == ASSOCIATION_TYPE[1][0])
     mark_report.author = user
     mark_report.type = ASSOCIATION_TYPE[2][0]
+    mark_report.associated = False
     mark_report.save()
+
+    if was_confirmed and not MarkSafeReport.objects\
+            .filter(report_id=mark_report.report_id, type=ASSOCIATION_TYPE[1][0]).exists():
+        # The report has lost the only confirmed mark,
+        # so we need recalculate what associations we need to count for caches
+        MarkSafeReport.objects.filter(report_id=mark_report.report_id)\
+            .exclude(type=ASSOCIATION_TYPE[2][0]).update(associated=True)
+
     RecalculateSafeCache(reports=[mark_report.report_id])
 
 
@@ -133,13 +143,18 @@ class ConnectSafeMark:
 
         new_links = set()
         associations = []
-        for report in ReportSafe.objects.filter(cache__attrs__contains=self._mark.cache_attrs).only('id'):
-            association_type = ASSOCIATION_TYPE[0][0]
+        for report in ReportSafe.objects.filter(cache__attrs__contains=self._mark.cache_attrs)\
+                .select_related('cache').only('id', 'cache__marks_confirmed'):
+            new_association = MarkSafeReport(
+                mark=self._mark, report_id=report.id, author=author,
+                type=ASSOCIATION_TYPE[0][0], associated=True
+            )
             if prime_id and report.id == prime_id:
-                association_type = ASSOCIATION_TYPE[1][0]
-            associations.append(MarkSafeReport(
-                mark=self._mark, report_id=report.id, author=author, type=association_type
-            ))
+                new_association.type = ASSOCIATION_TYPE[1][0]
+            elif report.cache.marks_confirmed:
+                # Do not count automatic associations if report has confirmed ones
+                new_association.associated = False
+            associations.append(new_association)
             new_links.add(report.id)
         MarkSafeReport.objects.bulk_create(associations)
         return new_links
@@ -154,7 +169,7 @@ class ConnectSafeReport:
     def __connect(self):
         marks_qs = MarkSafe.objects.filter(cache_attrs__contained_by=self._report.cache.attrs)
         MarkSafeReport.objects.bulk_create(list(
-            MarkSafeReport(mark_id=m_id, report=self._report)
+            MarkSafeReport(mark_id=m_id, report=self._report, associated=True)
             for m_id in marks_qs.values_list('id', flat=True)
         ))
         RecalculateSafeCache(reports=[self._report.id])

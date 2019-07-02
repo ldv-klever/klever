@@ -88,16 +88,18 @@ class TagsTree:
 
         data = {}
         for tag in tags_qs.select_related('author').order_by('id'):
-            if tag.parent_id and tag.parent_id not in data:
-                logger.error('Tag {} does not have parent'.format(tag.name))
-                continue
             data[tag.pk] = {
                 'object': tag,
                 'parent': tag.parent_id,
                 'children': []
             }
-            if tag.parent_id:
-                data[tag.parent_id]['children'].append(tag.pk)
+        for t_id in data:
+            if not data[t_id]['parent']:
+                continue
+            if data[t_id]['parent'] not in data:
+                logger.error('Tag {} does not have parent'.format(data[t_id]['object'].name))
+                continue
+            data[data[t_id]['parent']]['children'].append(data[t_id]['object'].id)
         return data
 
     def __fill_matrix(self):

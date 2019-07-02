@@ -261,9 +261,13 @@ class UnsafeMarkVersionSerializer(WithTagsMixin, serializers.ModelSerializer):
     autoconfirm = fields.BooleanField(default=False)
     attrs = fields.ListField(child=UnsafeMarkAttrSerializer(), allow_empty=True, write_only=True)
     error_trace = fields.CharField(write_only=True, required=False)
+    threshold = fields.IntegerField(min_value=0, max_value=100, write_only=True, default=0)
 
     def validate_tags(self, tags):
         return self.get_tags_ids(tags, UnsafeTag.objects.all())
+
+    def validate_threshold(self, value):
+        return value / 100
 
     def __validate_error_trace(self, err_trace_str, compare_func):
         convert_func = COMPARE_FUNCTIONS[compare_func]['convert']
@@ -306,18 +310,23 @@ class UnsafeMarkVersionSerializer(WithTagsMixin, serializers.ModelSerializer):
                 res['error_trace'] = json.loads(fp.read().decode('utf-8'))
             res['attrs'] = UnsafeMarkAttrSerializer(instance=instance.attrs.order_by('id'), many=True).data
             res['tags'] = list(instance.tags.values_list('tag__name', flat=True))
+            res['threshold'] = instance.threshold_percentage
         return res
 
     class Meta:
         model = MarkUnsafeHistory
         fields = (
             'status', 'change_date', 'comment', 'description', 'verdict', 'tags',
-            'autoconfirm', 'attrs', 'function', 'error_trace'
+            'autoconfirm', 'attrs', 'function', 'error_trace', 'threshold'
         )
 
 
 class UnsafeMarkSerializer(DynamicFieldsModelSerializer):
     mark_version = UnsafeMarkVersionSerializer(write_only=True)
+    threshold = fields.IntegerField(min_value=0, max_value=100, write_only=True, default=0)
+
+    def validate_threshold(self, value):
+        return value / 100
 
     def create(self, validated_data):
         # Save kwargs:
@@ -364,11 +373,12 @@ class UnsafeMarkSerializer(DynamicFieldsModelSerializer):
         if isinstance(instance, MarkUnsafe):
             last_version = MarkUnsafeHistory.objects.get(mark=instance, version=instance.version)
             value['mark_version'] = UnsafeMarkVersionSerializer(instance=last_version).data
+            value['threshold'] = instance.threshold_percentage
         return value
 
     class Meta:
         model = MarkUnsafe
-        fields = ('identifier', 'format', 'is_modifiable', 'verdict', 'mark_version', 'function')
+        fields = ('identifier', 'format', 'is_modifiable', 'verdict', 'mark_version', 'function', 'threshold')
 
 
 class UnknownMarkVersionSerializer(serializers.ModelSerializer):

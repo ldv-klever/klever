@@ -74,13 +74,6 @@ def perform_unknown_mark_update(user, serializer):
     return cache_upd.save()
 
 
-def recalculate_unknown_associations(roots):
-    MarkUnknownReport.objects.filter(report__root__in=roots).delete()
-    for mark in MarkUnknown.objects.all():
-        ConnectUnknownMark(mark)
-    RecalculateUnknownCache(roots=roots)
-
-
 def remove_unknown_marks(**kwargs):
     queryset = MarkUnknown.objects.filter(**kwargs)
     if not queryset.count():
@@ -97,8 +90,15 @@ def confirm_unknown_mark(user, mark_report):
     was_unconfirmed = (mark_report.type == ASSOCIATION_TYPE[2][0])
     mark_report.author = user
     mark_report.type = ASSOCIATION_TYPE[1][0]
+    mark_report.associated = True
     mark_report.save()
-    if was_unconfirmed:
+
+    # Do not count automatic associations as there is already confirmed one
+    change_num = MarkUnknownReport.objects.filter(
+        report_id=mark_report.report_id, associated=True, type=ASSOCIATION_TYPE[0][0]
+    ).update(associated=False)
+
+    if was_unconfirmed or change_num:
         RecalculateUnknownCache(reports=[mark_report.report_id])
     else:
         cache_obj = ReportUnknownCache.objects.get(report_id=mark_report.report_id)
@@ -109,9 +109,19 @@ def confirm_unknown_mark(user, mark_report):
 def unconfirm_unknown_mark(user, mark_report):
     if mark_report.type == ASSOCIATION_TYPE[2][0]:
         return
+    was_confirmed = bool(mark_report.type == ASSOCIATION_TYPE[1][0])
     mark_report.author = user
     mark_report.type = ASSOCIATION_TYPE[2][0]
+    mark_report.associated = False
     mark_report.save()
+
+    if was_confirmed and not MarkUnknownReport.objects\
+            .filter(report_id=mark_report.report_id, type=ASSOCIATION_TYPE[1][0]).exists():
+        # The report has lost the only confirmed mark,
+        # so we need recalculate what associations we need to count for caches
+        MarkUnknownReport.objects.filter(report_id=mark_report.report_id)\
+            .exclude(type=ASSOCIATION_TYPE[2][0]).update(associated=True)
+
     RecalculateUnknownCache(reports=[mark_report.report_id])
 
 
@@ -176,24 +186,28 @@ class ConnectUnknownMark:
 
         new_links = set()
         associations = []
-        for report in ReportUnknown.objects.filter(cache__attrs__contains=self._mark.cache_attrs).only('id'):
-            association_type = ASSOCIATION_TYPE[0][0]
-            if prime_id and report.id == prime_id:
-                association_type = ASSOCIATION_TYPE[1][0]
+        for report in ReportUnknown.objects.filter(cache__attrs__contains=self._mark.cache_attrs)\
+                .select_related('cache').only('id', 'problem_description', 'cache__marks_confirmed'):
             unknown_desc = self.__get_unknown_desc(report)
             if not unknown_desc:
                 continue
             problem = MatchUnknown(
                 unknown_desc, self._mark.function,
-                self._mark.problem_pattern,
-                self._mark.is_regexp
+                self._mark.problem_pattern, self._mark.is_regexp
             ).problem
             if not problem:
                 continue
-            associations.append(MarkUnknownReport(
+
+            new_association = MarkUnknownReport(
                 mark=self._mark, report_id=report.id, author=author,
-                type=association_type, problem=problem
-            ))
+                type=ASSOCIATION_TYPE[0][0], problem=problem, associated=True
+            )
+            if prime_id and report.id == prime_id:
+                new_association.type = ASSOCIATION_TYPE[1][0]
+            elif report.cache.marks_confirmed:
+                # Do not count automatic associations if report has confirmed ones
+                new_association.associated = False
+            associations.append(new_association)
             new_links.add(report.id)
         MarkUnknownReport.objects.bulk_create(associations)
         return new_links
@@ -220,7 +234,9 @@ class ConnectUnknownReport:
             problem = MatchUnknown(self._unknown_desc, mark.function, mark.problem_pattern, mark.is_regexp).problem
             if not problem:
                 continue
-            new_markreports.append(MarkUnknownReport(mark_id=mark.id, report=self._report, problem=problem))
+            new_markreports.append(MarkUnknownReport(
+                mark_id=mark.id, report=self._report, problem=problem, associated=True
+            ))
         MarkUnknownReport.objects.bulk_create(new_markreports)
         RecalculateUnknownCache(reports=[self._report.id])
 

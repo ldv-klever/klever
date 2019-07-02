@@ -27,7 +27,6 @@ from django.utils.functional import cached_property
 from bridge.vars import DATAFORMAT
 
 from users.models import DataView, PreferableView, User
-from jobs.models import JobHistory
 
 
 DEF_NUMBER_OF_ELEMENTS = 18
@@ -139,7 +138,7 @@ UNKNOWNS_VIEW = {
 
 UNSAFE_MARKS_VIEW = {
     'elements': [DEF_NUMBER_OF_ELEMENTS],
-    'columns': ['num_of_links', 'verdict', 'tags', 'status', 'author', 'format'],
+    'columns': ['num_of_links', 'verdict', 'threshold', 'tags', 'status', 'author', 'format'],
     # order: [up|down, change_date|num_of_links|attr, <any text, empty if not attr>]
     'order': ['up', 'change_date', ''],
 

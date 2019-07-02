@@ -395,3 +395,9 @@ class MarkVersionFormData:
             return
         with self.object.error_trace.file.file as fp:
             return fp.read().decode('utf-8')
+
+    @cached_property
+    def threshold(self):
+        if not self.object or self.type != 'unsafe':
+            return
+        return self.object.threshold_percentage

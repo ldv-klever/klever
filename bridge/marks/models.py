@@ -115,6 +115,7 @@ class MarkSafeReport(models.Model):
     report = models.ForeignKey(ReportSafe, models.CASCADE, related_name='markreport_set')
     type = models.CharField(max_length=1, choices=ASSOCIATION_TYPE, default=ASSOCIATION_TYPE[0][0])
     author = models.ForeignKey(User, models.SET_NULL, null=True)
+    associated = models.BooleanField(default=True)
 
     class Meta:
         db_table = "cache_mark_safe_report"
@@ -135,6 +136,11 @@ class MarkUnsafe(Mark):
     error_trace = models.ForeignKey(ConvertedTrace, models.CASCADE)
     verdict = models.CharField(max_length=1, choices=MARK_UNSAFE)
     cache_tags = ArrayField(models.CharField(max_length=MAX_TAG_LEN), default=list)
+    threshold = models.FloatField(default=0)
+
+    @property
+    def threshold_percentage(self):
+        return round(self.threshold * 100)
 
     class Meta:
         db_table = 'mark_unsafe'
@@ -146,6 +152,11 @@ class MarkUnsafeHistory(MarkHistory):
     function = models.CharField(max_length=30, db_index=True)
     verdict = models.CharField(max_length=1, choices=MARK_UNSAFE)
     error_trace = models.ForeignKey(ConvertedTrace, models.CASCADE)
+    threshold = models.FloatField(default=0)
+
+    @property
+    def threshold_percentage(self):
+        return round(self.threshold * 100)
 
     class Meta:
         db_table = 'mark_unsafe_history'
@@ -168,6 +179,7 @@ class MarkUnsafeReport(models.Model):
     result = models.FloatField()
     error = models.TextField(null=True)
     author = models.ForeignKey(User, models.SET_NULL, null=True)
+    associated = models.BooleanField(default=True)
 
     class Meta:
         db_table = "cache_mark_unsafe_report"
@@ -273,6 +285,7 @@ class MarkUnknownReport(models.Model):
     problem = models.CharField(max_length=MAX_PROBLEM_LEN, db_index=True)
     type = models.CharField(max_length=1, choices=ASSOCIATION_TYPE, default=ASSOCIATION_TYPE[0][0])
     author = models.ForeignKey(User, models.SET_NULL, null=True)
+    associated = models.BooleanField(default=True)
 
     class Meta:
         db_table = 'cache_mark_unknown_report'

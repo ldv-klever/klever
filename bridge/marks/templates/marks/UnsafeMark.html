@@ -87,6 +87,10 @@
                         <th class="right aligned">{% trans 'Verdict' %}</th>
                         <td><span class="with-shadow unsafe-verdict-{{ mark.verdict }}">{{ mark.get_verdict_display }}</span></td>
                     </tr>
+                    <tr>
+                        <th class="right aligned">{% trans 'Association threshold' %}</th>
+                        <td><span class="with-shadow">{{ mark.threshold_percentage }}%</span></td>
+                    </tr>
                     {% if mark_version.description %}
                         <tr>
                             <th class="right aligned">{% trans 'Description' %}</th>

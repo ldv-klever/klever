@@ -25,7 +25,7 @@ from django.db.models import Count
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 
-from bridge.vars import COMPARE_VERDICT, JOB_WEIGHT, ASSOCIATION_TYPE
+from bridge.vars import COMPARE_VERDICT, JOB_WEIGHT
 from bridge.utils import BridgeException
 
 from reports.models import (
@@ -446,18 +446,15 @@ class ComparisonTree:
         # Create new leaf block with marks children
         if isinstance(report, ReportSafe):
             new_block = SafeBlock(report)
-            mr_qs = MarkSafeReport.objects.filter(report=report).select_related('mark')
+            mr_qs = MarkSafeReport.objects.filter(report=report, associated=True).select_related('mark')
             children = list(SafeMarkBlock(mr) for mr in mr_qs)
         elif isinstance(report, ReportUnsafe):
             new_block = UnsafeBlock(report)
-            mr_qs = MarkUnsafeReport.objects.filter(
-                report=report, result__gt=0,
-                type__in=[ASSOCIATION_TYPE[0][0], ASSOCIATION_TYPE[1][0]]
-            ).select_related('mark')
+            mr_qs = MarkUnsafeReport.objects.filter(report=report, associated=True).select_related('mark')
             children = list(UnsafeMarkBlock(mr) for mr in mr_qs)
         else:
             new_block = UnknownBlock(report)
-            mr_qs = MarkUnknownReport.objects.filter(report=report)
+            mr_qs = MarkUnknownReport.objects.filter(report=report, associated=True)
             children = list(UnknownMarkBlock(mr) for mr in mr_qs)
 
         # Link new block with parent and children

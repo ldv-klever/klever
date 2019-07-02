@@ -138,7 +138,8 @@ class UnsafeMarkGenerator(MarkGeneratorBase):
         data.update({
             'verdict': version.verdict,
             'function': version.function,
-            'error_trace': error_trace
+            'error_trace': error_trace,
+            'threshold': version.threshold_percentage
         })
         return data
 
@@ -173,13 +174,17 @@ class PresetMarkFile(FileWrapper):
         self.size = len(content)
         super().__init__(io.BytesIO(content), 8192)
 
+    @cached_property
+    def last_version(self):
+        return self.mark.versions.filter(version=self.mark.version).first()
+
     def get_data(self):
         return {
-            'status': self.mark.status, 'is_modifiable': self.mark.is_modifiable,
-            'description': self.mark.description,
-            'attrs': list(self.attrs_model.objects.filter(
-                mark_version__mark=self.mark, mark_version__version=self.mark.version
-            ).order_by('id').values('name', 'value', 'is_compare'))
+            'status': self.last_version.status,
+            'is_modifiable': self.mark.is_modifiable,
+            'description': self.last_version.description,
+            'attrs': list(self.attrs_model.objects.filter(mark_version=self.last_version)
+                          .order_by('id').values('name', 'value', 'is_compare'))
         }
 
 
@@ -190,9 +195,8 @@ class SafePresetFile(PresetMarkFile):
         data = super().get_data()
         data.update({
             'verdict': self.mark.verdict,
-            'tags': list(MarkSafeTag.objects.filter(
-                mark_version__mark=self.mark, mark_version__version=self.mark.version
-            ).values_list('tag__name', flat=True))
+            'tags': list(MarkSafeTag.objects.filter(mark_version=self.last_version)
+                         .values_list('tag__name', flat=True))
         })
         return data
 
@@ -205,9 +209,9 @@ class UnsafePresetFile(PresetMarkFile):
         data.update({
             'verdict': self.mark.verdict,
             'function': self.mark.function,
-            'tags': list(MarkUnsafeTag.objects.filter(
-                mark_version__mark=self.mark, mark_version__version=self.mark.version
-            ).values_list('tag__name', flat=True))
+            'threshold': self.mark.threshold_percentage,
+            'tags': list(MarkUnsafeTag.objects.filter(mark_version=self.last_version)
+                         .values_list('tag__name', flat=True))
         })
         with self.mark.error_trace.file.file as fp:
             data['error_trace'] = json.loads(fp.read().decode('utf8'))

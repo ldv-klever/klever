@@ -77,7 +77,8 @@ MARK_TITLES = {
     'likes': format_lazy('{0}/{1}', _('Likes'), _('Dislikes')),
     'buttons': '',
     'description': _('Description'),
-    'identifier': _('Identifier')
+    'identifier': _('Identifier'),
+    'threshold': _('Association threshold'),
 }
 
 CHANGE_COLOR = {
@@ -489,6 +490,8 @@ class MarksTableBase:
             select_only.append('mark__component')
         if 'problem_pattern' in view_columns:
             select_only.append('problem_pattern')
+        if 'threshold' in view_columns:
+            select_only.append('threshold')
 
         queryset = self.versions_model.objects
         if annotations:
@@ -659,6 +662,8 @@ class UnsafeMarksTable(MarksTableBase):
         if column == 'verdict':
             val = mark_version.get_verdict_display()
             color = UNSAFE_COLOR[mark_version.verdict]
+        elif column == 'threshold':
+            val = '{}%'.format(mark_version.threshold_percentage)
         return val, href, color
 
 

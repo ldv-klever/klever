@@ -68,7 +68,10 @@ function collect_markdata(action, mark_type) {
     else {
         mark_data['verdict'] = $("input[name='selected_verdict']:checked").val();
         mark_data['tags'] = get_tags_values();
-        if (mark_type === 'unsafe') mark_data['function'] = $("#compare_name").val();
+        if (mark_type === 'unsafe') {
+            mark_data['function'] = $("#compare_name").val();
+            mark_data['threshold'] = $('#threshold').val();
+        }
     }
     if (mark_type === 'unsafe' && action === 'edit') {
         mark_data['error_trace'] = $('#mark_error_trace').val();
