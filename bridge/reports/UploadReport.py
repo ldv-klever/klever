@@ -28,7 +28,10 @@ from django.utils.timezone import now
 from rest_framework import exceptions, fields, serializers
 from rest_framework.settings import api_settings
 
-from bridge.vars import JOB_WEIGHT, JOB_STATUS, ERROR_TRACE_FILE, REPORT_ARCHIVE, SUBJOB_NAME, COVERAGE_FILE, ETV_FORMAT
+from bridge.vars import (
+    JOB_WEIGHT, JOB_STATUS, ERROR_TRACE_FILE, REPORT_ARCHIVE, SUBJOB_NAME,
+    COVERAGE_FILE, ETV_FORMAT, UNKNOWN_ATTRS_NOT_COMPARE
+)
 from bridge.utils import logger, extract_archive, CheckArchiveError, ArchiveFileContent
 
 from reports.models import (
@@ -150,12 +153,17 @@ class UploadBaseSerializer(serializers.ModelSerializer):
             return parent.computer
         raise exceptions.ValidationError('The computer is required')
 
-    def parent_attributes(self, parent, select_fields=None):
+    def parent_attributes(self, parent, select_fields=None, do_not_compare=None):
         if not select_fields:
             select_fields = ['name', 'value', 'compare', 'associate', 'data_id']
         parents_ids = parent.get_ancestors(include_self=True).values_list('id', flat=True)
-        return list(ReportAttr.objects.filter(report_id__in=parents_ids)
-                    .order_by('report_id', 'id').values(*select_fields))
+        attrs_list = list(ReportAttr.objects.filter(report_id__in=parents_ids)
+                          .order_by('report_id', 'id').values(*select_fields))
+        if do_not_compare:
+            for adata in attrs_list:
+                if adata['name'] in do_not_compare:
+                    adata['compare'] = False
+        return attrs_list
 
     def __validate_attrs(self, attrs, parent=None):
         if not attrs:
@@ -266,7 +274,9 @@ class ReportVerificationSerializer(UploadBaseSerializer):
 class ReportUnknownSerializer(UploadBaseSerializer):
     def create(self, validated_data):
         cache_obj = ReportUnknownCache(job_id=validated_data['root'].job_id)
-        validated_data['attrs'] = self.parent_attributes(validated_data['parent']) + validated_data['attrs']
+        validated_data['attrs'] = self.parent_attributes(
+            validated_data['parent'], do_not_compare=UNKNOWN_ATTRS_NOT_COMPARE
+        ) + validated_data['attrs']
         cache_obj.attrs = dict((attr['name'], attr['value']) for attr in validated_data['attrs'])
         validated_data['component'] = validated_data['parent'].component
         if validated_data['parent'].verification:
