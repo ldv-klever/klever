@@ -25,7 +25,7 @@ from bridge.vars import ASSOCIATION_TYPE, PROBLEM_DESC_FILE
 from bridge.utils import BridgeException, logger, ArchiveFileContent
 
 from reports.models import ReportUnknown
-from marks.models import MAX_PROBLEM_LEN, MarkUnknown, MarkUnknownHistory, MarkUnknownReport, UnknownAssociationLike
+from marks.models import MAX_PROBLEM_LEN, MarkUnknown, MarkUnknownHistory, MarkUnknownReport
 from caches.models import ReportUnknownCache
 
 from caches.utils import RecalculateUnknownCache, UpdateUnknownCachesOnMarkChange
@@ -51,7 +51,6 @@ def perform_unknown_mark_update(user, serializer):
     }
 
     # Change the mark
-    autoconfirm = serializer.validated_data['mark_version']['autoconfirm']
     mark = serializer.save()
 
     # Update reports cache
@@ -64,13 +63,7 @@ def perform_unknown_mark_update(user, serializer):
         old_links = new_links = set(mr.report_id for mr in mark_report_qs)
         cache_upd = UpdateUnknownCachesOnMarkChange(mark, old_links, new_links)
 
-        if not autoconfirm:
-            # Reset association type and remove likes
-            mark_report_qs.update(type=ASSOCIATION_TYPE[0][0])
-            UnknownAssociationLike.objects.filter(association__mark=mark).delete()
-            cache_upd.update_all()
-
-    # Reutrn association changes cache identifier
+    # Return association changes cache identifier
     return cache_upd.save()
 
 

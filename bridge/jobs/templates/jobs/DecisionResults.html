@@ -36,7 +36,7 @@
                     <div class="ui list">
                         {% for v in reportdata.data.unsafes %}
                             <div class="item">
-                                <i class="pointing right mini icon"></i>
+                                <i class="pointing right small icon"></i>
                                 <div class="content">
                                     <span class="unsafe-verdict-{{ v.verdict }}">{{ v.title }}: </span>
                                     {% if 'confirmed' in v %}
@@ -56,7 +56,7 @@
                     <div class="ui small list">
                         {% for uas in reportdata.data.unsafes_attr_stat %}
                             <div class="item">
-                                <i class="pointing right mini icon"></i>
+                                <i class="pointing right small icon"></i>
                                 <div class="content">{{ uas.name }}: <a href="{{ uas.url }}">{{ uas.value }}</a></div>
                             </div>
                         {% endfor %}
@@ -82,7 +82,7 @@
                     <div class="ui list">
                         {% for v in reportdata.data.safes %}
                             <div class="item">
-                                <i class="pointing right mini icon"></i>
+                                <i class="pointing right small icon"></i>
                                 <div class="content">
                                     <span class="safe-verdict-{{ v.verdict }}">{{ v.title }}: </span>
                                     {% if 'confirmed' in v %}
@@ -102,7 +102,7 @@
                     <div class="ui small list">
                         {% for sas in reportdata.data.safes_attr_stat %}
                             <div class="item">
-                                <i class="pointing right mini icon"></i>
+                                <i class="pointing right small icon"></i>
                                 <div class="content">{{ sas.name }}: <a href="{{ sas.url }}">{{ sas.value }}</a></div>
                             </div>
                         {% endfor %}
@@ -124,7 +124,7 @@
                     <div class="ui list">
                         {% for res_data in reportdata.data.resources %}
                             <div class="item">
-                                <i class="laptop mini icon"></i>
+                                <i class="laptop small icon"></i>
                                 <div class="content">
                                     {% if reportdata.report.component == res_data.component %}
                                         <strong style="color: #86188c;">{{ res_data.component }}{{ res_data.instances }}:</strong>
@@ -145,14 +145,14 @@
                     <div class="ui small list">
                         {% for comp in reportdata.data.unknowns %}
                             <div class="item">
-                                <i class="cube mini icon"></i>
+                                <i class="cube small icon"></i>
                                 <div class="content">{{ comp.component }}{% if comp.total %} (<a href="{{ comp.total.href }}">{{ comp.total.num }}</a>){% endif %}</div>
                             </div>
                             <div class="item">
                                 <div class="ui list">
                                     {% for probl in comp.problems %}
                                         <div class="item" style="margin-left: 20px;">
-                                            <i class="pointing right mini icon"></i>
+                                            <i class="pointing right small icon"></i>
                                             <div class="content">{{ probl.problem }}: <a href="{{ probl.href }}">{{ probl.num }}</a></div>
                                         </div>
                                     {% endfor %}
@@ -166,7 +166,7 @@
                     <div class="ui small list">
                         {% for fas in reportdata.data.unknowns_attr_stat %}
                             <div class="item">
-                                <i class="pointing right mini icon"></i>
+                                <i class="pointing right small icon"></i>
                                 <div class="content">{{ fas.name }}: <a href="{{ fas.url }}">{{ fas.value }}</a></div>
                             </div>
                         {% endfor %}

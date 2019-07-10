@@ -45,7 +45,6 @@ def create_mark_version(mark, cache=True, **kwargs):
     kwargs.setdefault('version', mark.version)
     kwargs.setdefault('author', mark.author)
 
-    kwargs.pop('autoconfirm', False)
     attrs = kwargs.pop('attrs')
     tags = kwargs.pop('tags', [])
 
@@ -182,7 +181,6 @@ class UnknownMarkAttrSerializer(serializers.ModelSerializer):
 
 class SafeMarkVersionSerializer(WithTagsMixin, serializers.ModelSerializer):
     tags = fields.ListField(child=fields.CharField(max_length=MAX_TAG_LEN), allow_empty=True, write_only=True)
-    autoconfirm = fields.BooleanField(default=False)
     attrs = fields.ListField(child=SafeMarkAttrSerializer(), allow_empty=True, write_only=True)
 
     def validate_tags(self, tags):
@@ -208,7 +206,7 @@ class SafeMarkVersionSerializer(WithTagsMixin, serializers.ModelSerializer):
 
     class Meta:
         model = MarkSafeHistory
-        fields = ('status', 'change_date', 'comment', 'description', 'verdict', 'tags', 'autoconfirm', 'attrs')
+        fields = ('status', 'change_date', 'comment', 'description', 'verdict', 'tags', 'attrs')
 
 
 class SafeMarkSerializer(DynamicFieldsModelSerializer):
@@ -258,7 +256,6 @@ class SafeMarkSerializer(DynamicFieldsModelSerializer):
 
 class UnsafeMarkVersionSerializer(WithTagsMixin, serializers.ModelSerializer):
     tags = fields.ListField(child=fields.CharField(max_length=MAX_TAG_LEN), allow_empty=True, write_only=True)
-    autoconfirm = fields.BooleanField(default=False)
     attrs = fields.ListField(child=UnsafeMarkAttrSerializer(), allow_empty=True, write_only=True)
     error_trace = fields.CharField(write_only=True, required=False)
     threshold = fields.IntegerField(min_value=0, max_value=100, write_only=True, default=0)
@@ -316,8 +313,8 @@ class UnsafeMarkVersionSerializer(WithTagsMixin, serializers.ModelSerializer):
     class Meta:
         model = MarkUnsafeHistory
         fields = (
-            'status', 'change_date', 'comment', 'description', 'verdict', 'tags',
-            'autoconfirm', 'attrs', 'function', 'error_trace', 'threshold'
+            'status', 'change_date', 'comment', 'description', 'verdict',
+            'tags', 'attrs', 'function', 'error_trace', 'threshold'
         )
 
 
@@ -382,7 +379,6 @@ class UnsafeMarkSerializer(DynamicFieldsModelSerializer):
 
 
 class UnknownMarkVersionSerializer(serializers.ModelSerializer):
-    autoconfirm = fields.BooleanField(default=False)
     attrs = fields.ListField(child=UnsafeMarkAttrSerializer(), allow_empty=True, write_only=True)
 
     def validate(self, attrs):
@@ -418,7 +414,7 @@ class UnknownMarkVersionSerializer(serializers.ModelSerializer):
     class Meta:
         model = MarkUnknownHistory
         fields = (
-            'status', 'change_date', 'comment', 'description', 'autoconfirm', 'attrs',
+            'status', 'change_date', 'comment', 'description', 'attrs',
             'function', 'is_regexp', 'problem_pattern', 'link'
         )
 

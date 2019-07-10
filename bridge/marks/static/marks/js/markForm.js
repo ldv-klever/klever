@@ -57,7 +57,6 @@ function collect_markdata(action, mark_type) {
         comment: $('#mark_comment').val()
     };
     if (action === 'create') mark_data['report_id'] = $('#report_id').val();
-    else mark_data['autoconfirm'] = $('#autoconfirm').is(':checked');
 
     if (mark_type === 'unknown') {
         mark_data['problem_pattern'] = $('#unknown_problem_pattern').val();

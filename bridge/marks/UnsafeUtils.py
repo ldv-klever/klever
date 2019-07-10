@@ -29,7 +29,7 @@ from bridge.utils import logger, BridgeException, ArchiveFileContent, file_check
 
 from reports.models import ReportUnsafe
 from marks.models import (
-    MarkUnsafe, MarkUnsafeHistory, MarkUnsafeReport, UnsafeAssociationLike, UnsafeConvertionCache, ConvertedTrace
+    MarkUnsafe, MarkUnsafeHistory, MarkUnsafeReport, UnsafeConvertionCache, ConvertedTrace
 )
 from caches.utils import RecalculateUnsafeCache, UpdateUnsafeCachesOnMarkChange
 from caches.models import ReportUnsafeCache
@@ -99,7 +99,6 @@ def perform_unsafe_mark_update(user, serializer):
     }
 
     # Change the mark
-    autoconfirm = serializer.validated_data['mark_version']['autoconfirm']
     mark = serializer.save()
 
     # Update reports cache
@@ -114,14 +113,8 @@ def perform_unsafe_mark_update(user, serializer):
         old_links = new_links = set(mr.report_id for mr in mark_report_qs)
         cache_upd = UpdateUnsafeCachesOnMarkChange(mark, old_links, new_links)
 
-        if not autoconfirm:
-            # Reset association type and remove likes
-            mark_report_qs.update(type=ASSOCIATION_TYPE[0][0])
-            UnsafeAssociationLike.objects.filter(association__mark=mark).delete()
-            cache_upd.update_all()
-
         if old_cache['threshold'] != mark.threshold:
-            # Update tags and verdicts
+            UpdateAssociated(mark)
             cache_upd.update_all()
 
         if old_cache['tags'] != mark.cache_tags:
@@ -399,6 +392,7 @@ class CompareMark:
                     'result': res, 'error': None,
                     'associated': bool(res >= self._mark.threshold)
                 }
+        print(results)
         return results
 
 
@@ -455,3 +449,30 @@ class CompareReport:
                     'associated': bool(res >= marks_cache[mark_id]['threshold'])
                 }
         return results
+
+
+class UpdateAssociated:
+    def __init__(self, mark):
+        self._mark = mark
+        self.__update()
+
+    def __update(self):
+        # Because of the mark threshold some associations can't be confirmed already
+        auto_qs = MarkUnsafeReport.objects.filter(
+            mark=self._mark, type=ASSOCIATION_TYPE[1][0], result__lt=self._mark.threshold
+        )
+        if auto_qs.count():
+            auto_qs.update(type=ASSOCIATION_TYPE[0][0])
+
+        markreport_qs = MarkUnsafeReport.objects.filter(mark=self._mark)
+        has_confirmed = any(mr.type == ASSOCIATION_TYPE[1][0] for mr in markreport_qs)
+        with transaction.atomic():
+            for mr in markreport_qs:
+                associated = (mr.result >= self._mark.threshold)
+                if has_confirmed:
+                    # Count only confirmed associations
+                    associated &= (mr.type == ASSOCIATION_TYPE[1][0])
+                # Save only if changed
+                if mr.associated != associated:
+                    mr.associated = associated
+                    mr.save()

@@ -77,6 +77,12 @@
                                         {% endif %}
                                     </div>
                                 </div>
+                            {% elif v.column == 'associated' %}
+                                {% if v.value %}
+                                    <i class="ui green check icon"></i>
+                                {% else %}
+                                    <i class="ui red minus icon"></i>
+                                {% endif %}
                             {% elif v.href %}
                                 <a href="{{ v.href }}">{{ v.value }}</a>
                             {% else %}
@@ -115,7 +121,6 @@
             });
             remove_mark_modal.find('.modal-confirm').click(function () {
                 remove_mark_modal.modal('hide');
-                let redirect_url = $(this).data('redirect');
                 $.ajax({
                     url: $(this).data('url'),
                     method: 'DELETE',

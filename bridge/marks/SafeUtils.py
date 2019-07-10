@@ -19,7 +19,7 @@ import copy
 
 from bridge.vars import ASSOCIATION_TYPE
 from reports.models import ReportSafe
-from marks.models import MarkSafe, MarkSafeHistory, MarkSafeReport, SafeAssociationLike
+from marks.models import MarkSafe, MarkSafeHistory, MarkSafeReport
 from caches.models import ReportSafeCache
 
 from caches.utils import UpdateSafeCachesOnMarkChange, RecalculateSafeCache
@@ -44,7 +44,6 @@ def perform_safe_mark_update(user, serializer):
     }
 
     # Change the mark
-    autoconfirm = serializer.validated_data['mark_version']['autoconfirm']
     mark = serializer.save()
 
     # Update reports cache
@@ -56,12 +55,6 @@ def perform_safe_mark_update(user, serializer):
         mark_report_qs = MarkSafeReport.objects.filter(mark=mark)
         old_links = new_links = set(mr.report_id for mr in mark_report_qs)
         cache_upd = UpdateSafeCachesOnMarkChange(mark, old_links, new_links)
-
-        if not autoconfirm:
-            # Reset association type and remove likes
-            mark_report_qs.update(type=ASSOCIATION_TYPE[0][0])
-            SafeAssociationLike.objects.filter(association__mark=mark).delete()
-            cache_upd.update_all()
 
         if old_cache['tags'] != mark.cache_tags:
             cache_upd.update_tags()

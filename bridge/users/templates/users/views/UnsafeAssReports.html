@@ -78,6 +78,15 @@
                         <br>
                     {% endfor %}
                 </div>
+                <div class="ui divider"></div>
+
+                {# Associated #}
+                <input id="view_data_{{ view.type }}__associated" value="list_if_associated" data-list="associated" type="hidden">
+                <div class="ui checkbox">
+                    <input type="checkbox" id="view_condition_{{ view.type }}__associated"{% if 'associated' in view %} checked{% endif %}>
+                    <label for="view_condition_{{ view.type }}__associated">{% trans 'Only associated' %}</label>
+                </div>
+                <input id="view_{{ view.type }}__associated" value="true" type="hidden">
             </div>
         </div>
         <div class="ui divider"></div>

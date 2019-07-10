@@ -191,7 +191,13 @@
                                 <tr>
                                     {% for v in row_data %}
                                         <td class="collapsing">
-                                            {% if v.href %}
+                                            {% if v.column == 'associated' %}
+                                                {% if v.value %}
+                                                    <i class="ui green check icon"></i>
+                                                {% else %}
+                                                    <i class="ui red minus icon"></i>
+                                                {% endif %}
+                                            {% elif v.href %}
                                                 <a href="{{ v.href }}">{{ v.value }}</a>
                                             {% else %}
                                                 <span{% if v.color %} style="color:{{ v.color }}"{% endif %}>{{ v.value }}</span>
