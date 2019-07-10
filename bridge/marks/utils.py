@@ -87,7 +87,7 @@ class MarkAccess:
         return self._user_valid and self.user.role == USER_ROLES[3][0]
 
     def __is_job_expert(self, job):
-        if not self._user_valid:
+        if not self._user_valid or not job:
             return False
 
         if job.author == self.user:
@@ -104,42 +104,32 @@ class MarkAccess:
     def _job_expert(self):
         if not self._user_valid:
             return False
+        job = None
         if self._mark_valid:
-            if self.mark.job is None:
-                # The mark is not associated with any jobs
-                return False
-            return self.__is_job_expert(self.mark.job)
+            job = self.mark.job
         if self._report_valid:
             job = Job.objects.filter(reportroot__id=self.report.root_id).first()
-            if job.author == self.user:
-                # Author of the job can create marks for it
-                return True
-            return self.__is_job_expert(self.mark.job)
-        return False
+        return self.__is_job_expert(job)
 
     @cached_property
     def can_edit(self):
         if not self._mark_valid or not self._user_valid:
             return False
         if self._is_manager or self._is_author:
-            # Only managers and authors can modify non-modifiable marks
+            # Only managers and authors can edit non-modifiable marks
             return True
         if not self.mark.is_modifiable:
+            # Mark is not modifiable
             return False
-        if self._is_expert or self.mark.author == self.user:
-            # Authors of mark and experts can edit the mark
-            return True
-        # If user is expert for the job, then he can edit marks associated with such jobs
-        return self._job_expert
+        # Experts and job experts can edit the mark
+        return self._is_expert or self._job_expert
 
     @cached_property
     def can_create(self):
         if not self._user_valid or not self._report_valid:
             return False
-        if self._is_manager or self._is_expert:
-            # All managers and experts can create marks
-            return True
-        return self._job_expert
+        # All managers, experts and job experts can create marks
+        return self._is_manager or self._is_expert or self._job_expert
 
     @cached_property
     def can_upload(self):
@@ -164,28 +154,23 @@ class MarkAccess:
     def can_freeze(self):
         if self._is_manager:
             return True
-        if self.mark:
-            return self.mark.author == self.user
+        if self._mark_valid:
+            # On edition stage author of the mark can freeze it
+            return self._is_author
         # On creation stage all users can freeze their marks
         return True
 
-    def can_remove_version(self, mark_version):
+    def can_remove_versions(self, versions_qs):
         if not self._user_valid or not self._mark_valid:
             return False
         # Nobody can remove last version
-        if mark_version.version == self.mark.version:
+        if any(mv.version == self.mark.version for mv in versions_qs):
             return False
-        # Manager can remove all other versions
-        if self._is_manager:
+        # Manager and versions author can remove other versions
+        if self._is_manager or all(mv.author == self.user for mv in versions_qs):
             return True
-        # Others can't remove versions if mark is frozen
-        if not self.mark.is_modifiable:
-            return False
-        # Expert can remove all versions.
-        if self._is_expert:
-            return True
-        # Otherwise only author of mark version can remove it
-        return mark_version.author == self.user
+        # Experts can remove versions if mark is not frozen.
+        return self._is_expert and self.mark.is_modifiable
 
 
 class CompareMarkVersions:

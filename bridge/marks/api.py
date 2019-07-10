@@ -289,11 +289,10 @@ class RemoveVersionsBase(LoggedCallMixin, DestroyAPIView):
             raise exceptions.ValidationError(_("You don't have an access to edit this mark"))
 
         checked_versions = mark.versions.filter(version__in=json.loads(request.data['versions']))
-        for mark_version in checked_versions:
-            if not access.can_remove_version(mark_version):
-                raise exceptions.ValidationError(_("You don't have an access to remove one of the selected version"))
         if len(checked_versions) == 0:
             raise exceptions.ValidationError(_('There is nothing to delete'))
+        if not access.can_remove_versions(checked_versions):
+            raise exceptions.ValidationError(_("You don't have an access to remove one of the selected version"))
         checked_versions.delete()
 
         return Response({'message': _('Selected versions were successfully deleted')})
