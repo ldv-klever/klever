@@ -392,7 +392,6 @@ class CompareMark:
                     'result': res, 'error': None,
                     'associated': bool(res >= self._mark.threshold)
                 }
-        print(results)
         return results
 
 
