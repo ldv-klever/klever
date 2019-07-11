@@ -325,4 +325,4 @@ MPTT_FIELDS = ('level', 'lft', 'rght', 'tree_id')
 
 SUBJOB_NAME = 'Subjob'
 
-UNKNOWN_ATTRS_NOT_COMPARE = {'Verification object', 'Program fragment'}
+UNKNOWN_ATTRS_NOT_ASSOCIATE = {'Verification object', 'Program fragment'}

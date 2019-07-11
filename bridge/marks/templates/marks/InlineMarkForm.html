@@ -18,7 +18,29 @@
 {% load i18n %}
 
 <div class="ui pink segment" style="margin-bottom: 45px;">
-    {% if data.type != 'unknown' %}
+    {% if data.type == 'unknown' %}
+        <div class="ui purple segment">
+            <div class="ui checkbox">
+                <input type="checkbox" id="is_regexp"{% if data.is_regexp %} checked{% endif %}>
+                <label for="is_regexp">{% trans 'Regular expression' %}</label>
+            </div>
+            <br><br>
+            <label for="unknown_function" class="purple-title">{% trans 'Pattern' %}</label>
+            <div class="ui form">
+                <textarea id="unknown_function" rows="5" style="resize:none" placeholder="{% trans 'Pattern' %}">{{ data.function }}</textarea>
+            </div>
+            <br>
+            <label for="unknown_problem_pattern" class="purple-title">{% trans 'Problem' %}</label>
+            <div class="ui input fluid">
+                <input id="unknown_problem_pattern" type="text" value="{{ data.problem_pattern }}" maxlength="20">
+            </div>
+            <br>
+            <label for="unknown_link" class="purple-title">{% trans 'Link to detailed description' %}</label>
+            <div class="ui input fluid">
+                <input id="unknown_link" type="url" value="{{ data.link }}">
+            </div>
+        </div>
+    {% else %}
         <div class="ui two column grid">
             {# Verdict #}
             <div id="verdict_column" class="column">
@@ -49,35 +71,12 @@
                 </div>
             {% endif %}
         </div>
-    {% endif %}
-    {% if data.type == 'unknown' %}
-        <div class="ui purple segment">
-            <div class="ui checkbox">
-                <input type="checkbox" id="is_regexp"{% if data.is_regexp %} checked{% endif %}>
-                <label for="is_regexp">{% trans 'Regular expression' %}</label>
-            </div>
-            <br><br>
-            <label for="unknown_function" class="purple-title">{% trans 'Pattern' %}</label>
-            <div class="ui form">
-                <textarea id="unknown_function" rows="5" style="resize:none" placeholder="{% trans 'Pattern' %}">{{ data.function }}</textarea>
-            </div>
-            <br>
-            <label for="unknown_problem_pattern" class="purple-title">{% trans 'Problem' %}</label>
-            <div class="ui input fluid">
-                <input id="unknown_problem_pattern" type="text" value="{{ data.problem_pattern }}" maxlength="20">
-            </div>
-            <br>
-            <label for="unknown_link" class="purple-title">{% trans 'Link to detailed description' %}</label>
-            <div class="ui input fluid">
-                <input id="unknown_link" type="url" value="{{ data.link }}">
-            </div>
-        </div>
-    {% else %}
         <h4 class="header ui pink">{% trans 'Tags' %}</h4>
         <div id="mark_tags_container">
             {% include 'marks/MarkTagsForm.html' with tags=data.tags %}
         </div>
     {% endif %}
+
     <h4 class="ui pink header">{% trans 'Description' %}</h4>
     <div class="ui form">
         <label for="mark_description"></label>
@@ -99,7 +98,7 @@
 
     <div id="inline_mark_attrs" hidden>
         {% for attr in attrs %}
-            <span data-name="{{ attr.name }}" data-value="{{ attr.value }}" data-compare="{% if attr.is_compare or attr.compare %}true{% else %}false{% endif %}"></span>
+            <span data-name="{{ attr.name }}" data-value="{{ attr.value }}" data-compare="{% if attr.is_compare or attr.associate %}true{% else %}false{% endif %}"></span>
         {% endfor %}
     </div>
 

@@ -391,7 +391,7 @@ class UnsafeBlock(CompareBlock):
         super().__init__("u_{}".format(report.pk), block_class='unsafe')
         self.type = 'unsafe'
         self.title = _('Unsafe')
-        self.href = reverse('reports:unsafe', args=[report.pk])
+        self.href = reverse('reports:unsafe', args=[report.trace_id])
         self.subtitle = {
             'text': report.cache.get_verdict_display(),
             'color': UNSAFE_COLOR[report.cache.verdict]

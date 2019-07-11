@@ -60,7 +60,7 @@ class Mark(models.Model):
     is_modifiable = models.BooleanField(default=True)
     source = models.CharField(max_length=1, choices=MARK_SOURCE, default=MARK_SOURCE[0][0])
 
-    # Only with compare=True
+    # Only with is_compare=True
     cache_attrs = JSONField(default=dict)
 
     def __str__(self):

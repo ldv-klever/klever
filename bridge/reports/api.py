@@ -52,8 +52,10 @@ class FillComparisonView(LoggedCallMixin, APIView):
     permission_classes = (IsAuthenticated,)
 
     def post(self, request, job1_id, job2_id):
-        r1 = get_object_or_404(ReportRoot, job_id=job1_id)
-        r2 = get_object_or_404(ReportRoot, job_id=job2_id)
+        r1 = ReportRoot.objects.filter(job_id=job1_id).first()
+        r2 = ReportRoot.objects.filter(job_id=job2_id).first()
+        if not r1 or not r2:
+            raise APIException(_('One of the jobs is not decided yet'))
         if not JobAccess(self.request.user, job=r1.job).can_view \
                 or not JobAccess(self.request.user, job=r2.job).can_view:
             raise PermissionDenied(_("You don't have an access to one of the selected jobs"))
