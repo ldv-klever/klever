@@ -182,7 +182,7 @@ class PresetMarkFile(FileWrapper):
         return {
             'is_modifiable': self.mark.is_modifiable,
             'description': self.last_version.description,
-            'attrs': list(self.attrs_model.objects.filter(mark_version=self.last_version)
+            'attrs': list(self.attrs_model.objects.filter(mark_version=self.last_version, is_compare=True)
                           .order_by('id').values('name', 'value', 'is_compare'))
         }
 

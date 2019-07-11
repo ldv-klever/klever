@@ -201,7 +201,7 @@
                     <tbody>
                         {% for obj in comparison %}
                             <tr>
-                                <td>{{ obj.user.get_full_name }}</td>
+                                <td><a href="{% url 'users:show-profile' obj.user_id %}">{{ obj.user.get_full_name }}</a></td>
                                 <td><a href="{% url 'jobs:job' obj.root1.job_id %}">{{ obj.root1.job.name }}</a></td>
                                 <td><a href="{% url 'jobs:job' obj.root2.job_id %}">{{ obj.root2.job.name }}</a></td>
                                 <td><i class="ui red remove link icon remove-comparison-link" data-url="{% url 'tools:api-clear-comparison' obj.pk %}"></i></td>
