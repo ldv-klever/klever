@@ -1,33 +1,13 @@
 {
   "attrs": [
     {
-      "name": "Klever Core version",
-      "is_compare": false,
-      "value": "2.1.dev29+g9268dc1d3"
-    },
-    {
-      "name": "Linux:Architecture",
-      "is_compare": false,
-      "value": "x86_64"
-    },
-    {
-      "name": "Linux:Version",
-      "is_compare": false,
-      "value": "v3.14"
-    },
-    {
-      "name": "Linux:Configuration",
-      "is_compare": false,
-      "value": "allmodconfig"
-    },
-    {
-      "name": "Requirement",
       "is_compare": true,
+      "name": "Requirement",
       "value": "linux:test:common"
     },
     {
-      "name": "Program fragment",
       "is_compare": true,
+      "name": "Program fragment",
       "value": "ext-modules/dynamic-memory/xzalloc/safe.ko"
     }
   ],

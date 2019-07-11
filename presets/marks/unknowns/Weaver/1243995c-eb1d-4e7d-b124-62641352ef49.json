@@ -5,5 +5,5 @@
   "is_modifiable": false,
   "is_regexp": false,
   "problem_pattern": "Unsup Float_expr",
-  "production": true,
+  "production": true
 }

@@ -1,29 +1,9 @@
 {
   "attrs": [
     {
-      "is_compare": false,
-      "name": "Klever Core version",
-      "value": "1.1rc3.dev603+g913dc9741.d20181022"
-    },
-    {
-      "is_compare": false,
-      "name": "Sub-job identifier",
-      "value": "0"
-    },
-    {
-      "is_compare": false,
-      "name": "Linux:Architecture",
-      "value": "x86_64"
-    },
-    {
       "is_compare": true,
       "name": "Linux:Version",
       "value": "v2.6.33.20"
-    },
-    {
-      "is_compare": false,
-      "name": "Linux:Configuration",
-      "value": "allmodconfig"
     },
     {
       "is_compare": true,

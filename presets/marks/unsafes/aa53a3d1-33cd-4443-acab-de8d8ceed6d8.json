@@ -1,26 +1,6 @@
 {
   "attrs": [
     {
-      "is_compare": false,
-      "name": "Klever Core version",
-      "value": "2.1.dev152+gfc4b8b240"
-    },
-    {
-      "is_compare": false,
-      "name": "Linux:Architecture",
-      "value": "x86_64"
-    },
-    {
-      "is_compare": false,
-      "name": "Linux:Version",
-      "value": "v3.14"
-    },
-    {
-      "is_compare": false,
-      "name": "Linux:Configuration",
-      "value": "allmodconfig"
-    },
-    {
       "is_compare": true,
       "name": "Requirement",
       "value": "linux:test:common"

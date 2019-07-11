@@ -4,5 +4,5 @@
   "function": "storage size of ‘__mod_usb__usbvision_table_device_table’ isn’t known",
   "is_modifiable": false,
   "is_regexp": false,
-  "problem_pattern": "Mod dev table",
+  "problem_pattern": "Mod dev table"
 }

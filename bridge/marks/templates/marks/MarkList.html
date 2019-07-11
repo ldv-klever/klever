@@ -40,9 +40,10 @@
             {% endif %}
         </div>
         <div class="eight wide column right aligned">
-            <button id="view_show_form_btn_{{ tabledata.view.type }}" class="ui small violet button">{{ tabledata.view.viewtitle }}</button>
+            <button id="view_show_form_btn_{{ tabledata.view.type }}" class="ui mini violet button">{{ tabledata.view.viewtitle }}</button>
         </div>
     </div>
+    <br>
 
     <div id="view_form_segment_{{ tabledata.view.type }}" class="ui form yellow segment" style="display:none;">
         {% include tabledata.view.template with view=tabledata.view selected_columns=tabledata.selected_columns available_columns=tabledata.available_columns statuses=tabledata.statuses verdicts=tabledata.verdicts authors=tabledata.authors sources=tabledata.sources %}

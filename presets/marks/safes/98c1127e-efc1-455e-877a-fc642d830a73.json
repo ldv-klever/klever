@@ -1,26 +1,6 @@
 {
   "attrs": [
     {
-      "is_compare": false,
-      "name": "Klever Core version",
-      "value": "1.2.dev674+gb743587c4"
-    },
-    {
-      "is_compare": false,
-      "name": "Linux:Architecture",
-      "value": "x86_64"
-    },
-    {
-      "is_compare": false,
-      "name": "Linux:Version",
-      "value": "v3.14.79"
-    },
-    {
-      "is_compare": false,
-      "name": "Linux:Configuration",
-      "value": "allmodconfig"
-    },
-    {
       "is_compare": true,
       "name": "Requirement",
       "value": "linux:arch:io"
@@ -33,7 +13,7 @@
   ],
   "description": "",
   "is_modifiable": false,
+  "production": true,
   "tags": [],
-  "verdict": "0",
-  "production": true
+  "verdict": "0"
 }

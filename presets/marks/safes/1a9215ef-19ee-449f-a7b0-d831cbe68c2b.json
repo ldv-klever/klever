@@ -1,31 +1,6 @@
 {
   "attrs": [
     {
-      "is_compare": false,
-      "name": "Klever Core version",
-      "value": "1.1rc3.dev601+gd20e4b12e.d20181022"
-    },
-    {
-      "is_compare": false,
-      "name": "Sub-job identifier",
-      "value": "1"
-    },
-    {
-      "is_compare": false,
-      "name": "Linux:Architecture",
-      "value": "x86_64"
-    },
-    {
-      "is_compare": false,
-      "name": "Linux:Version",
-      "value": "v3.15.2-7-g063579d4c3ed"
-    },
-    {
-      "is_compare": false,
-      "name": "Linux:Configuration",
-      "value": "allmodconfig"
-    },
-    {
       "is_compare": true,
       "name": "Requirement",
       "value": "linux:kernel:locking:mutex"

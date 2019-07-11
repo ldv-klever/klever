@@ -5,5 +5,5 @@
   "is_modifiable": false,
   "is_regexp": false,
   "problem_pattern": "Unsup mem_ref",
-  "production": true,
+  "production": true
 }
