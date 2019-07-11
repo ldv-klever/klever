@@ -25,6 +25,7 @@ urlpatterns = [
     path('processing-list/', views.ProcessingListView.as_view(), name='processing-list'),
 
     path('api/clear-system/', views.ClearSystemAPIView.as_view(), name='api-clear-system'),
+    path('api/clear-comparison/<int:pk>/', views.ClearComparisonAPIView.as_view(), name='api-clear-comparison'),
     path('api/recalculation/', views.RecalculationAPIView.as_view(), name='api-recalc'),
     path('api/recalculation-marks/', views.MarksRecalculationAPIView.as_view(), name='api-recalc-marks'),
     path('api/call-log/', views.CallLogAPIView.as_view(), name='api-call-log'),

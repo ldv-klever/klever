@@ -89,7 +89,7 @@
 
     <div class="ui grid">
         <div class="five wide column">
-            <div id="" class="ui blue segment form">
+            <div class="ui blue segment form">
                 <h3>{% trans 'Population' %}</h3>
 
                 <div id="population_checkboxes" class="ui celled relaxed list">
@@ -186,6 +186,33 @@
                 <h5>{% trans 'There are no original sources archives' %}</h5>
             {% endif %}
         </div>
+        <div class="six wide column">
+            <h3>{% trans 'Comparison caches' %}</h3>
+            {% if comparison|length %}
+                <table class="ui compact selectable teal table">
+                    <thead>
+                        <tr>
+                            <th>{% trans 'User' %}</th>
+                            <th>{% trans 'Job' %} 1</th>
+                            <th>{% trans 'Job' %} 2</th>
+                            <th>&nbsp;</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for obj in comparison %}
+                            <tr>
+                                <td>{{ obj.user.get_full_name }}</td>
+                                <td><a href="{% url 'jobs:job' obj.root1.job_id %}">{{ obj.root1.job.name }}</a></td>
+                                <td><a href="{% url 'jobs:job' obj.root2.job_id %}">{{ obj.root2.job.name }}</a></td>
+                                <td><i class="ui red remove link icon remove-comparison-link" data-url="{% url 'tools:api-clear-comparison' obj.pk %}"></i></td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <h5>{% trans 'There are no comparison cache objects yet' %}</h5>
+            {% endif %}
+        </div>
     </div>
 
     <div id="upload_all_marks_modal" class="ui modal">
@@ -221,6 +248,23 @@
         </div>
         <div class="actions">
             <button class="ui blue button modal-cancel">{% trans 'OK' %}</button>
+        </div>
+    </div>
+
+    {# Warning modal for job actions #}
+    <div id="remove_comparison_modal" class="ui basic modal">
+        <div class="ui icon header">
+            <i class="warning sign icon"></i>
+            {% trans 'Are you sure' %}?
+        </div>
+        <div class="content">
+            <div class="ui center aligned grid"><p id="warn_text"></p></div>
+        </div>
+        <div class="actions">
+            <div class="ui center aligned grid">
+                <button class="ui blue basic inverted button modal-cancel">{% trans 'Cancel' %}</button>
+                <button class="ui red basic inverted button modal-confirm">{% trans 'Confirm' %}</button>
+            </div>
         </div>
     </div>
 
@@ -288,7 +332,27 @@
                         $.each(resp['messages'], function (i, value) { success_notify(value) });
                     }
                 });
-            })
+            });
+
+            let remove_comparison_modal = $('#remove_comparison_modal');
+            remove_comparison_modal.modal();
+            $('.remove-comparison-link').click(function () {
+                remove_comparison_modal.find('.modal-confirm').data('url', $(this).data('url'));
+                remove_comparison_modal.modal('show');
+            });
+            remove_comparison_modal.find('.modal-cancel').click(function () {
+                remove_comparison_modal.modal('hide')
+            });
+            remove_comparison_modal.find('.modal-confirm').click(function () {
+                remove_comparison_modal.modal('hide');
+                $.ajax({
+                    url: $(this).data('url'),
+                    method: 'DELETE',
+                    success: function () {
+                        window.location.replace('');
+                    }
+                });
+            });
         })
     </script>
 {% endblock %}
