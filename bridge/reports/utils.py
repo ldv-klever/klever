@@ -252,7 +252,7 @@ class SafesTable:
     def __paginate_queryset(self, queryset, page):
         num_per_page = DEF_NUMBER_OF_ELEMENTS
         if 'elements' in self.view:
-            num_per_page = int(self.view['elements'][0])
+            num_per_page = max(int(self.view['elements'][0]), 1)
 
         paginator = Paginator(queryset, num_per_page)
         try:
@@ -505,7 +505,7 @@ class UnsafesTable:
     def __paginate_queryset(self, queryset, page):
         num_per_page = DEF_NUMBER_OF_ELEMENTS
         if 'elements' in self.view:
-            num_per_page = int(self.view['elements'][0])
+            num_per_page = max(int(self.view['elements'][0]), 1)
 
         paginator = Paginator(queryset, num_per_page)
         try:
@@ -756,7 +756,7 @@ class UnknownsTable:
     def __paginate_queryset(self, queryset, page):
         num_per_page = DEF_NUMBER_OF_ELEMENTS
         if 'elements' in self.view:
-            num_per_page = int(self.view['elements'][0])
+            num_per_page = max(int(self.view['elements'][0]), 1)
 
         paginator = Paginator(queryset, num_per_page)
         try:
@@ -934,7 +934,7 @@ class ReportChildrenTable:
     def __paginate_queryset(self, queryset, page):
         num_per_page = DEF_NUMBER_OF_ELEMENTS
         if 'elements' in self.view:
-            num_per_page = int(self.view['elements'][0])
+            num_per_page = max(int(self.view['elements'][0]), 1)
 
         paginator = Paginator(queryset, num_per_page)
         try:
