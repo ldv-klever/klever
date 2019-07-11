@@ -309,6 +309,8 @@ class GetConfigurationView(LoggedCallMixin, APIView):
 
         if request.data['name'] == 'file':
             conf_args = {'file_conf': request.FILES['file']}
+        elif request.data['name'] == 'lastconf':
+            conf_args = {'last_run': RunHistory.objects.filter(job_id=request.data['job']).order_by('-date').first()}
         else:
             conf_args = {'conf_name': request.data['name']}
         return Response(GetConfiguration(**conf_args).configuration)

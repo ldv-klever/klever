@@ -70,7 +70,7 @@ $(document).ready(function () {
             if (conf_name === 'file_conf') file_form.show();
             else {
                 file_form.hide();
-                $.post($('#api_conf_url').val(), {name: conf_name}, fill_data);
+                $.post($('#api_conf_url').val(), {name: conf_name, job: $('#job_pk').val()}, fill_data);
             }
         }
     });
