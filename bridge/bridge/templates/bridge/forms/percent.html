@@ -1,0 +1,2 @@
+<div class="ui {{ widget.color }} range" data-input="{{ widget.identifier }}"{% if widget.preview_id %} data-preview="{{ widget.preview_id }}"{% endif %} data-min="0" data-max="100" data-step="{{ widget.step }}"></div>
+<input id="{{ widget.identifier }}" type="hidden" name="{{ widget.name }}" value="{% if widget.value %}{{ widget.value }}{% else %}0{% endif %}">

@@ -61,6 +61,7 @@ function collect_markdata(action, mark_type) {
         if (mark_type === 'unsafe') {
             mark_data['status'] = $("input[name='selected_status']:checked").val();
             mark_data['function'] = $("#compare_function").val();
+            mark_data['threshold'] = $("#threshold").val();
         }
     }
     return mark_data;

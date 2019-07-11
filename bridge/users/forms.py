@@ -18,6 +18,7 @@
 import pytz
 
 from django import forms
+from django.forms.widgets import Input
 from django.conf import settings
 from django.contrib.auth import password_validation
 from django.contrib.auth.forms import AuthenticationForm, UsernameField, UserCreationForm
@@ -43,6 +44,33 @@ class SemanticUICheckbox(forms.CheckboxInput):
         if 'class' in context['widget']['attrs']:
             widget_class |= set(context['widget']['attrs']['class'].split())
         context['widget']['attrs']['class'] = ' '.join(widget_class)
+        return context
+
+
+class SemanticPercentInput(Input):
+    input_type = 'range'
+    template_name = 'bridge/forms/percent.html'
+    default_color = 'orange'
+
+    def __init__(self, *args, **kwargs):
+        self.step = kwargs.pop('step', 5)
+
+        self.identifier = kwargs.pop('identifier', 'default_range_identifier')
+        self.preview_id = kwargs.pop('preview_id', None)
+        self.color = kwargs.pop('color', self.default_color)
+        super(SemanticPercentInput, self).__init__(*args, **kwargs)
+
+    def format_value(self, value):
+        return str(round(value * 100)) if value else '0'
+
+    def get_context(self, name, value, attrs):
+        context = super().get_context(name, value, attrs)
+        context['widget'].update({
+            'step': self.step,
+            'identifier': self.identifier,
+            'preview_id': self.preview_id,
+            'color': self.color
+        })
         return context
 
 
@@ -128,7 +156,10 @@ class UserForm(forms.ModelForm):
 class EditProfileForm(FormColumnsMixin, forms.ModelForm):
     form_columns = (
         ('new_password1', 'new_password2', 'email', 'first_name', 'last_name'),
-        ('accuracy', 'data_format', 'language', 'timezone', 'assumptions', 'triangles', 'coverage_data')
+        (
+            'accuracy', 'data_format', 'language', 'timezone', 'assumptions',
+            'triangles', 'coverage_data', 'default_threshold'
+        )
     )
     error_messages = {
         'password_mismatch': _("Passwords don't match."),
@@ -140,6 +171,13 @@ class EditProfileForm(FormColumnsMixin, forms.ModelForm):
     timezone = forms.ChoiceField(
         label=_('Time zone'), widget=SematicUISelect(attrs={'class': 'search'}),
         choices=list((x, x) for x in pytz.common_timezones), initial=settings.DEF_USER['timezone']
+    )
+    default_threshold = forms.IntegerField(
+        label=_('Default unsafe marks threshold'),
+        help_text=_('This setting sets default unsafe marks threshold on its creation'),
+        min_value=0, max_value=100, widget=SemanticPercentInput(
+            identifier='default_threshold_id', preview_id='default_threshold_preview'
+        )
     )
 
     def clean_new_password2(self):
@@ -155,6 +193,9 @@ class EditProfileForm(FormColumnsMixin, forms.ModelForm):
             password_validation.validate_password(password2, self.instance)
         return password2
 
+    def clean_default_threshold(self):
+        return self.cleaned_data.get('default_threshold') / 100
+
     def save(self, commit=True):
         user = super().save(commit=False)
         password = self.cleaned_data["new_password1"]
@@ -168,14 +209,14 @@ class EditProfileForm(FormColumnsMixin, forms.ModelForm):
         model = User
         fields = (
             'email', 'first_name', 'last_name', 'data_format', 'language',
-            'accuracy', 'assumptions', 'triangles', 'coverage_data'
+            'accuracy', 'assumptions', 'triangles', 'coverage_data', 'default_threshold'
         )
         widgets = {
             'data_format': SematicUISelect(),
             'language': SematicUISelect(),
             'assumptions': SemanticUICheckbox(),
             'triangles': SemanticUICheckbox(),
-            'coverage_data': SemanticUICheckbox()
+            'coverage_data': SemanticUICheckbox(),
         }
 
 

@@ -157,7 +157,7 @@
                 <div class="ui orange segment">
                     <h4 class="ui orange header">{% trans 'Association threshold' %}: <span id="threshold_range_preview"></span>%</h4>
                     <div class="ui orange range" data-input="threshold" data-preview="threshold_range_preview" data-min="0" data-max="100" data-step="5"></div>
-                    <input id="threshold" type="hidden" value="{% if data.threshold %}{{ data.threshold }}{% else %}0{% endif %}">
+                    <input id="threshold" type="hidden" value="{% if data.threshold %}{{ data.threshold }}{% else %}{{ user.default_threshold_percentage }}{% endif %}">
                 </div>
 
                 {# Comparison function #}

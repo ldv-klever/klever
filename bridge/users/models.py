@@ -55,12 +55,20 @@ class User(AbstractUser):
         verbose_name=_("Coverage data"), default=settings.DEF_USER['coverage_data'],
         help_text=_('This setting turns on visualization of coverage data and its statistic.')
     )
+    default_threshold = models.FloatField(
+        verbose_name=_('Default unsafe marks threshold'), default=0,
+        help_text=_('This setting sets default unsafe marks threshold on its creation')
+    )
 
     # Do not include remote fields here
     REQUIRED_FIELDS = ['email', 'first_name', 'last_name']
 
     def get_full_name(self):
         return super().get_full_name() or self.username
+
+    @property
+    def default_threshold_percentage(self):
+        return round(self.default_threshold * 100)
 
     class Meta(AbstractUser.Meta):
         swappable = 'AUTH_USER_MODEL'
