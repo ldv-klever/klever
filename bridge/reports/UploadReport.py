@@ -611,11 +611,11 @@ class UploadReport:
         if not report.verification:
             raise exceptions.ValidationError(detail={'identifier': "The report is not verification"})
 
-        self.__update_root_cache(report.component, finished=True)
-
         if not self._is_fullweight:
             if report.is_leaf_node():
                 # Remove verification report if it doesn't have children for lightweight jobs
+                # But before update root caches
+                self.__update_root_cache(report.component, finished=True)
                 report.delete()
                 return
             # Set parent to Core for lightweight jobs that will be preserved
@@ -624,6 +624,8 @@ class UploadReport:
         # Save report with new data
         report.finish_date = now()
         report.save()
+
+        self.__update_root_cache(report.component, finished=True)
 
     def __create_report_unknown(self, data):
         data['attr_data'] = self.__upload_attrs_files(self.__get_archive(data.get('attr_data')))
