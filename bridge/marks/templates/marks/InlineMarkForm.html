@@ -18,9 +18,10 @@
 {% load i18n %}
 
 <div class="ui pink segment" style="margin-bottom: 45px;">
-    <div class="ui two column grid">
-        {% if data.type != 'unknown' %}
-            <div class="column">
+    {% if data.type != 'unknown' %}
+        <div class="ui two column grid">
+            {# Verdict #}
+            <div id="verdict_column" class="column">
                 <h4 class="ui pink header">{% trans 'Verdict' %}</h4>
                 <div>
                     {% for v in data.verdicts %}
@@ -32,20 +33,23 @@
                     {% endfor %}
                 </div>
             </div>
-        {% endif %}
-        <div class="column">
-            <h4 class="ui pink header">{% trans 'Status' %}</h4>
-            <div>
-                {% for s in data.statuses %}
-                    <div class="ui radio checkbox">
-                        <input id="selected_status__{{ s.0 }}" type="radio" name="selected_status" value="{{ s.0 }}"{% if s.0 == data.status %} checked{% endif %}>
-                        <label for="selected_status__{{ s.0 }}" class="mark-status-{{ s.0 }}">{{ s.1 }}</label>
+            {% if data.type == 'unsafe' %}
+                {# Status #}
+                <div id="status_column" class="column"{% if not data.status %} style="display: none"{% endif %}>
+                    <h4 class="ui pink header">{% trans 'Status' %}</h4>
+                    <div style="margin-left: 25px">
+                        {% for s in data.statuses %}
+                            <div class="ui radio checkbox">
+                                <input id="selected_status__{{ s.0 }}" type="radio" name="selected_status" value="{{ s.0 }}" {% if data.status == s.0 %} checked{% endif %}>
+                                <label for="selected_status__{{ s.0 }}" class="mark-status-{{ s.0 }}">{{ s.1 }}</label>
+                            </div>
+                            <br>
+                        {% endfor %}
                     </div>
-                    <br>
-                {% endfor %}
-            </div>
+                </div>
+            {% endif %}
         </div>
-    </div>
+    {% endif %}
     {% if data.type == 'unknown' %}
         <div class="ui purple segment">
             <div class="ui checkbox">

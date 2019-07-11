@@ -45,5 +45,4 @@
   "function": "Error: Refinement failed: Counterexample could not be ruled out and was found again",
   "is_regexp": true,
   "problem_pattern": "RefFailed",
-  "status": "1"
 }

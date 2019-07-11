@@ -1,13 +1,10 @@
-import os
-
 from collections import OrderedDict, Mapping
 from django.db.models import F, Count, Case, When, BooleanField
 from django.utils.translation import ugettext_lazy as _
 
 from rest_framework import serializers, fields, exceptions
 
-from bridge.vars import ASSOCIATION_TYPE, SAFE_VERDICTS, UNSAFE_VERDICTS, MPTT_FIELDS
-from bridge.serializers import TimeStampField
+from bridge.vars import ASSOCIATION_TYPE, SAFE_VERDICTS, UNSAFE_VERDICTS
 
 from jobs.models import Job
 from reports.models import (
@@ -88,8 +85,7 @@ class ReportsAndMarksSerialzierRO(serializers.ModelSerializer):
             reports[mr.report_id]['marks'].append(mark_identifier)
             if mark_identifier not in marks:
                 marks[mark_identifier] = {
-                    'verdict': mr.mark.verdict, 'status': mr.mark.status,
-                    'description': mr.mark.description, 'tags': []
+                    'verdict': mr.mark.verdict, 'description': mr.mark.description, 'tags': []
                 }
 
         # Add reports without marks
@@ -158,8 +154,7 @@ class ReportsAndMarksSerialzierRO(serializers.ModelSerializer):
             if mark_identifier not in marks:
                 marks[mark_identifier] = {
                     'component': mr.mark.component.name, 'function': mr.mark.function,
-                    'is_regexp': mr.mark.is_regexp, 'status': mr.mark.status,
-                    'description': mr.mark.description
+                    'is_regexp': mr.mark.is_regexp, 'description': mr.mark.description
                 }
 
         # Get reports without marks

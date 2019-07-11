@@ -45,5 +45,4 @@
   "function": "CPU time exhausted",
   "is_regexp": true,
   "problem_pattern": "Timeout",
-  "status": "1"
 }

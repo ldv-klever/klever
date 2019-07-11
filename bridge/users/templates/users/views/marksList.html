@@ -101,11 +101,12 @@
         </div>
         <div class="ui divider"></div>
 
+    {% if view.type == '7' %}
         {# Status #}
         <input id="view_data_{{ view.type }}__status" value="checkboxes_if_status_enable" type="hidden">
         <div class="ui checkbox">
             <input type="checkbox" id="view_condition_{{ view.type }}__status_enable"{% if 'status' in view %} checked{% endif %}>
-            <label for="view_condition_{{ view.type }}__status_enable">{% trans 'Status' %}</label>
+            <label for="view_condition_{{ view.type }}__status_enable">{% trans 'Status' %} ({% trans 'only bugs will be shown' %})</label>
         </div>
         <br><br>
         <div class="inline fields" style="margin-left: 15px;">
@@ -117,6 +118,7 @@
             {% endfor %}
         </div>
         <div class="ui divider"></div>
+    {% endif %}
 
     {% if view.type == '9' %}
         {# Component #}
@@ -153,7 +155,7 @@
         <div class="inline fields" style="margin-left: 15px;">
             {% for verdict in verdicts %}
                 <div class="ui checkbox" style="margin-right: 30px; margin-top: 10px;">
-                    <input id="view_{{ view.type }}__verdict__{{ verdict.0 }}" type="checkbox" value="{{ status.0 }}"{% if 'verdict' in view and verdict.0 in view.verdict %} checked{% endif %}>
+                    <input id="view_{{ view.type }}__verdict__{{ verdict.0 }}" type="checkbox" value="{{ verdict.0 }}"{% if 'verdict' in view and verdict.0 in view.verdict %} checked{% endif %}>
                     <label for="view_{{ view.type }}__verdict__{{ verdict.0 }}">{{ verdict.1 }}</label>
                 </div>
             {% endfor %}

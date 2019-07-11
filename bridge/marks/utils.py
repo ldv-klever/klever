@@ -198,7 +198,7 @@ class CompareMarkVersions:
 
     @cached_property
     def status(self):
-        if self.v1.status == self.v2.status:
+        if self.type != 'unsafe' or self.v1.status == self.v2.status:
             return None
         return [
             {'display': self.v1.get_status_display(), 'value': self.v1.status},
@@ -274,7 +274,6 @@ class MarkVersionFormData:
     def __init__(self, mark_type, mark_version=None):
         self.type = mark_type
         self.object = mark_version
-        self.statuses = MARK_STATUS
 
     @property
     def title(self):
@@ -299,7 +298,9 @@ class MarkVersionFormData:
 
     @cached_property
     def status(self):
-        return self.object.status if self.object else MARK_STATUS[0][0]
+        if self.type != 'unsafe':
+            return None
+        return self.object.status if self.object else None
 
     @property
     def description(self):
@@ -320,6 +321,12 @@ class MarkVersionFormData:
         elif self.type == 'unsafe':
             return MARK_UNSAFE
         return None
+
+    @cached_property
+    def statuses(self):
+        if self.type != 'unsafe':
+            return None
+        return MARK_STATUS
 
     @cached_property
     def function(self):

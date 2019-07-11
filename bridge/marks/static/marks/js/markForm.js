@@ -53,7 +53,6 @@ function collect_markdata(action, mark_type) {
         is_modifiable: is_modifiable(),
         description: get_description(),
         attrs: collect_attrs_data(),
-        status: $("input[name='selected_status']:checked").val(),
         comment: $('#mark_comment').val()
     };
     if (action === 'create') mark_data['report_id'] = $('#report_id').val();
@@ -68,6 +67,7 @@ function collect_markdata(action, mark_type) {
         mark_data['verdict'] = $("input[name='selected_verdict']:checked").val();
         mark_data['tags'] = get_tags_values();
         if (mark_type === 'unsafe') {
+            mark_data['status'] = $("input[name='selected_status']:checked").val();
             mark_data['function'] = $("#compare_name").val();
             mark_data['threshold'] = $('#threshold').val();
         }
@@ -154,4 +154,21 @@ $(document).ready(function () {
         $('#convert_desc').text(data_container.find('.convert-desc').text());
         $('#convert_name').text(data_container.find('.convert-desc').data('name'));
     });
+
+    let verdict_column = $('#verdict_column'), status_div = $('#status_column');
+    if (verdict_column.length && status_div.length) {
+        verdict_column.find('input').change(function () {
+            if ($(this).is(':checked')) {
+                // verdict is "Bug"
+                if ($(this).val() === '1') {
+                    status_div.show();
+                    status_div.find("input:radio[name=selected_status]:first").prop('checked', true);
+                }
+                else {
+                    status_div.find("input:radio[name=selected_status]:checked").prop('checked', false);
+                    status_div.hide();
+                }
+            }
+        })
+    }
 });

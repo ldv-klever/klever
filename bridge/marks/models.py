@@ -72,7 +72,6 @@ class Mark(models.Model):
 
 class MarkHistory(models.Model):
     version = models.PositiveSmallIntegerField()
-    status = models.CharField(max_length=1, choices=MARK_STATUS, default=MARK_STATUS[0][0])
     author = models.ForeignKey(User, models.SET_NULL, null=True, related_name='+')
     change_date = models.DateTimeField(default=now)
     comment = models.TextField(blank=True, default='')
@@ -135,6 +134,7 @@ class MarkUnsafe(Mark):
     function = models.CharField(max_length=30, db_index=True)
     error_trace = models.ForeignKey(ConvertedTrace, models.CASCADE)
     verdict = models.CharField(max_length=1, choices=MARK_UNSAFE)
+    status = models.CharField(max_length=1, choices=MARK_STATUS, null=True)
     cache_tags = ArrayField(models.CharField(max_length=MAX_TAG_LEN), default=list)
     threshold = models.FloatField(default=0)
 
@@ -151,6 +151,7 @@ class MarkUnsafeHistory(MarkHistory):
     mark = models.ForeignKey(MarkUnsafe, models.CASCADE, related_name='versions')
     function = models.CharField(max_length=30, db_index=True)
     verdict = models.CharField(max_length=1, choices=MARK_UNSAFE)
+    status = models.CharField(max_length=1, choices=MARK_STATUS, null=True)
     error_trace = models.ForeignKey(ConvertedTrace, models.CASCADE)
     threshold = models.FloatField(default=0)
 

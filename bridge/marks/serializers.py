@@ -22,7 +22,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from rest_framework import fields, serializers, exceptions
 
-from bridge.vars import MPTT_FIELDS
+from bridge.vars import MPTT_FIELDS, UNSAFE_VERDICTS
 from bridge.utils import logger
 from bridge.serializers import DynamicFieldsModelSerializer
 
@@ -206,7 +206,7 @@ class SafeMarkVersionSerializer(WithTagsMixin, serializers.ModelSerializer):
 
     class Meta:
         model = MarkSafeHistory
-        fields = ('status', 'change_date', 'comment', 'description', 'verdict', 'tags', 'attrs')
+        fields = ('change_date', 'comment', 'description', 'verdict', 'tags', 'attrs')
 
 
 class SafeMarkSerializer(DynamicFieldsModelSerializer):
@@ -284,6 +284,10 @@ class UnsafeMarkVersionSerializer(WithTagsMixin, serializers.ModelSerializer):
                 raise exceptions.ValidationError(detail={
                     'error_trace': _('Wrong error trace json provided')
                 })
+        if res['verdict'] != UNSAFE_VERDICTS[1][0]:
+            res['status'] = None
+        elif not res.get('status'):
+            raise exceptions.ValidationError(detail={'status': _('Wrong status value')})
         return res
 
     def get_value(self, dictionary):
@@ -313,7 +317,7 @@ class UnsafeMarkVersionSerializer(WithTagsMixin, serializers.ModelSerializer):
     class Meta:
         model = MarkUnsafeHistory
         fields = (
-            'status', 'change_date', 'comment', 'description', 'verdict',
+            'change_date', 'comment', 'description', 'verdict', 'status',
             'tags', 'attrs', 'function', 'error_trace', 'threshold'
         )
 
@@ -350,6 +354,8 @@ class UnsafeMarkSerializer(DynamicFieldsModelSerializer):
         if 'request' in self.context:
             validated_data['author'] = self.context['request'].user
 
+        validated_data['status'] = version_data['status']
+
         instance = super().create(validated_data)
         create_mark_version(instance, **version_data)
         return instance
@@ -360,6 +366,7 @@ class UnsafeMarkSerializer(DynamicFieldsModelSerializer):
         if 'request' in self.context:
             version_data['author'] = self.context['request'].user
         validated_data['version'] = instance.version + 1
+        validated_data['status'] = version_data['status']
 
         instance = super().update(instance, validated_data)
         create_mark_version(instance, **version_data)
@@ -375,7 +382,10 @@ class UnsafeMarkSerializer(DynamicFieldsModelSerializer):
 
     class Meta:
         model = MarkUnsafe
-        fields = ('identifier', 'format', 'is_modifiable', 'verdict', 'mark_version', 'function', 'threshold')
+        fields = (
+            'identifier', 'format', 'is_modifiable', 'verdict',
+            'status', 'mark_version', 'function', 'threshold'
+        )
 
 
 class UnknownMarkVersionSerializer(serializers.ModelSerializer):
@@ -414,7 +424,7 @@ class UnknownMarkVersionSerializer(serializers.ModelSerializer):
     class Meta:
         model = MarkUnknownHistory
         fields = (
-            'status', 'change_date', 'comment', 'description', 'attrs',
+            'change_date', 'comment', 'description', 'attrs',
             'function', 'is_regexp', 'problem_pattern', 'link'
         )
 

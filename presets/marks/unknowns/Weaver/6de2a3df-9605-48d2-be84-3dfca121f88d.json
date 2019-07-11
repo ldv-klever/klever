@@ -6,5 +6,4 @@
   "is_regexp": false,
   "problem_pattern": "Unsup fix_trunc_expr",
   "production": true,
-  "status": "0"
 }

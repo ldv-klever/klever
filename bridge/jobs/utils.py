@@ -729,8 +729,7 @@ class GetJobDecisionResults:
             reports[mr.report_id]['marks'].append(mr.mark.identifier)
             if mr.mark.identifier not in marks:
                 marks[mr.mark.identifier] = {
-                    'verdict': mr.mark.verdict, 'status': mr.mark.status,
-                    'description': mr.mark.description, 'tags': []
+                    'verdict': mr.mark.verdict, 'description': mr.mark.description, 'tags': []
                 }
 
         for s_id, in ReportSafe.objects.filter(root=self.job.reportroot, verdict=SAFE_VERDICTS[4][0]).values_list('id'):
@@ -793,8 +792,8 @@ class GetJobDecisionResults:
             reports[mr.report_id]['marks'].append(mr.mark.identifier)
             if mr.mark.identifier not in marks:
                 marks[mr.mark.identifier] = {
-                    'component': mr.mark.component.name, 'function': mr.mark.function, 'is_regexp': mr.mark.is_regexp,
-                    'status': mr.mark.status, 'description': mr.mark.description
+                    'component': mr.mark.component.name, 'function': mr.mark.function,
+                    'is_regexp': mr.mark.is_regexp, 'description': mr.mark.description
                 }
 
         for f_id, in ReportUnknown.objects.filter(root=self.job.reportroot).exclude(id__in=reports).values_list('id'):

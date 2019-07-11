@@ -63,7 +63,6 @@ class MarkGeneratorBase:
 
     def version_data(self, version):
         data = {
-            'status': version.status,
             'comment': version.comment,
             'description': version.description,
             'attrs': self.attrs.get(version.id, []),
@@ -137,6 +136,7 @@ class UnsafeMarkGenerator(MarkGeneratorBase):
             error_trace = fp.read().decode('utf8')
         data.update({
             'verdict': version.verdict,
+            'status': version.status,
             'function': version.function,
             'error_trace': error_trace,
             'threshold': version.threshold_percentage
@@ -180,7 +180,6 @@ class PresetMarkFile(FileWrapper):
 
     def get_data(self):
         return {
-            'status': self.last_version.status,
             'is_modifiable': self.mark.is_modifiable,
             'description': self.last_version.description,
             'attrs': list(self.attrs_model.objects.filter(mark_version=self.last_version)
@@ -208,6 +207,7 @@ class UnsafePresetFile(PresetMarkFile):
         data = super().get_data()
         data.update({
             'verdict': self.mark.verdict,
+            'status': self.mark.status,
             'function': self.mark.function,
             'threshold': self.mark.threshold_percentage,
             'tags': list(MarkUnsafeTag.objects.filter(mark_version=self.last_version)

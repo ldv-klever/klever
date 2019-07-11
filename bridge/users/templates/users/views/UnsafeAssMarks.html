@@ -48,21 +48,11 @@
         </div>
         <div class="ui divider"></div>
 
-        {# Similarity #}
-        <input id="view_data_{{ view.type }}__similarity" value="list_if_similarity" data-list="similarity" type="hidden">
-        <div class="ui checkbox">
-            <input type="checkbox" id="view_condition_{{ view.type }}__similarity"{% if 'similarity' in view %} checked{% endif %}>
-            <label for="view_condition_{{ view.type }}__similarity">{% trans 'Similarity is greater than' %} <span id="similarity_range_preview"></span>%</label>
-        </div>
-        <div class="ui orange range" data-input="view_{{ view.type }}__similarity" data-preview="similarity_range_preview" data-min="0" data-max="100" data-step="5"></div>
-        <input id="view_{{ view.type }}__similarity" type="hidden" value="{% if 'similarity' in view %}{{ view.similarity.0 }}{% else %}100{% endif %}">
-        <div class="ui divider"></div>
-
         {# Status #}
         <input id="view_data_{{ view.type }}__status" value="checkboxes_if_status" type="hidden">
         <div class="ui checkbox">
             <input type="checkbox" id="view_condition_{{ view.type }}__status"{% if 'status' in view %} checked{% endif %}>
-            <label for="view_condition_{{ view.type }}__status">{% trans 'Status' %}</label>
+            <label for="view_condition_{{ view.type }}__status">{% trans 'Status' %} ({% trans 'only bugs will be shown' %})</label>
         </div>
         <br><br>
         <div style="margin-left: 15px;">
@@ -74,6 +64,16 @@
                 <br>
             {% endfor %}
         </div>
+        <div class="ui divider"></div>
+
+        {# Similarity #}
+        <input id="view_data_{{ view.type }}__similarity" value="list_if_similarity" data-list="similarity" type="hidden">
+        <div class="ui checkbox">
+            <input type="checkbox" id="view_condition_{{ view.type }}__similarity"{% if 'similarity' in view %} checked{% endif %}>
+            <label for="view_condition_{{ view.type }}__similarity">{% trans 'Similarity is greater than' %} <span id="similarity_range_preview"></span>%</label>
+        </div>
+        <div class="ui orange range" data-input="view_{{ view.type }}__similarity" data-preview="similarity_range_preview" data-min="0" data-max="100" data-step="5"></div>
+        <input id="view_{{ view.type }}__similarity" type="hidden" value="{% if 'similarity' in view %}{{ view.similarity.0 }}{% else %}100{% endif %}">
         <div class="ui divider"></div>
 
         {# Associated #}

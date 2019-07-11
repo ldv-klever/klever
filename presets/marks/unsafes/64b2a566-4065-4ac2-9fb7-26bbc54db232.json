@@ -72,7 +72,6 @@
   ],
   "function": "thread_call_forests",
   "is_modifiable": true,
-  "status": "1",
   "tags": [],
   "verdict": "3"
 }

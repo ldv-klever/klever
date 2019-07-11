@@ -38,7 +38,6 @@
   ],
   "description": "Relevant function \"svc_handle_xprt\" is uncovered, since it is called in export function svc_recv.",
   "is_modifiable": false,
-  "status": "1",
   "tags": [
     "EMG",
     "EnvSpec"

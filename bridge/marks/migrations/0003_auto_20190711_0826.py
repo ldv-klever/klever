@@ -19,12 +19,15 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-    dependencies = [('marks', '0001_initial')]
+    dependencies = [('marks', '0002_auto_20190702_1444')]
 
     operations = [
-        migrations.AddField(model_name='marksafereport', name='associated', field=models.BooleanField(default=True)),
-        migrations.AddField(model_name='markunknownreport', name='associated', field=models.BooleanField(default=True)),
-        migrations.AddField(model_name='markunsafe', name='threshold', field=models.FloatField(default=0)),
-        migrations.AddField(model_name='markunsafehistory', name='threshold', field=models.FloatField(default=0)),
-        migrations.AddField(model_name='markunsafereport', name='associated', field=models.BooleanField(default=True)),
+        migrations.RemoveField(model_name='marksafehistory', name='status'),
+        migrations.RemoveField(model_name='markunknownhistory', name='status'),
+        migrations.AddField(model_name='markunsafe', name='status', field=models.CharField(choices=[
+            ('0', 'Unreported'), ('1', 'Reported'), ('2', 'Fixed'), ('3', 'Rejected')
+        ], max_length=1, null=True)),
+        migrations.AlterField(model_name='markunsafehistory', name='status', field=models.CharField(choices=[
+            ('0', 'Unreported'), ('1', 'Reported'), ('2', 'Fixed'), ('3', 'Rejected')
+        ], max_length=1, null=True)),
     ]
