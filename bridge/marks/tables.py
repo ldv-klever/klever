@@ -449,6 +449,9 @@ class MarksTableBase:
                 (self.view['attr'][0],)
             )
             qs_filters['attr_value__{}'.format(self.view['attr'][1])] = self.view['attr'][2]
+        if 'tags' in self.view:
+            tags_values = list(t.strip() for t in self.view['tags'][0].split(';') if t.strip())
+            qs_filters['mark__cache_tags__contains'] = tags_values
         if 'change_date' in self.view:
             value = now() - timedelta(**{self.view['change_date'][2]: int(self.view['change_date'][1])})
             qs_filters['change_date__{}'.format(self.view['change_date'][0])] = value
