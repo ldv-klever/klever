@@ -568,7 +568,7 @@ class RP(core.components.Component):
             # Submit a closing report
             core.utils.report(self.logger,
                               'verification finish',
-                              {'identifier': report['id']},
+                              {'identifier': report['identifier']},
                               self.mqs['report files'],
                               self.vals['report id'],
                               self.conf['main working directory'])
