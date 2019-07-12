@@ -509,8 +509,10 @@ class RP(core.components.Component):
             'parent': self.id,
             # TODO: replace with something meaningful, e.g. tool name + tool version + tool configuration.
             'attrs': [],
-            'name': verifier,
-            'resources': decision_results['resources'],
+            'component': verifier,
+            'wall_time': decision_results['resources']['wall time'],
+            'cpu_time': decision_results['resources']['CPU time'],
+            'memory': decision_results['resources']['memory size']
         }
 
         # Get coverage
