@@ -31,8 +31,8 @@ from django.utils.translation import ugettext_lazy as _
 
 from rest_framework import exceptions, serializers, fields
 
-from bridge.vars import FORMAT, JOB_STATUS, REPORT_ARCHIVE, MPTT_FIELDS
-from bridge.utils import logger, BridgeException
+from bridge.vars import FORMAT, JOB_STATUS, REPORT_ARCHIVE, MPTT_FIELDS, ETV_FORMAT, COVERAGE_FILE
+from bridge.utils import logger, BridgeException, ArchiveFileContent
 from bridge.ZipGenerator import ZipStream, CHUNK_SIZE
 from bridge.serializers import TimeStampField
 
@@ -762,7 +762,9 @@ class UploadReports:
                 report_id=self.saved_reports[coverage['report']], identifier=coverage['identifier']
             )
             with open(self.__full_path(coverage['archive']), mode='rb') as fp:
-                instance.add_coverage(fp, save=True)
+                instance.add_coverage(fp, save=False)
+            instance.total = self.__calculate_total_coverage(instance)
+            instance.save()
 
     def __full_path(self, rel_path):
         full_path = os.path.join(self._jobdir, rel_path)
@@ -782,6 +784,27 @@ class UploadReports:
                 _('Required file was not found in job archive: %(filename)s') % {'filename': rel_path}
             )
         return None
+
+    def __calculate_total_coverage(self, cov_arch_instance):
+        res = ArchiveFileContent(cov_arch_instance, 'archive', COVERAGE_FILE)
+        data = json.loads(res.content.decode('utf8'))
+        if data.get('format') != ETV_FORMAT:
+            raise exceptions.ValidationError('Coverage format is not supported')
+        if not data.get('coverage statistics'):
+            raise exceptions.ValidationError('Common coverage file does not contain statistics')
+        total_statistics = [0, 0, 0, 0]
+        for cov_data in data['coverage statistics'].values():
+            total_statistics[0] += cov_data[0]
+            total_statistics[1] += cov_data[1]
+            total_statistics[2] += cov_data[2]
+            total_statistics[3] += cov_data[3]
+        lines_stat = 0
+        if total_statistics[1] > 0:
+            lines_stat = round(total_statistics[0] / total_statistics[1] * 100)
+        funcs_stat = 0
+        if total_statistics[3] > 0:
+            funcs_stat = round(total_statistics[2] / total_statistics[3] * 100)
+        return {'lines': '{}%'.format(lines_stat), 'funcs': '{}%'.format(funcs_stat)}
 
 
 class UploadTree:

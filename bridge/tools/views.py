@@ -25,6 +25,7 @@ from django.utils.translation import ugettext as _
 from django.views.generic import TemplateView
 
 from rest_framework import exceptions
+from rest_framework.generics import DestroyAPIView
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.renderers import TemplateHTMLRenderer
@@ -34,7 +35,7 @@ from bridge.utils import BridgeException, logger
 from bridge.access import ManagerPermission
 
 from jobs.models import Job, JobFile
-from reports.models import Computer, OriginalSources
+from reports.models import Computer, OriginalSources, CompareJobsInfo
 from marks.models import ConvertedTrace
 from service.models import Task
 from tools.models import LockTable
@@ -62,6 +63,7 @@ class ManagerPageView(LoginRequiredMixin, TemplateView):
         context['original'] = OriginalSources.objects.annotate(
             links_num=Count('reportcomponent__root', distinct=True)
         ).all()
+        context['comparison'] = CompareJobsInfo.objects.select_related('user', 'root1__job', 'root2__job')
         return context
 
 
@@ -74,6 +76,11 @@ class ClearSystemAPIView(LoggedCallMixin, APIView):
         ClearFiles()
         objects_without_relations(Computer).delete()
         return Response({'message': _("All unused files and DB rows were deleted")})
+
+
+class ClearComparisonAPIView(LoggedCallMixin, DestroyAPIView):
+    queryset = CompareJobsInfo.objects.all()
+    permission_classes = (ManagerPermission,)
 
 
 class RecalculationAPIView(LoggedCallMixin, APIView):

@@ -44,12 +44,10 @@ function collect_markdata(action, mark_type) {
         is_modifiable: true,
         description: get_description(),
         attrs: collect_attrs_data(),
-        status: $("input[name='selected_status']:checked").val(),
         comment: $('#inline_mark_comment').val()
     };
 
-    if (action === 'edit') mark_data['autoconfirm'] = true;
-    else mark_data['report_id'] = $('#report_id').val();
+    if (action === 'create') mark_data['report_id'] = $('#report_id').val();
 
     if (mark_type === 'unknown') {
         mark_data['problem_pattern'] = $('#unknown_problem_pattern').val();
@@ -60,7 +58,11 @@ function collect_markdata(action, mark_type) {
     else {
         mark_data['verdict'] = $("input[name='selected_verdict']:checked").val();
         mark_data['tags'] = get_tags_values();
-        if (mark_type === 'unsafe') mark_data['function'] = $("#compare_function").val();
+        if (mark_type === 'unsafe') {
+            mark_data['status'] = $("input[name='selected_status']:checked").val();
+            mark_data['function'] = $("#compare_function").val();
+            mark_data['threshold'] = $("#threshold").val();
+        }
     }
     return mark_data;
 }
@@ -91,6 +93,24 @@ window.get_inline_mark_form = function(url, container) {
                 }
             });
         });
+
+        let verdict_column = container.find('#verdict_column'),
+            status_div = container.find('#status_column');
+        if (verdict_column.length && status_div.length) {
+            verdict_column.find('input').change(function () {
+                if ($(this).is(':checked')) {
+                    // verdict is "Bug"
+                    if ($(this).val() === '1') {
+                        status_div.show();
+                        status_div.find("input:radio[name=selected_status]:first").prop('checked', true);
+                    }
+                    else {
+                        status_div.find("input:radio[name=selected_status]:checked").prop('checked', false);
+                        status_div.hide();
+                    }
+                }
+            })
+        }
     });
 };
 

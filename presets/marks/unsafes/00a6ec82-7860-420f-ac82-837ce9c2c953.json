@@ -1,29 +1,9 @@
 {
   "attrs": [
     {
-      "is_compare": false,
-      "name": "Klever Core version",
-      "value": "1.2.dev594+g8a1aa1063.d20181018"
-    },
-    {
-      "is_compare": false,
-      "name": "Sub-job identifier",
-      "value": "26"
-    },
-    {
-      "is_compare": false,
-      "name": "Linux:Architecture",
-      "value": "x86_64"
-    },
-    {
       "is_compare": true,
       "name": "Linux:Version",
       "value": "v3.12.17-54-gd40390bf1206"
-    },
-    {
-      "is_compare": false,
-      "name": "Linux:Configuration",
-      "value": "allmodconfig"
     },
     {
       "is_compare": true,
@@ -115,7 +95,6 @@
   ],
   "function": "thread_call_forests",
   "is_modifiable": true,
-  "status": "2",
   "tags": [
     "KernelModel"
   ],

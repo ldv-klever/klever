@@ -114,12 +114,12 @@
             {% trans 'Are you sure' %}?
         </div>
         <div class="content">
-            <div class="ui center aligned grid"><p>{% trans 'The file you changed is not commited' %}</p></div>
+            <div class="ui center aligned grid"><p>{% trans 'The file you changed is not saved' %} (Ctrl+S)</p></div>
         </div>
         <div class="actions">
             <div class="ui center aligned grid">
-                <button id="close_save_job_btn" type="button" class="ui blue basic inverted button">{% trans 'Cancel' %}</button>
-                <button id="confirm_save_job_btn" type="button" class="ui red basic inverted button">{% trans 'Confirm' %}</button>
+                <button id="close_save_job_btn" type="button" class="ui blue basic inverted button">{% trans 'Cancel job saving' %}</button>
+                <button id="confirm_save_job_btn" type="button" class="ui red basic inverted button">{% trans 'Save the job anyway' %}</button>
             </div>
         </div>
     </div>

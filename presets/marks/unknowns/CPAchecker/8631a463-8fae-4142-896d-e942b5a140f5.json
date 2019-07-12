@@ -1,34 +1,9 @@
 {
   "attrs": [
     {
-      "is_compare": false,
-      "name": "Klever Core version",
-      "value": "0.3.dev404+g27a398b9"
-    },
-    {
-      "is_compare": false,
-      "name": "Name",
-      "value": "214c97a12f1f/drivers/media/usb/usbvision/usbvision.ko/linux:kernel:locking:mutex"
-    },
-    {
       "is_compare": true,
       "name": "Linux kernel:Version",
       "value": "214c97a12f1f"
-    },
-    {
-      "is_compare": false,
-      "name": "Linux kernel:Architecture",
-      "value": "x86_64"
-    },
-    {
-      "is_compare": false,
-      "name": "Linux kernel:Configuration",
-      "value": "allmodconfig"
-    },
-    {
-      "is_compare": false,
-      "name": "LKVOG strategy:Name",
-      "value": "separate modules"
     },
     {
       "is_compare": true,
@@ -44,6 +19,5 @@
   "description": "Relevant code is covered, but CPAchecker cannot handle driver. Previously there was a non-target bug.",
   "function": "CPU time exhausted",
   "is_regexp": true,
-  "problem_pattern": "Timeout",
-  "status": "1"
+  "problem_pattern": "Timeout"
 }

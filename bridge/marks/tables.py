@@ -77,7 +77,9 @@ MARK_TITLES = {
     'likes': format_lazy('{0}/{1}', _('Likes'), _('Dislikes')),
     'buttons': '',
     'description': _('Description'),
-    'identifier': _('Identifier')
+    'identifier': _('Identifier'),
+    'threshold': _('Association threshold'),
+    'associated': _('Is associated'),
 }
 
 CHANGE_COLOR = {
@@ -115,9 +117,8 @@ class ReportMarksTableBase:
         self.report = report
         self.view = view
         self.can_mark = MarkAccess(user, report=report).can_create
-        self.statuses = MARK_STATUS
         self.ass_types = ASSOCIATION_TYPE
-        self.verdicts = None
+        self.statuses = self.verdicts = None
         self.values, self.header = self.__get_values()
 
     @cached_property
@@ -173,17 +174,22 @@ class ReportMarksTableBase:
 
         qs_filters = {'version': F('versions__version'), 'markreport_set__report_id': self.report.id}
         if 'status' in self.view:
-            qs_filters['versions__status__in'] = self.view['status']
+            qs_filters['status__in'] = self.view['status']
         if 'verdict' in self.view:
             qs_filters['verdict__in'] = self.view['verdict']
         if 'ass_type' in self.view:
             qs_filters['markreport_set__type__in'] = self.view['ass_type']
         if 'similarity' in self.view:
             qs_filters['markreport_set__result__gte'] = int(self.view['similarity'][0]) / 100
+        if 'associated' in self.view:
+            qs_filters['markreport_set__associated'] = True
 
         annotations = {'ass_id': F('markreport_set__id')}
         columns_set = set(self.columns)
         fields = ['id', 'ass_id']
+        if 'associated' in columns_set:
+            annotations['associated'] = F('markreport_set__associated')
+            fields.append('associated')
         if 'verdict' in columns_set:
             fields.append('verdict')
         if 'problem' in columns_set:
@@ -194,7 +200,6 @@ class ReportMarksTableBase:
             annotations['error'] = F('markreport_set__error')
             fields.extend(['similarity', 'error'])
         if 'status' in columns_set:
-            annotations['status'] = F('versions__status')
             fields.append('status')
         if 'source' in columns_set:
             fields.append('source')
@@ -236,7 +241,6 @@ class ReportMarksTableBase:
         value_data = []
 
         likes, dislikes = self.__get_likes_data()
-        status_dict = dict(self.statuses)
         source_dict = dict(MARK_SOURCE)
         ass_type_dict = dict(self.ass_types)
 
@@ -271,8 +275,9 @@ class ReportMarksTableBase:
                         val = "{:.0%}".format(mark_data['similarity'])
                         color = result_color(mark_data['similarity'])
                 elif col == 'status':
-                    val = status_dict[mark_data['status']]
-                    color = STATUS_COLOR[mark_data['status']]
+                    if mark_data['status']:
+                        val = MarkUnsafe(status=mark_data['status']).get_status_display()
+                        color = STATUS_COLOR[mark_data['status']]
                 elif col == 'source':
                     val = source_dict[mark_data['source']]
                 elif col == 'tags':
@@ -315,6 +320,8 @@ class ReportMarksTableBase:
                     }
                 elif col == 'change_date':
                     val = mark_data['cahnge_date']
+                elif col == 'associated':
+                    val = mark_data['associated']
                 elif col == 'author':
                     if mark_data['author'] and mark_data['author'] in self.authors:
                         val = self.authors[mark_data['author']].get_full_name()
@@ -328,7 +335,7 @@ class ReportMarksTableBase:
 class SafeReportMarksTable(ReportMarksTableBase):
     report_type = 'safe'
     supported_columns = [
-        'verdict', 'status', 'source', 'tags', 'ass_type',
+        'verdict', 'associated', 'source', 'tags', 'ass_type',
         'ass_author', 'description', 'change_date', 'author'
     ]
     marks_model = MarkSafe
@@ -342,8 +349,8 @@ class SafeReportMarksTable(ReportMarksTableBase):
 class UnsafeReportMarksTable(ReportMarksTableBase):
     report_type = 'unsafe'
     supported_columns = [
-        'verdict', 'similarity', 'status', 'source', 'tags', 'ass_type',
-        'ass_author', 'description', 'change_date', 'author'
+        'verdict', 'similarity', 'status', 'associated', 'source', 'tags',
+        'ass_type', 'ass_author', 'description', 'change_date', 'author'
     ]
     marks_model = MarkUnsafe
     likes_model = UnsafeAssociationLike
@@ -352,13 +359,14 @@ class UnsafeReportMarksTable(ReportMarksTableBase):
     def __init__(self, user, report, view):
         super().__init__(user, report, view)
         self.verdicts = MARK_UNSAFE
+        self.statuses = MARK_STATUS
 
 
 class UnknownReportMarksTable(ReportMarksTableBase):
     report_type = 'unknown'
     supported_columns = [
-        'problem', 'status', 'source', 'ass_type', 'ass_author',
-        'description', 'change_date', 'author'
+        'problem', 'associated', 'source', 'ass_type',
+        'ass_author', 'description', 'change_date', 'author'
     ]
     marks_model = MarkUnknown
     likes_model = UnknownAssociationLike
@@ -380,8 +388,7 @@ class MarksTableBase:
         self._page_number = query_params.get('page', 1)
         self.paginator, self.page = self.get_queryset()
         self.authors = User.objects.all()
-        self.verdicts = None
-        self.statuses = MARK_STATUS
+        self.verdicts = self.statuses = None
         self.sources = MARK_SOURCE
         self.title = ''
 
@@ -442,6 +449,9 @@ class MarksTableBase:
                 (self.view['attr'][0],)
             )
             qs_filters['attr_value__{}'.format(self.view['attr'][1])] = self.view['attr'][2]
+        if 'tags' in self.view:
+            tags_values = list(t.strip() for t in self.view['tags'][0].split(';') if t.strip())
+            qs_filters['mark__cache_tags__contains'] = tags_values
         if 'change_date' in self.view:
             value = now() - timedelta(**{self.view['change_date'][2]: int(self.view['change_date'][1])})
             qs_filters['change_date__{}'.format(self.view['change_date'][0])] = value
@@ -489,6 +499,8 @@ class MarksTableBase:
             select_only.append('mark__component')
         if 'problem_pattern' in view_columns:
             select_only.append('problem_pattern')
+        if 'threshold' in view_columns:
+            select_only.append('threshold')
 
         queryset = self.versions_model.objects
         if annotations:
@@ -500,7 +512,7 @@ class MarksTableBase:
     def paginate_queryset(self, queryset, page):
         num_per_page = DEF_NUMBER_OF_ELEMENTS
         if 'elements' in self.view:
-            num_per_page = int(self.view['elements'][0])
+            num_per_page = max(int(self.view['elements'][0]), 1)
 
         paginator = Paginator(queryset, num_per_page)
         try:
@@ -577,9 +589,6 @@ class MarksTableBase:
                 elif col == 'tags':
                     if mark_version.mark.cache_tags:
                         val = ','.join(mark_version.mark.cache_tags)
-                elif col == 'status':
-                    val = mark_version.get_status_display()
-                    color = STATUS_COLOR[mark_version.status]
                 elif col == 'author' and mark_version.author:
                     val = mark_version.author.get_full_name()
                     href = reverse('users:show-profile', args=[mark_version.author_id])
@@ -606,7 +615,7 @@ class SafeMarksTable(MarksTableBase):
     mark_type = 'safe'
     mark_table = 'mark_safe'
     columns_list = [
-        'num_of_links', 'verdict', 'tags', 'status', 'author',
+        'num_of_links', 'verdict', 'tags', 'author',
         'change_date', 'format', 'source', 'identifier'
     ]
     attrs_model = MarkSafeAttr
@@ -640,6 +649,7 @@ class UnsafeMarksTable(MarksTableBase):
     def __init__(self, user, view, query_params):
         super(UnsafeMarksTable, self).__init__(user, view, query_params)
         self.verdicts = MARK_UNSAFE
+        self.statuses = MARK_STATUS
         self.title = _('Unsafe marks')
 
     @cached_property
@@ -659,6 +669,11 @@ class UnsafeMarksTable(MarksTableBase):
         if column == 'verdict':
             val = mark_version.get_verdict_display()
             color = UNSAFE_COLOR[mark_version.verdict]
+        elif column == 'threshold':
+            val = '{}%'.format(mark_version.threshold_percentage)
+        elif column == 'status' and mark_version.status:
+            val = mark_version.get_status_display()
+            color = STATUS_COLOR[mark_version.status]
         return val, href, color
 
 
@@ -666,7 +681,7 @@ class UnknownMarksTable(MarksTableBase):
     mark_type = 'unknown'
     mark_table = 'mark_unknown'
     columns_list = [
-        'num_of_links', 'component', 'problem_pattern', 'status', 'author',
+        'num_of_links', 'component', 'problem_pattern', 'author',
         'change_date', 'format', 'source', 'identifier'
     ]
     attrs_model = MarkUnknownAttr
@@ -738,6 +753,8 @@ class MarkAssociationsBase:
         # Filters
         if 'similarity' in self.view:
             qs_filters['result__{}'.format(self.view['similarity'][0])] = int(self.view['similarity'][1]) / 100
+        if 'associated' in self.view:
+            qs_filters['associated'] = True
         if 'ass_type' in self.view:
             qs_filters['type__in'] = self.view['ass_type']
 
@@ -754,6 +771,8 @@ class MarkAssociationsBase:
 
         if 'similarity' in view_columns:
             select_only.append('result')
+        if 'associated' in view_columns:
+            select_only.append('associated')
         if 'ass_type' in view_columns:
             select_only.append('type')
         if 'ass_author' in view_columns:
@@ -768,7 +787,7 @@ class MarkAssociationsBase:
     def paginate_queryset(self, queryset, page):
         num_per_page = DEF_NUMBER_OF_ELEMENTS
         if 'elements' in self.view:
-            num_per_page = int(self.view['elements'][0])
+            num_per_page = max(int(self.view['elements'][0]), 1)
 
         paginator = Paginator(queryset, num_per_page)
         try:
@@ -837,6 +856,8 @@ class MarkAssociationsBase:
                         href = reverse('jobs:job', args=[report.root.job.id])
                 elif col == 'ass_type':
                     val = mark_report.get_type_display()
+                elif col == 'associated':
+                    val = mark_report.associated
                 elif col == 'ass_author':
                     if mark_report.author:
                         val = mark_report.author.get_full_name()
@@ -849,7 +870,7 @@ class MarkAssociationsBase:
                 else:
                     val, href, color = self.get_value(col, mark_report)
 
-                values_str.append({'value': val, 'href': href, 'color': color})
+                values_str.append({'value': val, 'href': href, 'color': color, 'column': col})
             values.append(values_str)
         return Header(columns, MARK_TITLES).struct, values
 
@@ -860,13 +881,13 @@ class MarkAssociationsBase:
 
 
 class SafeAssociationsTable(MarkAssociationsBase):
-    columns_list = ['job', 'ass_type', 'ass_author', 'likes']
+    columns_list = ['job', 'associated', 'ass_type', 'ass_author', 'likes']
     likes_model = SafeAssociationLike
     mark_reports_model = MarkSafeReport
 
 
 class UnsafeAssociationsTable(MarkAssociationsBase):
-    columns_list = ['job', 'similarity', 'ass_type', 'ass_author', 'likes']
+    columns_list = ['job', 'similarity', 'associated', 'ass_type', 'ass_author', 'likes']
     likes_model = UnsafeAssociationLike
     mark_reports_model = MarkUnsafeReport
 

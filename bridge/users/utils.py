@@ -27,7 +27,6 @@ from django.utils.functional import cached_property
 from bridge.vars import DATAFORMAT
 
 from users.models import DataView, PreferableView, User
-from jobs.models import JobHistory
 
 
 DEF_NUMBER_OF_ELEMENTS = 18
@@ -139,7 +138,7 @@ UNKNOWNS_VIEW = {
 
 UNSAFE_MARKS_VIEW = {
     'elements': [DEF_NUMBER_OF_ELEMENTS],
-    'columns': ['num_of_links', 'verdict', 'tags', 'status', 'author', 'format'],
+    'columns': ['num_of_links', 'verdict', 'threshold', 'tags', 'status', 'author', 'format'],
     # order: [up|down, change_date|num_of_links|attr, <any text, empty if not attr>]
     'order': ['up', 'change_date', ''],
 
@@ -162,13 +161,12 @@ UNSAFE_MARKS_VIEW = {
 
 SAFE_MARKS_VIEW = {
     'elements': [DEF_NUMBER_OF_ELEMENTS],
-    'columns': ['num_of_links', 'verdict', 'tags', 'status', 'author', 'format'],
+    'columns': ['num_of_links', 'verdict', 'tags', 'author', 'format'],
     # order: [up|down, change_date|num_of_links|attr, <any text, empty if not attr>]
     'order': ['up', 'change_date', ''],
 
     # FILTERS:
     # identifier: [<mark identifier>]
-    # status: [<ids from MARK_STATUS>]
     # verdict: [<ids from MARK_SAFE>]
     # author: [<author id>]
     # source: [<ids from MARK_SOURCE>]
@@ -176,7 +174,6 @@ SAFE_MARKS_VIEW = {
     # change_date: [younger|older, <int number>, weeks|days|hours|minutes]
 
     # EXAMPLES:
-    # 'status': ['0'],
     # 'verdict': ['0'],
     # 'author': [1]
     # 'source': ['2'],
@@ -185,13 +182,12 @@ SAFE_MARKS_VIEW = {
 
 UNKNOWN_MARKS_VIEW = {
     'elements': [DEF_NUMBER_OF_ELEMENTS],
-    'columns': ['num_of_links', 'status', 'component', 'author', 'format', 'problem_pattern'],
+    'columns': ['num_of_links', 'component', 'author', 'format', 'problem_pattern'],
     # order: [up|down, change_date|num_of_links|attr|component, <any text, empty if not attr>]
     'order': ['up', 'change_date'],
 
     # FILTERS:
     # identifier: [<mark identifier>]
-    # status: [<ids from MARK_STATUS>]
     # component: [iexact|istartswith, <any text>]
     # author: [<author id>]
     # source: [<ids from MARK_SOURCE>]
@@ -199,87 +195,97 @@ UNKNOWN_MARKS_VIEW = {
     # change_date: [younger|older, <int number>, weeks|days|hours|minutes]
 
     # EXAMPLES:
-    # 'status': ['0', '2'],
     # 'component': ['istartswith', 'Com'],
     # 'author': [1]
     # 'source': ['2'],
 }
 
 UNSAFE_ASS_MARKS_VIEW = {
-    'columns': ['verdict', 'similarity', 'status', 'source', 'tags', 'ass_type', 'ass_author', 'description'],
+    'columns': [
+        'verdict', 'similarity', 'status', 'associated', 'source',
+        'tags', 'ass_type', 'ass_author', 'description'
+    ],
 
     # FILTERS:
     # verdict: <list of identifiers from MARK_UNSAFE>
     # similarity: [exact|lt|gt, "<integer>"]
     # status: <list of identifiers from MARK_STATUS>
     # ass_type: <list of identifiers from ASSOCIATION_TYPE>
+    # associated: <list with any value>
 
     # EXAMPLES:
     # 'verdict': ['0', '2'],
     'similarity': ['30'],
     # 'status': ['1'],
     # 'ass_type': ['0', '1'],
+    # 'associated': [True]
 }
 
 SAFE_ASS_MARKS_VIEW = {
-    'columns': ['verdict', 'status', 'source', 'tags', 'ass_type', 'ass_author', 'description'],
+    'columns': ['verdict', 'associated', 'source', 'tags', 'ass_type', 'ass_author', 'description'],
 
     # FILTERS:
     # verdict: <list of identifiers from MARK_UNSAFE>
-    # status: <list of identifiers from MARK_STATUS>
     # ass_type: <list of identifiers from ASSOCIATION_TYPE>
+    # associated: <list with any value>
 
     # EXAMPLES:
     # 'verdict': ['0', '2'],
-    # 'status': ['1'],
     # 'ass_type': ['0', '1'],
+    # 'associated': [True]
 }
 
 UNKNOWN_ASS_MARKS_VIEW = {
-    'columns': ['status', 'source', 'ass_type', 'ass_author', 'description'],
+    'columns': ['associated', 'source', 'ass_type', 'ass_author', 'description'],
 
     # FILTERS:
-    # status: <list of identifiers from MARK_STATUS>
     # ass_type: <list of identifiers from ASSOCIATION_TYPE>
+    # associated: <list with any value>
 
     # EXAMPLES:
-    # 'status': ['1'],
     # 'ass_type': ['0', '1'],
+    # 'associated': [True]
 }
 
 UNSAFE_MARK_ASS_REPORTS_VIEW = {
     'elements': [DEF_NUMBER_OF_ELEMENTS],
-    'columns': ['job', 'similarity', 'ass_type', 'ass_author', 'likes'],
+    'columns': ['job', 'similarity', 'associated', 'ass_type', 'ass_author', 'likes'],
 
     # FILTERS:
     # similarity: [exact|lt|gt, "<integer>"]
     # ass_type: <list of identifiers from ASSOCIATION_TYPE>
+    # associated: <list with any value>
 
     # EXAMPLES:
     'similarity': ['gt', '30'],
     # 'ass_type': ['0', '1'],
+    # 'associated': [True]
 }
 
 SAFE_MARK_ASS_REPORTS_VIEW = {
     'elements': [DEF_NUMBER_OF_ELEMENTS],
-    'columns': ['job', 'ass_type', 'ass_author', 'likes'],
+    'columns': ['job', 'associated', 'ass_type', 'ass_author', 'likes'],
 
     # FILTERS:
     # ass_type: <list of identifiers from ASSOCIATION_TYPE>
+    # associated: <list with any value>
 
     # EXAMPLES:
     # 'ass_type': ['0', '1'],
+    # 'associated': [True]
 }
 
 UNKNOWN_MARK_ASS_REPORTS_VIEW = {
     'elements': [DEF_NUMBER_OF_ELEMENTS],
-    'columns': ['job', 'ass_type', 'ass_author', 'likes'],
+    'columns': ['job', 'associated', 'ass_type', 'ass_author', 'likes'],
 
     # FILTERS:
     # ass_type: <list of identifiers from ASSOCIATION_TYPE>
+    # associated: <list with any value>
 
     # EXAMPLES:
     # 'ass_type': ['0', '1'],
+    # 'associated': [True]
 }
 
 SAFE_ASSOCIATION_CHANGES_VIEW = {

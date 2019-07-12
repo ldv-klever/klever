@@ -5,6 +5,5 @@
   "is_modifiable": false,
   "is_regexp": false,
   "problem_pattern": "BadInitializer ",
-  "production": true,
-  "status": "0"
+  "production": true
 }

@@ -28,8 +28,11 @@ from django.utils.timezone import now
 from rest_framework import exceptions, fields, serializers
 from rest_framework.settings import api_settings
 
-from bridge.vars import JOB_WEIGHT, JOB_STATUS, ERROR_TRACE_FILE, REPORT_ARCHIVE, SUBJOB_NAME
-from bridge.utils import logger, extract_archive, CheckArchiveError
+from bridge.vars import (
+    JOB_WEIGHT, JOB_STATUS, ERROR_TRACE_FILE, REPORT_ARCHIVE, SUBJOB_NAME,
+    COVERAGE_FILE, ETV_FORMAT, UNKNOWN_ATTRS_NOT_ASSOCIATE
+)
+from bridge.utils import logger, extract_archive, CheckArchiveError, ArchiveFileContent
 
 from reports.models import (
     ReportRoot, ReportComponent, ReportSafe, ReportUnsafe, ReportUnknown, ReportAttr,
@@ -150,12 +153,17 @@ class UploadBaseSerializer(serializers.ModelSerializer):
             return parent.computer
         raise exceptions.ValidationError('The computer is required')
 
-    def parent_attributes(self, parent, select_fields=None):
+    def parent_attributes(self, parent, select_fields=None, do_not_associate=None):
         if not select_fields:
             select_fields = ['name', 'value', 'compare', 'associate', 'data_id']
         parents_ids = parent.get_ancestors(include_self=True).values_list('id', flat=True)
-        return list(ReportAttr.objects.filter(report_id__in=parents_ids)
-                    .order_by('report_id', 'id').values(*select_fields))
+        attrs_list = list(ReportAttr.objects.filter(report_id__in=parents_ids)
+                          .order_by('report_id', 'id').values(*select_fields))
+        if do_not_associate:
+            for adata in attrs_list:
+                if adata['name'] in do_not_associate:
+                    adata['associate'] = False
+        return attrs_list
 
     def __validate_attrs(self, attrs, parent=None):
         if not attrs:
@@ -266,7 +274,9 @@ class ReportVerificationSerializer(UploadBaseSerializer):
 class ReportUnknownSerializer(UploadBaseSerializer):
     def create(self, validated_data):
         cache_obj = ReportUnknownCache(job_id=validated_data['root'].job_id)
-        validated_data['attrs'] = self.parent_attributes(validated_data['parent']) + validated_data['attrs']
+        validated_data['attrs'] = self.parent_attributes(
+            validated_data['parent'], do_not_associate=UNKNOWN_ATTRS_NOT_ASSOCIATE
+        ) + validated_data['attrs']
         cache_obj.attrs = dict((attr['name'], attr['value']) for attr in validated_data['attrs'])
         validated_data['component'] = validated_data['parent'].component
         if validated_data['parent'].verification:
@@ -521,7 +531,9 @@ class UploadReport:
         # Upload coverage for the report
         if 'coverage' in data:
             carch = CoverageArchive(report=report)
-            carch.add_coverage(self.__get_archive(data['coverage']), save=True)
+            carch.add_coverage(self.__get_archive(data['coverage']), save=False)
+            carch.total = self.__calculate_total_coverage(carch)
+            carch.save()
 
         self.__update_root_cache(
             report.component, started=True,
@@ -547,7 +559,9 @@ class UploadReport:
 
         for cov_id in data['coverage']:
             carch = CoverageArchive(report_id=report.id, identifier=cov_id)
-            carch.add_coverage(self.__get_archive(data['coverage'][cov_id]), save=True)
+            carch.add_coverage(self.__get_archive(data['coverage'][cov_id]), save=False)
+            carch.total = self.__calculate_total_coverage(carch)
+            carch.save()
 
     def __patch_report_component(self, data):
         report = self.__get_report(data.get('identifier'))
@@ -597,11 +611,11 @@ class UploadReport:
         if not report.verification:
             raise exceptions.ValidationError(detail={'identifier': "The report is not verification"})
 
-        self.__update_root_cache(report.component, finished=True)
-
         if not self._is_fullweight:
             if report.is_leaf_node():
                 # Remove verification report if it doesn't have children for lightweight jobs
+                # But before update root caches
+                self.__update_root_cache(report.component, finished=True)
                 report.delete()
                 return
             # Set parent to Core for lightweight jobs that will be preserved
@@ -610,6 +624,8 @@ class UploadReport:
         # Save report with new data
         report.finish_date = now()
         report.save()
+
+        self.__update_root_cache(report.component, finished=True)
 
     def __create_report_unknown(self, data):
         data['attr_data'] = self.__upload_attrs_files(self.__get_archive(data.get('attr_data')))
@@ -708,6 +724,27 @@ class UploadReport:
                     newfile.file.save(os.path.basename(rel_path), File(fp), save=True)
                 db_files[rel_path] = newfile.pk
         return db_files
+
+    def __calculate_total_coverage(self, cov_arch_instance):
+        res = ArchiveFileContent(cov_arch_instance, 'archive', COVERAGE_FILE)
+        data = json.loads(res.content.decode('utf8'))
+        if data.get('format') != ETV_FORMAT:
+            raise exceptions.ValidationError('Coverage format is not supported')
+        if not data.get('coverage statistics'):
+            raise exceptions.ValidationError('Common coverage file does not contain statistics')
+        total_statistics = [0, 0, 0, 0]
+        for cov_data in data['coverage statistics'].values():
+            total_statistics[0] += cov_data[0]
+            total_statistics[1] += cov_data[1]
+            total_statistics[2] += cov_data[2]
+            total_statistics[3] += cov_data[3]
+        lines_stat = 0
+        if total_statistics[1] > 0:
+            lines_stat = round(total_statistics[0] / total_statistics[1] * 100)
+        funcs_stat = 0
+        if total_statistics[3] > 0:
+            funcs_stat = round(total_statistics[2] / total_statistics[3] * 100)
+        return {'lines': '{}%'.format(lines_stat), 'funcs': '{}%'.format(funcs_stat)}
 
 
 def collapse_reports(job):

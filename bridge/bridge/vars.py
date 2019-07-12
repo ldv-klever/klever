@@ -310,6 +310,7 @@ LOG_FILE = 'log.txt'
 ERROR_TRACE_FILE = 'error trace.json'
 PROBLEM_DESC_FILE = 'problem desc.txt'
 PROOF_FILE = 'proof.txt'
+COVERAGE_FILE = 'coverage.json'
 
 # You can set translatable text _("Unknown error")
 UNKNOWN_ERROR = 'Unknown error'
@@ -323,3 +324,5 @@ ASSOCIATION_TYPE = (
 MPTT_FIELDS = ('level', 'lft', 'rght', 'tree_id')
 
 SUBJOB_NAME = 'Subjob'
+
+UNKNOWN_ATTRS_NOT_ASSOCIATE = {'Verification object', 'Program fragment'}

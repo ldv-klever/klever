@@ -123,7 +123,7 @@ class MarkUnsafeViewSet(LoggedCallMixin, ModelViewSet):
             raise exceptions.PermissionDenied(_("You don't have an access to create new marks"))
 
         serializer = self.get_serializer(
-            data=request.data, fields=('is_modifiable', 'verdict', 'mark_version', 'function')
+            data=request.data, fields=('is_modifiable', 'verdict', 'mark_version', 'function', 'threshold')
         )
         serializer.is_valid(raise_exception=True)
         mark, cache_id = perform_unsafe_mark_create(self.request.user, report, serializer)
@@ -137,7 +137,7 @@ class MarkUnsafeViewSet(LoggedCallMixin, ModelViewSet):
             raise exceptions.PermissionDenied(_("You don't have an access to edit this mark"))
 
         serializer = self.get_serializer(
-            instance, data=request.data, fields=('is_modifiable', 'verdict', 'mark_version', 'function')
+            instance, data=request.data, fields=('is_modifiable', 'verdict', 'mark_version', 'function', 'threshold')
         )
         serializer.is_valid(raise_exception=True)
         cache_id = perform_unsafe_mark_update(self.request.user, serializer)
@@ -289,11 +289,10 @@ class RemoveVersionsBase(LoggedCallMixin, DestroyAPIView):
             raise exceptions.ValidationError(_("You don't have an access to edit this mark"))
 
         checked_versions = mark.versions.filter(version__in=json.loads(request.data['versions']))
-        for mark_version in checked_versions:
-            if not access.can_remove_version(mark_version):
-                raise exceptions.ValidationError(_("You don't have an access to remove one of the selected version"))
         if len(checked_versions) == 0:
             raise exceptions.ValidationError(_('There is nothing to delete'))
+        if not access.can_remove_versions(checked_versions):
+            raise exceptions.ValidationError(_("You don't have an access to remove one of the selected version"))
         checked_versions.delete()
 
         return Response({'message': _('Selected versions were successfully deleted')})

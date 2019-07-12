@@ -1,31 +1,6 @@
 {
   "attrs": [
     {
-      "is_compare": false,
-      "name": "Klever Core version",
-      "value": "1.2.dev598+g2a38a67e9.d20181019"
-    },
-    {
-      "is_compare": false,
-      "name": "Sub-job identifier",
-      "value": "0"
-    },
-    {
-      "is_compare": false,
-      "name": "Linux:Architecture",
-      "value": "x86_64"
-    },
-    {
-      "is_compare": false,
-      "name": "Linux:Version",
-      "value": "v3.14.23-161-gc0456439a336"
-    },
-    {
-      "is_compare": false,
-      "name": "Linux:Configuration",
-      "value": "allmodconfig"
-    },
-    {
       "is_compare": true,
       "name": "Requirement",
       "value": "linux:alloc:irq"
@@ -104,7 +79,6 @@
   ],
   "function": "thread_call_forests",
   "is_modifiable": true,
-  "status": "2",
   "tags": [],
   "verdict": "2"
 }

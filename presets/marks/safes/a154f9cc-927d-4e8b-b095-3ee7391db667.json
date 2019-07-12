@@ -1,31 +1,6 @@
 {
   "attrs": [
     {
-      "is_compare": false,
-      "name": "Klever Core version",
-      "value": "1.1rc3.dev601+gd20e4b12e.d20181022"
-    },
-    {
-      "is_compare": false,
-      "name": "Sub-job identifier",
-      "value": "2"
-    },
-    {
-      "is_compare": false,
-      "name": "Linux:Architecture",
-      "value": "x86_64"
-    },
-    {
-      "is_compare": false,
-      "name": "Linux:Version",
-      "value": "v3.10.46-21-g30f5a010a9d5"
-    },
-    {
-      "is_compare": false,
-      "name": "Linux:Configuration",
-      "value": "allmodconfig"
-    },
-    {
       "is_compare": true,
       "name": "Requirement",
       "value": "linux:kernel:module"
@@ -38,7 +13,6 @@
   ],
   "description": "Relevant function \"svc_handle_xprt\" is uncovered, since it is called in export function svc_recv.",
   "is_modifiable": false,
-  "status": "1",
   "tags": [
     "EMG",
     "EnvSpec"

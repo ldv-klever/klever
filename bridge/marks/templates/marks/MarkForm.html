@@ -41,40 +41,6 @@
                 </select>
             {% endif %}
 
-            <div class="ui green segment">
-                <div class="ui grid">
-                    {# Status #}
-                    <div class="eight wide column">
-                        <h4 class="ui green header">{% trans 'Status' %}</h4>
-                        <div style="margin-left: 25px">
-                            {% for s in data.statuses %}
-                                <div class="ui radio checkbox">
-                                    <input id="selected_status__{{ s.0 }}" type="radio" name="selected_status" value="{{ s.0 }}" {% if data.status == s.0 %} checked{% endif %}>
-                                    <label for="selected_status__{{ s.0 }}" class="mark-status-{{ s.0 }}">{{ s.1 }}</label>
-                                </div>
-                                <br>
-                            {% endfor %}
-                        </div>
-                    </div>
-
-                    {% if data.type != 'unknown' %}
-                        {# Verdict #}
-                        <div class="eight wide column">
-                            <h4 class="header ui green">{% trans 'Verdict' %}</h4>
-                            <div style="margin-left: 25px">
-                                {% for v in data.verdicts %}
-                                    <div class="ui radio checkbox">
-                                        <input id="selected_verdict__{{ v.0 }}" type="radio" name="selected_verdict" value="{{ v.0 }}"{% if data.verdict == v.0 %} checked{% endif %}>
-                                        <label for="selected_verdict__{{ v.0 }}" class="{{ data.type }}-verdict-{{ v.0 }}">{{ v.1 }}</label>
-                                    </div>
-                                    <br>
-                                {% endfor %}
-                            </div>
-                        </div>
-                    {% endif %}
-                </div>
-            </div>
-
             {% if data.type == 'unknown' %}
                 {# Unknown pattern, function and problem link #}
                 <div class="ui purple segment">
@@ -113,6 +79,42 @@
                     {% endif %}
                 </div>
             {% else %}
+                <div class="ui pink segment">
+                    <div class="ui grid">
+
+                        {# Verdict #}
+                        <div id="verdict_column" class="eight wide column">
+                            <h4 class="ui pink header">{% trans 'Verdict' %}</h4>
+                            <div style="margin-left: 25px">
+                                {% for v in data.verdicts %}
+                                    <div class="ui radio checkbox">
+                                        <input id="selected_verdict__{{ v.0 }}" type="radio" name="selected_verdict" value="{{ v.0 }}"{% if data.verdict == v.0 %} checked{% endif %}>
+                                        <label for="selected_verdict__{{ v.0 }}" class="{{ data.type }}-verdict-{{ v.0 }}">{{ v.1 }}</label>
+                                    </div>
+                                    <br>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+
+                        {% if data.type == 'unsafe' %}
+                            {# Status #}
+                            <div id="status_column" class="eight wide column"{% if not data.status %} style="display: none"{% endif %}>
+                                <h4 class="ui pink header">{% trans 'Status' %}</h4>
+                                <div style="margin-left: 25px">
+                                    {% for s in data.statuses %}
+                                        <div class="ui radio checkbox">
+                                            <input id="selected_status__{{ s.0 }}" type="radio" name="selected_status" value="{{ s.0 }}" {% if data.status == s.0 %} checked{% endif %}>
+                                            <label for="selected_status__{{ s.0 }}" class="mark-status-{{ s.0 }}">{{ s.1 }}</label>
+                                        </div>
+                                        <br>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
                 {# Tags #}
                 <div class="ui pink segment">
                     <h4 class="header ui pink">{% trans 'Tags' %}</h4>
@@ -140,14 +142,6 @@
                         </div>
                     </div>
                 {% endif %}
-                {% if action == 'edit' %}
-                    <div class="nine wide column">
-                        <div class="ui toggle checkbox">
-                            <input type="checkbox" id="autoconfirm">
-                            <label for="autoconfirm">{% trans "Preserve confirmations of associations if possible" %}</label>
-                        </div>
-                    </div>
-                {% endif %}
             </div>
             <br>
             <label for="mark_comment"></label>
@@ -159,6 +153,13 @@
         </div>
         <div class="eight wide column">
             {% if data.type == 'unsafe' %}
+                {# Association threshold #}
+                <div class="ui orange segment">
+                    <h4 class="ui orange header">{% trans 'Association threshold' %}: <span id="threshold_range_preview"></span>%</h4>
+                    <div class="ui orange range" data-input="threshold" data-preview="threshold_range_preview" data-min="0" data-max="100" data-step="5"></div>
+                    <input id="threshold" type="hidden" value="{% if data.threshold %}{{ data.threshold }}{% else %}{{ user.default_threshold_percentage }}{% endif %}">
+                </div>
+
                 {# Comparison function #}
                 <div class="ui teal segment">
                     <h4 class="header ui teal">{% trans 'Error traces comparison function' %}</h4>
@@ -212,7 +213,7 @@
                                             <td class="collapsing">
                                                 <div class="ui small checkbox">
                                                     <label for="attr_checkbox__{{ attr.id }}">{{ attr.value }}</label>
-                                                    <input id="attr_checkbox__{{ attr.id }}" type="checkbox" data-name="{{ attr.name }}" data-value="{{ attr.value }}"{% if attr.is_compare or attr.compare %} checked{% endif %}>
+                                                    <input id="attr_checkbox__{{ attr.id }}" type="checkbox" data-name="{{ attr.name }}" data-value="{{ attr.value }}"{% if attr.is_compare or attr.associate %} checked{% endif %}>
                                                 </div>
                                             </td>
                                         </tr>

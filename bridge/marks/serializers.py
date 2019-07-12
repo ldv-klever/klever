@@ -22,7 +22,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from rest_framework import fields, serializers, exceptions
 
-from bridge.vars import MPTT_FIELDS
+from bridge.vars import MPTT_FIELDS, UNSAFE_VERDICTS
 from bridge.utils import logger
 from bridge.serializers import DynamicFieldsModelSerializer
 
@@ -45,7 +45,6 @@ def create_mark_version(mark, cache=True, **kwargs):
     kwargs.setdefault('version', mark.version)
     kwargs.setdefault('author', mark.author)
 
-    kwargs.pop('autoconfirm', False)
     attrs = kwargs.pop('attrs')
     tags = kwargs.pop('tags', [])
 
@@ -182,7 +181,6 @@ class UnknownMarkAttrSerializer(serializers.ModelSerializer):
 
 class SafeMarkVersionSerializer(WithTagsMixin, serializers.ModelSerializer):
     tags = fields.ListField(child=fields.CharField(max_length=MAX_TAG_LEN), allow_empty=True, write_only=True)
-    autoconfirm = fields.BooleanField(default=False)
     attrs = fields.ListField(child=SafeMarkAttrSerializer(), allow_empty=True, write_only=True)
 
     def validate_tags(self, tags):
@@ -208,7 +206,7 @@ class SafeMarkVersionSerializer(WithTagsMixin, serializers.ModelSerializer):
 
     class Meta:
         model = MarkSafeHistory
-        fields = ('status', 'change_date', 'comment', 'description', 'verdict', 'tags', 'autoconfirm', 'attrs')
+        fields = ('change_date', 'comment', 'description', 'verdict', 'tags', 'attrs')
 
 
 class SafeMarkSerializer(DynamicFieldsModelSerializer):
@@ -258,12 +256,15 @@ class SafeMarkSerializer(DynamicFieldsModelSerializer):
 
 class UnsafeMarkVersionSerializer(WithTagsMixin, serializers.ModelSerializer):
     tags = fields.ListField(child=fields.CharField(max_length=MAX_TAG_LEN), allow_empty=True, write_only=True)
-    autoconfirm = fields.BooleanField(default=False)
     attrs = fields.ListField(child=UnsafeMarkAttrSerializer(), allow_empty=True, write_only=True)
     error_trace = fields.CharField(write_only=True, required=False)
+    threshold = fields.IntegerField(min_value=0, max_value=100, write_only=True, default=0)
 
     def validate_tags(self, tags):
         return self.get_tags_ids(tags, UnsafeTag.objects.all())
+
+    def validate_threshold(self, value):
+        return value / 100
 
     def __validate_error_trace(self, err_trace_str, compare_func):
         convert_func = COMPARE_FUNCTIONS[compare_func]['convert']
@@ -283,6 +284,10 @@ class UnsafeMarkVersionSerializer(WithTagsMixin, serializers.ModelSerializer):
                 raise exceptions.ValidationError(detail={
                     'error_trace': _('Wrong error trace json provided')
                 })
+        if res['verdict'] != UNSAFE_VERDICTS[1][0]:
+            res['status'] = None
+        elif not res.get('status'):
+            raise exceptions.ValidationError(detail={'status': _('Wrong status value')})
         return res
 
     def get_value(self, dictionary):
@@ -306,18 +311,23 @@ class UnsafeMarkVersionSerializer(WithTagsMixin, serializers.ModelSerializer):
                 res['error_trace'] = json.loads(fp.read().decode('utf-8'))
             res['attrs'] = UnsafeMarkAttrSerializer(instance=instance.attrs.order_by('id'), many=True).data
             res['tags'] = list(instance.tags.values_list('tag__name', flat=True))
+            res['threshold'] = instance.threshold_percentage
         return res
 
     class Meta:
         model = MarkUnsafeHistory
         fields = (
-            'status', 'change_date', 'comment', 'description', 'verdict', 'tags',
-            'autoconfirm', 'attrs', 'function', 'error_trace'
+            'change_date', 'comment', 'description', 'verdict', 'status',
+            'tags', 'attrs', 'function', 'error_trace', 'threshold'
         )
 
 
 class UnsafeMarkSerializer(DynamicFieldsModelSerializer):
     mark_version = UnsafeMarkVersionSerializer(write_only=True)
+    threshold = fields.IntegerField(min_value=0, max_value=100, write_only=True, default=0)
+
+    def validate_threshold(self, value):
+        return value / 100
 
     def create(self, validated_data):
         # Save kwargs:
@@ -344,6 +354,8 @@ class UnsafeMarkSerializer(DynamicFieldsModelSerializer):
         if 'request' in self.context:
             validated_data['author'] = self.context['request'].user
 
+        validated_data['status'] = version_data['status']
+
         instance = super().create(validated_data)
         create_mark_version(instance, **version_data)
         return instance
@@ -354,6 +366,7 @@ class UnsafeMarkSerializer(DynamicFieldsModelSerializer):
         if 'request' in self.context:
             version_data['author'] = self.context['request'].user
         validated_data['version'] = instance.version + 1
+        validated_data['status'] = version_data['status']
 
         instance = super().update(instance, validated_data)
         create_mark_version(instance, **version_data)
@@ -364,15 +377,18 @@ class UnsafeMarkSerializer(DynamicFieldsModelSerializer):
         if isinstance(instance, MarkUnsafe):
             last_version = MarkUnsafeHistory.objects.get(mark=instance, version=instance.version)
             value['mark_version'] = UnsafeMarkVersionSerializer(instance=last_version).data
+            value['threshold'] = instance.threshold_percentage
         return value
 
     class Meta:
         model = MarkUnsafe
-        fields = ('identifier', 'format', 'is_modifiable', 'verdict', 'mark_version', 'function')
+        fields = (
+            'identifier', 'format', 'is_modifiable', 'verdict',
+            'status', 'mark_version', 'function', 'threshold'
+        )
 
 
 class UnknownMarkVersionSerializer(serializers.ModelSerializer):
-    autoconfirm = fields.BooleanField(default=False)
     attrs = fields.ListField(child=UnsafeMarkAttrSerializer(), allow_empty=True, write_only=True)
 
     def validate(self, attrs):
@@ -408,7 +424,7 @@ class UnknownMarkVersionSerializer(serializers.ModelSerializer):
     class Meta:
         model = MarkUnknownHistory
         fields = (
-            'status', 'change_date', 'comment', 'description', 'autoconfirm', 'attrs',
+            'change_date', 'comment', 'description', 'attrs',
             'function', 'is_regexp', 'problem_pattern', 'link'
         )
 

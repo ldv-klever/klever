@@ -22,13 +22,14 @@ import hashlib
 from collections import OrderedDict
 
 from django.core.files import File
+from django.db import transaction
 
 from bridge.vars import ASSOCIATION_TYPE, UNKNOWN_ERROR, ERROR_TRACE_FILE
 from bridge.utils import logger, BridgeException, ArchiveFileContent, file_checksum
 
 from reports.models import ReportUnsafe
 from marks.models import (
-    MarkUnsafe, MarkUnsafeHistory, MarkUnsafeReport, UnsafeAssociationLike, UnsafeConvertionCache, ConvertedTrace
+    MarkUnsafe, MarkUnsafeHistory, MarkUnsafeReport, UnsafeConvertionCache, ConvertedTrace
 )
 from caches.utils import RecalculateUnsafeCache, UpdateUnsafeCachesOnMarkChange
 from caches.models import ReportUnsafeCache
@@ -93,11 +94,11 @@ def perform_unsafe_mark_update(user, serializer):
         'error_trace': mark.error_trace_id,
         'attrs': copy.deepcopy(mark.cache_attrs),
         'tags': copy.deepcopy(mark.cache_tags),
-        'verdict': mark.verdict
+        'verdict': mark.verdict,
+        'threshold': mark.threshold
     }
 
     # Change the mark
-    autoconfirm = serializer.validated_data['mark_version']['autoconfirm']
     mark = serializer.save()
 
     # Update reports cache
@@ -112,10 +113,8 @@ def perform_unsafe_mark_update(user, serializer):
         old_links = new_links = set(mr.report_id for mr in mark_report_qs)
         cache_upd = UpdateUnsafeCachesOnMarkChange(mark, old_links, new_links)
 
-        if not autoconfirm:
-            # Reset association type and remove likes
-            mark_report_qs.update(type=ASSOCIATION_TYPE[0][0])
-            UnsafeAssociationLike.objects.filter(association__mark=mark).delete()
+        if old_cache['threshold'] != mark.threshold:
+            UpdateAssociated(mark)
             cache_upd.update_all()
 
         if old_cache['tags'] != mark.cache_tags:
@@ -175,13 +174,6 @@ def convert_error_trace(error_trace, function):
     return save_converted_trace(forests, function)
 
 
-def recalculate_unsafe_associations(roots):
-    MarkUnsafeReport.objects.filter(report__root__in=roots).delete()
-    for mark in MarkUnsafe.objects.all():
-        ConnectUnsafeMark(mark)
-    RecalculateUnsafeCache(roots=roots)
-
-
 def remove_unsafe_marks(**kwargs):
     queryset = MarkUnsafe.objects.filter(**kwargs)
     if not queryset.count():
@@ -198,8 +190,15 @@ def confirm_unsafe_mark(user, mark_report):
     was_unconfirmed = (mark_report.type == ASSOCIATION_TYPE[2][0])
     mark_report.author = user
     mark_report.type = ASSOCIATION_TYPE[1][0]
+    mark_report.associated = True
     mark_report.save()
-    if was_unconfirmed:
+
+    # Do not count automatic associations as there is already confirmed one
+    change_num = MarkUnsafeReport.objects.filter(
+        report_id=mark_report.report_id, associated=True, type=ASSOCIATION_TYPE[0][0]
+    ).update(associated=False)
+
+    if was_unconfirmed or change_num:
         RecalculateUnsafeCache(reports=[mark_report.report_id])
     else:
         cache_obj = ReportUnsafeCache.objects.get(report_id=mark_report.report_id)
@@ -207,18 +206,33 @@ def confirm_unsafe_mark(user, mark_report):
         cache_obj.save()
 
 
-def unconfirm_unsafe_mark(user, mark_report):
+def unconfirm_unsafe_mark(user, mark_report: MarkUnsafeReport):
     if mark_report.type == ASSOCIATION_TYPE[2][0]:
         return
+    was_confirmed = bool(mark_report.type == ASSOCIATION_TYPE[1][0])
     mark_report.author = user
     mark_report.type = ASSOCIATION_TYPE[2][0]
+    mark_report.associated = False
     mark_report.save()
+
+    if was_confirmed and not MarkUnsafeReport.objects\
+            .filter(report_id=mark_report.report_id, type=ASSOCIATION_TYPE[1][0]).exists():
+        # The report has lost the only confirmed mark,
+        # so we need recalculate what associations we need to count for caches
+        with transaction.atomic():
+            for mr in MarkUnsafeReport.objects.filter(report_id=mark_report.report_id)\
+                    .exclude(type=ASSOCIATION_TYPE[2][0]).select_related('mark')\
+                    .only('report_id', 'result', 'error', 'mark__threshold'):
+                if mr.error or mr.result < mr.mark.threshold:
+                    continue
+                mr.associated = True
+                mr.save()
+
     RecalculateUnsafeCache(reports=[mark_report.report_id])
 
 
 class ConnectUnsafeMark:
-    def __init__(self, mark, prime_id=None, author=None):
-        assert isinstance(mark, MarkUnsafe)
+    def __init__(self, mark: MarkUnsafe, prime_id=None, author=None):
         self._mark = mark
         self.old_links = self.__clear_old_associations()
         self.new_links = self.__add_new_associations(prime_id, author)
@@ -234,19 +248,22 @@ class ConnectUnsafeMark:
             last_version = MarkUnsafeHistory.objects.get(mark=self._mark, version=self._mark.version)
             author = last_version.author
 
-        reports_qs = ReportUnsafe.objects.filter(cache__attrs__contains=self._mark.cache_attrs)
+        reports_qs = ReportUnsafe.objects.filter(cache__attrs__contains=self._mark.cache_attrs).select_related('cache')
         compare_results = CompareMark(self._mark).compare(reports_qs)
 
         new_links = set()
         associations = []
         for report in reports_qs:
-            association_type = ASSOCIATION_TYPE[0][0]
-            if prime_id and report.id == prime_id:
-                association_type = ASSOCIATION_TYPE[1][0]
-            associations.append(MarkUnsafeReport(
+            new_association = MarkUnsafeReport(
                 mark=self._mark, report_id=report.id, author=author,
-                type=association_type, **compare_results[report.id]
-            ))
+                type=ASSOCIATION_TYPE[0][0], **compare_results[report.id]
+            )
+            if prime_id and report.id == prime_id:
+                new_association.type = ASSOCIATION_TYPE[1][0]
+            elif report.cache.marks_confirmed:
+                # Do not count automatic associations if report has confirmed ones
+                new_association.associated = False
+            associations.append(new_association)
             new_links.add(report.id)
         MarkUnsafeReport.objects.bulk_create(associations)
         return new_links
@@ -366,10 +383,15 @@ class CompareMark:
         reports_cache = self.__get_reports_cache(reports_qs)
         for report_id in reports_cache:
             if reports_cache[report_id] is None:
-                results[report_id] = {'result': 0, 'error': str(UNKNOWN_ERROR)}
+                results[report_id] = {
+                    'result': 0, 'error': str(UNKNOWN_ERROR), 'associated': False
+                }
             else:
                 res = jaccard(self._mark_cache, reports_cache[report_id])
-                results[report_id] = {'result': res, 'error': None}
+                results[report_id] = {
+                    'result': res, 'error': None,
+                    'associated': bool(res >= self._mark.threshold)
+                }
         return results
 
 
@@ -404,6 +426,7 @@ class CompareReport:
         for mark in marks_qs:
             marks_cache[mark.id] = {
                 'function': COMPARE_FUNCTIONS[mark.function]['convert'],
+                'threshold': mark.threshold,
                 'cache': set(mark.error_trace.trace_cache['forest'])
             }
         return marks_cache
@@ -415,8 +438,40 @@ class CompareReport:
         for mark_id in marks_cache:
             rep_cache_set = report_cache[marks_cache[mark_id]['function']]
             if rep_cache_set is None:
-                results[mark_id] = {'result': 0, 'error': str(UNKNOWN_ERROR)}
+                results[mark_id] = {
+                    'result': 0, 'error': str(UNKNOWN_ERROR), 'associated': False
+                }
             else:
                 res = jaccard(marks_cache[mark_id]['cache'], rep_cache_set)
-                results[mark_id] = {'result': res, 'error': None}
+                results[mark_id] = {
+                    'result': res, 'error': None,
+                    'associated': bool(res >= marks_cache[mark_id]['threshold'])
+                }
         return results
+
+
+class UpdateAssociated:
+    def __init__(self, mark):
+        self._mark = mark
+        self.__update()
+
+    def __update(self):
+        # Because of the mark threshold some associations can't be confirmed already
+        auto_qs = MarkUnsafeReport.objects.filter(
+            mark=self._mark, type=ASSOCIATION_TYPE[1][0], result__lt=self._mark.threshold
+        )
+        if auto_qs.count():
+            auto_qs.update(type=ASSOCIATION_TYPE[0][0])
+
+        markreport_qs = MarkUnsafeReport.objects.filter(mark=self._mark)
+        has_confirmed = any(mr.type == ASSOCIATION_TYPE[1][0] for mr in markreport_qs)
+        with transaction.atomic():
+            for mr in markreport_qs:
+                associated = (mr.result >= self._mark.threshold)
+                if has_confirmed:
+                    # Count only confirmed associations
+                    associated &= (mr.type == ASSOCIATION_TYPE[1][0])
+                # Save only if changed
+                if mr.associated != associated:
+                    mr.associated = associated
+                    mr.save()

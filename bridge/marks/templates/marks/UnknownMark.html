@@ -80,10 +80,6 @@
                         </td>
                     </tr>
                     <tr>
-                        <th class="right aligned">{% trans 'Status' %}</th>
-                        <td><span class="mark-status-{{ mark_version.status }}">{{ mark_version.get_status_display }}</span></td>
-                    </tr>
-                    <tr>
                         <th class="right aligned">{% trans 'Problem' %}</th>
                         <td>
                             {% if mark_version.link %}
@@ -176,7 +172,13 @@
                                 <tr>
                                     {% for v in row_data %}
                                         <td class="collapsing">
-                                            {% if v.href %}
+                                            {% if v.column == 'associated' %}
+                                                {% if v.value %}
+                                                    <i class="ui green check icon"></i>
+                                                {% else %}
+                                                    <i class="ui red minus icon"></i>
+                                                {% endif %}
+                                            {% elif v.href %}
                                                 <a href="{{ v.href }}">{{ v.value }}</a>
                                             {% else %}
                                                 <span{% if v.color %} style="color:{{ v.color }}"{% endif %}>{{ v.value }}</span>

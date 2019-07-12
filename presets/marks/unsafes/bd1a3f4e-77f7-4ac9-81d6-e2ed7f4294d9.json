@@ -1,29 +1,9 @@
 {
   "attrs": [
     {
-      "is_compare": false,
-      "name": "Klever Core version",
-      "value": "2.1.dev128+g23d8bb5fb"
-    },
-    {
-      "is_compare": false,
-      "name": "Sub-job identifier",
-      "value": "4"
-    },
-    {
-      "is_compare": false,
-      "name": "Linux:Architecture",
-      "value": "x86_64"
-    },
-    {
       "is_compare": true,
       "name": "Linux:Version",
       "value": "v3.14"
-    },
-    {
-      "is_compare": false,
-      "name": "Linux:Configuration",
-      "value": "allmodconfig"
     },
     {
       "is_compare": true,
@@ -74,7 +54,6 @@
   ],
   "function": "thread_call_forests",
   "is_modifiable": false,
-  "status": "1",
   "tags": [],
   "verdict": "2"
 }

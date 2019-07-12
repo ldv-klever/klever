@@ -16,7 +16,6 @@
 #
 
 import copy
-from collections import Counter
 import uuid
 
 from django.db import transaction
@@ -25,7 +24,6 @@ from django.utils.functional import cached_property
 
 from bridge.vars import SAFE_VERDICTS, UNSAFE_VERDICTS, ASSOCIATION_TYPE
 
-from reports.models import ReportSafe, ReportUnsafe
 from marks.models import (
     MarkSafe, MarkSafeHistory, MarkUnsafe, MarkUnsafeHistory, MarkUnknown,
     MarkSafeReport, MarkUnsafeReport, MarkUnknownReport,
@@ -56,8 +54,7 @@ class UpdateSafeCachesOnMarkChange:
         self._affected_reports = self._old_links | self._new_links
         self._cache_queryset = ReportSafeCache.objects.filter(report_id__in=self._affected_reports)
         self._markreport_qs = MarkSafeReport.objects\
-            .filter(report_id__in=self._affected_reports)\
-            .exclude(type=ASSOCIATION_TYPE[2][0]).select_related('mark')
+            .filter(report_id__in=self._affected_reports, associated=True).select_related('mark')
 
         self._collected = set()
         self._old_data = self.__collect_old_data()
@@ -81,6 +78,8 @@ class UpdateSafeCachesOnMarkChange:
         return dict((cache_obj.report_id, {}) for cache_obj in self._cache_queryset)
 
     def update_all(self):
+        if 'verdicts' in self._collected and 'tags' in self._collected:
+            return
         for cache_obj in self._cache_queryset:
             self._new_data[cache_obj.report_id]['verdict'] = SAFE_VERDICTS[4][0]
             self._new_data[cache_obj.report_id]['tags'] = {}
@@ -184,8 +183,7 @@ class UpdateUnsafeCachesOnMarkChange:
         self._affected_reports = self._old_links | self._new_links
         self._cache_queryset = ReportUnsafeCache.objects.filter(report_id__in=self._affected_reports)
         self._markreport_qs = MarkUnsafeReport.objects\
-            .filter(report_id__in=self._affected_reports, result__gt=0)\
-            .exclude(type=ASSOCIATION_TYPE[2][0]).select_related('mark')
+            .filter(report_id__in=self._affected_reports, associated=True).select_related('mark')
 
         self._collected = set()
         self._old_data = self.__collect_old_data()
@@ -209,6 +207,9 @@ class UpdateUnsafeCachesOnMarkChange:
         return dict((cache_obj.report_id, {}) for cache_obj in self._cache_queryset)
 
     def update_all(self):
+        if 'verdicts' in self._collected and 'tags' in self._collected:
+            return
+
         for cache_obj in self._cache_queryset:
             self._new_data[cache_obj.report_id]['verdict'] = UNSAFE_VERDICTS[5][0]
             self._new_data[cache_obj.report_id]['tags'] = {}
@@ -311,8 +312,7 @@ class UpdateUnknownCachesOnMarkChange:
 
         self._affected_reports = self._old_links | self._new_links
         self._cache_queryset = ReportUnknownCache.objects.filter(report_id__in=self._affected_reports)
-        self._markreport_qs = MarkUnknownReport.objects.filter(report_id__in=self._affected_reports)\
-            .exclude(type=ASSOCIATION_TYPE[2][0])
+        self._markreport_qs = MarkUnknownReport.objects.filter(report_id__in=self._affected_reports, associated=True)
 
         self._collected = False
         self._old_data = self.__collect_old_data()
@@ -401,16 +401,22 @@ class UpdateCachesOnMarkPopulate:
 
     @transaction.atomic
     def __update_safes(self):
-        for cache_obj in ReportSafeCache.objects.filter(report_id__in=self._new_links):
+        # If report has confirmed mark, then new populated mark can't affect its cache
+        for cache_obj in ReportSafeCache.objects.filter(report_id__in=self._new_links, marks_confirmed=0):
             # Populated mark can't be confirmed, so we don't need to update confirmed number
             cache_obj.marks_total += 1
-            cache_obj.verdict = self.__sum_unsafe_verdict(cache_obj.verdict)
+            cache_obj.verdict = self.__sum_safe_verdict(cache_obj.verdict)
             cache_obj.tags = self.__sum_tags(cache_obj.tags)
             cache_obj.save()
 
     @transaction.atomic
     def __update_unsafes(self):
-        for cache_obj in ReportUnsafeCache.objects.filter(report_id__in=self._new_links):
+        # Filter new_links with associations where associated flag is True
+        affected_reports = set(MarkUnsafeReport.objects.filter(
+            report_id__in=self._new_links, mark=self._mark, associated=True
+        ).values_list('report_id', flat=True))
+
+        for cache_obj in ReportUnsafeCache.objects.filter(report_id__in=affected_reports):
             # Populated mark can't be confirmed, so we don't need to update confirmed number
             cache_obj.marks_total += 1
             cache_obj.verdict = self.__sum_unsafe_verdict(cache_obj.verdict)
@@ -421,7 +427,9 @@ class UpdateCachesOnMarkPopulate:
     def __update_unknowns(self):
         new_problems = dict(MarkUnknownReport.objects.filter(mark=self._mark).values_list('report_id', 'problem'))
 
-        for cache_obj in ReportUnknownCache.objects.filter(report_id__in=self._new_links):
+        # If report has confirmed mark, then new populated mark can't affect its cache
+        for cache_obj in ReportUnknownCache.objects.filter(report_id__in=self._new_links, marks_confirmed=0):
+            # Populated mark can't be confirmed, so we don't need to update confirmed number
             cache_obj.marks_total += 1
             if cache_obj.report_id in new_problems:
                 problem = new_problems[cache_obj.report_id]
@@ -463,150 +471,6 @@ class UpdateCachesOnMarkPopulate:
         return old_tags
 
 
-class UpdateCachesOnMarksDelete:
-    def __init__(self, affected_reports):
-        self._affected_reports = affected_reports
-
-    def update_safes_cache(self):
-        cache_queryset = ReportSafeCache.objects.filter(report_id__in=self._affected_reports)
-        markreport_qs = MarkSafeReport.objects.filter(report_id__in=self._affected_reports)\
-            .exclude(type=ASSOCIATION_TYPE[2][0]).select_related('mark')
-
-        new_data = {}
-        for cache_obj in cache_queryset:
-            new_data[cache_obj.report_id] = {
-                'marks_total': 0,
-                'marks_confirmed': 0,
-                'tags': {},
-                'verdict': SAFE_VERDICTS[4][0]
-            }
-
-        reports_data = {}
-        for mark_report in markreport_qs:
-            reports_data.setdefault(mark_report.report_id, {'tags': [], 'verdicts': set()})
-            reports_data[mark_report.report_id]['tags'] += mark_report.mark.cache_tags
-            reports_data[mark_report.report_id]['verdicts'].add(mark_report.mark.verdict)
-
-            new_data[mark_report.report_id]['marks_total'] += 1
-            if mark_report.type == ASSOCIATION_TYPE[1][0]:
-                new_data[mark_report.report_id]['marks_confirmed'] += 1
-
-        # Calculate total verdict and tags cache
-        for r_id in reports_data:
-            if len(reports_data[r_id]['verdicts']) == 1:
-                new_data[r_id]['verdict'] = reports_data[r_id]['verdicts'].pop()
-            else:
-                new_data[r_id]['verdict'] = SAFE_VERDICTS[3][0]
-
-            new_data[r_id]['tags'] = dict(Counter(reports_data[r_id]['tags']))
-
-        update_cache_atomic(cache_queryset, new_data)
-
-    def update_unsafes_cache(self):
-        cache_queryset = ReportUnsafeCache.objects.filter(report_id__in=self._affected_reports)
-        markreport_qs = MarkUnsafeReport.objects.filter(report_id__in=self._affected_reports)\
-            .exclude(type=ASSOCIATION_TYPE[2][0]).select_related('mark')
-
-        new_data = {}
-        for cache_obj in cache_queryset:
-            new_data[cache_obj.report_id] = {
-                'marks_total': 0,
-                'marks_confirmed': 0,
-                'tags': {},
-                'verdict': UNSAFE_VERDICTS[5][0]
-            }
-
-        reports_data = {}
-        for mark_report in markreport_qs:
-            reports_data.setdefault(mark_report.report_id, {'tags': [], 'verdicts': set()})
-            reports_data[mark_report.report_id]['tags'] += mark_report.mark.cache_tags
-            reports_data[mark_report.report_id]['verdicts'].add(mark_report.mark.verdict)
-
-            new_data[mark_report.report_id]['marks_total'] += 1
-            if mark_report.type == ASSOCIATION_TYPE[1][0]:
-                new_data[mark_report.report_id]['marks_confirmed'] += 1
-
-        # Calculate total verdict and tags cache
-        for r_id in reports_data:
-            if len(reports_data[r_id]['verdicts']) == 1:
-                new_data[r_id]['verdict'] = reports_data[r_id]['verdicts'].pop()
-            else:
-                new_data[r_id]['verdict'] = UNSAFE_VERDICTS[4][0]
-
-            new_data[r_id]['tags'] = dict(Counter(reports_data[r_id]['tags']))
-
-        update_cache_atomic(cache_queryset, new_data)
-
-
-class UpdateReportCache:
-    def __init__(self, report):
-        self._report = report
-
-    def update(self):
-        if isinstance(self._report, ReportSafe):
-            self.__update_safe_cache()
-        elif isinstance(self._report, ReportUnsafe):
-            self.__update_unsafe_cache()
-
-    def __update_safe_cache(self):
-        cache_obj = ReportSafeCache.objects.get(report=self._report)
-        cache_obj.marks_total = 0
-        cache_obj.marks_confirmed = 0
-
-        verdicts = set()
-        tags_list = []
-        for verdict, ass_type, cache_tags in MarkSafeReport.objects\
-                .filter(report=self._report).exclude(type=ASSOCIATION_TYPE[2][0]) \
-                .values_list('mark__verdict', 'type', 'mark__cache_tags'):
-            verdicts.add(verdict)
-            tags_list += cache_tags
-
-            cache_obj.marks_total += 1
-            cache_obj.marks_confirmed += int(ass_type == ASSOCIATION_TYPE[1][0])
-
-        # Calculate tags
-        cache_obj.tags = dict(Counter(tags_list))
-
-        # Set total verdict
-        if len(verdicts) == 0:
-            cache_obj.verdict = SAFE_VERDICTS[4][0]
-        elif len(verdicts) == 1:
-            cache_obj.verdict = verdicts.pop()
-        else:
-            cache_obj.verdict = SAFE_VERDICTS[3][0]
-
-        cache_obj.save()
-
-    def __update_unsafe_cache(self):
-        cache_obj = ReportUnsafeCache.objects.get(report=self._report)
-        cache_obj.marks_total = 0
-        cache_obj.marks_confirmed = 0
-
-        verdicts = set()
-        tags_list = []
-        for verdict, ass_type, cache_tags in MarkUnsafeReport.objects\
-                .filter(report=self._report, result__gt=0).exclude(type=ASSOCIATION_TYPE[2][0])\
-                .values_list('mark__verdict', 'type', 'mark__cache_tags'):
-            verdicts.add(verdict)
-            tags_list += cache_tags
-
-            cache_obj.marks_total += 1
-            cache_obj.marks_confirmed += int(ass_type == ASSOCIATION_TYPE[1][0])
-
-        # Calculate tags
-        cache_obj.tags = dict(Counter(tags_list))
-
-        # Set total verdict
-        if len(verdicts) == 0:
-            cache_obj.verdict = UNSAFE_VERDICTS[5][0]
-        elif len(verdicts) == 1:
-            cache_obj.verdict = verdicts.pop()
-        else:
-            cache_obj.verdict = UNSAFE_VERDICTS[3][0]
-
-        cache_obj.save()
-
-
 class RecalculateSafeCache:
     def __init__(self, roots=None, reports=None):
         self._cache_queryset = self.__get_cache_queryset(roots=roots, reports=reports)
@@ -622,12 +486,12 @@ class RecalculateSafeCache:
         return ReportSafeCache.objects.all()
 
     def __get_markreport_qs(self, roots=None, reports=None):
-        qs_filters = {}
+        qs_filters = {'associated': True}
         if isinstance(roots, list):
             qs_filters['report__root_id__in'] = roots
         elif isinstance(reports, (set, list)):
             qs_filters['report_id__in'] = reports
-        return MarkSafeReport.objects.filter(**qs_filters).exclude(type=ASSOCIATION_TYPE[2][0]).select_related('mark')
+        return MarkSafeReport.objects.filter(**qs_filters).select_related('mark')
 
     def __initialize_cache(self):
         new_data = {}
@@ -684,12 +548,12 @@ class RecalculateUnsafeCache:
         return ReportUnsafeCache.objects.all()
 
     def __get_markreport_qs(self, roots=None, reports=None):
-        qs_filters = {'result__gt': 0}
+        qs_filters = {'associated': True}
         if isinstance(roots, list):
             qs_filters['report__root_id__in'] = roots
         elif isinstance(reports, (set, list)):
             qs_filters['report_id__in'] = reports
-        return MarkUnsafeReport.objects.filter(**qs_filters).exclude(type=ASSOCIATION_TYPE[2][0]).select_related('mark')
+        return MarkUnsafeReport.objects.filter(**qs_filters).select_related('mark')
 
     def __initialize_cache(self):
         new_data = {}
@@ -747,12 +611,12 @@ class RecalculateUnknownCache:
         return ReportUnknownCache.objects.all()
 
     def __get_markreport_qs(self, roots=None, reports=None):
-        qs_filters = {}
+        qs_filters = {'associated': True}
         if isinstance(roots, list):
             qs_filters['report__root_id__in'] = roots
         elif isinstance(reports, (set, list)):
             qs_filters['report_id__in'] = reports
-        return MarkUnknownReport.objects.filter(**qs_filters).exclude(type=ASSOCIATION_TYPE[2][0])
+        return MarkUnknownReport.objects.filter(**qs_filters)
 
     def __initialize_cache(self):
         new_data = {}
@@ -773,41 +637,12 @@ class RecalculateUnknownCache:
         update_cache_atomic(self._cache_queryset, self._new_data)
 
 
-class UpdateSafeCachesOnMarkTagsChange:
-    def __init__(self, mark, report_links):
-        self._mark = mark
-        self._report_links = report_links
-
-        self._cache_queryset = ReportSafeCache.objects.filter(report_id__in=self._report_links)
-        self._markreport_qs = MarkSafeReport.objects\
-            .filter(report_id__in=self._report_links)\
-            .exclude(type=ASSOCIATION_TYPE[2][0]).select_related('mark')
-
-        self._collected = set()
-        self._new_data = dict((cache_obj.report_id, {}) for cache_obj in self._cache_queryset)
-        self.__update()
-
-    def __update(self):
-        for cache_obj in self._cache_queryset:
-            self._new_data[cache_obj.report_id]['tags'] = {}
-
-        for mr in self._markreport_qs:
-            self.__add_tags(mr.report_id, mr.mark.cache_tags)
-
-        self._collected.add('tags')
-        update_cache_atomic(self._cache_queryset, self._new_data)
-
-    def __add_tags(self, report_id, tags_list):
-        for tag in tags_list:
-            self._new_data[report_id]['tags'].setdefault(tag, 0)
-            self._new_data[report_id]['tags'][tag] += 1
-
-
 class UpdateSafeMarksTags:
     def __init__(self):
         queryset = SafeTag.objects.all()
         self._db_tags = dict((t.id, t.parent_id) for t in queryset)
         self._names = dict((t.id, t.name) for t in queryset)
+        self.__update_marks()
 
     def __new_tags(self, tags):
         new_tags = set()
@@ -819,9 +654,10 @@ class UpdateSafeMarksTags:
                 parent = self._db_tags[parent]
         return new_tags
 
-    def __get_affected_marks(self):
+    def __update_marks(self):
+        # Update only last versions
         version_tags = {}
-        for marktag in MarkSafeTag.objects.all():
+        for marktag in MarkSafeTag.objects.filter(mark_version__version=F('mark_version__mark__version')):
             version_tags.setdefault(marktag.mark_version_id, set())
             version_tags[marktag.mark_version_id].add(marktag.tag_id)
 
@@ -831,12 +667,9 @@ class UpdateSafeMarksTags:
             if new_tags:
                 changed_versions[version_id] = new_tags
 
-        for mark_version in MarkSafeHistory.objects\
-                .filter(id__in=changed_versions, version=F('mark__version')).select_related('mark'):
+        for mark_version in MarkSafeHistory.objects.filter(id__in=changed_versions).select_related('mark'):
             old_tags = set(mark_version.mark.cache_tags)
-            mark_tags_ids = version_tags[mark_version.id]
-            if mark_version.id in changed_versions:
-                mark_tags_ids |= changed_versions[mark_version.id]
+            mark_tags_ids = version_tags[mark_version.id] | changed_versions[mark_version.id]
             new_tags = set(self._names[t_id] for t_id in mark_tags_ids)
             if old_tags != new_tags:
                 mark_version.mark.cache_tags = list(sorted(new_tags))
@@ -860,6 +693,7 @@ class UpdateUnsafeMarksTags:
         queryset = UnsafeTag.objects.all()
         self._db_tags = dict((t.id, t.parent_id) for t in queryset)
         self._names = dict((t.id, t.name) for t in queryset)
+        self.__update_marks()
 
     def __new_tags(self, tags):
         new_tags = set()
@@ -871,9 +705,10 @@ class UpdateUnsafeMarksTags:
                 parent = self._db_tags[parent]
         return new_tags
 
-    def __get_affected_marks(self):
+    def __update_marks(self):
+        # Update only last versions
         version_tags = {}
-        for marktag in MarkUnsafeTag.objects.all():
+        for marktag in MarkUnsafeTag.objects.filter(mark_version__version=F('mark_version__mark__version')):
             version_tags.setdefault(marktag.mark_version_id, set())
             version_tags[marktag.mark_version_id].add(marktag.tag_id)
 
@@ -883,12 +718,9 @@ class UpdateUnsafeMarksTags:
             if new_tags:
                 changed_versions[version_id] = new_tags
 
-        for mark_version in MarkUnsafeHistory.objects\
-                .filter(id__in=changed_versions, version=F('mark__version')).select_related('mark'):
+        for mark_version in MarkUnsafeHistory.objects.filter(id__in=changed_versions).select_related('mark'):
             old_tags = set(mark_version.mark.cache_tags)
-            mark_tags_ids = version_tags[mark_version.id]
-            if mark_version.id in changed_versions:
-                mark_tags_ids |= changed_versions[mark_version.id]
+            mark_tags_ids = version_tags[mark_version.id] | changed_versions[mark_version.id]
             new_tags = set(self._names[t_id] for t_id in mark_tags_ids)
             if old_tags != new_tags:
                 mark_version.mark.cache_tags = list(sorted(new_tags))

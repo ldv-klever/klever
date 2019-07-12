@@ -7,6 +7,10 @@
                 {% if field.help_text %}<i class="ui help blue icon note-popup" data-content="{{ field.help_text }}"></i>{% endif %}
             </label>
         </div>
+    {% elif field.field.widget.input_type == 'range' %}
+        <div class="ui divider"></div>
+        <label for="{{ field.field.widget.identifier }}">{{ field.label }}: <span id="{{ field.field.widget.preview_id }}"></span>%{% if field.help_text %} <i class="help blue icon note-popup" data-content="{{ field.help_text }}"></i>{% endif %}</label>
+        {{ field }}
     {% else %}
         <label for="{{ field.id_for_label }}">
             <span>{{ field.label }}</span>

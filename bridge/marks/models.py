@@ -60,7 +60,7 @@ class Mark(models.Model):
     is_modifiable = models.BooleanField(default=True)
     source = models.CharField(max_length=1, choices=MARK_SOURCE, default=MARK_SOURCE[0][0])
 
-    # Only with compare=True
+    # Only with is_compare=True
     cache_attrs = JSONField(default=dict)
 
     def __str__(self):
@@ -72,7 +72,6 @@ class Mark(models.Model):
 
 class MarkHistory(models.Model):
     version = models.PositiveSmallIntegerField()
-    status = models.CharField(max_length=1, choices=MARK_STATUS, default=MARK_STATUS[0][0])
     author = models.ForeignKey(User, models.SET_NULL, null=True, related_name='+')
     change_date = models.DateTimeField(default=now)
     comment = models.TextField(blank=True, default='')
@@ -115,6 +114,7 @@ class MarkSafeReport(models.Model):
     report = models.ForeignKey(ReportSafe, models.CASCADE, related_name='markreport_set')
     type = models.CharField(max_length=1, choices=ASSOCIATION_TYPE, default=ASSOCIATION_TYPE[0][0])
     author = models.ForeignKey(User, models.SET_NULL, null=True)
+    associated = models.BooleanField(default=True)
 
     class Meta:
         db_table = "cache_mark_safe_report"
@@ -134,7 +134,13 @@ class MarkUnsafe(Mark):
     function = models.CharField(max_length=30, db_index=True)
     error_trace = models.ForeignKey(ConvertedTrace, models.CASCADE)
     verdict = models.CharField(max_length=1, choices=MARK_UNSAFE)
+    status = models.CharField(max_length=1, choices=MARK_STATUS, null=True)
     cache_tags = ArrayField(models.CharField(max_length=MAX_TAG_LEN), default=list)
+    threshold = models.FloatField(default=0)
+
+    @property
+    def threshold_percentage(self):
+        return round(self.threshold * 100)
 
     class Meta:
         db_table = 'mark_unsafe'
@@ -145,7 +151,13 @@ class MarkUnsafeHistory(MarkHistory):
     mark = models.ForeignKey(MarkUnsafe, models.CASCADE, related_name='versions')
     function = models.CharField(max_length=30, db_index=True)
     verdict = models.CharField(max_length=1, choices=MARK_UNSAFE)
+    status = models.CharField(max_length=1, choices=MARK_STATUS, null=True)
     error_trace = models.ForeignKey(ConvertedTrace, models.CASCADE)
+    threshold = models.FloatField(default=0)
+
+    @property
+    def threshold_percentage(self):
+        return round(self.threshold * 100)
 
     class Meta:
         db_table = 'mark_unsafe_history'
@@ -168,6 +180,7 @@ class MarkUnsafeReport(models.Model):
     result = models.FloatField()
     error = models.TextField(null=True)
     author = models.ForeignKey(User, models.SET_NULL, null=True)
+    associated = models.BooleanField(default=True)
 
     class Meta:
         db_table = "cache_mark_unsafe_report"
@@ -273,6 +286,7 @@ class MarkUnknownReport(models.Model):
     problem = models.CharField(max_length=MAX_PROBLEM_LEN, db_index=True)
     type = models.CharField(max_length=1, choices=ASSOCIATION_TYPE, default=ASSOCIATION_TYPE[0][0])
     author = models.ForeignKey(User, models.SET_NULL, null=True)
+    associated = models.BooleanField(default=True)
 
     class Meta:
         db_table = 'cache_mark_unknown_report'

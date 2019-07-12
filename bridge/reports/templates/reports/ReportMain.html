@@ -151,12 +151,22 @@
                     <i class="dropdown icon"></i>
                     <div class="menu">
                         {% for cov in coverages %}
-                            <a href="{{ cov.url }}" class="item">{{ cov.name }}</a>
+                            <a href="{{ cov.url }}" class="item">{{ cov.name }}{% if cov.total %} ({{ cov.total.lines }}/{{ cov.total.funcs }}){% endif %}</a>
                         {% endfor %}
                     </div>
                 </div>
             {% elif coverage_url %}
-                <a href="{{ coverage_url }}" class="ui violet button">{% trans 'Coverage' %}</a>
+                {% if coverage_total %}
+                    <a class="ui violet button parent-popup" href="{{ coverage_url }}" data-position="right center">{% trans 'Coverage' %}</a>
+                    <div class="ui special popup">
+                        <div class="content">
+                            <span class="purple-subtitle">{% trans 'Lines coverage' %}: </span>{{ coverage_total.lines }}<br>
+                            <span class="purple-subtitle">{% trans 'Functions coverage' %}: </span>{{ coverage_total.funcs }}
+                        </div>
+                    </div>
+                {% else %}
+                    <a class="ui violet button" href="{{ coverage_url }}">{% trans 'Coverage' %}</a>
+                {% endif %}
             {% endif %}
         </div>
     </div>

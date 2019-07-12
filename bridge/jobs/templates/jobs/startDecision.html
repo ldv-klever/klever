@@ -43,7 +43,11 @@
                 {% for conf in data.modes %}
                     <option value="{{ conf.0 }}"{% if current_conf == conf.0 %} selected{% endif %}>{{ conf.1 }}</option>
                 {% endfor %}
-                <option value="file_conf"{% if current_conf == 'file_conf' %} selected{% endif %}>{% trans 'Use configuration from file' %}</option>
+                {% if job.status != '0' %}
+                    {# The job has decision already, so it has last run configuration #}
+                    <option value="lastconf">{% trans 'Last run configuration' %}</option>
+                {% endif %}
+                <option value="file_conf">{% trans 'Use configuration from file' %}</option>
             </select>
         </div>
     </div>
