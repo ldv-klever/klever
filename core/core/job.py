@@ -24,7 +24,10 @@ import tarfile
 import time
 import zipfile
 
+from clade import Clade
+
 import core.utils
+import core.session
 import core.components
 from core.progress import PW
 from core.coverage import JCR
@@ -508,6 +511,7 @@ class Job(core.components.Component):
 
         # Check and set build base here since many Core components need it.
         self.__set_build_base()
+        self.__upload_original_sources()
 
         if self.common_components_conf['keep intermediate files']:
             self.logger.debug('Create components configuration file "conf.json"')
@@ -572,6 +576,7 @@ class Job(core.components.Component):
         # this simplifies troubleshooting.
         build_base = os.path.realpath(build_base)
 
+        # TODO: fix after https://github.com/17451k/clade/issues/108.
         if not os.path.isdir(build_base):
             raise FileExistsError('Build base "{0}" is not a directory, {1}'
                                   .format(build_base, extracted_from, common_advice))
@@ -585,6 +590,22 @@ class Job(core.components.Component):
 
         self.logger.debug('Klever components will use build base "{0}"'
                           .format(self.common_components_conf['build base']))
+
+    def __upload_original_sources(self):
+        clade = Clade(self.common_components_conf['build base'])
+        # Use Clade UUID to distinguish various original sources. It is pretty well since this UUID is uuid.uuid4().
+        src_id = clade.get_uuid()
+        session = core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
+
+        if session.check_original_sources(src_id):
+            self.logger.info('Original sources were uploaded already')
+            return
+
+        self.logger.info('Compress original sources')
+        core.utils.ArchiveFiles([clade.storage_dir]).make_archive('original sources.zip')
+
+        self.logger.info('Upload original sources')
+        session.upload_original_sources(src_id, 'original sources.zip')
 
     def __get_job_or_sub_job_components(self):
         self.logger.info('Get components for sub-job of type "{0}" with identifier "{1}"'.

@@ -94,6 +94,10 @@ class Session:
         resp = self.__upload_archive('service/tasks/', {'job': str(self.job_id), 'description': data}, [archive])
         return resp['id']
 
+    def check_original_sources(self, src_id):
+        resp = self.__request('reports/api/has-sources/?identifier={0}'.format(src_id), method='GET')
+        return resp.json()['exists']
+
     def get_tasks_statuses(self):
         resp = self.__request('service/tasks/?job={}&fields=status&fields=id'.format(self.job_id), method='GET')
         return resp.json()
@@ -111,6 +115,11 @@ class Session:
 
     def sign_out(self):
         self.logger.info('Finish session')
+
+    def upload_original_sources(self, src_id, src_archive):
+        self.__upload_archive('reports/api/upload-sources/',
+                              {'identifier': src_id},
+                              [src_archive])
 
     def upload_reports_and_report_file_archives(self, reports_and_report_file_archives):
         batch_reports = []
