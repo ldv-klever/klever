@@ -512,7 +512,8 @@ class RP(core.components.Component):
             'component': verifier,
             'wall_time': decision_results['resources']['wall time'],
             'cpu_time': decision_results['resources']['CPU time'],
-            'memory': decision_results['resources']['memory size']
+            'memory': decision_results['resources']['memory size'],
+            'original': self.clade.get_uuid()
         }
 
         # Get coverage
