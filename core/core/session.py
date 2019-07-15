@@ -66,7 +66,7 @@ class Session:
 
                 if resp.status_code not in (200, 201, 204):
                     if resp.headers['content-type'] == 'application/json':
-                        # TODO: analize resp.json()
+                        # TODO: analyze resp.json()
                         self.error = resp.json()
                         raise BridgeError(
                             'Got error "{0}" when send "{1}" request to "{2}"'.format(self.error, method, url)

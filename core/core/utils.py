@@ -435,29 +435,37 @@ def merge_confs(a, b):
     return a
 
 
-class ReportFiles:
-    def __init__(self, files, arcnames={}):
-        self.files = files
+class ArchiveFiles:
+    def __init__(self, files_and_dirs, arcnames={}):
+        self.files_and_dirs = files_and_dirs
         self.arcnames = arcnames
         self.archive = None
 
-    def make_archive(self, directory, prefix):
-        fp, self.archive = tempfile.mkstemp(prefix=prefix, suffix='.zip', dir=directory)
+    def make_archive(self, archive):
+        self.archive = archive
 
         with open(self.archive, mode='w+b', buffering=0) as f:
             with zipfile.ZipFile(f, mode='w', compression=zipfile.ZIP_DEFLATED) as zfp:
-                for file in self.files:
-                    arcname = self.arcnames.get(file, None)
-                    zfp.write(file, arcname=arcname)
+                for file_or_dir in self.files_and_dirs:
+                    # Archive file using specified archive name if so.
+                    if os.path.isfile(file_or_dir):
+                        arcname = self.arcnames.get(file_or_dir, None)
+                        zfp.write(file_or_dir, arcname=arcname)
+                    # Archive all files from directory cutting that directory fron file names.
+                    elif os.path.isdir(file_or_dir):
+                        for root, dirs, files in os.walk(file_or_dir):
+                            for file in files:
+                                file = os.path.join(root, file)
+                                zfp.write(file, arcname=make_relative_path([file_or_dir], file))
+                    else:
+                        raise NotImplementedError
 
                 os.fsync(zfp.fp)
-
-        os.close(fp)
 
 
 class ExtendedJSONEncoder(json.JSONEncoder):
     def default(self, obj):
-        if isinstance(obj, ReportFiles):
+        if isinstance(obj, ArchiveFiles):
             return os.path.basename(obj.archive)
 
         return json.JSONEncoder.default(self, obj)
@@ -516,9 +524,13 @@ def report(logger, kind, report_data, mq, report_id, main_work_dir, report_dir='
             process_queue.extend(elem.values())
         elif isinstance(elem, list) or isinstance(elem, tuple) or isinstance(elem, set):
             process_queue.extend(elem)
-        elif isinstance(elem, ReportFiles):
+        elif isinstance(elem, ArchiveFiles):
             logger.debug('{0} going to pack report files to archive'.format(kind.capitalize()))
-            elem.make_archive(directory=os.path.join(main_work_dir, 'reports'), prefix='{0}-'.format(cur_report_id))
+
+            fp, archive = tempfile.mkstemp(prefix='{0}-'.format(cur_report_id), suffix='.zip',
+                                           dir=os.path.join(main_work_dir, 'reports'))
+            elem.make_archive(archive)
+            os.close(fp)
 
             archives.append(elem.archive)
 

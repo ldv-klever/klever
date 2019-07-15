@@ -451,7 +451,7 @@ class Component(multiprocessing.Process, CallbacksCaller):
                                       {
                                           'identifier': self.id + '/unknown',
                                           'parent': self.id,
-                                          'problem_description': core.utils.ReportFiles(['problem desc.txt'])
+                                          'problem_description': core.utils.ArchiveFiles(['problem desc.txt'])
                                       },
                                       self.mqs['report files'],
                                       self.vals['report id'],
@@ -466,7 +466,7 @@ class Component(multiprocessing.Process, CallbacksCaller):
                     report['coverage'] = self.coverage
 
                 if os.path.isfile('log.txt'):
-                    report['log'] = core.utils.ReportFiles(['log.txt'])
+                    report['log'] = core.utils.ArchiveFiles(['log.txt'])
 
                 core.utils.report(self.logger, 'finish', report, self.mqs['report files'], self.vals['report id'],
                                   self.conf['main working directory'])

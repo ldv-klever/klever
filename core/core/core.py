@@ -112,7 +112,7 @@ class Core(core.components.CallbacksCaller):
                                       {
                                           'identifier': self.ID + '/unknown',
                                           'parent': self.ID,
-                                          'problem_description': core.utils.ReportFiles(['problem desc.txt'])
+                                          'problem_description': core.utils.ArchiveFiles(['problem desc.txt'])
                                       },
                                       self.mqs['report files'],
                                       self.report_id,
@@ -137,7 +137,7 @@ class Core(core.components.CallbacksCaller):
                                                                            child_resources=child_resources))
 
                     if os.path.isfile('log.txt'):
-                        report['log'] = core.utils.ReportFiles(['log.txt'])
+                        report['log'] = core.utils.ArchiveFiles(['log.txt'])
 
                     core.utils.report(self.logger, 'finish', report, self.mqs['report files'], self.report_id,
                                       self.conf['main working directory'])

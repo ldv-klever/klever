@@ -213,11 +213,11 @@ def __solve_sub_jobs(core_obj, vals, components_common_conf, job_type, subcompon
                 # e.g. they included commit hashes, requirement identifiers, module names, etc. Such the approach
                 # turned out to be inadequate since we had to add more and more information to sub-job names that
                 # involves source code changes and results in large working directories that look like these names.
-                # After all we decided to use sub-job ordinal numbers to distinguish them uniqly (during a some time
+                # After all we decided to use sub-job ordinal numbers to distinguish them uniquely (during a some time
                 # old style names were used in addition to these ordinal numbers). The only bad news is that in case of
-                # any changes in a global arrangment of sub-jobs, such as a new sub-job is added somewhere in the middle
-                # or an old sub-job is removed, one is not able to compare verification results as it was with pretty
-                # names since correspondence of ordinal numbers breaks.
+                # any changes in a global arrangement of sub-jobs, such as a new sub-job is added somewhere in the
+                # middle or an old sub-job is removed, one is not able to compare verification results as it was with
+                # pretty names since correspondence of ordinal numbers breaks.
                 'compare': True,
             }],
             separate_from_parent=True,

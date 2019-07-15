@@ -340,9 +340,9 @@ class RP(core.components.Component):
                               'identifier': "{}/verification/unsafe".format(self.id),
                               'parent': "{}/verification".format(self.id),
                               'attrs': attrs,
-                              'sources': core.utils.ReportFiles(list(sources.keys()), arcnames=sources),
-                              'error traces': [core.utils.ReportFiles([error_trace_file],
-                                                                      arcnames={error_trace_file: 'error trace.json'})
+                              'sources': core.utils.ArchiveFiles(list(sources.keys()), arcnames=sources),
+                              'error traces': [core.utils.ArchiveFiles([error_trace_file],
+                                                                       arcnames={error_trace_file: 'error trace.json'})
                                                for error_trace_file in error_trace_files]
                           },
                           self.mqs['report files'],
@@ -465,7 +465,7 @@ class RP(core.components.Component):
                                       'identifier': "{}/verification/unknown".format(self.id),
                                       'parent': "{}/verification".format(self.id),
                                       'attrs': [],
-                                      'problem_description': core.utils.ReportFiles(
+                                      'problem_description': core.utils.ArchiveFiles(
                                           [verification_problem_desc],
                                           {verification_problem_desc: 'problem desc.txt'}
                                       )
@@ -530,7 +530,7 @@ class RP(core.components.Component):
         self.vals['task solution triples'][self.results_key] = data
 
         if not self.logger.disabled and log_file:
-            report['log'] = core.utils.ReportFiles([log_file], {log_file: 'log.txt'})
+            report['log'] = core.utils.ArchiveFiles([log_file], {log_file: 'log.txt'})
 
         if self.conf['upload input files of static verifiers']:
             report['task identifier'] = task_id
@@ -550,9 +550,9 @@ class RP(core.components.Component):
             exception = err
         else:
             if os.path.isfile('coverage.json'):
-                report['coverage'] = core.utils.ReportFiles(['coverage.json'] +
-                                                            list(self.verification_coverage.arcnames.keys()),
-                                                            arcnames=self.verification_coverage.arcnames)
+                report['coverage'] = core.utils.ArchiveFiles(['coverage.json'] +
+                                                             list(self.verification_coverage.arcnames.keys()),
+                                                             arcnames=self.verification_coverage.arcnames)
                 self.vals['coverage_finished'][self.conf['sub-job identifier']] = False
 
         # todo: This should be cheked to guarantee that we can reschedule tasks

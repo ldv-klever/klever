@@ -210,8 +210,8 @@ class JCR(core.components.Component):
 
                         coverage_info_dumped_files.append(total_coverage_file)
                         arcnames.update(arcfiles[sub_job_id][requirement])
-                        total_coverages[requirement] = core.utils.ReportFiles([total_coverage_file] +
-                                                                              list(arcnames.keys()), arcnames)
+                        total_coverages[requirement] = core.utils.ArchiveFiles([total_coverage_file] +
+                                                                               list(arcnames.keys()), arcnames)
                         self.__save_data(total_coverage_infos, sub_job_id, requirement)
                         self.__clean_data(total_coverage_infos, sub_job_id, requirement)
 
