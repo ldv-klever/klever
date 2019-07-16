@@ -60,7 +60,7 @@
         "Weaver",
         {
           "FVTP": {
-            "merge source files": false,
+            "merge source files": true,
             "verifier profile": "reachability",
             "verifier": {
               "name": "CPAchecker",
