@@ -533,9 +533,11 @@ class RP(core.components.Component):
         exception = None
         try:
             self.verification_coverage = LCOV(self.logger, os.path.join('output', 'coverage.info'),
-                                              self.clade, self.search_dirs, self.conf['main working directory'],
-                                              opts.get('coverage'), os.path.join(self.conf['main working directory'],
-                                                                                 self.coverage_info_file),
+                                              self.clade, self.source_paths,
+                                              self.search_dirs, self.conf['main working directory'],
+                                              opts.get('coverage'),
+                                              os.path.join(self.conf['main working directory'],
+                                                           self.coverage_info_file),
                                               os.path.join(self.conf['main working directory'], coverage_info_dir),
                                               opts.get('collect function names'))
         except Exception as err:
