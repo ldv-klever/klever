@@ -505,9 +505,10 @@ class ErrorTrace:
                     # Add warning either to edge itself or to first edge that enters function and has note at
                     # violation path. If don't do the latter warning will be hidden by error trace visualizer.
                     warn_edge = edge
-                    for violation_edge in self._violation_edges:
-                        if 'enter' in violation_edge and 'note' in violation_edge:
-                            warn_edge = violation_edge
+                    # TODO: at the moment warnings are always added to edges themselves.
+                    # for violation_edge in self._violation_edges:
+                    #     if 'enter' in violation_edge and 'note' in violation_edge:
+                    #         warn_edge = violation_edge
                     warn_edge['warn'] = warn
                     warn_edges.append(warn_edge)
 
