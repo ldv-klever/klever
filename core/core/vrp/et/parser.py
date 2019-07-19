@@ -172,12 +172,6 @@ class ErrorTraceParser:
                     self._logger.warning('Edge data key {!r} is not supported'.format(data_key))
                     unsupported_edge_data_keys[data_key] = None
 
-            if isinstance(main_id, int) and 'enter' in _edge and _edge['enter'] == main_id:
-                if 'source' in _edge:
-                    del _edge['enter']
-                else:
-                    _edge["source"] = "Begin program execution"
-
             edges_num += 1
 
         self._logger.debug('Parse {0} edges and {1} sink edges'.format(edges_num, sink_edges_num))
