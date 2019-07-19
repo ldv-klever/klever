@@ -150,8 +150,6 @@ class ErrorTraceParser:
                     _edge['source'] = data.text
                 elif data_key == 'enterFunction' or data_key == 'returnFrom' or data_key == 'assumption.scope':
                     self.error_trace.add_function(data.text)
-                    if data.text == 'main':
-                        main_id = self.error_trace.resolve_function_id(data.text)
                     if data_key == 'enterFunction':
                         _edge['enter'] = self.error_trace.resolve_function_id(data.text)
                     elif data_key == 'returnFrom':
