@@ -167,6 +167,11 @@ class Weaver(core.vtg.plugins.Plugin):
                             match = re.match(r'(# \d+ ")(.+)("\n)', line)
                             if match:
                                 file = match.group(2)
+
+                                # Omit artificial and sometimes invalid reference to built-in stuff.
+                                if file == '<built-in>':
+                                    continue
+
                                 if not os.path.isabs(file):
                                     # All relative file paths are relative to CC working directory.
                                     file = os.path.abspath(os.path.join(os.path.realpath(clade.storage_dir) + cc['cwd'],
