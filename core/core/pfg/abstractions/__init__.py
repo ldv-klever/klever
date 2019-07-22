@@ -77,7 +77,7 @@ class Program:
                 raise ValueError("Cannot create a duplicate fragment {!r}".format(fragment.name))
 
     def create_fragment_from_link(self, identifier, fragmentation_set_conf, name, sep_nestd=False, add=False,
-                                  cmd_type='LD'):
+                                  cmd_type='CC'):
         """
         Create a fragment from the Link command. It adds to the fragment all files from CL commands that finally provide
         sources to this linking command.

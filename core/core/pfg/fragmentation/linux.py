@@ -50,8 +50,8 @@ class Linux(FragmentationAlgorythm):
             if out.endswith('.ko') or out.endswith('built-in.o'):
                 rel_object_path = make_relative_path(self.source_paths, out)
                 name = rel_object_path
-                fragment = program.create_fragment_from_ld(identifier, desc, name,
-                                                           out.endswith('built-in.o') and self._separate_nested)
+                fragment = program.create_fragment_from_link(identifier, desc, name,
+                                                             out.endswith('built-in.o') and self._separate_nested)
                 if (not self._max_size or fragment.size <= self._max_size) and len(fragment.files) != 0:
                     program.add_fragment(fragment)
                 else:
