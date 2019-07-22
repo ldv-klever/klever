@@ -56,7 +56,8 @@ class ProcessCollection:
         'peers': None,
         'pre-call': 'pre_call',
         'post-call': 'post_call',
-        'entry point': 'trace_relevant'
+        'entry point': 'trace_relevant',
+        'trace_relevant': None
     }
 
     def __init__(self, logger, conf):
