@@ -75,6 +75,19 @@ class ProcessCollection:
         :param raw: Dictionary with content of JSON file.
         :return: None
         """
+
+        def get_short_name(name_or_pretty_id):
+            tokens = name_or_pretty_id.split('/')
+            if len(tokens) == 1:
+                c = None
+                n = tokens[0]
+            elif len(tokens) in (2, 3):
+                c = tokens[0]
+                n = tokens[1]
+            else:
+                ValueError('Cannot use string {!r} as a process name'.format(name))
+            return c, n
+
         env_processes = dict()
         models = dict()
 
@@ -85,25 +98,18 @@ class ProcessCollection:
                 names = name_list.split(", ")
                 for name in names:
                     self.logger.debug("Import process which models {!r}".format(name))
-                    models[name] = self._import_process(name, raw["functions models"][name_list])
+                    cat, short_name = get_short_name(name)
+                    models[short_name] = self._import_process(short_name, raw["functions models"][name_list])
 
                     # Set some default values
-                    models[name].category = "functions models"
-                    models[name].pretty_id = "functions models/{}".format(name)
+                    models[short_name].category = "functions models"
+                    models[short_name].pretty_id = "functions models/{}".format(short_name)
         if "environment processes" in raw:
             self.logger.info("Import processes from 'environment processes'")
             for name in raw["environment processes"]:
                 self.logger.debug("Import environment process {!r}".format(name))
 
-                tokens = name.split('/', maxsplit=1)
-                if len(tokens) == 1:
-                    category = None
-                    pname = tokens[0]
-                elif len(tokens) == 2:
-                    category = tokens[0]
-                    pname = tokens[1]
-                else:
-                    ValueError('Cannot use string {!r} as a process name'.format(name))
+                category, pname = get_short_name(name)
                 process = self._import_process(pname, raw["environment processes"][name])
                 if not process.category:
                     process.category = category
@@ -324,7 +330,7 @@ class ProcessCollection:
 
     def _import_action(self, name, process_strings, dic):
         act = None
-        for regex in self.REGEX_SET(name):
+        for regex in getattr(self, 'REGEX_SET').__func__(name):
             for string in process_strings:
                 if regex['regex'].search(string):
                     act = self._action_checker(string, regex, name, dic)

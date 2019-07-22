@@ -20,7 +20,7 @@ import re
 from core.vtg.emg.common.process.Parser import parse_process
 
 
-def generate_regex_set(self, subprocess_name):
+def generate_regex_set(subprocess_name):
     """
     Function generates regexes to parse out actions from process descriptions and determine their kind.
 
@@ -224,7 +224,7 @@ class Process:
         processes = [self]
         processes.extend(
             [self.actions[name] for name in self.actions.keys() if isinstance(self.actions[name], Subprocess)])
-        regexes = generate_regex_set(None, old)
+        regexes = generate_regex_set(old)
         for process in processes:
             for regex in regexes:
                 m = regex['regex'].search(process.process)
@@ -269,7 +269,7 @@ class Process:
         processes = [self]
         processes.extend(
             [self.actions[name] for name in self.actions.keys() if isinstance(self.actions[name], Subprocess)])
-        regexes = generate_regex_set(None, name)
+        regexes = generate_regex_set(name)
         for process in processes:
             for regex in regexes:
                 if regex['regex'].search(process.process):

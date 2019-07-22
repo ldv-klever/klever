@@ -18,6 +18,7 @@
 from core.vtg.emg.common import check_or_set_conf_property, get_necessary_conf_property, model_comment
 from core.vtg.emg.common.c import Variable, Function
 from core.vtg.emg.common.process import Dispatch, Receive, Condition, Subprocess
+from core.vtg.emg.modelTranslator.code import control_function_comment_begin, control_function_comment_end
 from core.vtg.emg.modelTranslator.fsa_translator import FSATranslator
 from core.vtg.emg.modelTranslator.fsa_translator.common import initialize_automaton_variables
 from core.vtg.emg.modelTranslator.fsa_translator.label_control_function import label_based_function, normalize_fsa
@@ -138,9 +139,8 @@ class StateTranslator(FSATranslator):
             v_code = [model_comment('CONTROL_FUNCTION_INIT_BEGIN', 'Declare auxiliary variables.')] + \
                      v_code + \
                      [model_comment('CONTROL_FUNCTION_INIT_END', 'Declare auxiliary variables.')]
-            v_code.insert(0, self._cmodel.control_function_comment_begin(cf.name, automaton.process.comment,
-                                                                         automaton.identifier))
-            f_code.append(self._cmodel.control_function_comment_end(cf.name, automaton.process.category))
+            v_code.insert(0, control_function_comment_begin(cf.name, automaton.process.comment, automaton.identifier))
+            f_code.append(control_function_comment_end(cf.name, automaton.process.category))
 
             # Add loop for nested case
             cf.body.extend(v_code + f_code)
@@ -148,7 +148,7 @@ class StateTranslator(FSATranslator):
                                              initialize=True)
         else:
             # Generate function body
-            label_based_function(self._cmodel, self._conf, self._source, automaton, cf, model_flag)
+            label_based_function(self._conf, self._source, automaton, cf, model_flag)
 
         # Add function to source code to print
         self._cmodel.add_function_definition(cf)

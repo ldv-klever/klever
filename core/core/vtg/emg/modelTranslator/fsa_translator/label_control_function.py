@@ -17,12 +17,13 @@
 
 from operator import attrgetter
 
-from core.vtg.emg.common import get_conf_property
+from core.vtg.emg.common import get_conf_property, model_comment
 from core.vtg.emg.common.process import Subprocess
+from core.vtg.emg.modelTranslator.code import control_function_comment_begin, control_function_comment_end
 from core.vtg.emg.modelTranslator.fsa_translator.common import initialize_automaton_variables
 
 
-def label_based_function(cmodel, conf, analysis, automaton, cf, model=True):
+def label_based_function(conf, analysis, automaton, cf, model=True):
     v_code, f_code = list(), list()
 
     # Determine returning expression for reuse
@@ -74,16 +75,16 @@ def label_based_function(cmodel, conf, analysis, automaton, cf, model=True):
                 f_code.append(ret_expression)
             processed.append(subp.action.name)
 
-    v_code = [cmodel.model_comment('CONTROL_FUNCTION_INIT_BEGIN', 'Declare auxiliary variables.')] + \
+    v_code = [model_comment('CONTROL_FUNCTION_INIT_BEGIN', 'Declare auxiliary variables.')] + \
              v_code + \
-             [cmodel.model_comment('CONTROL_FUNCTION_INIT_END', 'Declare auxiliary variables.')]
+             [model_comment('CONTROL_FUNCTION_INIT_END', 'Declare auxiliary variables.')]
     if model:
         name = automaton.process.name
-        v_code.insert(0, cmodel.control_function_comment_begin(cf.name, automaton.process.comment))
+        v_code.insert(0, control_function_comment_begin(cf.name, automaton.process.comment))
     else:
         name = '{}({})'.format(automaton.process.name, automaton.process.category)
-        v_code.insert(0, cmodel.control_function_comment_begin(cf.name, automaton.process.comment, automaton.identifier))
-    f_code.append(cmodel.control_function_comment_end(cf.name, name))
+        v_code.insert(0, control_function_comment_begin(cf.name, automaton.process.comment, automaton.identifier))
+    f_code.append(control_function_comment_end(cf.name, name))
     cf.body.extend(v_code + f_code)
 
     return cf.name

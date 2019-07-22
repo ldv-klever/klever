@@ -17,13 +17,68 @@
 
 import os
 import re
-import json
 
 from core.utils import unique_file_name
-from core.vtg.emg.common import get_conf_property, get_necessary_conf_property
+from core.vtg.emg.common import get_conf_property, get_necessary_conf_property, model_comment
 from core.vtg.emg.common.c import Function
 from core.vtg.emg.common.c.types import Pointer, Primitive
-from core.vtg.emg.modelTranslator.fsa_translator.common import initialize_automaton_variables
+
+
+def action_model_comment(action, text, begin=None):
+    """
+    Model comment for identifying an action.
+
+    :param action: Action object.
+    :param text: Action comment string.
+    :param begin: True if this is a comment before the action and False otherwise.
+    :return: Model comment string.
+    """
+    if action:
+        if action.trace_relevant:
+            type_comment = 'CALL'
+        else:
+            type_comment = type(action).__name__.upper()
+        if begin is True:
+            type_comment += '_BEGIN'
+        elif begin is False:
+            type_comment += '_END'
+
+        name_comment = action.name.upper()
+    else:
+        type_comment = 'ARTIFICIAL'
+        name_comment = None
+
+    data = {'action': name_comment}
+    if action and action.trace_relevant and begin is True:
+        data['callback'] = True
+    return model_comment(type_comment, text, data)
+
+
+def control_function_comment_begin(function_name, comment, identifier=None):
+    """
+    Compose a comment at the beginning of a control function.
+
+    :param function_name: Control function name.
+    :param comment: Comment text.
+    :param identifier: Thread identifier if necessary.
+    :return: Model comment string.
+    """
+    data = {'function': function_name}
+    if isinstance(identifier, int):
+        data['thread'] = identifier + 1
+    return model_comment('CONTROL_FUNCTION_BEGIN', comment, data)
+
+
+def control_function_comment_end(function_name, name):
+    """
+    Compose a comment at the end of a control function.
+
+    :param function_name: Control function name.
+    :param name: Process or Automaton name.
+    :return: Model comment string.
+    """
+    data = {'function': function_name}
+    return model_comment('CONTROL_FUNCTION_END', "End of control function based on process {!r}".format(name), data)
 
 
 class Aspect(Function):
@@ -65,6 +120,9 @@ class CModel:
         "IN_INTERRUPT_CONTEXT": 'ldv_in_interrupt_context',
         "SWITCH_TO_IRQ_CONTEXT": 'ldv_switch_to_interrupt_context',
         "SWITCH_TO_PROCESS_CONTEXT": 'ldv_switch_to_process_context'
+    }
+    comment_map = {
+        'COMMENT': None
     }
 
     def __init__(self, logger, conf, workdir, files, entry_point_name, entry_file):
@@ -380,63 +438,6 @@ class CModel:
 
         return body
 
-    def action_model_comment(self, action, text, begin=None):
-        """
-        Model comment for identifying an action.
-
-        :param action: Action object.
-        :param text: Action comment string.
-        :param begin: True if this is a comment before the action and False otherwise.
-        :param callback: If this action contains callback call.
-        :return: Model comment string.
-        """
-        if action:
-            if action.trace_relevant:
-                type_comment = 'CALL'
-            else:
-                type_comment = type(action).__name__.upper()
-            if begin is True:
-                type_comment += '_BEGIN'
-            elif begin is False:
-                type_comment += '_END'
-
-            name_comment = action.name.upper()
-        else:
-            type_comment = 'ARTIFICIAL'
-            name_comment = None
-
-        data = {'action': name_comment}
-        if action and action.trace_relevant and begin is True:
-            data['callback'] = True
-        return self.model_comment(type_comment, text, data)
-
-    def control_function_comment_begin(self, function_name, comment, identifier=None):
-        """
-        Compose a comment at the beginning of a control function.
-
-        :param function_name: Control function name.
-        :param comment: Comment text.
-        :param identifier: Thread identifier if necessary.
-        :return: Model comment string.
-        """
-        data = {'function': function_name}
-        if isinstance(identifier, int):
-            data['thread'] = identifier + 1
-        return self.model_comment('CONTROL_FUNCTION_BEGIN', comment, data)
-
-    def control_function_comment_end(self, function_name, name):
-        """
-        Compose a comment at the end of a control function.
-
-        :param function_name: Control function name.
-        :param name: Process or Automaton name.
-        :return: Model comment string.
-        """
-        data = {'function': function_name}
-        return self.model_comment('CONTROL_FUNCTION_END',
-                                  "End of control function based on process {!r}".format(name),
-                                  data)
-
     @staticmethod
     def _collapse_headers_sets(sets):
         final_list = []
@@ -456,29 +457,6 @@ class CModel:
                         final_list.insert(position, header)
         return final_list
 
-    @staticmethod
-    def model_comment(comment_type, text, other=None):
-        """
-        Print a model comment. This is a base function for some functions implemented below but sometimes it is necessary to
-        use it directly.
-
-        :param comment_type: Comment type string.
-        :param text: Comment text.
-        :param other: Additional existing dictionary with some data.
-        :return: String with the model comment.
-        """
-        if other and isinstance(other, dict):
-            comment = other
-        else:
-            comment = dict()
-
-        comment['type'] = comment_type.upper()
-        if text:
-            comment['comment'] = text
-
-        string = json.dumps(comment)
-        return "/* LDV {} */".format(string)
-
 
 class FunctionModels:
     """Class represent common C extensions for simplifying environmen model C code generation."""
@@ -486,6 +464,7 @@ class FunctionModels:
     mem_function_template = "\$({})\(%({})%(?:,\s?(\w+))?\)"
     simple_function_template = "\$({})\("
     access_template = '\w+(?:(?:[.]|->)\w+)*'
+    comment_template = re.compile("\$COMMENT\((\w+), (\w+)\);$")
     mem_function_re = re.compile(mem_function_template.format('\w+', access_template))
     simple_function_re = re.compile(simple_function_template.format('\w+'))
     access_re = re.compile('(%{}%)'.format(access_template))
@@ -512,70 +491,82 @@ class FunctionModels:
         stms = []
         matched = False
 
-        # Find state reinitialization
-        if re.compile('\$REINITIALIZE_STATE;').search(statement):
-            statements = initialize_automaton_variables(self._conf, automaton)
-            stms.extend(statements)
-
         # First replace simple replacements
         for number in self.arg_re.findall(statement):
             new_number = int(number) - 1
             statement = statement.replace('$ARG{}'.format(number), 'arg{}'.format(new_number))
 
-        # Replace function calls
-        for fn in self.simple_function_re.findall(statement):
-            matched = True
+        # Replace comments
+        cmnt_match = self.comment_template.search(statement)
+        if cmnt_match:
+            replacement = self._replace_comment(cmnt_match)
+            statement = statement.replace(cmnt_match.group(0), replacement)
+            return [statement]
+        else:
+            # Replace function calls
+            for fn in self.simple_function_re.findall(statement):
+                matched = True
 
-            # Bracket is required to ignore CIF expressions like $res or $arg1
-            if fn in self.mem_function_map or fn in self.free_function_map:
-                access = self.mem_function_re.search(statement).group(2)
-                if fn in self.mem_function_map:
-                    replacement = self._replace_mem_call
+                # Bracket is required to ignore CIF expressions like $res or $arg1
+                if fn in self.mem_function_map or fn in self.free_function_map:
+                    access = self.mem_function_re.search(statement).group(2)
+                    if fn in self.mem_function_map:
+                        replacement = self._replace_mem_call
+                    else:
+                        replacement = self._replace_free_call
+
+                    access = automaton.process.resolve_access('%{}%'.format(access))
+                    signature = access.label.declaration
+                    if signature:
+                        var = automaton.determine_variable(access.label)
+                        if isinstance(var.declaration, Pointer):
+                            self.signature = var.declaration
+                            self.ualloc_flag = True
+                            new = self.mem_function_re.sub(replacement, statement)
+                            stms.append(new)
+                    else:
+                        self._logger.warning("Cannot get signature for the label {!r}".format(access.label.name))
+                elif fn in self.irq_function_map:
+                    statement = self.simple_function_re.sub(self.irq_function_map[fn] + '(', statement)
+                    stms.append(statement)
                 else:
-                    replacement = self._replace_free_call
+                    raise NotImplementedError("Model function '${}' is not supported at line {!r}".
+                                              format(fn, statement))
 
-                access = automaton.process.resolve_access('%{}%'.format(access))
-                signature = access.label.declaration
-                if signature:
-                    var = automaton.determine_variable(access.label)
-                    if isinstance(var.declaration, Pointer):
-                        self.signature = var.declaration
-                        self.ualloc_flag = True
-                        new = self.mem_function_re.sub(replacement, statement)
-                        stms.append(new)
-                else:
-                    self._logger.warning("Cannot get signature for the label {!r}".format(access.label.name))
-            elif fn in self.irq_function_map:
-                statement = self.simple_function_re.sub(self.irq_function_map[fn] + '(', statement)
-                stms.append(statement)
-            else:
-                raise NotImplementedError("Model function '${}' is not supported".format(fn))
+            if not matched:
+                stms = [statement]
 
-        if not matched:
-            stms = [statement]
+            # Replace rest accesses
+            final = []
+            for original_stm in stms:
+                # Collect duplicates
+                stm_set = {original_stm}
 
-        # Replace rest accesses
-        final = []
-        for original_stm in stms:
-            # Collect dublicates
-            stm_set = {original_stm}
+                while len(stm_set) > 0:
+                    stm = stm_set.pop()
+                    match = self.access_re.search(stm)
+                    if match:
+                        expression = match.group(1)
+                        access = automaton.process.resolve_access(expression)
+                        if not access:
+                            raise ValueError("Cannot resolve access in statement {!r} and expression {!r}".
+                                             format(stm, expression))
+                        var = automaton.determine_variable(access.label)
+                        stm = stm.replace(expression, var.name)
+                        stm_set.add(stm)
+                    else:
+                        final.append(stm)
 
-            while len(stm_set) > 0:
-                stm = stm_set.pop()
-                match = self.access_re.search(stm)
-                if match:
-                    expression = match.group(1)
-                    access = automaton.process.resolve_access(expression)
-                    if not access:
-                        raise ValueError("Cannot resolve access in statement {!r} and expression {!r}".
-                                         format(stm, expression))
-                    var = automaton.determine_variable(access.label)
-                    stm = stm.replace(expression, var.name)
-                    stm_set.add(stm)
-                else:
-                    final.append(stm)
+            return final
 
-        return final
+    def _replace_comment(self, match):
+        arguments = match.groups()
+        if arguments[0] == 'callback':
+            name = arguments[1]
+            cmnt = model_comment('callback', name, {'call': "{}();".format(name)})
+            return cmnt
+        else:
+            raise NotImplementedError("Replacement of {!r} comments is not implemented".format(arguments[0]))
 
     def _replace_mem_call(self, match):
         func, label_name, flag = match.groups()
