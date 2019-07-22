@@ -215,7 +215,7 @@ class LabelTranslator(FSATranslator):
                                                      automaton.process.file, extern=False)
 
         # Generate function body
-        label_based_function(self._conf, self._source, automaton, cf, model_flag)
+        label_based_function(self._cmodel, self._conf, self._source, automaton, cf, model_flag)
 
         # Add function to source code to print
         self._cmodel.add_function_definition(cf)

@@ -25,7 +25,7 @@ from core.vtg.emg.common import get_conf_property, get_necessary_conf_property, 
 from core.vtg.emg.common.c.types import import_declaration
 from core.vtg.emg.common.process import Receive, Dispatch, Condition, Subprocess
 from core.vtg.emg.common.c import Function
-from core.vtg.emg.modelTranslator.fsa_translator.common import action_model_comment, extract_relevant_automata
+from core.vtg.emg.modelTranslator.fsa_translator.common import extract_relevant_automata
 
 
 class FSATranslator:
@@ -231,8 +231,8 @@ class FSATranslator:
         """
         # Make comments
         code, v_code, conditions, comments = list(), list(), list(), list()
-        comments.append(action_model_comment(state.action, 'Artificial state in scenario'.
-                                             format(automaton.process.name)))
+        comments.append(self._cmodel.action_model_comment(state.action, 'Artificial state in scenario'.
+                                                          format(automaton.process.name)))
 
         return code, v_code, conditions, comments
 
@@ -270,8 +270,8 @@ class FSATranslator:
             comment = state.action.comment.format(category)
         else:
             comment = 'Skip the action, since no callbacks has been found.'
-        comments.append(action_model_comment(state.action, comment, begin=True))
-        comments.append(action_model_comment(state.action, None, begin=False))
+        comments.append(self._cmodel.action_model_comment(state.action, comment, begin=True))
+        comments.append(self._cmodel.action_model_comment(state.action, None, begin=False))
 
         # Add given conditions from a spec
         conditions = []
@@ -392,8 +392,8 @@ class FSATranslator:
 
         # Make comments
         comment = state.action.comment
-        comments.append(action_model_comment(state.action, comment, begin=True))
-        comments.append(action_model_comment(state.action, None, begin=False))
+        comments.append(self._cmodel.action_model_comment(state.action, comment, begin=True))
+        comments.append(self._cmodel.action_model_comment(state.action, None, begin=False))
 
         # Add additional conditions
         conditions = list()
@@ -423,8 +423,8 @@ class FSATranslator:
 
         # Make comments
         comment = state.action.comment
-        comments.append(action_model_comment(state.action, comment, begin=True))
-        comments.append(action_model_comment(state.action, None, begin=False))
+        comments.append(self._cmodel.action_model_comment(state.action, comment, begin=True))
+        comments.append(self._cmodel.action_model_comment(state.action, None, begin=False))
 
         # Add additional condition
         if state.action.condition and len(state.action.condition) > 0:
@@ -604,8 +604,8 @@ class FSATranslator:
 
         # Make comments
         comment = state.action.comment.format(automaton.process.category.upper())
-        comments.append(action_model_comment(state.action, comment, begin=True))
-        comments.append(action_model_comment(state.action, None, begin=False))
+        comments.append(self._cmodel.action_model_comment(state.action, comment, begin=True))
+        comments.append(self._cmodel.action_model_comment(state.action, None, begin=False))
 
         return code, v_code, conditions, comments
 

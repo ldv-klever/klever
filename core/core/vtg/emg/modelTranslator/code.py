@@ -17,6 +17,7 @@
 
 import os
 import re
+import json
 
 from core.utils import unique_file_name
 from core.vtg.emg.common import get_conf_property, get_necessary_conf_property
@@ -379,6 +380,63 @@ class CModel:
 
         return body
 
+    def action_model_comment(self, action, text, begin=None):
+        """
+        Model comment for identifying an action.
+
+        :param action: Action object.
+        :param text: Action comment string.
+        :param begin: True if this is a comment before the action and False otherwise.
+        :param callback: If this action contains callback call.
+        :return: Model comment string.
+        """
+        if action:
+            if action.trace_relevant:
+                type_comment = 'CALL'
+            else:
+                type_comment = type(action).__name__.upper()
+            if begin is True:
+                type_comment += '_BEGIN'
+            elif begin is False:
+                type_comment += '_END'
+
+            name_comment = action.name.upper()
+        else:
+            type_comment = 'ARTIFICIAL'
+            name_comment = None
+
+        data = {'action': name_comment}
+        if action and action.trace_relevant and begin is True:
+            data['callback'] = True
+        return self.model_comment(type_comment, text, data)
+
+    def control_function_comment_begin(self, function_name, comment, identifier=None):
+        """
+        Compose a comment at the beginning of a control function.
+
+        :param function_name: Control function name.
+        :param comment: Comment text.
+        :param identifier: Thread identifier if necessary.
+        :return: Model comment string.
+        """
+        data = {'function': function_name}
+        if isinstance(identifier, int):
+            data['thread'] = identifier + 1
+        return self.model_comment('CONTROL_FUNCTION_BEGIN', comment, data)
+
+    def control_function_comment_end(self, function_name, name):
+        """
+        Compose a comment at the end of a control function.
+
+        :param function_name: Control function name.
+        :param name: Process or Automaton name.
+        :return: Model comment string.
+        """
+        data = {'function': function_name}
+        return self.model_comment('CONTROL_FUNCTION_END',
+                                  "End of control function based on process {!r}".format(name),
+                                  data)
+
     @staticmethod
     def _collapse_headers_sets(sets):
         final_list = []
@@ -397,6 +455,29 @@ class CModel:
                     else:
                         final_list.insert(position, header)
         return final_list
+
+    @staticmethod
+    def model_comment(comment_type, text, other=None):
+        """
+        Print a model comment. This is a base function for some functions implemented below but sometimes it is necessary to
+        use it directly.
+
+        :param comment_type: Comment type string.
+        :param text: Comment text.
+        :param other: Additional existing dictionary with some data.
+        :return: String with the model comment.
+        """
+        if other and isinstance(other, dict):
+            comment = other
+        else:
+            comment = dict()
+
+        comment['type'] = comment_type.upper()
+        if text:
+            comment['comment'] = text
+
+        string = json.dumps(comment)
+        return "/* LDV {} */".format(string)
 
 
 class FunctionModels:
