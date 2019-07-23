@@ -41,6 +41,16 @@ def _basic_simplification(logger, error_trace):
         # more attractive way.
         edge['source'] = re.sub(r'[ \t]*\n[ \t]*', ' ', edge['source'])
 
+        # Remove pointer calls
+        if 'enter' in edge:
+            match = re.match(r'\s*pointer call\((\w+)\)\s*', edge['source'])
+            if match:
+                func_name = match.group(1)
+                # Remove function pointer expression
+                edge['source'] = re.sub(r'\s*pointer call\(\w+\)\s*', '', edge['source'])
+                # Replace call by pointer
+                edge['source'] = re.sub(r'=\s*\(\*.+\)\s*\(', '= {}('.format(func_name), edge['source'])
+
         # Remove "[...]" around conditions.
         if 'condition' in edge:
             edge['source'] = edge['source'].strip('[]')
