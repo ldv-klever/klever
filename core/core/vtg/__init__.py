@@ -183,6 +183,7 @@ def _extract_requirement_desc(logger, raw_requirement_descs, requirement_id):
     return requirement_desc
 
 
+# TODO: support inheritance of template sequences, i.e. when requirement needs template that is template of another one.
 # This function is invoked to collect plugin callbacks.
 def _extract_requirement_descs(conf, logger):
     logger.info('Extract requirement specificaction decriptions')
