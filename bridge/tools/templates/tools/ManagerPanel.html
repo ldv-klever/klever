@@ -165,7 +165,7 @@
         </div>
         <div class="five wide column">
             <h3>{% trans 'Original sources' %}</h3>
-            {% if original|length %}
+            {% if original_sources|length %}
                 <table class="ui compact selectable teal table">
                     <thead>
                         <tr>
@@ -174,7 +174,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for src in original %}
+                        {% for src in original_sources %}
                             <tr>
                                 <td>{{ src.identifier }}</td>
                                 <td>{{ src.links_num }}</td>

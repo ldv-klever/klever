@@ -120,7 +120,7 @@ class OriginalSources(WithFilesMixin, models.Model):
     archive = models.FileField(upload_to=ORIGINAL_SOURCES_DIR)
 
     def add_archive(self, fp, save=False):
-        self.archive.save(REPORT_ARCHIVE['original'], File(fp), save)
+        self.archive.save(REPORT_ARCHIVE['original_sources'], File(fp), save)
         if not os.path.exists(os.path.join(settings.MEDIA_ROOT, self.archive.name)):
             raise CheckArchiveError('OriginalSources.archive was not saved')
 
@@ -134,7 +134,7 @@ class AdditionalSources(WithFilesMixin, models.Model):
     archive = models.FileField(upload_to='Sources/%Y/%m')
 
     def add_archive(self, fp, save=False):
-        self.archive.save(REPORT_ARCHIVE['additional'], File(fp), save)
+        self.archive.save(REPORT_ARCHIVE['additional_sources'], File(fp), save)
         if not os.path.exists(os.path.join(settings.MEDIA_ROOT, self.archive.name)):
             raise CheckArchiveError('AdditionalSources.archive was not saved')
 
@@ -155,8 +155,8 @@ class ReportComponent(WithFilesMixin, Report):
     verifier_input = models.FileField(upload_to=get_component_path, null=True)
 
     # Sources for Verification reports
-    original = models.ForeignKey(OriginalSources, models.PROTECT, null=True)
-    additional = models.ForeignKey(AdditionalSources, models.CASCADE, null=True)
+    original_sources = models.ForeignKey(OriginalSources, models.PROTECT, null=True)
+    additional_sources = models.ForeignKey(AdditionalSources, models.CASCADE, null=True)
 
     def add_log(self, fp, save=False):
         self.log.save(REPORT_ARCHIVE['log'], File(fp), save)

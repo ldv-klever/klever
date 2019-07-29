@@ -60,7 +60,7 @@ class ManagerPageView(LoginRequiredMixin, TemplateView):
         context['jobs'] = Job.objects.exclude(reportroot=None).exclude(
             status__in=[JOB_STATUS[0][0], JOB_STATUS[1][0], JOB_STATUS[2][0], JOB_STATUS[6][0]]
         )
-        context['original'] = OriginalSources.objects.annotate(
+        context['original_sources'] = OriginalSources.objects.annotate(
             links_num=Count('reportcomponent__root', distinct=True)
         ).all()
         context['comparison'] = CompareJobsInfo.objects.select_related('user', 'root1__job', 'root2__job')

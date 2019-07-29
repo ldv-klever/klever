@@ -140,11 +140,13 @@ class Migration(migrations.Migration):
             ('data', JSONField(null=True)),
             ('log', models.FileField(null=True, upload_to=reports.models.get_component_path)),
             ('verifier_input', models.FileField(null=True, upload_to=reports.models.get_component_path)),
-            ('additional', models.ForeignKey(
+            ('additional_sources', models.ForeignKey(
                 null=True, on_delete=models.deletion.CASCADE, to='reports.AdditionalSources'
             )),
             ('computer', models.ForeignKey(on_delete=models.deletion.CASCADE, to='reports.Computer')),
-            ('original', models.ForeignKey(null=True, on_delete=models.deletion.PROTECT, to='reports.OriginalSources')),
+            ('original_sources', models.ForeignKey(
+                null=True, on_delete=models.deletion.PROTECT, to='reports.OriginalSources'
+            )),
         ], options={'db_table': 'report_component'}, bases=(bridge.utils.WithFilesMixin, 'reports.report')),
 
         migrations.CreateModel(name='CoverageArchive', fields=[
@@ -154,6 +156,7 @@ class Migration(migrations.Migration):
             ('report', models.ForeignKey(
                 on_delete=models.deletion.CASCADE, related_name='coverages', to='reports.ReportComponent'
             )),
+            ('total', JSONField(null=True)),
         ], options={'db_table': 'report_coverage_archive'}, bases=(bridge.utils.WithFilesMixin, models.Model)),
 
         migrations.CreateModel(name='ReportComponentLeaf', fields=[
