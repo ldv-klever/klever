@@ -1178,11 +1178,7 @@ class DecideJob:
 
         if failed:
             files.add('unknown0.zip')
-            reports.append({
-                'identifier': self.__get_report_id('unknown'),
-                'type': 'unknown', 'parent': r_id,
-                'problem_description': 'unknown0.zip'
-            })
+            reports.append({'type': 'unknown', 'parent': r_id, 'problem_description': 'unknown0.zip'})
             while len(self._cmp_stack) > 1:
                 f_rep, logname = self.__get_finish_report(self._cmp_stack[-1])
                 files.add(logname)
@@ -1480,26 +1476,22 @@ class DecideJob:
         if 'safe' in chunk:
             files.append(chunk['safe'])
             reports.append({
-                'identifier': self.__get_report_id('safe'), 'type': 'safe',
-                'parent': verification['identifier'], 'attrs': [],
-                'proof': chunk['safe']
+                'type': 'safe', 'parent': verification['identifier'], 'attrs': [], 'proof': chunk['safe']
             })
         elif 'unsafes' in chunk:
             cnt = 1
-            for u in chunk['unsafes']:
-                files.append(u)
+            for unsafe_archive in chunk['unsafes']:
+                files.append(unsafe_archive)
                 reports.append({
-                    'identifier': self.__get_report_id('unsafe'), 'type': 'unsafe',
-                    'parent': verification['identifier'],
+                    'type': 'unsafe', 'parent': verification['identifier'],
                     'attrs': [{'name': 'entry point', 'value': 'func_%s' % cnt}],
-                    'error_trace': u
+                    'error_trace': unsafe_archive
                 })
                 cnt += 1
         if 'unknown' in chunk and 'safe' not in chunk:
             files.append(chunk['unknown'])
             reports.append({
-                'identifier': self.__get_report_id('unknown'), 'type': 'unknown',
-                'parent': verification['identifier'],
+                'type': 'unknown', 'parent': verification['identifier'],
                 'problem_description': chunk['unknown']
             })
         reports.append({'identifier': verification['identifier'], 'type': 'verification finish'})

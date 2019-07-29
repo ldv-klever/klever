@@ -274,6 +274,12 @@ class ReportVerificationSerializer(UploadBaseSerializer):
 class ReportUnknownSerializer(UploadBaseSerializer):
     def create(self, validated_data):
         cache_obj = ReportUnknownCache(job_id=validated_data['root'].job_id)
+
+        # Random identifier
+        validated_data['identifier'] = '{0}/unknown/{1}'.format(
+            validated_data['parent'].identifier, uuid.uuid4()
+        )[-255:]
+
         validated_data['attrs'] = self.parent_attributes(
             validated_data['parent'], do_not_associate=UNKNOWN_ATTRS_NOT_ASSOCIATE
         ) + validated_data['attrs']
@@ -290,7 +296,7 @@ class ReportUnknownSerializer(UploadBaseSerializer):
 
     class Meta:
         model = ReportUnknown
-        fields = ('identifier', 'parent', 'attrs', 'problem_description')
+        fields = ('parent', 'attrs', 'problem_description')
 
 
 class ReportSafeSerializer(UploadBaseSerializer):
@@ -301,6 +307,12 @@ class ReportSafeSerializer(UploadBaseSerializer):
 
     def create(self, validated_data):
         cache_obj = ReportSafeCache(job_id=validated_data['root'].job_id)
+
+        # Random identifier
+        validated_data['identifier'] = '{0}/safe/{1}'.format(
+            validated_data['parent'].identifier, uuid.uuid4()
+        )[-255:]
+
         validated_data['attrs'] = self.parent_attributes(validated_data['parent']) + validated_data['attrs']
         cache_obj.attrs = dict((attr['name'], attr['value']) for attr in validated_data['attrs'])
         validated_data['cpu_time'] = validated_data['parent'].cpu_time
@@ -313,7 +325,7 @@ class ReportSafeSerializer(UploadBaseSerializer):
 
     class Meta:
         model = ReportSafe
-        fields = ('identifier', 'parent', 'attrs', 'proof')
+        fields = ('parent', 'attrs', 'proof')
 
 
 class ReportUnsafeSerializer(UploadBaseSerializer):
@@ -359,8 +371,13 @@ class ReportUnsafeSerializer(UploadBaseSerializer):
 
     def create(self, validated_data):
         cache_obj = ReportUnsafeCache(job_id=validated_data['root'].job_id)
-        # Random unique identifier
-        validated_data['identifier'] = '{0}/unsafe/{1}'.format(validated_data['parent'].identifier, uuid.uuid4())[:255]
+
+        # Random identifier and trace_id
+        validated_data['trace_id'] = uuid.uuid4()
+        validated_data['identifier'] = '{0}/unsafe/{1}'.format(
+            validated_data['parent'].identifier, validated_data['trace_id']
+        )[-255:]
+
         validated_data['attrs'] = self.parent_attributes(validated_data['parent']) + validated_data['attrs']
         cache_obj.attrs = dict((attr['name'], attr['value']) for attr in validated_data['attrs'])
         validated_data['cpu_time'] = validated_data['parent'].cpu_time
