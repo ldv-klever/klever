@@ -17,6 +17,7 @@
 
 $(document).ready(function () {
     $('.ui.dropdown').each(function () { if (!$(this).hasClass('search')) $(this).dropdown() });
+    $('table').tablesort();
 
     let rm_marks_modal = $('#remove_marks_modal');
     rm_marks_modal.modal({transition: 'fly up', autofocus: false, closable: false});
