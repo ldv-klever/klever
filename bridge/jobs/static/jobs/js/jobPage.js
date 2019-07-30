@@ -55,9 +55,7 @@ function activate_download_for_compet() {
     let dfc_modal = $('#dfc_modal'), dfc_problems = $('#dfc_problems');
     dfc_modal.modal({transition: 'slide down', autofocus: false, closable: false});
     $('#dfc_modal_show').click(function () {
-        if ($(this).hasClass('disabled')) return false;
-        $('.browse').popup('hide');
-        dfc_modal.modal('show');
+        dfc_modal.modal('show')
     });
     dfc_modal.find('.modal-cancel').click(function () {
         dfc_modal.modal('hide')
@@ -95,9 +93,7 @@ function activate_run_history() {
     });
 }
 
-function show_warn_modal(btn, warn_text_id, action_func, disabled) {
-    disabled = typeof disabled !== 'undefined' ?  disabled : btn.hasClass('disabled');
-    if (disabled) return false;
+function show_warn_modal(btn, warn_text_id, action_func) {
     $('.browse').popup('hide');
 
     let warn_confirm_btn = $('#warn_confirm_btn');
@@ -123,7 +119,7 @@ function remove_job() {
 
 function check_children() {
     $.get('/jobs/do_job_has_children/' + $('#job_id').val() + '/', {}, function (data) {
-        data.children ? show_warn_modal(null, 'warn__has_children', remove_job, false) : remove_job();
+        data.children ? show_warn_modal(null, 'warn__has_children', remove_job) : remove_job();
     }, 'json');
 }
 
@@ -171,55 +167,6 @@ $(document).ready(function () {
     $('#stop_job_btn').click(function () { show_warn_modal($(this), 'warn__stop_decision', stop_job_decision) });
     $('#collapse_reports_btn').click(function () { show_warn_modal($(this), 'warn__collapse', collapse_reports) });
     $('#clear_verifications_modal_show').click(function () { show_warn_modal($(this), 'warn__clear_files', clear_verification_files) });
-
-    $('#download_job_btn').click(function () {
-        if ($(this).hasClass('disabled')) return false;
-        $('.browse').popup('hide');
-        return true;
-    });
-
-    // Upload reports without decision
-    let upload_reports_modal = $('#upload_reports_modal'),
-        upload_reports_file_input = upload_reports_modal.find('#upload_reports_file_input'),
-        upload_reports_filename = upload_reports_modal.find('#upload_reports_filename');
-    upload_reports_modal.modal({transition: 'vertical flip'});
-    $('#upload_reports_btn').click(function () {
-        if ($(this).hasClass('disabled')) return false;
-        $('.browse').popup('hide');
-        upload_reports_modal.modal('show');
-    });
-    upload_reports_file_input.on('fileselect', function () {
-        upload_reports_filename.html($('<span>', {text: $(this)[0].files[0].name}));
-    });
-    upload_reports_modal.find('.modal-cancel').click(function () {
-        upload_reports_file_input.replaceWith(upload_reports_file_input.clone( true ));
-        upload_reports_file_input = upload_reports_modal.find('#upload_reports_file_input');
-        upload_reports_filename.empty();
-        upload_reports_modal.modal('hide');
-    });
-    upload_reports_modal.find('.modal-confirm').click(function () {
-        let files = upload_reports_file_input[0].files,
-            data = new FormData();
-        if (files.length <= 0) return err_notify($('#error__no_file_chosen').text());
-
-        data.append('archive', files[0]);
-        upload_reports_modal.modal('hide');
-        $('#dimmer_of_page').addClass('active');
-        $.ajax({
-            url: $(this).data('url'),
-            type: 'POST',
-            data: data,
-            dataType: 'json',
-            contentType: false,
-            processData: false,
-            mimeType: 'multipart/form-data',
-            xhr: function() { return $.ajaxSettings.xhr() },
-            success: function () {
-                window.location.replace('');
-            }
-        });
-        return false;
-    });
 
 
     let num_of_updates = 0, is_filters_open = false, autoupdate_btn = $('#job_autoupdate_btn');

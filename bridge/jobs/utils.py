@@ -226,9 +226,6 @@ class JobAccess:
         return self._is_finished and (self._is_manager or self._is_author or
                                       self._job_role in {JOB_ROLES[3][0], JOB_ROLES[4][0]})
 
-    def can_upload_reports(self):
-        return self.can_decide
-
     @cached_property
     def can_view(self):
         if self.job is None:

@@ -5,6 +5,7 @@
       <database-info product="" version="" jdbc-version="" driver-name="" driver-version="" dbms="POSTGRES" exact-version="0" />
       <secret-storage>master_key</secret-storage>
       <user-name>admin</user-name>
+      <schema-mapping />
     </data-source>
   </component>
 </project>

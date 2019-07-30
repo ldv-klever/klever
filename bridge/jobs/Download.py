@@ -893,26 +893,6 @@ class UploadTree:
         pass
 
 
-class UploadReportsWithoutDecision:
-    def __init__(self, user, job, reports_dir):
-        self._user = user
-        self._job = job
-        self._reports_dir = reports_dir
-        self.__upload()
-
-    def __upload(self):
-        ReportRoot.objects.filter(job=self._job).delete()
-
-        # It is safe to use change_job_status as job statuses '3' and '4' don't send RMQ messages
-        try:
-            UploadReports(self._user, self._job, self._reports_dir, fake=True)
-        except Exception:
-            ReportRoot.objects.filter(job=self._job).delete()
-            change_job_status(self._job, JOB_STATUS[4][0])
-            raise
-        change_job_status(self._job, JOB_STATUS[3][0])
-
-
 class JobFileGenerator(FileWrapper):
     def __init__(self, jobfile):
         assert isinstance(jobfile, JobFile), 'Unknown error'
