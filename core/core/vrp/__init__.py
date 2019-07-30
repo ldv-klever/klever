@@ -549,7 +549,7 @@ class RP(core.components.Component):
                                                             arcnames=self.verification_coverage.arcnames)
                 self.vals['coverage_finished'][self.conf['sub-job identifier']] = False
 
-        # todo: This should be cheked to guarantee that we can reschedule tasks
+        # todo: This should be checked to guarantee that we can reschedule tasks
         core.utils.report(self.logger,
                           'verification',
                           report,
