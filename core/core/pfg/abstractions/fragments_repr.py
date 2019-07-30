@@ -50,6 +50,10 @@ class Fragment:
         return self.name.__cmp__(rhs.name)
 
     @property
+    def unique_files(self):
+        return set(f for f in self.files if f.unique)
+
+    @property
     def export_functions(self):
         """Set with all function names that are exported by files of the fragemnts"""
         return {f for file in self.files for f in file.export_functions}

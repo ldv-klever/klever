@@ -133,6 +133,16 @@ class FragmentationAlgorythm:
                                " you want to verify")
         exclude = set(self.conf.get('exclude targets', set()))
 
+        # Search for files that are already added to several units and mark them as not unique
+        self.logger.info('Mark unique files that belong to no more than one fragment')
+        summary = set()
+        for fragment in program.fragments:
+            for file in fragment.files:
+                if file not in summary:
+                    summary.add(file)
+                else:
+                    file.unique = False
+
         files = set()
         self.logger.info("Find files matched by given by the user expressions ('add' configuration properties)")
         new_files, matched = program.get_files_for_expressions(add)

@@ -36,6 +36,7 @@ class File:
         self.cc = None
         self.size = 0
         self.target = False
+        self.unique = True
 
     @property
     def successors(self):

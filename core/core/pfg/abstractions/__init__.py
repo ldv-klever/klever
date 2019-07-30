@@ -189,7 +189,8 @@ class Program:
         frags, matched = self.get_fragments(rest)
         rest.difference_update(matched)
         for fragment in frags:
-            files.update(fragment.files)
+            files_to_add = fragment.unique_files if fragment.unique_files else fragment.files
+            files.update(files_to_add)
         new_files, matched = self.get_files_by_expressions(rest)
         files.update(new_files)
         rest.difference_update(matched)
