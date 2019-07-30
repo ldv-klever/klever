@@ -425,6 +425,7 @@ class LCOV:
                                         os.makedirs(os.path.dirname(copy_file_name))
                                     shutil.copy(real_file_name, copy_file_name)
                                     file_name = copy_file_name
+                                    real_file_name = copy_file_name
                                     new_file_name = os.path.join(dest, os.path.basename(file_name))
                                 else:
                                     new_file_name = os.path.join(dest, os.path.relpath(file_name, src))
