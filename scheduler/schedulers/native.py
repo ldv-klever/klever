@@ -201,7 +201,7 @@ class Native(runners.Speculative):
         :param description: Dictionary with task description.
         :raise SchedulerException: If a task cannot be scheduled or preparation failed.
         """
-        self._prepare_solution(identifier, description, mode='task')
+        pass
 
     def _prepare_job(self, identifier, configuration):
         """
@@ -225,6 +225,7 @@ class Native(runners.Speculative):
         """
         self.logger.debug("Start solution of task {!r}".format(identifier))
         self._manager.claim_resources(identifier, description, self._node_name, job=False)
+        self._prepare_solution(identifier, description, mode='task')
         return self._pool.submit(self._execute, self._log_file, self._task_processes[identifier])
 
     def _solve_job(self, identifier, configuration):
