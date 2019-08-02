@@ -709,7 +709,11 @@ class Speculative(Runner):
                 memdev = devn(newsum, statistics['number'])
                 statistics.update({'mean mem': newmean, 'memsum': newsum, 'memdev': memdev})
 
-            if status in ('OUT OF MEMORY', 'TIMEOUT') and lim and \
+            if status == 'TIMEOUT' and lim and resources['memory size'] <= 0.7 * lim.get('memory size', 0):
+                # This is a timeout that will not be solved with an increased memory limitation
+                self._del_task(job_identifier, attribute, identifier)
+                return True
+            elif status in ('OUT OF MEMORY', 'TIMEOUT') and lim and \
                     (lim.get('memory size', 0) < qos.get('memory size', 0)) or \
                     (lim.get('CPU time', 0) < qos.get('CPU time', 0)):
                 return False
