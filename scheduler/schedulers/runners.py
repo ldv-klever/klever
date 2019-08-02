@@ -100,7 +100,6 @@ class Runner:
         :param identifier: Verification task identifier.
         :param item: Dictionary with task description.
         """
-        self.logger.debug("Prepare new task {} before launching".format(identifier))
         try:
             # Add missing restrictions
             self._prepare_task(identifier, item["description"])
@@ -643,13 +642,6 @@ class Speculative(Runner):
 
         # Check do we have some statistics already
         speculative = False
-        if job["solved"] > (0.1 * job.get("total tasks")):
-            self.logger.debug("We already solved 10% of tasks and might do rescheduling")
-        if job["limits"][attribute]["statistics"] and job["limits"][attribute]["statistics"]["number"] > 5:
-            self.logger.debug("We already have enough statistics to perform rescheduling for {!r}".format(attribute))
-            self.logger.debug("Current mean memory consumption is {}B and error is {}B".
-                              format(job["limits"][attribute]["statistics"]['mean mem'],
-                                     job["limits"][attribute]["statistics"]['memdev']))
         if limits.get('memory size', 0) > 0 and \
                 ((limits.get('CPU time') and limits['CPU time'] <= qos['CPU time']) or
                  not limits.get('CPU time')) and not self._is_there(job_identifier, attribute, identifier) and \
@@ -658,18 +650,11 @@ class Speculative(Runner):
             statistics = job["limits"][attribute]["statistics"]
             limits['memory size'] = statistics['mean mem'] + 2*statistics['memdev']
             if limits['memory size'] < qos['memory size']:
-                self.logger.debug("Issue less memory limit for for {}:{}: {}B".
-                                  format(attribute, identifier, limits['memory size']))
                 speculative = True
             else:
-                self.logger.debug("Required {}B memory which is more than QoS limit {}B".format(limits['memory size'],
-                                                                                                qos['memory size']))
                 limits = dict(qos)
         elif self._is_there(job_identifier, attribute, identifier):
-            self.logger.debug("Issue QoS limit for {}:{}".format(attribute, identifier))
             limits = dict(qos)
-        else:
-            self.logger.debug("Issue default job limit for {}:{}".format(attribute, identifier))
 
         element["limitation"] = limits
         return limits, speculative
