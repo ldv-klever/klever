@@ -59,9 +59,7 @@ class ViewJobData:
             'resources': self.__resource_info,
             'tags_safe': self.__safe_tags_info,
             'tags_unsafe': self.__unsafe_tags_info,
-            'safes_attr_stat': self.__safes_attrs_statistic,
-            'unsafes_attr_stat': self.__unsafes_attrs_statistic,
-            'unknowns_attr_stat': self.__unknowns_attrs_statistic
+            'attr_stat': self.__attr_statistic
         }
         for d in self.view['data']:
             if d in actions:
@@ -159,23 +157,28 @@ class ViewJobData:
 
         resource_data = []
         for component in sorted(instances):
-            resources_value = '-'
+            component_data = {
+                'component': component,
+                'wall_time': '-',
+                'cpu_time': '-',
+                'memory': '-',
+                'instances': '{}/{}'.format(instances[component]['finished'], instances[component]['total'])
+            }
             if component in res_data:
-                resources_value = "{} {} {}".format(
-                    HumanizedValue(res_data[component]['wall_time'], user=self.user).timedelta,
-                    HumanizedValue(res_data[component]['cpu_time'], user=self.user).timedelta,
-                    HumanizedValue(res_data[component]['memory'], user=self.user).memory
-                )
-            instances_value = ' ({}/{})'.format(instances[component]['finished'], instances[component]['total'])
-            resource_data.append({'component': component, 'val': resources_value, 'instances': instances_value})
+                component_data['wall_time'] = HumanizedValue(res_data[component]['wall_time'], user=self.user).timedelta
+                component_data['cpu_time'] = HumanizedValue(res_data[component]['cpu_time'], user=self.user).timedelta
+                component_data['memory'] = HumanizedValue(res_data[component]['memory'], user=self.user).memory
+            resource_data.append(component_data)
+
         if 'hidden' not in self.view or 'resource_total' not in self.view['hidden']:
             res_total = self.root.resources.get('total')
-            if res_total and res_total['wall_time'] > 0 or res_total['cpu_time'] > 0 or res_total['memory'] > 0:
-                resource_data.append({'component': _('Total'), 'instances': '', 'val': "{} {} {}".format(
-                    HumanizedValue(res_total['wall_time'], user=self.user).timedelta,
-                    HumanizedValue(res_total['cpu_time'], user=self.user).timedelta,
-                    HumanizedValue(res_total['memory'], user=self.user).memory
-                )})
+            if res_total and (res_total['wall_time'] > 0 or res_total['cpu_time'] > 0 or res_total['memory'] > 0):
+                resource_data.append({
+                    'component': 'total', 'instances': '-',
+                    'wall_time': HumanizedValue(res_total['wall_time'], user=self.user).timedelta,
+                    'cpu_time': HumanizedValue(res_total['cpu_time'], user=self.user).timedelta,
+                    'memory': HumanizedValue(res_total['memory'], user=self.user).memory
+                })
         return resource_data
 
     def __filter_problem(self, problem):
@@ -324,34 +327,26 @@ class ViewJobData:
                 unsafes_data.append(unsafes_numbers[column])
         return unsafes_data
 
-    def __safes_attrs_statistic(self):
-        return self.__attr_statistic('reports:safes', ReportSafe)
-
-    def __unsafes_attrs_statistic(self):
-        return self.__attr_statistic('reports:unsafes', ReportUnsafe)
-
-    def __unknowns_attrs_statistic(self):
-        return self.__attr_statistic('reports:unknowns', ReportUnknown)
-
-    def __attr_statistic(self, list_url_name, model):
+    def __attr_statistic(self):
         if not self.report:
-            return []
+            return None
         if 'attr_stat' not in self.view or len(self.view['attr_stat']) != 1 or len(self.view['attr_stat'][0]) == 0:
-            return []
+            return None
         attr_name = self.view['attr_stat'][0]
+        attr_name_q = quote(attr_name)
 
-        base_url = reverse(list_url_name, args=[self.report.id])
         data = {}
-        for report_attrs in model.objects.filter(root=self.root, cache__attrs__has_key=attr_name)\
-                .values_list('cache__attrs', flat=True):
-            attr_value = report_attrs[attr_name]
-            if attr_value not in data:
-                data[attr_value] = {
-                    'url': '{}?attr_name={}&attr_value={}'.format(base_url, quote(attr_name), quote(attr_value)),
-                    'name': attr_value, 'value': 0
-                }
-            data[report_attrs[attr_name]]['value'] += 1
-        return list(data[attr_value] for attr_value in sorted(data))
+        for model, column in [(ReportSafe, 'safes'), (ReportUnsafe, 'unsafes'), (ReportUnknown, 'unknowns')]:
+            for report_attrs in model.objects.filter(root=self.root, cache__attrs__has_key=attr_name) \
+                    .values_list('cache__attrs', flat=True):
+                attr_value = report_attrs[attr_name]
+                if attr_value not in data:
+                    data[attr_value] = {
+                        'attr_value': attr_value, 'safes': 0, 'unsafes': 0, 'unknowns': 0,
+                        'url_params': '?attr_name={}&attr_value={}'.format(attr_name_q, quote(attr_value))
+                    }
+                data[attr_value][column] += 1
+        return list(data[a_val] for a_val in sorted(data))
 
 
 class ViewReportData:
@@ -373,9 +368,7 @@ class ViewReportData:
             'resources': self.__resource_info,
             'tags_safe': self.__safe_tags_info,
             'tags_unsafe': self.__unsafe_tags_info,
-            'safes_attr_stat': self.__safes_attrs_statistic,
-            'unsafes_attr_stat': self.__unsafes_attrs_statistic,
-            'unknowns_attr_stat': self.__unknowns_attrs_statistic
+            'attr_stat': self.__attr_statistic
         }
         for d in self.view['data']:
             if d in actions:
@@ -478,22 +471,23 @@ class ViewReportData:
 
         resource_data = []
         for component in sorted(instances):
-            resources_value = '-'
+            component_data = {
+                'component': component, 'wall_time': '-', 'cpu_time': '-', 'memory': '-',
+                'instances': '{}/{}'.format(instances[component]['finished'], instances[component]['total'])
+            }
             if component in res_data:
-                resources_value = "{} {} {}".format(
-                    HumanizedValue(res_data[component]['wall_time'], user=self.user).timedelta,
-                    HumanizedValue(res_data[component]['cpu_time'], user=self.user).timedelta,
-                    HumanizedValue(res_data[component]['memory'], user=self.user).memory
-                )
-            instances_value = ' ({}/{})'.format(instances[component]['finished'], instances[component]['total'])
-            resource_data.append({'component': component, 'val': resources_value, 'instances': instances_value})
+                component_data['wall_time'] = HumanizedValue(res_data[component]['wall_time'], user=self.user).timedelta
+                component_data['cpu_time'] = HumanizedValue(res_data[component]['cpu_time'], user=self.user).timedelta
+                component_data['memory'] = HumanizedValue(res_data[component]['memory'], user=self.user).memory
+            resource_data.append(component_data)
         if 'hidden' not in self.view or 'resource_total' not in self.view['hidden']:
             if res_total['wall_time'] > 0 or res_total['cpu_time'] > 0 or res_total['memory'] > 0:
-                resource_data.append({'component': _('Total'), 'instances': '', 'val': "{} {} {}".format(
-                    HumanizedValue(res_total['wall_time'], user=self.user).timedelta,
-                    HumanizedValue(res_total['cpu_time'], user=self.user).timedelta,
-                    HumanizedValue(res_total['memory'], user=self.user).memory
-                )})
+                resource_data.append({
+                    'component': 'total', 'instances': '-',
+                    'wall_time': HumanizedValue(res_total['wall_time'], user=self.user).timedelta,
+                    'cpu_time': HumanizedValue(res_total['cpu_time'], user=self.user).timedelta,
+                    'memory': HumanizedValue(res_total['memory'], user=self.user).memory
+                })
         return resource_data
 
     def __filter_problem(self, problem):
@@ -636,35 +630,23 @@ class ViewReportData:
                 unsafes_data.append(unsafes_numbers[column])
         return unsafes_data
 
-    def __safes_attrs_statistic(self):
-        return self.__attr_statistic('safe')
-
-    def __unsafes_attrs_statistic(self):
-        return self.__attr_statistic('unsafe')
-
-    def __unknowns_attrs_statistic(self):
-        return self.__attr_statistic('unknown')
-
-    def __attr_statistic(self, report_type):
+    def __attr_statistic(self):
+        if not self.report:
+            return None
         if 'attr_stat' not in self.view or len(self.view['attr_stat']) != 1 or len(self.view['attr_stat'][0]) == 0:
-            return []
+            return None
         attr_name = self.view['attr_stat'][0]
+        attr_name_q = quote(attr_name)
 
-        if report_type == 'safe':
-            model = ReportSafe
-        elif report_type == 'unsafe':
-            model = ReportUnsafe
-        else:
-            model = ReportUnknown
-        base_url = reverse('reports:{}s'.format(report_type), args=[self.report.id])
         data = {}
-        for report_attrs in model.objects.filter(leaves__report=self.report, cache__attrs__has_key=attr_name)\
-                .values_list('cache__attrs', flat=True):
-            attr_value = report_attrs[attr_name]
-            if attr_value not in data:
-                data[attr_value] = {
-                    'url': '{}?attr_name={}&attr_value={}'.format(base_url, quote(attr_name), quote(attr_value)),
-                    'name': attr_value, 'value': 0
-                }
-            data[report_attrs[attr_name]]['value'] += 1
-        return list(data[attr_value] for attr_value in sorted(data))
+        for model, column in [(ReportSafe, 'safes'), (ReportUnsafe, 'unsafes'), (ReportUnknown, 'unknowns')]:
+            for report_attrs in model.objects.filter(leaves__report=self.report, cache__attrs__has_key=attr_name)\
+                    .values_list('cache__attrs', flat=True):
+                attr_value = report_attrs[attr_name]
+                if attr_value not in data:
+                    data[attr_value] = {
+                        'attr_value': attr_value, 'safes': 0, 'unsafes': 0, 'unknowns': 0,
+                        'url_params': '?attr_name={}&attr_value={}'.format(attr_name_q, quote(attr_value))
+                    }
+                data[attr_value][column] += 1
+        return list(data[a_val] for a_val in sorted(data))

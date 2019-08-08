@@ -146,8 +146,8 @@ class UploadReportComponentSerializer(serializers.ModelSerializer):
     start_date = TimeStampField()
     finish_date = TimeStampField(allow_null=True)
     computer = UploadComputerSerializer(read_only=True)
-    original = serializers.SlugRelatedField(slug_field='identifier', read_only=True)
-    additional = serializers.FileField(source='additional.archive', allow_null=True, read_only=True)
+    original_sources = serializers.SlugRelatedField(slug_field='identifier', read_only=True)
+    additional_sources = serializers.FileField(source='additional_sources.archive', allow_null=True, read_only=True)
     parent = serializers.SlugRelatedField(slug_field='identifier', read_only=True)
 
     class Meta:
@@ -303,7 +303,7 @@ class JobArchiveGenerator:
     def __get_reports_data(self, root):
         reports = []
         for report in ReportComponent.objects.filter(root=root)\
-                .select_related('parent', 'computer', 'original', 'additional').order_by('level'):
+                .select_related('parent', 'computer', 'original_sources', 'additional_sources').order_by('level'):
             report_data = UploadReportComponentSerializer(instance=report).data
 
             # Add report files
@@ -535,9 +535,9 @@ class UploadReports:
         self.root = self.__create_root(job)
         if self.root is None:
             return
-        self._original = self.__upload_original()
+        self._original_sources = self.__upload_original_sources()
 
-        self._additional = {}
+        self._additional_sources = {}
         self.saved_reports = {}
         self._leaves_ids = set()
         self._computers = {}
@@ -558,8 +558,8 @@ class UploadReports:
         # TODO: validate root_data
         return ReportRoot.objects.create(user=self._user, job=job, **root_data)
 
-    def __upload_original(self):
-        original = {}
+    def __upload_original_sources(self):
+        original_sources = {}
         orig_data = self.__read_json_file(
             '{}.json'.format(OriginalSources.__name__), required=not self._fake
         )
@@ -571,8 +571,8 @@ class UploadReports:
                     src_obj = OriginalSources(identifier=src_id)
                     with open(self.__full_path(src_path), mode='rb') as fp:
                         src_obj.add_archive(fp, save=True)
-                original[src_id] = src_obj.id
-        return original
+                original_sources[src_id] = src_obj.id
+        return original_sources
 
     def __get_computer(self, comp_data):
         if not isinstance(comp_data, dict) or 'identifier' not in comp_data:
@@ -601,10 +601,10 @@ class UploadReports:
                 'computer': self.__get_computer(report_data.get('computer')),
                 'parent_id': self.saved_reports.get(report_data['parent'])
             }
-            if report_data.get('additional'):
-                save_kwargs['additional'] = self.__get_additional(report_data['additional'])
-            if report_data.get('original'):
-                save_kwargs['original_id'] = self._original[report_data['original']]
+            if report_data.get('additional_sources'):
+                save_kwargs['additional_sources'] = self.__get_additional_sources(report_data['additional_sources'])
+            if report_data.get('original_sources'):
+                save_kwargs['original_sources_id'] = self._original_sources[report_data['original_sources']]
             if report_data.get('log'):
                 fp = open(self.__full_path(report_data['log']), mode='rb')
                 report_data['log'] = File(fp, name=REPORT_ARCHIVE['log'])
@@ -631,13 +631,13 @@ class UploadReports:
 
         self._chunk = []
 
-    def __get_additional(self, rel_path):
-        if rel_path not in self._additional:
+    def __get_additional_sources(self, rel_path):
+        if rel_path not in self._additional_sources:
             add_inst = AdditionalSources(root=self.root)
             with open(self.__full_path(rel_path), mode='rb') as fp:
                 add_inst.add_archive(fp, save=True)
-            self._additional[rel_path] = add_inst
-        return self._additional[rel_path]
+            self._additional_sources[rel_path] = add_inst
+        return self._additional_sources[rel_path]
 
     def __upload_reports(self):
         # Upload components tree
@@ -891,26 +891,6 @@ class UploadTree:
 
     def __is_not_used(self):
         pass
-
-
-class UploadReportsWithoutDecision:
-    def __init__(self, user, job, reports_dir):
-        self._user = user
-        self._job = job
-        self._reports_dir = reports_dir
-        self.__upload()
-
-    def __upload(self):
-        ReportRoot.objects.filter(job=self._job).delete()
-
-        # It is safe to use change_job_status as job statuses '3' and '4' don't send RMQ messages
-        try:
-            UploadReports(self._user, self._job, self._reports_dir, fake=True)
-        except Exception:
-            ReportRoot.objects.filter(job=self._job).delete()
-            change_job_status(self._job, JOB_STATUS[4][0])
-            raise
-        change_job_status(self._job, JOB_STATUS[3][0])
 
 
 class JobFileGenerator(FileWrapper):

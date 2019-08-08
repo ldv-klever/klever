@@ -300,8 +300,8 @@ REPORT_ARCHIVE = {
     'coverage': 'Coverage.zip',
     'verifier_input': 'VerifierInput.zip',
     'error_trace': 'ErrorTrace.zip',
-    'original': 'OriginalSources.zip',
-    'additional': 'AdditionalSources.zip',
+    'original_sources': 'OriginalSources.zip',
+    'additional_sources': 'AdditionalSources.zip',
     'proof': 'proof.zip',
     'problem_description': 'ProblemDescription.zip'
 }

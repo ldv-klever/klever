@@ -218,7 +218,9 @@ class UploadBaseSerializer(serializers.ModelSerializer):
 class ReportComponentSerializer(UploadBaseSerializer):
     computer = ComputerSerializer(required=False)
     parent = ReportParentField(allow_null=True)  # Allow null parent for Core
-    original = serializers.SlugRelatedField(slug_field='identifier', queryset=OriginalSources.objects, required=False)
+    original_sources = serializers.SlugRelatedField(
+        slug_field='identifier', queryset=OriginalSources.objects, required=False
+    )
 
     def create(self, validated_data):
         # Validate report parent
@@ -234,7 +236,7 @@ class ReportComponentSerializer(UploadBaseSerializer):
         model = ReportComponent
         fields = (
             'identifier', 'parent', 'component', 'computer', 'attrs', 'data',
-            'finish_date', 'cpu_time', 'wall_time', 'memory', 'log', 'original'
+            'finish_date', 'cpu_time', 'wall_time', 'memory', 'log', 'original_sources'
         )
         extra_kwargs = {
             'cpu_time': {'allow_null': False, 'required': True},
@@ -248,7 +250,7 @@ class ReportComponentSerializer(UploadBaseSerializer):
 class ReportVerificationSerializer(UploadBaseSerializer):
     computer = ComputerSerializer(required=False)
     task = serializers.PrimaryKeyRelatedField(queryset=Task.objects, required=False)
-    original = serializers.SlugRelatedField(slug_field='identifier', queryset=OriginalSources.objects)
+    original_sources = serializers.SlugRelatedField(slug_field='identifier', queryset=OriginalSources.objects)
 
     def validate(self, value):
         # If task is set then get verifier input archive from it
@@ -262,7 +264,7 @@ class ReportVerificationSerializer(UploadBaseSerializer):
         model = ReportComponent
         fields = (
             'identifier', 'parent', 'component', 'computer', 'attrs', 'data',
-            'cpu_time', 'wall_time', 'memory', 'log', 'verifier_input', 'original', 'task'
+            'cpu_time', 'wall_time', 'memory', 'log', 'verifier_input', 'original_sources', 'task'
         )
         extra_kwargs = {
             'cpu_time': {'allow_null': False, 'required': True},
@@ -274,6 +276,12 @@ class ReportVerificationSerializer(UploadBaseSerializer):
 class ReportUnknownSerializer(UploadBaseSerializer):
     def create(self, validated_data):
         cache_obj = ReportUnknownCache(job_id=validated_data['root'].job_id)
+
+        # Random identifier
+        validated_data['identifier'] = '{0}/unknown/{1}'.format(
+            validated_data['parent'].identifier, uuid.uuid4()
+        )[-255:]
+
         validated_data['attrs'] = self.parent_attributes(
             validated_data['parent'], do_not_associate=UNKNOWN_ATTRS_NOT_ASSOCIATE
         ) + validated_data['attrs']
@@ -290,7 +298,7 @@ class ReportUnknownSerializer(UploadBaseSerializer):
 
     class Meta:
         model = ReportUnknown
-        fields = ('identifier', 'parent', 'attrs', 'problem_description')
+        fields = ('parent', 'attrs', 'problem_description')
 
 
 class ReportSafeSerializer(UploadBaseSerializer):
@@ -301,6 +309,12 @@ class ReportSafeSerializer(UploadBaseSerializer):
 
     def create(self, validated_data):
         cache_obj = ReportSafeCache(job_id=validated_data['root'].job_id)
+
+        # Random identifier
+        validated_data['identifier'] = '{0}/safe/{1}'.format(
+            validated_data['parent'].identifier, uuid.uuid4()
+        )[-255:]
+
         validated_data['attrs'] = self.parent_attributes(validated_data['parent']) + validated_data['attrs']
         cache_obj.attrs = dict((attr['name'], attr['value']) for attr in validated_data['attrs'])
         validated_data['cpu_time'] = validated_data['parent'].cpu_time
@@ -313,7 +327,7 @@ class ReportSafeSerializer(UploadBaseSerializer):
 
     class Meta:
         model = ReportSafe
-        fields = ('identifier', 'parent', 'attrs', 'proof')
+        fields = ('parent', 'attrs', 'proof')
 
 
 class ReportUnsafeSerializer(UploadBaseSerializer):
@@ -359,8 +373,13 @@ class ReportUnsafeSerializer(UploadBaseSerializer):
 
     def create(self, validated_data):
         cache_obj = ReportUnsafeCache(job_id=validated_data['root'].job_id)
-        # Random unique identifier
-        validated_data['identifier'] = '{0}/unsafe/{1}'.format(validated_data['parent'].identifier, uuid.uuid4())[:255]
+
+        # Random identifier and trace_id
+        validated_data['trace_id'] = uuid.uuid4()
+        validated_data['identifier'] = '{0}/unsafe/{1}'.format(
+            validated_data['parent'].identifier, validated_data['trace_id']
+        )[-255:]
+
         validated_data['attrs'] = self.parent_attributes(validated_data['parent']) + validated_data['attrs']
         cache_obj.attrs = dict((attr['name'], attr['value']) for attr in validated_data['attrs'])
         validated_data['cpu_time'] = validated_data['parent'].cpu_time
@@ -523,10 +542,15 @@ class UploadReport:
         data['attr_data'] = self.__upload_attrs_files(self.__get_archive(data.get('attr_data')))
         data['log'] = self.__get_archive(data.get('log'))
         data['verifier_input'] = self.__get_archive(data.pop('verifier_input', None))
+        save_kwargs = {}
+
+        # Add additional sources if provided
+        if 'additional_sources' in data:
+            save_kwargs['additional_sources_id'] = self.__upload_additional_sources(data['additional_sources'])
 
         serializer = ReportVerificationSerializer(data=data, fullweight=self._is_fullweight, reportroot=self.root)
         serializer.is_valid(raise_exception=True)
-        report = serializer.save()
+        report = serializer.save(**save_kwargs)
 
         # Upload coverage for the report
         if 'coverage' in data:
@@ -552,7 +576,7 @@ class UploadReport:
             # Upload for Core for lightweight jobs
             report = ReportComponent.objects.get(parent=None, root_id=report.root_id)
 
-        if not report.original:
+        if not report.original_sources:
             raise exceptions.ValidationError(detail={
                 'coverage': "The coverage can be uploaded only for reports with original sources"
             })
@@ -570,15 +594,13 @@ class UploadReport:
         if 'attrs' in data:
             data['attr_data'] = self.__upload_attrs_files(self.__get_archive(data.get('attr_data')))
 
-        if 'additional' in data:
-            add_src = AdditionalSources(root=self.root)
-            add_src.add_archive(self.__get_archive(data['additional']), save=True)
-            save_kwargs['additional_id'] = add_src.id
+        if 'additional_sources' in data:
+            save_kwargs['additional_sources_id'] = self.__upload_additional_sources(data['additional_sources'])
 
         serializer = ReportComponentSerializer(
             instance=report, data=data, partial=True,
             reportroot=report.root, fullweight=self._is_fullweight,
-            fields={'data', 'attrs', 'original'}
+            fields={'data', 'attrs', 'original_sources'}
         )
         serializer.is_valid(raise_exception=True)
         serializer.save(**save_kwargs)
@@ -681,6 +703,11 @@ class UploadReport:
 
         # Connect new unsafe with marks
         ConnectUnsafeReport(report)
+
+    def __upload_additional_sources(self, arch_name):
+        add_src = AdditionalSources(root=self.root)
+        add_src.add_archive(self.__get_archive(arch_name), save=True)
+        return add_src.id
 
     def __update_root_cache(self, component, **kwargs):
         # Update resources cache

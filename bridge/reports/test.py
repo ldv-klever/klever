@@ -65,14 +65,14 @@ SJC_1 = [
             {
                 'module': 'drivers/usb/core/usb1.ko',
                 'tool': 'BLAST 2.7.2', 'verifier_input': True, 'log': True,
-                'additional': 'sources12.zip',
+                'additional_sources': 'sources12.zip',
                 'unsafes': ['unsafe1.zip', 'unsafe2.zip'],
                 'unknown': 'unknown2.zip'
             },
             {
                 'module': 'drivers/usb/core/usb2.ko',
                 'tool': 'CPAchecker', 'verifier_input': False, 'log': False,
-                'additional': 'sources3.zip',
+                'additional_sources': 'sources3.zip',
                 'unsafes': ['unsafe3.zip']
             },
             {
@@ -98,26 +98,26 @@ SJC_1 = [
             {
                 'module': 'drivers/usb/core/usb2.ko',
                 'tool': 'CPAchecker', 'verifier_input': False, 'log': False,
-                'additional': 'sources4.zip',
+                'additional_sources': 'sources4.zip',
                 'unsafes': ['unsafe4.zip']
             },
             {
                 'module': 'drivers/usb/core/usb3.ko',
                 'tool': 'CPAchecker', 'verifier_input': True, 'log': False,
-                'additional': 'sources5.zip',
+                'additional_sources': 'sources5.zip',
                 'unsafes': ['unsafe5.zip']
             },
             {
                 'module': 'drivers/usb/core/usb4.ko',
                 'tool': 'CPAchecker', 'verifier_input': False, 'log': True,
-                'additional': 'sources13.zip',
+                'additional_sources': 'sources13.zip',
                 'coverage': 'coverage13.zip',
                 'safe': 'safe.zip'
             },
             {
                 'module': 'drivers/usb/core/usb5.ko',
                 'tool': 'CPAchecker', 'verifier_input': False, 'log': False,
-                'additional': 'sources6.zip',
+                'additional_sources': 'sources6.zip',
                 'unsafes': ['unsafe6.zip']
             }
         ]
@@ -133,7 +133,7 @@ SJC_1 = [
             {
                 'module': 'drivers/usb/core/usb7.ko',
                 'tool': 'CPAchecker', 'verifier_input': False, 'log': True,
-                'additional': 'sources10.zip',
+                'additional_sources': 'sources10.zip',
                 'unsafes': ['unsafe10.zip']
             }
         ]
@@ -147,7 +147,7 @@ SJC_2 = [
             {
                 'module': 'drivers/usb/core/usb2.ko',
                 'tool': 'CPAchecker', 'verifier_input': True, 'log': True,
-                'additional': 'sources14.zip',
+                'additional_sources': 'sources14.zip',
                 'coverage': 'coverage14.zip',
                 'safe': 'safe.zip'
             }
@@ -162,14 +162,14 @@ SJC_3 = [
             {
                 'module': 'drivers/usb/core/usb0.ko',
                 'tool': 'CPAchecker', 'verifier_input': True, 'log': True,
-                'additional': 'sources1.zip',
+                'additional_sources': 'sources1.zip',
                 'safe': 'safe.zip'
             },
             {
                 'requirement': 'linux:mutex',
                 'module': 'drivers/usb/core/usb1.ko',
                 'tool': 'BLAST 2.7.2', 'verifier_input': True, 'log': False,
-                'additional': 'sources12.zip',
+                'additional_sources': 'sources12.zip',
                 'unsafes': ['unsafe1.zip', 'unsafe2.zip'],
                 'unknown': 'unknown2.zip'
             },
@@ -177,7 +177,7 @@ SJC_3 = [
                 'requirement': 'linux:mutex',
                 'module': 'drivers/usb/core/usb2.ko',
                 'tool': 'CPAchecker', 'verifier_input': False, 'log': True,
-                'additional': 'sources3.zip',
+                'additional_sources': 'sources3.zip',
                 'unsafes': ['unsafe3.zip']
             },
             {
@@ -207,7 +207,7 @@ NSJC_1 = [
         'requirement': 'linux:mutex',
         'module': 'drivers/usb/core/usb1.ko',
         'tool': 'BLAST 2.7.2', 'verifier_input': True, 'log': False,
-        'additional': 'sources12.zip',
+        'additional_sources': 'sources12.zip',
         'unsafes': ['unsafe1.zip', 'unsafe2.zip'],
         'unknown': 'unknown2.zip'
     },
@@ -215,7 +215,7 @@ NSJC_1 = [
         'requirement': 'linux:mutex',
         'module': 'drivers/usb/core/usb2.ko',
         'tool': 'CPAchecker', 'verifier_input': False, 'log': True,
-        'additional': 'sources3.zip',
+        'additional_sources': 'sources3.zip',
         'unsafes': ['unsafe3.zip']
     },
     {
@@ -252,7 +252,7 @@ NSJC_3 = [
         'requirement': 'linux:mutex',
         'module': 'drivers/usb/core/usb4.ko',
         'tool': 'CPAchecker', 'verifier_input': False, 'log': True,
-        'additional': 'sources2.zip',
+        'additional_sources': 'sources2.zip',
         'unknown': 'unknown0.zip'
     },
     {
@@ -1086,7 +1086,7 @@ class DecideJob:
 
         self._progress_url = '/service/progress/{}/'.format(self._job_uuid)
         self._upload_url = '/reports/api/upload/{}/'.format(self._job_uuid)
-        self._original = 'test-original-sources-id-4'
+        self._original_sources = 'test-original-sources-id-4'
 
         self.reports_data = reports_data
         self.full_coverage = with_full_coverage
@@ -1178,11 +1178,7 @@ class DecideJob:
 
         if failed:
             files.add('unknown0.zip')
-            reports.append({
-                'identifier': self.__get_report_id('unknown'),
-                'type': 'unknown', 'parent': r_id,
-                'problem_description': 'unknown0.zip'
-            })
+            reports.append({'type': 'unknown', 'parent': r_id, 'problem_description': 'unknown0.zip'})
             while len(self._cmp_stack) > 1:
                 f_rep, logname = self.__get_finish_report(self._cmp_stack[-1])
                 files.add(logname)
@@ -1218,13 +1214,13 @@ class DecideJob:
             report['data'] = kwargs['data']
 
         # Report original sources
-        if kwargs.get('original'):
-            report['original'] = self._original
+        if kwargs.get('original_sources'):
+            report['original_sources'] = self._original_sources
 
         # Report additional sources
-        if kwargs.get('additional'):
-            report['additional'] = kwargs['additional']
-            archives.append(kwargs['additional'])
+        if kwargs.get('additional_sources'):
+            report['additional_sources'] = kwargs['additional_sources']
+            archives.append(kwargs['additional_sources'])
 
         # Report attributes with its data if provided
         if kwargs.get('attrs'):
@@ -1333,20 +1329,20 @@ class DecideJob:
             for fp in files:
                 fp.close()
 
-    def __upload_original(self):
+    def __upload_original_sources(self):
         # Upload original sources if not exists
         resp = self.__request(
-            url='/reports/api/has-sources/', method='GET', params={'identifier': self._original}
+            url='/reports/api/has-sources/', method='GET', params={'identifier': self._original_sources}
         )
         if not resp.json()['exists']:
             with open(os.path.join(ARCHIVE_PATH, 'linux.zip'), mode='rb') as fp:
                 self.__request(url='/reports/api/upload-sources/',
-                               data={'identifier': self._original},
+                               data={'identifier': self._original_sources},
                                files=[('archive', fp)])
 
     def __decide_job(self):
         logger.info('Start {} deciding'.format(self._job_uuid))
-        self.__upload_original()
+        self.__upload_original_sources()
 
         core_id = self.__upload_start_report(
             'Core', None, attrs=[{'name': 'Klever Core version', 'value': 'latest'}], computer=COMPUTER
@@ -1372,7 +1368,7 @@ class DecideJob:
         else:
             self.__upload_chunks(core_id)
             if self.full_coverage:
-                self.__upload_patch_report(core_id, original=True)
+                self.__upload_patch_report(core_id, original_sources=True)
                 self.__upload_job_coverage(core_id, {'no:subjobs': 'linux-coverage.zip'})
 
         self.__upload_progress()
@@ -1413,7 +1409,7 @@ class DecideJob:
         self.__upload_finish_report(vrp)
 
         if self.full_coverage:
-            self.__upload_patch_report(sj, original=True)
+            self.__upload_patch_report(sj, original_sources=True)
             self.__upload_job_coverage(sj, {subjob['requirement']: 'linux-coverage.zip'})
 
         self.__upload_finish_report(sj)
@@ -1453,7 +1449,7 @@ class DecideJob:
             'identifier': self.__get_report_id(chunk['tool']),
             'type': 'verification', 'parent': parent, 'component': chunk['tool'],
             'attrs': [{'name': 'Test', 'value': 'test value', 'data': 'attrdata.txt'}],
-            'data': {'description': str(chunk['tool'])}, 'original': self._original,
+            'data': {'description': str(chunk['tool'])}, 'original_sources': self._original_sources,
             'attr_data': 'attrdata.zip'
         }
         verification.update(resources())
@@ -1470,36 +1466,32 @@ class DecideJob:
             verification['coverage'] = chunk['coverage']
 
         reports = [verification]
-        if 'additional' in chunk:
-            files.append(chunk['additional'])
+        if 'additional_sources' in chunk:
+            files.append(chunk['additional_sources'])
             reports.append({
                 'identifier': verification['identifier'],
                 'type': 'patch',
-                'additional': chunk['additional']
+                'additional_sources': chunk['additional_sources']
             })
         if 'safe' in chunk:
             files.append(chunk['safe'])
             reports.append({
-                'identifier': self.__get_report_id('safe'), 'type': 'safe',
-                'parent': verification['identifier'], 'attrs': [],
-                'proof': chunk['safe']
+                'type': 'safe', 'parent': verification['identifier'], 'attrs': [], 'proof': chunk['safe']
             })
         elif 'unsafes' in chunk:
             cnt = 1
-            for u in chunk['unsafes']:
-                files.append(u)
+            for unsafe_archive in chunk['unsafes']:
+                files.append(unsafe_archive)
                 reports.append({
-                    'identifier': self.__get_report_id('unsafe'), 'type': 'unsafe',
-                    'parent': verification['identifier'],
+                    'type': 'unsafe', 'parent': verification['identifier'],
                     'attrs': [{'name': 'entry point', 'value': 'func_%s' % cnt}],
-                    'error_trace': u
+                    'error_trace': unsafe_archive
                 })
                 cnt += 1
         if 'unknown' in chunk and 'safe' not in chunk:
             files.append(chunk['unknown'])
             reports.append({
-                'identifier': self.__get_report_id('unknown'), 'type': 'unknown',
-                'parent': verification['identifier'],
+                'type': 'unknown', 'parent': verification['identifier'],
                 'problem_description': chunk['unknown']
             })
         reports.append({'identifier': verification['identifier'], 'type': 'verification finish'})

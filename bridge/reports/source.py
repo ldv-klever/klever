@@ -204,16 +204,17 @@ class GetSource:
     @cached_property
     def _ancestors(self):
         parents_ids = set(self._report.get_ancestors(include_self=True).exclude(
-            reportcomponent__additional=None, reportcomponent__original=None
+            reportcomponent__additional_sources=None, reportcomponent__original_sources=None
         ).values_list('id', flat=True))
         return ReportComponent.objects.filter(id__in=parents_ids)\
-            .select_related('original', 'additional')\
-            .only('id', 'original_id', 'additional_id', 'original__archive', 'additional__archive', 'verification')\
+            .select_related('original_sources', 'additional_sources')\
+            .only('id', 'verification', 'original_sources_id', 'additional_sources_id',
+                  'original_sources__archive', 'additional_sources__archive')\
             .order_by('-id')
 
     def __get_source_code(self):
         for report in self._ancestors:
-            for file_obj in [report.additional, report.original]:
+            for file_obj in [report.additional_sources, report.original_sources]:
                 content = self.__extract_file(file_obj, self._file_name)
                 if content:
                     return content
@@ -222,7 +223,7 @@ class GetSource:
     def __get_indexes_data(self):
         index_name = self._file_name + self.index_postfix
         for report in self._ancestors:
-            for file_obj in [report.additional, report.original]:
+            for file_obj in [report.additional_sources, report.original_sources]:
                 content = self.__extract_file(file_obj, index_name)
                 if content:
                     index_data = json.loads(content)

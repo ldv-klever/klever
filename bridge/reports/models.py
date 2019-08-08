@@ -117,12 +117,12 @@ class Computer(models.Model):
 
 class OriginalSources(WithFilesMixin, models.Model):
     identifier = models.CharField(max_length=128, unique=True, db_index=True)
-    file = models.FileField(upload_to=ORIGINAL_SOURCES_DIR)
+    archive = models.FileField(upload_to=ORIGINAL_SOURCES_DIR)
 
-    def add_file(self, fp, save=False):
-        self.file.save(REPORT_ARCHIVE['original'], File(fp), save)
-        if not os.path.exists(os.path.join(settings.MEDIA_ROOT, self.file.name)):
-            raise CheckArchiveError('OriginalSources.file was not saved')
+    def add_archive(self, fp, save=False):
+        self.archive.save(REPORT_ARCHIVE['original_sources'], File(fp), save)
+        if not os.path.exists(os.path.join(settings.MEDIA_ROOT, self.archive.name)):
+            raise CheckArchiveError('OriginalSources.archive was not saved')
 
     class Meta:
         db_table = 'report_original_sources'
@@ -131,12 +131,12 @@ class OriginalSources(WithFilesMixin, models.Model):
 
 class AdditionalSources(WithFilesMixin, models.Model):
     root = models.ForeignKey(ReportRoot, models.CASCADE)
-    file = models.FileField(upload_to='Sources/%Y/%m')
+    archive = models.FileField(upload_to='Sources/%Y/%m')
 
-    def add_file(self, fp, save=False):
-        self.file.save(REPORT_ARCHIVE['additional'], File(fp), save)
-        if not os.path.exists(os.path.join(settings.MEDIA_ROOT, self.file.name)):
-            raise CheckArchiveError('AdditionalSources.file was not saved')
+    def add_archive(self, fp, save=False):
+        self.archive.save(REPORT_ARCHIVE['additional_sources'], File(fp), save)
+        if not os.path.exists(os.path.join(settings.MEDIA_ROOT, self.archive.name)):
+            raise CheckArchiveError('AdditionalSources.archive was not saved')
 
     class Meta:
         db_table = 'report_additional_sources'
@@ -155,8 +155,8 @@ class ReportComponent(WithFilesMixin, Report):
     verifier_input = models.FileField(upload_to=get_component_path, null=True)
 
     # Sources for Verification reports
-    original = models.ForeignKey(OriginalSources, models.PROTECT, null=True)
-    additional = models.ForeignKey(AdditionalSources, models.CASCADE, null=True)
+    original_sources = models.ForeignKey(OriginalSources, models.PROTECT, null=True)
+    additional_sources = models.ForeignKey(AdditionalSources, models.CASCADE, null=True)
 
     def add_log(self, fp, save=False):
         self.log.save(REPORT_ARCHIVE['log'], File(fp), save)

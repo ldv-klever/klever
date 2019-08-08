@@ -48,7 +48,7 @@ from jobs.serializers import (
     DuplicateJobSerializer, change_job_status
 )
 from jobs.configuration import get_configuration_value, GetConfiguration
-from jobs.Download import KleverCoreArchiveGen, UploadReportsWithoutDecision, UploadJob, UploadTree
+from jobs.Download import KleverCoreArchiveGen, UploadJob, UploadTree
 from jobs.utils import JobAccess
 from reports.serializers import DecisionResultsSerializerRO
 from reports.UploadReport import collapse_reports
@@ -390,25 +390,6 @@ class DoJobHasChildrenView(LoggedCallMixin, RetrieveAPIView):
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
         return Response({'children': (instance.children.count() > 0)})
-
-
-class UploadReportsView(LoggedCallMixin, APIView):
-    model = Job
-    unparallel = [Job]
-
-    def post(self, request, pk):
-        instance = get_object_or_404(Job, pk=pk)
-        if not JobAccess(request.user, instance).can_decide:
-            raise exceptions.ValidationError(_("You don't have an access to upload reports for this job"))
-
-        try:
-            reports_dir = extract_archive(request.FILES['archive'])
-        except Exception as e:
-            logger.exception(e)
-            raise exceptions.APIException(_('Extraction of the archive has failed'))
-
-        UploadReportsWithoutDecision(request.user, instance, reports_dir.name)
-        return Response({})
 
 
 class CollapseReportsView(LoggedCallMixin, APIView):
