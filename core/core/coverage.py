@@ -24,6 +24,7 @@ import multiprocessing
 import core.components
 import core.utils
 
+coverage_format_version = 1
 
 def add_to_coverage(merged_coverage_info, coverage_info):
     for file_name in coverage_info:
@@ -45,40 +46,45 @@ def add_to_coverage(merged_coverage_info, coverage_info):
                         merged_coverage_info[file_name]['covered function names'].append(name)
 
 
-def get_coverage(merged_coverage_info):
+def convert_coverage(merged_coverage_info):
+    # Convert combined coverage to the required format.
+    os.mkdir('coverage')
 
-    # Map combined coverage to the required format
-    line_coverage = dict()
-    function_coverage = dict()
-    function_statistics = dict()
-    function_name_staticitcs = dict()
-
-    for file_name in list(merged_coverage_info.keys()):
-        for line, value in merged_coverage_info[file_name]['covered lines'].items():
-            line_coverage.setdefault(value, {})
-            line_coverage[value].setdefault(file_name, [])
-            line_coverage[value][file_name].append(int(line))
-
-        for line, value in merged_coverage_info[file_name]['covered functions'].items():
-            function_coverage.setdefault(value, {})
-            function_coverage[value].setdefault(file_name, [])
-            function_coverage[value][file_name].append(int(line))
-
-        function_statistics[file_name] = [len(merged_coverage_info[file_name]['covered functions']),
-                                          merged_coverage_info[file_name]['total functions']]
-
-        if merged_coverage_info[file_name].get('covered function names'):
-            function_name_staticitcs[file_name] = list(merged_coverage_info[file_name]['covered function names'])
-    function_name_staticitcs['overall'] = None
-
-    return {
-        'line coverage': [[key, value] for key, value in line_coverage.items()],
-        'function coverage': {
-            'statistics': function_statistics,
-            'coverage': [[key, value] for key, value in function_coverage.items()]
-        },
-        'functions statistics': {'statistics': function_name_staticitcs, 'values': []}
+    # Collect coverage statistics for all individual files during their processing. This statistics will be printed
+    # later.
+    coverage_stats = {
+        'format': coverage_format_version,
+        'coverage statistics': dict(),
+        'data statistics': dict()
     }
+    for file_name in list(merged_coverage_info.keys()):
+        raw_file_coverage = merged_coverage_info[file_name]
+
+        file_coverage = {
+            'format': coverage_format_version,
+            'line coverage': raw_file_coverage['covered lines'],
+            'function coverage': raw_file_coverage['covered functions']
+        }
+
+        os.makedirs(os.path.join('coverage', os.path.dirname(file_name)), exist_ok=True)
+        with open(os.path.join('coverage', file_name + '.cov.json'), 'w') as fp:
+            json.dump(file_coverage, fp, ensure_ascii=True, sort_keys=True, indent=4)
+
+        coverage_stats['coverage statistics'][file_name] = [
+            # Total number of covered lines of code.
+            len([line_number for line_number, line_coverage in raw_file_coverage['covered lines'].items()
+                 if line_coverage]),
+            # Total number of considered lines of code.
+            len(raw_file_coverage['covered lines']),
+            # Total number of covered functions.
+            len([func_line_number for func_line_number, func_coverage in raw_file_coverage['covered functions'].items()
+                 if func_coverage]),
+            # Total number of considered functions.
+            len(raw_file_coverage['covered functions'])
+        ]
+
+    with open(os.path.join('coverage', 'coverage.json'), 'w') as fp:
+        json.dump(coverage_stats, fp, ensure_ascii=True, sort_keys=True, indent=4)
 
 
 class JCR(core.components.Component):
@@ -292,13 +298,9 @@ class LCOV:
 
                 coverage = {}
                 add_to_coverage(coverage, self.coverage_info)
-                with open('coverage.json', 'w', encoding='utf-8') as fp:
-                    json.dump(get_coverage(coverage), fp, ensure_ascii=True, sort_keys=True, indent=4)
+                convert_coverage(coverage)
         except Exception:
-            if os.path.isfile('coverage.json'):
-                os.remove('coverage.json')
-            if os.path.isfile(self.coverage_info):
-                os.remove(self.coverage_info)
+            shutil.rmtree('coverage', ignore_errors=True)
             raise
 
     def parse(self):

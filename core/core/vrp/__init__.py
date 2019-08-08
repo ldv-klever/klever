@@ -241,7 +241,6 @@ class RP(core.components.Component):
         self.requirement = None
         self.program_fragment = None
         self.task_error = None
-        self.verification_coverage = None
         self.source_paths = source_paths
         self.__exception = None
         self.__qos_resource_limit = qos_resource_limits
@@ -510,7 +509,7 @@ class RP(core.components.Component):
             'wall_time': decision_results['resources']['wall time'],
             'cpu_time': decision_results['resources']['CPU time'],
             'memory': decision_results['resources']['memory size'],
-            'original': self.clade.get_uuid()
+            'original_sources': self.clade.get_uuid()
         }
 
         # Get coverage
@@ -536,22 +535,18 @@ class RP(core.components.Component):
         # Remember exception and raise it if verdict is not unknown
         exception = None
         try:
-            self.verification_coverage = LCOV(self.logger, os.path.join('output', 'coverage.info'),
-                                              self.clade, self.source_paths,
-                                              self.search_dirs, self.conf['main working directory'],
-                                              opts.get('coverage'),
-                                              os.path.join(self.conf['main working directory'],
-                                                           self.coverage_info_file),
-                                              os.path.join(self.conf['main working directory'], coverage_info_dir),
-                                              opts.get('collect function names'))
+            LCOV(self.logger, os.path.join('output', 'coverage.info'),
+                 self.clade, self.source_paths,
+                 self.search_dirs, self.conf['main working directory'],
+                 opts.get('coverage'),
+                 os.path.join(self.conf['main working directory'], self.coverage_info_file),
+                 os.path.join(self.conf['main working directory'], coverage_info_dir),
+                 opts.get('collect function names'))
         except Exception as err:
             exception = err
         else:
-            if os.path.isfile('coverage.json'):
-                report['coverage'] = core.utils.ArchiveFiles(['coverage.json'] +
-                                                             list(self.verification_coverage.arcnames.keys()),
-                                                             arcnames=self.verification_coverage.arcnames)
-                self.vals['coverage_finished'][self.conf['sub-job identifier']] = False
+            report['coverage'] = core.utils.ArchiveFiles(['coverage'])
+            self.vals['coverage_finished'][self.conf['sub-job identifier']] = False
 
         # todo: This should be cheked to guarantee that we can reschedule tasks
         core.utils.report(self.logger,
