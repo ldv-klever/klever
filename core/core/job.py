@@ -20,6 +20,7 @@ import importlib
 import json
 import multiprocessing
 import os
+import shutil
 import tarfile
 import time
 import zipfile
@@ -611,11 +612,33 @@ class Job(core.components.Component):
             self.logger.info('Original sources were uploaded already')
             return
 
+        self.logger.info('Cut off working source trees or build directory from original source file names')
+        os.makedirs('original sources')
+        for root, dirs, files in os.walk(clade.storage_dir):
+            for file in files:
+                file = os.path.join(root, file)
+
+                # Like in core.vrp.RP#__trim_file_names.
+                new_file = core.utils.make_relative_path([clade.storage_dir], file)
+                tmp = core.utils.make_relative_path(self.common_components_conf['working source trees'], new_file,
+                                                    absolutize=True)
+
+                # Append special directory name "source files" when cutting off source file names. Later this will be
+                # done for references as well.
+                if tmp != new_file:
+                    new_file = os.path.join('source files', tmp)
+
+                new_file = 'original sources/' + new_file
+                os.makedirs(os.path.dirname(new_file), exist_ok=True)
+                shutil.copy(file, new_file)
+
         self.logger.info('Compress original sources')
-        core.utils.ArchiveFiles([clade.storage_dir]).make_archive('original sources.zip')
+        core.utils.ArchiveFiles(['original sources']).make_archive('original sources.zip')
 
         self.logger.info('Upload original sources')
         session.upload_original_sources(src_id, 'original sources.zip')
+
+
 
     def __get_job_or_sub_job_components(self):
         self.logger.info('Get components for sub-job of type "{0}" with identifier "{1}"'.
