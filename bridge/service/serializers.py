@@ -84,10 +84,10 @@ class TaskSerializer(DynamicFieldsModelSerializer):
             raise exceptions.ValidationError('The tasks scheduler is disconnected')
         return decision
 
-    def validate_file(self, file):
-        if not zipfile.is_zipfile(file) or zipfile.ZipFile(file).testzip():
-            raise exceptions.ValidationError('The task file "%s" is not a ZIP file' % file)
-        return file
+    def validate_archive(self, archive):
+        if not zipfile.is_zipfile(archive) or zipfile.ZipFile(archive).testzip():
+            raise exceptions.ValidationError('The task file "%s" is not a ZIP file' % archive)
+        return archive
 
     def validate_description(self, desc):
         if not isinstance(desc, dict):
@@ -166,7 +166,7 @@ class TaskSerializer(DynamicFieldsModelSerializer):
         decision.save()
 
     def create(self, validated_data):
-        validated_data['filename'] = validated_data['file'].name[:256]
+        validated_data['filename'] = validated_data['archive'].name[:256]
         validated_data['decision'] = validated_data.pop('job')
         instance = super().create(validated_data)
         self.update_decision(validated_data['decision'], instance.status)
@@ -197,14 +197,14 @@ class TaskSerializer(DynamicFieldsModelSerializer):
     class Meta:
         model = Task
         exclude = ('decision', 'filename')
-        extra_kwargs = {'file': {'write_only': True}}
+        extra_kwargs = {'archive': {'write_only': True}}
 
 
 class SolutionSerializer(DynamicFieldsModelSerializer):
-    def validate_file(self, file):
-        if not zipfile.is_zipfile(file) or zipfile.ZipFile(file).testzip():
-            raise exceptions.ValidationError('The task solution file "%s" is not a ZIP file' % file)
-        return file
+    def validate_archive(self, archive):
+        if not zipfile.is_zipfile(archive) or zipfile.ZipFile(archive).testzip():
+            raise exceptions.ValidationError('The task solution file "%s" is not a ZIP file' % archive)
+        return archive
 
     def validate_description(self, desc):
         if not isinstance(desc, dict):
@@ -220,7 +220,7 @@ class SolutionSerializer(DynamicFieldsModelSerializer):
 
     def create(self, validated_data):
         # Set file name
-        validated_data['filename'] = validated_data['file'].name[:256]
+        validated_data['filename'] = validated_data['archive'].name[:256]
 
         # Get and validate decision
         decision = self.get_decision(validated_data['task'])
@@ -243,7 +243,7 @@ class SolutionSerializer(DynamicFieldsModelSerializer):
     class Meta:
         model = Solution
         exclude = ('id', 'decision', 'filename')
-        extra_kwargs = {'file': {'write_only': True}}
+        extra_kwargs = {'archive': {'write_only': True}}
 
 
 class DecisionSerializer(serializers.ModelSerializer):

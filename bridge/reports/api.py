@@ -113,7 +113,6 @@ class UploadReportView(LoggedCallMixin, APIView):
         job = get_object_or_404(Job, identifier=job_uuid)
         if job.status != JOB_STATUS[2][0]:
             raise APIException('Reports can be uploaded only for processing jobs')
-        archives = dict((f.name, f) for f in request.FILES.getlist('file'))
 
         if 'report' in request.POST:
             data = [json.loads(request.POST['report'])]
@@ -122,7 +121,7 @@ class UploadReportView(LoggedCallMixin, APIView):
         else:
             raise APIException('Report json data is required')
         try:
-            UploadReport(job, archives).upload_all(data)
+            UploadReport(job, request.FILES).upload_all(data)
         except CheckArchiveError as e:
             return Response({'ZIP error': str(e)}, status=HTTP_403_FORBIDDEN)
         return Response({})

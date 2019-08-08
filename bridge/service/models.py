@@ -124,7 +124,7 @@ class Task(WithFilesMixin, models.Model):
     status = models.CharField(max_length=10, choices=TASK_STATUS, default=TASK_STATUS[0][0])
     error = models.CharField(max_length=1024, null=True)
     filename = models.CharField(max_length=256)
-    file = models.FileField(upload_to=SERVICE_DIR)
+    archive = models.FileField(upload_to=SERVICE_DIR)
     description = JSONField()
 
     class Meta:
@@ -135,7 +135,7 @@ class Solution(WithFilesMixin, models.Model):
     decision = models.ForeignKey(Decision, models.CASCADE, related_name='solutions_set')
     task = models.OneToOneField(Task, models.CASCADE, related_name='solution')
     filename = models.CharField(max_length=256)
-    file = models.FileField(upload_to=SERVICE_DIR)
+    archive = models.FileField(upload_to=SERVICE_DIR)
     description = JSONField()
 
     class Meta:
