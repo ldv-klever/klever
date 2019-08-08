@@ -638,7 +638,9 @@ class Job(core.components.Component):
         self.logger.info('Upload original sources')
         session.upload_original_sources(src_id, 'original sources.zip')
 
-
+        if not self.conf['keep intermediate files']:
+            shutil.rmtree('original sources')
+            os.remove('original sources.zip')
 
     def __get_job_or_sub_job_components(self):
         self.logger.info('Get components for sub-job of type "{0}" with identifier "{1}"'.
