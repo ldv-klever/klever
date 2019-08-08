@@ -31,8 +31,8 @@ from django.utils.translation import ugettext_lazy as _
 
 from rest_framework import exceptions, serializers, fields
 
-from bridge.vars import FORMAT, JOB_STATUS, REPORT_ARCHIVE, MPTT_FIELDS, ETV_FORMAT, COVERAGE_FILE
-from bridge.utils import logger, BridgeException, ArchiveFileContent
+from bridge.vars import FORMAT, REPORT_ARCHIVE, MPTT_FIELDS
+from bridge.utils import logger, BridgeException
 from bridge.ZipGenerator import ZipStream, CHUNK_SIZE
 from bridge.serializers import TimeStampField
 
@@ -44,9 +44,10 @@ from reports.models import (
 from service.models import Scheduler, Decision
 from caches.models import ReportSafeCache, ReportUnsafeCache, ReportUnknownCache
 
-from jobs.serializers import change_job_status, create_job_version, JobFileSerializer, JobFilesField
+from jobs.serializers import create_job_version, JobFileSerializer, JobFilesField
 from tools.utils import Recalculation
 from caches.utils import update_cache_atomic
+from reports.coverage import calculate_total_coverage
 
 ARCHIVE_FORMAT = 13
 
@@ -384,41 +385,35 @@ class JobsArchivesGen:
         self.stream = ZipStream()
         self.name = 'KleverJobs.zip'
 
+    def generate_job(self, jobgen):
+        buf = b''
+        for data in self.stream.compress_stream(jobgen.name, jobgen):
+            buf += data
+            if len(buf) > CHUNK_SIZE:
+                yield buf
+                buf = b''
+        if len(buf) > 0:
+            yield buf
+
     def __iter__(self):
         for job in self.jobs:
             jobgen = JobArchiveGenerator(job)
-            buf = b''
-            for data in self.stream.compress_stream(jobgen.name, jobgen):
-                buf += data
-                if len(buf) > CHUNK_SIZE:
-                    yield buf
-                    buf = b''
-            if len(buf) > 0:
-                yield buf
+            yield from self.generate_job(jobgen)
         yield self.stream.close_stream()
 
 
-class JobsTreesGen:
+class JobsTreesGen(JobsArchivesGen):
     def __init__(self, jobs_ids):
         self._tree = {}
-        self.jobs = self.__get_jobs(jobs_ids)
-        self.stream = ZipStream()
-        self.name = 'KleverJobs.zip'
+        jobs = self.__get_jobs(jobs_ids)
+        super(JobsTreesGen, self).__init__(jobs)
 
     def __iter__(self):
         for job in self.jobs:
             jobgen = JobArchiveGenerator(job)
-            buf = b''
-            for data in self.stream.compress_stream(jobgen.name, jobgen):
-                buf += data
-                if len(buf) > CHUNK_SIZE:
-                    yield buf
-                    buf = b''
-            if len(buf) > 0:
-                yield buf
+            yield from self.generate_job(jobgen)
             self._tree[str(job.identifier)]['path'] = jobgen.name
-        for data in self.stream.compress_string('tree.json', json.dumps(self._tree, sort_keys=True, indent=2)):
-            yield data
+        yield from self.stream.compress_string('tree.json', json.dumps(self._tree, sort_keys=True, indent=2))
         yield self.stream.close_stream()
 
     def __get_jobs(self, jobs_ids):
@@ -763,7 +758,7 @@ class UploadReports:
             )
             with open(self.__full_path(coverage['archive']), mode='rb') as fp:
                 instance.add_coverage(fp, save=False)
-            instance.total = self.__calculate_total_coverage(instance)
+            instance.total = calculate_total_coverage(instance)
             instance.save()
 
     def __full_path(self, rel_path):
@@ -784,27 +779,6 @@ class UploadReports:
                 _('Required file was not found in job archive: %(filename)s') % {'filename': rel_path}
             )
         return None
-
-    def __calculate_total_coverage(self, cov_arch_instance):
-        res = ArchiveFileContent(cov_arch_instance, 'archive', COVERAGE_FILE)
-        data = json.loads(res.content.decode('utf8'))
-        if data.get('format') != ETV_FORMAT:
-            raise exceptions.ValidationError('Coverage format is not supported')
-        if not data.get('coverage statistics'):
-            raise exceptions.ValidationError('Common coverage file does not contain statistics')
-        total_statistics = [0, 0, 0, 0]
-        for cov_data in data['coverage statistics'].values():
-            total_statistics[0] += cov_data[0]
-            total_statistics[1] += cov_data[1]
-            total_statistics[2] += cov_data[2]
-            total_statistics[3] += cov_data[3]
-        lines_stat = 0
-        if total_statistics[1] > 0:
-            lines_stat = round(total_statistics[0] / total_statistics[1] * 100)
-        funcs_stat = 0
-        if total_statistics[3] > 0:
-            funcs_stat = round(total_statistics[2] / total_statistics[3] * 100)
-        return {'lines': '{}%'.format(lines_stat), 'funcs': '{}%'.format(funcs_stat)}
 
 
 class UploadTree:

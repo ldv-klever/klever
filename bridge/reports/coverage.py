@@ -22,6 +22,8 @@ from wsgiref.util import FileWrapper
 
 from django.utils.translation import ugettext_lazy as _
 
+from rest_framework import exceptions
+
 from bridge.vars import ETV_FORMAT, COVERAGE_FILE
 from bridge.utils import ArchiveFileContent, BridgeException, construct_url
 
@@ -111,6 +113,28 @@ def json_to_html(data):
             continue
         data_html.append(line)
     return '<br>'.join(list(span(s, 'COVJsonLine') for s in data_html))
+
+
+def calculate_total_coverage(cov_arch_instance):
+    res = ArchiveFileContent(cov_arch_instance, 'archive', COVERAGE_FILE)
+    data = json.loads(res.content.decode('utf8'))
+    if data.get('format') != ETV_FORMAT:
+        raise exceptions.ValidationError('Coverage format is not supported')
+    if not data.get('coverage statistics'):
+        raise exceptions.ValidationError('Common coverage file does not contain statistics')
+    total_statistics = [0, 0, 0, 0]
+    for cov_data in data['coverage statistics'].values():
+        total_statistics[0] += cov_data[0]
+        total_statistics[1] += cov_data[1]
+        total_statistics[2] += cov_data[2]
+        total_statistics[3] += cov_data[3]
+    lines_stat = 0
+    if total_statistics[1] > 0:
+        lines_stat = round(total_statistics[0] / total_statistics[1] * 100)
+    funcs_stat = 0
+    if total_statistics[3] > 0:
+        funcs_stat = round(total_statistics[2] / total_statistics[3] * 100)
+    return {'lines': '{}%'.format(lines_stat), 'funcs': '{}%'.format(funcs_stat)}
 
 
 class CoverageStatistics:
