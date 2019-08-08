@@ -94,9 +94,9 @@ class ClearFiles:
 
     def __clear_service_files(self):
         files_in_the_system = set()
-        for s in Solution.objects.values_list('file', flat=True):
+        for s in Solution.objects.values_list('archive', flat=True):
             files_in_the_system.add(os.path.abspath(os.path.join(settings.MEDIA_ROOT, s)))
-        for s in Task.objects.values_list('file', flat=True):
+        for s in Task.objects.values_list('archive', flat=True):
             files_in_the_system.add(os.path.abspath(os.path.join(settings.MEDIA_ROOT, s)))
         files_directory = os.path.join(settings.MEDIA_ROOT, SERVICE_DIR)
         if os.path.exists(files_directory):
