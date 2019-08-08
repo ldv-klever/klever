@@ -511,7 +511,9 @@ class Job(core.components.Component):
 
         # Check and set build base here since many Core components need it.
         self.__set_build_base()
-        self.__upload_original_sources()
+        clade = Clade(self.common_components_conf['build base'])
+        self.__retrieve_working_src_trees(clade)
+        self.__upload_original_sources(clade)
 
         if self.common_components_conf['keep intermediate files']:
             self.logger.debug('Create components configuration file "conf.json"')
@@ -591,8 +593,16 @@ class Job(core.components.Component):
         self.logger.debug('Klever components will use build base "{0}"'
                           .format(self.common_components_conf['build base']))
 
-    def __upload_original_sources(self):
-        clade = Clade(self.common_components_conf['build base'])
+    # Klever will try to cut off either working source trees (if specified) or at least build directory (otherwise)
+    # from referred file names. Sometimes this is rather optional like for source files referred by error traces, but,
+    # say, for program fragment identifiers this is strictly necessary, e.g. because of otherwise expert assessment will
+    # not work as expected.
+    def __retrieve_working_src_trees(self, clade):
+        clade_meta = clade.get_meta()
+        self.common_components_conf['working source trees'] = clade_meta['working source trees'] \
+            if 'working source trees' in clade_meta else [clade_meta['build_dir']]
+
+    def __upload_original_sources(self, clade):
         # Use Clade UUID to distinguish various original sources. It is pretty well since this UUID is uuid.uuid4().
         src_id = clade.get_uuid()
         session = core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])

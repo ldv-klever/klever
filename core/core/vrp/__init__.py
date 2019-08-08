@@ -39,14 +39,12 @@ from core.coverage import LCOV
 @core.components.before_callback
 def __launch_sub_job_components(context):
     context.mqs['VRP common prj attrs'] = multiprocessing.Queue()
-    context.mqs['VRP source paths'] = multiprocessing.Queue()
     context.mqs['processing tasks'] = multiprocessing.Queue()
 
 
 @core.components.after_callback
 def __submit_project_attrs(context):
     context.mqs['VRP common prj attrs'].put(context.common_prj_attrs)
-    context.mqs['VRP source paths'].put(context.source_paths)
 
 
 class VRP(core.components.Component):
@@ -102,8 +100,7 @@ class VRP(core.components.Component):
         solution_timeout = 10
         generation_timeout = 5
 
-        source_paths = self.mqs['VRP source paths'].get()
-        self.mqs['VRP source paths'].close()
+        source_paths = self.conf['working source trees']
         self.logger.info('Source paths to be trimmed file names: {0}'.format(source_paths))
 
         def submit_processing_task(status, t):

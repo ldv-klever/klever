@@ -52,11 +52,12 @@ class FragmentationAlgorythm:
         self.files_to_keep = list()
         self.common_attributes = list()
 
+        self.source_paths = self.conf['working source trees']
+
         # Import clade
         self.clade = Clade(work_dir=self.conf['build base'], preset=self.CLADE_PRESET)
 
         # Complex attributes
-        self.source_paths = self.__retrieve_source_paths()
         self.attributes = self.__attributes()
 
     def fragmentation(self):
@@ -237,18 +238,6 @@ class FragmentationAlgorythm:
         if self.conf.get('version'):
             main_desc.append({'name': 'version', 'value': self.conf['version']})
         return [{'name': 'Fragmentation set', 'value': main_desc}], ['agregations description.json']
-
-    def __retrieve_source_paths(self):
-        """
-        Extract the file with paths to source directories from the build base storage.
-
-        :return: A list of paths.
-        """
-        clade_meta = self.clade.get_meta()
-        if 'working source trees' in clade_meta:
-            return clade_meta['working source trees']
-        else:
-            return [clade_meta['build_dir']]
 
     def __attributes(self):
         """
