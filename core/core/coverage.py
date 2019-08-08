@@ -71,11 +71,6 @@ def get_coverage(merged_coverage_info):
             function_name_staticitcs[file_name] = list(merged_coverage_info[file_name]['covered function names'])
     function_name_staticitcs['overall'] = None
 
-    # Merge covered lines into the range
-    for key, value in line_coverage.items():
-        for file_name, lines in value.items():
-            line_coverage[key][file_name] = __build_ranges(lines)
-
     return {
         'line coverage': [[key, value] for key, value in line_coverage.items()],
         'function coverage': {
@@ -84,42 +79,6 @@ def get_coverage(merged_coverage_info):
         },
         'functions statistics': {'statistics': function_name_staticitcs, 'values': []}
     }
-
-
-def __build_ranges(lines):
-    if not lines:
-        return []
-    res = []
-    prev = 0
-    lines = sorted(lines)
-    for i in range(1, len(lines)):
-        if lines[i] != lines[i-1] + 1:
-            # The sequence is broken.
-            if i - 1 != prev:
-                # There is more than one line in the sequence. .
-                if i - 2 == prev:
-                    # There is more than two lines in the sequence. Add the range.
-                    res.append(lines[prev])
-                    res.append(lines[i - 1])
-                else:
-                    # Otherwise, add these lines separately.
-                    res.append([lines[prev], lines[i-1]])
-            else:
-                # Just add a single non-sequence line.
-                res.append(lines[prev])
-            prev = i
-
-    # This step is the same as in the loop body.
-    if prev != len(lines) - 1:
-        if prev == len(lines) - 2:
-            res.append(lines[prev])
-            res.append(lines[-1])
-        else:
-            res.append([lines[prev], lines[-1]])
-    else:
-        res.append(lines[prev])
-
-    return res
 
 
 class JCR(core.components.Component):
