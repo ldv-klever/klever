@@ -4,6 +4,14 @@ import pytz
 from django.utils.translation import ugettext_lazy as _
 
 from rest_framework import fields, serializers
+from rest_framework.views import exception_handler
+from rest_framework.renderers import JSONRenderer
+
+
+def bridge_exception_handler(exc, context):
+    """ Switch from PDFRenderer to JSONRenderer for exceptions """
+    context['request'].accepted_renderer = JSONRenderer()
+    return exception_handler(exc, context)
 
 
 class TimeStampField(fields.Field):
