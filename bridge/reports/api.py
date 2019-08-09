@@ -24,7 +24,7 @@ from django.utils.translation import ugettext as _
 
 from rest_framework.permissions import IsAuthenticated
 
-from rest_framework.exceptions import PermissionDenied, APIException
+from rest_framework import exceptions
 from rest_framework.generics import RetrieveAPIView, get_object_or_404, CreateAPIView, DestroyAPIView
 from rest_framework.renderers import TemplateHTMLRenderer
 from rest_framework.response import Response
@@ -55,17 +55,17 @@ class FillComparisonView(LoggedCallMixin, APIView):
         r1 = ReportRoot.objects.filter(job_id=job1_id).first()
         r2 = ReportRoot.objects.filter(job_id=job2_id).first()
         if not r1 or not r2:
-            raise APIException(_('One of the jobs is not decided yet'))
+            raise exceptions.APIException(_('One of the jobs is not decided yet'))
         if not JobAccess(self.request.user, job=r1.job).can_view \
                 or not JobAccess(self.request.user, job=r2.job).can_view:
-            raise PermissionDenied(_("You don't have an access to one of the selected jobs"))
+            raise exceptions.PermissionDenied(_("You don't have an access to one of the selected jobs"))
         try:
             CompareJobsInfo.objects.get(user=self.request.user, root1=r1, root2=r2)
         except CompareJobsInfo.DoesNotExist:
             try:
                 FillComparisonCache(self.request.user, r1, r2)
             except BridgeException as e:
-                raise APIException(e.message)
+                raise exceptions.APIException(e.message)
         return Response({'url': reverse('reports:comparison', args=[r1.job_id, r2.job_id])})
 
 
@@ -83,7 +83,7 @@ class ReportsComparisonDataView(LoggedCallMixin, RetrieveAPIView):
                 self.request.GET.get('verdict'), self.request.GET.get('attrs')
             )
         except BridgeException as e:
-            raise APIException(e.message)
+            raise exceptions.APIException(e.message)
         template = loader.get_template('reports/comparisonData.html')
         return HttpResponse(template.render({'data': res}, request))
 
@@ -93,7 +93,7 @@ class HasOriginalSources(LoggedCallMixin, APIView):
 
     def get(self, request):
         if 'identifier' not in request.GET:
-            raise APIException('Provide sources identifier in query parameters')
+            raise exceptions.APIException('Provide sources identifier in query parameters')
         return Response({
             'exists': OriginalSources.objects.filter(identifier=request.GET['identifier']).exists()
         })
@@ -112,14 +112,14 @@ class UploadReportView(LoggedCallMixin, APIView):
     def post(self, request, job_uuid):
         job = get_object_or_404(Job, identifier=job_uuid)
         if job.status != JOB_STATUS[2][0]:
-            raise APIException('Reports can be uploaded only for processing jobs')
+            raise exceptions.APIException('Reports can be uploaded only for processing jobs')
 
         if 'report' in request.POST:
             data = [json.loads(request.POST['report'])]
         elif 'reports' in request.POST:
             data = json.loads(request.POST['reports'])
         else:
-            raise APIException('Report json data is required')
+            raise exceptions.APIException('Report json data is required')
         try:
             UploadReport(job, request.FILES).upload_all(data)
         except CheckArchiveError as e:
@@ -134,7 +134,7 @@ class GetSourceCodeView(LoggedCallMixin, APIView):
     def get(self, request, report_id):
         report = get_object_or_404(Report.objects.only('id'), id=report_id)
         if 'file_name' not in request.GET:
-            raise APIException('File name was not provided')
+            raise exceptions.APIException('File name was not provided')
         try:
             return Response({
                 'data': GetSource(
@@ -144,7 +144,7 @@ class GetSourceCodeView(LoggedCallMixin, APIView):
             }, template_name='reports/SourceCode.html')
         except BridgeException as e:
             logger.error(e)
-            raise APIException(str(e))
+            raise exceptions.APIException(str(e))
 
 
 class ClearVerificationFilesView(LoggedCallMixin, DestroyAPIView):
@@ -169,15 +169,15 @@ class GetCoverageDataAPIView(LoggedCallMixin, APIView):
     def get(self, request, cov_id):
         coverage = get_object_or_404(CoverageArchive.objects.only('id'), id=cov_id)
         if 'line' not in request.GET:
-            raise APIException('File line was not provided')
+            raise exceptions.APIException('File line was not provided')
         if 'file_name' not in request.GET:
-            raise APIException('File name was not provided')
+            raise exceptions.APIException('File name was not provided')
         try:
             res = GetCoverageData(coverage, request.GET['line'], request.GET['file_name'])
         except Exception as e:
             logger.eception(e)
-            raise APIException(str(e))
+            raise exceptions.APIException(str(e))
         if not res.data:
             logger.error('Coverage data was not found')
-            raise APIException('Coverage data was not found')
+            raise exceptions.APIException('Coverage data was not found')
         return Response({'data': res.data}, template_name='reports/coverage/CoverageData.html')
