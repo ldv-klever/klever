@@ -611,6 +611,16 @@ class Job(core.components.Component):
 
         session = core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
 
+        core.utils.report(self.logger,
+                          'patch',
+                          {
+                              'identifier': self.id,
+                              'original_sources': src_id
+                          },
+                          self.mqs['report files'],
+                          self.vals['report id'],
+                          self.conf['main working directory'])
+
         if session.check_original_sources(src_id):
             self.logger.info('Original sources were uploaded already')
             return
