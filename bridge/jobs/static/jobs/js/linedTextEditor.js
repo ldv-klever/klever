@@ -58,22 +58,16 @@ function onTabPressed(textarea) {
 }
 
 window.linedTextEditor = function(editor_id) {
-    console.log(1);
     let editor = $('#' + editor_id);
     editor.wrap('<div class="lined-textarea-container"></div>');
     editor.addClass('lined-textarea');
-    console.log(2);
     let container = editor.parent();
     container.prepend('<div class="lines"></div>');
-    console.log(3);
     let lines = container.find('.lines');
     lines.append('<div class="linesContainer"></div>');
-    console.log(4);
     let lines_container = lines.find('.linesContainer');
 
-    console.log('Get number of lines');
     let linesNum = numberOfLines(lines_container, lines.height(), 1);
-    console.log(linesNum);
     editor.scroll(function () {
         let top_pos = editor.scrollTop();
         lines_container.css({"margin-top": -1 * top_pos + "px"});

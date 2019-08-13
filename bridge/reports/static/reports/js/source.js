@@ -107,6 +107,7 @@ SourceProcessor.prototype.refresh = function() {
             source_references_div.empty();
         },
         position: 'bottom left',
+        lastResort: 'bottom left',
         hoverable: true,
         inline: true,
         delay: {
@@ -160,7 +161,7 @@ SourceProcessor.prototype.select_span = function(src_line) {
     if (src_line.length) {
         let source_window = this.container.parent(),
             cov_line_obj = src_line.find('.SrcLineCov');
-        source_window.scrollTop(source_window.scrollTop() + src_line.position().top - source_window.height() * 3/10);
+        source_window.scrollTop(src_line.position().top - source_window.height() * 3/10);
         cov_line_obj.addClass('SrcLineSelected');
         this.selected_line = cov_line_obj;
     }
