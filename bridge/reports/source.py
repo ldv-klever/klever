@@ -23,7 +23,7 @@ from django.utils.translation import ugettext_lazy as _
 from django.utils.functional import cached_property
 
 from bridge.vars import ETV_FORMAT
-from bridge.utils import ArchiveFileContent, BridgeException
+from bridge.utils import ArchiveFileContent, BridgeException, logger
 
 from reports.models import ReportComponent, CoverageArchive
 
@@ -59,9 +59,18 @@ class SourceLine:
     def __init__(self, source, highlights=None, references_to=None, references_from=None):
         self._source = source
         self._source_len = len(source)
-        self._highlights = self.__get_highlights(highlights)
-        self.references_data = []
-        self._references = self.__get_references(references_to, references_from)
+        try:
+            self._highlights = self.__get_highlights(highlights)
+        except Exception as e:
+            logger.error('Source highlights error: {}'.format(e))
+            self._highlights = OrderedDict()
+        try:
+            self.references_data = []
+            self._references = self.__get_references(references_to, references_from)
+        except Exception as e:
+            logger.error('Source refereneces error: {}'.format(e))
+            self.references_data = []
+            self._references = []
         self.html_code = self.__to_html()
 
     def __get_highlights(self, highlights):
@@ -71,9 +80,12 @@ class SourceLine:
         h_dict = OrderedDict()
         prev_end = 0
         for h_name, start, end in sorted(highlights, key=lambda x: (x[1], x[2])):
-            assert isinstance(start, int) and isinstance(end, int)
-            assert prev_end <= start < end
-            assert h_name in HIGHLIGHT_CLASSES
+            assert isinstance(start, int) and isinstance(end, int),\
+                'integers expected, got "{}" and "{}"'.format(start, end)
+            assert prev_end <= start < end,\
+                'wrong values, {} <= {} < {} expected'.format(prev_end, start, end)
+            assert h_name in HIGHLIGHT_CLASSES,\
+                'highlight class "{}" is not supported'.format(h_name)
             if prev_end < start:
                 h_dict[(prev_end, start)] = None
             h_dict[(start, end)] = HIGHLIGHT_CLASSES[h_name]
@@ -81,7 +93,7 @@ class SourceLine:
         if prev_end < self._source_len:
             h_dict[(prev_end, self._source_len)] = None
         elif prev_end > self._source_len:
-            raise ValueError('Sources length is not enough to highlight code')
+            raise ValueError('sources length is not enough to highlight code')
         return h_dict
 
     def __get_references(self, references_to, references_from):
@@ -91,6 +103,8 @@ class SourceLine:
             references_from = []
         references = []
         for (line_num, ref_start, ref_end), (file_ind, file_line) in references_to:
+            assert all(isinstance(x, int) for x in (line_num, ref_start, ref_end, file_ind, file_line)),\
+                'integers expected, got "{}"'.format((line_num, ref_start, ref_end, file_ind, file_line))
             references.append([ref_start, ref_end, {
                 'span_class': self.ref_to_class,
                 'span_data': {'file': file_ind, 'line': file_line}
@@ -98,6 +112,8 @@ class SourceLine:
 
         for ref_data in references_from:
             line_num, ref_start, ref_end = ref_data[0]
+            assert all(isinstance(x, int) for x in (line_num, ref_start, ref_end)),\
+                'integers expected, got "{}"'.format((line_num, ref_start, ref_end))
             ref_from_id = 'reflink_{}_{}_{}'.format(*ref_data[0])
             references.append([ref_start, ref_end, {
                 'span_class': self.ref_from_class,
@@ -106,7 +122,10 @@ class SourceLine:
 
             reflist_data = {'id': ref_from_id, 'sources': []}
             for file_ind, file_lines in ref_data[1:]:
+                assert isinstance(file_ind, int), 'file index is not an integer'
+                assert isinstance(file_lines, list), 'file lines is not a list'
                 for file_line in file_lines:
+                    assert isinstance(file_line, int), 'file line is not an integer'
                     reflist_data['sources'].append((file_ind, file_line))
             self.references_data.append(reflist_data)
 
@@ -114,9 +133,11 @@ class SourceLine:
 
         prev_end = 0
         for ref_start, ref_end, span_kwargs in references:
-            assert prev_end <= ref_start < ref_end
+            assert prev_end <= ref_start < ref_end,\
+                'wrong values, {} <= {} < {} expected'.format(prev_end, ref_start, ref_end)
             prev_end = ref_end
-        assert prev_end <= self._source_len
+        assert prev_end <= self._source_len,\
+            'wrong values, {} <= {} expected'.format(prev_end, self._source_len)
         return references
 
     def __get_code(self, start, end):
