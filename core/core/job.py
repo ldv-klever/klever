@@ -492,6 +492,7 @@ class Job(core.components.Component):
         'VTG',
         'VRP'
     ]
+    INDEX_DATA_FORMAT_VERSION = 1
 
     def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, id=None, work_dir=None, attrs=None,
                  separate_from_parent=True, include_child_resources=False, job_type=None, components_common_conf=None):
@@ -500,6 +501,7 @@ class Job(core.components.Component):
         self.job_type = job_type
         self.common_components_conf = components_common_conf
 
+        self.clade = None
         self.components = []
         self.component_processes = []
 
@@ -512,9 +514,9 @@ class Job(core.components.Component):
 
         # Check and set build base here since many Core components need it.
         self.__set_build_base()
-        clade = Clade(self.common_components_conf['build base'])
-        self.__retrieve_working_src_trees(clade)
-        self.__upload_original_sources(clade)
+        self.clade = Clade(self.common_components_conf['build base'])
+        self.__retrieve_working_src_trees()
+        self.__upload_original_sources()
 
         if self.common_components_conf['keep intermediate files']:
             self.logger.debug('Create components configuration file "conf.json"')
@@ -598,39 +600,117 @@ class Job(core.components.Component):
     # from referred file names. Sometimes this is rather optional like for source files referred by error traces, but,
     # say, for program fragment identifiers this is strictly necessary, e.g. because of otherwise expert assessment will
     # not work as expected.
-    def __retrieve_working_src_trees(self, clade):
-        clade_meta = clade.get_meta()
+    def __retrieve_working_src_trees(self):
+        clade_meta = self.clade.get_meta()
         self.common_components_conf['working source trees'] = clade_meta['working source trees'] \
             if 'working source trees' in clade_meta else [clade_meta['build_dir']]
 
-    def __upload_original_sources(self, clade):
+    def __upload_original_sources(self):
         # Use Clade UUID to distinguish various original sources. It is pretty well since this UUID is uuid.uuid4().
-        src_id = clade.get_uuid()
+        src_id = self.clade.get_uuid()
+
         session = core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
 
         if session.check_original_sources(src_id):
             self.logger.info('Original sources were uploaded already')
             return
 
-        self.logger.info('Cut off working source trees or build directory from original source file names')
+        self.logger.info(
+            'Cut off working source trees or build directory from original source file names and convert index data')
         os.makedirs('original sources')
-        for root, dirs, files in os.walk(clade.storage_dir):
+        for root, dirs, files in os.walk(self.clade.storage_dir):
             for file in files:
                 file = os.path.join(root, file)
 
                 # Like in core.vrp.RP#__trim_file_names.
-                new_file = core.utils.make_relative_path([clade.storage_dir], file)
-                tmp = core.utils.make_relative_path(self.common_components_conf['working source trees'], new_file,
+                storage_file = core.utils.make_relative_path([self.clade.storage_dir], file)
+                tmp = core.utils.make_relative_path(self.common_components_conf['working source trees'], storage_file,
                                                     absolutize=True)
 
                 # Append special directory name "source files" when cutting off source file names. Later this will be
                 # done for references as well.
-                if tmp != new_file:
+                if tmp != os.path.join(os.path.sep, storage_file):
                     new_file = os.path.join('source files', tmp)
+                else:
+                    new_file = storage_file
 
-                new_file = 'original sources/' + new_file
+                new_file = os.path.join('original sources', new_file)
                 os.makedirs(os.path.dirname(new_file), exist_ok=True)
                 shutil.copy(file, new_file)
+
+                # Get raw references to/from for a given source file. There is the only key-value pair in dictionaries
+                # returned by Clade where keys are always source file names.
+                storage_file = os.path.join(os.path.sep, storage_file)
+                raw_refs_to = self.clade.get_ref_to([storage_file])
+                raw_refs_to = list(raw_refs_to.values())[0] if raw_refs_to else {'decl': [], 'def': []}
+                raw_refs_from = self.clade.get_ref_from([storage_file])
+                raw_refs_from = list(raw_refs_from.values())[0] if raw_refs_from else []
+
+                # Get full list of referred source file names.
+                ref_src_files = set()
+                for ref_to_kind in ('def',):
+                    for raw_ref_to in raw_refs_to[ref_to_kind]:
+                        ref_src_files.add(raw_ref_to[1][0])
+                for raw_ref_from in raw_refs_from:
+                    ref_src_files.add(raw_ref_from[1][0])
+                # Remove considered file from list - there is a special reference to it (Null).
+                if storage_file in ref_src_files:
+                    ref_src_files.remove(storage_file)
+                ref_src_files = sorted(list(ref_src_files))
+
+                # This dictionary will allow to get indexes in source files list easily.
+                ref_src_files_dict = {ref_src_file: i for i, ref_src_file in enumerate(ref_src_files)}
+                ref_src_files_dict[storage_file] = None
+
+                # TODO: deal with declarations. There may be cases when there is just definition, just declaration or them both.
+                # Convert references to.
+                refs_to = []
+                for ref_to_kind in ('def',):
+                    for raw_ref_to in raw_refs_to[ref_to_kind]:
+                        refs_to.append([
+                            # Take location of entity usage as is.
+                            raw_ref_to[0],
+                            [
+                                # Convert referred source file name to index in source files list.
+                                ref_src_files_dict[raw_ref_to[1][0]],
+                                # Take line number of entity definition as is.
+                                raw_ref_to[1][1]
+                            ]
+                        ])
+
+                # Convert references from.
+                refs_from = []
+                cur_entity_location = None
+                for raw_ref_from in raw_refs_from:
+                    # TODO: final format supports merging of all references from the same file to the same entity.
+                    ref_from = [
+                        # Convert referring source file name to index in source files list.
+                        ref_src_files_dict[raw_ref_from[1][0]],
+                        # Take line number of entity usage as is.
+                        raw_ref_from[1][1]
+                    ]
+
+                    # Join references to the same entity together. We assume that all references to the same entity are
+                    # provided by Clade continuously.
+                    if raw_ref_from[0] == cur_entity_location:
+                        refs_from[-1].append(ref_from)
+                    else:
+                        cur_entity_location = raw_ref_from[0]
+                        refs_from.append([
+                            # Take location of entity definition as is.
+                            raw_ref_from[0],
+                            ref_from
+                        ])
+
+                cross_ref = {
+                    'format': self.INDEX_DATA_FORMAT_VERSION,
+                    'source files': ref_src_files,
+                    'referencesto': refs_to,
+                    'referencesfrom': refs_from
+                }
+
+                with open(os.path.join(new_file + '.idx.json'), 'w') as fp:
+                    json.dump(cross_ref, fp, ensure_ascii=True, sort_keys=True, indent=4)
 
         self.logger.info('Compress original sources')
         core.utils.ArchiveFiles(['original sources']).make_archive('original sources.zip')
