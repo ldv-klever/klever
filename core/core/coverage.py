@@ -26,6 +26,7 @@ import core.utils
 
 coverage_format_version = 1
 
+
 def add_to_coverage(merged_coverage_info, coverage_info):
     for file_name in coverage_info:
         merged_coverage_info.setdefault(file_name, {
@@ -46,9 +47,9 @@ def add_to_coverage(merged_coverage_info, coverage_info):
                         merged_coverage_info[file_name]['covered function names'].append(name)
 
 
-def convert_coverage(merged_coverage_info):
+def convert_coverage(merged_coverage_info, coverage_dir='coverage'):
     # Convert combined coverage to the required format.
-    os.mkdir('coverage')
+    os.mkdir(coverage_dir)
 
     # Collect coverage statistics for all individual files during their processing. This statistics will be printed
     # later.
@@ -66,8 +67,8 @@ def convert_coverage(merged_coverage_info):
             'function coverage': raw_file_coverage['covered functions']
         }
 
-        os.makedirs(os.path.join('coverage', os.path.dirname(file_name)), exist_ok=True)
-        with open(os.path.join('coverage', file_name + '.cov.json'), 'w') as fp:
+        os.makedirs(os.path.join(coverage_dir, os.path.dirname(file_name)), exist_ok=True)
+        with open(os.path.join(coverage_dir, file_name + '.cov.json'), 'w') as fp:
             json.dump(file_coverage, fp, ensure_ascii=True, sort_keys=True, indent=4)
 
         coverage_stats['coverage statistics'][file_name] = [
@@ -83,7 +84,7 @@ def convert_coverage(merged_coverage_info):
             len(raw_file_coverage['covered functions'])
         ]
 
-    with open(os.path.join('coverage', 'coverage.json'), 'w') as fp:
+    with open(os.path.join(coverage_dir, 'coverage.json'), 'w') as fp:
         json.dump(coverage_stats, fp, ensure_ascii=True, sort_keys=True, indent=4)
 
 
@@ -157,31 +158,20 @@ class JCR(core.components.Component):
                     self.logger.debug('Calculate total coverage for job {!r}'.format(sub_job_id))
 
                     total_coverages = dict()
-                    coverage_info_dumped_files = []
+                    total_coverage_dirs = []
 
                     for requirement in counters[sub_job_id]:
                         self.__read_data(total_coverage_infos, sub_job_id, requirement)
                         coverage_info = total_coverage_infos[sub_job_id][requirement]
-                        total_coverage_dir = self.__get_total_cov_dir(sub_job_id, requirement)
-                        total_coverage_file = os.path.join(total_coverage_dir, 'coverage.json')
-                        if os.path.isfile(total_coverage_file):
-                            raise FileExistsError('Total coverage file {!r} already exists'.format(total_coverage_file))
-                        arcnames = {total_coverage_file: 'coverage.json'}
-
-                        coverage = get_coverage(coverage_info)
-
-                        with open(total_coverage_file, 'w', encoding='utf8') as fp:
-                            json.dump(coverage, fp, ensure_ascii=True, sort_keys=True, indent=4)
-
-                        coverage_info_dumped_files.append(total_coverage_file)
-                        arcnames.update(arcfiles[sub_job_id][requirement])
-                        total_coverages[requirement] = core.utils.ArchiveFiles([total_coverage_file] +
-                                                                               list(arcnames.keys()), arcnames)
+                        total_coverage_dir = os.path.join(self.__get_total_cov_dir(sub_job_id, requirement), 'report')
+                        convert_coverage(coverage_info, total_coverage_dir)
+                        total_coverage_dirs.append(total_coverage_dir)
+                        total_coverages[requirement] = core.utils.ArchiveFiles([total_coverage_dir])
                         self.__save_data(total_coverage_infos, sub_job_id, requirement)
                         self.__clean_data(total_coverage_infos, sub_job_id, requirement)
 
                     core.utils.report(self.logger,
-                                      'job coverage',
+                                      'coverage',
                                       {
                                           # This isn't great to build component identifier in such the artificial way.
                                           # But otherwise we need to pass it everywhere like "sub-job identifier".
@@ -194,10 +184,11 @@ class JCR(core.components.Component):
                                       os.path.join('total coverages', sub_job_id))
 
                     del total_coverage_infos[sub_job_id]
-                    # Clean files if needed
+
                     if not self.conf['keep intermediate files']:
-                        for coverage_file in coverage_info_dumped_files:
-                            os.remove(coverage_file)
+                        for total_coverage_dir in total_coverage_dirs:
+                            shutil.rmtree(total_coverage_dir, ignore_errors=True)
+
                     self.vals['coverage_finished'][sub_job_id] = True
         finally:
             self.logger.debug("Allow finish all jobs")
