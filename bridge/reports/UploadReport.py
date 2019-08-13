@@ -332,14 +332,14 @@ class ReportSafeSerializer(UploadBaseSerializer):
 
 class ReportUnsafeSerializer(UploadBaseSerializer):
     default_error_messages = {
-        'wrong_format': 'Error trace has wrong format'
+        'wrong_format': 'Error trace has wrong format: {detail}.'
     }
 
     def __check_node(self, node):
         if not isinstance(node, dict):
-            self.fail('wrong_format')
+            self.fail('wrong_format', detail="node is not a dictionary")
         if node.get('type') not in {'function call', 'statement', 'action', 'thread'}:
-            self.fail('wrong_format')
+            self.fail('wrong_format', detail='unsupported node type')
         if node['type'] == 'function call':
             required_fields = ['line', 'file', 'source', 'children', 'display']
         elif node['type'] == 'statement':
@@ -350,7 +350,7 @@ class ReportUnsafeSerializer(UploadBaseSerializer):
             required_fields = ['thread']
         for field_name in required_fields:
             if field_name not in node or node[field_name] is None:
-                self.fail('wrong_format')
+                self.fail('wrong_format', detail='node field "{}" is required'.format(field_name))
         if node.get('children'):
             for child in node['children']:
                 self.__check_node(child)
@@ -361,14 +361,17 @@ class ReportUnsafeSerializer(UploadBaseSerializer):
                 error_trace = json.loads(zfp.read(ERROR_TRACE_FILE).decode('utf8'))
         except Exception as e:
             logger.exception(e)
-            self.fail('wrong_format')
+            self.fail('wrong_format', detail='file does not exist or it is wrong json')
         archive.seek(0)
-        if not isinstance(error_trace, dict) or 'trace' not in error_trace or \
-                not isinstance(error_trace.get('files'), list):
-            self.fail('wrong_format')
+        if not isinstance(error_trace, dict):
+            self.fail('wrong_format', detail='error trace is not a dictionary')
+        if 'trace' not in error_trace:
+            self.fail('wrong_format', detail='error trace does not have "trace"')
+        if not isinstance(error_trace.get('files'), list):
+            self.fail('wrong_format', detail='error trace does not have files or it is not a list')
         self.__check_node(error_trace['trace'])
         if error_trace['trace']['type'] != 'thread':
-            self.fail('wrong_format')
+            self.fail('wrong_format', detail='root error trace node type should be a "thread"')
         return archive
 
     def create(self, validated_data):
