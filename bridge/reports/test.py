@@ -1145,16 +1145,13 @@ class DecideJob:
     def __upload_reports(self, reports, archives):
         time.sleep(0.1)
         logger.info(str(list('{}: {}'.format(r.get('type'), r.get('identifier')) for r in reports)) + str(archives))
-        archives_fp = []
+        archives_fp = {}
         try:
             for a_name in archives:
-                archives_fp.append(open(os.path.join(ARCHIVE_PATH, a_name), mode='rb'))
-            self.__request(
-                data={'reports': json.dumps(reports)},
-                files=list(('file', fp) for fp in archives_fp)
-            )
+                archives_fp[os.path.basename(a_name)] = open(os.path.join(ARCHIVE_PATH, a_name), mode='rb')
+            self.__request(data={'reports': json.dumps(reports)}, files=archives_fp)
         finally:
-            for fp in archives_fp:
+            for fp in archives_fp.values():
                 fp.close()
 
     def __get_report_id(self, name):
@@ -1320,13 +1317,13 @@ class DecideJob:
 
     def __upload_job_coverage(self, r_id, coverage):
         report = {'identifier': r_id, 'type': 'coverage', 'coverage': coverage}
-        files = []
+        cov_files = {}
         for carch in coverage.values():
-            files.append(open(os.path.join(ARCHIVE_PATH, carch), mode='rb'))
+            cov_files[os.path.basename(carch)] = open(os.path.join(ARCHIVE_PATH, carch), mode='rb')
         try:
-            self.__request(data={'report': json.dumps(report)}, files=list(('file', fp) for fp in files))
+            self.__request(data={'report': json.dumps(report)}, files=cov_files)
         finally:
-            for fp in files:
+            for fp in cov_files.values():
                 fp.close()
 
     def __upload_original_sources(self):
