@@ -153,17 +153,12 @@ class UploadBaseSerializer(serializers.ModelSerializer):
             return parent.computer
         raise exceptions.ValidationError('The computer is required')
 
-    def parent_attributes(self, parent, select_fields=None, do_not_associate=None):
+    def parent_attributes(self, parent, select_fields=None):
         if not select_fields:
             select_fields = ['name', 'value', 'compare', 'associate', 'data_id']
         parents_ids = parent.get_ancestors(include_self=True).values_list('id', flat=True)
-        attrs_list = list(ReportAttr.objects.filter(report_id__in=parents_ids)
-                          .order_by('report_id', 'id').values(*select_fields))
-        if do_not_associate:
-            for adata in attrs_list:
-                if adata['name'] in do_not_associate:
-                    adata['associate'] = False
-        return attrs_list
+        return list(ReportAttr.objects.filter(report_id__in=parents_ids)
+                    .order_by('report_id', 'id').values(*select_fields))
 
     def __validate_attrs(self, attrs, parent=None):
         if not attrs:
@@ -273,20 +268,21 @@ class ReportVerificationSerializer(UploadBaseSerializer):
         }
 
 
-class ReportUnknownSerializer(UploadBaseSerializer):
-    def create(self, validated_data):
-        cache_obj = ReportUnknownCache(job_id=validated_data['root'].job_id)
+class UploadLeafBaseSerializer(UploadBaseSerializer):
+    def get_cache_object(self, reportroot):
+        raise NotImplementedError('Wrong serialzier usage')
 
+    def validate(self, value):
+        value = super().validate(value)
         # Random identifier
-        validated_data['identifier'] = '{0}/unknown/{1}'.format(
-            validated_data['parent'].identifier, uuid.uuid4()
-        )[-255:]
+        value['identifier'] = '{0}/leaf/{1}'.format(value['parent'].identifier, uuid.uuid4())[-255:]
+        value['attrs'] = self.parent_attributes(value['parent']) + value['attrs']
+        return value
 
-        validated_data['attrs'] = self.parent_attributes(
-            validated_data['parent'], do_not_associate=UNKNOWN_ATTRS_NOT_ASSOCIATE
-        ) + validated_data['attrs']
+    def create(self, validated_data):
+        cache_obj = self.get_cache_object(validated_data['root'])
         cache_obj.attrs = dict((attr['name'], attr['value']) for attr in validated_data['attrs'])
-        validated_data['component'] = validated_data['parent'].component
+
         if validated_data['parent'].verification:
             validated_data['cpu_time'] = validated_data['parent'].cpu_time
             validated_data['wall_time'] = validated_data['parent'].wall_time
@@ -296,44 +292,49 @@ class ReportUnknownSerializer(UploadBaseSerializer):
         cache_obj.save()
         return instance
 
+
+class ReportUnknownSerializer(UploadLeafBaseSerializer):
+    def get_cache_object(self, reportroot):
+        return ReportUnknownCache(job_id=reportroot.job_id)
+
+    def parent_attributes(self, parent, select_fields=None):
+        attrs_list = super().parent_attributes(parent, select_fields=select_fields)
+        for adata in attrs_list:
+            if adata['name'] in UNKNOWN_ATTRS_NOT_ASSOCIATE:
+                adata['associate'] = False
+        return attrs_list
+
+    def validate(self, value):
+        value = super(ReportUnknownSerializer, self).validate(value)
+        value['component'] = value['parent'].component
+        return value
+
     class Meta:
         model = ReportUnknown
         fields = ('parent', 'attrs', 'problem_description')
 
 
-class ReportSafeSerializer(UploadBaseSerializer):
+class ReportSafeSerializer(UploadLeafBaseSerializer):
+    def get_cache_object(self, reportroot):
+        return ReportSafeCache(job_id=reportroot.job_id)
+
     def validate(self, value):
         if not value['parent'].verification:
             raise exceptions.ValidationError(detail={'parent': "The safe parent must be a verification report"})
-        return super().validate(value)
-
-    def create(self, validated_data):
-        cache_obj = ReportSafeCache(job_id=validated_data['root'].job_id)
-
-        # Random identifier
-        validated_data['identifier'] = '{0}/safe/{1}'.format(
-            validated_data['parent'].identifier, uuid.uuid4()
-        )[-255:]
-
-        validated_data['attrs'] = self.parent_attributes(validated_data['parent']) + validated_data['attrs']
-        cache_obj.attrs = dict((attr['name'], attr['value']) for attr in validated_data['attrs'])
-        validated_data['cpu_time'] = validated_data['parent'].cpu_time
-        validated_data['wall_time'] = validated_data['parent'].wall_time
-        validated_data['memory'] = validated_data['parent'].memory
-        instance = super().create(validated_data)
-        cache_obj.report = instance
-        cache_obj.save()
-        return instance
+        return super(ReportSafeSerializer, self).validate(value)
 
     class Meta:
         model = ReportSafe
         fields = ('parent', 'attrs', 'proof')
 
 
-class ReportUnsafeSerializer(UploadBaseSerializer):
+class ReportUnsafeSerializer(UploadLeafBaseSerializer):
     default_error_messages = {
         'wrong_format': 'Error trace has wrong format: {detail}.'
     }
+
+    def get_cache_object(self, reportroot):
+        return ReportUnsafeCache(job_id=reportroot.job_id)
 
     def __check_node(self, node):
         if not isinstance(node, dict):
@@ -374,24 +375,10 @@ class ReportUnsafeSerializer(UploadBaseSerializer):
             self.fail('wrong_format', detail='root error trace node type should be a "thread"')
         return archive
 
-    def create(self, validated_data):
-        cache_obj = ReportUnsafeCache(job_id=validated_data['root'].job_id)
-
-        # Random identifier and trace_id
-        validated_data['trace_id'] = uuid.uuid4()
-        validated_data['identifier'] = '{0}/unsafe/{1}'.format(
-            validated_data['parent'].identifier, validated_data['trace_id']
-        )[-255:]
-
-        validated_data['attrs'] = self.parent_attributes(validated_data['parent']) + validated_data['attrs']
-        cache_obj.attrs = dict((attr['name'], attr['value']) for attr in validated_data['attrs'])
-        validated_data['cpu_time'] = validated_data['parent'].cpu_time
-        validated_data['wall_time'] = validated_data['parent'].wall_time
-        validated_data['memory'] = validated_data['parent'].memory
-        instance = super().create(validated_data)
-        cache_obj.report = instance
-        cache_obj.save()
-        return instance
+    def validate(self, value):
+        value = super(ReportUnsafeSerializer, self).validate(value)
+        value['trace_id'] = uuid.uuid4()
+        return value
 
     class Meta:
         model = ReportUnsafe
@@ -606,7 +593,15 @@ class UploadReport:
             fields={'data', 'attrs', 'original_sources'}
         )
         serializer.is_valid(raise_exception=True)
-        serializer.save(**save_kwargs)
+        report = serializer.save(**save_kwargs)
+
+        if not self._is_fullweight and report.parent and (report.additional_sources or report.original_sources):
+            core_report = ReportComponent.objects.get(root=self.root, parent=None)
+            if report.original_sources:
+                core_report.original_sources = report.original_sources
+            if report.additional_sources:
+                core_report.additional_sources = report.additional_sources
+            core_report.save()
 
     def __finish_report_component(self, data):
         report = self.__get_report(data.get('identifier'))
@@ -766,7 +761,21 @@ def collapse_reports(job):
     core = ReportComponent.objects.get(root=root, parent=None)
     ReportComponent.objects.filter(root=root, verification=True).update(parent=core)
     ReportUnknown.objects.filter(root=root, parent__reportcomponent__verification=False).update(parent=core)
+
+    # Non-verification reports except Core
+    reports_qs = ReportComponent.objects.filter(root=root).exclude(Q(verification=True) | Q(parent=None))
+
+    # Update core original and additional sources
+    report_with_original = reports_qs.exclude(original_sources=None).first()
+    if report_with_original:
+        core.original_sources = report_with_original.original_sources
+    report_with_additional = reports_qs.exclude(additional_sources=None).first()
+    if report_with_additional:
+        core.additional_sources = report_with_additional.additional_sources
+    core.save()
+
     # Remove all non-verification reports except Core
-    ReportComponent.objects.filter(root=root).exclude(Q(verification=True) | Q(parent=None)).delete()
+    reports_qs.delete()
+
     job.weight = JOB_WEIGHT[1][0]
     job.save()
