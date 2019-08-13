@@ -326,9 +326,12 @@ class RecalculateResources:
         data = {}
         for report in ReportComponent.objects.filter(root__in=self._roots):
             data.setdefault(report.root_id, {'cpu_time': 0, 'wall_time': 0, 'memory': 0})
-            data[report.root_id]['cpu_time'] += report.cpu_time
-            data[report.root_id]['wall_time'] += report.wall_time
-            data[report.root_id]['memory'] = max(report.cpu_time, data[report.root_id]['memory'])
+            if report.cpu_time:
+                data[report.root_id]['cpu_time'] += report.cpu_time
+            if report.wall_time:
+                data[report.root_id]['wall_time'] += report.wall_time
+            if report.memory:
+                data[report.root_id]['memory'] = max(report.cpu_time, data[report.root_id]['memory'])
 
         with transaction.atomic():
             for root in self._roots:
