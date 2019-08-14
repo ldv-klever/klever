@@ -74,4 +74,5 @@ urlpatterns = [
     path('do_job_has_children/<int:pk>/', api.DoJobHasChildrenView.as_view()),
     path('api/can_download/', api.CheckDownloadAccessView.as_view(), name='api-can-download'),
     path('api/collapse/<int:pk>/', api.CollapseReportsView.as_view(), name='api-collapse-reports'),
+    path('api/coverage/<int:pk>/', api.GetJobCoverageTableView.as_view(), name='api-get-coverage'),
 ]

@@ -47,7 +47,7 @@ from caches.models import ReportSafeCache, ReportUnsafeCache, ReportUnknownCache
 from jobs.serializers import create_job_version, JobFileSerializer, JobFilesField
 from tools.utils import Recalculation
 from caches.utils import update_cache_atomic
-from reports.coverage import calculate_total_coverage
+from reports.coverage import FillCoverageStatistics
 
 ARCHIVE_FORMAT = 13
 
@@ -758,7 +758,9 @@ class UploadReports:
             )
             with open(self.__full_path(coverage['archive']), mode='rb') as fp:
                 instance.add_coverage(fp, save=False)
-            instance.total = calculate_total_coverage(instance)
+            instance.save()
+            res = FillCoverageStatistics(instance)
+            instance.total = res.total_coverage
             instance.save()
 
     def __full_path(self, rel_path):

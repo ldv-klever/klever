@@ -35,6 +35,7 @@ from jobs.models import Job
 
 MAX_COMPONENT_LEN = 20
 ORIGINAL_SOURCES_DIR = 'OriginalSources'
+COVERAGE_STAT_COLOR = ['#f18fa6', '#f1c0b2', '#f9e19b', '#e4f495', '#acf1a8']
 
 
 def get_component_path(instance, filename):
@@ -193,6 +194,78 @@ class CoverageArchive(WithFilesMixin, models.Model):
 
     class Meta:
         db_table = 'report_coverage_archive'
+
+
+class CoverageStatistics(models.Model):
+    coverage = models.ForeignKey(CoverageArchive, models.CASCADE)
+    identifier = models.PositiveIntegerField()
+    parent = models.PositiveIntegerField(null=True)
+    is_leaf = models.BooleanField()
+    name = models.CharField(max_length=128)
+    path = models.TextField(null=True)
+    lines_covered = models.PositiveIntegerField(default=0)
+    lines_total = models.PositiveIntegerField(default=0)
+    funcs_covered = models.PositiveIntegerField(default=0)
+    funcs_total = models.PositiveIntegerField(default=0)
+    depth = models.PositiveIntegerField(default=0)
+
+    def calculate_color(self, div):
+        color_id = int(div * len(COVERAGE_STAT_COLOR))
+        if color_id >= len(COVERAGE_STAT_COLOR):
+            color_id = len(COVERAGE_STAT_COLOR) - 1
+        elif color_id < 0:
+            color_id = 0
+        return COVERAGE_STAT_COLOR[color_id]
+
+    @property
+    def lines_percentage(self):
+        if not self.lines_total:
+            return '-'
+        return '{}%'.format(int(100 * self.lines_covered / self.lines_total))
+
+    @property
+    def funcs_percentage(self):
+        if not self.funcs_total:
+            return '-'
+        return '{}%'.format(int(100 * self.funcs_covered / self.funcs_total))
+
+    @property
+    def lines_color(self):
+        if not self.lines_total:
+            return None
+        return self.calculate_color(self.lines_covered / self.lines_total)
+
+    @property
+    def funcs_color(self):
+        if not self.funcs_total:
+            return None
+        return self.calculate_color(self.funcs_covered / self.funcs_total)
+
+    @property
+    def indentation(self):
+        return '    ' * (self.depth - 1)
+
+    @property
+    def shown(self):
+        if not hasattr(self, '_shown'):
+            setattr(self, '_shown', False)
+        return getattr(self, '_shown')
+
+    @shown.setter
+    def shown(self, value):
+        setattr(self, '_shown', bool(value))
+
+    class Meta:
+        db_table = 'report_coverage_statistics'
+
+
+class CoverageDataStatistics(models.Model):
+    coverage = models.ForeignKey(CoverageArchive, models.CASCADE)
+    name = models.CharField(max_length=255)
+    data = JSONField()
+
+    class Meta:
+        db_table = 'report_coverage_data_statistics'
 
 
 class ReportUnsafe(WithFilesMixin, Report):

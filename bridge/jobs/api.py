@@ -31,6 +31,7 @@ from rest_framework.generics import (
     RetrieveAPIView, get_object_or_404, GenericAPIView, CreateAPIView, UpdateAPIView, DestroyAPIView
 )
 from rest_framework.mixins import UpdateModelMixin, CreateModelMixin
+from rest_framework.renderers import TemplateHTMLRenderer
 from rest_framework.response import Response
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import IsAuthenticated
@@ -52,6 +53,7 @@ from jobs.Download import KleverCoreArchiveGen, UploadJob, UploadTree
 from jobs.utils import JobAccess
 from reports.serializers import DecisionResultsSerializerRO
 from reports.UploadReport import collapse_reports
+from reports.coverage import JobCoverageStatistics
 from service.utils import StartJobDecision, CancelDecision
 
 
@@ -402,3 +404,16 @@ class CollapseReportsView(LoggedCallMixin, APIView):
             raise exceptions.PermissionDenied(_("You don't have an access to collapse reports"))
         collapse_reports(job)
         return Response({})
+
+
+class GetJobCoverageTableView(LoggedCallMixin, APIView):
+    renderer_classes = (TemplateHTMLRenderer,)
+    permission_classes = (ViewJobPermission,)
+
+    def get(self, request, pk):
+        job = get_object_or_404(Job.objects, pk=pk)
+        if 'coverage_id' not in request.query_params:
+            raise exceptions.APIException('Query parameter coverage_id was not provided')
+        return Response({
+            'statistics': JobCoverageStatistics(job, request.query_params['coverage_id']).statistics
+        }, template_name='jobs/viewJob/coverageTable.html')

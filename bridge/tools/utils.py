@@ -35,13 +35,14 @@ from marks.models import (
 )
 from reports.models import (
     ReportRoot, ReportComponent, ReportSafe, ReportUnsafe, ReportUnknown, ReportComponentLeaf,
-    OriginalSources, ORIGINAL_SOURCES_DIR
+    CoverageArchive, OriginalSources, ORIGINAL_SOURCES_DIR
 )
 from marks.SafeUtils import ConnectSafeReport
 from marks.UnsafeUtils import ConnectUnsafeReport
 from marks.UnknownUtils import ConnectUnknownReport
 
 from caches.utils import RecalculateSafeCache, RecalculateUnsafeCache, RecalculateUnknownCache
+from reports.coverage import FillCoverageStatistics
 
 
 def objects_without_relations(table):
@@ -218,6 +219,8 @@ class Recalculation:
             RecalculateResources(self._roots)
         elif self.type == 'compinst':
             RecalculateComponentInstances(self._roots)
+        elif self.type == 'coverage':
+            RecalculateCoverage(self._roots)
         elif self.type == 'all':
             RecalculateLeaves(self._roots)
             RecalculateSafeLinks(self._roots)
@@ -225,6 +228,7 @@ class Recalculation:
             RecalculateUnknownLinks(self._roots)
             RecalculateResources(self._roots)
             RecalculateComponentInstances(self._roots)
+            RecalculateCoverage(self._roots)
         else:
             logger.error('Wrong type of recalculation')
             raise BridgeException()
@@ -366,3 +370,16 @@ class LeavesData:
     def upload(self):
         ReportComponentLeaf.objects.bulk_create(self._leaves_cache)
         self.__init__()
+
+
+class RecalculateCoverage:
+    def __init__(self, roots):
+        self._roots = roots
+        self.__recalc()
+
+    def __recalc(self):
+        for root in self._roots:
+            for cov_obj in CoverageArchive.objects.filter(report__root=root):
+                res = FillCoverageStatistics(cov_obj)
+                cov_obj.total = res.total_coverage
+                cov_obj.save()

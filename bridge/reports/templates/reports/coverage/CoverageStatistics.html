@@ -27,19 +27,19 @@
             </tr>
         </thead>
         <tbody>
-            {% for row_data in statistics.data %}
-                <tr class="{% if row_data.display and row_data.is_dir %}tg-expanded{% endif %}" data-tg-id="{{ row_data.id }}"{% if row_data.parent_id %} data-tg-parent="{{ row_data.parent_id }}"{% endif %} data-tg-leaf="{% if row_data.is_dir %}0{% else %}1{% endif %}"{% if row_data.parent_id %} style="display: none;"{% endif %}>
+            {% for cov_obj in statistics.data %}
+                <tr data-tg-id="{{ cov_obj.identifier }}"{% if cov_obj.parent %} data-tg-parent="{{ cov_obj.parent }}"{% endif %} data-tg-leaf="{% if cov_obj.is_leaf %}1{% else %}0{% endif %}"{% if cov_obj.depth > 1 %} style="display: none;"{% endif %}>
                     <td>
-                        <span class="pre-space">{{ row_data.indent }}</span>
-                        {% if not row_data.is_dir %}
-                            <a class="tree-file-link" data-path="{{ row_data.path }}" href="#"><i class="file alternate outline icon"></i>{{ row_data.title }}</a>
+                        <span class="pre-space">{{ cov_obj.indentation }}</span>
+                        {% if cov_obj.is_leaf %}
+                            <a class="tree-file-link" data-path="{{ cov_obj.path }}" href="#"><i class="file alternate outline icon"></i>{{ cov_obj.name }}</a>
                         {% else %}
-                            <i class="{% if row_data.display %}open {% endif %}folder violet icon tg-expander"></i>
-                            <span>{{ row_data.title }}</span>
+                            <i class="{% if cov_obj.display %}open {% endif %}folder violet icon tg-expander"></i>
+                            <span>{{ cov_obj.name }}</span>
                         {% endif %}
                     </td>
-                    <td{% if row_data.lines.color %} style="background-color: {{ row_data.lines.color }};"{% endif %}><b>{{ row_data.lines.percent }}</b> ({{ row_data.lines.covered }}/{{ row_data.lines.total }})</td>
-                    <td{% if row_data.lines.color %} style="background-color: {{ row_data.funcs.color }};"{% endif %}><b>{{ row_data.funcs.percent }}</b> ({{ row_data.funcs.covered }}/{{ row_data.funcs.total }})</td>
+                    <td{% if cov_obj.lines_color %} style="background-color: {{ cov_obj.lines_color }};"{% endif %}><b>{{ cov_obj.lines_percentage }}</b> ({{ cov_obj.lines_covered }}/{{ cov_obj.lines_total }})</td>
+                    <td{% if cov_obj.funcs_color %} style="background-color: {{ cov_obj.funcs_color }};"{% endif %}><b>{{ cov_obj.funcs_percentage }}</b> ({{ cov_obj.funcs_covered }}/{{ cov_obj.funcs_total }})</td>
                 </tr>
             {%  endfor %}
         </tbody>

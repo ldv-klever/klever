@@ -45,7 +45,7 @@ from service.utils import FinishJobDecision
 from caches.models import ReportSafeCache, ReportUnsafeCache, ReportUnknownCache
 
 from reports.serializers import ReportAttrSerializer, ComputerSerializer
-from reports.coverage import calculate_total_coverage
+from reports.coverage import FillCoverageStatistics
 
 
 class ReportParentField(serializers.SlugRelatedField):
@@ -546,7 +546,10 @@ class UploadReport:
         if 'coverage' in data:
             carch = CoverageArchive(report=report)
             carch.add_coverage(self.__get_archive(data['coverage']), save=False)
-            carch.total = calculate_total_coverage(carch)
+            carch.save()
+            res = FillCoverageStatistics(carch)
+            # Save again after statistics is calculated
+            carch.total = res.total_coverage
             carch.save()
 
         self.__update_root_cache(
@@ -574,7 +577,10 @@ class UploadReport:
         for cov_id in data['coverage']:
             carch = CoverageArchive(report_id=report.id, identifier=cov_id)
             carch.add_coverage(self.__get_archive(data['coverage'][cov_id]), save=False)
-            carch.total = calculate_total_coverage(carch)
+            carch.save()
+            res = FillCoverageStatistics(carch)
+            # Save again after statistics is calculated
+            carch.total = res.total_coverage
             carch.save()
 
     def __patch_report_component(self, data):

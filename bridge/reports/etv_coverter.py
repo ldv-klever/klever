@@ -360,22 +360,6 @@ def replace_positions(source, highlights):
     return source
 
 
-def test_repl():
-    source = '    cf_arg_5 = ldv_xmalloc(sizeof(struct ldv_struct_platform_instance_4));'
-    print(replace_positions(source, [
-        ['x', 27, 33],
-        ['z', 34, 40]
-    ]))
-    print(replace_positions(source, [
-        ['x', 27, 33],
-        ['z', 33, 40]
-    ]))
-    print(replace_positions(source, [
-        ['x', 40, 33],
-        ['z', 31, 40]
-    ]))
-
-
 def check_node(node):
     if not isinstance(node, dict):
         raise ValueError('Not a dict')
