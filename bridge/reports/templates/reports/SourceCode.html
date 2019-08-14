@@ -37,11 +37,15 @@
     {% for ref_data in data.references %}
         <div id="{{ ref_data.id }}" hidden>
             {% for file_ind, file_line in ref_data.sources %}
-                {% with data.source_files|get_list_val:file_ind as file_path %}
-                    {% if file_path %}
-                        <span class="SrcRefLink" data-file="{{ file_path.1 }}" data-line="{{ file_line }}">{{ file_path.1 }}: {{ file_line }}</span><br>
-                    {% endif %}
-                {% endwith %}
+                {% if file_ind == None %}
+                    <span class="SrcRefLink" data-file="{{ data.file_name }}" data-line="{{ file_line }}">{{ data.file_name }}: {{ file_line }}</span><br>
+                {% else %}
+                    {% with data.source_files|get_list_val:file_ind as file_path %}
+                        {% if file_path %}
+                            <span class="SrcRefLink" data-file="{{ file_path.1 }}" data-line="{{ file_line }}">{{ file_path.1 }}: {{ file_line }}</span><br>
+                        {% endif %}
+                    {% endwith %}
+                {% endif %}
             {% endfor %}
         </div>
     {% endfor %}

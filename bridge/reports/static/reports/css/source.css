@@ -20,6 +20,7 @@
     line-height: normal;
     font-size: 12px;
     font-family: monospace;
+    position: absolute;
 }
 .SourceCodeContent > span {
     display: table-row;
@@ -152,4 +153,9 @@
 }
 .COVJsonNum {
     color: #15d958;
+}
+
+#source_references_links {
+    font-size: 0.8em;
+    white-space: nowrap;
 }

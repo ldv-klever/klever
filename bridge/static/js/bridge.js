@@ -223,11 +223,7 @@ window.set_actions_for_views = function(view_type) {
     function clear_query_params(url) {
         $.each(['page', 'view', 'view_id', 'view_type'], function (i, get_param) {
             let re = new RegExp('(' + get_param + '=).*?(&|$)');
-            if (url.indexOf(get_param + "=") > -1) {
-                console.log(url);
-                url = url.replace(re, '');
-                console.log(url);
-            }
+            if (url.indexOf(get_param + "=") > -1) url = url.replace(re, '')
         });
         if (url.indexOf('?') > -1) {
             let last_char = url.slice(-1);

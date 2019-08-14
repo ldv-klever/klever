@@ -103,8 +103,8 @@ class SourceLine:
             references_from = []
         references = []
         for (line_num, ref_start, ref_end), (file_ind, file_line) in references_to:
-            assert all(isinstance(x, int) for x in (line_num, ref_start, ref_end, file_ind, file_line)),\
-                'integers expected, got "{}"'.format((line_num, ref_start, ref_end, file_ind, file_line))
+            assert all(isinstance(x, int) for x in (line_num, ref_start, ref_end, file_line)),\
+                'integers expected, got "{}"'.format((line_num, ref_start, ref_end, file_line))
             references.append([ref_start, ref_end, {
                 'span_class': self.ref_to_class,
                 'span_data': {'file': file_ind, 'line': file_line}
@@ -122,7 +122,6 @@ class SourceLine:
 
             reflist_data = {'id': ref_from_id, 'sources': []}
             for file_ind, file_lines in ref_data[1:]:
-                assert isinstance(file_ind, int), 'file index is not an integer'
                 assert isinstance(file_lines, list), 'file lines is not a list'
                 for file_line in file_lines:
                     assert isinstance(file_line, int), 'file line is not an integer'
@@ -197,7 +196,7 @@ class GetSource:
 
         self._user = user
         self._report = report
-        self._file_name = self.__parse_file_name(file_name)
+        self.file_name = self.__parse_file_name(file_name)
 
         self.with_legend = (with_legend == 'true')
 
@@ -236,13 +235,13 @@ class GetSource:
     def __get_source_code(self):
         for report in self._ancestors:
             for file_obj in [report.additional_sources, report.original_sources]:
-                content = self.__extract_file(file_obj, self._file_name)
+                content = self.__extract_file(file_obj, self.file_name)
                 if content:
                     return content
         raise BridgeException(_('The source file was not found'))
 
     def __get_indexes_data(self):
-        index_name = self._file_name + self.index_postfix
+        index_name = self.file_name + self.index_postfix
         for report in self._ancestors:
             for file_obj in [report.additional_sources, report.original_sources]:
                 content = self.__extract_file(file_obj, index_name)
@@ -254,11 +253,11 @@ class GetSource:
         return None
 
     def __get_coverage_data(self, cov_id):
-        cov_name = self._file_name + self.coverage_postfix
+        cov_name = self.file_name + self.coverage_postfix
         qs_filters = {'report_id__in': list(r.id for r in self._ancestors)}
         if cov_id:
             # For full coverage (Subjob reports) where there can be several coverages
-            qs_filters['id'] = self.coverage_id
+            qs_filters['id'] = cov_id
         else:
             # Do not use full coverage for sub-jobs
             qs_filters['identifier'] = ''
