@@ -331,9 +331,6 @@ class Native(runners.Speculative):
                     "greater than allowed limitation of {}B".
                     format(os.path.abspath(work_dir), current_space,
                            configuration["resource limits"]['disk memory size']))
-        if mode == 'task':
-            self.logger.info("Task's {!r} memory limitation is {}B".
-                             format(identifier, configuration["resource limits"]["memory size"]))
 
         if configuration["resource limits"].get("CPU time"):
             # This is emergency timer if something will hang

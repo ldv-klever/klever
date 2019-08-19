@@ -382,6 +382,7 @@ class Scheduler:
 
                 # Submit tools
                 try:
+                    self.logger.debug("Update information about available verification tools")
                     self.runner.update_tools()
                 except Exception as err:
                     self.logger.warning('Cannot submit verification tools information: {}'.format(err))
@@ -389,9 +390,10 @@ class Scheduler:
                 # Get actual information about connected nodes
                 submit = True
                 try:
+                    self.logger.debug("Update information about connected nodes")
                     self.runner.update_nodes()
                 except Exception as err:
-                    self.logger.warning("Cannot obtain information about connected nodes: {}".format(err))
+                    self.logger.error("Cannot obtain information about connected nodes: {}".format(err))
                     submit = False
 
                 if submit:
@@ -427,11 +429,13 @@ class Scheduler:
                     # Flushing tasks
                     if len(tasks_to_start) > 0 or \
                             len([True for task_id in tks if tks[task_id]["status"] == "PROCESSING"]) > 0:
+                        self.logger.debug("Flush submitted tasks and jobs")
                         self.runner.flush()
                 else:
                     self.logger.warning(
                         "Do not run any tasks until actual information about the nodes will be obtained")
 
+                self.logger.debug("Scheduler iteration has finished")
                 if not transition_done:
                     self.__update_iteration_period()
                     time.sleep(self.__iteration_period['short'])
