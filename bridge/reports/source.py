@@ -35,7 +35,7 @@ HIGHLIGHT_CLASSES = {
     'text': 'SrcHlText',
     'key1': 'SrcHlKey1',
     'key2': 'SrcHlKey2',
-    'function': 'SrcHlKey3'
+    'function_ref_to_def': 'SrcHlFuncRefToDef'
 }
 
 COVERAGE_CLASSES = {

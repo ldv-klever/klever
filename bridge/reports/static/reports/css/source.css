@@ -82,8 +82,9 @@
     color: #291fbf;
     font-weight: bold;
 }
-.SrcHlKey3 {
+.SrcHlFuncRefToDef {
     color: #67238f;
+    font-weight: bold;
 }
 
 /* Coverage notes */

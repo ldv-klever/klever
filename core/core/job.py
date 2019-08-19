@@ -717,11 +717,17 @@ class Job(core.components.Component):
                     short_ref_src_files.append(os.path.join('source files', tmp)
                                                if tmp != ref_src_file else ref_src_file)
 
+                # TODO: there should be basic higlights as well.
+                highlight = list()
+                for ref_to in refs_to:
+                    highlight.append(['function_ref_to_def', *ref_to[0]])
+
                 cross_ref = {
                     'format': self.INDEX_DATA_FORMAT_VERSION,
                     'source files': short_ref_src_files,
                     'referencesto': refs_to,
-                    'referencesfrom': refs_from
+                    'referencesfrom': refs_from,
+                    'highlight': highlight
                 }
 
                 with open(os.path.join(new_file + '.idx.json'), 'w') as fp:
