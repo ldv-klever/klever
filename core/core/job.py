@@ -637,8 +637,6 @@ class Job(core.components.Component):
                 tmp = core.utils.make_relative_path(self.common_components_conf['working source trees'], storage_file,
                                                     absolutize=True)
 
-                # Append special directory name "source files" when cutting off source file names. Later this will be
-                # done for references as well.
                 if tmp != os.path.join(os.path.sep, storage_file):
                     new_file = os.path.join('source files', tmp)
                 else:
@@ -712,9 +710,16 @@ class Job(core.components.Component):
                             ref_from
                         ])
 
+                short_ref_src_files = []
+                for ref_src_file in ref_src_files:
+                    tmp = core.utils.make_relative_path(self.common_components_conf['working source trees'],
+                                                        ref_src_file)
+                    short_ref_src_files.append(os.path.join('source files', tmp)
+                                               if tmp != ref_src_file else ref_src_file)
+
                 cross_ref = {
                     'format': self.INDEX_DATA_FORMAT_VERSION,
-                    'source files': ref_src_files,
+                    'source files': short_ref_src_files,
                     'referencesto': refs_to,
                     'referencesfrom': refs_from
                 }
