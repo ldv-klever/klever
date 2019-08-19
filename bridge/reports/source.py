@@ -131,7 +131,7 @@ class SourceLine:
         references.sort(key=lambda x: (x[0], x[1]), reverse=True)
 
         prev_end = 0
-        for ref_start, ref_end, span_kwargs in references:
+        for ref_start, ref_end, span_kwargs in reversed(references):
             assert prev_end <= ref_start < ref_end,\
                 'wrong values, {} <= {} < {} expected'.format(prev_end, ref_start, ref_end)
             prev_end = ref_end

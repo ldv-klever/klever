@@ -45,7 +45,7 @@ from service.utils import FinishJobDecision
 from caches.models import ReportSafeCache, ReportUnsafeCache, ReportUnknownCache
 
 from reports.serializers import ReportAttrSerializer, ComputerSerializer
-from reports.coverage import calculate_total_coverage
+from reports.coverage import FillCoverageStatistics
 
 
 class ReportParentField(serializers.SlugRelatedField):
@@ -544,10 +544,7 @@ class UploadReport:
 
         # Upload coverage for the report
         if 'coverage' in data:
-            carch = CoverageArchive(report=report)
-            carch.add_coverage(self.__get_archive(data['coverage']), save=False)
-            carch.total = calculate_total_coverage(carch)
-            carch.save()
+            self.__save_coverage(report, self.__get_archive(data['coverage']))
 
         self.__update_root_cache(
             report.component, started=True,
@@ -572,10 +569,7 @@ class UploadReport:
             })
 
         for cov_id in data['coverage']:
-            carch = CoverageArchive(report_id=report.id, identifier=cov_id)
-            carch.add_coverage(self.__get_archive(data['coverage'][cov_id]), save=False)
-            carch.total = calculate_total_coverage(carch)
-            carch.save()
+            self.__save_coverage(report, self.__get_archive(data['coverage'][cov_id]), identifier=cov_id)
 
     def __patch_report_component(self, data):
         report = self.__get_report(data.get('identifier'))
@@ -706,6 +700,21 @@ class UploadReport:
         add_src = AdditionalSources(root=self.root)
         add_src.add_archive(self.__get_archive(arch_name), save=True)
         return add_src.id
+
+    def __save_coverage(self, report, archive, identifier=''):
+        carch = CoverageArchive(report=report, identifier=identifier)
+        carch.add_coverage(archive, save=True)
+        try:
+            res = FillCoverageStatistics(carch)
+        except Exception as e:
+            logger.exception(e)
+            carch.delete()
+            raise exceptions.ValidationError({
+                'coverage': 'Error while parsing coverage statistics: {}'.format(e)
+            })
+        # Save again after statistics is calculated
+        carch.total = res.total_coverage
+        carch.save()
 
     def __update_root_cache(self, component, **kwargs):
         # Update resources cache

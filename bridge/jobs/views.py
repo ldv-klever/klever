@@ -35,6 +35,7 @@ from bridge.utils import BridgeException
 
 from users.models import User
 from reports.utils import FilesForCompetitionArchive
+from reports.coverage import JobCoverageStatistics
 
 from jobs.models import Job, RunHistory, JobHistory, JobFile
 from jobs.serializers import JobFormSerializerRO, get_view_job_data
@@ -81,6 +82,9 @@ class JobPage(LoginRequiredMixin, LoggedCallMixin, Bview.DataViewMixin, DetailVi
 
         # Job decision progress and other data
         context['decision'] = JobDecisionData(self.request, self.object)
+
+        # Job coverages
+        context['Coverage'] = JobCoverageStatistics(self.object)
 
         return context
 

@@ -63,8 +63,19 @@ $(document).ready(function () {
         source_processor.get_source(1, $(this).data('path'));
     });
     update_colors(stat_table);
-    stat_table.find('.tree-file-link:visible').first().click();
 
+    // Open directories to first found file
+    stat_table.find('tbody').children('tr').each(function () {
+        let expander_link = $(this).find('.tg-expander');
+        if (expander_link.length) {
+            expander_link.click();
+            return true;
+        }
+        return false;
+    });
+
+    // Open first found file
+    stat_table.find('.tree-file-link:visible').first().click();
 
     // Report attributes table
     $('#show_cov_attributes').click(function () {

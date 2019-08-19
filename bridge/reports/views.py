@@ -30,7 +30,8 @@ from tools.profiling import LoggedCallMixin
 
 from jobs.models import Job
 from reports.models import (
-    ReportRoot, ReportComponent, ReportSafe, ReportUnknown, ReportUnsafe, ReportAttr, CoverageArchive
+    ReportRoot, ReportComponent, ReportSafe, ReportUnknown, ReportUnsafe, ReportAttr, CoverageArchive,
+    CoverageStatistics, CoverageDataStatistics
 )
 
 from jobs.utils import JobAccess
@@ -43,7 +44,7 @@ from reports.utils import (
 )
 from reports.etv import GetETV
 from reports.comparison import ComparisonTableData
-from reports.coverage import coverage_url_and_total, CoverageStatistics, CoverageGenerator
+from reports.coverage import coverage_url_and_total, GetCoverageStatistics, CoverageGenerator
 
 from marks.tables import SafeReportMarksTable, UnsafeReportMarksTable, UnknownReportMarksTable
 
@@ -464,7 +465,7 @@ class CoverageView(LoginRequiredMixin, LoggedCallMixin, DetailView):
         context['job'] = Job.objects.only('id', 'name', 'weight').get(reportroot__id=self.object.root_id)
         if context['job'].weight == JOB_WEIGHT[0][0]:
             context['parents'] = get_parents(self.object, include_self=True)
-        context['statistics'] = CoverageStatistics(self.object, context['coverage_id'])
+        context['statistics'] = GetCoverageStatistics(self.object, context['coverage_id'])
         return context
 
 

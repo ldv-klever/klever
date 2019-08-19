@@ -1,0 +1,75 @@
+{% comment "License" %}
+% Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+% Ivannikov Institute for System Programming of the Russian Academy of Sciences
+%
+% Licensed under the Apache License, Version 2.0 (the "License");
+% you may not use this file except in compliance with the License.
+% You may obtain a copy of the License at
+%
+%    http://www.apache.org/licenses/LICENSE-2.0
+%
+% Unless required by applicable law or agreed to in writing, software
+% distributed under the License is distributed on an "AS IS" BASIS,
+% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+% See the License for the specific language governing permissions and
+% limitations under the License.
+{% endcomment %}
+
+{% load i18n %}
+
+{% if Coverage.coverages %}
+    <div class="ui violet segment">
+        <div id="coverage_selector" class="ui dropdown violet button">
+            <div class="text">{% trans 'Coverage' %}</div>
+            <i class="dropdown icon"></i>
+            <div class="menu">
+                {% for cov in Coverage.coverages %}
+                    <a href="{{ cov.url }}" class="item coverage-link">{{ cov.name }}{% if cov.total %} ({{ cov.total.lines }}/{{ cov.total.funcs }}){% endif %}</a>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="ui divider"></div>
+        <div id="coverage_table_container"></div>
+    </div>
+    <script type="application/javascript">
+        jQuery(function () {
+            function initialise_table(table_obj) {
+                table_obj.on('click', '.tg-expander', function (event, with_shift, rec) {
+                    let tr = $(this).closest('tr'), tr_id = tr.data('tg-id');
+                    if (tr.hasClass('tg-expanded')) {
+                        table_obj.find(`tr.tg-expanded[data-tg-parent="${tr_id}"]`)
+                            .find('i.tg-expander').trigger("click", [false, true]);
+                        table_obj.find(`tr[data-tg-parent="${tr_id}"]`).hide();
+                        $(this).removeClass('open');
+                        tr.removeClass('tg-expanded');
+                    } else {
+                        table_obj.find(`tr[data-tg-parent="${tr_id}"]`).show();
+                        $(this).addClass('open');
+                        tr.addClass('tg-expanded');
+                        if (event.shiftKey || with_shift) {
+                            table_obj.find(`tr[data-tg-parent="${tr_id}"]`).find('i.tg-expander')
+                                .trigger("click", [event.shiftKey || with_shift, true]);
+                        }
+                    }
+                    if (!rec) update_colors(table_obj);
+                });
+            }
+            let table_container = $('#coverage_table_container'),
+                coverage_links = $('.coverage-link');
+            coverage_links.click(function (event) {
+                event.preventDefault();
+                table_container.html($('<i>', {'class': 'ui spinner big loading icon'}));
+                $.get($(this).attr('href'), {}, function (resp) {
+                    table_container.html(resp);
+                    initialise_table(table_container.find('table'));
+                })
+            });
+
+            // Initialize statistics table
+            initialise_table(table_container.find('table'));
+
+            // Open first coverage
+            coverage_links.first().click();
+        });
+    </script>
+{% endif %}

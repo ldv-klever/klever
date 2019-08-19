@@ -163,8 +163,8 @@
             {% include 'jobs/viewJob/runHistory.html' with run_history=run_history %}
 
             {# User roles #}
-            <div class="ui violet segment">
-                <div class="ui top left attached violet large label">{% trans 'Job access' %}</div>
+            <div class="ui pink segment">
+                <div class="ui top left attached pink large label">{% trans 'Job access' %}</div>
                 {% if user_roles.count %}
                     <ul>
                         {% for ur in user_roles %}
@@ -178,7 +178,9 @@
                 {% endif %}
                 <p>{% blocktrans with global_role=last_version.get_global_role_display %}Other users have role "{{ global_role }}" for this job{% endblocktrans %}</p>
             </div>
-
+            {% if Coverage %}
+                {% include 'jobs/viewJob/coverage.html' with Coverage=Coverage %}
+            {% endif %}
         </div>
 
         <div class="eight wide column">
