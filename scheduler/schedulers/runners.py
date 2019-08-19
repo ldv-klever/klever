@@ -666,10 +666,8 @@ class Speculative(Runner):
                                                                                                 qos['memory size']))
                 limits = dict(qos)
         elif self._is_there(job_identifier, attribute, identifier):
-            self.logger.debug("Issue QoS limit for {}:{}".format(attribute, identifier))
+            self.logger.debug("Issue given limit for {}:{}".format(attribute, identifier))
             limits = dict(qos)
-        else:
-            self.logger.debug("Issue default job limit for {}:{}".format(attribute, identifier))
 
         element["limitation"] = limits
         return limits, speculative

@@ -301,7 +301,7 @@ class Scheduler:
                     for task_id in [task_id for task_id in
                                     set(sch_ste["tasks"]["pending"] + sch_ste["tasks"]["processing"]) if
                                     task_id not in set(ser_ste["tasks"]["pending"] + sch_ste["tasks"]["processing"])]:
-                        self.logger.debug("Cancel task {!r} with status {!r}".
+                        self.logger.debug("Cancel task {} with status {}".
                                           format(task_id, tks[task_id]['status']))
                         self.runner.cancel_task(task_id, tks[task_id])
                         del tks[task_id]
@@ -312,7 +312,7 @@ class Scheduler:
                     for job_id in [job_id for job_id in jbs if jbs[job_id]["status"] in ["PENDING", "PROCESSING"] and
                                    (job_id not in set(ser_ste["jobs"]["pending"] + ser_ste["jobs"]["processing"])
                                     or job_id in ser_ste["jobs"]["cancelled"])]:
-                        self.logger.debug("Cancel job {!r} with status {!r}".format(job_id, jbs[job_id]['status']))
+                        self.logger.debug("Cancel job {} with status {}".format(job_id, jbs[job_id]['status']))
                         self.runner.cancel_job(
                             job_id, jbs[job_id],
                             [tks[tid] for tid in tks if tks[tid]["status"] in ["PENDING", "PROCESSING"]
@@ -398,19 +398,11 @@ class Scheduler:
 
                 if submit:
                     # Schedule new tasks
-                    pending_tasks = []
+                    pending_tasks = [tks[task_id] for task_id in tks if tks[task_id]["status"] == "PENDING"]
                     pending_jobs = [jbs[job_id] for job_id in jbs if jbs[job_id]["status"] == "PENDING"
                                     and not self.runner.is_solving(jbs[job_id])]
                     pending_jobs = sorted(pending_jobs, key=lambda i: sort_priority(i['configuration']['priority']))
-
-                    # Estimate resource limitations
-                    for task_id, task in ((i, tks[task_id]) for i in tks if tks[i]["status"] == "PENDING"):
-                        self.runner.prepare_task(task_id, task)
-                        pending_tasks.append(task)
-
-                    pending_tasks = sorted(pending_tasks,
-                                           key=lambda i: (sort_priority(i['description']['priority']),
-                                                          i['description']["resource limits"]['memory size']))
+                    pending_tasks = sorted(pending_tasks, key=lambda i: sort_priority(i['description']['priority']))
                     tasks_to_start, jobs_to_start = self.runner.schedule(pending_tasks, pending_jobs)
                     if len(tasks_to_start) > 0 or len(jobs_to_start) > 0:
                         self.logger.info("Going to start {} new tasks and {} jobs".

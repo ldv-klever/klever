@@ -202,29 +202,6 @@ class VerifierCloud(runners.Runner):
         :param description: Dictionary with task description.
         :raise SchedulerException: If a task cannot be scheduled or preparation failed.
         """
-        pass
-
-    def _prepare_job(self, identifier, configuration):
-        """
-        Prepare a working directory before starting the solution.
-
-        :param identifier: Verification task identifier.
-        :param configuration: Job configuration.
-        :raise SchedulerException: If a job cannot be scheduled or preparation failed.
-        """
-        # Cannot be called
-        raise NotImplementedError("VerifierCloud cannot handle jobs.")
-
-    def _solve_task(self, identifier, description, user, password):
-        """
-        Solve given verification task.
-
-        :param identifier: Verification task identifier.
-        :param description: Verification task description dictionary.
-        :param user: User name.
-        :param password: Password.
-        :return: Return Future object.
-        """
         # Prepare working directory
         task_work_dir = os.path.join(self.work_dir, "tasks", identifier)
         task_data_dir = os.path.join(task_work_dir, "data")
@@ -254,6 +231,27 @@ class VerifierCloud(runners.Runner):
                                                 format(err))
         self.__tasks[identifier] = run
 
+    def _prepare_job(self, identifier, configuration):
+        """
+        Prepare a working directory before starting the solution.
+
+        :param identifier: Verification task identifier.
+        :param configuration: Job configuration.
+        :raise SchedulerException: If a job cannot be scheduled or preparation failed.
+        """
+        # Cannot be called
+        raise NotImplementedError("VerifierCloud cannot handle jobs.")
+
+    def _solve_task(self, identifier, description, user, password):
+        """
+        Solve given verification task.
+
+        :param identifier: Verification task identifier.
+        :param description: Verification task description dictionary.
+        :param user: User name.
+        :param password: Password.
+        :return: Return Future object.
+        """
         # Submit command
         self.logger.info("Submit the task {0}".format(identifier))
         run = self.__tasks[identifier]
