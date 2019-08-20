@@ -17,7 +17,6 @@
 
 {% load i18n %}
 
-<h5><a href="{{ statistics.url }}">{{ statistics.title }}</a></h5>
 <table class="ui celled compact selectable teal table alternate-color">
     <thead>
         <tr>
@@ -27,7 +26,7 @@
         </tr>
     </thead>
     <tbody>
-        {% for cov_obj in statistics.objects %}
+        {% for cov_obj in statistics %}
             <tr data-tg-id="{{ cov_obj.identifier }}"{% if cov_obj.parent %} data-tg-parent="{{ cov_obj.parent }}"{% endif %} data-tg-leaf="{% if cov_obj.is_leaf %}1{% else %}0{% endif %}"{% if cov_obj.depth > 1 %} style="display: none;"{% endif %}>
                 <td>
                     <span class="pre-space">{{ cov_obj.indentation }}</span>

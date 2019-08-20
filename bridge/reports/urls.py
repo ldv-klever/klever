@@ -52,6 +52,7 @@ urlpatterns = [
     path('<int:report_id>/coverage/', views.CoverageView.as_view(), name='coverage'),
     path('coverage/<int:pk>/download/', views.DownloadCoverageView.as_view(), name='coverage-download'),
     path('api/coverage/data/<int:cov_id>/', api.GetCoverageDataAPIView.as_view(), name='api-coverage-data'),
+    path('api/coverage/table/<int:report_id>/', api.GetReportCoverageTableView.as_view(), name='api-coverage-table'),
 
     # Utils
     path('api/has-sources/', api.HasOriginalSources.as_view()),

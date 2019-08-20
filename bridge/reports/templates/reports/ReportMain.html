@@ -137,6 +137,15 @@
                 {% include 'reports/ReportData.html' with data=data.data component=report.component.name type=data.type %}
             </div>
         {% endif %}
+        {% if Coverage %}
+            {% include 'jobs/viewJob/coverage.html' with Coverage=Coverage %}
+        {% elif VerificationCoverage and VerificationCoverage.statistics|length %}
+            <div class="ui violet segment">
+                <div class="ui top left attached violet label">{% trans 'Coverage' %}</div>
+                {% include 'jobs/viewJob/coverageTable.html' with statistics=VerificationCoverage.statistics %}
+            </div>
+        {% endif %}
+
         <br>
         <div class="ui buttons">
             {% if report.log %}
@@ -144,29 +153,6 @@
             {% endif %}
             {% if report.verifier_input %}
                 <a href="{% url 'reports:download_files' report.pk %}" class="ui violet button">{% trans 'Download input files of static verifiers' %}</a>
-            {% endif %}
-            {% if coverages %}
-                <div class="ui dropdown violet button">
-                    <div class="text">{% trans 'Coverage' %}</div>
-                    <i class="dropdown icon"></i>
-                    <div class="menu">
-                        {% for cov in coverages %}
-                            <a href="{{ cov.url }}" class="item">{{ cov.name }}{% if cov.total %} ({{ cov.total.lines }}/{{ cov.total.funcs }}){% endif %}</a>
-                        {% endfor %}
-                    </div>
-                </div>
-            {% elif coverage_url %}
-                {% if coverage_total %}
-                    <a class="ui violet button parent-popup" href="{{ coverage_url }}" data-position="right center">{% trans 'Coverage' %}</a>
-                    <div class="ui special popup">
-                        <div class="content">
-                            <span class="purple-subtitle">{% trans 'Lines coverage' %}: </span>{{ coverage_total.lines }}<br>
-                            <span class="purple-subtitle">{% trans 'Functions coverage' %}: </span>{{ coverage_total.funcs }}
-                        </div>
-                    </div>
-                {% else %}
-                    <a class="ui violet button" href="{{ coverage_url }}">{% trans 'Coverage' %}</a>
-                {% endif %}
             {% endif %}
         </div>
     </div>

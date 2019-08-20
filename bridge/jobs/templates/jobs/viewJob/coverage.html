@@ -19,15 +19,27 @@
 
 {% if Coverage.coverages %}
     <div class="ui violet segment">
-        <div id="coverage_selector" class="ui dropdown violet button">
-            <div class="text">{% trans 'Coverage' %}</div>
-            <i class="dropdown icon"></i>
-            <div class="menu">
+        <div class="ui top left attached violet label">{% trans 'Coverage' %}</div>
+        <table id="coverage_list_container" class="ui compact violet table">
+            <thead>
+                <tr>
+                    <th>{% trans 'Identifier' %}</th>
+                    <th>{% trans 'Lines coverage' %}</th>
+                    <th>{% trans 'Functions coverage' %}</th>
+                    <th>{% trans 'Details' %}</th>
+                </tr>
+            </thead>
+            <tbody>
                 {% for cov in Coverage.coverages %}
-                    <a href="{{ cov.url }}" class="item coverage-link">{{ cov.name }}{% if cov.total %} ({{ cov.total.lines }}/{{ cov.total.funcs }}){% endif %}</a>
+                    <tr>
+                        <td><a href="{{ cov.url }}" class="item coverage-link">{{ cov.name }}</a></td>
+                        <td>{% if cov.total %}{{ cov.total.lines }}{% else %}-{% endif %}</td>
+                        <td>{% if cov.total %}{{ cov.total.funcs }}{% else %}-{% endif %}</td>
+                        <td><a href="{{ cov.details_url }}" target="_blank">...</a></td>
+                    </tr>
                 {% endfor %}
-            </div>
-        </div>
+            </tbody>
+        </table>
         <div class="ui divider"></div>
         <div id="coverage_table_container"></div>
     </div>
@@ -54,22 +66,18 @@
                     if (!rec) update_colors(table_obj);
                 });
             }
-            let table_container = $('#coverage_table_container'),
-                coverage_links = $('.coverage-link');
-            coverage_links.click(function (event) {
+            let table_container = $('#coverage_table_container');
+            $('.coverage-link').click(function (event) {
                 event.preventDefault();
+                let parent_tr = $(this).closest('tr');
                 table_container.html($('<i>', {'class': 'ui spinner big loading icon'}));
+                $('#coverage_list_container').find('tr.positive').removeClass('positive');
                 $.get($(this).attr('href'), {}, function (resp) {
                     table_container.html(resp);
                     initialise_table(table_container.find('table'));
+                    parent_tr.addClass('positive');
                 })
             });
-
-            // Initialize statistics table
-            initialise_table(table_container.find('table'));
-
-            // Open first coverage
-            coverage_links.first().click();
         });
     </script>
 {% endif %}

@@ -38,13 +38,13 @@ from tools.profiling import LoggedCallMixin
 
 from jobs.models import Job
 from jobs.utils import JobAccess
-from reports.models import Report, ReportRoot, CompareJobsInfo, OriginalSources, CoverageArchive
+from reports.models import Report, ReportRoot, ReportComponent, CompareJobsInfo, OriginalSources, CoverageArchive
 from reports.comparison import FillComparisonCache, ComparisonData
 from reports.UploadReport import UploadReport, CheckArchiveError
 from reports.serializers import OriginalSourcesSerializer
 from reports.source import GetSource
 from reports.utils import remove_verification_files
-from reports.coverage import GetCoverageData
+from reports.coverage import GetCoverageData, ReportCoverageStatistics
 
 
 class FillComparisonView(LoggedCallMixin, APIView):
@@ -181,3 +181,20 @@ class GetCoverageDataAPIView(LoggedCallMixin, APIView):
             logger.error('Coverage data was not found')
             raise exceptions.APIException('Coverage data was not found')
         return Response({'data': res.data}, template_name='reports/coverage/CoverageData.html')
+
+
+class GetReportCoverageTableView(LoggedCallMixin, APIView):
+    renderer_classes = (TemplateHTMLRenderer,)
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request, report_id):
+        report = get_object_or_404(ReportComponent.objects, pk=report_id)
+
+        # Check job access
+        job = get_object_or_404(Job.objects, reportroot__id=report.root_id)
+        if not JobAccess(request.user, job=job).can_view:
+            raise exceptions.PermissionDenied("You don't have permission to view data of this job")
+
+        return Response({
+            'statistics': ReportCoverageStatistics(report, request.query_params.get('coverage_id')).statistics
+        }, template_name='jobs/viewJob/coverageTable.html')

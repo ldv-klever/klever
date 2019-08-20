@@ -21,9 +21,9 @@
 
 <div class="ui {{ data.status_color }} segment">
     {% if data.core_link %}
-        <a class="ui top left attached large {{ data.status_color }} label" href="{{ data.core_link }}">{% trans 'Decision' %} ({{ data.job.get_status_display }})</a>
+        <a class="ui top left attached {{ data.status_color }} label" href="{{ data.core_link }}">{% trans 'Decision' %} ({{ data.job.get_status_display }})</a>
     {% else %}
-        <div class="ui top left attached large {{ data.status_color }} label">{% trans 'Decision' %} ({{ data.job.get_status_display }})</div>
+        <div class="ui top left attached {{ data.status_color }} label">{% trans 'Decision' %} ({{ data.job.get_status_display }})</div>
     {% endif %}
 
     {% if data.error %}
