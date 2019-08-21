@@ -30,6 +30,7 @@ from clade import Clade
 import core.utils
 import core.session
 import core.components
+from core.highlight import Highlight
 from core.progress import PW
 from core.coverage import JCR
 
@@ -648,6 +649,9 @@ class Job(core.components.Component):
                 os.makedirs(os.path.dirname(new_file), exist_ok=True)
                 shutil.copy(file, new_file)
 
+                highlight = Highlight(self.logger, new_file)
+                highlight.highlight()
+
                 # Get raw references to/from for a given source file. There is the only key-value pair in dictionaries
                 # returned by Clade where keys are always source file names.
                 storage_file = os.path.join(os.path.sep, storage_file)
@@ -719,17 +723,16 @@ class Job(core.components.Component):
                     short_ref_src_files.append(os.path.join('source files', tmp)
                                                if tmp != ref_src_file else ref_src_file)
 
-                # TODO: there should be basic higlights as well.
-                highlight = list()
-                for ref_to in refs_to:
-                    highlight.append(['function_ref_to_def', *ref_to[0]])
+                # Add special highlighting for non heuristically known entity references and referenced entities.
+                highlight.extra_highlight([['FuncDefRefTo', *ref_to[0]] for ref_to in refs_to])
+                highlight.extra_highlight([['FuncDefRefFrom', *ref_from[0]] for ref_from in refs_from])
 
                 cross_ref = {
                     'format': self.INDEX_DATA_FORMAT_VERSION,
                     'source files': short_ref_src_files,
                     'referencesto': refs_to,
                     'referencesfrom': refs_from,
-                    'highlight': highlight
+                    'highlight': highlight.highlights
                 }
 
                 with open(os.path.join(new_file + '.idx.json'), 'w') as fp:
