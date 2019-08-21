@@ -30,12 +30,21 @@ from reports.models import ReportComponent, CoverageArchive
 TAB_LENGTH = 4
 
 HIGHLIGHT_CLASSES = {
-    'number': 'SrcHlNumber',
-    'comment': 'SrcHlComment',
-    'text': 'SrcHlText',
-    'key1': 'SrcHlKey1',
-    'key2': 'SrcHlKey2',
-    'function_ref_to_def': 'SrcHlFuncRefToDef'
+    'C': 'SrcHlC',
+    'CP': 'SrcHlCP',
+    'K': 'SrcHlK',
+    'KT': 'SrcHlKT',
+    'LNI': 'SrcHlLNI',
+    'LNH': 'SrcHlLNH',
+    'LNO': 'SrcHlLNO',
+    'LS': 'SrcHlLS',
+    'LSE': 'SrcHlLSE',
+    'N': 'SrcHlN',
+    'NB': 'SrcHlNB',
+    'NL': 'SrcHlNL',
+    'O': 'SrcHlO',
+    'FuncDefRefTo': 'SrcHlFuncDefRefTo',
+    'FuncDefRefFrom': 'SrcHlFuncDefRefFrom'
 }
 
 COVERAGE_CLASSES = {

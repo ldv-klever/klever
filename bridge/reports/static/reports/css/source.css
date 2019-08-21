@@ -65,24 +65,57 @@
 }
 
 /* Highlights */
-.SrcHlNumber {
-    color: #3bbbbc;
+.SrcHlC {
+    color: #408080;
+    font-style: italic
 }
-.SrcHlComment {
-    color: #b1b4b7;
+.SrcHlCP {
+    color: #BC7A00
 }
-.SrcHlText {
-    color: #20d467;
+.SrcHlK {
+    color: #008000;
+    font-weight: bold
 }
-.SrcHlKey1 {
-    color: #1f984c;
+.SrcHlKR {
+    color: #008000;
+    font-weight: bold
+}
+.SrcHlKT {
+    color: #B00040
+}
+.SrcHlLNI {
+    color: #666666
+}
+.SrcHlLNH {
+    color: #666666
+}
+.SrcHlLNO {
+    color: #666666
+}
+.SrcHlLS {
+    color: #BA2121
+}
+.SrcHlLSE {
+    color: #BB6622;
+    font-weight: bold
+}
+.SrcHlN {
+    color: #00677c
+}
+.SrcHlNB {
+    color: #008000
+}
+.SrcHlNL {
+    color: #A0A000
+}
+.SrcHlO {
+    color: #666666
+}
+.SrcHlFuncDefRefTo {
+    color: #67238f;
     font-weight: bold;
 }
-.SrcHlKey2 {
-    color: #291fbf;
-    font-weight: bold;
-}
-.SrcHlFuncRefToDef {
+.SrcHlFuncDefRefFrom {
     color: #67238f;
     font-weight: bold;
 }
