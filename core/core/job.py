@@ -605,12 +605,7 @@ class Job(core.components.Component):
         self.common_components_conf['working source trees'] = clade_meta['working source trees'] \
             if 'working source trees' in clade_meta else [clade_meta['build_dir']]
 
-    def __upload_original_sources(self):
-        # Use Clade UUID to distinguish various original sources. It is pretty well since this UUID is uuid.uuid4().
-        src_id = self.clade.get_uuid()
-
-        session = core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
-
+    def __refer_original_sources(self, src_id):
         core.utils.report(self.logger,
                           'patch',
                           {
@@ -621,8 +616,15 @@ class Job(core.components.Component):
                           self.vals['report id'],
                           self.conf['main working directory'])
 
+    def __upload_original_sources(self):
+        # Use Clade UUID to distinguish various original sources. It is pretty well since this UUID is uuid.uuid4().
+        src_id = self.clade.get_uuid()
+
+        session = core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
+
         if session.check_original_sources(src_id):
             self.logger.info('Original sources were uploaded already')
+            self.__refer_original_sources(src_id)
             return
 
         self.logger.info(
@@ -738,6 +740,8 @@ class Job(core.components.Component):
 
         self.logger.info('Upload original sources')
         session.upload_original_sources(src_id, 'original sources.zip')
+
+        self.__refer_original_sources(src_id)
 
         if not self.conf['keep intermediate files']:
             shutil.rmtree('original sources')
