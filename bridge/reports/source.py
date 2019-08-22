@@ -31,6 +31,7 @@ TAB_LENGTH = 4
 
 HIGHLIGHT_CLASSES = {
     'C': 'SrcHlC',
+    'CM': 'SrcHlCM',
     'CP': 'SrcHlCP',
     'K': 'SrcHlK',
     'KR': 'SrcHlKR',

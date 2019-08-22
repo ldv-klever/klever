@@ -68,7 +68,7 @@ class Highlight:
                     cur_start_offset = self.cur_start_offset
                     if self.go_to_next_line(c):
                         self.highlights.append([
-                            'C',
+                            'CM',
                             cur_line_numb,
                             comment_start_offset,
                             cur_start_offset
@@ -79,7 +79,7 @@ class Highlight:
 
                 # Add last multiline comment line.
                 self.highlights.append([
-                    'C',
+                    'CM',
                     self.cur_line_numb,
                     comment_start_offset,
                     self.cur_start_offset
