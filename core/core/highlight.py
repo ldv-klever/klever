@@ -73,6 +73,7 @@ class Highlight:
                             comment_start_offset,
                             cur_start_offset
                         ])
+                        comment_start_offset = self.cur_start_offset
                     else:
                         self.cur_start_offset += 1
 
