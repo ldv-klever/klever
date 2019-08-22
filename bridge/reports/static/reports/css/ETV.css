@@ -225,9 +225,6 @@
 .ETV_Action:hover {
     color: #cfa62a;
 }
-.ETV_ShowCode {
-    cursor: pointer;
-}
 
 .ETV_NewAssumption {
     color: red;

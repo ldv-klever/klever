@@ -66,19 +66,19 @@ class SourceLine:
     ref_to_class = 'SrcRefToLink'
     ref_from_class = 'SrcRefFromLink'
 
-    def __init__(self, source, highlights=None, references_to=None, references_from=None):
+    def __init__(self, source, highlights=None, references_to=None, references_from=None, filename=None, line=None):
         self._source = source
         self._source_len = len(source)
         try:
             self._highlights = self.__get_highlights(highlights)
         except Exception as e:
-            logger.error('Source highlights error: {}'.format(e))
-            self._highlights = OrderedDict()
+            logger.error('Source highlights error ({}:{}): {}'.format(filename, line, e))
+            self._highlights = OrderedDict([((0, self._source_len), None)])
         try:
             self.references_data = []
             self._references = self.__get_references(references_to, references_from)
         except Exception as e:
-            logger.error('Source refereneces error: {}'.format(e))
+            logger.error('Source refereneces error ({}:{}): {}'.format(filename, line, e))
             self.references_data = []
             self._references = []
         self.html_code = self.__to_html()
@@ -355,7 +355,7 @@ class GetSource:
             src_line = SourceLine(
                 code, highlights=highlights.get(cnt),
                 references_to=references_to.get(cnt),
-                references_from=references_from.get(cnt)
+                references_from=references_from.get(cnt), filename=self.file_name, line=cnt
             )
             linenum_str = str(cnt)
             lines_data.append({
