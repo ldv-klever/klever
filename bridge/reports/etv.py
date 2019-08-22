@@ -122,64 +122,42 @@ class GetETV:
         # Function call
         if node['type'] == 'function call':
             enter_data = self.__parse_function(node, depth, thread, scope)
-            func_scope = self._new_scope
-            enter_data['inner_scope'] = func_scope
-
             if enter_data.get('warn') or enter_data.get('note') and not has_asc_note:
                 self.shown_scopes.add(scope)
-
-            child_depth = depth + 1
-            child_asc_note = bool(has_asc_note or enter_data.get('note') or enter_data.get('warn'))
-            children_trace = []
-            for child_node in node['children']:
-                children_trace.extend(self.__parse_node(
-                    child_node, depth=child_depth, thread=thread, has_asc_note=child_asc_note, scope=func_scope
-                ))
-
-            # Function scope can be added while children parsing
-            if func_scope in self.shown_scopes:
-                self.shown_scopes.add(scope)
-                # Open function by default if its scope is shown
-                enter_data['opened'] = True
-
-            if not self.user.triangles:
-                return [enter_data] + children_trace
-
-            # Closing triangle
-            exit_data = self.__parse_exit(depth, thread, func_scope)
-
-            return [enter_data] + children_trace + [exit_data]
+            return self.__parse_body(enter_data, node, depth, thread, has_asc_note, scope)
 
         # Action
         if node['type'] == 'action':
             enter_data = self.__parse_action(node, depth, thread, scope)
-            act_scope = self._new_scope
-            enter_data['inner_scope'] = act_scope
-
             if enter_data['callback']:
                 # Show all callback actions
                 self.shown_scopes.add(scope)
+            return self.__parse_body(enter_data, node, depth, thread, has_asc_note, scope)
 
-            child_depth = depth + 1
-            child_asc_note = has_asc_note or bool(enter_data.get('note') or enter_data.get('warn'))
-            children_trace = []
-            for child_node in node['children']:
-                children_trace.extend(self.__parse_node(
-                    child_node, depth=child_depth, thread=thread, has_asc_note=child_asc_note, scope=act_scope
-                ))
+    def __parse_body(self, enter_data, node, depth, thread, has_asc_note, scope):
+        new_scope = self._new_scope
+        enter_data['inner_scope'] = new_scope
 
-            # Action scope can be added while children parsing
-            if act_scope in self.shown_scopes:
-                # Open action by default if its scope is shown and show action scope
-                self.shown_scopes.add(scope)
-                enter_data['opened'] = True
+        child_depth = depth + 1
+        child_asc_note = has_asc_note or bool(enter_data.get('note')) or bool(enter_data.get('warn'))
+        children_trace = []
+        for child_node in node['children']:
+            children_trace.extend(self.__parse_node(
+                child_node, depth=child_depth, thread=thread, has_asc_note=child_asc_note, scope=new_scope
+            ))
 
-            if not self.user.triangles:
-                return [enter_data] + children_trace
+        # New scope can be added while children parsing
+        if new_scope in self.shown_scopes:
+            # Open scope by default if its scope is shown and show action scope
+            self.shown_scopes.add(scope)
+            enter_data['opened'] = True
 
-            # Closing triangle
-            exit_data = self.__parse_exit(depth, thread, act_scope)
-            return [enter_data] + children_trace + [exit_data]
+        if not self.user.triangles:
+            return [enter_data] + children_trace
+
+        # Closing triangle
+        exit_data = self.__parse_exit(depth, thread, new_scope)
+        return [enter_data] + children_trace + [exit_data]
 
     def __parse_statement(self, node, depth, thread, scope):
         statement_data = {

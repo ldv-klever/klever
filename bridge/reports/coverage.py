@@ -26,38 +26,20 @@ from django.utils.translation import ugettext_lazy as _
 from bridge.vars import ETV_FORMAT, COVERAGE_FILE
 from bridge.utils import ArchiveFileContent, BridgeException, construct_url
 
-from reports.models import (
-    CoverageArchive, ReportComponent, ReportSafe, ReportUnsafe, ReportUnknown,
-    CoverageStatistics, CoverageDataStatistics
-)
+from reports.models import CoverageArchive, ReportUnknown, CoverageStatistics, CoverageDataStatistics
 
 ROOT_DIRS_ORDER = ['source files', 'specifications', 'generated models']
 
 
-def coverage_url_and_total(report, many=False):
-    url_name = 'reports:coverage'
-    if isinstance(report, (ReportSafe, ReportUnsafe)):
-        cov_qs = CoverageArchive.objects.filter(report_id=getattr(report, 'parent_id')).only('total')
-        if len(cov_qs):
-            return construct_url(url_name, getattr(report, 'parent_id')), cov_qs[0].total
-    elif isinstance(report, ReportUnknown):
-        cov_qs = CoverageArchive.objects.filter(
-            report_id=getattr(report, 'parent_id'), report__verification=True
-        ).only('total')
-        if len(cov_qs):
-            return construct_url(url_name, getattr(report, 'parent_id')), cov_qs[0].total
-    elif isinstance(report, ReportComponent):
-        if report.verification:
-            cov_qs = CoverageArchive.objects.filter(report_id=report.id).only('total')
-            if len(cov_qs):
-                return construct_url(url_name, report.id), cov_qs[0].total
-        elif many:
-            cov_qs = CoverageArchive.objects\
-                .filter(report_id=report.id).exclude(identifier='').only('id', 'identifier')
-            return list({
-                'name': cov.identifier, 'total': cov.total,
-                'url': construct_url(url_name, report.id, coverage_id=cov.id)
-            } for cov in cov_qs)
+def coverage_url_and_total(report):
+    # report should be a leaf
+    report_parent_id = getattr(report, 'parent_id')
+    qs_filters = {'report_id': report_parent_id}
+    if isinstance(report, ReportUnknown):
+        qs_filters['report__verification'] = True
+    cov_obj = CoverageArchive.objects.filter(**qs_filters).only('total').first()
+    if cov_obj:
+        return construct_url('reports:coverage', report_parent_id), cov_obj.total
     return None, None
 
 
@@ -146,36 +128,70 @@ class GetCoverageStatistics:
         return statistics
 
 
-class JobCoverageStatistics:
-    def __init__(self, job, coverage_id=None):
-        self._job = job
+class CoverageStatisticsBase:
+    def __init__(self, coverage_id=None):
         self._coverage_id = coverage_id
+
+    def coverage_queryset(self):
+        raise NotImplementedError('Coverage queryset is not implemented')
+
+    def coverage_api(self, coverage_id):
+        raise NotImplementedError('Coverage api url constructor is not implemented')
 
     @cached_property
     def coverages(self):
-        cov_qs = CoverageArchive.objects.filter(report__root__job_id=self._job.id)\
-            .exclude(identifier='').only('id', 'identifier')
+        cov_qs = self.coverage_queryset()
         return list({
-                        'name': cov.identifier, 'total': cov.total,
-                        'url': construct_url('jobs:api-get-coverage', self._job.id, coverage_id=cov.id)
-                    } for cov in cov_qs)
+            'name': cov.identifier, 'total': cov.total, 'url': self.coverage_api(cov.id),
+            'details_url': construct_url('reports:coverage', cov.report_id, coverage_id=cov.id)
+        } for cov in cov_qs.only('id', 'identifier'))
 
     @cached_property
     def statistics(self):
-        cov_qs = CoverageArchive.objects.filter(report__root__job_id=self._job.id).exclude(identifier='')
+        cov_qs = self.coverage_queryset()
         if self._coverage_id:
             cov_obj = cov_qs.filter(id=self._coverage_id).first()
         else:
             cov_obj = cov_qs.first()
         if not cov_obj:
             return None
-        title = cov_obj.identifier
-        if cov_obj.total:
-            title += ' ({}/{})'.format(cov_obj.total['lines'], cov_obj.total['funcs'])
-        return {
-            'title': title, 'objects': CoverageStatistics.objects.filter(coverage=cov_obj).order_by('id'),
-            'url': construct_url('reports:coverage', cov_obj.report_id, coverage_id=cov_obj.id)
-        }
+        return CoverageStatistics.objects.filter(coverage=cov_obj).order_by('id')
+
+
+class JobCoverageStatistics(CoverageStatisticsBase):
+    def __init__(self, job, coverage_id=None):
+        self._job = job
+        super(JobCoverageStatistics, self).__init__(coverage_id=coverage_id)
+
+    def coverage_queryset(self):
+        return CoverageArchive.objects.filter(report__root__job_id=self._job.id).exclude(identifier='')
+
+    def coverage_api(self, coverage_id):
+        return construct_url('jobs:api-get-coverage', self._job.id, coverage_id=coverage_id)
+
+
+class ReportCoverageStatistics(CoverageStatisticsBase):
+    def __init__(self, report, coverage_id=None):
+        self._report = report
+        super(ReportCoverageStatistics, self).__init__(coverage_id=coverage_id)
+
+    def coverage_queryset(self):
+        return CoverageArchive.objects.filter(report=self._report).exclude(identifier='')
+
+    def coverage_api(self, coverage_id):
+        return construct_url('reports:api-coverage-table', self._report.id, coverage_id=coverage_id)
+
+
+class VerificationCoverageStatistics(CoverageStatisticsBase):
+    def __init__(self, report):
+        self._report = report
+        super(VerificationCoverageStatistics, self).__init__()
+
+    def coverage_queryset(self):
+        return CoverageArchive.objects.filter(report=self._report)
+
+    def coverage_api(self, coverage_id):
+        return construct_url('reports:api-coverage-table', self._report.id)
 
 
 class FillCoverageStatistics:
