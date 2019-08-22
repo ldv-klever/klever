@@ -35,7 +35,7 @@
                         <td><a href="{{ cov.url }}" class="item coverage-link">{{ cov.name }}</a></td>
                         <td>{% if cov.total %}{{ cov.total.lines }}{% else %}-{% endif %}</td>
                         <td>{% if cov.total %}{{ cov.total.funcs }}{% else %}-{% endif %}</td>
-                        <td><a href="{{ cov.details_url }}" target="_blank">...</a></td>
+                        <td><a href="{{ cov.details_url }}">...</a></td>
                     </tr>
                 {% endfor %}
             </tbody>
