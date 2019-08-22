@@ -265,19 +265,15 @@ class StartJobDecision:
         ReportRoot.objects.filter(job=self._job).delete()
         ReportRoot.objects.create(user=self.operator, job=self._job)
         Decision.objects.filter(job=self._job).delete()
-        conf = self.__save_configuration()
+        conf_db = file_get_or_create(
+            json.dumps(self.configuration, indent=2, sort_keys=True, ensure_ascii=False),
+            'job-{}.json'.format(self._job.identifier), JobFile
+        )
         Decision.objects.create(
             job=self._job, fake=self._fake, scheduler=self._scheduler,
-            priority=self.configuration['priority'], configuration=conf
+            priority=self.configuration['priority'], configuration=conf_db
         )
-        RunHistory.objects.create(job=self._job, operator=self.operator, configuration=conf, date=now())
-
-    def __save_configuration(self):
-        self.configuration['identifier'] = str(self._job.identifier)
-        db_file = file_get_or_create(
-            json.dumps(self.configuration, indent=2, sort_keys=True, ensure_ascii=False),
-            'job-{}.json'.format(self._job.identifier), JobFile)
-        return db_file
+        RunHistory.objects.create(job=self._job, operator=self.operator, configuration=conf_db, date=now())
 
 
 class TaskArchiveGenerator(FileWrapper):
