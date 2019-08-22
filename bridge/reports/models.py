@@ -221,13 +221,13 @@ class CoverageStatistics(models.Model):
     def lines_percentage(self):
         if not self.lines_total:
             return '-'
-        return '{}%'.format(int(100 * self.lines_covered / self.lines_total))
+        return '{}%'.format(round(100 * self.lines_covered / self.lines_total))
 
     @property
     def funcs_percentage(self):
         if not self.funcs_total:
             return '-'
-        return '{}%'.format(int(100 * self.funcs_covered / self.funcs_total))
+        return '{}%'.format(round(100 * self.funcs_covered / self.funcs_total))
 
     @property
     def lines_color(self):
