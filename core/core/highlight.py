@@ -21,7 +21,7 @@ class Highlight:
         self.highlights = list()
 
     # Go to the next line, reset current token start offset and skip normal location update when meet new line symbol.
-    def go_to_next_line(self, c):
+    def go_to_next_line(self, c='\n'):
         if c == '\n':
             self.cur_line_numb += 1
             self.cur_start_offset = 0
@@ -36,7 +36,6 @@ class Highlight:
 
             # Handle token types that do not need special processing.
             if token_type in (
-                Comment,
                 Comment.PreprocFile,
                 Comment.Single,
                 Keyword,
@@ -59,6 +58,24 @@ class Highlight:
                     self.cur_start_offset,
                     self.cur_start_offset + token_len
                 ])
+            # Trailing "\n" may be included into single line comment.
+            elif token_type is Comment:
+                if token_text[-1] == '\n':
+                    self.highlights.append([
+                        'C',
+                        self.cur_line_numb,
+                        self.cur_start_offset,
+                        self.cur_start_offset + token_len - 1
+                    ])
+                    self.go_to_next_line()
+                    continue
+                else:
+                    self.highlights.append([
+                        'C',
+                        self.cur_line_numb,
+                        self.cur_start_offset,
+                        self.cur_start_offset + token_len
+                    ])
             elif token_type is Comment.Multiline:
                 comment_start_offset = self.cur_start_offset
 
@@ -89,12 +106,23 @@ class Highlight:
                 if self.go_to_next_line(token_text):
                     continue
 
-                self.highlights.append([
-                    'CP',
-                    self.cur_line_numb,
-                    self.cur_start_offset,
-                    self.cur_start_offset + token_len
-                ])
+                # Trailing "\n" could be included into Comment.Preproc like for Comment.
+                if token_text[-1] == '\n':
+                    self.highlights.append([
+                        'CP',
+                        self.cur_line_numb,
+                        self.cur_start_offset,
+                        self.cur_start_offset + token_len - 1
+                    ])
+                    self.go_to_next_line()
+                    continue
+                else:
+                    self.highlights.append([
+                        'CP',
+                        self.cur_line_numb,
+                        self.cur_start_offset,
+                        self.cur_start_offset + token_len
+                    ])
             # Highlighting for functions is performed together with building cross references.
             elif token_type is Name.Function:
                 pass
