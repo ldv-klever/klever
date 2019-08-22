@@ -103,7 +103,13 @@ class Highlight:
                 pass
             # There is no special highlighting for text.
             elif token_type is Text:
-                if self.go_to_next_line(token_text):
+                # Sometimes "\n" is concatenated with text from following lines.
+                if len(token_text) == 1:
+                    if self.go_to_next_line(token_text):
+                        continue
+                elif self.go_to_next_line(token_text[0]):
+                    # Skip the rest of text token length.
+                    self.cur_start_offset += token_len - 1
                     continue
             else:
                 self.logger.warning("Does not support token \"{0}\" of type \"{1}\"".format(token_text, token_type))
