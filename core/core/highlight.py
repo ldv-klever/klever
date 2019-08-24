@@ -84,12 +84,14 @@ class Highlight:
                     cur_line_numb = self.cur_line_numb
                     cur_start_offset = self.cur_start_offset
                     if self.go_to_next_line(c):
-                        self.highlights.append([
-                            'CM',
-                            cur_line_numb,
-                            comment_start_offset,
-                            cur_start_offset
-                        ])
+                        # There may be empty lines containing just "\n" within multiline comments.
+                        if comment_start_offset < cur_start_offset:
+                            self.highlights.append([
+                                'CM',
+                                cur_line_numb,
+                                comment_start_offset,
+                                cur_start_offset
+                            ])
                         comment_start_offset = self.cur_start_offset
                     else:
                         self.cur_start_offset += 1
