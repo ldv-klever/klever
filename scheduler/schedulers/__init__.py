@@ -152,6 +152,7 @@ class Scheduler:
 
                         if status == '1':
                             job_conf = self.server.pull_job_conf(identifier)
+                            job_conf['identifier'] = identifier
                             job_conf['configuration']['task resource limits'] = job_conf['tasks']
                             # TODO: Get Verifier Cloud login and password
 

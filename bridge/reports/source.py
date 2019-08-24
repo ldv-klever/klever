@@ -92,12 +92,10 @@ class SourceLine:
         h_dict = OrderedDict()
         prev_end = 0
         for h_name, start, end in sorted(highlights, key=lambda x: (x[1], x[2])):
-            assert isinstance(start, int) and isinstance(end, int),\
-                'integers expected, got "{}" and "{}"'.format(start, end)
-            assert prev_end <= start < end,\
-                'wrong values, {} <= {} < {} expected'.format(prev_end, start, end)
-            assert h_name in HIGHLIGHT_CLASSES,\
-                'highlight class "{}" is not supported'.format(h_name)
+            self.__assert_int(start, end)
+            self.__check_range(start, end, prev_end)
+            if h_name not in HIGHLIGHT_CLASSES:
+                raise ValueError('class "{}" is not supported'.format(h_name))
             if prev_end < start:
                 h_dict[(prev_end, start)] = None
             h_dict[(start, end)] = HIGHLIGHT_CLASSES[h_name]
@@ -105,7 +103,7 @@ class SourceLine:
         if prev_end < self._source_len:
             h_dict[(prev_end, self._source_len)] = None
         elif prev_end > self._source_len:
-            raise ValueError('sources length is not enough to highlight code')
+            raise ValueError('source line is too short to highlight code')
         return h_dict
 
     def __get_references(self, references_to, references_from):
@@ -115,8 +113,7 @@ class SourceLine:
             references_from = []
         references = []
         for (line_num, ref_start, ref_end), (file_ind, file_line) in references_to:
-            assert all(isinstance(x, int) for x in (line_num, ref_start, ref_end, file_line)),\
-                'integers expected, got "{}"'.format((line_num, ref_start, ref_end, file_line))
+            self.__assert_int(line_num, ref_start, ref_end, file_line)
             references.append([ref_start, ref_end, {
                 'span_class': self.ref_to_class,
                 'span_data': {'file': file_ind, 'line': file_line}
@@ -124,8 +121,7 @@ class SourceLine:
 
         for ref_data in references_from:
             line_num, ref_start, ref_end = ref_data[0]
-            assert all(isinstance(x, int) for x in (line_num, ref_start, ref_end)),\
-                'integers expected, got "{}"'.format((line_num, ref_start, ref_end))
+            self.__assert_int(line_num, ref_start, ref_end)
             ref_from_id = 'reflink_{}_{}_{}'.format(*ref_data[0])
             references.append([ref_start, ref_end, {
                 'span_class': self.ref_from_class,
@@ -134,9 +130,10 @@ class SourceLine:
 
             reflist_data = {'id': ref_from_id, 'sources': []}
             for file_ind, file_lines in ref_data[1:]:
-                assert isinstance(file_lines, list), 'file lines is not a list'
+                if not isinstance(file_lines, list):
+                    raise ValueError('file lines is not a list')
                 for file_line in file_lines:
-                    assert isinstance(file_line, int), 'file line is not an integer'
+                    self.__assert_int(file_line)
                     reflist_data['sources'].append((file_ind, file_line))
             self.references_data.append(reflist_data)
 
@@ -144,11 +141,10 @@ class SourceLine:
 
         prev_end = 0
         for ref_start, ref_end, span_kwargs in reversed(references):
-            assert prev_end <= ref_start < ref_end,\
-                'wrong values, {} <= {} < {} expected'.format(prev_end, ref_start, ref_end)
+            self.__check_range(ref_start, ref_end, prev_end)
             prev_end = ref_end
-        assert prev_end <= self._source_len,\
-            'wrong values, {} <= {} expected'.format(prev_end, self._source_len)
+        if self._source_len < prev_end:
+            raise ValueError('source line is too short to add reference')
         return references
 
     def __get_code(self, start, end):
@@ -196,6 +192,17 @@ class SourceLine:
     @property
     def _span_close(self):
         return '</span>'
+
+    def __check_range(self, start, end, prev_end):
+        if prev_end > start:
+            raise ValueError('ranges are overlapping')
+        if start >= end:
+            raise ValueError('range is incorrect')
+
+    def __assert_int(self, *args):
+        for value in args:
+            if not isinstance(value, int):
+                raise ValueError('type of "{}" is "{}", int expected'.format(value, type(value)))
 
 
 class GetSource:
