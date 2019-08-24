@@ -140,8 +140,20 @@ class Highlight:
                         continue
                 elif token_text[-1] == '\n':
                     self.go_to_next_line()
+
+                    # There may be extra "\n" before the last one.
+                    i = 2
+                    while i <= token_len:
+                        if token_text[-i] == '\n':
+                            self.go_to_next_line()
+                            i += 1
+                        else:
+                            assert '\n' not in token_text[:-i]
+                            break
+
                     continue
                 elif self.go_to_next_line(token_text[0]):
+                    assert '\n' not in token_text[1:]
                     # Skip the rest of text token length.
                     self.cur_start_offset += token_len - 1
                     continue
