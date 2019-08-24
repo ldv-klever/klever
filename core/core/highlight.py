@@ -101,6 +101,7 @@ class Highlight:
                     comment_start_offset,
                     self.cur_start_offset
                 ])
+                continue
             elif token_type is Comment.Preproc:
                 # "\n" at the end of preprocessor directives is treated as Comment.Preproc rather than Text.
                 if self.go_to_next_line(token_text):
