@@ -709,6 +709,10 @@ class Speculative(Runner):
                 memdev = devn(newsum, statistics['number'])
                 statistics.update({'mean mem': newmean, 'memsum': newsum, 'memdev': memdev})
 
+            # Be very accurate with the condition below. It is duplicated in client because currently Bridge can receive
+            # a single solution and timeout speculative task solutions might not be uploaded at all. This can be
+            # difficult to reveal, thus after changing the code below examine the code in the client script that uploads
+            # solutions
             if status == 'TIMEOUT' and lim and resources['memory size'] <= 0.7 * lim.get('memory size', 0):
                 # This is a timeout that will not be solved with an increased memory limitation
                 self._del_task(job_identifier, attribute, identifier)
