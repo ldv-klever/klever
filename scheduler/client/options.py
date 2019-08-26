@@ -15,7 +15,6 @@
 # limitations under the License.
 #
 
-from xml.dom import minidom
 from xml.etree import ElementTree
 
 
@@ -59,4 +58,4 @@ def cpa_adjustment(file, conf):
 
     if rewrite:
         with open(file, "w", encoding="utf8") as fp:
-            fp.write(minidom.parseString(ElementTree.tostring(root)))
+            fp.write(ElementTree.tostring(root))
