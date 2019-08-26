@@ -100,7 +100,6 @@ class Runner:
         :param identifier: Verification task identifier.
         :param item: Dictionary with task description.
         """
-        self.logger.debug("Prepare new task {} before launching".format(identifier))
         try:
             # Add missing restrictions
             self._prepare_task(identifier, item["description"])
@@ -643,14 +642,7 @@ class Speculative(Runner):
 
         # Check do we have some statistics already
         speculative = False
-        if job["solved"] > (0.1 * job.get("total tasks")):
-            self.logger.debug("We already solved 10% of tasks and might do rescheduling")
-        if job["limits"][attribute]["statistics"] and job["limits"][attribute]["statistics"]["number"] > 5:
-            self.logger.debug("We already have enough statistics to perform rescheduling for {!r}".format(attribute))
-            self.logger.debug("Current mean memory consumption is {}B and error is {}B".
-                              format(job["limits"][attribute]["statistics"]['mean mem'],
-                                     job["limits"][attribute]["statistics"]['memdev']))
-        if limits.get('memory size', 0) > 0 and \
+        if limits.get('memory size', 0) > 0 and job.get("total tasks") and \
                 ((limits.get('CPU time') and limits['CPU time'] <= qos['CPU time']) or
                  not limits.get('CPU time')) and not self._is_there(job_identifier, attribute, identifier) and \
                 job.get("total tasks", 0) and job["solved"] > (0.1 * job.get("total tasks")) and \
@@ -658,15 +650,10 @@ class Speculative(Runner):
             statistics = job["limits"][attribute]["statistics"]
             limits['memory size'] = statistics['mean mem'] + 2*statistics['memdev']
             if limits['memory size'] < qos['memory size']:
-                self.logger.debug("Issue less memory limit for for {}:{}: {}B".
-                                  format(attribute, identifier, limits['memory size']))
                 speculative = True
             else:
-                self.logger.debug("Required {}B memory which is more than QoS limit {}B".format(limits['memory size'],
-                                                                                                qos['memory size']))
                 limits = dict(qos)
         elif self._is_there(job_identifier, attribute, identifier):
-            self.logger.debug("Issue given limit for {}:{}".format(attribute, identifier))
             limits = dict(qos)
 
         element["limitation"] = limits
@@ -722,7 +709,11 @@ class Speculative(Runner):
                 memdev = devn(newsum, statistics['number'])
                 statistics.update({'mean mem': newmean, 'memsum': newsum, 'memdev': memdev})
 
-            if status in ('OUT OF MEMORY', 'TIMEOUT') and lim and \
+            if status == 'TIMEOUT' and lim and resources['memory size'] <= 0.7 * lim.get('memory size', 0):
+                # This is a timeout that will not be solved with an increased memory limitation
+                self._del_task(job_identifier, attribute, identifier)
+                return True
+            elif status in ('OUT OF MEMORY', 'TIMEOUT') and lim and \
                     (lim.get('memory size', 0) < qos.get('memory size', 0)) or \
                     (lim.get('CPU time', 0) < qos.get('CPU time', 0)):
                 return False
