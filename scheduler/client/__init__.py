@@ -26,6 +26,7 @@ import re
 
 from utils import execute, process_task_results, submit_task_results, memory_units_converter, time_units_converter
 from server.bridge import Server
+from client.options import adjust_options
 
 
 def run_benchexec(mode, file=None, configuration=None):
@@ -168,6 +169,9 @@ def solve_task(logger, conf, server):
         zfp.extractall()
 
     os.makedirs("output".encode("utf8"), exist_ok=True)
+
+    # Replace benchmark.xml
+    adjust_options('benchmark.xml', conf)
 
     args = prepare_task_arguments(logger, conf)
     exit_code = run(logger, args, conf, logger=logger)
