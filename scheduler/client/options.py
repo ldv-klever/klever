@@ -57,5 +57,4 @@ def cpa_adjustment(file, conf):
                     rewrite = True
 
     if rewrite:
-        with open(file, "w", encoding="utf8") as fp:
-            fp.write(ElementTree.tostring(root))
+        tree.write(file, encoding='utf8')
