@@ -655,14 +655,21 @@ class Job(core.components.Component):
                 # Get raw references to/from for a given source file. There is the only key-value pair in dictionaries
                 # returned by Clade where keys are always source file names.
                 storage_file = os.path.join(os.path.sep, storage_file)
-                raw_refs_to = self.clade.get_ref_to([storage_file])
-                raw_refs_to = list(raw_refs_to.values())[0] if raw_refs_to else {'decl': [], 'def': []}
+                raw_refs_to = {
+                    'decl_func': [],
+                    'def_func': [],
+                    'def_macro': []
+                }
+                clade_refs_to = self.clade.get_ref_to([storage_file])
+                if clade_refs_to:
+                    raw_refs_to.update(list(clade_refs_to.values())[0])
+
                 raw_refs_from = self.clade.get_ref_from([storage_file])
                 raw_refs_from = list(raw_refs_from.values())[0] if raw_refs_from else []
 
                 # Get full list of referred source file names.
                 ref_src_files = set()
-                for ref_to_kind in ('def',):
+                for ref_to_kind in ('decl_func', 'def_func'):
                     for raw_ref_to in raw_refs_to[ref_to_kind]:
                         ref_src_files.add(raw_ref_to[1][0])
                 for raw_ref_from in raw_refs_from:
@@ -679,7 +686,7 @@ class Job(core.components.Component):
                 # TODO: deal with declarations. There may be cases when there is just definition, just declaration or them both.
                 # Convert references to.
                 refs_to = []
-                for ref_to_kind in ('def',):
+                for ref_to_kind in ('def_func',):
                     for raw_ref_to in raw_refs_to[ref_to_kind]:
                         refs_to.append([
                             # Take location of entity usage as is.
