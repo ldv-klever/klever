@@ -46,6 +46,7 @@ HIGHLIGHT_CLASSES = {
     'LSE': 'SrcHlLSE',
     'N': 'SrcHlN',
     'NB': 'SrcHlNB',
+    'NF': 'SrcHlNF',
     'NL': 'SrcHlNL',
     'O': 'SrcHlO',
     'FuncDefRefTo': 'SrcHlFuncDefRefTo',

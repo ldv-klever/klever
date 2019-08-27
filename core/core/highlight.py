@@ -64,6 +64,7 @@ class Highlight:
                 Literal.String.Escape,
                 Name,
                 Name.Builtin,
+                Name.Function,
                 Name.Label,
                 Operator
             ):
@@ -97,11 +98,6 @@ class Highlight:
 
                 # Add last multiline comment line.
                 self.highligh_token(token_type, cur_end_offset - self.cur_start_offset)
-                continue
-            # Highlighting for functions is performed together with building cross references.
-            elif token_type is Name.Function:
-                # Update current start offset for following tokens.
-                self.cur_start_offset += token_len
                 continue
             # There is no special highlighting for punctuation.
             elif token_type is Punctuation:
