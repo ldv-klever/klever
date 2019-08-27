@@ -21,6 +21,14 @@ class Highlight:
         # List of entities (each represented as kind, line number, start and end offsets) to be highligted
         self.highlights = list()
 
+        # Workaround for missed "\n" at the beginning of source file that do not become tokens.
+        self.initial_new_lines_numb = 0
+        for c in src:
+            if c == '\n':
+                self.initial_new_lines_numb += 1
+            else:
+                break
+
     # Go to the next line, reset current token start offset and skip normal location update when meet new line symbol.
     def go_to_next_line(self, c='\n'):
         if c == '\n':
@@ -49,6 +57,13 @@ class Highlight:
         for token in self.tokens:
             token_type, token_text = tuple(token)
             token_len = len(token_text)
+
+            # Workaround for missed "\n" at the beginning of source file that do not become tokens.
+            if self.initial_new_lines_numb:
+                if token_text != '\n':
+                    self.cur_line_numb += self.initial_new_lines_numb
+
+                self.initial_new_lines_numb = 0
 
             # Handle token types that do not need special processing.
             if token_type in (
