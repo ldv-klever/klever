@@ -76,6 +76,14 @@
 .SrcHlCP {
     color: #BC7A00
 }
+.SrcHlCPF {
+    color: #408080;
+    font-style: italic
+}
+.SrcHlCS {
+    color: #408080;
+    font-style: italic
+}
 .SrcHlK {
     color: #008000;
 }

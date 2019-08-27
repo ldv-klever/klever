@@ -33,6 +33,8 @@ HIGHLIGHT_CLASSES = {
     'C': 'SrcHlC',
     'CM': 'SrcHlCM',
     'CP': 'SrcHlCP',
+    'CPF': 'SrcHlCPF',
+    'CS': 'SrcHlCS',
     'K': 'SrcHlK',
     'KR': 'SrcHlKR',
     'KT': 'SrcHlKT',
