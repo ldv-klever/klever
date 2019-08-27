@@ -642,18 +642,21 @@ class Speculative(Runner):
 
         # Check do we have some statistics already
         speculative = False
-        if limits.get('memory size', 0) > 0 and job.get("total tasks") and \
+        if limits.get('memory size', 0) > 0 and \
                 ((limits.get('CPU time') and limits['CPU time'] <= qos['CPU time']) or
                  not limits.get('CPU time')) and not self._is_there(job_identifier, attribute, identifier) and \
-                job.get("total tasks", 0) and job["solved"] > (0.1 * job.get("total tasks")) and \
-                job["limits"][attribute]["statistics"] and job["limits"][attribute]["statistics"]["number"] > 5:
+                 job.get("total tasks", None) and job.get("solved", 0) > (0.05 * job.get("total tasks", 0)) and \
+                 job["limits"][attribute]["statistics"] and job["limits"][attribute]["statistics"]["number"] > 5:
             statistics = job["limits"][attribute]["statistics"]
-            limits['memory size'] = statistics['mean mem'] + 2*statistics['memdev']
+            limits['memory size'] = statistics['mean mem'] + 2 * statistics['memdev']
             if limits['memory size'] < qos['memory size']:
+                self.logger.info("Try running task {} with a speculative limitation".format(identifier))
                 speculative = True
             else:
+                self.logger.info("Estimation is too high, keep default limitation for task {}".format(identifier))
                 limits = dict(qos)
         elif self._is_there(job_identifier, attribute, identifier):
+            self.logger.info("Do not yield speculative limit for task {}".format(identifier))
             limits = dict(qos)
 
         element["limitation"] = limits
@@ -716,11 +719,14 @@ class Speculative(Runner):
             if status == 'TIMEOUT' and lim and resources['memory size'] <= 0.7 * lim.get('memory size', 0):
                 # This is a timeout that will not be solved with an increased memory limitation
                 self._del_task(job_identifier, attribute, identifier)
+                self.logger.info("Accept timeout task {} even with a speculative restriction".format(identifier))
                 return True
             elif status in ('OUT OF MEMORY', 'TIMEOUT') and lim and \
                     (lim.get('memory size', 0) < qos.get('memory size', 0)) or \
                     (lim.get('CPU time', 0) < qos.get('CPU time', 0)):
+                self.logger.info("Do not accept timeout task {} with a speculative restriction".format(identifier))
                 return False
 
+        self.logger.info("Task {} is considered as solved".format(identifier))
         self._del_task(job_identifier, attribute, identifier)
         return True

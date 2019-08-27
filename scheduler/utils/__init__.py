@@ -336,10 +336,6 @@ def execute(args, env=None, cwd=None, timeout=0.5, logger=None, stderr=sys.stder
                                                   '' if len(args) == 1 else ' ',
                                                   ' '.join('"{0}"'.format(arg) for arg in args[1:])))
 
-        logger.debug('Execute:\n{0}{1}{2}'.format(cmd,
-                                                  '' if len(args) == 1 else ' ',
-                                                  ' '.join('"{0}"'.format(arg) for arg in args[1:])))
-
         p = subprocess.Popen(args, env=env, stderr=subprocess.PIPE, cwd=cwd, preexec_fn=os.setsid)
         disk_checker = activate_disk_limitation(p.pid, disk_limitation)
 
