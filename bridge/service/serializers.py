@@ -395,6 +395,8 @@ class SchedulerSerializer(serializers.ModelSerializer):
         decisions_qs = scheduler.decision_set.filter(
             job__status__in=[JOB_STATUS[1][0], JOB_STATUS[2][0], JOB_STATUS[6][0]]
         )
+        if scheduler.type == SCHEDULER_TYPE[0][0]:
+            decisions_qs = decisions_qs.select_related('job')
         for decision in decisions_qs:
             decision.tasks_pending = decision.tasks_processing = 0
             # Pending or processing tasks

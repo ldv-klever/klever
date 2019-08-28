@@ -172,7 +172,7 @@ class JobProgressAPIView(LoggedCallMixin, RetrieveUpdateAPIView):
         serializer.save()
 
 
-class JobConfigurationsAPIView(LoggedCallMixin, APIView):
+class JobConfigurationAPIView(LoggedCallMixin, APIView):
     def get(self, request, job_uuid):
         job = get_object_or_404(Job, identifier=job_uuid)
         res = ReadJobConfiguration(job)
