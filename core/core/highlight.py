@@ -1,3 +1,4 @@
+import re
 from pygments import lex
 from pygments.lexers import CLexer
 from pygments.token import Comment, Keyword, Literal, Name, Operator, Punctuation, Text
@@ -20,8 +21,16 @@ class Highlight:
         # List of entities (each represented as kind, line number, start and end offsets) to be highligted
         self.highlights = list()
 
+        # Workaround for missed "\n" at the beginning of source file that do not become tokens.
+        self.initial_new_lines_numb = 0
+        for c in src:
+            if c == '\n':
+                self.initial_new_lines_numb += 1
+            else:
+                break
+
     # Go to the next line, reset current token start offset and skip normal location update when meet new line symbol.
-    def go_to_next_line(self, c):
+    def go_to_next_line(self, c='\n'):
         if c == '\n':
             self.cur_line_numb += 1
             self.cur_start_offset = 0
@@ -29,16 +38,36 @@ class Highlight:
         else:
             return False
 
+    # Simple token highlighting.
+    def highligh_token(self, token_type, token_len):
+        if not token_len:
+            return
+
+        self.highlights.append([
+            # Get all capital letters from token type consisting of several parts.
+            ''.join([''.join(re.findall("[A-Z]", k)) for k in tuple(token_type)]),
+            self.cur_line_numb,
+            self.cur_start_offset,
+            self.cur_start_offset + token_len
+        ])
+        # Update current token start offset according to current token length.
+        self.cur_start_offset += token_len
+
     def highlight(self):
         for token in self.tokens:
             token_type, token_text = tuple(token)
             token_len = len(token_text)
 
+            # Workaround for missed "\n" at the beginning of source file that do not become tokens.
+            if self.initial_new_lines_numb:
+                if token_text != '\n':
+                    self.cur_line_numb += self.initial_new_lines_numb
+
+                self.initial_new_lines_numb = 0
+
             # Handle token types that do not need special processing.
             if token_type in (
-                Comment,
                 Comment.PreprocFile,
-                Comment.Single,
                 Keyword,
                 Keyword.Type,
                 Keyword.Reserved,
@@ -50,65 +79,60 @@ class Highlight:
                 Literal.String.Escape,
                 Name,
                 Name.Builtin,
+                Name.Function,
                 Name.Label,
                 Operator
             ):
-                self.highlights.append([
-                    ''.join([k[0] for k in tuple(token_type)]),
-                    self.cur_line_numb,
-                    self.cur_start_offset,
-                    self.cur_start_offset + token_len
-                ])
+                self.highligh_token(token_type, token_len)
+                continue
+            # Trailing "\n" may be included into single line comment and preprocessor directives.
+            elif token_type in (
+                Comment,
+                Comment.Preproc,
+                Comment.Single
+            ):
+                if token_text[-1] == '\n':
+                    self.highligh_token(token_type, token_len - 1)
+                    self.go_to_next_line()
+                    continue
+                else:
+                    self.highligh_token(token_type, token_len)
+                    continue
+            # Multiline comments include "\n".
             elif token_type is Comment.Multiline:
-                comment_start_offset = self.cur_start_offset
+                cur_end_offset = self.cur_start_offset
 
                 for c in token_text:
-                    # Remember current values as core.highlight.Highlight#go_to_next_line can modify them.
-                    cur_line_numb = self.cur_line_numb
-                    cur_start_offset = self.cur_start_offset
-                    if self.go_to_next_line(c):
-                        self.highlights.append([
-                            'C',
-                            cur_line_numb,
-                            comment_start_offset,
-                            cur_start_offset
-                        ])
+                    # Finish hanling of current comment line.
+                    if c == '\n':
+                        self.highligh_token(token_type, cur_end_offset - self.cur_start_offset)
+                        self.go_to_next_line()
+                        cur_end_offset = 0
                     else:
-                        self.cur_start_offset += 1
+                        cur_end_offset += 1
 
                 # Add last multiline comment line.
-                self.highlights.append([
-                    'C',
-                    self.cur_line_numb,
-                    comment_start_offset,
-                    self.cur_start_offset
-                ])
-            elif token_type is Comment.Preproc:
-                # "\n" at the end of preprocessor directives is treated as Comment.Preproc rather than Text.
-                if self.go_to_next_line(token_text):
-                    continue
-
-                self.highlights.append([
-                    'CP',
-                    self.cur_line_numb,
-                    self.cur_start_offset,
-                    self.cur_start_offset + token_len
-                ])
-            # Highlighting for functions is performed together with building cross references.
-            elif token_type is Name.Function:
-                pass
+                self.highligh_token(token_type, cur_end_offset - self.cur_start_offset)
+                continue
             # There is no special highlighting for punctuation.
             elif token_type is Punctuation:
-                pass
-            # There is no special highlighting for text.
+                # Update current start offset for following tokens.
+                self.cur_start_offset += token_len
+                continue
+            # There is no special highlighting for text but there may be one or more "\n" at the beginning, in the
+            # middle or at the end.
             elif token_type is Text:
-                if self.go_to_next_line(token_text):
-                    continue
+                for c in token_text:
+                    if not self.go_to_next_line(c):
+                        # Update current start offset for following tokens.
+                        self.cur_start_offset += 1
+
+                continue
             else:
                 self.logger.warning("Does not support token \"{0}\" of type \"{1}\"".format(token_text, token_type))
+                continue
 
-            # Update current token start offset according to current token length.
-            self.cur_start_offset += token_len
+            raise RuntimeError("Token processing should not pass here")
 
     # In core.highlight.Highlight#highlight we assume that highlighted entity locations do not overlap. But there may
     # be other more important sources for highlighting, e.g. for cross referencing, so, we may need to remove overlaps.

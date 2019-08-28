@@ -31,7 +31,10 @@ TAB_LENGTH = 4
 
 HIGHLIGHT_CLASSES = {
     'C': 'SrcHlC',
+    'CM': 'SrcHlCM',
     'CP': 'SrcHlCP',
+    'CPF': 'SrcHlCPF',
+    'CS': 'SrcHlCS',
     'K': 'SrcHlK',
     'KR': 'SrcHlKR',
     'KT': 'SrcHlKT',
@@ -39,9 +42,11 @@ HIGHLIGHT_CLASSES = {
     'LNH': 'SrcHlLNH',
     'LNO': 'SrcHlLNO',
     'LS': 'SrcHlLS',
+    'LSC': 'SrcHlLSC',
     'LSE': 'SrcHlLSE',
     'N': 'SrcHlN',
     'NB': 'SrcHlNB',
+    'NF': 'SrcHlNF',
     'NL': 'SrcHlNL',
     'O': 'SrcHlO',
     'FuncDefRefTo': 'SrcHlFuncDefRefTo',

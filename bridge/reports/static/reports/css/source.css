@@ -69,16 +69,26 @@
     color: #408080;
     font-style: italic
 }
+.SrcHlCM {
+    color: #408080;
+    font-style: italic
+}
 .SrcHlCP {
     color: #BC7A00
 }
+.SrcHlCPF {
+    color: #408080;
+    font-style: italic
+}
+.SrcHlCS {
+    color: #408080;
+    font-style: italic
+}
 .SrcHlK {
     color: #008000;
-    font-weight: bold
 }
 .SrcHlKR {
     color: #008000;
-    font-weight: bold
 }
 .SrcHlKT {
     color: #B00040
@@ -95,15 +105,20 @@
 .SrcHlLS {
     color: #BA2121
 }
+.SrcHlLSC {
+    color: #BA2121
+}
 .SrcHlLSE {
     color: #BB6622;
-    font-weight: bold
 }
 .SrcHlN {
-    color: #00677c
+    color: #191970
 }
 .SrcHlNB {
     color: #008000
+}
+.SrcHlNF {
+    color: #0000FF
 }
 .SrcHlNL {
     color: #A0A000
