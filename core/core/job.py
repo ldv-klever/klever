@@ -655,18 +655,31 @@ class Job(core.components.Component):
                 # Get raw references to/from for a given source file. There is the only key-value pair in dictionaries
                 # returned by Clade where keys are always source file names.
                 storage_file = os.path.join(os.path.sep, storage_file)
-                raw_refs_to = self.clade.get_ref_to([storage_file])
-                raw_refs_to = list(raw_refs_to.values())[0] if raw_refs_to else {'decl': [], 'def': []}
-                raw_refs_from = self.clade.get_ref_from([storage_file])
-                raw_refs_from = list(raw_refs_from.values())[0] if raw_refs_from else []
+                raw_refs_to = {
+                    'decl_func': [],
+                    'def_func': [],
+                    'def_macro': []
+                }
+                clade_refs_to = self.clade.get_ref_to([storage_file])
+                if clade_refs_to:
+                    raw_refs_to.update(list(clade_refs_to.values())[0])
+
+                raw_refs_from = {
+                    'call': [],
+                    'expand': []
+                }
+                clade_refs_from = self.clade.get_ref_from([storage_file])
+                if clade_refs_from:
+                    raw_refs_from.update(list(clade_refs_from.values())[0])
 
                 # Get full list of referred source file names.
                 ref_src_files = set()
-                for ref_to_kind in ('def',):
+                for ref_to_kind in ('decl_func', 'def_func', 'def_macro'):
                     for raw_ref_to in raw_refs_to[ref_to_kind]:
                         ref_src_files.add(raw_ref_to[1][0])
-                for raw_ref_from in raw_refs_from:
-                    ref_src_files.add(raw_ref_from[1][0])
+                for ref_from_kind in ('call', 'expand'):
+                    for raw_ref_from in raw_refs_from[ref_from_kind]:
+                        ref_src_files.add(raw_ref_from[1][0])
                 # Remove considered file from list - there is a special reference to it (Null).
                 if storage_file in ref_src_files:
                     ref_src_files.remove(storage_file)
@@ -678,8 +691,10 @@ class Job(core.components.Component):
 
                 # TODO: deal with declarations. There may be cases when there is just definition, just declaration or them both.
                 # Convert references to.
-                refs_to = []
-                for ref_to_kind in ('def',):
+                refs_to_funcs = []
+                refs_to_macros = []
+                for ref_to_kind in ('def_func', 'def_macro'):
+                    refs_to = refs_to_funcs if ref_to_kind == 'def_func' else refs_to_macros
                     for raw_ref_to in raw_refs_to[ref_to_kind]:
                         refs_to.append([
                             # Take location of entity usage as is.
@@ -693,28 +708,31 @@ class Job(core.components.Component):
                         ])
 
                 # Convert references from.
-                refs_from = []
+                refs_from_func_calls = []
+                refs_from_macro_expansions = []
                 cur_entity_location = None
-                for raw_ref_from in raw_refs_from:
-                    # TODO: final format supports merging of all references from the same file to the same entity.
-                    ref_from = [
-                        # Convert referring source file name to index in source files list.
-                        ref_src_files_dict[raw_ref_from[1][0]],
-                        # Take line number of entity usage as is.
-                        raw_ref_from[1][1]
-                    ]
+                for ref_from_kind in ('call', 'expand'):
+                    refs_from = refs_from_func_calls if ref_from_kind == 'call' else refs_from_macro_expansions
+                    for raw_ref_from in raw_refs_from[ref_from_kind]:
+                        # TODO: final format supports merging of all references from the same file to the same entity.
+                        ref_from = [
+                            # Convert referring source file name to index in source files list.
+                            ref_src_files_dict[raw_ref_from[1][0]],
+                            # Take line number of entity usage as is.
+                            raw_ref_from[1][1]
+                        ]
 
-                    # Join references to the same entity together. We assume that all references to the same entity are
-                    # provided by Clade continuously.
-                    if raw_ref_from[0] == cur_entity_location:
-                        refs_from[-1].append(ref_from)
-                    else:
-                        cur_entity_location = raw_ref_from[0]
-                        refs_from.append([
-                            # Take location of entity definition as is.
-                            raw_ref_from[0],
-                            ref_from
-                        ])
+                        # Join references to the same entity together. We assume that all references to the same entity
+                        # are provided by Clade continuously.
+                        if raw_ref_from[0] == cur_entity_location:
+                            refs_from[-1].append(ref_from)
+                        else:
+                            cur_entity_location = raw_ref_from[0]
+                            refs_from.append([
+                                # Take location of entity definition as is.
+                                raw_ref_from[0],
+                                ref_from
+                            ])
 
                 short_ref_src_files = []
                 for ref_src_file in ref_src_files:
@@ -724,14 +742,16 @@ class Job(core.components.Component):
                                                if tmp != ref_src_file else ref_src_file)
 
                 # Add special highlighting for non heuristically known entity references and referenced entities.
-                highlight.extra_highlight([['FuncDefRefTo', *ref_to[0]] for ref_to in refs_to])
-                highlight.extra_highlight([['FuncDefRefFrom', *ref_from[0]] for ref_from in refs_from])
+                highlight.extra_highlight([['FuncDefRefTo', *r[0]] for r in refs_to_funcs])
+                highlight.extra_highlight([['MacroDefRefTo', *r[0]] for r in refs_to_macros])
+                highlight.extra_highlight([['FuncCallRefFrom', *r[0]] for r in refs_from_func_calls])
+                highlight.extra_highlight([['MacroExpansionRefFrom', *r[0]] for r in refs_from_macro_expansions])
 
                 cross_ref = {
                     'format': self.INDEX_DATA_FORMAT_VERSION,
                     'source files': short_ref_src_files,
-                    'referencesto': refs_to,
-                    'referencesfrom': refs_from,
+                    'referencesto': refs_to_funcs + refs_to_macros,
+                    'referencesfrom': refs_from_func_calls + refs_from_macro_expansions,
                     'highlight': highlight.highlights
                 }
 

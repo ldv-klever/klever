@@ -50,7 +50,9 @@ HIGHLIGHT_CLASSES = {
     'NL': 'SrcHlNL',
     'O': 'SrcHlO',
     'FuncDefRefTo': 'SrcHlFuncDefRefTo',
-    'FuncDefRefFrom': 'SrcHlFuncDefRefFrom'
+    'MacroDefRefTo': 'SrcHlMacroDefRefTo',
+    'FuncCallRefFrom': 'SrcHlFuncCallRefFrom',
+    'MacroExpansionRefFrom': 'SrcHlMacroExpansionRefFrom'
 }
 
 COVERAGE_CLASSES = {

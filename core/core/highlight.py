@@ -160,8 +160,11 @@ class Highlight:
             self.highlights.append(extra_highlight)
 
 
-# TODO: remove!!!
-highlight = Highlight(None, '/home/novikov/work/klever-data/build bases/linux-3.14.79/Storage/home/novikov/work/klever-data/linux-stable/drivers/ata/pata_arasan_cf.c')
-highlight.highlight()
-for h in highlight.highlights:
-    print(h)
+# This is intended for testing purposes, when one has a build base and a source file and would like to debug its
+# highlighting.
+if __name__ == '__main__':
+    import sys
+    highlight = Highlight(None, sys.argv[1])
+    highlight.highlight()
+    for h in highlight.highlights:
+        print(h)

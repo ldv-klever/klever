@@ -127,11 +127,19 @@
     color: #666666
 }
 .SrcHlFuncDefRefTo {
-    color: #67238f;
+    color: #00008B;
     font-weight: bold;
 }
-.SrcHlFuncDefRefFrom {
-    color: #67238f;
+.SrcHlMacroDefRefTo {
+    color: #8B008B;
+    font-weight: bold;
+}
+.SrcHlFuncCallRefFrom {
+    color: #00008B;
+    font-weight: bold;
+}
+.SrcHlMacroExpansionRefFrom {
+    color: #8B008B;
     font-weight: bold;
 }
 
