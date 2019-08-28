@@ -669,7 +669,7 @@ class Job(core.components.Component):
 
                 # Get full list of referred source file names.
                 ref_src_files = set()
-                for ref_to_kind in ('decl_func', 'def_func'):
+                for ref_to_kind in ('decl_func', 'def_func', 'def_macro'):
                     for raw_ref_to in raw_refs_to[ref_to_kind]:
                         ref_src_files.add(raw_ref_to[1][0])
                 for raw_ref_from in raw_refs_from:
@@ -685,8 +685,10 @@ class Job(core.components.Component):
 
                 # TODO: deal with declarations. There may be cases when there is just definition, just declaration or them both.
                 # Convert references to.
-                refs_to = []
-                for ref_to_kind in ('def_func',):
+                refs_to_funcs = []
+                refs_to_macros = []
+                for ref_to_kind in ('def_func', 'def_macro'):
+                    refs_to = refs_to_funcs if ref_to_kind == 'def_func' else refs_to_macros
                     for raw_ref_to in raw_refs_to[ref_to_kind]:
                         refs_to.append([
                             # Take location of entity usage as is.
@@ -731,7 +733,8 @@ class Job(core.components.Component):
                                                if tmp != ref_src_file else ref_src_file)
 
                 # Add special highlighting for non heuristically known entity references and referenced entities.
-                highlight.extra_highlight([['FuncDefRefTo', *ref_to[0]] for ref_to in refs_to])
+                highlight.extra_highlight([['FuncDefRefTo', *ref_to_func[0]] for ref_to_func in refs_to_funcs])
+                highlight.extra_highlight([['MacroDefRefTo', *ref_to_macro[0]] for ref_to_macro in refs_to_macros])
                 highlight.extra_highlight([['FuncDefRefFrom', *ref_from[0]] for ref_from in refs_from])
 
                 cross_ref = {
