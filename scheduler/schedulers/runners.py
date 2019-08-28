@@ -157,7 +157,7 @@ class Runner:
         """
         try:
             # Do this again before running to maybe reduce limitations.
-            self._prepare_task(identifier, item["description"])
+            self.prepare_task(identifier, item)
             item["future"] = self._solve_task(identifier, item["description"], item["user"], item["password"])
             item["status"] = "PROCESSING"
             return True
@@ -669,7 +669,11 @@ class Speculative(Runner):
             elif self._is_there(job_identifier, attribute, identifier):
                 self.logger.debug('We already tried to solve this task until got timeout or memory limit')
             elif job.get("solved", 0) <= (0.05 * job.get("total tasks", 0)):
-                self.logger.debug('We have not solved enough tasks to yield speculative limit')
+                self.logger.debug('We have not enough solved tasks (5%) to yield speculative limit')
+            elif not job["limits"][attribute]["statistics"] or job["limits"][attribute]["statistics"]["number"] < 5:
+                self.logger.debug('We have not solved at least 5 tasks to estimate average consumption')
+            else:
+                self.logger.warning('The reason of keeping limit is unknown')
             self.logger.info("Do not yield speculative limit for task {}".format(identifier))
 
         element["limitation"] = limits
@@ -734,10 +738,11 @@ class Speculative(Runner):
                 self._del_task(job_identifier, attribute, identifier)
                 self.logger.info("Accept timeout task {} even with a speculative restriction".format(identifier))
                 return True
-            elif status in ('OUT OF MEMORY', 'TIMEOUT') and lim and \
+            elif status in ('OUT OF MEMORY', 'TIMEOUT', 'SEGMENTATION FAULT') and lim and \
                     (lim.get('memory size', 0) < qos.get('memory size', 0)) or \
                     (lim.get('CPU time', 0) < qos.get('CPU time', 0)):
-                self.logger.info("Do not accept timeout task {} with a speculative restriction".format(identifier))
+                self.logger.info("Do not accept timeout task {} with a speculative restriction and status {!r}".
+                                 format(identifier, status))
                 return False
 
         self.logger.info("Task {} is considered as solved".format(identifier))
