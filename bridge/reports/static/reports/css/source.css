@@ -130,11 +130,15 @@
     color: #00008B;
     font-weight: bold;
 }
-.SrcHlFuncDefRefFrom {
+.SrcHlMacroDefRefTo {
+    color: #8B008B;
+    font-weight: bold;
+}
+.SrcHlFuncCallRefFrom {
     color: #00008B;
     font-weight: bold;
 }
-.SrcHlMacroDefRefTo {
+.SrcHlMacroExpansionRefFrom {
     color: #8B008B;
     font-weight: bold;
 }
