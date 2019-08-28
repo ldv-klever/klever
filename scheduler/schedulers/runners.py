@@ -156,6 +156,8 @@ class Runner:
         :return: Bool.
         """
         try:
+            # Do this again before running to maybe reduce limitations.
+            self._prepare_task(identifier, item["description"])
             item["future"] = self._solve_task(identifier, item["description"], item["user"], item["password"])
             item["status"] = "PROCESSING"
             return True
@@ -656,8 +658,10 @@ class Speculative(Runner):
                 self.logger.info("Estimation is too high, keep default limitation for task {}".format(identifier))
                 limits = dict(qos)
         elif self._is_there(job_identifier, attribute, identifier):
-            self.logger.info("Do not yield speculative limit for task {}".format(identifier))
+            self.logger.info("Set QoS limit for task {}".format(identifier))
             limits = dict(qos)
+        else:
+            self.logger.info("Do not yield speculative limit for task {}".format(identifier))
 
         element["limitation"] = limits
         return limits, speculative
