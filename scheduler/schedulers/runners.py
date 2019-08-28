@@ -645,10 +645,10 @@ class Speculative(Runner):
         # Check do we have some statistics already
         speculative = False
         if limits.get('memory size', 0) > 0 and \
-                ((limits.get('CPU time') and limits['CPU time'] <= qos['CPU time']) or
-                 not limits.get('CPU time')) and not self._is_there(job_identifier, attribute, identifier) and \
-                 job.get("total tasks", None) and job.get("solved", 0) > (0.05 * job.get("total tasks", 0)) and \
-                 job["limits"][attribute]["statistics"] and job["limits"][attribute]["statistics"]["number"] > 5:
+              ((limits.get('CPU time') and limits['CPU time'] <= qos['CPU time']) or not limits.get('CPU time')) and \
+              not self._is_there(job_identifier, attribute, identifier) and \
+              job.get("total tasks", None) and job.get("solved", 0) > (0.05 * job.get("total tasks", 0)) and \
+              job["limits"][attribute]["statistics"] and job["limits"][attribute]["statistics"]["number"] > 5:
             statistics = job["limits"][attribute]["statistics"]
             limits['memory size'] = statistics['mean mem'] + 2 * statistics['memdev']
             if limits['memory size'] < qos['memory size']:
@@ -661,6 +661,15 @@ class Speculative(Runner):
             self.logger.info("Set QoS limit for task {}".format(identifier))
             limits = dict(qos)
         else:
+            # Debug cases when there is no speculative limits set
+            if not job.get("total tasks", None):
+                self.logger.debug('There is still no total tasks number, waiting for data from Core')
+            elif limits.get('CPU time') and limits['CPU time'] > qos['CPU time']:
+                self.logger.debug('The CPU time limit is increased to solve timeouts')
+            elif self._is_there(job_identifier, attribute, identifier):
+                self.logger.debug('We already tried to solve this task until got timeout or memory limit')
+            elif job.get("solved", 0) <= (0.05 * job.get("total tasks", 0)):
+                self.logger.debug('We have not solved enough tasks to yield speculative limit')
             self.logger.info("Do not yield speculative limit for task {}".format(identifier))
 
         element["limitation"] = limits

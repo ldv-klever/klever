@@ -95,7 +95,7 @@ def run_benchexec(mode, file=None, configuration=None):
     server = None
     exit_code = 0
     try:
-        logger.info("Going to solve a verification {}".format(mode))
+        logger.info("Going to solve a verification {} with identifier {}".format(mode, conf['identifier']))
         if mode == "task":
             server = Server(logger, conf["Klever Bridge"], os.curdir)
             server.register()
