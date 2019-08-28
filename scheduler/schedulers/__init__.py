@@ -395,12 +395,17 @@ class Scheduler:
                     submit = False
 
                 if submit:
+                    # Update resource limitations before scheduling
+                    for i, desk in ((i, tks[i]) for i in tks if tks[i]["status"] == "PENDING"):
+                        self.runner.prepare_task(i, desk)
+
                     # Schedule new tasks
                     pending_tasks = [tks[task_id] for task_id in tks if tks[task_id]["status"] == "PENDING"]
                     pending_jobs = [jbs[job_id] for job_id in jbs if jbs[job_id]["status"] == "PENDING"
                                     and not self.runner.is_solving(jbs[job_id])]
                     pending_jobs = sorted(pending_jobs, key=lambda i: sort_priority(i['configuration']['priority']))
                     pending_tasks = sorted(pending_tasks, key=lambda i: sort_priority(i['description']['priority']))
+
                     tasks_to_start, jobs_to_start = self.runner.schedule(pending_tasks, pending_jobs)
                     if len(tasks_to_start) > 0 or len(jobs_to_start) > 0:
                         self.logger.info("Going to start {} new tasks and {} jobs".

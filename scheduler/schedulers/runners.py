@@ -116,8 +116,8 @@ class Runner:
         :param description: Dictionary with task description.
         :raise SchedulerException: If a task cannot be scheduled or preparation failed.
         """
-        # Runners must implement the method
-        raise NotImplementedError
+        # Runners should implement the method
+        pass
 
     def prepare_job(self, identifier, item):
         """
@@ -144,8 +144,8 @@ class Runner:
         :param configuration: Job configuration.
         :raise SchedulerException: If a job cannot be scheduled or preparation failed.
         """
-        # Runners must implement the method
-        raise NotImplementedError
+        # Runners should implement the method
+        pass
 
     def solve_task(self, identifier, item):
         """
@@ -157,7 +157,6 @@ class Runner:
         """
         try:
             # Do this again before running to maybe reduce limitations.
-            self.prepare_task(identifier, item)
             item["future"] = self._solve_task(identifier, item["description"], item["user"], item["password"])
             item["status"] = "PROCESSING"
             return True
@@ -428,11 +427,7 @@ class Speculative(Runner):
         :param item: Dictionary with task description.
         """
         if item["description"]["job id"] in self._jdata:
-            limits, speculative = \
-                self._resource_limitations(item["description"]["job id"], item["description"]["solution class"],
-                                           identifier, item["description"]["resource limits"])
-            item["description"]["resource limits"] = limits
-            item["description"]["speculative"] = speculative
+            self._estimate_resource_limitations(item, identifier)
         super(Speculative, self).prepare_task(identifier, item)
 
     def solve_job(self, identifier, item):
@@ -625,13 +620,16 @@ class Speculative(Runner):
         if job_identifier in self._jdata:
             del self._jdata[job_identifier]
 
-    def _resource_limitations(self, job_identifier, attribute, identifier, job_limitations):
+    def _estimate_resource_limitations(self, item, identifier):
         """
-        :param job_identifier: Job identifier.
-        :param attribute: Attribute given to the job to classify it.
-        :param identifier: Identifier of the task.
+        :param item: Description of the task.
+        :param identifier: Task identifier.
         :return: New resource limitations.
         """
+        job_identifier = item["description"]["job id"]
+        attribute = item["description"]["solution class"]
+        job_limitations = item["description"]["resource limits"]
+
         # First set QoS limit
         job = self._track_job(job_identifier)
         qos = job.get("QoS limit")
@@ -640,15 +638,23 @@ class Speculative(Runner):
 
         # Start tracking the element
         element = self._is_there_or_init(job_identifier, attribute, identifier)
-        limits = job_limitations
+        limits = dict(job_limitations)
 
         # Check do we have some statistics already
         speculative = False
-        if limits.get('memory size', 0) > 0 and \
-              ((limits.get('CPU time') and limits['CPU time'] <= qos['CPU time']) or not limits.get('CPU time')) and \
-              not self._is_there(job_identifier, attribute, identifier) and \
-              job.get("total tasks", None) and job.get("solved", 0) > (0.05 * job.get("total tasks", 0)) and \
-              job["limits"][attribute]["statistics"] and job["limits"][attribute]["statistics"]["number"] > 5:
+
+        if limits.get('memory size', 0) <= 0:
+            self.logger.info('There is no memory size limitation')
+        elif limits.get('CPU time') and limits['CPU time'] > qos['CPU time']:
+            self.logger.info('The CPU time limit is increased to solve timeouts')
+        elif self._is_there(job_identifier, attribute, identifier):
+            limits = dict(qos)
+            self.logger.info("Set QoS limit for task {}".format(identifier))
+        elif not job.get("total tasks", None) or job.get("solved", 0) <= (0.05 * job.get("total tasks", 0)):
+            self.logger.debug('We have not enough solved tasks (5%) to yield speculative limit')
+        elif not job["limits"][attribute]["statistics"] or job["limits"][attribute]["statistics"]["number"] <= 5:
+            self.logger.debug('We have not solved at least 5 tasks to estimate average consumption')
+        else:
             statistics = job["limits"][attribute]["statistics"]
             limits['memory size'] = statistics['mean mem'] + 2 * statistics['memdev']
             if limits['memory size'] < qos['memory size']:
@@ -656,28 +662,10 @@ class Speculative(Runner):
                 speculative = True
             else:
                 self.logger.info("Estimation is too high, keep default limitation for task {}".format(identifier))
-                limits = dict(qos)
-        elif self._is_there(job_identifier, attribute, identifier):
-            self.logger.info("Set QoS limit for task {}".format(identifier))
-            limits = dict(qos)
-        else:
-            # Debug cases when there is no speculative limits set
-            if not job.get("total tasks", None):
-                self.logger.debug('There is still no total tasks number, waiting for data from Core')
-            elif limits.get('CPU time') and limits['CPU time'] > qos['CPU time']:
-                self.logger.debug('The CPU time limit is increased to solve timeouts')
-            elif self._is_there(job_identifier, attribute, identifier):
-                self.logger.debug('We already tried to solve this task until got timeout or memory limit')
-            elif job.get("solved", 0) <= (0.05 * job.get("total tasks", 0)):
-                self.logger.debug('We have not enough solved tasks (5%) to yield speculative limit')
-            elif not job["limits"][attribute]["statistics"] or job["limits"][attribute]["statistics"]["number"] < 5:
-                self.logger.debug('We have not solved at least 5 tasks to estimate average consumption')
-            else:
-                self.logger.warning('The reason of keeping limit is unknown')
-            self.logger.info("Do not yield speculative limit for task {}".format(identifier))
 
         element["limitation"] = limits
-        return limits, speculative
+        item["description"]["resource limits"] = limits
+        item["description"]["speculative"] = speculative
 
     def _add_solution(self, job_identifier, attribute, identifier, solution):
         """

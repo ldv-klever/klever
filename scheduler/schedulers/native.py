@@ -193,26 +193,6 @@ class Native(runners.Speculative):
             # Submit tools
             self.server.submit_tools(verification_tools)
 
-    def _prepare_task(self, identifier, description):
-        """
-        Prepare a working directory before starting the solution.
-
-        :param identifier: Verification task identifier.
-        :param description: Dictionary with task description.
-        :raise SchedulerException: If a task cannot be scheduled or preparation failed.
-        """
-        self._prepare_solution(identifier, description, mode='task')
-
-    def _prepare_job(self, identifier, configuration):
-        """
-        Prepare a working directory before starting the solution.
-
-        :param identifier: Verification task identifier.
-        :param configuration: Job configuration.
-        :raise SchedulerException: If a job cannot be scheduled or preparation failed.
-        """
-        self._prepare_solution(identifier, configuration, mode='job')
-
     def _solve_task(self, identifier, description, user, password):
         """
         Solve given verification task.
@@ -224,6 +204,7 @@ class Native(runners.Speculative):
         :return: Return Future object.
         """
         self.logger.debug("Start solution of task {!r}".format(identifier))
+        self._prepare_solution(identifier, description, mode='task')
         self._manager.claim_resources(identifier, description, self._node_name, job=False)
         return self._pool.submit(self._execute, self._log_file, self._task_processes[identifier])
 
@@ -236,6 +217,7 @@ class Native(runners.Speculative):
         :return: Return Future object.
         """
         self.logger.debug("Start solution of job {!r}".format(identifier))
+        self._prepare_solution(identifier, configuration['configuration'], mode='job')
         self._manager.claim_resources(identifier, configuration, self._node_name, job=True)
         return self._pool.submit(self._execute, self._log_file, self._job_processes[identifier])
 
