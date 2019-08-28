@@ -358,7 +358,6 @@ def run(selflogger, args, conf, logger=None):
         dcp = None
         dl = None
 
-    selflogger.info("Start execution with the following options: {}".format(str(args)))
     if logger:
         ec = execute(args, logger=logger, disk_limitation=dl, disk_checking_period=dcp)
         if ec != 0:
