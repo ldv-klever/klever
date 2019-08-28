@@ -142,15 +142,32 @@ class Highlight:
         # time when some highlights should be removed. This should work much faster since we expect that there are very
         # many highlights and just few highlights should be removed
         highlights_to_be_removed = list()
+        # Sometimes rather than to remove highlights completely we will remain some parts of them. For instance, this
+        # is vital for macro definitions each of which corresponds to the only highlights list element and which can
+        # include macro expansion reference from in the middle.
+        highlights_to_be_added = list()
         for extra_highlight in extra_highlights:
             extra_highlight_line_numb, extra_highlight_start_offset, extra_highlight_end_offset = extra_highlight[1:]
 
             for highlight in self.highlights:
-                highlight_line_numb, highlight_start_offset, highlight_end_offset = highlight[1:]
+                highlight_kind, highlight_line_numb, highlight_start_offset, highlight_end_offset = highlight
                 if highlight_line_numb == extra_highlight_line_numb:
                     if highlight_start_offset <= extra_highlight_end_offset \
                             and highlight_end_offset >= extra_highlight_start_offset:
                         highlights_to_be_removed.append(highlight)
+                        if highlight_kind == 'CP':
+                            highlights_to_be_added.append([
+                                'CP',
+                                highlight_line_numb,
+                                highlight_start_offset,
+                                extra_highlight_start_offset
+                            ])
+                            highlights_to_be_added.append([
+                                'CP',
+                                highlight_line_numb,
+                                extra_highlight_end_offset,
+                                highlight_end_offset
+                            ])
 
         if highlights_to_be_removed:
             self.highlights = [highlight for highlight in self.highlights if highlight not in highlights_to_be_removed]
@@ -158,6 +175,9 @@ class Highlight:
         # Add extra highlights.
         for extra_highlight in extra_highlights:
             self.highlights.append(extra_highlight)
+
+        for highlight_to_be_added in highlights_to_be_added:
+            self.highlights.append(highlight_to_be_added)
 
 
 # This is intended for testing purposes, when one has a build base and a source file and would like to debug its
