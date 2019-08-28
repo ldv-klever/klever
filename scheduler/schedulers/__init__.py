@@ -382,7 +382,6 @@ class Scheduler:
 
                 # Submit tools
                 try:
-                    self.logger.debug("Update information about available verification tools")
                     self.runner.update_tools()
                 except Exception as err:
                     self.logger.warning('Cannot submit verification tools information: {}'.format(err))
@@ -390,7 +389,6 @@ class Scheduler:
                 # Get actual information about connected nodes
                 submit = True
                 try:
-                    self.logger.debug("Update information about connected nodes")
                     self.runner.update_nodes()
                 except Exception as err:
                     self.logger.error("Cannot obtain information about connected nodes: {}".format(err))
@@ -421,7 +419,6 @@ class Scheduler:
                     # Flushing tasks
                     if len(tasks_to_start) > 0 or \
                             len([True for task_id in tks if tks[task_id]["status"] == "PROCESSING"]) > 0:
-                        self.logger.debug("Flush submitted tasks and jobs")
                         self.runner.flush()
                 else:
                     self.logger.warning(
@@ -465,7 +462,6 @@ class Scheduler:
         elif int(time.time() - self.__last_exchange) > self.__current_period:
             return True
         else:
-            self.logger.debug("Skip the next data exchange iteration with Bridge")
             return False
 
     def __update_iteration_period(self):

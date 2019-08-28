@@ -71,7 +71,6 @@ class ResourceManager:
             sess.kv["states/" + nds[0]]
             return nds, sess
 
-        self.__logger.debug("Try to receive information about resources from controller")
         url = address + "/v1/catalog/nodes"
         if wait_controller:
             done = False
@@ -203,7 +202,6 @@ class ResourceManager:
             server.submit_nodes(configurations)
             return True
 
-        self.__logger.debug("Do not submit information about the workload to Bridge as nothing has been changed")
         return False
 
     def schedule(self, pending_tasks, pending_jobs):
@@ -536,8 +534,8 @@ class ResourceManager:
 
         if len(jobs) > 0:
             # Now check the invariant
-            self.__logger.debug("Going to check that deadlock are impossible" if not job else
-                                "Going to check that job {!r} does not introduce deadlocks".format(job['id']))
+            # self.__logger.debug("Going to check that deadlock are impossible" if not job else
+            #                     "Going to check that job {!r} does not introduce deadlocks".format(job['id']))
 
             sysinfo, cpu_model, mx_task = check_invariant_for_jobs(jobs)
             if cpu_model and mx_task and job:
