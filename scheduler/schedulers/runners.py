@@ -763,9 +763,9 @@ class Speculative(SpeculativeSimple):
         :return: None
         """
 
-        def inc_wighted_mean(prevmean, share, x):
+        def inc_wighted_mean(prevmean, share, total_share, x):
             """Calculate incremental mean"""
-            return prevmean + (x - prevmean) * share
+            return (prevmean * total_share + x * share) / (total_share + share)
 
         def incweighted_sum(prevsum, prevmean, mean, share, x):
             """Caclulate incremental sum of square deviations"""
@@ -792,10 +792,6 @@ class Speculative(SpeculativeSimple):
             statistics = job["limits"][attribute]["statistics"]
             statistics['number'] += 1
             current_share = resources['CPU time'] / (1000 * job["QoS limit"]['CPU time'])
-            statistics['share'] += current_share
-            if statistics['share'] == 0:
-                raise RuntimeError("Share cannot be 0. Limitation is {} and QoS is {}".
-                                   format(resources['CPU time'], job["QoS limit"]['CPU time']))
             self.logger.info('Current share of result: {}'.format(current_share))
 
             # First save data for CPU
@@ -807,8 +803,9 @@ class Speculative(SpeculativeSimple):
                               format(round(newmean), round(timedev)))
 
             # Then memory
-            newmean = inc_wighted_mean(statistics['mean mem'], current_share/statistics['share'],
+            newmean = inc_wighted_mean(statistics['mean mem'], current_share, statistics['share'],
                                        resources['memory size'])
+            statistics['share'] += current_share
             newsum = incweighted_sum(statistics['memsum'], statistics['mean mem'], newmean, current_share,
                                      resources['memory size'])
             memdev = weighted_devn(newsum, statistics['share'])
