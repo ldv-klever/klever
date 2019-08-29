@@ -693,9 +693,19 @@ class Job(core.components.Component):
                 # Convert references to.
                 refs_to_funcs = []
                 refs_to_macros = []
-                for ref_to_kind in ('def_func', 'def_macro'):
+                for ref_to_kind in ('def_macro', 'def_func'):
                     refs_to = refs_to_funcs if ref_to_kind == 'def_func' else refs_to_macros
                     for raw_ref_to in raw_refs_to[ref_to_kind]:
+                        # Do not add references to function definitions if there are already references to macro
+                        # definitions at the same places.
+                        is_exist = False
+                        for ref_to_macro in refs_to_macros:
+                            if ref_to_macro[0] == raw_ref_to[0]:
+                                is_exist = True
+                                break
+                        if is_exist:
+                            continue
+
                         refs_to.append([
                             # Take location of entity usage as is.
                             raw_ref_to[0],
