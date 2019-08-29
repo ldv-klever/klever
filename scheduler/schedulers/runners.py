@@ -656,7 +656,11 @@ class SpeculativeSimple(Runner):
             self.logger.info('We have not solved at least 5 tasks to estimate average consumption')
         else:
             statistics = job["limits"][attribute]["statistics"]
-            limits['memory size'] = statistics['mean mem'] + 2 * statistics['memdev']
+            if int(statistics['mean mem']) < 0:
+                raise ValueError('Mean memory is negative: {}'.format(int(statistics['mean mem'])))
+            if int(statistics['memdev']) < 0:
+                raise ValueError('Memory deviation is negative: {}'.format(int(statistics['memdev'])))
+            limits['memory size'] = int(statistics['mean mem']) + 2 * int(statistics['memdev'])
             if limits['memory size'] < qos['memory size']:
                 self.logger.info("Try running task {} with a speculative limitation".format(identifier))
                 speculative = True
