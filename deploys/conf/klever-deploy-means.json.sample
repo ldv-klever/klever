@@ -80,13 +80,13 @@
         "name": "CPAchecker",
         "version": "trunk:31140",
         "path": "addons/CPAchecker-1.8-svn 31140-unix",
-        "executable path": "CPAchecker-1.8-svn 31140-unix/scripts"
+        "executable path": "scripts"
       },
       "CPALockator": {
         "name": "CPAchecker",
         "version": "CPALockator-combat-mode:28916",
         "path": "addons/CPAchecker-1.7-svn 28916-unix",
-        "executable path": "CPAchecker-1.7-svn 28916-unix/scripts"
+        "executable path": "scripts"
       }
     }
   },
