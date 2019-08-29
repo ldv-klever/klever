@@ -67,28 +67,35 @@ def extract_name(declaration):
         return None
 
 
-def import_typedefs(tds):
+def import_typedefs(tds, dependencies):
     """
     Get collection from source analysis with typedefs and import them into collection.
 
     :param tds: Raw dictionary from SA: {'file': [typedef definitions]}
+    :param dependencies: Dictionary with {dep->{C files}} structure.
     :return: None
     """
     global _typedefs
     global _type_collection
 
+    def add_file(typeast, typename, filename):
+        if name in _typedefs:
+            _typedefs[typename][1].add(filename)
+        else:
+            _typedefs[typename] = [typeast, {filename}]
+
     candidates = []
     for tp in (t for t in _type_collection if isinstance(_type_collection[t], Primitive)):
         candidates.append(tp)
 
-    for file in tds:
-        for decl in tds[file]:
+    for dep in tds:
+        for decl in tds[dep]:
             ast = parse_declaration(decl)
             name = ast['declarator'][-1]['identifier']
-            if name in _typedefs:
-                _typedefs[name][1].add(file)
-            else:
-                _typedefs[name] = [ast, {file}]
+
+            add_file(ast, name, dep)
+            for file in dependencies.get(dep, list()):
+                add_file(ast, name, file)
 
     for tp in candidates:
         if tp in _typedefs:
