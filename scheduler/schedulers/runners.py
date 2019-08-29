@@ -403,7 +403,7 @@ class Runner:
         return
 
 
-class Speculative(Runner):
+class SpeculativeSimple(Runner):
     """This runner collects statistics and adjust memory limits to run more tasks."""
 
     def init(self):
@@ -411,7 +411,7 @@ class Speculative(Runner):
         Initialize scheduler completely. This method should be called both at constructing stage and scheduler
         reinitialization. Thus, all object attribute should be cleaned up and set as it is a newly created object.
         """
-        super(Speculative, self).init()
+        super(SpeculativeSimple, self).init()
         # Timout tasks
         self._problematic = dict()
         # Data about job tasks
@@ -428,7 +428,7 @@ class Speculative(Runner):
         """
         if item["description"]["job id"] in self._jdata:
             self._estimate_resource_limitations(item, identifier)
-        super(Speculative, self).prepare_task(identifier, item)
+        super(SpeculativeSimple, self).prepare_task(identifier, item)
 
     def solve_job(self, identifier, item):
         """
@@ -439,7 +439,7 @@ class Speculative(Runner):
         :param item: Job descitption.
         :return: Bool.
         """
-        successful = super(Speculative, self).solve_job(identifier, item)
+        successful = super(SpeculativeSimple, self).solve_job(identifier, item)
         if successful:
             jd = self._track_job(identifier)
             jd["QoS limit"] = dict(item['configuration']['task resource limits'])
@@ -458,7 +458,7 @@ class Speculative(Runner):
             solution = utils.kv_get_solution(self.logger, self.scheduler_type(), identifier)
         else:
             solution = False
-        status = super(Speculative, self).process_task_result(identifier, item)
+        status = super(SpeculativeSimple, self).process_task_result(identifier, item)
         if status and solution:
             solved = self._add_solution(item["description"]["job id"], item["description"]["solution class"],
                                         identifier, solution)
@@ -485,7 +485,7 @@ class Speculative(Runner):
         :param task_items: Verification tasks description to cancel them if necessary.
         :return: Bool if status of the job has changed.
         """
-        status = super(Speculative, self).process_job_result(identifier, item, task_items)
+        status = super(SpeculativeSimple, self).process_job_result(identifier, item, task_items)
         if status:
             # Add log and asserts
             jd = self._track_job(identifier)
@@ -512,7 +512,7 @@ class Speculative(Runner):
         :param item: Verification job description dictionary.
         :param task_items: Verification tasks description to cancel them if necessary.
         """
-        super(Speculative, self).cancel_job(identifier, item, task_items)
+        super(SpeculativeSimple, self).cancel_job(identifier, item, task_items)
         self.del_job(identifier)
 
     def cancel_task(self, identifier, item):
@@ -522,13 +522,13 @@ class Speculative(Runner):
         :param identifier: Verification task ID.
         :param item: Task description.
         """
-        super(Speculative, self).cancel_task(identifier, item)
+        super(SpeculativeSimple, self).cancel_task(identifier, item)
         if self._is_there(item["description"]["job id"], item["description"]["solution class"], identifier):
             self._del_task(item["description"]["job id"], item["description"]["solution class"], identifier)
 
     def terminate(self):
         """Abort solution of all running tasks and any other actions before termination."""
-        super(Speculative, self).terminate()
+        super(SpeculativeSimple, self).terminate()
         # Clean data
         self._problematic = dict()
         self._jdata = dict()
@@ -541,7 +541,7 @@ class Speculative(Runner):
         :param item: Verification job description dictionary.
         :param progress: Information about the job progress.
         """
-        super(Speculative, self).add_job_progress(identifier, item, progress)
+        super(SpeculativeSimple, self).add_job_progress(identifier, item, progress)
         if progress.get('total tasks to be generated', None):
             jd = self._track_job(identifier)
             jd['total tasks'] = progress['total tasks to be generated']
@@ -667,7 +667,42 @@ class Speculative(Runner):
         item["description"]["resource limits"] = limits
         item["description"]["speculative"] = speculative
 
+    def _add_statisitcs(self, job, attribute, resources):
+        """
+        Add statistics collected after task solution.
+
+        :param job: Description dictionary of the job.
+        :param attribute: Attribute given to the job to classify it.
+        :param resources: Dictionary with resource consumption data.
+        :return: None
+        """
+        if not job["limits"][attribute]["statistics"]:
+            job["limits"][attribute]["statistics"] = {
+                'mean mem': resources['memory size'],
+                'memsum': 0,
+                'memdev': 0,
+                'mean time': resources['CPU time'],
+                'timesum': 0,
+                'timedev': 0,
+                'number': 1
+            }
+        else:
+            statistics = job["limits"][attribute]["statistics"]
+            statistics['number'] += 1
+            # First save data for CPU
+            newmean = incmean(statistics['mean time'], statistics['number'], resources['CPU time'])
+            newsum = incsum(statistics['timesum'], statistics['mean time'], newmean, resources['CPU time'])
+            timedev = devn(newsum, statistics['number'])
+            statistics.update({'mean time': newmean, 'timesum': newsum, 'timedev': timedev})
+
+            # Then memory
+            newmean = incmean(statistics['mean mem'], statistics['number'], resources['memory size'])
+            newsum = incsum(statistics['memsum'], statistics['mean mem'], newmean, resources['memory size'])
+            memdev = devn(newsum, statistics['number'])
+            statistics.update({'mean mem': newmean, 'memsum': newsum, 'memdev': memdev})
+
     def _add_solution(self, job_identifier, attribute, identifier, solution):
+
         """
         Save solution and return is this solution is final or not.
 
@@ -692,30 +727,6 @@ class Speculative(Runner):
             self.logger.debug(
                 "Task {} from category {!r} solved with status {!r} and required {}B of memory and {}s of CPU time".
                 format(identifier, attribute, status, resources['memory size'], int(resources['CPU time'] / 1000)))
-            if not job["limits"][attribute]["statistics"]:
-                job["limits"][attribute]["statistics"] = {
-                    'mean mem': resources['memory size'],
-                    'memsum': 0,
-                    'memdev': 0,
-                    'mean time': resources['CPU time'],
-                    'timesum': 0,
-                    'timedev': 0,
-                    'number': 1
-                }
-            else:
-                statistics = job["limits"][attribute]["statistics"]
-                statistics['number'] += 1
-                # First save data for CPU
-                newmean = incmean(statistics['mean time'], statistics['number'], resources['CPU time'])
-                newsum = incsum(statistics['timesum'], statistics['mean time'], newmean, resources['CPU time'])
-                timedev = devn(newsum, statistics['number'])
-                statistics.update({'mean time': newmean, 'timesum': newsum, 'timedev': timedev})
-
-                # Then memory
-                newmean = incmean(statistics['mean mem'], statistics['number'], resources['memory size'])
-                newsum = incsum(statistics['memsum'], statistics['mean mem'], newmean, resources['memory size'])
-                memdev = devn(newsum, statistics['number'])
-                statistics.update({'mean mem': newmean, 'memsum': newsum, 'memdev': memdev})
 
             # Be very accurate with the condition below. It is duplicated in client because currently Bridge can receive
             # a single solution and timeout speculative task solutions might not be uploaded at all. This can be
@@ -724,6 +735,7 @@ class Speculative(Runner):
             if status == 'TIMEOUT' and lim and resources['memory size'] <= 0.7 * lim.get('memory size', 0):
                 # This is a timeout that will not be solved with an increased memory limitation
                 self._del_task(job_identifier, attribute, identifier)
+                self._add_statisitcs()
                 self.logger.info("Accept timeout task {} even with a speculative restriction".format(identifier))
                 return True
             elif status in ('OUT OF MEMORY', 'TIMEOUT', 'SEGMENTATION FAULT') and lim and \
@@ -736,3 +748,65 @@ class Speculative(Runner):
         self.logger.info("Task {} is considered as solved".format(identifier))
         self._del_task(job_identifier, attribute, identifier)
         return True
+
+
+class Speculative(SpeculativeSimple):
+
+    def _add_statisitcs(self, job, attribute, resources):
+        """
+        Add statistics collected after task solution.
+
+        :param job: Description dictionary of the job.
+        :param attribute: Attribute given to the job to classify it.
+        :param resources: Dictionary with resource consumption data.
+        :return: None
+        """
+
+        def inc_wighted_mean(prevmean, share, x):
+            """Calculate incremental mean"""
+            newmean = prevmean + int(round((x - prevmean) * share))
+            return newmean
+
+        def incweighted_sum(prevsum, prevmean, mean, share, x):
+            """Caclulate incremental sum of square deviations"""
+            newsum = prevsum + (x - prevmean) * (x - mean) * share
+            return newsum
+
+        def weighted_devn(cursum, sumshare):
+            """Caclulate incremental standart deviation"""
+            deviation = int(round(math.sqrt(cursum / sumshare)))
+            return deviation
+
+        if not job["limits"][attribute]["statistics"]:
+            job["limits"][attribute]["statistics"] = {
+                'mean mem': resources['memory size'],
+                'devsum': 0,
+                'memdev': 0,
+                'share': 0,
+                'mean time': resources['CPU time'],
+                'timesum': 0,
+                'timedev': 0,
+                'number': 0
+            }
+        else:
+            statistics = job["limits"][attribute]["statistics"]
+            statistics['number'] += 1
+            statistics = job["limits"][attribute]["statistics"]
+            current_share = resources['CPU time'] / job["QoS limit"]['CPU time']
+            statistics['share'] += current_share
+
+            # First save data for CPU
+            newmean = incmean(statistics['mean time'], statistics['number'], resources['CPU time'])
+            newsum = incsum(statistics['timesum'], statistics['mean time'], newmean, resources['CPU time'])
+            timedev = devn(newsum, statistics['number'])
+            statistics.update({'mean time': newmean, 'timesum': newsum, 'timedev': timedev})
+            self.logger.debug("Current mean CPU time: {}s, Current CPU time deviation: {}s".format(round(newmean),
+                                                                                                   round(timedev)))
+
+            # Then memory
+            newmean = inc_wighted_mean(statistics['mean mem'], statistics['number'], resources['memory size'])
+            newsum = incweighted_sum(statistics['memsum'], statistics['mean mem'], newmean, current_share,
+                                     resources['memory size'])
+            memdev = weighted_devn(newsum, statistics['share'])
+            statistics.update({'mean mem': newmean, 'devsum': newsum, 'memdev': memdev})
+            self.logger.debug("Current mean RAM: {}B, Current RAM deviation: {}B".format(round(newmean), round(memdev)))
