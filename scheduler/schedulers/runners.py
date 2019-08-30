@@ -767,51 +767,42 @@ class Speculative(SpeculativeSimple):
         :return: None
         """
 
-        def inc_wighted_mean(prevmean, share, total_share, x):
+        def inc_wighted_mean(totalsumm, totaltime):
             """Calculate incremental mean"""
-            return (prevmean * total_share + x * share) / (total_share + share)
-
-        def incweighted_sum(prevsum, prevmean, mean, share, x):
-            """Caclulate incremental sum of square deviations"""
-            return prevsum + (x - prevmean) * (x - mean) * share
-
-        def weighted_devn(cursum, sumshare):
-            """Caclulate incremental standart deviation"""
-            if cursum == 0 or sumshare == 0:
-                return 0
-            return int(round(math.sqrt(cursum / sumshare)))
+            return round(totalsumm/totaltime)
 
         if not job["limits"][attribute]["statistics"]:
             job["limits"][attribute]["statistics"] = {
                 'mean mem': 0,
                 'memsum': 0,
+                'memdevsum': 0,
                 'memdev': 0,
-                'mean time': resources['CPU time'] / 1000,
+                'mean time': 0,
+                'timedevsum': 0,
                 'timesum': 0,
                 'timedev': 0,
-                'number': 1,
-                'share': 0
+                'number': 0,
             }
-        else:
-            statistics = job["limits"][attribute]["statistics"]
-            statistics['number'] += 1
-            current_share = resources['CPU time'] / (1000 * job["QoS limit"]['CPU time'])
-            self.logger.info('Current share of result: {}'.format(current_share))
 
-            # First save data for CPU
-            newmean = incmean(statistics['mean time'], statistics['number'], resources['CPU time'] / 1000)
-            newsum = incsum(statistics['timesum'], statistics['mean time'], newmean, resources['CPU time'] / 1000)
-            timedev = devn(newsum, statistics['number'])
-            statistics.update({'mean time': newmean, 'timesum': newsum, 'timedev': timedev})
-            self.logger.debug("Current mean CPU time: {}s, Current CPU time deviation: {}s".
-                              format(round(newmean), round(timedev)))
+        statistics = job["limits"][attribute]["statistics"]
+        statistics['number'] += 1
+        statistics['timesum'] += (resources['CPU time'] / 1000)
+        current_share = resources['CPU time'] / (1000 * job["QoS limit"]['CPU time'])
+        self.logger.info('Current share of result: {}'.format(current_share))
 
-            # Then memory
-            newmean = inc_wighted_mean(statistics['mean mem'], current_share, statistics['share'],
-                                       resources['memory size'])
-            statistics['share'] += current_share
-            newsum = incweighted_sum(statistics['memsum'], statistics['mean mem'], newmean, current_share,
-                                     resources['memory size'])
-            memdev = weighted_devn(newsum, statistics['share'])
-            statistics.update({'mean mem': newmean, 'memsum': newsum, 'memdev': memdev})
-            self.logger.debug("Current mean RAM: {}B, Current RAM deviation: {}B".format(round(newmean), round(memdev)))
+        # First save data for CPU
+        newmean = incmean(statistics['mean time'], statistics['number'], resources['CPU time'] / 1000)
+        newsum = incsum(statistics['timedevsum'], statistics['mean time'], newmean, resources['CPU time'] / 1000)
+        timedev = devn(newsum, statistics['number'])
+        statistics.update({'mean time': newmean, 'timedevsum': newsum, 'timedev': timedev})
+        self.logger.debug("Current mean CPU time: {}s, Current CPU time deviation: {}s".
+                          format(round(newmean), round(timedev)))
+
+        # Then memory
+        statistics['memsum'] = round(resources['memory size'] * resources['CPU time'] / 1000)
+        newmean = inc_wighted_mean(statistics['memsum'], statistics['timesum'])
+        newsum = incsum(statistics['memdevsum'], statistics['mean mem'], newmean, resources['memory size'])
+        memdev = devn(newsum, statistics['number'])
+        statistics.update({'mean mem': newmean, 'memdevsum': newsum, 'memdev': memdev})
+        self.logger.debug("Current mean RAM: {}B, Current RAM deviation: {}B".format(round(newmean), round(memdev)))
+
