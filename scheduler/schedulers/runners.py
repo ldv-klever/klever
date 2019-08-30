@@ -34,6 +34,8 @@ def incsum(prevsum, prevmean, mean, x):
 
 def devn(cursum, n):
     """Caclulate incremental standart deviation"""
+    if cursum == 0:
+        return 0
     deviation = int(round(math.sqrt(cursum / n)))
     return deviation
 
