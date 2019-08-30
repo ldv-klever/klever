@@ -28,14 +28,12 @@ def incmean(prevmean, n, x):
 
 def incsum(prevsum, prevmean, mean, x):
     """Caclulate incremental sum of square deviations"""
-    newsum = prevsum + (x - prevmean) * (x - mean)
+    newsum = prevsum + abs((x - prevmean) * (x - mean))
     return newsum
 
 
 def devn(cursum, n):
     """Caclulate incremental standart deviation"""
-    if cursum == 0:
-        return 0
     deviation = int(round(math.sqrt(cursum / n)))
     return deviation
 
@@ -645,17 +643,22 @@ class SpeculativeSimple(Runner):
         # Check do we have some statistics already
         speculative = False
 
+        # TODO: Uncomment this when you will implement separate method for silent tasks preparation
         if limits.get('memory size', 0) <= 0:
-            self.logger.info('There is no memory size limitation')
+            #self.logger.info('There is no memory size limitation')
+            pass
         elif limits.get('CPU time') and limits['CPU time'] > qos['CPU time']:
-            self.logger.info('The CPU time limit is increased to solve timeouts')
+            #self.logger.info('The CPU time limit is increased to solve timeouts')
+            pass
         elif self._is_there(job_identifier, attribute, identifier):
             limits = dict(qos)
-            self.logger.info("Set QoS limit for task {}".format(identifier))
+            #self.logger.info("Set QoS limit for task {}".format(identifier))
         elif not job.get("total tasks", None) or job.get("solved", 0) <= (0.05 * job.get("total tasks", 0)):
-            self.logger.info('We have not enough solved tasks (5%) to yield speculative limit')
+            #self.logger.info('We have not enough solved tasks (5%) to yield speculative limit')
+            pass
         elif not job["limits"][attribute]["statistics"] or job["limits"][attribute]["statistics"]["number"] <= 5:
-            self.logger.info('We have not solved at least 5 tasks to estimate average consumption')
+            #self.logger.info('We have not solved at least 5 tasks to estimate average consumption')
+            pass
         else:
             statistics = job["limits"][attribute]["statistics"]
             if int(statistics['mean mem']) < 0:
@@ -664,10 +667,11 @@ class SpeculativeSimple(Runner):
                 raise ValueError('Memory deviation is negative: {}'.format(int(statistics['memdev'])))
             limits['memory size'] = int(statistics['mean mem']) + 2 * int(statistics['memdev'])
             if limits['memory size'] < qos['memory size']:
-                self.logger.info("Try running task {} with a speculative limitation".format(identifier))
+                # self.logger.info("Try running task {} with a speculative limitation".format(identifier))
                 speculative = True
             else:
-                self.logger.info("Estimation is too high, keep default limitation for task {}".format(identifier))
+                #self.logger.info("Estimation is too high, keep default limitation for task {}".format(identifier))
+                pass
 
         element["limitation"] = limits
         item["description"]["resource limits"] = limits
@@ -789,13 +793,14 @@ class Speculative(SpeculativeSimple):
         statistics = job["limits"][attribute]["statistics"]
         statistics['number'] += 1
         statistics['timesum'] += (resources['CPU time'] / 1000)
-        current_share = resources['CPU time'] / (1000 * job["QoS limit"]['CPU time'])
-        self.logger.info('Current share of result: {}'.format(current_share))
 
         # First save data for CPU
         newmean = incmean(statistics['mean time'], statistics['number'], resources['CPU time'] / 1000)
         newsum = incsum(statistics['timedevsum'], statistics['mean time'], newmean, resources['CPU time'] / 1000)
-        timedev = devn(newsum, statistics['number'])
+        if newsum != 0:
+            timedev = devn(newsum, statistics['number'])
+        else:
+            timedev = 0
         statistics.update({'mean time': newmean, 'timedevsum': newsum, 'timedev': timedev})
         self.logger.debug("Current mean CPU time: {}s, Current CPU time deviation: {}s".
                           format(round(newmean), round(timedev)))
@@ -804,7 +809,10 @@ class Speculative(SpeculativeSimple):
         statistics['memsum'] = round(resources['memory size'] * resources['CPU time'] / 1000)
         newmean = inc_wighted_mean(statistics['memsum'], statistics['timesum'])
         newsum = incsum(statistics['memdevsum'], statistics['mean mem'], newmean, resources['memory size'])
-        memdev = devn(newsum, statistics['number'])
+        if newsum != 0:
+            memdev = devn(newsum, statistics['number'])
+        else:
+            memdev = 0
         statistics.update({'mean mem': newmean, 'memdevsum': newsum, 'memdev': memdev})
         self.logger.debug("Current mean RAM: {}B, Current RAM deviation: {}B".format(round(newmean), round(memdev)))
 
