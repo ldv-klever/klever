@@ -156,18 +156,20 @@ class Highlight:
                             and highlight_end_offset >= extra_highlight_start_offset:
                         highlights_to_be_removed.append(highlight)
                         if highlight_kind == 'CP':
-                            highlights_to_be_added.append([
-                                'CP',
-                                highlight_line_numb,
-                                highlight_start_offset,
-                                extra_highlight_start_offset
-                            ])
-                            highlights_to_be_added.append([
-                                'CP',
-                                highlight_line_numb,
-                                extra_highlight_end_offset,
-                                highlight_end_offset
-                            ])
+                            if highlight_start_offset < extra_highlight_start_offset:
+                                highlights_to_be_added.append([
+                                    'CP',
+                                    highlight_line_numb,
+                                    highlight_start_offset,
+                                    extra_highlight_start_offset
+                                ])
+                            if extra_highlight_end_offset < highlight_end_offset:
+                                highlights_to_be_added.append([
+                                    'CP',
+                                    highlight_line_numb,
+                                    extra_highlight_end_offset,
+                                    highlight_end_offset
+                                ])
 
         if highlights_to_be_removed:
             self.highlights = [highlight for highlight in self.highlights if highlight not in highlights_to_be_removed]
