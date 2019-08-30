@@ -728,7 +728,7 @@ unsupported_target_program_descs = [
 
 class CProgram:
     _CLADE_CONF = dict()
-    _CLADE_PRESET = "base"
+    _CLADE_PRESET = "klever_linux_kernel"
 
     def __init__(self, logger, target_program_desc):
         self.logger = logger
@@ -828,8 +828,9 @@ class CProgram:
         if opts is None:
             opts = []
 
+        # TODO: switch to Clade Python API.
         return execute_cmd(self.logger,
-                           *((['clade-intercept', '-a'] if intercept_build_cmds else []) +
+                           *((['clade', '-ia', '--cmds', os.path.realpath(os.path.join(self.work_src_tree, 'cmds.txt'))] if intercept_build_cmds else []) +
                              ['make', '-j', self.jobs] + opts + list(target)),
                            cwd=self.work_src_tree, env=env, get_output=get_output)
 
@@ -871,12 +872,6 @@ class CProgram:
     def build(self):
         self._fetch_work_src_tree()
         self._make_canonical_work_src_tree()
-
-        # Remove file with intercepted build commands if so.
-        cmds_file = os.path.join(self.work_src_tree, 'cmds.txt')
-        if os.path.isfile(cmds_file):
-            os.remove(cmds_file)
-
         self._clean()
         self._get_version()
 
@@ -903,7 +898,7 @@ class CProgram:
                       cmds_file=os.path.join(self.work_src_tree, 'cmds.txt'),
                       conf=clade_conf,
                       preset=self._CLADE_PRESET)
-        clade.parse_all()
+        clade.parse_list(["CrossRef", "Callgraph", "Variables", "Typedefs", "Macros"])
 
         self.logger.info('Save project attributes, working source trees and target program description to build base')
         clade.add_meta_by_key('project attrs', [
