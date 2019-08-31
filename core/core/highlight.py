@@ -39,17 +39,53 @@ class Highlight:
             return False
 
     # Simple token highlighting.
-    def highligh_token(self, token_type, token_len):
+    def highligh_token(self, token_type, token_len, split=False, token_text=None):
         if not token_len:
             return
 
-        self.highlights.append([
-            # Get all capital letters from token type consisting of several parts.
-            ''.join([''.join(re.findall("[A-Z]", k)) for k in tuple(token_type)]),
-            self.cur_line_numb,
-            self.cur_start_offset,
-            self.cur_start_offset + token_len
-        ])
+        # Get all capital letters from token type consisting of several parts.
+        highlight_kind = ''.join([''.join(re.findall("[A-Z]", k)) for k in tuple(token_type)])
+
+        # Some tokens (perhaps just comments to which preprocessor directives belong) can include whitespaces. Later
+        # this can cause complicated cases when, say, we will need to add several references within such tokens. So
+        # let's split them by whitespaces.
+        if split:
+            cur_end_offset = cur_start_offset = self.cur_start_offset
+            for c in token_text:
+                # Skip all whitespaces shifting current start and end offsets appropriately.
+                if c.isspace():
+                    # Highlight current token if so.
+                    if cur_end_offset > cur_start_offset:
+                        self.highlights.append([
+                            highlight_kind,
+                            self.cur_line_numb,
+                            cur_start_offset,
+                            cur_end_offset
+                        ])
+                        cur_start_offset = cur_end_offset
+
+                    cur_start_offset += 1
+                    cur_end_offset = cur_start_offset
+                # Accumulate current token length.
+                else:
+                    cur_end_offset += 1
+
+            # Highlight last token if so.
+            if cur_end_offset > cur_start_offset:
+                self.highlights.append([
+                    highlight_kind,
+                    self.cur_line_numb,
+                    cur_start_offset,
+                    cur_end_offset
+                ])
+        else:
+            self.highlights.append([
+                highlight_kind,
+                self.cur_line_numb,
+                self.cur_start_offset,
+                self.cur_start_offset + token_len
+            ])
+
         # Update current token start offset according to current token length.
         self.cur_start_offset += token_len
 
@@ -91,12 +127,13 @@ class Highlight:
                 Comment.Preproc,
                 Comment.Single
             ):
+                split = True if token_type == Comment.Preproc else False
                 if token_text[-1] == '\n':
-                    self.highligh_token(token_type, token_len - 1)
+                    self.highligh_token(token_type, token_len - 1, split, token_text if split else None)
                     self.go_to_next_line()
                     continue
                 else:
-                    self.highligh_token(token_type, token_len)
+                    self.highligh_token(token_type, token_len, split, token_text if split else None)
                     continue
             # Multiline comments include "\n".
             elif token_type is Comment.Multiline:
