@@ -18,7 +18,6 @@
 import json
 from wsgiref.util import FileWrapper
 
-from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import F
 from django.utils.timezone import now
 from django.utils.translation import ugettext_lazy as _
@@ -27,7 +26,7 @@ from bridge.vars import JOB_STATUS, SCHEDULER_STATUS, SCHEDULER_TYPE, TASK_STATU
 from bridge.utils import file_get_or_create, logger, BridgeException
 
 from users.models import SchedulerUser
-from jobs.models import RunHistory, JobFile, FileSystem, Job
+from jobs.models import RunHistory, JobFile, FileSystem
 from reports.models import ReportRoot, ReportUnknown, ReportComponent
 from service.models import Scheduler, Decision, Task, Solution, Node, NodesConfiguration, Workload
 
@@ -40,20 +39,14 @@ class ServiceError(Exception):
 
 
 class FinishJobDecision:
-    def __init__(self, inst, status, error=None):
-        if isinstance(inst, Decision):
-            self.decision = inst
-            self.job = self.decision.job
-        elif isinstance(inst, Job):
-            self.job = inst
-            try:
-                self.decision = Decision.objects.get(job=self.job)
-            except ObjectDoesNotExist:
-                logger.exception('The job does not have solving progress')
-                change_job_status(self.job, JOB_STATUS[5][0])
-                return
-        else:
-            raise ValueError('Unsupported argument: %s' % type(inst))
+    def __init__(self, job, status, error=None):
+        self.job = job
+        try:
+            self.decision = Decision.objects.get(job=self.job)
+        except Decision.DoesNotExist:
+            logger.exception('The job does not have solving progress')
+            change_job_status(self.job, JOB_STATUS[5][0])
+            return
         self.error = error
         self.status = self.__get_status(status)
         try:
@@ -103,7 +96,7 @@ class FinishJobDecision:
 
             try:
                 core_r = ReportComponent.objects.get(parent=None, root__job=self.job)
-            except ObjectDoesNotExist:
+            except ReportComponent.DoesNotExist:
                 self.error = "The job doesn't have Core report"
                 return JOB_STATUS[5][0]
             if ReportUnknown.objects.filter(parent=core_r, component=core_r.component, root__job=self.job).exists():
@@ -121,7 +114,7 @@ class FinishJobDecision:
         elif status == JOB_STATUS[4][0]:
             try:
                 core_r = ReportComponent.objects.get(parent=None, root__job=self.job)
-            except ObjectDoesNotExist:
+            except ReportComponent.DoesNotExist:
                 pass
             else:
                 unfinished_components = ReportComponent.objects.filter(root__job=self.job, finish_date=None)
@@ -160,7 +153,7 @@ class CancelDecision:
             raise BridgeException(_("Only pending and processing jobs can be stopped"))
         try:
             self.decision = Decision.objects.get(job=job)
-        except ObjectDoesNotExist:
+        except Decision.DoesNotExist:
             raise BridgeException(_('The job decision does not exist'))
 
         change_job_status(job, JOB_STATUS[6][0])
@@ -247,7 +240,7 @@ class StartJobDecision:
     def __get_scheduler(self):
         try:
             scheduler = Scheduler.objects.get(type=self.configuration['task scheduler'])
-        except ObjectDoesNotExist:
+        except Scheduler.DoesNotExist:
             raise BridgeException(_('The task scheduler was not found'))
         if scheduler.type == SCHEDULER_TYPE[1][0]:
             if scheduler.status == SCHEDULER_STATUS[2][0]:
@@ -255,7 +248,7 @@ class StartJobDecision:
         else:
             try:
                 klever_sch = Scheduler.objects.get(type=SCHEDULER_TYPE[0][0])
-            except ObjectDoesNotExist:
+            except Scheduler.DoesNotExist:
                 raise BridgeException(_("Schedulers weren't populated"))
             if klever_sch.status == SCHEDULER_STATUS[2][0]:
                 raise BridgeException(_('The Klever scheduler is disconnected'))

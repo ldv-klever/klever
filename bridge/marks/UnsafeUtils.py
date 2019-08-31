@@ -164,7 +164,7 @@ def save_converted_trace(forests, function):
 
 
 def convert_error_trace(error_trace, function):
-    # Convert erro trace to forests
+    # Convert error trace to forests
     if function == 'callback_call_forests':
         forests = ErrorTraceForests(error_trace, only_callbacks=True).forests
     elif function == 'thread_call_forests':

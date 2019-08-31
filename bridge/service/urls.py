@@ -40,7 +40,7 @@ urlpatterns = [
     path('scheduler-user/<uuid:job_uuid>/', api.SchedulerUserView.as_view(), name='api-scheduler-user'),
 
     path('progress/<uuid:job_uuid>/', api.JobProgressAPIView.as_view()),
-    path('configuration/<uuid:job_uuid>/', api.JobConfigurationsAPIView.as_view()),
+    path('configuration/<uuid:job_uuid>/', api.JobConfigurationAPIView.as_view()),
 
     path('update-tools/', api.UpdateToolsAPIView.as_view()),
     path('update-nodes/', api.UpdateNodes.as_view()),

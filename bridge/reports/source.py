@@ -156,15 +156,15 @@ class SourceLine:
         code = self._source[start:end]
         code_list = []
         for ref_start, ref_end, span_kwargs in self._references:
-            if start <= ref_end < end:
-                ref_end_rel = ref_end - start
-                code_list.append(self.__fix_for_html(code[ref_end_rel:]))
-                code_list.append(self._span_close)
-                code = code[:ref_end_rel]
-            if start <= ref_start < end:
+            if start <= ref_start < ref_end <= end:
                 ref_start_rel = ref_start - start
-                code_list.append(self.__fix_for_html(code[ref_start_rel:]))
-                code_list.append(self.__span_open(**span_kwargs))
+                ref_end_rel = ref_end - start
+                code_list.extend([
+                    self.__fix_for_html(code[ref_end_rel:]),
+                    self._span_close,
+                    self.__fix_for_html(code[ref_start_rel:ref_end_rel]),
+                    self.__span_open(**span_kwargs)
+                ])
                 code = code[:ref_start_rel]
         code_list.append(self.__fix_for_html(code))
         return ''.join(reversed(code_list))
