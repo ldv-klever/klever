@@ -671,7 +671,7 @@ class SpeculativeSimple(Runner):
                 speculative = True
             else:
                 #self.logger.info("Estimation is too high, keep default limitation for task {}".format(identifier))
-                pass
+                limits = dict(qos)
 
         element["limitation"] = limits
         item["description"]["resource limits"] = limits
