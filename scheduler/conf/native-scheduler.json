@@ -9,7 +9,7 @@
     "type": "native",
     "wait controller initialization": true,
     "disable CPU cores account": false,
-    "concurrent jobs": 2,
+    "concurrent jobs": 1,
     "processes": 1.0,
     "process pool": false,
     "controller address": "http://localhost:8500",
