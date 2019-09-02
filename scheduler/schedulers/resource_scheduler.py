@@ -45,7 +45,7 @@ class ResourceManager:
         self.__jobs_config = {}
         self.__tasks_config = {}
 
-        self.__logger.info("Resource manager is live now")
+        self.__logger.info("Resource manager is live now with max running jobs limitation is {}".format(max_jobs))
 
     def update_system_status(self, address, wait_controller=False):
         """
@@ -215,7 +215,7 @@ class ResourceManager:
         :return: [{task desc}, "node name"], [{job desc}, "node name"] - lists of runnable pending tasks and jobs.
         """
         def schedule_jobs(jobs):
-            while len(jobs) > 0 and len(running_jobs) + len(jobs_to_run) <= self.__max_running_jobs:
+            while len(jobs) > 0 and len(running_jobs) + len(jobs_to_run) < self.__max_running_jobs:
                 candidate = jobs.pop()
 
                 if candidate not in (j[0] for j in jobs_to_run):
