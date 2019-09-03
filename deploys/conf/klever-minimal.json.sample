@@ -39,7 +39,7 @@
       "pytz"
     ],
     "For running Klever Core": [
-      "git+https://github.com/17451k/clade.git@master",
+      "clade==3.2",
       "jinja2",
       "graphviz",
       "ply",
