@@ -202,6 +202,88 @@ SJC_3 = [
     }
 ]
 
+SJC_4 = [
+    {
+        'requirement': 'linux:alloc:irq',
+        'chunks': [
+            {
+                'module': 'drivers/usb/core/usb1.ko',
+                'tool': 'BLAST 2.7.2', 'verifier_input': True, 'log': True,
+                'additional_sources': 'sources12.zip',
+                'unsafes': ['unsafe1.zip', 'unsafe2.zip'],
+                'unknown': 'unknown2.zip'
+            },
+            {
+                'module': 'drivers/usb/core/usb2.ko',
+                'tool': 'CPAchecker', 'verifier_input': False, 'log': False,
+                'additional_sources': 'sources3.zip',
+                'unsafes': ['unsafe3.zip']
+            },
+            {
+                'module': 'drivers/usb/core/usb3.ko',
+                'tool': 'CPAchecker', 'verifier_input': True, 'log': False,
+                'safe': 'safe.zip'
+            },
+            {
+                'module': 'drivers/usb/core/usb4.ko',
+                'tool': 'CPAchecker', 'verifier_input': False, 'log': True,
+                'unknown': 'unknown0.zip'
+            }
+        ]
+    },
+    {
+        'requirement': 'linux:arch:io',
+        'chunks': [
+            {
+                'module': 'drivers/usb/core/usb1.ko',
+                'tool': 'BLAST 2.7.2', 'verifier_input': True, 'log': True,
+                'safe': 'safe.zip'
+            },
+            {
+                'module': 'drivers/usb/core/usb2.ko',
+                'tool': 'CPAchecker', 'verifier_input': False, 'log': False,
+                'additional_sources': 'sources4.zip',
+                'unsafes': ['unsafe4.zip']
+            },
+            {
+                'module': 'drivers/usb/core/usb3.ko',
+                'tool': 'CPAchecker', 'verifier_input': True, 'log': False,
+                'additional_sources': 'sources5.zip',
+                'unsafes': ['unsafe5.zip']
+            },
+            {
+                'module': 'drivers/usb/core/usb4.ko',
+                'tool': 'CPAchecker', 'verifier_input': False, 'log': True,
+                'additional_sources': 'sources13.zip',
+                'coverage': 'coverage13.zip',
+                'safe': 'safe.zip'
+            },
+            {
+                'module': 'drivers/usb/core/usb5.ko',
+                'tool': 'CPAchecker', 'verifier_input': False, 'log': False,
+                'additional_sources': 'sources6.zip',
+                'unsafes': ['unsafe6.zip']
+            }
+        ]
+    },
+    {
+        'requirement': 'linux:alloc:usb lock',
+        'chunks': [
+            {
+                'module': 'drivers/usb/core/usb6.ko',
+                'tool': 'CPAchecker', 'verifier_input': False, 'log': False,
+                'safe': 'safe.zip'
+            },
+            {
+                'module': 'drivers/usb/core/usb7.ko',
+                'tool': 'CPAchecker', 'verifier_input': False, 'log': True,
+                'additional_sources': 'sources10.zip',
+                'unsafes': ['unsafe10.zip']
+            }
+        ]
+    }
+]
+
 NSJC_1 = [
     {
         'requirement': 'linux:mutex',
@@ -978,15 +1060,14 @@ class ResponseError(Exception):
 
 
 class DecideJobs:
-    def __init__(self,
-                 data, username='service', password='service', with_full_coverage=False, with_progress=False
-                 ):
+    def __init__(self, data, **kwargs):
         self._base_url = 'http://127.0.0.1:8998'
         self._data = data
-        self._username = username
-        self._password = password
-        self._full_coverage = with_full_coverage
-        self._progress = with_progress
+        self._username = kwargs.get('username', 'service')
+        self._password = kwargs.get('password', 'service')
+        self._full_coverage = bool(kwargs.get('with_full_coverage'))
+        self._progress = bool(kwargs.get('with_progress'))
+        self._queue_name = kwargs.get('queue_name', settings.RABBIT_MQ['name'])
 
         self.session = self.__login()
         self.__start()
@@ -1039,7 +1120,7 @@ class DecideJobs:
 
         with RMQConnect() as channel:
             channel.basic_qos(prefetch_count=1)
-            channel.basic_consume(settings.RABBIT_MQ['name'], callback)
+            channel.basic_consume(self._queue_name, callback)
             channel.start_consuming()
 
     def __decide(self, job_uuid):

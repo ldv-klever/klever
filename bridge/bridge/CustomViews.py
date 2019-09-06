@@ -167,13 +167,13 @@ class StreamingResponseAPIView(APIView):
 
         file_name = getattr(generator, 'name', None) or self.get_filename()
         if not isinstance(file_name, str) or len(file_name) == 0:
-            raise BridgeException()
+            raise APIException()
 
         file_size = getattr(generator, 'size', None)
 
         mimetype = mimetypes.guess_type(os.path.basename(file_name))[0]
         response = StreamingHttpResponse(generator, content_type=mimetype)
-        if file_size is not None:
+        if file_size:
             response['Content-Length'] = file_size
         response['Content-Disposition'] = 'attachment; filename="{}"'.format(file_name)
         return response
