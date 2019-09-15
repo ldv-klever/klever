@@ -24,6 +24,7 @@ import core.utils
 
 class ErrorTrace:
     MODEL_COMMENT_TYPES = 'AUX_FUNC|AUX_FUNC_CALLBACK|MODEL_FUNC|NOTE|ASSERT'
+    ERROR_TRACE_FORMAT_VERSION = 1
 
     def __init__(self, logger):
         self._attrs = list()
@@ -64,33 +65,152 @@ class ErrorTrace:
     def serialize(self):
         core.utils.capitalize_attr_names(self._attrs)
 
-        edge_id = 0
-        edges = list()
-        # The first
-        nodes = [[None]]
-        for edge in list(self.trace_iterator()):
-            edges.append(edge)
-            edge['source node'] = len(nodes) - 1
-            edge['target node'] = len(nodes)
+        # TODO: perhaps it would be easier to operate with such the tree above as well.
+        # Convert list of edges to global variable declarations list and to error trace tree.
+        global_var_decls = list()
+        trace = dict()
+        # References to thread nodes for their simple update.
+        thread_node_refs = dict()
+        prev_thread_id = None
+        # References to thread function call stacks.
+        thread_func_call_stacks = dict()
+        for edge in self.trace_iterator():
+            # TODO: new witness format will have another marker for global variable declarations.
+            if edge['thread'] == 0:
+                global_var_decls.append(
+                    {
+                        'line': edge['start line'],
+                        'file': edge['file'],
+                        'source': edge['source']
+                    }
+                )
+                continue
 
-            nodes[-1].append(edge_id)
-            nodes.append([edge_id])
-            edge_id += 1
-        # The last
-        nodes[-1].append(None)
+            if edge['thread'] not in thread_node_refs:
+                # Create node representing given tread.
+                thread_node = {
+                    'type': 'thread',
+                    'thread': edge['thread'],
+                    'children': list()
+                }
+
+                # Remember reference to it.
+                thread_node_refs[edge['thread']] = thread_node
+
+                # First created thread node is tree root.
+                if not trace:
+                    trace.update(thread_node)
+                # Add reference to created thread node to last function call node from previous thread function call
+                # stack.
+                else:
+                    thread_func_call_stacks[prev_thread_id][-1]['children'].append(thread_node)
+
+            # Actions can group together some statements and function calls. They do not intersect within one thread
+            # and all corresponding statements and function calls of each action are within one function. Actions can
+            # not appear without some function call node within corresponding thread function call stack.
+            if 'action' in edge:
+                if not thread_func_call_stacks[edge['thread']][-1]['children'] \
+                        or not thread_func_call_stacks[edge['thread']][-1]['children'][-1]['type'] == 'action'\
+                        or self.resolve_action(edge['action']) != thread_func_call_stacks[edge['thread']][-1]['children'][-1]['display']:
+                    # Create node representing given action. Action source file and line are the same as for first its
+                    # edge.
+                    action_node = {
+                        'type': 'action',
+                        'file': edge['file'],
+                        'line': edge['start line'],
+                        'display': self.resolve_action(edge['action']),
+                        'children': list()
+                    }
+
+                    if edge['action'] in self._callback_actions:
+                        action_node['callback'] = True
+
+                    # Add created action node to last function call node from corresponding thread function call stack
+                    # like for statement node below.
+                    thread_func_call_stacks[edge['thread']][-1]['children'].append(action_node)
+
+            if 'enter' in edge:
+                # Create node representing given function call.
+                func_call_node = {
+                    'type': 'function call',
+                    'file': edge['file'],
+                    'line': edge['start line'],
+                    'source': edge['source'],
+                    'display': self.resolve_function(edge['enter']),
+                    'children': list()
+                }
+
+                if 'note' in edge:
+                    func_call_node['note'] = edge['note']
+
+                if 'warn' in edge:
+                    func_call_node['note'] = edge['warn']
+                    func_call_node['violation'] = True
+
+                if 'entry_point' in edge:
+                    func_call_node['display'] = edge['entry_point']
+
+                # Each thread can have its own function call stack.
+                if edge['thread'] not in thread_func_call_stacks:
+                    thread_func_call_stacks[edge['thread']] = list()
+
+                # Add reference to created function call node for corresponding thread node since given function call is
+                # on top of corresponding function call stack.
+                if not thread_func_call_stacks[edge['thread']]:
+                    thread_node_refs[edge['thread']]['children'].append(func_call_node)
+                # Add reference to created function call node to action node of last function call node from
+                # corresponding thread function call stack or to last function call node itself like for statement node
+                # below when we are not on top of corresponding function call stack.
+                else:
+                    if 'action' in edge:
+                        thread_func_call_stacks[edge['thread']][-1]['children'][-1]['children'].append(func_call_node)
+                    else:
+                        thread_func_call_stacks[edge['thread']][-1]['children'].append(func_call_node)
+
+                if 'return' not in edge:
+                    # Add created function call node to the end of corresponding thread call stack if function does not
+                    # return immediately.
+                    thread_func_call_stacks[edge['thread']].append(func_call_node)
+            elif 'return' in edge:
+                # Remove last function call node from corresponding thread function call stack.
+                thread_func_call_stacks[edge['thread']].pop()
+            else:
+                # Create node representing given statement that is any edge except for function call enter/return.
+                stmt_node = {
+                    'type': 'statement',
+                    'file': edge['file'],
+                    'line': edge['start line'],
+                    'source': edge['source']
+                }
+
+                if 'note' in edge:
+                    stmt_node['note'] = edge['note']
+
+                if 'warn' in edge:
+                    stmt_node['note'] = edge['warn']
+                    stmt_node['violation'] = True
+
+                if 'condition' in edge:
+                    stmt_node['condition'] = True
+
+                # Add created statement node to action node of last function call node from corresponding thread
+                # function call stack or to last function call node itself.
+                if 'action' in edge:
+                    thread_func_call_stacks[edge['thread']][-1]['children'][-1]['children'].append(stmt_node)
+                else:
+                    thread_func_call_stacks[edge['thread']][-1]['children'].append(stmt_node)
+
+            # Remember current thread identifier to track thread switches.
+            prev_thread_id = edge['thread']
 
         data = {
-            'attrs': self._attrs,
-            'nodes': nodes,
-            'edges': edges,
-            'entry node': 0,
-            'violation nodes': [self._nodes[i]['in'][0]['target node'] for i in sorted(self._violation_node_ids)],
+            'format': self.ERROR_TRACE_FORMAT_VERSION,
             'files': self._files,
-            'funcs': self._funcs,
-            'actions': self._actions,
-            'callback actions': self._callback_actions
+            'global variable declarations': global_var_decls,
+            'trace': trace
         }
-        return data
+
+        return data, self._attrs
 
     def add_attr(self, name, value, associate, compare):
         self._attrs.append({
@@ -173,6 +293,9 @@ class ErrorTrace:
 
     def resolve_action_id(self, comment):
         return self._actions.index(comment)
+
+    def resolve_action(self, identifier):
+        return self._actions[identifier]
 
     def trace_iterator(self, begin=None, end=None, backward=False):
         # todo: Warning! This does work only if you guarantee:

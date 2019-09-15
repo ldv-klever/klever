@@ -311,7 +311,7 @@ class RP(core.components.Component):
     main = fetcher
 
     def process_witness(self, witness):
-        error_trace = import_error_trace(self.logger, witness)
+        error_trace, attrs = import_error_trace(self.logger, witness)
         sources = self.__trim_file_names(error_trace['files'])
         error_trace['files'] = [sources[file] for file in error_trace['files']]
 
@@ -327,19 +327,18 @@ class RP(core.components.Component):
         with open(error_trace_file, 'w', encoding='utf8') as fp:
             json.dump(error_trace, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
-        return sources, error_trace_file
+        return error_trace_file, attrs
 
-    def report_unsafe(self, sources, error_trace_files, attrs):
+    def report_unsafe(self, error_trace_file, attrs):
         core.utils.report(self.logger,
                           'unsafe',
                           {
-                              'identifier': "{}/verification/unsafe".format(self.id),
                               'parent': "{}/verification".format(self.id),
                               'attrs': attrs,
-                              'sources': core.utils.ArchiveFiles(list(sources.keys()), arcnames=sources),
-                              'error traces': [core.utils.ArchiveFiles([error_trace_file],
-                                                                       arcnames={error_trace_file: 'error trace.json'})
-                                               for error_trace_file in error_trace_files]
+                              'error_trace': core.utils.ArchiveFiles(
+                                  [error_trace_file],
+                                  arcnames={error_trace_file: 'error trace.json'}
+                              )
                           },
                           self.mqs['report files'],
                           self.vals['report id'],
@@ -376,7 +375,6 @@ class RP(core.components.Component):
             core.utils.report(self.logger,
                               'safe',
                               {
-                                  'identifier': "{}/verification/safe".format(self.id),
                                   'parent': "{}/verification".format(self.id),
                                   'attrs': []
                                   # TODO: at the moment it is unclear what are verifier proofs.
@@ -394,15 +392,10 @@ class RP(core.components.Component):
             # is not "unsafe".
             if "expect several witnesses" in opts and opts["expect several witnesses"] and len(witnesses) != 0:
                 self.verdict = 'unsafe'
-                # Collect all sources referred by all error traces. Different error traces can refer almost the same
-                # sources, so reporting them separately is redundant.
-                sources = {}
-                error_trace_files = []
                 for witness in witnesses:
                     try:
-                        error_trace_sources, error_trace_file = self.process_witness(witness)
-                        sources.update(error_trace_sources)
-                        error_trace_files.append(error_trace_file)
+                        error_trace_file, attrs = self.process_witness(witness)
+                        self.report_unsafe(error_trace_file, attrs)
                     except Exception as e:
                         self.logger.warning('Failed to process a witness:\n{}'.format(traceback.format_exc().rstrip()))
                         self.verdict = 'non-verifier unknown'
@@ -414,10 +407,6 @@ class RP(core.components.Component):
                                 self.__exception = e
                         else:
                             self.__exception = e
-
-                # Do not report unsafe if processing of all witnesses failed.
-                if error_trace_files:
-                    self.report_unsafe(sources, error_trace_files, [])
             if re.search('false', decision_results['status']) and \
                     ("expect several witnesses" not in opts or not opts["expect several witnesses"]):
                 self.verdict = 'unsafe'
@@ -426,8 +415,8 @@ class RP(core.components.Component):
                         NotImplementedError('Just one witness is supported (but "{0}" are given)'.
                                             format(len(witnesses)))
 
-                    sources, error_trace_file = self.process_witness(witnesses[0])
-                    self.report_unsafe(sources, [error_trace_file], [])
+                    error_trace_file, attrs = self.process_witness(witnesses[0])
+                    self.report_unsafe(error_trace_file, attrs)
                 except Exception as e:
                     self.logger.warning('Failed to process a witness:\n{}'.format(traceback.format_exc().rstrip()))
                     self.verdict = 'non-verifier unknown'
@@ -458,7 +447,6 @@ class RP(core.components.Component):
                 core.utils.report(self.logger,
                                   'unknown',
                                   {
-                                      'identifier': "{}/verification/unknown".format(self.id),
                                       'parent': "{}/verification".format(self.id),
                                       'attrs': [],
                                       'problem_description': core.utils.ArchiveFiles(
@@ -579,11 +567,13 @@ class RP(core.components.Component):
 
         for file_name in file_names:
             # Remove storage from file names if files were put there.
-            new_file_name = core.utils.make_relative_path([self.clade.storage_dir], file_name)
-
+            storage_file = core.utils.make_relative_path([self.clade.storage_dir], file_name)
             # Try to make paths relative to source paths or standard search directories.
-            new_file_name = core.utils.make_relative_path(self.source_paths + self.search_dirs, new_file_name,
-                                                          absolutize=True)
-            arcnames[file_name] = new_file_name
+            tmp = core.utils.make_relative_path(self.source_paths, storage_file, absolutize=True)
+            # Append special directory name "source files" when cutting off source file names.
+            if tmp != os.path.join(os.path.sep, storage_file):
+                arcnames[file_name] = os.path.join('source files', tmp)
+            else:
+                arcnames[file_name] = core.utils.make_relative_path(self.search_dirs, storage_file, absolutize=True)
 
         return arcnames
