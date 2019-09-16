@@ -830,8 +830,8 @@ class CProgram:
 
         # TODO: switch to Clade Python API.
         return execute_cmd(self.logger,
-                           *((['clade', '-ia', '--cmds', os.path.realpath(os.path.join(self.work_src_tree, 'cmds.txt'))] if intercept_build_cmds else []) +
-                             ['make', '-j', self.jobs] + opts + list(target)),
+                           *((['clade', '-ia', '--cmds', os.path.realpath(os.path.join(self.work_src_tree, 'cmds.txt'))]
+                              if intercept_build_cmds else []) + ['make', '-j', self.jobs] + opts + list(target)),
                            cwd=self.work_src_tree, env=env, get_output=get_output)
 
     def _make_canonical_work_src_tree(self):
