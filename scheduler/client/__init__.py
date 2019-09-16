@@ -191,13 +191,16 @@ def solve_task(logger, conf, server):
 
     decision_results = process_task_results(logger)
     decision_results['resource limits'] = conf["resource limits"]
-    if conf.get('speculative', False) and decision_results.get('status', True) in ('OUT OF MEMORY', 'TIMEOUT') and \
+    if conf.get('speculative', False) and \
+            decision_results.get('status', True) in ('OUT OF MEMORY', 'TIMEOUT', 'SEGMENTATION FAULT') and \
             decision_results["resources"]["memory size"] >= 0.7 * decision_results['resource limits']['memory size']:
         logger.info("Do not upload solution since limits are reduced and we got: {!r}".
                     format(decision_results['status']))
+        decision_results['uploaded'] = False
         speculative = True
     else:
         speculative = False
+        decision_results['uploaded'] = True
     submit_task_results(logger, server, "Klever", conf["identifier"], decision_results, os.path.curdir,
                         speculative=speculative)
 

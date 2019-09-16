@@ -102,7 +102,7 @@ class Runner:
         """
         try:
             # Add missing restrictions
-            self._prepare_task(identifier, item["description"])
+            return self._prepare_task(identifier, item["description"])
         except SchedulerException as err:
             self.logger.error("Cannot prepare task {} for submission: {!r}".format(identifier, err))
             item["status"] = "ERROR"
@@ -426,9 +426,11 @@ class SpeculativeSimple(Runner):
         :param identifier: Verification task identifier.
         :param item: Dictionary with task description.
         """
+        message = None
         if item["description"]["job id"] in self._jdata:
-            self._estimate_resource_limitations(item, identifier)
+            message = self._estimate_resource_limitations(item, identifier)
         super(SpeculativeSimple, self).prepare_task(identifier, item)
+        return message
 
     def solve_job(self, identifier, item):
         """
@@ -629,6 +631,7 @@ class SpeculativeSimple(Runner):
         job_identifier = item["description"]["job id"]
         attribute = item["description"]["solution class"]
         job_limitations = item["description"]["resource limits"]
+        message = "Set job limit for task {}: ".format(identifier)
 
         # First set QoS limit
         job = self._track_job(job_identifier)
@@ -643,22 +646,17 @@ class SpeculativeSimple(Runner):
         # Check do we have some statistics already
         speculative = False
 
-        # TODO: Uncomment this when you will implement separate method for silent tasks preparation
         if limits.get('memory size', 0) <= 0:
-            #self.logger.info('There is no memory size limitation')
-            pass
+            message += 'There is no memory size limitation at solving task {}.'
         elif limits.get('CPU time') and limits['CPU time'] > qos['CPU time']:
-            #self.logger.info('The CPU time limit is increased to solve timeouts')
-            pass
+            message += 'There is no memory size limitation at solving task {}.'
         elif self._is_there(job_identifier, attribute, identifier):
             limits = dict(qos)
-            #self.logger.info("Set QoS limit for task {}".format(identifier))
+            message = 'Set QoS limit for the task {}'.format(identifier)
         elif not job.get("total tasks", None) or job.get("solved", 0) <= (0.05 * job.get("total tasks", 0)):
-            #self.logger.info('We have not enough solved tasks (5%) to yield speculative limit')
-            pass
+            message += 'We have not enough solved tasks (5%) to yield speculative limit'
         elif not job["limits"][attribute]["statistics"] or job["limits"][attribute]["statistics"]["number"] <= 5:
-            #self.logger.info('We have not solved at least 5 tasks to estimate average consumption')
-            pass
+            message += 'We have not solved at least 5 tasks to estimate average consumption'
         else:
             statistics = job["limits"][attribute]["statistics"]
             if int(statistics['mean mem']) < 0:
@@ -667,15 +665,17 @@ class SpeculativeSimple(Runner):
                 raise ValueError('Memory deviation is negative: {}'.format(int(statistics['memdev'])))
             limits['memory size'] = int(statistics['mean mem']) + 2 * int(statistics['memdev'])
             if limits['memory size'] < qos['memory size']:
-                # self.logger.info("Try running task {} with a speculative limitation".format(identifier))
+                message = "Try running task {} with a speculative limitation {}B".\
+                          format(identifier, limits['memory size'])
                 speculative = True
             else:
-                #self.logger.info("Estimation is too high, keep default limitation for task {}".format(identifier))
-                limits = dict(qos)
+                message += "Estimation {}B is too high.".format(limits['memory size'])
+                limits = dict(job_limitations)
 
         element["limitation"] = limits
         item["description"]["resource limits"] = limits
         item["description"]["speculative"] = speculative
+        return message
 
     def _add_statisitcs(self, job, attribute, resources):
         """
@@ -738,19 +738,13 @@ class SpeculativeSimple(Runner):
                 "Task {} from category {!r} solved with status {!r} and required {}B of memory and {}s of CPU time".
                 format(identifier, attribute, status, resources['memory size'], int(resources['CPU time'] / 1000)))
 
-            # Be very accurate with the condition below. It is duplicated in client because currently Bridge can receive
-            # a single solution and timeout speculative task solutions might not be uploaded at all. This can be
-            # difficult to reveal, thus after changing the code below examine the code in the client script that uploads
-            # solutions
-            if status == 'TIMEOUT' and lim and resources['memory size'] <= 0.7 * lim.get('memory size', 0):
+            if solution['uploaded']:
                 # This is a timeout that will not be solved with an increased memory limitation
                 self._del_task(job_identifier, attribute, identifier)
                 self._add_statisitcs(job, attribute, resources)
                 self.logger.info("Accept timeout task {} even with a speculative restriction".format(identifier))
                 return True
-            elif status in ('OUT OF MEMORY', 'TIMEOUT', 'SEGMENTATION FAULT') and lim and \
-                    (lim.get('memory size', 0) < qos.get('memory size', 0)) or \
-                    (lim.get('CPU time', 0) < qos.get('CPU time', 0)):
+            else:
                 self.logger.info("Do not accept timeout task {} with a speculative restriction and status {!r}".
                                  format(identifier, status))
                 return False
