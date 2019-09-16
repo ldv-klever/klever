@@ -54,7 +54,6 @@ class Runner:
         self.logger = logger
         self.work_dir = work_dir
         self.server = server
-        self.init()
         utils.kv_clear_solutions(self.logger, self.scheduler_type())
 
     @staticmethod

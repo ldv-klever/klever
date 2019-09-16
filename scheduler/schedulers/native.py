@@ -58,7 +58,6 @@ class Native(runners.Speculative):
         self._client_bin = None
         self._manager = None
         self._log_file = 'info.log'
-        self.init()
 
     def init(self):
         """
@@ -483,8 +482,7 @@ class Native(runners.Speculative):
                 if len(errors) > 0:
                     error_msg = errors[-1]
                 else:
-                    error_msg = "Execution of {} {} finished with non-zero exit code: {}".format(mode, identifier,
-                                                                                                 result)
+                    error_msg = "Exited with exit code: {}".format(result)
                 if len(errors) > 0 or result != 0:
                     self.logger.warning(error_msg)
                     raise schedulers.SchedulerException(error_msg)

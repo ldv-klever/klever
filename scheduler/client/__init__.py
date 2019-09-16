@@ -28,6 +28,7 @@ import server
 from utils import execute, process_task_results, submit_task_results, memory_units_converter, time_units_converter
 from client.options import adjust_options
 
+
 def run_benchexec(mode, file=None, configuration=None):
     """
     This is the main routine of the native scheduler client that runs locally BenchExec for given job or task and upload

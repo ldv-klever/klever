@@ -311,7 +311,7 @@ class Scheduler:
                 if submit:
                     # Update resource limitations before scheduling
                     messages = dict()
-                    for i, desk in ((i, tks[i]) for i in tks if tks[i]["status"] == "PENDING"):
+                    for i, desk in ((i, self.__tasks[i]) for i in self.__tasks if self.__tasks[i]["status"] == "PENDING"):
                         messages[i] = self.runner.prepare_task(i, desk)
 
                     # Schedule new tasks
@@ -336,7 +336,7 @@ class Scheduler:
                             msg = messages.get(task_id)
                             if msg:
                                 self.logger.info(msg)
-                            self.runner.solve_task(task_id, tks[task_id])
+                            self.runner.solve_task(task_id, self.__tasks[task_id])
 
                     # Flushing tasks
                     if len(tasks_to_start) > 0 or \
