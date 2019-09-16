@@ -61,6 +61,11 @@ class SemanticPercentInput(Input):
         super(SemanticPercentInput, self).__init__(*args, **kwargs)
 
     def format_value(self, value):
+        if isinstance(value, str):
+            try:
+                return str(int(value))
+            except TypeError or ValueError:
+                value = None
         return str(round(value * 100)) if value else '0'
 
     def get_context(self, name, value, attrs):

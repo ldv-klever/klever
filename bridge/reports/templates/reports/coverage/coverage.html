@@ -111,6 +111,12 @@
         </div>
     </div>
 
+    {# Declarations modal #}
+    <div id="declarations_modal" class="ui small modal">
+        <div class="header">{% trans 'Declarations' %}</div>
+        <div class="content" style="max-height: 30vh;overflow: auto;"></div>
+    </div>
+
     <input id="report_id" value="{{ object.id }}" type="hidden">
     {% if coverage_id %}
         <input id="coverage_id" value="{{ coverage_id }}" type="hidden">

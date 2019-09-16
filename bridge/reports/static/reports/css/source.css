@@ -167,6 +167,20 @@
     cursor: pointer;
 }
 
+.SrcRefToDeclLink:hover {
+    opacity: 0.5;
+    cursor: pointer;
+}
+
+.DeclarationsLink {
+    color: #16219e;
+    cursor: pointer;
+    font-weight: bold;
+}
+.DeclarationsLink:hover {
+    color: #465bff;
+}
+
 .SrcRefLink {
     cursor: pointer;
     color: #16219e;

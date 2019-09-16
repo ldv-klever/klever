@@ -52,6 +52,27 @@
     <div id="source_references_links" class="ui small popup"></div>
 {% endif %}
 
+{% if data.declarations|length %}
+    {% for ref_data in data.declarations %}
+        <div id="{{ ref_data.id }}" hidden>
+            {% for file_ind, file_line in ref_data.sources %}
+                {% if file_ind == None %}
+                    <span class="item SrcRefLink" data-file="{{ data.file_name }}" data-line="{{ file_line }}">{{ data.file_name }}: {{ file_line }}</span><br>
+                {% else %}
+                    {% with data.source_files|get_list_val:file_ind as file_path %}
+                        {% if file_path %}
+                            <span class="item SrcRefLink" data-file="{{ file_path.1 }}" data-line="{{ file_line }}">{{ file_path.1 }}: {{ file_line }}</span><br>
+                        {% endif %}
+                    {% endwith %}
+                {% endif %}
+            {% endfor %}
+        </div>
+    {% endfor %}
+    <div id="source_declarations_popup" class="ui small popup">
+        <span class="DeclarationsLink">{% trans 'Declarations' %}: <span id="declarations_number_display"></span></span>
+    </div>
+{% endif %}
+
 {% for file_ind, file_name in data.source_files %}
     <div class="SrcFileData" data-index="{{ file_ind }}" hidden>{{ file_name }}</div>
 {% endfor %}
