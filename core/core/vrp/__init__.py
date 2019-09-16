@@ -259,10 +259,11 @@ class RP(core.components.Component):
         self.logger.info("VRP instance is ready to work")
         element = self.element
         status, data = element
-        task_id, opts, program_fragment, requirement, verifier = data
+        task_id, opts, program_fragment, requirement, verifier, additional_srcs = data
         self.program_fragment = program_fragment['id']
         self.requirement = requirement
         self.results_key = '{}:{}'.format(self.program_fragment, self.requirement)
+        self.additional_srcs = additional_srcs
         self.logger.debug("Process results of task {}".format(task_id))
 
         files_list_file = 'files list.txt'
@@ -497,7 +498,9 @@ class RP(core.components.Component):
             'wall_time': decision_results['resources']['wall time'],
             'cpu_time': decision_results['resources']['CPU time'],
             'memory': decision_results['resources']['memory size'],
-            'original_sources': self.clade.get_uuid()
+            'original_sources': self.clade.get_uuid(),
+            'additional_sources': core.utils.ArchiveFiles([os.path.join(self.conf['main working directory'],
+                                                                        self.additional_srcs)])
         }
 
         # Get coverage
@@ -536,7 +539,7 @@ class RP(core.components.Component):
             report['coverage'] = core.utils.ArchiveFiles(['coverage'])
             self.vals['coverage_finished'][self.conf['sub-job identifier']] = False
 
-        # todo: This should be cheked to guarantee that we can reschedule tasks
+        # todo: This should be checked to guarantee that we can reschedule tasks
         core.utils.report(self.logger,
                           'verification',
                           report,

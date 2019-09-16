@@ -19,11 +19,14 @@ import fileinput
 import json
 import os
 import re
+import shutil
+
 from clade import Clade
 
 import core.utils
 import core.vtg.utils
 import core.vtg.plugins
+from core.cross_refs import CrossRefs
 
 
 class Weaver(core.vtg.plugins.Plugin):
@@ -169,6 +172,33 @@ class Weaver(core.vtg.plugins.Plugin):
                         'Preprocessed weaved C file with absolute paths was put to "{0}"'.format(abs_paths_c_file))
 
                     extra_c_file = {'C file': os.path.relpath(abs_paths_c_file, self.conf['main working directory'])}
+
+                    # TODO: this can be incorporated into instrumentation above but it will need some Clade changes.
+                    # Emulate normal compilation (indeed just parsing thanks to "-fsyntax-only") to get additional
+                    # dependencies (model source files) and information on them.
+                    if grp['id'] == 'models':
+                        core.utils.execute(
+                            self.logger,
+                            tuple([
+                                    'clade',
+                                    '-ia',
+                                    '--cmds', os.path.realpath('cmds.txt'),
+                                    'aspectator',
+                                    '-I' + os.path.realpath(os.path.dirname(self.conf['requirements DB']))
+                                ] +
+                                core.vtg.utils.prepare_cif_opts(self.conf, cc['opts'], clade.storage_dir) +
+                                [
+                                    aspectator_search_dir,
+                                    '-fsyntax-only',
+                                    clade.get_storage_path(cc['in'][0]),
+                                    '-o', os.path.realpath('{0}.o'
+                                                           .format(os.path.splitext(os.path.basename(cc['in'][0]))[0]))
+                                ]
+                            ),
+                            env=env,
+                            cwd=clade.get_storage_path(cc['cwd']),
+                            timeout=0.01,
+                        )
                 else:
                     extra_c_file = {}
 
@@ -180,7 +210,41 @@ class Weaver(core.vtg.plugins.Plugin):
 
                 self.abstract_task_desc['extra C files'].append(extra_c_file)
 
-        # These sections won't be reffered any more.
+        # Get cross references and everything required for them when all required commands were executed.
+        clade_extra = Clade(cmds_file='cmds.txt')
+        clade_extra.parse_list(["CrossRef"])
+
+        # Like in core.job.Job#__upload_original_sources.
+        search_dirs = core.utils.get_search_dirs(self.conf['main working directory'], abs_paths=True)
+        os.makedirs('additional sources')
+        for root, dirs, files in os.walk(clade_extra.storage_dir):
+            for file in files:
+                file = os.path.join(root, file)
+
+                storage_file = core.utils.make_relative_path([clade_extra.storage_dir], file)
+
+                # Do not treat those source files that were already processed and uploaded as original sources.
+                if os.path.commonpath(
+                        [os.path.join(os.path.sep, storage_file), clade.storage_dir]) == clade.storage_dir:
+                    continue
+
+                new_file = core.utils.make_relative_path(search_dirs, storage_file, absolutize=True)
+                new_file = os.path.join('additional sources', new_file)
+                os.makedirs(os.path.dirname(new_file), exist_ok=True)
+                shutil.copy(file, new_file)
+
+                cross_refs = CrossRefs(self.logger, clade_extra, os.path.join(os.path.sep, storage_file), new_file,
+                                       search_dirs)
+                cross_refs.get_cross_refs()
+
+        self.abstract_task_desc['additional sources'] = os.path.relpath('additional sources',
+                                                                        self.conf['main working directory'])
+
+        if not self.conf['keep intermediate files']:
+            shutil.rmtree('clade')
+            os.remove('cmds.txt')
+
+        # These sections won't be refereed any more.
         del (self.abstract_task_desc['grps'])
         del (self.abstract_task_desc['deps'])
 

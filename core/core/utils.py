@@ -451,7 +451,7 @@ class ArchiveFiles:
                     if os.path.isfile(file_or_dir):
                         arcname = self.arcnames.get(file_or_dir, None)
                         zfp.write(file_or_dir, arcname=arcname)
-                    # Archive all files from directory cutting that directory fron file names.
+                    # Archive all files from directory cutting that directory from file names.
                     elif os.path.isdir(file_or_dir):
                         for root, dirs, files in os.walk(file_or_dir):
                             for file in files:
