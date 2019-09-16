@@ -22,11 +22,8 @@ from pygments.token import Comment, Keyword, Literal, Name, Operator, Punctuatio
 
 
 class Highlight:
-    def __init__(self, logger, src_file):
+    def __init__(self, logger, src):
         self.logger = logger
-
-        with open(src_file) as fp:
-            src = fp.read()
 
         self.tokens = lex(src, CLexer())
 
