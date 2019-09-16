@@ -1,6 +1,0 @@
-{
-  "pattern": "FileNotFoundError: Specified build base \".*\" does not exist",
-  "problem": "InvalidBuildBase",
-  "production": true,
-  "is regexp": true
-}

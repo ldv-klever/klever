@@ -49,6 +49,14 @@
         {"-setprop": "cpa.value.ignoreFunctionValue=false"}
       ]
     },
+    "CPAchecker BAM reachability bit-precise": {
+      "description": "CPAchecker with bit-precise BAM for reachability checking",
+      "inherit": "CPAchecker BAM reachability",
+      "add options": [
+        {"-setprop": "cpa.predicate.encodeBitvectorAs=BITVECTOR"},
+        {"-setprop": "solver.solver=MathSAT5"}
+      ]
+    },
     "CPAchecker BAM BusyBox": {
       "description": "CPAchecker with BAM for reachability checking and FPA",
       "inherit": "CPAchecker BAM reachability FP",
@@ -95,6 +103,12 @@
     "reachability with function pointers": {
       "CPAchecker": {
         "trunk:31140": {"inherit": "CPAchecker BAM reachability FP"}
+      }
+    },
+    "reachability with bit precision": {
+      "CPAchecker": {
+        "trunk:31140": {"inherit": "CPAchecker BAM reachability bit-precise"},
+        "trunk:31503": {"inherit": "CPAchecker BAM reachability bit-precise"}
       }
     },
     "CPAchecker BAM BusyBox": {

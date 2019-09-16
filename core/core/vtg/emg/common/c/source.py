@@ -335,7 +335,10 @@ class Source:
                 desc = cg[scope][func]
                 if scope in cfiles:
                     # Definition of the function is in the code of interest
-                    self._add_function(func, scope, fs, dependencies, cfiles)
+                    try:
+                        self._add_function(func, scope, fs, dependencies, cfiles)
+                    except ValueError:
+                        pass
                     # Add called functions
                     for def_scope, cf_desc in desc.get('calls', dict()).items():
                         if def_scope not in cfiles:
@@ -354,7 +357,10 @@ class Source:
             for func in fs[scope]:
                 func_intf = self.get_source_function(func, scope)
                 if not func_intf:
-                    self._add_function(func, scope, fs, dependencies, cfiles)
+                    try:
+                        self._add_function(func, scope, fs, dependencies, cfiles)
+                    except ValueError:
+                        pass
 
         for func in self.source_functions:
             for obj in self.get_source_functions(func):

@@ -106,7 +106,7 @@ def start_jobs(core_obj, vals):
             def after_launch_sub_job_components(context):
                 context.logger.debug('Put "{0}" sub-job identifier for finish coverage'.format(context.id))
                 context.mqs['requirements and coverage info files'].put({
-                    'sub-job identifier': context.sub_job_id
+                    'sub-job identifier': context.common_components_conf['sub-job identifier']
                 })
 
             cr = JCR(core_obj.conf, core_obj.logger, core_obj.ID, core_obj.callbacks, core_obj.mqs, vals,
@@ -132,7 +132,6 @@ def start_jobs(core_obj, vals):
             __solve_sub_jobs(core_obj, vals, common_components_conf, job_type,
                              subcomponents + [core_obj.uploading_reports_process])
         else:
-            # Klever Core working directory is used for the only sub-job that is job itcore.
             job = Job(
                 core_obj.conf, core_obj.logger, core_obj.ID, core_obj.callbacks, core_obj.mqs,
                 vals,
@@ -183,9 +182,6 @@ def __get_common_components_conf(logger, conf):
     components_common_conf.update(conf)
 
     if components_common_conf['keep intermediate files']:
-        if os.path.isfile('components common conf.json'):
-            raise FileExistsError(
-                'Components common configuration file "components common conf.json" already exists')
         logger.debug('Create components common configuration file "components common conf.json"')
         with open('components common conf.json', 'w', encoding='utf8') as fp:
             json.dump(components_common_conf, fp, ensure_ascii=False, sort_keys=True, indent=4)
@@ -201,7 +197,7 @@ def __solve_sub_jobs(core_obj, vals, components_common_conf, job_type, subcompon
         sub_job_concrete_conf = core.utils.merge_confs(sub_job_components_common_conf,
                                                        components_common_conf['Sub-jobs'][number])
 
-        job = Subjob(
+        job = SubJob(
             core_obj.conf, core_obj.logger, core_obj.ID, core_obj.callbacks, core_obj.mqs,
             vals,
             id=str(number),
@@ -281,7 +277,7 @@ class RA(core.components.Component):
 
             if self.job_type == 'Verification of Linux kernel modules':
                 # For testing jobs there can be several verification tasks for each sub-job, so for uniqueness of
-                # tasks and directories add identifier suffix in addtition.
+                # tasks and directories add identifier suffix in addition.
                 task_id = os.path.join(sub_job_id, id_suffix)
                 self.logger.info('Ideal/obtained verdict for test "{0}" is "{1}"/"{2}"{3}'.format(
                     task_id, verification_result['ideal verdict'], verification_result['verdict'],
@@ -500,69 +496,25 @@ class Job(core.components.Component):
         self.job_type = job_type
         self.common_components_conf = components_common_conf
 
-        # Check and set build base here since many Core components need it.
-        self.__set_build_base()
-
-        self.sub_job_id = id
         self.components = []
         self.component_processes = []
 
-    def __set_build_base(self):
-        if 'build base' in self.common_components_conf:
-            # Try to find specified build base either in normal way or additionally in directory "build bases" that is
-            # convenient to use when working with many build bases.
-            try:
-                build_base = core.utils.find_file_or_dir(self.logger, os.path.curdir,
-                                                         self.common_components_conf['build base'])
-            except FileNotFoundError:
-                try:
-                    build_base = core.utils.find_file_or_dir(self.logger, os.path.curdir,
-                                                             os.path.join('build bases',
-                                                                          self.common_components_conf['build base']))
-                except FileNotFoundError:
-                    raise FileNotFoundError(
-                        'Specified build base "{0}" does not exist, please, fix "job.json" (attribute "build base")'
-                        ' or/and deployment configuration file (attribute "Klever Build Bases")'
-                        .format(self.common_components_conf['build base']))
-
-            # We need to specify absolute path to build base since it will be used in different Klever components.
-            build_base = os.path.realpath(build_base)
-
-            # Extract build base from archive. There should not be any intermediate directories in archives.
-            if os.path.isfile(build_base) and (tarfile.is_tarfile(build_base) or zipfile.is_zipfile(build_base)):
-                if tarfile.is_tarfile(build_base):
-                    self.logger.debug('Build base "{0}" is provided in form of TAR archive'.format(build_base))
-                    with tarfile.open(build_base) as TarFile:
-                        TarFile.extractall('build base')
-                else:
-                    self.logger.debug('Build base "{0}" is provided in form of ZIP archive'.format(build_base))
-                    with zipfile.ZipFile(build_base) as zfp:
-                        zfp.extractall('build base')
-
-                build_base = os.path.realpath('build base')
-
-            if not os.path.isdir(build_base):
-                raise FileExistsError('Build base "{0}" is neither a directory'.format(build_base))
-        else:
-            raise KeyError("Provide 'build base' configuration option to start verification")
-
-        self.common_components_conf['build base'] = build_base
-
-    def decide_job(self):
-        self.logger.info('Decide sub-job of type "{0}" with identifier "{1}"'.format(self.job_type, self.id))
+    def decide_job_or_sub_job(self):
+        self.logger.info('Decide job/sub-job of type "{0}" with identifier "{1}"'.format(self.job_type, self.id))
 
         # This is required to associate verification results with particular sub-jobs.
-        self.common_components_conf['sub-job identifier'] = self.sub_job_id
+        # Skip leading "/" since this identifier is used in os.path.join() that returns absolute path otherwise.
+        self.common_components_conf['sub-job identifier'] = self.id[1:]
+
+        # Check and set build base here since many Core components need it.
+        self.__set_build_base()
 
         if self.common_components_conf['keep intermediate files']:
-            if os.path.isfile('conf.json'):
-                raise FileExistsError(
-                    'Components configuration file "conf.json" already exists')
             self.logger.debug('Create components configuration file "conf.json"')
             with open('conf.json', 'w', encoding='utf8') as fp:
                 json.dump(self.common_components_conf, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
-        self.__get_sub_job_components()
+        self.__get_job_or_sub_job_components()
         self.callbacks = core.components.get_component_callbacks(self.logger, [type(self)] + self.components,
                                                                  self.common_components_conf)
         self.launch_sub_job_components()
@@ -575,9 +527,66 @@ class Job(core.components.Component):
                 time.sleep(1)
             self.logger.debug("Coverage collected")
 
-    main = decide_job
+    main = decide_job_or_sub_job
 
-    def __get_sub_job_components(self):
+    def __set_build_base(self):
+        if 'build base' not in self.common_components_conf:
+            raise KeyError("Provide 'build base' configuration option to start verification")
+
+        common_advice = 'please, fix "job.json" (attribute "build base")'
+        common_advice += ' or/and deployment configuration file (attribute "Klever Build Bases")'
+
+        # Try to find specified build base either in normal way or additionally in directory "build bases" that is
+        # convenient to use when working with many build bases.
+        try:
+            build_base = core.utils.find_file_or_dir(self.logger, os.path.curdir,
+                                                     self.common_components_conf['build base'])
+        except FileNotFoundError:
+            try:
+                build_base = core.utils.find_file_or_dir(self.logger, os.path.curdir,
+                                                         os.path.join('build bases',
+                                                                      self.common_components_conf['build base']))
+            except FileNotFoundError:
+                raise FileNotFoundError(
+                    'Specified build base "{0}" does not exist, {1}'.format(self.common_components_conf['build base'],
+                                                                            common_advice)) from None
+
+        # Extract build base from archive. There should not be any intermediate directories in archives.
+        if os.path.isfile(build_base) and (tarfile.is_tarfile(build_base) or zipfile.is_zipfile(build_base)):
+            if tarfile.is_tarfile(build_base):
+                self.logger.debug('Build base "{0}" is provided in form of TAR archive'.format(build_base))
+                with tarfile.open(build_base) as TarFile:
+                    TarFile.extractall('build base')
+            else:
+                self.logger.debug('Build base "{0}" is provided in form of ZIP archive'.format(build_base))
+                with zipfile.ZipFile(build_base) as zfp:
+                    zfp.extractall('build base')
+
+            # Directory contains extracted build base.
+            extracted_from = ' extracted from "{0}"'.format(os.path.realpath(build_base))
+            build_base = 'build base'
+        else:
+            extracted_from = ''
+
+        # We need to specify absolute path to build base since it will be used in different Klever components. Besides,
+        # this simplifies troubleshooting.
+        build_base = os.path.realpath(build_base)
+
+        if not os.path.isdir(build_base):
+            raise FileExistsError('Build base "{0}" is not a directory, {1}'
+                                  .format(build_base, extracted_from, common_advice))
+
+        if not os.path.isfile(os.path.join(build_base, 'meta.json')):
+            raise FileExistsError(
+                'Directory "{0}"{1} is not a build base since it does not contain file "meta.json", {2}'
+                .format(build_base, extracted_from, common_advice))
+
+        self.common_components_conf['build base'] = build_base
+
+        self.logger.debug('Klever components will use build base "{0}"'
+                          .format(self.common_components_conf['build base']))
+
+    def __get_job_or_sub_job_components(self):
         self.logger.info('Get components for sub-job of type "{0}" with identifier "{1}"'.
                          format(self.job_type, self.id))
 
@@ -602,14 +611,14 @@ class Job(core.components.Component):
         core.components.launch_workers(self.logger, self.component_processes)
 
 
-class Subjob(Job):
+class SubJob(Job):
 
-    def decide_subjob(self):
+    def decide_sub_job(self):
         try:
-            self.decide_job()
+            self.decide_job_or_sub_job()
             self.vals['subjobs progress'][self.id] = 'finished'
         except Exception:
             self.vals['subjobs progress'][self.id] = 'failed'
             raise
 
-    main = decide_subjob
+    main = decide_sub_job
