@@ -649,7 +649,7 @@ class Job(core.components.Component):
                 shutil.copy(file, new_file)
 
                 cross_refs = CrossRefs(self.logger, self.clade, os.path.join(os.path.sep, storage_file), new_file,
-                                       self.common_components_conf['working source trees'])
+                                       self.common_components_conf['working source trees'], 'source files')
                 cross_refs.get_cross_refs()
 
         self.logger.info('Compress original sources')

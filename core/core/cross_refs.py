@@ -24,12 +24,13 @@ from core.highlight import Highlight
 class CrossRefs:
     INDEX_DATA_FORMAT_VERSION = 1
 
-    def __init__(self, logger, clade, storage_file, new_file, common_dirs):
+    def __init__(self, logger, clade, storage_file, new_file, common_dirs, common_prefix=''):
         self.logger = logger
         self.clade = clade
         self.storage_file = storage_file
         self.new_file = new_file
         self.common_dirs = common_dirs
+        self.common_prefix = common_prefix
 
     def get_cross_refs(self):
         highlight = Highlight(self.logger, self.new_file)
@@ -129,7 +130,7 @@ class CrossRefs:
         short_ref_src_files = []
         for ref_src_file in ref_src_files:
             tmp = core.utils.make_relative_path(self.common_dirs, ref_src_file)
-            short_ref_src_files.append(os.path.join('source files', tmp)
+            short_ref_src_files.append(os.path.join(self.common_prefix, tmp)
                                        if tmp != ref_src_file else ref_src_file)
 
         # Add special highlighting for non heuristically known entity references and referenced entities.
