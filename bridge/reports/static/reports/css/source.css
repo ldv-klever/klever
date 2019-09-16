@@ -142,6 +142,10 @@
     color: #8B008B;
     font-weight: bold;
 }
+.SrcHlAssume {
+    color: #551175;
+    font-weight: bold;
+}
 
 /* Coverage notes */
 .SrcCovVA {

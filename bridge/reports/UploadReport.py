@@ -724,8 +724,8 @@ class UploadReport:
             self.root.resources[component]['cpu_time'] += kwargs['cpu_time']
             self.root.resources['total']['cpu_time'] += kwargs['cpu_time']
         if kwargs.get('wall_time'):
-            self.root.resources[component]['wall_time'] += kwargs['cpu_time']
-            self.root.resources['total']['wall_time'] += kwargs['cpu_time']
+            self.root.resources[component]['wall_time'] += kwargs['wall_time']
+            self.root.resources['total']['wall_time'] += kwargs['wall_time']
         if kwargs.get('memory'):
             self.root.resources[component]['memory'] = max(kwargs['memory'], self.root.resources[component]['memory'])
             self.root.resources['total']['memory'] = max(kwargs['memory'], self.root.resources['total']['memory'])

@@ -26,6 +26,7 @@ from reports.source import SourceLine
 class GetETV:
     tab_length = 4
     global_thread = 'global'
+    condition_class = 'SrcHlAssume'
     THREAD_COLORS = [
         '#5f54cb', '#85ff47', '#69c8ff', '#ff5de5', '#dfa720',
         '#0b67bf', '#fa92ff', '#57bfa8', '#bf425a', '#7d909e'
@@ -213,7 +214,12 @@ class GetETV:
 
     def __parse_source(self, node):
         src_line = SourceLine(node['source'], highlights=node.get('highlight', []))
-        return src_line.html_code
+        source_html = src_line.html_code
+
+        # Wrap to assume() conditions
+        if node.get('condition'):
+            source_html = '<span class="{}">assume</span>({})'.format(self.condition_class, source_html)
+        return source_html
 
     def __get_line(self, line=None):
         line_str = '' if line is None else str(line)
