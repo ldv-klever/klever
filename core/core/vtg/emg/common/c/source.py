@@ -74,7 +74,7 @@ class Source:
     def c_full_paths(self):
         full_paths = list()
         for path in self.cfiles:
-            for spath in self._conf["source paths"]:
+            for spath in self._conf["working source trees"]:
                 abspath = os.path.join(spath, path)
                 storabspath = self._clade.get_storage_path(abspath)
                 if os.path.isfile(storabspath):

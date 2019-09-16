@@ -260,7 +260,7 @@ class ProcessCollection:
         def get_abspath(path):
             if path == 'environment model' or os.path.isfile(path):
                 return path
-            for spath in self.conf["source paths"]:
+            for spath in self.conf["working source trees"]:
                 abspath = os.path.join(spath, path)
                 storabspath = self._clade.get_storage_path(abspath)
                 if os.path.isfile(storabspath):

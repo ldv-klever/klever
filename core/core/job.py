@@ -501,16 +501,6 @@ class Job(core.components.Component):
         self.job_type = job_type
         self.common_components_conf = components_common_conf
 
-        self.components = []
-        self.component_processes = []
-
-    def decide_job_or_sub_job(self):
-        self.logger.info('Decide job/sub-job of type "{0}" with identifier "{1}"'.format(self.job_type, self.id))
-
-        # This is required to associate verification results with particular sub-jobs.
-        # Skip leading "/" since this identifier is used in os.path.join() that returns absolute path otherwise.
-        self.common_components_conf['sub-job identifier'] = self.id[1:]
-
         self.clade = None
         self.components = []
         self.component_processes = []
@@ -533,25 +523,6 @@ class Job(core.components.Component):
             with open('conf.json', 'w', encoding='utf8') as fp:
                 json.dump(self.common_components_conf, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
-        if self.common_components_conf['keep intermediate files']:
-            self.logger.debug('Create components configuration file "conf.json"')
-            with open('conf.json', 'w', encoding='utf8') as fp:
-                json.dump(self.common_components_conf, fp, ensure_ascii=False, sort_keys=True, indent=4)
-
-        self.__get_job_or_sub_job_components()
-        self.callbacks = core.components.get_component_callbacks(self.logger, [type(self)] + self.components,
-                                                                 self.common_components_conf)
-        self.launch_sub_job_components()
-
-        self.clean_dir = True
-        self.logger.info("All components finished")
-        if self.conf.get('collect total code coverage', None):
-            self.logger.debug('Waiting for a collecting coverage')
-            while not self.vals['coverage_finished'].get(self.common_components_conf['sub-job identifier'], True):
-                time.sleep(1)
-            self.logger.debug("Coverage collected")
-
-    main = decide_job_or_sub_job
         self.__get_job_or_sub_job_components()
         self.callbacks = core.components.get_component_callbacks(self.logger, [type(self)] + self.components,
                                                                  self.common_components_conf)
@@ -609,29 +580,12 @@ class Job(core.components.Component):
         # We need to specify absolute path to build base since it will be used in different Klever components. Besides,
         # this simplifies troubleshooting.
         build_base = os.path.realpath(build_base)
-            # Directory contains extracted build base.
-            extracted_from = ' extracted from "{0}"'.format(os.path.realpath(build_base))
-            build_base = 'build base'
-        else:
-            extracted_from = ''
-
-        # We need to specify absolute path to build base since it will be used in different Klever components. Besides,
-        # this simplifies troubleshooting.
-        build_base = os.path.realpath(build_base)
 
         # TODO: fix after https://github.com/17451k/clade/issues/108.
         if not os.path.isdir(build_base):
             raise FileExistsError('Build base "{0}" is not a directory, {1}'
                                   .format(build_base, extracted_from, common_advice))
 
-        if not os.path.isdir(build_base):
-            raise FileExistsError('Build base "{0}" is not a directory, {1}'
-                                  .format(build_base, extracted_from, common_advice))
-
-        if not os.path.isfile(os.path.join(build_base, 'meta.json')):
-            raise FileExistsError(
-                'Directory "{0}"{1} is not a build base since it does not contain file "meta.json", {2}'
-                .format(build_base, extracted_from, common_advice))
         if not os.path.isfile(os.path.join(build_base, 'meta.json')):
             raise FileExistsError(
                 'Directory "{0}"{1} is not a build base since it does not contain file "meta.json", {2}'
@@ -651,7 +605,6 @@ class Job(core.components.Component):
         self.common_components_conf['working source trees'] = clade_meta['working source trees'] \
             if 'working source trees' in clade_meta else [clade_meta['build_dir']]
 
-        self.common_components_conf['build base'] = build_base
     def __refer_original_sources(self, src_id):
         core.utils.report(self.logger,
                           'patch',
@@ -663,13 +616,10 @@ class Job(core.components.Component):
                           self.vals['report id'],
                           self.conf['main working directory'])
 
-        self.logger.debug('Klever components will use build base "{0}"'
-                          .format(self.common_components_conf['build base']))
     def __upload_original_sources(self):
         # Use Clade UUID to distinguish various original sources. It is pretty well since this UUID is uuid.uuid4().
         src_id = self.clade.get_uuid()
 
-    def __get_job_or_sub_job_components(self):
         session = core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
 
         if session.check_original_sources(src_id):

@@ -132,7 +132,7 @@ class Weaver(core.vtg.plugins.Plugin):
                               ['--'] +
                               core.vtg.utils.prepare_cif_opts(cc['opts'], clade, grp['id'] == 'models') +
                               [aspectator_search_dir] +
-                              ['-I' + clade.get_storage_path(p) for p in self.conf['source paths']]
+                              ['-I' + clade.get_storage_path(p) for p in self.conf['working source trees']]
                               ),
                         env=env,
                         cwd=clade.get_storage_path(cc['cwd']),
@@ -210,7 +210,7 @@ class Weaver(core.vtg.plugins.Plugin):
                                     'aspectator',
                                     '-I' + os.path.realpath(os.path.dirname(self.conf['requirements DB']))
                                 ] +
-                                core.vtg.utils.prepare_cif_opts(self.conf, cc['opts'], clade.storage_dir) +
+                                core.vtg.utils.prepare_cif_opts(cc['opts'], clade) +
                                 [
                                     aspectator_search_dir,
                                     '-fsyntax-only',

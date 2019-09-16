@@ -206,7 +206,7 @@ class RSG(core.vtg.plugins.Plugin):
         # Relative path to source file which CC options to be used is specified in configuration. Clade needs absolute
         # path. The former is relative to one of source paths.
         if not meta['conf'].get('Compiler.preprocess_cmds', False):
-            for path in self.conf['source paths']:
+            for path in self.conf['working source trees']:
                 opts_file = os.path.join(path, self.conf['opts file'])
                 try:
                     empty_cc = list(clade.get_compilation_cmds_by_file(opts_file))
@@ -222,7 +222,7 @@ class RSG(core.vtg.plugins.Plugin):
             empty_cc = empty_cc.pop()
             empty_cc['opts'] = clade.get_cmd_opts(empty_cc['id'])
         else:
-            empty_cc = {'opts': [], 'cwd': self.conf['source paths'][-1]}
+            empty_cc = {'opts': [], 'cwd': self.conf['working source trees'][-1]}
 
         model_grp = {'id': 'models', 'Extra CCs': []}
         for model_c_file in sorted(models):
