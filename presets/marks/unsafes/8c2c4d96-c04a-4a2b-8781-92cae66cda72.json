@@ -1,0 +1,34 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:block:request"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/linux/block/request/double-put.ko"
+    }
+  ],
+  "description": "",
+  "error_trace": [
+    [
+      {
+        "ldv_init": [
+          {
+            "ldv_put_blk_rq": [
+              {
+                "ldv_assert_linux_block_request__double_put": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": true,
+  "tags": [],
+  "verdict": "2"
+}

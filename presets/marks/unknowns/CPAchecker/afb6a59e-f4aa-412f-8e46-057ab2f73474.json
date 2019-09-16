@@ -1,0 +1,8 @@
+{
+  "attrs": [],
+  "function": "java.lang.StackOverflowError",
+  "is_regexp": false,
+  "link": "https://docs.oracle.com/javase/7/docs/api/java/lang/StackOverflowError.html",
+  "problem_pattern": "Stack overflow",
+  "production": true
+}

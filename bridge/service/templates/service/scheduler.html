@@ -1,4 +1,4 @@
-{% extends 'service/base.html' %}
+{% extends 'bridge/base.html' %}
 {% comment "License" %}
 % Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
 % Ivannikov Institute for System Programming of the Russian Academy of Sciences
@@ -17,8 +17,14 @@
 {% endcomment %}
 
 {% load i18n %}
+{% load staticfiles %}
 
 {% block title %}{% trans 'Schedulers' %}{% endblock %}
+
+{% block head_block %}
+    <script src="{% static 'service/js/service.js' %}"></script>
+    <link href="{% static 'service/css/service.css' %}" rel="stylesheet">
+{% endblock %}
 
 {% block body_block %}
     <div class="ui grid">
@@ -37,7 +43,7 @@
                 {% for sch in schedulers %}
                     <tr>
                         <th class="five wide column center aligned">
-                            <h4 class="header"><a id="show_tools_{{ sch.type }}" href="#">{{ sch.get_type_display }}</a></h4>
+                            <h4 class="header"><a class="show-sch-tools" data-type="{{ sch.type }}" href="#">{{ sch.get_type_display }}</a></h4>
                         </th>
                         <th class="five wide column center aligned">
                             {% if sch.status == 'HEALTHY' %}
@@ -48,7 +54,7 @@
                                 <h4 class="ui red header">{% trans 'Disconnected' %}</h4>
                             {% endif %}
                         </th>
-                        <th class="one wide column right aligned"><i id="tools_arrow_{{ sch.type }}" class="ui arrow right icon" style="display: none"></i></th>
+                        <th class="one wide column right aligned"><i class="ui arrow right icon tools-arrow" data-type="{{ sch.type }}" style="display: none"></i></th>
                     </tr>
                 {% endfor %}
                 </thead>
@@ -56,7 +62,7 @@
         </div>
         <div class="nine wide column">
             {% for sch in schedulers %}
-                <div id="tools_{{ sch.type }}" style="display: none">
+                <div class="tools-list" data-type="{{ sch.type }}" style="display: none">
                     <div class="ui pink segment">
                         <div class="ui grid">
                             <div class="eight wide column">
@@ -103,14 +109,14 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for conf in data.conf_data %}
+                    {% for conf in data.configs %}
                         <tr class="nodes-configuration">
                             <th class="right aligned">
-                                <h4 class="header italic"><a id="show_nodes_{{ conf.id }}" href="#">{{ conf.cnt }}</a></h4>
+                                <h4 class="header italic"><a class="show-nodes" data-conf="{{ conf.id }}" href="#">{{ conf.cnt }}</a></h4>
                             </th>
-                            <td>{{ conf.cores }}</td>
-                            <td>{{ conf.ram }}</td>
-                            <td>{{ conf.memory }}</td>
+                            <td>{{ conf.cpu_number.0 }}/{{ conf.cpu_number.1 }}</td>
+                            <td>{{ conf.ram_memory.0 }}/{{ conf.ram_memory.1 }}</td>
+                            <td>{{ conf.disk_memory.0 }}/{{ conf.disk_memory.1 }}</td>
                             <td>{{ conf.jobs }}</td>
                             <td>{{ conf.tasks }}</td>
                         </tr>
@@ -119,18 +125,18 @@
                         <th class="right aligned">
                             <h4 class="header italic">{% trans 'Total' %}</h4>
                         </th>
-                        <td>{{ data.total_data.cores }}</td>
-                        <td>{{ data.total_data.ram }}</td>
-                        <td>{{ data.total_data.memory }}</td>
-                        <td>{{ data.total_data.jobs }}</td>
-                        <td>{{ data.total_data.tasks }}</td>
+                        <td>{{ data.totals.cpu_number.0 }}/{{ data.totals.cpu_number.1 }}</td>
+                        <td>{{ data.totals.ram_memory.0 }}/{{ data.totals.ram_memory.1 }}</td>
+                        <td>{{ data.totals.disk_memory.0 }}/{{ data.totals.disk_memory.1 }}</td>
+                        <td>{{ data.totals.jobs }}</td>
+                        <td>{{ data.totals.tasks }}</td>
                     </tr>
                 </tbody>
             </table>
         </div>
         <div class="six wide column">
-            {% for conf in data.conf_data %}
-                <div id="conf_info_{{ conf.id }}" style="display: none">
+            {% for conf in data.configs %}
+                <div class="conf-info" data-conf="{{ conf.obj.id }}" style="display: none">
                     <div class="ui pink segment">
                         <div class="ui grid">
                             <div class="eight wide column">
@@ -141,67 +147,71 @@
                             </div>
                         </div>
                         <div class="ui pointing list">
-                            <div class="item"><span class="italic" style="color: #15b9c3">{% trans 'CPU model' %}:</span> {{ conf.cpu }}</div>
-                            <div class="item"><span class="italic" style="color: #15b9c3">{% trans 'Number of CPU cores' %}:</span> {{ conf.conf.cores }}</div>
-                            <div class="item"><span class="italic" style="color: #15b9c3">{% trans 'Memory size' %} ({% trans 'GB' %}):</span> {{ conf.conf.ram }}</div>
-                            <div class="item"><span class="italic" style="color: #15b9c3">{% trans 'Disk memory size' %} ({% trans 'GB' %}):</span> {{ conf.conf.memory }}</div>
-                            <div class="item"><span class="italic" style="color: #15b9c3">{% trans 'Number of nodes' %}:</span> {{ conf.conf.num_of_nodes }}</div>
+                            <div class="item"><span class="italic" style="color: #15b9c3">{% trans 'CPU model' %}:</span> {{ conf.obj.cpu_model }}</div>
+                            <div class="item"><span class="italic" style="color: #15b9c3">{% trans 'Number of CPU cores' %}:</span> {{ conf.obj.cpu_number }}</div>
+                            <div class="item"><span class="italic" style="color: #15b9c3">{% trans 'Memory size' %} ({% trans 'GB' %}):</span> {{ conf.obj.ram_memory }}</div>
+                            <div class="item"><span class="italic" style="color: #15b9c3">{% trans 'Disk memory size' %} ({% trans 'GB' %}):</span> {{ conf.obj.disk_memory }}</div>
+                            <div class="item"><span class="italic" style="color: #15b9c3">{% trans 'Number of nodes' %}:</span> {{ conf.nodes_number }}</div>
                         </div>
                     </div>
                 </div>
             {% endfor %}
         </div>
     </div>
-    {% if data.nodes|length > 0 %}
-    <h2 class="ui orange header">{% trans 'Klever scheduler nodes' %}</h2>
-    <table class="ui celled compact orange table selectable">
-        <thead>
-            <tr>
-                <th>{% trans 'Hostname' %}</th>
-                <th>{% trans 'Status' %}</th>
-                <th>{% trans 'CPU model' %}</th>
-                <th>{% trans 'Number of CPU cores' %}*</th>
-                <th>{% trans 'Memory size' %}**</th>
-                <th>{% trans 'Disk memory size' %}**</th>
-                <th>{% trans 'Number of solving tasks' %}</th>
-                <th>{% trans 'Number of solving jobs' %}</th>
-                <th>{% trans 'Available for solving tasks' %}</th>
-                <th>{% trans 'Available for solving jobs' %}</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for node in data.nodes %}
-                <tr class="node-of-conf-{{ node.conf_id }}">
-                    <td><a id="show_node_conf__{{ node.conf_id }}" href="#">{{ node.hostname }}</a></td>
-                    <td>{{ node.status }}</td>
-                    <td>{{ node.cpu }}</td>
-                    <td>{{ node.cores }}</td>
-                    <td>{{ node.ram }}</td>
-                    <td>{{ node.memory }}</td>
-                    <td>{{ node.tasks }}</td>
-                    <td>{{ node.jobs }}</td>
-                    <td>
-                        {% if node.for_tasks == True %}
-                            <i class="ui checkmark green icon"></i>
-                        {% elif node.for_tasks == False %}
-                            <i class="ui remove red icon"></i>
-                        {% else %}
-                            {{ node.for_tasks }}
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if node.for_jobs == True %}
-                            <i class="ui checkmark green icon"></i>
-                        {% elif node.for_jobs == False %}
-                            <i class="ui remove red icon"></i>
-                        {% else %}
-                            {{ node.for_jobs }}
-                        {% endif %}
-                    </td>
+    {% if nodes|length > 0 %}
+        <h2 class="ui orange header">{% trans 'Klever scheduler nodes' %}</h2>
+        <table class="ui celled compact orange table selectable">
+            <thead>
+                <tr>
+                    <th>{% trans 'Hostname' %}</th>
+                    <th>{% trans 'Status' %}</th>
+                    <th>{% trans 'CPU model' %}</th>
+                    <th>{% trans 'Number of CPU cores' %}*</th>
+                    <th>{% trans 'Memory size' %}**</th>
+                    <th>{% trans 'Disk memory size' %}**</th>
+                    <th>{% trans 'Number of solving tasks' %}</th>
+                    <th>{% trans 'Number of solving jobs' %}</th>
+                    <th>{% trans 'Available for solving tasks' %}</th>
+                    <th>{% trans 'Available for solving jobs' %}</th>
                 </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                {% for node in nodes %}
+                    <tr class="node-of-conf" data-conf="{{ node.config_id }}">
+                        <td><a class="show-node-conf" data-conf="{{ node.config_id }}" href="#">{{ node.hostname }}</a></td>
+                        <td>{{ node.get_status_display }}</td>
+                        <td>{{ node.config.cpu_model }}</td>
+                        <td>{% if node.workload %}{{ node.workload.reserved_cpu_number }}{% else %}-{% endif %}/{{ node.config.cpu_number }}</td>
+                        <td>{% if node.workload %}{{ node.workload.reserved_ram_memory }}{% else %}-{% endif %}/{{ node.config.ram_memory }}</td>
+                        <td>{% if node.workload %}{{ node.workload.reserved_disk_memory }}{% else %}-{% endif %}/{{ node.config.disk_memory }}</td>
+                        <td>{% if node.workload %}{{ node.workload.running_verification_tasks }}{% else %}-{% endif %}</td>
+                        <td>{% if node.workload %}{{ node.workload.running_verification_jobs }}{% else %}-{% endif %}</td>
+                        <td>
+                            {% if node.workload %}
+                                {% if node.workload.available_for_tasks %}
+                                    <i class="ui checkmark green icon"></i>
+                                {% else %}
+                                    <i class="ui remove red icon"></i>
+                                {% endif %}
+                            {% else %}
+                                <span>-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if node.workload %}
+                                {% if node.workload.available_for_jobs %}
+                                    <i class="ui checkmark green icon"></i>
+                                {% else %}
+                                    <i class="ui remove red icon"></i>
+                                {% endif %}
+                            {% else %}
+                                <span>-</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     {% else %}
         <h3 class="ui orange header">{% trans "Klever scheduler doesn't have nodes" %}</h3>
     {% endif %}

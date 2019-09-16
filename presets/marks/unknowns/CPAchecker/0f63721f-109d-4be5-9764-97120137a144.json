@@ -1,0 +1,23 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Linux:Version",
+      "value": "v3.12.14-127-gd8e172f3c0a5"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:drivers:clk1"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/spi/spi-imx.ko"
+    }
+  ],
+  "description": "This is a known bug in CPAchecker",
+  "function": "Error: Refinement failed: Counterexample could not be ruled out and was found again",
+  "is_regexp": true,
+  "problem_pattern": "RefFailed"
+}

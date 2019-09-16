@@ -1,0 +1,18 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:alloc:irq"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/usb/serial/kobil_sct.ko"
+    }
+  ],
+  "description": "Seems that all is correct.",
+  "is_modifiable": true,
+  "tags": [],
+  "verdict": "0"
+}

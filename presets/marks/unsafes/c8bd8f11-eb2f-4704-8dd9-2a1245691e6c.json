@@ -1,0 +1,30 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:test:common"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/verifier/set/flag/remove-is-empty.ko"
+    }
+  ],
+  "description": "",
+  "error_trace": [
+    [
+      {
+        "ldv_init": [
+          {
+            "ldv_error": []
+          }
+        ]
+      }
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": true,
+  "tags": [],
+  "verdict": "2"
+}

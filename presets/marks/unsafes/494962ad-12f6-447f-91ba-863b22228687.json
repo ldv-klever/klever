@@ -1,0 +1,39 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:usb:dev"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/linux/usb/dev/less-decrement.ko"
+    }
+  ],
+  "description": "",
+  "error_trace": [
+    [
+      {
+        "ldv_initialize": []
+      }
+    ],
+    [
+      {
+        "ldv_init": [
+          {
+            "ldv_usb_put_dev": [
+              {
+                "ldv_assert_linux_usb_dev__unincremented_counter_decrement": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": true,
+  "tags": [],
+  "verdict": "2"
+}

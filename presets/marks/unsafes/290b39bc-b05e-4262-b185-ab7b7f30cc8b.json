@@ -1,0 +1,35 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:concurrency safety"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/linux/concurrency-safety/unsorted/BAM_ARG_cleaning_test-unsafe.ko"
+    }
+  ],
+  "description": "",
+  "error_trace": [
+    [
+      {
+        "ldv_init": [
+          {
+            "ldv_mutex_lock_37": []
+          }
+        ]
+      }
+    ],
+    [
+      {
+        "ldv_func2": []
+      }
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": false,
+  "tags": [],
+  "verdict": "2"
+}

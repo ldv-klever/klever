@@ -23,7 +23,7 @@
     <i class="ui red minus icon"></i>
     {{ data.v1.change_date|date:"r" }}
     {% if data.v1.author %}
-        (<a href="{% url 'users:show_profile' data.v1.author_id %}">{{ data.v1.author.get_full_name }}</a>)
+        (<a href="{% url 'users:show-profile' data.v1.author_id %}">{{ data.v1.author.get_full_name }}</a>)
     {% endif %}
     {% if data.v1.comment %}
         <span>: {{ data.v1.comment }}</span>
@@ -33,7 +33,7 @@
     <i class="ui green plus icon"></i>
     {{ data.v2.change_date|date:"r" }}
     {% if data.v2.author %}
-        (<a href="{% url 'users:show_profile' data.v2.author_id %}">{{ data.v2.author.get_full_name }}</a>)
+        (<a href="{% url 'users:show-profile' data.v2.author_id %}">{{ data.v2.author.get_full_name }}</a>)
     {% endif %}
     {% if data.v2.comment %}
         <span>: {{ data.v2.comment }}</span>
@@ -44,9 +44,9 @@
 {% if data.verdict %}
     <h5>{% trans 'Verdict was changed' %}</h5>
     <span>
-        <i class="ui red minus icon"></i> <strong style="color: {{ data.verdict.0.color }}">{{ data.verdict.0.title }}</strong>
+        <i class="ui red minus icon"></i> <strong class="{{ data.type }}-verdict-{{ data.verdict.0.value }}">{{ data.verdict.0.display }}</strong>
         <br>
-        <i class="ui green plus icon"></i> <strong style="color: {{ data.verdict.1.color }}">{{ data.verdict.1.title }}</strong>
+        <i class="ui green plus icon"></i> <strong class="{{ data.type }}-verdict-{{ data.verdict.0.value }}">{{ data.verdict.1.display }}</strong>
     </span>
     <div class="ui divider"></div>
 {% endif %}
@@ -54,9 +54,19 @@
 {% if data.status %}
     <h5>{% trans 'Status was changed' %}</h5>
     <span>
-        <i class="ui red minus icon"></i> <strong style="color: {{ data.status.0.color }}">{{ data.status.0.title }}</strong>
+        <i class="ui red minus icon"></i>
+        {% if data.status.0.value %}
+            <strong class="mark-status-{{ data.status.0.value }}">{{ data.status.0.display }}</strong>
+        {% else %}
+            <i class="ui pink ban icon"></i>
+        {% endif %}
         <br>
-        <i class="ui green plus icon"></i> <strong style="color: {{ data.status.1.color }}">{{ data.status.1.title }}</strong>
+        <i class="ui green plus icon"></i>
+        {% if data.status.1.value %}
+            <strong class="mark-status-{{ data.status.1.value }}">{{ data.status.1.display }}</strong>
+        {% else %}
+            <i class="ui pink ban icon"></i>
+        {% endif %}
     </span>
     <div class="ui divider"></div>
 {% endif %}
@@ -71,26 +81,26 @@
     <div class="ui divider"></div>
 {% endif %}
 
-{% if data.et_func %}
+{% if data.unsafe_func %}
     <h5>{% trans 'Error trace comparison function was changed' %}</h5>
 
-    <i class="ui red minus icon"></i> <b>{{ data.et_func.0.compare_name }}</b>
-    <div class="func-description">{{ data.et_func.0.compare_desc }}</div>
+    <i class="ui red minus icon"></i> <b>{{ data.unsafe_func.0.compare_name }}</b>
+    <div class="func-description">{{ data.unsafe_func.0.compare_desc }}</div>
     <br>
-    <b>{{ data.et_func.0.convert_name }}</b>
-    <div class="func-description">{{ data.et_func.0.convert_desc }}</div>
+    <b>{{ data.unsafe_func.0.convert_name }}</b>
+    <div class="func-description">{{ data.unsafe_func.0.convert_desc }}</div>
     <br><br>
-    <i class="ui green plus icon"></i> <b>{{ data.et_func.1.compare_name }}</b>
-    <div class="func-description">{{ data.et_func.1.compare_desc }}</div>
+    <i class="ui green plus icon"></i> <b>{{ data.unsafe_func.1.compare_name }}</b>
+    <div class="func-description">{{ data.unsafe_func.1.compare_desc }}</div>
     <br>
-    <b>{{ data.et_func.1.convert_name }}</b>
-    <div class="func-description">{{ data.et_func.1.convert_desc }}</div>
+    <b>{{ data.unsafe_func.1.convert_name }}</b>
+    <div class="func-description">{{ data.unsafe_func.1.convert_desc }}</div>
     <div class="ui divider"></div>
 {% endif %}
 
-{% if data.et %}
+{% if data.error_trace %}
     <h5>{% trans 'Error trace was changed' %}</h5>
-    <span class="filecontent" style="max-height: 30vh;">{{ data.et|safe }}</span>
+    <span class="filecontent" style="max-height: 30vh;">{{ data.error_trace }}</span>
     <div class="ui divider"></div>
 {% endif %}
 
@@ -99,8 +109,8 @@
     <i class="ui red minus icon"></i>
     {% if data.attrs.0|length %}
         <ul>
-            {% for an, av in data.attrs.0 %}
-                <li><b>{{ an }}:</b> {{ av }}</li>
+            {% for attr in data.attrs.0 %}
+                <li><b>{{ attr.name }}:</b> {{ attr.value }}</li>
             {% endfor %}
         </ul>
     {% else %}
@@ -111,8 +121,8 @@
     <i class="ui green plus icon"></i>
     {% if data.attrs.1|length %}
         <ul>
-            {% for an, av in data.attrs.1 %}
-                <li><b>{{ an }}:</b> {{ av }}</li>
+            {% for attr in data.attrs.1 %}
+                <li><b>{{ attr.name }}:</b> {{ attr.value }}</li>
             {% endfor %}
         </ul>
     {% else %}
@@ -144,20 +154,7 @@
 
 {% if data.v1.description != data.v2.description %}
     <h5>{% trans 'Description was changed' %}</h5>
-    <span>
-        <i class="ui red minus icon"></i><br>
-        {% if data.v1.description %}
-            {{ data.v1.description|safe }}
-        {% else %}
-            <i class="ui red ban icon"></i>
-        {% endif %}
-        <br><br>
-        <i class="ui green plus icon"></i><br>
-        {% if data.v2.description %}
-            {{ data.v2.description|safe }}
-        {% else %}
-            <i class="ui red ban icon"></i>
-        {% endif %}
-    </span>
+    <p><i class="ui red minus icon"></i>{% if data.v1.description %}{{ data.v1.description }}{% else %}<i class="ui red ban icon"></i>{% endif %}</p>
+    <p><i class="ui green plus icon"></i>{% if data.v2.description %}{{ data.v2.description }}{% else %}<i class="ui red ban icon"></i>{% endif %}</p>
     <div class="ui divider"></div>
 {% endif %}

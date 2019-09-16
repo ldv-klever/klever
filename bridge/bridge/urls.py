@@ -18,9 +18,10 @@
 from django.conf import settings
 from django.contrib import admin
 from django.urls import include, path
+from django.views.static import serve
 
 from bridge import views
-from django.views.static import serve
+from bridge.utils import RMQConnect
 
 urlpatterns = [
     path('i18n/', include('django.conf.urls.i18n')),
@@ -32,6 +33,13 @@ urlpatterns = [
     path('service/', include(('service.urls', 'service'), namespace='service')),
     path('tools/', include(('tools.urls', 'tools'), namespace='tools')),
     path('', views.index_page),
-    path('population/', views.population, name='population'),
     path('media/<path>', serve, {'document_root': settings.MEDIA_ROOT, 'show_indexes': True})
 ]
+
+handler400 = 'bridge.views.error_400_view'
+handler403 = 'bridge.views.error_403_view'
+handler404 = 'bridge.views.error_404_view'
+handler500 = 'bridge.views.error_500_view'
+
+with RMQConnect() as channel:
+    channel.queue_declare(queue=settings.RABBIT_MQ['name'], durable=True)

@@ -16,6 +16,7 @@
 #
 
 import json
+import os
 import requests
 import time
 import zipfile
@@ -35,44 +36,42 @@ class Session:
 
         self.logger = logger
         self.name = bridge['name']
+        self.job_id = job_id
+
         self.error = None
+
         self.__parameters = {
             'username': bridge['user'],
-            'password': bridge['password'],
-            'job identifier': job_id
+            'password': bridge['password']
         }
+
         # Sign in.
         self.__signin()
 
     def __signin(self):
         self.session = requests.Session()
-        # TODO: try to autentificate like with httplib2.Http().add_credentials().
-        # Get initial value of CSRF token via useless GET request.
-        self.__request('users/service_signin/')
-
-        # Sign in.
-        self.__request('users/service_signin/', self.__parameters)
+        resp = self.__request('service/get_token/', 'POST', data=self.__parameters)
+        self.session.headers.update({'Authorization': 'Token {}'.format(resp.json()['token'])})
         self.logger.debug('Session was created')
 
-    def __request(self, path_url, data=None, **kwargs):
+    def __request(self, path_url, method, **kwargs):
         url = 'http://' + self.name + '/' + path_url
 
-        # Presence of data implies POST request.
-        method = 'POST' if data else 'GET'
+        kwargs.setdefault('allow_redirects', True)
 
         self.logger.debug('Send "{0}" request to "{1}"'.format(method, url))
 
-        if data:
-            data.update({'csrfmiddlewaretoken': self.session.cookies['csrftoken']})
-
         while True:
             try:
-                if data:
-                    resp = self.session.post(url, data, **kwargs)
-                else:
-                    resp = self.session.get(url, **kwargs)
+                resp = self.session.request(method, url, **kwargs)
 
-                if resp.status_code != 200:
+                if resp.status_code not in (200, 201, 204):
+                    if resp.headers['content-type'] == 'application/json':
+                        # TODO: analyze resp.json()
+                        self.error = resp.json()
+                        raise BridgeError(
+                            'Got error "{0}" when send "{1}" request to "{2}"'.format(self.error, method, url)
+                        )
                     with open('response error.html', 'w', encoding='utf8') as fp:
                         fp.write(resp.text)
                     status_code = resp.status_code
@@ -80,66 +79,51 @@ class Session:
                     raise UnexpectedStatusCode(
                         'Got unexpected status code "{0}" when send "{1}" request to "{2}"'.format(status_code,
                                                                                                    method, url))
-                if resp.headers['content-type'] == 'application/json' and 'error' in resp.json():
-                    self.error = resp.json()['error']
-                    resp.close()
-                    if self.error == 'You are not signing in':
-                        self.logger.debug("Session has expired, relogging in")
-                        self.__signin()
-                        if data:
-                            data.update({'csrfmiddlewaretoken': self.session.cookies['csrftoken']})
-                    else:
-                        raise BridgeError(
-                            'Got error "{0}" when send "{1}" request to "{2}"'.format(self.error, method, url))
-                else:
-                    return resp
+                return resp
             except requests.ConnectionError:
                 self.logger.warning('Could not send "{0}" request to "{1}"'.format(method, url))
                 time.sleep(0.2)
 
-    def start_job_decision(self, format, archive, start_report_file):
-        with open(start_report_file, encoding='utf8') as fp:
-            start_report = fp.read()
-
-        # TODO: report is likely should be compressed.
-        self.__download_archive('job', 'jobs/decide_job/',
-                                {
-                                    'attempt': 0,
-                                    'job format': format,
-                                    'report': start_report
-                                },
-                                archive)
+    def start_job_decision(self, job_format, archive):
+        self.__download_archive('job', 'jobs/api/download-files/' + self.job_id,
+                                {'job format': job_format}, archive)
 
     def schedule_task(self, task_file, archive):
         with open(task_file, 'r', encoding='utf8') as fp:
             data = fp.read()
 
-        resp = self.__upload_archive(
-            'service/schedule_task/',
-            {'description': data},
-            [archive]
-        )
-        return resp.json()['task id']
+        resp = self.__upload_archives('service/tasks/',
+                                      {'job': str(self.job_id), 'description': data},
+                                      {'archive': self.__open_archive(archive)})
 
-    def get_tasks_statuses(self, task_ids):
-        resp = self.__request('service/get_tasks_statuses/', {'tasks': json.dumps(task_ids)})
-        statuses = resp.json()['tasks statuses']
-        return json.loads(statuses)
+        return resp['id']
+
+    def check_original_sources(self, src_id):
+        resp = self.__request('reports/api/has-sources/?identifier={0}'.format(src_id), method='GET')
+        return resp.json()['exists']
+
+    def get_tasks_statuses(self):
+        resp = self.__request('service/tasks/?job={}&fields=status&fields=id'.format(self.job_id), method='GET')
+        return resp.json()
 
     def get_task_error(self, task_id):
-        resp = self.__request('service/download_solution/', {'task id': task_id})
+        resp = self.__request('service/solution/{}'.format(task_id), method='GET')
         return resp.json()['task error']
 
     def download_decision(self, task_id):
-        self.__download_archive('decision', 'service/download_solution/', {'task id': task_id},
-                                'decision result files.zip')
+        self.__download_archive('decision', 'service/solution/{}/download/'.format(task_id),
+                                archive='decision result files.zip')
 
     def remove_task(self, task_id):
-        self.__request('service/remove_task/', {'task id': task_id})
+        self.__request('service/tasks/{}'.format(task_id), method='DELETE')
 
     def sign_out(self):
         self.logger.info('Finish session')
-        self.__request('users/service_signout/')
+
+    def upload_original_sources(self, src_id, src_archive):
+        self.__upload_archives('reports/api/upload-sources/',
+                               {'identifier': src_id},
+                               {'archive': self.__open_archive(src_archive)})
 
     def upload_reports_and_report_file_archives(self, reports_and_report_file_archives):
         batch_reports = []
@@ -153,7 +137,10 @@ class Session:
                 batch_report_file_archives.extend(report_file_archives)
 
         # TODO: report is likely should be compressed.
-        self.__upload_archive('reports/upload/', {'reports': json.dumps(batch_reports)}, batch_report_file_archives)
+        self.__upload_archives('reports/api/upload/{0}/'.format(self.job_id),
+                               {'reports': json.dumps(batch_reports)},
+                               {os.path.basename(archive): self.__open_archive(archive)
+                                for archive in batch_report_file_archives})
 
         # We can safely remove task and its files after uploading report referencing task files.
         for report in batch_reports:
@@ -162,13 +149,16 @@ class Session:
 
     def submit_progress(self, progress):
         self.logger.info('Submit solution progress')
-        self.__request('service/update_progress/', {'progress': json.dumps(progress)})
+        self.__request('service/progress/{0}/'.format(self.job_id), 'PATCH', data=progress)
 
-    def __download_archive(self, kind, path_url, data, archive):
+    def __open_archive(self, archive):
+        return open(archive, 'rb', buffering=0)
+
+    def __download_archive(self, kind, path_url, data=None, archive=None):
         while True:
             resp = None
             try:
-                resp = self.__request(path_url, data, stream=True)
+                resp = self.__request(path_url, 'GET', data=data, stream=True)
 
                 self.logger.debug('Write {0} archive to "{1}"'.format(kind, archive))
                 with open(archive, 'wb') as fp:
@@ -180,19 +170,15 @@ class Session:
                 else:
                     break
             finally:
-                if 'attempt' in data:
-                    data['attempt'] += 1
-
                 if resp:
                     resp.close()
 
-    def __upload_archive(self, path_url, data, archives):
+    def __upload_archives(self, path_url, data, archives):
         while True:
             resp = None
             try:
-                resp = self.__request(path_url, data, files=[('file', open(archive, 'rb', buffering=0))
-                                                             for archive in archives], stream=True)
-                return resp
+                resp = self.__request(path_url, 'POST', data=data, files=archives, stream=True)
+                return resp.json()
             except BridgeError:
                 if self.error == 'ZIP error':
                     self.logger.exception('Could not upload ZIP archive')

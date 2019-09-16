@@ -1,0 +1,34 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:fs:sysfs"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/linux/fs/sysfs/less-initial.ko"
+    }
+  ],
+  "description": "",
+  "error_trace": [
+    [
+      {
+        "ldv_init": [
+          {
+            "ldv_sysfs_remove_group": [
+              {
+                "ldv_assert_linux_fs_sysfs__less_initial_decrement": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": true,
+  "tags": [],
+  "verdict": "2"
+}

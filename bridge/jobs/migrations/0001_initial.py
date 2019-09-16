@@ -15,36 +15,12 @@
 # limitations under the License.
 #
 
-from __future__ import unicode_literals
-
 from django.conf import settings
 from django.db import migrations, models
-from django.db.models.deletion import CASCADE, SET_NULL
 
-roles_choices = [
-    ('0', 'No access'),
-    ('1', 'Observer'),
-    ('2', 'Expert'),
-    ('3', 'Observer and Operator'),
-    ('4', 'Expert and Operator')
-]
-
-status_choices = [
-    ('0', 'Not solved'),
-    ('1', 'Pending'),
-    ('2', 'Is solving'),
-    ('3', 'Solved'),
-    ('4', 'Failed'),
-    ('5', 'Corrupted'),
-    ('6', 'Cancelling'),
-    ('7', 'Cancelled'),
-    ('8', 'Terminated')
-]
-
-job_types = [
-    ('0', 'Verification of Linux kernel modules'),
-    ('3', 'Validation on commits in Linux kernel Git repositories')
-]
+import uuid
+import mptt.fields
+import bridge.utils
 
 
 class Migration(migrations.Migration):
@@ -52,85 +28,91 @@ class Migration(migrations.Migration):
     dependencies = [migrations.swappable_dependency(settings.AUTH_USER_MODEL)]
 
     operations = [
-        migrations.CreateModel(
-            name='Job',
-            fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('parent', models.ForeignKey(null=True, on_delete=CASCADE, related_name='children', to='jobs.Job')),
-                ('identifier', models.CharField(db_index=True, max_length=255, unique=True)),
-                ('version', models.PositiveSmallIntegerField(default=1)),
-                ('format', models.PositiveSmallIntegerField(default=1)),
-                ('type', models.CharField(choices=job_types, default='0', max_length=1)),
-                ('change_author', models.ForeignKey(blank=True, null=True, on_delete=SET_NULL, related_name='+',
-                                                    to=settings.AUTH_USER_MODEL)),
-                ('change_date', models.DateTimeField(auto_now=True)),
-                ('name', models.CharField(db_index=True, max_length=150, unique=True)),
-                ('status', models.CharField(choices=status_choices, default='0', max_length=1)),
-                ('weight', models.CharField(choices=[('0', 'Full-weight'), ('1', 'Lightweight')],
-                                            default='0', max_length=1)),
-                ('safe_marks', models.BooleanField(default=False)),
-            ],
-            options={'db_table': 'job'},
-        ),
-        migrations.CreateModel(
-            name='JobFile',
-            fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('hash_sum', models.CharField(db_index=True, max_length=255)),
-                ('file', models.FileField(upload_to='Job')),
-            ],
-            options={'db_table': 'job_file'},
-        ),
-        migrations.CreateModel(
-            name='JobHistory',
-            fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('job', models.ForeignKey(on_delete=CASCADE, related_name='versions', to='jobs.Job')),
-                ('parent', models.ForeignKey(null=True, on_delete=SET_NULL, related_name='+', to='jobs.Job')),
-                ('version', models.PositiveSmallIntegerField()),
-                ('change_author', models.ForeignKey(null=True, on_delete=SET_NULL,
-                                                    related_name='+', to=settings.AUTH_USER_MODEL)),
-                ('change_date', models.DateTimeField()),
-                ('global_role', models.CharField(choices=roles_choices, default='0', max_length=1)),
-                ('description', models.TextField(default='')),
-                ('comment', models.CharField(default='', max_length=255)),
-            ],
-            options={'db_table': 'jobhistory'},
-        ),
-        migrations.CreateModel(
-            name='FileSystem',
-            fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('parent', models.ForeignKey(null=True, on_delete=CASCADE,
-                                             related_name='children', to='jobs.FileSystem')),
-                ('job', models.ForeignKey(on_delete=CASCADE, to='jobs.JobHistory')),
-                ('name', models.CharField(max_length=128)),
-                ('file', models.ForeignKey(null=True, on_delete=CASCADE, to='jobs.JobFile')),
-            ],
-            options={'db_table': 'file_system'},
-        ),
-        migrations.CreateModel(
-            name='RunHistory',
-            fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('job', models.ForeignKey(on_delete=CASCADE, to='jobs.Job')),
-                ('operator', models.ForeignKey(null=True, on_delete=SET_NULL,
-                                               related_name='+', to=settings.AUTH_USER_MODEL)),
-                ('date', models.DateTimeField()),
-                ('status', models.CharField(choices=status_choices, default='1', max_length=1)),
-                ('configuration', models.ForeignKey(on_delete=CASCADE, to='jobs.JobFile')),
-            ],
-            options={'db_table': 'job_run_history'},
-        ),
-        migrations.CreateModel(
-            name='UserRole',
-            fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('user', models.ForeignKey(on_delete=CASCADE, to=settings.AUTH_USER_MODEL)),
-                ('job', models.ForeignKey(on_delete=CASCADE, to='jobs.JobHistory')),
-                ('role', models.CharField(choices=roles_choices, max_length=1)),
-            ],
-            options={'db_table': 'user_job_role'},
-        ),
+
+        migrations.CreateModel(name='Job', fields=[
+            ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+            ('identifier', models.UUIDField(db_index=True, default=uuid.uuid4, unique=True)),
+            ('name', models.CharField(db_index=True, max_length=150, unique=True)),
+            ('version', models.PositiveSmallIntegerField(default=1)),
+            ('format', models.PositiveSmallIntegerField(default=1, editable=False)),
+            ('status', models.CharField(choices=[
+                ('0', 'Not solved'), ('1', 'Pending'), ('2', 'Is solving'), ('3', 'Solved'), ('4', 'Failed'),
+                ('5', 'Corrupted'), ('6', 'Cancelling'), ('7', 'Cancelled'), ('8', 'Terminated')
+            ], default='0', max_length=1)),
+            ('weight', models.CharField(
+                choices=[('0', 'Full-weight'), ('1', 'Lightweight')], default='0', max_length=1
+            )),
+            ('lft', models.PositiveIntegerField(db_index=True, editable=False)),
+            ('rght', models.PositiveIntegerField(db_index=True, editable=False)),
+            ('tree_id', models.PositiveIntegerField(db_index=True, editable=False)),
+            ('level', models.PositiveIntegerField(db_index=True, editable=False)),
+            ('author', models.ForeignKey(
+                blank=True, null=True, on_delete=models.deletion.SET_NULL,
+                related_name='jobs', to=settings.AUTH_USER_MODEL
+            )),
+        ], options={'db_table': 'job'}),
+
+        migrations.CreateModel(name='JobFile', fields=[
+            ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+            ('hash_sum', models.CharField(db_index=True, max_length=255)),
+            ('file', models.FileField(upload_to='Job')),
+        ], options={'db_table': 'job_file'}, bases=(bridge.utils.WithFilesMixin, models.Model)),
+
+        migrations.CreateModel(name='JobHistory', fields=[
+            ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+            ('version', models.PositiveSmallIntegerField()),
+            ('change_date', models.DateTimeField()),
+            ('comment', models.CharField(blank=True, default='', max_length=255)),
+            ('name', models.CharField(max_length=150)),
+            ('description', models.TextField(default='')),
+            ('global_role', models.CharField(choices=[
+                ('0', 'No access'), ('1', 'Observer'), ('2', 'Expert'),
+                ('3', 'Observer and Operator'), ('4', 'Expert and Operator')
+            ], default='0', max_length=1)),
+            ('change_author', models.ForeignKey(
+                blank=True, null=True, on_delete=models.deletion.SET_NULL,
+                related_name='+', to=settings.AUTH_USER_MODEL
+            )),
+            ('job', models.ForeignKey(on_delete=models.deletion.CASCADE, related_name='versions', to='jobs.Job')),
+        ], options={'db_table': 'jobhistory', 'ordering': ('-version',)}),
+
+        migrations.CreateModel(name='RunHistory', fields=[
+            ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+            ('date', models.DateTimeField(db_index=True)),
+            ('status', models.CharField(choices=[
+                ('0', 'Not solved'), ('1', 'Pending'), ('2', 'Is solving'), ('3', 'Solved'), ('4', 'Failed'),
+                ('5', 'Corrupted'), ('6', 'Cancelling'), ('7', 'Cancelled'), ('8', 'Terminated')
+            ], default='1', max_length=1)),
+            ('configuration', models.ForeignKey(on_delete=models.deletion.CASCADE, to='jobs.JobFile')),
+            ('job', models.ForeignKey(on_delete=models.deletion.CASCADE, related_name='run_history', to='jobs.Job')),
+            ('operator', models.ForeignKey(
+                null=True, on_delete=models.deletion.SET_NULL, related_name='+', to=settings.AUTH_USER_MODEL
+            )),
+        ], options={'db_table': 'job_run_history'}),
+
+        migrations.CreateModel(name='FileSystem', fields=[
+            ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+            ('name', models.CharField(max_length=1024)),
+            ('file', models.ForeignKey(on_delete=models.deletion.CASCADE, to='jobs.JobFile')),
+            ('job_version', models.ForeignKey(
+                on_delete=models.deletion.CASCADE, related_name='files', to='jobs.JobHistory'
+            )),
+        ], options={'db_table': 'file_system'}),
+
+        migrations.CreateModel(name='UserRole', fields=[
+            ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+            ('role', models.CharField(choices=[
+                ('0', 'No access'), ('1', 'Observer'), ('2', 'Expert'),
+                ('3', 'Observer and Operator'), ('4', 'Expert and Operator')
+            ], max_length=1)),
+            ('job_version', models.ForeignKey(on_delete=models.deletion.CASCADE, to='jobs.JobHistory')),
+            ('user', models.ForeignKey(on_delete=models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
+        ], options={'db_table': 'user_job_role'}),
+
+        migrations.AddField(model_name='job', name='parent', field=mptt.fields.TreeForeignKey(
+            blank=True, null=True, on_delete=models.deletion.CASCADE, related_name='children', to='jobs.Job'
+        )),
+
         migrations.AlterIndexTogether(name='jobhistory', index_together={('job', 'version')}),
+
     ]

@@ -1,0 +1,62 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:concurrency safety"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/linux/concurrency-safety/unsorted/RaceTest3-unsafe.ko"
+    }
+  ],
+  "description": "",
+  "error_trace": [
+    [
+      {
+        "ldv_init": [
+          {
+            "ldv_main": [
+              {
+                "ldv_func1": [
+                  {
+                    "ldv_func2": [
+                      {
+                        "ldv_func3": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    [
+      {
+        "ldv_main": [
+          {
+            "ldv_func1": [
+              {
+                "ldv_func2": [
+                  {
+                    "ldv_func3": []
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "ldv_mutex_lock_37": []
+          }
+        ]
+      }
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": false,
+  "tags": [],
+  "verdict": "2"
+}

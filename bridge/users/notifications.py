@@ -19,12 +19,12 @@ import json
 import smtplib
 from email.mime.text import MIMEText
 from django.core.exceptions import ObjectDoesNotExist
-from django.contrib.auth.models import User
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _, activate
 from bridge.vars import JOB_ROLES, USER_ROLES
 from bridge.utils import logger
 from jobs.models import Job
+from users.models import User
 
 
 SUBJECTS = {
@@ -79,12 +79,11 @@ class Notify(object):
             # TODO: analize exception
             # logger.exception("SMTP registration error: %s" % e)
             return
-        for user in User.objects.filter(
-                ~Q(notifications__settings='[]') & ~Q(notifications=None)):
+        for user in User.objects.filter(~Q(notifications__settings='[]') & ~Q(notifications=None)):
             if user.email is not None and len(user.email) > 0:
                 message = UserMessage(
                     user, self.job, self.type, add_args).message
-                activate(user.extended.language)
+                activate(user.language)
                 if isinstance(message, MIMEText):
                     message['From'] = self.email
                     try:
@@ -94,7 +93,7 @@ class Notify(object):
         s.quit()
 
 
-class UserMessage(object):
+class UserMessage:
 
     def __init__(self, user, job, ntf_type, add_args):
         self.user = user
@@ -107,18 +106,18 @@ class UserMessage(object):
         self.is_operator = False
         self.is_observer = False
         self.is_expert = False
-        self.is_manager = (self.user.extended.role == USER_ROLES[2][0])
+        self.is_manager = (self.user.role == USER_ROLES[2][0])
         self.change_user = None
         self.__get_job_prop(job)
         self.message = self.__get_message(job)
 
     def __get_job_prop(self, job):
         try:
-            first_version = job.versions.get(version=1)
             last_version = job.versions.get(version=job.version)
         except ObjectDoesNotExist:
             return None
-        self.is_producer = (self.user == first_version.change_author)
+
+        self.is_producer = (self.user == job.author)
         self.change_user = last_version.change_author
 
         try:

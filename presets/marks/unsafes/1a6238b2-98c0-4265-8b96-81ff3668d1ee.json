@@ -1,0 +1,40 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:memory safety"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/uwb/hwa-rc.ko"
+    }
+  ],
+  "description": "Memory leak. hwarc_probe() doesn't free hwarc on error path.",
+  "error_trace": [
+    [
+      {
+        "hwarc_probe": [
+          {
+            "ldv_kzalloc": [
+              {
+                "ldv_zalloc": [
+                  {
+                    "ldv_reference_zalloc": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": false,
+  "production": true,
+  "status": "0",
+  "tags": [],
+  "verdict": "1"
+}

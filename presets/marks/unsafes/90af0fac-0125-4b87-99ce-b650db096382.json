@@ -1,0 +1,34 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:kernel:rcu:update:lock bh"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/linux/kernel/rcu/update/lock-bh/rcu-bh-more-unlocks.ko"
+    }
+  ],
+  "description": "",
+  "error_trace": [
+    [
+      {
+        "ldv_init": [
+          {
+            "ldv_rcu_read_unlock_bh": [
+              {
+                "ldv_assert_linux_kernel_rcu_update_lock_bh__more_unlocks": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": true,
+  "tags": [],
+  "verdict": "2"
+}

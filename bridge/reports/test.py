@@ -17,7 +17,9 @@
 
 import os
 import json
+from multiprocessing import Process, Pipe
 import random
+import requests
 import time
 from io import BytesIO
 
@@ -28,13 +30,12 @@ from django.test import Client
 from django.urls import reverse
 
 from bridge.vars import SCHEDULER_TYPE, JOB_STATUS, JOB_ROLES, FORMAT
-from bridge.utils import KleverTestCase
-from bridge.populate import populate_users
+from bridge.utils import KleverTestCase, logger, RMQConnect
 
 from users.models import User
 from jobs.models import Job
 from reports.models import ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent, CompareJobsInfo, CoverageArchive,\
-    CompareJobsCache, CoverageFile, ReportAttr
+    ReportAttr
 
 
 LINUX_ATTR = {'name': 'Linux kernel', 'value': [
@@ -43,14 +44,18 @@ LINUX_ATTR = {'name': 'Linux kernel', 'value': [
     {'name': 'Configuration', 'value': 'allmodconfig'}
 ]}
 LKVOG_ATTR = {'name': 'LKVOG strategy', 'value': [{'name': 'Name', 'value': 'separate modules'}]}
-COMPUTER = [
-    {"node name": "hellwig.intra.ispras.ru"},
-    {"CPU model": "Intel(R) Core(TM) i7-3770 CPU @ 3.40GHz"},
-    {"number of CPU cores": 8},
-    {"memory size": 16808734720},
-    {"Linux kernel version": "3.16.7-29-default"},
-    {"architecture": "x86_64"}
-]
+COMPUTER = {
+    'identifier': 'hellwig.intra.ispras.ru',
+    'display': 'hellwig.intra.ispras.ru',
+    'data': [
+        {"node name": "hellwig.intra.ispras.ru"},
+        {"CPU model": "Intel(R) Core(TM) i7-3770 CPU @ 3.40GHz"},
+        {"number of CPU cores": 8},
+        {"memory size": 16808734720},
+        {"Linux kernel version": "3.16.7-29-default"},
+        {"architecture": "x86_64"}
+    ]
+}
 
 # Only components ['VTGW', 'ASE', 'EMG', 'FVTP', 'RSG', 'SA', 'TR', 'Weaver', 'RP'] can be "failed"
 SJC_1 = [
@@ -60,12 +65,14 @@ SJC_1 = [
             {
                 'module': 'drivers/usb/core/usb1.ko',
                 'tool': 'BLAST 2.7.2', 'verifier_input': True, 'log': True,
+                'additional_sources': 'sources12.zip',
                 'unsafes': ['unsafe1.zip', 'unsafe2.zip'],
                 'unknown': 'unknown2.zip'
             },
             {
                 'module': 'drivers/usb/core/usb2.ko',
                 'tool': 'CPAchecker', 'verifier_input': False, 'log': False,
+                'additional_sources': 'sources3.zip',
                 'unsafes': ['unsafe3.zip']
             },
             {
@@ -77,10 +84,6 @@ SJC_1 = [
                 'module': 'drivers/usb/core/usb4.ko',
                 'tool': 'CPAchecker', 'verifier_input': False, 'log': True,
                 'unknown': 'unknown0.zip'
-            },
-            {
-                'module': 'drivers/usb/core/usb5.ko',
-                'fail': 'RP'
             }
         ]
     },
@@ -95,21 +98,26 @@ SJC_1 = [
             {
                 'module': 'drivers/usb/core/usb2.ko',
                 'tool': 'CPAchecker', 'verifier_input': False, 'log': False,
+                'additional_sources': 'sources4.zip',
                 'unsafes': ['unsafe4.zip']
             },
             {
                 'module': 'drivers/usb/core/usb3.ko',
                 'tool': 'CPAchecker', 'verifier_input': True, 'log': False,
+                'additional_sources': 'sources5.zip',
                 'unsafes': ['unsafe5.zip']
             },
             {
                 'module': 'drivers/usb/core/usb4.ko',
                 'tool': 'CPAchecker', 'verifier_input': False, 'log': True,
+                'additional_sources': 'sources13.zip',
+                'coverage': 'coverage13.zip',
                 'safe': 'safe.zip'
             },
             {
                 'module': 'drivers/usb/core/usb5.ko',
                 'tool': 'CPAchecker', 'verifier_input': False, 'log': False,
+                'additional_sources': 'sources6.zip',
                 'unsafes': ['unsafe6.zip']
             }
         ]
@@ -125,7 +133,8 @@ SJC_1 = [
             {
                 'module': 'drivers/usb/core/usb7.ko',
                 'tool': 'CPAchecker', 'verifier_input': False, 'log': True,
-                'unsafes': ['unsafe7.zip']
+                'additional_sources': 'sources10.zip',
+                'unsafes': ['unsafe10.zip']
             }
         ]
     }
@@ -138,7 +147,138 @@ SJC_2 = [
             {
                 'module': 'drivers/usb/core/usb2.ko',
                 'tool': 'CPAchecker', 'verifier_input': True, 'log': True,
+                'additional_sources': 'sources14.zip',
+                'coverage': 'coverage14.zip',
                 'safe': 'safe.zip'
+            }
+        ]
+    }
+]
+
+SJC_3 = [
+    {
+        'requirement': 'linux:mutex',
+        'chunks': [
+            {
+                'module': 'drivers/usb/core/usb0.ko',
+                'tool': 'CPAchecker', 'verifier_input': True, 'log': True,
+                'additional_sources': 'sources1.zip',
+                'safe': 'safe.zip'
+            },
+            {
+                'requirement': 'linux:mutex',
+                'module': 'drivers/usb/core/usb1.ko',
+                'tool': 'BLAST 2.7.2', 'verifier_input': True, 'log': False,
+                'additional_sources': 'sources12.zip',
+                'unsafes': ['unsafe1.zip', 'unsafe2.zip'],
+                'unknown': 'unknown2.zip'
+            },
+            {
+                'requirement': 'linux:mutex',
+                'module': 'drivers/usb/core/usb2.ko',
+                'tool': 'CPAchecker', 'verifier_input': False, 'log': True,
+                'additional_sources': 'sources3.zip',
+                'unsafes': ['unsafe3.zip']
+            },
+            {
+                'requirement': 'linux:mutex',
+                'module': 'drivers/usb/core/usb3.ko',
+                'tool': 'CPAchecker', 'verifier_input': False, 'log': False,
+                'safe': 'safe.zip'
+            },
+            {
+                'requirement': 'linux:mutex',
+                'module': 'drivers/usb/core/usb4.ko',
+                'tool': 'CPAchecker', 'verifier_input': True, 'log': True,
+                'unknown': 'unknown0.zip'
+            },
+            {
+                'requirement': 'linux:mutex',
+                'module': 'drivers/usb/core/usb5.ko',
+                'fail': 'RP',
+                'unknown': 'unknown3.zip'
+            }
+        ]
+    }
+]
+
+SJC_4 = [
+    {
+        'requirement': 'linux:alloc:irq',
+        'chunks': [
+            {
+                'module': 'drivers/usb/core/usb1.ko',
+                'tool': 'BLAST 2.7.2', 'verifier_input': True, 'log': True,
+                'additional_sources': 'sources12.zip',
+                'unsafes': ['unsafe1.zip', 'unsafe2.zip'],
+                'unknown': 'unknown2.zip'
+            },
+            {
+                'module': 'drivers/usb/core/usb2.ko',
+                'tool': 'CPAchecker', 'verifier_input': False, 'log': False,
+                'additional_sources': 'sources3.zip',
+                'unsafes': ['unsafe3.zip']
+            },
+            {
+                'module': 'drivers/usb/core/usb3.ko',
+                'tool': 'CPAchecker', 'verifier_input': True, 'log': False,
+                'safe': 'safe.zip'
+            },
+            {
+                'module': 'drivers/usb/core/usb4.ko',
+                'tool': 'CPAchecker', 'verifier_input': False, 'log': True,
+                'unknown': 'unknown0.zip'
+            }
+        ]
+    },
+    {
+        'requirement': 'linux:arch:io',
+        'chunks': [
+            {
+                'module': 'drivers/usb/core/usb1.ko',
+                'tool': 'BLAST 2.7.2', 'verifier_input': True, 'log': True,
+                'safe': 'safe.zip'
+            },
+            {
+                'module': 'drivers/usb/core/usb2.ko',
+                'tool': 'CPAchecker', 'verifier_input': False, 'log': False,
+                'additional_sources': 'sources4.zip',
+                'unsafes': ['unsafe4.zip']
+            },
+            {
+                'module': 'drivers/usb/core/usb3.ko',
+                'tool': 'CPAchecker', 'verifier_input': True, 'log': False,
+                'additional_sources': 'sources5.zip',
+                'unsafes': ['unsafe5.zip']
+            },
+            {
+                'module': 'drivers/usb/core/usb4.ko',
+                'tool': 'CPAchecker', 'verifier_input': False, 'log': True,
+                'additional_sources': 'sources13.zip',
+                'coverage': 'coverage13.zip',
+                'safe': 'safe.zip'
+            },
+            {
+                'module': 'drivers/usb/core/usb5.ko',
+                'tool': 'CPAchecker', 'verifier_input': False, 'log': False,
+                'additional_sources': 'sources6.zip',
+                'unsafes': ['unsafe6.zip']
+            }
+        ]
+    },
+    {
+        'requirement': 'linux:alloc:usb lock',
+        'chunks': [
+            {
+                'module': 'drivers/usb/core/usb6.ko',
+                'tool': 'CPAchecker', 'verifier_input': False, 'log': False,
+                'safe': 'safe.zip'
+            },
+            {
+                'module': 'drivers/usb/core/usb7.ko',
+                'tool': 'CPAchecker', 'verifier_input': False, 'log': True,
+                'additional_sources': 'sources10.zip',
+                'unsafes': ['unsafe10.zip']
             }
         ]
     }
@@ -149,6 +289,7 @@ NSJC_1 = [
         'requirement': 'linux:mutex',
         'module': 'drivers/usb/core/usb1.ko',
         'tool': 'BLAST 2.7.2', 'verifier_input': True, 'log': False,
+        'additional_sources': 'sources12.zip',
         'unsafes': ['unsafe1.zip', 'unsafe2.zip'],
         'unknown': 'unknown2.zip'
     },
@@ -156,6 +297,7 @@ NSJC_1 = [
         'requirement': 'linux:mutex',
         'module': 'drivers/usb/core/usb2.ko',
         'tool': 'CPAchecker', 'verifier_input': False, 'log': True,
+        'additional_sources': 'sources3.zip',
         'unsafes': ['unsafe3.zip']
     },
     {
@@ -169,12 +311,6 @@ NSJC_1 = [
         'module': 'drivers/usb/core/usb4.ko',
         'tool': 'CPAchecker', 'verifier_input': True, 'log': True,
         'unknown': 'unknown0.zip'
-    },
-    {
-        'requirement': 'linux:mutex',
-        'module': 'drivers/usb/core/usb5.ko',
-        'fail': 'RP',
-        'unknown': 'unknown3.zip'
     }
 ]
 
@@ -183,7 +319,7 @@ NSJC_2 = [
         'requirement': 'linux:mutex',
         'module': 'drivers/usb/core/usb2.ko',
         'tool': 'CPAchecker', 'verifier_input': True, 'log': True,
-        'unsafes': ['unsafe_check.zip']
+        'unsafes': ['unsafe11.zip']
     }
 ]
 
@@ -198,6 +334,7 @@ NSJC_3 = [
         'requirement': 'linux:mutex',
         'module': 'drivers/usb/core/usb4.ko',
         'tool': 'CPAchecker', 'verifier_input': False, 'log': True,
+        'additional_sources': 'sources2.zip',
         'unknown': 'unknown0.zip'
     },
     {
@@ -213,9 +350,9 @@ ARCHIVE_PATH = os.path.join(settings.BASE_DIR, 'reports', 'test_files')
 
 def resources():
     return {
-        'CPU time': random.randint(100, 10000),
-        'memory size': random.randint(10**7, 10**9),
-        'wall time': random.randint(100, 10000)
+        'cpu_time': random.randint(100, 10000),
+        'memory': random.randint(10**7, 10**9),
+        'wall_time': random.randint(100, 10000)
     }
 
 
@@ -514,10 +651,9 @@ class TestReports(KleverTestCase):
                 fp.write(content)
 
         # Remove decided job
-        response = self.client.post('/jobs/remove/', {'jobs': json.dumps([job.pk])})
+        response = self.client.post('/jobs/api/%s/remove/' % job.pk)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
 
         # Get parent for uploading
         if job.parent is None:
@@ -682,7 +818,7 @@ class TestReports(KleverTestCase):
         with open(os.path.join(ARCHIVE_PATH, archive), mode='rb') as fp:
             response = self.service_client.post('/reports/upload/', {
                 'report': json.dumps({
-                    'id': r_id, 'type': 'unknown', 'parent id': parent, 'problem desc': os.path.basename(fp.name)
+                    'id': r_id, 'type': 'unknown', 'parent id': parent, 'problem_description': os.path.basename(fp.name)
                 }), 'file': fp
             })
         self.assertEqual(response.status_code, 200)
@@ -820,7 +956,7 @@ class TestReports(KleverTestCase):
         self.assertEqual(Job.objects.get(pk=self.job.pk).status, JOB_STATUS[3][0])
 
     def __upload_subjob(self, subjob):
-        sj = self.__upload_start_report('Sub-job', '/',
+        sj = self.__upload_start_report('Subjob', '/',
                                         [{'name': 'Name',
                                           'value': 'test/dir/and/some/other/text:%s' % subjob['requirement']}])
         lkbce = self.__upload_start_report('LKBCE', sj)
@@ -919,55 +1055,185 @@ class TestReports(KleverTestCase):
         super().tearDown()
 
 
+class ResponseError(Exception):
+    pass
+
+
 class DecideJobs:
-    def __init__(self, username, password, reports_data, with_full_coverage=False, with_progress=False):
-        self.service = Client()
-        self.username = username
-        self.password = password
+    def __init__(self, data, **kwargs):
+        self._base_url = 'http://127.0.0.1:8998'
+        self._data = data
+        self._username = kwargs.get('username', 'service')
+        self._password = kwargs.get('password', 'service')
+        self._full_coverage = bool(kwargs.get('with_full_coverage'))
+        self._progress = bool(kwargs.get('with_progress'))
+        self._queue_name = kwargs.get('queue_name', settings.RABBIT_MQ['name'])
+
+        self.session = self.__login()
+        self.__start()
+
+    def __start(self):
+        conn_producer, conn_consumer = Pipe()
+        rmq_reader = Process(target=self.__read_queue, args=(conn_producer,))
+        msg_processor = Process(target=self.__process_message, args=(conn_consumer,))
+
+        rmq_reader.start()
+        msg_processor.start()
+        try:
+            rmq_reader.join()
+            msg_processor.join()
+        except KeyboardInterrupt:
+            rmq_reader.terminate()
+            msg_processor.terminate()
+
+    def __login(self):
+        session = requests.Session()
+        resp = session.post(self._base_url + '/service/get_token/', data={
+            'username': self._username, 'password': self._password
+        })
+        if resp.status_code != 200:
+            raise ResponseError(resp.json())
+        session.headers.update({'Authorization': 'Token {}'.format(resp.json()['token'])})
+        return session
+
+    def __request(self, url, **kwargs):
+        method = kwargs.pop('method', 'POST')
+        try:
+            resp = self.session.request(method, self._base_url + url, **kwargs)
+        except Exception as e:
+            logger.exception(e)
+            return None
+        if resp.status_code != 200:
+            try:
+                logger.error(resp.json())
+            except Exception as e:
+                logger.error(resp.content)
+            return None
+        return resp
+
+    def __read_queue(self, conn):
+        def callback(ch, method, properties, body):
+            ch.basic_ack(delivery_tag=method.delivery_tag)
+            res = body.decode('utf-8')
+            logger.info('Read: {}'.format(res))
+            conn.send(res)
+
+        with RMQConnect() as channel:
+            channel.basic_qos(prefetch_count=1)
+            channel.basic_consume(self._queue_name, callback)
+            channel.start_consuming()
+
+    def __decide(self, job_uuid):
+        try:
+            logger.info('Downloading the job {}'.format(job_uuid))
+            self.__request('/jobs/api/download-files/{}/'.format(job_uuid), method='GET')
+
+            DecideJob(
+                job_uuid, self._username, self._password, self._data,
+                with_full_coverage=self._full_coverage,
+                with_progress=self._progress
+            )
+        except Exception as e:
+            logger.exception(e)
+
+    def __cancel_job(self, job_id):
+        logger.info('Cancelling the job: {}'.format(job_id))
+        try:
+            self.__request('/service/job-status/{}/'.format(job_id), method='PATCH', data={'status': '7'})
+        except Exception as e:
+            logger.exception(e)
+
+    def __process_message(self, conn):
+        while True:
+            msg = conn.recv()
+            m_type, m_id, m_status = msg.split()
+            if m_type != 'job':
+                continue
+            if m_status == '1':
+                self.__decide(m_id)
+            elif m_status == '5':
+                logger.info('The job "{}" is corrupted'.format(m_id))
+            elif m_status == '6':
+                self.__cancel_job(m_id)
+
+
+class DecideJob:
+    def __init__(self,
+                 job_uuid, username, password, reports_data,
+                 with_full_coverage=False, with_progress=False):
+        self.base_url = 'http://127.0.0.1:8998'
+        self._job_uuid = job_uuid
+        self.session = self.__login(username, password)
+
+        self._progress_url = '/service/progress/{}/'.format(self._job_uuid)
+        self._upload_url = '/reports/api/upload/{}/'.format(self._job_uuid)
+        self._original_sources = 'test-original-sources-id-4'
+
         self.reports_data = reports_data
         self.full_coverage = with_full_coverage
         self._progress = with_progress
         self.ids_in_use = []
         self._cmp_stack = []
-        self.__decide()
-
-    def __decide(self):
-        scheduler = Client()
-        scheduler.post('/users/service_signin/', {
-            'username': self.username, 'password': self.password, 'scheduler': SCHEDULER_TYPE[0][1]
-        })
-        sch_data = {
-            'tasks': {'pending': [], 'processing': [], 'error': [], 'finished': [], 'cancelled': []},
-            'task errors': {}, 'task descriptions': {}, 'task solutions': {},
-            'jobs': {'pending': [], 'processing': [], 'error': [], 'finished': [], 'cancelled': []},
-            'job errors': {}, 'job configurations': {}
-        }
-        response = scheduler.post('/service/get_jobs_and_tasks/', {'jobs and tasks status': json.dumps(sch_data)})
-        res_data = json.loads(json.loads(str(response.content, encoding='utf8'))['jobs and tasks status'])
-
-        for job_identifier in res_data['jobs']['pending']:
-            self.service.post('/users/service_signin/', {
-                'username': self.username, 'password': self.password, 'job identifier': job_identifier
-            })
+        self._progress_data = {}
+        try:
             self.__decide_job()
-            self.service.post('/users/service_signout/')
-            sch_data['jobs']['finished'].append(job_identifier)
-        scheduler.post('/service/get_jobs_and_tasks/', {'jobs and tasks status': json.dumps(sch_data)})
-        scheduler.post('/users/service_signout/')
+        except DecisionError as e:
+            self.__request(
+                url='/service/job-status/{}/'.format(self._job_uuid), method='PATCH',
+                data={'status': '4', 'error': str(e)}
+            )
+
+    def __login(self, username, password):
+        session = requests.Session()
+        resp = session.post(self.base_url + '/service/get_token/', data={'username': username, 'password': password})
+        if resp.status_code != 200:
+            raise ResponseError(resp.json())
+        session.headers.update({'Authorization': 'Token {}'.format(resp.json()['token'])})
+        return session
+
+    def __request(self, **kwargs):
+        method = kwargs.pop('method', 'POST')
+        url = kwargs.pop('url', self._upload_url)
+        cnt = 0
+        while True:
+            try:
+                resp = self.session.request(method, self.base_url + url, **kwargs)
+            except Exception as e:
+                # logger.exception(e)
+                logger.error(str(e))
+            else:
+                break
+            time.sleep(1)
+            cnt += 1
+            if cnt > 5:
+                raise ResponseError('Connection max tries exceeded')
+
+        status_code = str(resp.status_code)
+        if not status_code.startswith('2'):
+            try:
+                err_json = resp.json()
+                if status_code == '403' and 'ZIP error' in err_json:
+                    logger.info('ZIP error: {}'.format(err_json['ZIP error']))
+                else:
+                    logger.error(err_json)
+            except Exception as e:
+                print(e)
+                logger.error(resp.content)
+            resp.close()
+            raise ResponseError('Unexpected status code returned: {}'.format(status_code))
+        return resp
 
     def __upload_reports(self, reports, archives):
-        archives_fp = []
+        time.sleep(0.1)
+        logger.info(str(list('{}: {}'.format(r.get('type'), r.get('identifier')) for r in reports)) + str(archives))
+        archives_fp = {}
         try:
             for a_name in archives:
-                archives_fp.append(open(os.path.join(ARCHIVE_PATH, a_name), mode='rb'))
-            if len(reports) == 1:
-                self.service.post('/reports/upload/', {'report': json.dumps(reports[0]), 'file': archives_fp})
-            else:
-                self.service.post('/reports/upload/', {'reports': json.dumps(reports), 'file': archives_fp})
-        except Exception:
-            for fp in archives_fp:
+                archives_fp[os.path.basename(a_name)] = open(os.path.join(ARCHIVE_PATH, a_name), mode='rb')
+            self.__request(data={'reports': json.dumps(reports)}, files=archives_fp)
+        finally:
+            for fp in archives_fp.values():
                 fp.close()
-            raise
 
     def __get_report_id(self, name):
         r_id = '/' + name
@@ -976,21 +1242,22 @@ class DecideJobs:
         self.ids_in_use.append(r_id)
         return r_id
 
-    def __upload_start_report(self, name, parent, attrs=None, failed=False, finish=False):
+    def __upload_start_report(self, name, parent, attrs=None, failed=False, finish=False, **kwargs):
         r_id = self.__get_report_id(name)
         files = set()
-        reports = [{'id': r_id, 'type': 'start', 'parent id': parent, 'name': name}]
+        report_data = {
+            'identifier': r_id, 'type': 'start', 'parent': parent, 'component': name
+        }
+        report_data.update(kwargs)
+        reports = [report_data]
         if attrs is not None:
             reports[0]['attrs'] = attrs
         self._cmp_stack.append(r_id)
 
         if failed:
             files.add('unknown0.zip')
-            reports.append({
-                'id': self.__get_report_id('unknown'), 'type': 'unknown', 'parent id': r_id,
-                'problem desc': 'unknown0.zip'
-            })
-            while len(self._cmp_stack) > 0:
+            reports.append({'type': 'unknown', 'parent': r_id, 'problem_description': 'unknown0.zip'})
+            while len(self._cmp_stack) > 1:
                 f_rep, logname = self.__get_finish_report(self._cmp_stack[-1])
                 files.add(logname)
                 reports.append(f_rep)
@@ -1006,7 +1273,8 @@ class DecideJobs:
         return r_id
 
     def __get_finish_report(self, r_id):
-        report = {'id': r_id, 'type': 'finish', 'resources': resources(), 'desc': 'Description text', 'log': 'log.zip'}
+        report = {'identifier': r_id, 'type': 'finish', 'log': 'log.zip'}
+        report.update(resources())
         if len(self._cmp_stack) > 0:
             self._cmp_stack.pop()
         return report, 'log.zip'
@@ -1015,125 +1283,182 @@ class DecideJobs:
         f_rep, logname = self.__get_finish_report(r_id)
         self.__upload_reports([f_rep], [logname])
 
-    def __upload_attrs_report(self, r_id, attrs, archive=None):
-        if archive is None:
-            self.service.post('/reports/upload/', {'report': json.dumps({'id': r_id, 'type': 'attrs', 'attrs': attrs})})
-            return
-        with open(os.path.join(ARCHIVE_PATH, archive), mode='rb') as fp:
-            self.service.post('/reports/upload/', {
-                'report': json.dumps({'id': r_id, 'type': 'attrs', 'attrs': attrs}), 'attr data': fp
-            })
+    def __upload_patch_report(self, r_id, **kwargs):
+        archives = []
+        report = {'identifier': r_id, 'type': 'patch'}
 
-    def __upload_data_report(self, r_id, data=None):
-        if data is None:
-            data = {"newdata": str(random.randint(0, 100))}
-        self.service.post('/reports/upload/', {'report': json.dumps({'id': r_id, 'type': 'data', 'data': data})})
+        # Report data
+        if kwargs.get('data'):
+            report['data'] = kwargs['data']
 
-    def __upload_progress(self, ts, sj=None, start=False, finish=False):
+        # Report original sources
+        if kwargs.get('original_sources'):
+            report['original_sources'] = self._original_sources
+
+        # Report additional sources
+        if kwargs.get('additional_sources'):
+            report['additional_sources'] = kwargs['additional_sources']
+            archives.append(kwargs['additional_sources'])
+
+        # Report attributes with its data if provided
+        if kwargs.get('attrs'):
+            report['attrs'] = kwargs['attrs']
+            if kwargs.get('attr_data'):
+                report['attr_data'] = kwargs['attr_data']
+                archives.append(kwargs['attr_data'])
+
+        self.__upload_reports([report], archives)
+
+    def __init_progress(self):
+        tasks = 0
+        subjobs = None
+        if any('chunks' in chunk for chunk in self.reports_data):
+            subjobs = len(self.reports_data)
+            for chunk in self.reports_data:
+                tasks += len(chunk['chunks'])
+        else:
+            tasks = len(self.reports_data)
+
+        self._progress_data['tasks'] = {
+            'total': tasks, 'solved': 0, 'failed': 0, 'time': 100, 'start': False, 'finish': False
+        }
+        if subjobs:
+            self._progress_data['subjobs'] = {
+                'total': subjobs, 'solved': 0, 'failed': 0, 'time': 400, 'start': False, 'finish': False
+            }
+        self.__upload_progress()
+
+    def __upload_progress(self):
         if not self._progress:
             return
-        data = {
-            'total tasks to be generated': ts[0],
-            'failed tasks': ts[1],
-            'solved tasks': ts[2],
-            'expected time for solving tasks': ts[3],
-            'start tasks solution': start,
-            'finish tasks solution': finish,
-        }
-        if sj is not None:
+        self.__request(url=self._progress_url, data=self.__get_progress(), method='PATCH')
+        time.sleep(1)
+
+    def __get_progress(self):
+        if not self._progress_data['tasks']['start']:
+            self._progress_data['tasks']['start'] = True
+            data = {
+                'total_ts': self._progress_data['tasks']['total'],
+                'failed_ts': 0, 'solved_ts': 0,
+                'gag_text_ts': 'Calculating time',
+                'tasks_started': True
+            }
+            if 'subjobs' not in self._progress_data:
+                return data
+            self._progress_data['subjobs']['start'] = True
             data.update({
-                'total subjobs to be solved': sj[0],
-                'failed subjobs': sj[1],
-                'solved subjobs': sj[2],
-                'expected time for solving subjobs': sj[3],
-                'start subjobs solution': start,
-                'finish subjobs solution': finish
+                'total_sj': self._progress_data['subjobs']['total'],
+                'failed_sj': 0, 'solved_sj': 0,
+                'gag_text_sj': 'Calculating time',
+                'subjobs_started': True
             })
-        self.service.post('/service/update_progress/', {'progress': json.dumps(data)})
-        time.sleep(2)
+            return data
+
+        data = {}
+        if not self._progress_data['tasks']['finish']:
+            tasks_left = self._progress_data['tasks']['total'] - \
+                         self._progress_data['tasks']['solved'] - \
+                         self._progress_data['tasks']['failed']
+            data = {}
+            if tasks_left == 0 and not self._progress_data['tasks']['finish']:
+                self._progress_data['tasks']['finish'] = True
+                data.update({
+                    'failed_ts': self._progress_data['tasks']['failed'],
+                    'solved_ts': self._progress_data['tasks']['solved'],
+                    'expected_time_ts': 0,
+                    'tasks_finished': True
+                })
+            else:
+                data.update({
+                    'failed_ts': self._progress_data['tasks']['failed'],
+                    'solved_ts': self._progress_data['tasks']['solved'],
+                    'expected_time_ts': tasks_left * self._progress_data['tasks']['time']
+                })
+
+        if 'subjobs' not in self._progress_data:
+            return data
+        subjobs_left = (self._progress_data['subjobs']['total'] -
+                        self._progress_data['subjobs']['solved'] -
+                        self._progress_data['subjobs']['failed'])
+        if subjobs_left == 0 and not self._progress_data['subjobs']['finish']:
+            self._progress_data['subjobs']['finish'] = True
+            data.update({
+                'failed_sj': self._progress_data['subjobs']['failed'],
+                'solved_sj': self._progress_data['subjobs']['solved'],
+                'expected_time_sj': 0,
+                'subjobs_finished': True
+            })
+        else:
+            data.update({
+                'failed_sj': self._progress_data['subjobs']['failed'],
+                'solved_sj': self._progress_data['subjobs']['solved'],
+                'expected_time_sj': subjobs_left * self._progress_data['subjobs']['time']
+            })
+        return data
 
     def __upload_job_coverage(self, r_id, coverage):
-        report = {'id': r_id, 'type': 'job coverage', 'coverage': coverage}
-        files = []
+        report = {'identifier': r_id, 'type': 'coverage', 'coverage': coverage}
+        cov_files = {}
         for carch in coverage.values():
-            files.append(open(os.path.join(ARCHIVE_PATH, carch), mode='rb'))
+            cov_files[os.path.basename(carch)] = open(os.path.join(ARCHIVE_PATH, carch), mode='rb')
         try:
-            self.service.post('/reports/upload/', {'report': json.dumps(report), 'file': files})
-        except Exception:
-            for fp in files:
+            self.__request(data={'report': json.dumps(report)}, files=cov_files)
+        finally:
+            for fp in cov_files.values():
                 fp.close()
-            raise
-        else:
-            for fp in files:
-                fp.close()
+
+    def __upload_original_sources(self):
+        # Upload original sources if not exists
+        resp = self.__request(
+            url='/reports/api/has-sources/', method='GET', params={'identifier': self._original_sources}
+        )
+        if not resp.json()['exists']:
+            with open(os.path.join(ARCHIVE_PATH, 'linux.zip'), mode='rb') as fp:
+                self.__request(url='/reports/api/upload-sources/',
+                               data={'identifier': self._original_sources},
+                               files=[('archive', fp)])
 
     def __decide_job(self):
-        self.service.post('/jobs/decide_job/', {'report': json.dumps({
-            'type': 'start', 'id': '/', 'attrs': [{'name': 'Klever Core version', 'value': 'latest'}], 'comp': COMPUTER
-        }), 'job format': FORMAT})
+        logger.info('Start {} deciding'.format(self._job_uuid))
+        self.__upload_original_sources()
 
-        self.__upload_progress([1, 0, 0, 1000], None, True, False)
+        core_id = self.__upload_start_report(
+            'Core', None, attrs=[{'name': 'Klever Core version', 'value': 'latest'}], computer=COMPUTER
+        )
 
-        core_data = {
+        core_data_1 = {
             'module1': {'ideal verdict': 'safe', 'verdict': 'unsafe', 'comment': 'This is comment for module1'},
-            'module2': {'ideal verdict': 'safe', 'verdict': 'safe'},
+            'module2': {'ideal verdict': 'safe', 'verdict': 'safe'}
+        }
+        core_data_2 = {
             'module3': {'ideal verdict': 'unsafe', 'verdict': 'unsafe', 'comment': 'This is comment for module3'},
             'module4': {'ideal verdict': 'unsafe', 'verdict': 'unknown'}
         }
-        # core_data = {
-        #     'module1': {
-        #         'before fix': {'verdict': 'unsafe', 'comment': 'Comment for module1 before fix'},
-        #         'after fix': {'verdict': 'unsafe', 'comment': 'Comment for module1 after fix'},
-        #     },
-        #     'module2': {
-        #         'before fix': {'verdict': 'safe', 'comment': '1'},
-        #         'after fix': {'verdict': 'unsafe', 'comment': 'Comment for module2 after fix'},
-        #     },
-        #     'module3': {
-        #         'before fix': {'verdict': 'unsafe', 'comment': 'Comment for module3 before fix'},
-        #         'after fix': {'verdict': 'safe', 'comment': '1'},
-        #     },
-        #     'module4': {
-        #         'before fix': {'verdict': 'unsafe', 'comment': '1'},
-        #         'after fix': {'verdict': 'unknown', 'comment': '1'},
-        #     }
-        # }
+        self.__upload_patch_report(core_id, data=core_data_1)
+        self.__upload_patch_report(core_id, data=core_data_2)
 
-        self.__upload_data_report('/', core_data)
-
-        core_coverage = {}
+        self.__init_progress()
         if any('chunks' in chunk for chunk in self.reports_data):
-            progress_sj = [len(self.reports_data), 0, 0, 100 * len(self.reports_data) + 10]
-            progress_ts = [len(self.reports_data) * 2, 0, 0, 100 * len(self.reports_data)]
-            self.__upload_progress(progress_ts, progress_sj, True, False)
             for subjob in self.reports_data:
-                if 'chunks' in subjob:
-                    try:
-                        core_coverage.update(self.__upload_subjob(subjob))
-                    except DecisionError:
-                        pass
-                progress_sj[2] += 1
-                progress_sj[3] -= 100
-                progress_ts[2] += 2
-                progress_ts[3] -= 100
-                self.__upload_progress(progress_ts, progress_sj, False, False)
-            self.__upload_progress(progress_ts, progress_sj, False, True)
+                self.__upload_subjob(subjob, core_id)
+                self._progress_data['subjobs']['solved'] += 1
+                self.__upload_progress()
         else:
-            try:
-                self.__upload_chunks()
-            except DecisionError:
-                pass
+            self.__upload_chunks(core_id)
+            if self.full_coverage:
+                self.__upload_patch_report(core_id, original_sources=True)
+                self.__upload_job_coverage(core_id, {'no:subjobs': 'linux-coverage.zip'})
 
-        if self.full_coverage and len(core_coverage) > 0:
-            self.__upload_job_coverage('/', core_coverage)
-        self.__upload_finish_report('/')
+        self.__upload_progress()
+        self.__upload_finish_report(core_id)
+        self.__request(url='/service/job-status/{}/'.format(self._job_uuid), method='PATCH', data={'status': '3'})
 
-    def __upload_subjob(self, subjob):
-        sj = self.__upload_start_report('Sub-job', '/', [{
+    def __upload_subjob(self, subjob, core_id):
+        sj = self.__upload_start_report('Subjob', core_id, [{
             'name': 'Name', 'value': 'test/dir/and/some/other/text:{0}'.format(subjob['requirement'])
         }])
         lkbce = self.__upload_start_report('LKBCE', sj)
-        self.__upload_attrs_report(lkbce, [LINUX_ATTR])
+        self.__upload_patch_report(lkbce, attrs=[LINUX_ATTR])
         self.__upload_finish_report(lkbce)
 
         self.__upload_start_report('LKVOG', sj, [LKVOG_ATTR], finish=True)
@@ -1157,26 +1482,24 @@ class DecideJobs:
             ], failed=(chunk.get('fail') == 'RP'))
             self.__upload_verdicts(rp, chunk)
             self.__upload_finish_report(rp)
+            self._progress_data['tasks']['solved'] += 1
+            self.__upload_progress()
         self.__upload_finish_report(vrp)
 
         if self.full_coverage:
-            # sj_coverage = {subjob['requirement']: 'big_full_coverage.zip'}
-            sj_coverage = {subjob['requirement']: 'Core_coverage.zip'}
-            self.__upload_job_coverage(sj, sj_coverage)
-            self.__upload_finish_report(sj)
-            return sj_coverage
-        else:
-            self.__upload_finish_report(sj)
-        return {}
+            self.__upload_patch_report(sj, original_sources=True)
+            self.__upload_job_coverage(sj, {subjob['requirement']: 'linux-coverage.zip'})
 
-    def __upload_chunks(self):
-        lkbce = self.__upload_start_report('LKBCE', '/')
-        self.__upload_attrs_report(lkbce, [LINUX_ATTR])
+        self.__upload_finish_report(sj)
+
+    def __upload_chunks(self, core_id):
+        lkbce = self.__upload_start_report('LKBCE', core_id)
+        self.__upload_patch_report(lkbce, attrs=[LINUX_ATTR])
         self.__upload_finish_report(lkbce)
 
-        self.__upload_start_report('LKVOG', '/', [LKVOG_ATTR], finish=True)
+        self.__upload_start_report('LKVOG', core_id, [LKVOG_ATTR], finish=True)
 
-        vtg = self.__upload_start_report('VTG', '/', [LINUX_ATTR, LKVOG_ATTR])
+        vtg = self.__upload_start_report('VTG', core_id, [LINUX_ATTR, LKVOG_ATTR])
         for chunk in self.reports_data:
             vtgw = self.__upload_start_report('VTGW', vtg, [
                 {'name': 'Requirement', 'value': chunk['requirement'], 'compare': True, 'associate': True},
@@ -1187,9 +1510,7 @@ class DecideJobs:
             self.__upload_finish_report(vtgw)
         self.__upload_finish_report(vtg)
 
-        progress_ts = [len(self.reports_data), 0, 0, 100 * len(self.reports_data)]
-        self.__upload_progress(progress_ts, None, True, False)
-        vrp = self.__upload_start_report('VRP', '/', [LINUX_ATTR, LKVOG_ATTR])
+        vrp = self.__upload_start_report('VRP', core_id, [LINUX_ATTR, LKVOG_ATTR])
         for chunk in self.reports_data:
             rp = self.__upload_start_report('RP', vrp, [
                 {'name': 'Requirement', 'value': chunk['requirement'], 'compare': True, 'associate': True},
@@ -1197,64 +1518,61 @@ class DecideJobs:
             ], failed=(chunk.get('fail') == 'RP'))
             self.__upload_verdicts(rp, chunk)
             self.__upload_finish_report(rp)
-            progress_ts[2] += 1
-            progress_ts[3] -= 100
-            self.__upload_progress(progress_ts, None, False, False)
+            self._progress_data['tasks']['solved'] += 1
+            self.__upload_progress()
         self.__upload_finish_report(vrp)
-        self.__upload_progress(progress_ts, None, False, True)
 
     def __upload_verdicts(self, parent, chunk):
-        if 'unsafes' in chunk:
-            coverage = 'partially_coverage.zip'
-        # elif 'safe' in chunk:
-        #     coverage = 'big_full_coverage.zip'
-        else:
-            # coverage = 'partially_coverage.zip'
-            coverage = None
-
         verification = {
-            'id': self.__get_report_id(chunk['tool']), 'type': 'verification',
-            'parent id': parent, 'name': chunk['tool'],
+            'identifier': self.__get_report_id(chunk['tool']),
+            'type': 'verification', 'parent': parent, 'component': chunk['tool'],
             'attrs': [{'name': 'Test', 'value': 'test value', 'data': 'attrdata.txt'}],
-            'resources': resources(), 'data': {'description': str(chunk['tool'])},
-            'attr data': 'attrdata.zip'
+            'data': {'description': str(chunk['tool'])}, 'original_sources': self._original_sources,
+            'attr_data': 'attrdata.zip'
         }
+        verification.update(resources())
 
         files = ['attrdata.zip']
-        if coverage is not None:
-            files.append(coverage)
-            verification['coverage'] = coverage
         if chunk.get('verifier_input', False):
             files.append('verifier_input.zip')
-            verification['input files of static verifiers'] = 'verifier_input.zip'
+            verification['verifier_input'] = 'verifier_input.zip'
         if chunk.get('log', False):
             files.append('log.zip')
             verification['log'] = 'log.zip'
+        if chunk.get('coverage'):
+            files.append(chunk['coverage'])
+            verification['coverage'] = chunk['coverage']
 
         reports = [verification]
+        if 'additional_sources' in chunk:
+            files.append(chunk['additional_sources'])
+            reports.append({
+                'identifier': verification['identifier'],
+                'type': 'patch',
+                'additional_sources': chunk['additional_sources']
+            })
         if 'safe' in chunk:
             files.append(chunk['safe'])
             reports.append({
-                'id': self.__get_report_id('safe'), 'type': 'safe', 'parent id': verification['id'], 'attrs': [],
-                'proof': os.path.basename(chunk['safe'])
+                'type': 'safe', 'parent': verification['identifier'], 'attrs': [], 'proof': chunk['safe']
             })
         elif 'unsafes' in chunk:
             cnt = 1
-            for u in chunk['unsafes']:
-                files.append(u)
+            for unsafe_archive in chunk['unsafes']:
+                files.append(unsafe_archive)
                 reports.append({
-                    'id': self.__get_report_id('unsafe'), 'type': 'unsafe', 'parent id': verification['id'],
-                    'attrs': [{'name': 'entry point', 'value': 'func_%s' % cnt}], 'error traces': [os.path.basename(u)],
-                    'sources': os.path.basename(u)
+                    'type': 'unsafe', 'parent': verification['identifier'],
+                    'attrs': [{'name': 'entry point', 'value': 'func_%s' % cnt}],
+                    'error_trace': unsafe_archive
                 })
                 cnt += 1
         if 'unknown' in chunk and 'safe' not in chunk:
             files.append(chunk['unknown'])
             reports.append({
-                'id': self.__get_report_id('unknown'), 'type': 'unknown', 'parent id': verification['id'],
-                'problem desc': os.path.basename(chunk['unknown'])
+                'type': 'unknown', 'parent': verification['identifier'],
+                'problem_description': chunk['unknown']
             })
-        reports.append({'id': verification['id'], 'type': 'verification finish'})
+        reports.append({'identifier': verification['identifier'], 'type': 'verification finish'})
         self.__upload_reports(reports, files)
 
     def __is_not_used(self):

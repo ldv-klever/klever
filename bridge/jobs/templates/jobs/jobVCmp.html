@@ -23,7 +23,7 @@
     <i class="ui red minus icon"></i>
     {{ data.v1.change_date|date:"r" }}
     {% if data.v1.change_author %}
-        (<a href="{% url 'users:show_profile' data.v1.change_author_id %}">{{ data.v1.change_author.get_full_name }}</a>)
+        (<a href="{% url 'users:show-profile' data.v1.change_author_id %}">{{ data.v1.change_author.get_full_name }}</a>)
     {% endif %}
     {% if data.v1.comment %}
         <span>: {{ data.v1.comment }}</span>
@@ -33,7 +33,7 @@
     <i class="ui green plus icon"></i>
     {{ data.v2.change_date|date:"r" }}
     {% if data.v2.change_author %}
-        (<a href="{% url 'users:show_profile' data.v2.change_author_id %}">{{ data.v2.change_author.get_full_name }}</a>)
+        (<a href="{% url 'users:show-profile' data.v2.change_author_id %}">{{ data.v2.change_author.get_full_name }}</a>)
     {% endif %}
     {% if data.v2.comment %}
         <span>: {{ data.v2.comment }}</span>
@@ -87,7 +87,7 @@
         {% if data.roles.0|length %}
             {% for ur in data.roles.0 %}
                 <br>
-                <a href="{% url 'users:show_profile' ur.user_id %}">{{ ur.user.get_full_name }} ({{ ur.get_role_display }})</a>
+                <a href="{% url 'users:show-profile' ur.user_id %}">{{ ur.user.get_full_name }} ({{ ur.get_role_display }})</a>
             {% endfor %}
         {% else %}<i class="ui ban red icon"></i>{% endif %}
     </span>
@@ -96,7 +96,7 @@
         {% if data.roles.1|length %}
             {% for ur in data.roles.1 %}
                 <br>
-                <a href="{% url 'users:show_profile' ur.user_id %}">{{ ur.user.get_full_name }} ({{ ur.get_role_display }})</a>
+                <a href="{% url 'users:show-profile' ur.user_id %}">{{ ur.user.get_full_name }} ({{ ur.get_role_display }})</a>
             {% endfor %}
         {% else %}<i class="ui ban red icon"></i>{% endif %}
     </span>
@@ -107,9 +107,9 @@
     <h5>{% trans "Files' paths were changed" %}</h5>
     {% for hashsum1, hashsum2, fp1, fp2 in data.paths %}
         <p>
-            <i class="ui red minus icon"></i> {% if hashsum1 %}<a class="version-file" href="{% url 'jobs:download_file' hashsum1 %}" data-hashsum="{{ hashsum1 }}">{{ fp1 }}</a>{% else %}<i class="ui ban red icon"></i>{% endif %}
+            <i class="ui red minus icon"></i> {% if hashsum1 %}<a class="version-file" href="#" data-download="{% url 'jobs:download_file' hashsum1 %}" data-content="{% url 'jobs:file-content' hashsum1 %}">{{ fp1 }}</a>{% else %}<i class="ui ban red icon"></i>{% endif %}
             <br>
-            <i class="ui green plus icon"></i> {% if hashsum2 %}<a class="version-file" href="{% url 'jobs:download_file' hashsum2 %}" data-hashsum="{{ hashsum2 }}">{{ fp2 }}</a>{% else %}<i class="ui ban red icon"></i>{% endif %}
+            <i class="ui green plus icon"></i> {% if hashsum2 %}<a class="version-file" href="#" data-download="{% url 'jobs:download_file' hashsum2 %}" data-content="{% url 'jobs:file-content' hashsum2 %}">{{ fp2 }}</a>{% else %}<i class="ui ban red icon"></i>{% endif %}
         </p>
     {% endfor %}
     <div class="ui divider"></div>
@@ -120,8 +120,10 @@
     <ul>
         {% for has_diff, fp, hashsum1, hashsum2 in data.files %}
             <li>
-                <a class="version-file" href="{% url 'jobs:download_file' hashsum1 %}" data-hashsum="{{ hashsum1 }}">{{ fp }}</a> <i class="ui long arrow right icon"></i> <a class="version-file" href="{% url 'jobs:download_file' hashsum2 %}" data-hashsum="{{ hashsum2 }}">{{ fp }}</a>
-                {% if has_diff %}(<a class="version-diff-files" href="#" data-hashsum1="{{ hashsum1 }}" data-hashsum2="{{ hashsum2 }}">{% trans 'diff' %}</a>){% endif %}
+                <a class="version-file" href="#" data-download="{% url 'jobs:download_file' hashsum1 %}" data-content="{% url 'jobs:file-content' hashsum1 %}">{{ fp }}</a>
+                <i class="ui long arrow right icon"></i>
+                <a class="version-file" href="#" data-download="{% url 'jobs:download_file' hashsum2 %}" data-content="{% url 'jobs:file-content' hashsum2 %}">{{ fp }}</a>
+                {% if has_diff %}(<a class="version-diff-files" href="#" data-url="{% url 'jobs:files-diff' hashsum1 hashsum2 %}">{% trans 'diff' %}</a>){% endif %}
             </li>
         {% endfor %}
     </ul>

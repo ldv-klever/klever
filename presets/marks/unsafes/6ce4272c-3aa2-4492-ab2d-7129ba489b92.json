@@ -1,0 +1,52 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:usb:register"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/linux/usb/register/register.ko"
+    }
+  ],
+  "description": "",
+  "error_trace": [
+    [
+      {
+        "ldv_pre_probe": [
+          {
+            "ldv_reset_error_counter": []
+          }
+        ]
+      },
+      {
+        "ldv_pci_probe": [
+          {
+            "ldv_emg_usb_register_driver": [
+              {
+                "ldv_failed_usb_register_driver": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "ldv_post_probe": [
+          {
+            "ldv_check_return_value_probe": [
+              {
+                "ldv_assert_linux_usb_register__wrong_return_value": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": false,
+  "tags": [],
+  "verdict": "2"
+}

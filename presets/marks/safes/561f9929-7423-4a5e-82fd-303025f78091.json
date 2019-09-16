@@ -1,0 +1,20 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:kernel:locking:mutex"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/leds/leds-lp5523.ko"
+    }
+  ],
+  "description": "One should add model for function request_firmware_nowait() (model for function request_firmware() is also welcome since it is used much often) but this will likely lead to calls by function pointers that aren't supported well by verifiers",
+  "is_modifiable": true,
+  "tags": [
+    "KernelModel"
+  ],
+  "verdict": "1"
+}

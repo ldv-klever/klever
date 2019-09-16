@@ -126,8 +126,8 @@ class PW(core.components.Component):
             data_report = {}
         else:
             data_report = {
-                "total subjobs to be solved": self.subjobs_number,
-                "start subjobs solution": True,
+                "total_sj": self.subjobs_number,
+                "start_subjobs_solution": True,
             }
 
         delay = 1
@@ -159,13 +159,13 @@ class PW(core.components.Component):
             # Check that VTG started taks solution
             if self.first_task_flag.value and not first_task_appeared:
                 self.logger.info('The first task is submitted, starting the time counter')
-                data_report["start tasks solution"] = True
+                data_report["start_tasks_solution"] = True
                 first_task_appeared = True
                 tasks_start_time = time.time()
 
             # Total number of tasks is determined
             if isinstance(self.total_tasks, int) and not total_tasks_determined:
-                data_report["total tasks to be generated"] = self.total_tasks
+                data_report["total_ts"] = self.total_tasks
                 total_tasks_determined = True
 
             # Check subjobs
@@ -203,11 +203,14 @@ class PW(core.components.Component):
                 self.logger.debug("Left to solve {} tasks of {} in total".format(self.rest_tasks, self.total_tasks))
                 task_estimation = self._estimate_time(tasks_start_time, task_update_time, self.solved_tasks,
                                                       self.rest_tasks, self.tasks_progress, given_finish_time)
-                data_report["failed tasks"] = self.failed_tasks
-                data_report["solved tasks"] = self.solved_tasks
-                data_report["expected time for solving tasks"] = task_estimation
+                data_report["failed_ts"] = self.failed_tasks
+                data_report["solved_ts"] = self.solved_tasks
+                if isinstance(task_estimation, int):
+                    data_report["expected_time_ts"] = task_estimation
+                else:
+                    data_report["gag_text_ts"] = task_estimation
                 if self.tasks_progress == 100:
-                    data_report["finish tasks solution"] = True
+                    data_report["finish_tasks_solution"] = True
 
             # Estimate subjobs
             if not self.job_mode and isinstance(self.subjobs_progress, int):
@@ -216,11 +219,14 @@ class PW(core.components.Component):
                                                         self.rest_subjobs, self.subjobs_progress, given_finish_time)
                 self.logger.debug("Left to solve {} subjobs of {} in total".format(self.rest_subjobs,
                                                                                    self.subjobs_number))
-                data_report["failed subjobs"] = self.failed_subjobs
-                data_report["solved subjobs"] = self.solved_subjobs
-                data_report["expected time for solving subjobs"] = subjob_estimation
+                data_report["failed_sj"] = self.failed_subjobs
+                data_report["solved_sj"] = self.solved_subjobs
+                if isinstance(subjob_estimation, int):
+                    data_report["expected_time_sj"] = subjob_estimation
+                else:
+                    data_report["gag_text_sj"] = subjob_estimation
                 if self.subjobs_progress == 100:
-                    data_report["finish subjobs solution"] = True
+                    data_report["finish_subjobs_solution"] = True
 
             # Send report
             self._send_report(data_report)
@@ -276,41 +282,57 @@ class PW(core.components.Component):
                 return False
 
         # Send when appears total tasks, start tasks solution, end task solution, total subjobs and start solution
-        for prop in ["total subjobs to be solved", "start subjobs solution", "finish subjobs solution",
-                     "total tasks to be generated", "start tasks solution", "finish tasks solution"]:
+        for prop in ["total_sj", "start_subjobs_solution", "finish_subjobs_solution",
+                     "total_ts", "start_tasks_solution", "finish_tasks_solution"]:
             hit = check_new_field(prop)
             send_report += hit
-            if hit and prop in ["start tasks solution", "finish tasks solution",
-                                "finish subjobs solution", "start subjobs solution"]:
+            if hit and prop in {"start_tasks_solution", "finish_tasks_solution",
+                                "finish_subjobs_solution", "start_subjobs_solution"}:
                 # Do not send it repeatedly
                 del report[prop]
 
-        # Check that we can calculate progress and it has changed
-        for kind in ["tasks", "subjobs"]:
-            # Check time
-            exp_key = "expected time for solving {}".format(kind)
-            if (exp_key in report and isinstance(report[exp_key], str) and
-                    ((exp_key in self.report_cache and self.report_cache[exp_key] != report[exp_key]) or
-                     exp_key not in self.report_cache)):
+        # Check that we can calculate tasks progress and it has changed
+        if "gag_text_ts" in report:
+            if report["gag_text_ts"] != self.report_cache.get("gag_text_ts"):
                 send_report += True
             # Set it here anyway but it is possible we will not send it
-            if exp_key in report:
-                new_report[exp_key] = report[exp_key]
+            new_report['gag_text_ts'] = report['gag_text_ts']
+        elif 'expected_time_ts' in report:
+            # Set it here anyway but it is possible we will not send it
+            new_report['expected_time_ts'] = report['expected_time_ts']
 
-            # Check progress
-            exp_key = "solved {}".format(kind)
-            if exp_key in self.report_cache:
-                cached = self.__getattribute__('cached_{}_progress'.format(kind))
-                percent = self.__getattribute__('{}_progress'.format(kind))
-                if not cached or abs(cached - percent) > 1:
-                    send_report += True
-            elif exp_key in report:
+        # Check progress
+        if 'solved_ts' in self.report_cache:
+            cached = self.cached_tasks_progress
+            percent = self.tasks_progress
+            if not cached or abs(cached - percent) > 1:
                 send_report += True
+        elif 'solved_ts' in report:
+            send_report += True
 
-            if send_report:
-                for i in ["failed {}".format(kind), "solved {}".format(kind)]:
-                    if i in report:
-                        new_report[i] = report[i]
+        # Check that we can calculate jobs progress and it has changed
+        if "gag_text_sj" in report:
+            if report["gag_text_sj"] != self.report_cache.get("gag_text_sj"):
+                send_report += True
+            # Set it here anyway but it is possible we will not send it
+            new_report['gag_text_sj'] = report['gag_text_sj']
+        elif 'expected_time_sj' in report:
+            # Set it here anyway but it is possible we will not send it
+            new_report['expected_time_sj'] = report['expected_time_sj']
+
+        # Check progress
+        if 'solved_sj' in self.report_cache:
+            cached = self.cached_subjobs_progress
+            percent = self.subjobs_progress
+            if not cached or abs(cached - percent) > 1:
+                send_report += True
+        elif 'solved_sj' in report:
+            send_report += True
+
+        if send_report:
+            for i in ["failed_ts", "solved_ts", "failed_sj", "solved_sj"]:
+                if i in report:
+                    new_report[i] = report[i]
 
         if send_report:
             self.logger.info("Sending progress report: {}".format(str(new_report)))

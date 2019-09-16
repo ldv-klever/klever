@@ -15,31 +15,21 @@
  * limitations under the License.
  */
 
-#ETV_source_code {
-    width: 100%;
-    position: absolute;
-    left: 0;
-    top: 35px;
-    bottom: 0;
-    line-height: normal;
-    font-size: 12px;
-    border-top: 1px solid #ca8f1d;
-}
 #ETV_error_trace {
     width: 100%;
     position: absolute;
     left: 0;
+    top: 0;
     bottom: 0;
     line-height: normal;
     font-size: 12px;
     font-family: monospace;
     overflow: auto;
     white-space: nowrap;
-    border-top: 1px solid #ca8f1d;
-    top: 35px;
+    margin: 0 0 0 2px;
 }
 
-#ETV_assumes {
+#ETV_data {
     position: absolute;
     padding: 5px;
     height: 100%;
@@ -51,13 +41,16 @@
     overflow-y: auto;
 }
 .ETVTitleBlock {
-    height: 50px;
     white-space: nowrap;
-    overflow-x: hidden;
+    overflow: hidden;
+}
+#ETVSourceTitle {
+    float: right;
+    margin-right: 15px;
 }
 
 #etv {
-    height: 70vh;
+    height: 60vh;
     position: relative;
 }
 
@@ -71,7 +64,8 @@
     right: 0;
     width: 54.7%;
     height: 100%;
-    background-color: #f5ffff;
+    background-color: #fffcff;
+    overflow: auto;
 }
 #etv-divider {
     position: absolute;
@@ -91,7 +85,7 @@
     background-color: #f2711c;
     cursor: move;
 }
-#etv-assumes {
+#etv-data-container {
     position: absolute;
     right: 0;
     bottom: 0;
@@ -100,27 +94,12 @@
     background-color: #faf3ff;
 }
 
-.ETVComment {
-    color: #b1b4b7;
-}
-
-.ETVNumber {
-    color: #3bbbbc;
-}
-
-.ETVSrcL {
-    position: relative;
-    background-color: #d7f0f0;
-    padding-left: 5px;
-    padding-right: 5px;
-}
-
 /* Error trace: Line number object */
 .ETV_LN {
     z-index: 100;
     position: relative;
     white-space: pre;
-    background-color: #ffe6d7;
+    background-color: #ffe6dc;
     padding-right: 5px;
     cursor: pointer;
 }
@@ -130,23 +109,6 @@
 
 .ETV_LC {
     white-space: pre;
-}
-.ETV_HideLink {
-    cursor: pointer;
-}
-
-.ETVText {
-    color: #20d467;
-}
-
-.ETVKey1 {
-    color: #1f984c;
-    font-weight: bold;
-}
-
-.ETVKey2 {
-    color: #291fbf;
-    font-weight: bold;
 }
 
 .ETVSelectedLine {
@@ -159,8 +121,17 @@
     font-style: italic;
 }
 
-.ETV_GlobalExpanderLink {
+.ETV_GlobalExpander {
     cursor: pointer;
+}
+
+.ETV_LINE {
+    cursor: pointer;
+    color: #8029bd;
+    font-weight: bold;
+}
+.ETV_LINE:hover {
+    color: #a22ff0;
 }
 
 .ETV_LN_Note {
@@ -218,6 +189,11 @@
     color: #5019af;
     font-weight: bold;
 }
+.ETV_Display {
+    color: #5019af;
+    font-weight: bold;
+}
+
 .ETV_THREAD {
     background-color: #fffff1;
 }
@@ -228,7 +204,7 @@
     top: 0;
     bottom: 0;
     width: 45%;
-    background-color: #fffaf0;
+    background-color: #fffcf5;
 }
 
 .ETV_CallbackAction {
@@ -249,6 +225,7 @@
 .ETV_Action:hover {
     color: #cfa62a;
 }
-.ETV_ShowCode {
-    cursor: pointer;
+
+.ETV_NewAssumption {
+    color: red;
 }

@@ -1,0 +1,37 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:alloc:irq"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/linux/alloc/irq/nonatomic.ko"
+    }
+  ],
+  "description": "",
+  "error_trace": [
+    [
+      {
+        "ldv_switch_to_interrupt_context": []
+      },
+      {
+        "ldv_handler": [
+          {
+            "ldv_check_alloc_nonatomic": [
+              {
+                "ldv_assert_linux_alloc_irq__nonatomic": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": true,
+  "tags": [],
+  "verdict": "2"
+}

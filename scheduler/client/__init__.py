@@ -24,10 +24,9 @@ import zipfile
 import shutil
 import re
 
+import server
 from utils import execute, process_task_results, submit_task_results, memory_units_converter, time_units_converter
-from server.bridge import Server
 from client.options import adjust_options
-
 
 def run_benchexec(mode, file=None, configuration=None):
     """
@@ -92,37 +91,37 @@ def run_benchexec(mode, file=None, configuration=None):
     logger = logging.getLogger('SchedulerClient')
 
     # Try to report single short line message to error log to forward it to Bridge
-    server = None
+    srv = None
     exit_code = 0
     try:
         logger.info("Going to solve a verification {} with identifier {}".format(mode, conf['identifier']))
         if mode == "task":
-            server = Server(logger, conf["Klever Bridge"], os.curdir)
-            server.register()
+            srv = server.Server(logger, conf["Klever Bridge"], os.curdir)
+            srv.register()
         elif mode not in ('job', 'task'):
             NotImplementedError("Provided mode {} is not supported by the client".format(mode))
 
-        exit_code = solve(logger, conf, mode, server)
+        exit_code = solve(logger, conf, mode, srv)
     except:
         logger.warning(traceback.format_exc().rstrip())
         exit_code = 1
     finally:
-        if server:
-            server.stop()
+        if srv:
+            srv.stop()
         if not isinstance(exit_code, int):
             exit_code = 1
         logger.info("Exiting with exit code {}".format(str(exit_code)))
         os._exit(exit_code)
 
 
-def solve(logger, conf, mode='job', server=None):
+def solve(logger, conf, mode='job', srv=None):
     """
     Read configuration and either start job or task.
 
     :param logger: Logger object.
     :param conf: Configuration dictionary.
     :param mode: "job" or "task".
-    :param server: Server object.
+    :param srv: Server object.
     :return: Exit code of BenchExec or RunExec.
     """
     logger.debug("Create configuration file \"conf.json\"")
@@ -135,16 +134,16 @@ def solve(logger, conf, mode='job', server=None):
     if mode == 'job':
         return solve_job(logger, conf)
     else:
-        return solve_task(logger, conf, server)
+        return solve_task(logger, conf, srv)
 
 
-def solve_task(logger, conf, server):
+def solve_task(logger, conf, srv):
     """
     Perform preparation of task run and start it using BenchExec in either container or no-container mode.
 
     :param logger: Logger object.
     :param conf: Configuration dictionary.
-    :param server: Server object.
+    :param srv: Server object.
     :return: BenchExec exit code.
     """
 
@@ -159,7 +158,7 @@ def solve_task(logger, conf, server):
         shutil.rmtree('output', ignore_errors=True)
 
     logger.debug("Download task")
-    ret = server.pull_task(conf["identifier"], "task files.zip")
+    ret = srv.pull_task(conf["identifier"], "task files.zip")
     if not ret:
         logger.info("Seems that the task data cannot be downloaded because of a respected reason, "
                     "so we have nothing to do there")
@@ -181,7 +180,7 @@ def solve_task(logger, conf, server):
         # To keep the last warning exit without any exception
         if not isinstance(exit_code, int):
             exit_code = 1
-        server.stop()
+        srv.stop()
         os._exit(exit_code)
 
     # Move tasks collected in container mode to expected place
@@ -201,7 +200,7 @@ def solve_task(logger, conf, server):
     else:
         speculative = False
         decision_results['uploaded'] = True
-    submit_task_results(logger, server, "Klever", conf["identifier"], decision_results, os.path.curdir,
+    submit_task_results(logger, srv, "Klever", conf["identifier"], decision_results, os.path.curdir,
                         speculative=speculative)
 
     return exit_code

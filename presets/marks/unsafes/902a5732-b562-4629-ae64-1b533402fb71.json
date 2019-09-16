@@ -1,0 +1,43 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Linux:Version",
+      "value": "v3.16.3-147-g2ba4b92e8773"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:drivers:clk2"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/usb/dwc2/dwc2_gadget.ko"
+    }
+  ],
+  "description": "Driver does not check return value of clk_prepare_enable().",
+  "error_trace": [
+    [
+      {
+        "s3c_hsotg_probe": [
+          {
+            "ldv_clk_enable_clk_of_s3c_hsotg": []
+          },
+          {
+            "ldv_clk_disable_clk_of_s3c_hsotg": [
+              {
+                "ldv_assert_linux_drivers_clk2__less_initial_decrement": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": false,
+  "status": "2",
+  "tags": [],
+  "verdict": "1"
+}

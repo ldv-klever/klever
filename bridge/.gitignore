@@ -1,4 +1,5 @@
 bridge/settings.py
 bridge/db.json
+bridge/rmq.json
 locale/ru/LC_MESSAGES/django.mo
 

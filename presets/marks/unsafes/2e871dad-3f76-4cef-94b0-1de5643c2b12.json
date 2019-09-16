@@ -1,0 +1,49 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:kernel:module"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/linux/kernel/module/refcount.ko"
+    }
+  ],
+  "description": "",
+  "error_trace": [
+    [
+      {
+        "ldv_check_final_state": [
+          {
+            "ldv_assert_linux_kernel_module__more_initial_at_exit": []
+          }
+        ]
+      }
+    ],
+    [
+      {
+        "ldv_init": [
+          {
+            "ldv_module_get": []
+          },
+          {
+            "ldv_module_get": []
+          },
+          {
+            "ldv_module_refcount_17": [
+              {
+                "ldv_module_refcount": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": true,
+  "tags": [],
+  "verdict": "2"
+}

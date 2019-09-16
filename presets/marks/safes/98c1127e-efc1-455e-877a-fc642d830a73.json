@@ -1,0 +1,19 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:arch:io"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/ata/pata_arasan_cf.ko"
+    }
+  ],
+  "description": "",
+  "is_modifiable": false,
+  "production": true,
+  "tags": [],
+  "verdict": "0"
+}

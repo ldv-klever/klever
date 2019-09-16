@@ -1,0 +1,37 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:kernel:rcu:update:lock sched"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/linux/kernel/rcu/update/lock-sched/rcu-sched-lock-at-read.ko"
+    }
+  ],
+  "description": "",
+  "error_trace": [
+    [
+      {
+        "ldv_init": [
+          {
+            "ldv_rcu_read_lock_sched": []
+          },
+          {
+            "ldv_check_for_read_section": [
+              {
+                "ldv_assert_linux_kernel_rcu_update_lock_sched__locked_at_read_section": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": true,
+  "tags": [],
+  "verdict": "2"
+}

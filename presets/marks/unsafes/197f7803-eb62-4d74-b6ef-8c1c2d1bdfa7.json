@@ -1,0 +1,44 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:usb:dev"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/linux/usb/dev/more-at-exit.ko"
+    }
+  ],
+  "description": "",
+  "error_trace": [
+    [
+      {
+        "ldv_initialize": []
+      }
+    ],
+    [
+      {
+        "ldv_check_final_state": [
+          {
+            "ldv_assert_linux_usb_dev__more_initial_at_exit": []
+          }
+        ]
+      }
+    ],
+    [
+      {
+        "ldv_init": [
+          {
+            "ldv_usb_get_dev": []
+          }
+        ]
+      }
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": true,
+  "tags": [],
+  "verdict": "2"
+}

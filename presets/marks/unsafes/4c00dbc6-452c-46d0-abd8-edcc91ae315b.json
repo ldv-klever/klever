@@ -1,0 +1,46 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:drivers:base:class"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/linux/drivers/base/class/class-registered-at-exit.ko"
+    }
+  ],
+  "description": "",
+  "error_trace": [
+    [
+      {
+        "ldv_check_final_state": [
+          {
+            "ldv_assert_linux_drivers_base_class__registered_at_exit": []
+          }
+        ]
+      }
+    ],
+    [
+      {
+        "ldv_init": [
+          {
+            "ldv_register_class": [
+              {
+                "ldv_undef_int_nonpositive": []
+              },
+              {
+                "ldv_assert_linux_drivers_base_class__double_registration": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": true,
+  "tags": [],
+  "verdict": "2"
+}

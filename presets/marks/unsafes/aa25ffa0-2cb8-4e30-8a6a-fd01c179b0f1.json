@@ -1,0 +1,55 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:block:queue"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/linux/block/queue/double-alloc.ko"
+    }
+  ],
+  "description": "",
+  "error_trace": [
+    [
+      {
+        "ldv_init": [
+          {
+            "ldv_blk_init_queue_19": [
+              {
+                "ldv_request_queue": [
+                  {
+                    "ldv_undef_ptr": []
+                  },
+                  {
+                    "ldv_assert_linux_block_queue__double_allocation": []
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "ldv_blk_alloc_queue_20": [
+              {
+                "ldv_request_queue": [
+                  {
+                    "ldv_undef_ptr": []
+                  },
+                  {
+                    "ldv_assert_linux_block_queue__double_allocation": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": true,
+  "tags": [],
+  "verdict": "2"
+}

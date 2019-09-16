@@ -1,0 +1,7 @@
+{
+  "attrs": [],
+  "function": "Error: Parsing failed",
+  "is_regexp": false,
+  "problem_pattern": "Parsing failure",
+  "production": true
+}

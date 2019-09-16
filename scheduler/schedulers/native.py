@@ -173,6 +173,7 @@ class Native(runners.Speculative):
         :param wait_controller: Ignore KV fails until it become working.
         :return: Return True if nothing has changes.
         """
+        # todo: Need refactoring!
         # Use resource mamanger to manage resources
         cacnel_jobs, cancel_tasks = self._manager.update_system_status(self._kv_url, wait_controller)
         # todo: how to provide jobs or tasks to cancel?
@@ -185,6 +186,7 @@ class Native(runners.Speculative):
         """
         Generate a dictionary with available verification tools and push it to the server.
         """
+        # todo: Need refactoring!
         data = self._get_task_configuration()
         if not self.__cached_tools_data or str(data) != self.__cached_tools_data:
             self.__cached_tools_data = str(data)

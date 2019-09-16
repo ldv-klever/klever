@@ -1,0 +1,43 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:kernel:rcu:srcu"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/linux/kernel/rcu/srcu/srcu-lock-at-exit.ko"
+    }
+  ],
+  "description": "",
+  "error_trace": [
+    [
+      {
+        "ldv_check_final_state": [
+          {
+            "ldv_assert_linux_kernel_rcu_srcu__locked_at_exit": []
+          }
+        ]
+      }
+    ],
+    [
+      {
+        "ldv_init": [
+          {
+            "srcu_read_lock": [
+              {
+                "ldv_srcu_read_lock": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": true,
+  "tags": [],
+  "verdict": "2"
+}

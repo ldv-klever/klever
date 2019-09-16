@@ -15,80 +15,43 @@
  * limitations under the License.
  */
 
-function get_last_version_id() {
-    var last_job_version = 0;
-    $('#job_version_selector').children('option').each(function () {
-        var child_version = parseInt($(this).val());
-        if (child_version > last_job_version) {
-            last_job_version = child_version;
+
+function JobForm(job_id, action) {
+    this.save_url = `/jobs/api/save-job/${job_id}/`;
+    this.method = (action === 'copy') ? 'POST' : 'PUT';
+
+    this.labels = {};
+    this.inputs = {};
+    return this;
+}
+
+JobForm.prototype.initialize = function(inputs, labels) {
+    var instance = this;
+    $.each(inputs, function (key, value) { instance.inputs[key] = value });
+    $.each(labels, function (key, value) { instance.labels[key] = value });
+};
+
+JobForm.prototype.serialize = function() {
+    var instance = this, data = {};
+    $.each(instance.inputs, function (key, value) { data[key] = $('#' + value).val() });
+    return data;
+};
+
+JobForm.prototype.save = function (extra_data) {
+    var instance = this, data = this.serialize();
+    if (extra_data) $.each(extra_data, function (key, value) { data[key] = value });
+
+    $.ajax({
+        url: instance.save_url, type: instance.method, data: JSON.stringify(data),
+        processData: false, dataType: "json", contentType: "application/json",
+        success: function (resp) {
+            $('#dimmer_of_page').removeClass('active');
+            resp.error ? err_notify(resp.error) : window.location.replace(resp['url']);
+        },
+        error: function (resp) {
+            $('#dimmer_of_page').removeClass('active');
+            var errors = flatten_api_errors(resp['responseJSON'], instance.labels);
+            $.each(errors, function (i, err_text) { err_notify(err_text, 3000) });
         }
     });
-    return last_job_version;
-}
-
-function save_job() {
-    var title_input = $('#job_name'), description = $('#description').val();
-
-    if (title_input.val().length === 0) {
-        err_notify($('#error__title_required').text());
-        title_input.focus();
-        return false;
-    }
-
-    var tmp_div = $('<div>').html(description);
-    tmp_div.find('script').remove();
-    tmp_div.find('*').each(function () {
-        var element_in_div = $(this);
-        $.each($(this)[0].attributes, function (i, attr) {
-            if (attr.name.match("^on")) {
-                element_in_div.removeAttr(attr.name)
-            }
-        });
-    });
-    description = tmp_div.html();
-
-    $('#dimmer_of_page').addClass('active');
-    $.post('', {
-        name: title_input.val(),
-        comment: $('#job_comment').val(),
-        description: description,
-        global_role: global_role(),
-        user_roles: get_user_roles(),
-        file_data: get_files_data('#filestree'),
-        parent: $('#parent_identifier').val(),
-        last_version: get_last_version_id()
-    }, function (data) {
-        $('#dimmer_of_page').removeClass('active');
-        data.error ? err_notify(data.error) : window.location.replace('/jobs/' + data['job_id'] + '/');
-    }, "json");
-}
-
-$(document).ready(function () {
-    var versions_selector = $('#job_version_selector'), job_id = $('#job_id').val(), version = versions_selector.children('option:selected').val();
-
-    versions_selector.dropdown();
-    init_files_tree('#filestree', job_id, version);
-    init_roles_form('#user_roles_form', job_id, version);
-
-    $('#file_not_commited_modal').modal({transition: 'fade in', autofocus: false, closable: false});
-    $('#close_save_job_btn').click(function () { $('#file_not_commited_modal').modal('hide') });
-    $('#confirm_save_job_btn').click(save_job);
-
-    $('#save_job_btn').click(function () {
-        !$('#editor_unsaved').is(':hidden') ? $('#file_not_commited_modal').modal('show') : save_job();
-    });
-
-    versions_selector.change(function () {
-        var job_id = $("#job_id").val(), version = $(this).children('option:selected').val();
-        $.get('/jobs/get_version_data/' + job_id + '/' + version + '/', {}, function (data) {
-            data.error ? err_notify(data.error) : $('#description').val(data.description);
-        });
-        refresh_files_tree('#filestree', job_id, version);
-        init_roles_form('#user_roles_form', job_id, version);
-    });
-
-    $('#job_name').on('input', function () {
-        $(this).parent().removeClass('error');
-        $('#title_should_be_changed').remove();
-    });
-});
+};

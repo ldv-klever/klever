@@ -1,0 +1,39 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:arch:io"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/linux/arch/io/more-initial.ko"
+    }
+  ],
+  "description": "",
+  "error_trace": [
+    [
+      {
+        "ldv_check_final_state": [
+          {
+            "ldv_assert_linux_arch_io__more_initial_at_exit": []
+          }
+        ]
+      }
+    ],
+    [
+      {
+        "ldv_init": [
+          {
+            "ldv_io_mem_remap": []
+          }
+        ]
+      }
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": true,
+  "tags": [],
+  "verdict": "2"
+}

@@ -1,0 +1,50 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:test:environment model specifications"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/get_sb_v.1/get_sb_ns_invoke.ko"
+    }
+  ],
+  "description": "",
+  "error_trace": [
+    [
+      {
+        "ldv_initialize": []
+      }
+    ],
+    [
+      {
+        "ldv_init": [
+          {
+            "ldv_invoke_test": []
+          },
+          {
+            "ldv_emg_get_sb_ns": [
+              {
+                "fill_super": [
+                  {
+                    "ldv_invoke_reached": [
+                      {
+                        "ldv_assert_linux_emg_test": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": true,
+  "tags": [],
+  "verdict": "2"
+}

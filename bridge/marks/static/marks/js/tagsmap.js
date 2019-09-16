@@ -16,270 +16,274 @@
  */
 
 $(document).ready(function () {
-    drow_connections();
-    init_popups();
 
-    // Clear data in create/edit modals
-    function clear_modal() {
-        $('#edit_tag_id').val('');
-        $('#tag_name').val('');
-        $('#tag_description').val('');
-        $('#create_tag_name').val('');
-        $('#create_tag_description').val('');
-        $('#tag_parent').children().each(function () {
-            if ($(this).val() != 0) {
-                $(this).remove();
-            }
+    // Draw connections
+    $('.tag-tree-link').each(function () {
+        let for_style = [];
+        $.each($(this).data('links').split(''), function (a, img_t) {
+            for_style.push("url('/static/marks/css/images/L_" + img_t + ".png') center no-repeat");
         });
-        $('#create_tag_parent').children().each(function () {
-            if ($(this).val() != 0) {
-                $(this).remove();
-            }
-        });
-        $('#create_tag_user_access_selection').empty();
-        $('#edit_tag_user_access_selection').empty();
-    }
-    function create_access_selections(access, user_access_field) {
-        if (user_access_field.length && access['all'].length > 0) {
-            var new_dropdown1 = $('<select>', {multiple: true, 'class': 'ui fluid dropdown', 'id': 'user_access_edit_sel'}),
-                new_dropdown2 = $('<select>', {multiple: true, 'class': 'ui fluid dropdown', 'id': 'user_access_child_sel'});
-            $.each(access['all'], function (i, v) {
-                if (access['access_edit'].indexOf(v[0]) >= 0) {
-                    new_dropdown1.append($('<option>', {value: v[0], text: v[1], selected: true}));
-                }
-                else {
-                    new_dropdown1.append($('<option>', {value: v[0], text: v[1]}));
-                }
-            });
-            $.each(access['all'], function (i, v) {
-                if (access['access_child'].indexOf(v[0]) >= 0) {
-                    new_dropdown2.append($('<option>', {value: v[0], text: v[1], selected: true}));
-                }
-                else {
-                    new_dropdown2.append($('<option>', {value: v[0], text: v[1]}));
-                }
-            });
-            user_access_field.append($('<label>', {'for': 'user_access_edit_sel', 'class': 'bold-text', 'text': $('#label_for_user_access_1').text()}));
-            user_access_field.append(new_dropdown1);
-            user_access_field.append($('<br>'));
-            user_access_field.append($('<label>', {'for': 'user_access_child_sel', 'class': 'bold-text', 'text': $('#label_for_user_access_2').text()}));
-            user_access_field.append($('<br>'));
-            user_access_field.append(new_dropdown2);
-            user_access_field.find('select').dropdown();
-        }
-    }
+        if (for_style.length) $(this).attr('style', "background: " + for_style.join(',') + ';');
+    });
 
-    var remove_tag_icon = $('.remove-tag-icon'),
-        create_tag_icon = $('.create-tag-icon'),
-        edit_tag_icon = $('.edit-tag-icon');
+    // Initialize popups
+    $('.tag-popup').each(function () {
+        $('#tag__' + $(this).data('tag')).popup({
+            popup: $(this),
+            hoverable: true,
+            delay: {show: 100, hide: 300},
+            variation: 'very wide'
+        })
+    });
+
+    let tags_type = $('#tags_type').text(),
+        tags_base_url = '/marks/api/tags/' + tags_type + '/';
 
     /*************
     * Remove Tag *
     *************/
+    let remove_tag_icon = $('.remove-tag-icon'),
+        remove_tag_modal = $('#remove_tag_modal');
     remove_tag_icon.hover(function () {
         $(this).parent().children('.icon-text-remove').first().show();
     }, function () {
         $(this).parent().children('.icon-text-remove').first().hide();
     });
-    var remove_tag_modal = $('#remove_tag_modal');
     remove_tag_modal.modal({transition: 'fly up', autofocus: false, closable: false});
+
     remove_tag_icon.click(function () {
+        // Hide popup first
         $('.edit-tag-cell').popup('hide');
-        $('#edit_tag_id').val($(this).parent().attr('id').replace('tag_popup_', ''));
+
+        let tag_id = $(this).closest('.tag-popup').data('tag');
+        remove_tag_modal.find('.modal-confirm').data('tag', tag_id);
         remove_tag_modal.modal('show');
     });
-    $('#confirm_remove_tag').click(function () {
-        $.post('/marks/tags/' + $('#tags_type').text() + '/delete/' + $('#edit_tag_id').val() + '/', {}, function (data) {
-            if (data.error) {
-                remove_tag_modal.modal('hide');
-                clear_modal();
-                err_notify(data.error);
-                return false;
+    remove_tag_modal.find('.modal-confirm').click(function () {
+        $.ajax({
+            url: tags_base_url + $(this).data('tag') + '/',
+            type: 'DELETE',
+            success: function() {
+                window.location.replace('');
             }
-            window.location.replace('');
         });
     });
-    $('#cancel_remove_tag').click(function () {
-        remove_tag_modal.modal('hide');
-        clear_modal();
+    remove_tag_modal.find('.modal-cancel').click(function () {
+        remove_tag_modal.modal('hide')
     });
 
     /***********
     * Edit Tag *
     ***********/
-    var edit_tag_modal = $('#edit_tag_modal'), parent_dropdown = $('#tag_parent');
-    parent_dropdown.dropdown();
-    edit_tag_modal.modal({transition: 'drop', autofocus: false, closable: false});
-
-    $('#cancel_edit_tag').click(function () {
-        edit_tag_modal.modal('hide');
-        clear_modal();
-    });
+    let edit_tag_icon = $('.edit-tag-icon'),
+        edit_tag_modal = $('#edit_tag_modal');
+    $('#edit_tag_parent').dropdown();
     edit_tag_icon.hover(function () {
         $(this).parent().children('.icon-text-edit').first().show();
     }, function () {
         $(this).parent().children('.icon-text-edit').first().hide();
     });
+    edit_tag_modal.modal({transition: 'drop', autofocus: false, closable: false});
+
     edit_tag_icon.click(function () {
-        var tag_popup = $(this).parent(), tag_id = tag_popup.attr('id').replace('tag_popup_', '');
-        $('#tag_name').val($('#tag_id_' + tag_id).text());
-        $('#tag_description').val(tag_popup.children('.content').first().html());
-        $.post('/marks/tags/' + $('#tags_type').text() + '/get_tag_data/', {tag_id: tag_id}, function (data) {
-            if (data.error) {
-                err_notify(data.error);
-                clear_modal();
-                return false;
-            }
-            if (data['current'] != '0') {
-                parent_dropdown.append($('<option>', {'value': data['current'], 'text': $('#tag_id_' + data['current']).text(), selected: true}));
-            }
-            $.each(JSON.parse(data['parents']), function (i, value) {
-                parent_dropdown.append($('<option>', {'value': value, 'text': $('#tag_id_' + value).text()}));
-            });
-            $('#edit_tag_id').val(tag_id);
-            create_access_selections(JSON.parse(data['access']), $('#edit_tag_user_access_selection'));
+        let tag_id = $(this).closest('.tag-popup').data('tag');
+        $.ajax({
+            url: tags_base_url + tag_id + '/',
+            type: 'GET',
+            success: function(resp) {
+                $('#edit_tag_name').val(resp['name']);
+                $('#edit_tag_description').val(resp['description']);
 
-            $('.edit-tag-cell').popup('hide');
-            edit_tag_modal.modal('show');
-
-            parent_dropdown.dropdown('refresh');
-            setTimeout(function () {
-                parent_dropdown.dropdown('set selected', parent_dropdown.val());
-            }, 1);
+                let parent_dropdown = $('#edit_tag_parent');
+                parent_dropdown.empty();
+                $.each(resp['parents'], function (i, value) {
+                    let option_data = {'value': value['id'], 'text': value['name']};
+                    if (value['id'] === resp['parent']) option_data['selected'] = true;
+                    parent_dropdown.append($('<option>', option_data));
+                });
+                edit_tag_modal.find('.modal-confirm').data('tag', tag_id);
+                edit_tag_modal.modal('show');
+                parent_dropdown.dropdown('refresh');
+                setTimeout(function () {
+                    parent_dropdown.dropdown('set selected', parent_dropdown.val());
+                }, 1);
+            }
         });
     });
-    $('#save_tag').click(function () {
-        var uadiv = $('#edit_tag_user_access_selection'), access = {
-            'edit': uadiv.find('#user_access_edit_sel').val(),
-            'child': uadiv.find('#user_access_child_sel').val()
-        };
+    edit_tag_modal.find('.modal-cancel').click(function () {
+        edit_tag_modal.modal('hide')
+    });
+    edit_tag_modal.find('.modal-confirm').click(function () {
+        let tag_id = $(this).data('tag'), parent = $('#edit_tag_parent').val();
+        if (parent === '0') parent = null;
         $.ajax({
-            url: '/marks/tags/save_tag/',
-            type: 'POST',
-            data: {
-                name: $('#tag_name').val(),
-                tag_id: $('#edit_tag_id').val(),
-                tag_type: $('#tags_type').text(),
-                description: $('#tag_description').val(),
-                parent_id: $('#tag_parent').val(),
-                action: 'edit',
-                access: JSON.stringify(access)
-            },
-            success: function (data) {
-                if (data.error) {
-                    err_notify(data.error);
-                    return false;
-                }
-                window.location.replace('');
+            url: tags_base_url + tag_id + '/',
+            type: 'PUT',
+            data: JSON.stringify({
+                name: $('#edit_tag_name').val(),
+                parent: parent,
+                description: $('#edit_tag_description').val()
+            }),
+            dataType: "json", contentType: "application/json",
+            success: function () {
+                window.location.replace('')
             }
         });
+    });
+
+    /*********************
+    * Change user access *
+    **********************/
+    let users_tag_icon = $('.change-access-tag-icon'),
+        users_tag_modal = $('#change_access_tag_modal');
+    users_tag_icon.hover(function () {
+        $(this).parent().children('.icon-text-change-access').first().show();
+    }, function () {
+        $(this).parent().children('.icon-text-change-access').first().hide();
+    });
+    users_tag_modal.modal({transition: 'drop', autofocus: false, closable: false});
+
+    users_tag_icon.click(function () {
+        // Hide popup first
+        $('.edit-tag-cell').popup('hide');
+
+        let tag_id = $(this).closest('.tag-popup').data('tag');
+        users_tag_modal.find('.modal-confirm').data('tag', tag_id);
+
+        $.get('/marks/api/tags-access/' + tags_type + '/' + tag_id + '/', {}, function (resp) {
+            let edit_selector = $('#change_access_edit_select'),
+                create_selector = $('#change_access_create_select');
+            edit_selector.empty();
+            create_selector.empty();
+            $.each(resp, function (i, user_data) {
+                edit_selector.append($('<option>', {
+                    value: user_data['id'],
+                    text: user_data['name'],
+                    selected: user_data['can_edit']
+                }));
+                create_selector.append($('<option>', {
+                    value: user_data['id'],
+                    text: user_data['name'],
+                    selected: user_data['can_create']
+                }));
+            });
+
+            edit_selector.dropdown('refresh');
+            create_selector.dropdown('refresh');
+            setTimeout(function () {
+                let edit_value = edit_selector.val(), create_value = create_selector.val();
+                edit_value ? edit_selector.dropdown('set selected', edit_value) : edit_selector.dropdown('clear');
+                create_value ? create_selector.dropdown('set selected', create_value) : create_selector.dropdown('clear');
+            }, 1);
+
+            users_tag_modal.modal('show');
+        }, 'json');
+    });
+    users_tag_modal.find('.modal-confirm').click(function () {
+        $.ajax({
+            url: '/marks/api/tags-access/' + tags_type + '/' + $(this).data('tag') + '/',
+            type: 'POST',
+            dataType: "json", contentType: "application/json",
+            data: JSON.stringify({
+                can_edit: $('#change_access_edit_select').val(),
+                can_create: $('#change_access_create_select').val()
+            }),
+            success: function () {
+                success_notify($('#api_success_message').text())
+            }
+        });
+    });
+    users_tag_modal.find('.modal-cancel').click(function () {
+        users_tag_modal.modal('hide')
     });
 
     /*************
     * Create Tag *
-    *************/
+    **************/
+    let create_tag_icon = $('.create-tag-icon'),
+        create_tag_modal = $('#create_tag_modal');
+    $('#create_tag_parent').dropdown();
     create_tag_icon.hover(function () {
         $(this).parent().children('.icon-text-create').first().show();
     }, function () {
         $(this).parent().children('.icon-text-create').first().hide();
     });
-
-    var create_tag_modal = $('#create_tag_modal'), create_tag_parent = $('#create_tag_parent');
     create_tag_modal.modal({transition: 'drop', autofocus: false, closable: false});
-    function create_tag_click(parent_id) {
-        $.post('/marks/tags/' + $('#tags_type').text() + '/get_tag_data/', {}, function (data) {
-            if (data.error) {
-                err_notify(data.error);
-                clear_modal();
-                return false;
-            }
-            $.each(JSON.parse(data['parents']), function (i, value) {
-                var dropdown_option_data = {'value': value, 'text': $('#tag_id_' + value).text()};
-                if (value == parent_id) {
-                    dropdown_option_data['selected'] = true;
-                }
-                create_tag_parent.append($('<option>', dropdown_option_data));
-            });
-            create_tag_parent.dropdown('refresh');
-            setTimeout(function () {
-                create_tag_parent.dropdown('set selected', create_tag_parent.val());
-            }, 1);
-            create_access_selections(JSON.parse(data['access']), $('#create_tag_user_access_selection'));
 
-            $('.edit-tag-cell').popup('hide');
-            create_tag_modal.modal('show');
-        });
-    }
-    $('#create_root_tag').click(function () {
-        create_tag_click(0);
-    });
     create_tag_icon.click(function () {
-        create_tag_click($(this).parent().attr('id').replace('tag_popup_', ''));
-    });
-    $('#cancel_create_tag').click(function () {
-        create_tag_modal.modal('hide');
-        clear_modal();
-    });
-    $('#confirm_create_tag').click(function () {
-        var uadiv = $('#create_tag_user_access_selection'), access = {
-            'edit': uadiv.find('#user_access_edit_sel').val(),
-            'child': uadiv.find('#user_access_child_sel').val()
-        };
+        let tag_id = $(this).closest('.tag-popup').data('tag');
         $.ajax({
-            url: '/marks/tags/save_tag/',
+            url: tags_base_url + tag_id + '/',
+            type: 'GET',
+            success: function(resp) {
+                $('#create_tag_name').val('');
+                $('#create_tag_description').val('');
+
+                $('#create_tag_parent').text(resp['name']);
+                create_tag_modal.find('.modal-confirm').data('tag', tag_id);
+                create_tag_modal.modal('show');
+            }
+        });
+    });
+    create_tag_modal.find('.modal-cancel').click(function () {
+        create_tag_modal.modal('hide')
+    });
+    create_tag_modal.find('.modal-confirm').click(function () {
+        let tag_id = $(this).data('tag');
+        $.ajax({
+            url: tags_base_url,
             type: 'POST',
-            data: {
+            data: JSON.stringify({
                 name: $('#create_tag_name').val(),
-                tag_type: $('#tags_type').text(),
-                description: $('#create_tag_description').val(),
-                parent_id: $('#create_tag_parent').val(),
-                action: 'create',
-                access: JSON.stringify(access)
-            },
-            success: function (data) {
-                if (data.error) {
-                    err_notify(data.error);
-                    return false;
-                }
-                window.location.replace('');
+                parent: tag_id,
+                description: $('#create_tag_description').val()
+            }),
+            dataType: "json", contentType: "application/json",
+            success: function () {
+                window.location.replace('')
             }
         });
     });
 
-    $('#upload_tags_modal').modal('setting', 'transition', 'vertical flip').modal('attach events', '#upload_tags', 'show');
-    $('#upload_tags_start').click(function () {
-        var files = $('#upload_tags_file_input')[0].files, data = new FormData();
-        if (files.length <= 0) {
-            err_notify($('#error__no_file_chosen').text());
-            return false;
-        }
+    // Creating root tag
+    $('#create_root_tag').click(function () {
+        $('#create_tag_name').val('');
+        $('#create_tag_description').val('');
+        $('#create_tag_parent').text('-');
+        create_tag_modal.find('.modal-confirm').data('tag', null);
+        create_tag_modal.modal('show');
+    });
+
+    /*************************
+     * Upload tags from file *
+     *************************/
+    let upload_tags_modal = $('#upload_tags_modal');
+    upload_tags_modal.modal('setting', 'transition', 'vertical flip').modal('attach events', '#upload_tags', 'show');
+    upload_tags_modal.find('.modal-confirm').click(function () {
+        let data = new FormData(), files = $('#upload_tags_file_input')[0].files;
+        if (files.length <= 0) return err_notify($('#error__no_file_chosen').text());
         data.append('file', files[0]);
-        $('#upload_tags_modal').modal('hide');
+        upload_tags_modal.modal('hide');
         $('#dimmer_of_page').addClass('active');
         $.ajax({
-            url: '/marks/tags/' + $('#tags_type').text() + '/upload/',
+            url: '/marks/api/tags-upload/' + tags_type + '/',
             type: 'POST',
             data: data,
-            dataType: 'json',
+            // dataType: 'json',
+            cache: false,
             contentType: false,
             processData: false,
             mimeType: 'multipart/form-data',
             xhr: function() { return $.ajaxSettings.xhr() },
-            success: function (data) {
-                $('#dimmer_of_page').removeClass('active');
-                data.error ? err_notify(data.error) : window.location.replace('');
+            success: function () {
+                window.location.replace('')
             }
         });
     });
-    $('#upload_tags_cancel').click(function () {
-        $('#upload_tags_modal').modal('hide');
+    upload_tags_modal.find('.modal-cancel').click(function () {
+        upload_tags_modal.modal('hide')
     });
     $('#upload_tags_file_input').on('fileselect', function () {
-        var files = $(this)[0].files,
-            filename_list = $('<ul>');
-        for (var i = 0; i < files.length; i++) {
-            filename_list.append($('<li>', {text: files[i].name}));
-        }
-        $('#upload_tags_filename').html(filename_list);
+        $('#upload_tags_filename').text($(this)[0].files[0].name)
     });
 });

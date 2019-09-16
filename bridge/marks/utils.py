@@ -15,23 +15,20 @@
 # limitations under the License.
 #
 
-import json
 from difflib import unified_diff
 
-from django.core.exceptions import ObjectDoesNotExist
+from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 
-from bridge.vars import USER_ROLES, JOB_ROLES
-from bridge.utils import BridgeException
-
-import marks.SafeUtils as SafeUtils
-import marks.UnsafeUtils as UnsafeUtils
-import marks.UnknownUtils as UnknownUtils
+from bridge.vars import USER_ROLES, JOB_ROLES, MARK_SAFE, MARK_UNSAFE, MARK_STATUS
 
 from users.models import User
+from jobs.models import Job
 from reports.models import ReportUnsafe, ReportSafe, ReportUnknown
-from marks.models import MarkSafe, MarkUnsafe, MarkUnknown, MarkSafeHistory, MarkUnsafeHistory,\
-    SafeTag, UnsafeTag, ConvertedTraces, MarkSafeReport, MarkUnsafeReport, MarkUnknownReport
+from marks.models import MarkSafe, MarkUnsafe, MarkUnknown, ConvertedTrace
+
+from marks.UnsafeUtils import DEFAULT_COMPARE, COMPARE_FUNCTIONS, CONVERT_FUNCTIONS
+from marks.tags import TagsTree, MarkTagsTree
 
 
 STATUS_COLOR = {
@@ -60,233 +57,202 @@ SAFE_COLOR = {
 
 
 class MarkAccess:
-
     def __init__(self, user, mark=None, report=None):
         self.user = user
         self.mark = mark
         self.report = report
 
+    @cached_property
+    def _mark_valid(self):
+        return isinstance(self.mark, (MarkSafe, MarkUnsafe, MarkUnknown))
+
+    @cached_property
+    def _report_valid(self):
+        return isinstance(self.report, (ReportUnsafe, ReportSafe, ReportUnknown))
+
+    @cached_property
+    def _user_valid(self):
+        return isinstance(self.user, User)
+
+    @cached_property
+    def _is_manager(self):
+        return self._user_valid and self.user.role == USER_ROLES[2][0]
+
+    @cached_property
+    def _is_author(self):
+        return self._mark_valid and self._user_valid and self.mark.author == self.user
+
+    @cached_property
+    def _is_expert(self):
+        return self._user_valid and self.user.role == USER_ROLES[3][0]
+
+    def __is_job_expert(self, job):
+        if not self._user_valid or not job:
+            return False
+
+        if job.author == self.user:
+            # User is author of job for which the mark was applied, he is always expert of such marks
+            return True
+
+        last_v = job.versions.get(version=job.version)
+        if last_v.global_role in {JOB_ROLES[2][0], JOB_ROLES[4][0]}:
+            return True
+        user_role = last_v.userrole_set.filter(user=self.user).first()
+        return bool(user_role and user_role.role in {JOB_ROLES[2][0], JOB_ROLES[4][0]})
+
+    @cached_property
+    def _job_expert(self):
+        if not self._user_valid:
+            return False
+        job = None
+        if self._mark_valid:
+            job = self.mark.job
+        if self._report_valid:
+            job = Job.objects.filter(reportroot__id=self.report.root_id).first()
+        return self.__is_job_expert(job)
+
+    @cached_property
     def can_edit(self):
-        if not isinstance(self.user, User):
+        if not self._mark_valid or not self._user_valid:
             return False
-        if self.user.extended.role == USER_ROLES[2][0]:
+        if self._is_manager or self._is_author:
+            # Only managers and authors can edit non-modifiable marks
             return True
-        if not self.mark.is_modifiable or self.mark.version == 0:
+        if not self.mark.is_modifiable:
+            # Mark is not modifiable
             return False
-        if self.user.extended.role == USER_ROLES[3][0]:
-            return True
-        if isinstance(self.mark, (MarkUnsafe, MarkSafe, MarkUnknown)):
-            first_vers = self.mark.versions.order_by('version').first()
-        else:
-            return False
-        if first_vers.author == self.user:
-            return True
-        if self.mark.job is not None:
-            first_v = self.mark.job.versions.order_by('version').first()
-            if first_v.change_author == self.user:
-                return True
-            last_v = self.mark.job.versions.get(version=self.mark.job.version)
-            if last_v.global_role in [JOB_ROLES[2][0], JOB_ROLES[4][0]]:
-                return True
-            try:
-                user_role = last_v.userrole_set.get(user=self.user)
-                if user_role.role in [JOB_ROLES[2][0], JOB_ROLES[4][0]]:
-                    return True
-            except ObjectDoesNotExist:
-                return False
-        return False
+        # Experts and job experts can edit the mark
+        return self._is_expert or self._job_expert
 
+    @cached_property
     def can_create(self):
-        if not isinstance(self.user, User):
+        if not self._user_valid or not self._report_valid:
             return False
-        if isinstance(self.report, (ReportUnsafe, ReportSafe, ReportUnknown)):
-            if self.user.extended.role in [USER_ROLES[2][0], USER_ROLES[3][0]]:
-                return True
-            first_v = self.report.root.job.versions.order_by('version').first()
-            if first_v.change_author == self.user:
-                return True
-            try:
-                last_v = self.report.root.job.versions.get(version=self.report.root.job.version)
-            except ObjectDoesNotExist:
-                return False
-            if last_v.global_role in [JOB_ROLES[2][0], JOB_ROLES[4][0]]:
-                return True
-            try:
-                user_role = last_v.userrole_set.get(user=self.user)
-                if user_role.role in [JOB_ROLES[2][0], JOB_ROLES[4][0]]:
-                    return True
-            except ObjectDoesNotExist:
-                return False
-        elif self.user.extended.role in [USER_ROLES[2][0], USER_ROLES[3][0]]:
-            return True
-        return False
+        # All managers, experts and job experts can create marks
+        return self._is_manager or self._is_expert or self._job_expert
 
+    @cached_property
+    def can_upload(self):
+        # Only managers and experts can upload marks
+        return self._is_manager or self._is_expert
+
+    @cached_property
     def can_delete(self):
-        if not isinstance(self.user, User):
+        if not self._user_valid:
             return False
-        if self.user.extended.role == USER_ROLES[2][0]:
+        if self._is_manager:
             return True
-        if not self.mark.is_modifiable or self.mark.version == 0:
-            return False
-        if self.user.extended.role == USER_ROLES[3][0]:
-            return True
-        authors = list(set(v_id for v_id, in self.mark.versions.values_list('author_id') if v_id is not None))
-        if len(authors) == 1 and authors[0] == self.user.id:
-            return True
-        return False
-
-    def can_remove_version(self, mark_version):
-        if not isinstance(self.user, User) or not isinstance(self.mark, (MarkUnsafe, MarkSafe, MarkUnknown)):
-            return False
-        # Nobody can remove first or last version. Also while mark is being deleted users can't clear versions.
-        if mark_version.version in {1, self.mark.version} or self.mark.version == 0:
-            return False
-        # Manager can remove all other versions
-        if self.user.extended.role == USER_ROLES[2][0]:
-            return True
-        # Others can't remove versions if mark is frozen.
         if not self.mark.is_modifiable:
             return False
-        # Expert can remove all versions.
-        if self.user.extended.role == USER_ROLES[3][0]:
+        if self._is_expert:
             return True
-        # Others can remove version only if they are authors of it.
-        if mark_version.author == self.user:
-            return True
-        return False
+        # User can delete the mark if he is author of all versions
+        authors = list(set(self.mark.versions.exclude(author=None).values_list('author_id', flat=True)))
+        return len(authors) == 1 and authors[0] == self.user.id
 
+    @property
     def can_freeze(self):
-        if not isinstance(self.user, User):
+        if self._is_manager:
+            return True
+        if self._mark_valid:
+            # On edition stage author of the mark can freeze it
+            return self._is_author
+        # On creation stage all users can freeze their marks
+        return True
+
+    def can_remove_versions(self, versions_qs):
+        if not self._user_valid or not self._mark_valid:
             return False
-        return self.user.extended.role == USER_ROLES[2][0]
-
-
-class TagsInfo:
-    def __init__(self, mark_type, mark=None):
-        self.mark = mark
-        self.type = mark_type
-        self.tags_old = []
-        self.tags_available = []
-        self.__get_tags()
-
-    def __get_tags(self):
-        if self.type not in ['unsafe', 'safe']:
-            return
-        if isinstance(self.mark, (MarkUnsafe, MarkSafe)):
-            last_v = self.mark.versions.get(version=self.mark.version)
-            self.tags_old = list(t['tag__tag'] for t in last_v.tags.order_by('tag__tag').values('tag__tag'))
-        elif isinstance(self.mark, (MarkUnsafeHistory, MarkSafeHistory)):
-            self.tags_old = list(t['tag__tag'] for t in self.mark.tags.order_by('tag__tag').values('tag__tag'))
-        if self.type == 'unsafe':
-            table = UnsafeTag
-        else:
-            table = SafeTag
-        self.tags_available = list(t['tag'] for t in table.objects.values('tag') if t['tag'] not in self.tags_old)
-
-
-class NewMark:
-    def __init__(self, user, inst, data):
-        self._user = user
-        self._data = data
-        self._inst = inst
-        self._handler = self.__get_handler()
-        self.changes = {}
-        self.mark = None
-
-    def __get_handler(self):
-        if isinstance(self._inst, (ReportSafe, MarkSafe)):
-            return SafeUtils.NewMark(self._user, self._data)
-        elif isinstance(self._inst, (ReportUnsafe, MarkUnsafe)):
-            return UnsafeUtils.NewMark(self._user, self._data)
-        elif isinstance(self._inst, (ReportUnknown, MarkUnknown)):
-            return UnknownUtils.NewMark(self._user, self._data)
-        else:
-            raise ValueError('Unsupported type: %s' % type(self._inst))
-
-    def create_mark(self):
-        self.mark = self._handler.create_mark(self._inst)
-        self.changes = self._handler.changes
-
-    def change_mark(self):
-        self.mark = self._handler.change_mark(self._inst)
-        self.changes = self._handler.changes
+        # Nobody can remove last version
+        if any(mv.version == self.mark.version for mv in versions_qs):
+            return False
+        # Manager and versions author can remove other versions
+        if self._is_manager or all(mv.author == self.user for mv in versions_qs):
+            return True
+        # Experts can remove versions if mark is not frozen.
+        return self._is_expert and self.mark.is_modifiable
 
 
 class CompareMarkVersions:
-    def __init__(self, mark_type, version1, version2):
-        self.type = mark_type
+    def __init__(self, mark, version1, version2):
+        self.mark = mark
         self.v1 = version1
         self.v2 = version2
-        self.verdict = self.__verdict_change()
-        self.status = self.__status_change()
-        self.tags = self.__tags_change()
-        self.et_func = self.__et_func_change()
-        self.et = self.__et_change()
-        self.attrs = self.__attr_change()
-        self.unknown_func = self.__unknown_func_change()
-        self.problem = self.__problem_change()
 
-    def __verdict_change(self):
+    @cached_property
+    def type(self):
+        if isinstance(self.mark, MarkSafe):
+            return 'safe'
+        elif isinstance(self.mark, MarkUnsafe):
+            return 'unsafe'
+        return 'unknown'
+
+    @cached_property
+    def verdict(self):
         if self.type == 'unknown' or self.v1.verdict == self.v2.verdict:
             return None
-        if self.type == 'safe':
-            return [{'title': self.v1.get_verdict_display(), 'color': SAFE_COLOR[self.v1.verdict]},
-                    {'title': self.v2.get_verdict_display(), 'color': SAFE_COLOR[self.v2.verdict]}]
-        else:
-            return [{'title': self.v1.get_verdict_display(), 'color': UNSAFE_COLOR[self.v1.verdict]},
-                    {'title': self.v2.get_verdict_display(), 'color': UNSAFE_COLOR[self.v2.verdict]}]
+        return [
+            {'display': self.v1.get_verdict_display(), 'value': self.v1.verdict},
+            {'display': self.v2.get_verdict_display(), 'value': self.v2.verdict}
+        ]
 
-    def __status_change(self):
-        if self.v1.status == self.v2.status:
+    @cached_property
+    def status(self):
+        if self.type != 'unsafe' or self.v1.status == self.v2.status:
             return None
-        return [{'title': self.v1.get_status_display(), 'color': STATUS_COLOR[self.v1.status]},
-                {'title': self.v2.get_status_display(), 'color': STATUS_COLOR[self.v2.status]}]
+        return [
+            {'display': self.v1.get_status_display(), 'value': self.v1.status},
+            {'display': self.v2.get_status_display(), 'value': self.v2.status}
+        ]
 
-    def __tags_change(self):
+    @cached_property
+    def tags(self):
         if self.type == 'unknown':
             return None
-        tags1 = set(t for t, in self.v1.tags.values_list('tag__tag'))
-        tags2 = set(t for t, in self.v2.tags.values_list('tag__tag'))
+        tags1 = set(t for t, in self.v1.tags.values_list('tag__name'))
+        tags2 = set(t for t, in self.v2.tags.values_list('tag__name'))
         if tags1 == tags2:
             return None
         return ['; '.join(sorted(tags1)), '; '.join(sorted(tags2))]
 
-    def __et_func_change(self):
-        if self.type != 'unsafe' or self.v1.function_id == self.v2.function_id:
+    @cached_property
+    def unsafe_func(self):
+        if self.type != 'unsafe' or self.v1.function == self.v2.function:
             return None
         return [{
-            'compare_name': self.v1.function.name, 'compare_desc': self.v1.function.description,
-            'convert_name': self.v1.function.convert.name, 'convert_desc': self.v1.function.convert.description
+            'compare_name': self.v1.function,
+            'compare_desc': COMPARE_FUNCTIONS[self.v1.function]['desc'],
+            'convert_name': COMPARE_FUNCTIONS[self.v1.function]['convert'],
+            'convert_desc': CONVERT_FUNCTIONS[COMPARE_FUNCTIONS[self.v1.function]['convert']]
         }, {
-            'compare_name': self.v2.function.name, 'compare_desc': self.v2.function.description,
-            'convert_name': self.v2.function.convert.name, 'convert_desc': self.v2.function.convert.description
+            'compare_name': self.v2.function,
+            'compare_desc': COMPARE_FUNCTIONS[self.v2.function]['desc'],
+            'convert_name': COMPARE_FUNCTIONS[self.v2.function]['convert'],
+            'convert_desc': CONVERT_FUNCTIONS[COMPARE_FUNCTIONS[self.v2.function]['convert']]
         }]
 
-    def __et_change(self):
+    @cached_property
+    def error_trace(self):
         if self.type != 'unsafe' or self.v1.error_trace_id == self.v2.error_trace_id:
             return None
         diff_result = []
-        f1 = ConvertedTraces.objects.get(id=self.v1.error_trace_id)
-        f2 = ConvertedTraces.objects.get(id=self.v2.error_trace_id)
+        f1 = ConvertedTrace.objects.get(id=self.v1.error_trace_id)
+        f2 = ConvertedTrace.objects.get(id=self.v2.error_trace_id)
         with f1.file as fp1, f2.file as fp2:
             for line in unified_diff(fp1.read().decode('utf8').split('\n'), fp2.read().decode('utf8').split('\n')):
                 diff_result.append(line)
-
         return '\n'.join(diff_result)
 
-    def __attr_change(self):
-        attrs1 = set(a_id for a_id, in self.v1.attrs.filter(is_compare=True).values_list('attr_id'))
-        attrs2 = set(a_id for a_id, in self.v2.attrs.filter(is_compare=True).values_list('attr_id'))
-        if attrs1 == attrs2:
+    @cached_property
+    def attrs(self):
+        v1_attrs_qs = self.v1.attrs.filter(is_compare=True).order_by('id')
+        v2_attrs_qs = self.v2.attrs.filter(is_compare=True).order_by('id')
+        if set((a.name, a.value) for a in v1_attrs_qs) == set((a.name, a.value) for a in v2_attrs_qs):
             return None
-        return [
-            list((a.attr.name.name, a.attr.value) for a in self.v1.attrs.filter(is_compare=True)
-                 .select_related('attr', 'attr__name').order_by('id')),
-            list((a.attr.name.name, a.attr.value) for a in self.v2.attrs.filter(is_compare=True)
-                 .select_related('attr', 'attr__name').order_by('id'))
-        ]
+        return [v1_attrs_qs, v2_attrs_qs]
 
-    def __unknown_func_change(self):
+    @cached_property
+    def unknown_func(self):
         if self.type != 'unknown':
             return None
         if self.v1.is_regexp == self.v2.is_regexp and self.v1.function == self.v2.function:
@@ -294,7 +260,8 @@ class CompareMarkVersions:
         return [{'is_regexp': self.v1.is_regexp, 'func': self.v1.function},
                 {'is_regexp': self.v2.is_regexp, 'func': self.v2.function}]
 
-    def __problem_change(self):
+    @cached_property
+    def problem(self):
         if self.type != 'unknown':
             return None
         if self.v1.problem_pattern == self.v2.problem_pattern and self.v1.link == self.v2.link:
@@ -303,84 +270,126 @@ class CompareMarkVersions:
                 {'pattern': self.v2.problem_pattern, 'link': self.v2.link}]
 
 
-def delete_marks(user, marks_type, mark_ids, report_id=None):
-    if marks_type == 'safe':
-        marks = MarkSafe.objects.filter(id__in=mark_ids)
-    elif marks_type == 'unsafe':
-        marks = MarkUnsafe.objects.filter(id__in=mark_ids)
-    elif marks_type == 'unknown':
-        marks = MarkUnknown.objects.filter(id__in=mark_ids)
-    else:
-        raise ValueError('Unsupported marks type: %s' % marks_type)
-    if not all(MarkAccess(user, mark=mark).can_delete() for mark in marks):
-        if len(marks) > 1:
-            raise BridgeException(_("You can't delete one of the selected marks"))
-        elif len(marks) == 1:
-            raise BridgeException(_("You don't have an access to delete this mark"))
-        else:
-            raise BridgeException(_('Nothing to delete'))
-    if marks_type == 'safe':
-        SafeUtils.delete_marks(marks)
-        reports_model = ReportSafe
-    elif marks_type == 'unsafe':
-        UnsafeUtils.delete_marks(marks)
-        reports_model = ReportUnsafe
-    else:
-        UnknownUtils.delete_marks(marks)
-        reports_model = ReportUnknown
-    if report_id:
-        try:
-            report = reports_model.objects.get(id=report_id)
-        except ObjectDoesNotExist:
+class MarkVersionFormData:
+    def __init__(self, mark_type, mark_version=None):
+        self.type = mark_type
+        self.object = mark_version
+
+    @property
+    def title(self):
+        if self.type == 'safe':
+            return _('Safes mark')
+        elif self.type == 'unsafe':
+            return _('Unsafes mark')
+        return _('Unknowns mark')
+
+    @property
+    def action(self):
+        return 'edit' if self.object else 'create'
+
+    @cached_property
+    def is_modifiable(self):
+        return self.object.mark.is_modifiable if self.object else True
+
+    @cached_property
+    def version(self):
+        # Should not be called on mark creation
+        return self.object.version if self.object else None
+
+    @cached_property
+    def status(self):
+        if self.type != 'unsafe':
             return None
-        return report.id if not isinstance(report, ReportUnsafe) else report.trace_id
+        return self.object.status if self.object else None
 
+    @property
+    def description(self):
+        return self.object.description if self.object else ''
 
-class DownloadTags:
-    def __init__(self, tags_type):
-        self._type = tags_type
-        self._data = self.__get_tags_data()
+    @cached_property
+    def verdict(self):
+        if self.type == 'safe':
+            return self.object.verdict if self.object else MARK_SAFE[0][0]
+        elif self.type == 'unsafe':
+            return self.object.verdict if self.object else MARK_UNSAFE[0][0]
+        return None
 
-    def __iter__(self):
-        yield self._data
+    @cached_property
+    def verdicts(self):
+        if self.type == 'safe':
+            return MARK_SAFE
+        elif self.type == 'unsafe':
+            return MARK_UNSAFE
+        return None
 
-    def file_size(self):
-        return len(self._data)
+    @cached_property
+    def statuses(self):
+        if self.type != 'unsafe':
+            return None
+        return MARK_STATUS
 
-    def __get_tags_data(self):
-        if self._type == 'safe':
-            tags_model = SafeTag
-        elif self._type == 'unsafe':
-            tags_model = UnsafeTag
-        else:
-            return b''
-        tags_data = []
-        for tag in tags_model.objects.all():
-            tag_data = {'name': tag.tag, 'description': tag.description}
-            if tag.parent is not None:
-                tag_data['parent'] = tag.parent.tag
-            tags_data.append(tag_data)
-        return json.dumps(tags_data, ensure_ascii=False, sort_keys=True, indent=4).encode('utf8')
+    @cached_property
+    def function(self):
+        if self.type == 'safe':
+            return None
+        if self.object:
+            return self.object.function
+        return DEFAULT_COMPARE if self.type == 'unsafe' else ''
 
+    @cached_property
+    def functions(self):
+        functions_data = []
+        for name in sorted(COMPARE_FUNCTIONS):
+            functions_data.append({
+                'name': name,
+                'desc': COMPARE_FUNCTIONS[name]['desc'],
+                'convert': {
+                    'name': COMPARE_FUNCTIONS[name]['convert'],
+                    'desc': CONVERT_FUNCTIONS[COMPARE_FUNCTIONS[name]['convert']]
+                }
+            })
+        return functions_data
 
-class UpdateAssociationCache:
-    def __init__(self, association, recalc):
-        self._association = association
-        self._recalc = recalc
-        self.__update()
+    @property
+    def compare_desc(self):
+        return COMPARE_FUNCTIONS[self.function]['desc']
 
-    def __update(self):
-        if isinstance(self._association, MarkSafeReport):
-            self.__update_cache(SafeUtils)
-        elif isinstance(self._association, MarkUnsafeReport):
-            self.__update_cache(UnsafeUtils)
-        elif isinstance(self._association, MarkUnknownReport) and self._recalc:
-            UnknownUtils.update_unknowns_cache([self._association.report])
+    @property
+    def convert_func(self):
+        return {
+            'name': COMPARE_FUNCTIONS[self.function]['convert'],
+            'desc': CONVERT_FUNCTIONS[COMPARE_FUNCTIONS[self.function]['convert']],
+        }
 
-    def __update_cache(self, leaf_lib):
-        if self._recalc:
-            changes = leaf_lib.UpdateVerdicts({self._association.mark_id: {
-                self._association.report: {'kind': '=', 'verdict1': self._association.report.verdict}
-            }}).changes.get(self._association.mark_id, {})
-            leaf_lib.RecalculateTags(list(changes))
-        leaf_lib.update_confirmed_cache([self._association.report])
+    @property
+    def problem_pattern(self):
+        return self.object.problem_pattern if self.object else ''
+
+    @property
+    def is_regexp(self):
+        return self.object.is_regexp if self.object else False
+
+    @property
+    def link(self):
+        return self.object.link if self.object and self.object.link else ''
+
+    @cached_property
+    def tags(self):
+        if self.type == 'unknown':
+            return None
+        if self.object:
+            return MarkTagsTree(self.object)
+        return TagsTree(self.type, tags_ids=[])
+
+    @cached_property
+    def error_trace(self):
+        if not self.object or self.type != 'unsafe':
+            return
+        with self.object.error_trace.file.file as fp:
+            return fp.read().decode('utf-8')
+
+    @cached_property
+    def threshold(self):
+        if not self.object or self.type != 'unsafe':
+            return
+        return self.object.threshold_percentage

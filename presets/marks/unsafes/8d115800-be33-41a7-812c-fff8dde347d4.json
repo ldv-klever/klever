@@ -1,0 +1,45 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:arch:io"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/idle/i7300_idle.ko"
+    }
+  ],
+  "description": "Authors also have a comment that it is a memory leak (lines 305-307). ",
+  "error_trace": [
+    [
+      {
+        "ldv_check_final_state": [
+          {
+            "ldv_assert_linux_arch_io__more_initial_at_exit": []
+          }
+        ]
+      }
+    ],
+    [
+      {
+        "i7300_idle_init": [
+          {
+            "i7300_idle_ioat_init": [
+              {
+                "ldv_io_mem_remap": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": false,
+  "production": true,
+  "status": "0",
+  "tags": [],
+  "verdict": "1"
+}

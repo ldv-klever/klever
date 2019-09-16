@@ -1,0 +1,20 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:kernel:locking:mutex"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/w1/wire.ko"
+    }
+  ],
+  "description": "Model for function __list_add() is missed. It is wondering but target bug was found by LDV Tools.",
+  "is_modifiable": false,
+  "tags": [
+    "KernelModel"
+  ],
+  "verdict": "1"
+}

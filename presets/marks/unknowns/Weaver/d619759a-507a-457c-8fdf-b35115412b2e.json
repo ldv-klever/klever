@@ -1,0 +1,9 @@
+{
+  "attrs": [],
+  "description": "EMG generates incorrect pointer dereferences with not existing structure member.",
+  "function": "has no member named",
+  "is_regexp": false,
+  "link": "http://forge.ispras.ru/issues/7560",
+  "problem_pattern": "No member",
+  "production": true
+}

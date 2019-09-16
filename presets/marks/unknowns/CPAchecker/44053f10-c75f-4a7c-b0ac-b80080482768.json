@@ -1,0 +1,7 @@
+{
+  "attrs": [],
+  "function": "Function entry_point not found",
+  "is_regexp": false,
+  "problem_pattern": "No entry point",
+  "production": true
+}

@@ -21,42 +21,26 @@ $(document).ready(function () {
     $('.parent-popup').popup({inline:true});
     $('.ui.dropdown').dropdown();
 
-    $('#create_light_mark_btn').click(function () {
-        get_inline_mark_form($('#inline_mark_form'), $('#report_pk').val(), 'create');
-    });
-
-    $('button[id^="inline_edit_mark_"]').click(function () {
-        get_inline_mark_form($('#inline_mark_form'), $(this).attr('id').replace('inline_edit_mark_', ''), 'edit');
+    $('.mark-inline-form').click(function () {
+        get_inline_mark_form($(this).data('url'), $('#inline_mark_form'));
     });
 
     $('#show_leaf_attributes').click(function () {
-        var attr_table = $('#leaf_attributes');
+        let attr_table = $('#leaf_attributes');
         attr_table.is(':hidden') ? attr_table.show() : attr_table.hide();
     });
 
-    $('[id*="_association_"]').click(function () {
-        var id_arr = $(this).attr('id').split('_'),  // [action, 'association', mark_id]
-            url = ['/marks/association', $('#report_type').val(), $('#report_pk').val(), id_arr[2], id_arr[0], ''].join('/');
-        $.post(url, {}, function (data) { data.error ? err_notify(data.error) : window.location.replace('') });
+    $('.confirm-mark-btn').click(function () {
+        $.ajax({
+            url: $(this).data('url'), method: $(this).data('method'),
+            success: function () { window.location.replace('') }
+        })
+    });
+    $('.like-mark-btn').click(function () {
+        $.ajax({
+            url: $(this).data('url'), method: $(this).data('method'),
+            success: function () { window.location.replace('') }
+        })
     });
     $('.like-popup').popup({hoverable: true, position: 'top right'});
-
-    $('.attr-data-href').click(function (event) {
-        event.preventDefault();
-        var attr_id = $(this).data('attr-id');
-        $.get('/reports/attrdata-content/' + attr_id + '/', {}, function (resp) {
-            if (resp.error) {
-                err_notify(resp.error);
-                return false;
-            }
-            $('#file_content').text(resp.content);
-            $('#download_file_href').attr('href', '/reports/attrdata/' + attr_id + '/');
-            $('#file_content_modal').modal('show');
-            $('#close_file_view').click(function () {
-                $('#file_content_modal').modal('hide');
-                $('#file_content').empty();
-                $('#download_file_href').attr('href', '#');
-            });
-        });
-    });
 });

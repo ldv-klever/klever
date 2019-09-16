@@ -1,0 +1,41 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:memory safety"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/linux/memory-safety/ext_alloc_double_free.ko"
+    }
+  ],
+  "description": "",
+  "error_trace": [
+    [
+      {
+        "ldv_init": [
+          {
+            "ldv_malloc_unknown_size": [
+              {
+                "ldv_reference_malloc_unknown_size": []
+              }
+            ]
+          },
+          {
+            "ldv_free": [
+              {
+                "ldv_reference_free": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": true,
+  "tags": [],
+  "verdict": "2"
+}

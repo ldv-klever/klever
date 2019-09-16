@@ -23,30 +23,13 @@ from django.utils.translation import ugettext_lazy as _
 from django.views.generic.base import View, ContextMixin
 from django.views.generic.detail import SingleObjectMixin, SingleObjectTemplateResponseMixin
 
+from rest_framework.views import APIView
+from rest_framework.exceptions import APIException
+
 from bridge.vars import UNKNOWN_ERROR, VIEW_TYPES
 from bridge.utils import logger, BridgeException
 
 from users.utils import ViewData
-
-
-# TODO: check if it used anywhere
-class AuthenticatedMixin:
-    def dispatch(self, request, *args, **kwargs):
-        if not hasattr(super(), 'dispatch'):
-            # This mixin should be used together with main View based class
-            raise BridgeException()
-
-        if not request.user.is_authenticated:
-            raise BridgeException(_('You are not signing in'))
-        try:
-            return getattr(super(), 'dispatch')(request, *args, **kwargs)
-        except Exception as e:
-            if isinstance(e, BridgeException):
-                message = str(e.message)
-            else:
-                logger.exception(e)
-                message = str(UNKNOWN_ERROR)
-            raise BridgeException(message=message)
 
 
 class JSONResponseMixin:
@@ -55,8 +38,9 @@ class JSONResponseMixin:
             # This mixin should be used together with main View based class
             raise BridgeException(response_type='json')
 
-        if not request.user.is_authenticated:
-            raise BridgeException(_('You are not signing in'), response_type='json')
+        # TODO
+        # if not request.user.is_authenticated:
+        #     raise BridgeException(_('You are not signing in'), response_type='json')
         try:
             return getattr(super(), 'dispatch')(request, *args, **kwargs)
         except Exception as e:
@@ -109,50 +93,103 @@ class DetailPostView(JSONResponseMixin, SingleObjectTemplateResponseMixin, Singl
 
 class StreamingResponseView(View):
     file_name = None
-    generator = None
-    file_size = None
+    http_method = 'get'
 
     def get_generator(self):
-        return self.generator
+        raise NotImplementedError('The method is not implemented')
 
     def get_filename(self):
         return self.file_name
 
-    def get(self, *args, **kwargs):
+    def __get_response(self, *args, **kwargs):
         self.__is_not_used(*args, **kwargs)
 
         try:
-            self.generator = self.get_generator()
+            generator = self.get_generator()
         except Exception as e:
             if not isinstance(e, BridgeException):
                 logger.exception(e)
                 raise BridgeException()
             raise
-
-        if self.generator is None:
+        if generator is None:
             raise BridgeException()
 
-        self.file_name = self.get_filename()
-        if not isinstance(self.file_name, str) or len(self.file_name) == 0:
+        file_name = getattr(generator, 'name', None) or self.get_filename()
+        if not isinstance(file_name, str) or len(file_name) == 0:
             raise BridgeException()
 
-        mimetype = mimetypes.guess_type(os.path.basename(self.file_name))[0]
-        response = StreamingHttpResponse(self.generator, content_type=mimetype)
-        if self.file_size is not None:
-            response['Content-Length'] = self.file_size
-        response['Content-Disposition'] = 'attachment; filename="%s"' % self.file_name
+        file_size = getattr(generator, 'size', None)
+
+        mimetype = mimetypes.guess_type(os.path.basename(file_name))[0]
+        response = StreamingHttpResponse(generator, content_type=mimetype)
+        if file_size is not None:
+            response['Content-Length'] = file_size
+        response['Content-Disposition'] = 'attachment; filename="{}"'.format(file_name)
         return response
+
+    def get(self, *args, **kwargs):
+        if self.http_method != 'get':
+            return HttpResponseNotAllowed(['get'])
+        return self.__get_response(*args, **kwargs)
+
+    def post(self, *args, **kwargs):
+        if self.http_method != 'post':
+            return HttpResponseNotAllowed(['post'])
+        return self.__get_response(*args, **kwargs)
 
     def __is_not_used(self, *args, **kwargs):
         pass
 
 
-class StreamingResponsePostView(StreamingResponseView):
+class StreamingResponseAPIView(APIView):
+    file_name = None
+    http_method = 'get'
+
+    def get_generator(self):
+        raise NotImplementedError('The method is not implemented')
+
+    def get_filename(self):
+        return self.file_name
+
+    def __get_response(self, *args, **kwargs):
+        self.__is_not_used(*args, **kwargs)
+
+        try:
+            generator = self.get_generator()
+        except Exception as e:
+            if isinstance(e, BridgeException):
+                raise APIException(str(e))
+            logger.exception(e)
+            raise APIException()
+
+        if generator is None:
+            raise APIException()
+
+        file_name = getattr(generator, 'name', None) or self.get_filename()
+        if not isinstance(file_name, str) or len(file_name) == 0:
+            raise APIException()
+
+        file_size = getattr(generator, 'size', None)
+
+        mimetype = mimetypes.guess_type(os.path.basename(file_name))[0]
+        response = StreamingHttpResponse(generator, content_type=mimetype)
+        if file_size:
+            response['Content-Length'] = file_size
+        response['Content-Disposition'] = 'attachment; filename="{}"'.format(file_name)
+        return response
+
     def get(self, *args, **kwargs):
-        return HttpResponseNotAllowed(['post'])
+        if self.http_method != 'get':
+            return HttpResponseNotAllowed(['get'])
+        return self.__get_response(*args, **kwargs)
 
     def post(self, *args, **kwargs):
-        return super().get(*args, **kwargs)
+        if self.http_method != 'post':
+            return HttpResponseNotAllowed(['post'])
+        return self.__get_response(*args, **kwargs)
+
+    def __is_not_used(self, *args, **kwargs):
+        pass
 
 
 class DataViewMixin:

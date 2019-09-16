@@ -1,0 +1,37 @@
+{% comment "License" %}
+% Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+% Ivannikov Institute for System Programming of the Russian Academy of Sciences
+%
+% Licensed under the Apache License, Version 2.0 (the "License");
+% you may not use this file except in compliance with the License.
+% You may obtain a copy of the License at
+%
+%    http://www.apache.org/licenses/LICENSE-2.0
+%
+% Unless required by applicable law or agreed to in writing, software
+% distributed under the License is distributed on an "AS IS" BASIS,
+% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+% See the License for the specific language governing permissions and
+% limitations under the License.
+{% endcomment %}
+
+{% load i18n %}
+
+
+<div id="tags_tree" class="tagsmap">
+    {% include 'marks/MarkTagsTree.html' with tags=tags view_only=False %}
+</div>
+<div id="selected_tags" hidden>
+    {% for t_id in tags.selected_tags %}
+        <span>{{ t_id }}</span>
+    {% endfor %}
+</div>
+<label for="tag_list"></label>
+<select id="tag_list" class="ui search selection dropdown fluid">
+    <option value="">{% trans 'Select the tag to add' %}</option>
+    {% for tag in tags.available_tags %}
+        <option value="{{ tag.id }}">{{ tag.name }}</option>
+    {% endfor %}
+</select>
+<span id="tag_label_color" hidden>{% if tags.type == 'safe' %}green{% elif tags.type == 'unsafe' %}orange{% endif %}</span>
+<span id="error__no_results" hidden>{% trans 'No results found' %}</span>

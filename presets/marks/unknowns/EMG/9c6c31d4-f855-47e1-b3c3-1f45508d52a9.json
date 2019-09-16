@@ -1,0 +1,9 @@
+{
+  "attrs": [],
+  "description": "EMG translator sometimes cannot generate code with multiple branches.",
+  "function": "pop from empty list",
+  "is_regexp": false,
+  "link": "http://forge.ispras.ru/issues/7554",
+  "problem_pattern": "Branching",
+  "production": true
+}

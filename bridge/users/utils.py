@@ -16,28 +16,33 @@
 #
 
 import json
+from datetime import date
 
 from django.db.models import Q
+from django.template import Template, Context
+from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
+from django.utils.functional import cached_property
 
-from users.models import View
+from bridge.vars import DATAFORMAT
+
+from users.models import DataView, PreferableView, User
 
 
 DEF_NUMBER_OF_ELEMENTS = 18
 
 JOB_TREE_VIEW = {
     'columns': ['name', 'role', 'author', 'date', 'status', 'unsafe:total', 'problem:total', 'safe:total'],
-    # order: [up|down, title|date|start|finish]
-    'order': ['up', 'date'],
+    # order: [up|down, title|start|finish]
+    'order': ['down', 'title'],
 
     # FILTERS:
     # title: [iexact|istartswith|icontains, <any text>]
     # change_author: [is|isnot, <id from User model>]
-    # change_date: [younger|older, <int number>, weeks|days|hours|minutes]
+    # change_date: [gt|lt, <int number>, weeks|days|hours|minutes]
     # status: <list of identifiers from JOB_STATUS>
     # resource_component: [iexact|istartswith|icontains, <any text>]
     # problem_component: [iexact|istartswith|icontains, <any text>]
-    # problem_problem: [iexact|istartswith|icontains, <any text>]
     # format: [is|isnot, <number>]
     # priority: [le|e|me, <identifier from PRIORITY>]
     # finish_date: [is|older|younger, <month number>, <year>]
@@ -45,11 +50,10 @@ JOB_TREE_VIEW = {
     # EXAMPLES:
     # 'title': ['istartswith', 'Title of the job'],
     # 'change_author': ['is', '1'],
-    # 'change_date': ['younger', '2', 'weeks'],
+    # 'change_date': ['gt', '2', 'weeks'],
     # 'status': ['2', '5', '1'],
     # 'resource_component': ['istartswith', 'D'],
     # 'problem_component': ['iexact', 'BLAST'],
-    # 'problem_problem': ['icontains', '1'],
     # 'format': ['is', '1'],
     # 'priority': ['me', 'LOW'],
     # 'finish_date': ['is', '1', '2016'],
@@ -57,10 +61,7 @@ JOB_TREE_VIEW = {
 }
 
 JOB_DATA_VIEW = {
-    'data': [
-        'unsafes', 'safes', 'unknowns', 'resources', 'tags_safe', 'tags_unsafe',
-        'safes_attr_stat', 'unsafes_attr_stat', 'unknowns_attr_stat'
-    ],
+    'data': ['unsafes', 'safes', 'unknowns', 'resources', 'tags_safe', 'tags_unsafe', 'attr_stat'],
     # 'hidden': ['unknowns_nomark', 'unknowns_total', 'resource_total', 'confirmed_marks'],
     'attr_stat': ['Requirement']
 
@@ -90,8 +91,7 @@ REPORT_CHILDREN_VIEW = {
 
 UNSAFES_VIEW = {
     'elements': [DEF_NUMBER_OF_ELEMENTS],
-    'columns': ['marks_number', 'total_similarity', 'report_verdict', 'tags',
-                'verifiers:cpu', 'verifiers:wall', 'verifiers:memory'],
+    'columns': ['marks_number', 'report_verdict', 'tags', 'verifiers:cpu', 'verifiers:wall', 'verifiers:memory'],
     # order: [up|down, attr|parent_cpu|parent_wall|parent_memory, <any text, not empty for attr only>]
     # 'order': ['down', 'attr', 'Requirement'],
     # 'attr': ['LKVOG strategy:Name', 'istartswith', 'Separate']
@@ -135,147 +135,154 @@ UNKNOWNS_VIEW = {
 
 UNSAFE_MARKS_VIEW = {
     'elements': [DEF_NUMBER_OF_ELEMENTS],
-    'columns': ['num_of_links', 'total_similarity', 'verdict', 'tags', 'status', 'author', 'format'],
-    # order: [up|down, change_date|num_of_links|attr|total_similarity, <any text, empty if not attr>]
-    'order': ['up', 'change_date', ''],
-
-    # FILTERS:
-    # identifier: [<mark identifier>]
-    # status: [is|isnot, <id from MARK_STATUS>]
-    # verdict: [is|isnot, <id from MARK_UNSAFE>]
-    # author: [<author id>]
-    # source: [is|isnot, <id from MARK_TYPE>]
-    # attr: [<Attr name>, iexact|istartswith|iendswith|icontains, <Attr value>]
-    # change_date: [younger|older, <int number>, weeks|days|hours|minutes]
-
-    # EXAMPLES:
-    # 'status': ['is', '0'],
-    # 'verdict': ['is', '0'],
-    # 'author': [1]
-    # 'source': ['is', '2'],
-    # 'attr': ['Requirement', 'iexact', 'linux:mutex'],
-}
-
-SAFE_MARKS_VIEW = {
-    'elements': [DEF_NUMBER_OF_ELEMENTS],
-    'columns': ['num_of_links', 'verdict', 'tags', 'status', 'author', 'format'],
+    'columns': ['num_of_links', 'verdict', 'threshold', 'tags', 'status', 'author', 'format'],
     # order: [up|down, change_date|num_of_links|attr, <any text, empty if not attr>]
     'order': ['up', 'change_date', ''],
 
     # FILTERS:
     # identifier: [<mark identifier>]
-    # status: [is|isnot, <id from MARK_STATUS>]
-    # verdict: [is|isnot, <id from MARK_SAFE>]
+    # status: [<ids from MARK_STATUS>]
+    # verdict: [<ids from MARK_UNSAFE>]
     # author: [<author id>]
-    # source: [is|isnot, <id from MARK_TYPE>]
+    # source: [<ids from MARK_SOURCE>]
     # attr: [<Attr name>, iexact|istartswith|iendswith|icontains, <Attr value>]
     # change_date: [younger|older, <int number>, weeks|days|hours|minutes]
 
     # EXAMPLES:
-    # 'status': ['is', '0'],
-    # 'verdict': ['is', '0'],
+    # 'status': ['0'],
+    # 'verdict': ['0'],
     # 'author': [1]
-    # 'source': ['is', '2'],
+    # 'source': ['2'],
+    # 'attr': ['Requirement', 'iexact', 'linux:mutex'],
+}
+
+SAFE_MARKS_VIEW = {
+    'elements': [DEF_NUMBER_OF_ELEMENTS],
+    'columns': ['num_of_links', 'verdict', 'tags', 'author', 'format'],
+    # order: [up|down, change_date|num_of_links|attr, <any text, empty if not attr>]
+    'order': ['up', 'change_date', ''],
+
+    # FILTERS:
+    # identifier: [<mark identifier>]
+    # verdict: [<ids from MARK_SAFE>]
+    # author: [<author id>]
+    # source: [<ids from MARK_SOURCE>]
+    # attr: [<Attr name>, iexact|istartswith|iendswith|icontains, <Attr value>]
+    # change_date: [younger|older, <int number>, weeks|days|hours|minutes]
+
+    # EXAMPLES:
+    # 'verdict': ['0'],
+    # 'author': [1]
+    # 'source': ['2'],
     # 'attr': ['Requirement', 'iexact', 'linux:mutex'],
 }
 
 UNKNOWN_MARKS_VIEW = {
     'elements': [DEF_NUMBER_OF_ELEMENTS],
-    'columns': ['num_of_links', 'status', 'component', 'author', 'format', 'pattern'],
+    'columns': ['num_of_links', 'component', 'author', 'format', 'problem_pattern'],
     # order: [up|down, change_date|num_of_links|attr|component, <any text, empty if not attr>]
     'order': ['up', 'change_date'],
 
     # FILTERS:
     # identifier: [<mark identifier>]
-    # status: [is|isnot, <id from MARK_STATUS>]
-    # component: [is|startswith, <any text>]
+    # component: [iexact|istartswith, <any text>]
     # author: [<author id>]
-    # source: [is|isnot, <id from MARK_TYPE>]
+    # source: [<ids from MARK_SOURCE>]
     # attr: [<Attr name>, iexact|istartswith|iendswith|icontains, <Attr value>]
     # change_date: [younger|older, <int number>, weeks|days|hours|minutes]
 
     # EXAMPLES:
-    # 'status': ['is', '0'],
-    # 'component': ['startswith', '0'],
+    # 'component': ['istartswith', 'Com'],
     # 'author': [1]
-    # 'source': ['is', '2'],
+    # 'source': ['2'],
 }
 
 UNSAFE_ASS_MARKS_VIEW = {
-    'columns': ['verdict', 'similarity', 'status', 'source', 'tags', 'ass_type', 'ass_author', 'description'],
+    'columns': [
+        'verdict', 'similarity', 'status', 'associated', 'source',
+        'tags', 'ass_type', 'ass_author', 'description'
+    ],
 
     # FILTERS:
     # verdict: <list of identifiers from MARK_UNSAFE>
-    # similarity: <sublist from ['0', '50', '100']>
+    # similarity: [exact|lt|gt, "<integer>"]
     # status: <list of identifiers from MARK_STATUS>
     # ass_type: <list of identifiers from ASSOCIATION_TYPE>
+    # associated: <list with any value>
 
     # EXAMPLES:
     # 'verdict': ['0', '2'],
-    'similarity': ['50', '100'],
+    'similarity': ['30'],
     # 'status': ['1'],
     # 'ass_type': ['0', '1'],
+    # 'associated': [True]
 }
 
 SAFE_ASS_MARKS_VIEW = {
-    'columns': ['verdict', 'status', 'source', 'tags', 'ass_type', 'ass_author', 'description'],
+    'columns': ['verdict', 'associated', 'source', 'tags', 'ass_type', 'ass_author', 'description'],
 
     # FILTERS:
     # verdict: <list of identifiers from MARK_UNSAFE>
-    # status: <list of identifiers from MARK_STATUS>
     # ass_type: <list of identifiers from ASSOCIATION_TYPE>
+    # associated: <list with any value>
 
     # EXAMPLES:
     # 'verdict': ['0', '2'],
-    # 'status': ['1'],
     # 'ass_type': ['0', '1'],
+    # 'associated': [True]
 }
 
 UNKNOWN_ASS_MARKS_VIEW = {
-    'columns': ['status', 'source', 'ass_type', 'ass_author', 'description'],
+    'columns': ['associated', 'source', 'ass_type', 'ass_author', 'description'],
 
     # FILTERS:
-    # status: <list of identifiers from MARK_STATUS>
     # ass_type: <list of identifiers from ASSOCIATION_TYPE>
+    # associated: <list with any value>
 
     # EXAMPLES:
-    # 'status': ['1'],
     # 'ass_type': ['0', '1'],
+    # 'associated': [True]
 }
 
 UNSAFE_MARK_ASS_REPORTS_VIEW = {
     'elements': [DEF_NUMBER_OF_ELEMENTS],
-    'columns': ['job', 'similarity', 'ass_type', 'ass_author', 'likes'],
+    'columns': ['job', 'similarity', 'associated', 'ass_type', 'ass_author', 'likes'],
 
     # FILTERS:
-    # similarity: <sublist from ['0', '50', '100']>
+    # similarity: [exact|lt|gt, "<integer>"]
     # ass_type: <list of identifiers from ASSOCIATION_TYPE>
+    # associated: <list with any value>
 
     # EXAMPLES:
-    'similarity': ['50', '100'],
+    'similarity': ['gt', '30'],
     # 'ass_type': ['0', '1'],
+    # 'associated': [True]
 }
 
 SAFE_MARK_ASS_REPORTS_VIEW = {
     'elements': [DEF_NUMBER_OF_ELEMENTS],
-    'columns': ['job', 'ass_type', 'ass_author', 'likes'],
+    'columns': ['job', 'associated', 'ass_type', 'ass_author', 'likes'],
 
     # FILTERS:
     # ass_type: <list of identifiers from ASSOCIATION_TYPE>
+    # associated: <list with any value>
 
     # EXAMPLES:
     # 'ass_type': ['0', '1'],
+    # 'associated': [True]
 }
 
 UNKNOWN_MARK_ASS_REPORTS_VIEW = {
     'elements': [DEF_NUMBER_OF_ELEMENTS],
-    'columns': ['job', 'ass_type', 'ass_author', 'likes'],
+    'columns': ['job', 'associated', 'ass_type', 'ass_author', 'likes'],
 
     # FILTERS:
     # ass_type: <list of identifiers from ASSOCIATION_TYPE>
+    # associated: <list with any value>
 
     # EXAMPLES:
     # 'ass_type': ['0', '1'],
+    # 'associated': [True]
 }
 
 SAFE_ASSOCIATION_CHANGES_VIEW = {
@@ -336,12 +343,9 @@ class ViewData:
         self.user = user
         self._type = view_type[0]
         self._template = self.__get_template(view_type[1])
-        self._title = ''
-        self._views = self.__views()
-        self._view = None
-        self._view_id = None
-        self.__get_args(request_args)
-        self.__get_view()
+        self._title = _('View')
+        self._unsaved = False
+        self._view, self._view_id = self.__get_view(request_args)
 
     def __contains__(self, item):
         return item in self._view
@@ -357,40 +361,256 @@ class ViewData:
             return self._views
         elif item == 'view_id':
             return self._view_id
+        elif item == 'is_unsaved':
+            return self._unsaved
         return self._view.get(item)
 
     def __get_template(self, view_name):
         return 'users/views/{0}.html'.format(view_name)
 
-    def __get_args(self, request_args):
-        if request_args.get('view_type') == self._type:
-            self._view = request_args.get('view')
-            self._view_id = request_args.get('view_id')
+    @cached_property
+    def _views(self):
+        qs_filters = Q(type=self._type) & (Q(author=self.user) | Q(shared=True))
+        return DataView.objects.filter(qs_filters).select_related('author').order_by('name')
 
-    def __views(self):
-        return View.objects.filter(Q(type=self._type) & (Q(author=self.user) | Q(shared=True))).order_by('name')
-
-    def __get_view(self):
-        if self._view is not None:
-            self._title = '{0} ({1})'.format(_('View'), _('unsaved'))
-            self._view = json.loads(self._view)
-            return
-        if self._view_id is None:
-            pref_view = self.user.preferableview_set.filter(view__type=self._type).first()
+    def __get_view(self, request_args):
+        if request_args.get('view_type') != self._type:
+            # Try to get preferable view
+            pref_view = PreferableView.objects.filter(view__type=self._type, user=self.user) \
+                .select_related('view').first()
             if pref_view:
-                self._title = '{0} ({1})'.format(_('View'), pref_view.view.name)
-                self._view_id = pref_view.view_id
-                self._view = json.loads(pref_view.view.view)
-                return
-        elif self._view_id != 'default':
-            user_view = View.objects.filter(
-                Q(id=self._view_id, type=self._type) & (Q(shared=True) | Q(author=self.user))
-            ).first()
-            if user_view:
-                self._title = '{0} ({1})'.format(_('View'), user_view.name)
-                self._view_id = user_view.id
-                self._view = json.loads(user_view.view)
-                return
-        self._title = '{0} ({1})'.format(_('View'), _('Default'))
-        self._view_id = 'default'
-        self._view = DEFAULT_VIEW[self._type]
+                self._title = '{0} ({1})'.format(self._title, pref_view.view.name)
+                return pref_view.view.view, pref_view.view_id
+        elif request_args.get('view'):
+            # Try to get view from query params
+            self._title = '{0} ({1})'.format(self._title, _('unsaved'))
+            self._unsaved = True
+            return json.loads(request_args['view']), None
+        elif request_args.get('view_id'):
+            # If view_id is provided and it is not the default
+            if request_args['view_id'] != 'default':
+                user_view = DataView.objects.filter(
+                    Q(id=int(request_args['view_id']), type=self._type) & (Q(shared=True) | Q(author=self.user))
+                ).first()
+                if user_view:
+                    self._title = '{0} ({1})'.format(self._title, user_view.name)
+                    return user_view.view, user_view.id
+
+        # Return default view
+        self._title = '{0} ({1})'.format(self._title, _('Default'))
+        return DEFAULT_VIEW[self._type], 'default'
+
+
+class HumanizedValue:
+    measures = {
+        'time': {
+            'default': _('ms'),
+            'humanized': ((1000, _('s')), (60, _('min')), (60, _('h')))
+        },
+        'memory': {
+            'default': _('B'),
+            'humanized': ((1000, _('KB')), (1000, _('MB')), (1000, _('GB')))
+        }
+    }
+
+    def __init__(self, value, user=None, default='-'):
+        self.initial_value = value
+        self.default = default
+        self.user = user
+
+    @cached_property
+    def humanized(self):
+        return isinstance(self.user, User) and self.user.data_format == DATAFORMAT[1][0]
+
+    @property
+    def date(self):
+        # datetime is subclass of date
+        if not isinstance(self.initial_value, date):
+            return self.default
+
+        # Get template for the date
+        return self.get_templated_text(
+            '{%% load humanize %%}{{ date|%s }}' % ('naturaltime' if self.humanized else 'date:"r"'),
+            date=self.initial_value
+        )
+
+    @property
+    def timedelta(self):
+        # value is milliseconds
+        if not isinstance(self.initial_value, int):
+            return self.default
+
+        value, postfix = self.__value_with_postfix('time')
+        return self.get_templated_text(
+            '{% load l10n %}{{ value }} {{ postfix }}', value=value, postfix=postfix
+        )
+
+    @property
+    def memory(self):
+        # value is bytes
+        if not isinstance(self.initial_value, int):
+            return self.default
+
+        value, postfix = self.__value_with_postfix('memory')
+        return self.get_templated_text(
+            '{% load l10n %}{{ value }} {{ postfix }}', value=value, postfix=postfix
+        )
+
+    @property
+    def float(self):
+        if isinstance(self.initial_value, int):
+            self.initial_value = float(self.initial_value)
+        elif not isinstance(self.initial_value, float):
+            return self.default
+        return str(self.__round_float(self.initial_value))
+
+    def __round_float(self, value):
+        if not self.humanized:
+            return value
+        accuracy = int(self.user.accuracy)
+        fpart_len = len(str(round(value)))
+        if fpart_len > accuracy:
+            tmp_div = 10 ** (fpart_len - accuracy)
+            return round(value / tmp_div) * tmp_div
+        if fpart_len < accuracy:
+            return round(value, accuracy - fpart_len)
+        return round(value)
+
+    def __value_with_postfix(self, value_type):
+        value = self.initial_value
+        if value_type not in self.measures:
+            return value, ''
+
+        postfix = self.measures[value_type]['default']
+
+        if not self.humanized:
+            # Return initial_value with default postfix
+            return value, postfix
+
+        for m, p in self.measures[value_type]['humanized']:
+            new_value = value / m
+            if new_value < 1:
+                break
+            postfix = p
+            value = new_value
+        value = self.__round_float(value)
+        return value, postfix
+
+    @classmethod
+    def get_templated_text(cls, template, **kwargs):
+        return Template(template).render(Context(kwargs))
+
+
+class UserActionsHistory:
+    def __init__(self, user, author):
+        self.user = user
+        self.author = author
+        self.activity = self.get_activity()
+
+    def get_activity(self):
+        activity = self.get_jobs_activity()
+        activity.extend(self.get_safe_marks_activity())
+        activity.extend(self.get_unsafe_marks_activity())
+        activity.extend(self.get_unknowns_marks_activity())
+        activity = sorted(activity, key=lambda x: x['date'], reverse=True)
+        return activity[:50]
+
+    def get_jobs_activity(self):
+        from jobs.models import Job, JobHistory
+        from jobs.utils import JobAccess
+
+        jobs_activity = []
+        jobs_ids = set()
+        for act in JobHistory.objects.filter(change_author=self.author)\
+                .select_related('job').order_by('-change_date')[:30]:
+            comment_display = act.comment
+            if len(comment_display) > 50:
+                comment_display = comment_display[:47] + '...'
+            jobs_ids.add(act.job_id)
+            new_act = {
+                'id': act.job_id,
+                'date': act.change_date,
+                'comment': act.comment,
+                'comment_display': comment_display,
+                'action': 'create' if act.version == 1 else 'change',
+                'type': _('Job'),
+                'name': act.job.name
+            }
+            jobs_activity.append(new_act)
+        jobs_with_access = JobAccess(self.user).can_view_jobs(
+            Job.objects.filter(id__in=set(act['id'] for act in jobs_activity))
+        )
+        if jobs_with_access:
+            for i in range(len(jobs_activity)):
+                if jobs_activity[i]['id'] in jobs_with_access:
+                    jobs_activity[i]['href'] = reverse('jobs:job', args=[jobs_activity[i]['id']])
+        return jobs_activity
+
+    def get_safe_marks_activity(self):
+        from marks.models import MarkSafeHistory
+
+        versions_qs = MarkSafeHistory.objects.filter(author=self.author)\
+            .select_related('mark').order_by('-change_date')\
+            .only('id', 'change_date', 'comment', 'mark__identifier', 'version', 'mark_id')
+
+        marks_activity = []
+        for act in versions_qs[:30]:
+            comment_display = act.comment
+            if len(comment_display) > 50:
+                comment_display = comment_display[:47] + '...'
+            marks_activity.append({
+                'date': act.change_date,
+                'comment': act.comment,
+                'comment_display': comment_display,
+                'action': 'create' if act.version == 1 else 'change',
+                'type': _('Safes mark'),
+                'name': str(act.mark.identifier),
+                'href': reverse('marks:safe', args=[act.mark_id]),
+            })
+        return marks_activity
+
+    def get_unsafe_marks_activity(self):
+        from marks.models import MarkUnsafeHistory
+
+        versions_qs = MarkUnsafeHistory.objects.filter(author=self.author)\
+            .select_related('mark').order_by('-change_date')\
+            .only('id', 'change_date', 'comment', 'mark__identifier', 'version', 'mark_id')
+
+        marks_activity = []
+        for act in versions_qs[:30]:
+            comment_display = act.comment
+            if len(comment_display) > 50:
+                comment_display = comment_display[:47] + '...'
+            marks_activity.append({
+                'date': act.change_date,
+                'comment': act.comment,
+                'comment_display': comment_display,
+                'action': 'create' if act.version == 1 else 'change',
+                'type': _('Unsafes mark'),
+                'name': str(act.mark.identifier),
+                'href': reverse('marks:unsafe', args=[act.mark_id]),
+            })
+        return marks_activity
+
+    def get_unknowns_marks_activity(self):
+        from marks.models import MarkUnknownHistory
+
+        versions_qs = MarkUnknownHistory.objects.filter(author=self.author)\
+            .select_related('mark').order_by('-change_date')\
+            .only('id', 'change_date', 'comment', 'mark__identifier', 'version', 'mark_id')
+
+        marks_activity = []
+        for act in versions_qs[:30]:
+            comment_display = act.comment
+            if len(comment_display) > 50:
+                comment_display = comment_display[:47] + '...'
+            marks_activity.append({
+                'date': act.change_date,
+                'comment': act.comment,
+                'comment_display': comment_display,
+                'action': 'create' if act.version == 1 else 'change',
+                'type': _('Unknowns mark'),
+                'name': str(act.mark.identifier),
+                'href': reverse('marks:unknown', args=[act.mark_id]),
+            })
+        return marks_activity

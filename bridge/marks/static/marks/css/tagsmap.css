@@ -20,6 +20,7 @@
     margin: 20px;
     padding-bottom: 20px;
 }
+
 #tags_tree {
     overflow-x: auto;
     padding-bottom: 15px;
@@ -83,7 +84,7 @@
     background: linear-gradient(to top, #ea78eb, #ffa8ff);
 }
 
-.line {
+.tag-tree-link {
     min-width: 30px;
     padding: 0;
     margin: 0;

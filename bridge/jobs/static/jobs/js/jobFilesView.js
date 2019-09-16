@@ -15,72 +15,103 @@
  * limitations under the License.
  */
 
-function open_file_content(node) {
-    if (node.data && node.data.hashsum) {
-        $.get('/jobs/getfilecontent/' + node.data.hashsum + '/', {}, function (resp) {
-            if (resp.error) {
-                err_notify(resp.error);
-                return false;
-            }
-            $('#file_content_name').text(node.text);
-            $('#file_content').text(resp.content);
-            $('#file_content_modal').modal('show');
-        });
-    }
+function FilesTree(tree_id) {
+    var tree_root = $('#' + tree_id);
+    this.tree_div = tree_root.find('.file-tree').first();
+    this.file_content_modal = tree_root.find('#filetree_file_content_modal').first();
+    this.tree_obj = null;
+
+    this.get_file_url = '/jobs/api/file/{0}/';
+    this.download_file_url = '/jobs/downloadfile/{0}/?name={1}';
+
+    this.labels = {
+        'download': 'Download',
+        'view': 'View'
+    };
+
+    this.icons = {
+        'download': 'download icon',
+        'file_out': 'file outline icon',
+        'arch_vio': 'violet archive icon',
+        'folder_vio': 'violet folder icon',
+        'view': 'eye icon'
+    };
+
+    return this;
 }
 
-function open_file_content_action(data) {
-    var inst = $.jstree.reference(data.reference);
-    open_file_content(inst.get_node(data.reference));
-
-}
-
-function open_file_content_dbl_click(event) {
-    var inst = $(this).jstree(true), node = inst.get_node(event.target);
-    if (inst.get_type(node) === 'file' && isFileReadable(node.text)) open_file_content(node);
-}
-
-function download_file(data) {
-    var inst = $.jstree.reference(data.reference), node = inst.get_node(data.reference);
-    if (node.data && node.data['hashsum']) {
-        window.location.replace('/jobs/downloadfile/' + node.data['hashsum'] + '/?name=' + encodeURIComponent(node.text));
-    }
-}
-
-function get_menu(node) {
-    var menu = {};
-    if (this.get_type(node) === "file") {
-        if (isFileReadable(node.text)) menu.view = {'label': $('#jstree_view_label').text(), 'icon': 'ui eye icon', 'action': open_file_content_action};
-        menu.download = {'label': $('#jstree_download_label').text(), 'icon': 'ui download icon', 'action': download_file};
+FilesTree.prototype.get_menu = function(node) {
+    var instance = this, menu = {};
+    if (instance.tree_obj.get_type(node) === "file") {
+        if (isFileReadable(node.text)) menu.view = {
+            'label': instance.labels.view, 'icon': instance.icons.view,
+            'action': function () { instance.open_file_content(instance.tree_obj.get_selected(true)[0]) }
+        };
+        menu.download = {
+            'label': instance.labels.download, 'icon': instance.icons.download,
+            'action': function () { instance.download_file(instance.tree_obj.get_selected(true)[0]) }
+        };
     }
     return menu;
-}
+};
 
-window.init_files_tree = function (tree_div_id, job_id, version) {
-    $('#file_content_modal').modal('setting', 'transition', 'fade');
-    $('#close_file_view').click(function (event) {
-        event.preventDefault();
-        $('#file_content_modal').modal('hide');
-        $('#file_content').empty();
-    });
-    $.post('/jobs/get_version_files/' + job_id + '/' + version + '/', {'opened': true}, function (json) {
-        if (json.error) {
-            err_notify(json.error);
-            return false;
-        }
-        $(tree_div_id).jstree({
-            "plugins" : ["contextmenu", "types"],
-            'contextmenu': {'items': get_menu},
-            'types': {
-                'root': {'icon': 'ui violet archive icon'},
-                'folder': {'icon': 'ui violet folder icon'},
-                'file': {'valid_children': [], 'icon': 'ui file outline icon'}
-            },
-            'core' : {
-                'check_callback': false,
-                'multiple': false,
-                'data': [json]
+FilesTree.prototype.set_labels = function(labels) {
+    var instance = this;
+    $.each(labels, function (key, value) { instance.labels[key] = value });
+};
+
+FilesTree.prototype.open_file_content = function(node) {
+    // Do nothing if node is not file or file is not readable
+    if (this.tree_obj.get_type(node) !== 'file' || !isFileReadable(node.text)) return;
+
+    var instance = this;
+
+    if (node.data && node.data.hashsum) {
+        $.get(instance.get_file_url.format(node.data.hashsum), {}, function (resp) {
+            if (resp.error) { err_notify(resp.error) } else {
+                instance.file_content_modal.find('.modal-title').text(node.text);
+                instance.file_content_modal.find('.filecontent').text(resp);
+                instance.file_content_modal.modal('show');
             }
-        }).bind("dblclick.jstree", open_file_content_dbl_click);
-    }, 'json');
+        });
+    }
+};
+
+FilesTree.prototype.download_file = function(node) {
+    if (node.data && node.data['hashsum']) window.location.replace(
+        this.download_file_url.format(node.data['hashsum'], encodeURIComponent(node.text))
+    );
+};
+
+FilesTree.prototype.initialize = function (data) {
+    var instance = this;
+
+    // Already initialized, just return
+    if (instance.tree_obj) return;
+
+    // Initialize files tree
+    instance.tree_div.jstree({
+        "plugins" : ["contextmenu", "types"],
+        'contextmenu': {'items': function (node) { return instance.get_menu(node) }},
+        'types': {
+            'root': {'icon': instance.icons.arch_vio},
+            'folder': {'icon': instance.icons.folder_vio},
+            'file': {'valid_children': [], 'icon': instance.icons.file_out}
+        },
+        'core' : {'check_callback': false, 'multiple': false, 'data': data}
+    })
+        .on('ready.jstree', function () {
+            // Preserve tree instance; open root node;
+            instance.tree_obj = arguments[1].instance;
+            instance.tree_obj.open_node(instance.tree_obj.get_node('#').children[0]);
+        })
+        .bind("dblclick.jstree", function (event) {
+            instance.open_file_content(instance.tree_obj.get_node(event.target));
+        });
+
+    instance.file_content_modal.modal('setting', 'transition', 'fade');
+    instance.file_content_modal.find('.modal-cancel').click(function () {
+        instance.file_content_modal.modal('hide');
+        instance.file_content_modal.find('.filecontent').empty();
+    });
 };

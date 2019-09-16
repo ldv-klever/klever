@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends 'bridge/base.html' %}
 {% comment "License" %}
 % Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
 % Ivannikov Institute for System Programming of the Russian Academy of Sciences
@@ -18,21 +18,26 @@
 
 {% load i18n %}
 {% load tz %}
+{% load staticfiles %}
 
 {% block title %}{% trans 'Profile' %}{% endblock %}
+
+{% block head_block %}
+    <link href="{% static 'users/css/profile.css' %}" rel="stylesheet">
+{% endblock %}
 
 {% block body_block %}
     <div class="ui grid">
         <div class="three wide column">
-            <h3><cite>{{ target.first_name }} {{ target.last_name }}</cite></h3>
+            <h3><cite>{{ object.get_full_name }}</cite></h3>
             <div class="ui list">
-                {% if target.email %}
-                    <div class="item"><span style="color: #a7aab4">{% trans 'Email' %}: </span><ins style="color: #507ab4">{{ target.email }}</ins></div>
+                {% if object.email %}
+                    <div class="item"><span style="color: #a7aab4">{% trans 'Email' %}: </span><ins style="color: #507ab4">{{ object.email }}</ins></div>
                 {% endif %}
-                <div class="item"><span style="color: #a7aab4">{% trans 'Administrator' %}: </span>{% if target.is_superuser %}{% trans 'Yes' %}{% else %}{% trans 'No' %}{% endif %}</div>
-                <div class="item"><span style="color: #a7aab4">{% trans 'Role' %}: </span> {{ target.extended.get_role_display }}</div>
-                <div class="item"><span style="color: #a7aab4">{% trans 'Time zone' %}: </span> {{ target.extended.timezone }}</div>
-                <div class="item"><span style="color: #a7aab4">{% trans 'Language' %}: </span> {{ target.extended.get_language_display }}</div>
+                <div class="item"><span style="color: #a7aab4">{% trans 'Administrator' %}: </span>{% if object.is_superuser %}{% trans 'Yes' %}{% else %}{% trans 'No' %}{% endif %}</div>
+                <div class="item"><span style="color: #a7aab4">{% trans 'Role' %}: </span> {{ object.get_role_display }}</div>
+                <div class="item"><span style="color: #a7aab4">{% trans 'Time zone' %}: </span> {{ object.timezone }}</div>
+                <div class="item"><span style="color: #a7aab4">{% trans 'Language' %}: </span> {{ object.get_language_display }}</div>
             </div>
         </div>
         <div class="thirteen wide column">
@@ -52,15 +57,23 @@
                     {% for act in activity %}
                         <tr>
                             <td>{{ act.date }}</td>
-                            <td style="color:{{ act.act_color }}">{{ act.act_type }}</td>
-                            <td>{{ act.obj_type }}</td>
+                            <td class="user-action-{{ act.action }}">
+                                {% if act.action == 'create' %}
+                                    {% trans 'Creation' %}
+                                {% elif act.action == 'change' %}
+                                    {% trans 'Modification' %}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>{{ act.type }}</td>
                             {% if act.href %}
-                                <td><a href="{{ act.href }}">{{ act.obj_link }}</a></td>
+                                <td><a href="{{ act.href }}">{{ act.name }}</a></td>
                             {% else %}
-                                <td>{{ act.obj_link }}</td>
+                                <td>{{ act.name }}</td>
                             {% endif %}
                             {% if act.comment %}
-                                <td title="{{ act.comment }}"><small>{{ act.small_comment }}</small></td>
+                                <td title="{{ act.comment }}"><small>{{ act.comment_display }}</small></td>
                             {% else %}
                                 <td></td>
                             {% endif %}

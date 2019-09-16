@@ -62,13 +62,6 @@
                     <input id="order_by_parent_memory__{{ view.type }}" type="radio" name="view_{{ view.type }}__radio_order" value="parent_memory"{% if view.order.1 == 'parent_memory' %} checked{% endif %}>
                     <label for="order_by_parent_memory__{{ view.type }}">{% trans 'Order by verifiers RAM' %}</label>
                 </div>
-            {% if view.type == '4' %}
-                <br>
-                <div class="ui radio checkbox">
-                    <input id="order_by_total_similarity__{{ view.type }}" type="radio" name="view_{{ view.type }}__radio_order" value="total_similarity"{% if view.order.1 == 'total_similarity' %} checked{% endif %}>
-                    <label for="order_by_total_similarity__{{ view.type }}">{% trans 'Order by total similarity' %}</label>
-                </div>
-            {% endif %}
                 <br>
                 <div class="ui radio checkbox">
                     <input id="order_by_attr__{{ view.type }}" type="radio" name="view_{{ view.type }}__radio_order" value="attr"{% if view.order.1 == 'attr' %} checked{% endif %}>

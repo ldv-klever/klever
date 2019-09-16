@@ -235,7 +235,7 @@ def install_entity(logger, name, deploy_dir, deploy_conf, prev_deploy_info, cmd_
         elif os.path.isfile(path):
             install_fn(path, instance_path, allow_symlink=True)
         elif os.path.isdir(path):
-            install_fn(path, instance_path, allow_symlink=True)
+            install_fn(path, deploy_dir, allow_symlink=True)
         else:
             logger.error('Could not install "{0}" since it is provided in the unsupported format'.format(name))
             sys.exit(errno.ENOSYS)

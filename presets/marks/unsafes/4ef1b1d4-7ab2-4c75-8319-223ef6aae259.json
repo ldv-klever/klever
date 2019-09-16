@@ -1,0 +1,59 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Linux:Version",
+      "value": "v4.6.7"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:test:environment model specifications with function pointer analysis"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/tasklet_v.1/__tasklet_hi_schedule_first_invoke.ko"
+    }
+  ],
+  "description": "",
+  "error_trace": [
+    [
+      {
+        "ldv_initialize": []
+      }
+    ],
+    [
+      {
+        "ldv_init": [
+          {
+            "ldv_invoke_test": []
+          },
+          {
+            "ldv_tasklet_hi_schedule_first_16": [
+              {
+                "ldv_emg_tasklet_hi_schedule_first": [
+                  {
+                    "ldv_handler": [
+                      {
+                        "ldv_invoke_reached": [
+                          {
+                            "ldv_assert_linux_emg_test": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": false,
+  "tags": [],
+  "verdict": "2"
+}

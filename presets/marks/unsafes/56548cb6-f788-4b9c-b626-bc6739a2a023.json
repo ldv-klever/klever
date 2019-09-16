@@ -1,0 +1,52 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:kernel:module"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/linux/kernel/module/tryget.ko"
+    }
+  ],
+  "description": "",
+  "error_trace": [
+    [
+      {
+        "ldv_init": [
+          {
+            "ldv_try_module_get_15": [
+              {
+                "ldv_try_module_get": []
+              }
+            ]
+          },
+          {
+            "ldv_try_module_get_16": [
+              {
+                "ldv_try_module_get": [
+                  {
+                    "ldv_undef_int": []
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "ldv_module_put": [
+              {
+                "ldv_assert_linux_kernel_module__less_initial_decrement": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": true,
+  "tags": [],
+  "verdict": "2"
+}

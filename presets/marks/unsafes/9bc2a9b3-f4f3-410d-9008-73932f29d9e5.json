@@ -1,0 +1,38 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:usb:gadget"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/linux/usb/gadget/unregister-usb-gadget.ko"
+    }
+  ],
+  "description": "",
+  "error_trace": [
+    [
+      {
+        "ldv_init": [
+          {
+            "ldv_usb_gadget_unregister_driver_23": [
+              {
+                "ldv_unregister_usb_gadget": [
+                  {
+                    "ldv_assert_linux_usb_gadget__double_usb_gadget_deregistration": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": true,
+  "tags": [],
+  "verdict": "2"
+}

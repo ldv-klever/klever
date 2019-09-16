@@ -1,0 +1,50 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:usb:gadget"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/linux/usb/gadget/usb-gadget-at-exit.ko"
+    }
+  ],
+  "description": "",
+  "error_trace": [
+    [
+      {
+        "ldv_check_final_state": [
+          {
+            "ldv_assert_linux_usb_gadget__usb_gadget_registered_at_exit": []
+          }
+        ]
+      }
+    ],
+    [
+      {
+        "ldv_init": [
+          {
+            "ldv_usb_gadget_probe_driver_23": [
+              {
+                "ldv_register_usb_gadget": [
+                  {
+                    "ldv_undef_int_nonpositive": []
+                  },
+                  {
+                    "ldv_assert_linux_usb_gadget__double_usb_gadget_registration": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": true,
+  "tags": [],
+  "verdict": "2"
+}

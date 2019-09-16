@@ -1,0 +1,163 @@
+{% comment "License" %}
+% Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+% Ivannikov Institute for System Programming of the Russian Academy of Sciences
+%
+% Licensed under the Apache License, Version 2.0 (the "License");
+% you may not use this file except in compliance with the License.
+% You may obtain a copy of the License at
+%
+%    http://www.apache.org/licenses/LICENSE-2.0
+%
+% Unless required by applicable law or agreed to in writing, software
+% distributed under the License is distributed on an "AS IS" BASIS,
+% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+% See the License for the specific language governing permissions and
+% limitations under the License.
+{% endcomment %}
+
+{% load i18n %}
+{% load tz %}
+{% load humanize %}
+
+<div class="ui {{ data.status_color }} segment">
+    {% if data.core_link %}
+        <a class="ui top left attached {{ data.status_color }} label" href="{{ data.core_link }}">{% trans 'Decision' %} ({{ data.job.get_status_display }})</a>
+    {% else %}
+        <div class="ui top left attached {{ data.status_color }} label">{% trans 'Decision' %} ({{ data.job.get_status_display }})</div>
+    {% endif %}
+
+    {% if data.error %}
+        <div class="error-list">{{ data.error|safe }}</div>
+    {% endif %}
+
+    {% if data.progress %}
+        <div class="ui grid">
+            <div class="eight wide column">
+                <div class="ui relaxed divided list">
+                    <div class="item">
+                        <i class="large clock outline middle aligned icon"></i>
+                        <div class="content">
+                            <div class="header">{% trans 'Start decision date' %}</div>
+                            <div class="description">{{ data.progress.start_date }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="eight wide column">
+                <div class="ui relaxed divided list">
+                    <div class="item">
+                        <i class="large clock outline middle aligned icon"></i>
+                        <div class="content">
+                            <div class="header">{% trans 'Finish decision date' %}</div>
+                            <div class="description">{{ data.progress.finish_date }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="ui grid">
+            <div class="eight wide column">
+                {% if data.progress.total_ts or data.progress.progress_ts %}
+                    <div class="ui segment">
+                        <h4>{% trans 'Tasks decision progress' %}</h4>
+                        <div class="ui relaxed divided list">
+                            {% if data.progress.total_ts %}
+                                <div class="item">
+                                    <i class="large tasks middle aligned icon"></i>
+                                    <div class="content">
+                                        <div class="header">{% trans 'Total tasks to be solved' %}</div>
+                                        <div class="description">{{ data.progress.total_ts }}</div>
+                                    </div>
+                                </div>
+                            {% endif %}
+                            {% if data.progress.progress_ts %}
+                                <div class="item">
+                                    <i class="large clock outline middle aligned icon"></i>
+                                    <div class="content">
+                                        <div class="header">{% trans 'Start solution date' %}</div>
+                                        <div class="description">{{ data.progress.progress_ts.start }}</div>
+                                    </div>
+                                </div>
+                                <div class="item">
+                                    <i class="large percent middle aligned icon"></i>
+                                    <div class="content">
+                                        <div class="header">{% trans 'Solution progress' %}</div>
+                                        <div class="description">{{ data.progress.progress_ts.progress }}</div>
+                                    </div>
+                                </div>
+                                {% if data.progress.progress_ts.expected_time %}
+                                    <div class="item">
+                                        <i class="large clock middle aligned icon"></i>
+                                        <div class="content">
+                                            <div class="header">{% trans 'Expected solution time' %}</div>
+                                            <div class="description">{{ data.progress.progress_ts.expected_time }}</div>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                                <div class="item">
+                                    <i class="large clock outline middle aligned icon"></i>
+                                    <div class="content">
+                                        <div class="header">{% trans 'Finish solution date' %}</div>
+                                        <div class="description">{{ data.progress.progress_ts.finish }}</div>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+            <div class="eight wide column">
+                {% if data.progress.total_sj or data.progress.progress_sj %}
+                    <div class="ui segment">
+                        <h4>{% trans 'Subjobs decision progress' %}</h4>
+                        <div class="ui relaxed divided list">
+                            {% if data.progress.total_sj %}
+                                <div class="item">
+                                    <i class="large tasks middle aligned icon"></i>
+                                    <div class="content">
+                                        <div class="header">{% trans 'Total subjobs to be solved' %}</div>
+                                        <div class="description">{{ data.progress.total_sj }}</div>
+                                    </div>
+                                </div>
+                            {% endif %}
+                            {% if data.progress.progress_sj %}
+                                <div class="item">
+                                    <i class="large clock outline middle aligned icon"></i>
+                                    <div class="content">
+                                        <div class="header">{% trans 'Start solution date' %}</div>
+                                        <div class="description">{{ data.progress.progress_sj.start }}</div>
+                                    </div>
+                                </div>
+                                <div class="item">
+                                    <i class="large percent middle aligned icon"></i>
+                                    <div class="content">
+                                        <div class="header">{% trans 'Solution progress' %}</div>
+                                        <div class="description">{{ data.progress.progress_sj.progress }}</div>
+                                    </div>
+                                </div>
+                                {% if data.progress.progress_sj.expected_time %}
+                                    <div class="item">
+                                        <i class="large clock middle aligned icon"></i>
+                                        <div class="content">
+                                            <div class="header">{% trans 'Expected solution time' %}</div>
+                                            <div class="description">{{ data.progress.progress_sj.expected_time }}</div>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                                <div class="item">
+                                    <i class="large clock outline middle aligned icon"></i>
+                                    <div class="content">
+                                        <div class="header">{% trans 'Finish solution date' %}</div>
+                                        <div class="description">{{ data.progress.progress_sj.finish }}</div>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    {% else %}
+        <h5>{% trans 'The decision does not exists' %}</h5>
+    {% endif %}
+</div>

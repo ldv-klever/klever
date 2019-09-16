@@ -1,0 +1,222 @@
+/*
+ * Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+ * Ivannikov Institute for System Programming of the Russian Academy of Sciences
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * ee the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/* Source code container */
+.SourceCodeContent {
+    line-height: normal;
+    font-size: 12px;
+    font-family: monospace;
+    position: absolute;
+}
+.SourceCodeContent > span {
+    display: table-row;
+}
+
+/* The whole line object */
+.SrcLine {
+    position: relative;
+    background-color: #fff0ff;
+    display: table-cell;
+}
+.SrcLineSelected {
+    background-color: #fdffc7 !important;
+}
+/* Source code objects (function coverage column, line number, the source code */
+.SrcFuncCov {
+    display: table-cell;
+    padding: 0 2px 0 2px;
+    border-right: 1px solid #866973;
+}
+.SrcLineCov {
+    display: table-cell;
+    padding: 0 3px 0 3px;
+    white-space: pre;
+}
+.SrcCode {
+    width: 100%;
+    display: inline-block;
+    white-space: pre;
+}
+
+/* Coverage popups */
+.SrcNumberPopup {
+    color: #defff1;
+    background-color: #520d83;
+    padding: 0 4px 0 4px;
+    position: absolute;
+    z-index: 999;
+}
+.SrcNumberPopup:before {
+    content: "←";
+}
+
+/* Highlights */
+.SrcHlC {
+    color: #408080;
+    font-style: italic
+}
+.SrcHlCM {
+    color: #408080;
+    font-style: italic
+}
+.SrcHlCP {
+    color: #BC7A00
+}
+.SrcHlCPF {
+    color: #408080;
+    font-style: italic
+}
+.SrcHlCS {
+    color: #408080;
+    font-style: italic
+}
+.SrcHlK {
+    color: #008000;
+}
+.SrcHlKR {
+    color: #008000;
+}
+.SrcHlKT {
+    color: #B00040
+}
+.SrcHlLNI {
+    color: #666666
+}
+.SrcHlLNH {
+    color: #666666
+}
+.SrcHlLNO {
+    color: #666666
+}
+.SrcHlLS {
+    color: #BA2121
+}
+.SrcHlLSC {
+    color: #BA2121
+}
+.SrcHlLSE {
+    color: #BB6622;
+}
+.SrcHlN {
+    color: #191970
+}
+.SrcHlNB {
+    color: #008000
+}
+.SrcHlNF {
+    color: #0000FF
+}
+.SrcHlNL {
+    color: #A0A000
+}
+.SrcHlO {
+    color: #666666
+}
+.SrcHlFuncDefRefTo {
+    color: #00008B;
+    font-weight: bold;
+}
+.SrcHlMacroDefRefTo {
+    color: #8B008B;
+    font-weight: bold;
+}
+.SrcHlFuncCallRefFrom {
+    color: #00008B;
+    font-weight: bold;
+}
+.SrcHlMacroExpansionRefFrom {
+    color: #8B008B;
+    font-weight: bold;
+}
+.SrcHlAssume {
+    color: #551175;
+    font-weight: bold;
+}
+
+/* Coverage notes */
+.SrcCovVA {
+    color: #ab13a1;
+    font-weight: bold;
+}
+.SrcCovEMH {
+    color: #ab2841;
+    font-weight: bold;
+}
+
+.SrcRefToLink:hover {
+    opacity: 0.5;
+    cursor: pointer;
+}
+
+.SrcRefFromLink:hover {
+    opacity: 0.5;
+    cursor: pointer;
+}
+
+.SrcRefLink {
+    cursor: pointer;
+    color: #16219e;
+}
+
+.SrcRefLink:hover {
+    color: #465bff;
+}
+
+
+/* Coverage data */
+.SrcCovDataLink {
+    color: #e022de;
+    cursor: pointer;
+    font-weight: bold;
+}
+.CoverageDataName {
+    color: #6d10ae;
+    font-weight: bold;
+    margin-left: 15px;
+}
+.CoverageDataName:hover {
+    cursor: pointer;
+    opacity: 0.5;
+}
+.CoverageDataNameSelected {
+    opacity: 0.5;
+}
+.CoverageDataValue {
+    display: none;
+}
+
+/* Coverage data json content */
+.COVJsonLine {
+    white-space: pre;
+}
+.COVJsonKey {
+    color: #1896ad;
+}
+.COVJsonWord {
+    color: #2a1acb;
+}
+.COVJsonText {
+    color: #d97422;
+}
+.COVJsonNum {
+    color: #15d958;
+}
+
+#source_references_links {
+    font-size: 0.8em;
+    white-space: nowrap;
+}

@@ -1,0 +1,21 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:kernel:locking:mutex"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/input/misc/arizona-haptics.ko"
+    }
+  ],
+  "description": "Workqueues support (feature #6822).",
+  "is_modifiable": true,
+  "tags": [
+    "EMG",
+    "EnvSpec"
+  ],
+  "verdict": "1"
+}

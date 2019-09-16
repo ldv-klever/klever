@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends 'bridge/base.html' %}
 {% comment "License" %}
 % Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
 % Ivannikov Institute for System Programming of the Russian Academy of Sciences
@@ -30,17 +30,17 @@
     <div class="ui form">
         <div class="ui inline fields">
             <div class="field">
-                <label for="list_type">{% trans 'Get' %}</label>
-                <select id="list_type" class="ui dropdown">
-                    <option value="0">{% trans 'log' %}</option>
-                    <option value="1">{% trans 'statistic' %}</option>
+                <label for="data_type">{% trans 'Get' %}</label>
+                <select id="data_type" class="ui dropdown">
+                    <option value="log">{% trans 'log' %}</option>
+                    <option value="statistic">{% trans 'statistic' %}</option>
                 </select>
             </div>
             <div class="field">
-                <label for="borders_type"></label>
-                <select id="borders_type" class="ui dropdown">
-                    <option value="0">{% trans 'between dates' %}</option>
-                    <option value="1">{% trans 'around the date' %}</option>
+                <label for="call_log_action"></label>
+                <select id="call_log_action" class="ui dropdown">
+                    <option value="between">{% trans 'between dates' %}</option>
+                    <option value="around">{% trans 'around the date' %}</option>
                 </select>
             </div>
             <div class="field">
@@ -51,7 +51,7 @@
                     </div>
                 </div>
             </div>
-            <div id="date2_field" class="field">
+            <div class="field call-between-field">
                 <div id="date2" class="ui calendar">
                     <div class="ui input left icon">
                         <i class="calendar icon"></i>
@@ -59,24 +59,28 @@
                     </div>
                 </div>
             </div>
-            <div id="interval_field" class="field" style="display: none">
+            <div class="field call-around-field" style="display: none">
                 <input id="time_interval" type="number" placeholder="{% trans 'Seconds' %}">
             </div>
-            <div id="fname_field" class="field">
+            <div class="field call-between-field">
                 <label for="func_name">{% trans 'for' %}</label>
                 <input id="func_name" type="text" placeholder="{% trans 'function name' %}">
             </div>
             <div class="field">
-                <button id="get_table" class="ui green button">{% trans 'Get' %}</button>
+                <button id="get_data_btn" class="ui green button">{% trans 'Get' %}</button>
             </div>
         </div>
     </div>
     <div class="ui divider"></div>
-    <div id="result" style="max-height: 80vh;overflow-y: auto;"></div>
+    <div id="result_container" style="max-height: 80vh;overflow-y: auto;"></div>
+
+    <input id="log_api_url" type="hidden" value="{% url 'tools:api-call-log' %}">
+    <input id="statistic_api_url" type="hidden" value="{% url 'tools:api-call-statistic' %}">
+
     <div id="statistic_modal" class="ui dinamic large modal">
         <div class="ui header">{% trans 'Call statistic' %}</div>
         <div class="content">
-            <div id="statistic_result" style="max-height: 50vh;overflow-y: auto"></div>
+            <div id="statistic_result" style="max-height:50vh;overflow-y: auto"></div>
         </div>
     </div>
 {% endblock %}

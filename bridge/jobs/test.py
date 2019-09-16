@@ -24,11 +24,9 @@ from django.urls import reverse
 
 from bridge.vars import JOB_ROLES, JOB_STATUS
 from bridge.utils import KleverTestCase
-from bridge.populate import populate_users
 
-from users.models import User, View, PreferableView
+from users.models import User, PreferableView
 from jobs.models import Job, JobHistory, JobFile, FileSystem, RunHistory
-from jobs.jobForm import LoadFilesTree
 
 
 class TestJobs(KleverTestCase):
@@ -170,7 +168,7 @@ class TestJobs(KleverTestCase):
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
 
         # Job template shouldn't have children now
-        response = self.client.post('/jobs/do_job_has_children/%s/' % job_template.pk)
+        response = self.client.get('/jobs/do_job_has_children/%s/' % job_template.pk)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
@@ -289,7 +287,7 @@ class TestJobs(KleverTestCase):
         self.assertIn('error', json.loads(str(response.content, encoding='utf8')))
 
         # Remove job
-        response = self.client.post('/jobs/remove/', {'jobs': json.dumps([newjob.parent_id])})
+        response = self.client.post('/jobs/api/%s/remove/' % newjob.parent_id)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
@@ -377,7 +375,7 @@ class TestJobs(KleverTestCase):
                 fp.write(content)
 
         # We have to remove job before uploading new one with the same identifier
-        response = self.client.post('/jobs/remove/', {'jobs': json.dumps([newjob_pk])})
+        response = self.client.post('/jobs/api/%s/remove/' % newjob_pk)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
@@ -398,8 +396,9 @@ class TestJobs(KleverTestCase):
         self.assertEqual(len(JobHistory.objects.filter(job=uploaded_job)), 2)
 
         # Check file content of uploaded job
-        response = self.client.get('/jobs/getfilecontent/%s/' % FileSystem.objects
-                                   .get(job__job=uploaded_job, job__version=2).file.hash_sum)
+        response = self.client.get('/jobs/api/file/{0}/'.format(
+            FileSystem.objects.get(job__job=uploaded_job, job__version=2).file.hash_sum
+        ))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
@@ -504,7 +503,7 @@ class TestJobs(KleverTestCase):
             return
 
         # Copy the job with autofilled name
-        response = self.client.post('/jobs/save_job_copy/%s/' % job_template.id)
+        response = self.client.post('/jobs/api/duplicate-job/', data={'parent': job_template.pk})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
@@ -519,7 +518,7 @@ class TestJobs(KleverTestCase):
             self.fail("The job wasn't copied")
 
         # Copy job version
-        response = self.client.post('/jobs/copy_job_version/%s/' % job_pk)
+        response = self.client.patch('/jobs/api/duplicate/{}/'.format(job_pk))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
@@ -564,9 +563,9 @@ class TestJobs(KleverTestCase):
         })
 
         # Save job copy and copy new version
-        response = self.client.post('/jobs/save_job_copy/%s/' % job1.id)
+        response = self.client.post('/jobs/api/duplicate-job/', data={'parent': job1.pk})
         job2 = Job.objects.get(id=json.loads(str(response.content, encoding='utf8'))['id'])
-        self.client.post('/jobs/copy_job_version/%s/' % job2.id)
+        self.client.patch('/jobs/api/duplicate/{}/'.format(job2.id))
         self.assertEqual(JobHistory.objects.filter(job=job2).count(), 2)
 
         # Replace file for job2
@@ -614,8 +613,8 @@ class TestJobs(KleverTestCase):
             for content in response.streaming_content:
                 fp.write(content)
 
-        # Remove jobs are currently downlaoded
-        self.client.post('/jobs/remove/', {'jobs': json.dumps([job1.id])})
+        # Remove jobs are currently downloaded
+        self.client.post('/jobs/api/%s/remove/' % job1.id)
 
         # Upload tree
         with open(os.path.join(settings.MEDIA_ROOT, self.test_archive), mode='rb') as fp:

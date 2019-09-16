@@ -20,12 +20,17 @@ import importlib
 import json
 import multiprocessing
 import os
+import shutil
 import tarfile
 import time
 import zipfile
 
+from clade import Clade
+
 import core.utils
+import core.session
 import core.components
+from core.cross_refs import CrossRefs
 from core.progress import PW
 from core.coverage import JCR
 
@@ -213,11 +218,11 @@ def __solve_sub_jobs(core_obj, vals, components_common_conf, job_type, subcompon
                 # e.g. they included commit hashes, requirement identifiers, module names, etc. Such the approach
                 # turned out to be inadequate since we had to add more and more information to sub-job names that
                 # involves source code changes and results in large working directories that look like these names.
-                # After all we decided to use sub-job ordinal numbers to distinguish them uniqly (during a some time
+                # After all we decided to use sub-job ordinal numbers to distinguish them uniquely (during a some time
                 # old style names were used in addition to these ordinal numbers). The only bad news is that in case of
-                # any changes in a global arrangment of sub-jobs, such as a new sub-job is added somewhere in the middle
-                # or an old sub-job is removed, one is not able to compare verification results as it was with pretty
-                # names since correspondence of ordinal numbers breaks.
+                # any changes in a global arrangement of sub-jobs, such as a new sub-job is added somewhere in the
+                # middle or an old sub-job is removed, one is not able to compare verification results as it was with
+                # pretty names since correspondence of ordinal numbers breaks.
                 'compare': True,
             }],
             separate_from_parent=True,
@@ -299,9 +304,9 @@ class RA(core.components.Component):
             os.makedirs(results_dir)
 
             core.utils.report(self.logger,
-                              'data',
+                              'patch',
                               {
-                                  'id': self.parent_id,
+                                  'identifier': self.parent_id,
                                   'data': {task_id: verification_result}
                               },
                               self.mqs['report files'],
@@ -506,14 +511,47 @@ class Job(core.components.Component):
         # Skip leading "/" since this identifier is used in os.path.join() that returns absolute path otherwise.
         self.common_components_conf['sub-job identifier'] = self.id[1:]
 
+        self.clade = None
+        self.components = []
+        self.component_processes = []
+
+    def decide_job_or_sub_job(self):
+        self.logger.info('Decide job/sub-job of type "{0}" with identifier "{1}"'.format(self.job_type, self.id))
+
+        # This is required to associate verification results with particular sub-jobs.
+        # Skip leading "/" since this identifier is used in os.path.join() that returns absolute path otherwise.
+        self.common_components_conf['sub-job identifier'] = self.id[1:]
+
         # Check and set build base here since many Core components need it.
         self.__set_build_base()
+        self.clade = Clade(self.common_components_conf['build base'])
+        self.__retrieve_working_src_trees()
+        self.__upload_original_sources()
 
         if self.common_components_conf['keep intermediate files']:
             self.logger.debug('Create components configuration file "conf.json"')
             with open('conf.json', 'w', encoding='utf8') as fp:
                 json.dump(self.common_components_conf, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
+        if self.common_components_conf['keep intermediate files']:
+            self.logger.debug('Create components configuration file "conf.json"')
+            with open('conf.json', 'w', encoding='utf8') as fp:
+                json.dump(self.common_components_conf, fp, ensure_ascii=False, sort_keys=True, indent=4)
+
+        self.__get_job_or_sub_job_components()
+        self.callbacks = core.components.get_component_callbacks(self.logger, [type(self)] + self.components,
+                                                                 self.common_components_conf)
+        self.launch_sub_job_components()
+
+        self.clean_dir = True
+        self.logger.info("All components finished")
+        if self.conf.get('collect total code coverage', None):
+            self.logger.debug('Waiting for a collecting coverage')
+            while not self.vals['coverage_finished'].get(self.common_components_conf['sub-job identifier'], True):
+                time.sleep(1)
+            self.logger.debug("Coverage collected")
+
+    main = decide_job_or_sub_job
         self.__get_job_or_sub_job_components()
         self.callbacks = core.components.get_component_callbacks(self.logger, [type(self)] + self.components,
                                                                  self.common_components_conf)
@@ -571,6 +609,20 @@ class Job(core.components.Component):
         # We need to specify absolute path to build base since it will be used in different Klever components. Besides,
         # this simplifies troubleshooting.
         build_base = os.path.realpath(build_base)
+            # Directory contains extracted build base.
+            extracted_from = ' extracted from "{0}"'.format(os.path.realpath(build_base))
+            build_base = 'build base'
+        else:
+            extracted_from = ''
+
+        # We need to specify absolute path to build base since it will be used in different Klever components. Besides,
+        # this simplifies troubleshooting.
+        build_base = os.path.realpath(build_base)
+
+        # TODO: fix after https://github.com/17451k/clade/issues/108.
+        if not os.path.isdir(build_base):
+            raise FileExistsError('Build base "{0}" is not a directory, {1}'
+                                  .format(build_base, extracted_from, common_advice))
 
         if not os.path.isdir(build_base):
             raise FileExistsError('Build base "{0}" is not a directory, {1}'
@@ -580,11 +632,87 @@ class Job(core.components.Component):
             raise FileExistsError(
                 'Directory "{0}"{1} is not a build base since it does not contain file "meta.json", {2}'
                 .format(build_base, extracted_from, common_advice))
+        if not os.path.isfile(os.path.join(build_base, 'meta.json')):
+            raise FileExistsError(
+                'Directory "{0}"{1} is not a build base since it does not contain file "meta.json", {2}'
+                .format(build_base, extracted_from, common_advice))
 
         self.common_components_conf['build base'] = build_base
 
         self.logger.debug('Klever components will use build base "{0}"'
                           .format(self.common_components_conf['build base']))
+
+    # Klever will try to cut off either working source trees (if specified) or at least build directory (otherwise)
+    # from referred file names. Sometimes this is rather optional like for source files referred by error traces, but,
+    # say, for program fragment identifiers this is strictly necessary, e.g. because of otherwise expert assessment will
+    # not work as expected.
+    def __retrieve_working_src_trees(self):
+        clade_meta = self.clade.get_meta()
+        self.common_components_conf['working source trees'] = clade_meta['working source trees'] \
+            if 'working source trees' in clade_meta else [clade_meta['build_dir']]
+
+        self.common_components_conf['build base'] = build_base
+    def __refer_original_sources(self, src_id):
+        core.utils.report(self.logger,
+                          'patch',
+                          {
+                              'identifier': self.id,
+                              'original_sources': src_id
+                          },
+                          self.mqs['report files'],
+                          self.vals['report id'],
+                          self.conf['main working directory'])
+
+        self.logger.debug('Klever components will use build base "{0}"'
+                          .format(self.common_components_conf['build base']))
+    def __upload_original_sources(self):
+        # Use Clade UUID to distinguish various original sources. It is pretty well since this UUID is uuid.uuid4().
+        src_id = self.clade.get_uuid()
+
+    def __get_job_or_sub_job_components(self):
+        session = core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
+
+        if session.check_original_sources(src_id):
+            self.logger.info('Original sources were uploaded already')
+            self.__refer_original_sources(src_id)
+            return
+
+        self.logger.info(
+            'Cut off working source trees or build directory from original source file names and convert index data')
+        os.makedirs('original sources')
+        for root, dirs, files in os.walk(self.clade.storage_dir):
+            for file in files:
+                file = os.path.join(root, file)
+
+                # Like in core.vrp.RP#__trim_file_names.
+                storage_file = core.utils.make_relative_path([self.clade.storage_dir], file)
+                tmp = core.utils.make_relative_path(self.common_components_conf['working source trees'], storage_file,
+                                                    absolutize=True)
+
+                if tmp != os.path.join(os.path.sep, storage_file):
+                    new_file = os.path.join('source files', tmp)
+                else:
+                    new_file = storage_file
+
+                new_file = os.path.join('original sources', new_file)
+                os.makedirs(os.path.dirname(new_file), exist_ok=True)
+                shutil.copy(file, new_file)
+
+                cross_refs = CrossRefs(self.logger, self.clade, os.path.join(os.path.sep, storage_file), new_file,
+                                       self.common_components_conf['working source trees'], 'source files')
+                cross_refs.get_cross_refs()
+
+        self.logger.info('Compress original sources')
+        core.utils.ArchiveFiles(['original sources']).make_archive('original sources.zip')
+
+        self.logger.info('Upload original sources')
+        session.upload_original_sources(src_id, 'original sources.zip')
+
+        self.__refer_original_sources(src_id)
+
+        if not self.conf['keep intermediate files']:
+            shutil.rmtree('original sources')
+            os.remove('original sources.zip')
 
     def __get_job_or_sub_job_components(self):
         self.logger.info('Get components for sub-job of type "{0}" with identifier "{1}"'.

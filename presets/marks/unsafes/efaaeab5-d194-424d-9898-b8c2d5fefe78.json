@@ -1,0 +1,48 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:test:environment model specifications"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/proto_v.1/proto_invoke.ko"
+    }
+  ],
+  "description": "",
+  "error_trace": [
+    [
+      {
+        "ldv_initialize": []
+      }
+    ],
+    [
+      {
+        "ldv_init": [
+          {
+            "ldv_invoke_test": []
+          }
+        ]
+      }
+    ],
+    [
+      {
+        "ldv_bind": [
+          {
+            "ldv_invoke_reached": [
+              {
+                "ldv_assert_linux_emg_test": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": true,
+  "tags": [],
+  "verdict": "2"
+}

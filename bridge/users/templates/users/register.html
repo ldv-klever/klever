@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends 'bridge/base.html' %}
 {% comment "License" %}
 % Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
 % Ivannikov Institute for System Programming of the Russian Academy of Sciences
@@ -21,74 +21,25 @@
 
 {% block title %}{% trans 'Registration' %}{% endblock %}
 
-{% block head_block %}
-    <script src="{% static 'users/js/users.js' %}"></script>
-    <link href="{% static 'users/css/style.css' %}" rel="stylesheet">
-{% endblock %}
-
 {% block body_block %}
     <div class="ui teal segment">
         <form id="user_form" method="post" action="{% url 'users:register' %}">
             {% csrf_token %}
             <div class="ui grid form">
                 <div class="six wide column">
-                    <div class="field">
-                        <label>{{ user_form.username.label }}<i class="ui help blue icon note-popup" data-content="{{ user_form.username.help_text }}"></i></label>
-                        {{ user_form.username }}
-                        <small>{{ user_form.username.errors }}</small>
-                    </div>
-                    <div class="field">
-                        <label>{{ user_form.password.label }}</label>
-                        {{ user_form.password }}
-                        <small>{{ user_form.password.errors }}</small>
-                    </div>
-                    <div class="field">
-                        <label>{{ user_form.retype_password.label }}</label>
-                        {{ user_form.retype_password }}
-                        <small>{{ user_form.retype_password.errors }}</small>
-                    </div>
+                    {% for field in form.column_0 %}
+                        {% include 'bridge/forms/field.html' with field=field %}
+                    {% endfor %}
                 </div>
                 <div class="five wide column">
-                    <div class="field">
-                        <label>{{ user_form.email.label }}</label>
-                        {{ user_form.email }}
-                        <small>{{ user_form.email.errors }}</small>
-                    </div>
-                    <div class="field">
-                        <label>{{ user_form.first_name.label }}</label>
-                        {{ user_form.first_name }}
-                        <small>{{ user_form.first_name.errors }}</small>
-                    </div>
-                    <div class="field">
-                        <label>{{ user_form.last_name.label }}</label>
-                        {{ user_form.last_name }}
-                        <small>{{ user_form.last_name.errors }}</small>
-                    </div>
+                    {% for field in form.column_1 %}
+                        {% include 'bridge/forms/field.html' with field=field %}
+                    {% endfor %}
                 </div>
                 <div class="five wide column">
-                    <div class="field">
-                        <label>{{ profile_form.accuracy.label }}<i class="ui help blue icon note-popup" data-content="{% trans 'This setting is used just for the human-readable data format' %}"></i></label>
-                        {{ profile_form.accuracy }}
-                        <small>{{ profile_form.accuracy.errors }}</small>
-                    </div>
-                    <div class="field">
-                        <label>{{ profile_form.data_format.label }}</label>
-                        {{ profile_form.data_format }}
-                        <small>{{ profile_form.data_format.errors }}</small>
-                    </div>
-                    <div class="field">
-                        <label>{{ profile_form.language.label }}</label>
-                        {{ profile_form.language }}
-                        <small>{{ profile_form.language.errors }}</small>
-                    </div>
-                    <div class="field">
-                        <label for="timezone">{% trans 'Time zone' %}</label>
-                        <select id="timezone" class="ui search dropdown" name="timezone">
-                            {% for tmz in timezones %}
-                                <option value="{{ tmz }}"{% if tmz == def_timezone %} selected="selected"{% endif %}>{{ tmz }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
+                    {% for field in form.column_2 %}
+                        {% include 'bridge/forms/field.html' with field=field %}
+                    {% endfor %}
                 </div>
             </div>
             <div class="ui divider"></div>
@@ -96,4 +47,7 @@
             <br><br>
         </form>
     </div>
+    <script type="application/javascript">
+        jQuery(function () { $('.ui.dropdown').dropdown() });
+    </script>
 {% endblock %}

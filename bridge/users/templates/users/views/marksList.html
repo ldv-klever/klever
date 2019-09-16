@@ -58,13 +58,7 @@
                     <input id="order_by_repnum__{{ view.type }}" type="radio" name="view_{{ view.type }}__radio_order" value="num_of_links"{% if view.order.1 == 'num_of_links' %} checked{% endif %}>
                     <label for="order_by_repnum__{{ view.type }}">{% trans 'Order by the number of associated leaf reports' %}</label>
                 </div>
-                {% if view.type == '7' %}
-                    <br>
-                    <div class="ui radio checkbox">
-                        <input id="order_by_similarity__{{ view.type }}" type="radio" name="view_{{ view.type }}__radio_order" value="total_similarity"{% if view.order.1 == 'total_similarity' %} checked{% endif %}>
-                        <label for="order_by_similarity__{{ view.type }}">{% trans 'Order by total similarity' %}</label>
-                    </div>
-                {% elif view.type == '9' %}
+                {% if view.type == '9' %}
                     <br>
                     <div class="ui radio checkbox">
                         <input id="order_by_component__{{ view.type }}" type="radio" name="view_{{ view.type }}__radio_order" value="component"{% if view.order.1 == 'component' %} checked{% endif %}>
@@ -107,31 +101,24 @@
         </div>
         <div class="ui divider"></div>
 
+    {% if view.type == '7' %}
         {# Status #}
-        <input id="view_data_{{ view.type }}__status" value="list_if_status_enable" data-list="status_type__status_value" type="hidden">
+        <input id="view_data_{{ view.type }}__status" value="checkboxes_if_status_enable" type="hidden">
         <div class="ui checkbox">
             <input type="checkbox" id="view_condition_{{ view.type }}__status_enable"{% if 'status' in view %} checked{% endif %}>
-            <label for="view_condition_{{ view.type }}__status_enable">{% trans 'Status' %}</label>
+            <label for="view_condition_{{ view.type }}__status_enable">{% trans 'Status' %} ({% trans 'only bugs will be shown' %})</label>
         </div>
         <br><br>
         <div class="inline fields" style="margin-left: 15px;">
-            <div class="field">
-                <select id="view_{{ view.type }}__status_type" class="ui dropdown">
-                    <option value="is"{% if 'status' in view and view.status.0 == 'is' %} selected{% endif %}>{% trans 'is' %}</option>
-                    <option value="isnot"{% if 'status' in view and view.status.0 == 'isnot' %} selected{% endif %}>{% trans 'is not' %}</option>
-                </select>
-                <label for="view_{{ view.type }}__status_type"></label>
-            </div>
-            <div class="field">
-                <select id="view_{{ view.type }}__status_value" class="ui dropdown">
-                    {% for status in statuses %}
-                        <option value="{{ status.0 }}"{% if 'status' in view and view.status.1 == status.0 %} selected{% endif %}>{{ status.1 }}</option>
-                    {% endfor %}
-                </select>
-                <label for="view_{{ view.type }}__status_value"></label>
-            </div>
+            {% for status in statuses %}
+                <div class="ui checkbox" style="margin-right: 30px; margin-top: 10px;">
+                    <input id="view_{{ view.type }}__status__{{ status.0 }}" type="checkbox" value="{{ status.0 }}"{% if 'status' in view and status.0 in view.status %} checked{% endif %}>
+                    <label for="view_{{ view.type }}__status__{{ status.0 }}">{{ status.1 }}</label>
+                </div>
+            {% endfor %}
         </div>
         <div class="ui divider"></div>
+    {% endif %}
 
     {% if view.type == '9' %}
         {# Component #}
@@ -144,8 +131,8 @@
         <div class="inline fields" style="margin-left: 15px;">
             <div class="field">
                 <select id="view_{{ view.type }}__component_type" class="ui dropdown">
-                    <option value="is"{% if 'component' in view and view.component.0 == 'is' %} selected{% endif %}>{% trans 'is' %}</option>
-                    <option value="startswith"{% if 'component' in view and view.component.0 == 'startswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
+                    <option value="iexact"{% if 'component' in view and view.component.0 == 'iexact' %} selected{% endif %}>{% trans 'is' %}</option>
+                    <option value="istartswith"{% if 'component' in view and view.component.0 == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
                 </select>
                 <label for="view_{{ view.type }}__component_type"></label>
             </div>
@@ -155,30 +142,23 @@
             </div>
         </div>
         <div class="ui divider"></div>
-    {% else %}
+    {% endif %}
+
+    {% if verdicts %}
         {# Verdict #}
-        <input id="view_data_{{ view.type }}__verdict" value="list_if_verdict_enable" data-list="verdict_type__verdict_value" type="hidden">
+        <input id="view_data_{{ view.type }}__verdict" value="checkboxes_if_verdict_enable" type="hidden">
         <div class="ui checkbox">
             <input type="checkbox" id="view_condition_{{ view.type }}__verdict_enable"{% if 'verdict' in view %} checked{% endif %}>
             <label for="view_condition_{{ view.type }}__verdict_enable">{% trans 'Verdict' %}</label>
         </div>
         <br><br>
         <div class="inline fields" style="margin-left: 15px;">
-            <div class="field">
-                <select id="view_{{ view.type }}__verdict_type" class="ui dropdown">
-                    <option value="is"{% if 'verdict' in view and view.verdict.0 == 'is' %} selected{% endif %}>{% trans 'is' %}</option>
-                    <option value="isnot"{% if 'verdict' in view and view.verdict.0 == 'isnot' %} selected{% endif %}>{% trans 'is not' %}</option>
-                </select>
-                <label for="view_{{ view.type }}__verdict_type"></label>
-            </div>
-            <div class="field">
-                <select id="view_{{ view.type }}__verdict_value" class="ui dropdown">
-                    {% for verdict in verdicts %}
-                        <option value="{{ verdict.0 }}"{% if 'verdict' in view and view.verdict.1 == verdict.0 %} selected{% endif %}>{{ verdict.1 }}</option>
-                    {% endfor %}
-                </select>
-                <label for="view_{{ view.type }}__verdict_value"></label>
-            </div>
+            {% for verdict in verdicts %}
+                <div class="ui checkbox" style="margin-right: 30px; margin-top: 10px;">
+                    <input id="view_{{ view.type }}__verdict__{{ verdict.0 }}" type="checkbox" value="{{ verdict.0 }}"{% if 'verdict' in view and verdict.0 in view.verdict %} checked{% endif %}>
+                    <label for="view_{{ view.type }}__verdict__{{ verdict.0 }}">{{ verdict.1 }}</label>
+                </div>
+            {% endfor %}
         </div>
         <div class="ui divider"></div>
     {% endif %}
@@ -216,8 +196,8 @@
             <div class="field">
                 <label for="view_{{ view.type }}__date_type">&nbsp;</label>
                 <select id="view_{{ view.type }}__date_type" class="ui dropdown">
-                    <option value="older"{% if 'change_date' in view and view.change_date.0 == 'older' %} selected{% endif %}>{% trans 'older' %}</option>
-                    <option value="younger"{% if 'change_date' in view and view.change_date.0 == 'younger' %} selected{% endif %}>{% trans 'younger' %}</option>
+                    <option value="lt"{% if 'change_date' in view and view.change_date.0 == 'lt' %} selected{% endif %}>{% trans 'older' %}</option>
+                    <option value="gt"{% if 'change_date' in view and view.change_date.0 == 'gt' %} selected{% endif %}>{% trans 'younger' %}</option>
                 </select>
             </div>
             <div class="field">
@@ -237,28 +217,19 @@
         <div class="ui divider"></div>
 
         {# Source #}
-        <input id="view_data_{{ view.type }}__source" value="list_if_source_enable" data-list="source_type__source_value" type="hidden">
+        <input id="view_data_{{ view.type }}__source" value="checkboxes_if_source_enable" type="hidden">
         <div class="ui checkbox">
             <input type="checkbox" id="view_condition_{{ view.type }}__source_enable"{% if 'source' in view %} checked{% endif %}>
             <label for="view_condition_{{ view.type }}__source_enable">{% trans 'Source' %}</label>
         </div>
         <br><br>
         <div class="inline fields" style="margin-left: 15px;">
-            <div class="field">
-                <select id="view_{{ view.type }}__source_type" class="ui dropdown">
-                    <option value="is"{% if 'source' in view and view.source.0 == 'is' %} selected{% endif %}>{% trans 'is' %}</option>
-                    <option value="isnot"{% if 'source' in view and view.source.0 == 'isnot' %} selected{% endif %}>{% trans 'is not' %}</option>
-                </select>
-                <label for="view_{{ view.type }}__source_type"></label>
-            </div>
-            <div class="field">
-                <select id="view_{{ view.type }}__source_value" class="ui dropdown">
-                    {% for mtype in mark_types %}
-                        <option value="{{ mtype.0 }}"{% if 'source' in view and view.source.1 == mtype.0 %} selected{% endif %}>{{ mtype.1 }}</option>
-                    {% endfor %}
-                </select>
-                <label for="view_{{ view.type }}__source_value"></label>
-            </div>
+            {% for source in sources %}
+                <div class="ui checkbox" style="margin-right: 30px; margin-top: 10px;">
+                    <input id="view_{{ view.type }}__source__{{ source.0 }}" type="checkbox" value="{{ source.0 }}"{% if 'source' in view and source.0 in view.source %} checked{% endif %}>
+                    <label for="view_{{ view.type }}__source__{{ source.0 }}">{{ source.1 }}</label>
+                </div>
+            {% endfor %}
         </div>
 
     {% if view.type != '9' %}

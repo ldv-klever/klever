@@ -35,3 +35,7 @@
     cursor: pointer;
     color: #7665cf;
 }
+
+.with-shadow {
+    text-shadow: 1px 1px 1px black;
+}

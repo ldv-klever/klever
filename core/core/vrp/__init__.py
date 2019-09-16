@@ -39,14 +39,12 @@ from core.coverage import LCOV
 @core.components.before_callback
 def __launch_sub_job_components(context):
     context.mqs['VRP common prj attrs'] = multiprocessing.Queue()
-    context.mqs['VRP source paths'] = multiprocessing.Queue()
     context.mqs['processing tasks'] = multiprocessing.Queue()
 
 
 @core.components.after_callback
 def __submit_project_attrs(context):
     context.mqs['VRP common prj attrs'].put(context.common_prj_attrs)
-    context.mqs['VRP source paths'].put(context.source_paths)
 
 
 class VRP(core.components.Component):
@@ -72,9 +70,9 @@ class VRP(core.components.Component):
 
         # Do result processing
         core.utils.report(self.logger,
-                          'attrs',
+                          'patch',
                           {
-                              'id': self.id,
+                              'identifier': self.id,
                               'attrs': self.__get_common_prj_attrs()
                           },
                           self.mqs['report files'],
@@ -102,8 +100,7 @@ class VRP(core.components.Component):
         solution_timeout = 10
         generation_timeout = 5
 
-        source_paths = self.mqs['VRP source paths'].get()
-        self.mqs['VRP source paths'].close()
+        source_paths = self.conf['working source trees']
         self.logger.info('Source paths to be trimmed file names: {0}'.format(source_paths))
 
         def submit_processing_task(status, t):
@@ -142,17 +139,20 @@ class VRP(core.components.Component):
 
                 # Plan for processing new tasks
                 if len(pending) > 0:
-                    tasks_statuses = session.get_tasks_statuses(list(pending.keys()))
-                    for task in list(pending.keys()):
-                        if task in tasks_statuses['finished']:
-                            submit_processing_task('finished', task)
-                            del pending[task]
-                        elif task in tasks_statuses['error']:
-                            submit_processing_task('error', task)
-                            del pending[task]
-                        elif task not in tasks_statuses['processing'] and task not in tasks_statuses['pending']:
-                            raise KeyError("Cannot find task {!r} in either finished, processing, pending or erroneus "
-                                           "tasks".format(task))
+                    tasks_statuses = session.get_tasks_statuses()
+                    for item in tasks_statuses:
+                        task = str(item['id'])
+                        if task in pending.keys():
+                            if item['status'] == 'FINISHED':
+                                submit_processing_task('FINISHED', task)
+                                del pending[task]
+                            elif item['status'] == 'ERROR':
+                                submit_processing_task('error', task)
+                                del pending[task]
+                            elif item['status'] in ('PENDING', 'PROCESSING'):
+                                pass
+                            else:
+                                raise NotImplementedError('Unknown task status {!r}'.format(item['status']))
 
                 if not receiving and len(pending) == 0:
                     # Wait for all rest tasks, no tasks can come currently
@@ -241,7 +241,6 @@ class RP(core.components.Component):
         self.requirement = None
         self.program_fragment = None
         self.task_error = None
-        self.verification_coverage = None
         self.source_paths = source_paths
         self.__exception = None
         self.__qos_resource_limit = qos_resource_limits
@@ -260,19 +259,20 @@ class RP(core.components.Component):
         self.logger.info("VRP instance is ready to work")
         element = self.element
         status, data = element
-        task_id, opts, program_fragment, requirement, verifier = data
+        task_id, opts, program_fragment, requirement, verifier, additional_srcs = data
         self.program_fragment = program_fragment['id']
         self.requirement = requirement
         self.results_key = '{}:{}'.format(self.program_fragment, self.requirement)
+        self.additional_srcs = additional_srcs
         self.logger.debug("Process results of task {}".format(task_id))
 
         files_list_file = 'files list.txt'
         with open(files_list_file, 'w', encoding='utf8') as fp:
             fp.writelines('\n'.join(sorted(f for grp in program_fragment['grps'] for f in grp['files'])))
         core.utils.report(self.logger,
-                          'attrs',
+                          'patch',
                           {
-                              'id': self.id,
+                              'identifier': self.id,
                               'attrs': [
                                   {
                                       "name": "Program fragment",
@@ -294,13 +294,13 @@ class RP(core.components.Component):
         self.vals['task solution triples'][self.results_key] = data
 
         try:
-            if status == 'finished':
+            if status == 'FINISHED':
                 self.process_finished_task(task_id, opts, verifier)
                 # Raise exception just here sinse the method above has callbacks.
                 if self.__exception:
                     self.logger.warning("Raising the saved exception")
                     raise self.__exception
-            elif status == 'error':
+            elif status == 'ERROR':
                 self.process_failed_task(task_id)
                 # Raise exception just here sinse the method above has callbacks.
                 raise RuntimeError('Failed to decide verification task: {0}'.format(self.task_error))
@@ -312,7 +312,7 @@ class RP(core.components.Component):
     main = fetcher
 
     def process_witness(self, witness):
-        error_trace = import_error_trace(self.logger, witness)
+        error_trace, attrs = import_error_trace(self.logger, witness)
         sources = self.__trim_file_names(error_trace['files'])
         error_trace['files'] = [sources[file] for file in error_trace['files']]
 
@@ -328,19 +328,18 @@ class RP(core.components.Component):
         with open(error_trace_file, 'w', encoding='utf8') as fp:
             json.dump(error_trace, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
-        return sources, error_trace_file
+        return error_trace_file, attrs
 
-    def report_unsafe(self, sources, error_trace_files, attrs):
+    def report_unsafe(self, error_trace_file, attrs):
         core.utils.report(self.logger,
                           'unsafe',
                           {
-                              'id': "{}/verification/unsafe".format(self.id),
-                              'parent id': "{}/verification".format(self.id),
+                              'parent': "{}/verification".format(self.id),
                               'attrs': attrs,
-                              'sources': core.utils.ReportFiles(list(sources.keys()), arcnames=sources),
-                              'error traces': [core.utils.ReportFiles([error_trace_file],
-                                                                      arcnames={error_trace_file: 'error trace.json'})
-                                               for error_trace_file in error_trace_files]
+                              'error_trace': core.utils.ArchiveFiles(
+                                  [error_trace_file],
+                                  arcnames={error_trace_file: 'error trace.json'}
+                              )
                           },
                           self.mqs['report files'],
                           self.vals['report id'],
@@ -377,8 +376,7 @@ class RP(core.components.Component):
             core.utils.report(self.logger,
                               'safe',
                               {
-                                  'id': "{}/verification/safe".format(self.id),
-                                  'parent id': "{}/verification".format(self.id),
+                                  'parent': "{}/verification".format(self.id),
                                   'attrs': []
                                   # TODO: at the moment it is unclear what are verifier proofs.
                                   # 'proof': None
@@ -395,15 +393,10 @@ class RP(core.components.Component):
             # is not "unsafe".
             if "expect several witnesses" in opts and opts["expect several witnesses"] and len(witnesses) != 0:
                 self.verdict = 'unsafe'
-                # Collect all sources referred by all error traces. Different error traces can refer almost the same
-                # sources, so reporting them separately is redundant.
-                sources = {}
-                error_trace_files = []
                 for witness in witnesses:
                     try:
-                        error_trace_sources, error_trace_file = self.process_witness(witness)
-                        sources.update(error_trace_sources)
-                        error_trace_files.append(error_trace_file)
+                        error_trace_file, attrs = self.process_witness(witness)
+                        self.report_unsafe(error_trace_file, attrs)
                     except Exception as e:
                         self.logger.warning('Failed to process a witness:\n{}'.format(traceback.format_exc().rstrip()))
                         self.verdict = 'non-verifier unknown'
@@ -415,10 +408,6 @@ class RP(core.components.Component):
                                 self.__exception = e
                         else:
                             self.__exception = e
-
-                # Do not report unsafe if processing of all witnesses failed.
-                if error_trace_files:
-                    self.report_unsafe(sources, error_trace_files, [])
             if re.search('false', decision_results['status']) and \
                     ("expect several witnesses" not in opts or not opts["expect several witnesses"]):
                 self.verdict = 'unsafe'
@@ -427,8 +416,8 @@ class RP(core.components.Component):
                         NotImplementedError('Just one witness is supported (but "{0}" are given)'.
                                             format(len(witnesses)))
 
-                    sources, error_trace_file = self.process_witness(witnesses[0])
-                    self.report_unsafe(sources, [error_trace_file], [])
+                    error_trace_file, attrs = self.process_witness(witnesses[0])
+                    self.report_unsafe(error_trace_file, attrs)
                 except Exception as e:
                     self.logger.warning('Failed to process a witness:\n{}'.format(traceback.format_exc().rstrip()))
                     self.verdict = 'non-verifier unknown'
@@ -459,12 +448,12 @@ class RP(core.components.Component):
                 core.utils.report(self.logger,
                                   'unknown',
                                   {
-                                      'id': "{}/verification/unknown".format(self.id),
-                                      'parent id': "{}/verification".format(self.id),
+                                      'parent': "{}/verification".format(self.id),
                                       'attrs': [],
-                                      'problem desc': core.utils.ReportFiles(
+                                      'problem_description': core.utils.ArchiveFiles(
                                           [verification_problem_desc],
-                                          {verification_problem_desc: 'problem desc.txt'})
+                                          {verification_problem_desc: 'problem desc.txt'}
+                                      )
                                   },
                                   self.mqs['report files'],
                                   self.vals['report id'],
@@ -501,12 +490,17 @@ class RP(core.components.Component):
 
         # Send an initial report
         report = {
-            'id': "{}/verification".format(self.id),
-            'parent id': self.id,
+            'identifier': "{}/verification".format(self.id),
+            'parent': self.id,
             # TODO: replace with something meaningful, e.g. tool name + tool version + tool configuration.
             'attrs': [],
-            'name': verifier,
-            'resources': decision_results['resources'],
+            'component': verifier,
+            'wall_time': decision_results['resources']['wall time'],
+            'cpu_time': decision_results['resources']['CPU time'],
+            'memory': decision_results['resources']['memory size'],
+            'original_sources': self.clade.get_uuid(),
+            'additional_sources': core.utils.ArchiveFiles([os.path.join(self.conf['main working directory'],
+                                                                        self.additional_srcs)])
         }
 
         # Get coverage
@@ -524,7 +518,7 @@ class RP(core.components.Component):
         self.vals['task solution triples'][self.results_key] = data
 
         if not self.logger.disabled and log_file:
-            report['log'] = core.utils.ReportFiles([log_file], {log_file: 'log.txt'})
+            report['log'] = core.utils.ArchiveFiles([log_file], {log_file: 'log.txt'})
 
         if self.conf['upload input files of static verifiers']:
             report['task identifier'] = task_id
@@ -532,22 +526,18 @@ class RP(core.components.Component):
         # Remember exception and raise it if verdict is not unknown
         exception = None
         try:
-            self.verification_coverage = LCOV(self.logger, os.path.join('output', 'coverage.info'),
-                                              self.clade, self.source_paths,
-                                              self.search_dirs, self.conf['main working directory'],
-                                              opts.get('coverage'),
-                                              os.path.join(self.conf['main working directory'],
-                                                           self.coverage_info_file),
-                                              os.path.join(self.conf['main working directory'], coverage_info_dir),
-                                              opts.get('collect function names'))
+            LCOV(self.logger, os.path.join('output', 'coverage.info'),
+                 self.clade, self.source_paths,
+                 self.search_dirs, self.conf['main working directory'],
+                 opts.get('coverage'),
+                 os.path.join(self.conf['main working directory'], self.coverage_info_file),
+                 os.path.join(self.conf['main working directory'], coverage_info_dir),
+                 opts.get('collect function names'))
         except Exception as err:
             exception = err
         else:
-            if os.path.isfile('coverage.json'):
-                report['coverage'] = core.utils.ReportFiles(['coverage.json'] +
-                                                            list(self.verification_coverage.arcnames.keys()),
-                                                            arcnames=self.verification_coverage.arcnames)
-                self.vals['coverage_finished'][self.conf['sub-job identifier']] = False
+            report['coverage'] = core.utils.ArchiveFiles(['coverage'])
+            self.vals['coverage_finished'][self.conf['sub-job identifier']] = False
 
         # todo: This should be checked to guarantee that we can reschedule tasks
         core.utils.report(self.logger,
@@ -564,7 +554,7 @@ class RP(core.components.Component):
             # Submit a closing report
             core.utils.report(self.logger,
                               'verification finish',
-                              {'id': report['id']},
+                              {'identifier': report['identifier']},
                               self.mqs['report files'],
                               self.vals['report id'],
                               self.conf['main working directory'])
@@ -580,11 +570,13 @@ class RP(core.components.Component):
 
         for file_name in file_names:
             # Remove storage from file names if files were put there.
-            new_file_name = core.utils.make_relative_path([self.clade.storage_dir], file_name)
-
+            storage_file = core.utils.make_relative_path([self.clade.storage_dir], file_name)
             # Try to make paths relative to source paths or standard search directories.
-            new_file_name = core.utils.make_relative_path(self.source_paths + self.search_dirs, new_file_name,
-                                                          absolutize=True)
-            arcnames[file_name] = new_file_name
+            tmp = core.utils.make_relative_path(self.source_paths, storage_file, absolutize=True)
+            # Append special directory name "source files" when cutting off source file names.
+            if tmp != os.path.join(os.path.sep, storage_file):
+                arcnames[file_name] = os.path.join('source files', tmp)
+            else:
+                arcnames[file_name] = core.utils.make_relative_path(self.search_dirs, storage_file, absolutize=True)
 
         return arcnames

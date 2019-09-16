@@ -1,0 +1,19 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:drivers:clk1"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/idle/i7300_idle.ko"
+    }
+  ],
+  "description": "",
+  "is_modifiable": false,
+  "production": true,
+  "tags": [],
+  "verdict": "0"
+}

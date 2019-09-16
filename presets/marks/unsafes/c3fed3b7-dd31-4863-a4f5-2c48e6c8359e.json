@@ -1,0 +1,51 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:usb:gadget"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/linux/usb/gadget/class-with-usb-gadget.ko"
+    }
+  ],
+  "description": "",
+  "error_trace": [
+    [
+      {
+        "ldv_init": [
+          {
+            "ldv_usb_gadget_probe_driver_23": [
+              {
+                "ldv_register_usb_gadget": [
+                  {
+                    "ldv_undef_int_nonpositive": []
+                  },
+                  {
+                    "ldv_assert_linux_usb_gadget__double_usb_gadget_registration": []
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "ldv_register_class": [
+              {
+                "ldv_undef_int_nonpositive": []
+              },
+              {
+                "ldv_assert_linux_usb_gadget__class_registration_with_usb_gadget": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": true,
+  "tags": [],
+  "verdict": "2"
+}

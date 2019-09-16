@@ -1,0 +1,55 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Linux:Version",
+      "value": "v2.6.33.20"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:test:environment model specifications"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/net_device_ops_v.1/setup_invoke.ko"
+    }
+  ],
+  "description": "",
+  "error_trace": [
+    [
+      {
+        "ldv_initialize": []
+      }
+    ],
+    [
+      {
+        "ldv_init": [
+          {
+            "ldv_invoke_test": []
+          },
+          {
+            "ldv_emg_alloc_netdev_mq": [
+              {
+                "ldv_setup": [
+                  {
+                    "ldv_invoke_reached": [
+                      {
+                        "ldv_assert_linux_emg_test": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": false,
+  "tags": [],
+  "verdict": "2"
+}

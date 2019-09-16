@@ -1,0 +1,9 @@
+{
+  "attrs": [],
+  "description": "",
+  "function": "Cannot compute size of incomplete type struct",
+  "is_modifiable": false,
+  "is_regexp": false,
+  "problem_pattern": "CannotComputeSize",
+  "production": true
+}

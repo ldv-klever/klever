@@ -1,0 +1,48 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:block:genhd"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/linux/block/genhd/delete-before-add.ko"
+    }
+  ],
+  "description": "",
+  "error_trace": [
+    [
+      {
+        "ldv_init": [
+          {
+            "ldv_alloc_disk_19": [
+              {
+                "ldv_alloc_disk": [
+                  {
+                    "ldv_undef_ptr": []
+                  },
+                  {
+                    "ldv_assert_linux_block_genhd__double_allocation": []
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "ldv_del_gendisk": [
+              {
+                "ldv_assert_linux_block_genhd__delete_before_add": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": true,
+  "tags": [],
+  "verdict": "2"
+}

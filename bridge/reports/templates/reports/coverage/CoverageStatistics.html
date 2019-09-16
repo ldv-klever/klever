@@ -1,0 +1,49 @@
+{% comment "License" %}
+% Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+% Ivannikov Institute for System Programming of the Russian Academy of Sciences
+%
+% Licensed under the Apache License, Version 2.0 (the "License");
+% you may not use this file except in compliance with the License.
+% You may obtain a copy of the License at
+%
+%    http://www.apache.org/licenses/LICENSE-2.0
+%
+% Unless required by applicable law or agreed to in writing, software
+% distributed under the License is distributed on an "AS IS" BASIS,
+% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+% See the License for the specific language governing permissions and
+% limitations under the License.
+{% endcomment %}
+
+{% load i18n %}
+
+{% if statistics.data %}
+    <table class="ui celled compact selectable teal table alternate-color">
+        <thead>
+            <tr>
+                <th>{% trans 'Files' %}</th>
+                <th>{% trans 'Line coverage' %}</th>
+                <th>{% trans 'Function coverage' %}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for cov_obj in statistics.data %}
+                <tr data-tg-id="{{ cov_obj.identifier }}"{% if cov_obj.parent %} data-tg-parent="{{ cov_obj.parent }}"{% endif %} data-tg-leaf="{% if cov_obj.is_leaf %}1{% else %}0{% endif %}"{% if cov_obj.depth > 1 %} style="display: none;"{% endif %}>
+                    <td>
+                        <span class="pre-space">{{ cov_obj.indentation }}</span>
+                        {% if cov_obj.is_leaf %}
+                            <a class="tree-file-link" data-path="{{ cov_obj.path }}" href="#"><i class="file alternate outline icon"></i>{{ cov_obj.name }}</a>
+                        {% else %}
+                            <i class="{% if cov_obj.display %}open {% endif %}folder violet icon tg-expander"></i>
+                            <span>{{ cov_obj.name }}</span>
+                        {% endif %}
+                    </td>
+                    <td{% if cov_obj.lines_color %} style="background-color: {{ cov_obj.lines_color }};"{% endif %}><b>{{ cov_obj.lines_percentage }}</b> ({{ cov_obj.lines_covered }}/{{ cov_obj.lines_total }})</td>
+                    <td{% if cov_obj.funcs_color %} style="background-color: {{ cov_obj.funcs_color }};"{% endif %}><b>{{ cov_obj.funcs_percentage }}</b> ({{ cov_obj.funcs_covered }}/{{ cov_obj.funcs_total }})</td>
+                </tr>
+            {%  endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <h3 class="ui violet header">{% trans 'List of files is empty' %}</h3>
+{% endif %}

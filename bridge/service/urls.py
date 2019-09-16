@@ -15,28 +15,36 @@
 # limitations under the License.
 #
 
-from django.urls import path
-from service import views
+from django.urls import path, include
 
+from rest_framework.authtoken.views import obtain_auth_token
+from rest_framework.routers import DefaultRouter
+
+from service import views, api
+
+router = DefaultRouter()
+router.register('tasks', api.TaskAPIViewset, 'tasks')
 
 urlpatterns = [
-    # TESTS
-    path('test/', views.test, name='test'),
-    path('ajax/fill_session/', views.fill_session),
-    path('ajax/process_job/', views.process_job),
+    path('', include(router.urls)),
+    path('get_token/', obtain_auth_token),
+    path('tasks/<int:pk>/download/', api.DownloadTaskArchiveView.as_view()),
 
-    path('set_schedulers_status/', views.set_schedulers_status),
-    path('get_jobs_and_tasks/', views.get_jobs_and_tasks),
-    path('schedule_task/', views.schedule_task),
-    path('update_tools/', views.update_tools),
-    path('get_tasks_statuses/', views.get_tasks_statuses),
-    path('remove_task/', views.remove_task),
-    path('cancel_task/', views.cancel_task),
-    path('upload_solution/', views.upload_solution),
-    path('download_solution/', views.download_solution),
-    path('download_task/', views.download_task),
-    path('update_nodes/', views.update_nodes),
-    path('update_progress/', views.update_progress),
-    path('schedulers/', views.schedulers_info, name='schedulers'),
-    path('ajax/add_scheduler_user/', views.add_scheduler_user)
+    path('solution/', api.SolutionCreateView.as_view()),
+    path('solution/<int:task_id>/', api.SolutionDetailView.as_view()),
+    path('solution/<int:task_id>/download/', api.SolutionDownloadView.as_view()),
+
+    path('job-status/<uuid:job_uuid>/', api.ChangeJobStatusView.as_view()),
+
+    path('scheduler-user/', api.AddSchedulerUserView.as_view(), name='api-scheduler-user'),
+    path('scheduler-user/<uuid:job_uuid>/', api.SchedulerUserView.as_view(), name='api-scheduler-user'),
+
+    path('progress/<uuid:job_uuid>/', api.JobProgressAPIView.as_view()),
+    path('configuration/<uuid:job_uuid>/', api.JobConfigurationAPIView.as_view()),
+
+    path('update-tools/', api.UpdateToolsAPIView.as_view()),
+    path('update-nodes/', api.UpdateNodes.as_view()),
+
+    path('scheduler/<slug:type>/', api.SchedulerAPIView.as_view()),
+    path('schedulers/', views.SchedulersInfoView.as_view(), name='schedulers'),
 ]

@@ -15,322 +15,194 @@
 # limitations under the License.
 #
 
-from __future__ import unicode_literals
-
 from django.conf import settings
+from django.contrib.postgres.fields import JSONField, ArrayField
 from django.db import migrations, models
-from django.db.models.deletion import CASCADE, SET_NULL, PROTECT
-import reports.models
+from django.utils.timezone import now
 
-total_verdict_choices = [
-    ('0', 'Total safe'),
-    ('1', 'Found all unsafes'),
-    ('2', 'Found not all unsafes'),
-    ('3', 'Unknown'),
-    ('4', 'Unmatched'),
-    ('5', 'Broken')
-]
-safe_verdict_choices = [
-    ('0', 'Unknown'),
-    ('1', 'Incorrect proof'),
-    ('2', 'Missed target bug'),
-    ('3', 'Incompatible marks'),
-    ('4', 'Without marks')
-]
-unsafe_verdict_choices = [
-    ('0', 'Unknown'),
-    ('1', 'Bug'),
-    ('2', 'Target bug'),
-    ('3', 'False positive'),
-    ('4', 'Incompatible marks'),
-    ('5', 'Without marks')
-]
+import uuid
+import mptt.fields
+import bridge.utils
+import reports.models
 
 
 class Migration(migrations.Migration):
     initial = True
-    dependencies = [('jobs', '0001_initial'), migrations.swappable_dependency(settings.AUTH_USER_MODEL)]
+    dependencies = [
+        migrations.swappable_dependency(settings.AUTH_USER_MODEL),
+        ('jobs', '0001_initial'),
+        ('contenttypes', '0002_remove_content_type_name'),
+    ]
 
     operations = [
-        migrations.CreateModel(
-            name='AttrName',
-            fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(db_index=True, max_length=63, unique=True)),
-            ],
-            options={'db_table': 'attr_name'},
-        ),
-        migrations.CreateModel(
-            name='Attr',
-            fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.ForeignKey(on_delete=CASCADE, to='reports.AttrName')),
-                ('value', models.CharField(max_length=255)),
-            ],
-            options={'db_table': 'attr'},
-        ),
-        migrations.CreateModel(
-            name='ReportRoot',
-            fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('job', models.OneToOneField(on_delete=CASCADE, to='jobs.Job')),
-                ('user', models.ForeignKey(null=True, on_delete=SET_NULL, related_name='+',
-                                           to=settings.AUTH_USER_MODEL)),
-            ],
-            options={'db_table': 'report_root'},
-        ),
-        migrations.CreateModel(
-            name='Report',
-            fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('root', models.ForeignKey(on_delete=CASCADE, to='reports.ReportRoot')),
-                ('parent', models.ForeignKey(null=True, on_delete=CASCADE, related_name='+', to='reports.Report')),
-                ('identifier', models.CharField(max_length=255, unique=True)),
-            ],
-            options={'db_table': 'report'},
-        ),
-        migrations.CreateModel(
-            name='ReportAttr',
-            fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('report', models.ForeignKey(on_delete=CASCADE, related_name='attrs', to='reports.Report')),
-                ('attr', models.ForeignKey(on_delete=CASCADE, to='reports.Attr')),
-            ],
-            options={'db_table': 'report_attrs'},
-        ),
-        migrations.CreateModel(
-            name='Computer',
-            fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('description', models.TextField()),
-            ],
-            options={'db_table': 'computer'},
-        ),
-        migrations.CreateModel(
-            name='Component',
-            fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(db_index=True, max_length=20, unique=True)),
-            ],
-            options={'db_table': 'component'},
-        ),
-        migrations.CreateModel(
-            name='ReportComponent',
-            fields=[
-                ('report_ptr', models.OneToOneField(auto_created=True, on_delete=CASCADE, parent_link=True,
-                                                    primary_key=True, serialize=False, to='reports.Report')),
-                ('computer', models.ForeignKey(on_delete=CASCADE, to='reports.Computer')),
-                ('component', models.ForeignKey(on_delete=PROTECT, to='reports.Component')),
-                ('verification', models.BooleanField(default=False)),
-                ('cpu_time', models.BigIntegerField(null=True)),
-                ('wall_time', models.BigIntegerField(null=True)),
-                ('memory', models.BigIntegerField(null=True)),
-                ('start_date', models.DateTimeField()),
-                ('finish_date', models.DateTimeField(null=True)),
-                ('log', models.FileField(null=True, upload_to=reports.models.get_component_path)),
-                ('data', models.FileField(null=True, upload_to=reports.models.get_component_path)),
-                ('verifier_input', models.FileField(null=True, upload_to=reports.models.get_component_path)),
-                ('covnum', models.PositiveSmallIntegerField(default=0)),
-            ],
-            options={'db_table': 'report_component'},
-            bases=('reports.report',),
-        ),
-        migrations.CreateModel(
-            name='ComponentInstances',
-            fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('report', models.ForeignKey(on_delete=CASCADE, to='reports.ReportComponent')),
-                ('component', models.ForeignKey(on_delete=CASCADE, to='reports.Component')),
-                ('in_progress', models.PositiveIntegerField(default=0)),
-                ('total', models.PositiveIntegerField(default=0)),
-            ],
-            options={'db_table': 'cache_report_component_instances'},
-        ),
-        migrations.CreateModel(
-            name='ComponentResource',
-            fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('report', models.ForeignKey(on_delete=CASCADE, related_name='resources_cache',
-                                             to='reports.ReportComponent')),
-                ('cpu_time', models.BigIntegerField(default=0)),
-                ('wall_time', models.BigIntegerField(default=0)),
-                ('memory', models.BigIntegerField(default=0)),
-                ('component', models.ForeignKey(null=True, on_delete=PROTECT, to='reports.Component')),
-            ],
-            options={'db_table': 'cache_report_component_resource'},
-        ),
-        migrations.CreateModel(
-            name='CoverageArchive',
-            fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('report', models.ForeignKey(on_delete=CASCADE, related_name='coverages',
-                                             to='reports.ReportComponent')),
-                ('identifier', models.CharField(default='', max_length=128)),
-                ('archive', models.FileField(upload_to=reports.models.get_coverage_arch_dir)),
 
-            ],
-            options={'db_table': 'report_coverage_archive'},
-        ),
-        migrations.CreateModel(
-            name='CoverageFile',
-            fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('archive', models.ForeignKey(on_delete=CASCADE, to='reports.CoverageArchive')),
-                ('name', models.CharField(max_length=1024)),
-                ('file', models.FileField(null=True, upload_to=reports.models.get_coverage_dir)),
-                ('covered_lines', models.PositiveIntegerField(default=0)),
-                ('covered_funcs', models.PositiveIntegerField(default=0)),
-                ('total_lines', models.PositiveIntegerField(default=0)),
-                ('total_funcs', models.PositiveIntegerField(default=0)),
-            ],
-            options={'db_table': 'cache_report_coverage_file'},
-        ),
-        migrations.CreateModel(
-            name='CoverageDataValue',
-            fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('hashsum', models.CharField(max_length=255)),
-                ('name', models.CharField(max_length=128)),
-                ('value', models.TextField()),
-            ],
-            options={'db_table': 'cache_report_coverage_data_values'},
-        ),
-        migrations.CreateModel(
-            name='CoverageData',
-            fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('covfile', models.ForeignKey(on_delete=CASCADE, to='reports.CoverageFile')),
-                ('line', models.PositiveIntegerField()),
-                ('data', models.ForeignKey(on_delete=CASCADE, to='reports.CoverageDataValue')),
-            ],
-            options={'db_table': 'cache_report_coverage_data'},
-        ),
-        migrations.CreateModel(
-            name='CoverageDataStatistics',
-            fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=128)),
-                ('data', models.FileField(upload_to='CoverageData')),
-                ('archive', models.ForeignKey(on_delete=CASCADE, to='reports.CoverageArchive')),
-            ],
-            options={'db_table': 'cache_report_coverage_data_stat'},
-        ),
-        migrations.CreateModel(
-            name='ReportSafe',
-            fields=[
-                ('report_ptr', models.OneToOneField(auto_created=True, on_delete=CASCADE, parent_link=True,
-                                                    primary_key=True, serialize=False, to='reports.Report')),
-                ('proof', models.FileField(null=True, upload_to='Safes/%Y/%m')),
-                ('verdict', models.CharField(choices=safe_verdict_choices, default='4', max_length=1)),
-                ('memory', models.BigIntegerField()),
-                ('cpu_time', models.BigIntegerField()),
-                ('wall_time', models.BigIntegerField()),
-                ('has_confirmed', models.BooleanField(default=False)),
-            ],
-            options={'db_table': 'report_safe'},
-            bases=('reports.report',),
-        ),
-        migrations.CreateModel(
-            name='ReportUnsafe',
-            fields=[
-                ('report_ptr', models.OneToOneField(auto_created=True, on_delete=CASCADE, parent_link=True,
-                                                    primary_key=True, serialize=False, to='reports.Report')),
-                ('error_trace', models.FileField(upload_to='Unsafes/%Y/%m')),
-                ('verdict', models.CharField(choices=unsafe_verdict_choices, default='5', max_length=1)),
-                ('memory', models.BigIntegerField()),
-                ('cpu_time', models.BigIntegerField()),
-                ('wall_time', models.BigIntegerField()),
-                ('has_confirmed', models.BooleanField(default=False)),
-            ],
-            options={'db_table': 'report_unsafe'},
-            bases=('reports.report',),
-        ),
-        migrations.CreateModel(
-            name='ReportUnknown',
-            fields=[
-                ('report_ptr', models.OneToOneField(auto_created=True, on_delete=CASCADE, parent_link=True,
-                                                    primary_key=True, serialize=False, to='reports.Report')),
-                ('problem_description', models.FileField(upload_to='Unknowns/%Y/%m')),
-                ('component', models.ForeignKey(on_delete=PROTECT, to='reports.Component')),
-                ('memory', models.BigIntegerField(null=True)),
-                ('cpu_time', models.BigIntegerField(null=True)),
-                ('wall_time', models.BigIntegerField(null=True)),
-            ],
-            options={'db_table': 'report_unknown'},
-            bases=('reports.report',),
-        ),
-        migrations.CreateModel(
-            name='CompareJobsInfo',
-            fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('user', models.ForeignKey(on_delete=CASCADE, to=settings.AUTH_USER_MODEL)),
-                ('root1', models.ForeignKey(on_delete=CASCADE, related_name='+', to='reports.ReportRoot')),
-                ('root2', models.ForeignKey(on_delete=CASCADE, related_name='+', to='reports.ReportRoot')),
-                ('files_diff', models.TextField()),
-            ],
-            options={'db_table': 'cache_report_jobs_compare_info'},
-        ),
-        migrations.CreateModel(
-            name='CompareJobsCache',
-            fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('info', models.ForeignKey(on_delete=CASCADE, to='reports.CompareJobsInfo')),
-                ('attr_values', models.CharField(db_index=True, max_length=64)),
-                ('verdict1', models.CharField(choices=total_verdict_choices, max_length=1)),
-                ('verdict2', models.CharField(choices=total_verdict_choices, max_length=1)),
-                ('reports1', models.TextField()),
-                ('reports2', models.TextField()),
-            ],
-            options={'db_table': 'cache_report_jobs_compare'},
+        migrations.CreateModel(name='ReportRoot', fields=[
+            ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+            ('resources', JSONField(default=dict)),
+            ('instances', JSONField(default=dict)),
+            ('job', models.OneToOneField(on_delete=models.deletion.CASCADE, to='jobs.Job')),
+            ('user', models.ForeignKey(
+                null=True, on_delete=models.deletion.SET_NULL, related_name='roots', to=settings.AUTH_USER_MODEL
+            )),
+        ], options={'db_table': 'report_root'}),
+
+        migrations.CreateModel(name='AdditionalSources', fields=[
+            ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+            ('archive', models.FileField(upload_to='Sources/%Y/%m')),
+            ('root', models.ForeignKey(on_delete=models.deletion.CASCADE, to='reports.ReportRoot')),
+        ], options={'db_table': 'report_additional_sources'}, bases=(bridge.utils.WithFilesMixin, models.Model)),
+
+        migrations.CreateModel(name='AttrFile', fields=[
+            ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+            ('file', models.FileField(upload_to=reports.models.get_attr_data_path)),
+            ('root', models.ForeignKey(on_delete=models.deletion.CASCADE, to='reports.ReportRoot')),
+        ], options={'db_table': 'report_attr_file'}, bases=(bridge.utils.WithFilesMixin, models.Model)),
+
+        migrations.CreateModel(name='CompareJobsInfo', fields=[
+            ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+            ('names', ArrayField(base_field=models.CharField(max_length=64), size=None)),
+            ('root1', models.ForeignKey(on_delete=models.deletion.CASCADE, related_name='+', to='reports.ReportRoot')),
+            ('root2', models.ForeignKey(on_delete=models.deletion.CASCADE, related_name='+', to='reports.ReportRoot')),
+            ('user', models.ForeignKey(on_delete=models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
+        ], options={'db_table': 'cache_report_jobs_compare_info'}),
+
+        migrations.CreateModel(name='ComparisonObject', fields=[
+            ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+            ('values', ArrayField(base_field=models.CharField(max_length=255), size=None)),
+            ('verdict1', models.CharField(choices=[
+                ('0', 'Total safe'), ('1', 'Found all unsafes'), ('2', 'Found not all unsafes'),
+                ('3', 'Unknown'), ('4', 'Unmatched'), ('5', 'Broken')
+            ], max_length=1)),
+            ('verdict2', models.CharField(choices=[
+                ('0', 'Total safe'), ('1', 'Found all unsafes'), ('2', 'Found not all unsafes'),
+                ('3', 'Unknown'), ('4', 'Unmatched'), ('5', 'Broken')
+            ], max_length=1)),
+            ('info', models.ForeignKey(on_delete=models.deletion.CASCADE, to='reports.CompareJobsInfo')),
+        ], options={'db_table': 'cache_report_comparison_object'}),
+
+        migrations.CreateModel(name='ComparisonLink', fields=[
+            ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+            ('object_id', models.PositiveIntegerField()),
+            ('comparison', models.ForeignKey(
+                on_delete=models.deletion.CASCADE, related_name='links', to='reports.ComparisonObject'
+            )),
+            ('content_type', models.ForeignKey(on_delete=models.deletion.CASCADE, to='contenttypes.ContentType')),
+        ], options={'db_table': 'cache_report_comparison_link'}),
+
+        migrations.CreateModel(name='Computer', fields=[
+            ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+            ('identifier', models.CharField(db_index=True, max_length=128)),
+            ('display', models.CharField(max_length=512)),
+            ('data', JSONField()),
+        ], options={'db_table': 'computer'}),
+
+        migrations.CreateModel(name='OriginalSources', fields=[
+            ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+            ('identifier', models.CharField(db_index=True, max_length=128, unique=True)),
+            ('archive', models.FileField(upload_to='OriginalSources')),
+        ], options={
+            'db_table': 'report_original_sources',
+            'ordering': ('identifier',)
+        }, bases=(bridge.utils.WithFilesMixin, models.Model)),
+
+        migrations.CreateModel(name='Report', fields=[
+            ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+            ('identifier', models.CharField(db_index=True, max_length=255)),
+            ('cpu_time', models.BigIntegerField(null=True)),
+            ('wall_time', models.BigIntegerField(null=True)),
+            ('memory', models.BigIntegerField(null=True)),
+            ('lft', models.PositiveIntegerField(db_index=True, editable=False)),
+            ('rght', models.PositiveIntegerField(db_index=True, editable=False)),
+            ('tree_id', models.PositiveIntegerField(db_index=True, editable=False)),
+            ('level', models.PositiveIntegerField(db_index=True, editable=False)),
+            ('root', models.ForeignKey(on_delete=models.deletion.CASCADE, to='reports.ReportRoot')),
+        ], options={'db_table': 'report'}),
+
+        migrations.CreateModel(name='ReportAttr', fields=[
+            ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+            ('name', models.CharField(db_index=True, max_length=64)),
+            ('value', models.CharField(max_length=255)),
+            ('compare', models.BooleanField(default=False)),
+            ('associate', models.BooleanField(default=False)),
+            ('data', models.ForeignKey(null=True, on_delete=models.deletion.CASCADE, to='reports.AttrFile')),
+            ('report', models.ForeignKey(on_delete=models.deletion.CASCADE, related_name='attrs', to='reports.Report')),
+        ], options={'db_table': 'report_attrs'}),
+
+        migrations.CreateModel(name='ReportComponent', fields=[
+            ('report_ptr', models.OneToOneField(
+                auto_created=True, on_delete=models.deletion.CASCADE, parent_link=True,
+                primary_key=True, serialize=False, to='reports.Report'
+            )),
+            ('component', models.CharField(max_length=20)),
+            ('verification', models.BooleanField(default=False)),
+            ('start_date', models.DateTimeField(default=now)),
+            ('finish_date', models.DateTimeField(null=True)),
+            ('data', JSONField(null=True)),
+            ('log', models.FileField(null=True, upload_to=reports.models.get_component_path)),
+            ('verifier_input', models.FileField(null=True, upload_to=reports.models.get_component_path)),
+            ('additional_sources', models.ForeignKey(
+                null=True, on_delete=models.deletion.CASCADE, to='reports.AdditionalSources'
+            )),
+            ('computer', models.ForeignKey(on_delete=models.deletion.CASCADE, to='reports.Computer')),
+            ('original_sources', models.ForeignKey(
+                null=True, on_delete=models.deletion.PROTECT, to='reports.OriginalSources'
+            )),
+        ], options={'db_table': 'report_component'}, bases=(bridge.utils.WithFilesMixin, 'reports.report')),
+
+        migrations.CreateModel(name='CoverageArchive', fields=[
+            ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+            ('identifier', models.CharField(default='', max_length=128)),
+            ('archive', models.FileField(upload_to=reports.models.get_coverage_arch_dir)),
+            ('report', models.ForeignKey(
+                on_delete=models.deletion.CASCADE, related_name='coverages', to='reports.ReportComponent'
+            )),
+            ('total', JSONField(null=True)),
+        ], options={'db_table': 'report_coverage_archive'}, bases=(bridge.utils.WithFilesMixin, models.Model)),
+
+        migrations.CreateModel(name='ReportComponentLeaf', fields=[
+            ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+            ('object_id', models.PositiveIntegerField()),
+            ('content_type', models.ForeignKey(on_delete=models.deletion.CASCADE, to='contenttypes.ContentType')),
+            ('report', models.ForeignKey(
+                on_delete=models.deletion.CASCADE, related_name='leaves', to='reports.ReportComponent'
+            )),
+        ], options={'db_table': 'cache_report_component_leaf'}),
+
+        migrations.CreateModel(name='ReportSafe', fields=[
+            ('report_ptr', models.OneToOneField(
+                auto_created=True, on_delete=models.deletion.CASCADE, parent_link=True,
+                primary_key=True, serialize=False, to='reports.Report'
+            )),
+            ('proof', models.FileField(null=True, upload_to='Safes/%Y/%m')),
+        ], options={'db_table': 'report_safe'}, bases=(bridge.utils.WithFilesMixin, 'reports.report')),
+
+        migrations.CreateModel(name='ReportUnknown', fields=[
+            ('report_ptr', models.OneToOneField(
+                auto_created=True, on_delete=models.deletion.CASCADE, parent_link=True,
+                primary_key=True, serialize=False, to='reports.Report'
+            )),
+            ('component', models.CharField(max_length=20)),
+            ('problem_description', models.FileField(upload_to='Unknowns/%Y/%m')),
+        ], options={'db_table': 'report_unknown'}, bases=(bridge.utils.WithFilesMixin, 'reports.report')),
+
+        migrations.CreateModel(name='ReportUnsafe', fields=[
+            ('report_ptr', models.OneToOneField(
+                auto_created=True, on_delete=models.deletion.CASCADE, parent_link=True,
+                primary_key=True, serialize=False, to='reports.Report'
+            )),
+            ('trace_id', models.UUIDField(db_index=True, default=uuid.uuid4, unique=True)),
+            ('error_trace', models.FileField(upload_to='Unsafes/%Y/%m')),
+        ], options={'db_table': 'report_unsafe'}, bases=(bridge.utils.WithFilesMixin, 'reports.report')),
+
+        migrations.AddField(model_name='report', name='parent', field=mptt.fields.TreeForeignKey(
+            null=True, on_delete=models.deletion.CASCADE, related_name='children', to='reports.Report')
         ),
 
-        migrations.CreateModel(
-            name='ComponentUnknown',
-            fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('report', models.ForeignKey(on_delete=CASCADE, related_name='unknowns_cache',
-                                             to='reports.ReportComponent')),
-                ('number', models.PositiveIntegerField(default=0)),
-                ('component', models.ForeignKey(on_delete=PROTECT, to='reports.Component')),
-            ],
-            options={'db_table': 'cache_report_component_unknown'},
+        migrations.AddIndex(
+            model_name='reportattr', index=models.Index(fields=['name', 'value'], name='report_attr_name_e431b9_idx'),
         ),
-        migrations.CreateModel(
-            name='ReportComponentLeaf',
-            fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('report', models.ForeignKey(on_delete=CASCADE, related_name='leaves', to='reports.ReportComponent')),
-                ('safe', models.ForeignKey(null=True, on_delete=CASCADE, related_name='leaves',
-                                           to='reports.ReportSafe')),
-                ('unsafe', models.ForeignKey(null=True, on_delete=CASCADE, related_name='leaves',
-                                             to='reports.ReportUnsafe')),
-                ('unknown', models.ForeignKey(null=True, on_delete=CASCADE, related_name='leaves',
-                                              to='reports.ReportUnknown')),
-            ],
-            options={'db_table': 'cache_report_component_leaf'},
-        ),
-        migrations.CreateModel(
-            name='Verdict',
-            fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('report', models.OneToOneField(on_delete=CASCADE, to='reports.ReportComponent')),
-                ('unsafe', models.PositiveIntegerField(default=0)),
-                ('unsafe_bug', models.PositiveIntegerField(default=0)),
-                ('unsafe_target_bug', models.PositiveIntegerField(default=0)),
-                ('unsafe_false_positive', models.PositiveIntegerField(default=0)),
-                ('unsafe_unknown', models.PositiveIntegerField(default=0)),
-                ('unsafe_unassociated', models.PositiveIntegerField(default=0)),
-                ('unsafe_inconclusive', models.PositiveIntegerField(default=0)),
-                ('safe', models.PositiveIntegerField(default=0)),
-                ('safe_missed_bug', models.PositiveIntegerField(default=0)),
-                ('safe_incorrect_proof', models.PositiveIntegerField(default=0)),
-                ('safe_unknown', models.PositiveIntegerField(default=0)),
-                ('safe_unassociated', models.PositiveIntegerField(default=0)),
-                ('safe_inconclusive', models.PositiveIntegerField(default=0)),
-                ('unknown', models.PositiveIntegerField(default=0)),
-            ],
-            options={'db_table': 'cache_report_verdict'},
-        ),
-        migrations.AlterIndexTogether(name='comparejobscache', index_together={('info', 'verdict1', 'verdict2')}),
-        migrations.AlterIndexTogether(name='attr', index_together={('name', 'value')}),
+        migrations.AlterUniqueTogether(name='report', unique_together={('root', 'identifier')}),
+        migrations.AlterIndexTogether(name='report', index_together={('root', 'identifier')}),
+        migrations.AlterIndexTogether(name='comparisonobject', index_together={('info', 'verdict1', 'verdict2')}),
+
     ]

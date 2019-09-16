@@ -1,0 +1,35 @@
+{% comment "License" %}
+% Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+% Ivannikov Institute for System Programming of the Russian Academy of Sciences
+%
+% Licensed under the Apache License, Version 2.0 (the "License");
+% you may not use this file except in compliance with the License.
+% You may obtain a copy of the License at
+%
+%    http://www.apache.org/licenses/LICENSE-2.0
+%
+% Unless required by applicable law or agreed to in writing, software
+% distributed under the License is distributed on an "AS IS" BASIS,
+% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+% See the License for the specific language governing permissions and
+% limitations under the License.
+{% endcomment %}
+
+{% load i18n %}
+
+<div class="ui popup tag-popup" data-tag="{{ tag.id }}">
+    {% if tag.populated %}<i class="ui gift purple icon"></i>{% endif %}
+    {% if access.edit %}<span class="icon-text" style="display: inline">&nbsp;</span>{% endif %}
+    {% if access.change_access %}<span class="icon-text icon-text-change-access">{% trans 'Change access' %}</span>{% endif %}
+    {% if access.add_child %}<span class="icon-text icon-text-create">{% trans 'Create child' %}</span>{% endif %}
+    {% if access.edit %}<span class="icon-text icon-text-edit">{% trans 'Edit' %}</span>{% endif %}
+    {% if access.delete %}<span class="icon-text icon-text-remove">{% trans 'Remove' %}</span>{% endif %}
+    {% if access.delete %}<i class="ui small remove blue icon remove-tag-icon tag-icon"></i>{% endif %}
+    {% if access.edit %}<i class="ui small write blue icon edit-tag-icon tag-icon"></i>{% endif %}
+    {% if access.add_child %}<i class="ui small add blue icon create-tag-icon tag-icon"></i>{% endif %}
+    {% if access.change_access %}<i class="ui small user blue icon change-access-tag-icon tag-icon"></i>{% endif %}
+    <div class="content">{{ tag.description|safe }}</div>
+    {% if tag.author %}
+        <p class="small-text">{% trans 'Author' %}: {{ tag.author.get_full_name }}</p>
+    {% endif %}
+</div>

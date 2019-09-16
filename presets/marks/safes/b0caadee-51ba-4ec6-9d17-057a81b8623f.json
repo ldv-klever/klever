@@ -1,0 +1,20 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:kernel:locking:spinlock"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "sound/pci/emu10k1/snd-emu10k1-synth.ko"
+    }
+  ],
+  "description": "Target function uncovered and to fix it it is necessary to support catching of structures initalized as local variables and then find a way to call function pointer hw-&gt;get_synth_voice.",
+  "is_modifiable": true,
+  "tags": [
+    "EMG"
+  ],
+  "verdict": "1"
+}

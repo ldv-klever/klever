@@ -16,76 +16,46 @@
  */
 
 window.get_tags_values = function () {
-    var selected_tags = [];
+    let selected_tags = [];
     $('#selected_tags').children('span').each(function () {
         selected_tags.push($(this).text());
     });
     return selected_tags;
 };
 
-window.drow_connections = function () {
-    $('.tagsmap').find(".line").each(function () {
-        var for_style = [];
-        $.each($(this).attr('class').split(/\s+/), function (a, cl_name) {
-            var img_types;
-            if (cl_name.startsWith('line-')) {
-                 img_types = cl_name.replace('line-', '').split('');
-            }
-            if (img_types) {
-                $.each(img_types, function (a, img_t) {
-                    for_style.push("url('/static/marks/css/images/L_" + img_t + ".png') center no-repeat");
-                });
-            }
-        });
-        if (for_style.length) {
-            $(this).attr('style', "background: " + for_style.join(',') + ';');
-        }
-    });
-};
-
-window.init_popups = function () {
-    $('td[id^="tag_id_"]').each(function () {
-        var tag_id = $(this).attr('id').replace('tag_id_', ''), tag_popup = $('#tag_popup_' + tag_id);
-        if (tag_popup.length) {
-            $(this).popup({
-                popup: tag_popup,
-                hoverable: true,
-                delay: {show: 100, hide: 300},
-                variation: 'very wide'
-            });
-        }
-    });
-};
-
 window.activate_tags = function () {
-    drow_connections();
-    init_popups();
+    // Draw connections
+    $('.tag-tree-link').each(function () {
+        let for_style = [];
+        $.each($(this).data('links').split(''), function (a, img_t) {
+            for_style.push("url('/static/marks/css/images/L_" + img_t + ".png') center no-repeat");
+        });
+        if (for_style.length) $(this).attr('style', "background: " + for_style.join(',') + ';');
+    });
 
-    function update_tags(deleted) {
+    // Initialize popups
+    $('.tag-popup').each(function () {
+        $('#tag__' + $(this).data('tag')).popup({
+            popup: $(this),
+            hoverable: true,
+            delay: {show: 100, hide: 300},
+            variation: 'very wide'
+        })
+    });
+
+    function update_tags(deleted, added) {
         $.ajax({
-            url: '/marks/' + $('#tags_type').val() + '/tags_data/',
-            type: 'POST',
+            url: '/marks/api/tags-data/' + $('#tags_type').val() + '/',
+            type: 'GET',
+            traditional: true,
             data: {
-                selected_tags: JSON.stringify(get_tags_values()),
-                deleted: deleted
+                selected: get_tags_values(),
+                deleted: deleted,
+                added: added
             },
-            success: function (data) {
-                if (data.error) {
-                    err_notify(data.error);
-                    return false;
-                }
-                $('#tags_tree').html(data['tree']);
+            success: function (resp) {
+                $('#mark_tags_container').html(resp);
                 activate_tags();
-
-                $('#selected_tags').empty();
-                $.each(JSON.parse(data['selected']), function (i, value) {
-                    $('#selected_tags').append($('<span>', {text: value}));
-                });
-                var tags_list = $('#tag_list');
-                tags_list.empty();
-                $.each(JSON.parse(data['available']), function (i, value) {
-                    $('#tag_list').append($('<option>', {text: value[1], value: value[0]}));
-                });
             }
         });
     }
@@ -101,11 +71,10 @@ window.activate_tags = function () {
         },
         onChange: function () {
             $(this).dropdown('hide');
-            $('#selected_tags').append($('<span>', {text: $('#tag_list').val()[0]}));
-            update_tags();
+            update_tags(null, $('#tag_list').val());
         }
     });
-    $('i[id^="remove_tag_"]').click(function () {
-        update_tags($(this).attr('id').replace('remove_tag_', ''));
+    $('.remove-mark-tag').click(function () {
+        update_tags($(this).data('tag'));
     });
 };

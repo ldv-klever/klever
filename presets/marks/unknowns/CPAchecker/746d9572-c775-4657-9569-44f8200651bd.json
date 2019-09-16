@@ -1,0 +1,7 @@
+{
+  "attrs": [],
+  "function": "Error: Invalid configuration",
+  "is_regexp": false,
+  "problem_pattern": "InvalidConf",
+  "production": true
+}

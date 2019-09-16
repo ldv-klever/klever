@@ -1,0 +1,45 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:kernel:locking:spinlock"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/linux/kernel/locking/spinlock/double-lock.ko"
+    }
+  ],
+  "description": "",
+  "error_trace": [
+    [
+      {
+        "ldv_init": [
+          {
+            "ldv_spin_lock_35": [
+              {
+                "ldv_spin_lock_ldv_lock": [
+                  {
+                    "ldv_assert_linux_kernel_locking_spinlock__one_thread_double_lock": []
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "ldv_spin_lock_ldv_lock": [
+              {
+                "ldv_assert_linux_kernel_locking_spinlock__one_thread_double_lock": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": true,
+  "tags": [],
+  "verdict": "2"
+}

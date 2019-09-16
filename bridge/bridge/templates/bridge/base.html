@@ -1,0 +1,189 @@
+{% comment "License" %}
+% Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+% Ivannikov Institute for System Programming of the Russian Academy of Sciences
+%
+% Licensed under the Apache License, Version 2.0 (the "License");
+% you may not use this file except in compliance with the License.
+% You may obtain a copy of the License at
+%
+%    http://www.apache.org/licenses/LICENSE-2.0
+%
+% Unless required by applicable law or agreed to in writing, software
+% distributed under the License is distributed on an "AS IS" BASIS,
+% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+% See the License for the specific language governing permissions and
+% limitations under the License.
+{% endcomment %}
+
+<!DOCTYPE html>
+
+{% load staticfiles %}
+
+{% load i18n %}
+
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-COMPATIBLE" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="description" content="">
+        <meta name="author" content="">
+        <link rel="icon" href="/static/images/klever.ico">
+        <title>{% block title %}{% trans 'Sign in' %}{% endblock %} | Klever</title>
+        <script type="text/javascript" src="{% static "js/jquery-3.4.1.min.js" %}"></script>
+        {% if include_jquery_ui %}<script type="text/javascript" src="{% static "js/jquery-ui.min.js" %}"></script>{% endif %}
+        <script type="text/javascript" src="{% static 'js/notify.min.js' %}"></script>
+        <script type="text/javascript" src="{% static 'semantic/semantic.min.js' %}"></script>
+        <script type="text/javascript" src="{% static 'semantic-range/range.js' %}"></script>
+        <script type="text/javascript" src="{% static 'js/bridge.js' %}"></script>
+        <script type="text/javascript" src="{% static 'js/treetable.js' %}"></script>
+
+        <link href="{% static 'semantic/semantic.min.css' %}" rel="stylesheet">
+        <link href="{% static 'semantic-range/range.css' %}" rel="stylesheet">
+        <link href="{% static 'css/bridge.css' %}" rel="stylesheet">
+        {% block head_block %}{% endblock %}
+    </head>
+    <body>
+        <div id="dimmer_of_page" class="ui dimmer">
+            <div class="ui text loader">{% trans 'Please wait' %}</div>
+        </div>
+
+        <div id="page_header" class="ui fixed inverted menu">
+            <div class="item">
+                <a href="{% url 'jobs:tree' %}">
+                    <img height="30" width="105" src="/static/images/klever.png" alt="Klever">
+                </a>
+            </div>
+        {% if user.is_authenticated %}
+            <a class="browse item">{% trans 'Menu' %}<i class="dropdown icon"></i></a>
+            <div class="ui fluid inverted popup bottom left transition hidden" style="max-width: 70%;">
+                <div class="ui three column relaxed equeal height divided grid">
+                    <div class="column">
+                        <h3 class="ui purple header">{% trans 'Jobs' %}</h3>
+                        <a class="item" href="{% url 'jobs:tree' %}">{% trans 'Jobs Tree' %}</a>
+                        <a class="item" href="{% url 'service:schedulers' %}">{% trans 'Schedulers' %}</a>
+
+                        {# Show only if user has an access to upload jobs (USER_ROLES[1..3][0]) #}
+                        <a class="item{% if user.role == '0' or user.role == '4' %} disabled{% endif %}" id="upload_jobs_modal_show">{% trans 'Upload jobs' %}</a>
+
+                        {# Only managers can upload trees (USER_ROLES[2][0]) #}
+                        <a class="item{% if user.role != '2' %} disabled{% endif %}" id="upload_jobtree_modal_show">{% trans 'Upload jobs tree' %}</a>
+                    </div>
+                    <div class="column">
+                        <h3 class="ui purple header">{% trans 'Marks' %}</h3>
+                        <a class="item" href="{% url 'marks:unsafe-list' %}">{% trans 'Unsafes' %}</a>
+                        <a class="item" href="{% url 'marks:unknown-list' %}">{% trans 'Unknowns' %}</a>
+                        <a class="item" href="{% url 'marks:safe-list' %}">{% trans 'Safes' %}</a>
+                        <a class="item" id="upload_marks_modal_show">{% trans 'Upload' %}</a>
+                    </div>
+                    <div class="column">
+                        <h3 class="ui purple header">{% trans 'Tags' %}</h3>
+                        <a class="item" href="{% url 'marks:tags' 'unsafe' %}">{% trans 'Unsafe' %}</a>
+                        <a class="item" href="{% url 'marks:tags' 'safe' %}">{% trans 'Safe' %}</a>
+                    </div>
+                </div>
+            </div>
+            {% if user.is_staff %}
+                <a class="item" href="/admin/">{% trans 'Admin Tools' %}</a>
+            {% endif %}
+            {% if user.role == '2' %}
+                <a class="item" href="{% url 'tools:manager' %}">{% trans 'Manager Tools' %}</a>
+            {% endif %}
+        {% endif %}
+            <div class="right menu">
+            {% if user.is_authenticated %}
+                <a class="item" href="{% url 'users:show-profile' user.pk %}">{{ user.username }}</a>
+                <a class="item" href="{% url 'users:edit-profile' %}">{% trans 'Settings' %}</a>
+                <a class="item" href="{% url 'users:logout' %}">{% trans 'Sign Out' %}</a>
+            {% else %}
+                <a class="item" href="{% url 'users:register' %}">{% trans 'Register' %}</a>
+                <a class="item" href="{% url 'users:login' %}">{% trans 'Sign In' %}</a>
+            {% endif %}
+            </div>
+        </div>
+        <br>
+        {% block body_block %}{% endblock %}
+
+        <div id="upload_jobs_modal" class="ui modal" data-activator="#upload_jobs_modal_show">
+            <div class="header">{% trans 'Upload jobs' %}</div>
+            <div class="content">
+                <p>{% trans "Set parent identifier. All file or folder names with non-ASCII characters will be truncated to 30 characters." %}</p>
+                <div class="ui grid">
+                    <div class="five wide column">
+                        <div class="ui fluid input">
+                            <input id="upload_jobs_parent" type="text" placeholder="{% trans 'Identifier' %}" maxlength="32">
+                        </div>
+                    </div>
+                    <div class="three wide column right aligned">
+                        <span class="ui violet button btn-file">{% trans 'Browse' %}<input id="upload_jobs_file" type="file" multiple></span>
+                    </div>
+                    <div class="eight wide column">
+                        <span id="upload_jobs_filename"></span>
+                    </div>
+                </div>
+            </div>
+            <div class="actions">
+                <button class="ui positive button modal-confirm" data-url="{% url 'jobs:api-upload-jobs' %}">{% trans 'Upload' %}</button>
+                <button class="ui blue button modal-cancel">{% trans 'Cancel' %}</button>
+            </div>
+        </div>
+
+        <div id="upload_jobtree_modal" class="ui modal" data-activator="#upload_jobtree_modal_show">
+            <div class="header">{% trans 'Upload jobs tree' %}</div>
+            <div class="content">
+                <p>{% trans "Set parent identifier or leave it empty for root jobs from tree to be without a parent." %}</p>
+                <div class="ui grid">
+                    <div class="five wide column">
+                        <div class="ui fluid input">
+                            <input id="upload_jobtree_parent" type="text" placeholder="{% trans 'Identifier' %}" maxlength="32">
+                        </div>
+                    </div>
+                    <div class="three wide column right aligned">
+                        <span class="ui violet button btn-file">{% trans 'Browse' %}<input id="upload_jobtree_file" type="file"></span>
+                    </div>
+                    <div class="eight wide column">
+                        <span id="upload_jobtree_filename"></span>
+                    </div>
+                </div>
+            </div>
+            <div class="actions">
+                <button class="ui positive button modal-confirm" data-url="{% url 'jobs:api-upload-tree' %}">{% trans 'Upload' %}</button>
+                <button class="ui blue button modal-cancel">{% trans 'Cancel' %}</button>
+            </div>
+        </div>
+
+        <div id="upload_marks_modal" class="ui modal" data-activator="#upload_marks_modal_show">
+            <div class="header">{% trans 'Upload marks' %}</div>
+            <div class="content">
+                <div class="ui grid">
+                    <div class="four wide column right aligned">
+                        <span class="ui violet button btn-file">{% trans 'Browse' %}<input id="upload_marks_file" type="file" multiple></span>
+                    </div>
+                    <div class="twelve wide column">
+                        <span id="upload_marks_filename"></span>
+                    </div>
+                </div>
+            </div>
+            <div class="actions">
+                <button class="ui positive left button modal-confirm" data-url="{% url 'marks:upload' %}">{% trans 'Upload' %}</button>
+                <button class="ui blue button modal-cancel">{% trans 'Cancel' %}</button>
+            </div>
+        </div>
+
+        <div id="file_content_modal" class="ui dinamic large modal">
+            <div class="content">
+                <div class="ui grid">
+                    <div class="eight wide column">
+                        <a class="ui icon olive button download-url" href=""><i class="download icon"></i></a>
+                    </div>
+                    <div class="eight wide column right aligned">
+                        <button class="ui icon red button modal-cancel"><i class="remove icon"></i></button>
+                    </div>
+                </div>
+                <div class="filecontent ui olive segment" style="height:75vh;"></div>
+            </div>
+        </div>
+        <span id="error__no_file_chosen" hidden>{% trans 'No file is chosen' %}</span>
+        <span id="error__ajax_error" hidden>{% trans 'Ajax request error. Maybe connection refused.' %}</span>
+    </body>
+</html>

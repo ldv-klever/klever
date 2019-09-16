@@ -30,22 +30,13 @@
         <h3>{% trans 'Filters' %}</h3>
         <div class="ui divider"></div>
 
-        {# Status #}
-        <input id="view_data_{{ view.type }}__status" value="checkboxes_if_status" type="hidden">
+        {# Associated #}
+        <input id="view_data_{{ view.type }}__associated" value="list_if_associated" data-list="associated" type="hidden">
         <div class="ui checkbox">
-            <input type="checkbox" id="view_condition_{{ view.type }}__status"{% if 'status' in view %} checked{% endif %}>
-            <label for="view_condition_{{ view.type }}__status">{% trans 'Status' %}</label>
+            <input type="checkbox" id="view_condition_{{ view.type }}__associated"{% if 'associated' in view %} checked{% endif %}>
+            <label for="view_condition_{{ view.type }}__associated">{% trans 'Only associated' %}</label>
         </div>
-        <br><br>
-        <div style="margin-left: 15px;">
-            {% for status in statuses %}
-                <div class="ui checkbox">
-                    <input id="view_{{ view.type }}__status__{{ status.0 }}" type="checkbox" value="{{ status.0 }}"{% if 'status' in view and status.0 in view.status %} checked{% endif %}>
-                    <label for="view_{{ view.type }}__status__{{ status.0 }}">{{ status.1 }}</label>
-                </div>
-                <br>
-            {% endfor %}
-        </div>
+        <input id="view_{{ view.type }}__associated" value="true" type="hidden">
         <div class="ui divider"></div>
 
         {# Association type #}

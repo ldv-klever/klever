@@ -15,142 +15,127 @@
  * limitations under the License.
  */
 
-function check_all_roles() {
-    var global_role = $('#job_global_roles').children('option:selected').val();
-    var gr_num = parseInt(global_role);
-    if (gr_num === 4) {
-        $('#job_user_role_div').hide();
-        return false;
-    }
-    $('#all_user_roles').find("select[id^='job_user_role_select__']").each(function () {
-        var is_dis = false;
-        var has_selected = $(this).children('option[selected="selected"]').length;
-        $(this).children('option').each(function () {
-            var opt_num = parseInt($(this).val());
-            if (opt_num < gr_num) {
-                $(this).attr('disabled', 'disabled');
-            }
-            else if (opt_num === gr_num) {
-                $(this).attr('disabled', 'disabled');
-                is_dis = true;
-            }
-            else if (is_dis) {
-                if (has_selected === 0) {
-                    $(this).attr('selected', 'selected');
-                }
-                return false;
-            }
-        });
-    });
-    return false;
+function UserRoleForm(form_id) {
+    this.form_obj = $('#' + form_id);
+    this.global_role_select = this.form_obj.find('#global_role_select').first();
+    this.user_select_div = this.form_obj.find('#user_select_div').first();
+    this.user_select = this.form_obj.find('#user_select').first();
+    this.users_roles_div = this.form_obj.find('#users_roles_div').first();
+    this.template_user_role = this.form_obj.find('#template__user_role').first();
+    this.add_user_for_role = this.form_obj.find('#add_user_for_role').first();
+    this.names = {};
+    return this;
 }
 
-function remove_user_role_form(id) {
-    $('#job_available_users').append($('<option>', {
-        value: id,
-        text: $("label[for='job_user_role_select__" + id + "']").text()
-    }));
-    $('#job_user_role__' + id).remove();
-}
+UserRoleForm.prototype.check_users_length = function() {
+    this.user_select.children().length ? this.user_select_div.show() : this.user_select_div.hide();
+};
 
-function check_add_user_role() {
-    if ($('#job_available_users').children().length === 0) {
-        $('#job_user_role_div').hide();
-    }
-    else {
-        $('#job_user_role_div').show();
-    }
-}
+UserRoleForm.prototype.remove_user_role = function(user_id) {
+    this.user_select.append($('<option>', {value: user_id, text: this.names[user_id + '']}));
+    this.form_obj.find('#user_role__' + user_id).remove();
+};
 
-function add_user_role() {
-    var user_selector = $('#job_available_users'),
-        selected_user = user_selector.children('option:selected');
-    if (selected_user.length === 0) {
-        return false;
-    }
-    var user_id = selected_user.val(), user_name = selected_user.text();
-    var user_role_templ = $('#template__user_role').html();
-    var new_user_role = $('<div>', {
-        id: ('job_user_role__' + user_id),
-        class: 'ui grid segment'
-    });
+UserRoleForm.prototype.global_role = function() {
+    return this.global_role_select.children('option:selected').val();
+};
 
-    var tmp_div = $('<div>');
-    tmp_div.append(user_role_templ);
-    tmp_div.find("[for=job_user_role_select__]").each(function () {
-        var old_id = $(this).attr('for');
-        $(this).attr('for', old_id + user_id);
+UserRoleForm.prototype.add_user_role = function(user_id, user_name, selected_value) {
+    var tmp_div = $('<div>', {id: 'user_role__' + user_id, class: 'ui grid segment'})
+        .append(this.template_user_role.html());
+
+    tmp_div.find("[for=user_role_select__]").each(function () {
+        $(this).attr('for', $(this).attr('for') + user_id);
         $(this).text(user_name);
     });
 
     tmp_div.find("[id]").each(function () {
-        var old_id = $(this).attr('id');
-        $(this).attr('id', old_id + user_id);
+        $(this).attr('id', $(this).attr('id') + user_id);
     });
-    tmp_div.find("select[id^='job_user_role_select__']").attr('class', 'ui dropdown');
+    tmp_div.find("select[id^='user_role_select__']").attr('class', 'ui dropdown');
 
-    $('#all_user_roles').append(new_user_role.append(tmp_div.html()));
-    selected_user.remove();
-    $("#remove_user_role__" + user_id).click(function () {
-        $('#job_available_users').append($('<option>', {
-            value: user_id,
-            text: user_name
-        }));
-        $('#job_user_role__' + user_id).remove();
-        check_add_user_role();
+    // Add action on "delete" button click
+    var instance = this;
+    tmp_div.find("#user_role_remove__" + user_id).click(function () {
+        instance.remove_user_role(user_id);
+        instance.check_users_length();
     });
 
-    check_add_user_role();
-    check_all_roles();
-    user_selector.dropdown('set selected', user_selector.children().first().val()).dropdown('refresh');
-    $('.ui.dropdown').each(function () {
-        if ($(this).find('select').first().attr('id') != user_selector.attr('id')) {
-            $(this).dropdown();
+    // Disable unavailable options and select first found one
+    var has_selected = false,
+        global_role = parseInt(this.global_role()),
+        new_selector = tmp_div.find('#user_role_select__' + user_id);
+    new_selector.children('option').each(function () {
+        var option_value = parseInt($(this).val());
+        if (option_value <= global_role) {
+            // Disable option
+            $(this).attr('disabled', 'disabled');
+        }
+        else if (!has_selected) {
+            // Select first found active option or with provided value
+            if (!selected_value || selected_value && parseInt(selected_value) === option_value) {
+                $(this).attr('selected', 'selected');
+                has_selected = true;
+            }
+
         }
     });
-}
+    new_selector.dropdown();
 
-window.init_roles_form = function (user_roles_form_id, job_id, version) {
-    $.get('/jobs/get_version_roles/' + job_id + '/' + version + '/', {}, function (resp) {
-        if (resp.error) {
-            err_notify(resp.error);
-            return false;
-        }
-        $(user_roles_form_id).html(resp);
-        var global_role_selector = $('#job_global_roles'), available_users = $('#job_available_users');
+    this.users_roles_div.append(tmp_div);
+    this.names[user_id + ''] = user_name;
+};
 
-        global_role_selector.dropdown();
-        available_users.dropdown();
-        check_add_user_role();
-        check_all_roles();
+UserRoleForm.prototype.initialize = function (data) {
+    var instance = this;
 
-        $('#add_user_for_role').unbind().click(add_user_role);
-
-        $("button[id^='remove_user_role__']").unbind().click(function () {
-            var id = $(this).attr('id').replace('remove_user_role__', '');
-            remove_user_role_form(id);
-            check_add_user_role();
+    // Set global role
+    instance.global_role_select.dropdown('set selected', data['global_role']);
+    instance.global_role_select.unbind().change(function () {
+        instance.users_roles_div.find("div[id^='user_role__']").each(function () {
+            instance.remove_user_role($(this).attr('id').replace('user_role__', ''));
         });
 
-        global_role_selector.unbind().change(function() {
-            $('#all_user_roles').find("div[id^='job_user_role__']").each(function () {
-                var id = $(this).attr('id').replace('job_user_role__', '');
-                remove_user_role_form(id);
-            });
-            check_add_user_role();
-            check_all_roles();
-        });
+        // If global role is JOB_ROLE[4][0], then nothing to set for users, otherwise show users
+        instance.global_role() === '4' ? instance.user_select_div.hide() : instance.check_users_length();
+    });
+
+    // Update available users list
+    instance.user_select.empty();
+    $.each(data['available_users'], function (i, user_data) {
+        instance.user_select.append($('<option>', {'value': user_data['id'], 'text': user_data['name']}));
+    });
+    if (data['available_users'].length) instance.user_select.dropdown('set selected', data['available_users'][0]['id']);
+    instance.check_users_length();
+    instance.user_select.dropdown('refresh');
+
+    // Create user roles segments
+    instance.users_roles_div.empty();
+    $.each(data['user_roles'], function (i, user_data) {
+        instance.add_user_role(
+            user_data['user'] + '',
+            user_data['name'],
+            user_data['role']
+        )
+    });
+
+    // Action on "Add" button click
+    instance.add_user_for_role.unbind().click(function () {
+        var selected_user = instance.user_select.children('option:selected');
+        instance.add_user_role(selected_user.val(), selected_user.text());
+        selected_user.remove();
+        instance.check_users_length();
+        instance.user_select.dropdown('set selected', instance.user_select.children().first().val());
+        instance.user_select.dropdown('refresh');
     });
 };
 
-window.get_user_roles = function () {
+UserRoleForm.prototype.get_roles = function () {
     var user_roles = [];
-    $('#all_user_roles').find("select[id^='job_user_role_select__']").each(function () {
-        var user_id = $(this).attr('id').replace('job_user_role_select__', ''),
-            user_role = $(this).children('option:selected').val();
-        user_roles.push({user: user_id, role: user_role});
+    this.users_roles_div.find('div[id^=user_role__]').each(function () {
+        var user_id = $(this).attr('id').replace('user_role__', ''),
+            role = $(this).find('#user_role_select__'  + user_id).first().children('option:selected').val();
+        user_roles.push({'user': user_id, 'role': role});
     });
-    return JSON.stringify(user_roles);
+    return user_roles;
 };
-
-window.global_role = function () { return $('#job_global_roles').children('option:selected').val() };

@@ -33,7 +33,6 @@ from clade import Clade
 @core.components.before_callback
 def __launch_sub_job_components(context):
     context.mqs['VTG common prj attrs'] = multiprocessing.Queue()
-    context.mqs['VTG source paths'] = multiprocessing.Queue()
     context.mqs['pending tasks'] = multiprocessing.Queue()
     context.mqs['processed tasks'] = multiprocessing.Queue()
     context.mqs['prepared verification tasks'] = multiprocessing.Queue()
@@ -51,7 +50,6 @@ def __prepare_descriptions_file(context):
 @core.components.after_callback
 def __submit_project_attrs(context):
     context.mqs['VTG common prj attrs'].put(context.common_prj_attrs)
-    context.mqs['VTG source paths'].put(context.source_paths)
 
 
 def _extract_plugin_descs(logger, tmpl_id, tmpl_desc):
@@ -309,18 +307,14 @@ class VTG(core.components.Component):
     def generate_verification_tasks(self):
         self.requirement_descs = _requirement_descs
         core.utils.report(self.logger,
-                          'attrs',
+                          'patch',
                           {
-                              'id': self.id,
+                              'identifier': self.id,
                               'attrs': self.__get_common_prj_attrs()
                           },
                           self.mqs['report files'],
                           self.vals['report id'],
                           self.conf['main working directory'])
-
-        source_paths = self.mqs['VTG source paths'].get()
-        self.mqs['VTG source paths'].close()
-        self.conf['source paths'] = source_paths
 
         # Start plugins
         if not self.conf['keep intermediate files']:
@@ -600,9 +594,9 @@ class VTGW(core.components.Component):
         with open(files_list_file, 'w', encoding='utf8') as fp:
             fp.writelines('\n'.join(sorted(f for grp in self.program_fragment['grps'] for f in grp['files'])))
         core.utils.report(self.logger,
-                          'attrs',
+                          'patch',
                           {
-                              'id': self.id,
+                              'identifier': self.id,
                               'attrs': [
                                   {
                                       "name": "Program fragment",
@@ -769,7 +763,7 @@ class VTGW(core.components.Component):
                 # Plan for checking status
                 self.mqs['pending tasks'].put([
                     [str(task_id), final_task_data["result processing"], self.program_fragment,
-                     self.requirement, final_task_data['verifier']],
+                     self.requirement, final_task_data['verifier'], final_task_data['additional sources']],
                     self.rerun
                 ])
                 self.logger.info("Submitted successfully verification task {} for solution".

@@ -1,0 +1,61 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:memory safety"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/linux/memory-safety/memcpy2.ko"
+    }
+  ],
+  "description": "",
+  "error_trace": [
+    [
+      {
+        "ldv_init": [
+          {
+            "leak": [
+              {
+                "kmalloc": [
+                  {
+                    "ldv_kmalloc": [
+                      {
+                        "ldv_malloc": [
+                          {
+                            "ldv_reference_malloc": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kmalloc": [
+                  {
+                    "ldv_kmalloc": [
+                      {
+                        "ldv_malloc": [
+                          {
+                            "ldv_reference_malloc": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": true,
+  "tags": [],
+  "verdict": "2"
+}

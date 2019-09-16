@@ -16,58 +16,43 @@
 {% endcomment %}
 
 {% load i18n %}
-
-<div id="etv" class="ui orange segment {% if fullscreen %} fullscreen{% endif %}">
-    <div id="etv-trace">
-        <div style="margin: 10px;">
-            <div class="ui grid">
-                <div class="sixteen wide column center aligned">
-                    <h3><a id="error_trace_options" href="{% url 'reports:download_error_trace' report.pk %}">{% trans 'Error trace' %}</a></h3>
-                </div>
-            </div>
-            {% if etv %}
-                {% include 'reports/ErrorTrace.html' with etv=etv %}
+<div class="ui grid">
+    <div class="seven wide column">
+        <div class="ui mini buttons">
+            <a class="ui icon violet button" href="{% url 'reports:unsafe-download' report.pk %}"><i class="ui download icon"></i></a>
+            {% if fullscreen %}
+                <a class="ui icon violet button" href="{% url 'reports:unsafe' report.trace_id %}"><i class="remove icon"></i></a>
             {% else %}
-                <div class="ui divider"></div>
-                <h2 class="ui red header" style="margin: 10px;">{% trans "Couldn't visualize the error trace" %}</h2>
+                <a class="ui icon violet button" href="{% url 'reports:unsafe_fullscreen' report.trace_id %}"><i class="expand arrows alternate icon"></i></a>
             {% endif %}
         </div>
     </div>
-    <div id="etv-source"{% if include_assumptions %} style="height:70%;"{% endif %}>
-        <div style="margin: 10px;">
-            <div class="ETVTitleBlock">
-                <h4 id="ETVSourceTitle" class="header" data-position="top right" style="padding-bottom: 7px;float: left;"></h4>
-                <div class="ui popup very wide">
-                    <p id="ETVSourceTitleFull"></p>
-                </div>
-            </div>
-            <div class="filecontent" id="ETV_source_code"></div>
+    <div class="one wide column">
+        <div id="ETVSourceButtons" class="ui mini buttons">
+            <button class="ui violet disabled icon button src-back-btn"><i class="ui arrow left icon"></i></button>
         </div>
     </div>
+    <div class="eight wide column ETVTitleBlock">
+        <h4 id="ETVSourceTitle" class="header" data-variation="very wide" data-position="top right"></h4>
+    </div>
+</div>
+<div id="etv" class="ui orange segment {% if fullscreen %} fullscreen{% endif %}">
+    <div id="etv-trace">
+        {% if etv %}
+            {% include 'reports/ErrorTrace.html' with etv=etv %}
+        {% else %}
+            <div class="ui divider"></div>
+            <h2 class="ui red header" style="margin: 10px;">{% trans "Couldn't visualize the error trace" %}</h2>
+        {% endif %}
+    </div>
+    <div id="etv-source"{% if etv.user.assumptions or etv.user.coverage_data %} style="height:70%;"{% endif %}>
+        <div id="ETV_source_code" class="SourceCodeContent"></div>
+    </div>
     <div id="etv-divider"></div>
-    {% if include_assumptions %}
-        <div id="etv-assumes">
-            <div id="ETV_assumes">
-            </div>
-        </div>
+    {% if etv.user.assumptions or etv.user.coverage_data %}
+        <div id="etv-data-container"><div id="ETV_data"></div></div>
         <div id="etv-divider-2"></div>
     {% endif %}
 </div>
-
-{% if etv %}
-    {% if etv.attributes|length %}
-        <div id="etv-attributes" class="ui popup very wide" style="white-space: nowrap;">
-            <div class="ui grid">
-                <div class="sixteen wide column left aligned">
-                    {% for attribute in etv.attributes %}
-                        <span class="ui violet header small">{{ attribute.0 }}</span>: <span class="small">{{ attribute.1 }}</span><br>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
-    {% endif %}
-
-    <span id="error___line_not_found" hidden>{% trans 'Could not find the specified line' %}</span>
-    <span id="error___no_selected_line" hidden>{% trans 'Please, select the line first' %}</span>
-    <span id="play_finished" hidden>{% trans 'Play of the error trace was completed' %}</span>
-{% endif %}
+<div id="sources_history" hidden></div>
+<span id="error___line_not_found" hidden>{% trans 'Could not find the specified line' %}</span>

@@ -1,0 +1,23 @@
+<div class="ui breadcrumb">
+    <a class="section parent-popup" href="{% url 'reports:component' parents.0.id %}" data-variation="very wide">{{ parents.0.component }}</a>
+    <div class="ui special popup">
+        <div class="header">{{ parents.0.component }}</div>
+        <div class="content">
+            {% for attr in parents.0.attrs %}
+                <span class="purple-subtitle">{{ attr.name }}: </span>{{ attr.value }}<br><br>
+            {% endfor %}
+        </div>
+    </div>
+    {% for parent in parents|slice:"1:" %}
+        <i class="right arrow icon divider"></i>
+        <a class="section parent-popup" href="{% url 'reports:component' parent.id %}" data-variation="very wide">{{ parent.component }}</a>
+        <div class="ui special popup">
+            <div class="header">{{ parent.component }}</div>
+            <div class="content">
+                {% for attr in parent.attrs %}
+                    <span class="purple-subtitle">{{ attr.name }}: </span>{{ attr.value }}<br>
+                {% endfor %}
+            </div>
+        </div>
+    {% endfor %}
+</div>

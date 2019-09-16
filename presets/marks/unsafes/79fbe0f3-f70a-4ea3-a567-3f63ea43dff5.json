@@ -1,0 +1,41 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:alloc:usb lock"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/linux/alloc/usb-lock/wrong-flags-trylock.ko"
+    }
+  ],
+  "description": "",
+  "error_trace": [
+    [
+      {
+        "ldv_init": [
+          {
+            "ldv_usb_trylock_device": []
+          },
+          {
+            "ldv_kmalloc": [
+              {
+                "ldv_check_alloc_flags": [
+                  {
+                    "ldv_assert_linux_alloc_usb_lock__wrong_flags": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": true,
+  "tags": [],
+  "verdict": "2"
+}

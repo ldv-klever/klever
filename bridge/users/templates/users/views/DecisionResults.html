@@ -59,21 +59,7 @@
                     <input type="checkbox" id="view_{{ view.type }}__data__tags_unsafe"{% if 'tags_unsafe' in view.data %} checked{% endif %}>
                     <label for="view_{{ view.type }}__data__tags_unsafe">{% trans 'Tags' %}/{% trans 'Unsafe' %}</label>
                 </div>
-                <br>
-                <div class="ui checkbox">
-                    <input type="checkbox" id="view_{{ view.type }}__data__unsafes_attr_stat"{% if 'unsafes_attr_stat' in view.data %} checked{% endif %}>
-                    <label for="view_{{ view.type }}__data__unsafes_attr_stat">{% trans 'Statistics' %}/{% trans 'Unsafe' %}</label>
-                </div>
-                <br>
-                <div class="ui checkbox">
-                    <input type="checkbox" id="view_{{ view.type }}__data__safes_attr_stat"{% if 'safes_attr_stat' in view.data %} checked{% endif %}>
-                    <label for="view_{{ view.type }}__data__safes_attr_stat">{% trans 'Statistics' %}/{% trans 'Safe' %}</label>
-                </div>
-                <br>
-                <div class="ui checkbox">
-                    <input type="checkbox" id="view_{{ view.type }}__data__unknowns_attr_stat"{% if 'unknowns_attr_stat' in view.data %} checked{% endif %}>
-                    <label for="view_{{ view.type }}__data__unknowns_attr_stat">{% trans 'Statistics' %}/{% trans 'Unknown' %}</label>
-                </div>
+                <input type="checkbox" id="view_{{ view.type }}__data__attr_stat" checked style="display: none">
                 <div class="ui divider"></div>
 
                 <input id="view_data_{{ view.type }}__attr_stat" value="list_if_attr_stat" data-list="attr_stat_name" type="hidden">

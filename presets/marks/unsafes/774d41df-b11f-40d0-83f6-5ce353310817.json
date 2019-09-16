@@ -1,0 +1,34 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:test:common"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/multimodule_error/init.ko"
+    }
+  ],
+  "description": "",
+  "error_trace": [
+    [
+      {
+        "init": [
+          {
+            "multimodule_error_export_with_error": [
+              {
+                "ldv_error": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": false,
+  "tags": [],
+  "verdict": "2"
+}

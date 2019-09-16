@@ -33,19 +33,21 @@
             <h2>{% trans 'Start decision of job' %} <a id="job_link" href="{% url 'jobs:job' job.pk %}">{{ job.name }}</a></h2>
         </div>
         <div class="two wide column right aligned">
-            <form role="form" id="upload_file_conf_form" method="post" enctype="multipart/form-data" action="" style="{% if current_conf != 'file_conf' %}display: none{% endif %}">
-                {% csrf_token %}
-                <input name="conf_name" value="file_conf" type="hidden">
-                <span class="ui violet button btn-file">{% trans 'Browse' %}<input id="configuration_file_input" name="file_conf" type="file"></span>
-            </form>
+            <div id="upload_file_conf_form"{% if current_conf != 'file_conf' %} style="display: none;"{% endif %}>
+                <span class="ui violet button btn-file">{% trans 'Browse' %}<input id="file_conf" type="file"></span>
+            </div>
         </div>
-        <div class="six wide column">
+        <div class="six wide column right aligned">
             <label for="default_configs"></label>
             <select id="default_configs" class="ui dropdown">
                 {% for conf in data.modes %}
                     <option value="{{ conf.0 }}"{% if current_conf == conf.0 %} selected{% endif %}>{{ conf.1 }}</option>
                 {% endfor %}
-                <option value="file_conf"{% if current_conf == 'file_conf' %} selected{% endif %}>{% trans 'Use configuration from file' %}</option>
+                {% if job.status != '0' %}
+                    {# The job has decision already, so it has last run configuration #}
+                    <option value="lastconf">{% trans 'Last run configuration' %}</option>
+                {% endif %}
+                <option value="file_conf">{% trans 'Use configuration from file' %}</option>
             </select>
         </div>
     </div>
@@ -55,7 +57,7 @@
             {% if data.job_sch_err %}
                 <h4 class="ui red header">{{ data.job_sch_err }}</h4>
             {% endif %}
-            <div class="need-auth"{% if data.conf.scheduler == '1' and data.need_auth %} style="display: none"{% endif %}>
+            <div>
                 <h5>{% trans 'Job priority' %}</h5>
                 {% for p in data.priorities %}
                     <div class="ui radio checkbox">
@@ -75,13 +77,6 @@
                 <br>
             {% endfor %}
             <br><br>
-            {% if data.need_auth %}
-                <div id="new_sch_u" class="ui green segment" style="width:400px;{% if not data.conf.scheduler == '1' %}display: none{% endif %}">
-                    {% include 'users/schedulerUser.html' %}
-                    <br>
-                    <button id="add_new_sch_u" class="ui green button disabled">{% trans 'Save' %}</button>
-                </div>
-            {% endif %}
             <label for="max_tasks" style="margin-right: 20px;">{% trans 'Max solving tasks per a sub-job' %}</label>
             <div>
                 <div class="ui input">
@@ -95,30 +90,37 @@
         </div>
 
         {# Parallelism #}
-        <div class="ui violet segment need-auth" style="width: 40%;{% if data.conf.scheduler == '1' and data.need_auth %}display:none{% endif %}">
+        <div class="ui violet segment" style="width: 40%;">
             <h3>{% trans 'Operations parallelism' %}</h3>
-            {% for p_name in data.conf.parallelism.for_template %}
-                <label for="{{ p_name.0 }}__value">{{ p_name.1 }}</label>
-                <br>
-                <div class="ui input">
-                    <input class="parallelism-values" id="{{ p_name.0 }}__value" type="text" value="{{ p_name.2 }}">
-                </div>
-                <br><br>
-            {% endfor %}
+            <label for="parallelism_0">{% trans 'Sub-jobs processing' %}</label>
             <br>
-            {% for p in data.conf.parallelism.parallelism_packs %}
-                <span class="get-attr-value">{{ p.1 }}
-                    <input name="parallelism" type="hidden" value="{{ p.0 }}">
-                </span>
+            <div class="ui input">
+                <input class="parallelism-values" id="parallelism_0" type="text" value="{{ data.conf.parallelism.0 }}">
+            </div>
+            <br><br>
+            <label for="parallelism_1">{% trans 'Tasks generation' %}</label>
+            <br>
+            <div class="ui input">
+                <input class="parallelism-values" id="parallelism_1" type="text" value="{{ data.conf.parallelism.1 }}">
+            </div>
+            <br><br>
+            <label for="parallelism_2">{% trans 'Results processing' %}</label>
+            <br>
+            <div class="ui input">
+                <input class="parallelism-values" id="parallelism_2" type="text" value="{{ data.conf.parallelism.2 }}">
+            </div>
+            <br><br><br>
+            {% for p in data.parallelism %}
+                <span class="get-attr-value" data-name="parallelism" data-value="{{ p.0 }}">{{ p.1 }}</span>
             {% endfor %}
         </div>
 
-        <div class="ui violet segment need-auth" style="width: 35%;{% if data.conf.scheduler == '1' and data.need_auth %}display:none{% endif %}">
+        <div class="ui violet segment" style="width: 35%;">
             <h3>{% trans 'Resource limits for Klever Core' %}</h3>
-            <label for="max_ram" style="margin-right: 20px;">{% trans 'Memory size' %}, {% trans 'GB' %}</label>
+            <label for="memory" style="margin-right: 20px;">{% trans 'Memory size' %}, {% trans 'GB' %}</label>
             <div>
                 <div class="ui input">
-                    <input id="max_ram" type="text" value="{{ data.conf.resources.0 }}">
+                    <input id="memory" type="text" value="{{ data.conf.memory }}">
                 </div>
                 <i class="ui blue icon help note-popup"></i>
                 <div class="ui popup">
@@ -126,10 +128,10 @@
                 </div>
             </div>
             <br>
-            <label for="max_cpus" style="margin-right: 20px;">{% trans 'Number of CPU cores' %}</label>
+            <label for="cpu_num" style="margin-right: 20px;">{% trans 'Number of CPU cores' %}</label>
             <div>
                 <div class="ui input">
-                    <input id="max_cpus" type="number" value="{{ data.conf.resources.1 }}" pattern="[0-9]+">
+                    <input id="cpu_num" type="number"{% if data.conf.cpu_model %} value="{{ data.conf.cpu_num }}"{% endif %} pattern="[0-9]+">
                 </div>
                 <i class="ui blue icon help note-popup"></i>
                 <div class="ui popup">
@@ -137,10 +139,10 @@
                 </div>
             </div>
             <br>
-            <label for="max_disk" style="margin-right: 20px;">{% trans 'Disk memory size' %}, {% trans 'GB' %}</label>
+            <label for="disk_size" style="margin-right: 20px;">{% trans 'Disk memory size' %}, {% trans 'GB' %}</label>
             <div>
                 <div class="ui input">
-                    <input id="max_disk" type="text" value="{{ data.conf.resources.2 }}">
+                    <input id="disk_size" type="text" value="{{ data.conf.disk_size }}">
                 </div>
                 <i class="ui blue icon help note-popup"></i>
                 <div class="ui popup">
@@ -151,7 +153,7 @@
             <label for="cpu_model">{% trans 'CPU model' %}</label>
             <div>
                 <div class="ui input" style="width: 250px;">
-                    <input id="cpu_model" type="text"{% if data.conf.resources.3 %} value="{{ data.conf.resources.3 }}"{% endif %}>
+                    <input id="cpu_model" type="text"{% if data.conf.cpu_model %} value="{{ data.conf.cpu_model }}"{% endif %}>
                 </div>
                 <i class="ui blue icon help note-popup"></i>
                 <div class="ui popup">
@@ -160,67 +162,250 @@
             </div>
         </div>
     </div>
-    <div class="ui horizontal segments need-auth" {% if data.conf.scheduler == '1' and data.need_auth %} style="display: none"{% endif %}>
+    <div class="ui horizontal segments">
         <div class="ui violet segment">
-            {% with data.conf.logging.for_template as logging %}
-                <h3>{% trans 'Logging' %}</h3>
-                <p class="bold-text">{% trans 'Console' %}</p>
-                <label for="console_logging_level">{% trans 'Logging level' %}</label><br>
-                <select id="console_logging_level" class="ui dropdown mini normal-dropdown">
-                    {% for ll in data.conf.logging.logging_levels %}
-                        <option value="{{ ll }}"{% if logging.console.level == ll %} selected{% endif %} >{{ ll }}</option>
-                    {% endfor %}
-                </select>
-                <br><br>
-                <label for="console_log_formatter__value">{% trans 'Formatter' %}</label>
-                <div class="ui fluid input">
-                    <input id="console_log_formatter__value" value="{{ logging.console.formatter }}">
-                </div>
-                {% for df in data.conf.logging.default_formatters %}
-                    <span class="get-attr-value">{{ df.1 }}<input name="console_log_formatter" type="hidden" value="{{ df.0 }}"></span>
+            <h3>{% trans 'Logging' %}</h3>
+            <p class="bold-text">{% trans 'Console' %}</p>
+            <label for="console_level">{% trans 'Logging level' %}</label><br>
+            <select id="console_level" name="console_level" class="ui dropdown mini normal-dropdown">
+                {% for ll in data.levels %}
+                    <option value="{{ ll }}"{% if data.conf.console_level == ll %} selected{% endif %} >{{ ll }}</option>
                 {% endfor %}
-                <div class="ui divider"></div>
-                <p class="bold-text">{% trans 'File' %}</p>
-                <label for="file_logging_level">{% trans 'Logging level' %}</label><br>
-                <select id="file_logging_level" class="ui dropdown mini normal-dropdown">
-                    {% for ll in data.conf.logging.logging_levels %}
-                        <option value="{{ ll }}"{% if logging.file.level == ll %} selected{% endif %} >{{ ll }}</option>
-                    {% endfor %}
-                </select>
-                <br><br>
-                <label for="file_log_formatter__value">{% trans 'Formatter' %}</label>
-                <div class="ui fluid input">
-                    <input id="file_log_formatter__value" value="{{ logging.file.formatter }}">
-                </div>
-                {% for df in data.conf.logging.default_formatters %}
-                    <span class="get-attr-value">{{ df.1 }}<input name="file_log_formatter" type="hidden" value="{{ df.0 }}"></span>
+            </select>
+            <br><br>
+            <label for="console_formatter">{% trans 'Formatter' %}</label>
+            <div class="ui fluid input">
+                <input id="console_formatter" name="console_formatter" value="{{ data.conf.console_formatter }}">
+            </div>
+            {% for df in data.formatters %}
+                <span class="get-attr-value" data-name="def_console_formatter" data-value="{{ df.0 }}">{{ df.1 }}</span>
+            {% endfor %}
+            <div class="ui divider"></div>
+            <p class="bold-text">{% trans 'File' %}</p>
+            <label for="file_level">{% trans 'Logging level' %}</label><br>
+            <select id="file_level" name="file_level" class="ui dropdown mini normal-dropdown">
+                {% for ll in data.levels %}
+                    <option value="{{ ll }}"{% if data.conf.file_level == ll %} selected{% endif %} >{{ ll }}</option>
                 {% endfor %}
-            {% endwith %}
+            </select>
+            <br><br>
+            <label for="file_formatter">{% trans 'Formatter' %}</label>
+            <div class="ui fluid input">
+                <input id="file_formatter" name="file_formatter" value="{{ data.conf.file_formatter }}">
+            </div>
+            {% for df in data.formatters %}
+                <span class="get-attr-value" data-name="def_file_formatter" data-value="{{ df.0 }}">{{ df.1 }}</span>
+            {% endfor %}
         </div>
         <div class="ui violet segment">
             <h3>{% trans 'Other settings' %}</h3>
             <br>
-            {% for b in data.conf.boolean.for_template %}
-                <div class="ui toggle checkbox">
-                    <input id="bool__{{ b.0 }}__checkbox" class="boolean-value" type="checkbox" {% if b.2 %} checked{% endif %}>
-                    <label for="bool__{{ b.0 }}__checkbox">{{ b.1 }}</label>
-                </div>
-                <br><br>
-            {% endfor %}
+            <div class="ui toggle checkbox">
+                <input id="keep_intermediate_files" class="boolean-value" type="checkbox" {% if data.conf.keep_intermediate_files %} checked{% endif %}>
+                <label for="keep_intermediate_files">{% trans 'Keep intermediate files inside the working directory of Klever Core' %}</label>
+            </div>
+            <br><br>
+            <div class="ui toggle checkbox">
+                <input id="upload_verifiers_files" class="boolean-value" type="checkbox" {% if data.conf.upload_verifiers_files %} checked{% endif %}>
+                <label for="upload_verifiers_files">{% trans 'Upload input files of static verifiers' %}</label>
+            </div>
+            <br><br>
+            <div class="ui toggle checkbox">
+                <input id="upload_other_files" class="boolean-value" type="checkbox" {% if data.conf.upload_other_files %} checked{% endif %}>
+                <label for="upload_other_files">{% trans 'Upload other intermediate files' %}</label>
+            </div>
+            <br><br>
+            <div class="ui toggle checkbox">
+                <input id="ignore_instances" class="boolean-value" type="checkbox" {% if data.conf.ignore_instances %} checked{% endif %}>
+                <label for="ignore_instances">{% trans 'Ignore other instances of Klever Core' %}</label>
+            </div>
+            <br><br>
+            <div class="ui toggle checkbox">
+                <input id="ignore_subjobs" class="boolean-value" type="checkbox" {% if data.conf.ignore_subjobs %} checked{% endif %}>
+                <label for="ignore_subjobs">{% trans 'Ignore failed sub-jobs' %}</label>
+            </div>
+            <br><br>
+            <div class="ui toggle checkbox">
+                <input id="total_coverage" class="boolean-value" type="checkbox" {% if data.conf.total_coverage %} checked{% endif %}>
+                <label for="total_coverage">{% trans 'Collect total code coverage' %}</label>
+            </div>
+            <br><br>
             <div class="switch-toggle switch-3 switch-candy switch-candy-blue">
                 {% for w in data.job_weight %}
-                    <input id="weight_{{ w.0 }}" name="job_weight" type="radio" value="{{ w.0 }}" {% if data.conf.weight == w.0 %} checked="checked"{% endif %}>
+                    <input id="weight_{{ w.0 }}" name="job_weight" type="radio" value="{{ w.0 }}" {% if data.conf.job_weight == w.0 %} checked="checked"{% endif %}>
                     <label for="weight_{{ w.0 }}">{{ w.1 }}</label>
                 {% endfor %}
                 <a></a>
             </div>
         </div>
     </div>
+    {% if data.need_auth %}
+        <div id="scheduler_user_modal" class="ui modal">
+            <div class="header">{% trans 'Add scheduler user to proceed' %}</div>
+            <div class="content">
+                <div class="ui grid">
+                    <div class="eleven wide column">
+                        <div class="field">
+                            <label for="sch_login">{% trans 'Username' %}</label>
+                            <div class="ui input fluid">
+                                <input id="sch_login" type="text">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="five wide column">
+                        <br>
+                        <i id="sch_login_required" class="warn-popup ui warning red big icon" style="display: none"></i>
+                        <div class="ui popup top left transition hidden">
+                            <span style="white-space: nowrap">{% trans 'This field is required' %}</span>
+                        </div>
+                    </div>
+                </div>
+                <br>
+                <div class="ui grid">
+                    <div class="eleven wide column">
+                        <div class="field">
+                            <label for="sch_password">{% trans 'Password' %}</label>
+                            <div class="ui input fluid">
+                                <input id="sch_password" name="sch_password" type="password">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="five wide column">
+                        <br>
+                        <i id="sch_password_required" class="warn-popup ui warning red big icon" style="display: none"></i>
+                        <div class="ui popup top left transition hidden">
+                            <span style="white-space: nowrap">{% trans 'This field is required' %}</span>
+                        </div>
+                    </div>
+                </div>
+                <br>
+                <div class="ui grid">
+                    <div class="eleven wide column">
+                        <div class="field">
+                            <label for="sch_password_retype">{% trans 'Confirmation' %}</label>
+                            <div class="ui input fluid">
+                                <input id="sch_password_retype" type="password">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="five wide column">
+                        <br>
+                        <i id="sch_password_retype_required" class="warn-popup ui warning red big icon" style="display: none"></i>
+                        <div class="ui popup top left transition hidden">
+                            <span style="white-space: nowrap">{% trans 'This field is required' %}</span>
+                        </div>
+                        <i id="sch_password_retype_match" class="warn-popup ui warning red big icon" style="display: none"></i>
+                        <div class="ui popup top left transition hidden">
+                            <span style="white-space: nowrap">{% trans "Passwords don't match" %}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="actions">
+                <button class="ui green button modal-confirm">{% trans 'Create' %}</button>
+                <button class="ui red button modal-cancel">{% trans 'Proceed without scheduler user' %}</button>
+            </div>
+        </div>
+        <script type="application/javascript">
+        jQuery(function () {
+            let sch_user_modal = $('#scheduler_user_modal'),
+                confirm_btn = sch_user_modal.find('.modal-confirm'),
+                cancel_btn = sch_user_modal.find('.modal-cancel'),
+                login_input = $('#sch_login'),
+                passwd_input = $('#sch_password'),
+                passwd_retype_input = $('#sch_password_retype');
+            sch_user_modal.modal({transition: 'fade', closable: false});
+            sch_user_modal.find('.warn-popup').popup();
+
+            function check_sch_user_data() {
+                let err_found = false;
+
+                if (login_input.val().length === 0) {
+                    err_found = true;
+                    $('#sch_login_required').show();
+                    login_input.parent().addClass('error');
+                }
+                else {
+                    $('#sch_login_required').hide();
+                    login_input.parent().removeClass('error');
+                }
+
+                if (passwd_input.val().length === 0) {
+                    err_found = true;
+                    $('#sch_password_required').show();
+                    passwd_input.parent().addClass('error');
+                }
+                else {
+                    $('#sch_password_required').hide();
+                    passwd_input.parent().removeClass('error');
+                }
+
+                if (passwd_retype_input.val().length === 0) {
+                    err_found = true;
+                    $('#sch_password_retype_required').show();
+                    passwd_retype_input.parent().addClass('error');
+                }
+                else {
+                    $('#sch_password_retype_required').hide();
+                    passwd_retype_input.parent().removeClass('error');
+                }
+
+                if (passwd_input.val().length && passwd_retype_input.val().length && passwd_retype_input.val() !== passwd_input.val()) {
+                    err_found = true;
+                    $('#sch_password_retype_match').show();
+                    passwd_retype_input.parent().addClass('error');
+                }
+                else {
+                    $('#sch_password_retype_match').hide();
+                    passwd_retype_input.parent().removeClass('error');
+                }
+
+                if (err_found) {
+                    if (!confirm_btn.hasClass('disabled')) confirm_btn.addClass('disabled');
+                }
+                else confirm_btn.removeClass('disabled');
+
+                return err_found;
+            }
+            login_input.on('input', check_sch_user_data);
+            passwd_input.on('input', check_sch_user_data);
+            passwd_retype_input.on('input', check_sch_user_data);
+
+            confirm_btn.click(function () {
+                $.ajax({
+                    url: "{% url 'service:api-scheduler-user' %}",
+                    type: 'POST',
+                    data: {
+                        login: login_input.val(),
+                        password: passwd_input.val()
+                    },
+                    success: function () {
+                        success_notify("{% trans 'VerifierCloud credentials were successfully saved (you can change them in your settings)' %}", 10000);
+                        sch_user_modal.modal('hide');
+                        $('.scheduler-checkbox').checkbox({onChecked: function(){}});
+                    }
+                });
+            });
+            cancel_btn.click(function () {
+                sch_user_modal.modal('hide');
+            });
+            // Initialize checkbox
+            $('.ui.scheduler-checkbox').addClass('checkbox');
+            $('.scheduler-checkbox').checkbox({onChecked: function () {
+                if ($(this).val() === 'VerifierCloud') sch_user_modal.modal('show');
+            }});
+            {% if data.conf.scheduler == 'VerifierCloud' %}
+                sch_user_modal.modal('show');
+            {% endif %}
+        })
+        </script>
+    {% endif %}
     <div style="float: right;margin-bottom: 50px;">
         <input id="job_pk" type="hidden" value="{{ job.pk }}">
-        <button id="start_job_decision" class="ui violet button">{% trans 'Start' %}</button>
+        <input id="api_conf_url" type="hidden" value="{% url 'jobs:api-configuration' %}">
+        <input id="api_values_url" type="hidden" value="{% url 'jobs:api-def-start-value' %}">
+        <button id="start_job_decision" class="ui violet button" data-url="{% url 'jobs:api-decide' job.id %}">{% trans 'Start' %}</button>
     </div>
-    <span id="sch_u_saved" hidden>{% trans 'VerifierCloud credentials were successfully saved (you can change them in your settings)' %}</span>
     <span id="fields_required" hidden>{% trans 'Fields with red background are required' %}</span>
     <span id="numeric_required" hidden>{% trans 'Fields with red background must be numeric' %}</span>
 {% endblock %}

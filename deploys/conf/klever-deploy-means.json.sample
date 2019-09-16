@@ -12,7 +12,8 @@
     "For building and running Klever Bridge": [
       "gettext",
       "nginx",
-      "postgresql"
+      "postgresql",
+      "rabbitmq-server"
     ],
     "For running Klever Core": [
       "bc",
@@ -34,12 +35,16 @@
   "Python3 Packages": {
     "For building and running Klever Bridge": [
       "Django==2.1.7",
+      "djangorestframework",
+      "django-mptt",
       "gunicorn",
+      "pika",
       "psycopg2",
+      "python-slugify",
       "pytz"
     ],
     "For running Klever Core": [
-      "clade==3.0.5",
+      "clade==3.2",
       "jinja2",
       "graphviz",
       "ply",
@@ -57,8 +62,8 @@
   },
   "Klever Addons": {
     "CIF": {
-      "version": "79a0019",
-      "path": "addons/cif-79a0019.tar.xz"
+      "version": "d09b7a5",
+      "path": "addons/cif-d09b7a5.tar.xz"
     },
     "CIL": {
       "version": "460aed4",
@@ -80,13 +85,13 @@
         "name": "CPAchecker",
         "version": "trunk:31140",
         "path": "addons/CPAchecker-1.8-svn 31140-unix",
-        "executable path": "CPAchecker-1.8-svn 31140-unix/scripts"
+        "executable path": "scripts"
       },
       "CPALockator": {
         "name": "CPAchecker",
         "version": "CPALockator-combat-mode:28916",
         "path": "addons/CPAchecker-1.7-svn 28916-unix",
-        "executable path": "CPAchecker-1.7-svn 28916-unix/scripts"
+        "executable path": "scripts"
       }
     }
   },

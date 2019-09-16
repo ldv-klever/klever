@@ -1,0 +1,19 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:test:common"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/verifier/thread/safe.ko"
+    }
+  ],
+  "description": "",
+  "function": "Error: Error in recursive analysis",
+  "is_modifiable": true,
+  "is_regexp": false,
+  "problem_pattern": "Recursion"
+}

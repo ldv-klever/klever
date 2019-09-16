@@ -16,8 +16,10 @@
 #
 
 from django.utils.translation import ugettext_lazy as _, pgettext_lazy as __
+from django.utils.functional import cached_property
 
 FORMAT = 1
+ETV_FORMAT = 1
 
 DATAFORMAT = (
     ('raw', _('Raw')),
@@ -85,7 +87,7 @@ JOB_WEIGHT = (
     ('1', _('Lightweight'))
 )
 
-MARK_TYPE = (
+MARK_SOURCE = (
     ('0', _('Created')),
     ('1', _('Preset')),
     ('2', _('Uploaded')),
@@ -120,6 +122,7 @@ UNSAFE_VERDICTS = (
     ('5', _('Without marks')),
 )
 
+# TODO: clear usages
 SAFE_VERDICTS = (
     ('0', _('Unknown')),
     ('1', _('Incorrect proof')),
@@ -128,11 +131,120 @@ SAFE_VERDICTS = (
     ('4', _('Without marks')),
 )
 
+
+class SafeVerdicts:
+    verdicts = (
+        ('0', _('Unknown')),
+        ('1', _('Incorrect proof')),
+        ('2', _('Missed target bug')),
+        ('3', _('Incompatible marks')),
+        ('4', _('Without marks')),
+    )
+    column_map = {
+        '0': 'safe:unknown',
+        '1': 'safe:incorrect',
+        '2': 'safe:missed_bug',
+        '3': 'safe:inconclusive',
+        '4': 'safe:unassociated'
+    }
+    unassociated = '4'
+    columns_data = (
+        ('safe', _('Safes'), ''),
+        ('safe:missed_bug', _('Missed target bugs'), '#C70646'),  # red
+        ('safe:incorrect', _('Incorrect proof'), '#D05A00'),  # orange
+        ('safe:unknown', _('Unknown'), '#930BBD'),  # purple
+        ('safe:inconclusive', _('Incompatible marks'), '#C70646'),  # red
+        ('safe:unassociated', _('Without marks'), ''),
+        ('safe:total', _('Total'), ''),
+    )
+
+    @cached_property
+    def _verdict_dict(self):
+        return dict(self.verdicts)
+
+    def translate(self, verdict):
+        return self._verdict_dict[verdict]
+
+    def column(self, verdict):
+        return self.column_map[verdict]
+
+    def columns(self, with_root=False):
+        columns = []
+        if with_root:
+            columns.append(self.columns_data[0][0])
+        for col_data in self.columns_data[1:]:
+            columns.append(col_data[0])
+        return columns
+
+    @property
+    def default(self):
+        return self.verdicts[4][0]
+
+
+class UnsafeVerdicts:
+    verdicts = (
+        ('0', _('Unknown')),
+        ('1', _('Bug')),
+        ('2', _('Target bug')),
+        ('3', _('False positive')),
+        ('4', _('Incompatible marks')),
+        ('5', _('Without marks')),
+    )
+    column_map = {
+        '0': 'unsafe:unknown',
+        '1': 'unsafe:bug',
+        '2': 'unsafe:target_bug',
+        '3': 'unsafe:false_positive',
+        '4': 'unsafe:inconclusive',
+        '5': 'unsafe:unassociated'
+    }
+    unassociated = '5'
+    columns_data = (
+        ('unsafe', _('Unsafes'), ''),
+        ('unsafe:unknown', _('Unknown'), '#930BBD'),  # purple
+        ('unsafe:bug', _('Bugs'), '#C70646'),  # red
+        ('unsafe:target_bug', _('Target bugs'), '#C70646'),  # red
+        ('unsafe:false_positive', _('False positives'), '#D05A00'),  # orange
+        ('unsafe:inconclusive', _('Incompatible marks'), '#C70646'),
+        ('unsafe:unassociated', _('Without marks'), ''),
+        ('unsafe:total', _('Total'), ''),
+    )
+
+    @cached_property
+    def _verdict_dict(self):
+        return dict(self.verdicts)
+
+    def translate(self, verdict):
+        return self._verdict_dict[verdict]
+
+    def column(self, verdict):
+        return self.column_map[verdict]
+
+    def color(self, verdict):
+        column = self.column(verdict)
+        for col, n, color in self.columns_data:
+            if col == column:
+                return color or None
+        return None
+
+    def columns(self, with_root=False):
+        columns = []
+        if with_root:
+            columns.append(self.columns_data[0][0])
+        for col_data in self.columns_data[1:]:
+            columns.append(col_data[0])
+        return columns
+
+    @property
+    def default(self):
+        return self.verdicts[4][0]
+
+
 VIEW_TYPES = (
     ('0', 'component attributes'),  # Currently unused
-    ('1', 'jobTree'),
+    ('1', 'jobTree'),  # jobs tree
     ('2', 'DecisionResults'),  # job page
-    ('3', 'reportChildren'),
+    ('3', 'reportChildren'),  # report children
     ('4', 'SafesAndUnsafesList'),  # unsafes list
     ('5', 'SafesAndUnsafesList'),  # safes list
     ('6', 'UnknownsList'),  # unknowns list
@@ -157,8 +269,8 @@ SCHEDULER_STATUS = (
 )
 
 SCHEDULER_TYPE = (
-    ('0', 'Klever'),
-    ('1', 'VerifierCloud')
+    ('Klever', 'Klever'),
+    ('VerifierCloud', 'VerifierCloud')
 )
 
 PRIORITY = (
@@ -184,20 +296,21 @@ TASK_STATUS = (
 )
 
 REPORT_ARCHIVE = {
-    'log': 'log.zip',
-    'coverage': 'coverage.zip',
-    'verifier input': 'VerifierInput.zip',
-    'error trace': 'ErrorTrace.zip',
-    'sources': 'Sources.zip',
+    'log': 'Log.zip',
+    'coverage': 'Coverage.zip',
+    'verifier_input': 'VerifierInput.zip',
+    'error_trace': 'ErrorTrace.zip',
+    'original_sources': 'OriginalSources.zip',
+    'additional_sources': 'AdditionalSources.zip',
     'proof': 'proof.zip',
-    'problem desc': 'ProblemDesc.zip'
+    'problem_description': 'ProblemDescription.zip'
 }
 
 LOG_FILE = 'log.txt'
-COVERAGE_FILE = 'coverage.json'
 ERROR_TRACE_FILE = 'error trace.json'
 PROBLEM_DESC_FILE = 'problem desc.txt'
 PROOF_FILE = 'proof.txt'
+COVERAGE_FILE = 'coverage.json'
 
 # You can set translatable text _("Unknown error")
 UNKNOWN_ERROR = 'Unknown error'
@@ -207,3 +320,9 @@ ASSOCIATION_TYPE = (
     ('1', _('Confirmed')),
     ('2', _('Unconfirmed'))
 )
+
+MPTT_FIELDS = ('level', 'lft', 'rght', 'tree_id')
+
+SUBJOB_NAME = 'Subjob'
+
+UNKNOWN_ATTRS_NOT_ASSOCIATE = {'Verification object', 'Program fragment'}

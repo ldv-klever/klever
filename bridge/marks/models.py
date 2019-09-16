@@ -15,84 +15,56 @@
 # limitations under the License.
 #
 
-from django.contrib.auth.models import User
+import uuid
+
 from django.db import models
-from django.db.models.signals import pre_delete
-from django.dispatch.dispatcher import receiver
-from bridge.vars import FORMAT, MARK_STATUS, MARK_UNSAFE, MARK_SAFE, MARK_TYPE, ASSOCIATION_TYPE
-from reports.models import Attr, ReportUnsafe, ReportSafe, ReportComponent, Component, ReportUnknown
+from django.db.models.signals import post_delete
+from django.contrib.postgres.fields import ArrayField, JSONField
+from django.utils.timezone import now
+from django.utils.translation import ugettext_lazy as _
+from mptt.models import MPTTModel, TreeForeignKey
+
+from bridge.vars import FORMAT, MARK_STATUS, MARK_UNSAFE, MARK_SAFE, MARK_SOURCE, ASSOCIATION_TYPE
+from bridge.utils import WithFilesMixin, remove_instance_files
+
+from reports.models import MAX_COMPONENT_LEN, ReportUnsafe, ReportSafe, ReportComponent, ReportUnknown, AttrBase
 from jobs.models import Job
+from users.models import User
 
 CONVERTED_DIR = 'Error-traces'
+MAX_PROBLEM_LEN = 20
+MAX_TAG_LEN = 32
 
 
-class ConvertedTraces(models.Model):
+class ConvertedTrace(WithFilesMixin, models.Model):
     hash_sum = models.CharField(max_length=255, db_index=True)
     file = models.FileField(upload_to=CONVERTED_DIR, null=False)
+    function = models.CharField(max_length=30, db_index=True)
+    trace_cache = JSONField()
 
     class Meta:
-        db_table = 'file'
+        db_table = 'cache_marks_trace'
 
     def __str__(self):
         return self.hash_sum
 
 
-@receiver(pre_delete, sender=ConvertedTraces)
-def converted_delete(**kwargs):
-    file = kwargs['instance']
-    storage, path = file.file.storage, file.file.path
-    storage.delete(path)
-
-
-class UnknownProblem(models.Model):
-    name = models.CharField(max_length=20, db_index=True)
-
-    def __str__(self):
-        return self.name
-
-    class Meta:
-        db_table = 'cache_mark_unknown_problem'
-
-
-# Tables with functions
-class MarkUnsafeConvert(models.Model):
-    name = models.CharField(max_length=30, db_index=True)
-    description = models.CharField(max_length=1000, default='')
-
-    def __str__(self):
-        return self.name
-
-    class Meta:
-        db_table = 'mark_unsafe_convert'
-
-
-class MarkUnsafeCompare(models.Model):
-    convert = models.ForeignKey(MarkUnsafeConvert, models.CASCADE)
-    name = models.CharField(max_length=30, db_index=True)
-    description = models.CharField(max_length=1000, default='')
-
-    def __str__(self):
-        return self.name
-
-    class Meta:
-        db_table = 'mark_unsafe_compare'
-
-
 # Abstract tables
 class Mark(models.Model):
-    identifier = models.CharField(max_length=255, unique=True)
+    identifier = models.UUIDField(unique=True, default=uuid.uuid4)
     job = models.ForeignKey(Job, models.SET_NULL, null=True, related_name='+')
     format = models.PositiveSmallIntegerField(default=FORMAT)
     version = models.PositiveSmallIntegerField(default=1)
+    # Author of first version
     author = models.ForeignKey(User, models.SET_NULL, null=True, related_name='+')
-    status = models.CharField(max_length=1, choices=MARK_STATUS, default='0')
     is_modifiable = models.BooleanField(default=True)
-    change_date = models.DateTimeField()
-    description = models.TextField(default='')
-    type = models.CharField(max_length=1, choices=MARK_TYPE, default=MARK_TYPE[0][0])
+    source = models.CharField(max_length=1, choices=MARK_SOURCE, default=MARK_SOURCE[0][0])
+
+    # Only with is_compare=True
+    cache_attrs = JSONField(default=dict)
 
     def __str__(self):
-        return self.identifier
+        return str(self.identifier)
 
     class Meta:
         abstract = True
@@ -101,10 +73,9 @@ class Mark(models.Model):
 class MarkHistory(models.Model):
     version = models.PositiveSmallIntegerField()
     author = models.ForeignKey(User, models.SET_NULL, null=True, related_name='+')
-    status = models.CharField(max_length=1, choices=MARK_STATUS, default='0')
-    change_date = models.DateTimeField()
-    comment = models.TextField()
-    description = models.TextField()
+    change_date = models.DateTimeField(default=now)
+    comment = models.TextField(blank=True, default='')
+    description = models.TextField(blank=True, default='')
 
     class Meta:
         abstract = True
@@ -112,10 +83,12 @@ class MarkHistory(models.Model):
 
 # Safes tables
 class MarkSafe(Mark):
-    verdict = models.CharField(max_length=1, choices=MARK_SAFE, default='0')
+    verdict = models.CharField(max_length=1, choices=MARK_SAFE)
+    cache_tags = ArrayField(models.CharField(max_length=MAX_TAG_LEN), default=list)
 
     class Meta:
         db_table = 'mark_safe'
+        verbose_name = _('Safes mark')
 
 
 class MarkSafeHistory(MarkHistory):
@@ -124,22 +97,24 @@ class MarkSafeHistory(MarkHistory):
 
     class Meta:
         db_table = 'mark_safe_history'
+        verbose_name = _('Safes mark version')
 
 
-class MarkSafeAttr(models.Model):
-    mark = models.ForeignKey(MarkSafeHistory, models.CASCADE, related_name='attrs')
-    attr = models.ForeignKey(Attr, models.CASCADE)
+class MarkSafeAttr(AttrBase):
+    mark_version = models.ForeignKey(MarkSafeHistory, models.CASCADE, related_name='attrs')
     is_compare = models.BooleanField(default=True)
 
     class Meta:
         db_table = 'mark_safe_attr'
+        ordering = ('id',)
 
 
 class MarkSafeReport(models.Model):
     mark = models.ForeignKey(MarkSafe, models.CASCADE, related_name='markreport_set')
     report = models.ForeignKey(ReportSafe, models.CASCADE, related_name='markreport_set')
-    type = models.CharField(max_length=1, choices=ASSOCIATION_TYPE, default='0')
+    type = models.CharField(max_length=1, choices=ASSOCIATION_TYPE, default=ASSOCIATION_TYPE[0][0])
     author = models.ForeignKey(User, models.SET_NULL, null=True)
+    associated = models.BooleanField(default=True)
 
     class Meta:
         db_table = "cache_mark_safe_report"
@@ -156,39 +131,56 @@ class SafeAssociationLike(models.Model):
 
 # Unsafes tables
 class MarkUnsafe(Mark):
-    verdict = models.CharField(max_length=1, choices=MARK_UNSAFE, default='0')
-    function = models.ForeignKey(MarkUnsafeCompare, models.CASCADE)
+    function = models.CharField(max_length=30, db_index=True)
+    error_trace = models.ForeignKey(ConvertedTrace, models.CASCADE)
+    verdict = models.CharField(max_length=1, choices=MARK_UNSAFE)
+    status = models.CharField(max_length=1, choices=MARK_STATUS, null=True)
+    cache_tags = ArrayField(models.CharField(max_length=MAX_TAG_LEN), default=list)
+    threshold = models.FloatField(default=0)
+
+    @property
+    def threshold_percentage(self):
+        return round(self.threshold * 100)
 
     class Meta:
         db_table = 'mark_unsafe'
+        verbose_name = _('Unsafes mark')
 
 
 class MarkUnsafeHistory(MarkHistory):
     mark = models.ForeignKey(MarkUnsafe, models.CASCADE, related_name='versions')
+    function = models.CharField(max_length=30, db_index=True)
     verdict = models.CharField(max_length=1, choices=MARK_UNSAFE)
-    function = models.ForeignKey(MarkUnsafeCompare, models.CASCADE)
-    error_trace = models.ForeignKey(ConvertedTraces, models.CASCADE)
+    status = models.CharField(max_length=1, choices=MARK_STATUS, null=True)
+    error_trace = models.ForeignKey(ConvertedTrace, models.CASCADE)
+    threshold = models.FloatField(default=0)
+
+    @property
+    def threshold_percentage(self):
+        return round(self.threshold * 100)
 
     class Meta:
         db_table = 'mark_unsafe_history'
+        verbose_name = _('Unsafes mark version')
 
 
-class MarkUnsafeAttr(models.Model):
-    mark = models.ForeignKey(MarkUnsafeHistory, models.CASCADE, related_name='attrs')
-    attr = models.ForeignKey(Attr, models.CASCADE)
+class MarkUnsafeAttr(AttrBase):
+    mark_version = models.ForeignKey(MarkUnsafeHistory, models.CASCADE, related_name='attrs')
     is_compare = models.BooleanField(default=True)
 
     class Meta:
         db_table = 'mark_unsafe_attr'
+        ordering = ('id',)
 
 
 class MarkUnsafeReport(models.Model):
     mark = models.ForeignKey(MarkUnsafe, models.CASCADE, related_name='markreport_set')
     report = models.ForeignKey(ReportUnsafe, models.CASCADE, related_name='markreport_set')
-    type = models.CharField(max_length=1, choices=ASSOCIATION_TYPE, default='0')
+    type = models.CharField(max_length=1, choices=ASSOCIATION_TYPE, default=ASSOCIATION_TYPE[0][0])
     result = models.FloatField()
     error = models.TextField(null=True)
     author = models.ForeignKey(User, models.SET_NULL, null=True)
+    associated = models.BooleanField(default=True)
 
     class Meta:
         db_table = "cache_mark_unsafe_report"
@@ -204,50 +196,32 @@ class UnsafeAssociationLike(models.Model):
 
 
 # Tags tables
-class SafeTag(models.Model):
-    author = models.ForeignKey(User, models.CASCADE)
-    parent = models.ForeignKey('self', models.CASCADE, null=True, related_name='children')
-    tag = models.CharField(max_length=32, db_index=True)
-    description = models.TextField(default='')
+class SafeTag(MPTTModel):
+    author = models.ForeignKey(User, models.SET_NULL, null=True)
+    parent = TreeForeignKey('self', models.CASCADE, null=True, related_name='children')
+    name = models.CharField(max_length=MAX_TAG_LEN, db_index=True)
+    description = models.TextField(default='', blank=True)
     populated = models.BooleanField(default=False)
+
+    class MPTTMeta:
+        order_insertion_by = ['name']
 
     class Meta:
         db_table = "mark_safe_tag"
 
 
-class UnsafeTag(models.Model):
-    author = models.ForeignKey(User, models.CASCADE)
-    parent = models.ForeignKey('self', models.CASCADE, null=True, related_name='children')
-    tag = models.CharField(max_length=32, db_index=True)
-    description = models.TextField(default='')
+class UnsafeTag(MPTTModel):
+    author = models.ForeignKey(User, models.SET_NULL, null=True)
+    parent = TreeForeignKey('self', models.CASCADE, null=True, related_name='children')
+    name = models.CharField(max_length=MAX_TAG_LEN, db_index=True)
+    description = models.TextField(default='', blank=True)
     populated = models.BooleanField(default=False)
+
+    class MPTTMeta:
+        order_insertion_by = ['name']
 
     class Meta:
         db_table = "mark_unsafe_tag"
-
-
-class ReportSafeTag(models.Model):
-    report = models.ForeignKey(ReportComponent, models.CASCADE, related_name='safe_tags')
-    tag = models.ForeignKey(SafeTag, models.CASCADE, related_name='+')
-    number = models.IntegerField(default=0)
-
-    def __str__(self):
-        return self.tag.tag
-
-    class Meta:
-        db_table = "cache_report_safe_tag"
-
-
-class ReportUnsafeTag(models.Model):
-    report = models.ForeignKey(ReportComponent, models.CASCADE, related_name='unsafe_tags')
-    tag = models.ForeignKey(UnsafeTag, models.CASCADE, related_name='+')
-    number = models.IntegerField(default=0)
-
-    def __str__(self):
-        return self.tag.tag
-
-    class Meta:
-        db_table = 'cache_report_unsafe_tag'
 
 
 class MarkSafeTag(models.Model):
@@ -255,7 +229,7 @@ class MarkSafeTag(models.Model):
     tag = models.ForeignKey(SafeTag, models.CASCADE, related_name='+')
 
     def __str__(self):
-        return self.tag.tag
+        return self.tag.name
 
     class Meta:
         db_table = "cache_mark_safe_tag"
@@ -266,57 +240,40 @@ class MarkUnsafeTag(models.Model):
     tag = models.ForeignKey(UnsafeTag, models.CASCADE, related_name='+')
 
     def __str__(self):
-        return self.tag.tag
+        return self.tag.name
 
     class Meta:
         db_table = 'cache_mark_unsafe_tag'
 
 
-class UnsafeReportTag(models.Model):
-    report = models.ForeignKey(ReportUnsafe, models.CASCADE, related_name='tags')
-    tag = models.ForeignKey(UnsafeTag, models.CASCADE)
-    number = models.PositiveIntegerField(default=0)
-
-    class Meta:
-        db_table = 'cache_unsafe_report_unsafe_tag'
-
-
-class SafeReportTag(models.Model):
-    report = models.ForeignKey(ReportSafe, models.CASCADE, related_name='tags')
-    tag = models.ForeignKey(SafeTag, models.CASCADE)
-    number = models.PositiveIntegerField(default=0)
-
-    class Meta:
-        db_table = 'cache_safe_report_safe_tag'
-
-
 # For unknowns
 class MarkUnknown(Mark):
-    component = models.ForeignKey(Component, models.PROTECT)
+    component = models.CharField(max_length=MAX_COMPONENT_LEN)
     function = models.TextField()
     is_regexp = models.BooleanField(default=True)
-    problem_pattern = models.CharField(max_length=20)
-    link = models.URLField(null=True)
+    problem_pattern = models.CharField(max_length=MAX_PROBLEM_LEN)
+    link = models.URLField(null=True, blank=True)
 
     class Meta:
         db_table = 'mark_unknown'
         index_together = ['component', 'problem_pattern']
+        verbose_name = _('Unknowns mark')
 
 
 class MarkUnknownHistory(MarkHistory):
     mark = models.ForeignKey(MarkUnknown, models.CASCADE, related_name='versions')
     function = models.TextField()
     is_regexp = models.BooleanField(default=True)
-    problem_pattern = models.CharField(max_length=100)
-    link = models.URLField(null=True)
+    problem_pattern = models.CharField(max_length=MAX_PROBLEM_LEN)
+    link = models.URLField(null=True, blank=True)
 
     class Meta:
         db_table = 'mark_unknown_history'
+        verbose_name = _('Unknowns mark version')
 
 
-class MarkUnknownAttr(models.Model):
-    mark = models.ForeignKey(MarkUnknownHistory, models.CASCADE, related_name='attrs')
-    attr = models.ForeignKey(Attr, models.CASCADE)
+class MarkUnknownAttr(AttrBase):
+    mark_version = models.ForeignKey(MarkUnknownHistory, models.CASCADE, related_name='attrs')
     is_compare = models.BooleanField(default=True)
 
     class Meta:
@@ -326,9 +283,10 @@ class MarkUnknownAttr(models.Model):
 class MarkUnknownReport(models.Model):
     mark = models.ForeignKey(MarkUnknown, models.CASCADE, related_name='markreport_set')
     report = models.ForeignKey(ReportUnknown, models.CASCADE, related_name='markreport_set')
-    problem = models.ForeignKey(UnknownProblem, models.PROTECT)
-    type = models.CharField(max_length=1, choices=ASSOCIATION_TYPE, default='0')
+    problem = models.CharField(max_length=MAX_PROBLEM_LEN, db_index=True)
+    type = models.CharField(max_length=1, choices=ASSOCIATION_TYPE, default=ASSOCIATION_TYPE[0][0])
     author = models.ForeignKey(User, models.SET_NULL, null=True)
+    associated = models.BooleanField(default=True)
 
     class Meta:
         db_table = 'cache_mark_unknown_report'
@@ -343,19 +301,9 @@ class UnknownAssociationLike(models.Model):
         db_table = "mark_unknown_association_like"
 
 
-class MarkAssociationsChanges(models.Model):
-    user = models.ForeignKey(User, models.CASCADE)
-    identifier = models.CharField(max_length=255, unique=True)
-    table_data = models.TextField()
-
-    class Meta:
-        db_table = 'cache_mark_associations_changes'
-
-
-class ErrorTraceConvertionCache(models.Model):
+class UnsafeConvertionCache(models.Model):
     unsafe = models.ForeignKey(ReportUnsafe, models.CASCADE)
-    function = models.ForeignKey(MarkUnsafeConvert, models.CASCADE)
-    converted = models.ForeignKey(ConvertedTraces, models.CASCADE)
+    converted = models.ForeignKey(ConvertedTrace, models.CASCADE)
 
     class Meta:
         db_table = 'cache_error_trace_converted'
@@ -379,3 +327,6 @@ class UnsafeTagAccess(models.Model):
 
     class Meta:
         db_table = 'marks_unsafe_tag_access'
+
+
+post_delete.connect(remove_instance_files, sender=ConvertedTrace)

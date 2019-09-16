@@ -18,76 +18,91 @@
 {% load i18n %}
 
 <div class="ui pink segment" style="margin-bottom: 45px;">
-    <div class="ui two column grid">
-        {% if markdata.type != 'unknown' %}
-            <div class="column">
-                <h4 class="ui pink header">{% trans 'Verdict' %}</h4>
-                <div>
-                    {% for v in markdata.verdicts %}
-                        <div class="ui radio checkbox">
-                            <input id="selected_verdict__{{ v.value }}" type="radio" name="selected_verdict" value="{{ v.value }}"{% if v.checked %} checked{% endif %}>
-                            <label for="selected_verdict__{{ v.value }}" style="color: {{ v.color }}">{{ v.title }}</label>
-                        </div>
-                        <br>
-                    {% endfor %}
-                </div>
-            </div>
-        {% endif %}
-        <div class="column">
-            <h4 class="ui pink header">{% trans 'Status' %}</h4>
-            <div>
-                {% for s in markdata.statuses %}
-                    <div class="ui radio checkbox">
-                        <input id="selected_status__{{ s.value }}" type="radio" name="selected_status" value="{{ s.value }}"{% if s.checked %} checked{% endif %}>
-                        <label for="selected_status__{{ s.value }}" style="color: {{ s.color }}">{{ s.title }}</label>
-                    </div>
-                    <br>
-                {% endfor %}
-            </div>
-        </div>
-    </div>
-    {% if markdata.type == 'unknown' %}
+    {% if data.type == 'unknown' %}
         <div class="ui purple segment">
             <div class="ui checkbox">
-                <input type="checkbox" id="is_regexp"{% if markdata.unknown_data.3 %} checked{% endif %}>
+                <input type="checkbox" id="is_regexp"{% if data.is_regexp %} checked{% endif %}>
                 <label for="is_regexp">{% trans 'Regular expression' %}</label>
             </div>
             <br><br>
             <label for="unknown_function" class="purple-title">{% trans 'Pattern' %}</label>
             <div class="ui form">
-                <textarea id="unknown_function" rows="5" style="resize:none" placeholder="{% trans 'Pattern' %}">{{ markdata.unknown_data.0 }}</textarea>
+                <textarea id="unknown_function" rows="5" style="resize:none" placeholder="{% trans 'Pattern' %}">{{ data.function }}</textarea>
             </div>
             <br>
             <label for="unknown_problem_pattern" class="purple-title">{% trans 'Problem' %}</label>
             <div class="ui input fluid">
-                <input id="unknown_problem_pattern" type="text" value="{{ markdata.unknown_data.1 }}" maxlength="20">
+                <input id="unknown_problem_pattern" type="text" value="{{ data.problem_pattern }}" maxlength="20">
             </div>
             <br>
             <label for="unknown_link" class="purple-title">{% trans 'Link to detailed description' %}</label>
             <div class="ui input fluid">
-                <input id="unknown_link" type="url" {% if markdata.unknown_data.2 %}value="{{ markdata.unknown_data.2 }}"{% endif %}>
+                <input id="unknown_link" type="url" value="{{ data.link }}">
             </div>
         </div>
     {% else %}
+        <div class="ui two column grid">
+            {# Verdict #}
+            <div id="verdict_column" class="column">
+                <h4 class="ui pink header">{% trans 'Verdict' %}</h4>
+                <div>
+                    {% for v in data.verdicts %}
+                        <div class="ui radio checkbox">
+                            <input id="selected_verdict__{{ v.0 }}" type="radio" name="selected_verdict" value="{{ v.0 }}"{% if v.0 == data.verdict %} checked{% endif %}>
+                            <label for="selected_verdict__{{ v.0 }}" class="{{ data.type }}-verdict-{{ v.0 }}">{{ v.1 }}</label>
+                        </div>
+                        <br>
+                    {% endfor %}
+                </div>
+            </div>
+            {% if data.type == 'unsafe' %}
+                {# Status #}
+                <div id="status_column" class="column"{% if not data.status %} style="display: none"{% endif %}>
+                    <h4 class="ui pink header">{% trans 'Status' %}</h4>
+                    <div style="margin-left: 25px">
+                        {% for s in data.statuses %}
+                            <div class="ui radio checkbox">
+                                <input id="selected_status__{{ s.0 }}" type="radio" name="selected_status" value="{{ s.0 }}" {% if data.status == s.0 %} checked{% endif %}>
+                                <label for="selected_status__{{ s.0 }}" class="mark-status-{{ s.0 }}">{{ s.1 }}</label>
+                            </div>
+                            <br>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+        </div>
         <h4 class="header ui pink">{% trans 'Tags' %}</h4>
-        {% include 'marks/MarkTags.html' with tags=tags.table available=tags.available selected=tags.selected %}
+        <div id="mark_tags_container">
+            {% include 'marks/MarkTagsForm.html' with tags=data.tags %}
+        </div>
     {% endif %}
+
     <h4 class="ui pink header">{% trans 'Description' %}</h4>
     <div class="ui form">
         <label for="mark_description"></label>
-        <textarea id="mark_description" rows="5" style="resize:none">{{ markdata.description }}</textarea>
+        <textarea id="mark_description" rows="5" style="resize:none">{{ data.description }}</textarea>
     </div>
     <br>
+    <label for="inline_mark_comment"></label>
     <div class="ui action input fluid">
         <input id="inline_mark_comment" type="text" placeholder="{% trans 'Comment' %}">
-        <button id="save_inline_mark_btn" class="ui green button">{% trans 'Save' %}</button>
+        <button id="save_inline_mark_btn" class="ui green button" data-url="{{ save_url }}" data-method="{{ save_method }}" data-action="{{ action }}" data-type="{{ data.type }}">{% trans 'Save' %}</button>
         <button id="close_inline_mark_form" class="ui blue button">{% trans 'Cancel' %}</button>
     </div>
-    {% if markdata.type == 'unsafe' %}
-        <input id="compare_function" type="hidden" value="{{ markdata.selected_func.id }}">
+    {% if data.type == 'unsafe' %}
+        <input id="compare_function" type="hidden" value="{{ data.function }}">
+    {% endif %}
+    {% if data.type == 'unsafe' %}
+        <input id="threshold" type="hidden" value="{% if data.threshold is not None %}{{ data.threshold }}{% else %}{{ user.default_threshold_percentage }}{% endif %}">
     {% endif %}
 
-    <input id="obj_id" type="hidden" value="{{ obj_id }}">
-    <input id="obj_type" type="hidden" value="{{ markdata.type }}">
-    <input id="inline_action" type="hidden" value="{{ action }}">
+    <div id="inline_mark_attrs" hidden>
+        {% for attr in attrs %}
+            <span data-name="{{ attr.name }}" data-value="{{ attr.value }}" data-compare="{% if attr.is_compare or attr.associate %}true{% else %}false{% endif %}"></span>
+        {% endfor %}
+    </div>
+
+    {% if action == 'create' %}
+        <input id="report_id" type="hidden" value="{{ object.id }}">
+    {% endif %}
 </div>

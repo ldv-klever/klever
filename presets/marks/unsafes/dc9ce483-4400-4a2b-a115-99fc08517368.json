@@ -1,0 +1,101 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:concurrency safety"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/linux/concurrency-safety/unsorted/RaceTest9-unsafe.ko"
+    }
+  ],
+  "description": "",
+  "error_trace": [
+    [
+      {
+        "ldv_init": [
+          {
+            "ldv_main": []
+          }
+        ]
+      }
+    ],
+    [
+      {
+        "ldv_main": [
+          {
+            "ldv_func3": [
+              {
+                "ldv_mutex_lock_38": []
+              },
+              {
+                "ldv_func2": [
+                  {
+                    "ldv_func1": [
+                      {
+                        "ldv_mutex_lock_37": []
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "ldv_mutex_unlock_39": []
+              }
+            ]
+          },
+          {
+            "ldv_mutex_unlock_42": []
+          },
+          {
+            "ldv_func4": [
+              {
+                "ldv_mutex_lock_40": []
+              },
+              {
+                "ldv_func1": [
+                  {
+                    "ldv_mutex_lock_37": []
+                  }
+                ]
+              },
+              {
+                "ldv_mutex_unlock_41": []
+              }
+            ]
+          },
+          {
+            "ldv_mutex_unlock_43": []
+          },
+          {
+            "ldv_func5": [
+              {
+                "ldv_func4": [
+                  {
+                    "ldv_mutex_lock_40": []
+                  },
+                  {
+                    "ldv_func1": [
+                      {
+                        "ldv_mutex_lock_37": []
+                      }
+                    ]
+                  },
+                  {
+                    "ldv_mutex_unlock_41": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": false,
+  "tags": [],
+  "verdict": "2"
+}

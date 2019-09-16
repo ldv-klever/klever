@@ -1,0 +1,49 @@
+{
+   "attrs": [
+    {
+      "attr": "Klever Core version",
+      "is_compare": false,
+      "value": "0.3.dev404+g27a398b9"
+    },
+    {
+      "attr": "Name",
+      "is_compare": false,
+      "value": "d8e172f3c0a5/drivers/spi/spi-imx.ko/linux:drivers:clk1"
+    },
+    {
+      "attr": "Linux:Version",
+      "is_compare": true,
+      "value": "v3.12.14-127-gd8e172f3c0a5"
+    },
+    {
+      "attr": "Linux kernel:Architecture",
+      "is_compare": false,
+      "value": "x86_64"
+    },
+    {
+      "attr": "Linux kernel:Configuration",
+      "is_compare": false,
+      "value": "allmodconfig"
+    },
+    {
+      "attr": "LKVOG strategy:Name",
+      "is_compare": false,
+      "value": "separate modules"
+    },
+    {
+      "attr": "Requirement",
+      "is_compare": true,
+      "value": "linux:drivers:clk1"
+    },
+    {
+      "attr": "Program fragment",
+      "is_compare": true,
+      "value": "drivers/spi/spi-imx.ko"
+    }
+  ],
+  "description": "This is a known bug in CPAchecker",
+  "is regexp": true,
+  "pattern": "Error: Refinement failed: Counterexample could not be ruled out and was found again",
+  "problem": "RefFailed",
+  "status": "1"
+}

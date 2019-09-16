@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends 'bridge/base.html' %}
 {% comment "License" %}
 % Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
 % Ivannikov Institute for System Programming of the Russian Academy of Sciences
@@ -36,96 +36,32 @@
     <div class="ui grid">
         <div class="ten wide column">
             <table class="ui selectable compact teal table">
-                <tr>
-                    <th style="background-color: #747eeb"></th>
-                    <th class="job-th-2">{% trans 'Total safe' %}</th>
-                    <th class="job-th-2">{% trans 'Found all unsafes' %}</th>
-                    <th class="job-th-2">{% trans 'Found not all unsafes' %}</th>
-                    <th class="job-th-2">{% trans 'Unknown' %}</th>
-                    <th class="job-th-2">{% trans 'Unmatched' %}</th>
-                    <th class="job-th-2">{% trans 'Broken' %}</th>
-                </tr>
-                <tr>
-                    <th class="job-th-1 right aligned">{% trans 'Total safe' %}</th>
-                    {% for v in tabledata.0 %}
-                        <td>
-                            {% if v != '-' %}
-                                <a id="compare_cell_0_{{ v.1 }}" href="#" class="compare-cell">{{ v.0 }}</a>
+                {% for tbl_row in data.table_rows %}
+                    <tr>
+                    {% for tbl_cell in tbl_row %}
+                        {% if tbl_cell.class %}
+                            <th class="{{ tbl_cell.class }}">{{ tbl_cell.value }}</th>
+                        {% else %}
+                            <td>
+                            {% if tbl_cell.value == '-' %}
+                                <span>-</span>
                             {% else %}
-                                {{ v }}
+                                <a href="#" class="compare-cell" data-verdict="{{ tbl_cell.verdict }}">{{ tbl_cell.value }}</a>
                             {% endif %}
-                        </td>
+                            </td>
+                        {% endif %}
                     {% endfor %}
-                </tr>
-                <tr>
-                    <th class="job-th-1 right aligned">{% trans 'Found all unsafes' %}</th>
-                    {% for v in tabledata.1 %}
-                        <td>
-                            {% if v != '-' %}
-                                <a id="compare_cell_1_{{ v.1 }}" href="#" class="compare-cell">{{ v.0 }}</a>
-                            {% else %}
-                                {{ v }}
-                            {% endif %}
-                        </td>
-                    {% endfor %}
-                </tr>
-                <tr>
-                    <th class="job-th-1 right aligned">{% trans 'Found not all unsafes' %}</th>
-                    {% for v in tabledata.2 %}
-                        <td>
-                            {% if v != '-' %}
-                                <a id="compare_cell_2_{{ v.1 }}" href="#" class="compare-cell">{{ v.0 }}</a>
-                            {% else %}
-                                {{ v }}
-                            {% endif %}
-                        </td>
-                    {% endfor %}
-                </tr>
-                <tr>
-                    <th class="job-th-1 right aligned">{% trans 'Unknown' %}</th>
-                    {% for v in tabledata.3 %}
-                        <td>
-                            {% if v != '-' %}
-                                <a id="compare_cell_3_{{ v.1 }}" href="#" class="compare-cell">{{ v.0 }}</a>
-                            {% else %}
-                                {{ v }}
-                            {% endif %}
-                        </td>
-                    {% endfor %}
-                </tr>
-                <tr>
-                    <th class="job-th-1 right aligned">{% trans 'Unmatched' %}</th>
-                    {% for v in tabledata.4 %}
-                        <td>
-                            {% if v != '-' %}
-                                <a id="compare_cell_4_{{ v.1 }}" href="#" class="compare-cell">{{ v.0 }}</a>
-                            {% else %}
-                                {{ v }}
-                            {% endif %}
-                        </td>
-                    {% endfor %}
-                </tr>
-                <tr>
-                    <th class="job-th-1 right aligned">{% trans 'Broken' %}</th>
-                    {% for v in tabledata.5 %}
-                        <td>
-                            {% if v != '-' %}
-                                <a id="compare_cell_5_{{ v.1 }}" href="#" class="compare-cell">{{ v.0 }}</a>
-                            {% else %}
-                                {{ v }}
-                            {% endif %}
-                        </td>
-                    {% endfor %}
-                </tr>
+                    </tr>
+                {% endfor %}
             </table>
         </div>
         <div class="six wide column">
-            {% for attr in attrs %}
-                <label for="attr_value__{{ attr.name }}" style="font-weight: bold;">{{ attr.name }}</label>
-                <select id="attr_value__{{ attr.name }}" class="ui small search selection dropdown fluid attrs-dropdown">
-                    <option value="__REGEXP_ANY__">{% trans 'Any' %}</option>
-                    {% for av in attr.values %}
-                        <option value="{{ av.0 }}">{{ av.1 }}</option>
+            {% for attr in data.attrs %}
+                <label for="attr_value__{{ attr.id }}" style="font-weight: bold;">{{ attr.name }}</label>
+                <select id="attr_value__{{ attr.id }}" class="ui small search selection dropdown fluid attrs-dropdown">
+                    <option value="__ANY__">{% trans 'Any' %}</option>
+                    {% for attr_value in attr.values %}
+                        <option value="{{ attr_value }}">{{ attr_value }}</option>
                     {% endfor %}
                 </select>
                 <br>
@@ -133,11 +69,13 @@
             <div class="ui grid">
                 <div class="eleven wide column">
                     <br>
-                    <div class="ui checkbox">
-                        <input id="show_all_components" type="checkbox">
-                        <label for="show_all_components">{% trans 'Show all (sub)components' %}</label>
-                    </div>
-                    <br><br>
+                    {% if not data.lightweight %}
+                        <div class="ui checkbox">
+                            <input id="show_all_components" type="checkbox">
+                            <label for="show_all_components">{% trans 'Show all (sub)components' %}</label>
+                        </div>
+                        <br><br>
+                    {% endif %}
                     <div class="ui checkbox">
                         <input id="show_all_attrs" type="checkbox">
                         <label for="show_all_attrs">{% trans 'Show all attributes' %}</label>
@@ -149,7 +87,9 @@
             </div>
         </div>
     </div>
-    <input id="compare_info" type="hidden" value="{{ compare_info }}">
+    <input id="compare_data_url" type="hidden" value="{% url 'reports:api-comparison-data' data.info.id %}">
+    <input id="search_verdict" type="hidden">
+    <input id="search_attrs" type="hidden">
     <div id="compare_data"></div>
     <span id="error__no_selected_attribute" hidden>{% trans 'Please select to show all attributes' %}</span>
 {% endblock %}

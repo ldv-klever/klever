@@ -1,0 +1,7 @@
+{
+  "attrs": [],
+  "function": "ValueError: Cannot parse JSON configuration file 'verifier profiles.json'",
+  "is_regexp": false,
+  "problem_pattern": "BadVerifierProf",
+  "production": true
+}

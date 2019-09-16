@@ -1,0 +1,45 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:memory safety"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/linux/memory-safety/double_free.ko"
+    }
+  ],
+  "description": "",
+  "error_trace": [
+    [
+      {
+        "ldv_init": [
+          {
+            "ldv_kzalloc": [
+              {
+                "ldv_zalloc": [
+                  {
+                    "ldv_reference_zalloc": []
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "ldv_free": [
+              {
+                "ldv_reference_free": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": true,
+  "tags": [],
+  "verdict": "2"
+}

@@ -1,0 +1,21 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:kernel:locking:mutex"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/media/usb/dvb-usb/dvb-usb-dw2102.ko"
+    }
+  ],
+  "description": "It is necessary to specify i2c_algorithm interface. Note, that registration in the case is implemented using a registration function but it requires some pointer analysis to track.",
+  "is_modifiable": true,
+  "tags": [
+    "EMG",
+    "EnvSpec"
+  ],
+  "verdict": "1"
+}

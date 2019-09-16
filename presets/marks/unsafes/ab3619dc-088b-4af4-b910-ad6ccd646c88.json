@@ -1,0 +1,48 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:kernel:locking:rwlock"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/linux/kernel/locking/rwlock/wunlock.ko"
+    }
+  ],
+  "description": "",
+  "error_trace": [
+    [
+      {
+        "ldv_init": [
+          {
+            "ldv_write_lock": [
+              {
+                "ldv_assert_linux_kernel_locking_rwlock__double_write_lock": []
+              }
+            ]
+          },
+          {
+            "ldv_write_unlock": [
+              {
+                "ldv_assert_linux_kernel_locking_rwlock__double_write_unlock": []
+              }
+            ]
+          },
+          {
+            "ldv_write_unlock": [
+              {
+                "ldv_assert_linux_kernel_locking_rwlock__double_write_unlock": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": true,
+  "tags": [],
+  "verdict": "2"
+}

@@ -1,0 +1,23 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Linux:Version",
+      "value": "v3.10.59-91-ga8be23c660a7"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:drivers:clk2"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/spi/spi-pxa2xx-platform.ko"
+    }
+  ],
+  "description": "Too many and long value refinements.",
+  "function": "CPU time exhausted",
+  "is_regexp": true,
+  "problem_pattern": "Timeout"
+}

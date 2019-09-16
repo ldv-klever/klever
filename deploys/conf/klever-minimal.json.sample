@@ -12,7 +12,8 @@
     "For building and running Klever Bridge": [
       "gettext",
       "nginx",
-      "postgresql"
+      "postgresql",
+      "rabbitmq-server"
     ],
     "For running Klever Core": [
       "bc",
@@ -34,12 +35,16 @@
   "Python3 Packages": {
     "For building and running Klever Bridge": [
       "Django==2.1.7",
+      "djangorestframework",
+      "django-mptt",
       "gunicorn",
+      "pika",
       "psycopg2",
+      "python-slugify",
       "pytz"
     ],
     "For running Klever Core": [
-      "clade==3.0.5",
+      "clade==3.2",
       "jinja2",
       "graphviz",
       "ply",
@@ -57,8 +62,8 @@
   },
   "Klever Addons": {
     "CIF": {
-      "version": "79a0019",
-      "path": "https://forge.ispras.ru/attachments/download/6482/cif-79a0019.tar.xz"
+      "version": "d09b7a5",
+      "path": "https://forge.ispras.ru/attachments/download/6780/cif-d09b7a5.tar.xz"
     },
     "CIL": {
       "version": "460aed4",

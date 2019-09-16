@@ -1,0 +1,19 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:test:common"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/lists/safe.ko"
+    }
+  ],
+  "description": "",
+  "function": "Refinement failed",
+  "is_modifiable": true,
+  "is_regexp": false,
+  "problem_pattern": "RefFailed"
+}

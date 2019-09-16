@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends 'bridge/base.html' %}
 {% comment "License" %}
 % Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
 % Ivannikov Institute for System Programming of the Russian Academy of Sciences
@@ -21,7 +21,7 @@
 {% load tz %}
 {% load staticfiles %}
 
-{% block title %}{{ report.component.name }}{% endblock %}
+{% block title %}{{ report.component }}{% endblock %}
 
 {% block head_block %}
     <link href="{% static 'reports/css/reports.css' %}" rel="stylesheet">
@@ -36,13 +36,13 @@
             <tbody>
                 <tr id="component_name_tr" data-variation="very wide">
                     <th colspan="2" class="center aligned header">
-                        <h3 class="header" style="margin-top: 5px;margin-bottom: 5px;">{{ report.component.name }}</h3>
+                        <h3 class="header" style="margin-top: 5px;margin-bottom: 5px;">{{ report.component }}</h3>
                     </th>
                 </tr>
             {% if report.root.user %}
                 <tr>
                     <th class="right aligned">{% trans 'Author' %}</th>
-                    <td><a class="violet-link" href="{% url 'users:show_profile' report.root.user.id %}">{{ report.root.user.get_full_name }}</a></td>
+                    <td><a class="violet-link" href="{% url 'users:show-profile' report.root.user.id %}">{{ report.root.user.get_full_name }}</a></td>
                 </tr>
             {% endif %}
                 <tr>
@@ -63,7 +63,7 @@
                 {% endif %}
                 <tr id="computer_description_tr" data-variation="very wide">
                     <th class="right aligned">{% trans 'Computer' %}</th>
-                    <td>{{ computer.name }}</td>
+                    <td>{{ report.computer.display }}</td>
                 </tr>
             </tbody>
         </table>
@@ -85,7 +85,7 @@
                         {% for v, attr_id in SelfAttrsData.values %}
                             <td class="collapsing">
                                 {% if attr_id %}
-                                    <a class="attr-data-href" href="#" data-attr-id="{{ attr_id }}">{{ v }}</a>
+                                    <a class="file-content-activator" href="#" data-url="{% url 'reports:attr-data-content' attr_id %}" data-download="{% url 'reports:attr-data' attr_id %}">{{ v }}</a>
                                 {% else %}
                                     <span>{{ v }}</span>
                                 {% endif %}
@@ -123,14 +123,13 @@
             </div>
         </div>
         <div id="computer_info_popup" class="ui popup">
-            <div class="header">{{ computer.name }}</div>
+            <div class="header">{{ report.computer.display }}</div>
             <div class="content" style="white-space:nowrap;">
-                {% for c_data in computer.data %}
-                    <span class="purple-subtitle">{{ c_data.0 }}: </span>{{ c_data.1 }}<br>
+                {% for prop in report.computer.data %}
+                    <p><span class="purple-subtitle">{{ prop.0 }}: </span>{{ prop.1 }}</p>
                 {% endfor %}
             </div>
         </div>
-        <input id="report_pk" type="hidden" value="{{ report.pk }}">
 
         {% if data.data %}
             <h4 class="header ui violet">{% trans 'Data' %}</h4>
@@ -138,61 +137,48 @@
                 {% include 'reports/ReportData.html' with data=data.data component=report.component.name type=data.type %}
             </div>
         {% endif %}
+        {% if Coverage %}
+            {% include 'jobs/viewJob/coverage.html' with Coverage=Coverage %}
+        {% elif VerificationCoverage and VerificationCoverage.statistics|length %}
+            <div class="ui violet segment">
+                <div class="ui top left attached violet label">{% trans 'Coverage' %}</div>
+                {% include 'jobs/viewJob/coverageTable.html' with statistics=VerificationCoverage.statistics %}
+            </div>
+        {% endif %}
+
         <br>
         <div class="ui buttons">
             {% if report.log %}
-                <button id="show_component_log" class="ui violet button">{% trans 'Log' %}</button>
+                <button class="ui violet button file-content-activator" data-url="{% url 'reports:log-content' report.pk %}" data-download="{% url 'reports:log' report.pk %}">{% trans 'Log' %}</button>
             {% endif %}
             {% if report.verifier_input %}
                 <a href="{% url 'reports:download_files' report.pk %}" class="ui violet button">{% trans 'Download input files of static verifiers' %}</a>
-            {% endif %}
-            {% if report.covnum > 0 %}
-                <a href="{% if user.extended.coverage_data %}{% url 'reports:coverage' report.id %}{% else %}{% url 'reports:coverage_light' report.id %}{% endif %}" class="ui violet button">{% trans 'Coverage' %}</a>
             {% endif %}
         </div>
     </div>
 
     <div class="ten wide column">
-        <div class="ui breadcrumb">
-            <a class="section parent-popup" href="{{ parents.0.href }}" data-variation="very wide">{{ parents.0.title }}</a>
-            <div class="ui special popup">
-                <div class="header">{{ parents.0.title }}</div>
-                <div class="content">
-                    {% for attr in parents.0.attrs %}
-                        <span class="purple-subtitle">{{ attr.0 }}: </span>{{ attr.1|safe }}<br><br>
-                    {% endfor %}
-                </div>
-            </div>
-            {% for parent in parents|slice:"1:" %}
-                <i class="right arrow icon divider"></i>
-                <a class="section parent-popup" href="{{ parent.href }}" data-variation="very wide">{{ parent.title }}</a>
-                <div class="ui special popup">
-                    <div class="header">{{ parent.title }}</div>
-                    <div class="content">
-                        {% for attr in parent.attrs %}
-                            <span class="purple-subtitle">{{ attr.0 }}: </span>{{ attr.1|safe }}<br>
-                        {% endfor %}
-                    </div>
-                </div>
-            {% endfor %}
-        </div>
+        {% if parents|length %}
+            {% include 'reports/parents_breadcrumb.html' with parents=parents %}
+        {% endif %}
+
         <div class="ui teal segment">
             <h3 class="header ui violet italic">{% trans 'Children' %}</h3>
             {% include TableData.view.template with view=TableData.view %}
-            {% if TableData.table_data.values|length %}
+            {% if TableData.values|length %}
                 <div>
-                    {% if TableData.table_data.values.has_previous %}
-                        <i class="ui arrow left blue link icon page-link-icon" data-page-number="{{ TableData.table_data.values.previous_page_number }}"></i>
+                    {% if TableData.page.has_previous %}
+                        <i class="ui arrow left blue link icon page-link-icon" data-page-number="{{ TableData.page.previous_page_number }}"></i>
                     {% endif %}
-                    <span>{% blocktrans with n1=TableData.table_data.values.number n2=TableData.table_data.values.paginator.num_pages %}Page {{ n1 }} of {{ n2 }}{% endblocktrans %}</span>
-                    {% if TableData.table_data.values.has_next %}
-                        <i class="ui arrow right blue link icon page-link-icon" data-page-number="{{ TableData.table_data.values.next_page_number }}"></i>
+                    <span>{% blocktrans with n1=TableData.page.number n2=TableData.paginator.num_pages %}Page {{ n1 }} of {{ n2 }}{% endblocktrans %}</span>
+                    {% if TableData.page.has_next %}
+                        <i class="ui arrow right blue link icon page-link-icon" data-page-number="{{ TableData.page.next_page_number }}"></i>
                     {% endif %}
                 </div>
                 <div style="overflow: auto;max-height: 40vh;">
                     <table class="ui celled compact teal table selectable alternate-color">
                         <thead>
-                            {% for column_row in TableData.table_data.header %}
+                            {% for column_row in TableData.header %}
                                 <tr>
                                 {% for coldata in column_row %}
                                     <th colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.title }}</th>
@@ -201,11 +187,16 @@
                             {% endfor %}
                         </thead>
                         <tbody>
-                            {% for v in TableData.table_data.values %}
+                            {% for row in TableData.values %}
                                 <tr>
-                                    <td class="collapsing"><a href="{% url 'reports:component' v.pk %}">{{ v.component.name }}</a></td>
-                                    {% for attr in v.attrs %}
-                                        <td class="collapsing"><span>{{ attr }}</span></td>
+                                    {% for cell_data in row %}
+                                        <td class="collapsing">
+                                        {% if cell_data.href %}
+                                            <a href="{{ cell_data.href }}">{{ cell_data.value }}</a>
+                                        {% else %}
+                                            <span>{{ cell_data.value }}</span>
+                                        {% endif %}
+                                        </td>
                                     {% endfor %}
                                 </tr>
                             {%  endfor %}
@@ -222,20 +213,6 @@
             <br>
             {% include 'jobs/DecisionResults.html' %}
         </div>
-    </div>
-</div>
-
-<div id="file_content_modal" class="ui dinamic large modal">
-    <div class="content">
-        <div class="ui grid">
-            <div class="eight wide column">
-                <a id="download_file_href" class="ui icon olive button" href=""><i class="download icon"></i></a>
-            </div>
-            <div class="eight wide column right aligned">
-                <button id="close_file_view" class="ui icon red button"><i class="remove icon"></i></button>
-            </div>
-        </div>
-        <div class="filecontent ui olive segment" id="file_content" style="height:75vh;"></div>
     </div>
 </div>
 

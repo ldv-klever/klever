@@ -171,16 +171,17 @@ def unparallel_group(groups):
 class LoggedCallMixin:
     unparallel = []
 
+    def get_unparallel(self, request):
+        return self.unparallel
+
     def dispatch(self, request, *args, **kwargs):
         if not hasattr(super(), 'dispatch'):
             # This mixin should be used together with View based class
             raise BridgeException()
 
-        get_unparallel = getattr(self, 'get_unparallel', None)
-        if callable(get_unparallel):
-            self.unparallel = get_unparallel()
+        unparallel = self.get_unparallel(request)
 
-        locker = ExecLocker(type(self).__name__, self.unparallel)
+        locker = ExecLocker(type(self).__name__, unparallel)
         locker.lock()
         try:
             locker.save_exec_time()
@@ -200,10 +201,13 @@ class LoggedCallMixin:
 
 
 class ProfileData:
-    def get_statistic_around(self, date, delta_seconds=300):
+    default_around_seconds = 300
+
+    def get_statistic_around(self, date, delta_seconds):
+        if not isinstance(delta_seconds, int):
+            delta_seconds = self.default_around_seconds
         date = self.__date_stamp(date)
-        if date is None:
-            raise ValueError('Wrong date format')
+        assert date is not None, 'Wrong date format'
         return self.__collect_statistic(date - delta_seconds, date + delta_seconds, None)
 
     def get_statistic(self, date1=None, date2=None, func_name=None):
@@ -211,13 +215,14 @@ class ProfileData:
         date2 = self.__date_stamp(date2)
         return self.__collect_statistic(date1, date2, func_name)
 
-    def get_log_around(self, date, delta_seconds=300):
+    def get_log_around(self, date, delta_seconds):
+        if not isinstance(delta_seconds, int):
+            delta_seconds = self.default_around_seconds
         date = self.__date_stamp(date)
-        if date is None:
-            raise ValueError('Wrong date format')
-        return self.get_log(date - delta_seconds, date + delta_seconds)
+        assert date is not None, 'Wrong date format'
+        return self.get_log(date - delta_seconds, date + delta_seconds, None)
 
-    def get_log(self, date1=None, date2=None, func_name=None):
+    def get_log(self, date1, date2, func_name):
         filters = {}
         date1 = self.__date_stamp(date1)
         if isinstance(date1, float):
@@ -225,7 +230,7 @@ class ProfileData:
         date2 = self.__date_stamp(date2)
         if isinstance(date2, float):
             filters['enter_time__lt'] = date2
-        if isinstance(func_name, str):
+        if func_name:
             filters['name'] = func_name
         logdata = []
         for call_data in CallLogs.objects.filter(**filters).exclude(return_time=None).order_by('id'):
@@ -253,14 +258,13 @@ class ProfileData:
         return data
 
     def __collect_statistic(self, date1, date2, func_name):
-        self.__is_not_used()
         data = {}
         filters = {}
         if isinstance(date1, float):
             filters['enter_time__gt'] = date1
         if isinstance(date2, float):
             filters['enter_time__lt'] = date2
-        if isinstance(func_name, str):
+        if func_name:
             filters['name'] = func_name
 
         for call_data in CallLogs.objects.filter(**filters).order_by('id'):
@@ -289,7 +293,6 @@ class ProfileData:
         return list(data[fname] for fname in sorted(data))
 
     def __date_stamp(self, date):
-        self.__is_not_used()
         if isinstance(date, datetime):
             date = date.timestamp()
         elif isinstance(date, time.struct_time):
@@ -297,9 +300,6 @@ class ProfileData:
         elif not isinstance(date, float):
             date = None
         return date
-
-    def __is_not_used(self):
-        pass
 
 
 def clear_old_logs():

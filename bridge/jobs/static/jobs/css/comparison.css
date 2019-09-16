@@ -18,3 +18,8 @@
 .show_file_content {
     cursor: pointer;
 }
+
+.files-list {
+    max-height: 80vh;
+    overflow: auto;
+}

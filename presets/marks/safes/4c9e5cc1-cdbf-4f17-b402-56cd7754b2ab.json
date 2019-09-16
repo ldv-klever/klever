@@ -1,0 +1,18 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:drivers:clk1"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/staging/iio/adc/mxs-lradc.ko"
+    }
+  ],
+  "description": "All is right.",
+  "is_modifiable": true,
+  "tags": [],
+  "verdict": "0"
+}

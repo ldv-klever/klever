@@ -22,21 +22,20 @@ from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.urls import reverse
 
-from bridge.populate import populate_users
 from bridge.utils import KleverTestCase, ArchiveFileContent
-from bridge.vars import JOB_STATUS, SAFE_VERDICTS, UNSAFE_VERDICTS, MARK_SAFE, MARK_UNSAFE, MARK_STATUS, MARK_TYPE,\
+from bridge.vars import JOB_STATUS, SAFE_VERDICTS, UNSAFE_VERDICTS, MARK_SAFE, MARK_UNSAFE, MARK_STATUS,\
     PROBLEM_DESC_FILE, ASSOCIATION_TYPE
 
 from users.models import User
 from jobs.models import Job
 from reports.models import ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent
 from marks.models import MarkSafe, MarkUnsafe, MarkUnknown, MarkSafeHistory, MarkUnsafeHistory, MarkUnknownHistory,\
-    SafeTag, UnsafeTag, ReportSafeTag, ReportUnsafeTag, MarkSafeTag, MarkUnsafeTag, SafeReportTag, UnsafeReportTag,\
-    MarkSafeReport, MarkUnsafeReport, MarkUnknownReport, MarkUnsafeCompare, UnknownProblem, \
+    SafeTag, UnsafeTag, MarkSafeTag, MarkUnsafeTag,\
+    MarkSafeReport, MarkUnsafeReport, MarkUnknownReport, \
     SafeAssociationLike, UnsafeAssociationLike, UnknownAssociationLike
 
 from reports.test import DecideJobs, SJC_1
-from marks.CompareTrace import DEFAULT_COMPARE
+from marks.UnsafeUtils import DEFAULT_COMPARE
 
 REPORT_ARCHIVES = os.path.join(settings.BASE_DIR, 'reports', 'test_files')
 
@@ -347,7 +346,7 @@ class TestMarks(KleverTestCase):
         ).count(), 0)
 
         # Download mark
-        response = self.client.get(reverse('marks:download_mark', args=['safe', mark.pk]))
+        response = self.client.get(reverse('marks:safe-download', args=[mark.pk]))
         self.assertEqual(response.status_code, 200)
         self.assertIn(response['Content-Type'], {'application/x-zip-compressed', 'application/zip'})
         with open(os.path.join(settings.MEDIA_ROOT, self.safe_archive), mode='wb') as fp:
@@ -355,7 +354,7 @@ class TestMarks(KleverTestCase):
                 fp.write(content)
 
         # Download mark in preset format
-        response = self.client.get(reverse('marks:download_preset_mark', args=['safe', mark.pk]))
+        response = self.client.get(reverse('marks:safe-download-preset', args=[mark.pk]))
         self.assertEqual(response.status_code, 200)
 
         # Delete mark
@@ -454,7 +453,7 @@ class TestMarks(KleverTestCase):
         self.assertIn(response.status_code, {200, 302})
 
         # Download all marks
-        response = self.client.get('/marks/download-all/')
+        response = self.client.get('/marks/api/download-all/')
         self.assertEqual(response.status_code, 200)
         self.assertNotEqual(response['Content-Type'], 'application/json')
         with open(os.path.join(settings.MEDIA_ROOT, self.all_marks_arch), mode='wb') as fp:
@@ -789,7 +788,7 @@ class TestMarks(KleverTestCase):
         ).count(), 0)
 
         # Download mark
-        response = self.client.get(reverse('marks:download_mark', args=['unsafe', mark.pk]))
+        response = self.client.get(reverse('marks:unsafe-download', args=[mark.pk]))
         self.assertEqual(response.status_code, 200)
         self.assertIn(response['Content-Type'], {'application/x-zip-compressed', 'application/zip'})
         with open(os.path.join(settings.MEDIA_ROOT, self.unsafe_archive), mode='wb') as fp:
@@ -797,7 +796,7 @@ class TestMarks(KleverTestCase):
                 fp.write(content)
 
         # Download mark in preset format
-        response = self.client.get(reverse('marks:download_preset_mark', args=['unsafe', mark.pk]))
+        response = self.client.get(reverse('marks:unsafe-download-preset', args=[mark.pk]))
         self.assertEqual(response.status_code, 200)
 
         # Delete mark
@@ -909,7 +908,7 @@ class TestMarks(KleverTestCase):
         self.assertIn(response.status_code, {200, 302})
 
         # Download all marks
-        response = self.client.get('/marks/download-all/')
+        response = self.client.get('/marks/api/download-all/')
         self.assertEqual(response.status_code, 200)
         self.assertNotEqual(response['Content-Type'], 'application/json')
         with open(os.path.join(settings.MEDIA_ROOT, self.all_marks_arch), mode='wb') as fp:
@@ -1119,7 +1118,7 @@ class TestMarks(KleverTestCase):
         ).count(), 0)
 
         # Download mark
-        response = self.client.get(reverse('marks:download_mark', args=['unknown', mark.pk]))
+        response = self.client.get(reverse('marks:unknown-download', args=[mark.pk]))
         self.assertEqual(response.status_code, 200)
         self.assertIn(response['Content-Type'], {'application/x-zip-compressed', 'application/zip'})
         with open(os.path.join(settings.MEDIA_ROOT, self.unknown_archive), mode='wb') as fp:
@@ -1127,7 +1126,7 @@ class TestMarks(KleverTestCase):
                 fp.write(content)
 
         # Download mark in preset format
-        response = self.client.get(reverse('marks:download_preset_mark', args=['unknown', mark.pk]))
+        response = self.client.get(reverse('marks:unknown-download-preset', args=[mark.pk]))
         self.assertEqual(response.status_code, 200)
 
         # Delete mark
@@ -1245,7 +1244,7 @@ class TestMarks(KleverTestCase):
         self.assertIn(response.status_code, {200, 302})
 
         # Download all marks
-        response = self.client.get('/marks/download-all/')
+        response = self.client.get('/marks/api/download-all/')
         self.assertEqual(response.status_code, 200)
         self.assertNotEqual(response['Content-Type'], 'application/json')
         with open(os.path.join(settings.MEDIA_ROOT, self.all_marks_arch), mode='wb') as fp:

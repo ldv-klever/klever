@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends 'bridge/base.html' %}
 {% comment "License" %}
 % Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
 % Ivannikov Institute for System Programming of the Russian Academy of Sciences
@@ -20,30 +20,34 @@
 {% load tz %}
 {% load staticfiles %}
 
-{% block title %}{% if tabledata.type == 'safe' %}{% trans 'Safe marks' %}{% elif tabledata.type == 'unsafe' %}{% trans 'Unsafe marks' %}{% else %}{% trans 'Unknown marks' %}{% endif %}{% endblock %}
+{% block title %}{{ tabledata.title }}{% endblock %}
 
 {% block head_block %}
+    <script type="text/javascript" src="{% static 'semantic/tablesort.js' %}"></script>
     <script type="text/javascript" src="{% static 'marks/js/marks.js' %}"></script>
 {% endblock %}
 
 {% block body_block %}
-    <div class="ui text small menu">
-        <div class="ui dropdown item">
-            <i class="ui check square outline icon"></i>{% trans 'Selected marks' %}
-            <i class="dropdown icon"></i>
-            <div class="menu">
-                <div id="show_remove_marks_popup" class="item"><i class="ui remove icon"></i>{% trans 'Delete' %}</div>
-            </div>
+    <div class="ui grid">
+        <div class="eight wide column">
+            {% if tabledata.is_manager %}
+                <div class="ui dropdown">
+                    <i class="ui check square outline icon"></i>{% trans 'Selected marks' %}
+                    <i class="dropdown icon"></i>
+                    <div class="menu">
+                        <div id="remove_marks_modal_show" class="item"><i class="ui remove icon"></i>{% trans 'Delete' %}</div>
+                    </div>
+                </div>
+            {% endif %}
         </div>
-        <div class="right menu">
-            <div class="item">
-                <button id="view_show_form_btn_{{ tabledata.view.type }}" class="ui violet button">{{ tabledata.view.viewtitle }}</button>
-            </div>
+        <div class="eight wide column right aligned">
+            <button id="view_show_form_btn_{{ tabledata.view.type }}" class="ui mini violet button">{{ tabledata.view.viewtitle }}</button>
         </div>
     </div>
+    <br>
 
     <div id="view_form_segment_{{ tabledata.view.type }}" class="ui form yellow segment" style="display:none;">
-        {% include tabledata.view.template with view=tabledata.view selected_columns=tabledata.selected_columns available_columns=tabledata.available_columns %}
+        {% include tabledata.view.template with view=tabledata.view selected_columns=tabledata.selected_columns available_columns=tabledata.available_columns statuses=tabledata.statuses verdicts=tabledata.verdicts authors=tabledata.authors sources=tabledata.sources %}
     </div>
 
     {% if tabledata.values|length %}
@@ -57,7 +61,7 @@
             {% endif %}
         </div>
         <div style="overflow-x:auto;max-height: 75vh;overflow-y:auto;">
-            <table class="ui compact celled selectable table alternate-color {% if tabledata.view.type == '7' %}orange{% elif tabledata.view.type == '8' %}green{% elif tabledata.view.type == '9' %}red{% endif %}">
+            <table class="ui compact celled selectable sortable structured striped table {% if tabledata.view.type == '7' %}orange{% elif tabledata.view.type == '8' %}green{% elif tabledata.view.type == '9' %}red{% endif %}">
                 <thead>
                     {% for column_row in tabledata.header %}
                         <tr>
@@ -74,7 +78,7 @@
                                 <td class="collapsing{% if v.checkbox %} one wide{% endif %}"{% if v.checkbox %} style="text-align: right"{% endif %}>
                                     {% if v.checkbox %}
                                         <div class="ui checkbox">
-                                            <input type="checkbox" id="mark_checkbox__{{ v.checkbox }}">
+                                            <input type="checkbox" id="mark_checkbox__{{ v.checkbox }}" value="{{ v.checkbox }}">
                                             <label for="mark_checkbox__{{ v.checkbox }}"></label>
                                         </div>
                                     {% elif v.href %}
@@ -94,9 +98,9 @@
         <h2 class="header" style="text-align:center;">{% trans 'List of marks of the given type is empty, please create them or change the view' %}</h2>
     {% endif %}
 
-    <input id="marks_type" type="hidden" value="{{ tabledata.type }}">
+    <input id="marks_type" type="hidden" value="{{ tabledata.mark_type }}">
 
-    <div id="remove_marks_popup" class="ui basic modal">
+    <div id="remove_marks_modal" class="ui basic modal">
         <div class="ui icon header">
             <i class="warning sign icon"></i>
             {% trans 'Are you sure' %}?
@@ -108,8 +112,8 @@
         </div>
         <div class="actions">
             <div class="ui center aligned grid">
-                <button id="cancel_remove_marks" type="button" class="ui blue basic inverted button">{% trans 'Cancel' %}</button>
-                <button id="confirm_remove_marks" type="button" class="ui red basic inverted button">{% trans 'Delete' %}</button>
+                <button class="ui blue basic inverted button modal-cancel">{% trans 'Cancel' %}</button>
+                <button class="ui red basic inverted button modal-confirm">{% trans 'Delete' %}</button>
             </div>
         </div>
     </div>

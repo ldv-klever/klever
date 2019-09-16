@@ -1,0 +1,7 @@
+{
+  "attrs": [],
+  "function": "No rule to make target 'myconfig'",
+  "is_regexp": false,
+  "problem_pattern": "UnsupConfTarget",
+  "production": true
+}

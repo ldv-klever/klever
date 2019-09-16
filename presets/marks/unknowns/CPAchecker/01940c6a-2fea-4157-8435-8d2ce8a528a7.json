@@ -1,0 +1,7 @@
+{
+  "attrs": [],
+  "function": "memory exhausted",
+  "is_regexp": false,
+  "problem_pattern": "Out of memory",
+  "production": true
+}

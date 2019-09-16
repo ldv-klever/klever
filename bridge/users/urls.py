@@ -15,24 +15,23 @@
 # limitations under the License.
 #
 
-from django.urls import path
-from users import views
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from users import views, api
 
+router = DefaultRouter()
+router.register('views', api.DataViewAPIViewSet, 'views')
 
 urlpatterns = [
-    path('signin/', views.user_signin, name='login'),
-    path('signout/', views.user_signout, name='logout'),
-    path('register/', views.register, name='register'),
-    path('edit/', views.edit_profile, name='edit_profile'),
-    path('profile/<int:user_id>', views.show_profile, name='show_profile'),
-    path('service_signin/', views.service_signin),
-    path('service_signout/', views.service_signout),
-    path('ajax/save_notifications/', views.save_notifications),
+    path('signin/', views.BridgeLoginView.as_view(), name='login'),
+    path('signout/', views.BridgeLogoutView.as_view(), name='logout'),
 
-    # View actions
-    path('ajax/save_view/', views.save_view),
-    path('ajax/remove_view/', views.remove_view),
-    path('ajax/share_view/', views.share_view),
-    path('ajax/preferable_view/', views.preferable_view),
-    path('ajax/check_view_name/', views.check_view_name),
+    path('register/', views.UserRegisterView.as_view(), name='register'),
+    path('edit/', views.EditProfileView.as_view(), name='edit-profile'),
+    path('profile/<int:user_id>/', views.UserProfileView.as_view(), name='show-profile'),
+
+    # Views
+    path('', include(router.urls)),
+    path('views/<int:view_id>/prefer/', api.PreferViewAPIView.as_view()),
+    path('views/prefer-default/<slug:view_type>/', api.PreferViewAPIView.as_view()),
 ]

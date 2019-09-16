@@ -1,0 +1,21 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:kernel:module"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "net/sunrpc/sunrpc.ko"
+    }
+  ],
+  "description": "Relevant function \"svc_handle_xprt\" is uncovered, since it is called in export function svc_recv.",
+  "is_modifiable": false,
+  "tags": [
+    "EMG",
+    "EnvSpec"
+  ],
+  "verdict": "1"
+}

@@ -1,0 +1,48 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:alloc:spinlock"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/linux/alloc/spinlock/nonatomic-trylock.ko"
+    }
+  ],
+  "description": "",
+  "error_trace": [
+    [
+      {
+        "ldv_init": [
+          {
+            "ldv_spin_trylock_45": [
+              {
+                "ldv_spin_trylock_ldv_lock": [
+                  {
+                    "ldv_undef_int": []
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "ldv_check_alloc_nonatomic": [
+              {
+                "ldv_exclusive_spin_is_locked": []
+              },
+              {
+                "ldv_assert_linux_alloc_spinlock__nonatomic": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": true,
+  "tags": [],
+  "verdict": "2"
+}

@@ -20,41 +20,45 @@
 // }
 
 function collect_attrs_data() {
-    var attrs = [];
-    $("input[id^='attr_checkbox__']").each(function () { attrs.push({attr: $(this).val(), is_compare: $(this).is(':checked')}) });
+    let attrs = [];
+    $("input[id^='attr_checkbox__']").each(function () {
+        attrs.push({
+            name: $(this).data('name'),
+            value: $(this).data('value'),
+            is_compare: $(this).is(':checked')
+        })
+    });
     return attrs;
 }
 
 function get_description() {
-    var tmp_div = $('<div>').html($('#mark_description').val());
+    let tmp_div = $('<div>').html($('#mark_description').val());
     tmp_div.find('script').remove();
     tmp_div.find('*').each(function () {
-        var element_in_div = $(this);
-        $.each($(this)[0].attributes, function (i, attr) { if (attr.name.match("^on")) element_in_div.removeAttr(attr.name) });
+        let element_in_div = $(this);
+        $.each($(this)[0].attributes, function (i, attr) {
+            if (attr.name.match("^on")) element_in_div.removeAttr(attr.name)
+        });
     });
     return tmp_div.html();
 }
 
 function is_modifiable() {
-    var is_modifiable_checkbox = $('#is_modifiable');
-    if (is_modifiable_checkbox.length) {
-        return is_modifiable_checkbox.is(':checked');
-    }
-    return true;
+    let is_modifiable_checkbox = $('#is_modifiable');
+    return (!is_modifiable_checkbox.length || is_modifiable_checkbox.is(':checked'));
 }
 
-function collect_markdata() {
-    var action = $('#action').val(), obj_type = $('#obj_type').val(), mark_data = {
-        description: get_description(), is_modifiable: is_modifiable(), attrs: collect_attrs_data(),
-        status: $("input[name='selected_status']:checked").val(),
+function collect_markdata(action, mark_type) {
+    let mark_data = {
+        is_modifiable: is_modifiable(),
+        description: get_description(),
+        attrs: collect_attrs_data(),
         comment: $('#mark_comment').val()
     };
-    if (action === 'edit') {
-        mark_data['autoconfirm'] = $('#autoconfirm').is(':checked');
-    }
+    if (action === 'create') mark_data['report_id'] = $('#report_id').val();
 
-    if (obj_type === 'unknown') {
-        mark_data['problem'] = $('#unknown_problem_pattern').val();
+    if (mark_type === 'unknown') {
+        mark_data['problem_pattern'] = $('#unknown_problem_pattern').val();
         mark_data['function'] = $('#unknown_function').val();
         mark_data['is_regexp'] = $('#is_regexp').is(':checked');
         mark_data['link'] = $('#unknown_link').val();
@@ -62,34 +66,26 @@ function collect_markdata() {
     else {
         mark_data['verdict'] = $("input[name='selected_verdict']:checked").val();
         mark_data['tags'] = get_tags_values();
-        if (obj_type === 'unsafe') mark_data['compare_id'] = $("#compare_function").val();
+        if (mark_type === 'unsafe') {
+            mark_data['status'] = $("input[name='selected_status']:checked").val();
+            mark_data['function'] = $("#compare_name").val();
+            mark_data['threshold'] = $('#threshold').val();
+        }
     }
-    if (obj_type === 'unsafe' && action == 'edit') {
+    if (mark_type === 'unsafe' && action === 'edit') {
         mark_data['error_trace'] = $('#mark_error_trace').val();
     }
-    return JSON.stringify(mark_data);
-}
-
-function set_action_on_func_change() {
-    $.post('/marks/get_func_description/' + $(this).children('option:selected').val() + '/', {}, function (data) {
-        if (data.error) {
-            err_notify(data.error);
-            return false;
-        }
-        $('#compare_function_description').text(data['compare_desc']);
-        $('#convert_function_description').text(data['convert_desc']);
-        $('#convert_function_name').text(data['convert_name']);
-    });
+    return mark_data;
 }
 
 function test_unknown_function() {
-    var func = $('#unknown_function').val();
+    let func = $('#unknown_function').val();
     if (func.length <= 0) {
         err_notify($('#error__function_required').text());
         return false;
     }
     $.post(
-        '/marks/check-unknown-mark/' + $('#obj_id').val() + '/',
+        $(this).data('url'),
         {
             function: func,
             pattern: $('#unknown_problem_pattern').val(),
@@ -126,18 +122,23 @@ function test_unknown_function() {
 $(document).ready(function () {
     activate_tags();
     $('.ui.dropdown').each(function () { if (!$(this).hasClass('search')) $(this).dropdown() });
-    $('#compare_function').change(set_action_on_func_change);
     $('#test_unknown_mark').click(test_unknown_function);
 
     $('#save_mark_btn').click(function () {
         $(this).addClass('disabled');
-        $.post('', {data: collect_markdata()}, function (data) {
-            if (data.error) {
-                $('#save_mark_btn').removeClass('disabled');
-                err_notify(data.error);
-            }
-            else if ('cache_id' in data) {
-                window.location.replace('/marks/' + $('#obj_type').val() + '/association_changes/' + data['cache_id'] + '/');
+
+        $.ajax({
+            url: $(this).data('url'),
+            method: $(this).data('method'),
+            data: JSON.stringify(collect_markdata($(this).data('action'), $(this).data('type'))),
+            dataType: "json",
+            contentType: 'application/json; charset=utf-8',
+            traditional: true,
+            success: function (resp) {
+                window.location.replace(resp['url']);
+            },
+            error: function () {
+                $('#save_mark_btn').removeClass('disabled')
             }
         });
     });
@@ -145,4 +146,29 @@ $(document).ready(function () {
     $('#mark_version_selector').change(function () {
         window.location.replace(get_url_with_get_parameter(window.location.href, 'version', $(this).val()));
     });
+
+    $('#compare_name').change(function () {
+        let selected_compare = $(this).children('option:selected').val(),
+            data_container = $('#unsafe_functions').find('.compare-func[data-name="' + selected_compare + '"]');
+        $('#compare_desc').text(data_container.find('.compare-desc').text());
+        $('#convert_desc').text(data_container.find('.convert-desc').text());
+        $('#convert_name').text(data_container.find('.convert-desc').data('name'));
+    });
+
+    let verdict_column = $('#verdict_column'), status_div = $('#status_column');
+    if (verdict_column.length && status_div.length) {
+        verdict_column.find('input').change(function () {
+            if ($(this).is(':checked')) {
+                // verdict is "Bug"
+                if ($(this).val() === '1') {
+                    status_div.show();
+                    status_div.find("input:radio[name=selected_status]:first").prop('checked', true);
+                }
+                else {
+                    status_div.find("input:radio[name=selected_status]:checked").prop('checked', false);
+                    status_div.hide();
+                }
+            }
+        })
+    }
 });

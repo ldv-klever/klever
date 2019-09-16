@@ -21,7 +21,9 @@ import sys
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-LOGIN_URL = '/users/signin/'
+AUTH_USER_MODEL = 'users.User'
+LOGIN_URL = 'users:login'
+LOGIN_REDIRECT_URL = 'jobs:tree'
 
 SECRET_KEY = '-u7-e699vgy%8uu_ng%%h68v7k8txs&=(ki+6eh88y-yb9mspw'
 
@@ -33,12 +35,8 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'jobs',
-    'marks',
-    'reports',
-    'service',
-    'tools',
-    'users',
+    'rest_framework', 'rest_framework.authtoken', 'mptt',
+    'bridge', 'jobs', 'marks', 'reports', 'service', 'tools', 'users', 'caches'
 )
 
 MIDDLEWARE = (
@@ -141,6 +139,12 @@ LOGGING = {
             'filename': os.path.join(MEDIA_ROOT, 'internal-server-error.log'),
             'formatter': 'with_separator'
         },
+        'db-file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(MEDIA_ROOT, 'db.log'),
+            'formatter': 'simple'
+        },
         'errors': {
             'level': 'ERROR',
             'class': 'logging.FileHandler',
@@ -155,17 +159,26 @@ LOGGING = {
         },
     },
     'loggers': {
-        'django.request': {
-            'handlers': ['console', 'file'],
-            'level': 'DEBUG',
-            'propagate': True
-        },
-        'bridge': {
-            'handlers': ['errors', 'console', 'other'],
-            'level': 'INFO',
-            'propagate': True
-        },
+        'django.request': {'handlers': ['console', 'file'], 'level': 'DEBUG', 'propagate': True},
+        'bridge': {'handlers': ['errors', 'console', 'other'], 'level': 'INFO', 'propagate': True},
+        # 'django.db': {'handlers': ['db-file'], 'level': 'DEBUG', 'propagate': True},
     }
 }
 
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ),
+    # 'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    # 'PAGE_SIZE': 50,
+    'NON_FIELD_ERRORS_KEY': 'general',
+    'UPLOADED_FILES_USE_URL': False,
+    'EXCEPTION_HANDLER': 'bridge.serializers.bridge_exception_handler'
+}
+
 MAX_FILE_SIZE = 104857600  # 100MB
+
+# username, password, host, name are requried
+with open(os.path.join(BASE_DIR, 'bridge', 'rmq.json'), encoding='utf8') as fp:
+    RABBIT_MQ = json.load(fp)

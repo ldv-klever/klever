@@ -1,0 +1,23 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Linux:Version",
+      "value": "v3.10.59-92-gc822fb57ba12"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:drivers:clk2"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/spi/spi-pxa2xx-platform.ko"
+    }
+  ],
+  "description": "Relevant code is covered, but CPAchecker cannot handle driver. Previously there was a non-target bug.",
+  "function": "CPU time exhausted",
+  "is_regexp": true,
+  "problem_pattern": "Timeout"
+}

@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends 'bridge/base.html' %}
 {% comment "License" %}
 % Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
 % Ivannikov Institute for System Programming of the Russian Academy of Sciences
@@ -21,7 +21,7 @@
 
 {% block head_block %}
     <link href="{% static 'marks/css/tagsmap.css' %}" rel="stylesheet">
-    <script type="text/javascript" src="{% static 'marks/js/tags.js' %}"></script>
+{#    <script type="text/javascript" src="{% static 'marks/js/tags.js' %}"></script>#}
     <script type="text/javascript" src="{% static 'marks/js/tagsmap.js' %}"></script>
 {% endblock %}
 
@@ -29,27 +29,27 @@
 
 {% block body_block %}
     <div class="tagsmap">
-        {% if can_create %}
-            <div class="ui tiny buttons" style="float: right;">
-                <a id="download_all_tags" class="ui tiny basic violet button" href="{% url 'marks:download_tags' tags_type %}"><i class="ui download icon"></i>{% trans 'Download tags' %}</a>
+        {% if tree.can_create %}
+            <div class="ui tiny buttons" style="float:right;">
+                <a id="download_all_tags" class="ui tiny basic violet button" href="{% url 'marks:tags-download' tree.type %}"><i class="ui download icon"></i>{% trans 'Download tags' %}</a>
                 <button id="upload_tags" class="ui tiny basic violet button"><i class="ui upload icon"></i>{% trans 'Upload tags' %}</button>
             </div>
         {% else %}
-            <a id="download_all_tags" class="ui tiny basic violet button" href="{% url 'marks:download_tags' tags_type %}" style="float: right;"><i class="ui download icon"></i>{% trans 'Download tags' %}</a>
+            <a id="download_all_tags" class="ui tiny basic violet button" href="{% url 'marks:tags-download' tree.type %}" style="float: right;"><i class="ui download icon"></i>{% trans 'Download tags' %}</a>
         {% endif %}
-        {% if can_create %}<button id="create_root_tag" class="ui tiny basic blue button"><i class="ui add icon"></i>{% trans 'Create new root tag' %}</button>{% endif %}
+        {% if tree.can_create %}<button id="create_root_tag" class="ui tiny basic blue button"><i class="ui add icon"></i>{% trans 'Create new root tag' %}</button>{% endif %}
 
         <br><br>
         <p style="margin-left: 10px"><i class="ui large gift purple icon"></i> <span style="color: #808080" class="italic">- {% trans 'Populated tags' %}</span></p>
 
         <table>
-            {% for row in tags %}
+            {% for row in tree.table %}
                 <tr>
                 {% for cell in row %}
-                    {% if cell|value_type == "<class 'str'>" %}
-                        <td class="line line-{{ cell }}">&nbsp;</td>
-                    {% elif cell|value_type == "<class 'marks.tags.TagData'>" %}
-                        <td id="tag_id_{{ cell.id }}" class="edit-tag-cell {{ tags_type }}">{{ cell.name }}</td>
+                    {% if cell and cell.type == 'link' %}
+                        <td class="tag-tree-link" data-links="{{ cell.value }}">&nbsp;</td>
+                    {% elif cell and cell.type == 'tag' %}
+                        <td id="tag__{{ cell.value.id }}" class="edit-tag-cell {{ tree.type }}">{{ cell.value.name }}</td>
                     {% else %}
                         <td>&nbsp;</td>
                     {% endif %}
@@ -59,78 +59,52 @@
         </table>
     </div>
 
-    <span id="tags_type" hidden>{{ tags_type }}</span>
-    <div class="popups">
-        {% for row in tags %}
-            {% for cell in row %}
-                {% if cell|value_type == "<class 'marks.tags.TagData'>" %}
-                    <div id="tag_popup_{{ cell.id }}" class="ui popup" style="min-width: 250px;">
-                        {% if cell.populated %}<i class="ui tiny gift purple icon"></i>{% endif %}
-                        {% if cell.can_edit %}
-                            <span class="icon-text" style="display: inline">&nbsp;</span>
-                        {% endif %}
-                        {% if cell.can_create_the_child %}
-                            <span>&nbsp;</span>
-                            <span class="icon-text icon-text-create">{% trans 'Create child' %}</span>
-                        {% endif %}
-                        {% if cell.can_edit %}
-                            <span class="icon-text icon-text-edit">{% trans 'Edit' %}</span>
-                            {% if cell.can_delete %}
-                                <span class="icon-text icon-text-remove">{% trans 'Remove' %}</span>
-                                <i class="ui small remove blue icon remove-tag-icon tag-icon" style="float: right"></i>
-                            {% endif %}
-                            <i class="ui small write blue icon edit-tag-icon tag-icon" style="float: right"></i>
-                        {% endif %}
-                        {% if cell.can_create_the_child %}
-                            <i class="ui small add blue icon create-tag-icon tag-icon" style="float: right"></i>
-                        {% endif %}
-                        <div class="content">{{ cell.description|safe }}</div>
-                        <p class="small-text" style="float: right">{% trans 'Author' %}: {{ cell.author }}</p>
-                    </div>
-                {% endif %}
-            {% endfor %}
+    <span id="tags_type" hidden>{{ tree.type }}</span>
+
+    {% for row in tree.table %}
+        {% for cell in row %}
+            {% if cell and cell.type == "tag" %}
+                {% include 'marks/TagPopup.html' with tag=cell.value access=cell.access %}
+            {% endif %}
         {% endfor %}
-    </div>
-    <input id="edit_tag_id" type="hidden">
+    {% endfor %}
+
     <div id="edit_tag_modal" class="ui dinamic modal">
         <div class="ui header">{% trans 'Edit tag' %}</div>
         <div class="content">
             <div class="ui form">
                 <div class="ui grid">
                     <div class="eight wide column">
-                        <label class="bold-text" for="tag_name">{% trans 'Name' %}</label>
+                        <label class="bold-text" for="edit_tag_name">{% trans 'Name' %}</label>
                         <div class="ui input fluid">
-                            <input id="tag_name" type="text" maxlength="32">
+                            <input id="edit_tag_name" type="text" maxlength="32">
                         </div>
                     </div>
                     <div class="eight wide column">
-                        <label class="bold-text" for="tag_parent">{% trans 'Parent' %}</label>
-                        <select id="tag_parent" class="ui search selection dropdown fluid">
+                        <label class="bold-text" for="edit_tag_parent">{% trans 'Parent' %}</label>
+                        <select id="edit_tag_parent" class="ui search selection dropdown fluid">
                             <option value="0">{% trans 'Root' %}</option>
                         </select>
                     </div>
                 </div>
                 <br>
-                <label class="bold-text" for="tag_description">{% trans 'Description' %}</label>
-                <textarea id="tag_description" rows="7" placeholder="{% trans 'Description' %}" style="resize:none"></textarea>
-                {% if user.extended.role == '2' %}
-                    <br><br>
-                    <div id="edit_tag_user_access_selection"></div>
-                {% endif %}
+                <label class="bold-text" for="edit_tag_description">{% trans 'Description' %}</label>
+                <textarea id="edit_tag_description" rows="7" placeholder="{% trans 'Description' %}" style="resize:none"></textarea>
                 <br><br>
             </div>
         </div>
         <div class="actions">
             <div class="ui grid">
                 <div class="eight wide column left aligned">
-                    <button id="save_tag" type="button" class="ui green button small">{% trans 'Save' %}</button>
+                    <button class="ui green button small modal-confirm">{% trans 'Save' %}</button>
                 </div>
                 <div class="eight wide column right aligned">
-                    <button id="cancel_edit_tag" type="button" class="ui blue button small">{% trans 'Cancel' %}</button>
+                    <button class="ui blue button small modal-cancel">{% trans 'Cancel' %}</button>
                 </div>
             </div>
         </div>
     </div>
+
     <div id="create_tag_modal" class="ui dinamic modal">
         <div class="ui header">{% trans 'Create tag' %}</div>
         <div class="content">
@@ -143,29 +117,22 @@
                         </div>
                     </div>
                     <div class="eight wide column">
-                        <label class="bold-text" for="create_tag_parent">{% trans 'Parent' %}</label>
-                        <select id="create_tag_parent" class="ui search selection dropdown fluid">
-                            <option value="0">{% trans 'Root' %}</option>
-                        </select>
+                        <p>{% trans 'Parent' %}: <span id="create_tag_parent"></span></p>
                     </div>
                 </div>
                 <br>
                 <label class="bold-text" for="create_tag_description">{% trans 'Description' %}</label>
                 <textarea id="create_tag_description" rows="7" placeholder="{% trans 'Description' %}" style="resize:none"></textarea>
-                {% if user.extended.role == '2' %}
-                    <br><br>
-                    <div id="create_tag_user_access_selection"></div>
-                {% endif %}
                 <br><br>
             </div>
         </div>
         <div class="actions">
             <div class="ui grid">
                 <div class="eight wide column left aligned">
-                    <button id="confirm_create_tag" type="button" class="ui green button small">{% trans 'Create' %}</button>
+                    <button class="ui green button small modal-confirm">{% trans 'Create' %}</button>
                 </div>
                 <div class="eight wide column right aligned">
-                    <button id="cancel_create_tag" type="button" class="ui blue button small">{% trans 'Cancel' %}</button>
+                    <button class="ui blue button small modal-cancel">{% trans 'Cancel' %}</button>
                 </div>
             </div>
         </div>
@@ -182,8 +149,8 @@
         </div>
         <div class="actions">
             <div class="ui center aligned grid">
-                <button id="cancel_remove_tag" type="button" class="ui blue basic inverted button">{% trans 'Cancel' %}</button>
-                <button id="confirm_remove_tag" class="ui red basic inverted button">{% trans 'Remove' %}</button>
+                <button class="ui blue basic inverted button modal-cancel">{% trans 'Cancel' %}</button>
+                <button class="ui red basic inverted button modal-confirm">{% trans 'Remove' %}</button>
             </div>
         </div>
     </div>
@@ -200,10 +167,35 @@
             </div>
         </div>
         <div class="actions">
-            <button id="upload_tags_start" type="button" class="ui positive left button">{% trans 'Upload' %}</button>
-            <button id="upload_tags_cancel" type="button" class="ui blue button">{% trans 'Cancel' %}</button>
+            <button class="ui green left button modal-confirm">{% trans 'Upload' %}</button>
+            <button class="ui blue button modal-cancel">{% trans 'Cancel' %}</button>
         </div>
     </div>
-    <span id="label_for_user_access_1" hidden>{% trans 'Users can modify' %}</span>
-    <span id="label_for_user_access_2" hidden>{% trans 'Users can create children' %}</span>
+    <div id="change_access_tag_modal" class="ui dinamic modal">
+        <div class="ui header">{% trans 'Edit users access' %}</div>
+        <div class="content">
+            <div class="ui form">
+                <div class="ui field">
+                    <label for="change_access_edit_select">{% trans 'Users can modify' %}</label>
+                    <select id="change_access_edit_select" class="ui fluid dropdown" multiple></select>
+                </div>
+                <div class="ui field">
+                    <label for="change_access_create_select">{% trans 'Users can create children' %}</label>
+                    <select id="change_access_create_select" class="ui fluid dropdown" multiple></select>
+                </div>
+            </div>
+        </div>
+        <div class="actions">
+            <div class="ui grid">
+                <div class="eight wide column left aligned">
+                    <button class="ui green button small modal-confirm">{% trans 'Save' %}</button>
+                </div>
+                <div class="eight wide column right aligned">
+                    <button class="ui blue button small modal-cancel">{% trans 'Cancel' %}</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <span id="user_access_placeholder" hidden>{% trans 'Select users' %}</span>
+    <span id="api_success_message" hidden>{% trans 'Saved' %}!</span>
 {% endblock %}

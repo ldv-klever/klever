@@ -1,0 +1,98 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Linux:Version",
+      "value": "v3.12.17-55-g21a018a58f3c"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:kernel:locking:spinlock"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "net/tipc/tipc.ko"
+    }
+  ],
+  "description": "Verifier needs model for vzalloc() to bypass this false alarm.",
+  "error_trace": [
+    [
+      {
+        "tipc_init": [
+          {
+            "tipc_core_start": [
+              {
+                "tipc_handler_start": [
+                  {
+                    "tasklet_enable": [
+                      {
+                        "ldv_atomic_dec": []
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "tipc_socket_init": [
+                  {
+                    "ldv_emg_sock_register": [
+                      {
+                        "tipc_sk_create": [
+                          {
+                            "tipc_createport": [
+                              {
+                                "ldv_spin_lock_bh_72_1": [
+                                  {
+                                    "ldv_spin_lock_tipc_port_list_lock": [
+                                      {
+                                        "ldv_assert_linux_kernel_locking_spinlock__one_thread_double_lock": []
+                                      }
+                                    ]
+                                  }
+                                ]
+                              },
+                              {
+                                "ldv_spin_unlock_bh_73_2": [
+                                  {
+                                    "ldv_spin_unlock_tipc_port_list_lock": [
+                                      {
+                                        "ldv_assert_linux_kernel_locking_spinlock__one_thread_double_unlock": []
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "ldv_spin_unlock_bh_87_1": [
+                              {
+                                "ldv_spin_unlock_lock_of_tipc_port": [
+                                  {
+                                    "ldv_assert_linux_kernel_locking_spinlock__one_thread_double_unlock": []
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": true,
+  "tags": [
+    "KernelModel"
+  ],
+  "verdict": "3"
+}

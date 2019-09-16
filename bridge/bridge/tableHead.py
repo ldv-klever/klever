@@ -15,6 +15,7 @@
 # limitations under the License.
 #
 
+
 class Header:
     def __init__(self, columns, titles):
         self.columns = columns
@@ -81,3 +82,46 @@ class Header:
         if column in self.titles:
             return self.titles[column]
         return last_part
+
+
+class ComplexHeaderMixin:
+    def head_struct(self, columns, titles):
+        data = []
+
+        max_depth = 0
+        column_matrix = []
+        for column in columns:
+            column_list = column.split(':')
+            max_depth = max(max_depth, len(column_list))
+
+            column_prefix_list = []
+            for i in range(len(column_list)):
+                column_prefix_list.append(':'.join(column_list[:(i + 1)]))
+            column_matrix.append(column_prefix_list)
+
+        for row in range(max_depth):
+            prev_cell = None
+            row_data = []
+            for column in column_matrix:
+                if len(column) <= row:
+                    continue
+                if prev_cell:
+                    if column[row] == prev_cell['column']:
+                        # Just stretch the previous column
+                        prev_cell['columns'] += 1
+                        continue
+                    else:
+                        row_data.append(prev_cell)
+
+                prev_cell = {
+                    'column': column[row], 'rows': 1, 'columns': 1,
+                    'title': titles.get(column[row], column[row])
+                }
+                if len(column) == row + 1:
+                    # The last item in the list, need vertical stretch
+                    prev_cell['rows'] = max_depth - len(column) + 1
+            if prev_cell:
+                row_data.append(prev_cell)
+            data.append(row_data)
+
+        return data

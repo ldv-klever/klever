@@ -1,0 +1,41 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:kernel:locking:rwlock"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/linux/kernel/locking/rwlock/tryrlock.ko"
+    }
+  ],
+  "description": "",
+  "error_trace": [
+    [
+      {
+        "ldv_init": [
+          {
+            "ldv_read_trylock": [
+              {
+                "ldv_undef_int": []
+              }
+            ]
+          },
+          {
+            "ldv_read_unlock": [
+              {
+                "ldv_assert_linux_kernel_locking_rwlock__more_read_unlocks": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": true,
+  "tags": [],
+  "verdict": "2"
+}

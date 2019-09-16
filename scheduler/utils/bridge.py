@@ -33,79 +33,65 @@ class Session:
 
     CANCELLED_STATUS = re.compile('The task \d+ was not found')
 
-    def __init__(self, logger, name, user, password, parameters=dict()):
+    def __init__(self, logger, name, user, password):
         """
         Create http session between scheduler and Klever Bridge server.
 
         :param name: Server address.
         :param user: User name.
         :param password: Password.
-        :param parameters: Dictionary with parameters to add alongside with user name and password..
         :return:
         """
         logger.info('Create session for user "{0}" at Klever Bridge "{1}"'.format(user, name))
         self.logger = logger
         self.name = name
-        # Prepare data
-        self.__parameters = parameters
-        self.__parameters["username"] = user
-        self.__parameters["password"] = password
 
         # Sign in.
-        self.__signin()
+        self.__signin(user, password)
 
-    def __signin(self):
-        # Get CSRF token via GET request.
+    def __signin(self, user, password):
         self.session = requests.Session()
-        self.__request('users/service_signin/')
-        self.__request('users/service_signin/', 'POST', self.__parameters)
+        resp = self.__request('service/get_token/', 'POST', data={'username': user, 'password': password})
+        self.session.headers.update({'Authorization': 'Token {}'.format(resp.json()['token'])})
         self.logger.debug('Session was created')
 
-    def __request(self, path_url, method='GET', data=None, looping=True, **kwargs):
+    def __request(self, path_url, method, looping=True, **kwargs):
         """
         Make request in terms of the active session.
 
         :param path_url: Address suffix to append.
         :param method: POST or GET.
-        :param data: Data to push in case of POST request.
         :param kwargs: Additional arguments.
         :return:
         """
-        if data:
-            data.update({'csrfmiddlewaretoken': self.session.cookies['csrftoken']})
+
+        kwargs.setdefault('allow_redirects', True)
 
         while True:
             try:
                 url = 'http://' + self.name + '/' + path_url
 
                 self.logger.debug('Send "{0}" request to "{1}"'.format(method, url))
+                resp = self.session.request(method, url, **kwargs)
 
-                if method == 'GET':
-                    resp = self.session.get(url, **kwargs)
-                else:
-                    resp = self.session.post(url, data, **kwargs)
-
-                if resp.status_code != 200:
-                    with open('response error.html', 'w', encoding='utf8') as fp:
-                        fp.write(resp.text)
-                    status_code = resp.status_code
-                    resp.close()
-                    raise UnexpectedStatusCode(
-                        'Got unexpected status code "{0}" when send "{1}" request to "{2}"'.format(status_code,
-                                                                                                   method, url))
-                if resp.headers['content-type'] == 'application/json' and 'error' in resp.json():
-                    self.error = resp.json()['error']
-                    resp.close()
-                    if self.error == 'You are not signing in':
-                        self.logger.debug("Session has expired, relogging in")
-                        self.__signin()
-                        if data:
-                            data.update({'csrfmiddlewaretoken': self.session.cookies['csrftoken']})
-                    else:
-                        raise BridgeError(
-                            'Got error "{0}" when send "{1}" request to "{2}"'.format(self.error, method, url))
-                else:
+                # 2xx - Success; 1xx(info) and 3xx(redirection) status codes aren't used in Bridge API
+                if resp.status_code < 400:
                     return resp
+
+                # 4xx or 5xx status code
+                if resp.headers['content-type'] == 'application/json':
+                    # TODO: Expected behavior; reps.json() contains an error
+                    self.error = resp.text
+                    resp.close()
+                    raise BridgeError('Got error "{0}" when send "{1}" request to "{2}"'
+                                      .format(self.error, method, url))
+
+                with open('response error.html', 'w', encoding='utf8') as fp:
+                    fp.write(resp.text)
+                status_code = resp.status_code
+                resp.close()
+                raise UnexpectedStatusCode('Got unexpected status code "{0}" when send "{1}" request to "{2}"'
+                                           .format(status_code, method, url))
             except requests.ConnectionError as err:
                 self.logger.info('Could not send "{0}" request to "{1}"'.format(method, err.request.url))
                 if looping:
@@ -114,7 +100,7 @@ class Session:
                     self.logger.warning('Aborting request to Bridge')
                     return None
 
-    def get_archive(self, endpoint, data, archive):
+    def get_archive(self, endpoint, archive=None):
         """
         Download ZIP archive from server.
 
@@ -127,7 +113,7 @@ class Session:
         while True:
             resp = None
             try:
-                resp = self.__request(endpoint, 'POST', data, stream=True)
+                resp = self.__request(endpoint, 'GET', stream=True)
 
                 self.logger.debug('Write archive to {}'.format(archive))
                 with open(archive, 'wb') as fp:
@@ -165,7 +151,7 @@ class Session:
         while True:
             resp = None
             try:
-                resp = self.__request(endpoint, 'POST', data, files={'file': open(archive, 'rb', buffering=0)},
+                resp = self.__request(endpoint, 'POST', data=data, files={'archive': open(archive, 'rb', buffering=0)},
                                       stream=True)
                 break
             except BridgeError:
@@ -185,16 +171,29 @@ class Session:
 
         return ret
 
-    def json_exchange(self, endpoint, json_data, looping=True):
+    def exchange(self, endpoint, data=None, method='POST', looping=True):
         """
         Exchange with JSON the
 
         :param endpoint: URL endpoint.
-        :param json_data: Data with json string.
+        :param data: Data.
+        :param method: HTTP method.
         :param looping: Do the request until it finishes successfully.
         :return: JSON string response from the server.
         """
-        response = self.__request(endpoint, 'POST', json_data, looping=looping)
+        self.__request(endpoint, method, looping=looping, json=data)
+
+    def json_exchange(self, endpoint, data=None, method='POST', looping=True):
+        """
+        Exchange with JSON the
+
+        :param endpoint: URL endpoint.
+        :param data: Data.
+        :param method: HTTP method.
+        :param looping: Do the request until it finishes successfully.
+        :return: JSON string response from the server.
+        """
+        response = self.__request(endpoint, method, looping=looping, json=data)
 
         if response:
             return response.json()
@@ -203,10 +202,9 @@ class Session:
 
     def sign_out(self):
         """
-        Sign out and stop current session.
+        Stop current session.
 
         :return: Nothing
         """
         self.logger.info('Finish session at {}'.format(self.name))
-        self.__request('users/service_signout/', looping=True)
 

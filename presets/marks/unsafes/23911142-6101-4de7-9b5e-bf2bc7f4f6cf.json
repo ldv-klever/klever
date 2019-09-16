@@ -1,0 +1,51 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:test:environment model specifications"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/iio_triggered_buffer_v.1/iio_triggered_buffer_invoke.ko"
+    }
+  ],
+  "description": "",
+  "error_trace": [
+    [
+      {
+        "ldv_initialize": []
+      }
+    ],
+    [
+      {
+        "ldv_init": [
+          {
+            "ldv_invoke_test": []
+          }
+        ]
+      }
+    ],
+    [
+      {
+        "ldv_switch_to_interrupt_context": []
+      },
+      {
+        "irq_handler": [
+          {
+            "ldv_invoke_reached": [
+              {
+                "ldv_assert_linux_emg_test": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": true,
+  "tags": [],
+  "verdict": "2"
+}

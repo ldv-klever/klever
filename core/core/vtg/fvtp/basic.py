@@ -107,7 +107,7 @@ class Basic:
 
         task_desc = {
             # Safely use id of corresponding abstract verification task since all bug kinds will be merged and each
-            # abstract verification task will correspond to exactly one verificatoin task.
+            # abstract verification task will correspond to exactly one verification task.
             'id': self.abstract_task_desc['id'],
             'job id': self.conf['identifier'],
             'format': 1,
@@ -133,8 +133,11 @@ class Basic:
             }
         )
 
-        # Save to task its class
+        # Save to task its class.
         task_desc['solution class'] = self.conf['solution class']
+
+        # Keep reference to additional sources. It will be used for verification reports.
+        task_desc['additional sources'] = self.abstract_task_desc['additional sources']
 
         return task_desc
 

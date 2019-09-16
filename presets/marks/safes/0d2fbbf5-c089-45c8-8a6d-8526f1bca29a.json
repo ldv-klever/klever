@@ -1,0 +1,21 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:kernel:locking:spinlock"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "fs/nfs/nfs.ko"
+    }
+  ],
+  "description": "Function nfs_lock_and_join_requests is not covered. There is no required EMG specifications (for instance address_space_operations). However, it is a complex driver and environment model would be too complicated for a verification tool.",
+  "is_modifiable": true,
+  "tags": [
+    "EMG",
+    "EnvSpec"
+  ],
+  "verdict": "1"
+}

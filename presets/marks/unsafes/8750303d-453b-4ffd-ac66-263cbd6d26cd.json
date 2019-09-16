@@ -1,0 +1,48 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:usb:urb"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/linux/usb/urb/less-decrement.ko"
+    }
+  ],
+  "description": "",
+  "error_trace": [
+    [
+      {
+        "ldv_init": [
+          {
+            "ldv_usb_alloc_urb": [
+              {
+                "ldv_undef_ptr": []
+              }
+            ]
+          },
+          {
+            "ldv_usb_free_urb": [
+              {
+                "ldv_assert_linux_usb_urb__less_initial_decrement": []
+              }
+            ]
+          },
+          {
+            "ldv_usb_free_urb": [
+              {
+                "ldv_assert_linux_usb_urb__less_initial_decrement": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": true,
+  "tags": [],
+  "verdict": "2"
+}

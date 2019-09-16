@@ -16,17 +16,18 @@
  */
 
 function draw_connections() {
-    var cnt = 1;
+    let cnt = 1;
     function draw_line(b1, b2, column) {
-        var s_x = b1.position().left + parseInt(b1.width() / 2), s_y = b1.position().top + b1.height(),
-            e_x = b2.position().left + parseInt(b2.width() / 2), e_y = b2.position().top,
+        let s_x = b1.position().left + parseInt(b1.width() / 2),
+            s_y = b1.position().top + b1.height(),
+            e_x = b2.position().left + parseInt(b2.width() / 2),
+            e_y = b2.position().top,
             line_w = parseInt(e_x - s_x), line_h = parseInt(e_y - s_y) - 1,
             canvas_id = 'canvas__' + cnt;
         cnt++;
-        if (line_w == 0) {
-            line_w = 1;
-        }
+        if (line_w === 0) line_w = 1;
         line_h -= 7;
+
         column.append($('<canvas>', {id: canvas_id}));
         var c = $('#' + canvas_id);
         c.attr('width', Math.abs(line_w));
@@ -58,12 +59,14 @@ function draw_connections() {
 
         ctx.stroke();
     }
-    $('.block-parent').each(function () {
-        var block = $(this).closest('.comparison-block'), column = $(this).closest('.reports-column'),
-            parent_id = $(this).val();
-        column.find('.block-id').each(function () {
-            if ($(this).val() == parent_id) {
-                draw_line($(this).closest('.comparison-block'), block, column);
+    $('.reports-column').each(function () {
+        var curr_column = $(this);
+        curr_column.find('.comparison-block').each(function () {
+            var current_block = $(this),
+                parent_id = current_block.data('parent');
+            if (parent_id) {
+                var parent_block = curr_column.find('.comparison-block[data-id="' + parent_id + '"]').first();
+                if (parent_block.length) draw_line(parent_block, current_block, curr_column);
             }
         });
     });
@@ -88,126 +91,63 @@ function block_hover_off() {
     $('.comparison-block').removeClass('block-hover-single block-hover-normal');
 }
 
+function get_comparison(page) {
+    var search_verdict = $('#search_verdict').val() || undefined,
+        search_attrs = $('#search_attrs').val() || undefined;
+    var data = {
+        page: page, verdict: search_verdict, attrs: search_attrs,
+        hide_components: $('#show_all_components').is(':checked') ? 0 : 1,
+        hide_attrs: $('#show_all_attrs').is(':checked') ? 0 : 1
+    };
+    $.get($('#compare_data_url').val(), data, function (data) {
+        $('#compare_data').html(data);
+        $('.comparison-block').hover(block_hover_on, block_hover_off);
+        draw_connections();
+        setup_buttons();
+    });
+}
+
 function setup_buttons() {
     $('#fast_backward_btn').click(function () {
-        var cur_v_input = $('#current_verdict');
-        if (cur_v_input.length) {
-            get_comparison(cur_v_input.val(), 1);
-        }
-        else if ($('#attrs_search_value').length) {
-            get_comparison_by_attrs($('#attrs_search_value').val(), 1)
-        }
-
+        get_comparison(1);
     });
     $('#fast_forward_btn').click(function () {
-        var cur_v_input = $('#current_verdict');
-        if (cur_v_input.length) {
-            get_comparison(cur_v_input.val(), $('#total_pages').val());
-        }
-        else if ($('#attrs_search_value').length) {
-            get_comparison_by_attrs($('#attrs_search_value').val(), $('#total_pages').val())
-        }
+        get_comparison($('#total_pages').text());
     });
     $('#backward_btn').click(function () {
-        var curr_page = parseInt($('#current_page_num').val()),
-            cur_v_input = $('#current_verdict');
-        if (curr_page > 1) {
-            curr_page--;
-        }
-        if (cur_v_input.length) {
-            get_comparison(cur_v_input.val(), curr_page);
-        }
-        else if ($('#attrs_search_value').length) {
-            get_comparison_by_attrs($('#attrs_search_value').val(), curr_page)
-        }
+        let curr_page = parseInt($('#current_page').text());
+        if (curr_page > 1) curr_page--;
+        get_comparison(curr_page);
     });
     $('#forward_btn').click(function () {
-        var curr_page = parseInt($('#current_page_num').val()),
-            max_page_num = parseInt($('#total_pages').val()),
-            cur_v_input = $('#current_verdict');
-        if (curr_page < max_page_num) {
-            curr_page++;
-        }
-        if (cur_v_input.length) {
-            get_comparison(cur_v_input.val(), curr_page);
-        }
-        else if ($('#attrs_search_value').length) {
-            get_comparison_by_attrs($('#attrs_search_value').val(), curr_page)
-        }
+        var curr_page = parseInt($('#current_page').text()),
+            max_page_num = parseInt($('#total_pages').text());
+        if (curr_page < max_page_num) curr_page++;
+        get_comparison(curr_page);
     });
 }
 
-function get_comparison(v_id, page_num) {
-    var data = {
-        verdict: v_id, page_num: page_num,
-        hide_components: $('#show_all_components').is(':checked') ? 0 : 1,
-        hide_attrs: $('#show_all_attrs').is(':checked') ? 0 : 1
-    };
-    $.post('/reports/get_compare_jobs_data/' + $('#compare_info').val() + '/', data, function (data) {
-        if (data.error) {
-            err_notify(data.error);
-            $('#compare_data').empty();
-        }
-        else {
-            $('#compare_data').html(data);
-            $('.comparison-block').hover(block_hover_on, block_hover_off);
-            draw_connections();
-            setup_buttons();
-        }
-    });
-}
-
-function get_comparison_by_attrs(attrs, page_num) {
-    var data = {
-        attrs: attrs, page_num: page_num,
-        hide_components: $('#show_all_components').is(':checked') ? 0 : 1,
-        hide_attrs: $('#show_all_attrs').is(':checked') ? 0 : 1
-    };
-    $.post('/reports/get_compare_jobs_data/' + $('#compare_info').val() + '/', data, function (data) {
-        if (data.error) {
-            err_notify(data.error);
-            $('#compare_data').empty();
-        }
-        else {
-            $('#compare_data').html(data);
-            $('.comparison-block').hover(block_hover_on, block_hover_off);
-            draw_connections();
-            setup_buttons();
-        }
-    });
+function reload_comparison() {
+    let curr_page = $('#current_page').text();
+    if (curr_page) get_comparison(curr_page);
 }
 
 $(document).ready(function () {
     $('.attrs-dropdown').dropdown();
-    $('a[id^="compare_cell_"]').click(function (event) {
+    $('.compare-cell').click(function (event) {
         event.preventDefault();
-        get_comparison($(this).attr('id').replace('compare_cell_', ''), 1);
+        $('#search_verdict').val($(this).data('verdict'));
+        $('#search_attrs').val('');
+        get_comparison(1);
     });
-    $('#show_all_components').parent().checkbox({
-        onChange: function () {
-            var curr_page = $('#current_page_num'), verdict = $('#current_verdict');
-            if (curr_page.length && verdict.length) {
-                get_comparison(verdict.val(), curr_page.val());
-            }
-            else if (curr_page.length && $('#attrs_search_value').length) {
-                get_comparison_by_attrs($('#attrs_search_value').val(), curr_page.val())
-            }
-        }
-    });
-    $('#show_all_attrs').parent().checkbox({
-        onChange: function () {
-            var curr_page = $('#current_page_num'), verdict = $('#current_verdict');
-            if (curr_page.length && verdict.length) {
-                get_comparison(verdict.val(), curr_page.val());
-            }
-            else if (curr_page.length && $('#attrs_search_value').length) {
-                get_comparison_by_attrs($('#attrs_search_value').val(), curr_page.val())
-            }
-        }
-    });
+    $('#show_all_components').parent().checkbox({onChange: reload_comparison});
+    $('#show_all_attrs').parent().checkbox({onChange: reload_comparison});
     $('#search_by_attrs').click(function () {
-        var attrs = [];
+        let attrs = [];
         $('select[id^="attr_value__"]').each(function () { attrs.push($(this).val()) });
-        if (attrs) get_comparison_by_attrs(JSON.stringify(attrs), 1);
+        if (!attrs.length) return;
+        $('#search_verdict').val('');
+        $('#search_attrs').val(JSON.stringify(attrs));
+        get_comparison(1);
     });
 });

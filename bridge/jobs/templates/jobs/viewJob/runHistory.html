@@ -1,0 +1,43 @@
+{% comment "License" %}
+% Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+% Ivannikov Institute for System Programming of the Russian Academy of Sciences
+%
+% Licensed under the Apache License, Version 2.0 (the "License");
+% you may not use this file except in compliance with the License.
+% You may obtain a copy of the License at
+%
+%    http://www.apache.org/licenses/LICENSE-2.0
+%
+% Unless required by applicable law or agreed to in writing, software
+% distributed under the License is distributed on an "AS IS" BASIS,
+% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+% See the License for the specific language governing permissions and
+% limitations under the License.
+{% endcomment %}
+
+{% load i18n %}
+
+{% load humanize %}
+
+{% load tz %}
+
+{% if run_history|length %}
+    <div class="ui orange segment">
+        <div class="ui top left attached orange label">{% trans 'History of decisions' %}</div>
+        <div class="ui small action input">
+            <label for="run_history"></label>
+            <select id="run_history" class="ui dropdown">
+                {% for rh in run_history %}
+                    <option value="{{ rh.pk }}"{% if rh.pk|slugify == checked_option %} selected{% endif %}>{{ rh.get_status_display }}{% if rh.operator %} ({{ rh.operator.get_full_name }}){% endif %} -
+                        {% if user.data_format == 'hum' %}
+                            {{ rh.date|naturaltime }}
+                        {% else %}
+                            {{ rh.date|date:"r" }}
+                        {% endif %}
+                    </option>
+                {% endfor %}
+            </select>
+            <button id="download_conf_btn" class="ui violet icon button note-popup" data-content="{% trans 'Download configuration file' %}" data-position="top right"><i class="ui download icon"></i></button>
+        </div>
+    </div>
+{% endif %}

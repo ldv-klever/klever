@@ -1,0 +1,23 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Linux kernel:Version",
+      "value": "214c97a12f1f"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:kernel:locking:mutex"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/media/usb/usbvision/usbvision.ko"
+    }
+  ],
+  "description": "Relevant code is covered, but CPAchecker cannot handle driver. Previously there was a non-target bug.",
+  "function": "CPU time exhausted",
+  "is_regexp": true,
+  "problem_pattern": "Timeout"
+}

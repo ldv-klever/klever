@@ -34,7 +34,7 @@
         <tbody>
             {% for d in data %}
                 <tr>
-                    <td><a class="func_name" href="#">{{ d.name }}</a></td>
+                    <td><a class="func_name" href="#" data-name="{{ d.name }}">{{ d.name }}</a></td>
                     <td>
                         {% if d.failed %}
                             <i class="ui red remove icon"></i>

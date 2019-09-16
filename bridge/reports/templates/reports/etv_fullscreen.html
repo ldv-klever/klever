@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends 'bridge/base.html' %}
 {% comment "License" %}
 % Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
 % Ivannikov Institute for System Programming of the Russian Academy of Sciences
@@ -22,20 +22,14 @@
 {% block title %}{% trans 'Error Trace Fullscreen' %}{% endblock %}
 
 {% block head_block %}
+    <script type="text/javascript" src="{% static 'reports/js/source.js' %}"></script>
     <script type="text/javascript" src="{% static 'reports/js/ETV.js' %}"></script>
     <script type="text/javascript" src="{% static 'reports/js/ETV-windows.js' %}"></script>
+    <link href="{% static 'reports/css/source.css' %}" rel="stylesheet">
     <link href="{% static 'reports/css/ETV.css' %}" rel="stylesheet">
 {% endblock %}
 
 {% block body_block %}
-    <div class="ui grid">
-        <div class="fifteen wide column">
-            {% include 'reports/ETVButtons.html' %}
-        </div>
-        <div class="one wide column right aligned">
-            <a class="ui icon basic tiny button" href="{% url 'reports:unsafe' report.trace_id %}"><i class="remove icon"></i></a>
-        </div>
-    </div>
     {% include 'reports/UnsafeContent.html' with fullscreen=True %}
-    <input type="hidden" id="report_pk" value="{{ report.pk }}">
+    <input id="source_url" type="hidden" value="{% url 'reports:api-get-source' report.id %}">
 {% endblock %}

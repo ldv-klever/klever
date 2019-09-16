@@ -15,8 +15,6 @@
 # limitations under the License.
 #
 
-from __future__ import unicode_literals
-
 from django.db import migrations, models
 
 
@@ -25,28 +23,23 @@ class Migration(migrations.Migration):
     dependencies = []
 
     operations = [
-        migrations.CreateModel(
-            name='LockTable',
-            fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(db_index=True, max_length=64, unique=True)),
-                ('locked', models.BooleanField(default=False)),
-            ],
-            options={'db_table': 'lock_table'},
-        ),
-        migrations.CreateModel(
-            name='CallLogs',
-            fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(db_index=True, max_length=64)),
-                ('enter_time', models.DecimalField(decimal_places=4, max_digits=14)),
-                ('execution_time', models.DecimalField(decimal_places=4, max_digits=14)),
-                ('return_time', models.DecimalField(decimal_places=4, max_digits=14)),
-                ('execution_delta', models.FloatField()),
-                ('wait1', models.FloatField()),
-                ('wait2', models.FloatField()),
-                ('is_failed', models.BooleanField()),
-            ],
-            options={'db_table': 'tools_call_logs'},
-        ),
+
+        migrations.CreateModel(name='CallLogs', fields=[
+            ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+            ('name', models.CharField(db_index=True, max_length=64)),
+            ('enter_time', models.DecimalField(decimal_places=4, max_digits=14)),
+            ('execution_time', models.DecimalField(decimal_places=4, max_digits=14, null=True)),
+            ('return_time', models.DecimalField(decimal_places=4, max_digits=14, null=True)),
+            ('execution_delta', models.FloatField(default=0)),
+            ('wait1', models.FloatField(default=0)),
+            ('wait2', models.FloatField(default=0)),
+            ('is_failed', models.BooleanField(default=True)),
+        ], options={'db_table': 'tools_call_logs'}),
+
+        migrations.CreateModel(name='LockTable', fields=[
+            ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+            ('name', models.CharField(db_index=True, max_length=64, unique=True)),
+            ('locked', models.BooleanField(default=False)),
+        ], options={'db_table': 'lock_table'}),
+
     ]
