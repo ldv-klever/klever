@@ -421,9 +421,7 @@
       },
       "locks": {
         "RSG": {
-          "models": {"zephyr/locks.c": {"bug kinds": [
-            "zephyr::deadlock"
-          ]}}}
+          "models": {"zephyr/locks.c": {}}}
       }
     },
     "linux": {
@@ -432,10 +430,7 @@
       "alloc": {
         "irq": {
           "description": "...",
-          "RSG": {"models": {"linux/alloc/irq.c": {"bug kinds": [
-            "linux:alloc:irq::wrong flags",
-            "linux:alloc:irq::nonatomic"
-          ]}}}
+          "RSG": {"models": {"linux/alloc/irq.c": {}}}
         },
         "spinlock": {
           "template": "Argument signatures for Linux kernel modules",
@@ -446,54 +441,31 @@
           }},
           "RSG": {"models": {
             "$linux/kernel/locking/spinlock.c": {"sets model": "flag"},
-            "linux/alloc/spinlock.c": {"bug kinds": [
-              "linux:alloc:spinlock::wrong flags",
-              "linux:alloc:spinlock::nonatomic"
-            ]}
+            "linux/alloc/spinlock.c": {}
           }}
         },
         "usb lock": {
           "description": "...",
-          "RSG": {"models": {"linux/alloc/usb lock.c": {"bug kinds": [
-            "linux:alloc:usb lock::wrong flags",
-            "linux:alloc:usb lock::nonatomic"
-          ]}}}
+          "RSG": {"models": {"linux/alloc/usb lock.c": {}}}
         }
       },
       "arch": {"io": {
         "description": "...",
-        "RSG": {"models": {"linux/arch/io.c": {"bug kinds": [
-          "linux:arch:io::less initial decrement",
-          "linux:arch:io::more initial at exit"
-        ]}}}
+        "RSG": {"models": {"linux/arch/io.c": {}}}
       }},
       "block": {
         "genhd": {
           "description": "...",
-          "RSG": {"models": {"linux/block/genhd.c": {"bug kinds": [
-            "linux:block:genhd::double allocation",
-            "linux:block:genhd::use before allocation",
-            "linux:block:genhd::delete before add",
-            "linux:block:genhd::free before allocation",
-            "linux:block:genhd::more initial at exit"
-          ]}}}
+          "RSG": {"models": {"linux/block/genhd.c": {}}}
         },
         "queue": {
           "description": "...",
-          "RSG": {"models": {"linux/block/queue.c": {"bug kinds": [
-            "linux:block:queue::double allocation",
-            "linux:block:queue::use before allocation",
-            "linux:block:queue::more initial at exit"
-          ]}}}
+          "RSG": {"models": {"linux/block/queue.c": {}}}
         },
         "request": {
           "description": "...",
           "template": "Linux kernel modules",
-          "RSG": {"models": {"linux/block/request.c": {"bug kinds": [
-            "linux:block:request::double get",
-            "linux:block:request::double put",
-            "linux:block:request::get at exit"
-          ]}}}
+          "RSG": {"models": {"linux/block/request.c": {}}}
         }
       },
       "concurrency safety": {
@@ -593,7 +565,7 @@
           }
         },
         "RSG": {
-          "models": {"linux/concurrency safety/synchronization primitives.c": {"bug kinds": []}}
+          "models": {"linux/concurrency safety/synchronization primitives.c": {}}
         },
         "FVTP": {
           "verifier profile": "race checking",
@@ -610,19 +582,11 @@
         "base": {
           "class": {
             "description": "...",
-            "RSG": {"models": {"linux/drivers/base/class.c": {"bug kinds": [
-              "linux:drivers:base:class::double registration",
-              "linux:drivers:base:class::double deregistration",
-              "linux:drivers:base:class::registered at exit"
-            ]}}}
+            "RSG": {"models": {"linux/drivers/base/class.c": {}}}
           },
           "dma-mapping": {
             "description": "...",
-            "RSG": {"models": {"linux/drivers/base/dma-mapping.c": { "bug kinds": [
-              "linux:drivers:base:dma-mapping::check before map",
-              "linux:drivers:base:dma-mapping::unchecked",
-              "linux:drivers:base:dma-mapping::unchecked at exit"
-            ]}}}
+            "RSG": {"models": {"linux/drivers/base/dma-mapping.c": {}}}
           }
         },
         "clk1": {
@@ -633,7 +597,7 @@
             "linux/drivers/clk1.c.tmpl",
             "linux/drivers/clk1.aspect.tmpl"
           ]},
-          "RSG": {"models": {"$linux/drivers/clk1.c": {"bug kinds": ["linux:drivers:clk1::more at exit"]}}}
+          "RSG": {"models": {"$linux/drivers/clk1.c": {}}}
         },
         "clk2": {
           "description": "...",
@@ -643,7 +607,7 @@
             "linux/drivers/clk2.c.tmpl",
             "linux/drivers/clk2.aspect.tmpl"
           ]},
-          "RSG": {"models": {"$linux/drivers/clk2.c": {"bug kinds": ["linux:drivers:clk2::less initial decrement"]}}}
+          "RSG": {"models": {"$linux/drivers/clk2.c": {}}}
         }
       },
       "empty": {
@@ -651,10 +615,7 @@
       },
       "fs": {"sysfs": {
         "description": "...",
-        "RSG": {"models": {"linux/fs/sysfs.c": {"bug kinds": [
-          "linux:fs:sysfs::less initial decrement",
-          "linux:fs:sysfs::more initial at exit"
-        ]}}}
+        "RSG": {"models": {"linux/fs/sysfs.c": {}}}
       }},
       "kernel": {
         "locking": {
@@ -666,26 +627,11 @@
               "linux/kernel/locking/mutex.c.tmpl": {},
               "linux/kernel/locking/mutex.aspect.tmpl": {}
             }},
-            "RSG": {"models": {"$linux/kernel/locking/mutex.c": {
-                "bug kinds": [
-                  "linux:kernel:locking:mutex::one thread:double lock",
-                  "linux:kernel:locking:mutex::one thread:double lock try",
-                  "linux:kernel:locking:mutex::one thread:double unlock",
-                  "linux:kernel:locking:mutex::one thread:locked at exit"
-                ],
-                "sets model": "flag"
-            }}}
+            "RSG": {"models": {"$linux/kernel/locking/mutex.c": {"sets model": "flag"}}}
           },
           "rwlock": {
             "description": "...",
-            "RSG": {"models": {"linux/kernel/locking/rwlock.c": {"bug kinds": [
-              "linux:kernel:locking:rwlock::read lock on write lock",
-              "linux:kernel:locking:rwlock::more read unlocks",
-              "linux:kernel:locking:rwlock::read lock at exit",
-              "linux:kernel:locking:rwlock::double write lock",
-              "linux:kernel:locking:rwlock::double write unlock",
-              "linux:kernel:locking:rwlock::write lock at exit"
-            ]}}}
+            "RSG": {"models": {"linux/kernel/locking/rwlock.c": {}}}
           },
           "spinlock": {
             "description": "...",
@@ -695,58 +641,31 @@
               "linux/kernel/locking/spinlock.c.tmpl": {},
               "linux/kernel/locking/spinlock.aspect.tmpl": {}
             }},
-            "RSG": {"models": {"$linux/kernel/locking/spinlock.c": {
-              "bug kinds": [
-                "linux:kernel:locking:spinlock::one thread:double lock",
-                "linux:kernel:locking:spinlock::one thread:double lock try",
-                "linux:kernel:locking:spinlock::one thread:double unlock",
-                "linux:kernel:locking:spinlock::one thread:locked at exit"
-              ],
-              "sets model": "flag"
-            }}}
+            "RSG": {"models": {"$linux/kernel/locking/spinlock.c": {"sets model": "flag"}}}
           }
         },
         "module": {
           "description": "...",
-          "RSG": {"models": {"linux/kernel/module.c": {"bug kinds": [
-              "linux:kernel:module::less initial decrement",
-              "linux:kernel:module::more initial at exit"
-          ]}}}
+          "RSG": {"models": {"linux/kernel/module.c": {}}}
         },
         "rcu": {
           "update": {
             "lock bh": {
               "description": "...",
-              "RSG": {"models": {"linux/kernel/rcu/update/lock bh.c": {"bug kinds": [
-                "linux:kernel:rcu:update:lock bh::more unlocks",
-                "linux:kernel:rcu:update:lock bh::locked at read section",
-                "linux:kernel:rcu:update:lock bh::locked at exit"
-              ]}}}
+              "RSG": {"models": {"linux/kernel/rcu/update/lock bh.c": {}}}
             },
             "lock sched": {
               "description": "...",
-              "RSG": {"models": {"linux/kernel/rcu/update/lock sched.c": {"bug kinds": [
-                "linux:kernel:rcu:update:lock sched::more unlocks",
-                "linux:kernel:rcu:update:lock sched::locked at read section",
-                "linux:kernel:rcu:update:lock sched::locked at exit"
-              ]}}}
+              "RSG": {"models": {"linux/kernel/rcu/update/lock sched.c": {}}}
             },
             "lock": {
               "description": "...",
-              "RSG": {"models": {"linux/kernel/rcu/update/lock.c": {"bug kinds": [
-                "linux:kernel:rcu:update:lock::more unlocks",
-                "linux:kernel:rcu:update:lock::locked at read section",
-                "linux:kernel:rcu:update:lock::locked at exit"
-              ]}}}
+              "RSG": {"models": {"linux/kernel/rcu/update/lock.c": {}}}
             }
           },
           "srcu": {
             "description": "...",
-            "RSG": {"models": {"linux/kernel/rcu/srcu.c": {"bug kinds": [
-              "linux:kernel:rcu:srcu::more unlocks",
-              "linux:kernel:rcu:srcu::locked at read section",
-              "linux:kernel:rcu:srcu::locked at exit"
-            ]}}}
+            "RSG": {"models": {"linux/kernel/rcu/srcu.c": {}}}
           }
         },
         "sched": {"completion": {
@@ -757,18 +676,13 @@
             "linux/kernel/sched/completion.c.tmpl": {},
             "linux/kernel/sched/completion.aspect.tmpl": {}
           }},
-          "RSG": {"models": {"$linux/kernel/sched/completion.c": {
-              "bug kinds": [
-                "linux:kernel:sched:completion::double init",
-                "linux:kernel:sched:completion::wait without init"
-              ]
-          }}}
+          "RSG": {"models": {"$linux/kernel/sched/completion.c": {}}}
         }}
       },
       "lib": {
         "find_bit": {
           "description": "...",
-          "RSG": {"models": {"linux/lib/find_bit.c": {"bug kinds": ["linux:lib:find_bit::offset out of range"]}}}
+          "RSG": {"models": {"linux/lib/find_bit.c": {}}}
         },
         "idr": {
           "description": "...",
@@ -778,14 +692,7 @@
             "linux/lib/idr.c.tmpl": {},
             "linux/lib/idr.aspect.tmpl": {}
           }},
-          "RSG": {"models": {"$linux/lib/idr.c": {
-              "bug kinds": [
-                "linux:lib:idr::double init",
-                "linux:lib:idr::not initialized",
-                "linux:lib:idr::destroyed before usage",
-                "linux:lib:idr::more at exit"
-              ]
-          }}}
+          "RSG": {"models": {"$linux/lib/idr.c": {}}}
         }
       },
       "memory safety": {
@@ -894,32 +801,25 @@
       "net": {
         "register": {
           "description": "Error handling for netdev in probe()",
-          "RSG": {"models": {"linux/net/register.c": {"bug kinds": ["linux:net:register::wrong return value"]}}}
+          "RSG": {"models": {"linux/net/register.c": {}}}
         },
         "rtnetlink": {
           "description": "...",
-          "RSG": {"models": {"linux/net/rtnetlink.c": { "bug kinds": [
-            "linux:net:rtnetlink::double lock",
-            "linux:net:rtnetlink::lock on exit",
-            "linux:net:rtnetlink::double unlock"
-          ]}}}
+          "RSG": {"models": {"linux/net/rtnetlink.c": {}}}
         },
         "sock": {
           "description": "...",
-          "RSG": {"models": {"linux/net/sock.c": { "bug kinds": [
-            "linux:net:sock::all locked sockets must be released",
-            "linux:net:sock::double release"
-          ]}}}
+          "RSG": {"models": {"linux/net/sock.c": {}}}
         }
       },
       "test": {
         "environment model specifications": {
           "description": "Requirement intended for testing environment model specifications and the generator",
-          "RSG": {"models": {"linux/emg/test_model.c": {"bug kinds": ["linux:emg:test"]}}}
+          "RSG": {"models": {"linux/emg/test_model.c": {}}}
         },
         "environment model specifications with function pointer analysis": {
           "description": "Requirement intended for testing environment model specifications and generator with function pointer analysis",
-          "RSG": {"models": {"linux/emg/test_model.c": {"bug kinds": ["linux:emg:test"]}}},
+          "RSG": {"models": {"linux/emg/test_model.c": {}}},
           "FVTP": {
             "verifier profile": "reachability with function pointers",
             "verifier": {
@@ -931,84 +831,50 @@
         "common": {
           "description": "...",
           "template": "Linux kernel modules",
-          "RSG": {"models": {"verifier/common.c": {"bug kinds": []}}}
+          "RSG": {"models": {"verifier/common.c": {}}}
         }
       },
       "staging": {
         "linux:alloc": {
           "description": "...",
           "template": "Linux kernel modules",
-          "RSG": {"models": {"linux/alloc/memory.c": {"bug kinds": [
-            "linux:alloc::more at exit",
-            "linux:alloc::less at exit"
-          ]}}}
+          "RSG": {"models": {"linux/alloc/memory.c": {}}}
         },
         "linux:fs:char_dev": {
           "description": "...",
           "template": "Linux kernel modules",
-          "RSG": {"models": {"linux/fs/char_dev.c": {"bug kinds": [
-            "linux:fs:char_dev::double registration",
-            "linux:fs:char_dev::double deregistration",
-            "linux:fs:char_dev::registered at exit"
-          ]}}}
+          "RSG": {"models": {"linux/fs/char_dev.c": {}}}
         },
         "linux:mmc:sdio_func": {
           "description": "...",
           "template": "Linux kernel modules",
-          "RSG": {"models": {"linux/mmc/sdio_func.c": {
-            "bug kinds": [
-              "linux:mmc:sdio_func::wrong params",
-              "linux:mmc:sdio_func::double claim",
-              "linux:mmc:sdio_func::release without claim",
-              "linux:mmc:sdio_func::unreleased at exit"
-            ],
-            "headers": [
-              "linux/mmc/sdio_func.h",
-              "linux/mmc/host.h",
-              "linux/mmc/card.h"
-            ]
-          }}}
+          "RSG": {"models": {"linux/mmc/sdio_func.c": {"headers": [
+            "linux/mmc/sdio_func.h",
+             "linux/mmc/host.h",
+             "linux/mmc/card.h"
+          ]}}}
         }
       },
       "usb": {
         "coherent": {
           "description": "...",
-          "RSG": {"models": {"linux/usb/coherent.c": {"bug kinds":[
-            "linux:usb:coherent::less initial decrement",
-            "linux:usb:coherent::more initial at exit"
-          ]}}}
+          "RSG": {"models": {"linux/usb/coherent.c": {}}}
         },
         "dev": {
           "description": "...",
-          "RSG": {"models": {"linux/usb/dev.c": {"bug kinds": [
-            "linux:usb:dev::unincremented counter decrement",
-            "linux:usb:dev::less initial decrement",
-            "linux:usb:dev::more initial at exit",
-            "linux:usb:dev::probe failed"
-          ]}}}
+          "RSG": {"models": {"linux/usb/dev.c": {}}}
         },
         "gadget": {
           "description": "...",
-          "RSG": {"models": {"linux/usb/gadget.c": {"bug kinds": [
-            "linux:usb:gadget::class registration with usb gadget",
-            "linux:usb:gadget::class deregistration with usb gadget",
-            "linux:usb:gadget::chrdev registration with usb gadget",
-            "linux:usb:gadget::chrdev deregistration with usb gadget",
-            "linux:usb:gadget::double usb gadget registration",
-            "linux:usb:gadget::double usb gadget deregistration",
-            "linux:usb:gadget::usb gadget registered at exit"
-          ]}}}
+          "RSG": {"models": {"linux/usb/gadget.c": {}}}
         },
         "register": {
           "description": "Error handling for usb register in probe()",
-          "RSG": {"models": {"linux/usb/register.c": {"bug kinds": ["linux:usb:register::wrong return value"]}}}
+          "RSG": {"models": {"linux/usb/register.c": {}}}
         },
         "urb": {
           "description": "...",
-          "RSG": {"models": {"linux/usb/urb.c": {"bug kinds": [
-            "linux:usb:urb::less initial decrement",
-            "linux:usb:urb::more initial at exit"
-          ]}}}
+          "RSG": {"models": {"linux/usb/urb.c": {}}}
         }
       }
     },
@@ -1038,16 +904,7 @@
       },
       "open": {
         "description": "...",
-        "RSG": {"models": {"userspace/busybox/file.c": {"bug kinds": [
-            "busybox::check inexisting FILE object",
-            "busybox::open file twice",
-            "busybox::close instead of fclose",
-            "busybox::missed fopen",
-            "busybox::unknown FILE",
-            "busybox::missed open",
-            "busybox::unknown fd",
-            "busybox::missed close"
-        ]}}}
+        "RSG": {"models": {"userspace/busybox/file.c": {}}}
       },
       "memory safety": {
         "description": "Busybox memory safety",
