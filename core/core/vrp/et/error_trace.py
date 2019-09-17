@@ -144,12 +144,15 @@ class ErrorTrace:
                 func_call_node = {
                     'type': 'function call',
                     'file': edge['file'],
-                    'line': edge['start line'],
+                    # TODO: like below.
+                    'line': edge['start line'] if 'start line' in edge else 0,
                     'display': self.resolve_function(edge['enter']),
                     'children': list()
                 }
 
-                func_call_node.update(self.highlight(edge['source']))
+                # TODO: remove this redundant check after switching to new violation witness format since "bad" edge is artificial.
+                if 'source' in edge:
+                    func_call_node.update(self.highlight(edge['source']))
 
                 if 'note' in edge:
                     func_call_node['note'] = edge['note']
