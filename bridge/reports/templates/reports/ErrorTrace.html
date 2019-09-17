@@ -21,7 +21,7 @@
     {% if etv.globals %}
         <span>
             <span class="ETV_LN"><span class="ETV_THREAD">{{ etv.globals.thread|safe }}</span>{{ etv.globals.line }}</span>
-            <span class="ETV_LC">{{ etv.globals.offset }}<a class="ETV_GlobalExpander"><i class="small violet icon unhide"></i> {{ etv.globals.source }}</a></span>
+            <span class="ETV_LC">{{ etv.globals.offset }}<a class="ETV_GlobalExpander"><i class="small violet icon unhide"></i>{{ etv.globals.source }}</a></span>
             <br>
         </span>
         {% for l in etv.globals.lines %}
