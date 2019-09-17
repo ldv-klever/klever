@@ -110,11 +110,11 @@ class CrossRefs:
         for ref_from_kind in ('call', 'expand'):
             refs_from = refs_from_func_calls if ref_from_kind == 'call' else refs_from_macro_expansions
             for raw_ref_from in raw_refs_from[ref_from_kind]:
-                # TODO: final format supports merging of all references from the same file to the same entity.
                 ref_from = [
                     # Convert referring source file name to index in source files list.
                     ref_src_files_dict[raw_ref_from[1][0]],
-                    # Take line number of entity usage as is.
+                    # Take line number(s) of entity usage(s) as is. Note that Clade merges references to the same entity
+                    # from the same source file together itself, so below this is a list of one or more elements.
                     raw_ref_from[1][1]
                 ]
 
