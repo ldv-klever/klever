@@ -181,6 +181,9 @@ class Scheduler:
                                 "configuration": job_conf['configuration']
                             }
                             self.runner.prepare_job(identifier, self.__jobs[identifier])
+                        elif identifier not in self.__jobs:
+                            # There is no such job
+                            self.server.submit_job_error(identifier, 'This job was not tracked by the scheduler')
                         elif status == '2':
                             # PROCESSING
                             self.__jobs[identifier]['status'] = 'PROCESSING'
