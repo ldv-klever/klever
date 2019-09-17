@@ -93,7 +93,7 @@ class Server:
 
     def submit_task_error(self, task_identifier, error):
         self.session.exchange("service/tasks/{}/".format(task_identifier), method='PATCH',
-                                   data={"status": "ERROR", "error": error})
+                              data={"status": "ERROR", "error": error})
 
     def pull_task(self, identifier, archive):
         """

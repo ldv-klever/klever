@@ -307,11 +307,13 @@ class Scheduler:
                 except Exception as err:
                     self.logger.error("Cannot obtain information about connected nodes: {}".format(err))
                     submit = False
+                    self.logger.warning("Do not run tasks until actual information about the nodes will be obtained")
 
                 if submit:
                     # Update resource limitations before scheduling
                     messages = dict()
-                    for i, desk in ((i, self.__tasks[i]) for i in self.__tasks if self.__tasks[i]["status"] == "PENDING"):
+                    for i, desk in ((i, self.__tasks[i]) for i in self.__tasks
+                                    if self.__tasks[i]["status"] == "PENDING"):
                         messages[i] = self.runner.prepare_task(i, desk)
 
                     # Schedule new tasks
@@ -331,7 +333,6 @@ class Scheduler:
 
                         for task_id in tasks_to_start:
                             self.server.submit_processing_task(task_id)
-                            self.runner.solve_task(task_id, self.__tasks[task_id])
                             # This check is very helpful for debugging
                             msg = messages.get(task_id)
                             if msg:
@@ -343,9 +344,6 @@ class Scheduler:
                             len([True for i in self.__tasks if self.__tasks[i]["status"] == "PROCESSING"]) > 0:
                         self.logger.debug("Flush submitted tasks and jobs")
                         self.runner.flush()
-                else:
-                    self.logger.warning(
-                        "Do not run any tasks until actual information about the nodes will be obtained")
 
                 self.logger.debug("Scheduler iteration has finished")
                 time.sleep(self.__iteration_period)
@@ -399,30 +397,38 @@ class Scheduler:
 
     def terminate(self):
         """Abort solution of all running tasks and any other actions before termination."""
-        # stop jobs
-        for job_id, item in [(job_id, self.__jobs[job_id]) for job_id in self.__jobs
-                             if self.__jobs[job_id]["status"] in ["PENDING", "PROCESSING"]]:
+        running_jobs = [job_id for job_id in self.__jobs if self.__jobs[job_id]["status"] in ["PENDING", "PROCESSING"]]
+
+        # First, stop jobs
+        for job_id, item in [(job_id, self.__jobs[job_id]) for job_id in running_jobs]:
             relevant_tasks = [self.__tasks[tid] for tid in self.__tasks
                               if self.__tasks[tid]["status"] in ["PENDING", "PROCESSING"]
                               and self.__tasks[tid]["description"]["job id"] == job_id]
             self.runner.cancel_job(job_id, item, relevant_tasks)
-            self.server.submit_job_error(job_id, 'Scheduler has been terminated')
 
         # Note here that some schedulers can solve tasks of jobs which run elsewhere
         for task_id, item in [(task_id, self.__tasks[task_id]) for task_id in self.__tasks
                               if self.__tasks[task_id]["status"] in ["PENDING", "PROCESSING"]]:
             self.runner.cancel_task(task_id, item)
 
+        # Terminate tasks
+        self.cancel_all_tasks()
+
+        # Submit errors on all jobs
+        for job_id in running_jobs:
+            self.server.submit_job_error(job_id, 'Scheduler has been terminated or reset')
+
         # Do final unitializations
         self.runner.terminate()
 
+    def cancel_all_tasks(self):
         # Check all tasks and cancel them
         tasks = self.server.get_all_tasks()
         for identifier, status in tasks:
             # TODO: Remove this when Bridge will not raise an error 'Job is not solving'
             if status in ('PENDING', 'PROCESSING'):
                 try:
-                    self.server.submit_task_error(identifier, 'Scheduler terminated')
+                    self.server.submit_task_error(identifier, 'Scheduler terminated or reset')
                 except BridgeError as err:
                     self.logger.warning('Brdige reports an error on attempt to cancel task {}: {!r}'.
                                         format(identifier, err))

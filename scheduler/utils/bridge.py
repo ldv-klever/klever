@@ -80,11 +80,9 @@ class Session:
 
                 # 4xx or 5xx status code
                 if resp.headers['content-type'] == 'application/json':
-                    # TODO: Expected behavior; reps.json() contains an error
                     self.error = resp.text
                     resp.close()
-                    raise BridgeError('Got error "{0}" when send "{1}" request to "{2}"'
-                                      .format(self.error, method, url))
+                    raise BridgeError('Got error {!r} when send {!r} request to {!r}'.format(self.error, method, url))
 
                 with open('response error.html', 'w', encoding='utf8') as fp:
                     fp.write(resp.text)
