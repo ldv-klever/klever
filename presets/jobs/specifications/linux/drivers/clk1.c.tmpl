@@ -48,6 +48,6 @@ void ldv_check_final_state(void)
 {
 	// for arg_sign in clk1_arg_signs
 	/* ASSERT All clk should be released before finishing operation */
-	ldv_assert("linux:drivers:clk1::more at exit", ldv_counter{{ arg_sign.id }} == 0);
+	ldv_assert(ldv_counter{{ arg_sign.id }} == 0);
 	// endfor
 }

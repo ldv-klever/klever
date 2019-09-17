@@ -33,7 +33,7 @@ void ldv_rcu_read_lock_sched(void)
 void ldv_rcu_read_unlock_sched(void)
 {
 	/* ASSERT checks the count of opened rcu_lock sections */
-	ldv_assert("linux:kernel:rcu:update:lock sched::more unlocks", ldv_rcu_nested_sched > 0);
+	ldv_assert(ldv_rcu_nested_sched > 0);
 	/* NOTE Decrements the level of rcu_lock nesting */
 	ldv_rcu_nested_sched--;
 }
@@ -42,12 +42,12 @@ void ldv_rcu_read_unlock_sched(void)
 void ldv_check_for_read_section( void )
 {
 	/* ASSERT checks the count of opened rcu_lock sections */
-	ldv_assert("linux:kernel:rcu:update:lock sched::locked at read section", ldv_rcu_nested_sched == 0);
+	ldv_assert(ldv_rcu_nested_sched == 0);
 }
 
 /* MODEL_FUNC Checks that all rcu_lock sections are closed at exit */
 void ldv_check_final_state( void )
 {
 	/* ASSERT checks the count of opened rcu_lock sections */
-	ldv_assert("linux:kernel:rcu:update:lock sched::locked at exit", ldv_rcu_nested_sched == 0);
+	ldv_assert(ldv_rcu_nested_sched == 0);
 }

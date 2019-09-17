@@ -41,7 +41,7 @@ int ldv_sysfs_create_group(void)
 void ldv_sysfs_remove_group(void)
 {
 	/* ASSERT Sysfs group must be allocated before. */
-	ldv_assert("linux:fs:sysfs::less initial decrement", ldv_sysfs >= 1);
+	ldv_assert(ldv_sysfs >= 1);
 	/* NOTE Decrease allocated counter. */
 	ldv_sysfs--;
 }
@@ -50,5 +50,5 @@ void ldv_sysfs_remove_group(void)
 void ldv_check_final_state( void )
 {
 	/* ASSERT Sysfs groups must be freed at the end. */
-	ldv_assert("linux:fs:sysfs::more initial at exit", ldv_sysfs == 0);
+	ldv_assert(ldv_sysfs == 0);
 }

@@ -34,7 +34,7 @@ static int ldv_disk_state = LDV_NO_DISK;
 struct gendisk *ldv_alloc_disk(void)
 {
 	/* ASSERT Gendisk should not be allocated twice. */
-	ldv_assert("linux:block:genhd::double allocation", ldv_disk_state == LDV_NO_DISK);
+	ldv_assert(ldv_disk_state == LDV_NO_DISK);
 	/* NOTE Choose an arbitrary return value. */
 	struct gendisk *res = (struct gendisk *)ldv_undef_ptr();
 	/* NOTE If memory is not available. */
@@ -52,7 +52,7 @@ struct gendisk *ldv_alloc_disk(void)
 void ldv_add_disk(void)
 {
 	/* ASSERT Gendisk should be allocated . */
-	ldv_assert("linux:block:genhd::use before allocation", ldv_disk_state == LDV_ALLOCATED_DISK);
+	ldv_assert(ldv_disk_state == LDV_ALLOCATED_DISK);
 	/* NOTE Add gendisk. */
 	ldv_disk_state = LDV_ADDED_DISK;
 }
@@ -61,7 +61,7 @@ void ldv_add_disk(void)
 void ldv_del_gendisk(void)
 {
 	/* ASSERT Gendisk should be allocated . */
-	ldv_assert("linux:block:genhd::delete before add", ldv_disk_state == LDV_ADDED_DISK);
+	ldv_assert(ldv_disk_state == LDV_ADDED_DISK);
 	/* NOTE Add gendisk. */
 	ldv_disk_state = LDV_ALLOCATED_DISK;
 }
@@ -71,7 +71,7 @@ void ldv_put_disk(struct gendisk *disk)
 {
 	if (disk) {
 		/* ASSERT Gendisk should be allocated . */
-		ldv_assert("linux:block:genhd::free before allocation", ldv_disk_state >= LDV_ALLOCATED_DISK);
+		ldv_assert(ldv_disk_state >= LDV_ALLOCATED_DISK);
 		/* NOTE Add gendisk. */
 		ldv_disk_state = LDV_NO_DISK;
 	}
@@ -81,5 +81,5 @@ void ldv_put_disk(struct gendisk *disk)
 void ldv_check_final_state( void )
 {
 	/* ASSERT Sysfs groups must be freed at the end. */
-	ldv_assert("linux:block:genhd::more initial at exit", ldv_disk_state == LDV_NO_DISK);
+	ldv_assert(ldv_disk_state == LDV_NO_DISK);
 }

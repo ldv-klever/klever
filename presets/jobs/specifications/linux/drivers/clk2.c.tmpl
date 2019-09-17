@@ -28,7 +28,7 @@ int ldv_counter{{ arg_sign.id }} = 0;
 void ldv_clk_disable{{ arg_sign.id }}(struct clk *clk)
 {
     /* ASSERT The clk must be freed only once */
-    ldv_assert("linux:drivers:clk2::less initial decrement", ldv_counter{{ arg_sign.id }} == 1);
+    ldv_assert(ldv_counter{{ arg_sign.id }} == 1);
     /* NOTE Increase counter */
     ldv_counter{{ arg_sign.id }} = 0;
 }

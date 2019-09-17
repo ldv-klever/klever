@@ -38,26 +38,26 @@ void ldv_invoke_test(void)
 void ldv_invoke_callback(void)
 {
 	/* ASSERT Callback cannot be called without registration or after deregistration. */
-	ldv_assert("linux:emg:test", registered);
+	ldv_assert(registered);
 
 	/* ASSERT Need probing before calling this callback. */
-	ldv_assert("linux:emg:test", !probed);
+	ldv_assert(!probed);
 }
 
 /* MODEL_FUNC Middle callback reached. */
 void ldv_invoke_middle_callback(void)
 {
 	/* ASSERT Callback cannot be called without registration or after deregistration. */
-	ldv_assert("linux:emg:test", registered);
+	ldv_assert(registered);
 
 	/* ASSERT Need probing before calling this callback. */
-	ldv_assert("linux:emg:test", probed);
+	ldv_assert(probed);
 }
 
 /* MODEL_FUNC Callback has been called successfully, the test should pass. */
 void ldv_invoke_reached(void) {
 	/* ASSERT Test successfully passes as the callback call is reached. */
-	ldv_assert("linux:emg:test", 0);
+	ldv_assert(0);
 }
 
 /* MODEL_FUNC Deregistration is done. */
@@ -89,7 +89,7 @@ void ldv_release_down(void)
 		probed--;
 	else
 		/* ASSERT Cannot free unprobed or already released resources. */
-		ldv_assert("linux:emg:test", 0);
+		ldv_assert(0);
 }
 
 /* MODEL_FUNC All resources are released. */
@@ -97,7 +97,7 @@ void ldv_release_completely(void)
 {
 	if (!probed)
 		/* ASSERT Cannot free unprobed or already released resources. */
-		ldv_assert("linux:emg:test", 0);
+		ldv_assert(0);
 	else
 		/* NOTE Release all resources. */
 		probed = 0;
@@ -107,7 +107,7 @@ void ldv_release_completely(void)
 void ldv_check_final_state(void)
 {
 	/* ASSERT At the end of the test all resources should be released. */
-	ldv_assert("linux:emg:test", probed == 0 || supress);
+	ldv_assert(probed == 0 || supress);
 	/* ASSERT At the end of the test all callbacks should be deregistered. */
-	ldv_assert("linux:emg:test", registered == 0 || supress);
+	ldv_assert(registered == 0 || supress);
 }

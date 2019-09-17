@@ -17,8 +17,8 @@
 
 #include <verifier/common.h>
 
-void ldv_error(void)
+void ldv_assert(int expr)
 {
-	/* ASSERT Error */
-	__VERIFIER_error();
+	if (!expr)
+		__VERIFIER_error();
 }

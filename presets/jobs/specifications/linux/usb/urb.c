@@ -46,7 +46,7 @@ struct urb *ldv_usb_get_urb(struct urb *urb)
 {
 	if (urb) {
 		/* ASSERT The memory must be allocated before. */
-		ldv_assert("linux:usb:urb::less initial decrement", ldv_urb_state>=1);
+		ldv_assert(ldv_urb_state>=1);
 		/* NOTE Increase allocated counter. */
 		ldv_urb_state += 1;
 		return urb;
@@ -57,7 +57,7 @@ struct urb *ldv_usb_get_urb(struct urb *urb)
 void ldv_usb_free_urb(struct urb *urb) {
 	if (urb) {
 		/* ASSERT The memory must be allocated before. */
-		ldv_assert("linux:usb:urb::less initial decrement", ldv_urb_state>=1);
+		ldv_assert(ldv_urb_state>=1);
 		/* NOTE Decrease allocated counter. */
 		ldv_urb_state -= 1;
 	}
@@ -67,5 +67,5 @@ void ldv_usb_free_urb(struct urb *urb) {
 void ldv_check_final_state( void )
 {
 	/* ASSERT The urb requests must be freed at the end. */
-	ldv_assert("linux:usb:urb::more initial at exit", ldv_urb_state==0);
+	ldv_assert(ldv_urb_state==0);
 }

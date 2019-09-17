@@ -48,7 +48,7 @@ bool ldv_lock_sock_fast(void)
 void ldv_unlock_sock_fast(void)
 {
 	/* ASSERT unlock_sock_fas negative locksocknumber the result of multiply releases */
-	ldv_assert("linux:net:sock::double release", locksocknumber > 0);
+	ldv_assert(locksocknumber > 0);
 	/* NOTE unlocking socket fast warning*/
 	locksocknumber--;
 }
@@ -57,7 +57,7 @@ void ldv_unlock_sock_fast(void)
 void ldv_before_release_sock(void)
 {
 	/* ASSERT lock_sock negative locksocknumber the result of multiply releases */
-	ldv_assert("linux:net:sock::double release", locksocknumber > 0);
+	ldv_assert(locksocknumber > 0);
 	/* NOTE locked socket released */
 	locksocknumber--;
 }
@@ -66,5 +66,5 @@ void ldv_before_release_sock(void)
 void ldv_check_final_state(void)
 {
 	/* ASSERT lock_sock number */
-	ldv_assert("linux:net:sock::all locked sockets must be released", locksocknumber == 0);
+	ldv_assert(locksocknumber == 0);
 }

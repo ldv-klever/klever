@@ -25,7 +25,7 @@ int ldv_dma_calls = 0;
 /* MODEL_FUNC Map page */
 dma_addr_t ldv_dma_map_page(void) {
 	/* ASSERT Check that previous dma_mapping call was checked */
-	ldv_assert("linux:drivers:base:dma-mapping::unchecked", ldv_dma_calls == 0);
+	ldv_assert(ldv_dma_calls == 0);
 	/* NOTE Increase map counter */
 	ldv_dma_calls++;
 
@@ -35,7 +35,7 @@ dma_addr_t ldv_dma_map_page(void) {
 /* MODEL_FUNC Check page */
 int ldv_dma_mapping_error(void) {
 	/* ASSERT No dma_mapping calls to verify */				
-	ldv_assert("linux:drivers:base:dma-mapping::check before map", ldv_dma_calls > 0);
+	ldv_assert(ldv_dma_calls > 0);
 	ldv_dma_calls--;
 
 	return ldv_undef_int();
@@ -44,7 +44,7 @@ int ldv_dma_mapping_error(void) {
 /* MODEL_FUNC Map page */
 dma_addr_t ldv_dma_map_single(void) {
 	/* ASSERT Check that previous dma_mapping call was checked */
-	ldv_assert("linux:drivers:base:dma-mapping::unchecked", ldv_dma_calls == 0);
+	ldv_assert(ldv_dma_calls == 0);
 	/* NOTE Increase map counter */
 	ldv_dma_calls++;
 
@@ -54,7 +54,7 @@ dma_addr_t ldv_dma_map_single(void) {
 /* MODEL_FUNC Map page */
 dma_addr_t ldv_dma_map_single_attrs(void) {
 	/* ASSERT Check that previous dma_mapping call was checked */
-	ldv_assert("linux:drivers:base:dma-mapping::unchecked", ldv_dma_calls == 0);
+	ldv_assert(ldv_dma_calls == 0);
 	/* NOTE Increase map counter */
 	ldv_dma_calls++;
 
@@ -64,5 +64,5 @@ dma_addr_t ldv_dma_map_single_attrs(void) {
 /* MODEL_FUNC Check that all dma_mapping calls are checked at the end */
 void ldv_check_final_state(void) {
 	/* ASSERT All dma_mapping calls should be checked before module unloading */
-	ldv_assert("linux:drivers:base:dma-mapping::unchecked at exit", ldv_dma_calls == 0);
+	ldv_assert(ldv_dma_calls == 0);
 }

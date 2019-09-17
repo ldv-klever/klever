@@ -24,12 +24,7 @@ void __VERIFIER_assume(int expr);
 
 /* If expression is zero ldv_assert() causes program to reach error function
  * call. */
-extern void ldv_assert(const char *, int expr);
-
-/**
- * ldv_error() - cause error unconditionally.
- */
-extern void ldv_error(void);
+extern void ldv_assert(int expr);
 
 /* Internal alias for __VERIFIER_assume(). Proceed only if expression is
  * nonzero. */

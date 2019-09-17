@@ -40,7 +40,7 @@ void *ldv_io_mem_remap(void)
 void ldv_io_mem_unmap(void)
 {
 	/* ASSERT io-memory should be alloctaed before release */
-	ldv_assert("linux:arch:io::less initial decrement", ldv_iomem >= 1);
+	ldv_assert(ldv_iomem >= 1);
 	/* NOTE Decrease allocated counter. */
 	ldv_iomem--;
 }
@@ -49,5 +49,5 @@ void ldv_io_mem_unmap(void)
 void ldv_check_final_state(void)
 {
 	/* ASSERT io-memory should be released at exit */
-	ldv_assert("linux:arch:io::more initial at exit", ldv_iomem == 0);
+	ldv_assert(ldv_iomem == 0);
 }

@@ -40,7 +40,7 @@ int ldv_register_chrdev(int major)
 	/* ASSERT Register chrdev just in case when an error did not happen */
 	if (!is_reg) {
 		/* ASSERT Check that chrdev region is unregistered */
-		ldv_assert("linux:fs:char_dev::double registration", ldv_usb_gadget_chrdev == LDV_CHRDEV_ZERO_STATE);
+		ldv_assert(ldv_usb_gadget_chrdev == LDV_CHRDEV_ZERO_STATE);
 		/* NOTE Register chrdev region for usb gadget */
 		ldv_usb_gadget_chrdev = LDV_CHRDEV_REGISTERED;
 		if (major == 0) {
@@ -65,7 +65,7 @@ int ldv_register_chrdev_region(void)
 	/* ASSERT Register chrdev just in case when an error did not happen */
 	if (!is_reg) {
 		/* ASSERT Check that chrdev region is unregistered */
-		ldv_assert("linux:fs:char_dev::double registration", ldv_usb_gadget_chrdev == LDV_CHRDEV_ZERO_STATE);
+		ldv_assert(ldv_usb_gadget_chrdev == LDV_CHRDEV_ZERO_STATE);
 		/* NOTE Register chrdev region for usb gadget */
 		ldv_usb_gadget_chrdev = LDV_CHRDEV_REGISTERED;
 	}
@@ -78,7 +78,7 @@ int ldv_register_chrdev_region(void)
 void ldv_unregister_chrdev_region(void)
 {
 	/* ASSERT Check that chrdev region is registered */
-	ldv_assert("linux:fs:char_dev::double deregistration", ldv_usb_gadget_chrdev == LDV_CHRDEV_REGISTERED);
+	ldv_assert(ldv_usb_gadget_chrdev == LDV_CHRDEV_REGISTERED);
 	/* NOTE Unregister chrdev */
 	ldv_usb_gadget_chrdev = LDV_CHRDEV_ZERO_STATE;
 }
@@ -87,5 +87,5 @@ void ldv_unregister_chrdev_region(void)
 void ldv_check_final_state(void)
 {
 	/* ASSERT Chrdev region should be unregistered at the end */
-	ldv_assert("linux:fs:char_dev::registered at exit", ldv_usb_gadget_chrdev == LDV_CHRDEV_ZERO_STATE);
+	ldv_assert(ldv_usb_gadget_chrdev == LDV_CHRDEV_ZERO_STATE);
 }

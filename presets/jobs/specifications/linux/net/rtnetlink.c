@@ -29,7 +29,7 @@ int rtnllocknumber = 0;
 void ldv_past_rtnl_unlock(void)
 {
 	/* ASSERT double rtnl_unlock */
-	ldv_assert("linux:net:rtnetlink::double unlock", rtnllocknumber == 1);
+	ldv_assert(rtnllocknumber == 1);
 	/* NOTE unlocking */
 	rtnllocknumber=0;
 }
@@ -38,7 +38,7 @@ void ldv_past_rtnl_unlock(void)
 void ldv_past_rtnl_lock(void)
 {
 	/* ASSERT double rtnl_lock */
-	ldv_assert("linux:net:rtnetlink::double lock", rtnllocknumber == 0);
+	ldv_assert(rtnllocknumber == 0);
 	/* NOTE locking */
 	rtnllocknumber=1;
 }
@@ -72,7 +72,7 @@ int ldv_rtnl_is_locked(void)
 int ldv_rtnl_trylock(void)
 {
 	/* ASSERT double rtnl_trylock */
-	ldv_assert("linux:net:rtnetlink::double lock", rtnllocknumber == 0);
+	ldv_assert(rtnllocknumber == 0);
 	/* NOTE If there is no rtnl_lock */
 	if (!ldv_rtnl_is_locked()) { 
 		/* NOTE locking by trylock */
@@ -88,5 +88,5 @@ int ldv_rtnl_trylock(void)
 void ldv_check_final_state(void)
 {
 	/* ASSERT lock_sock number */
-	ldv_assert("linux:net:rtnetlink::lock on exit", rtnllocknumber == 0);
+	ldv_assert(rtnllocknumber == 0);
 }

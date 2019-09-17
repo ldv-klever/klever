@@ -87,7 +87,7 @@ int ldv_fileno(FILE *stream)
 		return ldv_tmp_file_fd5;
 
 	/* ASSERT Should open a FILE stream to get its file descriptor */
-	ldv_assert("busybox::check inexisting FILE object", 1);
+	ldv_assert(1);
 	return ret;
 }
 
@@ -178,7 +178,7 @@ FILE *ldv_fdopen(int fd)
 		return stdout;
 	if (fd == 3) {
 		/* ASSERT Should open the first file before accessing it */
-		ldv_assert("busybox::open file twice", ldv_tmp_file1 == 0);
+		ldv_assert(ldv_tmp_file1 == 0);
 		ldv_tmp_file1 = ldv_reference_xmalloc(0);
 		ldv_tmp_file_fd1 = 3;
 		/* NOTE Successfully opened the first file */
@@ -186,7 +186,7 @@ FILE *ldv_fdopen(int fd)
 	}
 	if (fd == 4) {
 		/* ASSERT Should open the second file before accessing it */
-		ldv_assert("busybox::open file twice", ldv_tmp_file2 == 0);
+		ldv_assert(ldv_tmp_file2 == 0);
 		ldv_tmp_file2 = ldv_reference_xmalloc(0);
 		ldv_tmp_file_fd2 = 4;
 		/* NOTE Successfully opened the second file */
@@ -194,7 +194,7 @@ FILE *ldv_fdopen(int fd)
 	}
 	if (fd == 5) {
 		/* ASSERT Successfully opened the third file before accessing it */
-		ldv_assert("busybox::open file twice", ldv_tmp_file3 == 0);
+		ldv_assert(ldv_tmp_file3 == 0);
 		ldv_tmp_file3 = ldv_reference_xmalloc(0);
 		ldv_tmp_file_fd3 = 5;
 		/* NOTE Successfully opened the third file */
@@ -202,7 +202,7 @@ FILE *ldv_fdopen(int fd)
 	}
 	if (fd == 6) {
 		/* ASSERT Should open the fourth file before accessing it */
-		ldv_assert("busybox::open file twice", ldv_tmp_file4 == 0);
+		ldv_assert(ldv_tmp_file4 == 0);
 		ldv_tmp_file4 = ldv_reference_xmalloc(0);
 		ldv_tmp_file_fd4 = 6;
 		/* NOTE Successfully opened the fourth file */
@@ -210,7 +210,7 @@ FILE *ldv_fdopen(int fd)
 	}
 	if (fd == 7) {
 		/* ASSERT Should open the fifth file before accessing it */
-		ldv_assert("busybox::open file twice", ldv_tmp_file5 == 0);
+		ldv_assert(ldv_tmp_file5 == 0);
 		ldv_tmp_file5 = ldv_reference_xmalloc(0);
 		ldv_tmp_file_fd5 = 7;
 		/* NOTE Successfully opened the fifth file */
@@ -220,7 +220,7 @@ FILE *ldv_fdopen(int fd)
 	    return 0;
 	else
 	    /* ASSERT Cannot open a stream of an unknown file descriptor */
-	    ldv_assert("busybox::unknown fd", 0);
+	    ldv_assert(0);
 }
 
 /* MODEL_FUNC Should close an opened file descriptor */
@@ -231,9 +231,9 @@ int ldv_close(int fd)
 		return 0;
 	if (fd == 3) {
 		/* ASSERT Must call close to avoid memory leak */
-		ldv_assert("busybox::close instead of fclose", ldv_tmp_file1 == 0);
+		ldv_assert(ldv_tmp_file1 == 0);
 		/* ASSERT Should open the file stream before closing it */
-		ldv_assert("busybox::missed open", ldv_tmp_file_fd1 == 3);
+		ldv_assert(ldv_tmp_file_fd1 == 3);
 		ldv_tmp_file_fd1 = -1;
 		ldv_tmp_file1 = 0;
 		/* NOTE Close the first stream */
@@ -241,9 +241,9 @@ int ldv_close(int fd)
 	}
 	if (fd == 4) {
 		/* ASSERT Must call close to avoid memory leak */
-		ldv_assert("busybox::close instead of fclose", ldv_tmp_file2 == 0);
+		ldv_assert(ldv_tmp_file2 == 0);
 		/* ASSERT Should open the file stream before closing it */
-		ldv_assert("busybox::missed open", ldv_tmp_file_fd2 == 4);
+		ldv_assert(ldv_tmp_file_fd2 == 4);
 		ldv_tmp_file_fd2 = -1;
 		ldv_tmp_file2 = 0;
 		/* NOTE Close the second stream */
@@ -251,9 +251,9 @@ int ldv_close(int fd)
 	}
 	if (fd == 5) {
 		/* ASSERT Must call close to avoid memory leak */
-		ldv_assert("busybox::close instead of fclose", ldv_tmp_file3 == 0);
+		ldv_assert(ldv_tmp_file3 == 0);
 		/* ASSERT Should open the file stream before closing it */
-		ldv_assert("busybox::missed open", ldv_tmp_file_fd3 == 5);
+		ldv_assert(ldv_tmp_file_fd3 == 5);
 		ldv_tmp_file_fd3 = -1;
 		ldv_tmp_file3 = 0;
 		/* NOTE Close the third stream */
@@ -261,9 +261,9 @@ int ldv_close(int fd)
 	}
 	if (fd == 6) {
 		/* ASSERT Must call close to avoid memory leak */
-		ldv_assert("busybox::close instead of fclose", ldv_tmp_file4 == 0);
+		ldv_assert(ldv_tmp_file4 == 0);
 		/* ASSERT Should open the file stream before closing it */
-		ldv_assert("busybox::missed open", ldv_tmp_file_fd4 == 6);
+		ldv_assert(ldv_tmp_file_fd4 == 6);
 		ldv_tmp_file_fd4 = -1;
 		ldv_tmp_file4 = 0;
 		/* NOTE Close the fourth stream */
@@ -271,16 +271,16 @@ int ldv_close(int fd)
 	}
 	if (fd == 7) {
 		/* ASSERT Must call close to avoid memory leak */
-		ldv_assert("busybox::close instead of fclose", ldv_tmp_file5 == 0);
+		ldv_assert(ldv_tmp_file5 == 0);
 		/* ASSERT Should open the file stream before closing it */
-		ldv_assert("busybox::missed open", ldv_tmp_file_fd5 == 7);
+		ldv_assert(ldv_tmp_file_fd5 == 7);
 		ldv_tmp_file_fd5 = -1;
 		ldv_tmp_file5 = 0;
 		/* NOTE Close the fifth stream */
 		return 0;
 	}
 	/* ASSERT Should open the file stream before closing it */
-	ldv_assert("busybox::unknown fd", 0);
+	ldv_assert(0);
 }
 
 /* MODEL_FUNC Should close an opened stream or a standard stream */
@@ -291,7 +291,7 @@ int ldv_fclose(FILE *fp)
 		return 0;
 	if (fp == ldv_tmp_file1) {
 		/* ASSERT Should open the file before closing it */
-		ldv_assert("busybox::missed fopen", ldv_tmp_file_fd1 == 3);
+		ldv_assert(ldv_tmp_file_fd1 == 3);
 		ldv_tmp_file_fd1 = -1;
 		ldv_tmp_file1 = 0;
 		/* NOTE Close the first file */
@@ -299,7 +299,7 @@ int ldv_fclose(FILE *fp)
 	}
 	if (fp == ldv_tmp_file2) {
 		/* ASSERT Should open the file before closing it */
-		ldv_assert("busybox::missed fopen", ldv_tmp_file_fd2 == 4);
+		ldv_assert(ldv_tmp_file_fd2 == 4);
 		ldv_tmp_file_fd2 = -1;
 		ldv_tmp_file2 = 0;
 		/* NOTE Close the second file */
@@ -307,7 +307,7 @@ int ldv_fclose(FILE *fp)
 	}
 	if (fp == ldv_tmp_file3) {
 		/* ASSERT Should open the file before closing it */
-		ldv_assert("busybox::missed fopen", ldv_tmp_file_fd3 == 5);
+		ldv_assert(ldv_tmp_file_fd3 == 5);
 		ldv_tmp_file_fd3 = -1;
 		ldv_tmp_file3 = 0;
 		/* NOTE Close the third file */
@@ -315,7 +315,7 @@ int ldv_fclose(FILE *fp)
 	}
 	if (fp == ldv_tmp_file4) {
 		/* ASSERT Should open the file before closing it */
-		ldv_assert("busybox::missed fopen", ldv_tmp_file_fd4 == 6);
+		ldv_assert(ldv_tmp_file_fd4 == 6);
 		ldv_tmp_file_fd4 = -1;
 		ldv_tmp_file4 = 0;
 		/* NOTE Close the fourth file */
@@ -323,14 +323,14 @@ int ldv_fclose(FILE *fp)
 	}
 	if (fp == ldv_tmp_file5) {
 		/* ASSERT Should open the file before closing it */
-		ldv_assert("busybox::missed fopen", ldv_tmp_file_fd5 == 7);
+		ldv_assert(ldv_tmp_file_fd5 == 7);
 		ldv_tmp_file_fd5 = -1;
 		ldv_tmp_file5 = 0;
 		/* NOTE Close the fifth file */
 		return 0;
 	}
 	/* ASSERT Should open the file before closing it */
-	ldv_assert("busybox::unknown FILE", 0);
+	ldv_assert(0);
 }
 
 /* MODEL_FUNC Should read from an opened stream */
@@ -341,36 +341,36 @@ void ldv_faccess(FILE *fp)
 		return;
 	if (fp == ldv_tmp_file1) {
 		/* ASSERT Should open the stream before closing it */
-		ldv_assert("busybox::missed fopen", ldv_tmp_file_fd1 == 3);
+		ldv_assert(ldv_tmp_file_fd1 == 3);
 		/* NOTE Access the first stream */
 		return;
 	}
 	if (fp == ldv_tmp_file2) {
 		/* ASSERT Should open the stream before closing it */
-		ldv_assert("busybox::missed fopen", ldv_tmp_file_fd2 == 4);
+		ldv_assert(ldv_tmp_file_fd2 == 4);
 		/* NOTE Access the second stream */
 		return;
 	}
 	if (fp == ldv_tmp_file3) {
 		/* ASSERT Should open the stream before closing it */
-		ldv_assert("busybox::missed fopen", ldv_tmp_file_fd3 == 5);
+		ldv_assert(ldv_tmp_file_fd3 == 5);
 		/* NOTE Access the third stream */
 		return;
 	}
 	if (fp == ldv_tmp_file4) {
 		/* ASSERT Should open the stream before closing it */
-		ldv_assert("busybox::missed fopen", ldv_tmp_file_fd4 == 6);
+		ldv_assert(ldv_tmp_file_fd4 == 6);
 		/* NOTE Access the fourth stream */
 		return;
 	}
 	if (fp == ldv_tmp_file5) {
 		/* ASSERT Should open the stream before closing it */
-		ldv_assert("busybox::missed fopen", ldv_tmp_file_fd5 == 7);
+		ldv_assert(ldv_tmp_file_fd5 == 7);
 		/* NOTE Access the fifth stream */
 		return;
 	}
 	/* ASSERT Should open the stream before accessing it */
-	ldv_assert("busybox::unknown FILE", 0);
+	ldv_assert(0);
 }
 
 /* MODEL_FUNC Should read from an opened file descriptor */
@@ -380,36 +380,36 @@ void ldv_access(int fd)
 		return;
 	if (fd == 3) {
 		/* ASSERT Should open the file before accessing it */
-		ldv_assert("busybox::missed open", ldv_tmp_file_fd1 == 3);
+		ldv_assert(ldv_tmp_file_fd1 == 3);
 		/* NOTE Access the first file */
 		return;
 	}
 	if (fd == 4) {
 		/* ASSERT Should open the file before accessing it */
-		ldv_assert("busybox::missed open", ldv_tmp_file_fd2 == 4);
+		ldv_assert(ldv_tmp_file_fd2 == 4);
 		/* NOTE Access the second file */
 		return;
 	}
 	if (fd == 5) {
 		/* ASSERT Should open the file before accessing it */
-		ldv_assert("busybox::missed open", ldv_tmp_file_fd3 == 5);
+		ldv_assert(ldv_tmp_file_fd3 == 5);
 		/* NOTE Access the third file */
 		return;
 	}
 	if (fd == 6) {
 		/* ASSERT Should open the file before accessing it */
-		ldv_assert("busybox::missed open", ldv_tmp_file_fd4 == 6);
+		ldv_assert(ldv_tmp_file_fd4 == 6);
 		/* NOTE Access the fourth file */
 		return;
 	}
 	if (fd == 7) {
 		/* ASSERT Should open the file before accessing it */
-		ldv_assert("busybox::missed open", ldv_tmp_file_fd5 == 7);
+		ldv_assert(ldv_tmp_file_fd5 == 7);
 		/* NOTE Access the fifth file */
 		return;
 	}
 	/* ASSERT Cannot access an unopened file */
-	ldv_assert("busybox::unknown fd", 0);
+	ldv_assert(0);
 }
 
 /* MODEL_FUNC Should open file descriptors for a pipe */
@@ -429,13 +429,13 @@ int ldv_pipe(int pipefd[2])
 void ldv_check_final_state(void)
 {
     /* ASSERT Missed closing the first file */
-	ldv_assert("busybox::missed close", ldv_tmp_file1 == 0);
+	ldv_assert(ldv_tmp_file1 == 0);
 	/* ASSERT Missed closing the second file */
-	ldv_assert("busybox::missed close", ldv_tmp_file2 == 0);
+	ldv_assert(ldv_tmp_file2 == 0);
 	/* ASSERT Missed closing the third file */
-	ldv_assert("busybox::missed close", ldv_tmp_file3 == 0);
+	ldv_assert(ldv_tmp_file3 == 0);
 	/* ASSERT Missed closing the fourth file */
-	ldv_assert("busybox::missed close", ldv_tmp_file4 == 0);
+	ldv_assert(ldv_tmp_file4 == 0);
 	/* ASSERT Missed closing the fifth file */
-	ldv_assert("busybox::missed close", ldv_tmp_file5 == 0);
+	ldv_assert(ldv_tmp_file5 == 0);
 }

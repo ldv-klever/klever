@@ -33,7 +33,7 @@ static int ldv_queue_state = LDV_NO_QUEUE;
 struct request_queue *ldv_request_queue(void)
 {
 	/* ASSERT Queue should not be allocated twice. */
-	ldv_assert("linux:block:queue::double allocation", ldv_queue_state == LDV_NO_QUEUE);
+	ldv_assert(ldv_queue_state == LDV_NO_QUEUE);
 	/* NOTE Choose an arbitrary return value. */
 	struct request_queue *res = (struct request_queue *)ldv_undef_ptr();
 	/* NOTE If memory is not available. */
@@ -51,7 +51,7 @@ struct request_queue *ldv_request_queue(void)
 void ldv_blk_cleanup_queue(void)
 {
 	/* ASSERT Queue should be allocated . */
-	ldv_assert("linux:block:queue::use before allocation", ldv_queue_state == LDV_INITIALIZED_QUEUE);
+	ldv_assert(ldv_queue_state == LDV_INITIALIZED_QUEUE);
 	/* NOTE Free queue. */
 	ldv_queue_state = LDV_NO_QUEUE;
 }
@@ -60,5 +60,5 @@ void ldv_blk_cleanup_queue(void)
 void ldv_check_final_state(void)
 {
 	/* ASSERT Queue must be freed at the end. */
-	ldv_assert("linux:block:queue::more initial at exit", ldv_queue_state == LDV_NO_QUEUE);
+	ldv_assert(ldv_queue_state == LDV_NO_QUEUE);
 }
