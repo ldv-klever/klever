@@ -75,23 +75,37 @@ class CrossRefs:
         ref_src_files_dict = {ref_src_file: i for i, ref_src_file in enumerate(ref_src_files)}
         ref_src_files_dict[self.storage_file] = None
 
-        # TODO: deal with declarations. There may be cases when there is just definition, just declaration or them both.
         # Convert references to.
-        refs_to_funcs = []
-        refs_to_macros = []
-        for ref_to_kind in ('def_macro', 'def_func'):
-            refs_to = refs_to_funcs if ref_to_kind == 'def_func' else refs_to_macros
+        refs_to_func_defs = []
+        refs_to_func_decls = []
+        refs_to_macro_defs = []
+        for ref_to_kind in ('def_macro', 'def_func', 'decl_func'):
+            refs_to = refs_to_func_defs if ref_to_kind == 'def_func' else refs_to_func_decls \
+                if ref_to_kind == 'decl_func' else refs_to_macro_defs
             for raw_ref_to in raw_refs_to[ref_to_kind]:
-                # Do not add references to function definitions if there are already references to macro
+                # Do not add references to function definitions/declarations if there are already references to macro
                 # definitions at the same places.
-                is_exist = False
-                for ref_to_macro in refs_to_macros:
-                    if ref_to_macro[0] == raw_ref_to[0]:
-                        is_exist = True
-                        break
-                if is_exist:
-                    continue
+                if ref_to_kind != 'def_macro':
+                    is_exist = False
+                    for ref_to_macro_def in refs_to_macro_defs:
+                        if ref_to_macro_def[0] == raw_ref_to[0]:
+                            is_exist = True
+                            break
+                    if is_exist:
+                        continue
 
+                # Do not add references to function declarations if there are already references to function definitions
+                # at the same places.
+                if ref_to_kind == 'decl_func':
+                    is_exist = False
+                    for ref_to_func_def in refs_to_func_defs:
+                        if ref_to_func_def[0] == raw_ref_to[0]:
+                            is_exist = True
+                            break
+                    if is_exist:
+                        continue
+
+                # TODO: will it work if there will be multiple declarations of the same entity in the same source file?
                 refs_to.append([
                     # Take location of entity usage as is.
                     raw_ref_to[0],
@@ -99,7 +113,7 @@ class CrossRefs:
                         # Convert referred source file name to index in source files list.
                         ref_src_files_dict[raw_ref_to[1][0]],
                         # Take line number of entity definition as is.
-                        raw_ref_to[1][1]
+                        raw_ref_to[1][1] if ref_to_kind != 'decl_func' else [raw_ref_to[1][1]]
                     ]
                 ])
 
@@ -137,15 +151,26 @@ class CrossRefs:
                                        if tmp != ref_src_file else ref_src_file)
 
         # Add special highlighting for non heuristically known entity references and referenced entities.
-        highlight.extra_highlight([['FuncDefRefTo', *r[0]] for r in refs_to_funcs])
-        highlight.extra_highlight([['MacroDefRefTo', *r[0]] for r in refs_to_macros])
+        highlight.extra_highlight([['FuncDefRefTo', *r[0]] for r in refs_to_func_defs])
+
+        # There may be several references to declarations of the same function. Add highlights for them just ones.
+        cur_func_loc = None
+        for r in refs_to_func_decls:
+            if r[0] == cur_func_loc:
+                continue
+
+            cur_func_loc = r[0]
+            highlight.extra_highlight([['FuncDeclRefTo', *r[0]]])
+
+        highlight.extra_highlight([['MacroDefRefTo', *r[0]] for r in refs_to_macro_defs])
         highlight.extra_highlight([['FuncCallRefFrom', *r[0]] for r in refs_from_func_calls])
         highlight.extra_highlight([['MacroExpansionRefFrom', *r[0]] for r in refs_from_macro_expansions])
 
         cross_ref = {
             'format': self.INDEX_DATA_FORMAT_VERSION,
             'source files': short_ref_src_files,
-            'referencesto': refs_to_funcs + refs_to_macros,
+            'referencesto': refs_to_func_defs + refs_to_macro_defs,
+            'referencestodeclarations': refs_to_func_decls,
             'referencesfrom': refs_from_func_calls + refs_from_macro_expansions,
             'highlight': highlight.highlights
         }

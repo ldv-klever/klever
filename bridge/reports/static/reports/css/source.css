@@ -130,6 +130,10 @@
     color: #00008B;
     font-weight: bold;
 }
+.SrcHlFuncDeclRefTo {
+    color: #0000CD;
+    font-weight: bold;
+}
 .SrcHlMacroDefRefTo {
     color: #8B008B;
     font-weight: bold;

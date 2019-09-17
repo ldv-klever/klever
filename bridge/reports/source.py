@@ -50,6 +50,7 @@ HIGHLIGHT_CLASSES = {
     'NL': 'SrcHlNL',
     'O': 'SrcHlO',
     'FuncDefRefTo': 'SrcHlFuncDefRefTo',
+    'FuncDeclRefTo': 'SrcHlFuncDeclRefTo',
     'MacroDefRefTo': 'SrcHlMacroDefRefTo',
     'FuncCallRefFrom': 'SrcHlFuncCallRefFrom',
     'MacroExpansionRefFrom': 'SrcHlMacroExpansionRefFrom'
@@ -88,7 +89,7 @@ class SourceLine:
             self.declarations = {}
             self._references = self.__get_references(references_to, references_from, references_declarations)
         except Exception as e:
-            logger.error('Source refereneces error ({}:{}): {}'.format(filename, line, e))
+            logger.error('Source references error ({}:{}): {}'.format(filename, line, e))
             self.references_data = []
             self.declarations = {}
             self._references = []
