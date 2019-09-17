@@ -65,7 +65,7 @@ class Server:
         return self.session.json_exchange("service/tasks/{}/?fields=id".format(identifier), method='GET')
 
     def get_job_progress(self, identifier):
-        ret = self.session.exchange('service/progress/{}/'.format(identifier))
+        ret = self.session.exchange('service/progress/{}/'.format(identifier), method='GET')
         return ret
 
     def get_all_tasks(self):
