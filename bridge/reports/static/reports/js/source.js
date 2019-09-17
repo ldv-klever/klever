@@ -16,7 +16,8 @@
  */
 
 function SourceProcessor(
-    container, title_container, buttons_container, history_container, data_container, legend_container
+    container, title_container, buttons_container, history_container,
+    data_container, legend_container, declarations_modal
 ) {
     this.container = $(container);
     this.title_container = $(title_container);
@@ -24,8 +25,10 @@ function SourceProcessor(
     this.history = $(history_container);
     this.data_container = $(data_container);
     this.legend_container = $(legend_container);
+    this.declarations_modal = $(declarations_modal);
     this.ref_click_callback = null;
     this.source_references = '#source_references_links';
+    this.source_declarations = '#source_declarations_popup';
     this.url = null;
     this.cov_data_url = null;
     this.errors = {
@@ -38,6 +41,8 @@ function SourceProcessor(
 SourceProcessor.prototype.initialize = function(ref_click_callback, source_url) {
     let instance = this,
         src_back_btn = instance.buttons.find('.src-back-btn');
+
+    instance.declarations_modal.modal({transition: 'fade'});
     instance.ref_click_callback = ref_click_callback;
     instance.url = source_url;
     src_back_btn.click(function () {
@@ -74,17 +79,17 @@ SourceProcessor.prototype.initialize = function(ref_click_callback, source_url) 
     source_container.on('mouseleave', '.SrcCode[data-value]', function () {
         $(this).siblings('.SrcLine').find('.SrcNumberPopup').remove();
     });
-
 };
 
 SourceProcessor.prototype.refresh = function() {
     let instance = this,
-        source_references_div = this.container.find(this.source_references);
+        source_references_div = this.container.find(this.source_references),
+        source_declarations_popup = this.container.find(this.source_declarations);
 
     let cov_data_url = this.container.find('#coverage_data_url');
     instance.cov_data_url = cov_data_url.length ? cov_data_url.val() : null;
 
-    this.container.find('.SrcRefToLink').click(function () {
+    this.container.find('.SrcRefToLink,.SrcRefToDeclLink').click(function () {
         if (instance.ref_click_callback) instance.ref_click_callback();
 
         let file_index = $(this).data('file'), file_name;
@@ -92,6 +97,34 @@ SourceProcessor.prototype.refresh = function() {
         else file_name = instance.container.find(`.SrcFileData[data-index="${file_index}"]`).text();
 
         instance.get_source(parseInt($(this).data('line')), file_name);
+    });
+
+    this.container.find('.SrcRefToDeclLink').popup({
+        popup: this.source_declarations,
+        onShow: function (activator) {
+            let curr_obj = $(activator);
+            source_declarations_popup.find('#declarations_number_display').text(curr_obj.data('declnumber'));
+            source_declarations_popup.find('.DeclarationsLink').data('declaration', curr_obj.data('declaration'))
+        },
+        position: 'bottom left',
+        lastResort: 'bottom left',
+        hoverable: true,
+        inline: true,
+        delay: {
+            show: 100,
+            hide: 300
+        }
+    });
+
+    source_declarations_popup.find('.DeclarationsLink').click(function () {
+        let data_html = instance.container.find('#' + $(this).data('declaration')).html();
+        instance.declarations_modal.find('.content').html(data_html);
+        instance.declarations_modal.modal('show');
+        instance.declarations_modal.find('.SrcRefLink').click(function () {
+            instance.declarations_modal.modal('hide');
+            instance.get_source($(this).data('line'), $(this).data('file'));
+        });
+        instance.container.popup('hide all')
     });
 
     this.container.find('.SrcRefFromLink').popup({

@@ -20,6 +20,7 @@ import os
 import json
 
 import core.utils
+from core.highlight import Highlight
 
 
 class ErrorTrace:
@@ -61,6 +62,15 @@ class ErrorTrace:
             return self._nodes[self._entry_node_id]
         else:
             raise KeyError('Entry node has not been set yet')
+
+    def highlight(self, src):
+        highlight = Highlight(self._logger, src)
+        highlight.highlight()
+
+        return {
+            'source': src,
+            'highlight': [[h[0], h[2], h[3]] for h in highlight.highlights]
+        }
 
     def serialize(self):
         core.utils.capitalize_attr_names(self._attrs)
@@ -135,10 +145,11 @@ class ErrorTrace:
                     'type': 'function call',
                     'file': edge['file'],
                     'line': edge['start line'],
-                    'source': edge['source'],
                     'display': self.resolve_function(edge['enter']),
                     'children': list()
                 }
+
+                func_call_node.update(self.highlight(edge['source']))
 
                 if 'note' in edge:
                     func_call_node['note'] = edge['note']
@@ -179,9 +190,10 @@ class ErrorTrace:
                 stmt_node = {
                     'type': 'statement',
                     'file': edge['file'],
-                    'line': edge['start line'],
-                    'source': edge['source']
+                    'line': edge['start line']
                 }
+
+                stmt_node.update(self.highlight(edge['source']))
 
                 if 'note' in edge:
                     stmt_node['note'] = edge['note']

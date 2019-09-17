@@ -33,7 +33,10 @@ class CrossRefs:
         self.common_prefix = common_prefix
 
     def get_cross_refs(self):
-        highlight = Highlight(self.logger, self.new_file)
+        with open(self.new_file) as fp:
+            src = fp.read()
+
+        highlight = Highlight(self.logger, src)
         highlight.highlight()
 
         # Get raw references to/from for a given source file. There is the only key-value pair in dictionaries

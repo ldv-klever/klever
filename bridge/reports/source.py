@@ -72,8 +72,10 @@ def coverage_color(curr_cov, max_cov, delta=0):
 class SourceLine:
     ref_to_class = 'SrcRefToLink'
     ref_from_class = 'SrcRefFromLink'
+    declaration_class = 'SrcRefToDeclLink'
 
-    def __init__(self, source, highlights=None, references_to=None, references_from=None, filename=None, line=None):
+    def __init__(self, source, highlights=None, filename=None, line=None,
+                 references_to=None, references_from=None, references_declarations=None):
         self._source = source
         self._source_len = len(source)
         try:
@@ -83,10 +85,12 @@ class SourceLine:
             self._highlights = OrderedDict([((0, self._source_len), None)])
         try:
             self.references_data = []
-            self._references = self.__get_references(references_to, references_from)
+            self.declarations = {}
+            self._references = self.__get_references(references_to, references_from, references_declarations)
         except Exception as e:
             logger.error('Source refereneces error ({}:{}): {}'.format(filename, line, e))
             self.references_data = []
+            self.declarations = {}
             self._references = []
         self.html_code = self.__to_html()
 
@@ -111,19 +115,48 @@ class SourceLine:
             raise ValueError('source line is too short to highlight code')
         return h_dict
 
-    def __get_references(self, references_to, references_from):
+    def __get_source_links(self, data):
+        links_list = []
+        for file_ind, file_lines in data:
+            if not isinstance(file_lines, list):
+                raise ValueError('file lines is not a list')
+            for file_line in file_lines:
+                self.__assert_int(file_line)
+                links_list.append((file_ind, file_line))
+        return links_list
+
+    def __get_references(self, references_to, references_from, references_declarations):
         if not references_to:
             references_to = []
         if not references_from:
             references_from = []
+        if not references_declarations:
+            references_declarations = []
+
+        # Collect declarations
+        for ref_data in references_declarations:
+            line_num, ref_start, ref_end = ref_data[0]
+            self.__assert_int(line_num, ref_start, ref_end)
+            self.declarations[(ref_start, ref_end)] = {
+                'id': 'declarations_{}_{}_{}'.format(*ref_data[0]),
+                'sources': self.__get_source_links(ref_data[1:])
+            }
+
+        # Collect references to
         references = []
         for (line_num, ref_start, ref_end), (file_ind, file_line) in references_to:
             self.__assert_int(line_num, ref_start, ref_end, file_line)
-            references.append([ref_start, ref_end, {
-                'span_class': self.ref_to_class,
-                'span_data': {'file': file_ind, 'line': file_line}
-            }])
+            span_data = {'file': file_ind, 'line': file_line}
 
+            if (ref_start, ref_end) in self.declarations:
+                span_class = self.declaration_class
+                span_data['declaration'] = self.declarations[(ref_start, ref_end)]['id']
+                span_data['declnumber'] = len(self.declarations[(ref_start, ref_end)]['sources'])
+            else:
+                span_class = self.ref_to_class
+            references.append([ref_start, ref_end, {'span_class': span_class, 'span_data': span_data}])
+
+        # Collect references from
         for ref_data in references_from:
             line_num, ref_start, ref_end = ref_data[0]
             self.__assert_int(line_num, ref_start, ref_end)
@@ -132,15 +165,7 @@ class SourceLine:
                 'span_class': self.ref_from_class,
                 'span_data': {'id': ref_from_id}
             }])
-
-            reflist_data = {'id': ref_from_id, 'sources': []}
-            for file_ind, file_lines in ref_data[1:]:
-                if not isinstance(file_lines, list):
-                    raise ValueError('file lines is not a list')
-                for file_line in file_lines:
-                    self.__assert_int(file_line)
-                    reflist_data['sources'].append((file_ind, file_line))
-            self.references_data.append(reflist_data)
+            self.references_data.append({'id': ref_from_id, 'sources': self.__get_source_links(ref_data[1:])})
 
         references.sort(key=lambda x: (x[0], x[1]), reverse=True)
 
@@ -226,7 +251,7 @@ class GetSource:
 
         self._indexes = self.__get_indexes_data()
         self._coverage, self.coverage_id = self.__get_coverage_data(coverage_id)
-        self.source_lines, self.references = self.__parse_source()
+        self.source_lines, self.references, self.declarations = self.__parse_source()
 
     def __parse_file_name(self, file_name):
         name = unquote(file_name)
@@ -359,17 +384,26 @@ class GetSource:
                 references_from.setdefault(line_num, [])
                 references_from[line_num].append(ref_data)
 
+        references_declarations = {}
+        if self._indexes and 'referencestodeclarations' in self._indexes:
+            for ref_data in self._indexes['referencestodeclarations']:
+                line_num = ref_data[0][0]
+                references_declarations.setdefault(line_num, [])
+                references_declarations[line_num].append(ref_data)
+
         cnt = 1
         lines = file_content.split('\n')
         total_lines_len = len(str(len(lines)))
 
         lines_data = []
         references_data = []
+        declarations_data = []
         for code in lines:
             src_line = SourceLine(
-                code, highlights=highlights.get(cnt),
+                code, highlights=highlights.get(cnt), filename=self.file_name, line=cnt,
                 references_to=references_to.get(cnt),
-                references_from=references_from.get(cnt), filename=self.file_name, line=cnt
+                references_from=references_from.get(cnt),
+                references_declarations=references_declarations.get(cnt)
             )
             linenum_str = str(cnt)
             lines_data.append({
@@ -381,8 +415,9 @@ class GetSource:
                 'has_data': (linenum_str in self._coverage_data)
             })
             references_data.extend(src_line.references_data)
+            declarations_data.extend(src_line.declarations.values())
             cnt += 1
-        return lines_data, references_data
+        return lines_data, references_data, declarations_data
 
     @cached_property
     def source_files(self):
