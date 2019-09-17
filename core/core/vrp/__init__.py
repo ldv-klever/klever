@@ -105,7 +105,7 @@ class VRP(core.components.Component):
 
         def submit_processing_task(status, t):
             task_data, tryattempt = pending[t]
-            self.mqs['processing tasks'].put([status, task_data, tryattempt, source_paths])
+            self.mqs['processing tasks'].put([status.lower(), task_data, tryattempt, source_paths])
 
         receiving = True
         session = core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
@@ -294,13 +294,13 @@ class RP(core.components.Component):
         self.vals['task solution triples'][self.results_key] = data
 
         try:
-            if status == 'FINISHED':
+            if status == 'finished':
                 self.process_finished_task(task_id, opts, verifier)
                 # Raise exception just here sinse the method above has callbacks.
                 if self.__exception:
                     self.logger.warning("Raising the saved exception")
                     raise self.__exception
-            elif status == 'ERROR':
+            elif status == 'error':
                 self.process_failed_task(task_id)
                 # Raise exception just here sinse the method above has callbacks.
                 raise RuntimeError('Failed to decide verification task: {0}'.format(self.task_error))
