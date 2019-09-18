@@ -75,7 +75,8 @@ class RSG(core.vtg.plugins.Plugin):
         if 'common models' in self.conf and 'models' in self.conf:
             for common_model_c_file in self.conf['common models']:
                 if common_model_c_file in self.conf['models']:
-                    raise KeyError('C file "{0}" is specified in both common and requirement specific models')
+                    raise KeyError('C file "{0}" is specified in both common and requirement specific models'
+                                   .format(common_model_c_file))
 
         if 'models' in self.conf:
             for model_c_file in self.conf['models']:
