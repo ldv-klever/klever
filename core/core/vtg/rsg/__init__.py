@@ -140,64 +140,6 @@ class RSG(core.vtg.plugins.Plugin):
                     'aspects': [os.path.relpath(aspect, self.conf['main working directory']) for aspect in aspects]
                 })
 
-        for model_c_file in models:
-            model = models[model_c_file]
-
-            if 'bug kinds' in model:
-                self.logger.info('Preprocess bug kinds for model with C file "{0}"'.format(model_c_file))
-                # Collect all bug kinds specified in model to check that valid bug kinds are specified in requirement
-                # model description.
-                model_bug_kinds = set()
-                lines = []
-                with open(model_c_file, encoding='utf8') as fp:
-                    for line in fp:
-                        # Bug kinds are specified in form of strings like in requirements DB as first actual
-                        # parameters of ldv_assert().
-                        match = re.search(r'ldv_assert\("([^"]+)"', line)
-                        if match:
-                            bug_kind, = match.groups()
-                            model_bug_kinds.add(bug_kind)
-                            # Include bug kinds in names of ldv_assert().
-                            lines.append(re.sub(r'ldv_assert\("([^"]+)", ?',
-                                                r'ldv_assert_{0}('.format(re.sub(r'\W', '_', bug_kind)), line))
-                        else:
-                            lines.append(line)
-
-                # Check that all bug kinds specified in requirement model description present in model. It is not
-                # necessary to check all bug kinds specified in model.
-                model['bug kinds to check'] = set()
-                for model_desc_bug_kind in model['bug kinds']:
-                    is_any = False
-                    for model_bug_kind in model_bug_kinds:
-                        m = re.match(model_desc_bug_kind, model_bug_kind)
-                        if m:
-                            is_any = True
-                            model['bug kinds to check'].add(model_bug_kind)
-
-                    if not is_any:
-                        raise KeyError(
-                            'Invalid bug kind "{0}" is specified in requirement model description'.format(
-                                model_desc_bug_kind))
-
-                preprocessed_model_c_file = '{0}.bk.c'.format(
-                    core.utils.unique_file_name(os.path.join('models',
-                                                             os.path.splitext(os.path.basename(model_c_file))[0]),
-                                                '.bk.c'))
-                with open(preprocessed_model_c_file, 'w', encoding='utf8') as fp:
-                    # Create ldv_assert*() function declarations to avoid compilation warnings. These functions will
-                    # be defined later somehow by VTG.
-                    for bug_kind in sorted(model_bug_kinds):
-                        fp.write('extern void ldv_assert_{0}(int);\n'.format(re.sub(r'\W', '_', bug_kind)))
-                    # Specify original location to avoid references to *.bk.c files in error traces.
-                    fp.write('# 1 "{0}"\n'.format(os.path.abspath(model_c_file)))
-                    for line in lines:
-                        fp.write(line)
-                model['bug kinds preprocessed C file'] = preprocessed_model_c_file
-                self.logger.debug('Preprocessed bug kinds for model with C file "{0}" was placed to "{1}"'.
-                                  format(model_c_file, preprocessed_model_c_file))
-            else:
-                model['bug kinds preprocessed C file'] = model_c_file
-
         # Generate CC full description file per each model and add it to abstract task description.
         # First of all obtain CC options to be used to compile models.
         clade = Clade(self.conf['build base'])
@@ -230,34 +172,25 @@ class RSG(core.vtg.plugins.Plugin):
         for model_c_file in sorted(models):
             model = models[model_c_file]
             extra_cc = {}
+            file, ext = os.path.splitext(os.path.join('models', os.path.basename(model_c_file)))
+            base_name = core.utils.unique_file_name(file, '{0}.json'.format(ext))
+            full_desc_file = '{0}{1}.json'.format(base_name, ext)
+            out_file = '{0}.c'.format(base_name)
 
-            if 'bug kinds preprocessed C file' in model:
-                file, ext = os.path.splitext(os.path.join('models',
-                                                          os.path.basename(model['bug kinds preprocessed C file'])))
-                base_name = core.utils.unique_file_name(file, '{0}.json'.format(ext))
-                full_desc_file = '{0}{1}.json'.format(base_name, ext)
-                out_file = '{0}.c'.format(base_name)
+            self.logger.debug('Dump CC full description to file "{0}"'.format(full_desc_file))
+            with open(full_desc_file, 'w', encoding='utf8') as fp:
+                json.dump({
+                    'cwd': empty_cc['cwd'],
+                    'in': [os.path.relpath(model_c_file, os.path.realpath(clade.get_storage_path(empty_cc['cwd'])))],
+                    'out': [os.path.realpath(out_file)],
+                    'opts': empty_cc['opts'] +
+                            ['-DLDV_SETS_MODEL_' + (model['sets model']
+                                                    if 'sets model' in model
+                                                    else self.conf['common sets model']).upper()]
+                }, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
-                self.logger.debug('Dump CC full description to file "{0}"'.format(full_desc_file))
-                with open(full_desc_file, 'w', encoding='utf8') as fp:
-                    json.dump({
-                        'cwd': empty_cc['cwd'],
-                        'in': [os.path.relpath(model['bug kinds preprocessed C file'],
-                                               os.path.realpath(clade.get_storage_path(empty_cc['cwd'])))],
-                        'out': [os.path.realpath(out_file)],
-                        'opts': empty_cc['opts'] +
-                                ['-DLDV_SETS_MODEL_' + (model['sets model']
-                                                        if 'sets model' in model
-                                                        else self.conf['common sets model']).upper()]
-                    }, fp, ensure_ascii=False, sort_keys=True, indent=4)
-
-                extra_cc['CC'] = os.path.relpath(full_desc_file, self.conf['main working directory'])
-
-            if 'bug kinds to check' in model:
-                extra_cc['bug kinds'] = list(model['bug kinds to check'])
-
-            if extra_cc:
-                model_grp['Extra CCs'].append(extra_cc)
+            extra_cc['CC'] = os.path.relpath(full_desc_file, self.conf['main working directory'])
+            model_grp['Extra CCs'].append(extra_cc)
 
         self.abstract_task_desc['grps'].append(model_grp)
         for dep in self.abstract_task_desc['deps'].values():
