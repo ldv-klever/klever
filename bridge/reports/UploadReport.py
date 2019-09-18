@@ -255,6 +255,13 @@ class ReportVerificationSerializer(UploadBaseSerializer):
         value['verification'] = True
         return super().validate(value)
 
+    def create(self, validated_data):
+        verifier_input = validated_data.pop('verifier_input', None)
+        instance = super(ReportVerificationSerializer, self).create(validated_data)
+        if verifier_input:
+            instance.add_verifier_input(verifier_input, save=True)
+        return instance
+
     class Meta:
         model = ReportComponent
         fields = (
