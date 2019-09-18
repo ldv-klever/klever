@@ -23,8 +23,9 @@ urlpatterns = [
     # Main pages
     path('', views.JobsTree.as_view(), name='tree'),
     path('<int:pk>/', views.JobPage.as_view(), name='job'),
-    path('decision-results/<int:pk>/', views.DecisionResults.as_view()),
-    path('progress/<int:pk>/', views.JobProgress.as_view()),
+    path('decision-results/<int:pk>/', views.DecisionResults.as_view(), name='decision-results'),
+    path('progress/<int:pk>/', views.JobProgress.as_view(), name='progress'),
+    path('api/job-status/', api.JobStatusListView.as_view(), name='api-jobs-statuses'),
     path('api/job-status/<int:pk>/', api.JobStatusView.as_view(), name='api-job-status'),
     path('comparison/<int:job1_id>/<int:job2_id>/', views.JobsFilesComparison.as_view(), name='comparison'),
 
@@ -51,8 +52,8 @@ urlpatterns = [
 
     # Download/upload actions
     path('downloadjob/<int:pk>/', views.DownloadJobView.as_view(), name='download'),
-    path('downloadjobs/', views.DownloadJobsListView.as_view()),
-    path('downloadtrees/', views.DownloadJobsTreeView.as_view()),
+    path('downloadjobs/', views.DownloadJobsListView.as_view(), name='download-jobs'),
+    path('downloadtrees/', views.DownloadJobsTreeView.as_view(), name='download-trees'),
     path('api/upload_jobs/', api.UploadJobsAPIView.as_view(), name='api-upload-jobs'),
     path('api/upload_jobs_tree/', api.UploadJobsTreeAPIView.as_view(), name='api-upload-tree'),
 
@@ -61,7 +62,7 @@ urlpatterns = [
     path('compare-versions/<int:pk>/<int:version1>/<int:version2>/', views.CompareJobVersionsView.as_view()),
 
     # Actions with job solving
-    path('prepare_run/<int:pk>/', views.PrepareDecisionView.as_view(), name='prepare_run'),
+    path('prepare-decision/<int:pk>/', views.PrepareDecisionView.as_view(), name='prepare-decision'),
     path('download-configuration/<int:pk>/', views.DownloadRunConfigurationView.as_view(), name='download-conf'),
     path('api/configuration/', api.GetConfigurationView.as_view(), name='api-configuration'),
     path('api/conf-def-value/', api.StartJobDefValueView.as_view(), name='api-def-start-value'),
@@ -71,8 +72,8 @@ urlpatterns = [
 
     # "Utils"
     path('get_job_field/', api.GetJobFieldView.as_view()),
-    path('do_job_has_children/<int:pk>/', api.DoJobHasChildrenView.as_view()),
-    path('api/can_download/', api.CheckDownloadAccessView.as_view(), name='api-can-download'),
+    path('api/has-children/<int:pk>/', api.DoJobHasChildrenView.as_view(), name='api-has-children'),
+    path('api/can-download/', api.CheckDownloadAccessView.as_view(), name='api-can-download'),
     path('api/collapse/<int:pk>/', api.CollapseReportsView.as_view(), name='api-collapse-reports'),
     path('api/coverage/<int:pk>/', api.GetJobCoverageTableView.as_view(), name='api-get-coverage'),
 ]

@@ -28,7 +28,7 @@
             <label for="run_history"></label>
             <select id="run_history" class="ui dropdown">
                 {% for rh in run_history %}
-                    <option value="{{ rh.pk }}"{% if rh.pk|slugify == checked_option %} selected{% endif %}>{{ rh.get_status_display }}{% if rh.operator %} ({{ rh.operator.get_full_name }}){% endif %} -
+                    <option value="{% url 'jobs:download-conf' rh.pk %}"{% if rh.pk|slugify == checked_option %} selected{% endif %}>{{ rh.get_status_display }}{% if rh.operator %} ({{ rh.operator.get_full_name }}){% endif %} -
                         {% if user.data_format == 'hum' %}
                             {{ rh.date|naturaltime }}
                         {% else %}

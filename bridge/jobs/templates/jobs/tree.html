@@ -72,4 +72,11 @@
     <span id="error__no_jobs_to_download" hidden>{% trans 'Please select jobs you want to download' %}</span>
     <span id="error__no_jobs_to_delete" hidden>{% trans 'Please select jobs you want to delete' %}</span>
     <span id="error__no_jobs_to_compare" hidden>{% trans 'Please select exactly two jobs which reports you want to compare' %}</span>
+    <script type="application/javascript">
+        const PAGE_URLS = {
+            can_download: "{% url 'jobs:api-can-download' %}",
+            download_jobs: "{% url 'jobs:download-jobs' %}",
+            download_trees: "{% url 'jobs:download-trees' %}"
+        };
+    </script>
 {% endblock %}

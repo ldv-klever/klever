@@ -299,9 +299,18 @@
     <span id="start_autorefresh" hidden>{% trans 'Start page autorefresh' %}</span>
     <span id="error__autoupdate_off" hidden>{% trans 'Page autoupdate is turned off' %}</span>
 
-    {% if job_access.can_collapse %}
-        <input id="collapse_url" type="hidden" value="{% url 'jobs:api-collapse-reports' job.id %}">
-    {% endif %}
-    <input id="decide_url" type="hidden" value="{% url 'jobs:api-decide' job.id %}">
-    <input id="cancel_decision_url" type="hidden" value="{% url 'jobs:api-cancel-decision' job.id %}">
+    <script type="application/javascript">
+        const PAGE_URLS = {
+            get_status: "{% url 'jobs:api-job-status' job.id %}",
+            decide_job: "{% url 'jobs:api-decide' job.id %}",
+            collapse_reports: "{% url 'jobs:api-collapse-reports' job.id %}",
+            cancel_decision: "{% url 'jobs:api-cancel-decision' job.id %}",
+            remove_job: "{% url 'jobs:api-remove-job' job.id %}",
+            decision_results: "{% url 'jobs:decision-results' job.id %}",
+            get_progress: "{% url 'jobs:progress' job.id %}",
+            jobs_tree: "{% url 'jobs:tree' %}",
+            prepare_decision: "{% url 'jobs:prepare-decision' job.id %}",
+            has_children: "{% url 'jobs:api-has-children' job.id %}"
+        };
+    </script>
 {% endblock %}

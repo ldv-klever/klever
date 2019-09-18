@@ -21,7 +21,7 @@ function reload_page() {
 
 
 function update_decision_results(interval) {
-    let decision_results_url = `/jobs/decision-results/${$('#job_id').val()}/?` + encodeQueryData(collect_view_data('2'));
+    let decision_results_url = PAGE_URLS.decision_results + '?' + encodeQueryData(collect_view_data('2'));
     $.get(decision_results_url, {}, function (resp) {
         $('#job_data_div').html(resp);
     }).fail(function () {
@@ -30,19 +30,15 @@ function update_decision_results(interval) {
 }
 
 function update_progress(interval) {
-    $.get(
-        '/jobs/progress/' + $('#job_id').val() + '/',
-        {},
-        function (resp) {
-            $('#job_progress_container').html(resp);
-        }
-    ).fail(function () {
+    $.get(PAGE_URLS.get_progress, {}, function (resp) {
+        $('#job_progress_container').html(resp)
+    }).fail(function () {
         clearInterval(interval);
     });
 }
 
 function check_status(interval) {
-    $.get(`/jobs/api/job-status/${$('#job_id').val()}/`, {}, function (data) {
+    $.get(PAGE_URLS.get_status, {}, function (data) {
         if (data.status !== $('#job_status_value').val()) window.location.replace('');
     }, 'json').fail(function (resp) {
         let errors = flatten_api_errors(resp['responseJSON']);
@@ -89,7 +85,7 @@ function activate_run_history() {
     let download_conf_btn = $('#download_conf_btn');
     download_conf_btn.popup();
     download_conf_btn.click(function () {
-        window.location.replace(`/jobs/download-configuration/${$('#run_history').val()}/`);
+        window.location.replace($('#run_history').val());
     });
 }
 
@@ -109,38 +105,38 @@ function show_warn_modal(btn, warn_text_id, action_func) {
 function remove_job() {
     $('#dimmer_of_page').addClass('active');
     $.ajax({
-        url: `/jobs/api/${$('#job_id').val()}/remove/`, method: "DELETE", data: {},
+        url: PAGE_URLS.remove_job, method: "DELETE", data: {},
         success: function () {
             $('#dimmer_of_page').removeClass('active');
-            window.location.replace('/jobs/');
+            window.location.replace(PAGE_URLS.jobs_tree);
         }
     });
 }
 
 function check_children() {
-    $.get('/jobs/do_job_has_children/' + $('#job_id').val() + '/', {}, function (data) {
+    $.get(PAGE_URLS.has_children, {}, function (data) {
         data.children ? show_warn_modal(null, 'warn__has_children', remove_job) : remove_job();
     }, 'json');
 }
 
 function fast_run_decision() {
     $('#dimmer_of_page').addClass('active');
-    $.post($('#decide_url').val(), {mode: 'fast'}, reload_page);
+    $.post(PAGE_URLS.decide_job, {mode: 'fast'}, reload_page);
 }
 
 function lastconf_run_decision() {
     $('#dimmer_of_page').addClass('active');
-    $.post($('#decide_url').val(), {mode: 'lastconf'}, reload_page);
+    $.post(PAGE_URLS.decide_job, {mode: 'lastconf'}, reload_page);
 }
 
 function stop_job_decision() {
     $('#dimmer_of_page').addClass('active');
-    $.post($('#cancel_decision_url').val(), {}, reload_page);
+    $.post(PAGE_URLS.cancel_decision, {}, reload_page);
 }
 
 function collapse_reports() {
     $('#dimmer_of_page').addClass('active');
-    $.post($('#collapse_url').val(), {}, reload_page);
+    $.post(PAGE_URLS.collapse_reports, {}, reload_page);
 }
 
 function clear_verification_files(btn) {
@@ -160,7 +156,7 @@ $(document).ready(function () {
     $('#warn_close_btn').click(function () { $('#warn_modal').modal('hide') });
     $('#remove_job_btn').click(function () { show_warn_modal($(this), 'warn__remove_job', check_children) });
     $('#decide_job_btn').click(function () { show_warn_modal($(this), 'warn__decide_job', function () {
-        window.location.href = '/jobs/prepare_run/' + $('#job_id').val() + '/' })
+        window.location.href = PAGE_URLS.prepare_decision })
     });
     $('#fast_decide_job_btn').click(function () { show_warn_modal($(this), 'warn__decide_job', fast_run_decision) });
     $('#last_decide_job_btn').click(function () { show_warn_modal($(this), 'warn__decide_job', lastconf_run_decision) });

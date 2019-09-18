@@ -386,7 +386,10 @@ class JobStatusSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Job
-        fields = ('status',)
+        fields = ('status', 'identifier')
+        extra_kwargs = {
+            'identifier': {'read_only': True},
+        }
 
 
 class DuplicateJobSerializer(serializers.ModelSerializer):

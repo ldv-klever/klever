@@ -28,7 +28,8 @@ from django.utils.translation import ugettext as _
 from rest_framework import exceptions
 from rest_framework.views import APIView
 from rest_framework.generics import (
-    RetrieveAPIView, get_object_or_404, GenericAPIView, CreateAPIView, UpdateAPIView, DestroyAPIView
+    get_object_or_404, GenericAPIView, RetrieveAPIView, ListAPIView,
+    CreateAPIView, UpdateAPIView, DestroyAPIView
 )
 from rest_framework.mixins import UpdateModelMixin, CreateModelMixin
 from rest_framework.renderers import TemplateHTMLRenderer
@@ -55,6 +56,12 @@ from reports.serializers import DecisionResultsSerializerRO
 from reports.UploadReport import collapse_reports
 from reports.coverage import JobCoverageStatistics
 from service.utils import StartJobDecision, CancelDecision
+
+
+class JobStatusListView(ListAPIView):
+    queryset = Job.objects.all()
+    serializer_class = JobStatusSerializer
+    permission_classes = (IsAuthenticated,)
 
 
 class JobStatusView(RetrieveAPIView):
