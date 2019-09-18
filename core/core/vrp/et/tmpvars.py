@@ -22,8 +22,8 @@ def generic_simplifications(logger, trace):
     logger.info('Simplify error trace')
     _basic_simplification(logger, trace)
     _remove_switch_cases(logger, trace)
-    _remove_tmp_vars(logger, trace)
-    _remove_aux_functions(logger, trace)
+    # _remove_tmp_vars(logger, trace)
+    # _remove_aux_functions(logger, trace)
     trace.sanity_checks()
 
 
