@@ -8,11 +8,6 @@
     "consul": "/abs/path/to/consul",
     "script checks": [
       {
-        "name": "docker",
-        "active": false,
-        "interval": "15s"
-      },
-      {
         "name": "resources",
         "active": true,
         "interval": "5s"
