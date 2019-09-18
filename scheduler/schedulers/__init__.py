@@ -127,6 +127,12 @@ class Scheduler:
         self.__listening_thread = ListeningThread(self.__server_queue, self.conf["Klever jobs and tasks queue"])
         self.__listening_thread.start()
 
+        # # Before we proceed lets check all existing jobs
+        # for identifier, status in self.server.get_all_jobs():
+        #     if identifier not in self.__jobs or status != self.__jobs['status']:
+        #         self.server.submit_job_error(identifier,
+        #                                      "Scheduler does not track the job, maybe the scheduler was restarted")
+
         self.logger.info("Scheduler base initialization has been successful")
 
     def launch(self):
@@ -138,9 +144,18 @@ class Scheduler:
         that inherits this one.
         """
 
+        def nth_iteration(n):
+            return True if iteration_number % n == 0 else False
+
         self.logger.info("Start scheduler loop")
+        iteration_number = 0
         while True:
             try:
+                if iteration_number == 10000:
+                    iteration_number = 0
+                else:
+                    iteration_number += 1
+
                 if not self.__listening_thread.is_alive():
                     raise ValueError("Listening thread is not alive, terminating")
 
@@ -148,7 +163,7 @@ class Scheduler:
                     msg = self.__server_queue.get_nowait()
                     kind, identifier, status = msg.decode('utf-8').split(' ')
                     if kind == 'job':
-                        self.logger.debug("Job {!r} has status {!r}".format(identifier, status))
+                        self.logger.debug("New status of job {!r} is {!r}".format(identifier, status))
 
                         if status == '1':
                             job_conf = self.server.pull_job_conf(identifier)
@@ -198,16 +213,11 @@ class Scheduler:
                             # CORRUPTED
                             if identifier in self.__jobs:
                                 self.runner.cancel_job(identifier, self.__jobs[identifier],
-                                                       [self.__tasks[tid] for tid in self.__tasks
-                                                        if self.__tasks[tid]["status"] in ["PENDING", "PROCESSING"]
-                                                        and self.__tasks[tid]["description"]["job id"] == identifier])
+                                                       self.relevant_tasks(identifier))
                                 del self.__jobs[identifier]
                         elif status == '6':
                             # CANCELLING
-                            self.runner.cancel_job(identifier, self.__jobs[identifier],
-                                                   [self.__tasks[tid] for tid in self.__tasks
-                                                    if self.__tasks[tid]["status"] in ["PENDING", "PROCESSING"]
-                                                    and self.__tasks[tid]["description"]["job id"] == identifier])
+                            self.runner.cancel_job(identifier, self.__jobs[identifier], self.relevant_tasks(identifier))
                             self.server.cancel_job(identifier)
                             for task_id, status in self.server.get_job_tasks(identifier):
                                 if status in ('PENDING', 'PROCESSING'):
@@ -280,12 +290,10 @@ class Scheduler:
                             del self.__jobs[job_id]
                     elif desc['status'] == 'PROCESSING':
                         # Request progress if it is available
-                        # TODO: I am not sure that this is constant, but at the moment we do not need many requests
-                        if not self.__jobs.get('progress'):
+                        if nth_iteration(10) and self.relevant_tasks(job_id):
                             progress = self.server.get_job_progress(job_id)
                             if progress:
                                 self.runner.add_job_progress(job_id, self.__jobs[job_id], progress)
-                                self.__jobs['progress'] = progress
 
                 for task_id, desc in list(self.__tasks.items()):
                     if self.runner.is_solving(desc) and desc["status"] == "PENDING":
@@ -333,6 +341,10 @@ class Scheduler:
                     if len(tasks_to_start) > 0 or len(jobs_to_start) > 0:
                         self.logger.info("Going to start {} new tasks and {} jobs".
                                          format(len(tasks_to_start), len(jobs_to_start)))
+                        self.logger.info("There are {} pending jobs in total and {} are solving".format(
+                            len(pending_tasks), len({t for t in self.__tasks if self.__tasks[t]['status'] == 'PROCESSING'})))
+                        self.logger.info("There are {} pending in total and {} are solving".format(
+                            len(pending_jobs), len({j for j in self.__jobs if self.__jobs[j]['status'] == 'PROCESSING'})))
 
                         for job_id in jobs_to_start:
                             self.runner.solve_job(job_id, self.__jobs[job_id])
@@ -348,10 +360,8 @@ class Scheduler:
                     # Flushing tasks
                     if len(tasks_to_start) > 0 or \
                             len([True for i in self.__tasks if self.__tasks[i]["status"] == "PROCESSING"]) > 0:
-                        self.logger.debug("Flush submitted tasks and jobs")
                         self.runner.flush()
 
-                self.logger.debug("Scheduler iteration has finished")
                 time.sleep(self.__iteration_period)
             except KeyboardInterrupt:
                 self.logger.error("Scheduler execution is interrupted, cancel all running threads")
@@ -407,9 +417,7 @@ class Scheduler:
 
         # First, stop jobs
         for job_id, item in [(job_id, self.__jobs[job_id]) for job_id in running_jobs]:
-            relevant_tasks = [self.__tasks[tid] for tid in self.__tasks
-                              if self.__tasks[tid]["status"] in ["PENDING", "PROCESSING"]
-                              and self.__tasks[tid]["description"]["job id"] == job_id]
+            relevant_tasks = self.relevant_tasks(job_id)
             self.runner.cancel_job(job_id, item, relevant_tasks)
 
         # Note here that some schedulers can solve tasks of jobs which run elsewhere
@@ -426,6 +434,11 @@ class Scheduler:
 
         # Do final unitializations
         self.runner.terminate()
+
+    def relevant_tasks(self, job_id):
+        return [self.__tasks[tid] for tid in self.__tasks
+                if self.__tasks[tid]["status"] in ["PENDING", "PROCESSING"]
+                and self.__tasks[tid]["description"]["job id"] == job_id]
 
     def cancel_all_tasks(self):
         # Check all tasks and cancel them

@@ -728,8 +728,8 @@ class SpeculativeSimple(Runner):
         element["status"] = status
 
         # Check that it is an error from scheduler
+        self.logger.info("Task {}:{} finished with status".format(attribute, identifier, status))
         if resources:
-            self.logger.debug("Task {}:{} finished".format(attribute, identifier))
             job["solved"] += 1
             self.logger.debug(
                 "Task {} from category {!r} solved with status {!r} and required {}B of memory and {}s of CPU time".
@@ -741,14 +741,12 @@ class SpeculativeSimple(Runner):
                 self.logger.info("Accept task {}".format(identifier))
                 return True
             else:
-                self.logger.info("Do not accept timeout task {} with a speculative restriction and status {!r}".
+                self.logger.info("Do not accept timeout task {} with status {!r}".
                                  format(identifier, status))
                 return False
-
-        self.logger.info("Task {} is considered as solved".format(identifier))
-        self._add_statisitcs(job, attribute, resources)
-        self._del_task(job_identifier, attribute, identifier)
-        return True
+        else:
+            self._del_task(job_identifier, attribute, identifier)
+            return True
 
 
 class Speculative(SpeculativeSimple):
