@@ -22,10 +22,20 @@
 {% block title %}{% trans 'Unknown' %}{% endblock %}
 
 {% block head_block %}
-    <link href="{% static 'marks/css/mark.css' %}" rel="stylesheet">
-    <link href="{% static 'reports/css/reportLeaf.css' %}" rel="stylesheet">
+    {% if coverage %}
+        <script type="text/javascript" src="{% static 'reports/js/source.js' %}"></script>
+        <script type="text/javascript" src="{% static 'reports/js/coverage.js' %}"></script>
+    {% endif %}
+
     <script type="text/javascript" src="{% static 'marks/js/inlineMarkForm.js' %}"></script>
     <script type="text/javascript" src="{% static 'reports/js/reportLeaf.js' %}"></script>
+
+    {% if coverage %}
+        <link href="{% static 'reports/css/source.css' %}" rel="stylesheet">
+        <link href="{% static 'reports/css/coverage.css' %}" rel="stylesheet">
+    {% endif %}
+    <link href="{% static 'marks/css/mark.css' %}" rel="stylesheet">
+    <link href="{% static 'reports/css/reportLeaf.css' %}" rel="stylesheet">
 {% endblock %}
 
 {% block body_block %}
@@ -33,23 +43,41 @@
         <div class="five wide column">
             <span class="purple-title">{% trans 'Job' %}: </span>
             <a href="{% url 'jobs:job' report.root.job.pk %}">{{ report.root.job.name }}</a>
-        </div>
-        <div class="four wide column">
+            <br>
             {% if report.root.user %}
                 <span class="purple-title">{% trans 'Author' %}: </span>
                 <a href="{% url 'users:show-profile' report.root.user.id %}">{{ report.root.user.get_full_name }}</a>
             {% endif %}
         </div>
-        <div class="six wide column">
+        <div class="four wide column">
             {% if parents %}{% include 'reports/parents_breadcrumb.html' with parents=parents %}{% endif %}
+        </div>
+        <div class="six wide column right aligned">
+            {% if coverage %}
+                <a class="ui icon mini basic button" href="{% url 'reports:coverage-download' coverage.coverage.id %}" style="float:left;">{% trans 'Download coverage' %}</a>
+                <div id="CoverageSourceButtons" class="ui mini icon buttons">
+                    <button class="ui violet disabled icon button src-back-btn note-popup" data-content="{% trans 'Previous source' %}"><i class="ui arrow left icon"></i></button>
+                    <button id="prev_cov_btn" class="ui green button note-popup" data-content="{% trans 'Previous covered function' %}"><i class="step backward icon"></i></button>
+                    <button id="next_cov_btn" class="ui green button note-popup" data-content="{% trans 'Next covered function' %}"><i class="step forward icon"></i></button>
+                    <button id="prev_uncov_btn" class="ui red button note-popup" data-content="{% trans 'Previous uncovered function' %}"><i class="step backward icon"></i></button>
+                    <button id="next_uncov_btn" class="ui red button note-popup" data-content="{% trans 'Next uncovered function' %}"><i class="step forward icon"></i></button>
+                    <button id="prev_srt_btn" class="ui teal button note-popup" data-content="{% trans 'Previous covered function sorted by number of calls' %}"><i class="fast backward icon"></i></button>
+                    <button id="next_srt_btn" class="ui teal button note-popup" data-content="{% trans 'Next covered function sorted by number of calls' %}"><i class="fast forward icon"></i></button>
+                </div>
+            {% endif %}
         </div>
     </div>
 
-    {# Specific content of the report #}
-    <div class="ui red segment filecontent" style="min-height:300px;max-height: 70vh;">{{ main_content }}</div>
-
     <div class="ui grid">
         <div class="seven wide column">
+            {# Problem description #}
+            <div class="ui red segment filecontent" style="min-height:300px;max-height: 70vh;">{{ main_content }}</div>
+            {% if coverage %}
+                <div id="CoverageStatisticsTable">
+                    {% include 'reports/coverage/CoverageStatistics.html' with statistics=coverage %}
+                </div>
+            {% endif %}
+            <br>
             {% if resources %}
                 <i class="ui computer violet link icon parent-popup" data-variation="very wide"></i>
                 <div class="ui special popup">
@@ -64,18 +92,8 @@
 
             <div class="ui tiny buttons" style="float: right;">
                 <button id="show_leaf_attributes" class="ui violet button">{% trans 'Attributes' %}</button>
-                {% if coverage_url %}
-                    {% if coverage_total %}
-                        <a class="ui violet button parent-popup" href="{{ coverage_url }}" data-position="bottom right">{% trans 'Coverage' %}</a>
-                        <div class="ui special popup">
-                            <div class="content">
-                                <span class="purple-subtitle">{% trans 'Line coverage' %}: </span>{{ coverage_total.lines }}<br>
-                                <span class="purple-subtitle">{% trans 'Function coverage' %}: </span>{{ coverage_total.funcs }}
-                            </div>
-                        </div>
-                    {% else %}
-                        <a class="ui violet button" href="{{ coverage_url }}">{% trans 'Coverage' %}</a>
-                    {% endif %}
+                {% if coverage %}
+                    <button id="get_data_statistic" class="ui purple button">{% trans 'Data statistics' %}</button>
                 {% endif %}
             </div>
 
@@ -98,7 +116,34 @@
                     </tbody>
                 </table>
             </div>
+        </div>
+        <div class="nine wide column">
+            {% if coverage %}
+                <div class="CoverageSourceTitleBlock">
+                    <h5 id="CoverageSourceTitle" class="header" data-variation="very wide" data-position="top right">&nbsp;</h5>
+                </div>
+                <div id="CoverageSourceSegment" class="ui orange segment">
+                    <div id="CoverageSourceCode" class="SourceCodeContent"></div>
+                </div>
+                <div class="ui violet segment">
+                    <div class="ui grid">
+                        <div class="eight wide column">
+                            <h5>{% trans 'Data' %}</h5>
+                            <div id="CoverageDataContent"></div>
+                        </div>
+                        <div class="eight wide column">
+                            <h5>{% trans 'Legend' %}</h5>
+                            <div id="CoverageLegend"></div>
+                        </div>
+                    </div>
+                </div>
+                <div id="sources_history" hidden></div>
+            {% endif %}
+        </div>
+    </div>
 
+    <div class="ui grid">
+        <div class="seven wide column">
             <div class="ui grid bottom-attached">
                 <div class="eight wide column bottom aligned header-row">
                     <span>{% trans 'Associated marks' %}</span>
@@ -129,6 +174,26 @@
     </div>
     {% include 'reports/AssociatedMarksTable.html' with MarkTable=MarkTable %}
     <br>
+
+    {% if coverage %}
+        {# Coverage data statistics modal #}
+        <div id="data_statistics_modal" class="ui modal">
+            <div class="header">{% trans 'Data statistics' %}</div>
+            <div class="content">
+                {% include 'reports/coverage/coverageDataStatistics.html' with DataStatistics=coverage.data_statistic %}
+            </div>
+        </div>
+
+        {# Declarations modal #}
+        <div id="declarations_modal" class="ui small modal">
+            <div class="header">{% trans 'Declarations' %}</div>
+            <div class="content" style="max-height: 30vh;overflow: auto;"></div>
+        </div>
+
+        <input id="source_url" type="hidden" value="{% url 'reports:api-get-source' object.parent_id %}">
+        <span id="error__line_not_found" hidden>{% trans 'Could not find the specified line' %}</span>
+    {% endif %}
+
     <script type="application/javascript">
         window.activate_tags = function () {};
     </script>

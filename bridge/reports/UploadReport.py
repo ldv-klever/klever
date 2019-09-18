@@ -138,7 +138,9 @@ class UploadBaseSerializer(serializers.ModelSerializer):
 
         # Update old report data
         if self.instance and self.instance.data:
-            value = self.instance.data.update(value)
+            self.instance.data.update(value)
+            return self.instance.data
+
         return value
 
     def validate_log(self, value):
@@ -248,25 +250,25 @@ class ReportVerificationSerializer(UploadBaseSerializer):
     original_sources = serializers.SlugRelatedField(slug_field='identifier', queryset=OriginalSources.objects)
 
     def validate(self, value):
-        # If task is set then get verifier input archive from it
-        if value.get('task'):
-            with value['task'].archive.file as fp:
-                value['verifier_input'] = File(fp, name=REPORT_ARCHIVE['verifier_input'])
         value['verification'] = True
         return super().validate(value)
 
     def create(self, validated_data):
-        verifier_input = validated_data.pop('verifier_input', None)
+        task = validated_data.pop('task', None)
         instance = super(ReportVerificationSerializer, self).create(validated_data)
-        if verifier_input:
-            instance.add_verifier_input(verifier_input, save=True)
+
+        if task:
+            # If task is set then get verifier input archive from it
+            with task.archive.file as fp:
+                verifier_input = File(fp, name=REPORT_ARCHIVE['verifier_input'])
+                instance.add_verifier_input(verifier_input, save=True)
         return instance
 
     class Meta:
         model = ReportComponent
         fields = (
             'identifier', 'parent', 'component', 'computer', 'attrs', 'data',
-            'cpu_time', 'wall_time', 'memory', 'log', 'verifier_input', 'original_sources', 'task'
+            'cpu_time', 'wall_time', 'memory', 'log', 'original_sources', 'task'
         )
         extra_kwargs = {
             'cpu_time': {'allow_null': False, 'required': True},
@@ -332,7 +334,7 @@ class ReportSafeSerializer(UploadLeafBaseSerializer):
 
     class Meta:
         model = ReportSafe
-        fields = ('parent', 'attrs', 'proof')
+        fields = ('parent', 'attrs')
 
 
 class ReportUnsafeSerializer(UploadLeafBaseSerializer):
@@ -538,7 +540,6 @@ class UploadReport:
     def __create_verification_report(self, data):
         data['attr_data'] = self.__upload_attrs_files(self.__get_archive(data.get('attr_data')))
         data['log'] = self.__get_archive(data.get('log'))
-        data['verifier_input'] = self.__get_archive(data.pop('verifier_input', None))
         save_kwargs = {}
 
         # Add additional sources if provided
@@ -673,7 +674,6 @@ class UploadReport:
 
     def __create_report_safe(self, data):
         data['attr_data'] = self.__upload_attrs_files(self.__get_archive(data.get('attr_data')))
-        data['proof'] = self.__get_archive(data.get('proof'))
         serializer = ReportSafeSerializer(data=data, reportroot=self.root)
         serializer.is_valid(raise_exception=True)
         report = serializer.save()

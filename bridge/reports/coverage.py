@@ -43,6 +43,18 @@ def coverage_url_and_total(report):
     return None, None
 
 
+def coverage_data_statistic(coverage):
+    statistics = []
+    active = True
+    for data_stat in CoverageDataStatistics.objects.filter(coverage=coverage).order_by('name'):
+        statistics.append({
+            'name': data_stat.name, 'active': active,
+            'content': json_to_html(data_stat.data)
+        })
+        active = False
+    return statistics
+
+
 def json_to_html(data):
     tab_len = 2
 
@@ -101,13 +113,11 @@ def json_to_html(data):
 
 
 class GetCoverageStatistics:
-    file_sep = '/'
-
     def __init__(self, report, coverage_id=None):
         # Earlier only first found file with extension in ['.i', '.c', '.c.aux'] was opened
         self.coverage = self.__get_coverage_object(report, coverage_id)
         self.data = CoverageStatistics.objects.filter(coverage=self.coverage).order_by('id')
-        self.data_statistic = self.__get_data_statistics()
+        self.data_statistic = coverage_data_statistic(self.coverage)
 
     def __get_coverage_object(self, report, coverage_id):
         parents_ids = set(report.get_ancestors(include_self=True).values_list('id', flat=True))
@@ -116,16 +126,12 @@ class GetCoverageStatistics:
             qs_filters['id'] = coverage_id
         return CoverageArchive.objects.filter(**qs_filters).order_by('-report_id').first()
 
-    def __get_data_statistics(self):
-        statistics = []
-        active = True
-        for data_stat in CoverageDataStatistics.objects.filter(coverage=self.coverage).order_by('name'):
-            statistics.append({
-                'name': data_stat.name, 'active': active,
-                'content': json_to_html(data_stat.data)
-            })
-            active = False
-        return statistics
+
+class LeafCoverageStatistics:
+    def __init__(self, coverage):
+        self.coverage = coverage
+        self.data = CoverageStatistics.objects.filter(coverage=self.coverage).order_by('id')
+        self.data_statistic = coverage_data_statistic(coverage)
 
 
 class CoverageStatisticsBase:

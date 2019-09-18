@@ -21,6 +21,8 @@
     font-size: 12px;
     font-family: monospace;
     position: absolute;
+    display: table;
+    width: 100%;
 }
 .SourceCodeContent > span {
     display: table-row;

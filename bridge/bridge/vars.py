@@ -302,14 +302,12 @@ REPORT_ARCHIVE = {
     'error_trace': 'ErrorTrace.zip',
     'original_sources': 'OriginalSources.zip',
     'additional_sources': 'AdditionalSources.zip',
-    'proof': 'proof.zip',
     'problem_description': 'ProblemDescription.zip'
 }
 
 LOG_FILE = 'log.txt'
 ERROR_TRACE_FILE = 'error trace.json'
 PROBLEM_DESC_FILE = 'problem desc.txt'
-PROOF_FILE = 'proof.txt'
 COVERAGE_FILE = 'coverage.json'
 
 # You can set translatable text _("Unknown error")

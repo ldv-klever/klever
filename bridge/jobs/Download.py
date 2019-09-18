@@ -319,10 +319,7 @@ class JobArchiveGenerator:
     def __get_safes_data(self, root):
         reports = []
         for report in ReportSafe.objects.filter(root=root).select_related('parent').order_by('id'):
-            report_data = UploadReportSafeSerializer(instance=report).data
-            if report_data['proof']:
-                self._arch_files.add((report.proof.path, report_data['proof']))
-            reports.append(report_data)
+            reports.append(UploadReportSafeSerializer(instance=report).data)
         return self.__get_json(reports)
 
     def __get_unsafes_data(self, root):
@@ -658,18 +655,12 @@ class UploadReports:
             return
         safes_cache = []
         for report_data in safes_data:
-            proof_fp = None
             save_kwargs = {'root': self.root, 'parent_id': self.saved_reports[report_data.pop('parent')]}
-            if report_data.get('proof'):
-                proof_fp = open(self.__full_path(report_data['proof']), mode='rb')
-                report_data['proof'] = File(proof_fp, name=REPORT_ARCHIVE['proof'])
             serializer = UploadReportSafeSerializer(data=report_data)
             serializer.is_valid(raise_exception=True)
             report = serializer.save(**save_kwargs)
             self.saved_reports[report.identifier] = report.id
             self._leaves_ids.add(report.id)
-            if proof_fp:
-                proof_fp.close()
             safes_cache.append(ReportSafeCache(job_id=self.root.job_id, report_id=report.id))
         ReportSafeCache.objects.bulk_create(safes_cache)
 

@@ -28,6 +28,20 @@
     <script src="{% static 'jstree/jstree.min.js' %}"></script>
     <script src="{% static 'jobs/js/jobFilesView.js' %}"></script>
     <script src="{% static 'jobs/js/versions.js' %}"></script>
+    <script type="application/javascript">
+        const PAGE_URLS = {
+            get_status: "{% url 'jobs:api-job-status' job.id %}",
+            decide_job: "{% url 'jobs:api-decide' job.id %}",
+            collapse_reports: "{% url 'jobs:api-collapse-reports' job.id %}",
+            cancel_decision: "{% url 'jobs:api-cancel-decision' job.id %}",
+            remove_job: "{% url 'jobs:api-remove-job' job.id %}",
+            decision_results: "{% url 'jobs:decision-results' job.id %}",
+            get_progress: "{% url 'jobs:progress' job.id %}",
+            jobs_tree: "{% url 'jobs:tree' %}",
+            prepare_decision: "{% url 'jobs:prepare-decision' job.id %}",
+            has_children: "{% url 'jobs:api-has-children' job.id %}"
+        };
+    </script>
     <script src="{% static 'jobs/js/jobPage.js' %}"></script>
 {% endblock %}
 
@@ -55,7 +69,7 @@
                     <div class="menu">
                         <a id="decide_job_btn" class="item{% if not job_access.can_decide %} disabled{% endif %}"><i class="play icon"></i> {% trans 'Start' %}</a>
                         <a id="fast_decide_job_btn" class="item{% if not job_access.can_decide %} disabled{% endif %}"><i class="forward icon"></i> {% trans 'Start with default values' %}</a>
-                        <a id="last_decide_job_btn" class="item{% if not job_access.can_decide %} disabled{% endif %}"><i class="redo icon"></i> {% trans 'Start with last configuration' %}</a>
+                        <a id="last_decide_job_btn" class="item{% if not job_access.can_decide_last %} disabled{% endif %}"><i class="redo icon"></i> {% trans 'Start with last configuration' %}</a>
                         <a id="stop_job_btn" class="item{% if not job_access.can_stop %} disabled{% endif %}"><i class="stop icon"></i> {% trans 'Stop' %}</a>
                     </div>
                 </div>
@@ -153,17 +167,6 @@
             {% include 'jobs/viewJob/files.html' with data=files div_id='filestree_container' %}
 
             <br>
-            {# Decision #}
-            <div id="job_progress_container">
-                {% include 'jobs/viewJob/decision.html' with data=decision %}
-            </div>
-            <input id="job_status_value" type="hidden" value="{{ object.status }}">
-
-            {# Run history #}
-            {% include 'jobs/viewJob/runHistory.html' with run_history=run_history %}
-
-            {# Coverage #}
-            {% include 'jobs/viewJob/coverage.html' with Coverage=Coverage %}
 
             {# User roles #}
             <div class="ui pink segment">
@@ -181,6 +184,18 @@
                 {% endif %}
                 <p>{% blocktrans with global_role=last_version.get_global_role_display %}Other users have role "{{ global_role }}" for this job{% endblocktrans %}</p>
             </div>
+
+            {# Decision #}
+            <div id="job_progress_container">
+                {% include 'jobs/viewJob/decision.html' with data=decision %}
+            </div>
+            <input id="job_status_value" type="hidden" value="{{ object.status }}">
+
+            {# Run history #}
+            {% include 'jobs/viewJob/runHistory.html' with run_history=run_history %}
+
+            {# Coverage #}
+            {% include 'jobs/viewJob/coverage.html' with Coverage=Coverage %}
         </div>
 
         <div class="eight wide column">
@@ -298,19 +313,4 @@
     <span id="stop_autorefresh" hidden>{% trans 'Stop page autorefresh' %}</span>
     <span id="start_autorefresh" hidden>{% trans 'Start page autorefresh' %}</span>
     <span id="error__autoupdate_off" hidden>{% trans 'Page autoupdate is turned off' %}</span>
-
-    <script type="application/javascript">
-        const PAGE_URLS = {
-            get_status: "{% url 'jobs:api-job-status' job.id %}",
-            decide_job: "{% url 'jobs:api-decide' job.id %}",
-            collapse_reports: "{% url 'jobs:api-collapse-reports' job.id %}",
-            cancel_decision: "{% url 'jobs:api-cancel-decision' job.id %}",
-            remove_job: "{% url 'jobs:api-remove-job' job.id %}",
-            decision_results: "{% url 'jobs:decision-results' job.id %}",
-            get_progress: "{% url 'jobs:progress' job.id %}",
-            jobs_tree: "{% url 'jobs:tree' %}",
-            prepare_decision: "{% url 'jobs:prepare-decision' job.id %}",
-            has_children: "{% url 'jobs:api-has-children' job.id %}"
-        };
-    </script>
 {% endblock %}

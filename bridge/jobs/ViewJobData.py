@@ -32,6 +32,266 @@ from jobs.utils import TITLES
 from caches.models import ReportSafeCache, ReportUnsafeCache
 
 
+def get_leaves_totals(**qs_kwargs):
+    data = {}
+    data.update(ReportSafe.objects.filter(**qs_kwargs).aggregate(
+        safes=Count('id'),
+        safes_confirmed=Count(Case(When(cache__marks_confirmed__gt=0, then=1))),
+    ))
+    data.update(ReportUnsafe.objects.filter(**qs_kwargs).aggregate(
+        unsafes=Count('id'),
+        unsafes_confirmed=Count(Case(When(cache__marks_confirmed__gt=0, then=1))),
+    ))
+    data.update(ReportUnknown.objects.filter(**qs_kwargs).aggregate(
+        unknowns=Count('id'),
+        unknowns_confirmed=Count(Case(When(cache__marks_confirmed__gt=0, then=1))),
+    ))
+    return data
+
+
+class VerdictsInfo:
+    def __init__(self, view, base_url, queryset, verdicts):
+        self._base_url = base_url
+        self._verdicts = verdicts
+        self._queryset = queryset
+        self._with_confirmed = 'hidden' not in view or 'confirmed_marks' not in view['hidden']
+
+        self.info = self.__get_verdicts_info()
+
+    def __get_verdicts_info(self):
+        verdicts_qs = self._queryset.values('cache__verdict').annotate(
+            total=Count('id'), confirmed=Count(Case(When(cache__marks_confirmed__gt=0, then=1)))
+        ).values_list('cache__verdict', 'confirmed', 'total')
+
+        verdicts_numbers = {}
+        for verdict, confirmed, total in verdicts_qs:
+            if total == 0 or verdict is None:
+                continue
+            column = self._verdicts.column(verdict)
+            if column not in verdicts_numbers:
+                verdicts_numbers[column] = {
+                    'title': TITLES.get(column, column),
+                    'verdict': verdict,
+                    'url': self._base_url,
+                    'total': 0
+                }
+                if self._with_confirmed:
+                    verdicts_numbers[column]['confirmed'] = 0
+            verdicts_numbers[column]['total'] += total
+            if self._with_confirmed:
+                verdicts_numbers[column]['confirmed'] += confirmed
+
+        info_data = []
+        for column in self._verdicts.columns():
+            if column in verdicts_numbers and verdicts_numbers[column]['total']:
+                info_data.append(verdicts_numbers[column])
+        return info_data
+
+
+class UnknownsInfo:
+    def __init__(self, view, base_url, queryset):
+        self._view = view
+
+        # reverse('reports:unknowns', args=[self.report.id])
+        self._base_url = base_url
+
+        # ReportUnknown.objects.filter(root=self.root)
+        # ReportUnknown.objects.filter(leaves__report=self.report)
+        self._queryset = queryset
+
+        self.info = self.__unknowns_info()
+
+    @cached_property
+    def _nomark_hidden(self):
+        return 'hidden' in self._view and 'unknowns_nomark' in self._view['hidden']
+
+    @cached_property
+    def _total_hidden(self):
+        return 'hidden' in self._view and 'unknowns_total' in self._view['hidden']
+
+    @cached_property
+    def _component_filter(self):
+        if 'unknown_component' not in self._view:
+            return {}
+        return {'component__{}'.format(self._view['unknown_component'][0]): self._view['unknown_component'][1]}
+
+    def __filter_problem(self, problem):
+        if 'unknown_problem' not in self._view:
+            return True
+        if self._view['unknown_problem'][0] == 'iexact':
+            return self._view['unknown_problem'][1].lower() == problem.lower()
+        if self._view['unknown_problem'][0] == 'istartswith':
+            return problem.lower().startswith(self._view['unknown_problem'][1].lower())
+        if self._view['unknown_problem'][0] == 'icontains':
+            return self._view['unknown_problem'][1].lower() in problem.lower()
+        return True
+
+    def __unknowns_info(self):
+        unknowns_qs = self._queryset.filter(**self._component_filter)\
+            .select_related('cache').only('component', 'cache__marks_total', 'cache__problems')
+
+        # Collect unknowns data
+        cache_data = {}
+        unmarked = {}
+        totals = {}
+        skipped_problems = set()
+        for unknown in unknowns_qs:
+            cache_data.setdefault(unknown.component, {})
+            if not self._total_hidden:
+                totals.setdefault(unknown.component, 0)
+                totals[unknown.component] += 1
+            if not self._nomark_hidden and unknown.cache.marks_total == 0:
+                unmarked.setdefault(unknown.component, 0)
+                unmarked[unknown.component] += 1
+            for problem in sorted(unknown.cache.problems):
+                if problem in skipped_problems:
+                    continue
+                if not self.__filter_problem(problem):
+                    skipped_problems.add(problem)
+                    continue
+                cache_data[unknown.component].setdefault(problem, 0)
+                cache_data[unknown.component][problem] += 1
+
+        # Sort unknowns data for html
+        unknowns_data = []
+        for c_name in sorted(cache_data):
+            component_data = {'component': c_name, 'problems': []}
+            has_data = False
+            for problem in sorted(cache_data[c_name]):
+                component_data['problems'].append({
+                    'problem': problem, 'num': cache_data[c_name][problem],
+                    'href': '{0}?component={1}&problem={2}'.format(self._base_url, quote(c_name), quote(problem))
+                })
+                has_data = True
+            if not self._nomark_hidden and c_name in unmarked:
+                component_data['problems'].append({
+                    'problem': _('Without marks'), 'num': unmarked[c_name],
+                    'href': '{0}?component={1}&problem=null'.format(self._base_url, quote(c_name))
+                })
+                has_data = True
+            if not self._total_hidden and c_name in totals:
+                component_data['total'] = {
+                    'num': totals[c_name], 'href': '{0}?component={1}'.format(self._base_url, quote(c_name))
+                }
+                has_data = True
+            if has_data:
+                unknowns_data.append(component_data)
+        return unknowns_data
+
+
+class TagsInfo:
+    def __init__(self, base_url, cache_qs, tags_model, tags_filter):
+        self._tags_filter = tags_filter
+        self._tags_model = tags_model
+
+        # reverse('reports:unsafes', args=[self.report.id])
+        # reverse('reports:safes', args=[self.report.id])
+        self._base_url = base_url
+
+        # ReportSafeCache.objects.filter(report__root=self.root)
+        # ReportSafeCache.objects.filter(report__leaves__report=self.report)
+        # ReportUnsafeCache.objects.filter(report__root=self.root)
+        # ReportUnsafeCache.objects.filter(report__leaves__report=self.report)
+        self._cache_qs = cache_qs
+
+        self.info = self.__get_tags_info()
+
+    @cached_property
+    def _db_tags(self):
+        """
+        All DB tags
+        :return: dict
+        """
+        qs_filter = {}
+        if self._tags_filter:
+            qs_filter['name__{}'.format(self._tags_filter[0])] = self._tags_filter[1]
+        return dict(self._tags_model.objects.filter(**qs_filter).values_list('name', 'description'))
+
+    def __get_tags_info(self):
+        tags_data = {}
+        for cache_obj in self._cache_qs.only('tags'):
+            for tag in cache_obj.tags:
+                if tag not in self._db_tags:
+                    continue
+                if tag not in tags_data:
+                    tags_data[tag] = {
+                        'name': tag, 'value': 0, 'description': self._db_tags[tag],
+                        'url': '{}?tag={}'.format(self._base_url, quote(tag))
+                    }
+                tags_data[tag]['value'] += 1
+        return list(tags_data[tag] for tag in sorted(tags_data))
+
+
+class ResourcesInfo:
+    def __init__(self, user, view, instances, data, total):
+        self.user = user
+        self.view = view
+        self._instances = instances
+        self._data = data
+        self._total = total
+        self.info = self.__get_info()
+
+    def __get_info(self):
+        resource_data = []
+        for component in sorted(self._instances):
+            component_data = {
+                'component': component,
+                'wall_time': '-',
+                'cpu_time': '-',
+                'memory': '-',
+                'instances': '{}/{}'.format(self._instances[component]['finished'], self._instances[component]['total'])
+            }
+            if component in self._data:
+                component_data['wall_time'] = HumanizedValue(
+                    self._data[component]['wall_time'], user=self.user
+                ).timedelta
+                component_data['cpu_time'] = HumanizedValue(self._data[component]['cpu_time'], user=self.user).timedelta
+                component_data['memory'] = HumanizedValue(self._data[component]['memory'], user=self.user).memory
+            resource_data.append(component_data)
+
+        if 'hidden' not in self.view or 'resource_total' not in self.view['hidden']:
+            if self._total and (self._total['wall_time'] or self._total['cpu_time'] or self._total['memory']):
+                resource_data.append({
+                    'component': 'total', 'instances': '-',
+                    'wall_time': HumanizedValue(self._total['wall_time'], user=self.user).timedelta,
+                    'cpu_time': HumanizedValue(self._total['cpu_time'], user=self.user).timedelta,
+                    'memory': HumanizedValue(self._total['memory'], user=self.user).memory
+                })
+        return resource_data
+
+
+class AttrStatisticsInfo:
+    def __init__(self, view, **qs_kwargs):
+        self.attr_name = self.__get_attr_name(view)
+        self._qs_kwargs = qs_kwargs
+        self.info = self.__get_info()
+
+    def __get_attr_name(self, view):
+        if view['attr_stat'] and len(view['attr_stat']) == 1:
+            return view['attr_stat'][0]
+        return None
+
+    def __get_info(self):
+        if not self.attr_name:
+            return None
+        attr_name_q = quote(self.attr_name)
+
+        data = {}
+        for model, column in [(ReportSafe, 'safes'), (ReportUnsafe, 'unsafes'), (ReportUnknown, 'unknowns')]:
+            queryset = model.objects.filter(
+                cache__attrs__has_key=self.attr_name, **self._qs_kwargs
+            ).values_list('cache__attrs', flat=True)
+            for report_attrs in queryset:
+                attr_value = report_attrs[self.attr_name]
+                if attr_value not in data:
+                    data[attr_value] = {
+                        'attr_value': attr_value, 'safes': 0, 'unsafes': 0, 'unknowns': 0,
+                        'url_params': '?attr_name={}&attr_value={}'.format(attr_name_q, quote(attr_value))
+                    }
+                data[attr_value][column] += 1
+        return list(data[a_val] for a_val in sorted(data))
+
+
 class ViewJobData:
     def __init__(self, user, view, job):
         self.user = user
@@ -68,22 +328,9 @@ class ViewJobData:
 
     @cached_property
     def totals(self):
-        data = {}
-        if not self.root:
-            return data
-        data.update(ReportSafe.objects.filter(root=self.root).aggregate(
-            safes=Count('id'),
-            safes_confirmed=Count(Case(When(cache__marks_confirmed__gt=0, then=1))),
-        ))
-        data.update(ReportUnsafe.objects.filter(root=self.root).aggregate(
-            unsafes=Count('id'),
-            unsafes_confirmed=Count(Case(When(cache__marks_confirmed__gt=0, then=1))),
-        ))
-        data.update(ReportUnknown.objects.filter(root=self.root).aggregate(
-            unknowns=Count('id'),
-            unknowns_confirmed=Count(Case(When(cache__marks_confirmed__gt=0, then=1))),
-        ))
-        return data
+        if self.root:
+            return get_leaves_totals(root=self.root)
+        return {}
 
     @cached_property
     def problems(self):
@@ -103,250 +350,57 @@ class ViewJobData:
     def __safe_tags_info(self):
         if not self.report:
             return []
-        # Get all db tags
-        tags_qs = SafeTag.objects.all()
-        if 'safe_tag' in self.view:
-            tags_qs = tags_qs.filter(**{'name__{}'.format(self.view['safe_tag'][0]): self.view['safe_tag'][1]})
-        db_tags = dict(tags_qs.values_list('name', 'description'))
-
-        # Calculate tags numbers
-        safes_url = reverse('reports:safes', args=[self.report.id])
-        tags_data = {}
-        for cache_obj in ReportSafeCache.objects.filter(report__root=self.root):
-            for tag in cache_obj.tags:
-                if tag not in db_tags:
-                    continue
-                if tag not in tags_data:
-                    tags_data[tag] = {
-                        'name': tag, 'value': 0, 'description': db_tags[tag],
-                        'url': '{}?tag={}'.format(safes_url, quote(tag))
-                    }
-                tags_data[tag]['value'] += 1
-        return list(tags_data[tag] for tag in sorted(tags_data))
+        return TagsInfo(
+            reverse('reports:safes', args=[self.report.id]),
+            ReportSafeCache.objects.filter(report__root=self.root),
+            SafeTag, self.view['safe_tag']
+        ).info
 
     def __unsafe_tags_info(self):
         if not self.report:
             return []
-        # Get all db tags
-        tags_qs = UnsafeTag.objects.all()
-        if 'unsafe_tag' in self.view:
-            tags_qs = tags_qs.filter(**{'name__{}'.format(self.view['unsafe_tag'][0]): self.view['unsafe_tag'][1]})
-        db_tags = dict(tags_qs.values_list('name', 'description'))
-
-        # Calculate tags numbers
-        unsafes_url = reverse('reports:unsafes', args=[self.report.id])
-        tags_data = {}
-        for cache_obj in ReportUnsafeCache.objects.filter(report__root=self.root):
-            for tag in cache_obj.tags:
-                if tag not in db_tags:
-                    continue
-                if tag not in tags_data:
-                    tags_data[tag] = {
-                        'name': tag, 'value': 0, 'description': db_tags[tag],
-                        'url': '{}?tag={}'.format(unsafes_url, quote(tag))
-                    }
-                tags_data[tag]['value'] += 1
-        return list(tags_data[tag] for tag in sorted(tags_data))
+        return TagsInfo(
+            reverse('reports:unsafes', args=[self.report.id]),
+            ReportUnsafeCache.objects.filter(report__root=self.root),
+            UnsafeTag, self.view['unsafe_tag']
+        ).info
 
     def __resource_info(self):
         if not self.root:
             return []
-
-        instances = self.root.instances
-        res_data = self.root.resources
-
-        resource_data = []
-        for component in sorted(instances):
-            component_data = {
-                'component': component,
-                'wall_time': '-',
-                'cpu_time': '-',
-                'memory': '-',
-                'instances': '{}/{}'.format(instances[component]['finished'], instances[component]['total'])
-            }
-            if component in res_data:
-                component_data['wall_time'] = HumanizedValue(res_data[component]['wall_time'], user=self.user).timedelta
-                component_data['cpu_time'] = HumanizedValue(res_data[component]['cpu_time'], user=self.user).timedelta
-                component_data['memory'] = HumanizedValue(res_data[component]['memory'], user=self.user).memory
-            resource_data.append(component_data)
-
-        if 'hidden' not in self.view or 'resource_total' not in self.view['hidden']:
-            res_total = self.root.resources.get('total')
-            if res_total and (res_total['wall_time'] > 0 or res_total['cpu_time'] > 0 or res_total['memory'] > 0):
-                resource_data.append({
-                    'component': 'total', 'instances': '-',
-                    'wall_time': HumanizedValue(res_total['wall_time'], user=self.user).timedelta,
-                    'cpu_time': HumanizedValue(res_total['cpu_time'], user=self.user).timedelta,
-                    'memory': HumanizedValue(res_total['memory'], user=self.user).memory
-                })
-        return resource_data
-
-    def __filter_problem(self, problem):
-        if 'unknown_problem' not in self.view:
-            return True
-        if self.view['unknown_problem'][0] == 'iexact':
-            return self.view['unknown_problem'][1].lower() == problem.lower()
-        if self.view['unknown_problem'][0] == 'istartswith':
-            return problem.lower().startswith(self.view['unknown_problem'][1].lower())
-        if self.view['unknown_problem'][0] == 'icontains':
-            return self.view['unknown_problem'][1].lower() in problem.lower()
-        return True
+        return ResourcesInfo(
+            self.user, self.view, self.root.instances,
+            self.root.resources, self.root.resources.get('total')
+        ).info
 
     def __unknowns_info(self):
         if not self.report:
             return []
-        url = reverse('reports:unknowns', args=[self.report.id])
-        nomark_hidden = 'hidden' in self.view and 'unknowns_nomark' in self.view['hidden']
-        total_hidden = 'hidden' in self.view and 'unknowns_total' in self.view['hidden']
-
-        # Get querysets for unknowns
-        qs_filters = {'root': self.root}
-
-        if 'unknown_component' in self.view:
-            qs_filters['component__{}'.format(self.view['unknown_component'][0])] = self.view['unknown_component'][1]
-
-        # 'unknown_problem' in self.view is not working anymore
-        select_only = ('component', 'cache__marks_total', 'cache__problems')
-
-        # Collect unknowns data
-        cache_data = {}
-        unmarked = {}
-        totals = {}
-        skipped_problems = set()
-        for unknown in ReportUnknown.objects.select_related('cache').filter(**qs_filters).only(*select_only):
-            cache_data.setdefault(unknown.component, {})
-            if not total_hidden:
-                totals.setdefault(unknown.component, 0)
-                totals[unknown.component] += 1
-            if not nomark_hidden and unknown.cache.marks_total == 0:
-                unmarked.setdefault(unknown.component, 0)
-                unmarked[unknown.component] += 1
-            for problem in sorted(unknown.cache.problems):
-                if problem in skipped_problems:
-                    continue
-                if not self.__filter_problem(problem):
-                    skipped_problems.add(problem)
-                    continue
-                cache_data[unknown.component].setdefault(problem, 0)
-                cache_data[unknown.component][problem] += 1
-
-        # Sort unknowns data for html
-        unknowns_data = []
-        for c_name in sorted(cache_data):
-            component_data = {'component': c_name, 'problems': []}
-            has_data = False
-            for problem in sorted(cache_data[c_name]):
-                component_data['problems'].append({
-                    'problem': problem, 'num': cache_data[c_name][problem],
-                    'href': '{0}?component={1}&problem={2}'.format(url, quote(c_name), quote(problem))
-                })
-                has_data = True
-            if not nomark_hidden and c_name in unmarked:
-                component_data['problems'].append({
-                    'problem': _('Without marks'), 'num': unmarked[c_name],
-                    'href': '{0}?component={1}&problem=null'.format(url, quote(c_name))
-                })
-                has_data = True
-            if not total_hidden and c_name in totals:
-                component_data['total'] = {
-                    'num': totals[c_name], 'href': '{0}?component={1}'.format(url, quote(c_name))
-                }
-                has_data = True
-            if has_data:
-                unknowns_data.append(component_data)
-        return unknowns_data
+        return UnknownsInfo(
+            self.view, reverse('reports:unknowns', args=[self.report.id]),
+            ReportUnknown.objects.filter(root=self.root)
+        ).info
 
     def __safes_info(self):
         if not self.report:
             return []
-        verdicts = SafeVerdicts()
-
-        with_confirmed = 'hidden' not in self.view or 'confirmed_marks' not in self.view['hidden']
-        base_url = reverse('reports:safes', args=[self.report.id])
-
-        safes_qs = ReportSafe.objects.filter(root=self.root).values('cache__verdict').annotate(
-            total=Count('id'), confirmed=Count(Case(When(cache__marks_confirmed__gt=0, then=1)))
-        ).values_list('cache__verdict', 'confirmed', 'total')
-
-        safes_numbers = {}
-        for verdict, confirmed, total in safes_qs:
-            if total == 0:
-                continue
-            column = verdicts.column(verdict)
-            if column not in safes_numbers:
-                safes_numbers[column] = {
-                    'title': TITLES.get(column, column),
-                    'verdict': verdict,
-                    'url': base_url,
-                    'total': 0
-                }
-                if with_confirmed:
-                    safes_numbers[column]['confirmed'] = 0
-            safes_numbers[column]['total'] += total
-            if with_confirmed:
-                safes_numbers[column]['confirmed'] += confirmed
-        safes_data = []
-        for column in verdicts.columns():
-            if column in safes_numbers and safes_numbers[column]['total'] > 0:
-                safes_data.append(safes_numbers[column])
-        return safes_data
+        return VerdictsInfo(
+            self.view, reverse('reports:safes', args=[self.report.pk]),
+            ReportSafe.objects.filter(root=self.root), SafeVerdicts()
+        ).info
 
     def __unsafes_info(self):
         if not self.report:
             return []
-        verdicts = UnsafeVerdicts()
-
-        with_confirmed = 'hidden' not in self.view or 'confirmed_marks' not in self.view['hidden']
-        base_url = reverse('reports:unsafes', args=[self.report.id])
-
-        unsafes_qs = ReportUnsafe.objects.filter(root=self.root).values('cache__verdict').annotate(
-            total=Count('id'), confirmed=Count(Case(When(cache__marks_confirmed__gt=0, then=1)))
-        ).values_list('cache__verdict', 'confirmed', 'total')
-
-        unsafes_numbers = {}
-        for verdict, confirmed, total in unsafes_qs:
-            if total == 0:
-                continue
-            column = verdicts.column(verdict)
-            if column not in unsafes_numbers:
-                unsafes_numbers[column] = {
-                    'title': TITLES.get(column, column),
-                    'verdict': verdict,
-                    'url': base_url,
-                    'total': 0
-                }
-                if with_confirmed:
-                    unsafes_numbers[column]['confirmed'] = 0
-            unsafes_numbers[column]['total'] += total
-            if with_confirmed:
-                unsafes_numbers[column]['confirmed'] += confirmed
-
-        unsafes_data = []
-        for column in verdicts.columns():
-            if column in unsafes_numbers and unsafes_numbers[column]['total'] > 0:
-                unsafes_data.append(unsafes_numbers[column])
-        return unsafes_data
+        return VerdictsInfo(
+            self.view, reverse('reports:unsafes', args=[self.report.id]),
+            ReportUnsafe.objects.filter(root=self.root), UnsafeVerdicts()
+        ).info
 
     def __attr_statistic(self):
         if not self.report:
             return None
-        if 'attr_stat' not in self.view or len(self.view['attr_stat']) != 1 or len(self.view['attr_stat'][0]) == 0:
-            return None
-        attr_name = self.view['attr_stat'][0]
-        attr_name_q = quote(attr_name)
-
-        data = {}
-        for model, column in [(ReportSafe, 'safes'), (ReportUnsafe, 'unsafes'), (ReportUnknown, 'unknowns')]:
-            for report_attrs in model.objects.filter(root=self.root, cache__attrs__has_key=attr_name) \
-                    .values_list('cache__attrs', flat=True):
-                attr_value = report_attrs[attr_name]
-                if attr_value not in data:
-                    data[attr_value] = {
-                        'attr_value': attr_value, 'safes': 0, 'unsafes': 0, 'unknowns': 0,
-                        'url_params': '?attr_name={}&attr_value={}'.format(attr_name_q, quote(attr_value))
-                    }
-                data[attr_value][column] += 1
-        return list(data[a_val] for a_val in sorted(data))
+        return AttrStatisticsInfo(self.view, root=self.root).info
 
 
 class ViewReportData:
@@ -354,7 +408,7 @@ class ViewReportData:
         self.user = user
         self.report = report
         self.view = view
-        self.totals = self.__get_totals()
+        self.totals = get_leaves_totals(leaves__report=report)
         self.data = self.__get_view_data()
 
     def __get_view_data(self):
@@ -375,65 +429,19 @@ class ViewReportData:
                 data[d] = actions[d]()
         return data
 
-    def __get_totals(self):
-        data = {}
-        data.update(ReportSafe.objects.filter(leaves__report=self.report).aggregate(
-            safes=Count('id'),
-            safes_confirmed=Count(Case(When(cache__marks_confirmed__gt=0, then=1))),
-        ))
-        data.update(ReportUnsafe.objects.filter(leaves__report=self.report).aggregate(
-            unsafes=Count('id'),
-            unsafes_confirmed=Count(Case(When(cache__marks_confirmed__gt=0, then=1))),
-        ))
-        data.update(ReportUnknown.objects.filter(leaves__report=self.report).aggregate(
-            unknowns=Count('id'),
-            unknowns_confirmed=Count(Case(When(cache__marks_confirmed__gt=0, then=1))),
-        ))
-        return data
-
     def __safe_tags_info(self):
-        # Get all db tags
-        tags_qs = SafeTag.objects.all()
-        if 'safe_tag' in self.view:
-            tags_qs = tags_qs.filter(**{'name__{}'.format(self.view['safe_tag'][0]): self.view['safe_tag'][1]})
-        db_tags = dict(tags_qs.values_list('name', 'description'))
-
-        # Calculate tags numbers
-        safes_url = reverse('reports:safes', args=[self.report.id])
-        tags_data = {}
-        for cache_obj in ReportSafeCache.objects.filter(report__leaves__report=self.report):
-            for tag, number in cache_obj.tags.items():
-                if tag not in db_tags:
-                    continue
-                if tag not in tags_data:
-                    tags_data[tag] = {
-                        'name': tag, 'value': 0, 'description': db_tags[tag],
-                        'url': '{}?tag={}'.format(safes_url, quote(tag))
-                    }
-                tags_data[tag]['value'] += number
-        return list(tags_data[tag] for tag in sorted(tags_data))
+        return TagsInfo(
+            reverse('reports:safes', args=[self.report.id]),
+            ReportSafeCache.objects.filter(report__leaves__report=self.report),
+            SafeTag, self.view['safe_tag']
+        ).info
 
     def __unsafe_tags_info(self):
-        # Get all db tags
-        tags_qs = UnsafeTag.objects.all()
-        if 'unsafe_tag' in self.view:
-            tags_qs = tags_qs.filter(**{'name__{}'.format(self.view['unsafe_tag'][0]): self.view['unsafe_tag'][1]})
-        db_tags = dict(tags_qs.values_list('name', 'description'))
-
-        # Calculate tags numbers
-        unsafes_url = reverse('reports:unsafes', args=[self.report.id])
-        tags_data = {}
-        for cache_obj in ReportUnsafeCache.objects.filter(report__leaves__report=self.report):
-            for tag, number in cache_obj.tags.items():
-                if tag not in db_tags:
-                    continue
-                if tag not in tags_data:
-                    tags_data[tag] = {
-                        'name': tag, 'value': 0, 'description': db_tags[tag],
-                        'url': '{}?tag={}'.format(unsafes_url, quote(tag))
-                    }
-                tags_data[tag]['value'] += number
-        return list(tags_data[tag] for tag in sorted(tags_data))
+        return TagsInfo(
+            reverse('reports:unsafes', args=[self.report.id]),
+            ReportUnsafeCache.objects.filter(report__leaves__report=self.report),
+            UnsafeTag, self.view['unsafe_tag']
+        ).info
 
     def __resource_info(self):
         qs_filters = {}
@@ -469,184 +477,25 @@ class ViewReportData:
                 res_data[component]['memory'] = max(report.memory, res_data[component]['memory'])
                 res_total['memory'] = max(report.memory, res_total['memory'])
 
-        resource_data = []
-        for component in sorted(instances):
-            component_data = {
-                'component': component, 'wall_time': '-', 'cpu_time': '-', 'memory': '-',
-                'instances': '{}/{}'.format(instances[component]['finished'], instances[component]['total'])
-            }
-            if component in res_data:
-                component_data['wall_time'] = HumanizedValue(res_data[component]['wall_time'], user=self.user).timedelta
-                component_data['cpu_time'] = HumanizedValue(res_data[component]['cpu_time'], user=self.user).timedelta
-                component_data['memory'] = HumanizedValue(res_data[component]['memory'], user=self.user).memory
-            resource_data.append(component_data)
-        if 'hidden' not in self.view or 'resource_total' not in self.view['hidden']:
-            if res_total['wall_time'] > 0 or res_total['cpu_time'] > 0 or res_total['memory'] > 0:
-                resource_data.append({
-                    'component': 'total', 'instances': '-',
-                    'wall_time': HumanizedValue(res_total['wall_time'], user=self.user).timedelta,
-                    'cpu_time': HumanizedValue(res_total['cpu_time'], user=self.user).timedelta,
-                    'memory': HumanizedValue(res_total['memory'], user=self.user).memory
-                })
-        return resource_data
-
-    def __filter_problem(self, problem):
-        if 'unknown_problem' not in self.view:
-            return True
-        if self.view['unknown_problem'][0] == 'iexact':
-            return self.view['unknown_problem'][1].lower() == problem.lower()
-        if self.view['unknown_problem'][0] == 'istartswith':
-            return problem.lower().startswith(self.view['unknown_problem'][1].lower())
-        if self.view['unknown_problem'][0] == 'icontains':
-            return self.view['unknown_problem'][1].lower() in problem.lower()
-        return True
+        return ResourcesInfo(self.user, self.view, instances, res_data, res_total).info
 
     def __unknowns_info(self):
-        url = reverse('reports:unknowns', args=[self.report.id])
-        nomark_hidden = 'hidden' in self.view and 'unknowns_nomark' in self.view['hidden']
-        total_hidden = 'hidden' in self.view and 'unknowns_total' in self.view['hidden']
-
-        # Get querysets for unknowns
-        qs_filters = {'leaves__report': self.report}
-
-        if 'unknown_component' in self.view:
-            qs_filters['component__{}'.format(self.view['unknown_component'][0])] = self.view['unknown_component'][1]
-
-        # 'unknown_problem' in self.view is not working anymore
-        select_only = ('component', 'cache__marks_total', 'cache__problems')
-
-        # Collect unknowns data
-        cache_data = {}
-        unmarked = {}
-        totals = {}
-        skipped_problems = set()
-        for unknown in ReportUnknown.objects.filter(**qs_filters).only(*select_only):
-            cache_data.setdefault(unknown.component, {})
-            if not total_hidden:
-                totals.setdefault(unknown.component, 0)
-                totals[unknown.component] += 1
-            if not nomark_hidden and unknown.cache.marks_total == 0:
-                unmarked.setdefault(unknown.component, 0)
-                unmarked[unknown.component] += 1
-            for problem in sorted(unknown.cache.problems):
-                if problem in skipped_problems:
-                    continue
-                if not self.__filter_problem(problem):
-                    skipped_problems.add(problem)
-                    continue
-                cache_data[unknown.component].setdefault(problem, 0)
-                cache_data[unknown.component][problem] += 1
-
-        # Sort unknowns data for html
-        unknowns_data = []
-        for c_name in sorted(cache_data):
-            component_data = {'component': c_name, 'problems': []}
-            has_data = False
-            for problem in sorted(cache_data[c_name]):
-                component_data['problems'].append({
-                    'problem': problem, 'num': cache_data[c_name][problem],
-                    'href': '{0}?component={1}&problem={2}'.format(url, quote(c_name), quote(problem))
-                })
-                has_data = True
-            if not nomark_hidden and c_name in unmarked:
-                component_data['problems'].append({
-                    'problem': _('Without marks'), 'num': unmarked[c_name],
-                    'href': '{0}?component={1}&problem=null'.format(url, quote(c_name))
-                })
-                has_data = True
-            if not total_hidden and c_name in totals:
-                component_data['total'] = {
-                    'num': totals[c_name], 'href': '{0}?component={1}'.format(url, quote(c_name))
-                }
-                has_data = True
-            if has_data:
-                unknowns_data.append(component_data)
-        return unknowns_data
+        return UnknownsInfo(
+            self.view, reverse('reports:unknowns', args=[self.report.id]),
+            ReportUnknown.objects.filter(leaves__report=self.report)
+        ).info
 
     def __safes_info(self):
-        verdicts = SafeVerdicts()
-
-        with_confirmed = 'hidden' not in self.view or 'confirmed_marks' not in self.view['hidden']
-        base_url = reverse('reports:safes', args=[self.report.pk])
-
-        safes_qs = ReportSafe.objects.filter(leaves__report=self.report).values('cache__verdict').annotate(
-            total=Count('id'), confirmed=Count(Case(When(cache__marks_confirmed__gt=0, then=1)))
-        ).values_list('cache__verdict', 'confirmed', 'total')
-
-        safes_numbers = {}
-        for verdict, confirmed, total in safes_qs:
-            if total == 0:
-                continue
-            column = verdicts.column(verdict)
-            if column not in safes_numbers:
-                safes_numbers[column] = {
-                    'title': TITLES.get(column, column),
-                    'verdict': verdict,
-                    'url': base_url,
-                    'total': 0
-                }
-                if with_confirmed:
-                    safes_numbers[column]['confirmed'] = 0
-            safes_numbers[column]['total'] += total
-            if with_confirmed:
-                safes_numbers[column]['confirmed'] += confirmed
-        safes_data = []
-        for column in verdicts.columns():
-            if column in safes_numbers and safes_numbers[column]['total'] > 0:
-                safes_data.append(safes_numbers[column])
-        return safes_data
+        return VerdictsInfo(
+            self.view, reverse('reports:safes', args=[self.report.pk]),
+            ReportSafe.objects.filter(leaves__report=self.report), SafeVerdicts()
+        ).info
 
     def __unsafes_info(self):
-        verdicts = UnsafeVerdicts()
-
-        with_confirmed = 'hidden' not in self.view or 'confirmed_marks' not in self.view['hidden']
-        base_url = reverse('reports:unsafes', args=[self.report.pk])
-
-        unsafes_qs = ReportUnsafe.objects.filter(leaves__report=self.report).values('cache__verdict').annotate(
-            total=Count('id'), confirmed=Count(Case(When(cache__marks_confirmed__gt=0, then=1)))
-        ).values_list('cache__verdict', 'confirmed', 'total')
-
-        unsafes_numbers = {}
-        for verdict, confirmed, total in unsafes_qs:
-            if total == 0:
-                continue
-            column = verdicts.column(verdict)
-            if column not in unsafes_numbers:
-                unsafes_numbers[column] = {
-                    'title': TITLES.get(column, column),
-                    'verdict': verdict,
-                    'url': base_url,
-                    'total': 0
-                }
-                if with_confirmed:
-                    unsafes_numbers[column]['confirmed'] = 0
-            unsafes_numbers[column]['total'] += total
-            if with_confirmed:
-                unsafes_numbers[column]['confirmed'] += confirmed
-
-        unsafes_data = []
-        for column in verdicts.columns():
-            if column in unsafes_numbers and unsafes_numbers[column]['total'] > 0:
-                unsafes_data.append(unsafes_numbers[column])
-        return unsafes_data
+        return VerdictsInfo(
+            self.view, reverse('reports:unsafes', args=[self.report.id]),
+            ReportUnsafe.objects.filter(leaves__report=self.report), UnsafeVerdicts()
+        ).info
 
     def __attr_statistic(self):
-        if not self.report:
-            return None
-        if 'attr_stat' not in self.view or len(self.view['attr_stat']) != 1 or len(self.view['attr_stat'][0]) == 0:
-            return None
-        attr_name = self.view['attr_stat'][0]
-        attr_name_q = quote(attr_name)
-
-        data = {}
-        for model, column in [(ReportSafe, 'safes'), (ReportUnsafe, 'unsafes'), (ReportUnknown, 'unknowns')]:
-            for report_attrs in model.objects.filter(leaves__report=self.report, cache__attrs__has_key=attr_name)\
-                    .values_list('cache__attrs', flat=True):
-                attr_value = report_attrs[attr_name]
-                if attr_value not in data:
-                    data[attr_value] = {
-                        'attr_value': attr_value, 'safes': 0, 'unsafes': 0, 'unknowns': 0,
-                        'url_params': '?attr_name={}&attr_value={}'.format(attr_name_q, quote(attr_value))
-                    }
-                data[attr_value][column] += 1
-        return list(data[a_val] for a_val in sorted(data))
+        return AttrStatisticsInfo(self.view, leaves__report=self.report).info

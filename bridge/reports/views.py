@@ -22,7 +22,7 @@ from django.template.defaulttags import register
 from django.views.generic.base import TemplateView
 from django.views.generic.detail import SingleObjectMixin, DetailView
 
-from bridge.vars import VIEW_TYPES, LOG_FILE, ERROR_TRACE_FILE, PROOF_FILE, PROBLEM_DESC_FILE, JOB_WEIGHT
+from bridge.vars import VIEW_TYPES, LOG_FILE, ERROR_TRACE_FILE, PROBLEM_DESC_FILE, JOB_WEIGHT
 from bridge.utils import logger, ArchiveFileContent, BridgeException, BridgeErrorResponse
 from bridge.CustomViews import DataViewMixin, StreamingResponseView, JSONResponseMixin
 
@@ -44,7 +44,7 @@ from reports.utils import (
 from reports.etv import GetETV
 from reports.comparison import ComparisonTableData
 from reports.coverage import (
-    coverage_url_and_total, GetCoverageStatistics, CoverageGenerator,
+    coverage_url_and_total, GetCoverageStatistics, LeafCoverageStatistics, CoverageGenerator,
     ReportCoverageStatistics, VerificationCoverageStatistics
 )
 
@@ -349,19 +349,20 @@ class ReportSafeView(LoggedCallMixin, DataViewMixin, DetailView):
         if not JobAccess(self.request.user, self.object.root.job).can_view:
             raise BridgeException(code=400)
 
-        proof_content = None
-        if self.object.proof:
-            proof_content = ArchiveFileContent(self.object, 'proof', PROOF_FILE).content.decode('utf8')
         context = super().get_context_data(**kwargs)
         if self.object.root.job.weight == JOB_WEIGHT[0][0]:
             context['parents'] = get_parents(self.object)
         context.update({
             'report': self.object, 'resources': report_resources(self.request.user, self.object),
             'SelfAttrsData': self.object.attrs.order_by('id').values_list('id', 'name', 'value', 'data'),
-            'main_content': proof_content,
             'MarkTable': SafeReportMarksTable(self.request.user, self.object, self.get_view(VIEW_TYPES[11]))
         })
-        context['coverage_url'], context['coverage_total'] = coverage_url_and_total(self.object)
+
+        # Get parent coverage if exists
+        cov_obj = CoverageArchive.objects.filter(report_id=self.object.parent_id).first()
+        if cov_obj:
+            context['coverage'] = LeafCoverageStatistics(cov_obj)
+
         return context
 
 
@@ -408,7 +409,14 @@ class ReportUnknownView(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, Deta
                 self.object, 'problem_description', PROBLEM_DESC_FILE).content.decode('utf8'),
             'MarkTable': UnknownReportMarksTable(self.request.user, self.object, self.get_view(VIEW_TYPES[12]))
         })
-        context['coverage_url'], context['coverage_total'] = coverage_url_and_total(self.object)
+
+        # Get parent coverage if exists and parent is verification report
+        cov_obj = CoverageArchive.objects.filter(
+            report_id=self.object.parent_id, report__verification=True
+        ).first()
+        if cov_obj:
+            context['coverage'] = LeafCoverageStatistics(cov_obj)
+
         if self.object.root.job.weight == JOB_WEIGHT[0][0]:
             context['parents'] = get_parents(self.object)
         return context

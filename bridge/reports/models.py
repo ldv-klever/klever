@@ -282,14 +282,8 @@ class ReportUnsafe(WithFilesMixin, Report):
         db_table = 'report_unsafe'
 
 
-class ReportSafe(WithFilesMixin, Report):
-    proof = models.FileField(upload_to='Safes/%Y/%m', null=True)
+class ReportSafe(Report):
     leaves = GenericRelation(ReportComponentLeaf, related_query_name='safes')
-
-    def add_proof(self, fp, save=False):
-        self.proof.save(REPORT_ARCHIVE['proof'], File(fp), save)
-        if not os.path.isfile(os.path.join(settings.MEDIA_ROOT, self.proof.name)):
-            raise CheckArchiveError('ReportSafe.proof was not saved')
 
     class Meta:
         db_table = 'report_safe'
@@ -344,7 +338,6 @@ post_delete.connect(remove_instance_files, sender=AttrFile)
 post_delete.connect(remove_instance_files, sender=OriginalSources)
 post_delete.connect(remove_instance_files, sender=AdditionalSources)
 post_delete.connect(remove_instance_files, sender=ReportComponent)
-post_delete.connect(remove_instance_files, sender=ReportSafe)
 post_delete.connect(remove_instance_files, sender=ReportUnsafe)
 post_delete.connect(remove_instance_files, sender=ReportUnknown)
 post_delete.connect(remove_instance_files, sender=CoverageArchive)

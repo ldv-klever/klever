@@ -83,13 +83,13 @@ SourceProcessor.prototype.initialize = function(ref_click_callback, source_url) 
 
 SourceProcessor.prototype.refresh = function() {
     let instance = this,
-        source_references_div = this.container.find(this.source_references),
-        source_declarations_popup = this.container.find(this.source_declarations);
+        source_references_div = instance.container.find(this.source_references),
+        source_declarations_popup = instance.container.find(this.source_declarations);
 
     let cov_data_url = this.container.find('#coverage_data_url');
     instance.cov_data_url = cov_data_url.length ? cov_data_url.val() : null;
 
-    this.container.find('.SrcRefToLink,.SrcRefToDeclLink').click(function () {
+    this.container.find('.SrcRefToLink').click(function () {
         if (instance.ref_click_callback) instance.ref_click_callback();
 
         let file_index = $(this).data('file'), file_name;

@@ -64,25 +64,25 @@ SJC_1 = [
         'chunks': [
             {
                 'module': 'drivers/usb/core/usb1.ko',
-                'tool': 'BLAST 2.7.2', 'verifier_input': True, 'log': True,
+                'tool': 'BLAST 2.7.2', 'log': True,
                 'additional_sources': 'sources12.zip',
                 'unsafes': ['unsafe1.zip', 'unsafe2.zip'],
                 'unknown': 'unknown2.zip'
             },
             {
                 'module': 'drivers/usb/core/usb2.ko',
-                'tool': 'CPAchecker', 'verifier_input': False, 'log': False,
+                'tool': 'CPAchecker', 'log': False,
                 'additional_sources': 'sources3.zip',
                 'unsafes': ['unsafe3.zip']
             },
             {
                 'module': 'drivers/usb/core/usb3.ko',
-                'tool': 'CPAchecker', 'verifier_input': True, 'log': False,
+                'tool': 'CPAchecker', 'log': False,
                 'safe': 'safe.zip'
             },
             {
                 'module': 'drivers/usb/core/usb4.ko',
-                'tool': 'CPAchecker', 'verifier_input': False, 'log': True,
+                'tool': 'CPAchecker', 'log': True,
                 'unknown': 'unknown0.zip'
             }
         ]
@@ -92,31 +92,31 @@ SJC_1 = [
         'chunks': [
             {
                 'module': 'drivers/usb/core/usb1.ko',
-                'tool': 'BLAST 2.7.2', 'verifier_input': True, 'log': True,
+                'tool': 'BLAST 2.7.2', 'log': True,
                 'safe': 'safe.zip'
             },
             {
                 'module': 'drivers/usb/core/usb2.ko',
-                'tool': 'CPAchecker', 'verifier_input': False, 'log': False,
+                'tool': 'CPAchecker', 'log': False,
                 'additional_sources': 'sources4.zip',
                 'unsafes': ['unsafe4.zip']
             },
             {
                 'module': 'drivers/usb/core/usb3.ko',
-                'tool': 'CPAchecker', 'verifier_input': True, 'log': False,
+                'tool': 'CPAchecker', 'log': False,
                 'additional_sources': 'sources5.zip',
                 'unsafes': ['unsafe5.zip']
             },
             {
                 'module': 'drivers/usb/core/usb4.ko',
-                'tool': 'CPAchecker', 'verifier_input': False, 'log': True,
+                'tool': 'CPAchecker', 'log': True,
                 'additional_sources': 'sources13.zip',
                 'coverage': 'coverage13.zip',
                 'safe': 'safe.zip'
             },
             {
                 'module': 'drivers/usb/core/usb5.ko',
-                'tool': 'CPAchecker', 'verifier_input': False, 'log': False,
+                'tool': 'CPAchecker', 'log': False,
                 'additional_sources': 'sources6.zip',
                 'unsafes': ['unsafe6.zip']
             }
@@ -127,12 +127,12 @@ SJC_1 = [
         'chunks': [
             {
                 'module': 'drivers/usb/core/usb6.ko',
-                'tool': 'CPAchecker', 'verifier_input': False, 'log': False,
+                'tool': 'CPAchecker', 'log': False,
                 'safe': 'safe.zip'
             },
             {
                 'module': 'drivers/usb/core/usb7.ko',
-                'tool': 'CPAchecker', 'verifier_input': False, 'log': True,
+                'tool': 'CPAchecker', 'log': True,
                 'additional_sources': 'sources10.zip',
                 'unsafes': ['unsafe10.zip']
             }
@@ -146,7 +146,7 @@ SJC_2 = [
         'chunks': [
             {
                 'module': 'drivers/usb/core/usb2.ko',
-                'tool': 'CPAchecker', 'verifier_input': True, 'log': True,
+                'tool': 'CPAchecker', 'log': True,
                 'additional_sources': 'sources14.zip',
                 'coverage': 'coverage14.zip',
                 'safe': 'safe.zip'
@@ -161,14 +161,14 @@ SJC_3 = [
         'chunks': [
             {
                 'module': 'drivers/usb/core/usb0.ko',
-                'tool': 'CPAchecker', 'verifier_input': True, 'log': True,
+                'tool': 'CPAchecker', 'log': True,
                 'additional_sources': 'sources1.zip',
                 'safe': 'safe.zip'
             },
             {
                 'requirement': 'linux:mutex',
                 'module': 'drivers/usb/core/usb1.ko',
-                'tool': 'BLAST 2.7.2', 'verifier_input': True, 'log': False,
+                'tool': 'BLAST 2.7.2', 'log': False,
                 'additional_sources': 'sources12.zip',
                 'unsafes': ['unsafe1.zip', 'unsafe2.zip'],
                 'unknown': 'unknown2.zip'
@@ -176,20 +176,20 @@ SJC_3 = [
             {
                 'requirement': 'linux:mutex',
                 'module': 'drivers/usb/core/usb2.ko',
-                'tool': 'CPAchecker', 'verifier_input': False, 'log': True,
+                'tool': 'CPAchecker', 'log': True,
                 'additional_sources': 'sources3.zip',
                 'unsafes': ['unsafe3.zip']
             },
             {
                 'requirement': 'linux:mutex',
                 'module': 'drivers/usb/core/usb3.ko',
-                'tool': 'CPAchecker', 'verifier_input': False, 'log': False,
+                'tool': 'CPAchecker', 'log': False,
                 'safe': 'safe.zip'
             },
             {
                 'requirement': 'linux:mutex',
                 'module': 'drivers/usb/core/usb4.ko',
-                'tool': 'CPAchecker', 'verifier_input': True, 'log': True,
+                'tool': 'CPAchecker', 'log': True,
                 'unknown': 'unknown0.zip'
             },
             {
@@ -208,25 +208,25 @@ SJC_4 = [
         'chunks': [
             {
                 'module': 'drivers/usb/core/usb1.ko',
-                'tool': 'BLAST 2.7.2', 'verifier_input': True, 'log': True,
+                'tool': 'BLAST 2.7.2', 'log': True,
                 'additional_sources': 'sources12.zip',
                 'unsafes': ['unsafe1.zip', 'unsafe2.zip'],
                 'unknown': 'unknown2.zip'
             },
             {
                 'module': 'drivers/usb/core/usb2.ko',
-                'tool': 'CPAchecker', 'verifier_input': False, 'log': False,
+                'tool': 'CPAchecker', 'log': False,
                 'additional_sources': 'sources3.zip',
                 'unsafes': ['unsafe3.zip']
             },
             {
                 'module': 'drivers/usb/core/usb3.ko',
-                'tool': 'CPAchecker', 'verifier_input': True, 'log': False,
+                'tool': 'CPAchecker', 'log': False,
                 'safe': 'safe.zip'
             },
             {
                 'module': 'drivers/usb/core/usb4.ko',
-                'tool': 'CPAchecker', 'verifier_input': False, 'log': True,
+                'tool': 'CPAchecker', 'log': True,
                 'unknown': 'unknown0.zip'
             }
         ]
@@ -236,31 +236,31 @@ SJC_4 = [
         'chunks': [
             {
                 'module': 'drivers/usb/core/usb1.ko',
-                'tool': 'BLAST 2.7.2', 'verifier_input': True, 'log': True,
+                'tool': 'BLAST 2.7.2', 'log': True,
                 'safe': 'safe.zip'
             },
             {
                 'module': 'drivers/usb/core/usb2.ko',
-                'tool': 'CPAchecker', 'verifier_input': False, 'log': False,
+                'tool': 'CPAchecker', 'log': False,
                 'additional_sources': 'sources4.zip',
                 'unsafes': ['unsafe4.zip']
             },
             {
                 'module': 'drivers/usb/core/usb3.ko',
-                'tool': 'CPAchecker', 'verifier_input': True, 'log': False,
+                'tool': 'CPAchecker', 'log': False,
                 'additional_sources': 'sources5.zip',
                 'unsafes': ['unsafe5.zip']
             },
             {
                 'module': 'drivers/usb/core/usb4.ko',
-                'tool': 'CPAchecker', 'verifier_input': False, 'log': True,
+                'tool': 'CPAchecker', 'log': True,
                 'additional_sources': 'sources13.zip',
                 'coverage': 'coverage13.zip',
                 'safe': 'safe.zip'
             },
             {
                 'module': 'drivers/usb/core/usb5.ko',
-                'tool': 'CPAchecker', 'verifier_input': False, 'log': False,
+                'tool': 'CPAchecker', 'log': False,
                 'additional_sources': 'sources6.zip',
                 'unsafes': ['unsafe6.zip']
             }
@@ -271,12 +271,12 @@ SJC_4 = [
         'chunks': [
             {
                 'module': 'drivers/usb/core/usb6.ko',
-                'tool': 'CPAchecker', 'verifier_input': False, 'log': False,
+                'tool': 'CPAchecker', 'log': False,
                 'safe': 'safe.zip'
             },
             {
                 'module': 'drivers/usb/core/usb7.ko',
-                'tool': 'CPAchecker', 'verifier_input': False, 'log': True,
+                'tool': 'CPAchecker', 'log': True,
                 'additional_sources': 'sources10.zip',
                 'unsafes': ['unsafe10.zip']
             }
@@ -288,7 +288,7 @@ NSJC_1 = [
     {
         'requirement': 'linux:mutex',
         'module': 'drivers/usb/core/usb1.ko',
-        'tool': 'BLAST 2.7.2', 'verifier_input': True, 'log': False,
+        'tool': 'BLAST 2.7.2', 'log': False,
         'additional_sources': 'sources12.zip',
         'unsafes': ['unsafe1.zip', 'unsafe2.zip'],
         'unknown': 'unknown2.zip'
@@ -296,20 +296,20 @@ NSJC_1 = [
     {
         'requirement': 'linux:mutex',
         'module': 'drivers/usb/core/usb2.ko',
-        'tool': 'CPAchecker', 'verifier_input': False, 'log': True,
+        'tool': 'CPAchecker', 'log': True,
         'additional_sources': 'sources3.zip',
         'unsafes': ['unsafe3.zip']
     },
     {
         'requirement': 'linux:mutex',
         'module': 'drivers/usb/core/usb3.ko',
-        'tool': 'CPAchecker', 'verifier_input': False, 'log': False,
+        'tool': 'CPAchecker', 'log': False,
         'safe': 'safe.zip'
     },
     {
         'requirement': 'linux:mutex',
         'module': 'drivers/usb/core/usb4.ko',
-        'tool': 'CPAchecker', 'verifier_input': True, 'log': True,
+        'tool': 'CPAchecker', 'log': True,
         'unknown': 'unknown0.zip'
     }
 ]
@@ -318,7 +318,7 @@ NSJC_2 = [
     {
         'requirement': 'linux:mutex',
         'module': 'drivers/usb/core/usb2.ko',
-        'tool': 'CPAchecker', 'verifier_input': True, 'log': True,
+        'tool': 'CPAchecker', 'log': True,
         'unsafes': ['unsafe11.zip']
     }
 ]
@@ -327,13 +327,13 @@ NSJC_3 = [
     {
         'requirement': 'linux:mutex',
         'module': 'drivers/usb/core/usb3.ko',
-        'tool': 'CPAchecker', 'verifier_input': True, 'log': False,
+        'tool': 'CPAchecker', 'log': False,
         'safe': 'safe.zip'
     },
     {
         'requirement': 'linux:mutex',
         'module': 'drivers/usb/core/usb4.ko',
-        'tool': 'CPAchecker', 'verifier_input': False, 'log': True,
+        'tool': 'CPAchecker', 'log': True,
         'additional_sources': 'sources2.zip',
         'unknown': 'unknown0.zip'
     },
@@ -735,7 +735,7 @@ class TestReports(KleverTestCase):
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
 
-    def __upload_verification_report(self, name, parent, attrs=None, coverage=None, verifier_input=True, log=True):
+    def __upload_verification_report(self, name, parent, attrs=None, coverage=None, log=True):
         r_id = self.__get_report_id(name)
         if not isinstance(attrs, list):
             attrs = []
@@ -748,9 +748,6 @@ class TestReports(KleverTestCase):
         if coverage is not None:
             files.append(open(os.path.join(ARCHIVE_PATH, coverage), mode='rb'))
             report['coverage'] = coverage
-        if verifier_input:
-            files.append(open(os.path.join(ARCHIVE_PATH, 'verifier_input.zip'), mode='rb'))
-            report['input files of static verifiers'] = 'verifier_input.zip'
         if log:
             files.append(open(os.path.join(ARCHIVE_PATH, 'log.zip'), mode='rb'))
             report['log'] = 'log.zip'
@@ -829,17 +826,11 @@ class TestReports(KleverTestCase):
             parent__identifier=self.job.identifier + parent
         ).count(), 1)
 
-    def __upload_safe_report(self, parent, attrs, archive, with_proof=True):
+    def __upload_safe_report(self, parent, attrs, archive):
         r_id = self.__get_report_id('safe')
-        if with_proof:
-            with open(os.path.join(ARCHIVE_PATH, archive), mode='rb') as fp:
-                response = self.service_client.post('/reports/upload/', {'report': json.dumps({
-                    'id': r_id, 'type': 'safe', 'parent id': parent, 'proof': os.path.basename(fp.name), 'attrs': attrs
-                }), 'file': fp})
-        else:
-            response = self.service_client.post('/reports/upload/', {'report': json.dumps({
-                'id': r_id, 'type': 'safe', 'parent id': parent, 'proof': None, 'attrs': attrs
-            })})
+        response = self.service_client.post('/reports/upload/', {'report': json.dumps({
+            'id': r_id, 'type': 'safe', 'parent id': parent, 'attrs': attrs
+        })})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
@@ -1533,9 +1524,6 @@ class DecideJob:
         verification.update(resources())
 
         files = ['attrdata.zip']
-        if chunk.get('verifier_input', False):
-            files.append('verifier_input.zip')
-            verification['verifier_input'] = 'verifier_input.zip'
         if chunk.get('log', False):
             files.append('log.zip')
             verification['log'] = 'log.zip'
@@ -1553,9 +1541,7 @@ class DecideJob:
             })
         if 'safe' in chunk:
             files.append(chunk['safe'])
-            reports.append({
-                'type': 'safe', 'parent': verification['identifier'], 'attrs': [], 'proof': chunk['safe']
-            })
+            reports.append({'type': 'safe', 'parent': verification['identifier'], 'attrs': []})
         elif 'unsafes' in chunk:
             cnt = 1
             for unsafe_archive in chunk['unsafes']:

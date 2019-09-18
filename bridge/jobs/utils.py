@@ -26,7 +26,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from bridge.vars import JOB_STATUS, USER_ROLES, JOB_ROLES, JOB_WEIGHT, SUBJOB_NAME
 
-from jobs.models import JobHistory, FileSystem, UserRole
+from jobs.models import JobHistory, FileSystem, UserRole, RunHistory
 from reports.models import ReportRoot, ReportComponent
 from service.models import Decision
 
@@ -194,6 +194,10 @@ class JobAccess:
     def can_decide(self):
         return self._is_finished and (self._is_manager or self._is_author or
                                       self._job_role in {JOB_ROLES[3][0], JOB_ROLES[4][0]})
+
+    @cached_property
+    def can_decide_last(self):
+        return self.can_decide and RunHistory.objects.filter(job=self.job).exists()
 
     @cached_property
     def can_view(self):

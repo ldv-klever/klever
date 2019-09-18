@@ -144,18 +144,27 @@ class SourceLine:
             }
 
         # Collect references to
+        mixed_declarations = set()
         references = []
         for (line_num, ref_start, ref_end), (file_ind, file_line) in references_to:
             self.__assert_int(line_num, ref_start, ref_end, file_line)
             span_data = {'file': file_ind, 'line': file_line}
 
             if (ref_start, ref_end) in self.declarations:
-                span_class = self.declaration_class
+                span_class = '{} {}'.format(self.declaration_class, self.ref_to_class)
                 span_data['declaration'] = self.declarations[(ref_start, ref_end)]['id']
                 span_data['declnumber'] = len(self.declarations[(ref_start, ref_end)]['sources'])
+                mixed_declarations.add((ref_start, ref_end))
             else:
                 span_class = self.ref_to_class
             references.append([ref_start, ref_end, {'span_class': span_class, 'span_data': span_data}])
+
+        # Collect declarations that are not used together with "references to"
+        for ref_start, ref_end in set(self.declarations) - mixed_declarations:
+            references.append([ref_start, ref_end, {
+                'span_class': self.declaration_class,
+                'span_data': {'id': self.declarations[(ref_start, ref_end)]['id']}
+            }])
 
         # Collect references from
         for ref_data in references_from:

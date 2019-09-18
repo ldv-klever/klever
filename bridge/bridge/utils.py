@@ -28,9 +28,9 @@ import json
 from urllib.parse import quote
 
 from django.conf import settings
-from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
+from django.core.exceptions import PermissionDenied
 from django.core.files import File
-from django.db.models import Q, FileField
+from django.db.models import FileField
 from django.http import HttpResponseBadRequest, JsonResponse, Http404
 from django.template import loader
 from django.template.defaultfilters import filesizeformat
@@ -106,7 +106,7 @@ def file_get_or_create(fp, filename, model, check_size=False, **kwargs):
         try:
             json.loads(file_content)
         except Exception as e:
-            logger.exception(e)
+            logger.error("{} is wrong json: {}".format(filename, e))
             raise BridgeException(_('The file is wrong json'))
 
     fp.seek(0)
@@ -247,72 +247,6 @@ class OpenFiles:
                 raise FileNotFoundError("The file doesn't exist: {0}".format(arg))
             paths.add(arg)
         return paths
-
-
-class RemoveFilesBeforeDelete:
-    def __init__(self, obj):
-        model_name = getattr(obj, '_meta').object_name
-        if model_name == 'Decision':
-            self.__remove_decision_files(obj)
-        elif model_name == 'ReportRoot':
-            self.__remove_reports_files(obj)
-        elif model_name == 'Job':
-            # Deleting of the job automatically send signals of deleting OneToOne fields
-            # (ReportRoot and SolvingProgress), so we don't need to do here something
-            pass
-        elif model_name == 'Task':
-            self.__remove_task_files(obj)
-        elif model_name == 'Solution':
-            self.__remove_solution_files(obj)
-
-    def __remove_decision_files(self, decision):
-        from service.models import Solution, Task
-        for files in Solution.objects.filter(task__decision=decision).values_list('archive'):
-            self.__remove(files)
-        for files in Task.objects.filter(decision=decision).values_list('archive'):
-            self.__remove(files)
-
-    def __remove_reports_files(self, root):
-        from reports.models import ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent, CoverageArchive
-        for files in ReportSafe.objects.filter(Q(root=root) & ~Q(proof=None)).values_list('proof'):
-            self.__remove(files)
-        for files in ReportUnsafe.objects.filter(root=root).values_list('error_trace'):
-            self.__remove(files)
-        for files in ReportUnknown.objects.filter(root=root).values_list('problem_description'):
-            self.__remove(files)
-        for files in ReportComponent.objects.filter(root=root).exclude(log='', data='', verifier_input='')\
-                .values_list('log', 'verifier_input', 'data'):
-            self.__remove(files)
-        for files in CoverageArchive.objects.filter(report__root=root).values_list('archive'):
-            self.__remove(files)
-
-    def __remove_task_files(self, task):
-        from service.models import Solution
-        files = set()
-        try:
-            files.add(Solution.objects.get(task=task).archive.path)
-        except ObjectDoesNotExist:
-            pass
-        files.add(task.archive.path)
-        self.__remove(files)
-
-    def __remove_solution_files(self, solution):
-        self.__remove([solution.archive.path])
-
-    def __remove(self, files):
-        self.__is_not_used()
-        for f in files:
-            if f:
-                path = os.path.join(settings.MEDIA_ROOT, f)
-                try:
-                    os.remove(path)
-                except OSError:
-                    pass
-                except Exception as e:
-                    logger.exception(e)
-
-    def __is_not_used(self):
-        pass
 
 
 class BridgeException(Exception):
