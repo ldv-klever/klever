@@ -122,7 +122,7 @@ class OriginalSources(WithFilesMixin, models.Model):
 
     def add_archive(self, fp, save=False):
         self.archive.save(REPORT_ARCHIVE['original_sources'], File(fp), save)
-        if not os.path.exists(os.path.join(settings.MEDIA_ROOT, self.archive.name)):
+        if not os.path.isfile(os.path.join(settings.MEDIA_ROOT, self.archive.name)):
             raise CheckArchiveError('OriginalSources.archive was not saved')
 
     class Meta:
@@ -136,7 +136,7 @@ class AdditionalSources(WithFilesMixin, models.Model):
 
     def add_archive(self, fp, save=False):
         self.archive.save(REPORT_ARCHIVE['additional_sources'], File(fp), save)
-        if not os.path.exists(os.path.join(settings.MEDIA_ROOT, self.archive.name)):
+        if not os.path.isfile(os.path.join(settings.MEDIA_ROOT, self.archive.name)):
             raise CheckArchiveError('AdditionalSources.archive was not saved')
 
     class Meta:
@@ -161,12 +161,12 @@ class ReportComponent(WithFilesMixin, Report):
 
     def add_log(self, fp, save=False):
         self.log.save(REPORT_ARCHIVE['log'], File(fp), save)
-        if not os.path.exists(os.path.join(settings.MEDIA_ROOT, self.log.name)):
+        if not os.path.isfile(os.path.join(settings.MEDIA_ROOT, self.log.name)):
             raise CheckArchiveError('ReportComponent.log was not saved')
 
     def add_verifier_input(self, fp, save=False):
         self.verifier_input.save(REPORT_ARCHIVE['verifier_input'], File(fp), save)
-        if not os.path.exists(os.path.join(settings.MEDIA_ROOT, self.verifier_input.name)):
+        if not os.path.isfile(os.path.join(settings.MEDIA_ROOT, self.verifier_input.name)):
             raise CheckArchiveError('ReportComponent.verifier_input was not saved')
 
     class Meta:
@@ -275,7 +275,7 @@ class ReportUnsafe(WithFilesMixin, Report):
 
     def add_trace(self, fp, save=False):
         self.error_trace.save(REPORT_ARCHIVE['error_trace'], File(fp), save)
-        if not os.path.exists(os.path.join(settings.MEDIA_ROOT, self.error_trace.name)):
+        if not os.path.isfile(os.path.join(settings.MEDIA_ROOT, self.error_trace.name)):
             raise CheckArchiveError('ReportUnsafe.error_trace was not saved')
 
     class Meta:
@@ -288,7 +288,7 @@ class ReportSafe(WithFilesMixin, Report):
 
     def add_proof(self, fp, save=False):
         self.proof.save(REPORT_ARCHIVE['proof'], File(fp), save)
-        if not os.path.exists(os.path.join(settings.MEDIA_ROOT, self.proof.name)):
+        if not os.path.isfile(os.path.join(settings.MEDIA_ROOT, self.proof.name)):
             raise CheckArchiveError('ReportSafe.proof was not saved')
 
     class Meta:
@@ -302,7 +302,7 @@ class ReportUnknown(WithFilesMixin, Report):
 
     def add_problem_desc(self, fp, save=False):
         self.problem_description.save(REPORT_ARCHIVE['problem_description'], File(fp), save)
-        if not os.path.exists(os.path.join(settings.MEDIA_ROOT, self.problem_description.name)):
+        if not os.path.isfile(os.path.join(settings.MEDIA_ROOT, self.problem_description.name)):
             raise CheckArchiveError('ReportUnknown.problem_description was not saved')
 
     class Meta:
