@@ -831,8 +831,7 @@
         },
         "common": {
           "description": "...",
-          "template": "Linux kernel modules",
-          "RSG": {"models": {"verifier/common.c": {}}}
+          "template": "Linux kernel modules"
         }
       },
       "staging": {
