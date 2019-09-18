@@ -335,11 +335,11 @@ class ErrorTrace:
                 current = begin
                 yield current
             if current is end:
-                raise StopIteration
+                return
             else:
                 current = getter(current)
                 if not current:
-                    raise StopIteration
+                    return
                 else:
                     yield current
 
