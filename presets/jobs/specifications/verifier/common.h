@@ -26,6 +26,10 @@ void __VERIFIER_assume(int expr);
  * call. */
 extern void ldv_assert(int expr);
 
+/* Cause error unconditionally.
+ */
+extern void ldv_error(void);
+
 /* Internal alias for __VERIFIER_assume(). Proceed only if expression is
  * nonzero. */
 #define ldv_assume(expr) __VERIFIER_assume(expr)

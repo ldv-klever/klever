@@ -22,3 +22,8 @@ void ldv_assert(int expr)
 	if (!expr)
 		__VERIFIER_error();
 }
+
+void ldv_error(void)
+{
+	__VERIFIER_error();
+}
