@@ -106,8 +106,8 @@ class Basic:
         self.logger.debug('Prepare common verification task description')
 
         task_desc = {
-            # Safely use id of corresponding abstract verification task since all bug kinds will be merged and each
-            # abstract verification task will correspond to exactly one verification task.
+            # Safely use id of corresponding abstract verification task since each abstract verification task will
+            # correspond to exactly one verification task.
             'id': self.abstract_task_desc['id'],
             'job id': self.conf['identifier'],
             'format': 1,
@@ -165,8 +165,6 @@ class Basic:
         :param benchmark_definition: ElementTree.Element.
         :return: List of property file names with necessary paths to add to the final archive.
         """
-        self._prepare_bug_kind_functions_file()
-
         tasks = ElementTree.SubElement(benchmark_definition, "tasks")
         if "merge source files" in self.conf and self.conf["merge source files"]:
             file = common.merge_files(self.logger, self.conf, self.abstract_task_desc)
@@ -195,29 +193,6 @@ class Basic:
             raise KeyError("User should provide memory limitation for verification tasks")
 
         return limitations
-
-    def _prepare_bug_kind_functions_file(self):
-        self.logger.debug('Prepare bug kind functions file "bug kind funcs.c"')
-
-        bug_kinds = []
-        for extra_c_file in self.abstract_task_desc['extra C files']:
-            if 'bug kinds' in extra_c_file:
-                for bug_kind in extra_c_file['bug kinds']:
-                    if bug_kind not in bug_kinds:
-                        bug_kinds.append(bug_kind)
-        bug_kinds.sort()
-
-        # Create bug kind function definitions that all call __VERIFIER_error() since this strategy doesn't distinguish
-        # different bug kinds.
-        with open('bug kind funcs.c', 'w', encoding='utf8') as fp:
-            fp.write('/* http://sv-comp.sosy-lab.org/2015/rules.php */\nvoid __VERIFIER_error(void);\n')
-            for bug_kind in bug_kinds:
-                fp.write('void ldv_assert_{0}(int expr) {{\n\tif (!expr)\n\t\t__VERIFIER_error();\n}}\n'.format(
-                    re.sub(r'\W', '_', bug_kind)))
-
-        # Add bug kind functions file to other abstract verification task files. Absolute file path is required to get
-        # absolute path references in error traces.
-        self.abstract_task_desc['extra C files'].append({'C file': os.path.abspath('bug kind funcs.c')})
 
     def _prepare_safe_prps_spec(self, benchmark_description, safe_prps):
         """
