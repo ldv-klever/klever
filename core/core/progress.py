@@ -122,15 +122,18 @@ class PW(core.components.Component):
         else:
             given_finish_time = None
 
+        if self.job_mode:
+            data_report = dict()
+        else:
+            data_report = {
+                "total_sj": self.subjobs_number,
+                "subjobs_started": True,
+            }
+
         delay = 1
         while True:
-            if self.job_mode:
+            if not data_report:
                 data_report = dict()
-            else:
-                data_report = {
-                    "total_sj": self.subjobs_number,
-                    "start_subjobs_solution": True,
-                }
 
             # Drain queue to wait for the whole tasks in background
             core.utils.drain_queue(task_messages, self.mqs['finished and failed tasks'])
@@ -157,7 +160,7 @@ class PW(core.components.Component):
             # Check that VTG started taks solution
             if self.first_task_flag.value and not first_task_appeared:
                 self.logger.info('The first task is submitted, starting the time counter')
-                data_report["start_tasks_solution"] = True
+                data_report["tasks_started"] = True
                 first_task_appeared = True
                 tasks_start_time = time.time()
 
@@ -208,7 +211,7 @@ class PW(core.components.Component):
                 else:
                     data_report["gag_text_ts"] = task_estimation
                 if self.tasks_progress == 100:
-                    data_report["finish_tasks_solution"] = True
+                    data_report["tasks_finished"] = True
 
             # Estimate subjobs
             if not self.job_mode and isinstance(self.subjobs_progress, int):
@@ -224,7 +227,7 @@ class PW(core.components.Component):
                 else:
                     data_report["gag_text_sj"] = subjob_estimation
                 if self.subjobs_progress == 100:
-                    data_report["finish_subjobs_solution"] = True
+                    data_report["subjobs_finished"] = True
 
             # Send report
             self._send_report(data_report)
@@ -235,6 +238,7 @@ class PW(core.components.Component):
 
             # Wait for 1, 2, 3, ..., 10, 10, 10, ... seconds.
             time.sleep(delay)
+            data_report = None
             if delay < 10:
                 delay += 1
 
@@ -281,12 +285,12 @@ class PW(core.components.Component):
                 return False
 
         # Send when appears total tasks, start tasks solution, end task solution, total subjobs and start solution
-        for prop in ["total_sj", "start_subjobs_solution", "finish_subjobs_solution",
-                     "total_ts", "start_tasks_solution", "finish_tasks_solution"]:
+        for prop in ["total_sj", "subjobs_started", "subjobs_finished",
+                     "total_ts", "tasks_started", "tasks_finished"]:
             hit = check_new_field(prop)
             send_report += hit
-            if hit and prop in {"start_tasks_solution", "finish_tasks_solution",
-                                "finish_subjobs_solution", "start_subjobs_solution"}:
+            if hit and prop in {"tasks_started", "tasks_finished",
+                                "subjobs_finished", "subjobs_started"}:
                 # Do not send it repeatedly
                 del report[prop]
 
