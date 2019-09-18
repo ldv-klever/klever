@@ -22,10 +22,6 @@
     },
     {
       "add targets": ["ext-modules/multimodule_false_error/init.ko"],
-      "ideal verdicts": [{"ideal verdict": "unsafe"}]
-    },
-    {
-      "add targets": ["ext-modules/multimodule_false_error/init.ko"],
       "fragments": {
         "ext-modules/multimodule_false_error/init.ko": [
           "ext-modules/multimodule_false_error/external.ko",
