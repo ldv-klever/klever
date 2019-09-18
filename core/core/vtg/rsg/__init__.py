@@ -206,6 +206,8 @@ class RSG(core.vtg.plugins.Plugin):
         # Relative path to source file which CC options to be used is specified in configuration. Clade needs absolute
         # path. The former is relative to one of source paths.
         if not meta['conf'].get('Compiler.preprocess_cmds', False):
+            empty_cc = None
+
             for path in self.conf['working source trees']:
                 opts_file = os.path.join(path, self.conf['opts file'])
                 try:
