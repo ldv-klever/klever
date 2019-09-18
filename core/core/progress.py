@@ -122,16 +122,16 @@ class PW(core.components.Component):
         else:
             given_finish_time = None
 
-        if self.job_mode:
-            data_report = {}
-        else:
-            data_report = {
-                "total_sj": self.subjobs_number,
-                "start_subjobs_solution": True,
-            }
-
         delay = 1
         while True:
+            if self.job_mode:
+                data_report = dict()
+            else:
+                data_report = {
+                    "total_sj": self.subjobs_number,
+                    "start_subjobs_solution": True,
+                }
+
             # Drain queue to wait for the whole tasks in background
             core.utils.drain_queue(task_messages, self.mqs['finished and failed tasks'])
             if len(task_messages) > 0:
@@ -250,6 +250,7 @@ class PW(core.components.Component):
             if given_finish_time:
                 estimation = max(round(given_finish_time - time.time()),
                                  estimation)
+
             return estimation
 
         if progress <= 10:
