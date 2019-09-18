@@ -107,7 +107,7 @@ class Session:
         return resp.json()
 
     def get_task_error(self, task_id):
-        resp = self.__request('service/solution/{}'.format(task_id), method='GET')
+        resp = self.__request('service/solution/{}/'.format(task_id), method='GET')
         return resp.json()['task error']
 
     def download_decision(self, task_id):
@@ -115,7 +115,7 @@ class Session:
                                 archive='decision result files.zip')
 
     def remove_task(self, task_id):
-        self.__request('service/tasks/{}'.format(task_id), method='DELETE')
+        self.__request('service/tasks/{}/'.format(task_id), method='DELETE')
 
     def sign_out(self):
         self.logger.info('Finish session')
