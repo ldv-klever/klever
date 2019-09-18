@@ -703,8 +703,6 @@ class VTGW(core.components.Component):
                 plugin_conf = copy.deepcopy(self.conf)
                 if 'options' in plugin_desc:
                     plugin_conf.update(plugin_desc['options'])
-                if 'bug kinds' in requirement_desc:
-                    plugin_conf.update({'bug kinds': requirement_desc['bug kinds']})
                 plugin_conf['in abstract task desc file'] = os.path.relpath(cur_abstract_task_desc_file,
                                                                             self.conf[
                                                                                 'main working directory'])
