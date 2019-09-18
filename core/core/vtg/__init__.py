@@ -420,6 +420,8 @@ class VTG(core.components.Component):
                 if requirement_class:
                     final = balancer.add_solution(prog_fragment, requirement_class, requirement_name, status_info)
                     if final:
+                        self.logger.debug('Confirm that task {!r}:{!r} is {!r}'.
+                                          format(prog_fragment, requirement_name, status_info[0]))
                         self.mqs['finished and failed tasks'].put([self.conf['sub-job identifier'], 'finished'
                                                                   if status_info[0] == 'finished' else 'failed'])
                         processing_status[prog_fragment][requirement_class][requirement_name] = True

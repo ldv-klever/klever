@@ -181,6 +181,9 @@ class Scheduler:
                                 "configuration": job_conf['configuration']
                             }
                             self.runner.prepare_job(identifier, self.__jobs[identifier])
+                        elif identifier not in self.__jobs:
+                            # There is no such job
+                            self.server.submit_job_error(identifier, 'This job was not tracked by the scheduler')
                         elif status == '2':
                             # PROCESSING
                             self.__jobs[identifier]['status'] = 'PROCESSING'
@@ -260,11 +263,6 @@ class Scheduler:
                 pass
 
             try:
-                # TODO: How to get progress?
-                # if 'jobs progress' in ser_ste:
-                #     for job_id, progress in [(i, d) for i, d in ser_ste['jobs progress'].items() if i in self.__jobs]:
-                #         self.runner.add_job_progress(job_id, self.__jobs[job_id], progress)
-
                 for job_id, desc in list(self.__jobs.items()):
                     if self.runner.is_solving(desc) and desc["status"] == "PENDING":
                         desc["status"] = "PROCESSING"
@@ -280,6 +278,14 @@ class Scheduler:
                             raise NotImplementedError("Cannot determine status of the job {!r}".format(job_id))
                         if job_id in self.__jobs:
                             del self.__jobs[job_id]
+                    elif desc['status'] == 'PROCESSING':
+                        # Request progress if it is available
+                        # TODO: I am not sure that this is constant, but at the moment we do not need many requests
+                        if not self.__jobs.get('progress'):
+                            progress = self.server.get_job_progress(job_id)
+                            if progress:
+                                self.runner.add_job_progress(job_id, self.__jobs[job_id], progress)
+                                self.__jobs['progress'] = progress
 
                 for task_id, desc in list(self.__tasks.items()):
                     if self.runner.is_solving(desc) and desc["status"] == "PENDING":

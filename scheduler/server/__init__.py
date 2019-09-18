@@ -61,6 +61,13 @@ class Server:
                                          method='GET')
         return ((item['id'], item['status']) for item in ret)
 
+    def get_task_status(self, identifier):
+        return self.session.json_exchange("service/tasks/{}/?fields=id".format(identifier), method='GET')
+
+    def get_job_progress(self, identifier):
+        ret = self.session.exchange('service/progress/{}/'.format(identifier), method='GET')
+        return ret
+
     def get_all_tasks(self):
         ret = self.session.json_exchange("service/tasks/?fields=status&fields=id", method='GET')
         return ((item['id'], item['status']) for item in ret)
@@ -73,20 +80,16 @@ class Server:
                               data={"status": "4", "error": error})
 
     def submit_job_finished(self, job_identifier):
-        self.session.exchange("service/job-status/{}/".format(job_identifier), method='PATCH',
-                                   data={"status": "3"})
+        self.session.exchange("service/job-status/{}/".format(job_identifier), method='PATCH', data={"status": "3"})
 
     def submit_processing_task(self, task_identifier):
-        self.session.exchange("service/tasks/{}/".format(task_identifier), method='PATCH',
-                                   data={"status": "PROCESSING"})
+        self.session.exchange("service/tasks/{}/".format(task_identifier), method='PATCH', data={"status": "PROCESSING"})
 
     def submit_task_finished(self, task_identifier):
-        self.session.exchange("service/tasks/{}/".format(task_identifier), method='PATCH',
-                                   data={"status": "FINISHED"})
+        self.session.exchange("service/tasks/{}/".format(task_identifier), method='PATCH', data={"status": "FINISHED"})
 
     def submit_task_cancelled(self, task_identifier):
-        self.session.exchange("service/tasks/{}/".format(task_identifier), method='PATCH',
-                                   data={"status": "CANCELLED"})
+        self.session.exchange("service/tasks/{}/".format(task_identifier), method='PATCH', data={"status": "CANCELLED"})
 
     def delete_task(self, task_identifier):
         self.session.exchange("service/tasks/{}/".format(task_identifier), method='DELETE')

@@ -137,10 +137,8 @@ class PW(core.components.Component):
             if len(task_messages) > 0:
                 while len(task_messages) > 0:
                     job_id, status = task_messages.pop()
-                    if job_id not in self.finished_tasks_data:
-                        self.finished_tasks_data[job_id] = 0
-                    if job_id not in self.failed_tasks_data:
-                        self.failed_tasks_data[job_id] = 0
+                    self.finished_tasks_data.setdefault(job_id, 0)
+                    self.failed_tasks_data.setdefault(job_id, 0)
                     if status == 'finished':
                         self.finished_tasks_data[job_id] += 1
                     elif status == 'failed':

@@ -543,9 +543,9 @@ class SpeculativeSimple(Runner):
         :param progress: Information about the job progress.
         """
         super(SpeculativeSimple, self).add_job_progress(identifier, item, progress)
-        if progress.get('total tasks to be generated', None):
+        if progress.get('total_ts'):
             jd = self._track_job(identifier)
-            jd['total tasks'] = progress['total tasks to be generated']
+            jd['total tasks'] = progress['total_ts']
 
     def _is_there(self, job_identifier, attribute, identifier):
         """
@@ -730,18 +730,15 @@ class SpeculativeSimple(Runner):
         # Check that it is an error from scheduler
         if resources:
             self.logger.debug("Task {}:{} finished".format(attribute, identifier))
-            lim = element["limitation"]
-            qos = job["QoS limit"]
             job["solved"] += 1
             self.logger.debug(
                 "Task {} from category {!r} solved with status {!r} and required {}B of memory and {}s of CPU time".
                 format(identifier, attribute, status, resources['memory size'], int(resources['CPU time'] / 1000)))
 
             if solution['uploaded']:
-                # This is a timeout that will not be solved with an increased memory limitation
                 self._del_task(job_identifier, attribute, identifier)
                 self._add_statisitcs(job, attribute, resources)
-                self.logger.info("Accept timeout task {} even with a speculative restriction".format(identifier))
+                self.logger.info("Accept task {}".format(identifier))
                 return True
             else:
                 self.logger.info("Do not accept timeout task {} with a speculative restriction and status {!r}".
