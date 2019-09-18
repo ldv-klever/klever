@@ -32,7 +32,7 @@ from rest_framework.status import HTTP_403_FORBIDDEN
 from rest_framework.views import APIView
 
 from bridge.vars import JOB_STATUS
-from bridge.utils import BridgeException, logger
+from bridge.utils import logger
 from bridge.access import ServicePermission
 from tools.profiling import LoggedCallMixin
 
@@ -62,10 +62,7 @@ class FillComparisonView(LoggedCallMixin, APIView):
         try:
             CompareJobsInfo.objects.get(user=self.request.user, root1=r1, root2=r2)
         except CompareJobsInfo.DoesNotExist:
-            try:
-                FillComparisonCache(self.request.user, r1, r2)
-            except BridgeException as e:
-                raise exceptions.APIException(e.message)
+            FillComparisonCache(self.request.user, r1, r2)
         return Response({'url': reverse('reports:comparison', args=[r1.job_id, r2.job_id])})
 
 
@@ -76,14 +73,11 @@ class ReportsComparisonDataView(LoggedCallMixin, RetrieveAPIView):
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
-        try:
-            res = ComparisonData(
-                instance, int(self.request.GET.get('page', 1)),
-                self.request.GET.get('hide_attrs', 0), self.request.GET.get('hide_components', 0),
-                self.request.GET.get('verdict'), self.request.GET.get('attrs')
-            )
-        except BridgeException as e:
-            raise exceptions.APIException(e.message)
+        res = ComparisonData(
+            instance, int(self.request.GET.get('page', 1)),
+            self.request.GET.get('hide_attrs', 0), self.request.GET.get('hide_components', 0),
+            self.request.GET.get('verdict'), self.request.GET.get('attrs')
+        )
         template = loader.get_template('reports/comparisonData.html')
         return HttpResponse(template.render({'data': res}, request))
 
@@ -135,16 +129,12 @@ class GetSourceCodeView(LoggedCallMixin, APIView):
         report = get_object_or_404(Report.objects.only('id'), id=report_id)
         if 'file_name' not in request.GET:
             raise exceptions.APIException('File name was not provided')
-        try:
-            return Response({
-                'data': GetSource(
-                    request.user, report, request.GET['file_name'],
-                    request.GET.get('coverage_id'), request.GET.get('with_legend')
-                )
-            }, template_name='reports/SourceCode.html')
-        except BridgeException as e:
-            logger.error(e)
-            raise exceptions.APIException(str(e))
+        return Response({
+            'data': GetSource(
+                request.user, report, request.GET['file_name'],
+                request.GET.get('coverage_id'), request.GET.get('with_legend')
+            )
+        }, template_name='reports/SourceCode.html')
 
 
 class ClearVerificationFilesView(LoggedCallMixin, DestroyAPIView):

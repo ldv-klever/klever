@@ -345,10 +345,7 @@ class StartDecisionView(LoggedCallMixin, APIView):
         elif request.data['mode'] == 'default':
             getconf_kwargs['conf_name'] = request.data['conf_name']
 
-        try:
-            StartJobDecision(request.user, job, GetConfiguration(**getconf_kwargs).for_json())
-        except BridgeException as e:
-            raise exceptions.APIException(str(e))
+        StartJobDecision(request.user, job, GetConfiguration(**getconf_kwargs).for_json())
         return Response({'url': reverse('jobs:job', args=[job.id])})
 
 
@@ -360,10 +357,7 @@ class StopDecisionView(LoggedCallMixin, APIView):
         job = get_object_or_404(Job, pk=job_id)
         if not JobAccess(request.user, job).can_stop:
             raise exceptions.PermissionDenied(_("You don't have an access to stop decision of this job"))
-        try:
-            CancelDecision(job)
-        except BridgeException as e:
-            raise exceptions.APIException(str(e))
+        CancelDecision(job)
         return Response({})
 
 
