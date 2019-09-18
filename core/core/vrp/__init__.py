@@ -577,6 +577,16 @@ class RP(core.components.Component):
             if tmp != os.path.join(os.path.sep, storage_file):
                 arcnames[file_name] = os.path.join('source files', tmp)
             else:
-                arcnames[file_name] = core.utils.make_relative_path(self.search_dirs, storage_file, absolutize=True)
+                # Like in core.vtg.weaver.Weaver#weave.
+                tmp = core.utils.make_relative_path(self.search_dirs, storage_file, absolutize=True)
+                if tmp != os.path.join(os.path.sep, storage_file):
+                    if tmp.startswith('specifications'):
+                        arcnames[file_name] = tmp
+                    else:
+                        tmp = os.path.join('generated models', os.path.basename(tmp))
+                        if any(arcname == tmp for arcname in arcnames.values()):
+                            self.logger.warn("There is shrinked file name collision")
+                            continue
+                        arcnames[file_name] = tmp
 
         return arcnames

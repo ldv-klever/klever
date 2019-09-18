@@ -147,8 +147,24 @@ class CrossRefs:
         short_ref_src_files = []
         for ref_src_file in ref_src_files:
             tmp = core.utils.make_relative_path(self.common_dirs, ref_src_file)
-            short_ref_src_files.append(os.path.join(self.common_prefix, tmp)
-                                       if tmp != ref_src_file else ref_src_file)
+
+            if tmp != ref_src_file:
+                if self.common_prefix:
+                    short_ref_src_files.append(os.path.join(self.common_prefix, tmp))
+                else:
+                    # Like in core.vtg.weaver.Weaver#weave.
+                    if tmp.startswith('specifications'):
+                        short_ref_src_files.append(tmp)
+                    else:
+                        tmp = os.path.join('generated models', os.path.basename(tmp))
+
+                        if tmp in short_ref_src_files:
+                            self.logger.warn("There is shrinked file name collision")
+                            continue
+
+                        short_ref_src_files.append(tmp)
+            else:
+                short_ref_src_files.append(ref_src_file)
 
         # Add special highlighting for non heuristically known entity references and referenced entities.
         highlight.extra_highlight([['FuncDefRefTo', *r[0]] for r in refs_to_func_defs])

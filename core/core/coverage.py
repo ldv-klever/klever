@@ -323,7 +323,7 @@ class LCOV:
                         file_name = os.path.normpath(file_name)
                         if os.path.isfile(file_name):
                             path, file = os.path.split(file_name)
-                            # All pathes should be absolute, otherwise we cannot match source dirs later
+                            # All paths should be absolute, otherwise we cannot match source dirs later.
                             path = os.path.join(os.path.sep, core.utils.make_relative_path([self.clade.storage_dir],
                                                                                            path))
                             all_files.setdefault(path, [])
