@@ -521,7 +521,7 @@ class RP(core.components.Component):
             report['log'] = core.utils.ArchiveFiles([log_file], {log_file: 'log.txt'})
 
         if self.conf['upload input files of static verifiers']:
-            report['task identifier'] = task_id
+            report['task'] = task_id
 
         # Remember exception and raise it if verdict is not unknown
         exception = None
