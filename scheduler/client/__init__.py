@@ -202,13 +202,6 @@ def solve_task(logger, conf, srv):
         speculative = False
         decision_results['uploaded'] = True
 
-    # TODO: I am not sure that this is the best way of errors handling
-    try:
-        srv.get_task_status(conf["identifier"])
-    except server.bridge.BridgeError as responce:
-        logger.warning('Seems that Bridge rejects solutions: {}'.format(responce))
-        speculative = True
-        decision_results['uploaded'] = False
     submit_task_results(logger, srv, "Klever", conf["identifier"], decision_results, os.path.curdir,
                         speculative=speculative)
 
