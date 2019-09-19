@@ -273,7 +273,7 @@ class Runner:
                 self.logger.debug("Job {} new status is {!r}".format(identifier, item["status"]))
                 assert item["status"] in ["FINISHED", "ERROR"]
             except SchedulerException as err:
-                msg = "Job failed {}: {!r}".format(identifier, err)
+                msg = "Job failed {}: {!r}".format(identifier, str(err))
                 self.logger.warning(msg)
                 item.update({"status": "ERROR", "error": msg})
 
