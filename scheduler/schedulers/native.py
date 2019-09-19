@@ -461,7 +461,7 @@ class Native(runners.Speculative):
                     with open(logfile, mode='r', encoding="utf8") as f:
                         self.logger.debug("Scheduler client log: {}".format(f.read()))
                 else:
-                    raise FileNotFoundError("Cannot find Scheduler client file with logs: {!r}".format(logfile))
+                    self.logger.warning("Cannot find Scheduler client file with logs: {!r}".format(logfile))
 
                 errors_file = "{}/client-critical.log".format(work_dir)
                 if os.path.isfile(errors_file):
@@ -490,7 +490,6 @@ class Native(runners.Speculative):
                 self.logger.debug("Seems that {} {} has not been started".format(mode, identifier))
         except Exception as err:
             error_msg = "Execution of {} {} terminated with an exception: {}".format(mode, identifier, err)
-            self.logger.warning(error_msg)
             raise schedulers.SchedulerException(error_msg)
         finally:
             # Clean working directory
