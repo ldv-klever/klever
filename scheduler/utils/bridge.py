@@ -31,8 +31,6 @@ class BridgeError(IOError):
 
 class Session:
 
-    CANCELLED_STATUS = re.compile('The task \d+ was not found')
-
     def __init__(self, logger, name, user, password):
         """
         Create http session between scheduler and Klever Bridge server.
@@ -80,9 +78,10 @@ class Session:
 
                 # 4xx or 5xx status code
                 if resp.headers['content-type'] == 'application/json':
-                    self.error = resp.text
+                    self.error = resp.json()
                     resp.close()
-                    raise BridgeError('Got error {!r} when send {!r} request to {!r}'.format(self.error, method, url))
+                    raise BridgeError('Got error {!r} when send {!r} request to {!r}'.
+                                      format(str(self.error), method, url))
 
                 with open('response error.html', 'w', encoding='utf8') as fp:
                     fp.write(resp.text)
@@ -123,12 +122,7 @@ class Session:
                 else:
                     break
             except BridgeError:
-                if self.CANCELLED_STATUS.match(self.error):
-                    self.logger.warning("Seems that the job was cancelled and we cannot download data to start the task")
-                    ret = False
-                    break
-                else:
-                    raise
+                raise
             finally:
                 if resp:
                     resp.close()
@@ -153,14 +147,10 @@ class Session:
                                       stream=True)
                 break
             except BridgeError:
-                if self.error == 'ZIP error':
+                if 'ZIP error' in self.error:
                     self.logger.debug('Could not upload ZIP archive')
                     self.error = None
                     time.sleep(0.2)
-                elif self.CANCELLED_STATUS.match(self.error):
-                    self.logger.warning("Seems that the job was cancelled and we cannot upload results")
-                    ret = False
-                    break
                 else:
                     raise
             finally:
