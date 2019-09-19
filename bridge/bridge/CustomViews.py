@@ -18,13 +18,14 @@
 import os
 import mimetypes
 
-from django.http import JsonResponse, StreamingHttpResponse, HttpResponseNotAllowed
-from django.utils.translation import ugettext_lazy as _
-from django.views.generic.base import View, ContextMixin
-from django.views.generic.detail import SingleObjectMixin, SingleObjectTemplateResponseMixin
+from django.http import StreamingHttpResponse, HttpResponseNotAllowed
+from django.views.generic.base import View
 
 from rest_framework.views import APIView
 from rest_framework.exceptions import APIException
+from rest_framework.generics import GenericAPIView
+from rest_framework.renderers import TemplateHTMLRenderer
+from rest_framework.response import Response
 
 from bridge.vars import UNKNOWN_ERROR, VIEW_TYPES
 from bridge.utils import logger, BridgeException
@@ -32,60 +33,19 @@ from bridge.utils import logger, BridgeException
 from users.utils import ViewData
 
 
-class JSONResponseMixin:
-    def dispatch(self, request, *args, **kwargs):
-        if not hasattr(super(), 'dispatch'):
-            # This mixin should be used together with main View based class
-            raise BridgeException(response_type='json')
+class TemplateAPIRetrieveView(GenericAPIView):
+    template_name = None
+    renderer_classes = (TemplateHTMLRenderer,)
 
-        # TODO
-        # if not request.user.is_authenticated:
-        #     raise BridgeException(_('You are not signing in'), response_type='json')
-        try:
-            return getattr(super(), 'dispatch')(request, *args, **kwargs)
-        except Exception as e:
-            if isinstance(e, BridgeException):
-                message = str(e.message)
-            else:
-                logger.exception(e)
-                message = str(UNKNOWN_ERROR)
-            raise BridgeException(message=message, response_type='json')
+    def get_context_data(self, instance, **kwargs):
+        return {'user': self.request.user, 'object': instance}
 
-
-class JsonDetailView(JSONResponseMixin, SingleObjectMixin, View):
-    def get(self, *args, **kwargs):
+    def get(self, request, *args, **kwargs):
         self.__is_not_used(*args, **kwargs)
-        self.object = self.get_object()
-        return JsonResponse(self.get_context_data(object=self.object))
-
-    def __is_not_used(self, *args, **kwargs):
-        pass
-
-
-class JsonDetailPostView(JSONResponseMixin, SingleObjectMixin, View):
-    def post(self, *args, **kwargs):
-        self.__is_not_used(*args, **kwargs)
-        self.object = self.get_object()
-        return JsonResponse(self.get_context_data(object=self.object))
-
-    def __is_not_used(self, *args, **kwargs):
-        pass
-
-
-class JsonView(JSONResponseMixin, ContextMixin, View):
-    def post(self, *args, **kwargs):
-        self.__is_not_used(*args, **kwargs)
-        return JsonResponse(self.get_context_data())
-
-    def __is_not_used(self, *args, **kwargs):
-        pass
-
-
-class DetailPostView(JSONResponseMixin, SingleObjectTemplateResponseMixin, SingleObjectMixin, View):
-    def post(self, *args, **kwargs):
-        self.__is_not_used(*args, **kwargs)
-        self.object = self.get_object()
-        return self.render_to_response(self.get_context_data(object=self.object))
+        assert self.template_name is not None, 'Template was not provided'
+        instance = self.get_object()
+        context = self.get_context_data(instance)
+        return Response(context, template_name=self.template_name)
 
     def __is_not_used(self, *args, **kwargs):
         pass
@@ -154,13 +114,7 @@ class StreamingResponseAPIView(APIView):
     def __get_response(self, *args, **kwargs):
         self.__is_not_used(*args, **kwargs)
 
-        try:
-            generator = self.get_generator()
-        except Exception as e:
-            if isinstance(e, BridgeException):
-                raise APIException(str(e))
-            logger.exception(e)
-            raise APIException()
+        generator = self.get_generator()
 
         if generator is None:
             raise APIException()

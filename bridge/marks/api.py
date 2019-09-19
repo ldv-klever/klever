@@ -17,6 +17,7 @@
 
 import json
 
+from django.db.models import F
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 
@@ -31,15 +32,16 @@ from rest_framework.viewsets import ModelViewSet
 from bridge.vars import USER_ROLES
 from bridge.utils import BridgeAPIPagination, extract_archive
 from bridge.access import ManagerPermission, ServicePermission
-from bridge.CustomViews import StreamingResponseAPIView
+from bridge.CustomViews import StreamingResponseAPIView, TemplateAPIRetrieveView
 from tools.profiling import LoggedCallMixin
 
 from reports.models import ReportSafe, ReportUnsafe, ReportUnknown
 from marks.models import (
     MarkSafe, MarkUnsafe, MarkUnknown, SafeTag, UnsafeTag, MarkSafeReport, MarkUnsafeReport,
-    MarkUnknownReport, SafeAssociationLike, UnsafeAssociationLike, UnknownAssociationLike
+    MarkUnknownReport, SafeAssociationLike, UnsafeAssociationLike, UnknownAssociationLike,
+    MarkSafeHistory, MarkUnsafeHistory, MarkUnknownHistory
 )
-from marks.utils import MarkAccess
+from marks.utils import MarkAccess, MarkVersionFormData
 from marks.tags import TagAccess, ChangeTagsAccess, UploadTags
 from marks.serializers import (
     SafeMarkSerializer, UnsafeMarkSerializer, UnknownMarkSerializer, SafeTagSerializer, UnsafeTagSerializer
@@ -449,3 +451,61 @@ class UploadAllMarksView(LoggedCallMixin, APIView):
         marks_dir = extract_archive(self.request.FILES['file'])
         res = UploadAllMarks(request.user, marks_dir.name, bool(int(request.POST.get('delete', 0))))
         return Response(res.numbers)
+
+
+class InlineEditForm(LoggedCallMixin, TemplateAPIRetrieveView):
+    permission_classes = (IsAuthenticated,)
+    template_name = 'marks/InlineMarkForm.html'
+    lookup_field = 'mark_id'
+    mtype = None
+
+    def get_queryset(self):
+        if self.mtype == 'safe':
+            model = MarkSafeHistory
+        elif self.mtype == 'unsafe':
+            model = MarkUnsafeHistory
+        elif self.mtype == 'unknown':
+            model = MarkUnknownHistory
+        else:
+            raise RuntimeError('Wrong view usage')
+        return model.objects.filter(version=F('mark__version'))
+
+    def get_context_data(self, instance, **kwargs):
+        context = super().get_context_data(instance, **kwargs)
+        context.update({
+            'action': 'edit',
+            'attrs': instance.attrs.all(),
+            'data': MarkVersionFormData(self.mtype, mark_version=instance),
+            'save_url': reverse('marks:api-{mtype}-detail'.format(mtype=self.mtype), args=[instance.mark_id]),
+            'save_method': 'PUT'
+        })
+        return context
+
+
+class InlineCreateForm(LoggedCallMixin, TemplateAPIRetrieveView):
+    permission_classes = (IsAuthenticated,)
+    template_name = 'marks/InlineMarkForm.html'
+    lookup_field = 'mark_id'
+    mtype = None
+
+    def get_queryset(self):
+        if self.mtype == 'safe':
+            model = ReportSafe
+        elif self.mtype == 'unsafe':
+            model = ReportUnsafe
+        elif self.mtype == 'unknown':
+            model = ReportUnknown
+        else:
+            raise RuntimeError('Wrong view usage')
+        return model.objects.all()
+
+    def get_context_data(self, instance, **kwargs):
+        context = super().get_context_data(instance, **kwargs)
+        context.update({
+            'action': 'create',
+            'attrs': instance.attrs.all(),
+            'data': MarkVersionFormData(self.mtype),
+            'save_url': reverse('marks:api-{mtype}-list'.format(mtype=self.mtype)),
+            'save_method': 'POST'
+        })
+        return context

@@ -28,25 +28,25 @@ from django.views.generic.base import TemplateView
 from django.views.generic.detail import SingleObjectMixin, DetailView
 
 
-import bridge.CustomViews as Bview
 from tools.profiling import LoggedCallMixin
 from bridge.vars import VIEW_TYPES, JOB_STATUS, PRIORITY, JOB_WEIGHT, USER_ROLES, JOB_ROLES, ERRORS
 from bridge.utils import BridgeException
+from bridge.CustomViews import DataViewMixin, StreamingResponseView
 
 from users.models import User
 from reports.utils import FilesForCompetitionArchive
 from reports.coverage import JobCoverageStatistics
 
-from jobs.models import Job, RunHistory, JobHistory, JobFile
+from jobs.models import Job, RunHistory, JobFile
 from jobs.serializers import JobFormSerializerRO, get_view_job_data
-from jobs.utils import months_choices, years_choices, JobDecisionData, JobAccess, CompareFileSet, CompareJobVersions
+from jobs.utils import months_choices, years_choices, JobDecisionData, JobAccess, CompareFileSet
 from jobs.configuration import StartDecisionData
 from jobs.ViewJobData import ViewJobData
 from jobs.JobTableProperties import TableTree
 from jobs.Download import JobFileGenerator, JobConfGenerator, JobArchiveGenerator, JobsArchivesGen, JobsTreesGen
 
 
-class JobsTree(LoginRequiredMixin, LoggedCallMixin, Bview.DataViewMixin, TemplateView):
+class JobsTree(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, TemplateView):
     template_name = 'jobs/tree.html'
 
     def get_context_data(self, **kwargs):
@@ -58,7 +58,7 @@ class JobsTree(LoginRequiredMixin, LoggedCallMixin, Bview.DataViewMixin, Templat
         }
 
 
-class JobPage(LoginRequiredMixin, LoggedCallMixin, Bview.DataViewMixin, DetailView):
+class JobPage(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, DetailView):
     model = Job
     template_name = 'jobs/viewJob/main.html'
 
@@ -89,7 +89,7 @@ class JobPage(LoginRequiredMixin, LoggedCallMixin, Bview.DataViewMixin, DetailVi
         return context
 
 
-class DecisionResults(LoginRequiredMixin, LoggedCallMixin, Bview.DataViewMixin, DetailView):
+class DecisionResults(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, DetailView):
     model = Job
     template_name = 'jobs/DecisionResults.html'
 
@@ -132,7 +132,7 @@ class JobFormPage(LoginRequiredMixin, LoggedCallMixin, DetailView):
         return context
 
 
-class DownloadJobFileView(LoginRequiredMixin, LoggedCallMixin, SingleObjectMixin, Bview.StreamingResponseView):
+class DownloadJobFileView(LoginRequiredMixin, LoggedCallMixin, SingleObjectMixin, StreamingResponseView):
     model = JobFile
     slug_url_kwarg = 'hash_sum'
     slug_field = 'hash_sum'
@@ -144,7 +144,7 @@ class DownloadJobFileView(LoginRequiredMixin, LoggedCallMixin, SingleObjectMixin
         return JobFileGenerator(self.get_object())
 
 
-class DownloadFilesForCompetition(LoginRequiredMixin, LoggedCallMixin, SingleObjectMixin, Bview.StreamingResponseView):
+class DownloadFilesForCompetition(LoginRequiredMixin, LoggedCallMixin, SingleObjectMixin, StreamingResponseView):
     model = Job
 
     def get_generator(self):
@@ -156,7 +156,7 @@ class DownloadFilesForCompetition(LoginRequiredMixin, LoggedCallMixin, SingleObj
         return FilesForCompetitionArchive(instance, json.loads(self.request.GET['filters']))
 
 
-class DownloadJobView(LoginRequiredMixin, LoggedCallMixin, SingleObjectMixin, Bview.StreamingResponseView):
+class DownloadJobView(LoginRequiredMixin, LoggedCallMixin, SingleObjectMixin, StreamingResponseView):
     model = Job
 
     def get_generator(self):
@@ -166,7 +166,7 @@ class DownloadJobView(LoginRequiredMixin, LoggedCallMixin, SingleObjectMixin, Bv
         return JobArchiveGenerator(instance)
 
 
-class DownloadJobsListView(LoginRequiredMixin, LoggedCallMixin, Bview.StreamingResponseView):
+class DownloadJobsListView(LoginRequiredMixin, LoggedCallMixin, StreamingResponseView):
     def get_generator(self):
         jobs_qs = Job.objects.filter(pk__in=json.loads(unquote(self.request.GET['jobs'])))
         if not JobAccess(self.request.user).can_download_jobs(jobs_qs):
@@ -174,23 +174,11 @@ class DownloadJobsListView(LoginRequiredMixin, LoggedCallMixin, Bview.StreamingR
         return JobsArchivesGen(jobs_qs)
 
 
-class DownloadJobsTreeView(LoginRequiredMixin, LoggedCallMixin, Bview.StreamingResponseView):
+class DownloadJobsTreeView(LoginRequiredMixin, LoggedCallMixin, StreamingResponseView):
     def get_generator(self):
         if self.request.user.role != USER_ROLES[2][0]:
             raise BridgeException(_("Only managers can download jobs trees"), back=reverse('jobs:tree'))
         return JobsTreesGen(json.loads(unquote(self.request.GET['jobs'])))
-
-
-class CompareJobVersionsView(LoggedCallMixin, Bview.DetailPostView):
-    model = Job
-    template_name = 'jobs/jobVCmp.html'
-
-    def get_context_data(self, **kwargs):
-        versions = [self.kwargs['version1'], self.kwargs['version2']]
-        job_versions = list(JobHistory.objects.filter(job=self.object, version__in=versions).order_by('change_date'))
-        if len(job_versions) != 2:
-            raise BridgeException(_('The page is outdated, reload it please'))
-        return {'data': CompareJobVersions(*job_versions)}
 
 
 class PrepareDecisionView(LoggedCallMixin, DetailView):
@@ -205,7 +193,7 @@ class PrepareDecisionView(LoggedCallMixin, DetailView):
         return context
 
 
-class DownloadRunConfigurationView(LoginRequiredMixin, LoggedCallMixin, SingleObjectMixin, Bview.StreamingResponseView):
+class DownloadRunConfigurationView(LoginRequiredMixin, LoggedCallMixin, SingleObjectMixin, StreamingResponseView):
     model = RunHistory
 
     def get_generator(self):

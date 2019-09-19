@@ -32,7 +32,6 @@ from rest_framework.generics import (
     CreateAPIView, UpdateAPIView, DestroyAPIView
 )
 from rest_framework.mixins import UpdateModelMixin, CreateModelMixin
-from rest_framework.renderers import TemplateHTMLRenderer
 from rest_framework.response import Response
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import IsAuthenticated
@@ -42,6 +41,7 @@ from bridge.access import (
 )
 from bridge.vars import JOB_STATUS
 from bridge.utils import logger, BridgeException, extract_archive
+from bridge.CustomViews import TemplateAPIRetrieveView
 from tools.profiling import LoggedCallMixin
 
 from jobs.models import Job, JobHistory, JobFile, FileSystem, RunHistory
@@ -51,7 +51,7 @@ from jobs.serializers import (
 )
 from jobs.configuration import get_configuration_value, GetConfiguration
 from jobs.Download import KleverCoreArchiveGen, UploadJob, UploadTree
-from jobs.utils import JobAccess
+from jobs.utils import JobAccess, CompareJobVersions
 from reports.serializers import DecisionResultsSerializerRO
 from reports.UploadReport import collapse_reports
 from reports.coverage import JobCoverageStatistics
@@ -407,14 +407,32 @@ class CollapseReportsView(LoggedCallMixin, APIView):
         return Response({})
 
 
-class GetJobCoverageTableView(LoggedCallMixin, APIView):
-    renderer_classes = (TemplateHTMLRenderer,)
+class GetJobCoverageTableView(LoggedCallMixin, TemplateAPIRetrieveView):
     permission_classes = (ViewJobPermission,)
+    queryset = Job.objects.all()
+    template_name = 'jobs/viewJob/coverageTable.html'
 
-    def get(self, request, pk):
-        job = get_object_or_404(Job.objects, pk=pk)
-        if 'coverage_id' not in request.query_params:
+    def get_context_data(self, instance, **kwargs):
+        if 'coverage_id' not in self.request.query_params:
             raise exceptions.APIException('Query parameter coverage_id was not provided')
-        return Response({
-            'statistics': JobCoverageStatistics(job, request.query_params['coverage_id']).statistics
-        }, template_name='jobs/viewJob/coverageTable.html')
+        context = super().get_context_data(instance, **kwargs)
+        context['statistics'] = JobCoverageStatistics(
+            instance, self.request.query_params['coverage_id']
+        ).statistics
+        return context
+
+
+class CompareJobVersionsView(LoggedCallMixin, TemplateAPIRetrieveView):
+    permission_classes = (ViewJobPermission,)
+    queryset = Job.objects.all()
+    template_name = 'jobs/jobVCmp.html'
+
+    def get_context_data(self, instance, **kwargs):
+        job_versions = list(JobHistory.objects.filter(
+            job=self.get_object(), version__in=[self.kwargs['version1'], self.kwargs['version2']]
+        ).order_by('change_date'))
+        if len(job_versions) != 2:
+            raise BridgeException(_('The page is outdated, reload it please'))
+        context = super().get_context_data(instance, **kwargs)
+        context['data'] = CompareJobVersions(*job_versions)
+        return context

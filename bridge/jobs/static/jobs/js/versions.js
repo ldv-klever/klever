@@ -105,7 +105,7 @@ window.init_versions_list = function() {
         let versions = checked_versions();
         if (versions.length !== 2) err_notify($('#error__select_two_vers').text());
         else {
-            $.post(`/jobs/compare-versions/${$('#job_id').val()}/${versions[0]}/${versions[1]}/`, {}, function (resp) {
+            $.post(`/jobs/api/compare-versions/${$('#job_id').val()}/${versions[0]}/${versions[1]}/`, {}, function (resp) {
                 comparison_modal.find('.content').html(resp);
                 comparison_modal.modal('show');
                 init_file_actions();

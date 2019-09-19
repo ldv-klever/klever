@@ -31,7 +31,7 @@ from django.conf import settings
 from django.core.exceptions import PermissionDenied
 from django.core.files import File
 from django.db.models import FileField
-from django.http import HttpResponseBadRequest, JsonResponse, Http404
+from django.http import HttpResponseBadRequest, Http404
 from django.template import loader
 from django.template.defaultfilters import filesizeformat
 from django.test import Client, TestCase, override_settings
@@ -250,8 +250,7 @@ class OpenFiles:
 
 
 class BridgeException(Exception):
-    def __init__(self, message=None, code=None, response_type='html', back=None):
-        self.response_type = response_type
+    def __init__(self, message=None, code=None, back=None):
         self.back = back
         if code is None and message is None:
             self.code = 500
@@ -295,20 +294,15 @@ class BridgeMiddlware:
 
     def process_exception(self, request, exception):
         if isinstance(exception, BridgeException):
-            if exception.response_type == 'json':
-                return JsonResponse({'error': str(exception.message)}, status=400)
-            elif exception.response_type == 'html':
-                return HttpResponseBadRequest(loader.get_template('bridge/error.html').render({
-                    'user': request.user, 'message': exception.message, 'back': exception.back
-                }))
+            return HttpResponseBadRequest(loader.get_template('bridge/error.html').render({
+                'user': request.user, 'message': exception.message, 'back': exception.back
+            }))
         elif isinstance(exception, (Http404, PermissionDenied)):
             return
         logger.exception(exception)
-        return
-        # logger.exception(exception)
-        # return HttpResponseBadRequest(loader.get_template('bridge/error.html').render({
-        #     'user': request.user, 'message': str(UNKNOWN_ERROR)
-        # }))
+        return HttpResponseBadRequest(loader.get_template('bridge/error.html').render({
+            'user': request.user, 'message': str(UNKNOWN_ERROR)
+        }))
 
 
 def construct_url(viewname, *args, **kwargs):

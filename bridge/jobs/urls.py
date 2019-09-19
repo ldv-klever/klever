@@ -59,7 +59,7 @@ urlpatterns = [
 
     # Actions with job versions
     path('api/remove-versions/<int:job_id>/', api.RemoveJobVersions.as_view(), name='api-remove-versions'),
-    path('compare-versions/<int:pk>/<int:version1>/<int:version2>/', views.CompareJobVersionsView.as_view()),
+    path('api/compare-versions/<int:pk>/<int:version1>/<int:version2>/', api.CompareJobVersionsView.as_view()),
 
     # Actions with job solving
     path('prepare-decision/<int:pk>/', views.PrepareDecisionView.as_view(), name='prepare-decision'),

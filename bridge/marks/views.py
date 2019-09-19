@@ -26,7 +26,7 @@ from django.views.generic.detail import SingleObjectMixin
 
 from bridge.vars import VIEW_TYPES, PROBLEM_DESC_FILE
 from bridge.utils import BridgeException, ArchiveFileContent
-from bridge.CustomViews import DataViewMixin, StreamingResponseView, JSONResponseMixin
+from bridge.CustomViews import DataViewMixin, StreamingResponseView
 from tools.profiling import LoggedCallMixin
 
 from reports.models import ReportSafe, ReportUnsafe, ReportUnknown
@@ -275,63 +275,6 @@ class MarkTagsView(LoggedCallMixin, TemplateView):
             self.kwargs['tag_type'], self.request.GET.getlist('selected'),
             self.request.GET.get('deleted'), self.request.GET.get('added')
         )
-        return context
-
-
-class InlineEditForm(LoginRequiredMixin, LoggedCallMixin, JSONResponseMixin, DetailView):
-    mtype = None
-    slug_field = 'mark_id'
-    slug_url_kwarg = 'mark_id'
-    template_name = 'marks/InlineMarkForm.html'
-
-    def get_queryset(self):
-        if self.mtype == 'safe':
-            model = MarkSafeHistory
-        elif self.mtype == 'unsafe':
-            model = MarkUnsafeHistory
-        elif self.mtype == 'unknown':
-            model = MarkUnknownHistory
-        else:
-            raise RuntimeError('Wrong view usage')
-        return model.objects.filter(version=F('mark__version'))
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context.update({
-            'action': 'edit',
-            'attrs': self.object.attrs.all(),
-            'data': MarkVersionFormData(self.mtype, mark_version=self.object),
-            'save_url': reverse('marks:api-{mtype}-detail'.format(mtype=self.mtype), args=[self.object.mark_id]),
-            'save_method': 'PUT'
-        })
-        return context
-
-
-class InlineCreateForm(LoginRequiredMixin, LoggedCallMixin, JSONResponseMixin, DetailView):
-    mtype = None
-    pk_url_kwarg = 'r_id'
-    template_name = 'marks/InlineMarkForm.html'
-
-    def get_queryset(self):
-        if self.mtype == 'safe':
-            model = ReportSafe
-        elif self.mtype == 'unsafe':
-            model = ReportUnsafe
-        elif self.mtype == 'unknown':
-            model = ReportUnknown
-        else:
-            raise RuntimeError('Wrong view usage')
-        return model.objects.all()
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context.update({
-            'action': 'create',
-            'attrs': self.object.attrs.all(),
-            'data': MarkVersionFormData(self.mtype),
-            'save_url': reverse('marks:api-{mtype}-list'.format(mtype=self.mtype)),
-            'save_method': 'POST'
-        })
         return context
 
 

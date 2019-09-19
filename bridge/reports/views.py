@@ -16,15 +16,15 @@
 #
 
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.http import HttpResponseRedirect, HttpResponse
+from django.http import HttpResponseRedirect
 from django.utils.translation import ugettext as _
 from django.template.defaulttags import register
 from django.views.generic.base import TemplateView
 from django.views.generic.detail import SingleObjectMixin, DetailView
 
-from bridge.vars import VIEW_TYPES, LOG_FILE, ERROR_TRACE_FILE, PROBLEM_DESC_FILE, JOB_WEIGHT
+from bridge.vars import VIEW_TYPES, ERROR_TRACE_FILE, PROBLEM_DESC_FILE, JOB_WEIGHT
 from bridge.utils import logger, ArchiveFileContent, BridgeException, BridgeErrorResponse
-from bridge.CustomViews import DataViewMixin, StreamingResponseView, JSONResponseMixin
+from bridge.CustomViews import DataViewMixin, StreamingResponseView
 
 from tools.profiling import LoggedCallMixin
 
@@ -195,25 +195,6 @@ class ComponentLogView(LoginRequiredMixin, LoggedCallMixin, SingleObjectMixin, S
         return ComponentLogGenerator(instance)
 
 
-class ComponentLogContentView(LoggedCallMixin, JSONResponseMixin, DetailView):
-    model = ReportComponent
-    pk_url_kwarg = 'report_id'
-
-    def get(self, *args, **kwargs):
-        report = self.get_object()
-        if not JobAccess(self.request.user, report.root.job).can_view:
-            raise BridgeException(code=400)
-        if not report.log:
-            raise BridgeException(_("The component doesn't have log"))
-
-        content = ArchiveFileContent(report, 'log', LOG_FILE).content
-        if len(content) > 10 ** 5:
-            content = str(_('The component log is huge and can not be shown but you can download it'))
-        else:
-            content = content.decode('utf8')
-        return HttpResponse(content)
-
-
 class AttrDataFileView(LoginRequiredMixin, LoggedCallMixin, SingleObjectMixin, StreamingResponseView):
     model = ReportAttr
 
@@ -222,24 +203,6 @@ class AttrDataFileView(LoginRequiredMixin, LoggedCallMixin, SingleObjectMixin, S
         if not JobAccess(self.request.user, instance.report.root.job).can_view:
             return BridgeErrorResponse(400)
         return AttrDataGenerator(instance)
-
-
-class AttrDataContentView(LoggedCallMixin, JSONResponseMixin, DetailView):
-    model = ReportAttr
-
-    def get(self, *args, **kwargs):
-        instance = self.get_object()
-        if not JobAccess(self.request.user, instance.report.root.job).can_view:
-            raise BridgeException(code=400)
-        if not instance.data:
-            raise BridgeException(_("The attribute doesn't have data"))
-
-        content = instance.data.file.read()
-        if len(content) > 10 ** 5:
-            content = str(_('The attribute data is huge and can not be shown but you can download it'))
-        else:
-            content = content.decode('utf8')
-        return HttpResponse(content)
 
 
 class DownloadVerifierFiles(LoginRequiredMixin, LoggedCallMixin, SingleObjectMixin, StreamingResponseView):
