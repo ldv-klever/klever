@@ -791,7 +791,7 @@ def collapse_reports(job):
     core.save()
 
     # Move coverage to core
-    CoverageArchive.objects.filter(report__root=root, report__verification=False).update(parent=core)
+    CoverageArchive.objects.filter(report__root=root, report__verification=False).update(report=core)
 
     # Remove all non-verification reports except Core
     reports_qs.delete()
