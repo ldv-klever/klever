@@ -266,8 +266,8 @@ class Weaver(core.vtg.plugins.Plugin):
                 os.makedirs(os.path.dirname(new_file), exist_ok=True)
                 shutil.copy(file, new_file)
 
-                cross_refs = CrossRefs(self.logger, clade_extra, os.path.join(os.path.sep, storage_file), new_file,
-                                       search_dirs)
+                cross_refs = CrossRefs(self.conf, self.logger, clade_extra, os.path.join(os.path.sep, storage_file),
+                                       new_file, search_dirs)
                 cross_refs.get_cross_refs()
 
         self.abstract_task_desc['additional sources'] = os.path.relpath('additional sources',

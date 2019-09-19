@@ -698,3 +698,10 @@ def drain_queue(collection, given_queue):
             collection.append(element)
     except queue.Empty:
         return True
+
+
+def json_dump(obj, fp, pretty=True):
+    if pretty:
+        json.dump(obj, fp, ensure_ascii=True, sort_keys=True, indent=4)
+    else:
+        json.dump(obj, fp, ensure_ascii=True)

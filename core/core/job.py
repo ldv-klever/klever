@@ -648,7 +648,8 @@ class Job(core.components.Component):
                 os.makedirs(os.path.dirname(new_file), exist_ok=True)
                 shutil.copy(file, new_file)
 
-                cross_refs = CrossRefs(self.logger, self.clade, os.path.join(os.path.sep, storage_file), new_file,
+                cross_refs = CrossRefs(self.common_components_conf, self.logger, self.clade,
+                                       os.path.join(os.path.sep, storage_file), new_file,
                                        self.common_components_conf['working source trees'], 'source files')
                 cross_refs.get_cross_refs()
 

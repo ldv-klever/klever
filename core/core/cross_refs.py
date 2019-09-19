@@ -24,7 +24,8 @@ from core.highlight import Highlight
 class CrossRefs:
     INDEX_DATA_FORMAT_VERSION = 1
 
-    def __init__(self, logger, clade, storage_file, new_file, common_dirs, common_prefix=''):
+    def __init__(self, conf, logger, clade, storage_file, new_file, common_dirs, common_prefix=''):
+        self.conf = conf
         self.logger = logger
         self.clade = clade
         self.storage_file = storage_file
@@ -192,4 +193,4 @@ class CrossRefs:
         }
 
         with open(os.path.join(self.new_file + '.idx.json'), 'w') as fp:
-            json.dump(cross_ref, fp, ensure_ascii=True, sort_keys=True, indent=4)
+            core.utils.json_dump(cross_ref, fp, self.conf['keep intermediate files'])
