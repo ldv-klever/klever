@@ -81,9 +81,9 @@ class DownloadTaskArchiveView(StreamingResponseAPIView):
     def get_generator(self):
         task = get_object_or_404(Task, pk=self.kwargs['pk'])
         if Job.objects.only('status').get(decision=task.decision).status != JOB_STATUS[2][0]:
-            raise exceptions.ValidationError('The job is not processing')
+            raise exceptions.APIException('The job is not processing')
         if task.status not in {TASK_STATUS[0][0], TASK_STATUS[1][0]}:
-            raise exceptions.ValidationError('The task status is {}'.format(task.status))
+            raise exceptions.APIException('The task status is {}'.format(task.status))
         return TaskArchiveGenerator(task)
 
 

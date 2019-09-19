@@ -27,12 +27,7 @@
             {% endif %}
         </div>
     </div>
-    <div class="one wide column">
-        <div id="ETVSourceButtons" class="ui mini buttons">
-            <button class="ui violet disabled icon button src-back-btn"><i class="ui arrow left icon"></i></button>
-        </div>
-    </div>
-    <div class="eight wide column ETVTitleBlock">
+    <div class="nine wide column ETVTitleBlock">
         <h4 id="ETVSourceTitle" class="header" data-variation="very wide" data-position="top right"></h4>
     </div>
 </div>
@@ -41,18 +36,12 @@
         {% if etv %}
             {% include 'reports/ErrorTrace.html' with etv=etv %}
         {% else %}
-            <div class="ui divider"></div>
             <h2 class="ui red header" style="margin: 10px;">{% trans "Couldn't visualize the error trace" %}</h2>
         {% endif %}
     </div>
-    <div id="etv-source"{% if etv.user.assumptions or etv.user.coverage_data %} style="height:70%;"{% endif %}>
+    <div id="etv-source">
         <div id="ETV_source_code" class="SourceCodeContent"></div>
     </div>
     <div id="etv-divider"></div>
-    {% if etv.user.assumptions or etv.user.coverage_data %}
-        <div id="etv-data-container"><div id="ETV_data"></div></div>
-        <div id="etv-divider-2"></div>
-    {% endif %}
 </div>
 <div id="sources_history" hidden></div>
-<span id="error___line_not_found" hidden>{% trans 'Could not find the specified line' %}</span>

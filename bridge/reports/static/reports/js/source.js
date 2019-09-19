@@ -15,10 +15,10 @@
  * limitations under the License.
  */
 
-function SourceProcessor(container, title_container, buttons_container, history_container, data_container, legend_container) {
+function SourceProcessor(container, title_container, back_btn, history_container, data_container, legend_container) {
     this.container = $(container);
     this.title_container = $(title_container);
-    this.buttons = $(buttons_container);
+    this.back_btn = $(back_btn);
     this.history = $(history_container);
     this.data_container = $(data_container);
     this.legend_container = $(legend_container);
@@ -35,18 +35,17 @@ function SourceProcessor(container, title_container, buttons_container, history_
 }
 
 SourceProcessor.prototype.initialize = function(ref_click_callback, source_url) {
-    let instance = this,
-        src_back_btn = instance.buttons.find('.src-back-btn');
+    let instance = this;
 
     instance.ref_click_callback = ref_click_callback;
     instance.url = source_url;
-    src_back_btn.click(function () {
+    instance.back_btn.click(function () {
         if (instance.history.children().length > 1) {
             let last_child = instance.history.children().last(), prev_child = last_child.prev();
             instance.get_source(prev_child.data('line'), prev_child.data('file'), false);
             last_child.remove();
         }
-        if (instance.history.children().length < 2) src_back_btn.addClass('disabled');
+        if (instance.history.children().length < 2) instance.back_btn.addClass('disabled');
     });
 
     let source_container = this.container,
@@ -81,6 +80,7 @@ SourceProcessor.prototype.init_references = function(ref_id, ref_popup) {
         data_html = instance.container.find('#' + ref_id).html();
     ref_popup.find('.ReferencesContainer').html(data_html);
     ref_popup.find('.SrcRefLink').click(function () {
+        if (instance.ref_click_callback) instance.ref_click_callback();
         instance.get_source($(this).data('line'), $(this).parent().data('file'));
     })
 };
@@ -192,9 +192,8 @@ SourceProcessor.prototype.select_line = function(line) {
 SourceProcessor.prototype.get_source = function(line, filename, save_history=true) {
     let instance = this;
     if (save_history) {
-        let src_back_btn = instance.buttons.find('.src-back-btn');
         instance.history.append($('<span>').data('file', filename).data('line', line));
-        if (instance.history.children().length > 1 && src_back_btn.hasClass('disabled')) src_back_btn.removeClass('disabled');
+        if (instance.history.children().length > 1 && instance.back_btn.hasClass('disabled')) instance.back_btn.removeClass('disabled');
     }
     if (filename === this.title_container.text()) instance.select_line(line);
     else {

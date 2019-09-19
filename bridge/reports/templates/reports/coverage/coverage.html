@@ -25,6 +25,7 @@
 {% block head_block %}
     <script type="text/javascript" src="{% static 'reports/js/source.js' %}"></script>
     <script type="text/javascript" src="{% static 'reports/js/coverage.js' %}"></script>
+    <script type="text/javascript" src="{% static 'reports/js/leaf-coverage.js' %}"></script>
 
     <link href="{% static 'reports/css/source.css' %}" rel="stylesheet">
     <link href="{% static 'reports/css/coverage.css' %}" rel="stylesheet">
@@ -43,8 +44,8 @@
             {% if statistics.coverage %}
                 <a class="ui icon mini basic button" href="{% url 'reports:coverage-download' statistics.coverage.id %}" style="float:left;">{% trans 'Download coverage' %}</a>
             {% endif %}
-            <div id="CoverageSourceButtons" class="ui mini icon buttons">
-                <button class="ui violet disabled icon button src-back-btn note-popup" data-content="{% trans 'Previous source' %}"><i class="ui arrow left icon"></i></button>
+            <div class="ui mini icon buttons">
+                <button id="src_back_btn" class="ui violet disabled icon button note-popup" data-content="{% trans 'Previous source' %}"><i class="ui arrow left icon"></i></button>
                 <button id="prev_cov_btn" class="ui green button note-popup" data-content="{% trans 'Previous covered function' %}"><i class="step backward icon"></i></button>
                 <button id="next_cov_btn" class="ui green button note-popup" data-content="{% trans 'Next covered function' %}"><i class="step forward icon"></i></button>
                 <button id="prev_uncov_btn" class="ui red button note-popup" data-content="{% trans 'Previous uncovered function' %}"><i class="step backward icon"></i></button>
@@ -103,12 +104,8 @@
     </div>
     <br>
 
-    <div id="data_statistics_modal" class="ui modal">
-        <div class="header">{% trans 'Data statistics' %}</div>
-        <div class="content">
-            {% include 'reports/coverage/coverageDataStatistics.html' with DataStatistics=statistics.data_statistic %}
-        </div>
-    </div>
+    {# Data statistics modal #}
+    {% include 'reports/coverage/coverageDataStatisticsModal.html' with DataStatistics=statistics.data_statistic %}
 
     <input id="report_id" value="{{ object.id }}" type="hidden">
     {% if coverage_id %}
@@ -116,4 +113,17 @@
     {% endif %}
     <input id="source_url" type="hidden" value="{% url 'reports:api-get-source' object.id %}{% if coverage_id %}?coverage_id={{ coverage_id }}{% endif %}">
     <span id="error__line_not_found" hidden>{% trans 'Could not find the specified line' %}</span>
+    <script type="application/javascript">
+        jQuery(function () {
+            $('.parent-popup').popup({inline:true});
+            $('.ui.dropdown').dropdown();
+
+            // Report attributes table
+            $('#show_cov_attributes').click(function () {
+                let cov_attr_table = $('#CoverageAttrTable');
+                if (cov_attr_table.is(':visible')) cov_attr_table.hide();
+                else cov_attr_table.show();
+            });
+        });
+    </script>
 {% endblock %}

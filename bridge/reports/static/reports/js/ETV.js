@@ -27,11 +27,13 @@ $(document).ready(function () {
     }
 
     let source_processor = new SourceProcessor(
-        '#ETV_source_code', '#ETVSourceTitle', '#ETVSourceButtons', '#sources_history', '#ETV_data'
+        '#ETV_source_code', '#ETVSourceTitle',
+        '#src_back_btn', '#sources_history',
+        '#ETV_data', '#CoverageLegend'
     );
     if (!etv_window.length) return false;
     source_processor.initialize(unselect_etv_line, $('#source_url').val());
-    source_processor.errors.line_not_found = $('#error___line_not_found').text();
+    source_processor.errors.line_not_found = $('#error__line_not_found').text();
 
     $('.ETV_GlobalExpander').click(function (event) {
         event.preventDefault();
@@ -236,4 +238,7 @@ $(document).ready(function () {
             }
         }
     });
+
+    // Initialize coverage
+    new CoverageProcessor(source_processor, '#CoverageDataContent', '#CoverageStatisticsTable', unselect_etv_line);
 });

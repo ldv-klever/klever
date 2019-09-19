@@ -29,17 +29,6 @@
     margin: 0 0 0 2px;
 }
 
-#ETV_data {
-    position: absolute;
-    padding: 5px;
-    height: 100%;
-    width: 100%;
-    font-family: monospace;
-    line-height: normal;
-    font-size: 12px;
-    overflow-x: auto;
-    overflow-y: auto;
-}
 .ETVTitleBlock {
     white-space: nowrap;
     overflow: hidden;
@@ -50,7 +39,7 @@
 }
 
 #etv {
-    height: 60vh;
+    height: 50vh;
     position: relative;
 }
 
@@ -75,23 +64,6 @@
     width: 0.3%;
     background-color: #f2711c;
     cursor: move;
-}
-#etv-divider-2 {
-    position: absolute;
-    right: 0;
-    top: 70%;
-    height: 0.5%;
-    width: 54.7%;
-    background-color: #f2711c;
-    cursor: move;
-}
-#etv-data-container {
-    position: absolute;
-    right: 0;
-    bottom: 0;
-    width: 54.7%;
-    height: 29.5%;
-    background-color: #faf3ff;
 }
 
 /* Error trace: Line number object */

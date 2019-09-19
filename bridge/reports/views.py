@@ -44,7 +44,7 @@ from reports.utils import (
 from reports.etv import GetETV
 from reports.comparison import ComparisonTableData
 from reports.coverage import (
-    coverage_url_and_total, GetCoverageStatistics, LeafCoverageStatistics, CoverageGenerator,
+    GetCoverageStatistics, LeafCoverageStatistics, CoverageGenerator,
     ReportCoverageStatistics, VerificationCoverageStatistics
 )
 
@@ -391,7 +391,14 @@ class ReportUnsafeView(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, Detai
             'MarkTable': UnsafeReportMarksTable(self.request.user, self.object, self.get_view(VIEW_TYPES[10])),
             'resources': report_resources(self.request.user, self.object)
         })
-        context['coverage_url'], context['coverage_total'] = coverage_url_and_total(self.object)
+
+        # Get parent coverage if exists and parent is verification report
+        cov_obj = CoverageArchive.objects.filter(
+            report_id=self.object.parent_id, report__verification=True
+        ).first()
+        if cov_obj:
+            context['coverage'] = LeafCoverageStatistics(cov_obj)
+
         return context
 
 

@@ -26,21 +26,9 @@ from django.utils.translation import ugettext_lazy as _
 from bridge.vars import ETV_FORMAT, COVERAGE_FILE
 from bridge.utils import ArchiveFileContent, BridgeException, construct_url
 
-from reports.models import CoverageArchive, ReportUnknown, CoverageStatistics, CoverageDataStatistics
+from reports.models import CoverageArchive, CoverageStatistics, CoverageDataStatistics
 
 ROOT_DIRS_ORDER = ['source files', 'specifications', 'generated models']
-
-
-def coverage_url_and_total(report):
-    # report should be a leaf
-    report_parent_id = getattr(report, 'parent_id')
-    qs_filters = {'report_id': report_parent_id}
-    if isinstance(report, ReportUnknown):
-        qs_filters['report__verification'] = True
-    cov_obj = CoverageArchive.objects.filter(**qs_filters).only('total').first()
-    if cov_obj:
-        return construct_url('reports:coverage', report_parent_id), cov_obj.total
-    return None, None
 
 
 def coverage_data_statistic(coverage):
