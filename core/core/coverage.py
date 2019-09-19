@@ -163,6 +163,15 @@ class JCR(core.components.Component):
                     for requirement in counters[sub_job_id]:
                         self.__read_data(total_coverage_infos, sub_job_id, requirement)
                         coverage_info = total_coverage_infos[sub_job_id][requirement]
+
+                        # TODO: there are too many questions regarding code coverage for non-source files of total coverage. Moreover, there are no corresponding additional sources yet. So, let's just get rid of them.
+                        file_names_to_remove = list()
+                        for file_name in list(coverage_info.keys()):
+                            if not file_name.startswith('source files'):
+                                file_names_to_remove.append(file_name)
+                        for file_name_to_remove in file_names_to_remove:
+                            del(coverage_info[file_name_to_remove])
+
                         total_coverage_dir = os.path.join(self.__get_total_cov_dir(sub_job_id, requirement), 'report')
                         convert_coverage(coverage_info, total_coverage_dir)
                         total_coverage_dirs.append(total_coverage_dir)
