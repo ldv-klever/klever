@@ -178,13 +178,9 @@
     cursor: pointer;
 }
 
-.DeclarationsLink {
+.ReferencesHeader {
     color: #16219e;
-    cursor: pointer;
     font-weight: bold;
-}
-.DeclarationsLink:hover {
-    color: #465bff;
 }
 
 .SrcRefLink {
@@ -240,7 +236,7 @@
     color: #15d958;
 }
 
-#source_references_links {
+.ReferencesContainer {
     font-size: 0.8em;
     white-space: nowrap;
 }

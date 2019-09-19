@@ -33,9 +33,13 @@
     </span>
 {% endfor %}
 
-<div id="source_references_links" class="ui small popup"></div>
+<div id="source_references_links" class="ui small popup">
+    <span class="ReferencesHeader">{% trans 'References' %}:</span>
+    <div class="ReferencesContainer"></div>
+</div>
 <div id="source_declarations_popup" class="ui small popup">
-    <span class="DeclarationsLink">{% trans 'Declarations' %}: <span id="declarations_number_display"></span></span>
+    <span class="ReferencesHeader">{% trans 'Declarations' %}:</span>
+    <div class="ReferencesContainer"></div>
 </div>
 
 {% if data.references|length %}

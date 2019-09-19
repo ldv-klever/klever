@@ -15,17 +15,13 @@
  * limitations under the License.
  */
 
-function SourceProcessor(
-    container, title_container, buttons_container, history_container,
-    data_container, legend_container, declarations_modal
-) {
+function SourceProcessor(container, title_container, buttons_container, history_container, data_container, legend_container) {
     this.container = $(container);
     this.title_container = $(title_container);
     this.buttons = $(buttons_container);
     this.history = $(history_container);
     this.data_container = $(data_container);
     this.legend_container = $(legend_container);
-    this.declarations_modal = $(declarations_modal);
     this.ref_click_callback = null;
     this.source_references = '#source_references_links';
     this.source_declarations = '#source_declarations_popup';
@@ -42,7 +38,6 @@ SourceProcessor.prototype.initialize = function(ref_click_callback, source_url) 
     let instance = this,
         src_back_btn = instance.buttons.find('.src-back-btn');
 
-    instance.declarations_modal.modal({transition: 'fade'});
     instance.ref_click_callback = ref_click_callback;
     instance.url = source_url;
     src_back_btn.click(function () {
@@ -81,6 +76,15 @@ SourceProcessor.prototype.initialize = function(ref_click_callback, source_url) 
     });
 };
 
+SourceProcessor.prototype.init_references = function(ref_id, ref_popup) {
+    let instance = this,
+        data_html = instance.container.find('#' + ref_id).html();
+    ref_popup.find('.ReferencesContainer').html(data_html);
+    ref_popup.find('.SrcRefLink').click(function () {
+        instance.get_source($(this).data('line'), $(this).parent().data('file'));
+    })
+};
+
 SourceProcessor.prototype.refresh = function() {
     let instance = this,
         source_references_div = instance.container.find(this.source_references),
@@ -102,9 +106,7 @@ SourceProcessor.prototype.refresh = function() {
     this.container.find('.SrcRefToDeclLink').popup({
         popup: this.source_declarations,
         onShow: function (activator) {
-            let curr_obj = $(activator);
-            source_declarations_popup.find('#declarations_number_display').text(curr_obj.data('declnumber'));
-            source_declarations_popup.find('.DeclarationsLink').data('declaration', curr_obj.data('declaration'))
+            instance.init_references($(activator).data('declaration'), source_declarations_popup)
         },
         position: 'bottom left',
         lastResort: 'bottom left',
@@ -116,28 +118,10 @@ SourceProcessor.prototype.refresh = function() {
         }
     });
 
-    source_declarations_popup.find('.DeclarationsLink').click(function () {
-        let data_html = instance.container.find('#' + $(this).data('declaration')).html();
-        instance.declarations_modal.find('.content').html(data_html);
-        instance.declarations_modal.modal('show');
-        instance.declarations_modal.find('.SrcRefLink').click(function () {
-            instance.declarations_modal.modal('hide');
-            instance.get_source($(this).data('line'), $(this).parent().data('file'));
-        });
-        instance.container.popup('hide all')
-    });
-
     this.container.find('.SrcRefFromLink').popup({
         popup: this.source_references,
         onShow: function (activator) {
-            let data_html = instance.container.find('#' + $(activator).data('id')).html();
-            source_references_div.html(data_html);
-            source_references_div.find('.SrcRefLink').click(function () {
-                instance.get_source($(this).data('line'), $(this).parent().data('file'));
-            })
-        },
-        onHide: function () {
-            source_references_div.empty();
+            instance.init_references($(activator).data('id'), source_references_div)
         },
         position: 'bottom left',
         lastResort: 'bottom left',

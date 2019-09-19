@@ -26,8 +26,7 @@ $(document).ready(function () {
     let source_processor = new SourceProcessor(
         '#CoverageSourceCode', '#CoverageSourceTitle',
         '#CoverageSourceButtons', '#sources_history',
-        '#CoverageDataContent', '#CoverageLegend',
-        '#declarations_modal'
+        '#CoverageDataContent', '#CoverageLegend'
     );
     source_processor.initialize(null, $('#source_url').val());
     source_processor.errors.line_not_found = $('#error__line_not_found').text();

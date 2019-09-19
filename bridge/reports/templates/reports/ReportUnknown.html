@@ -184,12 +184,6 @@
             </div>
         </div>
 
-        {# Declarations modal #}
-        <div id="declarations_modal" class="ui small modal">
-            <div class="header">{% trans 'Declarations' %}</div>
-            <div class="content" style="max-height: 30vh;overflow: auto;"></div>
-        </div>
-
         <input id="source_url" type="hidden" value="{% url 'reports:api-get-source' object.parent_id %}">
         <span id="error__line_not_found" hidden>{% trans 'Could not find the specified line' %}</span>
     {% endif %}

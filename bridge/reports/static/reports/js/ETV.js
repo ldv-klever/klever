@@ -27,9 +27,7 @@ $(document).ready(function () {
     }
 
     let source_processor = new SourceProcessor(
-        '#ETV_source_code', '#ETVSourceTitle',
-        '#ETVSourceButtons', '#sources_history',
-        '#ETV_data', null, '#declarations_modal'
+        '#ETV_source_code', '#ETVSourceTitle', '#ETVSourceButtons', '#sources_history', '#ETV_data'
     );
     if (!etv_window.length) return false;
     source_processor.initialize(unselect_etv_line, $('#source_url').val());
