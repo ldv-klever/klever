@@ -52,6 +52,10 @@ class Job(MPTTModel):
     def __str__(self):
         return self.name
 
+    @property
+    def is_lightweight(self):
+        return self.weight == JOB_WEIGHT[1][0]
+
     class MPTTMeta:
         order_insertion_by = ['name']
 

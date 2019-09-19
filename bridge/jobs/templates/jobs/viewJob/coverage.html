@@ -27,6 +27,9 @@
                     <th>{% trans 'Line coverage' %}</th>
                     <th>{% trans 'Function coverage' %}</th>
                     <th>{% trans 'Details' %}</th>
+                    {% if Coverage.with_report_link %}
+                        <th>{% trans 'Report' %}</th>
+                    {% endif %}
                 </tr>
             </thead>
             <tbody>
@@ -36,6 +39,9 @@
                         <td>{% if cov.total %}{{ cov.total.lines }}{% else %}-{% endif %}</td>
                         <td>{% if cov.total %}{{ cov.total.funcs }}{% else %}-{% endif %}</td>
                         <td><a href="{{ cov.details_url }}">...</a></td>
+                        {% if Coverage.with_report_link %}
+                            <td><a href="{{ cov.report.1 }}">{{ cov.report.0 }}</a></td>
+                        {% endif %}
                     </tr>
                 {% endfor %}
             </tbody>

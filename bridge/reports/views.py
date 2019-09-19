@@ -305,7 +305,7 @@ class UnknownsListView(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, Detai
         return self.render_to_response(context)
 
 
-class ReportSafeView(LoggedCallMixin, DataViewMixin, DetailView):
+class ReportSafeView(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, DetailView):
     template_name = 'reports/ReportSafe.html'
     model = ReportSafe
 

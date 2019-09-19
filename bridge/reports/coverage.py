@@ -125,6 +125,7 @@ class LeafCoverageStatistics:
 class CoverageStatisticsBase:
     def __init__(self, coverage_id=None):
         self._coverage_id = coverage_id
+        self.with_report_link = False
 
     def coverage_queryset(self):
         raise NotImplementedError('Coverage queryset is not implemented')
@@ -135,10 +136,18 @@ class CoverageStatisticsBase:
     @cached_property
     def coverages(self):
         cov_qs = self.coverage_queryset()
-        return list({
-            'name': cov.identifier, 'total': cov.total, 'url': self.coverage_api(cov.id),
-            'details_url': construct_url('reports:coverage', cov.report_id, coverage_id=cov.id)
-        } for cov in cov_qs.only('id', 'identifier'))
+        coverages_list = []
+        for cov in cov_qs:
+            cov_data = {
+                'name': cov.identifier, 'total': cov.total, 'url': self.coverage_api(cov.id),
+                'details_url': construct_url('reports:coverage', cov.report_id, coverage_id=cov.id)
+            }
+            if self.with_report_link:
+                cov_data['report'] = (
+                    cov.report.identifier, construct_url('reports:component', cov.report_id)
+                )
+            coverages_list.append(cov_data)
+        return coverages_list
 
     @cached_property
     def statistics(self):
@@ -156,9 +165,14 @@ class JobCoverageStatistics(CoverageStatisticsBase):
     def __init__(self, job, coverage_id=None):
         self._job = job
         super(JobCoverageStatistics, self).__init__(coverage_id=coverage_id)
+        if not self._job.is_lightweight:
+            self.with_report_link = True
 
     def coverage_queryset(self):
-        return CoverageArchive.objects.filter(report__root__job_id=self._job.id).exclude(identifier='')
+        qs = CoverageArchive.objects.filter(report__root__job_id=self._job.id).exclude(identifier='')
+        if self.with_report_link:
+            return qs.select_related('report')
+        return qs
 
     def coverage_api(self, coverage_id):
         return construct_url('jobs:api-get-coverage', self._job.id, coverage_id=coverage_id)
