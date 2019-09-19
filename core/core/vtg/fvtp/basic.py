@@ -58,7 +58,7 @@ class Basic:
         task_description = self._prepare_task_description(resource_limits)
         self.logger.debug('Create verification task description file "task.json"')
         with open('task.json', 'w', encoding='utf8') as fp:
-            json.dump(task_description, fp, ensure_ascii=False, sort_keys=True, indent=4)
+            utils.json_dump(task_description, fp, self.conf['keep intermediate files'])
 
     def _prepare_benchmark_description(self, resource_limits):
         """

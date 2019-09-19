@@ -19,6 +19,7 @@ import json
 import os
 
 import core.components
+import core.utils
 
 
 class Plugin(core.components.Component):
@@ -40,6 +41,6 @@ class Plugin(core.components.Component):
         self.logger.info(
             'Put modified abstract verification task description to file "{0}"'.format(out_abstract_task_desc_file))
         with open(out_abstract_task_desc_file, 'w', encoding='utf8') as fp:
-            json.dump(self.abstract_task_desc, fp, ensure_ascii=False, sort_keys=True, indent=4)
+            core.utils.json_dump(self.abstract_task_desc, fp, self.conf['keep intermediate files'])
 
         self.logger.info('Finish processing of abstract verification task "{0}"'.format(self.abstract_task_desc['id']))

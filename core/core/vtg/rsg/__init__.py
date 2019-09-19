@@ -180,7 +180,7 @@ class RSG(core.vtg.plugins.Plugin):
 
             self.logger.debug('Dump CC full description to file "{0}"'.format(full_desc_file))
             with open(full_desc_file, 'w', encoding='utf8') as fp:
-                json.dump({
+                core.utils.json_dump({
                     'cwd': empty_cc['cwd'],
                     'in': [os.path.relpath(model_c_file, os.path.realpath(clade.get_storage_path(empty_cc['cwd'])))],
                     'out': [os.path.realpath(out_file)],
@@ -188,7 +188,7 @@ class RSG(core.vtg.plugins.Plugin):
                             ['-DLDV_SETS_MODEL_' + (model['sets model']
                                                     if 'sets model' in model
                                                     else self.conf['common sets model']).upper()]
-                }, fp, ensure_ascii=False, sort_keys=True, indent=4)
+                }, fp, self.conf['keep intermediate files'])
 
             extra_cc['CC'] = os.path.relpath(full_desc_file, self.conf['main working directory'])
             model_grp['Extra CCs'].append(extra_cc)

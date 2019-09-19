@@ -472,8 +472,9 @@ class Component(multiprocessing.Process, CallbacksCaller):
                                   self.conf['main working directory'])
             else:
                 with open(os.path.join('child resources', self.name + '.json'), 'w', encoding='utf8') as fp:
-                    json.dump(count_consumed_resources(self.logger, self.tasks_start_time, self.include_child_resources),
-                              fp, ensure_ascii=False, sort_keys=True, indent=4)
+                    core.utils.json_dump(count_consumed_resources(self.logger, self.tasks_start_time,
+                                                                  self.include_child_resources),
+                                         fp, self.conf['keep intermediate files'])
         except Exception:
             exception = True
             self.logger.exception('Catch exception')

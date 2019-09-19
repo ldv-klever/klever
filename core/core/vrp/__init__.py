@@ -326,7 +326,7 @@ class RP(core.components.Component):
 
         self.logger.info('Write processed witness to "{0}"'.format(error_trace_file))
         with open(error_trace_file, 'w', encoding='utf8') as fp:
-            json.dump(error_trace, fp, ensure_ascii=False, sort_keys=True, indent=4)
+            core.utils.json_dump(error_trace, fp, self.conf['keep intermediate files'])
 
         return error_trace_file, attrs
 
@@ -526,7 +526,7 @@ class RP(core.components.Component):
         # Remember exception and raise it if verdict is not unknown
         exception = None
         try:
-            LCOV(self.logger, os.path.join('output', 'coverage.info'),
+            LCOV(self.conf, self.logger, os.path.join('output', 'coverage.info'),
                  self.clade, self.source_paths,
                  self.search_dirs, self.conf['main working directory'],
                  opts.get('coverage'),

@@ -47,7 +47,7 @@ def add_to_coverage(merged_coverage_info, coverage_info):
                         merged_coverage_info[file_name]['covered function names'].append(name)
 
 
-def convert_coverage(merged_coverage_info, coverage_dir='coverage'):
+def convert_coverage(merged_coverage_info, coverage_dir, pretty):
     # Convert combined coverage to the required format.
     os.mkdir(coverage_dir)
 
@@ -69,7 +69,7 @@ def convert_coverage(merged_coverage_info, coverage_dir='coverage'):
 
         os.makedirs(os.path.join(coverage_dir, os.path.dirname(file_name)), exist_ok=True)
         with open(os.path.join(coverage_dir, file_name + '.cov.json'), 'w') as fp:
-            json.dump(file_coverage, fp, ensure_ascii=True, sort_keys=True, indent=4)
+            core.utils.json_dump(file_coverage, fp, pretty)
 
         coverage_stats['coverage statistics'][file_name] = [
             # Total number of covered lines of code.
@@ -85,7 +85,7 @@ def convert_coverage(merged_coverage_info, coverage_dir='coverage'):
         ]
 
     with open(os.path.join(coverage_dir, 'coverage.json'), 'w') as fp:
-        json.dump(coverage_stats, fp, ensure_ascii=True, sort_keys=True, indent=4)
+        core.utils.json_dump(coverage_stats, fp, pretty)
 
 
 class JCR(core.components.Component):
@@ -173,7 +173,7 @@ class JCR(core.components.Component):
                             del(coverage_info[file_name_to_remove])
 
                         total_coverage_dir = os.path.join(self.__get_total_cov_dir(sub_job_id, requirement), 'report')
-                        convert_coverage(coverage_info, total_coverage_dir)
+                        convert_coverage(coverage_info, total_coverage_dir, self.conf['keep intermediate files'])
                         total_coverage_dirs.append(total_coverage_dir)
                         total_coverages[requirement] = core.utils.ArchiveFiles([total_coverage_dir])
                         self.__save_data(total_coverage_infos, sub_job_id, requirement)
@@ -270,9 +270,10 @@ class LCOV:
     FUNCTION_NAME_PREFIX = "FN:"
     PARIALLY_ALLOWED_EXT = ('.c', '.i', '.c.aux')
 
-    def __init__(self, logger, coverage_file, clade, source_dirs, search_dirs, main_work_dir, completeness,
+    def __init__(self, conf, logger, coverage_file, clade, source_dirs, search_dirs, main_work_dir, completeness,
                  coverage_id, coverage_info_dir, collect_functions, preprocessed_files=False):
         # Public
+        self.conf = conf
         self.logger = logger
         self.coverage_file = coverage_file
         self.clade = clade
@@ -294,11 +295,11 @@ class LCOV:
                 self.coverage_info = self.parse()
 
                 with open(coverage_id, 'w', encoding='utf-8') as fp:
-                    json.dump(self.coverage_info, fp, ensure_ascii=True, sort_keys=True, indent=4)
+                    core.utils.json_dump(self.coverage_info, fp, self.conf['keep intermediate files'])
 
                 coverage = {}
                 add_to_coverage(coverage, self.coverage_info)
-                convert_coverage(coverage)
+                convert_coverage(coverage, 'coverage', self.conf['keep intermediate files'])
         except Exception:
             shutil.rmtree('coverage', ignore_errors=True)
             raise

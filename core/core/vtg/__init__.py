@@ -661,7 +661,7 @@ class VTGW(core.components.Component):
             'Put initial abstract verification task description to file "{0}"'.format(
                 initial_abstract_task_desc_file))
         with open(initial_abstract_task_desc_file, 'w', encoding='utf8') as fp:
-            json.dump(initial_abstract_task_desc, fp, ensure_ascii=False, sort_keys=True, indent=4)
+            core.utils.json_dump(initial_abstract_task_desc, fp, self.conf['keep intermediate files'])
 
         # Invoke all plugins one by one.
         cur_abstract_task_desc_file = initial_abstract_task_desc_file
@@ -719,7 +719,7 @@ class VTGW(core.components.Component):
                     'Put configuration of plugin "{0}" to file "{1}"'.format(plugin_desc['name'],
                                                                              plugin_conf_file))
                 with open(plugin_conf_file, 'w', encoding='utf8') as fp:
-                    json.dump(plugin_conf, fp, ensure_ascii=False, sort_keys=True, indent=4)
+                    core.utils.json_dump(plugin_conf, fp, self.conf['keep intermediate files'])
 
                 try:
                     p = plugin_desc['plugin'](plugin_conf, self.logger, self.id, self.callbacks, self.mqs,
