@@ -70,9 +70,11 @@ $(document).ready(function () {
             }
             else $(this).show();  // note or exit
         });
+        show_display(node);
     }
 
     function hide_scope(node, shift_pressed, change_state) {
+        hide_display(node);
         if (change_state && node.hasClass('scope_opened')) {
             node.removeClass('scope_opened');
             node.find('.ETV_EnterLink').switchClass('down', 'right');
@@ -103,6 +105,7 @@ $(document).ready(function () {
             }
             else $(this).show();  // note or exit
         });
+        show_display(node);
     }
     function show_display(node) {
         node.find('.ETV_OpenEye').switchClass('unhide', 'hide');
@@ -185,17 +188,14 @@ $(document).ready(function () {
         }
     });
 
-    $('.ETV_Action').click(function () {
-        let node = $(this).parent().parent(), enter_link = node.find('.ETV_EnterLink');
+    $('.ETV_Action,.ETV_CallbackAction').click(function () {
+        let node = $(this).parent().parent();
+
         // If action can be collapsed/expanded, do it
-        if (enter_link.length) enter_link.click();
+        node.find('.ETV_EnterLink').click();
+
         // Get source for the action
         node.find('.ETV_LINE').click();
-    });
-    $('.ETV_CallbackAction').click(function () {
-        // Callback actions are always shown
-        // Get source for the callback action
-        $(this).parent().parent().find('.ETV_LINE').click();
     });
 
     $('.ETV_ShowCommentCode').click(function () {
