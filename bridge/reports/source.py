@@ -71,6 +71,7 @@ def coverage_color(curr_cov, max_cov, delta=0):
 
 
 class SourceLine:
+    max_ref_links = 7
     ref_to_class = 'SrcRefToLink'
     ref_from_class = 'SrcRefFromLink'
     declaration_class = 'SrcRefToDeclLink'
@@ -117,14 +118,26 @@ class SourceLine:
         return h_dict
 
     def __get_source_links(self, data):
-        links_list = []
+        source_links = []
         for file_ind, file_lines in data:
             if not isinstance(file_lines, list):
                 raise ValueError('file lines is not a list')
+            curr_lines = []
             for file_line in file_lines:
                 self.__assert_int(file_line)
-                links_list.append((file_ind, file_line))
-        return links_list
+                curr_lines.append(file_line)
+                if len(curr_lines) >= self.max_ref_links:
+                    source_links.append([file_ind, curr_lines])
+                    curr_lines = []
+            if len(curr_lines):
+                source_links.append([file_ind, curr_lines])
+        return source_links
+
+    def __get_links_number(self, data):
+        number = 0
+        for file_ind, file_lines in data:
+            number += len(file_lines)
+        return number
 
     def __get_references(self, references_to, references_from, references_declarations):
         if not references_to:
@@ -153,7 +166,7 @@ class SourceLine:
             if (ref_start, ref_end) in self.declarations:
                 span_class = '{} {}'.format(self.declaration_class, self.ref_to_class)
                 span_data['declaration'] = self.declarations[(ref_start, ref_end)]['id']
-                span_data['declnumber'] = len(self.declarations[(ref_start, ref_end)]['sources'])
+                span_data['declnumber'] = self.__get_links_number(self.declarations[(ref_start, ref_end)]['sources'])
                 mixed_declarations.add((ref_start, ref_end))
             else:
                 span_class = self.ref_to_class
@@ -163,7 +176,10 @@ class SourceLine:
         for ref_start, ref_end in set(self.declarations) - mixed_declarations:
             references.append([ref_start, ref_end, {
                 'span_class': self.declaration_class,
-                'span_data': {'id': self.declarations[(ref_start, ref_end)]['id']}
+                'span_data': {
+                    'declaration': self.declarations[(ref_start, ref_end)]['id'],
+                    'declnumber': self.__get_links_number(self.declarations[(ref_start, ref_end)]['sources'])
+                }
             }])
 
         # Collect references from
@@ -261,7 +277,7 @@ class GetSource:
 
         self._indexes = self.__get_indexes_data()
         self._coverage, self.coverage_id = self.__get_coverage_data(coverage_id)
-        self.source_lines, self.references, self.declarations = self.__parse_source()
+        self.source_lines, self.references = self.__parse_source()
 
     def __parse_file_name(self, file_name):
         name = unquote(file_name)
@@ -407,7 +423,6 @@ class GetSource:
 
         lines_data = []
         references_data = []
-        declarations_data = []
         for code in lines:
             src_line = SourceLine(
                 code, highlights=highlights.get(cnt), filename=self.file_name, line=cnt,
@@ -425,14 +440,14 @@ class GetSource:
                 'has_data': (linenum_str in self._coverage_data)
             })
             references_data.extend(src_line.references_data)
-            declarations_data.extend(src_line.declarations.values())
+            references_data.extend(src_line.declarations.values())
             cnt += 1
-        return lines_data, references_data, declarations_data
+        return lines_data, references_data
 
     @cached_property
     def source_files(self):
         if self._indexes and 'source files' in self._indexes:
-            return list(enumerate(self._indexes['source files']))
+            return list(enumerate(self._indexes['source files'] + [self.file_name]))
         return []
 
     @cached_property

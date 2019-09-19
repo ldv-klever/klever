@@ -52,9 +52,10 @@ from marks.tables import SafeReportMarksTable, UnsafeReportMarksTable, UnknownRe
 
 
 @register.filter
-def get_list_val(l, ind):
-    ind = int(ind)
-    return l[ind] if ind < len(l) else None
+def get_file_path(l, ind):
+    if ind is None:
+        return l[-1][1]
+    return l[ind][1] if ind < len(l) else None
 
 
 # These filters are used for visualization component specific data. They should not be used for any other purposes.

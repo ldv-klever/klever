@@ -1,0 +1,16 @@
+<div id="{{ ref_data.id }}" hidden>
+    <div class="ui list">
+    {% for file_ind, file_lines in ref_data.sources %}
+        {% with source_files|get_file_path:file_ind as file_path %}
+            {% if file_path %}
+                <div class="item SrcRefTitle">{{ file_path }}:</div>
+                <div class="item" data-file="{{ file_path }}">
+                    {% for line_num in file_lines %}
+                        <span class="SrcRefLink" data-line="{{ line_num }}">{{ line_num }}</span>{% if not forloop.last %}, {% endif %}
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+    {% endfor %}
+    </div>
+</div>

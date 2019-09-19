@@ -122,7 +122,7 @@ SourceProcessor.prototype.refresh = function() {
         instance.declarations_modal.modal('show');
         instance.declarations_modal.find('.SrcRefLink').click(function () {
             instance.declarations_modal.modal('hide');
-            instance.get_source($(this).data('line'), $(this).data('file'));
+            instance.get_source($(this).data('line'), $(this).parent().data('file'));
         });
         instance.container.popup('hide all')
     });
@@ -133,7 +133,7 @@ SourceProcessor.prototype.refresh = function() {
             let data_html = instance.container.find('#' + $(activator).data('id')).html();
             source_references_div.html(data_html);
             source_references_div.find('.SrcRefLink').click(function () {
-                instance.get_source($(this).data('line'), $(this).data('file'));
+                instance.get_source($(this).data('line'), $(this).parent().data('file'));
             })
         },
         onHide: function () {

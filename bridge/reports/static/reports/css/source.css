@@ -196,6 +196,10 @@
     color: #465bff;
 }
 
+.SrcRefTitle {
+    font-weight: bold;
+    color: #1b6f73;
+}
 
 /* Coverage data */
 .SrcCovDataLink {
