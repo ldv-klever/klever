@@ -241,12 +241,16 @@ class ResourcesInfo:
                 'memory': '-',
                 'instances': '{}/{}'.format(self._instances[component]['finished'], self._instances[component]['total'])
             }
-            if component in self._data:
+            if self._instances[component]['finished'] and component in self._data:
                 component_data['wall_time'] = HumanizedValue(
                     self._data[component]['wall_time'], user=self.user
                 ).timedelta
-                component_data['cpu_time'] = HumanizedValue(self._data[component]['cpu_time'], user=self.user).timedelta
-                component_data['memory'] = HumanizedValue(self._data[component]['memory'], user=self.user).memory
+                component_data['cpu_time'] = HumanizedValue(
+                    self._data[component]['cpu_time'], user=self.user
+                ).timedelta
+                component_data['memory'] = HumanizedValue(
+                    self._data[component]['memory'], user=self.user
+                ).memory
             resource_data.append(component_data)
 
         if 'hidden' not in self.view or 'resource_total' not in self.view['hidden']:
