@@ -247,7 +247,7 @@ class DownloadVerifierFiles(LoginRequiredMixin, LoggedCallMixin, SingleObjectMix
 
     def get_generator(self):
         instance = self.get_object()
-        if not JobAccess(self.request.user, instance.report.root.job).can_view:
+        if not JobAccess(self.request.user, instance.root.job).can_view:
             return BridgeErrorResponse(400)
         return VerifierFilesGenerator(instance)
 
