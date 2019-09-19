@@ -195,6 +195,6 @@ class Server:
         if isinstance(self.session.error, dict):
             if 'detail' in self.session.error and self.session.error['detail'] == 'Not found.':
                 return True
-            if 'task' in self.session.error and re.match('Invalid pk', self.session.error['task']):
+            if 'task' in self.session.error and re.match('Invalid pk', self.session.error['task'][-1]):
                 return True
         return False
