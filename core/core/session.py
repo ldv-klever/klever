@@ -180,7 +180,7 @@ class Session:
                 resp = self.__request(path_url, 'POST', data=data, files=archives, stream=True)
                 return resp.json()
             except BridgeError:
-                if self.error == 'ZIP error':
+                if 'ZIP error' in self.error:
                     self.logger.exception('Could not upload ZIP archive')
                     self.error = None
                     time.sleep(0.2)
