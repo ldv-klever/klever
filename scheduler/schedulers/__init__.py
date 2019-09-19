@@ -49,8 +49,9 @@ class ListeningThread(threading.Thread):
 
     def run(self):
         connection = pika.BlockingConnection(
-            pika.ConnectionParameters(host=self.conf["host"],
-            credentials=pika.credentials.PlainCredentials(self.conf["username"], self.conf["password"]))
+            pika.ConnectionParameters(
+                host=self.conf["host"],
+                credentials=pika.credentials.PlainCredentials(self.conf["username"], self.conf["password"]))
         )
         channel = connection.channel()
         channel.queue_declare(queue=self.conf["name"], durable=True)
@@ -127,11 +128,11 @@ class Scheduler:
         self.__listening_thread = ListeningThread(self.__server_queue, self.conf["Klever jobs and tasks queue"])
         self.__listening_thread.start()
 
-        # # Before we proceed lets check all existing jobs
-        # for identifier, status in self.server.get_all_jobs():
-        #     if identifier not in self.__jobs or status != self.__jobs['status']:
-        #         self.server.submit_job_error(identifier,
-        #                                      "Scheduler does not track the job, maybe the scheduler was restarted")
+        # Before we proceed lets check all existing jobs
+        for identifier, status in self.server.get_all_jobs():
+            if identifier not in self.__jobs or status != self.__jobs['status']:
+                self.server.submit_job_error(identifier,
+                                             "Scheduler does not track the job, maybe the scheduler was restarted")
 
         self.logger.info("Scheduler base initialization has been successful")
 
@@ -164,107 +165,73 @@ class Scheduler:
                     kind, identifier, status = msg.decode('utf-8').split(' ')
                     if kind == 'job':
                         self.logger.debug("New status of job {!r} is {!r}".format(identifier, status))
+                        sch_status = self.__jobs.get(identifier, dict()).get('status', None)
+                        status = self._job_status(status)
 
-                        if status == '1':
-                            job_conf = self.server.pull_job_conf(identifier)
-                            job_conf['configuration']['identifier'] = identifier
-                            job_conf['configuration']['task resource limits'] = job_conf['tasks']
-                            # TODO: Get Verifier Cloud login and password
-
-                            self.logger.debug("Prepare new job {} before launching".format(identifier))
-                            if identifier in self.__jobs and self.__jobs[identifier]["status"] == "PROCESSING":
-                                raise RuntimeError(
-                                    "This should not be possible to get PEDING status for a PROCESSING jib {!r}".
-                                    format(identifier))
-
-                            # Check and set necessary restrictions for further scheduling
-                            for collection in [job_conf['configuration']["resource limits"],
-                                               job_conf['configuration']['task resource limits']]:
-                                try:
-                                    self.__add_missing_restrictions(collection)
-                                except SchedulerException as err:
-                                    self.__jobs[identifier] = {
-                                        "id": identifier,
-                                        "status": "ERROR",
-                                        "error": str(err)
-                                    }
-                                    break
-
-                            self.__jobs[identifier] = {
-                                "id": identifier,
-                                "status": "PENDING",
-                                "configuration": job_conf['configuration']
-                            }
-                            self.runner.prepare_job(identifier, self.__jobs[identifier])
-                        elif identifier not in self.__jobs:
-                            # There is no such job
-                            self.server.submit_job_error(identifier, 'This job was not tracked by the scheduler')
-                        elif status == '2':
-                            # PROCESSING
-                            self.__jobs[identifier]['status'] = 'PROCESSING'
-                        elif status == '3':
-                            # SOLVED
-                            del self.__jobs[identifier]
-                        elif status == '4' or status == '7' or status == '8':
-                            # FAILED or CANCELLED
-                            if identifier in self.__jobs:
-                                raise RuntimeError("Job {!r} failed and should be deleted")
-                        elif status == '5':
-                            # CORRUPTED
-                            if identifier in self.__jobs:
+                        if status == 'PENDING':
+                            if identifier in self.__jobs and sch_status not in ('PROCESSING', 'PENDING'):
+                                self.logger.warning('Job {!r} is still tracking and has status {!r}'.
+                                                    format(identifier, sch_status))
+                                del self.__jobs[identifier]
+                            self.add_new_pending_job(identifier)
+                        elif status == 'PROCESSING':
+                            if sch_status in ('PENDING', 'PROCESSING'):
+                                self.__jobs[identifier]['status'] = 'PROCESSING'
+                            elif identifier not in self.__jobs:
+                                self.server.submit_job_error(identifier, 'Job {!r} is not traching by the scheduler'.
+                                                             format(identifier))
+                            else:
+                                self.logger.warning('Job {!r} alrady has status {!r}'.format(identifier, sch_status))
+                        elif status in ('FAILED', 'CORRUPTED', 'CANCELLED'):
+                            if identifier in self.__jobs and self.runner.is_solving(self.__jobs[identifier]):
+                                self.logger.warning('Job {!r} is running but got status '.format(identifier))
                                 self.runner.cancel_job(identifier, self.__jobs[identifier],
                                                        self.relevant_tasks(identifier))
+                            if identifier in self.__jobs:
                                 del self.__jobs[identifier]
-                        elif status == '6':
+                        elif status == 'CORRUPTED':
+                            # CORRUPTED
+                            if identifier in self.__jobs and self.runner.is_solving(self.__jobs[identifier]):
+                                self.logger.info('Job {!r} was corrupted'.format(identifier))
+                                self.runner.cancel_job(identifier, self.__jobs[identifier],
+                                                       self.relevant_tasks(identifier))
+                            if identifier in self.__jobs:
+                                del self.__jobs[identifier]
+                        elif status == 'CANCELLING':
                             # CANCELLING
-                            self.runner.cancel_job(identifier, self.__jobs[identifier], self.relevant_tasks(identifier))
-                            self.server.cancel_job(identifier)
+                            if identifier in self.__jobs and self.runner.is_solving(self.__jobs[identifier]):
+                                self.runner.cancel_job(identifier, self.__jobs[identifier],
+                                                       self.relevant_tasks(identifier))
+                            self.server.submit_job_status(identifier, self._job_status('CANCELLED'))
                             for task_id, status in self.server.get_job_tasks(identifier):
                                 if status in ('PENDING', 'PROCESSING'):
-                                    self.server.submit_task_cancelled(task_id)
-                            del self.__jobs[identifier]
+                                    self.server.submit_task_status(task_id, 'CANCELLED')
+                            if identifier in self.__jobs:
+                                del self.__jobs[identifier]
                         else:
                             raise NotImplementedError('Unknown job status {!r}'.format(status))
                     else:
+                        sch_status = self.__tasks.get(identifier, dict()).get('status', None)
+
                         if status == 'PENDING':
-                            task_conf = self.server.pull_task_conf(identifier)
-                            self.logger.info("Add new PENDING task {}".format(identifier))
-                            self.__tasks[identifier] = {
-                                "id": identifier,
-                                "status": "PENDING",
-                                "description": task_conf['description'],
-                                "priority": task_conf['description']["priority"]
-                            }
-
-                            # TODO: VerifierCloud user name and password are specified in task description and
-                            # shouldn't be extracted from it here.
-                            if self.runner.scheduler_type() == "VerifierCloud":
-                                self.__tasks[identifier]["user"] = task_conf['description']["VerifierCloud user name"]
-                                self.__tasks[identifier]["password"] = \
-                                    task_conf['description']["VerifierCloud user password"]
-                            else:
-                                self.__tasks[identifier]["user"] = None
-                                self.__tasks[identifier]["password"] = None
-
-                            self.logger.debug("Prepare new task {!r} before launching".format(identifier))
-                            # Add missing restrictions
-                            try:
-                                self.__add_missing_restrictions(
-                                    self.__tasks[identifier]["description"]["resource limits"])
-                            except SchedulerException as err:
-                                self.__jobs[identifier] = {
-                                    "id": identifier,
-                                    "status": "ERROR",
-                                    "error": str(err)
-                                }
-                            else:
-                                self.runner.prepare_task(identifier, self.__tasks[identifier])
+                            if identifier in self.__tasks and sch_status not in ('PROCESSING', 'PENDING'):
+                                self.logger.warning('The task {!r} is still tracking and has status {!r}'.
+                                                    format(identifier, sch_status))
+                                del self.__jobs[identifier]
+                            self.add_new_pending_task(identifier)
                         elif status == 'PROCESSING':
                             # PROCESSING
                             if identifier not in self.__tasks:
-                                raise RuntimeError("There is no task {!r}".format(identifier))
+                                self.logger.warning("There is running task {!r}".format(identifier))
+                                self.server.submit_task_error(identifier, 'Unknown task')
+                            elif identifier in self.__tasks and not self.runner.is_solving(self.__tasks[identifier]) \
+                                    and sch_status != 'PROCESSING':
+                                self.logger.warning("Task {!r} already has status {!r} and is not PROCESSING".
+                                                    format(identifier, sch_status))
                         elif status in ('FINISHED', 'ERROR', 'CANCELLED'):
                             # CANCELLED
+                            if identifier in self.__tasks and self.runner.is_solving(self.__tasks[identifier]):
+                                self.runner.cancel_task(identifier, self.__tasks[identifier])
                             if identifier in self.__tasks:
                                 del self.__tasks[identifier]
                         else:
@@ -281,8 +248,15 @@ class Scheduler:
                             job_id, desc, [tid for tid in self.__tasks if desc["status"] in ["PENDING", "PROCESSING"]
                                            and self.__tasks[tid]["description"]["job id"] == job_id]):
                         if desc['status'] == 'FINISHED' and not desc.get('error'):
-                            self.server.submit_job_finished(job_id)
+                            self.server.submit_job_status(job_id, self._job_status('SOLVED'))
                         elif desc.get('error'):
+                            # Sometimes job can be rescheduled, lets check this doing the following
+                            if not desc.get('rescheduled'):
+                                server_status = self._job_status(self.server.get_job_status(job_id))
+                                if server_status == 'PENDING':
+                                    desc['rescheduled'] = True
+                                    desc['status'] = 'PENDING'
+                                    continue
                             self.server.submit_job_error(job_id, desc['error'])
                         else:
                             raise NotImplementedError("Cannot determine status of the job {!r}".format(job_id))
@@ -300,11 +274,15 @@ class Scheduler:
                         desc["status"] = "PROCESSING"
                     elif desc["status"] == "PROCESSING" and self.runner.process_task_result(task_id, desc):
                         if desc['status'] == 'FINISHED' and not desc.get('error'):
-                            self.server.submit_task_finished(task_id)
+                            self.server.submit_task_status(task_id, 'FINISHED')
+                        elif desc["status"] == 'PENDING':
+                            # This case is for rescheduling
+                            continue
                         elif desc.get('error'):
                             self.server.submit_task_error(task_id, desc['error'])
                         else:
-                            raise NotImplementedError("Cannot determine status of the task {!r}".format(task_id))
+                            raise NotImplementedError("Cannot determine status of the task {!r}: {!r}".
+                                                      format(task_id, desc["status"]))
                         if task_id in self.__tasks:
                             del self.__tasks[task_id]
 
@@ -350,7 +328,8 @@ class Scheduler:
                             self.runner.solve_job(job_id, self.__jobs[job_id])
 
                         for task_id in tasks_to_start:
-                            self.server.submit_processing_task(task_id)
+                            if not self.__tasks[task_id].get("rescheduled"):
+                                self.server.submit_task_status(task_id, 'PROCESSING')
                             # This check is very helpful for debugging
                             msg = messages.get(task_id)
                             if msg:
@@ -361,6 +340,19 @@ class Scheduler:
                     if len(tasks_to_start) > 0 or \
                             len([True for i in self.__tasks if self.__tasks[i]["status"] == "PROCESSING"]) > 0:
                         self.runner.flush()
+
+                # Periodically check for jobs and task that have an unexpected status. This should help notice bugs
+                # related to interaction with Bridge through RabbitMQ
+                if nth_iteration(100):
+                    for identifier, status in self.server.get_all_jobs():
+                        status = self._job_status(status)
+                        if identifier not in self.__jobs and status == 'PENDING':
+                            self.add_new_pending_job(identifier)
+                        elif identifier not in self.__jobs and status == 'PROCESSING':
+                            self.server.submit_job_error(identifier, 'Scheduler terminated or reset and does not '
+                                                                     'track the job {}'.format(identifier))
+                        elif identifier not in self.__jobs and status == 'CANCELLING':
+                            self.server.cancel_job(identifier)
 
                 time.sleep(self.__iteration_period)
             except KeyboardInterrupt:
@@ -435,24 +427,128 @@ class Scheduler:
         # Do final unitializations
         self.runner.terminate()
 
+    def add_new_pending_job(self, identifier):
+        """
+        Add new pending job and prepare its description.
+
+        :param identifier: Job identifier string.
+        """
+        if identifier not in self.__jobs:
+            job_conf = self.server.pull_job_conf(identifier)
+            job_conf['configuration']['identifier'] = identifier
+            job_conf['configuration']['task resource limits'] = job_conf['tasks']
+            # TODO: Get Verifier Cloud login and password
+
+            self.logger.info("Prepare new job {} before launching".format(identifier))
+            if identifier in self.__jobs and self.__jobs[identifier]["status"] == "PROCESSING":
+                raise RuntimeError(
+                    "This should not be possible to get PEDING status for a PROCESSING jib {!r}".format(identifier))
+
+            # Check and set necessary restrictions for further scheduling
+            for collection in [job_conf['configuration']["resource limits"],
+                               job_conf['configuration']['task resource limits']]:
+                try:
+                    self.__add_missing_restrictions(collection)
+                except SchedulerException as err:
+                    self.__jobs[identifier] = {
+                        "id": identifier,
+                        "status": "ERROR",
+                        "error": str(err)
+                    }
+                    break
+
+            self.__jobs[identifier] = {
+                "id": identifier,
+                "status": "PENDING",
+                "configuration": job_conf['configuration']
+            }
+            self.runner.prepare_job(identifier, self.__jobs[identifier])
+        else:
+            self.logger.warning('Attempt to schedule job {} second time but it already has status {}'.
+                                format(identifier, self.__jobs[identifier]['status']))
+
+    def add_new_pending_task(self, identifier):
+        """
+        Add new pending task and prepare its description.
+
+        :param identifier: Task identifier string.
+        """
+        if identifier not in self.__tasks:
+            task_conf = self.server.pull_task_conf(identifier)
+            self.logger.info("Add new PENDING task {}".format(identifier))
+            self.__tasks[identifier] = {
+                "id": identifier,
+                "status": "PENDING",
+                "description": task_conf['description'],
+                "priority": task_conf['description']["priority"]
+            }
+
+            # TODO: VerifierCloud user name and password are specified in task description and
+            # shouldn't be extracted from it here.
+            if self.runner.scheduler_type() == "VerifierCloud":
+                self.__tasks[identifier]["user"] = task_conf['description']["VerifierCloud user name"]
+                self.__tasks[identifier]["password"] = \
+                    task_conf['description']["VerifierCloud user password"]
+            else:
+                self.__tasks[identifier]["user"] = None
+                self.__tasks[identifier]["password"] = None
+
+            self.logger.debug("Prepare new task {!r} before launching".format(identifier))
+            # Add missing restrictions
+            try:
+                self.__add_missing_restrictions(
+                    self.__tasks[identifier]["description"]["resource limits"])
+            except SchedulerException as err:
+                self.__jobs[identifier] = {
+                    "id": identifier,
+                    "status": "ERROR",
+                    "error": str(err)
+                }
+            else:
+                self.runner.prepare_task(identifier, self.__tasks[identifier])
+        else:
+            self.logger.warning('Attempt to schedule job {} second time but it already has status {}'.
+                                format(identifier, self.__tasks[identifier]['status']))
+
     def relevant_tasks(self, job_id):
+        """
+        Collect and return the list of task descriptions for a particular job.
+
+        :param job_id: Relevant job identifier.
+        :return: List of dictionaries.
+        """
         return [self.__tasks[tid] for tid in self.__tasks
                 if self.__tasks[tid]["status"] in ["PENDING", "PROCESSING"]
                 and self.__tasks[tid]["description"]["job id"] == job_id]
 
     def cancel_all_tasks(self):
+        """Cancel and delete all jobs and tasks before terminating or restarting scheduler."""
         # Check all tasks and cancel them
         tasks = self.server.get_all_tasks()
         for identifier, status in tasks:
             # TODO: Remove this when Bridge will not raise an error 'Job is not solving'
             if status in ('PENDING', 'PROCESSING'):
-                try:
-                    self.server.submit_task_error(identifier, 'Scheduler terminated or reset')
-                except BridgeError as err:
-                    self.logger.warning('Brdige reports an error on attempt to cancel task {}: {!r}'.
-                                        format(identifier, err))
+                self.server.submit_task_error(identifier, 'Scheduler terminated or reset')
             try:
                 self.server.delete_task(identifier)
             except BridgeError as err:
                 self.logger.warning('Brdige reports an error on attempt to delete task {}: {!r}'.
                                     format(identifier, err))
+
+    def _job_status(self, status):
+        job_map = {
+            '1': 'PENDING',
+            '2': 'PROCESSING',
+            '3': 'SOLVED',
+            '4': 'FAILED',
+            '5': 'CORRUPTED',
+            '6': 'CANCELLING',
+            '7': 'CANCELLED'
+        }
+
+        if len(status) == 1:
+            # This is digital status and we can return the word
+            return job_map[status]
+        else:
+            # Else
+            return tuple(job_map.keys())[tuple(job_map.values()).index(status)]

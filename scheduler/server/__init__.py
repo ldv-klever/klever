@@ -16,6 +16,7 @@
 #
 
 import json
+import re
 
 import utils.bridge as bridge
 
@@ -42,7 +43,6 @@ class Server:
         """
         Send unique ID to the Verification Gateway with the other properties to enable receiving tasks.
         :param scheduler_type: Scheduler scheduler_type.
-        :param require_login: Flag indicating whether or not user should authorize to send tasks.
         """
         # Create session
         self.scheduler_type = scheduler_type
@@ -56,16 +56,19 @@ class Server:
         ret = self.session.json_exchange("service/tasks/{}/?fields=description".format(task_identifier), method='GET')
         return ret
 
+    def get_job_status(self, identifier):
+        return self.session.json_exchange("service/job-status/{}/".format(identifier), method='GET').get('status')
+
+    def get_task_status(self, identifier):
+        return self.session.json_exchange("service/tasks/{}/?fields=id".format(identifier), method='GET')
+
     def get_job_tasks(self, identifier):
         ret = self.session.json_exchange("service/tasks/?job={}&fields=status&fields=id".format(identifier),
                                          method='GET')
         return ((item['id'], item['status']) for item in ret)
 
-    def get_task_status(self, identifier):
-        return self.session.json_exchange("service/tasks/{}/?fields=id".format(identifier), method='GET')
-
     def get_all_jobs(self):
-        ret = self.session.json_exchange("service/jobs/api/job-status/", method='GET')
+        ret = self.session.json_exchange("jobs/api/job-status/", method='GET')
         return ((item['identifier'], item['status']) for item in ret)
 
     def get_job_progress(self, identifier):
@@ -73,34 +76,60 @@ class Server:
         return ret
 
     def get_all_tasks(self):
-        ret = self.session.json_exchange("service/tasks/?fields=status&fields=id", method='GET')
+        ret = self.session.json_exchange("service/tasks/?fields=status&fields=id&fields=id", method='GET')
         return ((item['id'], item['status']) for item in ret)
 
     def cancel_job(self, job_identifier):
         self.session.exchange("service/job-status/{}/".format(job_identifier), method='PATCH', data={"status": "7"})
 
+    def submit_job_status(self, job_identifier, status):
+        try:
+            self.session.exchange("service/job-status/{}/".format(job_identifier), method='PATCH',
+                                  data={"status": status})
+        except bridge.BridgeError:
+            if self._tolerate_error():
+                self.logger.warning('Bridge rejects job {!r} status change to {!r}'.format(job_identifier, status))
+                return
+            raise
+
     def submit_job_error(self, job_identifier, error):
-        self.session.exchange("service/job-status/{}/".format(job_identifier), method='PATCH',
-                              data={"status": "4", "error": error})
+        try:
+            self.session.exchange("service/job-status/{}/".format(job_identifier), method='PATCH',
+                                  data={"status": "4", "error": error})
+        except bridge.BridgeError:
+            if self._tolerate_error():
+                self.logger.warning('Bridge rejects job {!r} status change to FAILED'.format(job_identifier))
+                return
+            raise
 
-    def submit_job_finished(self, job_identifier):
-        self.session.exchange("service/job-status/{}/".format(job_identifier), method='PATCH', data={"status": "3"})
-
-    def submit_processing_task(self, task_identifier):
-        self.session.exchange("service/tasks/{}/".format(task_identifier), method='PATCH', data={"status": "PROCESSING"})
-
-    def submit_task_finished(self, task_identifier):
-        self.session.exchange("service/tasks/{}/".format(task_identifier), method='PATCH', data={"status": "FINISHED"})
-
-    def submit_task_cancelled(self, task_identifier):
-        self.session.exchange("service/tasks/{}/".format(task_identifier), method='PATCH', data={"status": "CANCELLED"})
-
-    def delete_task(self, task_identifier):
-        self.session.exchange("service/tasks/{}/".format(task_identifier), method='DELETE')
+    def submit_task_status(self, task_identifier, status):
+        try:
+            self.session.exchange("service/tasks/{}/".format(task_identifier), method='PATCH',
+                                  data={"status": status})
+        except bridge.BridgeError:
+            if self._tolerate_error():
+                self.logger.warning('Bridge rejects task {!r} status change to {!r}'.format(task_identifier, status))
+                return
+            raise
 
     def submit_task_error(self, task_identifier, error):
-        self.session.exchange("service/tasks/{}/".format(task_identifier), method='PATCH',
-                              data={"status": "ERROR", "error": error})
+        try:
+            self.session.exchange("service/tasks/{}/".format(task_identifier), method='PATCH',
+                                  data={"status": "ERROR", "error": error})
+        except bridge.BridgeError:
+            if self._tolerate_error():
+                self.logger.warning('Bridge rejects task {!r} status change to FAILED'.format(task_identifier))
+                return
+            raise
+
+    def delete_task(self, task_identifier):
+        try:
+            self.session.exchange("service/tasks/{}/".format(task_identifier), method='DELETE')
+        except bridge.BridgeError:
+            if self._tolerate_error():
+                self.logger.warning('Bridge rejects task {!r} deletion'.format(task_identifier))
+                return
+            raise
 
     def pull_task(self, identifier, archive):
         """
@@ -119,13 +148,19 @@ class Server:
         :param description: Path to the JSON file to send.
         :param archive: Path to the zip archive to send.
         """
-        return self.session.push_archive("service/solution/",
-                                         {
-                                             "task": identifier,
-                                             "description": json.dumps(description, ensure_ascii=False, sort_keys=True,
-                                                                       indent=4)
-                                         },
-                                         archive)
+        try:
+            return self.session.push_archive("service/solution/",
+                                             {
+                                                 "task": identifier,
+                                                 "description": json.dumps(description, ensure_ascii=False,
+                                                                           sort_keys=True, indent=4)
+                                             },
+                                             archive)
+        except bridge.BridgeError:
+            if self._tolerate_error():
+                self.logger.warning('Bridge rejects task {!r} solution archive'.format(identifier))
+                return
+            raise
 
     def submit_nodes(self, nodes, looping=True):
         """
@@ -155,3 +190,11 @@ class Server:
         Log out if necessary.
         """
         self.session.sign_out()
+
+    def _tolerate_error(self):
+        if isinstance(self.session.error, dict):
+            if 'detail' in self.session.error and self.session.error['detail'] == 'Not found.':
+                return True
+            if 'task' in self.session.error and re.match('Invalid pk', self.session.error['task']):
+                return True
+        return False
