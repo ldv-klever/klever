@@ -790,6 +790,9 @@ def collapse_reports(job):
         core.additional_sources = report_with_additional.additional_sources
     core.save()
 
+    # Move coverage to core
+    CoverageArchive.objects.filter(report__root=root, report__verification=False).update(parent=core)
+
     # Remove all non-verification reports except Core
     reports_qs.delete()
 
