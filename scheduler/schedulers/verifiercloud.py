@@ -211,7 +211,11 @@ class VerifierCloud(runners.Runner):
         # Pull the task from the Verification gateway
         archive = os.path.join(task_work_dir, "task.zip")
         self.logger.debug("Pull from the verification gateway archive {}".format(archive))
-        self.server.pull_task(identifier, archive)
+        ret = self.server.pull_task(identifier, archive)
+        if not ret:
+            self.logger.info("Seems that the task data cannot be downloaded because of a respected reason, "
+                             "so we have nothing to do there")
+            os._exit(1)
         self.logger.debug("Unpack archive {} to {}".format(archive, task_data_dir))
         shutil.unpack_archive(archive, task_data_dir)
 

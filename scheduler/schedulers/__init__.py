@@ -435,6 +435,10 @@ class Scheduler:
         """
         if identifier not in self.__jobs:
             job_conf = self.server.pull_job_conf(identifier)
+            if not job_conf:
+                self.server.submit_job_error('Failed to doenload configuration')
+                return
+
             job_conf['configuration']['identifier'] = identifier
             job_conf['configuration']['task resource limits'] = job_conf['tasks']
             # TODO: Get Verifier Cloud login and password
@@ -475,6 +479,10 @@ class Scheduler:
         """
         if identifier not in self.__tasks:
             task_conf = self.server.pull_task_conf(identifier)
+            if not task_conf:
+                self.server.submit_task_error('Failed to doenload configuration')
+                return
+
             self.logger.info("Add new PENDING task {}".format(identifier))
             self.__tasks[identifier] = {
                 "id": identifier,
