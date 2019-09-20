@@ -129,10 +129,7 @@ class Scheduler:
         self.__listening_thread.start()
 
         # Before we proceed lets check all existing jobs
-        for identifier, status in self.server.get_all_jobs():
-            if identifier not in self.__jobs or status != self.__jobs['status']:
-                self.server.submit_job_error(identifier,
-                                             "Scheduler does not track the job, maybe the scheduler was restarted")
+        self._check_jobs_status()
 
         self.logger.info("Scheduler base initialization has been successful")
 
@@ -344,15 +341,7 @@ class Scheduler:
                 # Periodically check for jobs and task that have an unexpected status. This should help notice bugs
                 # related to interaction with Bridge through RabbitMQ
                 if nth_iteration(100):
-                    for identifier, status in self.server.get_all_jobs():
-                        status = self._job_status(status)
-                        if identifier not in self.__jobs and status == 'PENDING':
-                            self.add_new_pending_job(identifier)
-                        elif identifier not in self.__jobs and status == 'PROCESSING':
-                            self.server.submit_job_error(identifier, 'Scheduler terminated or reset and does not '
-                                                                     'track the job {}'.format(identifier))
-                        elif identifier not in self.__jobs and status == 'CANCELLING':
-                            self.server.cancel_job(identifier)
+                    self._check_jobs_status()
 
                 time.sleep(self.__iteration_period)
             except KeyboardInterrupt:
@@ -436,7 +425,7 @@ class Scheduler:
         if identifier not in self.__jobs:
             job_conf = self.server.pull_job_conf(identifier)
             if not job_conf:
-                self.server.submit_job_error('Failed to doenload configuration')
+                self.server.submit_job_error(identifier, 'Failed to doenload configuration')
                 return
 
             job_conf['configuration']['identifier'] = identifier
@@ -480,7 +469,7 @@ class Scheduler:
         if identifier not in self.__tasks:
             task_conf = self.server.pull_task_conf(identifier)
             if not task_conf:
-                self.server.submit_task_error('Failed to doenload configuration')
+                self.server.submit_task_error(identifier, 'Failed to download configuration')
                 return
 
             self.logger.info("Add new PENDING task {}".format(identifier))
@@ -543,15 +532,29 @@ class Scheduler:
                 self.logger.warning('Brdige reports an error on attempt to delete task {}: {!r}'.
                                     format(identifier, err))
 
+    def _check_jobs_status(self):
+        """This functions checks complience of server and scheduler statuses."""
+        for identifier, status in self.server.get_all_jobs():
+            status = self._job_status(status)
+            if identifier not in self.__jobs and status == 'PENDING':
+                self.add_new_pending_job(identifier)
+            elif identifier not in self.__jobs and status == 'PROCESSING':
+                self.server.submit_job_error(identifier, 'Scheduler terminated or reset and does not '
+                                                         'track the job {}'.format(identifier))
+            elif identifier not in self.__jobs and status == 'CANCELLING':
+                self.server.cancel_job(identifier)
+
     def _job_status(self, status):
         job_map = {
+            '0': 'NOT SOLVED',
             '1': 'PENDING',
             '2': 'PROCESSING',
             '3': 'SOLVED',
             '4': 'FAILED',
             '5': 'CORRUPTED',
             '6': 'CANCELLING',
-            '7': 'CANCELLED'
+            '7': 'CANCELLED',
+            '8': 'TERMINATED'
         }
 
         if len(status) == 1:
