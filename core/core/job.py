@@ -616,6 +616,41 @@ class Job(core.components.Component):
                           self.vals['report id'],
                           self.conf['main working directory'])
 
+    def __process_source_files(self):
+        for root, dirs, files in os.walk(self.clade.storage_dir):
+            for file in files:
+                file = os.path.join(root, file)
+                self.mqs['source files'].put(file)
+
+        for i in range(self.workers_num):
+            self.mqs['source files'].put(None)
+
+    def __process_source_file(self):
+        while True:
+            file = self.mqs['source files'].get()
+
+            if not file:
+                return
+
+            # Like in core.vrp.RP#__trim_file_names.
+            storage_file = core.utils.make_relative_path([self.clade.storage_dir], file)
+            tmp = core.utils.make_relative_path(self.common_components_conf['working source trees'], storage_file,
+                                                absolutize=True)
+
+            if tmp != os.path.join(os.path.sep, storage_file):
+                new_file = os.path.join('source files', tmp)
+            else:
+                new_file = storage_file
+
+            new_file = os.path.join('original sources', new_file)
+            os.makedirs(os.path.dirname(new_file), exist_ok=True)
+            shutil.copy(file, new_file)
+
+            cross_refs = CrossRefs(self.common_components_conf, self.logger, self.clade,
+                                   os.path.join(os.path.sep, storage_file), new_file,
+                                   self.common_components_conf['working source trees'], 'source files')
+            cross_refs.get_cross_refs()
+
     def __upload_original_sources(self):
         # Use Clade UUID to distinguish various original sources. It is pretty well since this UUID is uuid.uuid4().
         src_id = self.clade.get_uuid()
@@ -630,28 +665,13 @@ class Job(core.components.Component):
         self.logger.info(
             'Cut off working source trees or build directory from original source file names and convert index data')
         os.makedirs('original sources')
-        for root, dirs, files in os.walk(self.clade.storage_dir):
-            for file in files:
-                file = os.path.join(root, file)
-
-                # Like in core.vrp.RP#__trim_file_names.
-                storage_file = core.utils.make_relative_path([self.clade.storage_dir], file)
-                tmp = core.utils.make_relative_path(self.common_components_conf['working source trees'], storage_file,
-                                                    absolutize=True)
-
-                if tmp != os.path.join(os.path.sep, storage_file):
-                    new_file = os.path.join('source files', tmp)
-                else:
-                    new_file = storage_file
-
-                new_file = os.path.join('original sources', new_file)
-                os.makedirs(os.path.dirname(new_file), exist_ok=True)
-                shutil.copy(file, new_file)
-
-                cross_refs = CrossRefs(self.common_components_conf, self.logger, self.clade,
-                                       os.path.join(os.path.sep, storage_file), new_file,
-                                       self.common_components_conf['working source trees'], 'source files')
-                cross_refs.get_cross_refs()
+        self.mqs['source files'] = multiprocessing.Queue()
+        self.workers_num = core.utils.get_parallel_threads_num(self.logger, self.conf)
+        subcomponents = [('PSFS', self.__process_source_files)]
+        for i in range(self.workers_num):
+            subcomponents.append(('RSF', self.__process_source_file))
+        self.launch_subcomponents(False, *subcomponents)
+        self.mqs['source files'].close()
 
         self.logger.info('Compress original sources')
         core.utils.ArchiveFiles(['original sources']).make_archive('original sources.zip')
