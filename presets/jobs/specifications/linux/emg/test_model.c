@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+#include <verifier/common.h>
+
 int registered;
 int probed;
 int supress;
