@@ -35,7 +35,11 @@ class CrossRefs:
 
     def get_cross_refs(self):
         with open(self.new_file) as fp:
-            src = fp.read()
+            try:
+                src = fp.read()
+            # Source files with non UTF-8 encoding will not be analyzed. There should not be many such source files.
+            except UnicodeDecodeError:
+                return
 
         highlight = Highlight(self.logger, src)
         highlight.highlight()
