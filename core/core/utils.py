@@ -376,8 +376,8 @@ def get_logger(name, conf):
     return logger
 
 
-def get_parallel_threads_num(logger, conf, action):
-    logger.info('Get the number of parallel threads for "{0}"'.format(action))
+def get_parallel_threads_num(logger, conf, action=None):
+    logger.info('Get the number of parallel threads for "{0}"'.format(action if action else "Default"))
 
     if 'CPU Virtual cores' in conf['task resource limits']\
             and conf['task resource limits']['CPU Virtual cores'] > 0:
@@ -385,7 +385,11 @@ def get_parallel_threads_num(logger, conf, action):
     else:
         number_of_cores = conf['number of CPU cores']
 
-    raw_parallel_threads_num = conf['parallelism'][action]
+    # Without specified action the number of parallel threads equals to the number of CPU cores.
+    if action:
+        raw_parallel_threads_num = conf['parallelism'][action]
+    else:
+        raw_parallel_threads_num = 1.0
 
     # In case of integer number it is already the number of parallel threads.
     if isinstance(raw_parallel_threads_num, int):
@@ -405,8 +409,8 @@ def get_parallel_threads_num(logger, conf, action):
             parallel_threads_num, action))
     elif parallel_threads_num > 2 * number_of_cores:
         raise ValueError(
-            'The computed number of parallel threads ("{0}") for "{1}" is greater than the double number of CPUs'.format(
-                parallel_threads_num, action))
+            'The computed number of parallel threads ("{0}") for "{1}" is greater than the double number of CPUs'
+            .format(parallel_threads_num, action))
 
     logger.debug('The number of parallel threads for "{0}" is "{1}"'.format(action, parallel_threads_num))
 

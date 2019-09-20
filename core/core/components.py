@@ -183,7 +183,7 @@ def launch_workers(logger, workers, monitoring_list=None):
     :param logger: Logger object.
     :param workers: List of Component objects.
     :param monitoring_list: List with already started Components that should be checked as other workers and if some of
-                            them fails then we should also termionate the rest workers.
+                            them fails then we should also terminate the rest workers.
     :return: None
     """
     logger.info('Run {} components'.format(len(workers)))
