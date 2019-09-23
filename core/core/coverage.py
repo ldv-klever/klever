@@ -448,4 +448,8 @@ class LCOV:
                                                                   if covered_functions[line] != 0))
                     coverage_info[file_name].append(new_cov)
 
+        if not coverage_info:
+            self.logger.warning(
+                "Resulting code coverage is empty, perhaps, produced code coverage or its parsing is wrong")
+
         return coverage_info
