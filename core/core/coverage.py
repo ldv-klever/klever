@@ -320,8 +320,8 @@ class LCOV:
         if not os.path.isfile(self.coverage_file):
             raise Exception('There is no coverage file {0}'.format(self.coverage_file))
 
-        # Gettings dirs, that should be excluded.
-        excluded_dirs = set()
+        # Get source files that should be excluded.
+        excluded_src_files = set()
         if self.completeness in ('partial', 'lightweight'):
             with open(self.coverage_file, encoding='utf-8') as fp:
                 # Build map, that contains dir as key and list of files in the dir as value
@@ -340,18 +340,18 @@ class LCOV:
                             all_files[path].append(file)
 
                 for path, files in all_files.items():
-                    # Lightweight coverage keeps only source code dirs.
+                    # Lightweight coverage keeps only source files from source directories.
                     if self.completeness == 'lightweight' and \
                             all(os.path.commonpath([s, path]) != s for s in self.source_dirs):
-                        self.logger.debug('Excluded {0}'.format(path))
-                        excluded_dirs.add(path)
+                        self.logger.debug('Exclude source files from "{0}"'.format(path))
+                        for file in files:
+                            excluded_src_files.add(os.path.join(path, file))
                         continue
-                    # Partial coverage keeps only dirs, that contains source files.
+
+                    # Partial coverage keeps only C source files.
                     for file in files:
-                        if file.endswith('.c') or file.endswith('.c.aux'):
-                            break
-                    else:
-                        excluded_dirs.add(path)
+                        if not file.endswith('.c') and not file.endswith('.c.aux'):
+                            excluded_src_files.add(os.path.join(path, file))
 
         # Parsing coverage file
         coverage_info = {}
@@ -371,46 +371,47 @@ class LCOV:
                     covered_functions = {}
                     count_covered_functions = 0
                 elif line.startswith(self.FILENAME_PREFIX):
-                    # Get file name, determine his directory and determine, should we ignore this
+                    # Get file name and determine should we ignore this
                     real_file_name = line[len(self.FILENAME_PREFIX):]
                     real_file_name = os.path.normpath(real_file_name)
                     file_name = os.path.join(os.path.sep,
                                              core.utils.make_relative_path([self.clade.storage_dir], real_file_name))
-                    if os.path.isfile(real_file_name) and \
-                            all(os.path.commonpath((p, file_name)) != p for p in excluded_dirs):
-                        for dest, srcs in dir_map:
-                            for src in (s for s in srcs if os.path.commonpath((s, file_name)) == s):
-                                if dest == 'generated models':
-                                    copy_file_name = os.path.join(self.coverage_info_dir,
-                                                                  os.path.relpath(file_name, src))
-                                    if not os.path.exists(os.path.dirname(copy_file_name)):
-                                        os.makedirs(os.path.dirname(copy_file_name))
-                                    shutil.copy(real_file_name, copy_file_name)
-                                    file_name = copy_file_name
-                                    real_file_name = copy_file_name
-                                    new_file_name = os.path.join(dest, os.path.basename(file_name))
-                                else:
-                                    new_file_name = os.path.join(dest, os.path.relpath(file_name, src))
-                                ignore_file = False
-                                break
-                            else:
-                                continue
-                            break
-                        # This "else" corresponds "for"
-                        else:
-                            # Check other prefixes
-                            new_file_name = core.utils.make_relative_path(self.search_dirs, file_name)
-                            if new_file_name == file_name:
-                                ignore_file = True
-                                continue
-                            else:
-                                ignore_file = False
-                            new_file_name = os.path.join('specifications', new_file_name)
 
-                        self.arcnames[real_file_name] = new_file_name
-                        old_file_name, file_name = real_file_name, new_file_name
-                    else:
+                    if not os.path.isfile(real_file_name) or file_name in excluded_src_files:
                         ignore_file = True
+                        continue
+
+                    for dest, srcs in dir_map:
+                        for src in (s for s in srcs if os.path.commonpath((s, file_name)) == s):
+                            if dest == 'generated models':
+                                copy_file_name = os.path.join(self.coverage_info_dir,
+                                                              os.path.relpath(file_name, src))
+                                if not os.path.exists(os.path.dirname(copy_file_name)):
+                                    os.makedirs(os.path.dirname(copy_file_name))
+                                shutil.copy(real_file_name, copy_file_name)
+                                file_name = copy_file_name
+                                real_file_name = copy_file_name
+                                new_file_name = os.path.join(dest, os.path.basename(file_name))
+                            else:
+                                new_file_name = os.path.join(dest, os.path.relpath(file_name, src))
+                            ignore_file = False
+                            break
+                        else:
+                            continue
+                        break
+                    # This "else" corresponds "for"
+                    else:
+                        # Check other prefixes
+                        new_file_name = core.utils.make_relative_path(self.search_dirs, file_name)
+                        if new_file_name == file_name:
+                            ignore_file = True
+                            continue
+                        else:
+                            ignore_file = False
+                        new_file_name = os.path.join('specifications', new_file_name)
+
+                    self.arcnames[real_file_name] = new_file_name
+                    old_file_name, file_name = real_file_name, new_file_name
                 elif line.startswith(self.LINE_PREFIX):
                     # Coverage of the specified line
                     splts = line[len(self.LINE_PREFIX):].split(',')
