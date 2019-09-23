@@ -220,7 +220,7 @@ class FillCoverageStatistics:
         data = json.loads(res.content.decode('utf8'))
         if data.get('format') != ETV_FORMAT:
             raise BridgeException(_('Sources coverage format is not supported'))
-        if not data.get('coverage statistics'):
+        if 'coverage statistics' not in data:
             raise BridgeException(_('Common coverage file does not contain statistics'))
         return data['coverage statistics'], data['data statistics']
 
