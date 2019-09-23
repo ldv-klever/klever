@@ -749,6 +749,7 @@ def __get_relevant_expressions(process):
                 if len(expressions) == 3:
                     break
 
+    expressions = [re.sub('\s|&', '', e) for e in expressions]
     return expressions
 
 
