@@ -27,7 +27,7 @@
                     "%driver%"
                   ],
                   "peers": [
-                    "bus/bus_scenario/usb_serial_bus_type"
+                    "bus/bus_scenario_usb_serial_bus_type"
                   ]
                 },
                 "success": {
@@ -63,7 +63,7 @@
                     "%driver%"
                   ],
                   "peers": [
-                    "bus/bus_scenario/usb_serial_bus_type"
+                    "bus/bus_scenario_usb_serial_bus_type"
                   ]
                 }
               },
@@ -167,7 +167,7 @@
             }
           },
           "environment processes": {
-            "bus/bus_scenario/usb_serial_bus_type": {
+            "bus/bus_scenario_usb_serial_bus_type": {
               "actions": {
                 "match": {
                   "comment": "Call match callback",
@@ -264,7 +264,7 @@
                   ]
                 }
               },
-              "category": "bys_type",
+              "category": "bus",
               "comment": "Invoke usb serial bus type callbacks. (Relevant to 'usb_serial_bus_type')",
               "declarations": {
                 "environment model": {
@@ -338,7 +338,7 @@
               },
               "process": "(!register).<alloc>.{manage_interface}"
             },
-            "usb_serial/tty_layer/usb_serial_generic_device": {
+            "usb_serial/tty_layer_usb_serial_generic_device": {
               "actions": {
                 "deregister_tty_layer": {
                   "comment": "End up with USB serial tty layer callbacks invocation scenario.",
@@ -351,7 +351,7 @@
                     "%driver%"
                   ],
                   "peers": [
-                    "usb_serial/usb_serial_scenario/usb_serial_generic_device"
+                    "usb_serial/usb_serial_scenario_usb_serial_generic_device"
                   ]
                 },
                 "irq_write_4": {
@@ -485,7 +485,7 @@
                     "%resource_1%"
                   ],
                   "peers": [
-                    "usb_serial/usb_serial_scenario/usb_serial_generic_device"
+                    "usb_serial/usb_serial_scenario_usb_serial_generic_device"
                   ],
                   "replicative": true
                 },
@@ -726,7 +726,7 @@
               },
               "process": "(!register_tty_layer).{tty_layer}"
             },
-            "tty/tty_scenario/serial_ops": {
+            "tty/tty_scenario_serial_ops": {
               "actions": {
                 "call": {
                   "comment": "Call rest tty callbacks.",
@@ -847,7 +847,7 @@
                 "tty_deregister": {
                   "comment": "Finish {} callbacks invocations scenario.",
                   "peers": [
-                    "usb/usb_scenario/usb_serial_driver"
+                    "usb/usb_scenario_usb_serial_driver"
                   ]
                 },
                 "free": {
@@ -1079,7 +1079,7 @@
                 "tty_register": {
                   "comment": "Begin {} callbacks invocations scenario.",
                   "peers": [
-                    "usb/usb_scenario/usb_serial_driver"
+                    "usb/usb_scenario_usb_serial_driver"
                   ],
                   "replicative": true
                 },
@@ -1439,7 +1439,7 @@
               },
               "process": "(!tty_register).<init>.{main}"
             },
-            "usb/usb_scenario/usb_serial_driver": {
+            "usb/usb_scenario_usb_serial_driver": {
               "actions": {
                 "alloc_interface": {
                   "comment": "Allocate memory and initialize new USB interface.",
@@ -1490,7 +1490,7 @@
                   "condition": [],
                   "parameters": [],
                   "peers": [
-                    "tty/tty_scenario/serial_ops"
+                    "tty/tty_scenario_serial_ops"
                   ]
                 },
                 "tty_deregister": {
@@ -1498,7 +1498,7 @@
                   "condition": [],
                   "parameters": [],
                   "peers": [
-                    "tty/tty_scenario/serial_ops"
+                    "tty/tty_scenario_serial_ops"
                   ]
                 },
                 "post_13": {
