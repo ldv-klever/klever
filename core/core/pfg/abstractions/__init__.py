@@ -76,18 +76,18 @@ class Program:
             else:
                 raise ValueError("Cannot create a duplicate fragment {!r}".format(fragment.name))
 
-    def create_fragment_from_link(self, identifier, fragmentation_set_conf, name, sep_nestd=False, add=False,
-                                  cmd_type='CC'):
+    def create_fragment_from_linker_cmds(self, identifier, fragmentation_set_conf, name, sep_nestd=False, add=False,
+                                         cmd_type='CC'):
         """
         Create a fragment from the Link command. It adds to the fragment all files from CL commands that finally provide
         sources to this linking command.
 
-        :param identifier: LD command identifier.
+        :param identifier: Linker command identifier.
         :param fragmentation_set_conf: Dictionary with configuration.
         :param name: Name of the fragment.
         :param sep_nestd: Ignore files that placed in other directories than directory of the out file of the command.
         :param add: Add the fragment to the collection.
-        :param cmd_type: Type of the linking command.
+        :param cmd_type: Type of the compiling command.
         :return: Fragment object.
         """
         cls = self.clade.get_root_cmds_by_type(identifier, cmd_type)
@@ -98,8 +98,8 @@ class Program:
 
             for in_file in desc['in']:
                 if not in_file.endswith('.c'):
-                    self.logger.warning("You should implement more strict filters to reject CL commands with such "
-                                        "input files as {!r}".format(in_file))
+                    self.logger.warning("You should implement more strict filters to reject {!r} commands with such "
+                                        "input files as {!r}".format(cmd_type, in_file))
                     continue
 
                 if not sep_nestd or \
@@ -108,7 +108,7 @@ class Program:
                     files.add(file)
 
         if len(files) == 0:
-            self.logger.warning('Cannot find C files for Link command {!r}'.format(name))
+            self.logger.warning('Cannot find C files for linker command {!r}'.format(name))
 
         fragment = self.create_fragment(name, files, add=add)
 
