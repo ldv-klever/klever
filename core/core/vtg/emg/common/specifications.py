@@ -24,23 +24,23 @@ from core.vtg.utils import find_file_or_dir
 from core.vtg.emg.common import get_necessary_conf_property
 
 
-def get_specs(logger, conf, directory, specification_kinds):
+def get_specs(logger, conf, directories, specification_kinds):
     """
     Get specification kinds descriptions and parse all JSON files separating them on the base of markets in
     specification kinds.
 
-    :param logger:
-    :param conf:
-    :param directory:
-    :param specification_kinds:
+    :param logger: Logger obj.
+    :param conf: Configuration dictionaty.
+    :param directories: List with directories where to find JSON files.
+    :param specification_kinds: Kinds of speciications to search for.
     :return:
     """
-    logger.info('Search for various EMG generators specifications in {}'.format(directory))
+    logger.info('Search for various EMG generators specifications in {}'.format(', '.join(directories)))
     # Find all json files
     file_candidates = set()
-    for root, dirs, files in os.walk(directory):
+    for path in directories:
         # Check only full paths to files
-        json_files = glob.glob('{}/*.json'.format(root))
+        json_files = glob.glob('{}/*.json'.format(path))
         file_candidates.update(json_files)
 
     # Filter specifications
