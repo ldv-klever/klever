@@ -757,9 +757,9 @@ def __set_pretty_id(process):
     if process.category == 'functions models':
         process.pretty_id = "{}/{}".format(process.category, process.name)
     elif len(expressions) > 0:
-        process.pretty_id = "{}/{}/{}".format(process.category, process.name, expressions[0])
+        process.pretty_id = "{}/{}_{}".format(process.category, process.name, expressions[0])
     else:
-        process.pretty_id = "{}/{}/{}".format(process.category, process.name, process.identifier)
+        process.pretty_id = "{}/{}_{}".format(process.category, process.name, process.identifier)
 
 
 def __generate_model_comment(process):

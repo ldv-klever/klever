@@ -77,7 +77,7 @@ class ProcessCollection:
         :return: None
         """
 
-        def get_short_name(name_or_pretty_id):
+        def get_short_name(name_or_pretty_id, desc):
             tokens = name_or_pretty_id.split('/')
             if len(tokens) == 1:
                 c = None
@@ -90,6 +90,10 @@ class ProcessCollection:
                 n = '_'.join(tokens[1:])
             else:
                 ValueError('Cannot use string {!r} as a process name'.format(name))
+
+            if desc.get('category') and c and desc.get('category') != c:
+                raise ValueError('Process {!r} has different category names: {!r} and {!r}'.
+                                 format(n, c, desc['category']))
             return c, n
 
         env_processes = dict()
@@ -98,23 +102,26 @@ class ProcessCollection:
         self.logger.info("Import processes from provided event categories specification")
         if "functions models" in raw:
             self.logger.info("Import processes from 'kernel model'")
-            for name_list in raw["functions models"]:
+            for name_list, process_desc in raw["functions models"].items():
                 names = name_list.split(", ")
                 for name in names:
                     self.logger.debug("Import process which models {!r}".format(name))
-                    cat, short_name = get_short_name(name)
-                    models[short_name] = self._import_process(short_name, raw["functions models"][name_list])
+                    cat, short_name = get_short_name(name, process_desc)
+                    models[short_name] = self._import_process(short_name, process_desc)
 
                     # Set some default values
+                    if cat and cat != "functions models":
+                        raise ValueError("Each function model specification should has category 'functions models' but "
+                                         "process {!r} has name {!r}".format(short_name, cat))
                     models[short_name].category = "functions models"
                     models[short_name].pretty_id = "functions models/{}".format(short_name)
         if "environment processes" in raw:
             self.logger.info("Import processes from 'environment processes'")
-            for name in raw["environment processes"]:
+            for name, process_desc in raw["environment processes"].items():
                 self.logger.debug("Import environment process {!r}".format(name))
 
-                category, pname = get_short_name(name)
-                process = self._import_process(pname, raw["environment processes"][name])
+                category, pname = get_short_name(name, process_desc)
+                process = self._import_process(pname, process_desc)
                 if not process.category:
                     process.category = category
                 if pname in env_processes:
