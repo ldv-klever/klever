@@ -82,9 +82,12 @@ class ProcessCollection:
             if len(tokens) == 1:
                 c = None
                 n = tokens[0]
-            elif len(tokens) in (2, 3):
+            elif len(tokens) == 2:
                 c = tokens[0]
                 n = tokens[1]
+            elif len(tokens) == 3:
+                c = tokens[0]
+                n = '_'.join(tokens[1:])
             else:
                 ValueError('Cannot use string {!r} as a process name'.format(name))
             return c, n
@@ -115,7 +118,10 @@ class ProcessCollection:
                 if not process.category:
                     process.category = category
                 if pname in env_processes:
-                    raise ValueError
+                    raise ValueError("There is already imported process {!r} with identifier {!r} in intermediate "
+                                     "environment model with name {!r} and category {!r} and identifier {!r}".
+                                     format(pname, process.identifier, env_processes[pname].name,
+                                            env_processes[pname].category, env_processes[pname].identifier))
                 env_processes[pname] = process
                 process.pretty_id = "{}/{}".format(process.category, process.name)
         if "main process" in raw and isinstance(raw["main process"], dict):
