@@ -350,7 +350,7 @@ class LCOV:
 
                     # Partial coverage keeps only C source files.
                     for file in files:
-                        if not file.endswith('.c') and not file.endswith('.c.aux'):
+                        if not file.endswith('.c'):
                             excluded_src_files.add(os.path.join(path, file))
 
         # Parsing coverage file
