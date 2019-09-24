@@ -106,6 +106,7 @@ class GetCoverageStatistics:
         self.coverage = self.__get_coverage_object(report, coverage_id)
         self.data = CoverageStatistics.objects.filter(coverage=self.coverage).order_by('id')
         self.data_statistic = coverage_data_statistic(self.coverage)
+        self.with_extra = self.coverage.has_extra
 
     def __get_coverage_object(self, report, coverage_id):
         parents_ids = set(report.get_ancestors(include_self=True).values_list('id', flat=True))
@@ -120,12 +121,14 @@ class LeafCoverageStatistics:
         self.coverage = coverage
         self.data = CoverageStatistics.objects.filter(coverage=self.coverage).order_by('id')
         self.data_statistic = coverage_data_statistic(coverage)
+        self.with_extra = False
 
 
 class CoverageStatisticsBase:
     def __init__(self, coverage_id=None):
         self._coverage_id = coverage_id
         self.with_report_link = False
+        self.has_extra = False
 
     def coverage_queryset(self):
         raise NotImplementedError('Coverage queryset is not implemented')
@@ -143,9 +146,7 @@ class CoverageStatisticsBase:
                 'details_url': construct_url('reports:coverage', cov.report_id, coverage_id=cov.id)
             }
             if self.with_report_link:
-                cov_data['report'] = (
-                    cov.report.identifier, construct_url('reports:component', cov.report_id)
-                )
+                cov_data['report'] = (cov.name, construct_url('reports:component', cov.report_id))
             coverages_list.append(cov_data)
         return coverages_list
 
@@ -158,6 +159,7 @@ class CoverageStatisticsBase:
             cov_obj = cov_qs.first()
         if not cov_obj:
             return None
+        self.has_extra = cov_obj.has_extra
         return CoverageStatistics.objects.filter(coverage=cov_obj).order_by('id')
 
 
@@ -206,11 +208,11 @@ class FillCoverageStatistics:
     file_sep = '/'
 
     def __init__(self, coverage_obj):
+        self.has_extra = False
         self.coverage_obj = coverage_obj
         self._statistics, self._data_stat = self.__get_statistics()
         self.__save_statistics()
         self.__save_data_statistics()
-        self._total = {}
 
     def __get_statistics(self):
         try:
@@ -244,10 +246,17 @@ class FillCoverageStatistics:
                         path='/'.join(curr_path),
                         depth=len(curr_path)
                     )
-                new_objects[curr_path].lines_covered += cov_lines
-                new_objects[curr_path].lines_total += tot_lines
-                new_objects[curr_path].funcs_covered += cov_funcs
-                new_objects[curr_path].funcs_total += tot_func
+                if cov_lines or cov_funcs:
+                    new_objects[curr_path].lines_covered += cov_lines
+                    new_objects[curr_path].lines_total += tot_lines
+                    new_objects[curr_path].funcs_covered += cov_funcs
+                    new_objects[curr_path].funcs_total += tot_func
+                else:
+                    self.has_extra = True
+                new_objects[curr_path].lines_covered_extra += cov_lines
+                new_objects[curr_path].lines_total_extra += tot_lines
+                new_objects[curr_path].funcs_covered_extra += cov_funcs
+                new_objects[curr_path].funcs_total_extra += tot_func
 
         ordered_objects_list = list(sorted(new_objects.values(), key=lambda x: (x.is_leaf, x.name)))
 

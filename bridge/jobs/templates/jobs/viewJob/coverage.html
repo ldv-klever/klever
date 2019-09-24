@@ -20,32 +20,34 @@
 {% if Coverage.coverages %}
     <div class="ui violet segment">
         <div class="ui top left attached violet label">{% trans 'Coverage' %}</div>
-        <table id="coverage_list_container" class="ui compact violet table">
-            <thead>
-                <tr>
-                    <th>{% trans 'Requirement' %}</th>
-                    <th>{% trans 'Line coverage' %}</th>
-                    <th>{% trans 'Function coverage' %}</th>
-                    <th>{% trans 'Details' %}</th>
-                    {% if Coverage.with_report_link %}
-                        <th>{% trans 'Report' %}</th>
-                    {% endif %}
-                </tr>
-            </thead>
-            <tbody>
-                {% for cov in Coverage.coverages %}
+        <div style="overflow: auto;">
+            <table id="coverage_list_container" class="ui compact violet table">
+                <thead>
                     <tr>
-                        <td><a href="{{ cov.url }}" class="item coverage-link">{{ cov.name }}</a></td>
-                        <td>{% if cov.total %}{{ cov.total.lines }}{% else %}-{% endif %}</td>
-                        <td>{% if cov.total %}{{ cov.total.funcs }}{% else %}-{% endif %}</td>
-                        <td><a href="{{ cov.details_url }}">...</a></td>
                         {% if Coverage.with_report_link %}
-                            <td><a href="{{ cov.report.1 }}">{{ cov.report.0 }}</a></td>
+                            <th>{% trans 'Report' %}</th>
                         {% endif %}
+                        <th>{% trans 'Requirement' %}</th>
+                        <th>{% trans 'Line coverage' %}</th>
+                        <th>{% trans 'Function coverage' %}</th>
+                        <th>{% trans 'Details' %}</th>
                     </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    {% for cov in Coverage.coverages %}
+                        <tr>
+                            {% if Coverage.with_report_link %}
+                                <td><a href="{{ cov.report.1 }}">{{ cov.report.0 }}</a></td>
+                            {% endif %}
+                            <td><a href="{{ cov.url }}" class="item coverage-link">{{ cov.name }}</a></td>
+                            <td>{% if cov.total %}{{ cov.total.lines }}{% else %}-{% endif %}</td>
+                            <td>{% if cov.total %}{{ cov.total.funcs }}{% else %}-{% endif %}</td>
+                            <td><a href="{{ cov.details_url }}">...</a></td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
         <div class="ui divider"></div>
         <div id="coverage_table_container"></div>
     </div>

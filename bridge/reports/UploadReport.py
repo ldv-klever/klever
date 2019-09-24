@@ -29,7 +29,8 @@ from rest_framework import exceptions, fields, serializers
 from rest_framework.settings import api_settings
 
 from bridge.vars import (
-    JOB_WEIGHT, JOB_STATUS, ERROR_TRACE_FILE, REPORT_ARCHIVE, SUBJOB_NAME, UNKNOWN_ATTRS_NOT_ASSOCIATE
+    JOB_WEIGHT, JOB_STATUS, ERROR_TRACE_FILE, REPORT_ARCHIVE,
+    SUBJOB_NAME, NAME_ATTR, UNKNOWN_ATTRS_NOT_ASSOCIATE
 )
 from bridge.utils import logger, extract_archive, CheckArchiveError
 
@@ -709,7 +710,10 @@ class UploadReport:
         return add_src.id
 
     def __save_coverage(self, report, archive, identifier=''):
-        carch = CoverageArchive(report=report, identifier=identifier)
+        carch = CoverageArchive(
+            report=report, identifier=identifier,
+            name=self.__get_coverage_name(report)
+        )
         carch.add_coverage(archive, save=True)
         try:
             res = FillCoverageStatistics(carch)
@@ -721,6 +725,7 @@ class UploadReport:
             })
         # Save again after statistics is calculated
         carch.total = res.total_coverage
+        carch.has_extra = res.has_extra
         carch.save()
 
     def __update_root_cache(self, component, **kwargs):
@@ -765,6 +770,12 @@ class UploadReport:
                     newfile.file.save(os.path.basename(rel_path), File(fp), save=True)
                 db_files[rel_path] = newfile.pk
         return db_files
+
+    def __get_coverage_name(self, report):
+        if report.verification:
+            return '-'
+        attr = ReportAttr.objects.filter(report=report, name=NAME_ATTR).only('value').first()
+        return attr.value if attr else '...'
 
 
 def collapse_reports(job):

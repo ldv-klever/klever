@@ -356,7 +356,8 @@ class JobArchiveGenerator:
             coverage_data.append({
                 'report': carch.report.identifier,
                 'identifier': carch.identifier,
-                'archive': carch.archive.name
+                'archive': carch.archive.name,
+                'name': carch.name
             })
             self._arch_files.add((carch.archive.path, carch.archive.name))
         return self.__get_json(coverage_data)
@@ -745,13 +746,15 @@ class UploadReports:
             return
         for coverage in coverage_data:
             instance = CoverageArchive(
-                report_id=self.saved_reports[coverage['report']], identifier=coverage['identifier']
+                report_id=self.saved_reports[coverage['report']],
+                identifier=coverage['identifier'], name=coverage['name']
             )
             with open(self.__full_path(coverage['archive']), mode='rb') as fp:
                 instance.add_coverage(fp, save=False)
             instance.save()
             res = FillCoverageStatistics(instance)
             instance.total = res.total_coverage
+            instance.has_extra = res.has_extra
             instance.save()
 
     def __full_path(self, rel_path):

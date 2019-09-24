@@ -185,9 +185,11 @@ class ReportComponentLeaf(models.Model):
 
 class CoverageArchive(WithFilesMixin, models.Model):
     report = models.ForeignKey(ReportComponent, models.CASCADE, related_name='coverages')
+    name = models.CharField(max_length=128, default='-')
     identifier = models.CharField(max_length=128, default='')
     archive = models.FileField(upload_to=get_coverage_arch_dir)
     total = JSONField(null=True)
+    has_extra = models.BooleanField(default=False)
 
     def add_coverage(self, fp, save=False):
         self.archive.save(REPORT_ARCHIVE['coverage'], File(fp), save=save)
@@ -203,11 +205,17 @@ class CoverageStatistics(models.Model):
     is_leaf = models.BooleanField()
     name = models.CharField(max_length=128)
     path = models.TextField(null=True)
+    depth = models.PositiveIntegerField(default=0)
+
     lines_covered = models.PositiveIntegerField(default=0)
     lines_total = models.PositiveIntegerField(default=0)
     funcs_covered = models.PositiveIntegerField(default=0)
     funcs_total = models.PositiveIntegerField(default=0)
-    depth = models.PositiveIntegerField(default=0)
+
+    lines_covered_extra = models.PositiveIntegerField(default=0)
+    lines_total_extra = models.PositiveIntegerField(default=0)
+    funcs_covered_extra = models.PositiveIntegerField(default=0)
+    funcs_total_extra = models.PositiveIntegerField(default=0)
 
     def calculate_color(self, div):
         color_id = int(div * len(COVERAGE_STAT_COLOR))
@@ -240,6 +248,30 @@ class CoverageStatistics(models.Model):
         if not self.funcs_total:
             return None
         return self.calculate_color(self.funcs_covered / self.funcs_total)
+
+    @property
+    def lines_percentage_extra(self):
+        if not self.lines_total_extra:
+            return '-'
+        return '{}%'.format(round(100 * self.lines_covered_extra / self.lines_total_extra))
+
+    @property
+    def funcs_percentage_extra(self):
+        if not self.funcs_total_extra:
+            return '-'
+        return '{}%'.format(round(100 * self.funcs_covered_extra / self.funcs_total_extra))
+
+    @property
+    def lines_color_extra(self):
+        if not self.lines_total_extra:
+            return None
+        return self.calculate_color(self.lines_covered_extra / self.lines_total_extra)
+
+    @property
+    def funcs_color_extra(self):
+        if not self.funcs_total_extra:
+            return None
+        return self.calculate_color(self.funcs_covered_extra / self.funcs_total_extra)
 
     @property
     def indentation(self):

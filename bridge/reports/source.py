@@ -70,6 +70,15 @@ def coverage_color(curr_cov, max_cov, delta=0):
     return 'rgb(%s, 255, %s)' % (red, blue)
 
 
+class EmptyCoverage:
+    def __init__(self):
+        self.value = {'value': 0, 'color': coverage_color(0, 0)}
+
+    def get(self, line_number):
+        assert line_number
+        return self.value
+
+
 class SourceLine:
     max_ref_links = 7
     ref_to_class = 'SrcRefToLink'
@@ -350,7 +359,7 @@ class GetSource:
     @cached_property
     def _line_coverage(self):
         if not self._coverage or not self._coverage.get('line coverage'):
-            return {}
+            return EmptyCoverage()
         coverage_data = {}
         max_cov = max(self._coverage['line coverage'].values())
         for line_num in self._coverage['line coverage']:

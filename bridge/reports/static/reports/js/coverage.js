@@ -82,6 +82,26 @@ CoverageProcessor.prototype.open_first_file = function() {
 CoverageProcessor.prototype.initialize_actions = function() {
     let instance = this;
 
+    function sortByNumOfCalls(a, b) {
+        let n1 = $(a).data('value'), n2 = $(b).data('value');
+        return (n1 > n2) ? 1 : (n1 < n2) ? -1 : 0;
+    }
+
+    function filterCovered() {
+        return $(this).data('value') > 0
+    }
+
+    function filterUncovered() {
+        return $(this).data('value') === 0
+    }
+
+    function getElemIndex(selected_line, array) {
+        for (let i = 0; i < array.length; i++) {
+            if ($(array.get(i)).is(selected_line)) return i;
+        }
+        return -1;
+    }
+
     // Function coverage buttons
     $('#next_cov_btn').click(function () {
         instance.data_window.empty();
@@ -89,14 +109,10 @@ CoverageProcessor.prototype.initialize_actions = function() {
         let selected_line = instance.source_processor.selected_line, next_span;
         if (selected_line) {
             next_span = selected_line.parent().parent()
-                .nextAll('span').find('.SrcFuncCov[data-value]').filter(function () {
-                    return $(this).data('value') > 0
-                }).first();
+                .nextAll('span').find('.SrcFuncCov[data-value]').filter(filterCovered).first();
         }
         if (!next_span || !next_span.length) {
-            next_span = instance.source_container.find('.SrcFuncCov[data-value]').filter(function () {
-                return $(this).data('value') > 0
-            }).first();
+            next_span = instance.source_container.find('.SrcFuncCov[data-value]').filter(filterCovered).first();
         }
         if (next_span.length) instance.source_processor.select_span(next_span.parent());
     });
@@ -107,14 +123,10 @@ CoverageProcessor.prototype.initialize_actions = function() {
         let selected_line = instance.source_processor.selected_line, prev_span;
         if (selected_line) {
             prev_span = selected_line.parent().parent()
-                .prevAll('span').find('.SrcFuncCov[data-value]').filter(function () {
-                    return $(this).data('value') > 0
-                }).last();
+                .prevAll('span').find('.SrcFuncCov[data-value]').filter(filterCovered).last();
         }
         if (!prev_span || !prev_span.length) {
-            prev_span = instance.source_container.find('.SrcFuncCov[data-value]').filter(function () {
-                return $(this).data('value') > 0
-            }).last();
+            prev_span = instance.source_container.find('.SrcFuncCov[data-value]').filter(filterCovered).last();
         }
         if (prev_span.length) instance.source_processor.select_span(prev_span.parent());
     });
@@ -124,15 +136,11 @@ CoverageProcessor.prototype.initialize_actions = function() {
         if (instance.on_click_callback) instance.on_click_callback();
         let selected_line = instance.source_processor.selected_line, next_span;
         if (selected_line) {
-            next_span = selected_line.parent().parent()
-                .nextAll('span').find('.SrcFuncCov[data-value]').filter(function () {
-                    return $(this).data('value') === 0
-                }).first();
+            next_span = selected_line.parent().parent().nextAll('span')
+                .find('.SrcFuncCov[data-value]').filter(filterUncovered).first();
         }
         if (!next_span || !next_span.length) {
-            next_span = instance.source_container.find('.SrcFuncCov[data-value]').filter(function () {
-                return $(this).data('value') === 0
-            }).first();
+            next_span = instance.source_container.find('.SrcFuncCov[data-value]').filter(filterUncovered).first();
         }
         if (next_span.length) instance.source_processor.select_span(next_span.parent());
     });
@@ -143,35 +151,20 @@ CoverageProcessor.prototype.initialize_actions = function() {
         let selected_line = instance.source_processor.selected_line, prev_span;
         if (selected_line) {
             prev_span = selected_line.parent().parent()
-                .prevAll('span').find('.SrcFuncCov[data-value]').filter(function () {
-                    return $(this).data('value') === 0
-                }).last();
+                .prevAll('span').find('.SrcFuncCov[data-value]').filter(filterUncovered).last();
         }
         if (!prev_span || !prev_span.length) {
-            prev_span = instance.source_container.find('.SrcFuncCov[data-value]').filter(function () {
-                return $(this).data('value') === 0
-            }).last();
+            prev_span = instance.source_container.find('.SrcFuncCov[data-value]').filter(filterUncovered).last();
         }
         if (prev_span.length) instance.source_processor.select_span(prev_span.parent());
     });
-
-    function sortByNumOfCalls(a, b) {
-        let n1 = $(a).data('value'), n2 = $(b).data('value');
-        return (n1 > n2) ? 1 : (n1 < n2) ? -1 : 0;
-    }
-
-    function getElemIndex(selected_line, array) {
-        for (let i = 0; i < array.length; i++) {
-            if ($(array.get(i)).is(selected_line)) return i;
-        }
-        return -1;
-    }
 
     $('#next_srt_btn').click(function () {
         instance.data_window.empty();
         if (instance.on_click_callback) instance.on_click_callback();
         let selected_line = instance.source_processor.selected_line, next_span,
-            sorted_elements = instance.source_container.find('.SrcFuncCov[data-value]').sort(sortByNumOfCalls);
+            sorted_elements = instance.source_container.find('.SrcFuncCov[data-value]')
+                .filter(filterCovered).sort(sortByNumOfCalls);
 
         if (selected_line && sorted_elements.length) {
             let selected_index = getElemIndex(selected_line.prev(), sorted_elements),
@@ -188,7 +181,8 @@ CoverageProcessor.prototype.initialize_actions = function() {
         instance.data_window.empty();
         if (instance.on_click_callback) instance.on_click_callback();
         let selected_line = instance.source_processor.selected_line, prev_span,
-            sorted_elements = instance.source_container.find('.SrcFuncCov[data-value]').sort(sortByNumOfCalls);
+            sorted_elements = instance.source_container.find('.SrcFuncCov[data-value]')
+                .filter(filterCovered).sort(sortByNumOfCalls);
 
         if (selected_line && sorted_elements.length) {
             let selected_index = getElemIndex(selected_line.prev(), sorted_elements),
