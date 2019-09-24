@@ -102,7 +102,7 @@ def configure_controller_and_schedulers(logger, development, deploy_dir, prev_de
         })
 
         native_scheduler_conf['Klever jobs and tasks queue'].update({
-            'user': 'service',
+            'username': 'service',
             'password': 'service'
         })
 
@@ -140,7 +140,7 @@ def configure_controller_and_schedulers(logger, development, deploy_dir, prev_de
             })
 
             verifiercloud_scheduler_conf['Klever jobs and tasks queue'].update({
-                'user': 'service',
+                'username': 'service',
                 'password': 'service'
             })
 
