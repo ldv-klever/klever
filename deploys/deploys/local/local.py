@@ -191,7 +191,7 @@ class Klever:
         try:
             self.logger.info('Delete RabbitMQ user')
             execute_cmd(self.logger, 'rabbitmqctl', 'delete_user', 'service')
-        except subprocess.CalledProcessError:
+        except (FileNotFoundError, subprocess.CalledProcessError):
             pass
 
     def _post_install_or_update(self, is_dev=False):
