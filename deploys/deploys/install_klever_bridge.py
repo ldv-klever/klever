@@ -54,7 +54,7 @@ def _install_klever_bridge(logger):
                 '--superuser')
     execute_cmd(logger, './manage.py', 'createuser', '--username', 'manager', '--password', 'manager', '--role', '2')
     execute_cmd(logger, './manage.py', 'createuser', '--username', 'service', '--password', 'service', '--role', '4')
-    execute_cmd(logger, './manage.py', 'populate', '-all')
+    execute_cmd(logger, './manage.py', 'populate', '--all')
 
 
 def install_klever_bridge_development(logger, deploy_dir):
