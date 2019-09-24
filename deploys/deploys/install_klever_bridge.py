@@ -33,7 +33,15 @@ def _install_klever_bridge(logger):
             'NAME': 'klever',
             'USER': 'klever',
             'PASSWORD': 'klever'
-        }, fp, sort_keys=True, indent=4)
+        }, fp, indent=4)
+
+    with open('bridge/rmq.json', 'w') as fp:
+        json.dump({
+            'username': 'service',
+            'password': 'service',
+            'host': 'localhost',
+            'name': 'Klever jobs and tasks'
+        }, fp, indent=4)
 
     logger.info('Update translations')
     execute_cmd(logger, './manage.py', 'compilemessages')
@@ -42,11 +50,11 @@ def _install_klever_bridge(logger):
     execute_cmd(logger, './manage.py', 'migrate')
 
     logger.info('Populate database')
-    execute_cmd(logger, './manage.py', 'PopulateUsers', '--exist-ok',
-                '--admin', '{"username": "admin", "password": "admin"}',
-                '--manager', '{"username": "manager", "password": "manager"}',
-                '--service', '{"username": "service", "password": "service"}')
-    execute_cmd(logger, './manage.py', 'Population')
+    execute_cmd(logger, './manage.py', 'createuser', '--username', 'admin', '--password', 'admin', '--staff',
+                '--superuser')
+    execute_cmd(logger, './manage.py', 'createuser', '--username', 'manager', '--password', 'manager', '--role', '2')
+    execute_cmd(logger, './manage.py', 'createuser', '--username', 'service', '--password', 'service', '--role', '4')
+    execute_cmd(logger, './manage.py', 'populate', '-all')
 
 
 def install_klever_bridge_development(logger, deploy_dir):

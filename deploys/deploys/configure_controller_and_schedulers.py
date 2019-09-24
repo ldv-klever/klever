@@ -101,6 +101,11 @@ def configure_controller_and_schedulers(logger, development, deploy_dir, prev_de
             'password': 'service'
         })
 
+        native_scheduler_conf['Klever jobs and tasks queue'].update({
+            'user': 'service',
+            'password': 'service'
+        })
+
         native_scheduler_conf['scheduler'].update({
             'disable CPU cores account': True,
             'job client configuration': os.path.abspath('klever-conf/native-scheduler-job-client.json'),
@@ -130,6 +135,11 @@ def configure_controller_and_schedulers(logger, development, deploy_dir, prev_de
                 os.path.join(deploy_dir_abs, 'klever-work/verifiercloud-scheduler')
 
             verifiercloud_scheduler_conf['Klever Bridge'].update({
+                'user': 'service',
+                'password': 'service'
+            })
+
+            verifiercloud_scheduler_conf['Klever jobs and tasks queue'].update({
                 'user': 'service',
                 'password': 'service'
             })

@@ -21,6 +21,7 @@ import json
 import os
 import pwd
 import shutil
+import subprocess
 import sys
 
 from deploys.configure_controller_and_schedulers import configure_controller_and_schedulers, \
@@ -172,10 +173,10 @@ class Klever:
             # Do nothing if user "postgres" does not exist.
             pass
         else:
-            self.logger.info('Drop PostgreSQL database')
+            self.logger.info('Delete PostgreSQL database')
             execute_cmd(self.logger, 'dropdb', '--if-exists', 'klever', username='postgres')
 
-            self.logger.info('Drop PostgreSQL user')
+            self.logger.info('Delete PostgreSQL user')
             execute_cmd(self.logger, 'psql', '-c', "DROP USER IF EXISTS klever", username='postgres')
 
         try:
@@ -184,7 +185,14 @@ class Klever:
             # Do nothing if user "klever" does not exist.
             pass
         else:
+            self.logger.info('Delete user "klever"')
             execute_cmd(self.logger, 'userdel', 'klever')
+
+        try:
+            self.logger.info('Delete RabbitMQ user')
+            execute_cmd(self.logger, 'rabbitmqctl', 'delete_user', 'service')
+        except subprocess.CalledProcessError:
+            pass
 
     def _post_install_or_update(self, is_dev=False):
         # See corresponding notes for deploys.openstack.openstack.OSKleverInstance#_create_or_update.

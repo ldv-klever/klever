@@ -55,6 +55,15 @@ def prepare_env(logger, deploy_dir):
     logger.info('Create PostgreSQL database')
     execute_cmd(logger, 'createdb', '-T', 'template0', '-E', 'utf8', 'klever', username='postgres')
 
+    logger.info('Start and enable RabbitMQ server service')
+    execute_cmd(logger, 'systemctl', 'start', 'rabbitmq-server.service')
+    execute_cmd(logger, 'systemctl', 'enable', 'rabbitmq-server.service')
+
+    logger.info('Create RabbitMQ user')
+    execute_cmd(logger, 'rabbitmqctl', 'add_user', 'service', 'service')
+    execute_cmd(logger, 'rabbitmqctl', 'set_user_tags', 'service', 'administrator')
+    execute_cmd(logger, 'rabbitmqctl', 'set_permissions', '-p', '/', 'service', '.*', '.*', '.*')
+
 
 def main():
     import argparse
