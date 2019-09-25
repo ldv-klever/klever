@@ -7,6 +7,7 @@
       <excludeFolder url="file://$MODULE_DIR$/build bases" />
       <excludeFolder url="file://$MODULE_DIR$/venv" />
     </content>
+    <orderEntry type="jdk" jdkName="Python 3" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="Core" />
     <orderEntry type="module" module-name="Deploys" />
@@ -17,7 +18,7 @@
     <orderEntry type="module" module-name="Bridge" />
   </component>
   <component name="TestRunnerService">
-    <option name="projectConfiguration" value="py.test" />
+    <option name="projectConfiguration" value="pytest" />
     <option name="PROJECT_TEST_RUNNER" value="py.test" />
   </component>
 </module>
