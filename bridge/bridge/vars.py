@@ -324,6 +324,6 @@ MPTT_FIELDS = ('level', 'lft', 'rght', 'tree_id')
 SUBJOB_NAME = 'Subjob'
 
 # Attribute name for coverages table on job page
-NAME_ATTR = 'Name'
+NAME_ATTR = 'Sub-job identifier'
 
 UNKNOWN_ATTRS_NOT_ASSOCIATE = {'Verification object', 'Program fragment'}
