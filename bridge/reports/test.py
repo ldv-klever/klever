@@ -1052,7 +1052,7 @@ class ResponseError(Exception):
 
 class DecideJobs:
     def __init__(self, data, **kwargs):
-        self._base_url = 'http://127.0.0.1:8998'.format(kwargs.get('port') or 8998)
+        self._base_url = 'http://127.0.0.1:{}'.format(kwargs.get('port') or 8998)
         self._data = data
         self._username = kwargs.get('username', 'service')
         self._password = kwargs.get('password', 'service')
@@ -1122,7 +1122,7 @@ class DecideJobs:
             DecideJob(
                 job_uuid, self._username, self._password, self._data,
                 with_full_coverage=self._full_coverage,
-                with_progress=self._progress
+                with_progress=self._progress, base_url=self._base_url
             )
         except Exception as e:
             logger.exception(e)
@@ -1151,14 +1151,14 @@ class DecideJobs:
 class DecideJob:
     def __init__(self,
                  job_uuid, username, password, reports_data,
-                 with_full_coverage=False, with_progress=False):
-        self.base_url = 'http://127.0.0.1:8998'
+                 with_full_coverage=False, with_progress=False, base_url=None):
+        self.base_url = base_url or 'http://127.0.0.1:8998'
         self._job_uuid = job_uuid
         self.session = self.__login(username, password)
 
         self._progress_url = '/service/progress/{}/'.format(self._job_uuid)
         self._upload_url = '/reports/api/upload/{}/'.format(self._job_uuid)
-        self._original_sources = 'test-original-sources-id-4'
+        self._original_sources = '22c00d3c-c129-42fe-91bd-a24b6a67b23e'
 
         self.reports_data = reports_data
         self.full_coverage = with_full_coverage

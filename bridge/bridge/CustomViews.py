@@ -27,7 +27,7 @@ from rest_framework.generics import GenericAPIView
 from rest_framework.renderers import TemplateHTMLRenderer
 from rest_framework.response import Response
 
-from bridge.vars import UNKNOWN_ERROR, VIEW_TYPES
+from bridge.vars import VIEW_TYPES
 from bridge.utils import logger, BridgeException
 
 from users.utils import ViewData

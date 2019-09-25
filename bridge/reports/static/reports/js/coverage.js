@@ -29,10 +29,6 @@ function CoverageProcessor(source_processor, data_window, stat_table_selector, o
 CoverageProcessor.prototype.initialize_statistics_table = function() {
     let instance = this;
 
-    instance.stat_table.find('.tg-expanded').each(function () {
-        instance.stat_table.find(`tr[data-tg-parent="${$(this).data('tg-id')}"]`).show();
-    });
-
     instance.stat_table.on('click', '.tg-expander', function (event, with_shift, rec) {
         let tr = $(this).closest('tr'), tr_id = tr.data('tg-id');
         if (tr.hasClass('tg-expanded')) {
