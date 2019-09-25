@@ -79,8 +79,8 @@ class Program:
     def create_fragment_from_linker_cmds(self, identifier, fragmentation_set_conf, name, sep_nestd=False, add=False,
                                          cmd_type='CC'):
         """
-        Create a fragment from the Link command. It adds to the fragment all files from CL commands that finally provide
-        sources to this linking command.
+        Create a fragment from the linker command. It adds to the fragment all files from commands of specified type
+        that finally provide sources to this linking command.
 
         :param identifier: Linker command identifier.
         :param fragmentation_set_conf: Dictionary with configuration.
@@ -90,11 +90,11 @@ class Program:
         :param cmd_type: Type of the compiling command.
         :return: Fragment object.
         """
-        cls = self.clade.get_root_cmds_by_type(identifier, cmd_type)
+        cmds = self.clade.get_root_cmds_by_type(identifier, cmd_type)
 
         files = set()
-        for cl in cls:
-            desc = self.clade.get_cmd(cl)
+        for cmd in cmds:
+            desc = self.clade.get_cmd(cmd)
 
             for in_file in desc['in']:
                 if not in_file.endswith('.c'):
