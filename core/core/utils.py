@@ -412,7 +412,8 @@ def get_parallel_threads_num(logger, conf, action=None):
             'The computed number of parallel threads ("{0}") for "{1}" is greater than the double number of CPUs'
             .format(parallel_threads_num, action))
 
-    logger.debug('The number of parallel threads for "{0}" is "{1}"'.format(action, parallel_threads_num))
+    logger.debug('The number of parallel threads for "{0}" is "{1}"'
+                 .format(action if action else "Default", parallel_threads_num))
 
     return parallel_threads_num
 
