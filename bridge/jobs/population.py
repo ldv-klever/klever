@@ -32,10 +32,17 @@ JOB_SETTINGS_FILE = 'settings.json'
 
 
 class JobsPopulation:
-    jobs_dir = os.path.join(settings.BASE_DIR, 'jobs', 'presets')
-
     def __init__(self, user=None):
         self._user = user
+
+    @cached_property
+    def jobs_dir(self):
+        presets = os.path.join(settings.BASE_DIR, 'jobs', 'presets')
+        if os.path.isdir(presets):
+            return presets
+        with open(presets, mode='r', encoding='utf-8') as fp:
+            presets_path = fp.read()
+        return os.path.abspath(os.path.join(settings.BASE_DIR, 'jobs', presets_path))
 
     @cached_property
     def common_files(self):

@@ -38,6 +38,15 @@ from marks.UnknownUtils import ConnectUnknownMark
 from caches.utils import UpdateCachesOnMarkPopulate
 
 
+def get_presets_dir():
+    presets_path = os.path.join(settings.BASE_DIR, 'marks', 'presets')
+    if os.path.isdir(presets_path):
+        return presets_path
+    with open(presets_path, mode='r', encoding='utf-8') as fp:
+        presets_path = fp.read()
+    return os.path.abspath(os.path.join(settings.BASE_DIR, 'marks', presets_path))
+
+
 class PopulateSafeMarks:
     def __init__(self, user=None):
         self.created = 0
@@ -55,7 +64,7 @@ class PopulateSafeMarks:
         return tags_tree, tags_names
 
     def __populate(self):
-        presets_dir = os.path.join(settings.BASE_DIR, 'marks', 'presets', 'safes')
+        presets_dir = os.path.join(get_presets_dir(), 'safes')
         serializer_fields = ('is_modifiable', 'verdict', 'mark_version')
 
         for mark_filename in os.listdir(presets_dir):
@@ -106,7 +115,7 @@ class PopulateUnsafeMarks:
         return tags_tree, tags_names
 
     def __populate(self):
-        presets_dir = os.path.join(settings.BASE_DIR, 'marks', 'presets', 'unsafes')
+        presets_dir = os.path.join(get_presets_dir(), 'unsafes')
         serializer_fields = ('is_modifiable', 'verdict', 'mark_version', 'function')
 
         for mark_filename in os.listdir(presets_dir):
@@ -151,7 +160,7 @@ class PopulateUnknownMarks:
         self.__populate()
 
     def __populate(self):
-        presets_dir = os.path.join(settings.BASE_DIR, 'marks', 'presets', 'unknowns')
+        presets_dir = os.path.join(get_presets_dir(), 'unknowns')
         serializer_fields = (
             'component', 'is_modifiable', 'mark_version',
             'function', 'is_regexp', 'problem_pattern', 'link'
@@ -202,7 +211,7 @@ class PopulateSafeTags:
 
     def __create_tags(self):
         db_tags = dict((t.name, t) for t in SafeTag.objects.all())
-        preset_tags = os.path.join(settings.BASE_DIR, 'marks', 'presets', 'tags', 'safe.json')
+        preset_tags = os.path.join(get_presets_dir(), 'tags', 'safe.json')
         with open(preset_tags, mode='r', encoding='utf-8') as fp:
             list_of_tags = json.load(fp)
             assert isinstance(list_of_tags, list), 'Not a list'
@@ -234,7 +243,7 @@ class PopulateUnsafeTags:
 
     def __create_tags(self):
         db_tags = dict((t.name, t) for t in UnsafeTag.objects.all())
-        preset_tags = os.path.join(settings.BASE_DIR, 'marks', 'presets', 'tags', 'unsafe.json')
+        preset_tags = os.path.join(get_presets_dir(), 'tags', 'unsafe.json')
         with open(preset_tags, mode='r', encoding='utf-8') as fp:
             list_of_tags = json.load(fp)
             assert isinstance(list_of_tags, list), 'Not a list'
