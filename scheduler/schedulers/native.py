@@ -467,7 +467,7 @@ class Native(runners.Speculative):
                 if os.path.isfile(errors_file):
                     with open(errors_file, mode='r', encoding="utf8") as f:
                         errors = f.readlines()
-                    if result == 0 and self.conf["scheduler"].get("ignore BenchExec warnings"):
+                    if self.conf["scheduler"].get("ignore BenchExec warnings"):
                         for msg in list(errors):
                             match = re.search(r'WARNING - (.*)', msg)
                             if match and (self.conf["scheduler"]["ignore BenchExec warnings"] is True or
