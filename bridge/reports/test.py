@@ -1052,7 +1052,7 @@ class ResponseError(Exception):
 
 class DecideJobs:
     def __init__(self, data, **kwargs):
-        self._base_url = 'http://127.0.0.1:8998'
+        self._base_url = 'http://127.0.0.1:8998'.format(kwargs.get('port') or 8998)
         self._data = data
         self._username = kwargs.get('username', 'service')
         self._password = kwargs.get('password', 'service')

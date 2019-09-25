@@ -38,6 +38,7 @@ class Command(BaseCommand):
             help='Decision with global coverages?'
         )
         parser.add_argument('--queue', dest='queue_name', help='Queue name. Default is from settings.')
+        parser.add_argument('--port', dest='port', help='API port. Default is 8998.')
 
     def handle(self, *args, **options):
         data_id = int(options.pop('data'))
