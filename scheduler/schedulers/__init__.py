@@ -316,10 +316,12 @@ class Scheduler:
                     if len(tasks_to_start) > 0 or len(jobs_to_start) > 0:
                         self.logger.info("Going to start {} new tasks and {} jobs".
                                          format(len(tasks_to_start), len(jobs_to_start)))
-                        self.logger.info("There are {} pending jobs in total and {} are solving".format(
-                            len(pending_tasks), len({t for t in self.__tasks if self.__tasks[t]['status'] == 'PROCESSING'})))
-                        self.logger.info("There are {} pending in total and {} are solving".format(
-                            len(pending_jobs), len({j for j in self.__jobs if self.__jobs[j]['status'] == 'PROCESSING'})))
+                        self.logger.info("There are {} pending and {} solving jobs".format(
+                            len(pending_jobs),
+                            len({j for j in self.__jobs if self.__jobs[j]['status'] == 'PROCESSING'})))
+                        self.logger.info("There are {} pending and {} solving tasks".format(
+                            len(pending_tasks),
+                            len({t for t in self.__tasks if self.__tasks[t]['status'] == 'PROCESSING'})))
 
                         for job_id in jobs_to_start:
                             self.runner.solve_job(job_id, self.__jobs[job_id])
