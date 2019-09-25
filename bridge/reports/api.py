@@ -85,6 +85,7 @@ class ReportsComparisonDataView(LoggedCallMixin, RetrieveAPIView):
 
 
 class HasOriginalSources(LoggedCallMixin, APIView):
+    unparallel = ['OriginalSources']
     permission_classes = (ServicePermission,)
 
     def get(self, request):
@@ -96,6 +97,7 @@ class HasOriginalSources(LoggedCallMixin, APIView):
 
 
 class UploadOriginalSourcesView(LoggedCallMixin, CreateAPIView):
+    unparallel = ['OriginalSources']
     queryset = OriginalSources
     serializer_class = OriginalSourcesSerializer
     permission_classes = (ServicePermission,)

@@ -747,7 +747,7 @@ class UploadReports:
         for coverage in coverage_data:
             instance = CoverageArchive(
                 report_id=self.saved_reports[coverage['report']],
-                identifier=coverage['identifier'], name=coverage['name']
+                identifier=coverage['identifier'], name=coverage.get('name', '...')
             )
             with open(self.__full_path(coverage['archive']), mode='rb') as fp:
                 instance.add_coverage(fp, save=False)
