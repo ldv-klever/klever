@@ -47,7 +47,7 @@ def add_to_coverage(merged_coverage_info, coverage_info):
                         merged_coverage_info[file_name]['covered function names'].append(name)
 
 
-def convert_coverage(merged_coverage_info, coverage_dir, pretty):
+def convert_coverage(merged_coverage_info, coverage_dir, pretty, src_files_info=None):
     # Convert combined coverage to the required format.
     os.mkdir(coverage_dir)
 
@@ -58,6 +58,7 @@ def convert_coverage(merged_coverage_info, coverage_dir, pretty):
         'coverage statistics': dict(),
         'data statistics': dict()
     }
+
     for file_name in list(merged_coverage_info.keys()):
         raw_file_coverage = merged_coverage_info[file_name]
 
@@ -83,6 +84,34 @@ def convert_coverage(merged_coverage_info, coverage_dir, pretty):
             # Total number of considered functions.
             len(raw_file_coverage['covered functions'])
         ]
+
+    if src_files_info:
+        # Remove data for covered source files. It is out of interest, but we did not know these files earlier.
+        for file_name in coverage_stats['coverage statistics']:
+            del src_files_info[file_name]
+
+        for file_name, info in src_files_info.items():
+            # TODO: it would be better to make this depending on code coverage completeness. But for this here we will need to know completeness and source directories in addition.
+            if not file_name.endswith('.c'):
+                continue
+
+            # Add the total number of lines and functions for uncovered source files.
+            coverage_stats['coverage statistics'][file_name] = [
+                0,
+                info[0],
+                0,
+                len(info[1])
+            ]
+
+            # Add places where uncovered functions are defined.
+            file_coverage = {
+                'format': coverage_format_version,
+                'function coverage': {str(line): 0 for line in info[1]}
+            }
+
+            os.makedirs(os.path.join(coverage_dir, os.path.dirname(file_name)), exist_ok=True)
+            with open(os.path.join(coverage_dir, file_name + '.cov.json'), 'w') as fp:
+                core.utils.json_dump(file_coverage, fp, pretty)
 
     with open(os.path.join(coverage_dir, 'coverage.json'), 'w') as fp:
         core.utils.json_dump(coverage_stats, fp, pretty)
@@ -173,8 +202,15 @@ class JCR(core.components.Component):
                             del(coverage_info[file_name_to_remove])
 
                         total_coverage_dir = os.path.join(self.__get_total_cov_dir(sub_job_id, requirement), 'report')
-                        convert_coverage(coverage_info, total_coverage_dir, self.conf['keep intermediate files'])
+
+                        with open(os.path.join('job' if sub_job_id == '-' else sub_job_id,
+                                               'original sources basic information.json')) as fp:
+                            src_files_info = json.load(fp)
+
+                        convert_coverage(coverage_info, total_coverage_dir, self.conf['keep intermediate files'],
+                                         src_files_info)
                         total_coverage_dirs.append(total_coverage_dir)
+
                         total_coverages[requirement] = core.utils.ArchiveFiles([total_coverage_dir])
                         self.__save_data(total_coverage_infos, sub_job_id, requirement)
                         self.__clean_data(total_coverage_infos, sub_job_id, requirement)

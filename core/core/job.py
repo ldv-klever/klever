@@ -516,6 +516,7 @@ class Job(core.components.Component):
         self.__set_build_base()
         self.clade = Clade(self.common_components_conf['build base'])
         self.__retrieve_working_src_trees()
+        self.__get_original_sources_basic_info()
         self.__upload_original_sources()
 
         if self.common_components_conf['keep intermediate files']:
@@ -650,6 +651,42 @@ class Job(core.components.Component):
                                    os.path.join(os.path.sep, storage_file), new_file,
                                    self.common_components_conf['working source trees'], 'source files')
             cross_refs.get_cross_refs()
+
+    def __get_original_sources_basic_info(self):
+        self.logger.info('Get information on original sources for following visualization of uncovered source files')
+
+        # For each source file we need to know the total number of lines and places where functions are defined.
+        src_files_info = dict()
+        for root, dirs, files in os.walk(self.clade.storage_dir):
+            for file in files:
+                file = os.path.join(root, file)
+                storage_file = os.path.join(os.path.sep, core.utils.make_relative_path([self.clade.storage_dir], file))
+                src_file = os.path.join('source files',
+                                   core.utils.make_relative_path(self.common_components_conf['working source trees'],
+                                                                 storage_file, absolutize=True))
+
+                # Skip non-source files.
+                if src_file == os.path.join(os.path.sep, storage_file):
+                    continue
+
+                src_files_info[src_file] = list()
+
+                # Store source file size.
+                src_files_info[src_file].append(self.clade.get_file_size(storage_file))
+
+                # Store source file function definition lines.
+                func_def_lines = list()
+                funcs = self.clade.get_functions_by_file([storage_file], False)
+
+                if funcs:
+                    for func_name, func_info in list(funcs.values())[0].items():
+                        func_def_lines.append(int(func_info['line']))
+
+                src_files_info[src_file].append(sorted(func_def_lines))
+
+        # Dump obtain information (huge data!) to load it when reporting total code coverage if everything will be okay.
+        with open('original sources basic information.json', 'w') as fp:
+            core.utils.json_dump(src_files_info, fp, self.conf['keep intermediate files'])
 
     def __upload_original_sources(self):
         # Use Clade UUID to distinguish various original sources. It is pretty well since this UUID is uuid.uuid4().
