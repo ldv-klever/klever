@@ -33,21 +33,7 @@ class Abstract:
         self.conf = conf
         self.fragmentation_set_conf = fragmentation_set_conf
         self.program = program
-        self._groups = dict()
-
-    def add_group(self, name, fragments):
-        """
-        Add a group of fragments to the collection of final fragments intended for verification. This group is
-        considered everywhere as a single monolithic fragment that consists of several groups of files. But at this
-        point, the fragment is composed of several smaller Fragment object. This is done to keep dependencies between
-        files in terms of such final fragment. For instance at environment model generation this can be required.
-
-        :param name: A new name of the fragment to be created from given Fragment objects.
-        :param fragments: Fragment objects.
-        """
-        if name in self._groups:
-            raise ValueError('Cannot add a group with the same name {!r}'.format(name))
-        self._groups[name] = fragments
+        self.__groups = dict()
 
     def get_groups(self):
         """
@@ -55,10 +41,18 @@ class Abstract:
 
         :return: Dict {Fragment name -> set of Fragment objects.}
         """
-        self._make_groups()
-        return self._groups
+        if not self.__groups:
+            for frag in self.program.target_fragments:
+                for name, fragment, fragments in self._generate_groups_for_target(frag):
+                    if name in self.__groups:
+                        raise ValueError('Cannot add a group with the same name {!r}'.format(name))
+                    self.__groups[name] = (fragment, fragments)
+        return self.__groups
 
-    def _make_groups(self):
-        """Collect dependencies and create final fragments for each target Fragment object."""
-        for frag in self.program.target_fragments:
-            self.add_group(frag.name, {frag})
+    def _generate_groups_for_target(self, fragment):
+        """
+        Simple stub to return the only fragment.
+
+        :param fragment: Fragment object.
+        """
+        return [(fragment.name, fragment, {fragment})]

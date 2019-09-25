@@ -53,53 +53,48 @@ class Coverage(Abstract):
                                for p, v in self._func_coverage.get('statistics').items()}
         self._func_coverage.pop('overall')
 
-    def _make_groups(self):
+    def _generate_groups_for_target(self, fragment):
         """
         For each target fragment search for fragments that call functions from files of this target fragment. But find
         a minimal set and only that fragments that have these calls in the covered  code.
+
+        :param fragment: Fragment object.
         """
-        # Get target fragments
         cg = self.program.clade.callgraph
-        for fragment in self.program.target_fragments:
-            self.logger.info("Find fragments that call functions from the target fragment {!r}".format(fragment.name))
-            # Search for export functions
-            ranking = dict()
-            function_map = dict()
-            for path in fragment.files:
-                for func in path.export_functions:
-                    # Find fragments that call this function
-                    relevant = self._find_fragments(fragment, path, func, cg)
-                    for rel in relevant:
-                        ranking.setdefault(rel.name, 0)
-                        ranking[rel.name] += 1
-                        function_map.setdefault(func, set())
-                        function_map[func].update(relevant)
+        self.logger.info("Find fragments that call functions from the target fragment {!r}".format(fragment.name))
+        # Search for export functions
+        ranking = dict()
+        function_map = dict()
+        for path in fragment.files:
+            for func in path.export_functions:
+                # Find fragments that call this function
+                relevant = self._find_fragments(fragment, path, func, cg)
+                for rel in relevant:
+                    ranking.setdefault(rel.name, 0)
+                    ranking[rel.name] += 1
+                    function_map.setdefault(func, set())
+                    function_map[func].update(relevant)
 
-            # Use a greedy algorythm. Go from functions that most rarely used and add fragments that most oftenly used
-            # Turn into account white and black lists
-            added = set()
-            for func in (f for f in sorted(function_map.keys(), key=lambda x: len(function_map[x]))
-                         if len(function_map[f])):
-                if function_map[func].intersection(added):
-                    # Already added
-                    continue
-                else:
-                    possible = {f.name for f in function_map[func]}.intersection(self._white_list)
-                    if not possible:
-                        # Get rest
-                        possible = {f.name for f in function_map[func]}.difference(self._black_list)
-                    if possible:
-                        added.add(sorted((f for f in function_map[func] if f.name in possible),
-                                         key=lambda x: ranking[x.name], reverse=True)[0])
+        # Use a greedy algorythm. Go from functions that most rarely used and add fragments that most oftenly used
+        # Turn into account white and black lists
+        added = set()
+        for func in (f for f in sorted(function_map.keys(), key=lambda x: len(function_map[x]))
+                     if len(function_map[f])):
+            if function_map[func].intersection(added):
+                # Already added
+                continue
+            else:
+                possible = {f.name for f in function_map[func]}.intersection(self._white_list)
+                if not possible:
+                    # Get rest
+                    possible = {f.name for f in function_map[func]}.difference(self._black_list)
+                if possible:
+                    added.add(sorted((f for f in function_map[func] if f.name in possible),
+                                     key=lambda x: ranking[x.name], reverse=True)[0])
 
-            # Now generate pairs
-            for frag in added:
-                name = "{}:{}".format(fragment.name, frag.name)
-                self.add_group(name, {fragment, frag})
-            self.add_group(fragment.name, {fragment})
-
-        # Free data
-        self._func_coverage = None
+        # Now generate pairs
+        return [("{}:{}".format(fragment.name, frag.name), fragment, {fragment, frag}) for frag in added] + \
+               [(fragment.name, fragment, {fragment})]
 
     def _find_fragments(self, fragment, path, func, cg):
         """

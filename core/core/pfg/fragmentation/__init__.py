@@ -234,7 +234,8 @@ class FragmentationAlgorythm:
         :return: Attributes and dict a list of data files.
         """
         data = dict()
-        for name, frags in grps.items():
+        for name, main_and_frgs in grps.items():
+            main, frags = main_and_frgs
             data[name] = {f.name: sorted(make_relative_path(self.source_paths, l.name) for l in f.files) for f in frags}
 
         with open('agregations description.json', 'w', encoding='utf8') as fp:
@@ -289,16 +290,21 @@ class FragmentationAlgorythm:
         :return: The name of the created file.
         """
         # Determine fragment name
+        main_fragment, fragments = grp
         self.logger.info('Generate fragment description {!r}'.format(name))
-        pf_desc = dict()
-        pf_desc['id'] = name
-        pf_desc['grps'] = list()
-        pf_desc['deps'] = dict()
-        for frag in grp:
+
+        pf_desc = {
+            'id': name,
+            'grps': list(),
+            'deps': dict(),
+            'targets': sorted([str(f) for f in main_fragment.target_files])
+        }
+
+        for frag in fragments:
             pf_desc['grps'].append({
                 'id': frag.name,
                 'CCs': frag.ccs,
-                'files': sorted(make_relative_path(self.source_paths, f.name) for f in frag.files)
+                'files': sorted(make_relative_path(self.source_paths, str(f)) for f in frag.files)
             })
             pf_desc['deps'][frag.name] = [succ.name for succ in program.get_fragment_successors(frag) if succ in grp]
         self.logger.debug('Program fragment dependencies are {}'.format(pf_desc['deps']))

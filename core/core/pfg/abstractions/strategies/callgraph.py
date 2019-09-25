@@ -21,19 +21,28 @@ from core.pfg.abstractions.strategies import Abstract
 class Callgraph(Abstract):
     """This strategy gets a target fragment and adds recursievely fragments which are used by this one fragment."""
 
-    def _make_groups(self):
+    def __init__(self, logger, conf, fragmentation_set_conf, program):
+        """
+        Simple strategy to add dependencies to each target fragment.
+
+        :param logger: Logger object.
+        :param conf: Configuration dictionary.
+        :param fragmentation_set_conf: Fragmentation set dictionary.
+        :param program: Program object.
+        """
+        super().__init__(logger, conf, fragmentation_set_conf, program)
+        self._max_deep = self.fragmentation_set_conf.get('dependencies recursive depth', 3)
+        self._max_size = self.fragmentation_set_conf.get('maximum files')
+
+    def _generate_groups_for_target(self, fragment):
         """
         Just return target fragments as aggregations consisting of fragments that are required by a target one
         collecting required fragments for given depth.
 
-        :return: {GroupName: Set of Fragments}.
+        :param fragment: Fragment object.
         """
-        # First we need fragments that are completely fullfilled
-        max_deep = self.fragmentation_set_conf.get('dependencies recursive depth', 3)
-        max_size = self.fragmentation_set_conf.get('maximum files')
-        for fragment in self.program.target_fragments:
-            name = fragment.name
-            files = self.program.collect_dependencies(fragment.files, depth=max_deep, max=max_size)
-            fragments = self.program.get_fragments_with_files(files)
-            fragments.add(fragment)
-            self.add_group(name, fragments)
+        name = fragment.name
+        files = self.program.collect_dependencies(fragment.files, depth=self._max_deep, max=self._max_size)
+        fragments = self.program.get_fragments_with_files(files)
+        fragments.add(fragment)
+        return [(name, fragment, fragments)]

@@ -78,6 +78,11 @@ class Fragment:
         """It is true if any file of the fragment is marked as intended for verification."""
         return any(f.target for f in self.files)
 
+    @property
+    def target_files(self):
+        """Return all file objects marked as taargets."""
+        return [f for f in self.files if f.target]
+
     @target.setter
     def target(self, flag):
         """Set all files of the fragment as target and intended for verification."""
