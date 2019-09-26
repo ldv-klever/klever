@@ -301,12 +301,15 @@ class FragmentationAlgorythm:
         }
 
         for frag in fragments:
-            pf_desc['grps'].append({
-                'id': frag.name,
-                'CCs': frag.ccs,
-                'files': sorted(make_relative_path(self.source_paths, str(f)) for f in frag.files)
-            })
-            pf_desc['deps'][frag.name] = [succ.name for succ in program.get_fragment_successors(frag) if succ in grp]
+            pf_desc['grps'].append(
+                {
+                    'id': frag.name,
+                    'CCs': frag.ccs,
+                    'files': sorted(make_relative_path(self.source_paths, str(f)) for f in frag.files)
+                }
+            )
+            pf_desc['deps'][frag.name] = [succ.name for succ in program.get_fragment_successors(frag)
+                                          if succ in fragments]
         self.logger.debug('Program fragment dependencies are {}'.format(pf_desc['deps']))
 
         pf_desc_file = os.path.join(self.pf_dir, pf_desc['id'] + '.json')

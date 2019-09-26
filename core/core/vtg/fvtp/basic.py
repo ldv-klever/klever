@@ -171,7 +171,8 @@ class Basic:
             ElementTree.SubElement(tasks, "include").text = file
             return [file]
         else:
-            c_files = common.trimmed_files(self.logger, self.conf, self.abstract_task_desc)
+            c_files = [os.path.join(self.conf['main working directory'], extra_c_file['C file']) for
+                       extra_c_file in self.abstract_task_desc['extra C files'] if 'C file' in extra_c_file]
             ElementTree.SubElement(tasks, "include").text = c_files[0]
             for file in c_files[1:]:
                 ElementTree.SubElement(tasks, "append").text = file

@@ -18,6 +18,7 @@
 import os
 import re
 
+from core.utils import make_relative_path
 from core.pfg.fragmentation import FragmentationAlgorythm
 
 
@@ -42,19 +43,21 @@ class Busybox(FragmentationAlgorythm):
         libbb = set()
         applets = dict()
         for file in program.files:
-            if os.path.commonpath(['libbb', file.name]):
+            rel_path = make_relative_path(self.source_paths, str(file))
+            if os.path.commonpath(['libbb', rel_path]):
                 libbb.add(file)
             else:
                 for func in file.export_functions:
                     if main_func.match(func):
-                        path, name = os.path.split(file.name)
+                        path, name = os.path.split(rel_path)
                         name = os.path.splitext(name)[0]
                         applets[name] = {file}
                         if self._incorporate_libbb:
                             dfiles = program.collect_dependencies({file})
                         else:
                             dfiles = program.collect_dependencies(
-                                {file}, filter_func=lambda x: not os.path.commonpath(['libbb', x.name]))
+                                {file}, filter_func=lambda x:
+                                    not os.path.commonpath(['libbb', make_relative_path(self.source_paths, x.name)]))
                         applets[name].update(dfiles)
 
         # Create fragments for found applets and libbb
