@@ -54,7 +54,11 @@
             "libbb/getopt32.c",
             "libbb/appletlib.c",
             "libbb/verror_msg.c",
-            "libbb/perror_msg.c"
+            "libbb/perror_msg.c",
+            "libbb/xatonum_template.c",
+            "libbb/xfuncs_printf.c",
+            "libbb/xatonum.c",
+            "shell/*"
           ],
           "add to all fragments": [
             "libbb/wfopen.c",
