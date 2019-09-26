@@ -461,21 +461,15 @@ class GetSource:
 
     @cached_property
     def legend(self):
-        if not self._coverage:
-            return {
-                'lines': self.__get_legend(0, 'lines', 5, True),
-                'funcs': self.__get_legend(0, 'funcs', 5, True),
-            }
-        legend_data = {}
-        if self._coverage.get('line coverage'):
-            legend_data['lines'] = self.__get_legend(
-                max(self._coverage['line coverage'].values()), 'lines', 5, True
-            )
-        if self._coverage.get('function coverage'):
-            legend_data['funcs'] = self.__get_legend(
-                max(self._coverage['function coverage'].values()), 'funcs', 5, True
-            )
-        return legend_data
+        max_lines_cov = max_funcs_cov = 0
+        if self._coverage and self._coverage.get('line coverage'):
+            max_lines_cov = max(self._coverage['line coverage'].values())
+        if self._coverage and self._coverage.get('function coverage'):
+            max_funcs_cov = max(self._coverage['function coverage'].values())
+        return {
+            'lines': self.__get_legend(max_lines_cov, 'lines', 5, True),
+            'funcs': self.__get_legend(max_funcs_cov, 'funcs', 5, True),
+        }
 
     def __get_legend(self, max_cov, leg_type, number=5, with_zero=False):
         if max_cov == 0:
