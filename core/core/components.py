@@ -140,7 +140,7 @@ def all_child_resources():
 
 def count_consumed_resources(logger, start_time, include_child_resources=False, child_resources=None):
     """
-    Count resources (wall time, CPU time and maximum memory size) consumed by the process without its childred.
+    Count resources (wall time, CPU time and maximum memory size) consumed by the process without its children.
     Note that launching under PyCharm gives its maximum memory size rather than the process one.
     :return: resources.
     """
