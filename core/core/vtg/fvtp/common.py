@@ -57,7 +57,7 @@ def merge_files(logger, conf, abstract_task_desc):
             '-ocode', 'cil.i',
         ] + \
         [
-               os.path.join(conf['main working directory'], extra_c_file['C file'])
+            os.path.join(conf['main working directory'], extra_c_file['C file'])
             for extra_c_file in abstract_task_desc['extra C files']
             if 'C file' in extra_c_file
            ]
@@ -168,6 +168,10 @@ def get_verifier_opts_and_safe_prps(logger, resource_limits, conf):
             last = sets.pop()
         new = sets.pop()
         last = merge(last, new)
+
+    # Then get verification profile directly from user if it is set
+    if conf.get('verification profile'):
+        last = merge(last, conf.get('verification profile'))
 
     # Process given options according to ldv patterns
     matcher = re.compile("\%ldv\:([\w|\s]+)\:(\d+\.\d+)\:(\w+)\%")
