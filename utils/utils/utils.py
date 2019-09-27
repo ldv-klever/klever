@@ -72,7 +72,7 @@ class Session:
         return host
 
     def __request(self, path_url, method='GET', **kwargs):
-        url = self._host + path_url
+        url = self._host + '/' + path_url
         resp = self.session.request(method, url, **kwargs)
 
         if resp.status_code >= 300:
@@ -113,7 +113,7 @@ class Session:
     def __get_job_id(self, job):
         if len(job) == 0:
             raise ValueError('The job identifier or its name is not set')
-        resp = self.__request('/jobs/get_job_field/', 'POST', data={'job': job, 'field': 'id'})
+        resp = self.__request('jobs/get_job_field/', 'POST', data={'job': job, 'field': 'id'})
         return resp.json()['id']
 
     def download_job(self, job, archive):
@@ -122,9 +122,9 @@ class Session:
     def upload_job(self, parent, archive):
         if len(parent) == 0:
             raise ValueError('The parent identifier or its name is not set')
-        resp = self.__request('/jobs/get_job_field/', 'POST', data={'job': parent, 'field': 'identifier'})
+        resp = self.__request('jobs/get_job_field/', 'POST', data={'job': parent, 'field': 'identifier'})
         resp = self.__request(
-            '/jobs/upload_jobs/{0}/'.format(resp.json()['identifier']), 'POST',
+            'jobs/upload_jobs/{0}/'.format(resp.json()['identifier']), 'POST',
             files=[('file', open(archive, 'rb', buffering=0))], stream=True
         )
         if resp.headers['content-type'] == 'application/json' and 'errors' in resp.json():
@@ -134,17 +134,17 @@ class Session:
 
     def upload_reports(self, job, archive):
         self.__request(
-            '/jobs/upload_reports/{0}/'.format(self.__get_job_id(job)), 'POST',
+            'jobs/upload_reports/{0}/'.format(self.__get_job_id(job)), 'POST',
             files=[('archive', open(archive, 'rb', buffering=0))], stream=True
         )
 
     def job_progress(self, job, filename):
-        resp = self.__request('/jobs/get_job_progress_json/{0}/'.format(self.__get_job_id(job)))
+        resp = self.__request('jobs/get_job_progress_json/{0}/'.format(self.__get_job_id(job)))
         with open(filename, mode='w', encoding='utf8') as fp:
             fp.write(resp.json()['data'])
 
     def decision_results(self, job, filename):
-        resp = self.__request('/jobs/decision_results_json/{0}/'.format(self.__get_job_id(job)))
+        resp = self.__request('jobs/decision_results_json/{0}/'.format(self.__get_job_id(job)))
         with open(filename, mode='w', encoding='utf8') as fp:
             fp.write(resp.json()['data'])
 
@@ -152,18 +152,18 @@ class Session:
         request_data = {'parent': self.__get_job_id(job)}
         if isinstance(name, str) and len(name) > 0:
             request_data['name'] = name
-        resp = self.__request('/jobs/api/duplicate/', 'POST', data=request_data)
+        resp = self.__request('jobs/api/duplicate/', 'POST', data=request_data)
         return resp.json()['identifier']
 
     def copy_job_version(self, job):
-        self.__request('/jobs/api/duplicate/{0}/'.format(self.__get_job_id(job)), 'PATCH')
+        self.__request('jobs/api/duplicate/{0}/'.format(self.__get_job_id(job)), 'PATCH')
 
     def replace_files(self, job, new_files):
         job_id = self.__get_job_id(job)
         for f_name in new_files:
             with open(new_files[f_name], mode='rb', buffering=0) as fp:
                 self.__request(
-                    '/jobs/api/replace-job-file/', 'POST',
+                    'jobs/api/replace-job-file/', 'POST',
                     data={'name': f_name, 'job': job_id},
                     files=[('file', fp)], stream=True
                 )
@@ -172,11 +172,11 @@ class Session:
         job_id = self.__get_job_id(job)
         if data_fp:
             self.__request(
-                '/jobs/run_decision/{0}/'.format(job_id), 'POST', data={'mode': 'file_conf'},
+                'jobs/run_decision/{0}/'.format(job_id), 'POST', data={'mode': 'file_conf'},
                 files=[('file_conf', data_fp)], stream=True
             )
         else:
-            self.__request('/jobs/run_decision/{0}/'.format(job_id), 'POST', data={'mode': 'fast'})
+            self.__request('jobs/run_decision/{0}/'.format(job_id), 'POST', data={'mode': 'fast'})
 
     def download_all_marks(self, archive):
         return self.__download_archive('/marks/api/download-all/', archive)
