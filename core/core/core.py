@@ -315,8 +315,15 @@ class Reporter(core.components.Component):
                         break
 
                     reports_and_report_file_archives.append(report_and_report_file_archives)
+
+                    # Do not send more than 10 reports at once. Otherwise different strange issues may appear im Core
+                    # and Bridge.
+                    if len(reports_and_report_file_archives) == 10:
+                        break
                 except queue.Empty:
                     break
+
+            self.logger.info(len(reports_and_report_file_archives))
 
             if reports_and_report_file_archives:
                 for report_and_report_file_archives in reports_and_report_file_archives:
