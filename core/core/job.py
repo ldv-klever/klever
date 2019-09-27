@@ -661,9 +661,11 @@ class Job(core.components.Component):
             for file in files:
                 file = os.path.join(root, file)
                 storage_file = os.path.join(os.path.sep, core.utils.make_relative_path([self.clade.storage_dir], file))
-                src_file = os.path.join('source files',
-                                   core.utils.make_relative_path(self.common_components_conf['working source trees'],
-                                                                 storage_file, absolutize=True))
+                src_file = os.path.join(
+                    'source files',
+                    core.utils.make_relative_path(self.common_components_conf['working source trees'],
+                                                  storage_file, absolutize=True)
+                )
 
                 # Skip non-source files.
                 if src_file == os.path.join(os.path.sep, storage_file):
@@ -714,7 +716,13 @@ class Job(core.components.Component):
         core.utils.ArchiveFiles(['original sources']).make_archive('original sources.zip')
 
         self.logger.info('Upload original sources')
-        session.upload_original_sources(src_id, 'original sources.zip')
+        try:
+            session.upload_original_sources(src_id, 'original sources.zip')
+        # Do not fail if there are already original sources. There may be complex data races because of checking and
+        # uploading original sources archive are not atomic.
+        except core.session.BridgeError:
+            if "original sources with this identifier already exists." not in list(session.error.values())[0]:
+                raise
 
         self.__refer_original_sources(src_id)
 
