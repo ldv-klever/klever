@@ -323,8 +323,6 @@ class Reporter(core.components.Component):
                 except queue.Empty:
                     break
 
-            self.logger.info(len(reports_and_report_file_archives))
-
             if reports_and_report_file_archives:
                 for report_and_report_file_archives in reports_and_report_file_archives:
                     report_file_archives = report_and_report_file_archives.get('report file archives')
