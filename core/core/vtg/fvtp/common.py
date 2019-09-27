@@ -170,8 +170,8 @@ def get_verifier_opts_and_safe_prps(logger, resource_limits, conf):
         last = merge(last, new)
 
     # Then get verification profile directly from user if it is set
-    if conf.get('verification profile'):
-        last = merge(last, conf.get('verification profile'))
+    if conf.get('verifier profile description'):
+        last = merge(last, conf['verifier profile description'])
 
     # Process given options according to ldv patterns
     matcher = re.compile("\%ldv\:([\w|\s]+)\:(\d+\.\d+)\:(\w+)\%")
