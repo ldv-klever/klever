@@ -151,7 +151,8 @@ class SSH:
                 instance_archive = os.path.basename(fp.name)
                 with tarfile.open(fileobj=fp, mode='w:gz') as TarFile:
                     TarFile.add(host_path, instance_path,
-                                exclude=lambda path: any(path.endswith(ignore_path) for ignore_path in ignore or []))
+                                filter=lambda info: info if not (ignore and any(info.name.endswith(i) for i in ignore)
+                                                                 and info.isfile()) else None)
                 fp.flush()
                 fp.seek(0)
                 self.sftp.putfo(fp, instance_archive)
