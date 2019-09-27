@@ -22,7 +22,7 @@ parser = get_args_parser('Download ZIP archive of all expert marks.')
 parser.add_argument('-o', '--out', help='ZIP archive name.')
 args = parser.parse_args()
 
-with Session(args) as session:
-    arch = session.download_all_marks(args.out)
+session = Session(args)
+arch = session.download_all_marks(args.out)
 
 print('ZIP archive with all expert marks was successfully downloaded to "{0}"'.format(arch))

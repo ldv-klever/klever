@@ -23,8 +23,8 @@ parser.add_argument('job', help='Verification job identifier or its name.')
 parser.add_argument('-o', '--out', help='JSON file name.', default='progress.json')
 args = parser.parse_args()
 
-with Session(args) as session:
-    session.job_progress(args.job, args.out)
+session = Session(args)
+session.job_progress(args.job, args.out)
 
 print('JSON file with solution progress of verification job "{0}" was successfully downloaded to "{1}"'
       .format(args.job, args.out))

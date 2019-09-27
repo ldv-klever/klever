@@ -31,22 +31,22 @@ parser.add_argument('--rundata', type=open,
                     help='JSON file name. Set it if you would like to start solution with specific settings.')
 args = parser.parse_args()
 
-with Session(args) as session:
-    job_id_or_name = args.job
-    if args.copy:
-        job_id_or_name = session.copy_job(args.job)
-    elif args.replacement:
-        session.copy_job_version(args.job)
+session = Session(args)
+job_id_or_name = args.job
+if args.copy:
+    job_id_or_name = session.copy_job(args.job)
+elif args.replacement:
+    session.copy_job_version(args.job)
 
-    # Replace files before start
-    if args.replacement:
-        if os.path.exists(args.replacement):
-            with open(args.replacement, mode='r', encoding='utf8') as fp:
-                new_files = json.load(fp)
-        else:
-            new_files = json.loads(args.replacement)
-        session.replace_files(job_id_or_name, new_files)
+# Replace files before start
+if args.replacement:
+    if os.path.exists(args.replacement):
+        with open(args.replacement, mode='r', encoding='utf8') as fp:
+            new_files = json.load(fp)
+    else:
+        new_files = json.loads(args.replacement)
+    session.replace_files(job_id_or_name, new_files)
 
-    session.start_job_decision(job_id_or_name, args.rundata)
+session.start_job_decision(job_id_or_name, args.rundata)
 
 print('Solution of verification job "{0}" was successfully started'.format(job_id_or_name))

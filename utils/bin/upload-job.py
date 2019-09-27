@@ -28,8 +28,8 @@ args = parser.parse_args()
 if not os.path.exists(args.archive):
     raise FileNotFoundError('ZIP archive of verification job "{0}" does not exist'.format(args.archive))
 
-with Session(args) as session:
-    session.upload_job(args.parent, args.archive)
+session = Session(args)
+session.upload_job(args.parent, args.archive)
 
 print('ZIP archive of verification job "{0}" was successfully uploaded for parent verification job "{1}"'
       .format(args.archive, args.parent))

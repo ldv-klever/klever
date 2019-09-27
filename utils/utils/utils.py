@@ -50,15 +50,15 @@ class Session:
         if self._password is None:
             raise ValueError("Password wasn't got")
 
-    def __enter__(self):
-        self.session = requests.Session()
+        self.__signin()
 
-        # Sign in
+    def __signin(self):
+        self.session = requests.Session()
         resp = self.__request('service/get_token/', 'POST', data={
-            'username': self._username, 'password': self._password
+            'username': self._username,
+            'password': self._password
         })
         self.session.headers.update({'Authorization': 'Token {}'.format(resp.json()['token'])})
-        return self
 
     def __get_host(self, host):
         self.__is_not_used()

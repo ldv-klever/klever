@@ -23,7 +23,7 @@ parser.add_argument('job', help='Verification job identifier or its name.')
 parser.add_argument('-o', '--out', help='ZIP archive name.')
 args = parser.parse_args()
 
-with Session(args) as session:
-    arch = session.download_job(args.job, args.out)
+session = Session(args)
+arch = session.download_job(args.job, args.out)
 
 print('ZIP archive with verification job "{0}" was successfully downloaded to "{1}"'.format(args.job, arch))
