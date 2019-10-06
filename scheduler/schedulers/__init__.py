@@ -556,7 +556,8 @@ class Scheduler:
             '5': 'CORRUPTED',
             '6': 'CANCELLING',
             '7': 'CANCELLED',
-            '8': 'TERMINATED'
+            '8': 'TERMINATED',
+            '9': 'REFINED'
         }
 
         if len(status) == 1:
