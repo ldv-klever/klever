@@ -311,7 +311,7 @@
         "Weaver",
         {
           "FVTP": {
-            "merge source files": false,
+            "merge source files": true,
             "verifier profile": "CPAchecker BAM BusyBox",
             "verifier": {
               "name": "CPAchecker",
