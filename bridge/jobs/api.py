@@ -383,7 +383,8 @@ class GetJobFieldView(LoggedCallMixin, APIView):
             raise exceptions.ValidationError(_('The job does not have attribute %(field)s') % {
                 'field': request.data['field']
             })
-        return {request.data['field']: getattr(job, request.data['field'])}
+        value = getattr(job, request.data['field'])
+        return Response({request.data['field']: str(value)})
 
 
 class DoJobHasChildrenView(LoggedCallMixin, RetrieveAPIView):

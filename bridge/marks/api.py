@@ -319,7 +319,7 @@ class CheckUnknownFuncView(LoggedCallMixin, APIView):
         res = CheckUnknownFunction(
             get_object_or_404(ReportUnknown, pk=report_id),
             request.data['function'],
-            request.data['problem_pattern'],
+            request.data['pattern'],
             request.data['is_regex']
         )
         return Response(data={
@@ -485,7 +485,7 @@ class InlineEditForm(LoggedCallMixin, TemplateAPIRetrieveView):
 class InlineCreateForm(LoggedCallMixin, TemplateAPIRetrieveView):
     permission_classes = (IsAuthenticated,)
     template_name = 'marks/InlineMarkForm.html'
-    lookup_field = 'mark_id'
+    lookup_url_kwarg = 'r_id'
     mtype = None
 
     def get_queryset(self):
