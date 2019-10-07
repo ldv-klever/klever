@@ -95,6 +95,9 @@
 .SrcHlKT {
     color: #B00040
 }
+.SrcHlLNF {
+    color: #666666
+}
 .SrcHlLNI {
     color: #666666
 }
@@ -105,6 +108,9 @@
     color: #666666
 }
 .SrcHlLS {
+    color: #BA2121
+}
+.SrcHlLSA {
     color: #BA2121
 }
 .SrcHlLSC {

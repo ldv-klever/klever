@@ -18,7 +18,7 @@
 import re
 from pygments import lex
 from pygments.lexers import CLexer
-from pygments.token import Comment, Keyword, Literal, Name, Operator, Punctuation, Text
+from pygments.token import Comment, Error, Keyword, Literal, Name, Operator, Punctuation, Text
 
 
 class Highlight:
@@ -121,10 +121,12 @@ class Highlight:
                 Keyword,
                 Keyword.Type,
                 Keyword.Reserved,
+                Literal.Number.Float,
                 Literal.Number.Hex,
                 Literal.Number.Integer,
                 Literal.Number.Oct,
                 Literal.String,
+                Literal.String.Affix,
                 Literal.String.Char,
                 Literal.String.Escape,
                 Name,
@@ -179,11 +181,14 @@ class Highlight:
                         self.cur_start_offset += 1
 
                 continue
+            # We can not do anything with lexer failures.
+            elif token_type is Error:
+                # Update current start offset for following tokens.
+                self.cur_start_offset += token_len
+                continue
             else:
                 self.logger.warning("Does not support token \"{0}\" of type \"{1}\"".format(token_text, token_type))
                 continue
-
-            raise RuntimeError("Token processing should not pass here")
 
     # In core.highlight.Highlight#highlight we assume that highlighted entity locations do not overlap. But there may
     # be other more important sources for highlighting, e.g. for cross referencing, so, we may need to remove overlaps.
