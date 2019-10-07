@@ -618,37 +618,31 @@ class Job(core.components.Component):
                           self.conf['main working directory'])
 
     def __process_source_files(self):
-        for root, dirs, files in os.walk(self.clade.storage_dir):
-            for file in files:
-                file = os.path.join(root, file)
-                self.mqs['source files'].put(file)
+        for file_name in self.clade.src_info:
+            self.mqs['file names'].put(file_name)
 
         for i in range(self.workers_num):
-            self.mqs['source files'].put(None)
+            self.mqs['file names'].put(None)
 
     def __process_source_file(self):
         while True:
-            file = self.mqs['source files'].get()
+            file_name = self.mqs['file names'].get()
 
-            if not file:
+            if not file_name:
                 return
 
-            # Like in core.vrp.RP#__trim_file_names.
-            storage_file = core.utils.make_relative_path([self.clade.storage_dir], file)
-            tmp = core.utils.make_relative_path(self.common_components_conf['working source trees'], storage_file,
-                                                absolutize=True)
+            src_file_name = core.utils.make_relative_path(self.common_components_conf['working source trees'],
+                                                          file_name)
 
-            if tmp != os.path.join(os.path.sep, storage_file):
-                new_file = os.path.join('source files', tmp)
-            else:
-                new_file = storage_file
+            if src_file_name != file_name:
+                src_file_name = os.path.join('source files', src_file_name)
 
-            new_file = os.path.join('original sources', new_file)
-            os.makedirs(os.path.dirname(new_file), exist_ok=True)
-            shutil.copy(file, new_file)
+            new_file_name = os.path.join('original sources', src_file_name.lstrip(os.path.sep))
+            os.makedirs(os.path.dirname(new_file_name), exist_ok=True)
+            shutil.copy(self.clade.get_storage_path(file_name), new_file_name)
 
             cross_refs = CrossRefs(self.common_components_conf, self.logger, self.clade,
-                                   os.path.join(os.path.sep, storage_file), new_file,
+                                   file_name, new_file_name,
                                    self.common_components_conf['working source trees'], 'source files')
             cross_refs.get_cross_refs()
 
@@ -658,18 +652,18 @@ class Job(core.components.Component):
         # For each source file we need to know the total number of lines and places where functions are defined.
         src_files_info = dict()
         for file_name, file_size in self.clade.src_info.items():
-            src_file = core.utils.make_relative_path(self.common_components_conf['working source trees'], file_name)
+            src_file_name = core.utils.make_relative_path(self.common_components_conf['working source trees'], file_name)
 
             # Skip non-source files.
-            if src_file == file_name:
+            if src_file_name == file_name:
                 continue
 
-            src_file = os.path.join('source files', src_file)
+            src_file_name = os.path.join('source files', src_file_name)
 
-            src_files_info[src_file] = list()
+            src_files_info[src_file_name] = list()
 
             # Store source file size.
-            src_files_info[src_file].append(file_size['loc'])
+            src_files_info[src_file_name].append(file_size['loc'])
 
             # Store source file function definition lines.
             func_def_lines = list()
@@ -679,7 +673,7 @@ class Job(core.components.Component):
                 for func_name, func_info in list(funcs.values())[0].items():
                     func_def_lines.append(int(func_info['line']))
 
-            src_files_info[src_file].append(sorted(func_def_lines))
+            src_files_info[src_file_name].append(sorted(func_def_lines))
 
         # Dump obtain information (huge data!) to load it when reporting total code coverage if everything will be okay.
         with open('original sources basic information.json', 'w') as fp:
@@ -699,13 +693,13 @@ class Job(core.components.Component):
         self.logger.info(
             'Cut off working source trees or build directory from original source file names and convert index data')
         os.makedirs('original sources')
-        self.mqs['source files'] = multiprocessing.Queue()
+        self.mqs['file names'] = multiprocessing.Queue()
         self.workers_num = core.utils.get_parallel_threads_num(self.logger, self.conf)
         subcomponents = [('PSFS', self.__process_source_files)]
         for i in range(self.workers_num):
             subcomponents.append(('RSF', self.__process_source_file))
         self.launch_subcomponents(False, *subcomponents)
-        self.mqs['source files'].close()
+        self.mqs['file names'].close()
 
         self.logger.info('Compress original sources')
         core.utils.ArchiveFiles(['original sources']).make_archive('original sources.zip')

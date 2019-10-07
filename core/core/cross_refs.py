@@ -24,17 +24,17 @@ from core.highlight import Highlight
 class CrossRefs:
     INDEX_DATA_FORMAT_VERSION = 1
 
-    def __init__(self, conf, logger, clade, storage_file, new_file, common_dirs, common_prefix=''):
+    def __init__(self, conf, logger, clade, file_name, new_file_name, common_dirs, common_prefix=''):
         self.conf = conf
         self.logger = logger
         self.clade = clade
-        self.storage_file = storage_file
-        self.new_file = new_file
+        self.file_name = file_name
+        self.new_file_name = new_file_name
         self.common_dirs = common_dirs
         self.common_prefix = common_prefix
 
     def get_cross_refs(self):
-        with open(self.new_file) as fp:
+        with open(self.new_file_name) as fp:
             try:
                 src = fp.read()
             # Source files with non UTF-8 encoding will not be analyzed. There should not be many such source files.
@@ -51,7 +51,7 @@ class CrossRefs:
             'def_func': [],
             'def_macro': []
         }
-        clade_refs_to = self.clade.get_ref_to([self.storage_file])
+        clade_refs_to = self.clade.get_ref_to([self.file_name])
         if clade_refs_to:
             raw_refs_to.update(list(clade_refs_to.values())[0])
 
@@ -59,7 +59,7 @@ class CrossRefs:
             'call': [],
             'expand': []
         }
-        clade_refs_from = self.clade.get_ref_from([self.storage_file])
+        clade_refs_from = self.clade.get_ref_from([self.file_name])
         if clade_refs_from:
             raw_refs_from.update(list(clade_refs_from.values())[0])
 
@@ -72,13 +72,13 @@ class CrossRefs:
             for raw_ref_from in raw_refs_from[ref_from_kind]:
                 ref_src_files.add(raw_ref_from[1][0])
         # Remove considered file from list - there is a special reference to it (Null).
-        if self.storage_file in ref_src_files:
-            ref_src_files.remove(self.storage_file)
+        if self.file_name in ref_src_files:
+            ref_src_files.remove(self.file_name)
         ref_src_files = sorted(list(ref_src_files))
 
         # This dictionary will allow to get indexes in source files list easily.
         ref_src_files_dict = {ref_src_file: i for i, ref_src_file in enumerate(ref_src_files)}
-        ref_src_files_dict[self.storage_file] = None
+        ref_src_files_dict[self.file_name] = None
 
         # Convert references to.
         refs_to_func_defs = []
@@ -196,5 +196,5 @@ class CrossRefs:
             'highlight': highlight.highlights
         }
 
-        with open(os.path.join(self.new_file + '.idx.json'), 'w') as fp:
+        with open(os.path.join(self.new_file_name + '.idx.json'), 'w') as fp:
             core.utils.json_dump(cross_ref, fp, self.conf['keep intermediate files'])
