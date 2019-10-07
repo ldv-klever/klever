@@ -657,34 +657,29 @@ class Job(core.components.Component):
 
         # For each source file we need to know the total number of lines and places where functions are defined.
         src_files_info = dict()
-        for root, dirs, files in os.walk(self.clade.storage_dir):
-            for file in files:
-                file = os.path.join(root, file)
-                storage_file = os.path.join(os.path.sep, core.utils.make_relative_path([self.clade.storage_dir], file))
-                src_file = os.path.join(
-                    'source files',
-                    core.utils.make_relative_path(self.common_components_conf['working source trees'],
-                                                  storage_file, absolutize=True)
-                )
+        for file_name, file_size in self.clade.src_info.items():
+            src_file = core.utils.make_relative_path(self.common_components_conf['working source trees'], file_name)
 
-                # Skip non-source files.
-                if src_file == os.path.join(os.path.sep, storage_file):
-                    continue
+            # Skip non-source files.
+            if src_file == file_name:
+                continue
 
-                src_files_info[src_file] = list()
+            src_file = os.path.join('source files', src_file)
 
-                # Store source file size.
-                src_files_info[src_file].append(self.clade.get_file_size(storage_file))
+            src_files_info[src_file] = list()
 
-                # Store source file function definition lines.
-                func_def_lines = list()
-                funcs = self.clade.get_functions_by_file([storage_file], False)
+            # Store source file size.
+            src_files_info[src_file].append(file_size['loc'])
 
-                if funcs:
-                    for func_name, func_info in list(funcs.values())[0].items():
-                        func_def_lines.append(int(func_info['line']))
+            # Store source file function definition lines.
+            func_def_lines = list()
+            funcs = self.clade.get_functions_by_file([file_name], False)
 
-                src_files_info[src_file].append(sorted(func_def_lines))
+            if funcs:
+                for func_name, func_info in list(funcs.values())[0].items():
+                    func_def_lines.append(int(func_info['line']))
+
+            src_files_info[src_file].append(sorted(func_def_lines))
 
         # Dump obtain information (huge data!) to load it when reporting total code coverage if everything will be okay.
         with open('original sources basic information.json', 'w') as fp:
