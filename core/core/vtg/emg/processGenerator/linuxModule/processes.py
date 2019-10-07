@@ -237,10 +237,8 @@ class ProcessModel:
                 else:
                     action.comment = callback_comment
 
-        # todo: Assign category for each new process not even for that which have callbacks (issue #6564)
         new.identifier = len(self.model_processes) + len(self.event_processes) + 1
-        self.logger.info("Finally add process {} to the model".
-                         format(process.name))
+        self.logger.info("Finally add process {!r} to the model".format(process.name))
 
         self.logger.debug("Set interfaces for given labels")
         if label_map:
@@ -347,12 +345,11 @@ class ProcessModel:
         }
 
         # Collect native categories and interfaces
-        nc = set()
+        nc = self.__find_native_categories(process)
         ni = set()
         for label in (process.labels[name] for name in process.labels.keys()):
             for intf in label.interfaces:
                 intf_category, short_identifier = intf.split(".")
-                nc.add(intf_category)
 
                 if (intf in interfaces.interfaces or interfaces.is_removed_intf(intf)) and intf_category == category:
                     ni.add(intf)
@@ -548,6 +545,14 @@ class ProcessModel:
 
         return label_map
 
+    def __find_native_categories(self, process):
+        nc = set()
+        for label in (process.labels[name] for name in process.labels.keys()):
+            for intf in label.interfaces:
+                intf_category, short_identifier = intf.split(".")
+                nc.add(intf_category)
+        return nc
+
     def __establish_signal_peers(self, interfaces, process):
         for candidate in [self.__abstr_event_processes[name] for name in self.__abstr_event_processes.keys()]:
             peers = process.get_available_peers(candidate)
@@ -563,10 +568,21 @@ class ProcessModel:
 
             # Try to add process
             if peers and len(peered_processes) == 0:
-                self.logger.debug("Establish signal references between process {} with category {} and process {} with "
-                                  "category {}".
+                self.logger.debug("Establish signal references between process {!r} with category {!r} and process {!r}"
+                                  " with category {!r}".
                                   format(process.name, process.category, candidate.name, candidate.category))
-                new = self.__add_process(interfaces, candidate, process.category, model=False, label_map=None,
+                categories = self.__find_native_categories(candidate)
+                if len(categories) > 1:
+                    raise ValueError('Process {!r} is a possible peer for {!r} but it allows adding for several '
+                                     'possible categories {} which is too many'.
+                                     format(candidate.name, process.name, ', '.join(categories)))
+                elif len(categories) == 1:
+                    category = list(categories)[0]
+                    label_map = self.__match_labels(interfaces, candidate, category)
+                elif len(categories) == 0:
+                    category = process.category
+                    label_map = self.__match_labels(interfaces, candidate, category)
+                new = self.__add_process(interfaces, candidate, category, model=False, label_map=label_map,
                                          peer=process)
 
                 # Check if the category has uncalled callbacks and the process has unmatched labels
@@ -623,7 +639,7 @@ class ProcessModel:
                 else:
                     return None
 
-        self.logger.debug("Resolve string '{}' as '{}'".format(string, str(matched)))
+        self.logger.debug("Resolve string '{}' as '{}'".format(string, ', '.join([m.identifier for m in matched])))
         return matched
 
     def __resolve_accesses(self, interfaces):
