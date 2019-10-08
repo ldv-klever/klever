@@ -61,8 +61,6 @@ class Session:
         self.session.headers.update({'Authorization': 'Token {}'.format(resp.json()['token'])})
 
     def __get_host(self, host):
-        self.__is_not_used()
-
         if not isinstance(host, str) or len(host) == 0:
             raise ValueError('Server host must be set')
         if not host.startswith('http://'):
@@ -116,35 +114,34 @@ class Session:
         resp = self.__request('jobs/get_job_field/', 'POST', data={'job': job, 'field': 'id'})
         return resp.json()['id']
 
+    def __get_job_uuid(self, job):
+        if len(job) == 0:
+            raise ValueError('The job identifier or its name is not set')
+        resp = self.__request('jobs/get_job_field/', 'POST', data={'job': job, 'field': 'identifier'})
+        return resp.json()['identifier']
+
     def download_job(self, job, archive):
         return self.__download_archive('/jobs/downloadjob/{0}/'.format(self.__get_job_id(job)), archive)
 
     def upload_job(self, parent, archive):
         if len(parent) == 0:
             raise ValueError('The parent identifier or its name is not set')
-        resp = self.__request('jobs/get_job_field/', 'POST', data={'job': parent, 'field': 'identifier'})
+        job_identifier = self.__get_job_uuid(parent)
         resp = self.__request(
-            'jobs/upload_jobs/{0}/'.format(resp.json()['identifier']), 'POST',
+            'jobs/api/upload_jobs/', 'POST', data={'parent': job_identifier},
             files=[('file', open(archive, 'rb', buffering=0))], stream=True
         )
-        if resp.headers['content-type'] == 'application/json' and 'errors' in resp.json():
-            error = resp.json()['errors'][0]
-            resp.close()
-            raise BridgeError('Got error "{0}" while uploading job'.format(error))
-
-    def upload_reports(self, job, archive):
-        self.__request(
-            'jobs/upload_reports/{0}/'.format(self.__get_job_id(job)), 'POST',
-            files=[('archive', open(archive, 'rb', buffering=0))], stream=True
-        )
+        error = str(resp.json())
+        resp.close()
+        raise BridgeError('Got error "{0}" while uploading job'.format(error))
 
     def job_progress(self, job, filename):
-        resp = self.__request('jobs/get_job_progress_json/{0}/'.format(self.__get_job_id(job)))
+        resp = self.__request('service/progress/{}/'.format(self.__get_job_uuid(job)))
         with open(filename, mode='w', encoding='utf8') as fp:
-            fp.write(resp.json()['data'])
+            fp.write(resp.json())
 
     def decision_results(self, job, filename):
-        resp = self.__request('jobs/decision_results_json/{0}/'.format(self.__get_job_id(job)))
+        resp = self.__request('jobs/api/decision-results/{0}/'.format(self.__get_job_id(job)))
         with open(filename, mode='w', encoding='utf8') as fp:
             fp.write(resp.json()['data'])
 
@@ -170,19 +167,14 @@ class Session:
 
     def start_job_decision(self, job, data_fp):
         job_id = self.__get_job_id(job)
+        url = 'jobs/api/decide/{}/'.format(job_id)
         if data_fp:
-            self.__request(
-                'jobs/run_decision/{0}/'.format(job_id), 'POST', data={'mode': 'file_conf'},
-                files=[('file_conf', data_fp)], stream=True
-            )
+            self.__request(url, 'POST', data={'mode': 'file_conf'}, files=[('file_conf', data_fp)], stream=True)
         else:
-            self.__request('jobs/run_decision/{0}/'.format(job_id), 'POST', data={'mode': 'fast'})
+            self.__request(url, 'POST', data={'mode': 'fast'})
 
     def download_all_marks(self, archive):
         return self.__download_archive('/marks/api/download-all/', archive)
-
-    def __is_not_used(self):
-        pass
 
 
 def execute_cmd(logger, *args, **kwargs):
