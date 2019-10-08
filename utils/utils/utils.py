@@ -18,6 +18,7 @@
 import argparse
 import getpass
 import logging
+import json
 import os
 import re
 # TODO: this is non-standard dependency while it is not required for all users. So, let's create a separate library!
@@ -141,7 +142,7 @@ class Session:
     def job_progress(self, job, filename):
         resp = self.__request('service/progress/{}/'.format(self.__get_job_uuid(job)))
         with open(filename, mode='w', encoding='utf8') as fp:
-            fp.write(resp.json())
+            json.dump(resp.json(), fp, ensure_ascii=False, sort_keys=True, indent=4)
 
     def decision_results(self, job, filename):
         resp = self.__request('jobs/api/decision-results/{0}/'.format(self.__get_job_id(job)))
