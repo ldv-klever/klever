@@ -73,16 +73,19 @@ class Session:
         url = self._host + '/' + path_url
         resp = self.session.request(method, url, **kwargs)
 
-        if resp.status_code >= 300:
-            # with open('response error.html', 'w', encoding='utf8') as fp:
-            #     fp.write(resp.text)
+        if resp.status_code not in (200, 201, 204):
+            if resp.headers['content-type'] == 'application/json':
+                self.error = resp.json()
+                raise BridgeError(
+                    'Got error "{0}" when send "{1}" request to "{2}"'.format(self.error, method, url)
+                )
+            with open('response error.html', 'w', encoding='utf8') as fp:
+                fp.write(resp.text)
             status_code = resp.status_code
             resp.close()
-            if resp.headers['content-type'] == 'application/json':
-                raise BridgeError('Got error "{0}" when send "{1}" request to "{2}"'
-                                  .format(resp.json(), method, url))
-            raise UnexpectedStatusCode('Got unexpected status code "{0}" when send "{1}" request to "{2}"'
-                                       .format(status_code, method, url))
+            raise UnexpectedStatusCode(
+                'Got unexpected status code "{0}" when send "{1}" request to "{2}"'.format(status_code,
+                                                                                           method, url))
         return resp
 
     def __download_archive(self, path_url, archive):
