@@ -147,7 +147,7 @@ class Session:
     def decision_results(self, job, filename):
         resp = self.__request('jobs/api/decision-results/{0}/'.format(self.__get_job_id(job)))
         with open(filename, mode='w', encoding='utf8') as fp:
-            fp.write(resp.json()['data'])
+            json.dump(resp.json(), fp, ensure_ascii=False, sort_keys=True, indent=4)
 
     def copy_job(self, job, name=None):
         request_data = {'parent': self.__get_job_id(job)}
