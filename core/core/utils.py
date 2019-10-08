@@ -463,7 +463,7 @@ class ArchiveFiles:
                                 file = os.path.join(root, file)
                                 zfp.write(file, arcname=make_relative_path([file_or_dir], file))
                     else:
-                        raise NotImplementedError
+                        raise NotImplementedError("Cannot interprete a kind of an object {!r}".format(file_or_dir))
 
                 os.fsync(zfp.fp)
 
