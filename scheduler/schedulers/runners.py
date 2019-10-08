@@ -162,12 +162,12 @@ class Runner:
         except SchedulerException as err:
             item.setdefault("attempts", 0)
             item["attempts"] += 1
+            msg = "Cannot solve task {}: {!r}".format(identifier, err)
+            self.logger.warning(msg)
 
             if item["attempts"] > 2:
-                msg = "Cannot solve task {}: {!r}".format(identifier, err)
-                self.logger.warning(msg)
                 item.update({"status": "ERROR", "error": msg})
-                return True
+                return False
             return False
 
     def _solve_task(self, identifier, description, user, password):

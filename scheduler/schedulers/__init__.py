@@ -327,13 +327,22 @@ class Scheduler:
                             self.runner.solve_job(job_id, self.__jobs[job_id])
 
                         for task_id in tasks_to_start:
-                            if not self.__tasks[task_id].get("rescheduled"):
-                                self.server.submit_task_status(task_id, 'PROCESSING')
                             # This check is very helpful for debugging
                             msg = messages.get(task_id)
                             if msg:
                                 self.logger.info(msg)
-                            self.runner.solve_task(task_id, self.__tasks[task_id])
+                            started = self.runner.solve_task(task_id, self.__tasks[task_id])
+                            if started and self.__tasks[task_id]['status'] != 'PROCESSING':
+                                raise RuntimeError('Expect that status of started task is PROCESSING but it is {!r} '
+                                                   'for {!r}'.format(self.__tasks[task_id]['status'], task_id))
+                            elif started and self.__tasks[task_id]['status'] == 'PROCESSING':
+                                if not self.__tasks[task_id].get("rescheduled"):
+                                    self.server.submit_task_status(task_id, 'PROCESSING')
+                            elif not started and self.__tasks[task_id]['status'] == 'PROCESSING':
+                                raise RuntimeError('In case of error task cannot be \'PROCESSING\' but it is for '
+                                                   '{!r}'.format(task_id))
+                            elif not started and self.__tasks[task_id]['status'] == 'ERROR':
+                                self.server.submit_task_error(task_id, self.__tasks[task_id]['error'])
 
                     # Flushing tasks
                     if len(tasks_to_start) > 0 or \
