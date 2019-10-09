@@ -50,7 +50,10 @@ class Session:
     def __signin(self, user, password):
         self.session = requests.Session()
         resp = self.__request('service/get_token/', 'POST', data={'username': user, 'password': password})
-        self.session.headers.update({'Authorization': 'Token {}'.format(resp.json()['token'])})
+        self.session.headers.update({
+            'Authorization': 'Token {}'.format(resp.json()['token']),
+            'Accept-Language': 'en'
+        })
         self.logger.debug('Session was created')
 
     def __request(self, path_url, method, looping=True, **kwargs):
