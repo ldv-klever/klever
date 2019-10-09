@@ -589,6 +589,8 @@ class Native(runners.Speculative):
         if "keep working directory" in self.conf["scheduler"] and self.conf["scheduler"]["keep working directory"]:
             os.makedirs(work_dir.encode("utf8"), exist_ok=True)
         else:
+            if os.path.isdir(work_dir.encode("utf8")):
+                shutil.rmtree(work_dir, ignore_errors=True)
             os.makedirs(work_dir.encode("utf8"), exist_ok=False)
 
     def _get_task_configuration(self):
