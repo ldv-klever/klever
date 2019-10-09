@@ -301,9 +301,12 @@ class Scheduler:
                 if submit:
                     # Update resource limitations before scheduling
                     messages = dict()
-                    for i, desk in ((i, self.__tasks[i]) for i in self.__tasks
+                    for i, desc in ((i, self.__tasks[i]) for i in self.__tasks
                                     if self.__tasks[i]["status"] == "PENDING"):
-                        messages[i] = self.runner.prepare_task(i, desk)
+                        messages[i] = self.runner.prepare_task(i, desc)
+                        if not messages[i]:
+                            self.server.submit_task_error(i, desc['error'])
+                            del self.__tasks[i]
 
                     # Schedule new tasks
                     pending_tasks = [desc for task_id, desc in self.__tasks.items() if desc["status"] == "PENDING"]
@@ -324,12 +327,19 @@ class Scheduler:
                             len({t for t in self.__tasks if self.__tasks[t]['status'] == 'PROCESSING'})))
 
                         for job_id in jobs_to_start:
-                            self.runner.solve_job(job_id, self.__jobs[job_id])
+                            started = self.runner.solve_job(job_id, self.__jobs[job_id])
+                            if started and self.__jobs[job_id]['status'] not in ('PENDING', 'PROCESSING'):
+                                raise RuntimeError('Expect that status of started job {!r} is solving but it has status'
+                                                   ' {!r}'.format(self.__jobs[job_id]['status'], job_id))
+                            elif not started and self.__jobs[job_id]['status'] == 'ERROR':
+                                self.server.submit_job_error(job_id, self.__jobs[job_id]['error'])
+                                if job_id in self.__jobs:
+                                    del self.__jobs[job_id]
 
                         for task_id in tasks_to_start:
                             # This check is very helpful for debugging
                             msg = messages.get(task_id)
-                            if msg:
+                            if msg and isinstance(msg, str):
                                 self.logger.info(msg)
                             started = self.runner.solve_task(task_id, self.__tasks[task_id])
                             if started and self.__tasks[task_id]['status'] != 'PROCESSING':
@@ -343,6 +353,8 @@ class Scheduler:
                                                    '{!r}'.format(task_id))
                             elif not started and self.__tasks[task_id]['status'] == 'ERROR':
                                 self.server.submit_task_error(task_id, self.__tasks[task_id]['error'])
+                                if task_id in self.__tasks:
+                                    del self.__tasks[task_id]
 
                     # Flushing tasks
                     if len(tasks_to_start) > 0 or \
@@ -466,7 +478,10 @@ class Scheduler:
                 "status": "PENDING",
                 "configuration": job_conf['configuration']
             }
-            self.runner.prepare_job(identifier, self.__jobs[identifier])
+            prepared = self.runner.prepare_job(identifier, self.__jobs[identifier])
+            if not prepared:
+                self.server.submit_job_error(identifier, self.__jobs[identifier]['error'])
+                del self.__jobs[identifier]
         else:
             self.logger.warning('Attempt to schedule job {} second time but it already has status {}'.
                                 format(identifier, self.__jobs[identifier]['status']))
@@ -513,7 +528,10 @@ class Scheduler:
                     "error": str(err)
                 }
             else:
-                self.runner.prepare_task(identifier, self.__tasks[identifier])
+                prepared = self.runner.prepare_task(identifier, self.__tasks[identifier])
+                if not prepared:
+                    self.server.submit_task_error(identifier, self.__tasks[identifier]['error'])
+                    del self.__tasks[identifier]
         else:
             self.logger.warning('Attempt to schedule job {} second time but it already has status {}'.
                                 format(identifier, self.__tasks[identifier]['status']))

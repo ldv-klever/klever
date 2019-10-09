@@ -98,14 +98,17 @@ class Runner:
 
         :param identifier: Verification task identifier.
         :param item: Dictionary with task description.
+        :return: True if it is possible to run the task and False otherwise
         """
         try:
             # Add missing restrictions
             return self._prepare_task(identifier, item["description"])
         except SchedulerException as err:
-            self.logger.error("Cannot prepare task {} for submission: {!r}".format(identifier, err))
+            msg = "Cannot prepare task {!r} for submission: {!r}".format(identifier, str(err))
+            self.logger.warning(msg)
             item["status"] = "ERROR"
-            item["error"] = err
+            item["error"] = msg
+            return False
 
     def _prepare_task(self, identifier, description):
         """
@@ -114,9 +117,10 @@ class Runner:
         :param identifier: Verification task identifier.
         :param description: Dictionary with task description.
         :raise SchedulerException: If a task cannot be scheduled or preparation failed.
+        :return: True if it is possible to run the task and False otherwise
         """
         # Runners should implement the method
-        pass
+        return True
 
     def prepare_job(self, identifier, item):
         """
@@ -125,15 +129,18 @@ class Runner:
 
         :param identifier: Verification job identifier.
         :param item: Dictionary with job description.
+        :return: True if it is possible to run the task and False otherwise
         """
         # Prepare jobs before launching
         self.logger.debug("Prepare new job {} before launching".format(identifier))
         try:
-            self._prepare_job(identifier, item["configuration"])
+            return self._prepare_job(identifier, item["configuration"])
         except SchedulerException as err:
-            self.logger.error("Cannot prepare job {} for submission: {!r}".format(identifier, err))
+            msg = "Cannot prepare job {!r} for submission: {!r}".format(identifier, str(err))
+            self.logger.warning(msg)
             item["status"] = "ERROR"
-            item["error"] = err
+            item["error"] = msg
+            return False
 
     def _prepare_job(self, identifier, configuration):
         """
@@ -143,8 +150,7 @@ class Runner:
         :param configuration: Job configuration.
         :raise SchedulerException: If a job cannot be scheduled or preparation failed.
         """
-        # Runners should implement the method
-        pass
+        return True
 
     def solve_task(self, identifier, item):
         """
@@ -198,12 +204,12 @@ class Runner:
         except SchedulerException as err:
             item.setdefault("attempts", 0)
             item["attempts"] += 1
+            msg = "Cannot solve job {}: {!r}".format(identifier, err)
+            self.logger.warning(msg)
 
             if item["attempts"] > 2:
-                msg = "Cannot solve job {}: {!r}".format(identifier, err)
-                self.logger.warning(msg)
                 item.update({"status": "ERROR", "error": msg})
-                return True
+                return False
             return False
 
     def _solve_job(self, identifier, configuration):

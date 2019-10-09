@@ -271,6 +271,14 @@ class Native(runners.Speculative):
         """
         return self._cancel_solution(identifier, future, mode='task')
 
+    def _prepare_task(self, identifier, description):
+        self._manager.check_resources(description, job=False)
+        return True
+
+    def _prepare_job(self, identifier, configuration):
+        self._manager.check_resources(configuration, job=True)
+        return True
+
     def _prepare_solution(self, identifier, configuration, mode='task'):
         """
         Generate a working directory, configuration files and multiprocessing Process object to be ready to just run it.
