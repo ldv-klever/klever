@@ -198,7 +198,8 @@ class Server:
     def _tolerate_error(self):
         if isinstance(self.session.error, dict) and \
             (('detail' in self.session.error and self.session.error['detail'] == 'Not found.') or
-             ('task' in self.session.error and re.match('Invalid pk', self.session.error['task'][-1]))):
+             ('task' in self.session.error and re.match('Invalid pk', self.session.error['task'][-1])) or
+             ('status' in self.session.error and re.match('Status change from', self.session.error['task'][-1]))):
             self.logger.debug("Ignore an error from Bridge: {!r}".format(str(self.session.error)))
             return True
         return False
