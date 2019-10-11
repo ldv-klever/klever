@@ -572,6 +572,9 @@ class RP(core.components.Component):
         arcnames = {}
 
         for file_name in file_names:
+            # Caller expects a returned dictionary maps each file name, so, let's fill it anyway.
+            arcnames[file_name] = file_name
+
             # Remove storage from file names if files were put there.
             storage_file = core.utils.make_relative_path([self.clade.storage_dir], file_name)
             # Try to make paths relative to source paths or standard search directories.
