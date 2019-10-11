@@ -523,21 +523,24 @@ class RP(core.components.Component):
         if self.conf['upload input files of static verifiers']:
             report['task'] = task_id
 
+        # Coverage may be non-specified or be one of the supported types (see at core.coverage.LCOV).
+        coverage = opts.get('coverage')
         # Remember exception and raise it if verdict is not unknown
         exception = None
-        try:
-            LCOV(self.conf, self.logger, os.path.join('output', 'coverage.info'),
-                 self.clade, self.source_paths,
-                 self.search_dirs, self.conf['main working directory'],
-                 opts.get('coverage'),
-                 os.path.join(self.conf['main working directory'], self.coverage_info_file),
-                 os.path.join(self.conf['main working directory'], coverage_info_dir),
-                 opts.get('collect function names'))
-        except Exception as err:
-            exception = err
-        else:
-            report['coverage'] = core.utils.ArchiveFiles(['coverage'])
-            self.vals['coverage_finished'][self.conf['sub-job identifier']] = False
+        if coverage:
+            try:
+                LCOV(self.conf, self.logger, os.path.join('output', 'coverage.info'),
+                     self.clade, self.source_paths,
+                     self.search_dirs, self.conf['main working directory'],
+                     coverage,
+                     os.path.join(self.conf['main working directory'], self.coverage_info_file),
+                     os.path.join(self.conf['main working directory'], coverage_info_dir),
+                     opts.get('collect function names'))
+            except Exception as err:
+                exception = err
+            else:
+                report['coverage'] = core.utils.ArchiveFiles(['coverage'])
+                self.vals['coverage_finished'][self.conf['sub-job identifier']] = False
 
         # todo: This should be checked to guarantee that we can reschedule tasks
         core.utils.report(self.logger,

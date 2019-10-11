@@ -306,7 +306,7 @@ class LCOV:
     FUNCTION_NAME_PREFIX = "FN:"
     PARIALLY_ALLOWED_EXT = ('.c', '.i', '.c.aux')
 
-    def __init__(self, conf, logger, coverage_file, clade, source_dirs, search_dirs, main_work_dir, completeness,
+    def __init__(self, conf, logger, coverage_file, clade, source_dirs, search_dirs, main_work_dir, coverage,
                  coverage_id, coverage_info_dir, collect_functions, preprocessed_files=False):
         # Public
         self.conf = conf
@@ -316,26 +316,25 @@ class LCOV:
         self.source_dirs = [os.path.normpath(p) for p in source_dirs]
         self.search_dirs = [os.path.normpath(p) for p in search_dirs]
         self.main_work_dir = main_work_dir
-        self.completeness = completeness
+        self.coverage = coverage
         self.coverage_info_dir = coverage_info_dir
         self.arcnames = {}
         self.collect_functions = collect_functions
 
         # Sanity checks
-        if self.completeness not in ('full', 'partial', 'lightweight', 'none', None):
-            raise NotImplementedError("Coverage type {!r} is not supported".format(self.completeness))
+        if self.coverage not in ('full', 'partial', 'lightweight'):
+            raise NotImplementedError("Coverage type {!r} is not supported".format(self.coverage))
 
         # Import coverage
         try:
-            if self.completeness in ('full', 'partial', 'lightweight'):
-                self.coverage_info = self.parse()
+            self.coverage_info = self.parse()
 
-                with open(coverage_id, 'w', encoding='utf-8') as fp:
-                    core.utils.json_dump(self.coverage_info, fp, self.conf['keep intermediate files'])
+            with open(coverage_id, 'w', encoding='utf-8') as fp:
+                core.utils.json_dump(self.coverage_info, fp, self.conf['keep intermediate files'])
 
-                coverage = {}
-                add_to_coverage(coverage, self.coverage_info)
-                convert_coverage(coverage, 'coverage', self.conf['keep intermediate files'])
+            coverage = {}
+            add_to_coverage(coverage, self.coverage_info)
+            convert_coverage(coverage, 'coverage', self.conf['keep intermediate files'])
         except Exception:
             shutil.rmtree('coverage', ignore_errors=True)
             raise
@@ -358,7 +357,7 @@ class LCOV:
 
         # Get source files that should be excluded.
         excluded_src_files = set()
-        if self.completeness in ('partial', 'lightweight'):
+        if self.coverage in ('partial', 'lightweight'):
             with open(self.coverage_file, encoding='utf-8') as fp:
                 # Build map, that contains dir as key and list of files in the dir as value
                 all_files = {}
@@ -377,7 +376,7 @@ class LCOV:
 
                 for path, files in all_files.items():
                     # Lightweight coverage keeps only source files from source directories.
-                    if self.completeness == 'lightweight' and \
+                    if self.coverage == 'lightweight' and \
                             all(os.path.commonpath([s, path]) != s for s in self.source_dirs):
                         self.logger.debug('Exclude source files from "{0}"'.format(path))
                         for file in files:
