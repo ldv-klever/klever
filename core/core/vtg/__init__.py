@@ -386,7 +386,7 @@ class VTG(core.components.Component):
             # Process them
             for status in pilot_statuses:
                 prog_fragment, requirement_name = status
-                self.logger.info("Pilot verificatio task for {!r} and requirement name {!r} is prepared".
+                self.logger.info("Pilot verification task for {!r} and requirement name {!r} is prepared".
                                  format(prog_fragment, requirement_name))
                 requirement_class = resolve_requirement_class(requirement_name)
                 if requirement_class:
@@ -414,7 +414,7 @@ class VTG(core.components.Component):
             # Process them
             for solution in solutions:
                 prog_fragment, requirement_name, status_info = solution
-                self.logger.info("Verificatio task for {!r} and requirement {!r} is either finished or failed".
+                self.logger.info("Verification task for {!r} and requirement {!r} is either finished or failed".
                                  format(prog_fragment, requirement_name))
                 requirement_class = resolve_requirement_class(requirement_name)
                 if requirement_class:
