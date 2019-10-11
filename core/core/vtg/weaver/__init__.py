@@ -210,7 +210,7 @@ class Weaver(core.vtg.plugins.Plugin):
                                     'aspectator',
                                     '-I' + os.path.realpath(os.path.dirname(self.conf['requirements DB']))
                                 ] +
-                                core.vtg.utils.prepare_cif_opts(cc['opts'], clade) +
+                                core.vtg.utils.prepare_cif_opts(cc['opts'], clade, grp['id'] == 'models') +
                                 [
                                     aspectator_search_dir,
                                     '-fsyntax-only',
