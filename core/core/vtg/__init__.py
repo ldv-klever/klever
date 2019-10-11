@@ -589,7 +589,6 @@ class VTGW(core.components.Component):
         self.override_limits = resource_limits
         self.rerun = rerun
         self.session = core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
-        self.clade = Clade(self.conf['build base'])
 
     def tasks_generator_worker(self):
         files_list_file = 'files list.txt'
@@ -627,6 +626,21 @@ class VTGW(core.components.Component):
 
     main = tasks_generator_worker
 
+    def add_extra_descriptions(self, initial_abstract_task_desc):
+        clade = Clade(self.conf['build base'])
+        for grp in initial_abstract_task_desc['grps']:
+            grp['Extra CCs'] = []
+
+            for cc in grp['CCs']:
+                for in_file in clade.get_cmd(cc)['in']:
+                    # Need to add description for each file!
+                    grp['Extra CCs'].append({
+                        'CC': cc,
+                        'in file': in_file
+                    })
+
+            del (grp['CCs'])
+
     def generate_abstact_verification_task_desc(self, program_fragment_desc, requirement_desc):
         """Has a callback!"""
         self.logger.info("Start generating tasks for program fragment {!r} and requirement {!r}".
@@ -644,18 +658,8 @@ class VTGW(core.components.Component):
         initial_abstract_task_desc['id'] = '{0}/{1}'.format(program_fragment, self.requirement)
         initial_abstract_task_desc['fragment'] = program_fragment
         initial_abstract_task_desc['attrs'] = ()
-        for grp in initial_abstract_task_desc['grps']:
-            grp['Extra CCs'] = []
+        self.add_extra_descriptions(initial_abstract_task_desc)
 
-            for cc in grp['CCs']:
-                for in_file in self.clade.get_cmd(cc)['in']:
-                    # Need to add description for each file!
-                    grp['Extra CCs'].append({
-                        'CC': cc,
-                        'in file': in_file
-                    })
-
-            del (grp['CCs'])
         initial_abstract_task_desc_file = 'initial abstract task.json'
         self.logger.debug(
             'Put initial abstract verification task description to file "{0}"'.format(
