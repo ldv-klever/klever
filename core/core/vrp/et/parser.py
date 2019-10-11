@@ -140,8 +140,11 @@ class ErrorTraceParser:
             for data in edge.findall('graphml:data', self.WITNESS_NS):
                 data_key = data.attrib['key']
                 if data_key == 'originfile':
-                    identifier = self.error_trace.add_file(data.text)
-                    _edge['file'] = identifier
+                    if data.text == '<multiple files>':
+                        self._logger.debug('Verifier could not resolve source file name')
+                    else:
+                        identifier = self.error_trace.add_file(data.text)
+                        _edge['file'] = identifier
                 elif data_key == 'startline':
                     _edge['start line'] = int(data.text)
                 elif data_key == 'endline':
