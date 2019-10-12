@@ -25,7 +25,7 @@ from django.utils.functional import cached_property
 from bridge.vars import ETV_FORMAT
 from bridge.utils import ArchiveFileContent, BridgeException, logger
 
-from reports.models import ReportComponent, CoverageArchive
+from reports.models import ReportComponent, CoverageArchive, CoverageStatistics
 
 TAB_LENGTH = 4
 
@@ -361,7 +361,9 @@ class GetSource:
     @cached_property
     def _line_coverage(self):
         if not self._coverage or not self._coverage.get('line coverage'):
-            return EmptyCoverage()
+            if CoverageStatistics.objects.filter(path=self.file_name, coverage_id=self.coverage_id).exists():
+                return EmptyCoverage()
+            return {}
         coverage_data = {}
         max_cov = max(self._coverage['line coverage'].values())
         for line_num in self._coverage['line coverage']:
