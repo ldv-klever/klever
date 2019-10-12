@@ -18,42 +18,13 @@
 from difflib import unified_diff
 
 from django.utils.functional import cached_property
-from django.utils.translation import ugettext_lazy as _
 
-from bridge.vars import USER_ROLES, JOB_ROLES, MARK_SAFE, MARK_UNSAFE, MARK_STATUS
+from bridge.vars import USER_ROLES, JOB_ROLES, ASSOCIATION_TYPE, COMPARE_FUNCTIONS, CONVERT_FUNCTIONS
 
 from users.models import User
 from jobs.models import Job
 from reports.models import ReportUnsafe, ReportSafe, ReportUnknown
 from marks.models import MarkSafe, MarkUnsafe, MarkUnknown, ConvertedTrace
-
-from marks.UnsafeUtils import DEFAULT_COMPARE, COMPARE_FUNCTIONS, CONVERT_FUNCTIONS
-from marks.tags import TagsTree, MarkTagsTree
-
-
-STATUS_COLOR = {
-    '0': '#e81919',
-    '1': '#FF8533',
-    '2': '#FF8533',
-    '3': '#00c600',
-}
-
-UNSAFE_COLOR = {
-    '0': '#cb58ec',
-    '1': '#e81919',
-    '2': '#e81919',
-    '3': '#FF8533',
-    '4': '#D11919',  # Incompatible marks
-    '5': '#000000',  # Without marks
-}
-
-SAFE_COLOR = {
-    '0': '#cb58ec',
-    '1': '#FF8533',
-    '2': '#e81919',
-    '3': '#D11919',  # Incompatible marks
-    '4': '#000000',  # Without marks
-}
 
 
 class MarkAccess:
@@ -270,126 +241,108 @@ class CompareMarkVersions:
                 {'pattern': self.v2.problem_pattern, 'link': self.v2.link}]
 
 
-class MarkVersionFormData:
-    def __init__(self, mark_type, mark_version=None):
-        self.type = mark_type
-        self.object = mark_version
+class RemoveMarksBase:
+    model = None
+    associations_model = None
 
-    @property
-    def title(self):
-        if self.type == 'safe':
-            return _('Safes mark')
-        elif self.type == 'unsafe':
-            return _('Unsafes mark')
-        return _('Unknowns mark')
-
-    @property
-    def action(self):
-        return 'edit' if self.object else 'create'
-
-    @cached_property
-    def is_modifiable(self):
-        return self.object.mark.is_modifiable if self.object else True
-
-    @cached_property
-    def version(self):
-        # Should not be called on mark creation
-        return self.object.version if self.object else None
-
-    @cached_property
-    def status(self):
-        if self.type != 'unsafe':
-            return None
-        return self.object.status if self.object else None
-
-    @property
-    def description(self):
-        return self.object.description if self.object else ''
-
-    @cached_property
-    def verdict(self):
-        if self.type == 'safe':
-            return self.object.verdict if self.object else MARK_SAFE[0][0]
-        elif self.type == 'unsafe':
-            return self.object.verdict if self.object else MARK_UNSAFE[0][0]
-        return None
-
-    @cached_property
-    def verdicts(self):
-        if self.type == 'safe':
-            return MARK_SAFE
-        elif self.type == 'unsafe':
-            return MARK_UNSAFE
-        return None
-
-    @cached_property
-    def statuses(self):
-        if self.type != 'unsafe':
-            return None
-        return MARK_STATUS
-
-    @cached_property
-    def function(self):
-        if self.type == 'safe':
-            return None
-        if self.object:
-            return self.object.function
-        return DEFAULT_COMPARE if self.type == 'unsafe' else ''
-
-    @cached_property
-    def functions(self):
-        functions_data = []
-        for name in sorted(COMPARE_FUNCTIONS):
-            functions_data.append({
-                'name': name,
-                'desc': COMPARE_FUNCTIONS[name]['desc'],
-                'convert': {
-                    'name': COMPARE_FUNCTIONS[name]['convert'],
-                    'desc': CONVERT_FUNCTIONS[COMPARE_FUNCTIONS[name]['convert']]
-                }
-            })
-        return functions_data
-
-    @property
-    def compare_desc(self):
-        return COMPARE_FUNCTIONS[self.function]['desc']
-
-    @property
-    def convert_func(self):
-        return {
-            'name': COMPARE_FUNCTIONS[self.function]['convert'],
-            'desc': CONVERT_FUNCTIONS[COMPARE_FUNCTIONS[self.function]['convert']],
-        }
-
-    @property
-    def problem_pattern(self):
-        return self.object.problem_pattern if self.object else ''
-
-    @property
-    def is_regexp(self):
-        return self.object.is_regexp if self.object else False
-
-    @property
-    def link(self):
-        return self.object.link if self.object and self.object.link else ''
-
-    @cached_property
-    def tags(self):
-        if self.type == 'unknown':
-            return None
-        if self.object:
-            return MarkTagsTree(self.object)
-        return TagsTree(self.type, tags_ids=[])
-
-    @cached_property
-    def error_trace(self):
-        if not self.object or self.type != 'unsafe':
+    def __init__(self, **kwargs):
+        self._qs_kwargs = kwargs
+        self._marks_qs = self.__get_marks_qs()
+        if not self._marks_qs.exists():
+            # Nothing to delete
             return
-        with self.object.error_trace.file.file as fp:
-            return fp.read().decode('utf-8')
+        self.affected_reports = self.__get_affected_reports()
+        self._marks_qs.delete()
+        self.update_associated()
 
-    @cached_property
-    def threshold(self):
-        if not self.object or self.type != 'unsafe':
+    def __get_marks_qs(self):
+        assert self.model
+        return self.model.objects.filter(**self._qs_kwargs)
+
+    def __get_affected_reports(self):
+        assert self.associations_model
+        qs_filters = dict(('mark__{}'.format(k), v) for k, v in self._qs_kwargs.items())
+        return set(self.associations_model.objects.filter(**qs_filters).values_list('report_id', flat=True))
+
+    @property
+    def without_associations_qs(self):
+        # Find reports that has marks associations when all association are disabled. It can be in 2 cases:
+        # 1) All marks are unconfirmed
+        # 2) All confirmed associations were with deleted marks
+        # We need to update 2nd case, so auto-associations are counting again
+        changed_ids = self.affected_reports - set(self.associations_model.objects.filter(
+            report_id__in=self.affected_reports, associated=True
+        ).values_list('report_id', flat=True))
+        return self.associations_model.objects.filter(report_id__in=changed_ids).exclude(type=ASSOCIATION_TYPE[2][0])
+
+    def update_associated(self):
+        self.without_associations_qs.update(associated=True)
+
+
+class ConfirmAssociationBase:
+    model = None
+
+    def __init__(self, author, association_obj):
+        assert self.model
+        self._author = author
+        self._object = association_obj
+        self.__confirm()
+
+    def recalculate_cache(self, report_id):
+        raise NotImplementedError('Please implement the method!')
+
+    def __confirm(self):
+        # Already confirmed
+        if self._object.type == ASSOCIATION_TYPE[1][0]:
             return
-        return self.object.threshold_percentage
+
+        # Update association
+        self._object.author = self._author
+        self._object.type = ASSOCIATION_TYPE[1][0]
+        self._object.associated = True
+        self._object.save()
+
+        # Do not count automatic associations as there is already confirmed one
+        self.model.objects.filter(
+            report_id=self._object.report_id, associated=True, type=ASSOCIATION_TYPE[0][0]
+        ).update(associated=False)
+
+        # Recalculate verdicts and numbers of associations
+        self.recalculate_cache(self._object.report_id)
+
+
+class UnconfirmAssociationBase:
+    model = None
+
+    def __init__(self, author, association_obj):
+        assert self.model
+        self._author = author
+        self._object = association_obj
+        self.__unconfirm()
+
+    def get_automatically_associated_qs(self):
+        return self.model.objects.filter(
+            report_id=self._object.report_id, associated=False
+        ).exclude(type=ASSOCIATION_TYPE[2][0])
+
+    def recalculate_cache(self, report_id):
+        raise NotImplementedError('Please implement the method!')
+
+    def __unconfirm(self):
+        # Already unconfirmed
+        if self._object.type == ASSOCIATION_TYPE[2][0]:
+            return
+        was_confirmed = bool(self._object.type == ASSOCIATION_TYPE[1][0])
+        self._object.author = self._author
+        self._object.type = ASSOCIATION_TYPE[2][0]
+        self._object.associated = False
+        self._object.save()
+
+        if was_confirmed and not self.model.objects\
+                .filter(report_id=self._object.report_id, type=ASSOCIATION_TYPE[1][0]).exists():
+            # The report has lost the only confirmed mark,
+            # so we need recalculate what associations we need to count for caches
+            queryset = self.get_automatically_associated_qs()
+            queryset.update(associated=True)
+
+        self.recalculate_cache(self._object.report_id)

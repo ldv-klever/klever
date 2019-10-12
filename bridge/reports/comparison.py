@@ -25,7 +25,7 @@ from django.db.models import Count
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 
-from bridge.vars import COMPARE_VERDICT, JOB_WEIGHT
+from bridge.vars import COMPARE_VERDICT, JOB_WEIGHT, SAFE_COLOR, UNSAFE_COLOR
 from bridge.utils import BridgeException
 
 from reports.models import (
@@ -34,8 +34,6 @@ from reports.models import (
 )
 
 from marks.models import MarkUnsafeReport, MarkSafeReport, MarkUnknownReport
-
-from marks.utils import UNSAFE_COLOR, SAFE_COLOR
 
 
 class GetComparisonObjects:

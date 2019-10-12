@@ -17,7 +17,6 @@
 
 from datetime import timedelta
 
-from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import F, Count, Case, When, Sum, Q
 from django.db.models.expressions import RawSQL
 from django.template import loader
@@ -28,10 +27,9 @@ from django.utils.timezone import now
 from django.utils.translation import ugettext_lazy as _
 
 from bridge.vars import (
-    MARK_SAFE, MARK_UNSAFE, MARK_STATUS, ASSOCIATION_TYPE,
-    SAFE_VERDICTS, UNSAFE_VERDICTS, MARK_SOURCE, USER_ROLES
+    MARK_SAFE, MARK_UNSAFE, ASSOCIATION_TYPE, MARK_SOURCE, USER_ROLES, MARK_STATUS,
+    SAFE_VERDICTS, UNSAFE_VERDICTS, SAFE_COLOR, UNSAFE_COLOR, STATUS_COLOR
 )
-from bridge.utils import BridgeException
 from bridge.tableHead import Header
 
 from users.models import User
@@ -45,9 +43,9 @@ from marks.models import (
 )
 from caches.models import SafeMarkAssociationChanges, UnsafeMarkAssociationChanges, UnknownMarkAssociationChanges
 
-from users.utils import DEF_NUMBER_OF_ELEMENTS, HumanizedValue
+from users.utils import HumanizedValue, paginate_queryset
 from jobs.utils import JobAccess
-from marks.utils import UNSAFE_COLOR, SAFE_COLOR, STATUS_COLOR, MarkAccess
+from marks.utils import MarkAccess
 
 
 MARK_TITLES = {
@@ -506,29 +504,8 @@ class MarksTableBase:
         if annotations:
             queryset = queryset.annotate(**annotations)
         queryset = queryset.filter(**qs_filters).order_by(ordering).select_related(*select_related).only(*select_only)
-
-        return self.paginate_queryset(queryset, self._page_number)
-
-    def paginate_queryset(self, queryset, page):
-        num_per_page = DEF_NUMBER_OF_ELEMENTS
-        if 'elements' in self.view:
-            num_per_page = max(int(self.view['elements'][0]), 1)
-
-        paginator = Paginator(queryset, num_per_page)
-        try:
-            page_number = int(page)
-        except ValueError:
-            if page == 'last':
-                page_number = paginator.num_pages
-            else:
-                raise BridgeException()
-        try:
-            values = paginator.page(page_number)
-        except PageNotAnInteger:
-            values = paginator.page(1)
-        except EmptyPage:
-            values = paginator.page(paginator.num_pages)
-        return paginator, values
+        num_per_page = self.view['elements'][0] if self.view['elements'] else None
+        return paginate_queryset(queryset, self._page_number, num_per_page)
 
     @cached_property
     def marks_ids(self):
@@ -781,29 +758,8 @@ class MarkAssociationsBase:
 
         queryset = self.mark_reports_model.objects.filter(**qs_filters)\
             .select_related(*select_related).order_by(ordering).only(*select_only)
-
-        return self.paginate_queryset(queryset, self._page_number)
-
-    def paginate_queryset(self, queryset, page):
-        num_per_page = DEF_NUMBER_OF_ELEMENTS
-        if 'elements' in self.view:
-            num_per_page = max(int(self.view['elements'][0]), 1)
-
-        paginator = Paginator(queryset, num_per_page)
-        try:
-            page_number = int(page)
-        except ValueError:
-            if page == 'last':
-                page_number = paginator.num_pages
-            else:
-                raise BridgeException()
-        try:
-            values = paginator.page(page_number)
-        except PageNotAnInteger:
-            values = paginator.page(1)
-        except EmptyPage:
-            values = paginator.page(paginator.num_pages)
-        return paginator, values
+        num_per_page = self.view['elements'][0] if self.view['elements'] else None
+        return paginate_queryset(queryset, self._page_number, num_per_page)
 
     @cached_property
     def mr_ids(self):

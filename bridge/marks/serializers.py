@@ -22,7 +22,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from rest_framework import fields, serializers, exceptions
 
-from bridge.vars import MPTT_FIELDS, UNSAFE_VERDICTS
+from bridge.vars import MPTT_FIELDS, UNSAFE_VERDICTS, CONVERT_FUNCTIONS, COMPARE_FUNCTIONS
 from bridge.utils import logger
 from bridge.serializers import DynamicFieldsModelSerializer
 
@@ -31,7 +31,7 @@ from marks.models import (
     UnsafeTag, MarkUnsafe, MarkUnsafeHistory, MarkUnsafeAttr, MarkUnsafeTag,
     ConvertedTrace, MarkUnknown, MarkUnknownHistory, MarkUnknownAttr
 )
-from marks.UnsafeUtils import save_converted_trace, CONVERT_FUNCTIONS, COMPARE_FUNCTIONS
+from marks.UnsafeUtils import save_converted_trace
 
 
 def create_mark_version(mark, cache=True, **kwargs):

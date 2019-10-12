@@ -36,11 +36,11 @@ from marks.models import (
 )
 from marks.serializers import SafeMarkSerializer, UnsafeMarkSerializer, UnknownMarkSerializer
 
-from marks.SafeUtils import ConnectSafeMark, remove_safe_marks
-from marks.UnsafeUtils import ConnectUnsafeMark, remove_unsafe_marks
-from marks.UnknownUtils import ConnectUnknownMark, remove_unknown_marks
+from marks.SafeUtils import ConnectSafeMark, RemoveSafeMarks
+from marks.UnsafeUtils import ConnectUnsafeMark, RemoveUnsafeMarks
+from marks.UnknownUtils import ConnectUnknownMark, RemoveUnknownMarks
 
-from caches.utils import UpdateCachesOnMarkPopulate
+from caches.utils import UpdateCachesOnMarkPopulate, RecalculateSafeCache, RecalculateUnsafeCache
 
 
 class MarkGeneratorBase:
@@ -389,9 +389,12 @@ class UploadAllMarks:
         self.numbers = self.__upload_all(marks_dir)
 
     def __clear_old_marks(self):
-        remove_safe_marks()
-        remove_unsafe_marks()
-        remove_unknown_marks()
+        RemoveSafeMarks()
+        RemoveUnsafeMarks()
+        RemoveUnknownMarks()
+        RecalculateSafeCache()
+        RecalculateUnsafeCache()
+        RecalculateUnsafeCache()
 
     def __upload_all(self, marks_dir):
         upload_result = {'safe': 0, 'unsafe': 0, 'unknown': 0, 'fail': 0}

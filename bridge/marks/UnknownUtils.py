@@ -26,8 +26,8 @@ from bridge.utils import BridgeException, logger, ArchiveFileContent
 
 from reports.models import ReportUnknown
 from marks.models import MAX_PROBLEM_LEN, MarkUnknown, MarkUnknownHistory, MarkUnknownReport
-from caches.models import ReportUnknownCache
 
+from marks.utils import RemoveMarksBase, ConfirmAssociationBase, UnconfirmAssociationBase
 from caches.utils import RecalculateUnknownCache, UpdateUnknownCachesOnMarkChange
 
 
@@ -67,55 +67,23 @@ def perform_unknown_mark_update(user, serializer):
     return cache_upd.save()
 
 
-def remove_unknown_marks(**kwargs):
-    queryset = MarkUnknown.objects.filter(**kwargs)
-    if not queryset.count():
-        return
-    qs_filters = dict(('mark__{}'.format(k), v) for k, v in kwargs.items())
-    affected_reports = set(MarkUnknownReport.objects.filter(**qs_filters).values_list('report_id', flat=True))
-    queryset.delete()
-    RecalculateUnknownCache(reports=affected_reports)
+class RemoveUnknownMarks(RemoveMarksBase):
+    model = MarkUnknown
+    associations_model = MarkUnknownReport
 
 
-def confirm_unknown_mark(user, mark_report):
-    if mark_report.type == ASSOCIATION_TYPE[1][0]:
-        return
-    was_unconfirmed = (mark_report.type == ASSOCIATION_TYPE[2][0])
-    mark_report.author = user
-    mark_report.type = ASSOCIATION_TYPE[1][0]
-    mark_report.associated = True
-    mark_report.save()
+class ConfirmUnknownMark(ConfirmAssociationBase):
+    model = MarkUnknownReport
 
-    # Do not count automatic associations as there is already confirmed one
-    change_num = MarkUnknownReport.objects.filter(
-        report_id=mark_report.report_id, associated=True, type=ASSOCIATION_TYPE[0][0]
-    ).update(associated=False)
-
-    if was_unconfirmed or change_num:
-        RecalculateUnknownCache(reports=[mark_report.report_id])
-    else:
-        cache_obj = ReportUnknownCache.objects.get(report_id=mark_report.report_id)
-        cache_obj.marks_confirmed += 1
-        cache_obj.save()
+    def recalculate_cache(self, report_id):
+        RecalculateUnknownCache(reports=[report_id])
 
 
-def unconfirm_unknown_mark(user, mark_report):
-    if mark_report.type == ASSOCIATION_TYPE[2][0]:
-        return
-    was_confirmed = bool(mark_report.type == ASSOCIATION_TYPE[1][0])
-    mark_report.author = user
-    mark_report.type = ASSOCIATION_TYPE[2][0]
-    mark_report.associated = False
-    mark_report.save()
+class UnconfirmUnknownMark(UnconfirmAssociationBase):
+    model = MarkUnknownReport
 
-    if was_confirmed and not MarkUnknownReport.objects\
-            .filter(report_id=mark_report.report_id, type=ASSOCIATION_TYPE[1][0]).exists():
-        # The report has lost the only confirmed mark,
-        # so we need recalculate what associations we need to count for caches
-        MarkUnknownReport.objects.filter(report_id=mark_report.report_id)\
-            .exclude(type=ASSOCIATION_TYPE[2][0]).update(associated=True)
-
-    RecalculateUnknownCache(reports=[mark_report.report_id])
+    def recalculate_cache(self, report_id):
+        RecalculateUnknownCache(reports=[report_id])
 
 
 class MatchUnknown:
@@ -295,3 +263,22 @@ class CheckUnknownFunction:
         else:
             end = len(self._desc)
         return self._desc[start:end]
+
+
+class UpdateAssociatedOnMarksDelete:
+    def __init__(self, affected_reports: set):
+        self._reports_ids = affected_reports
+        self.__update()
+
+    def __update(self):
+        # Find reports that has marks associations when all association are disabled. It can be in 2 cases:
+        # 1) All marks are unconfirmed
+        # 2) All confirmed associations were with deleted marks
+        # We need to update 2nd case, so auto-associations are counting again
+        has_associated = set(MarkUnknownReport.objects.filter(
+            report_id__in=self._reports_ids, associated=True,
+        ).values_list('report_id', flat=True))
+        without_associated = self._reports_ids - has_associated
+        if without_associated:
+            MarkUnknownReport.objects.filter(report_id__in=without_associated)\
+                .exclude(type=ASSOCIATION_TYPE[2][0]).update(associated=True)

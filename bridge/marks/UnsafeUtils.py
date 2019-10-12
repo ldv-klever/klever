@@ -23,50 +23,19 @@ from collections import OrderedDict
 
 from django.core.files import File
 from django.db import transaction
+from django.db.models import Case, When, Value, Q, F
 
-from bridge.vars import ASSOCIATION_TYPE, UNKNOWN_ERROR, ERROR_TRACE_FILE
+from bridge.vars import ASSOCIATION_TYPE, UNKNOWN_ERROR, ERROR_TRACE_FILE, COMPARE_FUNCTIONS, CONVERT_FUNCTIONS
 from bridge.utils import logger, BridgeException, ArchiveFileContent, file_checksum
 
 from reports.models import ReportUnsafe
-from marks.models import (
-    MarkUnsafe, MarkUnsafeHistory, MarkUnsafeReport, UnsafeConvertionCache, ConvertedTrace
-)
+from marks.models import MarkUnsafe, MarkUnsafeHistory, MarkUnsafeReport, UnsafeConvertionCache, ConvertedTrace
+
+from marks.utils import RemoveMarksBase, ConfirmAssociationBase, UnconfirmAssociationBase
 from caches.utils import RecalculateUnsafeCache, UpdateUnsafeCachesOnMarkChange
-from caches.models import ReportUnsafeCache
 
 
 ET_FILE_NAME = 'converted-error-trace.json'
-
-DEFAULT_COMPARE = 'thread_call_forests'
-
-COMPARE_FUNCTIONS = {
-    'callback_call_forests': {
-        'desc': 'Jaccard index of "callback_call_forests" convertion.',
-        'convert': 'callback_call_forests'
-    },
-    'thread_call_forests': {
-        'desc': 'Jaccard index of "thread_call_forests" convertion.',
-        'convert': 'thread_call_forests'
-    }
-}
-
-CONVERT_FUNCTIONS = {
-    'callback_call_forests': """
-This function is extracting the error trace call stack forests.
-The forest is a couple of call trees under callback action.
-Call tree is tree of function names in their execution order.
-All its leaves are names of functions which calls or statements
-are marked with the "note" or "warn" attribute. Returns list of forests.
-    """,
-    'thread_call_forests': """
-This function extracts error trace call forests. Each call forest is one or more call trees in the same thread.
-A call tree is a tree of names of functions in their execution order. Each call tree root is either a callback action
-if it exists in a corresponding call stack or a thread function. All call tree leaves are names of functions
-which calls or statements are marked with the “note” or “warn” attribute. If there are several such functions in
-a call stack then the latests functions are chosen. The function returns a list of forests. A forests order corresponds
-to an execution order of first statements of forest threads.
-    """
-}
 
 
 def perform_unsafe_mark_create(user, report, serializer):
@@ -174,61 +143,32 @@ def convert_error_trace(error_trace, function):
     return save_converted_trace(forests, function)
 
 
-def remove_unsafe_marks(**kwargs):
-    queryset = MarkUnsafe.objects.filter(**kwargs)
-    if not queryset.count():
-        return
-    qs_filters = dict(('mark__{}'.format(k), v) for k, v in kwargs.items())
-    affected_reports = set(MarkUnsafeReport.objects.filter(**qs_filters).values_list('report_id', flat=True))
-    queryset.delete()
-    RecalculateUnsafeCache(reports=affected_reports)
+class RemoveUnsafeMarks(RemoveMarksBase):
+    model = MarkUnsafe
+    associations_model = MarkUnsafeReport
 
-
-def confirm_unsafe_mark(user, mark_report):
-    if mark_report.type == ASSOCIATION_TYPE[1][0]:
-        return
-    was_unconfirmed = (mark_report.type == ASSOCIATION_TYPE[2][0])
-    mark_report.author = user
-    mark_report.type = ASSOCIATION_TYPE[1][0]
-    mark_report.associated = True
-    mark_report.save()
-
-    # Do not count automatic associations as there is already confirmed one
-    change_num = MarkUnsafeReport.objects.filter(
-        report_id=mark_report.report_id, associated=True, type=ASSOCIATION_TYPE[0][0]
-    ).update(associated=False)
-
-    if was_unconfirmed or change_num:
-        RecalculateUnsafeCache(reports=[mark_report.report_id])
-    else:
-        cache_obj = ReportUnsafeCache.objects.get(report_id=mark_report.report_id)
-        cache_obj.marks_confirmed += 1
-        cache_obj.save()
-
-
-def unconfirm_unsafe_mark(user, mark_report: MarkUnsafeReport):
-    if mark_report.type == ASSOCIATION_TYPE[2][0]:
-        return
-    was_confirmed = bool(mark_report.type == ASSOCIATION_TYPE[1][0])
-    mark_report.author = user
-    mark_report.type = ASSOCIATION_TYPE[2][0]
-    mark_report.associated = False
-    mark_report.save()
-
-    if was_confirmed and not MarkUnsafeReport.objects\
-            .filter(report_id=mark_report.report_id, type=ASSOCIATION_TYPE[1][0]).exists():
-        # The report has lost the only confirmed mark,
-        # so we need recalculate what associations we need to count for caches
+    def update_associated(self):
+        queryset = self.without_associations_qs
         with transaction.atomic():
-            for mr in MarkUnsafeReport.objects.filter(report_id=mark_report.report_id)\
-                    .exclude(type=ASSOCIATION_TYPE[2][0]).select_related('mark')\
-                    .only('report_id', 'result', 'error', 'mark__threshold'):
-                if mr.error or mr.result < mr.mark.threshold:
-                    continue
-                mr.associated = True
+            for mr in queryset.select_related('mark'):
+                mr.associated = (mr.result >= mr.mark.threshold)
                 mr.save()
 
-    RecalculateUnsafeCache(reports=[mark_report.report_id])
+
+class ConfirmUnsafeMark(ConfirmAssociationBase):
+    def recalculate_cache(self, report_id):
+        RecalculateUnsafeCache(reports=[report_id])
+
+
+class UnconfirmUnsafeMark(UnconfirmAssociationBase):
+    model = MarkUnsafeReport
+
+    def get_automatically_associated_qs(self):
+        queryset = super(UnconfirmUnsafeMark, self).get_automatically_associated_qs()
+        return queryset.filter(error=None, result__gte=F('mark__threshold'))
+
+    def recalculate_cache(self, report_id):
+        RecalculateUnsafeCache(reports=[report_id])
 
 
 class ConnectUnsafeMark:
@@ -461,22 +401,17 @@ class UpdateAssociated:
         self.__update()
 
     def __update(self):
-        # Because of the mark threshold some associations can't be confirmed already
-        auto_qs = MarkUnsafeReport.objects.filter(
-            mark=self._mark, type=ASSOCIATION_TYPE[1][0], result__lt=self._mark.threshold
-        )
-        if auto_qs.count():
-            auto_qs.update(type=ASSOCIATION_TYPE[0][0])
+        queryset = MarkUnsafeReport.objects.filter(mark=self._mark)
+        has_confirmed = queryset.filter(type=ASSOCIATION_TYPE[1][0]).exists()
 
-        markreport_qs = MarkUnsafeReport.objects.filter(mark=self._mark)
-        has_confirmed = any(mr.type == ASSOCIATION_TYPE[1][0] for mr in markreport_qs)
-        with transaction.atomic():
-            for mr in markreport_qs:
-                associated = (mr.result >= self._mark.threshold)
-                if has_confirmed:
-                    # Count only confirmed associations
-                    associated &= (mr.type == ASSOCIATION_TYPE[1][0])
-                # Save only if changed
-                if mr.associated != associated:
-                    mr.associated = associated
-                    mr.save()
+        if has_confirmed:
+            # Because of the mark threshold some associations can't be confirmed already
+            queryset.filter(
+                result__lt=self._mark.threshold, type=ASSOCIATION_TYPE[1][0]
+            ).update(type=ASSOCIATION_TYPE[0][0])
+
+        associate_condition = Q(result__gte=self._mark.threshold)
+        if has_confirmed:
+            associate_condition &= Q(type=ASSOCIATION_TYPE[1][0])
+
+        queryset.update(associated=Case(When(condition=associate_condition, then=Value(True)), default=Value(False)))

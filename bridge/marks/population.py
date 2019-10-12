@@ -27,8 +27,7 @@ from bridge.utils import BridgeException
 
 from marks.models import SafeTag, MarkSafe, UnsafeTag, MarkUnsafe, MarkUnknown
 from marks.serializers import (
-    SafeMarkSerializer, UnsafeMarkSerializer, UnknownMarkSerializer,
-    SafeTagSerializer, UnsafeTagSerializer
+    SafeMarkSerializer, UnsafeMarkSerializer, UnknownMarkSerializer, SafeTagSerializer, UnsafeTagSerializer
 )
 
 from marks.SafeUtils import ConnectSafeMark

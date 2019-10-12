@@ -18,10 +18,11 @@
 import copy
 
 from bridge.vars import ASSOCIATION_TYPE
+
 from reports.models import ReportSafe
 from marks.models import MarkSafe, MarkSafeHistory, MarkSafeReport
-from caches.models import ReportSafeCache
 
+from marks.utils import RemoveMarksBase, ConfirmAssociationBase, UnconfirmAssociationBase
 from caches.utils import UpdateSafeCachesOnMarkChange, RecalculateSafeCache
 
 
@@ -66,55 +67,23 @@ def perform_safe_mark_update(user, serializer):
     return cache_upd.save()
 
 
-def remove_safe_marks(**kwargs):
-    queryset = MarkSafe.objects.filter(**kwargs)
-    if not queryset.count():
-        return
-    qs_filters = dict(('mark__{}'.format(k), v) for k, v in kwargs.items())
-    affected_reports = set(MarkSafeReport.objects.filter(**qs_filters).values_list('report_id', flat=True))
-    queryset.delete()
-    RecalculateSafeCache(reports=affected_reports)
+class RemoveSafeMarks(RemoveMarksBase):
+    model = MarkSafe
+    associations_model = MarkSafeReport
 
 
-def confirm_safe_mark(user, mark_report):
-    if mark_report.type == ASSOCIATION_TYPE[1][0]:
-        return
-    was_unconfirmed = (mark_report.type == ASSOCIATION_TYPE[2][0])
-    mark_report.author = user
-    mark_report.type = ASSOCIATION_TYPE[1][0]
-    mark_report.associated = True
-    mark_report.save()
+class ConfirmSafeMark(ConfirmAssociationBase):
+    model = MarkSafeReport
 
-    # Do not count automatic associations as there is already confirmed one
-    change_num = MarkSafeReport.objects.filter(
-        report_id=mark_report.report_id, associated=True, type=ASSOCIATION_TYPE[0][0]
-    ).update(associated=False)
-
-    if was_unconfirmed or change_num:
-        RecalculateSafeCache(reports=[mark_report.report_id])
-    else:
-        cache_obj = ReportSafeCache.objects.get(report_id=mark_report.report_id)
-        cache_obj.marks_confirmed += 1
-        cache_obj.save()
+    def recalculate_cache(self, report_id):
+        RecalculateSafeCache(reports=[report_id])
 
 
-def unconfirm_safe_mark(user, mark_report):
-    if mark_report.type == ASSOCIATION_TYPE[2][0]:
-        return
-    was_confirmed = bool(mark_report.type == ASSOCIATION_TYPE[1][0])
-    mark_report.author = user
-    mark_report.type = ASSOCIATION_TYPE[2][0]
-    mark_report.associated = False
-    mark_report.save()
+class UnconfirmSafeMark(UnconfirmAssociationBase):
+    model = MarkSafeReport
 
-    if was_confirmed and not MarkSafeReport.objects\
-            .filter(report_id=mark_report.report_id, type=ASSOCIATION_TYPE[1][0]).exists():
-        # The report has lost the only confirmed mark,
-        # so we need recalculate what associations we need to count for caches
-        MarkSafeReport.objects.filter(report_id=mark_report.report_id)\
-            .exclude(type=ASSOCIATION_TYPE[2][0]).update(associated=True)
-
-    RecalculateSafeCache(reports=[mark_report.report_id])
+    def recalculate_cache(self, report_id):
+        RecalculateSafeCache(reports=[report_id])
 
 
 class ConnectSafeMark:

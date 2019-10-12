@@ -20,22 +20,20 @@ from io import BytesIO
 from urllib.parse import unquote
 from wsgiref.util import FileWrapper
 
-from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Max, Case, When, F, CharField, Value
 from django.db.models.expressions import RawSQL
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 from django.utils.functional import cached_property
 
-from bridge.vars import UNSAFE_VERDICTS, SAFE_VERDICTS, JOB_WEIGHT, ERROR_TRACE_FILE
+from bridge.vars import UNSAFE_VERDICTS, SAFE_VERDICTS, JOB_WEIGHT, ERROR_TRACE_FILE, SAFE_COLOR, UNSAFE_COLOR
 from bridge.tableHead import Header
 from bridge.utils import BridgeException, ArchiveFileContent
 from bridge.ZipGenerator import ZipStream
 
 from reports.models import ReportComponent, ReportAttr, ReportUnsafe, ReportSafe, ReportUnknown, ReportRoot
 
-from users.utils import DEF_NUMBER_OF_ELEMENTS, HumanizedValue
-from marks.utils import SAFE_COLOR, UNSAFE_COLOR
+from users.utils import HumanizedValue, paginate_queryset
 
 
 REP_MARK_TITLES = {
@@ -247,28 +245,8 @@ class SafesTable:
         if annotations:
             queryset = queryset.annotate(**annotations)
         queryset = queryset.filter(**qs_filters).exclude(cache=None).order_by(ordering).select_related('cache')
-        return self.__paginate_queryset(queryset, query_params.get('page', 1))
-
-    def __paginate_queryset(self, queryset, page):
-        num_per_page = DEF_NUMBER_OF_ELEMENTS
-        if 'elements' in self.view:
-            num_per_page = max(int(self.view['elements'][0]), 1)
-
-        paginator = Paginator(queryset, num_per_page)
-        try:
-            page_number = int(page)
-        except ValueError:
-            if page == 'last':
-                page_number = paginator.num_pages
-            else:
-                raise BridgeException()
-        try:
-            values = paginator.page(page_number)
-        except PageNotAnInteger:
-            values = paginator.page(1)
-        except EmptyPage:
-            values = paginator.page(paginator.num_pages)
-        return paginator, values
+        num_per_page = self.view['elements'][0] if self.view['elements'] else None
+        return paginate_queryset(queryset, query_params.get('page', 1), num_per_page)
 
     def __get_title(self, query_params):
         title = _('Safes')
@@ -500,28 +478,8 @@ class UnsafesTable:
         if annotations:
             queryset = queryset.annotate(**annotations)
         queryset = queryset.filter(**qs_filters).exclude(cache=None).order_by(ordering).select_related('cache')
-        return self.__paginate_queryset(queryset, query_params.get('page', 1))
-
-    def __paginate_queryset(self, queryset, page):
-        num_per_page = DEF_NUMBER_OF_ELEMENTS
-        if 'elements' in self.view:
-            num_per_page = max(int(self.view['elements'][0]), 1)
-
-        paginator = Paginator(queryset, num_per_page)
-        try:
-            page_number = int(page)
-        except ValueError:
-            if page == 'last':
-                page_number = paginator.num_pages
-            else:
-                raise BridgeException()
-        try:
-            values = paginator.page(page_number)
-        except PageNotAnInteger:
-            values = paginator.page(1)
-        except EmptyPage:
-            values = paginator.page(paginator.num_pages)
-        return paginator, values
+        num_per_page = self.view['elements'][0] if self.view['elements'] else None
+        return paginate_queryset(queryset, query_params.get('page', 1), num_per_page)
 
     def __get_title(self, query_params):
         title = _('Unsafes')
@@ -751,28 +709,8 @@ class UnknownsTable:
         if annotations:
             queryset = queryset.annotate(**annotations)
         queryset = queryset.filter(**qs_filters).exclude(cache=None).order_by(ordering).select_related('cache')
-        return self.__paginate_queryset(queryset, query_params.get('page', 1))
-
-    def __paginate_queryset(self, queryset, page):
-        num_per_page = DEF_NUMBER_OF_ELEMENTS
-        if 'elements' in self.view:
-            num_per_page = max(int(self.view['elements'][0]), 1)
-
-        paginator = Paginator(queryset, num_per_page)
-        try:
-            page_number = int(page)
-        except ValueError:
-            if page == 'last':
-                page_number = paginator.num_pages
-            else:
-                raise BridgeException()
-        try:
-            values = paginator.page(page_number)
-        except PageNotAnInteger:
-            values = paginator.page(1)
-        except EmptyPage:
-            values = paginator.page(paginator.num_pages)
-        return paginator, values
+        num_per_page = self.view['elements'][0] if self.view['elements'] else None
+        return paginate_queryset(queryset, query_params.get('page', 1), num_per_page)
 
     def __get_title(self, query_params):
         title = _('Unknowns')
@@ -887,7 +825,9 @@ class ReportChildrenTable:
         self.report = report
         self.view = view
 
-        self.paginator, self.page = self.__paginate_queryset(self.__get_queryset(), page)
+        num_per_page = view['elements'][0] if view['elements'] else None
+        self.paginator, self.page = paginate_queryset(self.__get_queryset(), page, num_per_page)
+
         self.header, self.values = self.__component_data()
 
     def __get_queryset(self):
@@ -930,27 +870,6 @@ class ReportChildrenTable:
         if annotations:
             queryset = queryset.values('id').annotate(**annotations)
         return queryset.filter(**qs_filters).order_by(ordering).only('id', 'component')
-
-    def __paginate_queryset(self, queryset, page):
-        num_per_page = DEF_NUMBER_OF_ELEMENTS
-        if 'elements' in self.view:
-            num_per_page = max(int(self.view['elements'][0]), 1)
-
-        paginator = Paginator(queryset, num_per_page)
-        try:
-            page_number = int(page)
-        except ValueError:
-            if page == 'last':
-                page_number = paginator.num_pages
-            else:
-                raise BridgeException()
-        try:
-            values = paginator.page(page_number)
-        except PageNotAnInteger:
-            values = paginator.page(1)
-        except EmptyPage:
-            values = paginator.page(paginator.num_pages)
-        return paginator, values
 
     def __component_data(self):
         report_ids = list(report.id for report in self.page)

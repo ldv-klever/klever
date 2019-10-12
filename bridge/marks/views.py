@@ -24,7 +24,7 @@ from django.views.generic import DetailView
 from django.views.generic.base import TemplateView
 from django.views.generic.detail import SingleObjectMixin
 
-from bridge.vars import VIEW_TYPES, PROBLEM_DESC_FILE
+from bridge.vars import VIEW_TYPES, PROBLEM_DESC_FILE, COMPARE_FUNCTIONS, CONVERT_FUNCTIONS
 from bridge.utils import BridgeException, ArchiveFileContent
 from bridge.CustomViews import DataViewMixin, StreamingResponseView
 from tools.profiling import LoggedCallMixin
@@ -32,7 +32,7 @@ from tools.profiling import LoggedCallMixin
 from reports.models import ReportSafe, ReportUnsafe, ReportUnknown
 from marks.models import MarkSafe, MarkUnsafe, MarkUnknown, MarkSafeHistory, MarkUnsafeHistory, MarkUnknownHistory
 
-from marks.utils import MarkAccess, MarkVersionFormData, CompareMarkVersions
+from marks.utils import MarkAccess, CompareMarkVersions
 from marks.tags import AllTagsTree, DownloadTags, MarkTagsTree, SelectedTagsTree
 from marks.Download import (
     SafeMarkGenerator, UnsafeMarkGenerator, UnknownMarkGenerator,
@@ -44,7 +44,7 @@ from marks.tables import (
     SafeAssChanges, UnsafeAssChanges, UnknownAssChanges
 )
 from marks.serializers import SMVlistSerializerRO, UMVlistSerializerRO, FMVlistSerializerRO
-from marks.UnsafeUtils import COMPARE_FUNCTIONS, CONVERT_FUNCTIONS
+from marks.markversion import MarkVersionFormData
 
 
 @register.filter

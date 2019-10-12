@@ -41,26 +41,28 @@ from marks.models import (
     MarkUnknownReport, SafeAssociationLike, UnsafeAssociationLike, UnknownAssociationLike,
     MarkSafeHistory, MarkUnsafeHistory, MarkUnknownHistory
 )
-from marks.utils import MarkAccess, MarkVersionFormData
+from marks.utils import MarkAccess
 from marks.tags import TagAccess, ChangeTagsAccess, UploadTags
 from marks.serializers import (
     SafeMarkSerializer, UnsafeMarkSerializer, UnknownMarkSerializer, SafeTagSerializer, UnsafeTagSerializer
 )
 from marks.SafeUtils import (
-    perform_safe_mark_create, perform_safe_mark_update, remove_safe_marks,
-    confirm_safe_mark, unconfirm_safe_mark
+    perform_safe_mark_create, perform_safe_mark_update, RemoveSafeMarks, ConfirmSafeMark, UnconfirmSafeMark
 )
 from marks.UnsafeUtils import (
-    perform_unsafe_mark_create, perform_unsafe_mark_update, remove_unsafe_marks,
-    confirm_unsafe_mark, unconfirm_unsafe_mark
+    perform_unsafe_mark_create, perform_unsafe_mark_update, RemoveUnsafeMarks,
+    ConfirmUnsafeMark, UnconfirmUnsafeMark
 )
 from marks.UnknownUtils import (
-    perform_unknown_mark_create, perform_unknown_mark_update, CheckUnknownFunction, remove_unknown_marks,
-    confirm_unknown_mark, unconfirm_unknown_mark
+    perform_unknown_mark_create, perform_unknown_mark_update, CheckUnknownFunction,
+    RemoveUnknownMarks, ConfirmUnknownMark, UnconfirmUnknownMark
 )
 from marks.Download import AllMarksGenerator, MarksUploader, UploadAllMarks
+from marks.markversion import MarkVersionFormData
 
-from caches.utils import UpdateSafeMarksTags, UpdateUnsafeMarksTags
+from caches.utils import (
+    UpdateSafeMarksTags, UpdateUnsafeMarksTags, RecalculateSafeCache, RecalculateUnsafeCache, RecalculateUnknownCache
+)
 
 
 class MarkSafeViewSet(LoggedCallMixin, ModelViewSet):
@@ -106,7 +108,8 @@ class MarkSafeViewSet(LoggedCallMixin, ModelViewSet):
     def perform_destroy(self, instance):
         if not MarkAccess(self.request.user, mark=instance).can_delete:
             raise exceptions.PermissionDenied(_("You don't have an access to remove this mark"))
-        remove_safe_marks(id=instance.id)
+        res = RemoveSafeMarks(id=instance.id)
+        RecalculateSafeCache(reports=res.affected_reports)
 
 
 class MarkUnsafeViewSet(LoggedCallMixin, ModelViewSet):
@@ -152,7 +155,8 @@ class MarkUnsafeViewSet(LoggedCallMixin, ModelViewSet):
     def perform_destroy(self, instance):
         if not MarkAccess(self.request.user, mark=instance).can_delete:
             raise exceptions.PermissionDenied(_("You don't have an access to remove this mark"))
-        remove_unsafe_marks(id=instance.id)
+        res = RemoveUnsafeMarks(id=instance.id)
+        RecalculateUnsafeCache(reports=res.affected_reports)
 
 
 class MarkUnknownViewSet(LoggedCallMixin, ModelViewSet):
@@ -198,7 +202,8 @@ class MarkUnknownViewSet(LoggedCallMixin, ModelViewSet):
     def perform_destroy(self, instance):
         if not MarkAccess(self.request.user, mark=instance).can_delete:
             raise exceptions.PermissionDenied(_("You don't have an access to remove this mark"))
-        remove_unknown_marks(id=instance.id)
+        res = RemoveUnknownMarks(id=instance.id)
+        RecalculateUnknownCache(reports=res.affected_reports)
 
 
 class SafeTagViewSet(LoggedCallMixin, ModelViewSet):
@@ -332,7 +337,8 @@ class RemoveSafeMarksView(LoggedCallMixin, APIView):
     permission_classes = (ManagerPermission,)
 
     def delete(self, request):
-        remove_safe_marks(id__in=json.loads(self.request.POST['ids']))
+        res = RemoveSafeMarks(id__in=json.loads(self.request.POST['ids']))
+        RecalculateSafeCache(reports=res.affected_reports)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -341,7 +347,8 @@ class RemoveUnsafeMarksView(LoggedCallMixin, APIView):
     permission_classes = (ManagerPermission,)
 
     def delete(self, request):
-        remove_unsafe_marks(id__in=json.loads(self.request.POST['ids']))
+        res = RemoveUnsafeMarks(id__in=json.loads(self.request.POST['ids']))
+        RecalculateUnsafeCache(reports=res.affected_reports)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -350,37 +357,38 @@ class RemoveUnknownMarksView(LoggedCallMixin, APIView):
     permission_classes = (ManagerPermission,)
 
     def delete(self, request):
-        remove_unknown_marks(id__in=json.loads(self.request.POST['ids']))
+        res = RemoveUnknownMarks(id__in=json.loads(self.request.POST['ids']))
+        RecalculateUnknownCache(reports=res.affected_reports)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class ConfirmSafeMarkView(LoggedCallMixin, APIView):
     def post(self, request, pk):
-        confirm_safe_mark(request.user, get_object_or_404(MarkSafeReport, pk=pk))
+        ConfirmSafeMark(request.user, get_object_or_404(MarkSafeReport, pk=pk))
         return Response({})
 
     def delete(self, request, pk):
-        unconfirm_safe_mark(request.user, get_object_or_404(MarkSafeReport, pk=pk))
+        UnconfirmSafeMark(request.user, get_object_or_404(MarkSafeReport, pk=pk))
         return Response({})
 
 
 class ConfirmUnsafeMarkView(LoggedCallMixin, APIView):
     def post(self, request, pk):
-        confirm_unsafe_mark(request.user, get_object_or_404(MarkUnsafeReport, pk=pk))
+        ConfirmUnsafeMark(request.user, get_object_or_404(MarkUnsafeReport, pk=pk))
         return Response({})
 
     def delete(self, request, pk):
-        unconfirm_unsafe_mark(request.user, get_object_or_404(MarkUnsafeReport, pk=pk))
+        UnconfirmUnsafeMark(request.user, get_object_or_404(MarkUnsafeReport, pk=pk))
         return Response({})
 
 
 class ConfirmUnknownMarkView(LoggedCallMixin, APIView):
     def post(self, request, pk):
-        confirm_unknown_mark(request.user, get_object_or_404(MarkUnknownReport, pk=pk))
+        ConfirmUnknownMark(request.user, get_object_or_404(MarkUnknownReport, pk=pk))
         return Response({})
 
     def delete(self, request, pk):
-        unconfirm_unknown_mark(request.user, get_object_or_404(MarkUnknownReport, pk=pk))
+        UnconfirmUnknownMark(request.user, get_object_or_404(MarkUnknownReport, pk=pk))
         return Response({})
 
 

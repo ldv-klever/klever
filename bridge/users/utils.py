@@ -18,6 +18,7 @@
 import json
 from datetime import date
 
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Q
 from django.template import Template, Context
 from django.urls import reverse
@@ -25,6 +26,7 @@ from django.utils.translation import ugettext_lazy as _
 from django.utils.functional import cached_property
 
 from bridge.vars import DATAFORMAT
+from bridge.utils import BridgeException
 
 from users.models import DataView, PreferableView, User
 
@@ -614,3 +616,23 @@ class UserActionsHistory:
                 'href': reverse('marks:unknown', args=[act.mark_id]),
             })
         return marks_activity
+
+
+def paginate_queryset(queryset, page, num_per_page=None):
+    num_per_page = max(int(num_per_page), 1) if num_per_page else DEF_NUMBER_OF_ELEMENTS
+
+    paginator = Paginator(queryset, num_per_page)
+    try:
+        page_number = int(page)
+    except ValueError:
+        if page == 'last':
+            page_number = paginator.num_pages
+        else:
+            raise BridgeException()
+    try:
+        values = paginator.page(page_number)
+    except PageNotAnInteger:
+        values = paginator.page(1)
+    except EmptyPage:
+        values = paginator.page(paginator.num_pages)
+    return paginator, values
