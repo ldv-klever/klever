@@ -150,6 +150,11 @@ class ConnectSafeMark:
             associations.append(new_association)
             new_links.add(report.id)
         MarkSafeReport.objects.bulk_create(associations)
+
+        if prime_id:
+            MarkSafeReport.objects.filter(
+                report_id=prime_id, associated=True, type=ASSOCIATION_TYPE[0][0]
+            ).update(associated=False)
         return new_links
 
 
