@@ -232,7 +232,9 @@ class Weaver(core.vtg.plugins.Plugin):
                 self.abstract_task_desc['extra C files'].append(extra_c_file)
 
         # Get cross references and everything required for them when all required commands were executed.
-        clade_extra = Clade(cmds_file='cmds.txt')
+        # Limit parallel workers in Clade by 1 since at this stage there may be several parallel task generators and we
+        # prefer their parallelism over the Clade one.
+        clade_extra = Clade(cmds_file='cmds.txt', conf={'cpu_count': 1})
         clade_extra.parse_list(["CrossRef"])
 
         # Like in core.job.Job#__upload_original_sources.
