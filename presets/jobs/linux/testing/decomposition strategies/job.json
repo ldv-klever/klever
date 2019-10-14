@@ -54,7 +54,10 @@
       "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
     {
-      "add targets": ["ext-modules/several_groups/init.ko"],
+      "add targets": [
+        "ext-modules/several_groups/init.ko:0",
+        "ext-modules/several_groups/init.ko:1"
+      ],
       "fragments": {
         "ext-modules/several_groups/init.ko:0": [
           "ext-modules/several_groups/library1.ko",

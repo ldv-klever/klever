@@ -84,17 +84,38 @@ class FragmentationAlgorythm:
         self.logger.info("Determine units in the target program")
         self._determine_units(deps)
 
+        # Prepare semifinal fragments according to strategy chosen manually
+        self.logger.info("Apply corrections of program fragments provided by a user")
+        defined_groups = self._do_manual_correction(deps)
+
         # Mark dirs, units, files, functions
         self.logger.info("Select program fragments for verification")
         self._determine_targets(deps)
 
-        # Prepare semifinal fragments according to strategy chosen manually
-        self.logger.info("Apply corrections of program fragments provided by a user")
-        self._do_manual_correction(deps)
-
         # Prepare final optional addiction of fragments if necessary
         self.logger.info("Collect dependencies if necessary for each fragment intended for verification")
         grps = self._add_dependencies(deps)
+
+        # Remove useless duplicates
+        for manual in defined_groups:
+            fragment = deps.get_fragment(manual)
+            allfiles = set()
+            for item in defined_groups[manual]:
+                allfiles.update(item.files)
+            fragment.files.difference_update(allfiles)
+
+        # Before describing files add manually defined files
+        for group in grps:
+            update = True
+            while update:
+                update = False
+                old = set(grps[group][1])
+                for fragment in list(grps[group][1]):
+                    if not fragment.files:
+                        grps[group][1].remove(fragment)
+                    grps[group][1].update(defined_groups.get(str(fragment), set()))
+                if old.symmetric_difference(grps[group][1]):
+                    update = True
 
         # Prepare program fragments
         self.logger.info("Generate program fragments")
@@ -171,10 +192,26 @@ class FragmentationAlgorythm:
         fragments = self.fragmentation_set_conf.get('fragments', dict())
         remove = set(self.fragmentation_set_conf.get('exclude from all fragments', set()))
         add = set(self.fragmentation_set_conf.get('add to all fragments', set()))
+        defined_groups = dict()
 
         # Collect files
         new = dict()
         for identifier, frags_exprs in ((i, set(e)) for i, e in fragments.items()):
+            # First detect fragments and use them at description of manually defined groups
+            frags, matched = program.get_fragments(frags_exprs)
+            self.logger.debug("Matched as fragments the following expressions for {!r}: {}".
+                              format(identifier, ', '.join(matched)))
+            self_fragment = program.get_fragment(identifier)
+            if self_fragment and self_fragment in frags and len(frags) == 1:
+                pass
+            elif self_fragment and self_fragment in frags:
+                frags.remove(self_fragment)
+                matched.remove(identifier)
+                frags_exprs.difference_update(matched)
+                defined_groups[identifier] = frags
+            else:
+                defined_groups[identifier] = frags
+
             files, matched = program.get_files_for_expressions(frags_exprs)
             frags_exprs.difference_update(matched)
             if len(frags_exprs) > 0:
@@ -190,9 +227,27 @@ class FragmentationAlgorythm:
         relevant_fragments = program.get_fragments_with_files(all_files)
 
         # Add all
+        frags, matched = program.get_fragments(add)
+        add.difference_update(matched)
+        if frags:
+            all_frgs = set(program.fragments).difference(frags)
+            for fragment in all_frgs:
+                defined_groups.setdefault(str(fragment), set())
+                defined_groups[str(fragment)].update(frags)
         addiction, _ = program.get_files_for_expressions(add)
 
         # Remove all
+        # First detect fragments and use them at description of manually defined groups
+        frags, matched = program.get_fragments(remove)
+        remove.difference_update(matched)
+        if matched:
+            for manual in defined_groups:
+                defined_groups[manual].difference_update(frags)
+            for frag in (str(f) for f in frags if str(f) in defined_groups):
+                del defined_groups[frag]
+        for fragment in frags:
+            program.remove_fragment(fragment)
+
         removal, _ = program.get_files_for_expressions(remove)
 
         # Remove them
@@ -214,6 +269,8 @@ class FragmentationAlgorythm:
         # Remove empty
         for fragment in empty:
             program.remove_fragment(fragment)
+
+        return defined_groups
 
     def _add_dependencies(self, program):
         """
@@ -301,13 +358,11 @@ class FragmentationAlgorythm:
         }
 
         for frag in fragments:
-            pf_desc['grps'].append(
-                {
-                    'id': frag.name,
-                    'CCs': frag.ccs,
-                    'files': sorted(make_relative_path(self.source_paths, str(f)) for f in frag.files)
-                }
-            )
+            pf_desc['grps'].append({
+                'id': frag.name,
+                'CCs': frag.ccs,
+                'files': sorted(make_relative_path(self.source_paths, str(f)) for f in frag.files)
+            })
             pf_desc['deps'][frag.name] = [succ.name for succ in program.get_fragment_successors(frag)
                                           if succ in fragments]
         self.logger.debug('Program fragment dependencies are {}'.format(pf_desc['deps']))

@@ -262,6 +262,15 @@ class Program:
 
         return suitable_files, matched
 
+    def get_fragment(self, name):
+        """
+        Find a fragment if it is exist.
+
+        :param name: Name of the Fragment.
+        :return: Fragment or None.
+        """
+        return self._fragments.get(name)
+
     def get_fragments(self, names):
         """
         Find particular fragments matched by name.
