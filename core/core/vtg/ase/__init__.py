@@ -90,7 +90,7 @@ class ASE(core.vtg.plugins.Plugin):
                     infile = extra_cc['in file']
                     self.logger.info('Request argument signatures for C file "{0}"'.format(infile))
 
-                    cc = clade.get_cmd(extra_cc['CC'], with_opts=True)
+                    cc = clade.get_cmd(*extra_cc['CC'], with_opts=True)
 
                     env = dict(os.environ)
                     env['LDV_ARG_SIGNS_FILE'] = os.path.realpath(

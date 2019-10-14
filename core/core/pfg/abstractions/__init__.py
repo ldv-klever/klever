@@ -360,7 +360,8 @@ class Program:
                     else:
                         raise RuntimeError('Cannot calculate path to existing file {!r}'.format(file.name))
 
-                    file.cc = str(identifier)
+                    file.cmd_id = identifier
+                    file.cmd_type = desc['type']
                     try:
                         file.size = self.clade.get_file_size(name)
                     except (KeyError, IndexError):

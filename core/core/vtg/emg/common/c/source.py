@@ -477,9 +477,9 @@ class Source:
         # Read each CC description and import map of files to in files
         for group in abstract_task['grps']:
             for desc in group['Extra CCs']:
-                cc_desc = self._clade.get_cmd(desc['CC'])
+                cc_desc = self._clade.get_cmd(*desc['CC'])
                 cc_c_files = set(cc_desc['in'])
-                deps = self._clade.get_cmd_deps(desc['CC'])
+                deps = self._clade.get_cmd_deps(*desc['CC'])
                 for c_file in cc_c_files:
                     # Now read deps
                     _collect_cc_deps(c_file, deps)

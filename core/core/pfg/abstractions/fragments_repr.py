@@ -66,7 +66,7 @@ class Fragment:
     @property
     def ccs(self):
         """Set of all CC compilation files."""
-        return {file.cc for file in self.files}
+        return {(file.cmd_id, file.cmd_type) for file in self.files}
 
     @property
     def size(self):

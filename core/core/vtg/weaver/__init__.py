@@ -57,8 +57,8 @@ class Weaver(core.vtg.plugins.Plugin):
 
             for extra_cc in grp['Extra CCs']:
                 if 'CC' in extra_cc:
-                    if extra_cc['CC'].isdigit():
-                        cc = clade.get_cmd(extra_cc['CC'], with_opts=True)
+                    if extra_cc['CC'][0].isdigit():
+                        cc = clade.get_cmd(*extra_cc['CC'], with_opts=True)
                     else:
                         with open(os.path.join(self.conf['main working directory'], extra_cc['CC']),
                                   encoding='utf8') as fp:
