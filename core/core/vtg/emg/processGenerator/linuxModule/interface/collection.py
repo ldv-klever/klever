@@ -258,15 +258,18 @@ class InterfaceCollection:
         if not interface:
             raise ValueError("Unknown specified interface {!r}".format(interface_name))
 
-        global_obj = sa.get_source_function(name)
         if value:
-            file = global_obj.definition_file
+            global_obj = sa.get_source_function(name)
+            if global_obj:
+                file = global_obj.definition_file
+            else:
+                raise KeyError("There is no function {!r}".format(name))
         else:
             global_obj = sa.get_source_variable(name)
             if global_obj:
                 file = global_obj.initialization_file
             else:
-                raise KeyError("There is no either a function nor global variable {!r}".format(name))
+                raise KeyError("There is no global variable {!r}".format(name))
 
         implementation = interface.add_implementation(name, global_obj.declaration, file)
         return implementation
