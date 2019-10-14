@@ -57,7 +57,9 @@ class Weaver(core.vtg.plugins.Plugin):
 
             for extra_cc in grp['Extra CCs']:
                 if 'CC' in extra_cc:
-                    if extra_cc['CC'][0].isdigit():
+                    # Each CC is either pair (compiler command identifier, compiler command type) or JSON file name
+                    # with compiler command description.
+                    if isinstance(extra_cc['CC'], list):
                         cc = clade.get_cmd(*extra_cc['CC'], with_opts=True)
                     else:
                         with open(os.path.join(self.conf['main working directory'], extra_cc['CC']),
