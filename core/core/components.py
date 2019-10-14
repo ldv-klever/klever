@@ -459,7 +459,7 @@ class Component(multiprocessing.Process, CallbacksCaller):
 
                 child_resources = all_child_resources()
                 report = {'identifier': self.id}
-                report.update(count_consumed_resources(self.logger,self.tasks_start_time, self.include_child_resources,
+                report.update(count_consumed_resources(self.logger, self.tasks_start_time, self.include_child_resources,
                                                        child_resources))
                 # todo: this is embarassing
                 if self.coverage:
