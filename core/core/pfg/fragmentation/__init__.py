@@ -99,10 +99,11 @@ class FragmentationAlgorythm:
         # Remove useless duplicates
         for manual in defined_groups:
             fragment = deps.get_fragment(manual)
-            allfiles = set()
-            for item in defined_groups[manual]:
-                allfiles.update(item.files)
-            fragment.files.difference_update(allfiles)
+            if fragment:
+                allfiles = set()
+                for item in defined_groups[manual]:
+                    allfiles.update(item.files)
+                fragment.files.difference_update(allfiles)
 
         # Before describing files add manually defined files
         for group in grps:
