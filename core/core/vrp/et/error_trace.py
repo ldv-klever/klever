@@ -185,9 +185,6 @@ class ErrorTrace:
                     # Add created function call node to the end of corresponding thread call stack if function does not
                     # return immediately.
                     thread_func_call_stacks[edge['thread']].append(func_call_node)
-            elif 'return' in edge:
-                # Remove last function call node from corresponding thread function call stack.
-                thread_func_call_stacks[edge['thread']].pop()
             else:
                 # Create node representing given statement that is any edge except for function call enter/return.
                 stmt_node = {
@@ -214,6 +211,10 @@ class ErrorTrace:
                     thread_func_call_stacks[edge['thread']][-1]['children'][-1]['children'].append(stmt_node)
                 else:
                     thread_func_call_stacks[edge['thread']][-1]['children'].append(stmt_node)
+
+                if 'return' in edge:
+                    # Remove last function call node from corresponding thread function call stack.
+                    thread_func_call_stacks[edge['thread']].pop()
 
             # Remember current thread identifier to track thread switches.
             prev_thread_id = edge['thread']
