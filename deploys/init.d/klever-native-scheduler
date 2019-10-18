@@ -18,8 +18,8 @@
 
 ### BEGIN INIT INFO
 # Provides:          klever-native-scheduler
-# Required-Start:    klever-controller klever-bridge
-# Required-Stop:     klever-controller klever-bridge
+# Required-Start:    $ALL
+# Required-Stop:     $ALL
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
 # Short-Description: Klever host scheduler
