@@ -634,10 +634,11 @@ class VTGW(core.components.Component):
             for cc in grp['CCs']:
                 for in_file in clade.get_cmd(*cc)['in']:
                     # Need to add description for each file!
-                    grp['Extra CCs'].append({
-                        'CC': cc,
-                        'in file': in_file
-                    })
+                    if in_file in grp['abs files']:
+                        grp['Extra CCs'].append({
+                            'CC': cc,
+                            'in file': in_file
+                        })
 
             del (grp['CCs'])
 

@@ -362,7 +362,8 @@ class FragmentationAlgorythm:
             pf_desc['grps'].append({
                 'id': frag.name,
                 'CCs': frag.ccs,
-                'files': sorted(make_relative_path(self.source_paths, str(f)) for f in frag.files)
+                'files': sorted(make_relative_path(self.source_paths, str(f)) for f in frag.files),
+                'abs files': sorted(str(f) for f in frag.files)
             })
             pf_desc['deps'][frag.name] = [succ.name for succ in program.get_fragment_successors(frag)
                                           if succ in fragments]
