@@ -52,6 +52,10 @@ case "$1" in
         swapoff -a
         chmod -R o+wt /sys/fs/cgroup/cpuset "/sys/fs/cgroup/cpu,cpuacct" /sys/fs/cgroup/memory /sys/fs/cgroup/freezer
 
+        # This is a workaround to get rid of various issues when Native Scheduler starts and makes request to Klever
+        # Bridge and Klever Controller when they are in the middle of start.
+        sleep 10
+
         export KLEVER_DATA_DIR="${KLEVER_DATA_DIR}"
         if start-stop-daemon --start --quiet --background --pidfile ${PIDFILE} --make-pidfile --chuid ${USER} \
             --exec "${DAEMON}" -- "${CONFFILE}"
