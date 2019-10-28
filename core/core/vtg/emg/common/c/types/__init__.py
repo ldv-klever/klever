@@ -40,7 +40,7 @@ def is_not_null_function(declaration, value):
     :param value: Value string.
     :return: False if it is a function or function pointer and the value is null and False otherwise.
     """
-    check = re.compile('[\s]*[(]?[\s]*0[\s]*[)]?[\s]*')
+    check = re.compile(r'[\s]*[(]?[\s]*0[\s]*[)]?[\s]*')
     if (isinstance(declaration, Function) or
        (isinstance(declaration, Pointer) and isinstance(declaration.points, Function))) and check.fullmatch(value):
         return False
@@ -685,7 +685,7 @@ class Array(Declaration):
         super(Array, self).__init__(ast)
         self.element = None
 
-        array = ast['declarator'][-1]['arrays'].pop()
+        array = ast['declarator'][-1]['arrays'].pop(0)
         self.size = array['size']
         ast = reduce_level(ast)
         self.element = import_declaration(None, ast)
