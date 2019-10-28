@@ -33,7 +33,8 @@ class File:
         self._predecessors = set()
         self._successors = set()
         self.abs_path = None
-        self.cc = None
+        self.cmd_id = None,
+        self.cmd_type = None,
         self.size = 0
         self.target = False
         self.unique = True

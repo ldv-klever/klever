@@ -626,22 +626,6 @@ class VTGW(core.components.Component):
 
     main = tasks_generator_worker
 
-    def add_extra_descriptions(self, initial_abstract_task_desc):
-        clade = Clade(self.conf['build base'])
-        for grp in initial_abstract_task_desc['grps']:
-            grp['Extra CCs'] = []
-
-            for cc in grp['CCs']:
-                for in_file in clade.get_cmd(*cc)['in']:
-                    # Need to add description for each file!
-                    if in_file in grp['abs files']:
-                        grp['Extra CCs'].append({
-                            'CC': cc,
-                            'in file': in_file
-                        })
-
-            del (grp['CCs'])
-
     def generate_abstact_verification_task_desc(self, program_fragment_desc, requirement_desc):
         """Has a callback!"""
         self.logger.info("Start generating tasks for program fragment {!r} and requirement {!r}".
@@ -657,9 +641,7 @@ class VTGW(core.components.Component):
         # Initial abstract verification task looks like corresponding program fragment.
         initial_abstract_task_desc = copy.deepcopy(program_fragment_desc)
         initial_abstract_task_desc['id'] = '{0}/{1}'.format(program_fragment, self.requirement)
-        initial_abstract_task_desc['fragment'] = program_fragment
         initial_abstract_task_desc['attrs'] = ()
-        self.add_extra_descriptions(initial_abstract_task_desc)
 
         initial_abstract_task_desc_file = 'initial abstract task.json'
         self.logger.debug(

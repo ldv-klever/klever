@@ -353,26 +353,30 @@ class FragmentationAlgorythm:
 
         pf_desc = {
             'id': name,
+            'fragment': name,
+            'targets': sorted([str(f) for f in main_fragment.target_files]),
             'grps': list(),
-            'deps': dict(),
-            'targets': sorted([str(f) for f in main_fragment.target_files])
+            'deps': dict()
         }
 
         for frag in fragments:
-            pf_desc['grps'].append({
+            fragment_description = {
                 'id': frag.name,
-                'CCs': frag.ccs,
+                'Extra CCs': [
+                    {"CC": [file.cmd_id, file.cmd_type], "in file": str(file)} for file in frag.files
+                ],
                 'files': sorted(make_relative_path(self.source_paths, str(f)) for f in frag.files),
                 'abs files': sorted(str(f) for f in frag.files)
-            })
+            }
+            pf_desc['grps'].append(fragment_description)
             pf_desc['deps'][frag.name] = [succ.name for succ in program.get_fragment_successors(frag)
                                           if succ in fragments]
         self.logger.debug('Program fragment dependencies are {}'.format(pf_desc['deps']))
 
-        pf_desc_file = os.path.join(self.pf_dir, pf_desc['id'] + '.json')
+        pf_desc_file = os.path.join(self.pf_dir, pf_desc['fragment'] + '.json')
         if os.path.isfile(pf_desc_file):
             raise FileExistsError('Program fragment description file {!r} already exists'.format(pf_desc_file))
-        self.logger.debug('Dump program fragment description {!r} to file {!r}'.format(pf_desc['id'], pf_desc_file))
+        self.logger.debug('Dump program fragment description {!r} to file {!r}'.format(pf_desc['fragment'], pf_desc_file))
         dir_path = os.path.dirname(pf_desc_file).encode('utf8')
         if dir_path:
             os.makedirs(dir_path, exist_ok=True)
