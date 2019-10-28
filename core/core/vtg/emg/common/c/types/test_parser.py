@@ -30,7 +30,7 @@ class TestCParser:
                 # Test that it is the same
                 new_obj = import_declaration(obj.to_string('name'))
                 # todo: Pretty names are different but I am not sure whether it correct or not
-                assert new_obj.identifier == obj.identifier
+                assert obj.compare(new_obj)
 
         return new_method
 
