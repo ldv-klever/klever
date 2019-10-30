@@ -271,7 +271,7 @@ class Source:
         :param call: An expression string.
         :return: Extracted function name string.
         """
-        name_re = re.compile("\(?\s*&?\s*(\w+)\s*\)?$")
+        name_re = re.compile(r'\(?\s*&?\s*(\w+)\s*\)?$')
         if name_re.fullmatch(call):
             return name_re.fullmatch(call).group(1)
         else:
@@ -281,8 +281,8 @@ class Source:
         """
         Read global variables, functions and macros to fill up the collection.
 
-        :param source_analysis: Dictionary with the content of source analysis.
-        :param files_map: Dictionary to resolve main file by an included file.
+        :param cfiles: List of C files.
+        :param dependencies: dependencies dictionary.
         :return: None.
         """
         # Import typedefs if there are provided
