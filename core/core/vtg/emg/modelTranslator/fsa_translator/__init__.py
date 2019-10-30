@@ -181,8 +181,8 @@ class FSATranslator:
 
             subprocesses = {}
             for state in automaton.fsa.states:
-                label = "Action {}: {}\l".format(state.identifier, state.desc['label'])
-                label += '\l'.join(state.code[1])
+                label = r'Action {}: {}\l'.format(state.identifier, state.desc['label'])
+                label += r'\l'.join(state.code[1])
 
                 if not isinstance(state.action, Subprocess) or state.action.name not in subprocesses:
                     graph.node(str(state.identifier), label)

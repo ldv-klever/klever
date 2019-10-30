@@ -17,20 +17,19 @@
 
 import re
 
-from core.vtg.emg.common.process.Parser import parse_process
+from core.vtg.emg.common.process.parser import parse_process
 
 
 def generate_regex_set(subprocess_name):
     """
     Function generates regexes to parse out actions from process descriptions and determine their kind.
 
-    :param self: This a formal useless parameter to allow using this function as a method.
     :param subprocess_name:
     :return: List of dictionary pairs [{'regex': re obj, 'type': Action class obj}]
     """
-    dispatch_template = '\[@?{}(?:\[[^)]+\])?\]'
-    receive_template = '\(!?{}(?:\[[^)]+\])?\)'
-    condition_template = '<{}(?:\[[^)]+\])?>'
+    dispatch_template = r'\[@?{}(?:\[[^)]+\])?\]'
+    receive_template = r'\(!?{}(?:\[[^)]+\])?\)'
+    condition_template = r'<{}(?:\[[^)]+\])?>'
     subprocess_template = '{}'
 
     subprocess_re = re.compile("{" + subprocess_template.format(subprocess_name) + "}")
@@ -104,8 +103,8 @@ class Process:
     receive data across processes,  just contain a code to execute or represent an operator to direct control flow.
     """
 
-    label_re = re.compile('%(\w+)((?:\.\w*)*)%')
-    _name_re = re.compile('\w+')
+    label_re = re.compile(r'%(\w+)((?:\.\w*)*)%')
+    _name_re = re.compile(r'\w+')
 
     def __init__(self, name):
         if not self._name_re.fullmatch(name):

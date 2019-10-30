@@ -19,6 +19,7 @@ import copy
 from operator import attrgetter
 
 from core.vtg.emg.common.process import Subprocess, Receive, Dispatch
+from core.vtg.emg.common.process.parser import Subp, Recv, Disp, Block, Concat, Choice
 from core.vtg.emg.common.c import Variable
 
 
@@ -41,6 +42,7 @@ class FSA:
         # Generate AST states
         sp_asts = dict()
         sp_processed = set()
+        ast_map = dict()
         asts = list()
 
         def generate_nodes(process, pr_ast):
@@ -60,11 +62,11 @@ class FSA:
                 ast, initflag = asts.pop()
 
                 # Unwind AST nodes with operators and atomic actions
-                if ast['type'] == 'choice':
-                    for action in ast['actions']:
+                if isinstance(ast, Choice):
+                    for action in ast.actions:
                         asts.append([action, initflag])
-                elif ast['type'] == 'concatenation':
-                    for action in ast['actions']:
+                elif isinstance(ast, Concat):
+                    for action in ast.actions:
                         if initflag:
                             asts.append([action, initflag])
                             initflag = False
@@ -74,18 +76,18 @@ class FSA:
                     # Generate State for atomic action
                     node = State(ast, self.__yield_id())
 
-                    if ast['name'] not in process.actions:
+                    if ast.name not in process.actions:
                         raise KeyError("Process {!r} does not have action description {!r}".
-                                       format(process.name, ast['name']))
-                    node.action = process.actions[ast['name']]
-                    if isinstance(process.actions[ast['name']], Receive):
-                        node.action.replicative = node.desc['replicative']
-                    if isinstance(process.actions[ast['name']], Dispatch):
-                        node.action.broadcast = node.desc['broadcast']
+                                       format(process.name, ast.name))
+                    node.action = process.actions[ast.name]
+                    if isinstance(process.actions[ast.name], Receive):
+                        node.action.replicative = node.desc.replicative
+                    if isinstance(process.actions[ast.name], Dispatch):
+                        node.action.broadcast = node.desc.broadcast
 
                     # Save State in AST
                     self.states.add(node)
-                    ast['node'] = node
+                    ast_map[id(ast)] = node
 
                     if initflag:
                         initial_states.add(node)
@@ -123,13 +125,12 @@ class FSA:
             while len(asts) > 0:
                 ast = asts.pop()
 
-                if ast['type'] == 'choice':
-                    for action in ast['actions']:
-                        asts.append(action)
-                elif ast['type'] == 'concatenation':
-                    asts.append(ast['actions'][-1])
+                if isinstance(ast, Choice):
+                    asts.extend(ast.actions)
+                elif isinstance(ast, Concat):
+                    asts.append(ast.actions[-1])
                 else:
-                    last.add(ast['node'])
+                    last.add(ast_map[id(ast)])
 
             return last
 
@@ -139,29 +140,30 @@ class FSA:
             ast, prev = asts.pop()
 
             # Unwind AST nodes
-            if ast['type'] == 'choice':
-                for action in ast['actions']:
+            if isinstance(ast, Choice):
+                for action in ast.actions:
                     asts.append([action, prev])
-            elif ast['type'] == 'concatenation':
-                for action in ast['actions']:
+            elif isinstance(ast, Concat):
+                for action in ast.actions:
                     asts.append([action, prev])
                     prev = action
             else:
-                if ast['type'] == 'subprocess':
-                    pair = "{} {}".format(ast['name'], str(prev))
+                if isinstance(ast, Subp):
+                    pair = "{} {}".format(ast.name, str(prev))
                     if pair not in sp_processed:
                         # Mark processed state
                         sp_processed.add(pair)
-                        asts.append([sp_asts[ast['name']], ast])
+                        asts.append([sp_asts[ast.name], ast])
 
                 # Determine particular predecessors
                 last = resolve_last(prev)
-                if len(last) > 0 and prev['type'] != "subprocess":
+                if len(last) > 0 and not isinstance(prev, Subp):
                     # Filter out subprocesses if there are
                     last = [s for s in last if not isinstance(s.action, Subprocess)]
 
                 for pre_state in last:
-                    ast['node'].insert_predecessor(pre_state)
+                    matching_node = ast_map[id(ast)]
+                    matching_node.insert_predecessor(pre_state)
 
         return
 

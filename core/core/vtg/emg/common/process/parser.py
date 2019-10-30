@@ -15,6 +15,7 @@
 # limitations under the License.
 #
 
+import collections
 import ply.lex as lex
 import ply.yacc as yacc
 
@@ -64,6 +65,14 @@ t_PER =r'[%]'
 t_IDENTIFIER = r'\w+'
 
 
+Concat = collections.namedtuple('Concatenation', ('actions',))
+Choice = collections.namedtuple('Choice', ('actions',))
+Disp = collections.namedtuple('Disp', ('name', 'label', 'number', 'broadcast'))
+Recv = collections.namedtuple('Recv', ('name', 'label', 'number', 'replicative'))
+Subp = collections.namedtuple('Subp', ('name', 'label'))
+Block = collections.namedtuple('Block', ('name', 'label', 'number'))
+
+
 def t_RS(t):
     r'[!]'
     t.value = True
@@ -103,7 +112,8 @@ def p_process(p):
     """
     process : action_list
     """
-    p[0] = p[1]
+    _, action_list = p
+    p[0] = action_list
 
 
 def p_action_list(p):
@@ -111,7 +121,8 @@ def p_action_list(p):
     action_list : concatenation_list
                 | choice_list
     """
-    p[0] = p[1]
+    _, some_list = p
+    p[0] = some_list
 
 
 def p_action(p):
@@ -122,7 +133,8 @@ def p_action(p):
            | condition
            | bracket
     """
-    p[0] = p[1]
+    _, action = p
+    p[0] = action
 
 
 def p_concatenation_list(p):
@@ -130,14 +142,15 @@ def p_concatenation_list(p):
     concatenation_list : action DOT concatenation_list
                        | action
     """
-    if len(p) > 2:
-        p[3]['actions'] = [p[1]] + p[3]['actions']
-        p[0] = p[3]
+    _, action, *concatenation_list = p
+    if concatenation_list:
+        concatenation_list = concatenation_list[-1]
+        concatenation_list.actions.appendleft(action)
+        p[0] = concatenation_list
     else:
-        p[0] = {
-            'type': 'concatenation',
-            'actions': [p[1]]
-        }
+        chain = collections.deque()
+        chain.appendleft(action)
+        p[0] = Concat(chain)
 
 
 def p_choice_list(p):
@@ -145,21 +158,23 @@ def p_choice_list(p):
     choice_list : concatenation_list SEP choice_list
                 | concatenation_list
     """
-    if len(p) > 2:
-        p[3]['actions'] = [p[1]] + p[3]['actions']
-        p[0] = p[3]
+    _, concatenation_list, *choice_list = p
+    if choice_list:
+        choice_list = choice_list[-1]
+        choice_list.actions.appendleft(concatenation_list)
+        p[0] = choice_list
     else:
-        p[0] = {
-            'type': 'choice',
-            'actions': [p[1]]
-        }
+        chain = collections.deque()
+        chain.appendleft(concatenation_list)
+        p[0] = Choice(chain)
 
 
 def p_bracket(p):
     """
     bracket : PAR_OPEN action_list PAR_CLOSE
     """
-    p[0] = p[2]
+    _, _, action_list, _ = p
+    p[0] = action_list
 
 
 def p_repeate(p):
@@ -167,10 +182,12 @@ def p_repeate(p):
     repeate : SBR_OPEN NUMBER SBR_CLOSE
             | SBR_OPEN PER IDENTIFIER PER SBR_CLOSE
     """
-    if len(p) > 4:
-        p[0] = p[3]
+    context = p[2:-1]
+    if len(context) > 1:
+        number = context[1]
     else:
-        p[0] = p[2]
+        number = context[0]
+    p[0] = number
 
 
 def p_dispatch(p):
@@ -180,25 +197,21 @@ def p_dispatch(p):
              | SBR_OPEN BS IDENTIFIER SBR_CLOSE
              | SBR_OPEN IDENTIFIER SBR_CLOSE
     """
-    p[0] = {
-        'type': 'dispatch',
-        'number': 1,
-        'label': '['
-    }
-    if not isinstance(p[2], str) and p[2]:
-        p[0]['broadcast'] = True
-        p[0]['name'] = p[3]
-        p[0]['label'] += '@'
-
-        if len(p) == 6:
-            p[0]['number'] = p[4]
+    context = p[2:-1]
+    if not isinstance(context[0], str) and context[0]:
+        # We have broadcast symbol at the very beginning
+        _, name, *number = context
+        broadcast = True
+        label = '@'
     else:
-        p[0]['broadcast'] = False
-        p[0]['name'] = p[2]
-
-        if len(p) == 5:
-            p[0]['number'] = p[3]
-    p[0]['label'] += "{}[{}]".format(p[0]['name'], p[0]['number']) + ']'
+        # We have ordinary dispatch
+        name, *number = context
+        broadcast = False
+        label = ''
+    number = number[-1] if number else 1
+    label = '[' + label + '%s[%s]' % (name, number) + ']'
+    action = Disp(name, label, number, broadcast)
+    p[0] = action
 
 
 def p_receive(p):
@@ -208,25 +221,21 @@ def p_receive(p):
             | PAR_OPEN RS IDENTIFIER PAR_CLOSE
             | PAR_OPEN IDENTIFIER PAR_CLOSE
     """
-    p[0] = {
-        'type': 'receive',
-        'number': 1,
-        'label': '('
-    }
-    if not isinstance(p[2], str) and p[2]:
-        p[0]['replicative'] = True
-        p[0]['name'] = p[3]
-        p[0]['label'] += '!'
-
-        if len(p) == 6:
-            p[0]['number'] = p[4]
+    context = p[2:-1]
+    if not isinstance(context[0], str) and context[0]:
+        # We have replicative symbol at the very beginning
+        _, name, *number = context
+        replicative = True
+        label = '!'
     else:
-        p[0]['replicative'] = False
-        p[0]['name'] = p[2]
-
-        if len(p) == 5:
-            p[0]['number'] = p[3]
-    p[0]['label'] += "{}[{}]".format(p[0]['name'], p[0]['number']) + ')'
+        # We have ordinary receive
+        name, *number = context
+        replicative = False
+        label = ''
+    number = number[-1] if number else 1
+    label += '(' + label + '%s[%s]' % (name, number) + ')'
+    action = Recv(name, label, number, replicative)
+    p[0] = action
 
 
 def p_condition(p):
@@ -234,27 +243,19 @@ def p_condition(p):
     condition : DIM_OPEN IDENTIFIER repeate DIM_CLOSE
               | DIM_OPEN IDENTIFIER DIM_CLOSE
     """
-    p[0] = {
-        'type': 'condition',
-        'name': p[2],
-        'number': 1,
-        'label': '<' + p[2] + '>'
-    }
-
-    if len(p) == 5:
-        p[0]['number'] = p[3]
+    name, *number = p[2:-1]
+    number = number[-1] if number else 1
+    action = Block(name, '<%s>' % name, number)
+    p[0] = action
 
 
 def p_subprocess(p):
     """
     subprocess : BR_OPEN IDENTIFIER BR_CLOSE
     """
-    p[0] = {
-        'type': 'subprocess',
-        'name': p[2],
-        'number': 1,
-        'label': '{' + p[2] + '}'
-    }
+    name = p[2]
+    action = Subp(name, '{%s}' % name)
+    p[0] = action
 
 
 def setup_parser():

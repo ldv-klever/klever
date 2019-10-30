@@ -180,7 +180,7 @@ class LabelTranslator(FSATranslator):
                 else:
                     code.append('{}({});'.format(self._cmodel.free_function_map["FREE"], 'arg0'))
             else:
-                code.append('/* Skip a non-replicative signal receiving */'.format(state.desc['label']))
+                code.append('/* Skip a non-replicative signal receiving %s */' % state.action.name)
                 # Ignore conditions
                 conditions = []
         else:
