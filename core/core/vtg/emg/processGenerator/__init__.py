@@ -20,7 +20,7 @@ import importlib
 from core.utils import get_search_dirs
 from core.vtg.emg.common import get_necessary_conf_property
 from core.vtg.emg.common.specifications import get_specs
-from core.vtg.emg.common.process.collection import ProcessCollection
+from core.vtg.emg.common.process import ProcessCollection
 
 
 def generate_processes(emg, source):
@@ -39,22 +39,20 @@ def generate_processes(emg, source):
     configurations = [list(e.values())[0] for e in get_necessary_conf_property(emg.conf, "intermediate model options")]
     generators = [importlib.import_module(name, 'core') for name in generator_names]
 
-    processes = ProcessCollection(emg.logger, emg.conf)
-
     # Get first kinds of specifications
-    specifications = {}
     kinds = dict()
     for generator in generators:
-        kinds[generator.__name__] = generator.get_specification_kinds(specifications)
+        kinds[generator.__name__] = generator.specifications_endings
 
-    # Get specifications for each kind
-    # Import Specifications
-    emg.logger.info("Search for interface and event specifications")
-    possible_locations = [root for root, _, _ in os.walk(os.path.dirname(emg.conf['specifications base']))] + \
+    # Get specifications for each kind of a agenerator
+    possible_locations = [root for root, _, _ in os.walk(os.path.dirname(emg.conf['requirements DB']))] + \
                          list(get_search_dirs(emg.conf['main working directory']))
-    get_specs(emg.logger, emg.conf, possible_locations, specifications)
+    specifications = get_specs(emg.logger, emg.conf, kinds, possible_locations)
 
     for index, generator in enumerate(generators):
         generator.generate_processes(emg, source, processes, configurations[index],
                                      {kind: specifications[kind] for kind in kinds[generator.__name__]})
+
+    processes = ProcessCollection(emg.logger, emg.conf)
     return processes
+

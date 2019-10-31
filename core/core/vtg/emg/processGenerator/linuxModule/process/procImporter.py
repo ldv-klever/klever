@@ -15,16 +15,15 @@
 # limitations under the License.
 #
 
-from core.vtg.emg.common import get_necessary_conf_property, check_or_set_conf_property
-from core.vtg.emg.common.process import Receive, Dispatch, generate_regex_set
 from core.vtg.emg.common.process.collection import ProcessCollection
+from core.vtg.emg.common.process import Receive, Dispatch
+from core.vtg.emg.common import get_necessary_conf_property, check_or_set_conf_property
 from core.vtg.emg.processGenerator.linuxModule.process import AbstractProcess, AbstractLabel, Call, CallRetval
 
 
 class AbstractProcessImporter(ProcessCollection):
     PROCESS_CONSTRUCTOR = AbstractProcess
     LABEL_CONSTRUCTOR = AbstractLabel
-    REGEX_SET = generate_regex_set
     LABEL_ATTRIBUTES = {
         'container': None,
         'resource': None,
@@ -51,7 +50,6 @@ class AbstractProcessImporter(ProcessCollection):
         'callback': None,
         'callback return value': 'retlabel',
         'entry point': 'trace_relevant'
-
     }
 
     def __init__(self, logger, conf):

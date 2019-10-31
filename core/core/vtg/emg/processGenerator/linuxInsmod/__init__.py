@@ -20,13 +20,11 @@ import collections
 from core.vtg.emg.common import model_comment, get_necessary_conf_property, get_conf_property
 from core.vtg.emg.common.c import Function
 from core.vtg.emg.common.c.types import import_declaration
-from core.vtg.emg.common.process import Process, Condition
+from core.vtg.emg.common.process import Process, Block
 from core.vtg.emg.processGenerator.linuxInsmod.tarjan import calculate_load_order
 
 
-def get_specification_kinds(specifications):
-    """Required by the framework function"""
-    return []
+specifications_endings = []
 
 
 def generate_processes(emg, source, processes, conf, specifications):
@@ -190,7 +188,7 @@ def __generate_insmod_process(logger, conf, source, inits, exits, kernel_initial
         # Generate init subprocess
         for filename, init_name in inits:
             new_name = __generate_alias(ep, init_name, filename, True)
-            init_subprocess = Condition(init_name)
+            init_subprocess = Block(init_name)
             init_subprocess.comment = 'Initialize the module after insmod with {!r} function.'.format(init_name)
             init_subprocess.statements = [
                 model_comment('callback', init_name, {'call': "{}();".format(init_name)}),
@@ -210,7 +208,7 @@ def __generate_insmod_process(logger, conf, source, inits, exits, kernel_initial
     else:
         for filename, exit_name in exits:
             new_name = __generate_alias(ep, exit_name, filename, False)
-            exit_subprocess = Condition(exit_name)
+            exit_subprocess = Block(exit_name)
             exit_subprocess.comment = 'Exit the module before its unloading with {!r} function.'.format(exit_name)
             exit_subprocess.statements = [
                 model_comment('callback', exit_name, {'call': "{}();".format(exit_name)}),

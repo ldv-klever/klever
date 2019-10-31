@@ -24,32 +24,51 @@ from core.vtg.utils import find_file_or_dir
 from core.vtg.emg.common import get_necessary_conf_property
 
 
-def get_specs(logger, conf, directories, specification_kinds):
+def get_specs(logger, conf, kinds, directories, specification_kinds):
     """
     Get specification kinds descriptions and parse all JSON files separating them on the base of markets in
     specification kinds.
 
     :param logger: Logger obj.
     :param conf: Configuration dictionaty.
+    :param kinds: Dicttionary name -> list of file endings
     :param directories: List with directories where to find JSON files.
     :param specification_kinds: Kinds of speciications to search for.
     :return:
     """
-    logger.info('Search for various EMG generators specifications in {}'.format(', '.join(directories)))
+    logger.debug('Search for specifications in: {}'.format(', '.join(directories)))
+
     # Find all json files
     file_candidates = set()
+
+    # First find all files
     for path in directories:
         # Check only full paths to files
         json_files = glob.glob('{}/*.json'.format(path))
         file_candidates.update(json_files)
 
     # Filter specifications
+    accepted_specs = dict()
     for file in file_candidates:
-        with open(file, encoding="utf8") as fh:
-            try:
-                content = ujson.loads(fh.read())
-            except ValueError:
-                raise ValueError("Cannot parse EMG specification file {!r}".format(os.path.abspath(file)))
+        for kind, endings in kinds.items():
+            accepted_specs.setdefault(kind, dict())
+            for ending in endings:
+                if file.endswith(ending):
+                    accepted_specs[kind].setdefault(ending, set())
+                    accepted_specs[kind][ending].add(file)
+
+    # Now parse and merge specifications
+    for gen in accepted_specs:
+        for spec_kind in accepted_specs[gen]:
+            logger.info("Parse {} specifications matched by {!r} pattern".
+                        format(accepted_specs[gen][spec_kind], spec_kind))
+
+            for file in accepted_specs[gen][spec_kind]:
+                with open(file, encoding="utf8") as fh:
+                    try:
+                        content = ujson.loads(fh.read())
+                    except ValueError:
+                        raise ValueError("Cannot parse EMG specification file {!r}".format(os.path.abspath(file)))
 
         if isinstance(content, dict):
             __check_file(logger, file, content, specification_kinds)
@@ -75,7 +94,7 @@ def __check_file(logger, file, content, specification_kinds):
 
 
 def __merge_spec_versions(collection, user_tag):
-    regex = re.compile('\(base\)')
+    regex = re.compile(r'\(base\)')
 
     # Copy data to a final spec
     def import_specification(spec, final_spec):

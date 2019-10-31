@@ -24,9 +24,7 @@ from core.vtg.emg.common.process import Process
 from collections import OrderedDict
 
 
-def get_specification_kinds(specifications):
-    """Required by the framework function"""
-    return []
+specifications_endings = []
 
 
 def generate_processes(emg, source, processes, conf, specifications):

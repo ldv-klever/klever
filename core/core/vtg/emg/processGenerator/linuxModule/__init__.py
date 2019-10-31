@@ -29,12 +29,10 @@ from core.vtg.emg.processGenerator.linuxModule.process.procImporter import Abstr
 import core.vtg.utils
 
 
-def get_specification_kinds(specifications):
-    """Required by the framework function"""
-    specifications.setdefault("interface specification", {"tags": ['categories']})
-    specifications.setdefault("event specification", {"tags": ["environment processes", "functions models"]})
-    specifications.setdefault("instance maps", {"tags": ["instance maps"]})
-    return ["interface specification", "event specification", "instance maps"]
+specifications_endings = [
+    "event spec.json",
+    "interface spec.json"
+]
 
 
 def generate_processes(emg, source, processes, conf, specifications):

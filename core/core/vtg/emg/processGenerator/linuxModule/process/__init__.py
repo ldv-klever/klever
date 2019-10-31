@@ -17,7 +17,7 @@
 
 import re
 
-from core.vtg.emg.common.process import Process, Label, Access, Condition, Dispatch, Receive, Action
+from core.vtg.emg.common.process import Process, Label, Access, Block, Dispatch, Receive, Action
 from core.vtg.emg.common.c.types import Array, Structure, Pointer
 
 
@@ -171,7 +171,7 @@ class AbstractLabel(Label):
 
 
 class AbstractProcess(Process):
-    label_re = re.compile('%(\w+)((?:\.\w*)*)%')
+    label_re = re.compile(r'%(\w+)((?:\.\w*)*)%')
 
     def __init__(self, name):
         super(AbstractProcess, self).__init__(name)
@@ -203,7 +203,7 @@ class AbstractProcess(Process):
                     extract_labels(param)
             if isinstance(action, CallRetval) and action.retlabel:
                 extract_labels(action.retlabel)
-            if isinstance(action, Condition):
+            if isinstance(action, Block):
                 for statement in action.statements:
                     extract_labels(statement)
             if action.condition:
@@ -273,15 +273,15 @@ class AbstractProcess(Process):
                     label1.declaration = label2.declaration
 
             self.actions[signals[0]].peers.append(
-            {
-                'process': process,
-                'subprocess': process.actions[signals[1]]
-            })
+                {
+                    'process': process,
+                    'subprocess': process.actions[signals[1]]
+                })
             process.actions[signals[1]].peers.append(
-            {
-                'process': self,
-                'subprocess': self.actions[signals[0]]
-            })
+                {
+                    'process': self,
+                    'subprocess': self.actions[signals[0]]
+                })
 
     def get_available_peers(self, process):
         ret = []
@@ -302,7 +302,10 @@ class AbstractProcess(Process):
 
         return ret
 
-    def accesses(self, accesses=None, exclude=list(), no_labels=False):
+    def accesses(self, accesses=None, exclude=None, no_labels=False):
+        if not exclude:
+            exclude = list()
+
         if not accesses:
             accss = dict()
 
@@ -321,7 +324,7 @@ class AbstractProcess(Process):
                                 accss[action.parameters[index]] = []
                         if isinstance(action, CallRetval) and action.retlabel:
                             accss[action.retlabel] = []
-                        if isinstance(action, Condition):
+                        if isinstance(action, Block):
                             for statement in action.statements:
                                 for match in self.label_re.finditer(statement):
                                     accss[match.group()] = []
@@ -408,7 +411,7 @@ class AbstractProcess(Process):
         return lb
 
     def add_condition(self, name, condition, statements, comment):
-        new = Condition(name)
+        new = Block(name)
         self.actions[name] = new
 
         new.condition = condition

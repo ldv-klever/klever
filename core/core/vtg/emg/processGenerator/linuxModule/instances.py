@@ -22,7 +22,7 @@ from core.vtg.emg.common import get_conf_property, check_or_set_conf_property, g
     model_comment
 import core.vtg.emg.common.c as c
 from core.vtg.emg.common.c.types import Structure, Primitive, Pointer, Array, Function
-from core.vtg.emg.common.process import Dispatch, Receive, Condition
+from core.vtg.emg.common.process import Dispatch, Receive, Block
 from core.vtg.emg.processGenerator.linuxModule.interface import Implementation, Resource, Container, Callback
 from core.vtg.emg.processGenerator.linuxModule.process import get_common_parameter, CallRetval, Call, AbstractAccess
 _declarations = {'environment model': list()}
@@ -184,7 +184,7 @@ def _simplify_process(logger, conf, sa, interfaces, process):
         return final
 
     for action in process.actions.values():
-        if isinstance(action, Condition):
+        if isinstance(action, Block):
             # Implement statements processing
             action.statements = code_replacment(action.statements)
         if action.condition:

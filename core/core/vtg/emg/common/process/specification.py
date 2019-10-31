@@ -15,12 +15,29 @@
 # limitations under the License.
 #
 
-import ujson
 import os
-from clade import Clade
+import json
 
 from core.vtg.emg.common.c.types import import_declaration
-from core.vtg.emg.common.process import Receive, Dispatch, Subprocess, Condition, generate_regex_set, Label, Process
+from core.vtg.emg.common.process.parser import parse_process
+from core.vtg.emg.common.process import Receive, Dispatch, Subprocess, Block, Label, Process
+
+
+class IntermediateDecoder(json.JSONDecoder):
+    def __init__(self):
+        json.JSONDecoder.__init__(self, object_hook=self.spec_to_classes)
+
+    def spec_to_classes(self, spec):
+        raise NotImplementedError
+
+
+class IntermediateEnoder(json.JSONEncoder):
+
+    def default(self, o):
+        try:
+            super(IntermediateEnoder, self).default(0)
+        except TypeError:
+            raise NotImplementedError
 
 
 class ProcessCollection:
@@ -33,7 +50,6 @@ class ProcessCollection:
 
     PROCESS_CONSTRUCTOR = Process
     LABEL_CONSTRUCTOR = Label
-    REGEX_SET = generate_regex_set
     LABEL_ATTRIBUTES = {
         'value': None,
         'declaration': None
@@ -44,8 +60,7 @@ class ProcessCollection:
         'declarations': None,
         'definitions': None,
         'source files': 'cfiles',
-        'category': None,
-        'identifier': 'pretty_id'
+        'category': None
     }
     ACTION_ATTRIBUTES = {
         'comment': None,
@@ -67,35 +82,13 @@ class ProcessCollection:
         self.models = dict()
         self.environment = dict()
 
-        self._clade = Clade(self.conf['build base'])
-
-    def parse_event_specification(self, raw):
+    def parse_event_specification(self, clade, raw):
         """
         Parse process descriptions and create corresponding objects to populate the collection.
 
         :param raw: Dictionary with content of JSON file.
         :return: None
         """
-
-        def get_short_name(name_or_pretty_id, desc):
-            tokens = name_or_pretty_id.split('/')
-            if len(tokens) == 1:
-                c = None
-                n = tokens[0]
-            elif len(tokens) == 2:
-                c = tokens[0]
-                n = tokens[1]
-            elif len(tokens) == 3:
-                c = tokens[0]
-                n = '_'.join(tokens[1:])
-            else:
-                ValueError('Cannot use string {!r} as a process name'.format(name))
-
-            if desc.get('category') and c and desc.get('category') != c:
-                raise ValueError('Process {!r} has different category names: {!r} and {!r}'.
-                                 format(n, c, desc['category']))
-            return c, n
-
         env_processes = dict()
         models = dict()
 
@@ -106,14 +99,14 @@ class ProcessCollection:
                 names = name_list.split(", ")
                 for name in names:
                     self.logger.debug("Import process which models {!r}".format(name))
-                    cat, short_name = get_short_name(name, process_desc)
-                    models[short_name] = self._import_process(short_name, process_desc)
+                    models[name] = self._import_process(name, process_desc)
 
                     # Set some default values
-                    if cat and cat != "functions models":
+                    if not models[name].category:
+                        models[name].category = "functions models"
+                    if models[name].category != "functions models":
                         raise ValueError("Each function model specification should has category 'functions models' but "
-                                         "process {!r} has name {!r}".format(short_name, cat))
-                    models[short_name].category = "functions models"
+                                         "process {!r} has name {!r}".format(str(models[name]), models[name].category))
                     models[short_name].pretty_id = "functions models/{}".format(short_name)
         if "environment processes" in raw:
             self.logger.info("Import processes from 'environment processes'")
@@ -244,7 +237,7 @@ class ProcessCollection:
                     d['broadcast'] = action.broadcast
                 elif isinstance(action, Receive) and action.replicative:
                     d['replicative'] = action.replicative
-            elif isinstance(action, Condition):
+            elif isinstance(action, Block):
                 if action.statements:
                     d["statements"] = action.statements
 
@@ -288,10 +281,8 @@ class ProcessCollection:
                 process.labels[label_name] = label
 
         # Import process
-        process_strings = []
         if 'process' in dic:
-            process.process = dic['process']
-            process_strings.append(dic['process'])
+            process.process = parse_process(process, dic['process'])
         else:
             raise KeyError("Each process must have 'process' attribute, but {!r} misses it".format(name))
 
@@ -305,15 +296,12 @@ class ProcessCollection:
 
         # Import subprocesses
         if 'actions' in dic:
-            process_strings.extend([dic['actions'][n]['process'] for n in dic['actions']
-                                    if 'process' in dic['actions'][n]])
-
             for action_name in dic['actions']:
-                action = self._import_action(action_name, process_strings, dic['actions'][action_name])
+                action = self._import_action(process, action_name, dic['actions'][action_name])
                 process.actions[action_name] = action
 
                 if 'process' in dic['actions'][action_name]:
-                    process_strings.append(dic['actions'][action_name]['process'])
+                    parse_process(process, dic['actions'][action_name]['process'])
 
         for att in self.PROCESS_ATTRIBUTES:
             if att in dic:
@@ -342,17 +330,11 @@ class ProcessCollection:
         process.accesses()
         return process
 
-    def _import_action(self, name, process_strings, dic):
-        act = None
-        for regex in getattr(self, 'REGEX_SET').__func__(name):
-            for string in process_strings:
-                if regex['regex'].search(string):
-                    act = self._action_checker(string, regex, name, dic)
-                    break
+    def _import_action(self, process, name, dic):
+        act = process.actions.get(name)
         if not act:
-            raise ValueError("Action '{!r}' is not used in process description {!r}".format(name, name))
+            raise KeyError('Action %s is not used in process %s' % (name, process))
 
-        # Add comment if it is provided
         for att in self.ACTION_ATTRIBUTES:
             if att in dic:
                 if self.ACTION_ATTRIBUTES[att]:
@@ -378,14 +360,3 @@ class ProcessCollection:
 
         return label
 
-    @staticmethod
-    def _action_checker(proces_string, regex, name, dic):
-        process_type = regex['type']
-        act = process_type(name)
-        if process_type is Receive:
-            if '!' in regex['regex'].search(proces_string).group(0):
-                act.replicative = True
-        elif process_type is Dispatch:
-            if '@' in regex['regex'].search(proces_string).group(0):
-                act.broadcast = True
-        return act
