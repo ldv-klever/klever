@@ -22,7 +22,7 @@ import graphviz
 from core.vtg.emg.common import get_conf_property, get_necessary_conf_property, model_comment, \
     check_or_set_conf_property
 from core.vtg.emg.common.c.types import import_declaration
-from core.vtg.emg.common.process import Receive, Dispatch, Condition, Subprocess
+from core.vtg.emg.common.process import Receive, Dispatch, Block, Subprocess
 from core.vtg.emg.common.c import Function
 from core.vtg.emg.modelTranslator.code import action_model_comment
 from core.vtg.emg.modelTranslator.fsa_translator.common import extract_relevant_automata
@@ -679,7 +679,7 @@ class FSATranslator:
             code_generator = self._dispatch
         elif isinstance(state.action, Receive):
             code_generator = self._receive
-        elif isinstance(state.action, Condition):
+        elif isinstance(state.action, Block):
             code_generator = self._condition
         elif isinstance(state.action, Subprocess):
             code_generator = self._subprocess

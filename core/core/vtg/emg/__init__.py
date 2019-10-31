@@ -45,16 +45,15 @@ class EMG(core.vtg.plugins.Plugin):
         self.logger.info("Start environment model generator {}".format(self.id))
 
         # Initialization of EMG
-        # Todo: refactor this
         self.logger.info("Import results of source analysis")
         sa = Source(self.logger, self.conf, self.abstract_task_desc)
 
         # Generate processes
         self.logger.info("Generate processes of an environment model")
-        processes = generate_processes(self, sa)
+        collection = generate_processes(self, sa)
 
         # Import additional aspect files
-        translate_intermediate_model(self.logger, self.conf, self.abstract_task_desc, sa, processes)
+        translate_intermediate_model(self.logger, self.conf, self.abstract_task_desc, sa, collection)
         self.logger.info("An environment model has been generated successfully")
 
     main = generate_environment

@@ -17,7 +17,7 @@
 
 from core.vtg.emg.common import check_or_set_conf_property, get_necessary_conf_property, model_comment
 from core.vtg.emg.common.c import Variable, Function
-from core.vtg.emg.common.process import Dispatch, Receive, Condition, Subprocess
+from core.vtg.emg.common.process import Dispatch, Receive, Block, Subprocess
 from core.vtg.emg.modelTranslator.code import control_function_comment_begin, control_function_comment_end
 from core.vtg.emg.modelTranslator.fsa_translator import FSATranslator
 from core.vtg.emg.modelTranslator.fsa_translator.common import initialize_automaton_variables
@@ -32,7 +32,7 @@ class StateTranslator(FSATranslator):
         self.__switchers_cache = dict()
 
         check_or_set_conf_property(conf, 'actions composition', default_value=[], expected_type=list)
-        self.__jump_types = set([t for t in [Dispatch, Receive, Condition, Subprocess]
+        self.__jump_types = set([t for t in [Dispatch, Receive, Block, Subprocess]
                                  if t.__name__ not in get_necessary_conf_property(conf, 'actions composition')])
         super(StateTranslator, self).__init__(logger, conf, source, cmodel, entry_fsa, model_fsa, event_fsa)
 
