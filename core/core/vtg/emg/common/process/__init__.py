@@ -16,38 +16,7 @@
 #
 
 import re
-
-from core.vtg.emg.common.process.parser import parse_process
-
-
-def generate_regex_set(subprocess_name):
-    """
-    Function generates regexes to parse out actions from process descriptions and determine their kind.
-
-    :param subprocess_name:
-    :return: List of dictionary pairs [{'regex': re obj, 'type': Action class obj}]
-    """
-    dispatch_template = r'\[@?{}(?:\[[^)]+\])?\]'
-    receive_template = r'\(!?{}(?:\[[^)]+\])?\)'
-    condition_template = r'<{}(?:\[[^)]+\])?>'
-    subprocess_template = '{}'
-
-    subprocess_re = re.compile("{" + subprocess_template.format(subprocess_name) + "}")
-    receive_re = re.compile(receive_template.format(subprocess_name))
-    dispatch_re = re.compile(dispatch_template.format(subprocess_name))
-    condition_template_re = re.compile(condition_template.format(subprocess_name))
-    regexes = [
-        {'regex': subprocess_re, 'type': Subprocess},
-        {'regex': dispatch_re, 'type': Dispatch},
-        {'regex': receive_re, 'type': Receive},
-        {'regex': condition_template_re, 'type': Condition}
-    ]
-
-    return regexes
-
-
-def _update_process_ast(obj):
-    obj.__process_ast = parse_process(obj.process)
+import collections
 
 
 class Access:
@@ -62,6 +31,9 @@ class Access:
         self.label = None
         self.list_access = None
 
+    def __str__(self):
+        return self.expression
+
 
 class Label:
     """
@@ -70,27 +42,25 @@ class Label:
     A label is a C variable without a strictly given scope. It can be local, global depending on translation of the
     environment model to C code. Process state consists of labels and from current action.
     """
-    def __init__(self, name):
+    def __init__(self, name: str):
         self.value = None
         self.declaration = None
         self.name = name
 
-    def compare_with(self, label):
-        """
-        Compare the label with a given one comparing their declarations.
+    def __str__(self):
+        return self.name
 
-        :param label: Label object.
-        :return: Return 'different' or 'equal'.
-        """
-        if self.declaration and label.declaration:
-            my_signature = self.declaration
-            ret = my_signature.compare_signature(label.declaration)
-            if not ret:
-                return 'different'
-            else:
-                return 'equal'
+    def __repr__(self):
+        return '%{}%'.format(self.name)
+
+    def __eq__(self, other):
+        if self.declaration and other.declaration:
+            return self.declaration == other.declaration
         else:
-            raise NotImplementedError("Cannot compare label '{}' with label '{}'".format(label.name, label.name))
+            return False
+
+    def __hash__(self):
+        return hash(self.name)
 
 
 class Process:
@@ -106,63 +76,27 @@ class Process:
     label_re = re.compile(r'%(\w+)((?:\.\w*)*)%')
     _name_re = re.compile(r'\w+')
 
-    def __init__(self, name):
+    def __init__(self, name, category: str = None):
         if not self._name_re.fullmatch(name):
             raise ValueError("Process identifier {!r} should be just a simple name string".format(name))
 
         self.name = name
+        self.category = category
         self.file = 'environment model'
-        self.category = None
-        self.pretty_id = None
         self.comment = None
-        self.labels = {}
-        self.actions = {}
-        self.process = None
-        self.headers = list()
         self.cfiles = list()
+        self.headers = list()
+        self.labels = dict()
+        self.actions = dict()
         self.declarations = dict()
         self.definitions = dict()
-        self.identifier = None
-        self._process_ast = None
         self._accesses = dict()
 
-    @property
-    def unmatched_receives(self):
-        """
-        Returns Receive actions that do not have peers.
+    def __str__(self):
+        return '%s/%s' % (self.category, self.name)
 
-        :return: A list of Action objects.
-        """
-        return [self.actions[act] for act in self.actions.keys() if isinstance(self.actions[act], Receive) and
-                len(self.actions[act].peers) == 0]
-
-    @property
-    def unmatched_dispatches(self):
-        """
-        Returns Dispatch actions that do not have peers.
-
-        :return: A list of Action objects.
-        """
-        return [self.actions[act] for act in self.actions.keys() if isinstance(self.actions[act], Dispatch) and
-                len(self.actions[act].peers) == 0]
-
-    @property
-    def dispatches(self):
-        """
-        Returns Dispatch actions.
-
-        :return: A list of Action objects.
-        """
-        return [self.actions[act] for act in self.actions.keys() if isinstance(self.actions[act], Dispatch)]
-
-    @property
-    def receives(self):
-        """
-        Returns Receive actions.
-
-        :return: A list of Action objects.
-        """
-        return [self.actions[act] for act in self.actions.keys() if isinstance(self.actions[act], Receive)]
+    def __hash__(self):
+        return hash(str(self))
 
     @property
     def unused_labels(self):
@@ -176,109 +110,22 @@ class Process:
 
         def extract_labels(expr):
             for m in self.label_re.finditer(expr):
-                used_labels.add(m.group(1))
+                used_labels.add(self.labels[m.group(1)])
 
-        for action in self.actions.values():
+        for action in (a for a in self.actions if isinstance(a, Action)):
             if isinstance(action, Receive) or isinstance(action, Dispatch):
                 for param in action.parameters:
                     extract_labels(param)
-            if isinstance(action, Condition):
+            if isinstance(action, Block):
                 for statement in action.statements:
                     extract_labels(statement)
             if action.condition:
                 for statement in action.condition:
                     extract_labels(statement)
-        unused_labels = set(self.labels.keys()).difference(used_labels)
-        return unused_labels
 
-    @property
-    def process_ast(self):
-        """
-        Return an abstract syntax tree generated by a process parser on base of process description expressed in the
-        DSL.
+        return set(self.labels.values()).difference(used_labels)
 
-        :return: An abstract syntax tree (dict).
-        """
-        if not self._process_ast:
-            self._process_ast = parse_process(self.process)
-        return self._process_ast
-
-    def insert_action(self, old, new, position):
-        """
-        Insert a new action to the process between, before or instead of a given action.
-
-        :param old: An existing Action representation (<action_name>, {action_name}, ....).
-        :param new: A new Action representation (<action_name>, {action_name}, ....).
-        :param position: One of the following values: "before", "after", "instead".
-        :return: None
-        """
-        if not old or old not in self.actions:
-            raise KeyError('Cannot rename action {!r} in process {!r} because it does not exist'.
-                           format(old, self.name))
-        if position == 'instead':
-            # Delete old subprocess
-            del self.actions[old]
-
-        # Replace action entries
-        processes = [self]
-        processes.extend(
-            [self.actions[name] for name in self.actions.keys() if isinstance(self.actions[name], Subprocess)])
-        regexes = generate_regex_set(old)
-        for process in processes:
-            for regex in regexes:
-                m = regex['regex'].search(process.process)
-                if m:
-                    # Replace signal entries
-                    curr_expr = m.group(0)
-                    if position == 'before':
-                        next_expr = "{}.{}".format(new, curr_expr)
-                    elif position == 'after':
-                        next_expr = "{}.{}".format(curr_expr, new)
-                    elif position == 'instead':
-                        next_expr = new
-                    else:
-                        next_expr = '({} | {})'.format(curr_expr, new)
-
-                    process.process = process.process.replace(curr_expr, next_expr)
-                    break
-            process.update_process_ast()
-
-    def rename_action(self, name, new_name):
-        """
-        Rename given action. It replaces also process strings and corresponding abstract syntax trees.
-
-        :param name: An old name.
-        :param new_name: A new name.
-        :return: None
-        """
-        if name not in self.actions:
-            raise KeyError('Cannot rename subprocess {} in process {} because it does not exist'.
-                           format(name, self.name))
-
-        action = self.actions[name]
-        action.name = new_name
-
-        # Delete old subprocess
-        del self.actions[name]
-
-        # Set new subprocess
-        self.actions[action.name] = action
-
-        # Replace subprocess entries
-        processes = [self]
-        processes.extend(
-            [self.actions[name] for name in self.actions.keys() if isinstance(self.actions[name], Subprocess)])
-        regexes = generate_regex_set(name)
-        for process in processes:
-            for regex in regexes:
-                if regex['regex'].search(process.process):
-                    # Replace signal entries
-                    old_match = regex['regex'].search(process.process).group()
-                    new_match = old_match.replace(name, new_name)
-                    process.process = process.process.replace(old_match, new_match)
-            process.update_process_ast()
-
-    def accesses(self, accesses=None, exclude=list(), no_labels=False):
+    def accesses(self, accesses=None, exclude=None, no_labels=False):
         """
         Go through the process description or retrieve from the cache dictionary with possible label accesses.
 
@@ -287,6 +134,9 @@ class Process:
         :param no_labels: Exclude accesses based on labels which are not referred anywhere (Bool).
         :return:
         """
+        if not exclude:
+            exclude = list()
+
         if not accesses:
             accss = dict()
 
@@ -298,7 +148,7 @@ class Process:
                         if isinstance(action, Receive) or isinstance(action, Dispatch):
                             for index in range(len(action.parameters)):
                                 accss[action.parameters[index]] = None
-                        if isinstance(action, Condition):
+                        if isinstance(action, Block):
                             for statement in action.statements:
                                 for match in self.label_re.finditer(statement):
                                     accss[match.group()] = None
@@ -339,7 +189,7 @@ class Process:
                        if isinstance(self.actions[a], Receive) or isinstance(self.actions[a], Dispatch)):
             if action in process.actions and \
                     (isinstance(process.actions[action], Receive) or isinstance(process.actions[action], Dispatch)) and\
-                    type(process.actions[action]) != type(self.actions[action]) and \
+                    not isinstance(process.actions[action], type(self.actions[action])) and \
                     len(process.actions[action].parameters) == len(self.actions[action].parameters) and \
                     self.name not in (p['process'] for p in process.actions[action].peers):
                 # Compare signatures of parameters
@@ -371,14 +221,6 @@ class Process:
         else:
             raise TypeError('Unsupported access token')
         return self._accesses[string]
-
-    def update_process_ast(self):
-        """
-        Parse process descriptions again and reconstruct an abstract syntax tree.
-
-        :return: None.
-        """
-        _update_process_ast(self)
 
     def add_declaration(self, file, name, string):
         """
@@ -446,7 +288,7 @@ class Process:
         :param comment: A comment for the action (A short sentence).
         :return: A new Condition object.
         """
-        new = Condition(name)
+        new = Block(name)
         self.actions[name] = new
 
         new.condition = condition
@@ -455,15 +297,174 @@ class Process:
         return new
 
 
-class Action:
+class Actions(dict):
+
+    def filter(self, include=None, exclude=None):
+        if not include:
+            include = ()
+        if not exclude:
+            exclude = ()
+
+        return (x for x in self.values() if (not include or any(isinstance(x, t) for t in include)) and
+                (not exclude or all(not isinstance(x, t) for t in exclude)))
+
+    @property
+    def initial_actions(self):
+        """
+        Returns initial states of the process.
+
+        :return: Sorted list with starting process State objects.
+        """
+        return (s for s in self.values() if not s.predecessors)
+
+    @property
+    def unmatched_receives(self):
+        """
+        Returns Receive actions that do not have peers.
+
+        :return: A list of Action objects.
+        """
+        return (act for act in self.filter(include={Receive}) if not act.peers)
+
+    @property
+    def unmatched_dispatches(self):
+        """
+        Returns Dispatch actions that do not have peers.
+
+        :return: A list of Action objects.
+        """
+        return (act for act in self.filter(include={Dispatch}) if not act.peers)
+
+
+class BaseAction:
+    """
+        Base class for actions which can be executed in terms of a Process. Each action of a process is executed strictly
+        one after another. All they are executed in the same context (depending on chosen translator).
+        """
+
+    def __init__(self, name: str):
+        self.name = name
+        self._predecessors = set()
+        self._successors = set()
+
+    def __str__(self):
+        return self.name
+
+    def __hash__(self):
+        return hash(self.name)
+
+    @property
+    def successors(self):
+        """
+        Returns deterministically list with all next states.
+
+        :return: List with State objects.
+        """
+        return tuple(self._successors)
+
+    @property
+    def predecessors(self):
+        """
+        Returns deterministically list with all previous states.
+
+        :return: List with State objects.
+        """
+        return tuple(self._predecessors)
+
+    def insert_successor(self, new):
+        """
+        Link given State object to be a successor of this state.
+
+        :param new: New next State object.
+        :return: None
+        """
+        self.add_successor(new)
+        new.add_predecessor(self)
+
+    def insert_predecessor(self, new):
+        """
+        Link given State object to be a predecessor of this state.
+
+        :param new: New previous State object.
+        :return: None
+        """
+        self.add_predecessor(new)
+        new.add_successor(self)
+
+    def replace_successor(self, old, new):
+        """
+        Replace given successor State object with a new State object.
+
+        :param old: Old next State object.
+        :param new: New next State object.
+        :return: None
+        """
+        self.remove_successor(old)
+        old.remove_predecessor(self)
+        self.add_successor(new)
+        new.add_predecessor(self)
+
+    def replace_predecessor(self, old, new):
+        """
+        Replace given predecessor State object with a new State object.
+
+        :param old: Old predecessor State object.
+        :param new: New predecessor State object.
+        :return: None
+        """
+        self.remove_predecessor(old)
+        old.remove_successor(self)
+        self.add_predecessor(new)
+        new.add_successor(self)
+
+    def add_successor(self, new):
+        """
+        Link given State object to be a successor.
+
+        :param new: New next State object.
+        :return: None
+        """
+        self._successors.add(new)
+
+    def add_predecessor(self, new):
+        """
+        Link given State object to be a predecessor.
+
+        :param new: New previous State object.
+        :return: None
+        """
+        self._predecessors.add(new)
+
+    def remove_successor(self, old):
+        """
+        Unlink given State object and remove it from successors.
+
+        :param old: State object.
+        :return: None
+        """
+        if old in self._successors:
+            self._successors.remove(old)
+
+    def remove_predecessor(self, old):
+        """
+        Unlink given State object and remove it from predecessors.
+
+        :param old: State object.
+        :return: None
+        """
+        if old in self._predecessors:
+            self._predecessors.remove(old)
+
+
+class Action(BaseAction):
     """
     Base class for actions which can be executed in terms of a Process. Each action of a process is executed strictly
     one after another. All they are executed in the same context (depending on chosen translator).
     """
 
-    def __init__(self, name):
-        self.name = name
-        self.comment = None
+    def __init__(self, name, number=1):
+        super(Action, self).__init__(name)
+        self.number = number
         self.condition = None
         self.trace_relevant = False
 
@@ -478,29 +479,13 @@ class Subprocess(Action):
     An example of action string: "{mynewsequence}".
     """
 
-    def __init__(self, name):
-        super(Subprocess, self).__init__(name)
+    def __init__(self, name, number=1):
+        super(Subprocess, self).__init__(name, number)
         self.process = None
-        self.__process_ast = None
+        self.fsa = None
 
-    @property
-    def process_ast(self):
-        """
-        Get or calculate an return an abstract syntax tree for the process sequence given as an attribete of the action.
-
-        :return: An abstract syntax tree (dict).
-        """
-        if not self.__process_ast:
-            self.__process_ast = parse_process(self.process)
-        return self.__process_ast
-
-    def update_process_ast(self):
-        """
-        Update the cache or caclulate the abstract syntax tree for the first time.
-
-        :return:
-        """
-        _update_process_ast(self)
+    def __repr__(self):
+        return '{%s}' % str(self)
 
 
 class Dispatch(Action):
@@ -513,11 +498,14 @@ class Dispatch(Action):
     An example of action string: "[mysend]".
     """
 
-    def __init__(self, name):
-        super(Dispatch, self).__init__(name)
+    def __init__(self, name, number=1, broadcast=False):
+        super(Dispatch, self).__init__(name, number)
+        self.broadcast = broadcast
         self.parameters = []
-        self.broadcast = False
         self.peers = []
+
+    def __repr__(self):
+        return '[%s%s]' % ('@' if self.broadcast else '', str(self))
 
 
 class Receive(Action):
@@ -529,14 +517,17 @@ class Receive(Action):
     An example of action string: "(mysend)".
     """
 
-    def __init__(self, name):
-        super(Receive, self).__init__(name)
+    def __init__(self, name, number=1, repliative=False):
+        super(Receive, self).__init__(name, number)
+        self.replicative = repliative
         self.parameters = []
-        self.replicative = False
         self.peers = []
 
+    def __repr__(self):
+        return '(%s%s)' % ('!' if self.replicative else '', str(self))
 
-class Condition(Action):
+
+class Block(Action):
     """
     Class represents a C code base block with some code. You also can add a condition. In contrast to other actions
     if a condition is not satisfied and the action is the one possible action in a choose operator (|) then this
@@ -545,6 +536,101 @@ class Condition(Action):
     An example of action string: "<mycondition>".
     """
 
-    def __init__(self, name):
-        super(Condition, self).__init__(name)
+    def __init__(self, name, number=1):
+        super(Block, self).__init__(name, number)
         self.statements = []
+
+    def __repr__(self):
+        return '<%s>' % str(self)
+
+
+class Parentheses(Action):
+    """
+    This class represent an open parenthese symbol to simplify serialization and import.
+    """
+
+    def __init__(self, name, action: BaseAction = None):
+        super(Parentheses, self).__init__(name)
+        self.action = action
+
+
+class Concatenation(Action):
+    """
+    The class represents a sequence of actions.
+    """
+
+    def __init__(self, name):
+        super(Concatenation, self).__init__(name)
+        self.actions = collections.deque()
+
+    def add_first(self, action: BaseAction):
+        if self.actions:
+            last = self.actions[-1]
+            last.insert_predecessor(action)
+        self.actions.appendleft(action)
+
+
+class Choice(Action):
+    """
+    The class represents a choice between actions.
+    """
+
+    def __init__(self, name):
+        super(Choice, self).__init__(name)
+        self.actions = set()
+
+    def add_first(self, action: BaseAction):
+        for variant in self.actions:
+            variant.insert_predecessor(action)
+        self.actions.add(action)
+
+
+class ProcessCollection:
+    """
+        This class represents collection of processes for an environment model generation. Also it contains methods to
+        import or export processes in the JSON format. The collection contains function models processes, generic
+        environment model processes that acts as soon as they receives replicative signals and a main process.
+
+        """
+
+    def __init__(self, entry: Process, models: dict, environment: dict):
+        self.entry = entry
+        self.models = models
+        self.environment = environment
+
+    @property
+    def processes(self):
+        return list(self.models.values()) + list(self.environment.values()) + ([self.entry] if self.entry else [])
+
+    def establish_peers(self, strict=False):
+        """
+        Get processes and guarantee that all peers are correctly set for both receivers and dispatchers. The function
+        replaces dispatches expressed by strings to object references as it is expected in translators.
+
+        :param strict: Raise exception if a peer process identifier is unknown (True) or just ignore it (False).
+        :return: None
+        """
+        # Then check peers. This is because in generated processes there no peers set for manually written processes
+        process_map = {str(p): p for p in self.processes}
+        for process in self.processes:
+            for action in [process.actions[a] for a in process.actions.filter(include={Receive, Dispatch})
+                           if process.actions[a].peers]:
+                new_peers = set()
+                for peer in action.peers:
+                    if isinstance(peer, str):
+                        if peer in process_map:
+                            target = process_map[peer]
+                            new_peer = {'process': target, 'subprocess': target.actions[action.name]}
+                            new_peers.add(new_peer)
+
+                            opposite_peers = [str(p['process']) if isinstance(p, dict) else p
+                                              for p in target.actions[action.name].peers]
+                            if str(process) not in opposite_peers:
+                                target.actions[action.name].peers.append({'process': process, 'subprocess': action})
+                        elif strict:
+                            raise KeyError("Process {!r} tries to send a signal {!r} to {!r} but there is no such "
+                                           "process in the model".format(str(process), str(action), peer))
+                    else:
+                        new_peers.add(peer)
+
+                action.peers = new_peers

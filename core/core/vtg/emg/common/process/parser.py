@@ -15,9 +15,10 @@
 # limitations under the License.
 #
 
-import collections
 import ply.lex as lex
 import ply.yacc as yacc
+
+from core.vtg.emg.common.process import Receive, Dispatch, Subprocess, Block, Concatenation, Choice, Parentheses
 
 __parser = None
 __lexer = None
@@ -63,14 +64,6 @@ t_DIM_CLOSE = r'[>]'
 t_PER =r'[%]'
 
 t_IDENTIFIER = r'\w+'
-
-
-Concat = collections.namedtuple('Concatenation', ('actions',))
-Choice = collections.namedtuple('Choice', ('actions',))
-Disp = collections.namedtuple('Disp', ('name', 'label', 'number', 'broadcast'))
-Recv = collections.namedtuple('Recv', ('name', 'label', 'number', 'replicative'))
-Subp = collections.namedtuple('Subp', ('name', 'label'))
-Block = collections.namedtuple('Block', ('name', 'label', 'number'))
 
 
 def t_RS(t):
@@ -145,12 +138,14 @@ def p_concatenation_list(p):
     _, action, *concatenation_list = p
     if concatenation_list:
         concatenation_list = concatenation_list[-1]
-        concatenation_list.actions.appendleft(action)
+        assert isinstance(concatenation_list, Concatenation)
+        concatenation_list.add_first(action)
         p[0] = concatenation_list
     else:
-        chain = collections.deque()
-        chain.appendleft(action)
-        p[0] = Concat(chain)
+        new_action = Concatenation(next(_aux_identifier))
+        p.parser.process.actions[str(new_action)] = new_action
+        new_action.add_first(action)
+        p[0] = new_action
 
 
 def p_choice_list(p):
@@ -161,20 +156,25 @@ def p_choice_list(p):
     _, concatenation_list, *choice_list = p
     if choice_list:
         choice_list = choice_list[-1]
-        choice_list.actions.appendleft(concatenation_list)
+        assert isinstance(choice_list, Choice)
+        choice_list.add_first(concatenation_list)
         p[0] = choice_list
     else:
-        chain = collections.deque()
-        chain.appendleft(concatenation_list)
-        p[0] = Choice(chain)
+        new_action = Choice(next(_aux_identifier))
+        p.parser.process.actions[str(new_action)] = new_action
+        new_action.add_first(concatenation_list)
+        p[0] = new_action
 
 
 def p_bracket(p):
     """
     bracket : PAR_OPEN action_list PAR_CLOSE
     """
+    # todo: support numbers to implement loops
     _, _, action_list, _ = p
-    p[0] = action_list
+    par = Parentheses(next(_aux_identifier), action_list)
+    p.parser.process.actions[str(par)] = par
+    p[0] = par
 
 
 def p_repeate(p):
@@ -202,15 +202,14 @@ def p_dispatch(p):
         # We have broadcast symbol at the very beginning
         _, name, *number = context
         broadcast = True
-        label = '@'
     else:
         # We have ordinary dispatch
         name, *number = context
         broadcast = False
-        label = ''
     number = number[-1] if number else 1
-    label = '[' + label + '%s[%s]' % (name, number) + ']'
-    action = Disp(name, label, number, broadcast)
+
+    action = Dispatch(name, number, broadcast)
+    p.parser.process.actions[str(action)] = action
     p[0] = action
 
 
@@ -226,15 +225,13 @@ def p_receive(p):
         # We have replicative symbol at the very beginning
         _, name, *number = context
         replicative = True
-        label = '!'
     else:
         # We have ordinary receive
         name, *number = context
         replicative = False
-        label = ''
     number = number[-1] if number else 1
-    label += '(' + label + '%s[%s]' % (name, number) + ')'
-    action = Recv(name, label, number, replicative)
+    action = Receive(name, number, replicative)
+    p.parser.process.actions[str(action)] = action
     p[0] = action
 
 
@@ -245,17 +242,28 @@ def p_condition(p):
     """
     name, *number = p[2:-1]
     number = number[-1] if number else 1
-    action = Block(name, '<%s>' % name, number)
+    action = Block(name, number)
+    p.parser.process.actions[str(action)] = action
     p[0] = action
 
 
 def p_subprocess(p):
     """
-    subprocess : BR_OPEN IDENTIFIER BR_CLOSE
+    subprocess : BR_OPEN IDENTIFIER repeate BR_CLOSE
+               | BR_OPEN IDENTIFIER BR_CLOSE
     """
-    name = p[2]
-    action = Subp(name, '{%s}' % name)
+    name, *number = p[2:-1]
+    number = number[-1] if number else 1
+    action = Subprocess(name, number)
+    p.parser.process.actions[str(action)] = action
     p[0] = action
+
+
+def _new_identifier():
+    i = 0
+    while True:
+        i += 1
+        yield str(i)
 
 
 def setup_parser():
@@ -271,10 +279,11 @@ def setup_parser():
     __parser = yacc.yacc(debug=0, write_tables=0)
 
 
-def parse_process(string):
+def parse_process(process, string):
     """
     Main parsing method. It gets a raw string in DSL and returns an abstract syntax tree.
 
+    :param process: Process object.
     :param string: Process description in DSL.
     :return: Abstract syntax tree.
     """
@@ -283,8 +292,12 @@ def parse_process(string):
 
     if not __parser:
         setup_parser()
+    __parser.process = process
 
     try:
         return __parser.parse(string, lexer=__lexer)
     except TypeError as err:
         raise ValueError("Cannot parse process '{}' due to parse error: {}".format(string, err.args))
+
+
+_aux_identifier = _new_identifier()
