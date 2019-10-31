@@ -15,13 +15,14 @@
 # limitations under the License.
 #
 
-from core.vtg.emg.common.process import parse_process
+from core.vtg.emg.common.process import Process
+from core.vtg.emg.common.process.parser import parse_process
 
 
 def parse_assert(original_method):
     def test_method(*args, **kwargs):
         for test in original_method(*args, **kwargs):
-            obj = parse_process(test)
+            obj = parse_process(Process('test'), test)
             assert obj
 
     return test_method
