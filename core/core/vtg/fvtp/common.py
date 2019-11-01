@@ -20,7 +20,6 @@ import re
 import zipfile
 import json
 import core.utils
-import sys
 
 
 def merge_files(logger, conf, abstract_task_desc):
@@ -39,7 +38,7 @@ def merge_files(logger, conf, abstract_task_desc):
         [
             # This disables searching for add-ons enabled by default. One still is able to load plugins manually.
             '-no-autoload-plugins', '-no-findlib',
-            # Copy user or internal errors to "problem desc.txt".
+            # Copy user or internal errors to "problem desc.txt" explicitly since CIL does not output them to STDERR.
             '-kernel-log', 'e:problem desc.txt',
             # TODO: Indeed, we need to think more about everything related with architectures. This is not CIL specific issue.
             '-machdep', 'gcc_' + conf['architecture'],
@@ -65,10 +64,7 @@ def merge_files(logger, conf, abstract_task_desc):
             if 'C file' in extra_c_file
            ]
 
-    try:
-        core.utils.execute(logger, args=args, enforce_limitations=True)
-    except core.utils.CommandError:
-        sys.exit(1)
+    core.utils.execute(logger, args=args, enforce_limitations=True)
 
     logger.debug('Merged source files was outputted to "cil.i"')
 

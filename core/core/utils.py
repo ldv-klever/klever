@@ -79,10 +79,6 @@ class LockedOpen(object):
             pass
 
 
-class CommandError(ChildProcessError):
-    pass
-
-
 class StreamQueue:
     def __init__(self, stream, stream_name, collect_all_output=False):
         self.stream = stream
@@ -182,7 +178,7 @@ def execute(logger, args, env=None, cwd=None, timeout=0.1, collect_all_stdout=Fa
         with open('problem desc.txt', 'a', encoding='utf8') as fp:
             out = filter(filter_func, err_q.output) if filter_func else err_q.output
             fp.write('\n'.join(out))
-        raise CommandError('"{0}" failed'.format(cmd))
+        sys.exit(1)
     elif collect_all_stdout:
         return out_q.output
 
