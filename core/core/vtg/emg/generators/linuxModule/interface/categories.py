@@ -15,9 +15,8 @@
 # limitations under the License.
 #
 
-from core.vtg.emg.common import get_conf_property
 from core.vtg.emg.common.c.types import Declaration, Function, Array, Pointer, Primitive
-from core.vtg.emg.processGenerator.linuxModule.interface import Resource, Callback, StructureContainer, \
+from core.vtg.emg.generators.linuxModule.interface import Resource, Callback, StructureContainer, \
     FunctionInterface
 
 
@@ -34,7 +33,7 @@ def yield_categories(collection):
     """
 
     # Add resources
-    if get_conf_property(collection.conf, "generate new resource interfaces"):
+    if collection.conf.get("generate new resource interfaces"):
         __populate_resources(collection)
 
     # Complement interface references

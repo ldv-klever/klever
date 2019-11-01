@@ -17,7 +17,7 @@
 
 from core.vtg.emg.common.c.types import Structure, Union, Array, Pointer, Function, import_declaration, extract_name, \
     is_not_null_function
-from core.vtg.emg.processGenerator.linuxModule.interface import StructureContainer, ArrayContainer, Callback
+from core.vtg.emg.generators.linuxModule.interface import StructureContainer, ArrayContainer, Callback
 
 
 def extract_implementations(collection, sa):

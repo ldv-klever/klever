@@ -17,8 +17,8 @@
 
 from core.vtg.emg.common.process.collection import ProcessCollection
 from core.vtg.emg.common.process import Receive, Dispatch
-from core.vtg.emg.common import get_necessary_conf_property, check_or_set_conf_property
-from core.vtg.emg.processGenerator.linuxModule.process import AbstractProcess, AbstractLabel, Call, CallRetval
+from core.vtg.emg.common import get_or_die, check_or_set_conf_property
+from core.vtg.emg.generators.linuxModule.process import AbstractProcess, AbstractLabel, Call, CallRetval
 
 
 class AbstractProcessImporter(ProcessCollection):
@@ -73,7 +73,7 @@ class AbstractProcessImporter(ProcessCollection):
         if 'comment' in dic:
             act.comment = dic['comment']
         elif not isinstance(act, Call):
-            comments_by_type = get_necessary_conf_property(self.conf, 'action comments')
+            comments_by_type = get_or_die(self.conf, 'action comments')
             tag = type(act).__name__.lower()
             if tag not in comments_by_type or \
                     not (isinstance(comments_by_type[tag], str) or

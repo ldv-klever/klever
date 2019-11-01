@@ -16,11 +16,11 @@
 #
 
 from core.vtg.emg.common.c.types import Pointer, Primitive
-from core.vtg.emg.processGenerator.linuxModule.interface import Container, Resource, Callback, FunctionInterface, \
+from core.vtg.emg.generators.linuxModule.interface import Container, Resource, Callback, FunctionInterface, \
     StructureContainer, ArrayContainer
-from core.vtg.emg.processGenerator.linuxModule.interface.analysis import extract_implementations
-from core.vtg.emg.processGenerator.linuxModule.interface.specification import import_interface_specification
-from core.vtg.emg.processGenerator.linuxModule.interface.categories import yield_categories
+from core.vtg.emg.generators.linuxModule.interface.analysis import extract_implementations
+from core.vtg.emg.generators.linuxModule.interface.specification import import_interface_specification
+from core.vtg.emg.generators.linuxModule.interface.categories import yield_categories
 
 
 class InterfaceCollection:

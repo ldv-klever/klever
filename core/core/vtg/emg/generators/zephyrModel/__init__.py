@@ -17,7 +17,7 @@
 
 import re
 
-from core.vtg.emg.common import get_necessary_conf_property, get_conf_property
+from core.vtg.emg.common import get_or_die, get_conf_property
 from core.vtg.emg.common.c import Function, Variable
 from core.vtg.emg.common.c.types import Pointer
 from core.vtg.emg.common.process import Process
@@ -170,11 +170,11 @@ def __generate_call(emg, conf, ep, func, obj, identifier):
                     # The last element is a string
                     initializations.append("{}[{}] = (char * ) 0;".format(argvar.name, elements - 1))
                     free_args.append(argvar.name)
-                elif get_necessary_conf_property(emg.conf["translation options"], "allocate external"):
+                elif get_or_die(emg.conf["translation options"], "allocate external"):
                     value = "external_allocated_data();"
                     initializations.append("{} = {}".format(argvar.name, value))
                 else:
-                    if get_necessary_conf_property(emg.conf["translation options"], "allocate with sizeof"):
+                    if get_or_die(emg.conf["translation options"], "allocate with sizeof"):
                         apt = arg.points.to_string('', typedef='complex_and_params')
                         value = "ldv_xmalloc(sizeof({}));".\
                             format(apt if apt != 'void' else apt + '*')

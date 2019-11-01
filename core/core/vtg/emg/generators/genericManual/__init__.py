@@ -17,7 +17,7 @@
 
 from core.vtg.emg.common import get_conf_property
 from core.vtg.emg.common.process import ProcessCollection
-from core.vtg.emg.processGenerator.generators import AbstractGenerator
+from core.vtg.emg.generators.abstract import AbstractGenerator
 
 
 class genericManual(AbstractGenerator):

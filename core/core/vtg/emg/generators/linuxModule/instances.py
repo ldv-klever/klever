@@ -18,13 +18,12 @@
 import copy
 import re
 
-from core.vtg.emg.common import get_conf_property, check_or_set_conf_property, get_necessary_conf_property, \
-    model_comment
+from core.vtg.emg.common import get_or_die, model_comment
 import core.vtg.emg.common.c as c
 from core.vtg.emg.common.c.types import Structure, Primitive, Pointer, Array, Function
 from core.vtg.emg.common.process import Dispatch, Receive, Block
-from core.vtg.emg.processGenerator.linuxModule.interface import Implementation, Resource, Container, Callback
-from core.vtg.emg.processGenerator.linuxModule.process import get_common_parameter, CallRetval, Call, AbstractAccess
+from core.vtg.emg.generators.linuxModule.interface import Implementation, Resource, Container, Callback
+from core.vtg.emg.generators.linuxModule.process import get_common_parameter, CallRetval, Call, AbstractAccess
 _declarations = {'environment model': list()}
 _definitions = {'environment model': list()}
 _values_map = dict()
@@ -39,7 +38,7 @@ def generate_instances(logger, conf, sa, interfaces, model, instance_maps):
 
     model.environment = {p.pretty_id: p for p in callback_processes}
     model.models = {p.pretty_id: p for p in model_processes}
-    filename = 'instances.json' if get_conf_property(conf, "dump instances") else None
+    filename = 'instances.json'
     data = model.save_collection(filename)
 
     return instance_maps, data
@@ -108,7 +107,7 @@ def _simplify_process(logger, conf, sa, interfaces, process):
                 new_expression = access.access_with_label(new_label)
                 action.parameters[index] = new_expression
 
-                if isinstance(action, Receive) and get_conf_property(conf, "add registration guards"):
+                if isinstance(action, Receive) and conf.get("add registration guards"):
                     access = process.resolve_access(new_expression)[0]
                     implementation = process.get_implementation(access)
                     if implementation and implementation.value and not \
@@ -385,7 +384,7 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
         return cd, pre, post
 
     def reinitialize_variables(base_code):
-        reinitialization_action_set = get_conf_property(conf, 'callback actions with reinitialization', list)
+        reinitialization_action_set = conf.get('callback actions with reinitialization')
         if reinitialization_action_set and call.name in reinitialization_action_set:
             base_code.append("$REINITIALIZE_STATE;")
 
@@ -406,7 +405,7 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
                     break
                 invoke = sa.refined_name(implementation.value)
                 check = False
-            elif not isinstance(implementation, bool) and get_necessary_conf_property(conf, 'implicit callback calls')\
+            elif not isinstance(implementation, bool) and get_or_die(conf, 'implicit callback calls')\
                     and not (access.label.callback and len(access.label.interfaces) > 1):
                 # Call by pointer
                 invoke = access.access_with_label(label_map[access.label.name][access.list_interface[0].identifier])
@@ -423,7 +422,7 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
                 check = False
             else:
                 if access.list_interface and len(access.list_interface) > 0 and\
-                        get_necessary_conf_property(conf, 'implicit callback calls'):
+                        get_or_die(conf, 'implicit callback calls'):
                     # Call if label(variable) is provided but with no explicit value
                     try:
                         invoke = access.access_with_label(access.label)
@@ -538,10 +537,10 @@ def _yield_instances(logger, conf, sa, interfaces, model, instance_maps):
             identifiers_map[old_id] = [inst]
     
     # Check configuraition properties first
-    check_or_set_conf_property(conf, "max instances number", default_value=1000, expected_type=int)
-    check_or_set_conf_property(conf, "instance modifier", default_value=1, expected_type=int)
-    check_or_set_conf_property(conf, "instances per resource implementation", default_value=1, expected_type=int)
-    instances_left = get_necessary_conf_property(conf, "max instances number")
+    conf.setdefault("max instances number", 1000)
+    conf.setdefault("instance modifier", 1)
+    conf.setdefault("instances per resource implementation", 1)
+    instances_left = get_or_die(conf, "max instances number")
 
     # Returning values
     model_fsa, callback_fsa = list(), list()
@@ -587,7 +586,7 @@ def _yield_instances(logger, conf, sa, interfaces, model, instance_maps):
 
     # According to new identifiers change signals peers
     for process in model_fsa + callback_fsa:
-        if get_conf_property(conf, "convert statics to globals", expected_type=bool):
+        if conf.get("convert statics to globals"):
             _remove_statics(sa, process)
 
     return model_fsa, callback_fsa
@@ -606,7 +605,7 @@ def _original_process_copies(logger, conf, interfaces, process, instances_left):
     """
     # Determine max number of instances that can be generated
     base_list = []
-    if get_necessary_conf_property(conf, "instance modifier"):
+    if get_or_die(conf, "instance modifier"):
         # Used by a parallel env model
         base_list.append(_copy_process(process, instances_left))
     else:
@@ -623,7 +622,7 @@ def _original_process_copies(logger, conf, interfaces, process, instances_left):
 
         # Determine is it necessary to make several instances
         if len(undefined_labels) > 0:
-            for i in range(get_necessary_conf_property(conf, "instance modifier")):
+            for i in range(get_or_die(conf, "instance modifier")):
                 base_list.append(_copy_process(process, instances_left))
         else:
             base_list.append(_copy_process(process, instances_left))
@@ -664,7 +663,7 @@ def _fulfill_label_maps(logger, conf, sa, interfaces, instances, process, instan
     else:
         cached_map = None
     maps, cached_map = _split_into_instances(sa, interfaces, process,
-                                             get_necessary_conf_property(conf, "instances per resource implementation"),
+                                             get_or_die(conf, "instances per resource implementation"),
                                              cached_map)
     instance_maps[process.category][process.name] = cached_map
 
@@ -929,7 +928,7 @@ def _split_into_instances(sa, interfaces, process, resource_new_insts, simplifie
     file.operations.open if implementations of the second one depends on implementations of the first one.
 
     Generated instance here is a just map from accesses and interfaces to particular implementations whish will be
-    provided to a copy of the Process object later in modelTranslator.
+    provided to a copy of the Process object later in translation.
     :param sa: Source analysis.
     :param interfaces: InterfaceCollection object.
     :param process: Process object.

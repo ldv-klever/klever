@@ -21,88 +21,72 @@ import glob
 import os
 
 import core.utils
-from core.vtg.emg.common import get_conf_property, get_necessary_conf_property
-from core.vtg.emg.processGenerator.linuxModule.processes import ProcessModel
-from core.vtg.emg.processGenerator.linuxModule.instances import generate_instances
-from core.vtg.emg.processGenerator.linuxModule.interface.collection import InterfaceCollection
-from core.vtg.emg.processGenerator.linuxModule.process.procImporter import AbstractProcessImporter
+from core.vtg.emg.common import get_or_die
+from core.vtg.emg.generators.abstract import AbstractGenerator
+from core.vtg.emg.generators.linuxModule.processes import ProcessModel
+from core.vtg.emg.generators.linuxModule.instances import generate_instances
+from core.vtg.emg.generators.linuxModule.interface.collection import InterfaceCollection
+from core.vtg.emg.generators.linuxModule.process.procImporter import AbstractProcessImporter
 import core.vtg.utils
 
 
-specifications_endings = [
-    "event spec.json",
-    "interface spec.json"
-]
+class ScenarioModelgenerator(AbstractGenerator):
 
+    specifications_endings = {
+        'event specifications': 'event spec.json',
+        'interface specifications': 'interface spec.json'
+    }
 
-def generate_processes(emg, source, processes, conf, specifications):
-    """
-    This generator generates processes for verifying Linux kernel modules and some parts of the Linux kernel itself.
-     For instance, it adds function models for kernel functions and calls callbacks in the environment model.
-     It uses interface categories specifications and event categories specifications to generate the model.
+    def make_scenarios(self, abstract_task_desc, collection, source, specifications):
+        """
+        Make scenario models according to a custom implementation.
 
-    :param emg: EMG Plugin object.
-    :param source: Source collection object.
-    :param processes: ProcessCollection object.
-    :param conf: Configuration dictionary of this generator.
-    :param specifications: Dictionary with required specifications of required kinds
-    :return: None.
-    """
-    # Get instance maps if possible
-    all_instance_maps = specifications["instance maps"].get("specification")
-    task_name = emg.abstract_task_desc['fragment']
-    instance_maps = dict()
-    for imap in all_instance_maps.get('instance maps', []):
-        if task_name in imap.get('fragments', []):
-            instance_maps = imap.get('instance map', dict())
+        :param abstract_task_desc: Abstract task dictionary.
+        :param collection: ProcessCollection.
+        :param source: Source collection.
+        :param specifications: dictionary with merged specifications.
+        :return: Reports dict
+        """
+        # Get instance maps if possible
+        all_instance_maps = specifications["instance maps"].get("specification")
+        task_name = abstract_task_desc['fragment']
+        instance_maps = dict()
+        for imap in all_instance_maps.get('instance maps', []):
+            if task_name in imap.get('fragments', []):
+                instance_maps = imap.get('instance map', dict())
 
-    emg.logger.info("Import interface categories specification")
-    interfaces = InterfaceCollection(emg.logger, conf)
-    interfaces.fill_up_collection(source, specifications["interface specification"]["specification"])
+        self.logger.info("Import interface categories specification")
+        interfaces = InterfaceCollection(self.logger, self.conf)
+        interfaces.fill_up_collection(source, specifications["interface specification"]["specification"])
 
-    emg.logger.info("Import event categories specification")
-    # This is required at parsing specifications
-    conf['working source trees'] = emg.conf['working source trees']
-    conf['build base'] = emg.conf['build base']
-    abstract_processes = AbstractProcessImporter(emg.logger, conf)
-    abstract_processes.parse_event_specification(specifications["event specification"]["specification"])
+        self.logger.info("Import event categories specification")
+        abstract_processes = AbstractProcessImporter(self.logger, self.conf)
+        abstract_processes.parse_event_specification(specifications["event specification"]["specification"])
 
-    # Now check that we have all necessary interface specifications
-    unspecified_functions = [func for func in abstract_processes.models
-                             if func in source.source_functions and
-                             func not in [i.short_identifier for i in interfaces.function_interfaces]]
-    if len(unspecified_functions) > 0:
-        raise RuntimeError("You need to specify interface specifications for the following function models: {}"
-                           .format(', '.join(unspecified_functions)))
-    process_model = ProcessModel(emg.logger, conf, interfaces, abstract_processes)
-    abstract_processes.environment = {p.identifier: p for p in process_model.event_processes}
-    abstract_processes.models = {p.identifier: p for p in process_model.model_processes}
+        # Now check that we have all necessary interface specifications
+        unspecified_functions = [func for func in abstract_processes.models
+                                 if func in source.source_functions and
+                                 func not in [i.short_identifier for i in interfaces.function_interfaces]]
+        if len(unspecified_functions) > 0:
+            raise RuntimeError("You need to specify interface specifications for the following function models: {}"
+                               .format(', '.join(unspecified_functions)))
+        process_model = ProcessModel(self.logger, self.conf, interfaces, abstract_processes)
+        abstract_processes.environment = {p.identifier: p for p in process_model.event_processes}
+        abstract_processes.models = {p.identifier: p for p in process_model.model_processes}
 
-    emg.logger.info("Generate processes from abstract ones")
-    instance_maps, data = generate_instances(emg.logger, conf, source, interfaces, abstract_processes, instance_maps)
+        self.logger.info("Generate processes from abstract ones")
+        instance_maps, data = generate_instances(self.logger, self.conf, source, interfaces, abstract_processes,
+                                                 instance_maps)
 
-    # Send data to the server
-    emg.logger.info("Send data about generated instances to the server")
-    core.utils.report(emg.logger,
-                      'patch',
-                      {
-                          'identifier': emg.id,
-                          'data': instance_maps
-                      },
-                      emg.mqs['report files'],
-                      emg.vals['report id'],
-                      get_necessary_conf_property(emg.conf, "main working directory"))
-    emg.logger.info("An intermediate environment model has been prepared")
+        # Dump to disk instance map
+        instance_map_file = 'instance map.json'
+        self.logger.info("Dump information on chosen instances to file '{}'".format(instance_map_file))
+        with open(instance_map_file, "w", encoding="utf8") as fd:
+            fd.writelines(ujson.dumps(instance_maps, ensure_ascii=False, sort_keys=True, indent=4,
+                                      escape_forward_slashes=False))
 
-    # Dump to disk instance map
-    instance_map_file = 'instance map.json'
-    emg.logger.info("Dump information on chosen instances to file '{}'".format(instance_map_file))
-    with open(instance_map_file, "w", encoding="utf8") as fd:
-        fd.writelines(ujson.dumps(instance_maps, ensure_ascii=False, sort_keys=True, indent=4,
-                                  escape_forward_slashes=False))
-
-    processes.parse_event_specification(data)
-    processes.establish_peers()
+        processes.parse_event_specification(data)
+        processes.establish_peers()
 
 
 def __get_specs(logger, conf, directory):
@@ -145,10 +129,10 @@ def __get_specs(logger, conf, directory):
 
     # Merge specifications
     interface_spec = __merge_spec_versions(interface_specifications,
-                                           get_necessary_conf_property(conf, 'specifications set'))
+                                           get_or_die(conf, 'specifications set'))
     __save_collection(logger, interface_spec, 'intf_spec.json')
     event_categories_spec = __merge_spec_versions(event_specifications,
-                                                  get_necessary_conf_property(conf, 'specifications set'))
+                                                  get_or_die(conf, 'specifications set'))
     __save_collection(logger, event_categories_spec, 'event_spec.json')
 
     return interface_spec, event_categories_spec
@@ -202,8 +186,8 @@ def __save_collection(logger, collection, file):
 def __get_path(logger, conf, prop):
     if prop in conf:
         spec_dir = core.vtg.utils.find_file_or_dir(logger,
-                                                   get_necessary_conf_property(conf, "main working directory"),
-                                                   get_necessary_conf_property(conf, prop))
+                                                   get_or_die(conf, "main working directory"),
+                                                   get_or_die(conf, prop))
         return spec_dir
     else:
         return None

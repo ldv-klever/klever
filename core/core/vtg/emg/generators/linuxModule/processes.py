@@ -16,12 +16,11 @@
 #
 
 import copy
-import re
 
-from core.vtg.emg.common import get_necessary_conf_property, get_conf_property
+from core.vtg.emg.common import get_or_die
 from core.vtg.emg.common.process import Dispatch, Receive
-from core.vtg.emg.processGenerator.linuxModule.interface import Interface, Callback, Container, StructureContainer
-from core.vtg.emg.processGenerator.linuxModule.process import AbstractAccess, Call
+from core.vtg.emg.generators.linuxModule.interface import Interface, Callback, Container, StructureContainer
+from core.vtg.emg.generators.linuxModule.process import AbstractAccess, Call
 
 
 class ProcessModel:
@@ -48,7 +47,7 @@ class ProcessModel:
                 raise ValueError("Found process without category {!r}".format(process.name))
 
         # Refine processes
-        if get_conf_property(conf, "delete unregistered processes"):
+        if conf.get("delete unregistered processes"):
             self.__refine_processes()
 
     def __select_processes_and_models(self, interfaces):
@@ -208,10 +207,10 @@ class ProcessModel:
         else:
             new.category = category
             if not new.comment:
-                new.comment = get_necessary_conf_property(self.conf, 'process comment')
+                new.comment = get_or_die(self.conf, 'process comment')
 
         # Add comments
-        comments_by_type = get_necessary_conf_property(self.conf, 'action comments')
+        comments_by_type = get_or_die(self.conf, 'action comments')
         for action in new.actions.values():
             # Add comment if it is provided
             if not action.comment:
@@ -231,7 +230,7 @@ class ProcessModel:
 
             # Add callback comment
             if isinstance(action, Call):
-                callback_comment = get_necessary_conf_property(self.conf, 'callback comment').capitalize()
+                callback_comment = get_or_die(self.conf, 'callback comment').capitalize()
                 if action.comment:
                     action.comment += ' ' + callback_comment
                 else:

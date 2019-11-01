@@ -17,11 +17,11 @@
 
 import collections
 
-from core.vtg.emg.common import model_comment, get_necessary_conf_property, get_conf_property
+from core.vtg.emg.common import model_comment, get_or_die, get_conf_property
 from core.vtg.emg.common.c import Function
 from core.vtg.emg.common.c.types import import_declaration
 from core.vtg.emg.common.process import Process, Block
-from core.vtg.emg.processGenerator.linuxInsmod.tarjan import calculate_load_order
+from core.vtg.emg.generators.linuxInsmod.tarjan import calculate_load_order
 
 
 specifications_endings = []
@@ -68,7 +68,7 @@ def __import_inits_exits(logger, conf, avt, source):
                 continue
             order_c_files.extend([file['in file'] for file in module2['Extra CCs']])
 
-    init = source.get_macro(get_necessary_conf_property(conf, 'init'))
+    init = source.get_macro(get_or_die(conf, 'init'))
     if init:
         parameters = dict()
         for path in init.parameters:
@@ -82,7 +82,7 @@ def __import_inits_exits(logger, conf, avt, source):
     elif not get_conf_property(conf, 'kernel'):
         raise ValueError('There is no module initialization function provided')
 
-    exitt = source.get_macro(get_necessary_conf_property(conf, 'exit'))
+    exitt = source.get_macro(get_or_die(conf, 'exit'))
     if exitt:
         parameters = dict()
         for path in exitt.parameters:
@@ -98,12 +98,12 @@ def __import_inits_exits(logger, conf, avt, source):
 
     kernel_initializations = []
     if get_conf_property(conf, 'kernel'):
-        if get_necessary_conf_property(conf, "add functions as initialization"):
-            extra = get_necessary_conf_property(conf, "add functions as initialization")
+        if get_or_die(conf, "add functions as initialization"):
+            extra = get_or_die(conf, "add functions as initialization")
         else:
             extra = dict()
 
-        for name in get_necessary_conf_property(conf, 'kernel_initialization'):
+        for name in get_or_die(conf, 'kernel_initialization'):
             mc = source.get_macro(name)
 
             same_list = []

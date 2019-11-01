@@ -17,7 +17,7 @@
 
 import copy
 
-from core.vtg.emg.processGenerator.linuxModule.interface import StructureContainer, ArrayContainer, Resource, Callback,\
+from core.vtg.emg.generators.linuxModule.interface import StructureContainer, ArrayContainer, Resource, Callback,\
     FunctionInterface
 from core.vtg.emg.common.c.types import Structure, Array, import_declaration, reduce_level, parse_declaration
 
