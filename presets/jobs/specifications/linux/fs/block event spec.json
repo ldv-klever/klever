@@ -1,116 +1,17 @@
 {
-  "Linux 3.14 (base)": {
-    "functions models": {
-      "add_disk": {
-        "comment": "Add partitioning information to kernel list.",
-        "labels": {
-          "disk": {
-            "parameter": true,
-            "container": true,
-            "interface": [
-              "block_device.gendisk"
-            ]
-          },
-          "block": {
-            "parameter": true,
-            "resource": true,
-            "pointer": true,
-            "interface": [
-              "block_device.block_dev"
-            ]
-          }
-        },
-        "process": "<assign>.[register]",
-        "actions": {
-          "register": {
-            "parameters": [
-              "%block%", "%disk%"
-            ]
-          },
-          "assign": {
-            "comment": "Get disk from arguments.",
-            "statements": [
-              "%block% = $ALLOC(%block%);",
-              "%disk% = $ARG1;",
-              "%block%->bd_disk = %disk%;",
-              "ldv_add_disk();"
-            ]
-          }
-        }
-      },
-      "del_gendisk": {
-        "comment": "Remove partitioning information from kernel list.",
-        "labels": {
-          "disk": {
-            "parameter": true,
-            "container": true,
-            "interface": [
-              "block_device.gendisk"
-            ]
-          }
-        },
-        "process": "<assign>.[deregister]",
-        "actions": {
-          "deregister": {
-            "parameters": [
-              "%disk%"
-            ]
-          },
-          "assign": {
-            "comment": "Get disk from arguments.",
-            "statements": [
-              "%disk% = $ARG1;",
-              "ldv_del_gendisk();"
-            ]
-          }
-        }
-      }
-    },
+  "Linux 3.14": {
     "environment processes": {
       "block_scenario": {
-        "comment": "Invoke Block device operations callbacks.",
-        "labels": {
-          "disk": {
-            "container": true,
-            "interface": [
-              "block_device.gendisk"
-            ]
-          },
-          "ops": {
-            "container": true,
-            "pointer": true,
-            "interface": [
-              "block_device.block_device_operations"
-            ]
-          },
-          "block": {
-            "resource": true,
-            "pointer": true,
-            "interface": [
-              "block_device.block_dev"
-            ]
-          },
-          "callback": {
-            "callback": true
-          },
-          "ret": {
-            "declaration": "int a",
-            "value": "ldv_undef_int()"
-          }
-        },
-        "process": "(!register).{main}",
         "actions": {
-          "main": {
-            "comment": "Block device is not initialized.",
-            "process": "[open].(<y_ret>.{call} | <n_ret>.{main}) | <free>.(deregister)"
-          },
           "call": {
             "comment": "Initializations are done, proceed to the other callbacks.",
             "process": "[callback].{call} | [release].<free>.(deregister)"
           },
-          "register": {
+          "callback": {
+            "callback": "%callback%",
+            "comment": "Call any random callback.",
             "parameters": [
-              "%block%", "%disk%"
+              "%block%"
             ]
           },
           "deregister": {
@@ -121,35 +22,44 @@
               "%disk%"
             ]
           },
-          "callback": {
-            "comment": "Call any random callback.",
-            "callback": "%callback%",
-            "parameters": [
-              "%block%"
-            ]
-          },
-          "release": {
-            "comment": "Release block device.",
-            "callback": "%ops.release%",
-            "parameters": [
-              "%disk%"
-            ]
-          },
-          "open": {
-            "comment": "Initialize block device.",
-            "callback": "%ops.open%",
-            "parameters": [
-              "%block%"
-            ],
-            "callback return value": "%ret%",
-            "post-call": [
-              "%ret% = ldv_filter_err_code(%ret%);"
-            ]
-          },
           "free": {
             "comment": "Free memory of block device.",
             "statements": [
               "$FREE(%block%);"
+            ]
+          },
+          "main": {
+            "comment": "Block device is not initialized.",
+            "process": "[open].(<y_ret>.{call} | <n_ret>.{main}) | <free>.(deregister)"
+          },
+          "n_ret": {
+            "comment": "Block device open has failed.",
+            "condition": [
+              "%ret% != 0"
+            ]
+          },
+          "open": {
+            "callback": "%ops.open%",
+            "callback return value": "%ret%",
+            "comment": "Initialize block device.",
+            "parameters": [
+              "%block%"
+            ],
+            "post-call": [
+              "%ret% = ldv_filter_err_code(%ret%);"
+            ]
+          },
+          "register": {
+            "parameters": [
+              "%block%",
+              "%disk%"
+            ]
+          },
+          "release": {
+            "callback": "%ops.release%",
+            "comment": "Release block device.",
+            "parameters": [
+              "%disk%"
             ]
           },
           "y_ret": {
@@ -157,14 +67,109 @@
             "condition": [
               "%ret% == 0"
             ]
+          }
+        },
+        "comment": "Invoke Block device operations callbacks.",
+        "labels": {
+          "block": {
+            "interface": [
+              "block_device.block_dev"
+            ],
+            "pointer": true,
+            "resource": true
           },
-          "n_ret": {
-            "comment": "Block device open has failed.",
-            "condition": [
-              "%ret% != 0"
+          "callback": {
+            "callback": true
+          },
+          "disk": {
+            "container": true,
+            "interface": [
+              "block_device.gendisk"
+            ]
+          },
+          "ops": {
+            "container": true,
+            "interface": [
+              "block_device.block_device_operations"
+            ],
+            "pointer": true
+          },
+          "ret": {
+            "declaration": "int a",
+            "value": "ldv_undef_int()"
+          }
+        },
+        "process": "(!register).{main}",
+        "reference": true
+      }
+    },
+    "functions models": {
+      "add_disk": {
+        "actions": {
+          "assign": {
+            "comment": "Get disk from arguments.",
+            "statements": [
+              "%block% = $ALLOC(%block%);",
+              "%disk% = $ARG1;",
+              "%block%->bd_disk = %disk%;",
+              "ldv_add_disk();"
+            ]
+          },
+          "register": {
+            "parameters": [
+              "%block%",
+              "%disk%"
             ]
           }
-        }
+        },
+        "comment": "Add partitioning information to kernel list.",
+        "labels": {
+          "block": {
+            "interface": [
+              "block_device.block_dev"
+            ],
+            "parameter": true,
+            "pointer": true,
+            "resource": true
+          },
+          "disk": {
+            "container": true,
+            "interface": [
+              "block_device.gendisk"
+            ],
+            "parameter": true
+          }
+        },
+        "process": "<assign>.[register]",
+        "reference": true
+      },
+      "del_gendisk": {
+        "actions": {
+          "assign": {
+            "comment": "Get disk from arguments.",
+            "statements": [
+              "%disk% = $ARG1;",
+              "ldv_del_gendisk();"
+            ]
+          },
+          "deregister": {
+            "parameters": [
+              "%disk%"
+            ]
+          }
+        },
+        "comment": "Remove partitioning information from kernel list.",
+        "labels": {
+          "disk": {
+            "container": true,
+            "interface": [
+              "block_device.gendisk"
+            ],
+            "parameter": true
+          }
+        },
+        "process": "<assign>.[deregister]",
+        "reference": true
       }
     }
   }

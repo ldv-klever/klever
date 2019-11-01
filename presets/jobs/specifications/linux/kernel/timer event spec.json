@@ -1,22 +1,76 @@
 {
-  "Linux 3.14 (base)": {
-    "functions models": {
-      "mod_timer, mod_timer_pinned, mod_timer_pending": {
-        "comment": "Modify a timer's timeout.",
+  "Linux 3.14": {
+    "environment processes": {
+      "timer_scenario": {
+        "actions": {
+          "callback": {
+            "callback": "%container.handler%",
+            "comment": "Time has come: call the timer callback.",
+            "parameters": [
+              "%container.data%"
+            ]
+          },
+          "instance_deregister": {
+            "condition": [
+              "%container% == $ARG1"
+            ],
+            "parameters": [
+              "%container%"
+            ]
+          },
+          "instance_register": {
+            "parameters": [
+              "%container%"
+            ]
+          }
+        },
+        "comment": "Invoke a timer callback.",
         "labels": {
-          "timer_list": {
+          "container": {
             "container": true,
-            "parameter": true,
             "interface": [
               "timer.timer_list"
             ]
           }
         },
-        "process": "<assign>.[instance_register].<success> | <fail>",
+        "process": "(!instance_register).[callback].(instance_deregister)",
+        "reference": true
+      }
+    },
+    "functions models": {
+      "del_timer, try_to_del_timer_sync, del_timer_sync": {
         "actions": {
-          "instance_register": {
+          "assign": {
+            "comment": "Get timer representing structure.",
+            "statements": [
+              "%timer_list% = $ARG1;"
+            ]
+          },
+          "instance_deregister": {
             "parameters": [
               "%timer_list%"
+            ]
+          }
+        },
+        "comment": "Deactivate a timer.",
+        "labels": {
+          "timer_list": {
+            "container": true,
+            "interface": [
+              "timer.timer_list"
+            ],
+            "parameter": true
+          }
+        },
+        "process": "<assign>.[instance_deregister]",
+        "reference": true
+      },
+      "mod_timer, mod_timer_pinned, mod_timer_pending": {
+        "actions": {
+          "assign": {
+            "comment": "Get timer representing structure.",
+            "statements": [
+              "%timer_list% = $ARG1;"
             ]
           },
           "fail": {
@@ -25,10 +79,9 @@
               "return ldv_undef_int_negative();"
             ]
           },
-          "assign": {
-            "comment": "Get timer representing structure.",
-            "statements": [
-              "%timer_list% = $ARG1;"
+          "instance_register": {
+            "parameters": [
+              "%timer_list%"
             ]
           },
           "success": {
@@ -37,40 +90,22 @@
               "return 0;"
             ]
           }
-        }
-      },
-      "setup_timer, setup_timer_on_stack": {
-        "comment": "Setup a new timer.",
+        },
+        "comment": "Modify a timer's timeout.",
         "labels": {
           "timer_list": {
             "container": true,
-            "parameter": true,
             "interface": [
               "timer.timer_list"
-            ]
-          },
-          "data": {
-            "resource": true,
-            "parameter": true,
-            "interface": [
-              "timer.data"
-            ]
-          },
-          "function": {
-            "callback": true,
-            "parameter": true,
-            "interface": [
-              "timer.callback"
-            ]
+            ],
+            "parameter": true
           }
         },
-        "process": "<assign>.[instance_register]",
+        "process": "<assign>.[instance_register].<success> | <fail>",
+        "reference": true
+      },
+      "setup_timer, setup_timer_on_stack": {
         "actions": {
-          "instance_register": {
-            "parameters": [
-              "%timer_list%"
-            ]
-          },
           "assign": {
             "comment": "Get timer representing structure and fill it up.",
             "statements": [
@@ -80,189 +115,49 @@
               "%timer_list.data%=%data%;",
               "%timer_list.function%=%function%;"
             ]
-          }
-        }
-      },
-      "del_timer, try_to_del_timer_sync, del_timer_sync": {
-        "comment": "Deactivate a timer.",
-        "labels": {
-          "timer_list": {
-            "container": true,
-            "parameter": true,
-            "interface": [
-              "timer.timer_list"
-            ]
-          }
-        },
-        "process": "<assign>.[instance_deregister]",
-        "actions": {
-          "instance_deregister": {
+          },
+          "instance_register": {
             "parameters": [
               "%timer_list%"
             ]
-          },
-          "assign": {
-            "comment": "Get timer representing structure.",
-            "statements": [
-              "%timer_list% = $ARG1;"
-            ]
           }
-        }
-      }
-    },
-    "environment processes": {
-      "timer_scenario": {
-        "comment": "Invoke a timer callback.",
+        },
+        "comment": "Setup a new timer.",
         "labels": {
-          "container": {
+          "data": {
+            "interface": [
+              "timer.data"
+            ],
+            "parameter": true,
+            "resource": true
+          },
+          "function": {
+            "callback": true,
+            "interface": [
+              "timer.callback"
+            ],
+            "parameter": true
+          },
+          "timer_list": {
             "container": true,
             "interface": [
               "timer.timer_list"
-            ]
+            ],
+            "parameter": true
           }
         },
-        "process": "(!instance_register).[callback].(instance_deregister)",
-        "actions": {
-          "instance_register": {
-            "parameters": [
-              "%container%"
-            ]
-          },
-          "instance_deregister": {
-            "condition": [
-              "%container% == $ARG1"
-            ],
-            "parameters": [
-              "%container%"
-            ]
-          },
-          "callback": {
-            "comment": "Time has come: call the timer callback.",
-            "callback": "%container.handler%",
-            "parameters": [
-              "%container.data%"
-            ]
-          }
-        }
+        "process": "<assign>.[instance_register]",
+        "reference": true
       }
     }
   },
   "Linux 4.15": {
-    "functions models": {
-      "mod_timer, mod_timer_pinned, mod_timer_pending": {
-        "comment": "Modify a timer's timeout.",
-        "labels": {
-          "timer_list": {
-            "container": true,
-            "parameter": true,
-            "interface": [
-              "timer.timer_list"
-            ]
-          }
-        },
-        "process": "<assign>.[instance_register].<success> | <fail>",
-        "actions": {
-          "instance_register": {
-            "parameters": [
-              "%timer_list%"
-            ]
-          },
-          "fail": {
-            "comment": "Failed to modify a timer's timeout",
-            "statements": [
-              "return ldv_undef_int_negative();"
-            ]
-          },
-          "assign": {
-            "comment": "Get timer representing structure.",
-            "statements": [
-              "%timer_list% = $ARG1;"
-            ]
-          },
-          "success": {
-            "comment": "Successfully modified a timer's timeout",
-            "statements": [
-              "return 0;"
-            ]
-          }
-        }
-      },
-      "setup_timer, setup_timer_on_stack": {
-        "comment": "Setup a new timer.",
-        "labels": {
-          "timer_list": {
-            "container": true,
-            "parameter": true,
-            "interface": [
-              "timer.timer_list"
-            ]
-          },
-          "function": {
-            "callback": true,
-            "parameter": true,
-            "interface": [
-              "timer.callback"
-            ]
-          }
-        },
-        "process": "<assign>.[instance_register]",
-        "actions": {
-          "instance_register": {
-            "parameters": [
-              "%timer_list%"
-            ]
-          },
-          "assign": {
-            "comment": "Get timer representing structure and fill it up.",
-            "statements": [
-              "%timer_list% = $ARG1;",
-              "%function% = $ARG2",
-              "%timer_list.function%=%function%;"
-            ]
-          }
-        }
-      },
-      "del_timer, try_to_del_timer_sync, del_timer_sync": {
-        "comment": "Deactivate a timer.",
-        "labels": {
-          "timer_list": {
-            "container": true,
-            "parameter": true,
-            "interface": [
-              "timer.timer_list"
-            ]
-          }
-        },
-        "process": "<assign>.[instance_deregister]",
-        "actions": {
-          "instance_deregister": {
-            "parameters": [
-              "%timer_list%"
-            ]
-          },
-          "assign": {
-            "comment": "Get timer representing structure.",
-            "statements": [
-              "%timer_list% = $ARG1;"
-            ]
-          }
-        }
-      }
-    },
     "environment processes": {
       "timer_scenario": {
-        "comment": "Invoke a timer callback.",
-        "labels": {
-          "container": {
-            "container": true,
-            "interface": [
-              "timer.timer_list"
-            ]
-          }
-        },
-        "process": "(!instance_register).[callback].(instance_deregister)",
         "actions": {
-          "instance_register": {
+          "callback": {
+            "callback": "%container.handler%",
+            "comment": "Time has come: call the timer callback.",
             "parameters": [
               "%container%"
             ]
@@ -275,133 +170,69 @@
               "%container%"
             ]
           },
-          "callback": {
-            "comment": "Time has come: call the timer callback.",
-            "callback": "%container.handler%",
+          "instance_register": {
             "parameters": [
               "%container%"
             ]
           }
-        }
+        },
+        "comment": "Invoke a timer callback.",
+        "labels": {
+          "container": {
+            "container": true,
+            "interface": [
+              "timer.timer_list"
+            ]
+          }
+        },
+        "process": "(!instance_register).[callback].(instance_deregister)"
+      }
+    },
+    "functions models": {
+      "setup_timer, setup_timer_on_stack": {
+        "actions": {
+          "assign": {
+            "comment": "Get timer representing structure and fill it up.",
+            "statements": [
+              "%timer_list% = $ARG1;",
+              "%function% = $ARG2",
+              "%timer_list.function%=%function%;"
+            ]
+          },
+          "instance_register": {
+            "parameters": [
+              "%timer_list%"
+            ]
+          }
+        },
+        "comment": "Setup a new timer.",
+        "labels": {
+          "function": {
+            "callback": true,
+            "interface": [
+              "timer.callback"
+            ],
+            "parameter": true
+          },
+          "timer_list": {
+            "container": true,
+            "interface": [
+              "timer.timer_list"
+            ],
+            "parameter": true
+          }
+        },
+        "process": "<assign>.[instance_register]"
       }
     }
   },
   "Linux 4.17": {
-    "functions models": {
-      "mod_timer, mod_timer_pinned, mod_timer_pending": {
-        "comment": "Modify a timer's timeout.",
-        "labels": {
-          "timer_list": {
-            "container": true,
-            "parameter": true,
-            "interface": [
-              "timer.timer_list"
-            ]
-          }
-        },
-        "process": "<assign>.[instance_register].<success> | <fail>",
-        "actions": {
-          "instance_register": {
-            "parameters": [
-              "%timer_list%"
-            ]
-          },
-          "fail": {
-            "comment": "Failed to modify a timer's timeout",
-            "statements": [
-              "return ldv_undef_int_negative();"
-            ]
-          },
-          "assign": {
-            "comment": "Get timer representing structure.",
-            "statements": [
-              "%timer_list% = $ARG1;"
-            ]
-          },
-          "success": {
-            "comment": "Successfully modified a timer's timeout",
-            "statements": [
-              "return 0;"
-            ]
-          }
-        }
-      },
-      "setup_timer, setup_timer_on_stack": {
-        "comment": "Setup a new timer.",
-        "labels": {
-          "timer_list": {
-            "container": true,
-            "parameter": true,
-            "interface": [
-              "timer.timer_list"
-            ]
-          },
-          "function": {
-            "callback": true,
-            "parameter": true,
-            "interface": [
-              "timer.callback"
-            ]
-          }
-        },
-        "process": "<assign>.[instance_register]",
-        "actions": {
-          "instance_register": {
-            "parameters": [
-              "%timer_list%"
-            ]
-          },
-          "assign": {
-            "comment": "Get timer representing structure and fill it up.",
-            "statements": [
-              "%timer_list% = $ARG1;",
-              "%function% = $ARG2",
-              "%timer_list.function%=%function%;"
-            ]
-          }
-        }
-      },
-      "del_timer, try_to_del_timer_sync, del_timer_sync": {
-        "comment": "Deactivate a timer.",
-        "labels": {
-          "timer_list": {
-            "container": true,
-            "parameter": true,
-            "interface": [
-              "timer.timer_list"
-            ]
-          }
-        },
-        "process": "<assign>.[instance_deregister]",
-        "actions": {
-          "instance_deregister": {
-            "parameters": [
-              "%timer_list%"
-            ]
-          },
-          "assign": {
-            "comment": "Get timer representing structure.",
-            "statements": [
-              "%timer_list% = $ARG1;"
-            ]
-          }
-        }
-      }
-    },
     "environment processes": {
       "timer_scenario": {
-        "comment": "Invoke a timer callback.",
-        "labels": {
-          "container": {
-            "container": true,
-            "interface": [
-              "timer.timer_list"
-            ]
-          }
-        },
-        "process": "(!instance_register).[callback].(instance_deregister)",
         "actions": {
-          "instance_register": {
+          "callback": {
+            "callback": "%container.handler%",
+            "comment": "Time has come: call the timer callback.",
             "parameters": [
               "%container%"
             ]
@@ -414,14 +245,59 @@
               "%container%"
             ]
           },
-          "callback": {
-            "comment": "Time has come: call the timer callback.",
-            "callback": "%container.handler%",
+          "instance_register": {
             "parameters": [
               "%container%"
             ]
           }
-        }
+        },
+        "comment": "Invoke a timer callback.",
+        "labels": {
+          "container": {
+            "container": true,
+            "interface": [
+              "timer.timer_list"
+            ]
+          }
+        },
+        "process": "(!instance_register).[callback].(instance_deregister)"
+      }
+    },
+    "functions models": {
+      "setup_timer, setup_timer_on_stack": {
+        "actions": {
+          "assign": {
+            "comment": "Get timer representing structure and fill it up.",
+            "statements": [
+              "%timer_list% = $ARG1;",
+              "%function% = $ARG2",
+              "%timer_list.function%=%function%;"
+            ]
+          },
+          "instance_register": {
+            "parameters": [
+              "%timer_list%"
+            ]
+          }
+        },
+        "comment": "Setup a new timer.",
+        "labels": {
+          "function": {
+            "callback": true,
+            "interface": [
+              "timer.callback"
+            ],
+            "parameter": true
+          },
+          "timer_list": {
+            "container": true,
+            "interface": [
+              "timer.timer_list"
+            ],
+            "parameter": true
+          }
+        },
+        "process": "<assign>.[instance_register]"
       }
     }
   }
