@@ -1,0 +1,102 @@
+{
+  "templates": {
+    "BusyBox": {
+      "plugins": [
+        {
+          "EMG": {
+            "initialize requirements": true,
+            "check final state": true,
+            "source analysis": {
+              "callstack deep search": 3
+            },
+            "intermediate model options": [
+              {
+                "genericFunctions": {
+                  "infinite call": false,
+                  "initialize strings as null terminated": false,
+                  "functions to call": ["\\w*main"]
+                }
+              }
+            ],
+            "translation options": {
+              "entry point": "ldv_main",
+              "direct control functions calls": true,
+              "nested automata": true,
+              "allocate with sizeof": true,
+              "allocate external": true,
+              "environment model file": "environment_model.c",
+              "code additional aspects": [],
+              "propogate headers to instrumented files": true,
+              "additional headers": [
+                "verifier/common.h",
+                "verifier/nondet.h",
+                "verifier/memory.h",
+                "userspace/ldv.h"
+              ]
+            }
+          }
+        },
+        {
+          "RSG": {
+            "common sets model": "counter",
+            "opts file": "applets/applets.c",
+            "common models": {
+              "verifier/common.c": {},
+              "verifier/gcc.c": {},
+              "verifier/nondet.c": {},
+              "verifier/reference memory.c": {},
+              "userspace/verifier/memory.c": {},
+              "userspace/ldv.c": {},
+              "userspace/string.c": {},
+              "userspace/stdlib.c": {},
+              "userspace/stdio.c": {},
+              "userspace/busybox/globals.c": {},
+              "userspace/busybox/fork.c": {},
+              "userspace/busybox/libbb/appletlib.c": {},
+              "userspace/busybox/libbb/verror_msg.c": {},
+              "userspace/busybox/libbb/perror_msg.c": {},
+              "userspace/busybox/libbb/xfuncs_printf.c": {}
+            }
+          }
+        },
+        "Weaver",
+        {
+          "FVTP": {
+            "merge source files": true,
+            "verifier profile": "CPAchecker BAM BusyBox",
+            "verifier": {
+              "name": "CPAchecker",
+              "version": "trunk:31140"
+            },
+            "result processing": {
+              "coverage": "lightweight",
+              "collect function names": true
+            }
+          }
+        }
+      ]
+    }
+  },
+  "requirements": {
+    "description": "BusyBox specifications",
+    "template": "BusyBox",
+    "empty": {
+      "description": "..."
+    },
+    "open": {
+      "description": "...",
+      "RSG": {"models": ["busybox/file.c"]}
+    },
+    "memory safety": {
+      "description": "BusyBox memory safety",
+      "RSG": {"models": ["userspace/memory safety/memory.c"]},
+      "FVTP": {
+        "verifier profile": "memory checking Linux64",
+        "verifier": {
+          "name": "CPAchecker",
+          "version": "trunk:31140"
+        }
+      }
+    }
+  }
+}

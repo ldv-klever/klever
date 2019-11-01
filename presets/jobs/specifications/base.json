@@ -74,51 +74,6 @@
         }
       ]
     },
-    "Busybox": {
-      "description": "...",
-      "template": "Userspace",
-      "plugins": [
-        "EMG",
-        {
-          "RSG": {
-            "common sets model": "counter",
-            "opts file": "applets/applets.c",
-            "common models": {
-              "verifier/common.c": {},
-              "verifier/gcc.c": {},
-              "verifier/nondet.c": {},
-              "verifier/reference memory.c": {},
-              "userspace/verifier/memory.c": {},
-              "userspace/ldv.c": {},
-              "userspace/string.c": {},
-              "userspace/stdlib.c": {},
-              "userspace/stdio.c": {},
-              "userspace/busybox/globals.c": {},
-              "userspace/busybox/fork.c": {},
-              "userspace/busybox/libbb/appletlib.c": {},
-              "userspace/busybox/libbb/verror_msg.c": {},
-              "userspace/busybox/libbb/perror_msg.c": {},
-              "userspace/busybox/libbb/xfuncs_printf.c": {}
-            }
-          }
-        },
-        "Weaver",
-        {
-          "FVTP": {
-            "merge source files": true,
-            "verifier profile": "CPAchecker BAM BusyBox",
-            "verifier": {
-              "name": "CPAchecker",
-              "version": "trunk:31140"
-            },
-            "result processing": {
-              "coverage": "lightweight",
-              "collect function names": true
-            }
-          }
-        }
-      ]
-    },
     "Zephyr": {
       "description": "...",
       "plugins": [
@@ -227,28 +182,6 @@
       },
       "memory safety": {
         "description": "Userspace memory safety",
-        "RSG": {"models": {"userspace/memory safety/memory.c": {}}},
-        "FVTP": {
-          "verifier profile": "memory checking Linux64",
-          "verifier": {
-            "name": "CPAchecker",
-            "version": "trunk:31140"
-          }
-        }
-      }
-    },
-    "busybox": {
-      "description": "Busybox specifications",
-      "template": "Busybox",
-      "empty": {
-        "description": "..."
-      },
-      "open": {
-        "description": "...",
-        "RSG": {"models": {"userspace/busybox/file.c": {}}}
-      },
-      "memory safety": {
-        "description": "Busybox memory safety",
         "RSG": {"models": {"userspace/memory safety/memory.c": {}}},
         "FVTP": {
           "verifier profile": "memory checking Linux64",
