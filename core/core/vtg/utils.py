@@ -88,15 +88,17 @@ def prepare_cif_opts(opts, clade, model_opts=False):
     return new_opts
 
 
+# Catch only the first line having "error:" substring. This helps to filter out a lot of warnings and other errors.
 class CIFErrorFilter:
     def __init__(self):
-        self.finished = False
+        self.found_first_error = False
 
     def __call__(self, line):
-        if self.finished:
+        if self.found_first_error:
             return False
 
         if 'error:' in line:
-            self.finished = True
+            self.found_first_error = True
+            return True
 
-        return True
+        return False
