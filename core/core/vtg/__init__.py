@@ -88,7 +88,8 @@ def _extract_requirement_desc(logger, raw_requirement_descs, requirement_id):
 
     categories = requirement_id.split(':')
     desc = raw_requirement_descs['requirements']
-    tmpl_id = None
+    # Template can be specified for all requirements.
+    tmpl_id = desc.get('template')
     while categories:
         c = categories.pop(0)
         if c in desc:
