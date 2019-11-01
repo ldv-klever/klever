@@ -22,27 +22,9 @@ from core.vtg.emg.common.c.types import import_declaration
 from core.vtg.emg.common.process.parser import parse_process
 from core.vtg.emg.common.process import Receive, Dispatch, Subprocess, Block, Label, Process
 
-
-class IntermediateDecoder(json.JSONDecoder):
-    def __init__(self):
-        json.JSONDecoder.__init__(self, object_hook=self.spec_to_classes)
-
-    def spec_to_classes(self, spec):
-        raise NotImplementedError
-
-
-class IntermediateEnoder(json.JSONEncoder):
-
-    def default(self, o):
-        try:
-            super(IntermediateEnoder, self).default(0)
-        except TypeError:
-            raise NotImplementedError
-
-
 class ProcessCollection:
     """
-    This class represents collection of processes for an environment model generation. Also it contains methods to
+    This class represents collection of processes for an environment model generators. Also it contains methods to
     import or export processes in the JSON format. The collection contains function models processes, generic
     environment model processes that acts as soon as they receives replicative signals and a main process.
 
@@ -138,27 +120,12 @@ class ProcessCollection:
         self.environment = env_processes
         self.entry = entry_process
 
-    def save_collection(self, filename=None):
-        """
-        Export the collection to the file.
 
-        :param filename: File to save process descriptions in the JSON format.
-        :return: Return a dictionary that can easily be saved as a JSON file.
-        """
-        data = dict()
-        data["functions models"] = {p.pretty_id: self._export_process(p) for p in self.models.values()}
-        data["environment processes"] = {p.pretty_id: self._export_process(p) for p in self.environment.values()}
-        data["main process"] = None if not self.entry else self._export_process(self.entry)
-        if filename:
-            with open(filename, "w", encoding="utf8") as fh:
-                fh.writelines(ujson.dumps(data, ensure_ascii=False, sort_keys=True, indent=4,
-                                          escape_forward_slashes=False))
-        return data
 
     def establish_peers(self, strict=False):
         """
         Get processes and guarantee that all peers are correctly set for both receivers and dispatchers. The function
-        replaces dispatches expressed by strings to object references as it is expected in translators.
+        replaces dispatches expressed by strings to object references as it is expected in translation.
 
         :param strict: Raise exception if a peer process identifier is unknown (True) or just ignore it (False).
         :return: None
@@ -199,66 +166,7 @@ class ProcessCollection:
                 process.category = tokens[0]
                 process.name = tokens[1]
 
-    @staticmethod
-    def _export_process(process):
-        def convert_label(label):
-            d = dict()
-            if label.declaration:
-                d['declaration'] = label.declaration.to_string(label.name, typedef='complex_and_params')
-            if label.value:
-                d['value'] = label.value
 
-            return d
-
-        def convert_action(action):
-            d = dict()
-            if action.comment:
-                d['comment'] = action.comment
-            if action.condition:
-                d['condition'] = action.condition
-            if action.trace_relevant:
-                d['entry point'] = action.trace_relevant
-
-            if isinstance(action, Subprocess):
-                d['process'] = action.process
-            elif isinstance(action, Dispatch) or isinstance(action, Receive):
-                d['parameters'] = action.parameters
-
-                if len(action.peers) > 0:
-                    d['peers'] = list()
-                    for p in action.peers:
-                        d['peers'].append(p['process'].pretty_id)
-                        if not p['process'].pretty_id:
-                            raise ValueError('Any peer must have an external identifier')
-                    # Remove duplicates
-                    d['peers'] = list(set(d['peers']))
-
-                if isinstance(action, Dispatch) and action.broadcast:
-                    d['broadcast'] = action.broadcast
-                elif isinstance(action, Receive) and action.replicative:
-                    d['replicative'] = action.replicative
-            elif isinstance(action, Block):
-                if action.statements:
-                    d["statements"] = action.statements
-
-            return d
-
-        data = {
-            'identifier': process.pretty_id,
-            'category': process.category,
-            'comment': process.comment,
-            'process': process.process,
-            'labels': {l.name: convert_label(l) for l in process.labels.values()},
-            'actions': {a.name: convert_action(a) for a in process.actions.values()}
-        }
-        if len(process.headers) > 0:
-            data['headers'] = list(process.headers)
-        if len(process.declarations.keys()) > 0:
-            data['declarations'] = process.declarations
-        if len(process.definitions.keys()) > 0:
-            data['definitions'] = process.definitions
-
-        return data
 
     def _import_process(self, name, dic):
         process = self.PROCESS_CONSTRUCTOR(name)

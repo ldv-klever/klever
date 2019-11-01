@@ -20,7 +20,6 @@ import re
 import ujson
 from clade import Clade
 
-from core.vtg.emg.common import get_conf_property
 from core.vtg.emg.common.c import Function, Variable, Macro, import_declaration
 from core.vtg.emg.common.c.types import import_typedefs, extract_name, is_static
 from core.vtg.utils import find_file_or_dir
@@ -400,7 +399,7 @@ class Source:
                             if called_obj:
                                 called_obj.add_call(func, obj.definition_file)
 
-        macros_file = get_conf_property(self._conf.get('source analysis', dict()), 'macros white list')
+        macros_file = self._conf.get('source analysis', dict()).get('macros white list')
         if macros_file:
             macros_file = find_file_or_dir(self.logger, self._conf['main working directory'], macros_file)
             with open(macros_file, 'r', encoding='utf8') as fp:

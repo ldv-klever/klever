@@ -18,66 +18,19 @@
 import json
 
 
-def get_conf_property(conf, name, expected_type=None):
-    """
-    Check that configuration properties dictionary contains the given configuration property and return its value.
-
-    :param conf: Dictionary.
-    :param name: Configuration property string.
-    :param expected_type: Check that given value has an expected type.
-    :return: Configuration property value.
-    """
-    if name in conf:
-        if expected_type and not isinstance(conf[name], expected_type):
-            raise TypeError("Expect configuration property '{}' to be set with a '{}' value but it has type '{}'".
-                            format(name, str(expected_type), str(type(conf[name]))))
-        return conf[name]
-    else:
-        return None
-
-
-def get_necessary_conf_property(conf, name):
+def get_or_die(conf, name, expected_type=None):
     """
     Return configuration property value and expect it to be set.
 
     :param conf: Dictionary.
     :param name: Configuration property string.
+    :param expected_type: Type object.
     :return: Configuration property value.
     """
-    check_necessary_conf_property(conf, name, None)
+    if name not in conf or (expected_type and not isinstance(conf.get(name), expected_type)):
+        raise KeyError("EMG requires configuration property {!r} to be set as {!r}".
+                       format(name, type(expected_type).__name__))
     return conf[name]
-
-
-def check_or_set_conf_property(conf, name, default_value=None, expected_type=None):
-    """
-    Check that property is set or set its value with a provided value.
-
-    :param conf: Dictionary.
-    :param name: Configuration property string.
-    :param default_value: Default value to be set.
-    :param expected_type: Check that given value has an expected type.
-    :return: None
-    """
-    if name not in conf:
-        conf[name] = default_value
-    check_necessary_conf_property(conf, name, expected_type)
-
-
-def check_necessary_conf_property(conf, name, expected_type=None):
-    """
-    Check that property is set or set its value with a provided value.
-
-    :param conf: Dictionary.
-    :param name: Configuration property string.
-    :param expected_type: Check that given value has an expected type.
-    :return: True
-    """
-    if name not in conf:
-        raise KeyError("Expect configuration property {!r} to be set properly".format(name))
-    elif name in conf and expected_type and not isinstance(conf[name], expected_type):
-        raise TypeError("Expect configuration property {!r} to be set with a {!r} value but it has type {!r}".
-                        format(name, str(expected_type), str(type(conf[name]))))
-    return True
 
 
 def model_comment(comment_type, text, other=None):

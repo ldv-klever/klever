@@ -87,7 +87,7 @@ class Process:
         self.cfiles = list()
         self.headers = list()
         self.labels = dict()
-        self.actions = dict()
+        self.actions = Actions()
         self.declarations = dict()
         self.definitions = dict()
         self._accesses = dict()
@@ -309,13 +309,16 @@ class Actions(dict):
                 (not exclude or all(not isinstance(x, t) for t in exclude)))
 
     @property
-    def initial_actions(self):
+    def initial_action(self):
         """
         Returns initial states of the process.
 
         :return: Sorted list with starting process State objects.
         """
-        return (s for s in self.values() if not s.predecessors)
+        acts = [s for s in self.values() if not s.predecessors]
+        assert len(acts) == 1
+        act, *_ = acts
+        return act
 
     @property
     def unmatched_receives(self):
@@ -467,6 +470,7 @@ class Action(BaseAction):
         self.number = number
         self.condition = None
         self.trace_relevant = False
+        self.comment = ''
 
 
 class Subprocess(Action):
@@ -544,7 +548,7 @@ class Block(Action):
         return '<%s>' % str(self)
 
 
-class Parentheses(Action):
+class Parentheses(BaseAction):
     """
     This class represent an open parenthese symbol to simplify serialization and import.
     """
@@ -552,9 +556,10 @@ class Parentheses(Action):
     def __init__(self, name, action: BaseAction = None):
         super(Parentheses, self).__init__(name)
         self.action = action
+        self.insert_successor(action)
 
 
-class Concatenation(Action):
+class Concatenation(BaseAction):
     """
     The class represents a sequence of actions.
     """
@@ -564,13 +569,13 @@ class Concatenation(Action):
         self.actions = collections.deque()
 
     def add_first(self, action: BaseAction):
+        self.insert_successor(action)
         if self.actions:
-            last = self.actions[-1]
-            last.insert_predecessor(action)
+            self.actions[0].replace_predecessor(self, action)
         self.actions.appendleft(action)
 
 
-class Choice(Action):
+class Choice(BaseAction):
     """
     The class represents a choice between actions.
     """
@@ -580,23 +585,22 @@ class Choice(Action):
         self.actions = set()
 
     def add_first(self, action: BaseAction):
-        for variant in self.actions:
-            variant.insert_predecessor(action)
+        action.insert_predecessor(self)
         self.actions.add(action)
 
 
 class ProcessCollection:
     """
-        This class represents collection of processes for an environment model generation. Also it contains methods to
+        This class represents collection of processes for an environment model generators. Also it contains methods to
         import or export processes in the JSON format. The collection contains function models processes, generic
         environment model processes that acts as soon as they receives replicative signals and a main process.
 
         """
 
-    def __init__(self, entry: Process, models: dict, environment: dict):
-        self.entry = entry
-        self.models = models
-        self.environment = environment
+    def __init__(self):
+        self.entry = None
+        self.models = dict()
+        self.environment = dict()
 
     @property
     def processes(self):
@@ -605,7 +609,7 @@ class ProcessCollection:
     def establish_peers(self, strict=False):
         """
         Get processes and guarantee that all peers are correctly set for both receivers and dispatchers. The function
-        replaces dispatches expressed by strings to object references as it is expected in translators.
+        replaces dispatches expressed by strings to object references as it is expected in translation.
 
         :param strict: Raise exception if a peer process identifier is unknown (True) or just ignore it (False).
         :return: None
