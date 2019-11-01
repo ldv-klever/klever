@@ -1,253 +1,105 @@
 {
-  "Linux 3.14 (base)": {
+  "Linux 3.14": {
+    "categories": {
+      "net": {
+        "callbacks": {
+          "ndo_open": {
+            "declaration": "int (*ndo_open)(*%net.net_device%)"
+          },
+          "ndo_stop": {
+            "declaration": "int (*ndo_stop)(*%net.net_device%)"
+          },
+          "setup": {
+            "declaration": "void (*setup)(*%net.net_device%)"
+          }
+        },
+        "containers": {
+          "ethtool_ops": {
+            "declaration": "struct ethtool_ops ethtool_ops",
+            "header": "linux/netdevice.h"
+          },
+          "net_device": {
+            "declaration": "struct net_device net_device",
+            "fields": {
+              "ethtool_ops": "*%net.ethtool_ops%",
+              "netdev_ops": "*%net.net_device_ops%"
+            },
+            "header": "linux/netdevice.h"
+          },
+          "net_device_ops": {
+            "declaration": "struct net_device_ops net_device_ops",
+            "fields": {
+              "ndo_open": "%net.ndo_open%",
+              "ndo_stop": "%net.ndo_stop%"
+            },
+            "header": "linux/netdevice.h"
+          }
+        },
+        "reference": true
+      }
+    },
     "functions models": {
-      "alloc_etherdev_mqs": {
-        "declaration": "*%net.net_device% alloc_etherdev_mqs(int sizeof_priv, unsigned int txqs, unsigned int rxqs)",
-        "header": "linux/etherdevice.h"
-      },
       "alloc_etherdev_mq": {
         "declaration": "*%net.net_device% alloc_etherdev_mq(int sizeof_priv, unsigned int queue_count)",
-        "header": "linux/etherdevice.h"
+        "header": "linux/etherdevice.h",
+        "reference": true
       },
-      "alloc_netdev_mqs": {
-        "declaration": "*%net.net_device% alloc_netdev_mqs(int sizeof_priv, const char *name, %net.setup%, unsigned int txqs, unsigned int rxqs)",
-        "header": "linux/netdevice.h"
+      "alloc_etherdev_mqs": {
+        "declaration": "*%net.net_device% alloc_etherdev_mqs(int sizeof_priv, unsigned int txqs, unsigned int rxqs)",
+        "header": "linux/etherdevice.h",
+        "reference": true
       },
       "alloc_netdev_mq": {
         "declaration": "*%net.net_device% alloc_netdev_mq(int sizeof_priv, const char *name, %net.setup%, unsigned int queue_count)",
-        "header": "linux/netdevice.h"
-      },
-      "register_netdev": {
-        "declaration": "int register_netdev(*%net.net_device%)",
-        "header": "linux/netdevice.h"
-      },
-      "unregister_netdev": {
-        "declaration": "void unregister_netdev(*%net.net_device%)",
-        "header": "linux/netdevice.h"
-      },
-      "free_netdev": {
-        "declaration": "void free_netdev(*%net.net_device%)",
-        "header": "linux/netdevice.h"
-      }
-    },
-    "categories": {
-      "net": {
-        "containers": {
-          "net_device": {
-            "declaration": "struct net_device net_device",
-            "header": "linux/netdevice.h",
-            "fields": {
-              "netdev_ops": "*%net.net_device_ops%",
-              "ethtool_ops": "*%net.ethtool_ops%"
-            }
-          },
-          "net_device_ops": {
-            "declaration": "struct net_device_ops net_device_ops",
-            "header": "linux/netdevice.h",
-            "fields": {
-              "ndo_open": "%net.ndo_open%",
-              "ndo_stop": "%net.ndo_stop%"
-            }
-          },
-          "ethtool_ops": {
-            "declaration": "struct ethtool_ops ethtool_ops",
-            "header": "linux/netdevice.h"
-          }
-        },
-        "callbacks": {
-          "ndo_open": {
-            "declaration": "int (*ndo_open)(*%net.net_device%)"
-          },
-          "ndo_stop": {
-            "declaration": "int (*ndo_stop)(*%net.net_device%)"
-          },
-          "setup": {
-            "declaration": "void (*setup)(*%net.net_device%)"
-          }
-        }
-      }
-    }
-  },
-  "Linux 4.6.7": {
-    "functions models": {
-      "alloc_etherdev_mqs": {
-        "declaration": "*%net.net_device% alloc_etherdev_mqs(int sizeof_priv, unsigned int txqs, unsigned int rxqs)",
-        "header": "linux/etherdevice.h"
+        "header": "linux/netdevice.h",
+        "reference": true
       },
       "alloc_netdev_mqs": {
-        "declaration": "*%net.net_device% alloc_netdev_mqs(int sizeof_priv, const char *name, unsigned char name_assign_type, %net.setup%, unsigned int txqs, unsigned int rxqs)",
-        "header": "linux/netdevice.h"
-      },
-      "register_netdev": {
-        "declaration": "int register_netdev(*%net.net_device%)",
-        "header": "linux/netdevice.h"
-      },
-      "unregister_netdev": {
-        "declaration": "void unregister_netdev(*%net.net_device%)",
-        "header": "linux/netdevice.h"
+        "declaration": "*%net.net_device% alloc_netdev_mqs(int sizeof_priv, const char *name, %net.setup%, unsigned int txqs, unsigned int rxqs)",
+        "header": "linux/netdevice.h",
+        "reference": true
       },
       "free_netdev": {
         "declaration": "void free_netdev(*%net.net_device%)",
-        "header": "linux/netdevice.h"
-      }
-    },
-    "categories": {
-      "net": {
-        "containers": {
-          "net_device": {
-            "declaration": "struct net_device net_device",
-            "header": "linux/netdevice.h",
-            "fields": {
-              "netdev_ops": "*%net.net_device_ops%",
-              "ethtool_ops": "*%net.ethtool_ops%"
-            }
-          },
-          "net_device_ops": {
-            "declaration": "struct net_device_ops net_device_ops",
-            "header": "linux/netdevice.h",
-            "fields": {
-              "ndo_open": "%net.ndo_open%",
-              "ndo_stop": "%net.ndo_stop%"
-            }
-          },
-          "ethtool_ops": {
-            "declaration": "struct ethtool_ops ethtool_ops",
-            "header": "linux/netdevice.h"
-          }
-        },
-        "callbacks": {
-          "ndo_open": {
-            "declaration": "int (*ndo_open)(*%net.net_device%)"
-          },
-          "ndo_stop": {
-            "declaration": "int (*ndo_stop)(*%net.net_device%)"
-          },
-          "setup": {
-            "declaration": "void (*setup)(*%net.net_device%)"
-          }
-        }
+        "header": "linux/netdevice.h",
+        "reference": true
+      },
+      "register_netdev": {
+        "declaration": "int register_netdev(*%net.net_device%)",
+        "header": "linux/netdevice.h",
+        "reference": true
+      },
+      "unregister_netdev": {
+        "declaration": "void unregister_netdev(*%net.net_device%)",
+        "header": "linux/netdevice.h",
+        "reference": true
       }
     }
   },
   "Linux 4.15": {
+    "categories": {},
     "functions models": {
-      "alloc_etherdev_mqs": {
-        "declaration": "*%net.net_device% alloc_etherdev_mqs(int sizeof_priv, unsigned int txqs, unsigned int rxqs)",
-        "header": "linux/etherdevice.h"
-      },
       "alloc_netdev_mqs": {
         "declaration": "*%net.net_device% alloc_netdev_mqs(int sizeof_priv, const char *name, unsigned char name_assign_type, %net.setup%, unsigned int txqs, unsigned int rxqs)",
         "header": "linux/netdevice.h"
-      },
-      "register_netdev": {
-        "declaration": "int register_netdev(*%net.net_device%)",
-        "header": "linux/netdevice.h"
-      },
-      "unregister_netdev": {
-        "declaration": "void unregister_netdev(*%net.net_device%)",
-        "header": "linux/netdevice.h"
-      },
-      "free_netdev": {
-        "declaration": "void free_netdev(*%net.net_device%)",
-        "header": "linux/netdevice.h"
-      }
-    },
-    "categories": {
-      "net": {
-        "containers": {
-          "net_device": {
-            "declaration": "struct net_device net_device",
-            "header": "linux/netdevice.h",
-            "fields": {
-              "netdev_ops": "*%net.net_device_ops%",
-              "ethtool_ops": "*%net.ethtool_ops%"
-            }
-          },
-          "net_device_ops": {
-            "declaration": "struct net_device_ops net_device_ops",
-            "header": "linux/netdevice.h",
-            "fields": {
-              "ndo_open": "%net.ndo_open%",
-              "ndo_stop": "%net.ndo_stop%"
-            }
-          },
-          "ethtool_ops": {
-            "declaration": "struct ethtool_ops ethtool_ops",
-            "header": "linux/netdevice.h"
-          }
-        },
-        "callbacks": {
-          "ndo_open": {
-            "declaration": "int (*ndo_open)(*%net.net_device%)"
-          },
-          "ndo_stop": {
-            "declaration": "int (*ndo_stop)(*%net.net_device%)"
-          },
-          "setup": {
-            "declaration": "void (*setup)(*%net.net_device%)"
-          }
-        }
       }
     }
   },
   "Linux 4.17": {
+    "categories": {},
     "functions models": {
-      "alloc_etherdev_mqs": {
-        "declaration": "*%net.net_device% alloc_etherdev_mqs(int sizeof_priv, unsigned int txqs, unsigned int rxqs)",
-        "header": "linux/etherdevice.h"
-      },
       "alloc_netdev_mqs": {
         "declaration": "*%net.net_device% alloc_netdev_mqs(int sizeof_priv, const char *name, unsigned char name_assign_type, %net.setup%, unsigned int txqs, unsigned int rxqs)",
         "header": "linux/netdevice.h"
-      },
-      "register_netdev": {
-        "declaration": "int register_netdev(*%net.net_device%)",
-        "header": "linux/netdevice.h"
-      },
-      "unregister_netdev": {
-        "declaration": "void unregister_netdev(*%net.net_device%)",
-        "header": "linux/netdevice.h"
-      },
-      "free_netdev": {
-        "declaration": "void free_netdev(*%net.net_device%)",
-        "header": "linux/netdevice.h"
       }
-    },
-    "categories": {
-      "net": {
-        "containers": {
-          "net_device": {
-            "declaration": "struct net_device net_device",
-            "header": "linux/netdevice.h",
-            "fields": {
-              "netdev_ops": "*%net.net_device_ops%",
-              "ethtool_ops": "*%net.ethtool_ops%"
-            }
-          },
-          "net_device_ops": {
-            "declaration": "struct net_device_ops net_device_ops",
-            "header": "linux/netdevice.h",
-            "fields": {
-              "ndo_open": "%net.ndo_open%",
-              "ndo_stop": "%net.ndo_stop%"
-            }
-          },
-          "ethtool_ops": {
-            "declaration": "struct ethtool_ops ethtool_ops",
-            "header": "linux/netdevice.h"
-          }
-        },
-        "callbacks": {
-          "ndo_open": {
-            "declaration": "int (*ndo_open)(*%net.net_device%)"
-          },
-          "ndo_stop": {
-            "declaration": "int (*ndo_stop)(*%net.net_device%)"
-          },
-          "setup": {
-            "declaration": "void (*setup)(*%net.net_device%)"
-          }
-        }
+    }
+  },
+  "Linux 4.6.7": {
+    "categories": {},
+    "functions models": {
+      "alloc_netdev_mqs": {
+        "declaration": "*%net.net_device% alloc_netdev_mqs(int sizeof_priv, const char *name, unsigned char name_assign_type, %net.setup%, unsigned int txqs, unsigned int rxqs)",
+        "header": "linux/netdevice.h"
       }
     }
   }

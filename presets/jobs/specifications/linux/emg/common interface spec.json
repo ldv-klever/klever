@@ -1,7 +1,5 @@
 {
-  "Linux 3.14 (base)": {
-    "functions models": {},
-    "kernel macro-functions": {},
+  "Linux 3.14": {
     "categories": {
       "device_driver": {
         "containers": {
@@ -9,8 +7,11 @@
             "declaration": "struct device_driver driver",
             "header": "linux/device.h"
           }
-        }
+        },
+        "reference": true
       }
-    }
+    },
+    "functions models": {},
+    "kernel macro-functions": {}
   }
 }
