@@ -1,4 +1,4 @@
-{% extends 'jobs/base.html' %}
+{% extends 'bridge/base.html' %}
 {% comment "License" %}
 % Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
 % Ivannikov Institute for System Programming of the Russian Academy of Sciences
@@ -18,13 +18,18 @@
 
 {% load i18n %}
 {% load staticfiles %}
+{% load compress %}
 
 {% block title %}{% trans 'Start decision of job' %}{% endblock %}
 
-{% block jobs_head_block %}
-    <script src="{% static 'jobs/js/startjob.js' %}"></script>
-    <link href="{% static 'jobs/css/start-job.css' %}" rel="stylesheet">
-    <link href="{% static 'jobs/css/multi-state-slider.css' %}" rel="stylesheet">
+{% block head_block %}
+    {% compress js file decision %}
+        <script src="{% static 'jobs/js/startjob.js' %}"></script>
+    {% endcompress %}
+    {% compress css file decision %}
+        <link href="{% static 'jobs/css/start-job.css' %}" rel="stylesheet">
+        <link href="{% static 'jobs/css/multi-state-slider.css' %}" rel="stylesheet">
+    {% endcompress %}
 {% endblock %}
 
 {% block body_block %}

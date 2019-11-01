@@ -18,11 +18,15 @@
 
 {% load i18n %}
 {% load staticfiles %}
+{% load compress %}
 
 {% block head_block %}
-    <link href="{% static 'marks/css/tagsmap.css' %}" rel="stylesheet">
-{#    <script type="text/javascript" src="{% static 'marks/js/tags.js' %}"></script>#}
-    <script type="text/javascript" src="{% static 'marks/js/tagsmap.js' %}"></script>
+    {% compress css file tagsmap %}
+        <link href="{% static 'marks/css/tagsmap.css' %}" rel="stylesheet">
+    {% endcompress %}
+    {% compress js file tagsmap %}
+        <script type="text/javascript" src="{% static 'marks/js/tagsmap.js' %}"></script>
+    {% endcompress %}
 {% endblock %}
 
 {% block title %}{{ title }}{% endblock %}

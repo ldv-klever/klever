@@ -18,11 +18,14 @@
 
 {% load i18n %}
 {% load staticfiles %}
+{% load compress %}
 
 {% block title %}{% trans 'Manager Tools' %}{% endblock %}
 
 {% block head_block %}
-    <script src="{% static 'tools/js/manager.js' %}"></script>
+    {% compress js file manager %}
+        <script src="{% static 'tools/js/manager.js' %}"></script>
+    {% endcompress %}
 {% endblock %}
 
 {% block body_block %}

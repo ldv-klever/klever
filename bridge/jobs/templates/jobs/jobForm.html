@@ -1,4 +1,4 @@
-{% extends 'jobs/base.html' %}
+{% extends 'bridge/base.html' %}
 {% comment "License" %}
 % Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
 % Ivannikov Institute for System Programming of the Russian Academy of Sciences
@@ -18,35 +18,42 @@
 
 {% load i18n %}
 {% load staticfiles %}
+{% load compress %}
 
 {% block title %}{% if action == 'copy' %}{% trans 'Job Copying' %}{% else %}{% trans 'Job Editing' %}{% endif %}{% endblock %}
 
-{% block jobs_head_block %}
+{% block head_block %}
     {# Code Mirror stylesheets #}
-    <link rel="stylesheet" href="{% static 'codemirror/lib/codemirror.css' %}">
-    <link rel="stylesheet" href="{% static 'codemirror/theme/midnight.css' %}">
-    <link rel="stylesheet" href="{% static 'codemirror/addon/dialog/dialog.css' %}">
-    <link rel="stylesheet" href="{% static 'codemirror/addon/search/matchesonscrollbar.css' %}">
+    {% compress css file codemirror %}
+        <link rel="stylesheet" href="{% static 'bridge/codemirror/lib/codemirror.css' %}">
+        <link rel="stylesheet" href="{% static 'bridge/codemirror/theme/midnight.css' %}">
+        <link rel="stylesheet" href="{% static 'bridge/codemirror/addon/dialog/dialog.css' %}">
+        <link rel="stylesheet" href="{% static 'bridge/codemirror/addon/search/matchesonscrollbar.css' %}">
+    {% endcompress %}
 
     {# Code Mirror js libraries #}
-    <script src="{% static 'codemirror/lib/codemirror.js' %}"></script>
-    <script src="{% static 'codemirror/mode/javascript.js' %}"></script>
-    <script src="{% static 'codemirror/mode/clike.js' %}"></script>
-    <script src="{% static 'codemirror/mode/xml.js' %}"></script>
-    <script src="{% static 'codemirror/mode/python.js' %}"></script>
-    <script src="{% static 'codemirror/addon/dialog/dialog.js' %}"></script>
-    <script src="{% static 'codemirror/addon/search/searchcursor.js' %}"></script>
-    <script src="{% static 'codemirror/addon/scroll/annotatescrollbar.js' %}"></script>
-    <script src="{% static 'codemirror/addon/search/matchesonscrollbar.js' %}"></script>
-    <script src="{% static 'codemirror/addon/search/search.js' %}"></script>
+    {% compress js file codemirror %}
+        <script src="{% static 'bridge/codemirror/lib/codemirror.js' %}"></script>
+        <script src="{% static 'bridge/codemirror/mode/javascript.js' %}"></script>
+        <script src="{% static 'bridge/codemirror/mode/clike.js' %}"></script>
+        <script src="{% static 'bridge/codemirror/mode/xml.js' %}"></script>
+        <script src="{% static 'bridge/codemirror/mode/python.js' %}"></script>
+        <script src="{% static 'bridge/codemirror/addon/dialog/dialog.js' %}"></script>
+        <script src="{% static 'bridge/codemirror/addon/search/searchcursor.js' %}"></script>
+        <script src="{% static 'bridge/codemirror/addon/scroll/annotatescrollbar.js' %}"></script>
+        <script src="{% static 'bridge/codemirror/addon/search/matchesonscrollbar.js' %}"></script>
+        <script src="{% static 'bridge/codemirror/addon/search/search.js' %}"></script>
+    {% endcompress %}
 
     {# Jstree #}
-    <link rel="stylesheet" href="{% static 'jstree/themes/default/style.min.css' %}">
-    <script src="{% static 'jstree/jstree.min.js' %}"></script>
+    <link rel="stylesheet" href="{% static 'bridge/jstree/themes/default/style.min.css' %}">
+    <script src="{% static 'bridge/jstree/jstree.min.js' %}"></script>
 
-    <script src="{% static 'jobs/js/jobFilesEdit.js' %}"></script>
-    <script src="{% static 'jobs/js/jobRolesEdit.js' %}"></script>
-    <script src="{% static 'jobs/js/jobForm.js' %}"></script>
+    {% compress js file jobform %}
+        <script src="{% static 'jobs/js/jobFilesEdit.js' %}"></script>
+        <script src="{% static 'jobs/js/jobRolesEdit.js' %}"></script>
+        <script src="{% static 'jobs/js/jobForm.js' %}"></script>
+    {% endcompress %}
 {% endblock %}
 
 {% block body_block %}

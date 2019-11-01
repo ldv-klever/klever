@@ -18,9 +18,15 @@
 
 {% load i18n %}
 {% load staticfiles %}
+{% load compress %}
+
 {% block title %}{% trans 'Sign in' %}{% endblock %}
 
-{% block head_block %}<link href="{% static 'users/css/login.css' %}" rel="stylesheet">{% endblock %}
+{% block head_block %}
+    {% compress css file login %}
+        <link href="{% static 'users/css/login.css' %}" rel="stylesheet">
+    {% endcompress %}
+{% endblock %}
 
 {% block body_block %}
     <form class="form-signin" role="form" id="login_form" method="post" action="{% url 'users:login' %}{% if request.GET %}?next={{ request.GET.next }}{% endif %}">

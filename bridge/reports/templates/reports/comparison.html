@@ -18,12 +18,17 @@
 
 {% load i18n %}
 {% load staticfiles %}
+{% load compress %}
 
 {% block title %}{% trans 'Job reports comparison' %}{% endblock %}
 
 {% block head_block %}
-    <link href="{% static 'reports/css/comparison.css' %}" rel="stylesheet">
-    <script src="{% static 'reports/js/comparison.js' %}"></script>
+    {% compress css file mark_comparison %}
+        <link href="{% static 'reports/css/comparison.css' %}" rel="stylesheet">
+    {% endcompress %}
+    {% compress js file mark_comparison %}
+        <script src="{% static 'reports/js/comparison.js' %}"></script>
+    {% endcompress %}
 {% endblock %}
 
 {% block body_block %}

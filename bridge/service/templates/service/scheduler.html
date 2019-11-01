@@ -18,12 +18,18 @@
 
 {% load i18n %}
 {% load staticfiles %}
+{% load compress %}
 
 {% block title %}{% trans 'Schedulers' %}{% endblock %}
 
 {% block head_block %}
-    <script src="{% static 'service/js/service.js' %}"></script>
-    <link href="{% static 'service/css/service.css' %}" rel="stylesheet">
+    {% compress js file service %}
+        <script src="{% static 'service/js/service.js' %}"></script>
+    {% endcompress %}
+
+    {% compress css file service %}
+        <link href="{% static 'service/css/service.css' %}" rel="stylesheet">
+    {% endcompress %}
 {% endblock %}
 
 {% block body_block %}

@@ -1,4 +1,4 @@
-{% extends 'jobs/base.html' %}
+{% extends 'bridge/base.html' %}
 {% comment "License" %}
 % Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
 % Ivannikov Institute for System Programming of the Russian Academy of Sciences
@@ -21,13 +21,13 @@
 {% load humanize %}
 {% load tz %}
 {% load staticfiles %}
+{% load compress %}
 
-{% block jobs_head_block %}
-    <link rel="stylesheet" href="{% static 'jstree/themes/default/style.min.css' %}">
+{% block head_block %}
+    {# Jstree #}
+    <link rel="stylesheet" href="{% static 'bridge/jstree/themes/default/style.min.css' %}">
+    <script src="{% static 'bridge/jstree/jstree.min.js' %}"></script>
 
-    <script src="{% static 'jstree/jstree.min.js' %}"></script>
-    <script src="{% static 'jobs/js/jobFilesView.js' %}"></script>
-    <script src="{% static 'jobs/js/versions.js' %}"></script>
     <script type="application/javascript">
         const PAGE_URLS = {
             get_status: "{% url 'jobs:api-job-status' job.id %}",
@@ -42,7 +42,12 @@
             has_children: "{% url 'jobs:api-has-children' job.id %}"
         };
     </script>
-    <script src="{% static 'jobs/js/jobPage.js' %}"></script>
+
+    {% compress js file job %}
+        <script src="{% static 'jobs/js/jobFilesView.js' %}"></script>
+        <script src="{% static 'jobs/js/versions.js' %}"></script>
+        <script src="{% static 'jobs/js/jobPage.js' %}"></script>
+    {% endcompress %}
 {% endblock %}
 
 {% block title %}{% trans 'Job' %} ({{ object.get_status_display }}){% endblock %}

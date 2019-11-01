@@ -19,16 +19,21 @@
 {% load i18n %}
 
 {% load staticfiles %}
+{% load compress %}
 
 {% block title %}{% trans 'Coverage' %}{% endblock %}
 
 {% block head_block %}
-    <script type="text/javascript" src="{% static 'reports/js/source.js' %}"></script>
-    <script type="text/javascript" src="{% static 'reports/js/coverage.js' %}"></script>
-    <script type="text/javascript" src="{% static 'reports/js/leaf-coverage.js' %}"></script>
+    {% compress js file coverage %}
+        <script type="text/javascript" src="{% static 'reports/js/source.js' %}"></script>
+        <script type="text/javascript" src="{% static 'reports/js/coverage.js' %}"></script>
+        <script type="text/javascript" src="{% static 'reports/js/leaf-coverage.js' %}"></script>
+    {% endcompress %}
 
-    <link href="{% static 'reports/css/source.css' %}" rel="stylesheet">
-    <link href="{% static 'reports/css/coverage.css' %}" rel="stylesheet">
+    {% compress css file coverage %}
+        <link href="{% static 'reports/css/source.css' %}" rel="stylesheet">
+        <link href="{% static 'reports/css/coverage.css' %}" rel="stylesheet">
+    {% endcompress %}
 {% endblock %}
 
 {% block body_block %}

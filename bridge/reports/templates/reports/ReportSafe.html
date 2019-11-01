@@ -18,28 +18,36 @@
 
 {% load i18n %}
 {% load staticfiles %}
+{% load compress %}
 
 {% block title %}{% trans 'Safe' %}{% endblock %}
 
 {% block head_block %}
     {% if coverage %}
-        <script type="text/javascript" src="{% static 'reports/js/source.js' %}"></script>
-        <script type="text/javascript" src="{% static 'reports/js/coverage.js' %}"></script>
-        <script type="text/javascript" src="{% static 'reports/js/leaf-coverage.js' %}"></script>
+        {% compress js file coverage %}
+            <script type="text/javascript" src="{% static 'reports/js/source.js' %}"></script>
+            <script type="text/javascript" src="{% static 'reports/js/coverage.js' %}"></script>
+            <script type="text/javascript" src="{% static 'reports/js/leaf-coverage.js' %}"></script>
+        {% endcompress %}
     {% endif %}
 
-    <script type="text/javascript" src="{% static 'marks/js/tags.js' %}"></script>
-    <script type="text/javascript" src="{% static 'marks/js/inlineMarkForm.js' %}"></script>
-    <script type="text/javascript" src="{% static 'reports/js/reportLeaf.js' %}"></script>
+    {% compress js file leaf %}
+        <script type="text/javascript" src="{% static 'marks/js/tags.js' %}"></script>
+        <script type="text/javascript" src="{% static 'marks/js/inlineMarkForm.js' %}"></script>
+        <script type="text/javascript" src="{% static 'reports/js/reportLeaf.js' %}"></script>
+    {% endcompress %}
 
     {% if coverage %}
-        <link href="{% static 'reports/css/source.css' %}" rel="stylesheet">
-        <link href="{% static 'reports/css/coverage.css' %}" rel="stylesheet">
+        {% compress css file coverage %}
+            <link href="{% static 'reports/css/source.css' %}" rel="stylesheet">
+            <link href="{% static 'reports/css/coverage.css' %}" rel="stylesheet">
+        {% endcompress %}
     {% endif %}
 
-    <link href="{% static 'marks/css/tagsmap.css' %}" rel="stylesheet">
-    <link href="{% static 'marks/css/mark.css' %}" rel="stylesheet">
-    <link href="{% static 'reports/css/reportLeaf.css' %}" rel="stylesheet">
+    {% compress css file leaf %}
+        <link href="{% static 'marks/css/tagsmap.css' %}" rel="stylesheet">
+        <link href="{% static 'reports/css/reportLeaf.css' %}" rel="stylesheet">
+    {% endcompress %}
 {% endblock %}
 
 {% block body_block %}
