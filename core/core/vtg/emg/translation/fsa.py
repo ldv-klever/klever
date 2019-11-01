@@ -36,7 +36,7 @@ class Automaton:
         self.self_parallelism = True
 
         # Generate FSA itself
-        self.fsa = FSA(self.process)
+        #self.fsa = FSA(self.process)
         self.variables()
 
     def variables(self, only_used=False):

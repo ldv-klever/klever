@@ -15,13 +15,13 @@
 # limitations under the License.
 #
 
-from core.vtg.emg.common import get_conf_property, get_necessary_conf_property
+from core.vtg.emg.common import get_or_die
 from core.vtg.emg.common.process import Dispatch
-from core.vtg.emg.modelTranslator.fsa_translator import FSATranslator
+from core.vtg.emg.translation.fsa_translator import FSATranslator
 from core.vtg.emg.common.c import Variable
 from core.vtg.emg.common.c.types import import_declaration
-from core.vtg.emg.modelTranslator.fsa_translator.common import extract_relevant_automata
-from core.vtg.emg.modelTranslator.fsa_translator.label_control_function import label_based_function, normalize_fsa
+from core.vtg.emg.translation.fsa_translator.common import extract_relevant_automata
+from core.vtg.emg.translation.fsa_translator.label_control_function import label_based_function, normalize_fsa
 
 
 class LabelTranslator(FSATranslator):
@@ -34,13 +34,13 @@ class LabelTranslator(FSATranslator):
         return list()
 
     def _join_cf_code(self, automaton):
-        if automaton.self_parallelism and get_necessary_conf_property(self._conf, 'self parallel processes') and \
-                get_conf_property(self._conf, 'pure pthread interface'):
+        if automaton.self_parallelism and get_or_die(self._conf, 'self parallel processes') and \
+                self._conf.get('pure pthread interface'):
             for var in self.__thread_variable(automaton, 'pair'):
                 self._cmodel.add_global_variable(var, automaton.process.file, extern=True)
             return 'pthread_join({}, 0);'
         else:
-            if automaton.self_parallelism and get_necessary_conf_property(self._conf, 'self parallel processes'):
+            if automaton.self_parallelism and get_or_die(self._conf, 'self parallel processes'):
                 sv = self.__thread_variable(automaton, 'array')
                 self._cmodel.add_global_variable(sv, automaton.process.file, extern=True)
                 return 'pthread_join_N({}, 0);'.format(sv.name)
@@ -50,15 +50,15 @@ class LabelTranslator(FSATranslator):
                 return 'pthread_join({}, 0);'.format(sv.name)
 
     def _call_cf_code(self, automaton, parameter='0'):
-        if automaton.self_parallelism and get_necessary_conf_property(self._conf, 'self parallel processes') and \
-                get_conf_property(self._conf, 'pure pthread interface'):
+        if automaton.self_parallelism and get_or_die(self._conf, 'self parallel processes') and \
+                self._conf.get('pure pthread interface'):
             for var in self.__thread_variable(automaton, 'pair'):
                 self._cmodel.add_global_variable(var, automaton.process.file, extern=True)
             # Leave the first parameter to fill twise later
             return 'pthread_create({}, 0, {}, {});'.\
                 format('{}', self._control_function(automaton).name, parameter)
         else:
-            if automaton.self_parallelism and get_necessary_conf_property(self._conf, 'self parallel processes'):
+            if automaton.self_parallelism and get_or_die(self._conf, 'self parallel processes'):
                 sv = self.__thread_variable(automaton, 'array')
                 self._cmodel.add_global_variable(sv, automaton.process.file, extern=True)
                 return 'pthread_create_N({}, 0, {}, {});'.\
@@ -89,12 +89,12 @@ class LabelTranslator(FSATranslator):
                         block.append('{}->arg{} = arg{};'.format(vf_param_var.name, index, index))
                     if r_state.action.replicative:
                         call = self._call_cf(automata_peers[name]['automaton'], cf_param)
-                        if get_conf_property(self._conf, 'direct control functions calls'):
+                        if self._conf.get('direct control functions calls'):
                             block.append(call)
                         else:
                             if automata_peers[name]['automaton'].self_parallelism and \
-                                    get_necessary_conf_property(self._conf, "self parallel processes") and \
-                                    get_conf_property(self._conf, 'pure pthread interface'):
+                                    get_or_die(self._conf, "self parallel processes") and \
+                                    self._conf.get('pure pthread interface'):
                                 thread_vars = self.__thread_variable(automata_peers[name]['automaton'], var_type='pair')
                                 for v in thread_vars:
                                     # Expect that for this particular case the first argument is unset
@@ -115,10 +115,10 @@ class LabelTranslator(FSATranslator):
             elif state.action.name.find('dereg') != -1:
                 block = list()
                 call = self._join_cf(automata_peers[name]['automaton'])
-                if not get_conf_property(self._conf, 'direct control functions calls'):
+                if not self._conf.get('direct control functions calls'):
                     if automata_peers[name]['automaton'].self_parallelism and \
-                            get_necessary_conf_property(self._conf, "self parallel processes") and \
-                            get_conf_property(self._conf, 'pure pthread interface'):
+                            get_or_die(self._conf, "self parallel processes") and \
+                            self._conf.get('pure pthread interface'):
                         thread_vars = self.__thread_variable(automata_peers[name]['automaton'], var_type='pair')
                         for v in thread_vars:
                             # Expect that for this particular case the first argument is unset
@@ -201,13 +201,13 @@ class LabelTranslator(FSATranslator):
         model_flag = True
         if automaton not in self._model_fsa:
             model_flag = False
-            if not get_conf_property(self._conf, 'direct control functions calls') and automaton is not self._entry_fsa:
+            if not self._conf.get('direct control functions calls') and automaton is not self._entry_fsa:
                 if automaton.self_parallelism and \
-                        get_necessary_conf_property(self._conf, "self parallel processes") and \
-                        get_conf_property(self._conf, 'pure pthread interface'):
+                        get_or_die(self._conf, "self parallel processes") and \
+                        self._conf.get('pure pthread interface'):
                     for var in self.__thread_variable(automaton, 'pair'):
                         self._cmodel.add_global_variable(var, automaton.process.file, False)
-                elif automaton.self_parallelism and get_necessary_conf_property(self._conf, "self parallel processes"):
+                elif automaton.self_parallelism and get_or_die(self._conf, "self parallel processes"):
                     self._cmodel.add_global_variable(self.__thread_variable(automaton, 'array'),
                                                      automaton.process.file, extern=False)
                 else:
@@ -228,7 +228,7 @@ class LabelTranslator(FSATranslator):
     def _entry_point(self):
         self._logger.info("Finally generate an entry point function {!r}".format(self._cmodel.entry_name))
         cf = self._control_function(self._entry_fsa)
-        if get_conf_property(self._conf, "self parallel model"):
+        if self._conf.get("self parallel model"):
             cf.declaration = import_declaration("void *(*start_routine)(void *)")
             body = [
                 "pthread_t **thread;",

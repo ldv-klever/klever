@@ -19,26 +19,25 @@ from operator import attrgetter
 
 import graphviz
 
-from core.vtg.emg.common import get_conf_property, get_necessary_conf_property, model_comment, \
-    check_or_set_conf_property
+from core.vtg.emg.common import get_or_die, model_comment
 from core.vtg.emg.common.c.types import import_declaration
 from core.vtg.emg.common.process import Receive, Dispatch, Block, Subprocess
 from core.vtg.emg.common.c import Function
-from core.vtg.emg.modelTranslator.code import action_model_comment
-from core.vtg.emg.modelTranslator.fsa_translator.common import extract_relevant_automata
+from core.vtg.emg.translation.code import action_model_comment
+from core.vtg.emg.translation.fsa_translator.common import extract_relevant_automata
 
 
 class FSATranslator:
 
     def __init__(self, logger, conf, source, cmodel, entry_fsa, model_fsa, event_fsa):
         """
-        Initialize new FSA modelTranslator object. During the initialization an enviornment model in form of finite
+        Initialize new FSA translation object. During the initialization an enviornment model in form of finite
         state machines with process-like actions is translated to C code. Translation includes the following steps:
         each pair label-interface is translated in a separate variable, each action is translated in code blocks
         (aux functions can be additionally generated), for each automaton a control function is generated, control
         functions for event modeling are called in a specific entry point function and control functions for function
         modeling are called insted of modelled functions. This class has an abstract methods to provide ability to
-        implement different translators.
+        implement different translation.
 
         :param logger: Logger object.
         :param conf: Configuration properties dictionary.
@@ -58,7 +57,7 @@ class FSATranslator:
         self._structures = dict()
         self._control_functions = dict()
         self._logger.info("Include extra header files if necessary")
-        check_or_set_conf_property(conf, 'do not skip signals', default_value=False, expected_type=None)
+        conf.setdefault('do not skip signals', False)
 
         # Get from unused interfaces
         for process in (a.process for a in self._model_fsa + self._event_fsa if len(a.process.headers) > 0):
@@ -79,10 +78,10 @@ class FSATranslator:
             self._normalize_model_fsa(automaton)
 
         # Dump graphs
-        if get_conf_property(self._conf, "debug output"):
+        if self._conf.get("debug output"):
             self._save_digraphs()
 
-        # Start generation of control functions
+        # Start generators of control functions
         for automaton in self._event_fsa + self._model_fsa + [self._entry_fsa]:
             self._compose_control_function(automaton)
 
@@ -242,7 +241,7 @@ class FSATranslator:
         block is always generated in a fixed form: as a function call of auxiliary function. Such a function contains
         switch or if operator to choose one of available optional receivers to send the signal. Implementation of
         particular dispatch to particular receiver is configurable and can be implemented differently in various
-        translators.
+        translation.
 
         :param state: State object.
         :param automaton: Automaton object which contains the dispatch.
@@ -296,7 +295,7 @@ class FSATranslator:
             # Generate artificial function
             body = []
 
-            if not get_conf_property(self._conf, 'direct control functions calls'):
+            if not self._conf.get('direct control functions calls'):
                 body = ['int ret;']
 
             # Check dispatch type
@@ -321,7 +320,7 @@ class FSATranslator:
                 df_parameters.append(variable.name)
 
             # Generate blocks on each receive to another process
-            # You can implement your own modelTranslator with different implementations of the function
+            # You can implement your own translation with different implementations of the function
             pre, blocks, post = self._dispatch_blocks(state, automaton, function_parameters, automata_peers,
                                                       replicative)
             if len(blocks) > 0:
@@ -338,7 +337,7 @@ class FSATranslator:
                         body.extend(['\t\t' + stm for stm in blocks[index]])
                         body.append('\t\tbreak;')
                         body.append('\t};')
-                    if get_conf_property(self._conf, 'do not skip signals'):
+                    if self._conf.get('do not skip signals'):
                         body.append('\tdefault: ldv_assume(0);')
                     body.append('};')
 
@@ -365,7 +364,7 @@ class FSATranslator:
                     '{}({});'.format(df.name, ', '.join(df_parameters))
                 ])
             else:
-                # This is becouse translators can have specific restrictions
+                # This is becouse translation can have specific restrictions
                 code.append('/* Skip the dispatch because there is no process to receive the signal */')
         else:
             code.append('/* Skip the dispatch because there is no process to receive the signal */')
@@ -474,7 +473,7 @@ class FSATranslator:
         """
         self._cmodel.add_function_declaration(automaton.process.file, self._control_function(automaton), extern=True)
 
-        if get_conf_property(self._conf, 'direct control functions calls'):
+        if self._conf.get('direct control functions calls'):
             return '{}({});'.format(self._control_function(automaton).name, parameter)
         else:
             return self._call_cf_code(automaton, parameter)
@@ -488,7 +487,7 @@ class FSATranslator:
         """
         self._cmodel.add_function_declaration(automaton.process.file, self._control_function(automaton), extern=True)
 
-        if get_conf_property(self._conf, 'direct control functions calls'):
+        if self._conf.get('direct control functions calls'):
             return '/* Skip thread join call */'
         else:
             return self._join_cf_code(automaton)
@@ -531,7 +530,7 @@ class FSATranslator:
                 cf = Function(name, declaration)
             else:
                 name = 'ldv_{}_{}'.format(automaton.process.name, automaton.identifier)
-                if not get_necessary_conf_property(self._conf, "direct control functions calls"):
+                if not get_or_die(self._conf, "direct control functions calls"):
                     declaration = 'void *f(void *data)'
                 else:
                     declaration = 'void f(void *data)'
@@ -545,7 +544,7 @@ class FSATranslator:
     def _relevant_checks(self, relevent_automata):
         """
         This function allows to add your own additional conditions before function calls and dispatches. The
-        implementation in your modelTranslator is required.
+        implementation in your translation is required.
 
         :param relevent_automata: {'Automaton identifier string': {'automaton': Automaton object,
                'states': set of State objects peered with the considered action}}
@@ -556,7 +555,7 @@ class FSATranslator:
     def _join_cf_code(self, automaton):
         """
         Generate statement to join control function thread if it is called in a separate thread. Depends on a
-        modelTranslator implementation.
+        translation implementation.
 
         :param automaton: Automaton object.
         :return: String expression.
@@ -565,7 +564,7 @@ class FSATranslator:
 
     def _call_cf_code(self, automaton, parameter='0'):
         """
-        Generate statement with control function call. Depends on a modelTranslator implementation.
+        Generate statement with control function call. Depends on a translation implementation.
 
         :param automaton: Automaton object.
         :param parameter: String with argument of the control function.
@@ -576,7 +575,7 @@ class FSATranslator:
     def _dispatch_blocks(self, state, automaton, function_parameters, automata_peers,
                          replicative):
         """
-        Generate parts of dispatch code blocks for your modelTranslator implementation.
+        Generate parts of dispatch code blocks for your translation implementation.
 
         :param state: State object.
         :param automaton: Automaton object.
@@ -591,7 +590,7 @@ class FSATranslator:
 
     def _receive(self, state, automaton):
         """
-        Generate code block for receive action. Require more detailed implementation in your modelTranslator.
+        Generate code block for receive action. Require more detailed implementation in your translation.
 
         :param state: State object.
         :param automaton: Automaton object.
@@ -611,7 +610,7 @@ class FSATranslator:
 
     def _compose_control_function(self, automaton):
         """
-        Generate body of a control function according to your modelTranslator implementation.
+        Generate body of a control function according to your translation implementation.
 
         :param automaton: Automaton object.
         :return: None

@@ -17,17 +17,17 @@
 
 from operator import attrgetter
 
-from core.vtg.emg.common import get_conf_property, model_comment
+from core.vtg.emg.common import model_comment
 from core.vtg.emg.common.process import Subprocess
-from core.vtg.emg.modelTranslator.code import control_function_comment_begin, control_function_comment_end
-from core.vtg.emg.modelTranslator.fsa_translator.common import initialize_automaton_variables
+from core.vtg.emg.translation.code import control_function_comment_begin, control_function_comment_end
+from core.vtg.emg.translation.fsa_translator.common import initialize_automaton_variables
 
 
 def label_based_function(conf, analysis, automaton, cf, model=True):
     v_code, f_code = list(), list()
 
     # Determine returning expression for reuse
-    if not get_conf_property(conf, 'direct control functions calls') and not model:
+    if not conf.get('direct control functions calls') and not model:
         ret_expression = 'return 0;'
     else:
         ret_expression = 'return;'

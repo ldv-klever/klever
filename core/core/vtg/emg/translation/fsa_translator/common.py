@@ -15,7 +15,6 @@
 # limitations under the License.
 #
 
-from core.vtg.emg.common import get_conf_property
 from core.vtg.emg.common.c.types import Pointer, Primitive
 
 
@@ -56,7 +55,7 @@ def initialize_automaton_variables(conf, automaton):
     """
     initializations = []
     for var in automaton.variables():
-        if isinstance(var.declaration, Pointer) and get_conf_property(conf, 'allocate external'):
+        if isinstance(var.declaration, Pointer) and conf.get('allocate external'):
             var.use += 1
             initializations.append("{} = external_allocated_data();".format(var.name))
         elif isinstance(var.declaration, Primitive) and var.value:

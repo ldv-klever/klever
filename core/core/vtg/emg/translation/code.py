@@ -19,7 +19,7 @@ import os
 import re
 
 from core.utils import unique_file_name
-from core.vtg.emg.common import get_conf_property, get_necessary_conf_property, model_comment
+from core.vtg.emg.common import get_or_die, model_comment
 from core.vtg.emg.common.c import Function
 from core.vtg.emg.common.c.types import Pointer, Primitive
 
@@ -266,10 +266,9 @@ class CModel:
         self._logger.info("Create directory for aspect files {}".format("aspects"))
         os.makedirs(aspect_dir.encode('utf8'), exist_ok=True)
 
-        if get_conf_property(self._conf["translation options"], "propogate headers to instrumented files"):
+        if self._conf["translation options"].get("propogate headers to instrumented files"):
             for file in (f for f in self.files if f in additional_lines):
-                self.add_headers(file,
-                                 get_necessary_conf_property(self._conf["translation options"], "additional headers"))
+                self.add_headers(file, get_or_die(self._conf["translation options"], "additional headers"))
 
         addictions = dict()
         # Write aspects
@@ -409,7 +408,7 @@ class CModel:
                 'ldv_initialize_external_data();'
             ])
 
-        if get_conf_property(self._conf, "initialize requirements"):
+        if self._conf.get("initialize requirements"):
             body += [
                 '/* LDV {"action": "INIT", "type": "CALL_BEGIN", "callback": true, '
                 '"comment": "Initialize requirement models."} */',
@@ -421,7 +420,7 @@ class CModel:
                  '"comment": "Begin Environment model scenarios."} */'] + given_body + \
                 ['/* LDV {"action": "SCENARIOS", "type": "CONDITION_END"} */']
 
-        if get_conf_property(self._conf, "check final state"):
+        if self._conf.get("check final state"):
             body += [
                 '/* LDV {"action": "FINAL", "callback": true, "type": "CALL_BEGIN", '
                 '"comment": "Check requirement model final state at the exit if required."} */',
@@ -459,7 +458,7 @@ class CModel:
 
 
 class FunctionModels:
-    """Class represent common C extensions for simplifying environmen model C code generation."""
+    """Class represent common C extensions for simplifying environmen model C code generators."""
 
     mem_function_template = "\$({})\(%({})%(?:,\s?(\w+))?\)"
     simple_function_template = "\$({})\("
@@ -581,9 +580,9 @@ class FunctionModels:
             if func == 'ALLOC' and self.ualloc_flag:
                 # Do not alloc memory anyway for unknown resources anyway to avoid incomplete type errors
                 func = 'UALLOC'
-            if get_conf_property(self._conf, 'disable ualloc') and func == 'UALLOC':
+            if self._conf.get('disable ualloc') and func == 'UALLOC':
                 func = 'ALLOC'
-            if func != 'UALLOC' and get_conf_property(self._conf, 'allocate with sizeof'):
+            if func != 'UALLOC' and self._conf.get('allocate with sizeof'):
                 size = 'sizeof({})'.format(self.signature.points.to_string('', typedef='complex_and_params'))
 
             return "{}({})".format(self.mem_function_map[func], size)

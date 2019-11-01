@@ -17,11 +17,11 @@
 
 import os
 
-from core.vtg.emg.common import get_conf_property, check_or_set_conf_property, get_necessary_conf_property
-from core.vtg.emg.modelTranslator.code import CModel
-from core.vtg.emg.modelTranslator.fsa import Automaton
-from core.vtg.emg.modelTranslator.fsa_translator.label_fsa_translator import LabelTranslator
-from core.vtg.emg.modelTranslator.fsa_translator.state_fsa_translator import StateTranslator
+from core.vtg.emg.common import get_or_die
+from core.vtg.emg.translation.code import CModel
+from core.vtg.emg.translation.fsa import Automaton
+from core.vtg.emg.translation.fsa_translator.label_fsa_translator import LabelTranslator
+from core.vtg.emg.translation.fsa_translator.state_fsa_translator import StateTranslator
 from core.vtg.utils import find_file_or_dir
 
 
@@ -40,21 +40,17 @@ def translate_intermediate_model(logger, conf, avt, source, processes):
     """
     # Prepare main configuration properties
     logger.info("Check necessary configuration properties to be set")
-    check_or_set_conf_property(conf['translation options'], 'entry point', default_value='main', expected_type=str)
-    check_or_set_conf_property(conf['translation options'], 'enironment model file',
-                               default_value='environment_model.c', expected_type=str)
-    check_or_set_conf_property(conf['translation options'], "nested automata", default_value=True, expected_type=bool)
-    check_or_set_conf_property(conf['translation options'], "direct control functions calls", default_value=True,
-                               expected_type=bool)
-    check_or_set_conf_property(conf['translation options'], "code additional aspects", default_value=list(),
-                               expected_type=list)
-    check_or_set_conf_property(conf['translation options'], "additional headers", default_value=list(),
-                               expected_type=list)
+    conf['translation options'].setdefault('entry point', 'main')
+    conf['translation options'].setdefault('enironment model file', 'environment_model.c')
+    conf['translation options'].setdefault('nested automata', True)
+    conf['translation options'].setdefault('direct control functions calls', True)
+    conf['translation options'].setdefault('code additional aspects', list())
+    conf['translation options'].setdefault('additional headers', list())
 
     if not processes.entry:
         raise RuntimeError("It is impossible to generate an environment model without main process")
 
-    if get_conf_property(conf['translation options'], "ignore missing function models"):
+    if conf['translation options'].get('ignore missing function models'):
         for name in list(processes.models.keys()):
             fs = source.get_source_functions(name)
             if len(fs) == 0:
@@ -62,20 +58,20 @@ def translate_intermediate_model(logger, conf, avt, source, processes):
                 del processes.models[name]
 
     # If necessary match peers
-    if get_conf_property(conf['translation options'], "implicit signal peers"):
+    if conf['translation options'].get('implicit signal peers'):
         process_list = list(processes.models.values()) + list(processes.environment.values()) + [processes.entry]
         for i, first in enumerate(process_list):
             if i + 1 < len(process_list):
                 for second in process_list[i+1:]:
                     first.establish_peers(second)
 
-    if get_conf_property(conf['translation options'], "debug output"):
+    if conf.get('keep intermediate files'):
         processes.save_collection('environment processes.json')
 
     # Determine entry point file and function
     logger.info("Determine entry point file and function name")
-    entry_file = get_necessary_conf_property(conf['translation options'], "environment model file")
-    entry_point_name = get_necessary_conf_property(conf['translation options'], 'entry point')
+    entry_file = get_or_die(conf['translation options'], "environment model file")
+    entry_point_name = get_or_die(conf['translation options'], 'entry point')
     files = source.c_full_paths
     if entry_file not in files:
         files.append(entry_file)
@@ -126,7 +122,7 @@ def translate_intermediate_model(logger, conf, avt, source, processes):
 
     # Add common headers provided by a user
     for file in files:
-        cmodel.add_headers(file, get_necessary_conf_property(conf['translation options'], "additional headers"))
+        cmodel.add_headers(file, get_or_die(conf['translation options'], "additional headers"))
 
     logger.info("Generate finite state machine on each process")
     entry_fsa = Automaton(processes.entry, 1)
@@ -141,13 +137,13 @@ def translate_intermediate_model(logger, conf, avt, source, processes):
         identifier_cnt += 1
 
     # Set self parallel flag
-    sp_ids = get_conf_property(conf["translation options"], "not self parallel processes")
+    sp_ids = conf["translation options"].get('not self parallel processes')
     if sp_ids and isinstance(sp_ids, list):
         for automaton in (a for a in model_fsa + main_fsa + [entry_fsa] if a.process.pretty_id in sp_ids):
             automaton.self_parallelism = False
 
-    sp_categories = get_conf_property(conf["translation options"], "not self parallel processes from categories")
-    sp_scenarios = get_conf_property(conf["translation options"], "not self parallel processes from scenarios")
+    sp_categories = conf["translation options"].get("not self parallel processes from categories")
+    sp_scenarios = conf["translation options"].get("not self parallel processes from scenarios")
     if sp_categories and isinstance(sp_categories, list):
         for automaton in (a for a in model_fsa + main_fsa + [entry_fsa] if a.process.category in sp_categories):
             automaton.self_parallelism = False
@@ -157,7 +153,7 @@ def translate_intermediate_model(logger, conf, avt, source, processes):
 
     # Prepare code on each automaton
     logger.info("Translate finite state machines into C code")
-    if get_necessary_conf_property(conf['translation options'], "nested automata"):
+    if get_or_die(conf['translation options'], "nested automata"):
         LabelTranslator(logger, conf['translation options'], source, cmodel, entry_fsa, model_fsa, main_fsa)
     else:
         StateTranslator(logger, conf['translation options'], source, cmodel, entry_fsa, model_fsa, main_fsa)
@@ -168,9 +164,9 @@ def translate_intermediate_model(logger, conf, avt, source, processes):
     # Set entry point function in abstract task
     logger.info("Add an entry point function name to the abstract verification task")
     avt["entry points"] = [cmodel.entry_name]
-    if get_conf_property(conf['translation options'], "code additional aspects"):
+    if conf['translation options'].get("code additional aspects"):
         additional_aspects = [os.path.abspath(find_file_or_dir(logger, conf["main working directory"], f)) for f in
-                              get_conf_property(conf['translation options'], "code additional aspects")]
+                              conf['translation options'].get("code additional aspects")]
     else:
         additional_aspects = []
     for grp in avt['grps']:
@@ -192,6 +188,6 @@ def translate_intermediate_model(logger, conf, avt, source, processes):
     avt.setdefault('extra C files', list())
     avt['extra C files'].extend([
         {"C file": os.path.realpath(find_file_or_dir(logger,
-                                                     get_necessary_conf_property(conf, "main working directory"), f))}
+                                                     get_or_die(conf, "main working directory"), f))}
         for f in extra_c_files])
 

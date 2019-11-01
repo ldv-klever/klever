@@ -15,13 +15,13 @@
 # limitations under the License.
 #
 
-from core.vtg.emg.common import check_or_set_conf_property, get_necessary_conf_property, model_comment
+from core.vtg.emg.common import get_or_die, model_comment
 from core.vtg.emg.common.c import Variable, Function
 from core.vtg.emg.common.process import Dispatch, Receive, Block, Subprocess
-from core.vtg.emg.modelTranslator.code import control_function_comment_begin, control_function_comment_end
-from core.vtg.emg.modelTranslator.fsa_translator import FSATranslator
-from core.vtg.emg.modelTranslator.fsa_translator.common import initialize_automaton_variables
-from core.vtg.emg.modelTranslator.fsa_translator.label_control_function import label_based_function, normalize_fsa
+from core.vtg.emg.translation.code import control_function_comment_begin, control_function_comment_end
+from core.vtg.emg.translation.fsa_translator import FSATranslator
+from core.vtg.emg.translation.fsa_translator.common import initialize_automaton_variables
+from core.vtg.emg.translation.fsa_translator.label_control_function import label_based_function, normalize_fsa
 
 
 class StateTranslator(FSATranslator):
@@ -31,9 +31,9 @@ class StateTranslator(FSATranslator):
         self.__state_chains_memoization = dict()
         self.__switchers_cache = dict()
 
-        check_or_set_conf_property(conf, 'actions composition', default_value=[], expected_type=list)
+        conf.setdefault('actions composition', default_value=[])
         self.__jump_types = set([t for t in [Dispatch, Receive, Block, Subprocess]
-                                 if t.__name__ not in get_necessary_conf_property(conf, 'actions composition')])
+                                 if t.__name__ not in get_or_die(conf, 'actions composition')])
         super(StateTranslator, self).__init__(logger, conf, source, cmodel, entry_fsa, model_fsa, event_fsa)
 
     def _relevant_checks(self, relevant_automata):

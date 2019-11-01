@@ -15,21 +15,20 @@
 # limitations under the License.
 #
 
-import os
 
-import core.vtg.plugins
-
-import core.utils
-from core.vtg.emg.common import check_or_set_conf_property, get_necessary_conf_property, get_conf_property
+from core.utils import report
+from core.vtg.plugins import Plugin
+from core.vtg.emg.common import get_or_die
 from core.vtg.emg.common.c.source import Source
-from core.vtg.emg.processGenerator import generate_processes
-from core.vtg.emg.modelTranslator import translate_intermediate_model
+from core.vtg.emg.generators import generate_processes
+from core.vtg.emg.common.process import ProcessCollection
+from core.vtg.emg.translation import translate_intermediate_model
 
 
-class EMG(core.vtg.plugins.Plugin):
+class EMG(Plugin):
     """
-    EMG plugin for environment model generation. The plugin generates an environment model on the base of manually
-    written specifications using various generators and translators. Generated environment model contains C files and
+    EMG plugin for environment model generators. The plugin generates an environment model on the base of manually
+    written specifications using various generators and translation. Generated environment model contains C files and
     aspect files for merging with the original sources. As input, the plugin requires also results of source analysis.
     """
     depend_on_requirement = False
@@ -50,7 +49,15 @@ class EMG(core.vtg.plugins.Plugin):
 
         # Generate processes
         self.logger.info("Generate processes of an environment model")
-        collection = generate_processes(self, sa)
+        collection = ProcessCollection()
+        reports = generate_processes(self.logger, self.conf, collection, self.abstract_task_desc, sa)
+
+        # Send data to the server
+        self.logger.info("Send data about generated instances to the server")
+
+        report(self.logger, 'patch', {'identifier': self.id, 'data': reports}, self.mqs['report files'],
+               self.vals['report id'], get_or_die(self.conf, "main working directory"))
+        self.logger.info("An intermediate environment model has been prepared")
 
         # Import additional aspect files
         translate_intermediate_model(self.logger, self.conf, self.abstract_task_desc, sa, collection)
