@@ -1,11 +1,6 @@
 {
   "templates": {
-    "Empty": {
-      "description": "...",
-      "plugins": ["Weaver"]
-    },
-    "Userspace": {
-      "description": "...",
+    "Zephyr": {
       "plugins": [
         {
           "EMG": {
@@ -16,11 +11,30 @@
             },
             "intermediate model options": [
               {
-                "genericFunctions": {
+                "zephyrModel": {
                   "infinite call": false,
-                  "initialize strings as null terminated": false,
-                  "functions to call": ["\\w*main"]
+                  "initialization functions": [
+                    "init_cache",
+                    "init_mem_slab_module",
+                    "init_mbox_module",
+                    "uart_console_init",
+                    "init_pipes_module",
+                    "init_static_pools",
+                    "_ioapic_init",
+                    "_loapic_init",
+                    "_arc_init",
+                    "usb_composite_init",
+                    "malloc_prepare",
+                    "k_sys_work_q_init",
+                    "pinmux_initialize",
+                    "_bt_uart_init",
+                    "mass_storage_init",
+                    "main"
+                  ]
                 }
+              },
+              {
+                "genericManual": {"enforce replacement": true}
               }
             ],
             "translation options": {
@@ -35,8 +49,7 @@
               "additional headers": [
                 "verifier/common.h",
                 "verifier/nondet.h",
-                "verifier/memory.h",
-                "userspace/ldv.h"
+                "verifier/memory.h"
               ]
             }
           }
@@ -44,16 +57,12 @@
         {
           "RSG": {
             "common sets model": "counter",
+            "opts file": "drivers/interrupt_controller/system_apic.c",
             "common models": {
               "verifier/common.c": {},
               "verifier/gcc.c": {},
               "verifier/nondet.c": {},
-              "verifier/reference memory.c": {},
-              "userspace/verifier/memory.c": {},
-              "userspace/ldv.c": {},
-              "userspace/string.c": {},
-              "userspace/stdlib.c": {},
-              "userspace/stdio.c": {}
+              "verifier/reference memory.c": {}
             }
           }
         },
@@ -76,27 +85,12 @@
     }
   },
   "requirements": {
+    "template": "Zephyr",
     "empty": {
-      "description": "...",
-      "template": "Empty"
+      "description": "..."
     },
-    "userspace": {
-      "description": "Userspace specifications",
-      "template": "Userspace",
-      "empty": {
-        "description": "..."
-      },
-      "memory safety": {
-        "description": "Userspace memory safety",
-        "RSG": {"models": {"userspace/memory safety/memory.c": {}}},
-        "FVTP": {
-          "verifier profile": "memory checking Linux64",
-          "verifier": {
-            "name": "CPAchecker",
-            "version": "trunk:31140"
-          }
-        }
-      }
+    "locks": {
+      "RSG": {"models": ["zephyr/locks.c"]}
     }
   }
 }
