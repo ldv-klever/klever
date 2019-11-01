@@ -1,7 +1,0 @@
-{
-  "attrs": [],
-  "function": "\"cilly.asm.exe\" failed",
-  "is_regexp": false,
-  "problem_pattern": "CIL failure",
-  "production": true
-}
