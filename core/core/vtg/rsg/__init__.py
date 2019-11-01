@@ -139,8 +139,8 @@ class RSG(core.vtg.plugins.Plugin):
 
         self.logger.info('Add aspects to abstract verification task description')
         aspects = []
-        for model_c_file in models:
-            aspect = '{}.aspect'.format(os.path.splitext(model_c_file)[0])
+        for model in models:
+            aspect = '{}.aspect'.format(os.path.splitext(get_model_c_file(model))[0])
 
             if not os.path.isfile(aspect):
                 continue
@@ -191,7 +191,7 @@ class RSG(core.vtg.plugins.Plugin):
             empty_cc = {'opts': [], 'cwd': self.conf['working source trees'][-1]}
 
         model_grp = {'id': 'models', 'Extra CCs': []}
-        for model in sorted(models):
+        for model in sorted(models, key=get_model_c_file):
             model_c_file = get_model_c_file(model)
             file, ext = os.path.splitext(os.path.join('models', os.path.basename(model_c_file)))
             base_name = core.utils.unique_file_name(file, '{0}.json'.format(ext))
