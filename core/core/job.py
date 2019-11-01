@@ -41,8 +41,7 @@ NECESSARY_FILES = [
     'job.json',
     'tasks.json',
     'program fragmentation.json',
-    'verifier profiles.json',
-    'specifications/base.json'
+    'verifier profiles.json'
 ]
 
 
@@ -79,9 +78,18 @@ def start_jobs(core_obj, vals):
         common_components_conf.update(common_components_conf['Common'])
         del (common_components_conf['Common'])
 
+    core_obj.logger.info('Get project')
+    if 'project' in common_components_conf:
+        project = common_components_conf['project']
+    else:
+        raise KeyError('Specify project within job.json')
+    core_obj.logger.debug('Project is "{0}"'.format(project))
+
     # Save for next components specifications desc and verifiers profiles
     common_components_conf['requirements DB'] = os.path.abspath(
-        core.utils.find_file_or_dir(core_obj.logger, os.path.curdir, 'specifications/base.json'))
+        core.utils.find_file_or_dir(core_obj.logger, os.path.curdir,
+                                    os.path.join('specifications',
+                                                 '{0}.json'.format(common_components_conf['project']))))
     common_components_conf['verifier profiles DB'] = os.path.abspath(
         core.utils.find_file_or_dir(core_obj.logger, os.path.curdir, 'verifier profiles.json'))
     common_components_conf['program fragmentation DB'] = os.path.abspath(
