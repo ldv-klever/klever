@@ -59,52 +59,73 @@ class RSG(core.vtg.plugins.Plugin):
     def add_models(self, generated_models):
         self.logger.info('Add models to abstract verification task description')
 
-        models = {}
+        models = []
         if 'environment model' in self.abstract_task_desc:
-            rel_path = os.path.relpath(os.path.join(self.conf['main working directory'],
-                                                    self.abstract_task_desc['environment model']), os.path.curdir)
-            models[rel_path] = {}
-        if self.abstract_task_desc.get('extra C files'):
-            files = self.abstract_task_desc.get('extra C files')
+            models.append(os.path.relpath(os.path.join(self.conf['main working directory'],
+                                                       self.abstract_task_desc['environment model']),
+                                          os.path.curdir))
+
+        if 'extra C files' in self.abstract_task_desc:
             self.abstract_task_desc['extra C files'] = []
-            for file in (f.get("C file") for f in files if "C file" in f):
-                rel_path = os.path.relpath(os.path.join(self.conf['main working directory'], file), os.path.curdir)
-                models[rel_path] = {}
+            for c_file in (extra_c_file["C file"] for extra_c_file in self.abstract_task_desc['extra C files']
+                           if "C file" in extra_c_file):
+                models.append(os.path.relpath(os.path.join(self.conf['main working directory'], c_file),
+                                              os.path.curdir))
+
+        def get_model_c_file(model):
+            # Model may be a C file or a dictionary with one item that key is a C file and value is model settings.
+            if isinstance(model, dict):
+                return list(model.keys())[0]
+            else:
+                return model
 
         # Get common and requirement specific models.
         if 'common models' in self.conf and 'models' in self.conf:
             for common_model_c_file in self.conf['common models']:
-                if common_model_c_file in self.conf['models']:
-                    raise KeyError('C file "{0}" is specified in both common and requirement specific models'
-                                   .format(common_model_c_file))
+                for model in self.conf['models']:
+                    if common_model_c_file == get_model_c_file(model):
+                        raise KeyError('C file "{0}" is specified in both common and requirement specific models'
+                                       .format(common_model_c_file))
 
         if 'models' in self.conf:
-            for model_c_file in self.conf['models']:
-                # Specify additional settings for generated models that have not any settings.
+            # Find out actual C files.
+            for model in self.conf['models']:
+                model_c_file = get_model_c_file(model)
+
+                # Handle generated models which C files start with "$".
                 if model_c_file.startswith('$'):
                     is_generated_model_c_file_found = False
                     for generated_model_c_file in generated_models:
                         if generated_model_c_file.endswith(model_c_file[1:]):
-                            models[generated_model_c_file] = self.conf['models'][model_c_file]
+                            if isinstance(model, dict):
+                                # Specify model settings for generated models that have not any settings yet.
+                                models.append({generated_model_c_file: model[model_c_file]})
+                            else:
+                                models.append(generated_model_c_file)
                             is_generated_model_c_file_found = True
+
                     if not is_generated_model_c_file_found:
                         raise KeyError('Model C file "{0}" was not generated'.format(model_c_file[1:]))
-            # Like common models processed below.
-            for model_c_file in self.conf['models']:
-                if not model_c_file.startswith('$'):
+                # Handle non-generated models.
+                else:
                     model_c_file_realpath = core.vtg.utils.find_file_or_dir(self.logger,
                                                                             self.conf['main working directory'],
                                                                             model_c_file)
                     self.logger.debug('Get model with C file "{0}"'.format(model_c_file_realpath))
-                    models[model_c_file_realpath] = self.conf['models'][model_c_file]
 
+                    if isinstance(model, dict):
+                        models.append({model_c_file_realpath: model[model_c_file]})
+                    else:
+                        models.append(model_c_file_realpath)
+
+        # Like for models above except for common models are always C files without any model settings.
         if 'common models' in self.conf:
             for common_model_c_file in self.conf['common models']:
                 common_model_c_file_realpath = core.vtg.utils.find_file_or_dir(self.logger,
                                                                                self.conf['main working directory'],
                                                                                common_model_c_file)
                 self.logger.debug('Get common model with C file "{0}"'.format(common_model_c_file_realpath))
-                models[common_model_c_file_realpath] = self.conf['common models'][common_model_c_file]
+                models.append(common_model_c_file_realpath)
 
         self.logger.debug('Resulting models are: {0}'.format(models))
 
@@ -170,13 +191,17 @@ class RSG(core.vtg.plugins.Plugin):
             empty_cc = {'opts': [], 'cwd': self.conf['working source trees'][-1]}
 
         model_grp = {'id': 'models', 'Extra CCs': []}
-        for model_c_file in sorted(models):
-            model = models[model_c_file]
-            extra_cc = {}
+        for model in sorted(models):
+            model_c_file = get_model_c_file(model)
             file, ext = os.path.splitext(os.path.join('models', os.path.basename(model_c_file)))
             base_name = core.utils.unique_file_name(file, '{0}.json'.format(ext))
             full_desc_file = '{0}{1}.json'.format(base_name, ext)
             out_file = '{0}.c'.format(base_name)
+
+            # Always specify either specific model sets model or common one.
+            opts = ['-DLDV_SETS_MODEL_' + (model['sets model']
+                                           if isinstance(model, dict) and 'sets model' in model
+                                           else self.conf['common sets model']).upper()]
 
             self.logger.debug('Dump CC full description to file "{0}"'.format(full_desc_file))
             with open(full_desc_file, 'w', encoding='utf8') as fp:
@@ -184,14 +209,10 @@ class RSG(core.vtg.plugins.Plugin):
                     'cwd': empty_cc['cwd'],
                     'in': [os.path.relpath(model_c_file, os.path.realpath(clade.get_storage_path(empty_cc['cwd'])))],
                     'out': [os.path.realpath(out_file)],
-                    'opts': empty_cc['opts'] +
-                            ['-DLDV_SETS_MODEL_' + (model['sets model']
-                                                    if 'sets model' in model
-                                                    else self.conf['common sets model']).upper()]
+                    'opts': empty_cc['opts'] + opts
                 }, fp, self.conf['keep intermediate files'])
 
-            extra_cc['CC'] = os.path.relpath(full_desc_file, self.conf['main working directory'])
-            model_grp['Extra CCs'].append(extra_cc)
+            model_grp['Extra CCs'].append({'CC': os.path.relpath(full_desc_file, self.conf['main working directory'])})
 
         self.abstract_task_desc['grps'].append(model_grp)
         for dep in self.abstract_task_desc['deps'].values():
