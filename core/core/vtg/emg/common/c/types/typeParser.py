@@ -15,9 +15,9 @@
 # limitations under the License.
 #
 
+import re
 import ply.lex as lex
 import ply.yacc as yacc
-import re
 
 __parser = None
 __lexer = None
@@ -170,18 +170,26 @@ def p_declaration_specifiers_list(p):
                                 | type_specifier suffix_specifiers_list
                                 | type_specifier
     """
-    p[0] = {}
-    if len(p) == 2:
-        p[0]['type specifier'] = p[1]
-    elif len(p) == 3 and isinstance(p[1], list):
-        p[0]['type specifier'] = p[2]
-        p[0]['specifiers'] = p[1]
-    elif len(p) == 3 and isinstance(p[1], dict):
-        p[0]['type specifier'] = p[1]
-        p[0]['specifiers'] = p[2]
+    values = p[1:]
+    unknown_specifier = values[0]
+
+    declaration_specifiers_list = {}
+    if len(values) == 1:
+        type_specififier, = values
+        specifiers = None
+    elif len(values) == 2 and isinstance(unknown_specifier, list):
+        specifiers, type_specififier = values
+    elif len(values) == 2 and isinstance(unknown_specifier, dict):
+        type_specififier, specifiers = values
     else:
-        p[0]['type specifier'] = p[2]
-        p[0]['specifiers'] = p[1] + p[3]
+        prefix_specifiers_list, type_specififier, suffix_specifiers_list = values
+        specifiers = prefix_specifiers_list + suffix_specifiers_list
+
+    declaration_specifiers_list['type specifier'] = type_specififier
+    if specifiers:
+        declaration_specifiers_list['specifiers'] = specifiers
+
+    p[0] = declaration_specifiers_list
 
 
 def p_prefix_specifiers_list(p):
@@ -189,10 +197,7 @@ def p_prefix_specifiers_list(p):
     prefix_specifiers_list : prefix_specifiers_option prefix_specifiers_list
                            | prefix_specifiers_option
     """
-    if len(p) == 2:
-        p[0] = [p[1]]
-    else:
-        p[0] = [p[1]] + list(p[2])
+    _list_element_processing(p)
 
 
 def p_prefix_specifiers_option(p):
@@ -201,7 +206,8 @@ def p_prefix_specifiers_option(p):
                              | TYPE_QUALIFIER
                              | FUNCTION_SPECIFIER
     """
-    p[0] = p[1]
+    qualifier = p[1]
+    p[0] = qualifier
 
 
 def p_suffix_specifiers_list(p):
@@ -209,17 +215,15 @@ def p_suffix_specifiers_list(p):
     suffix_specifiers_list : suffix_specifiers_option suffix_specifiers_list
                            | suffix_specifiers_option
     """
-    if len(p) == 2:
-        p[0] = [p[1]]
-    else:
-        p[0] = [p[1]] + list(p[2])
+    _list_element_processing(p)
 
 
 def p_suffix_specifiers_option(p):
     """
     suffix_specifiers_option : TYPE_QUALIFIER
     """
-    p[0] = p[1]
+    qualifier = p[1]
+    p[0] = qualifier
 
 
 def p_type_specifier(p):
@@ -230,13 +234,14 @@ def p_type_specifier(p):
                    | enum_specifier
                    | typedef
     """
-    if isinstance(p[1], str):
-        p[0] = {
+    type_specifier = p[1]
+
+    if isinstance(type_specifier, str):
+        type_specifier = {
             'class': 'primitive',
-            'name': p[1]
+            'name': type_specifier
         }
-    else:
-        p[0] = p[1]
+    p[0] = type_specifier
 
 
 def p_type_specifier_list(p):
@@ -244,10 +249,15 @@ def p_type_specifier_list(p):
     type_specifier_list : TYPE_SPECIFIER type_specifier_list
                         | TYPE_SPECIFIER
     """
-    if len(p) == 2:
-        p[0] = p[1]
+    type_specifier, *type_specifier_list = p[1:]
+
+    if type_specifier_list:
+        type_specifier_list, = type_specifier_list
+        type_specifier_list = type_specifier + ' %s' % type_specifier_list
     else:
-        p[0] = p[1] + str(" {}".format(p[2]))
+        type_specifier_list = type_specifier
+
+    p[0] = type_specifier_list
 
 
 def p_struct_specifier(p):
@@ -256,22 +266,18 @@ def p_struct_specifier(p):
                      | STRUCT BLOCK_OPEN BLOCK_CLOSE
                      | STRUCT BLOCK_OPEN struct_declaration_list BLOCK_CLOSE
     """
-    if len(p) == 3:
-        p[0] = {
-            'class': 'structure',
-            'name': p[2]
-        }
-    elif len(p) == 4:
-        p[0] = {
-            'class': 'structure',
-            'name': None
-        }
+    first, *rest = p[2:]
+
+    struct = {'class': 'structure', 'name': None}
+    if rest:
+        struct_declaration_list = rest[:-1]
+        if struct_declaration_list:
+            struct_declaration_list, = struct_declaration_list
+            struct['fields'] = struct_declaration_list
     else:
-        p[0] = {
-            'class': 'structure',
-            'name': None,
-            'fields': p[3]
-        }
+        struct['name'] = first
+
+    p[0] = struct
 
 
 def p_struct_declaration_list(p):
@@ -279,10 +285,7 @@ def p_struct_declaration_list(p):
     struct_declaration_list : struct_declaration struct_declaration_list
                             | struct_declaration
     """
-    if len(p) == 2:
-        p[0] = [p[1]]
-    else:
-        p[0] = [p[1]] + p[2]
+    _list_element_processing(p)
 
 
 def p_struct_declaration(p):
@@ -291,7 +294,8 @@ def p_struct_declaration(p):
                        | parameter_declaration BIT_SIZE_DELEMITER NUMBER
                        | parameter_declaration END
     """
-    p[0] = p[1]
+    parameter_declaration = p[1]
+    p[0] = parameter_declaration
 
 
 def p_union_specifier(p):
@@ -299,17 +303,15 @@ def p_union_specifier(p):
     union_specifier : UNION IDENTIFIER
                     | UNION BLOCK_OPEN struct_declaration_list BLOCK_CLOSE
     """
-    if len(p) == 3:
-        p[0] = {
-            'class': 'union',
-            'name': p[2]
-        }
+    first, *rest = p[2:]
+
+    union_specifier = {'class': 'union', 'name': None}
+    if rest:
+        struct_declaration_list = rest.pop(0)
+        union_specifier['fields'] = struct_declaration_list
     else:
-        p[0] = {
-            'class': 'union',
-            'name': None,
-            'fields': p[3]
-        }
+        union_specifier['name'] = first
+    p[0] = union_specifier
 
 
 def p_enum_specifier(p):
@@ -317,17 +319,16 @@ def p_enum_specifier(p):
     enum_specifier : ENUM IDENTIFIER
                    | ENUM BLOCK_OPEN enumerator_list BLOCK_CLOSE
     """
-    if len(p) == 3:
-        p[0] = {
-            'class': 'enum',
-            'name': p[2]
-        }
+    first, *rest = p[2:]
+
+    enum_specifier = {'class': 'enum', 'name': None}
+    if rest:
+        enumerator_list = rest.pop(0)
+        enum_specifier['enumerators'] = enumerator_list
     else:
-        p[0] = {
-            'class': 'enum',
-            'name': None,
-            'enumerators': p[3]
-        }
+        enum_specifier['name'] = first
+
+    p[0] = enum_specifier
 
 
 def p_enumerator_list(p):
@@ -335,10 +336,7 @@ def p_enumerator_list(p):
     enumerator_list : enumerator COMMA enumerator_list
                     | enumerator
     """
-    if len(p) == 2:
-        p[0] = [p[1]]
-    else:
-        p[0] = [p[1]] + p[3]
+    _comma_list_element_processing(p)
 
 
 def p_enumerator(p):
@@ -346,16 +344,18 @@ def p_enumerator(p):
     enumerator : IDENTIFIER
                | IDENTIFIER EQUAL_SIGN NUMBER
     """
-    p[0] = p[1]
+    enumerator = p[1]
+    p[0] = enumerator
 
 
 def p_typedef(p):
     """
     typedef : IDENTIFIER
     """
+    identifier = p[1]
     p[0] = {
         'class': 'typedef',
-        'name': p[1]
+        'name': identifier
     }
 
 
@@ -364,7 +364,7 @@ def p_declarator(p):
     declarator : pointer direct_declarator
                | direct_declarator
     """
-    declarator_processing(p)
+    _declarator_processing(p)
 
 
 def p_pointer(p):
@@ -374,14 +374,18 @@ def p_pointer(p):
             | STAR_SIGN pointer
             | STAR_SIGN
     """
-    if len(p) == 2:
-        p[0] = 1
-    elif len(p) == 3 and isinstance(p[2], int):
-        p[0] = int(p[2]) + 1
-    elif len(p) == 3 and isinstance(p[2], list):
-        p[0] = 1
-    else:
-        p[0] = int(p[3]) + 1
+    values = p[2:]
+    pointer = 1
+
+    if values:
+        first, *last = values
+        if last:
+            pointer, = last
+            pointer += 1
+        elif isinstance(first, int):
+            pointer = first + 1
+
+    p[0] = pointer
 
 
 def p_direct_declarator(p):
@@ -400,11 +404,7 @@ def p_array_list(p):
     array_list : array_expression array_list
                | array_expression
     """
-    p[0] = []
-    if len(p) == 2:
-        p[0] = [p[1]]
-    else:
-        p[0] = [p[1]] + p[2]
+    _list_element_processing(p)
 
 
 def p_array_expression(p):
@@ -412,10 +412,13 @@ def p_array_expression(p):
     array_expression : SQUARE_BOPEN_SIGN array_size SQUARE_BCLOSE_SIGN
                      | SQUARE_BOPEN_SIGN SQUARE_BCLOSE_SIGN
     """
-    if len(p) == 4:
-        p[0] = p[2]
+    array_size = p[2:-1]
+    if array_size:
+        array_size, = array_size
     else:
-        p[0] = {"size": None}
+        array_size = {"size": None}
+
+    p[0] = array_size
 
 
 def p_array_size(p):
@@ -425,14 +428,14 @@ def p_array_size(p):
                | STAR_SIGN
                | NUMBER
     """
-    if len(p) == 3 and isinstance(p[2], str):
-        p[0] = {"size": None}
-    elif len(p) == 3 and isinstance(p[2], int):
-        p[0] = {"size": p[2]}
-    elif len(p) == 2 and isinstance(p[1], str):
-        p[0] = {"size": None}
+    number = p[-1]
+
+    if isinstance(number, int):
+        array_size = {'size': number}
     else:
-        p[0] = {"size": p[1]}
+        array_size = {'size': None}
+
+    p[0] = array_size
 
 
 def p_function_parameters_list(p):
@@ -440,10 +443,7 @@ def p_function_parameters_list(p):
     function_parameters_list : parameter_declaration COMMA function_parameters_list
                              | parameter_declaration
     """
-    if len(p) == 2:
-        p[0] = [p[1]]
-    else:
-        p[0] = [p[1]] + p[3]
+    _comma_list_element_processing(p)
 
 
 def p_parameter_declaration(p):
@@ -459,7 +459,7 @@ def p_parameter_declaration(p):
                           | INTERFACE
                           | DOTS
     """
-    declaration_processing(p)
+    _declaration_processing(p)
 
 
 def p_abstract_declarator(p):
@@ -468,7 +468,7 @@ def p_abstract_declarator(p):
                         | direct_abstract_declarator
                         | pointer
     """
-    declarator_processing(p)
+    _declarator_processing(p)
 
 
 def p_direct_abstract_declarator(p):
@@ -481,7 +481,39 @@ def p_direct_abstract_declarator(p):
     direct_declarator_processing(p)
 
 
-def declaration_processing(p):
+def _list_element_processing(p):
+    """
+    [some_list : value some_list
+               | value]
+    """
+    value, *some_list = p[1:]
+
+    if some_list:
+        some_list, = some_list
+        some_list.insert(0, value)
+    else:
+        some_list = [value]
+
+    p[0] = some_list
+
+
+def _comma_list_element_processing(p):
+    """
+    [some_list : value COMMA some_list
+               | value]
+    """
+    value, *some_list = p[1::2]
+
+    if some_list:
+        some_list, = some_list
+        some_list.insert(0, value)
+    else:
+        some_list = [value]
+
+    p[0] = some_list
+
+
+def _declaration_processing(p):
     """
     [parameter_]declaration : declaration_specifiers_list declarator
                             | declaration_specifiers_list abstract_declarator
@@ -530,7 +562,7 @@ def declaration_processing(p):
             del p[0]['specifiers']
 
 
-def declarator_processing(p):
+def _declarator_processing(p):
     """
     [abstract_]declarator : pointer direct_[abstract_]declarator
                         | direct_[abstract_]declarator
