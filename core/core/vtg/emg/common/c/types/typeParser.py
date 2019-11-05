@@ -526,40 +526,38 @@ def _declaration_processing(p):
                             | INTERFACE
                             [| DOTS]
     """
-    if len(p) == 3:
-        p[0] = {
-            'specifiers': p[1],
-            'declarator': p[2]
-        }
-    elif len(p) == 2 and isinstance(p[1], dict) and 'type specifier' in p[1]:
-        p[0] = {
-            'specifiers': p[1],
-            'declarator': [{'identifier': None}]
-        }
-    elif len(p) == 2 and (isinstance(p[1], dict) and 'category' in p[1] or p[1] == '$'):
-        p[0] = {
-            'specifiers': p[1]
-        }
+    specifiers, *declarator = p[1:]
+
+    if declarator:
+        declarator, = declarator
+        declaration = {'specifiers': specifiers, 'declarator': declarator}
     else:
-        p[0] = p[1]
+        if isinstance(specifiers, dict) and 'type specifier' in specifiers:
+            declaration = {'specifiers': specifiers, 'declarator': [{'identifier': None}]
+            }
+        elif isinstance(specifiers, dict) and 'category' in specifiers or specifiers == '$':
+            declaration = {'specifiers': specifiers }
+        else:
+            declaration = specifiers
 
     # Move return value types and declarators to separate attributes
-    if 'declarator' in p[0]:
-        separators = [index for index in range(len(p[0]['declarator']))
-                      if 'function arguments' in p[0]['declarator'][index]]
+    if isinstance(declaration, dict) and declaration.get('declarator'):
+        separators = [i for i in range(len(declaration['declarator']))
+                      if 'function arguments' in declaration['declarator'][i]]
 
         if len(separators) > 0:
-            current_ast = p[0]
+            current_ast = declaration
             while len(separators) > 0:
                 separator = separators.pop()
                 declarator = current_ast['declarator'][separator:]
                 ret_declarator = current_ast['declarator'][0:separator]
-                current_ast['declarator'] = declarator
-                current_ast['return value type'] = {'declarator': ret_declarator}
+                current_ast.update({'declarator': declarator, 'return value type': {'declarator': ret_declarator}})
                 current_ast = current_ast['return value type']
 
-            current_ast['specifiers'] = p[0]['specifiers']
-            del p[0]['specifiers']
+            current_ast['specifiers'] = declaration['specifiers']
+            del declaration['specifiers']
+            
+    p[0] = declaration
 
 
 def _declarator_processing(p):
@@ -568,24 +566,28 @@ def _declarator_processing(p):
                         | direct_[abstract_]declarator
                         [| pointer]
     """
-    if len(p) == 2 and isinstance(p[1], int):
-        new = {
-            'pointer': p[1],
-            'identifier': None
-        }
-        p[0] = [new]
-    elif len(p) == 2 and isinstance(p[1], list):
-        p[0] = p[1]
+    declarator_or_pointer, *declarator = p[1:]
+
+    if not declarator:
+        # Either declarator or pointer
+        if isinstance(declarator_or_pointer, int):
+            declarator = [{'pointer': declarator_or_pointer, 'identifier': None}]
+        elif isinstance(declarator_or_pointer, list):
+            declarator = declarator_or_pointer
     else:
-        p[0] = p[2]
-        if 'arrays' in p[0][0] or 'function arguments' in p[0][0]:
-            new = {'pointer': p[1]}
-            p[0] = [new] + p[0]
+        # Both pointer and declarator
+        pointer = declarator_or_pointer
+        declarator, = declarator
+
+        if 'arrays' in declarator[0] or 'function arguments' in declarator[0]:
+            # If it is an array or function make a stack from it
+            declarator.insert(0, {'pointer': pointer})
         else:
-            if 'pointer' in p[0][0]:
-                p[0][0]['pointer'] = p[1] + p[0][0]['pointer']
-            else:
-                p[0][0]['pointer'] = p[1]
+            # Increase pointer counter if necessary
+            declarator[0].setdefault('pointer', 0)
+            declarator[0]['pointer'] += pointer
+                
+    p[0] = declarator
 
 
 def direct_declarator_processing(p):
@@ -597,32 +599,40 @@ def direct_declarator_processing(p):
                           [| IDENTIFIER]
     """
     if len(p) == 2:
-        p[0] = [
-            {
-                'identifier': p[1]
-            }
-        ]
+        identifier = p[1]
+        declarator = [{'identifier': identifier}]
     else:
-        if 'size' in p[2][0] and 'pointer' not in p[1][0]:
-            p[0] = p[1]
-            p[0][0]['arrays'] = p[2]
-        elif 'size' in p[2][0] and 'pointer' in p[1][0]:
-            new = {'arrays': p[2]}
-            p[0] = [new] + p[1]
+        if isinstance(p[1], str):
+            declarator = p[2]
         else:
-            if p[2] == '(' and p[3] == ')':
-                p[0] = p[1]
-                p[0][0]['function arguments'] = []
-            elif len(p) == 5:
-                p[0] = p[1]
+            declarator, *data = p[1:]
+            if isinstance(data[0], str):
+                # inside parenthenses
+                # direct_[abstract_]declarator PARENTH_OPEN PARENTH_CLOSE
+                # direct_[abstract_]declarator PARENTH_OPEN function_parameters_list PARENTH_CLOSE
+                function_parameters_list = data[2:-1]
+                if function_parameters_list:
+                    function_parameters_list, = function_parameters_list
+                    top = function_parameters_list[0]
 
-                if len(p[3]) == 1 and isinstance(p[3][0], dict) and 'type specifier' in p[3][0] and \
-                        p[3][0]['type specifier']['name'] == 'void' and 'declarator' not in p[3][0]:
-                    p[0][0]['function arguments'] = []
+                    if len(function_parameters_list) == 1 and isinstance(top, dict) and \
+                            top.get('type specifier', dict()).get('name') == 'void' and 'declarator' not in top:
+                        # Detect void
+                        declarator[0]['function arguments'] = []
+                    else:
+                        declarator[0]['function arguments'] = function_parameters_list
                 else:
-                    p[0][0]['function arguments'] = p[3]
+                    declarator[0]['function arguments'] = []
             else:
-                p[0] = p[2]
+                # array list
+                array_list, = data
+
+                if 'pointer' in declarator[0]:
+                    declarator.insert(0, {'arrays': array_list})
+                else:
+                    declarator[0]['arrays'] = array_list
+    
+    p[0] = declarator
 
 
 def setup_parser():
