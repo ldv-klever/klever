@@ -45,13 +45,17 @@ class Label:
     def __init__(self, name: str):
         self.value = None
         self.declaration = None
-        self.name = name
+        self._name = name
+
+    @property
+    def name(self):
+        return self._name
 
     def __str__(self):
-        return self.name
+        return self._name
 
     def __repr__(self):
-        return '%{}%'.format(self.name)
+        return '%{}%'.format(self._name)
 
     def __eq__(self, other):
         if self.declaration and other.declaration:
@@ -60,7 +64,7 @@ class Label:
             return False
 
     def __hash__(self):
-        return hash(self.name)
+        return hash(self._name)
 
 
 class Process:
@@ -80,8 +84,9 @@ class Process:
         if not self._name_re.fullmatch(name):
             raise ValueError("Process identifier {!r} should be just a simple name string".format(name))
 
-        self.name = name
-        self.category = category
+        self._name = name
+        self._category = category
+
         self.file = 'environment model'
         self.comment = None
         self.cfiles = list()
@@ -93,10 +98,18 @@ class Process:
         self._accesses = dict()
 
     def __str__(self):
-        return '%s/%s' % (self.category, self.name)
+        return '%s/%s' % (self._category, self._name)
 
     def __hash__(self):
         return hash(str(self))
+
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def category(self):
+        return self._category
 
     @property
     def unused_labels(self):
@@ -191,7 +204,7 @@ class Process:
                     (isinstance(process.actions[action], Receive) or isinstance(process.actions[action], Dispatch)) and\
                     not isinstance(process.actions[action], type(self.actions[action])) and \
                     len(process.actions[action].parameters) == len(self.actions[action].parameters) and \
-                    self.name not in (p['process'] for p in process.actions[action].peers):
+                    self._name not in (p['process'] for p in process.actions[action].peers):
                 # Compare signatures of parameters
                 for num, p in enumerate(self.actions[action].parameters):
                     access1 = self.resolve_access(p)
@@ -215,7 +228,7 @@ class Process:
         :return: List with Access objects.
         """
         if isinstance(access, Label):
-            string = '%{}%'.format(access.name)
+            string = '%{}%'.format(access._name)
         elif isinstance(access, str):
             string = access
         else:
@@ -274,7 +287,7 @@ class Process:
         self.labels[name] = lb
         acc = Access('%{}%'.format(name))
         acc.label = lb
-        acc.list_access = [lb.name]
+        acc.list_access = [lb._name]
         self._accesses[acc.expression] = acc
         return lb
 
@@ -297,7 +310,26 @@ class Process:
         return new
 
 
-class Actions(dict):
+class Actions(collections.UserDict):
+
+    def __setitem__(self, key, value):
+        if isinstance(key, BaseAction):
+            key = str(key)
+        elif isinstance(key, str):
+            pass
+        else:
+            raise KeyError('Do not provide any other type than string or {}'.format(BaseAction.__name__))
+
+        if not isinstance(value, BaseAction):
+            raise ValueError('Accept only actions as values but got {}'.format(type(value).__name__))
+
+        self.data[key] = value
+
+    def __getitem__(self, item):
+        if isinstance(item, BaseAction):
+            return self.data[str(item)]
+        else:
+            return self.data[item]
 
     def filter(self, include=None, exclude=None):
         if not include:
@@ -305,7 +337,7 @@ class Actions(dict):
         if not exclude:
             exclude = ()
 
-        return (x for x in self.values() if (not include or any(isinstance(x, t) for t in include)) and
+        return (x for x in self.data.values() if (not include or any(isinstance(x, t) for t in include)) and
                 (not exclude or all(not isinstance(x, t) for t in exclude)))
 
     @property
@@ -315,7 +347,7 @@ class Actions(dict):
 
         :return: Sorted list with starting process State objects.
         """
-        acts = [s for s in self.values() if not s.predecessors]
+        acts = [s for s in self.data.values() if not s.predecessors]
         assert len(acts) == 1
         act, *_ = acts
         return act

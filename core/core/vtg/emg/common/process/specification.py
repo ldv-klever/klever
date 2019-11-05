@@ -22,6 +22,7 @@ from core.vtg.emg.common.c.types import import_declaration
 from core.vtg.emg.common.process.parser import parse_process
 from core.vtg.emg.common.process import Receive, Dispatch, Subprocess, Block, Label, Process
 
+
 class ProcessCollection:
     """
     This class represents collection of processes for an environment model generators. Also it contains methods to
@@ -84,11 +85,11 @@ class ProcessCollection:
                     models[name] = self._import_process(name, process_desc)
 
                     # Set some default values
-                    if not models[name].category:
-                        models[name].category = "functions models"
-                    if models[name].category != "functions models":
+                    if not models[name]._category:
+                        models[name]._category = "functions models"
+                    if models[name]._category != "functions models":
                         raise ValueError("Each function model specification should has category 'functions models' but "
-                                         "process {!r} has name {!r}".format(str(models[name]), models[name].category))
+                                         "process {!r} has name {!r}".format(str(models[name]), models[name]._category))
                     models[short_name].pretty_id = "functions models/{}".format(short_name)
         if "environment processes" in raw:
             self.logger.info("Import processes from 'environment processes'")
@@ -97,22 +98,22 @@ class ProcessCollection:
 
                 category, pname = get_short_name(name, process_desc)
                 process = self._import_process(pname, process_desc)
-                if not process.category:
-                    process.category = category
+                if not process._category:
+                    process._category = category
                 if pname in env_processes:
                     raise ValueError("There is already imported process {!r} with identifier {!r} in intermediate "
                                      "environment model with name {!r} and category {!r} and identifier {!r}".
-                                     format(pname, process.identifier, env_processes[pname].name,
-                                            env_processes[pname].category, env_processes[pname].identifier))
+                                     format(pname, process.identifier, env_processes[pname]._name,
+                                            env_processes[pname]._category, env_processes[pname].identifier))
                 env_processes[pname] = process
-                process.pretty_id = "{}/{}".format(process.category, process.name)
+                process.pretty_id = "{}/{}".format(process._category, process._name)
         if "main process" in raw and isinstance(raw["main process"], dict):
             self.logger.info("Import main process")
             entry_process = self._import_process("entry", raw["main process"])
-            if not entry_process.category:
-                entry_process.category = 'entry process'
+            if not entry_process._category:
+                entry_process._category = 'entry process'
             if not entry_process.pretty_id:
-                entry_process.pretty_id = "{}/entry".format(entry_process.category)
+                entry_process.pretty_id = "{}/entry".format(entry_process._category)
         else:
             entry_process = None
 
@@ -231,7 +232,7 @@ class ProcessCollection:
         unused_labels = process.unused_labels
         if len(unused_labels) > 0:
             raise RuntimeError("Found unused labels in process {!r}: {}".
-                               format(process.name, ', '.join(unused_labels)))
+                               format(process._name, ', '.join(unused_labels)))
         if process.file != 'entry point':
             process.file = get_abspath(process.file)
 

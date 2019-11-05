@@ -101,7 +101,7 @@ def __generate_calls(logger, emg, conf, functions_collection):
 
     # Generate process
     ep = Process("main")
-    ep.category = 'generic'
+    ep._category = 'generic'
     ep.comment = "Call exported functions."
     ep.pretty_id = 'zephyr/generic'
     ep.process = ''

@@ -18,7 +18,7 @@
 import json
 
 from core.vtg.emg.common.process import Action, Choice, Concatenation, Parentheses, ProcessCollection
-from core.vtg.emg.common.process import Receive, Dispatch, Subprocess, Block, Label, Process
+from core.vtg.emg.common.process import Receive, Dispatch, Subprocess, Block
 
 
 class CollectionEncoder(json.JSONEncoder):

@@ -351,7 +351,7 @@ class AbstractProcess(Process):
 
     def resolve_access(self, access, interface=None):
         if isinstance(access, Label):
-            string = '%{}%'.format(access.name)
+            string = '%{}%'.format(access._name)
         elif isinstance(access, str):
             string = access
         else:
@@ -383,7 +383,7 @@ class AbstractProcess(Process):
                 label = self.extract_label(first.parameters[index])
                 if not label:
                     raise ValueError("Provide label in subprocess '{}' at position '{}' in process '{}'".
-                                     format(first.name, index, self.name))
+                                     format(first.name, index, self._name))
                 pair = process.extract_label(second.parameters[index])
                 if not pair:
                     raise ValueError("Provide label in subprocess '{}' at position '{}'".
@@ -406,7 +406,7 @@ class AbstractProcess(Process):
         self.labels[name] = lb
         acc = AbstractAccess('%{}%'.format(name))
         acc.label = lb
-        acc.list_access = [lb.name]
+        acc.list_access = [lb._name]
         self._accesses[acc.expression] = [acc]
         return lb
 

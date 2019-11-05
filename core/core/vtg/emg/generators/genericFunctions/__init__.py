@@ -103,7 +103,7 @@ class genericFunctions(AbstractGenerator):
 
         # Generate process
         ep = Process("main")
-        ep.category = 'generic'
+        ep._category = 'generic'
         ep.comment = "Call exported functions."
         ep.pretty_id = 'generic'
         ep.process = ''
