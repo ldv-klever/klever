@@ -23,7 +23,7 @@ from core.vtg.emg.common.c.types import import_declaration, Declaration
 class Variable:
     """The class represents a C variable."""
 
-    name_re = re.compile("\(?\*?%s\)?")
+    name_re = re.compile(r'\(?\*?%s\)?')
 
     def __init__(self, name, declaration):
         self.name = name
