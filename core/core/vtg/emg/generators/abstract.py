@@ -24,8 +24,8 @@ class AbstractGenerator:
 
     specifications_endings = dict()
 
-    def __init__(self, emg, conf):
-        self.logger = emg.logger
+    def __init__(self, logger, conf):
+        self.logger = logger
         self.conf = conf
 
     def make_scenarios(self, abstract_task_desc, collection, source, specifications):
@@ -39,13 +39,6 @@ class AbstractGenerator:
         :return: None
         """
         raise NotImplementedError
-
-    @property
-    def _specification_kinds(self):
-        return {
-            'intf spec': 'intf spec.json',
-            'event spec': 'event spec.json'
-        }
 
     def import_specifications(self, specifications_set, directories):
         """
@@ -63,7 +56,7 @@ class AbstractGenerator:
 
         # Then classify them according to file name patterns
         specification_files = {kind: {f for f in file_candidates if f.endswith(ending)}
-                               for kind, ending in self._specification_kinds.items()}
+                               for kind, ending in self.specifications_endings.items()}
 
         # Then merge them accprdiong to fragmentation set
         specifications = {kind: self._merge_specifications(specifications_set, files)
@@ -101,6 +94,7 @@ class AbstractGenerator:
                     # Find reference ones
                     for title in new_content[spec_set]:
                         merged_specification.setdefault(title, dict())
-                        for k, v in new_content[spec_set][title]:
+                        for k, v in new_content[spec_set][title].items():
                             if v.get('reference'):
                                 merged_specification[title][k] = v
+        return merged_specification
