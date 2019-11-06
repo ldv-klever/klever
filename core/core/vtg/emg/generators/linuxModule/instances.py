@@ -859,7 +859,7 @@ def _remove_statics(sa, process):
                             _declarations[file][name] = var
 
                     if var or func:
-                        new_value = func.name if func else var.name
+                        new_value = func.name if func else var._name
                         if file not in _values_map:
                             _values_map[file] = dict()
                         _values_map[file][new_value] = implementation.value

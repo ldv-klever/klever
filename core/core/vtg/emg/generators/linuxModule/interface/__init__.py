@@ -40,7 +40,7 @@ class Interface:
     def add_implementation(self, value, declaration, path, base_container=None, base_value=None, sequence=None):
         new = Implementation(value, declaration, value, path, base_container, base_value, sequence)
         mv = new.adjusted_value(self.declaration)
-        new.declaration = self.declaration
+        new._declaration = self.declaration
         new.value = mv
         if new.value not in self.implementations:
             self.implementations.append(new)
@@ -153,16 +153,16 @@ class Implementation(Variable):
             self.sequence = sequence
 
     def adjusted_value(self, declaration):
-        if self.declaration.compare(declaration):
+        if self._declaration.compare(declaration):
             return self.value
-        elif self.declaration.compare(declaration.take_pointer):
+        elif self._declaration.compare(declaration.take_pointer):
             return '*' + self.value
-        elif self.declaration.take_pointer.compare(declaration):
+        elif self._declaration.take_pointer.compare(declaration):
             return '&' + self.value
-        elif isinstance(declaration, Pointer) and isinstance(self.declaration, Pointer) and \
-                self.declaration.identifier == 'void *':
+        elif isinstance(declaration, Pointer) and isinstance(self._declaration, Pointer) and \
+                self._declaration.identifier == 'void *':
             return self.value
         else:
             raise ValueError("Cannot adjust declaration '{}' to declaration '{}' for value {!r}".
-                             format(self.declaration.to_string('%s'), declaration.to_string('%s'), self.value))
+                             format(self._declaration.to_string('%s'), declaration.to_string('%s'), self.value))
 

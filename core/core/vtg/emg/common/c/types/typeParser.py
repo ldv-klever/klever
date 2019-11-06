@@ -533,10 +533,9 @@ def _declaration_processing(p):
         declaration = {'specifiers': specifiers, 'declarator': declarator}
     else:
         if isinstance(specifiers, dict) and 'type specifier' in specifiers:
-            declaration = {'specifiers': specifiers, 'declarator': [{'identifier': None}]
-            }
+            declaration = {'specifiers': specifiers, 'declarator': [{'identifier': None}]}
         elif isinstance(specifiers, dict) and 'category' in specifiers or specifiers == '$':
-            declaration = {'specifiers': specifiers }
+            declaration = {'specifiers': specifiers}
         else:
             declaration = specifiers
 

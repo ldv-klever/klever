@@ -28,7 +28,7 @@ def parser_test(method):
             # Test that it is the same
             new_obj = import_declaration(obj.to_string('name'))
             # todo: Pretty names are different but I am not sure whether it correct or not
-            assert obj.compare(new_obj)
+            assert obj == new_obj
 
     return new_method
 
@@ -36,9 +36,10 @@ def parser_test(method):
 @parser_test
 def test_var():
     return [
+        'static int a;',
+        'extern int a;',
         'int a',
-        'int a;',
-        'static int a;'
+        'int a;'
     ]
 
 

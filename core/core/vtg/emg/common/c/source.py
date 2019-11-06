@@ -21,7 +21,7 @@ import ujson
 from clade import Clade
 
 from core.vtg.emg.common.c import Function, Variable, Macro, import_declaration
-from core.vtg.emg.common.c.types import import_typedefs, extract_name, is_static
+from core.vtg.emg.common.c.types import import_typedefs, extract_name
 from core.vtg.utils import find_file_or_dir
 
 
@@ -305,7 +305,6 @@ class Source:
                     self.set_source_variable(var, path)
                     var.declaration_files.add(path)
                     var.initialization_file = path
-                    var.static = is_static(variable['declaration'])
 
                     if 'value' in variable:
                         var.value = variable['value']

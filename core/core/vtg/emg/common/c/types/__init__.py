@@ -15,8 +15,8 @@
 # limitations under the License.
 #
 
-import copy
 import re
+import copy
 
 from core.vtg.emg.common.c.types.typeParser import parse_declaration
 
@@ -52,13 +52,16 @@ def extract_name(declaration):
     """
     Extract name from the declarator of the declaration.
 
-    :param declaration: Declaration string.
+    :param declaration: Declaration string or ast.
     :return: Declarator string or None if there is no declarator.
     """
-    try:
-        ast = parse_declaration(declaration)
-    except Exception:
-        raise ValueError("Cannot parse declaration: {}".format(declaration))
+    if isinstance(declaration, str):
+        try:
+            ast = parse_declaration(declaration)
+        except Exception:
+            raise ValueError("Cannot parse declaration: {}".format(declaration))
+    else:
+        ast = declaration
 
     if 'declarator' in ast and len(ast['declarator']) > 0 and 'identifier' in ast['declarator'][-1] and \
             ast['declarator'][-1]['identifier']:
@@ -84,39 +87,19 @@ def import_typedefs(tds, dependencies):
         else:
             _typedefs[typename] = [typeast, {filename}]
 
-    candidates = []
-    for tp in (t for t in _type_collection if isinstance(_type_collection[t], Primitive)):
-        candidates.append(tp)
+    candidates = [t for t in _type_collection if isinstance(_type_collection[t], Primitive)]
 
-    for dep in tds:
-        for decl in tds[dep]:
-            ast = parse_declaration(decl)
-            name = ast['declarator'][-1]['identifier']
+    for dep, decl in ((dep, decl) for dep in tds for decl in tds[dep]):
+        ast = parse_declaration(decl)
+        name = extract_name(decl)
 
-            add_file(ast, name, dep)
-            for file in dependencies.get(dep, list()):
-                add_file(ast, name, file)
+        add_file(ast, name, dep)
+        for file in dependencies.get(dep, list()):
+            add_file(ast, name, file)
 
     for tp in candidates:
         if tp in _typedefs:
             _typedefs[tp][1].add('common')
-
-
-def is_static(declaration):
-    """
-    Check that given declaration is static.
-
-    :param declaration: Declaration string.
-    :return: True if it static and False otherwise.
-    """
-    def check(a):
-        return 'specifiers' in a and 'specifiers' in a['specifiers'] and 'static' in a['specifiers']['specifiers']
-
-    ast = parse_declaration(declaration)
-    if ('return value type' in ast and check(ast['return value type'])) or check(ast):
-        return True
-    else:
-        return False
 
 
 def reduce_level(ast):
@@ -155,68 +138,64 @@ def import_declaration(declaration, ast=None, track_typedef=False):
         except Exception:
             raise ValueError("Cannot parse declaration: {}".format(declaration))
 
-    if 'declarator' not in ast or ('declarator' in ast and len(ast['declarator']) == 0):
-        if 'specifiers' in ast and 'type specifier' in ast['specifiers'] and \
-                ast['specifiers']['type specifier']['class'] == 'typedef' and \
-                ast['specifiers']['type specifier']['name'] in _typedefs:
+    if not ast.get('declarator', []):
+        ast_class = ast.get('specifiers', {}).get('type specifier', {}).get('class')
+
+        if ast_class == 'typedef' and ast['specifiers']['type specifier']['name'] in _typedefs:
             ret = import_declaration(None, copy.deepcopy(_typedefs[ast['specifiers']['type specifier']['name']][0]))
             ret.typedef = ast['specifiers']['type specifier']['name']
             typedef = ret.typedef
-        elif 'specifiers' in ast and 'type specifier' in ast['specifiers'] and \
-                ast['specifiers']['type specifier']['class'] == 'structure':
+        elif ast_class == 'structure':
             ret = Structure(ast)
-        elif 'specifiers' in ast and 'type specifier' in ast['specifiers'] and \
-                ast['specifiers']['type specifier']['class'] == 'enum':
+        elif ast_class == 'enum':
             ret = Enum(ast)
-        elif 'specifiers' in ast and 'type specifier' in ast['specifiers'] and \
-                ast['specifiers']['type specifier']['class'] == 'union':
+        elif ast_class == 'union':
             ret = Union(ast)
         else:
             ret = Primitive(ast)
     else:
-        if len(ast['declarator']) == 1 and \
-                ('pointer' not in ast['declarator'][-1] or ast['declarator'][-1]['pointer'] == 0) and \
-                ('arrays' not in ast['declarator'][-1] or len(ast['declarator'][-1]['arrays']) == 0):
+        if len(ast['declarator']) == 1 and not ast['declarator'][-1].get('pointer') and \
+                not ast['declarator'][-1].get('arrays'):
             if 'specifiers' not in ast:
                 ret = Function(ast)
             else:
-                if ast['specifiers']['type specifier']['class'] == 'structure':
+                ast_type = ast['specifiers']['type specifier']['class']
+                if ast_type == 'structure':
                     ret = Structure(ast)
-                elif ast['specifiers']['type specifier']['class'] == 'enum':
+                elif ast_type == 'enum':
                     ret = Enum(ast)
-                elif ast['specifiers']['type specifier']['class'] == 'union':
+                elif ast_type == 'union':
                     ret = Union(ast)
-                elif ast['specifiers']['type specifier']['class'] == 'typedef' and \
-                        ast['specifiers']['type specifier']['name'] in _typedefs:
-                    ret = import_declaration(None,
-                                             copy.deepcopy(_typedefs[ast['specifiers']['type specifier']['name']][0]))
-                    ret.typedef = ast['specifiers']['type specifier']['name']
+                elif ast_type == 'typedef' and ast['specifiers']['type specifier']['name'] in _typedefs:
+                    type_name = ast['specifiers']['type specifier']['name']
+                    ret = import_declaration(None, copy.deepcopy(_typedefs[type_name][0]))
+                    ret.typedef = type_name
                     typedef = ret.typedef
                 else:
                     ret = Primitive(ast)
-        elif 'arrays' in ast['declarator'][-1] and len(ast['declarator'][-1]['arrays']) > 0:
+        elif ast['declarator'][-1].get('arrays'):
             ret = Array(ast)
             if track_typedef and ret.element.typedef:
                 typedef = ret.element.typedef
-        elif 'pointer' in ast['declarator'][-1] and ast['declarator'][-1]['pointer'] > 0:
+        elif ast['declarator'][-1].get('pointer'):
             ret = Pointer(ast)
             if track_typedef and ret.points.typedef:
                 typedef = ret.points.typedef
         else:
             raise NotImplementedError
 
-    if ret.identifier not in _type_collection:
-        _type_collection[ret.identifier] = ret
+    if ret not in _type_collection:
+        _type_collection[ret] = ret
     else:
         if ret.typedef:
-            _type_collection[ret.identifier].typedef = ret.typedef
+            _type_collection[ret].typedef = ret.typedef
         if isinstance(ret, Function):
-            if ret.ret_typedef and not _type_collection[ret.identifier].ret_typedef:
-                _type_collection[ret.identifier].ret_typedef = ret.ret_typedef
-            for index, pt in enumerate(_type_collection[ret.identifier].params_typedef):
+            if ret.ret_typedef and not _type_collection[ret].ret_typedef:
+                _type_collection[ret].ret_typedef = ret.ret_typedef
+            for index, pt in enumerate(_type_collection[ret].params_typedef):
                 if not pt and len(ret.params_typedef) > index and ret.params_typedef[index]:
-                    _type_collection[ret.identifier].params_typedef[index] = ret.params_typedef[index]
-        ret = _type_collection[ret.identifier]
+                    _type_collection[ret].params_typedef[index] = ret.params_typedef[index]
+        ret = _type_collection[ret]
 
     if not track_typedef:
         return ret
@@ -225,22 +204,17 @@ def import_declaration(declaration, ast=None, track_typedef=False):
 
 
 def _take_pointer(exp, tp):
-    if tp is Array or tp is Function:
-        exp = '(*' + exp + ')'
+    if isinstance(tp, Array) or isinstance(tp, Function):
+        return '(*' + exp + ')'
     else:
-        exp = '*' + exp
-    return exp
+        return '*' + exp
 
 
 def _add_parent(declaration, parent):
     global _type_collection
 
-    if parent.identifier in _type_collection:
-        parent = _type_collection[parent.identifier]
-    else:
-        _type_collection[parent.identifier] = parent
-
-    if parent.identifier not in (p.identifier for p in declaration.parents):
+    parent = _type_collection.setdefault(parent, parent)
+    if str(parent) not in (str(e) for e in declaration.parents):
         declaration.parents.append(parent)
 
 
@@ -251,6 +225,24 @@ class Declaration:
         self._ast = ast
         self.parents = []
         self.typedef = None
+        self._str = None
+
+    def __str__(self):
+        if not self._str:
+            self._str = self.to_string(declarator='')
+        return self._str
+
+    def __hash__(self):
+        return hash(str(self))
+
+    def __eq__(self, other):
+        # Apply all transformations
+        if type(self) is type(other):
+            if self._str == str(other):
+                return True
+            elif str(self) == 'void *' or str(self) == 'void *':
+                return True
+        return False
 
     @property
     def take_pointer(self):
@@ -263,16 +255,6 @@ class Declaration:
         return import_declaration(pointer_declaration)
 
     @property
-    def identifier(self):
-        """
-        Identifier of the declaration. Identifier is a declaration string without a declarator and with all known
-        typdefs resolved into basic types.
-
-        :return: String.
-        """
-        return self.to_string(declarator='')
-
-    @property
     def pretty_name(self):
         """
         This is an identifier string which can be used in variable names. It is not implemented for the base type.
@@ -280,6 +262,18 @@ class Declaration:
         :return: String.
         """
         raise NotImplementedError
+
+    @property
+    def static(self):
+        """
+        Check that this is static variable or function declaration.
+
+        :return: Bool
+        """
+        if 'static' in self._ast.get('specifiers', list()):
+            return True
+        else:
+            return False
 
     def add_parent(self, parent):
         """
@@ -290,22 +284,6 @@ class Declaration:
         """
         _add_parent(self, parent)
 
-    def compare(self, target):
-        """
-        Compare this and given declaration. If they correspond to the same C declaration then return True. For void
-        pointers the function returns True for any pointer.
-
-        :param target: Declaration object.
-        :return: True if declarations are equal.
-        """
-        # Apply all transformations
-        if type(self) is type(target):
-            if self.identifier == target.identifier:
-                return True
-            elif self.identifier == 'void *' or target.identifier == 'void *':
-                return True
-        return False
-
     def pointer_alias(self, alias):
         """
         Compare this type with the given one and return None or declaration object which is a pointer to the another
@@ -314,9 +292,9 @@ class Declaration:
         :param alias: Declaration object.
         :return: Declaration object.
         """
-        if isinstance(self, Pointer) and self.points.compare(alias):
+        if isinstance(self, Pointer) and self.points == alias:
             return self
-        elif isinstance(alias, Pointer) and self.compare(alias.points):
+        elif isinstance(alias, Pointer) and self == alias.points:
             return alias
 
         return None
@@ -343,7 +321,7 @@ class Declaration:
 
         return ret
 
-    def to_string(self, declarator='', pointer=False, typedef='none', scope=None):
+    def to_string(self, declarator='', pointer=False, typedef='none', scope=None, specifiers=True):
         """
         Print declaration as a string with the given declarator.
 
@@ -356,7 +334,7 @@ class Declaration:
         """
         global _typedefs
         if pointer:
-            declarator = _take_pointer(declarator, type(self))
+            declarator = _take_pointer(declarator, self)
 
         if isinstance(typedef, set) or isinstance(typedef, str):
             if self.typedef and (
@@ -367,11 +345,15 @@ class Declaration:
                      )) and \
                     (not scope or (self.typedef in _typedefs and
                                    len(_typedefs[self.typedef][1] & scope) > 0)):
-                return "{} {}".format(self.typedef, declarator)
+                result = "{} {}".format(self.typedef, declarator)
             else:
-                return self._to_string(declarator, typedef=typedef, scope=scope)
+                result = self._to_string(declarator, typedef=typedef, scope=scope)
         else:
             raise TypeError('Expect typedef flag to be set or str instead of {!r}'.format(type(typedef).__name__))
+
+        if specifiers and self._ast.get('specifiers', dict()).get('specifiers'):
+            result = ' '.join(self._ast['specifiers']['specifiers']) + ' ' + result
+        return result
 
     def _to_string(self, replacement, typedef=None, scope=None):
         raise NotImplementedError
@@ -479,6 +461,15 @@ class Function(Declaration):
         key = _new_identifier()
         return 'func_{}'.format(key)
 
+    @property
+    def static(self):
+        """
+        Check that this is static function declaration.
+
+        :return: Bool
+        """
+        return self.return_value.static
+
     def _to_string(self, replacement, typedef='none', scope=None, with_args=False):
         def filtered_typedef_param(available):
             if isinstance(typedef, set):
@@ -504,13 +495,13 @@ class Function(Declaration):
                     else:
                         declarator = ''
                     expr = param.to_string(declarator, typedef=filtered_typedef_param(self.params_typedef[index]),
-                                           scope=scope)
+                                           scope=scope, specifiers=False)
                     parameter_declarations.append(expr)
             replacement += '(' + ', '.join(parameter_declarations) + ')'
 
         if self.return_value:
             replacement = self.return_value.to_string(replacement, typedef=filtered_typedef_param(self.ret_typedef),
-                                                      scope=scope)
+                                                      scope=scope, specifiers=False)
         else:
             replacement = 'void {}'.format(replacement)
         return replacement
@@ -576,7 +567,7 @@ class Structure(Declaration):
         :param target: Declaration type.
         :return: Bool.
         """
-        return [field for field in self.fields.keys() if self.fields[field].compare(target)]
+        return [field for field in self.fields.keys() if self.fields[field] == target]
 
     def weak_contains(self, target):
         """
@@ -586,13 +577,13 @@ class Structure(Declaration):
         :param target: Declaration type.
         :return: Bool.
         """
-        return [field for field in self.fields.keys() if self.fields[field].compare(target) or
+        return [field for field in self.fields.keys() if self.fields[field] == target or
                 self.fields[field].pointer_alias(target)]
 
     def _to_string(self, replacement, typedef='none', scope=None):
         if not self.name:
             name = '{' + \
-                   ('; '.join([self.fields[field].to_string(field, typedef=typedef, scope=scope)
+                   ('; '.join([self.fields[field].to_string(field, typedef=typedef, scope=scope, specifiers=False)
                                for field in self.fields.keys()]) +
                     '; ' if len(self.fields) > 0 else '') \
                    + '}'
@@ -651,7 +642,7 @@ class Union(Declaration):
         :param target: Declaration type.
         :return: Bool.
         """
-        return [field for field in self.fields.keys() if self.fields[field].compare(target)]
+        return [field for field in self.fields.keys() if self.fields[field] == target]
 
     def weak_contains(self, target):
         """
@@ -661,12 +652,12 @@ class Union(Declaration):
         :param target: Declaration type.
         :return: Bool.
         """
-        return [field for field in self.fields.keys() if self.fields[field].compare(target) or
+        return [field for field in self.fields.keys() if self.fields[field] == target or
                 self.fields[field].pointer_alias(target)]
 
     def _to_string(self, replacement, typedef='none', scope=None):
         if not self.name:
-            name = '{ ' + '; '.join([self.fields[field].to_string(field, typedef=typedef, scope=scope)
+            name = '{ ' + '; '.join([self.fields[field].to_string(field, typedef=typedef, scope=scope, specifiers=False)
                                      for field in sorted(self.fields.keys())]) + \
                    '; ' + ' }'
         else:
@@ -708,10 +699,7 @@ class Array(Declaration):
         :param target: Declaration type.
         :return: Bool.
         """
-        if self.element.compare(target):
-            return True
-        else:
-            return False
+        return self.element == target
 
     def weak_contains(self, target):
         """
@@ -721,7 +709,7 @@ class Array(Declaration):
         :param target: Declaration type.
         :return: Bool.
         """
-        if self.element.compare(target) or self.element.pointer_alias(target):
+        if self.element == target or self.element.pointer_alias(target):
             return True
         else:
             return False
@@ -732,7 +720,7 @@ class Array(Declaration):
         else:
             size = ''
         replacement += '[{}]'.format(size)
-        return self.element.to_string(replacement, typedef=typedef, scope=scope)
+        return self.element.to_string(replacement, typedef=typedef, scope=scope, specifiers=False)
 
 
 class Pointer(Declaration):
@@ -747,9 +735,9 @@ class Pointer(Declaration):
         self.points.add_parent(self)
 
     def _to_string(self, replacement, typedef='none', scope=None):
-        replacement = _take_pointer(replacement, type(self.points))
+        replacement = _take_pointer(replacement, self.points)
 
-        return self.points.to_string(replacement, typedef=typedef, scope=scope)
+        return self.points.to_string(replacement, typedef=typedef, scope=scope, specifiers=False)
 
     @property
     def pretty_name(self):

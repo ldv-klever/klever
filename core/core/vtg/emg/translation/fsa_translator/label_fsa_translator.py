@@ -84,9 +84,9 @@ class LabelTranslator(FSATranslator):
                 for r_state in automata_peers[name]['states']:
                     block = list()
                     block.append('{} = {}(sizeof({}));'.
-                                 format(vf_param_var.name, self._cmodel.mem_function_map["ALLOC"], decl.identifier))
+                                 format(vf_param_var._name, self._cmodel.mem_function_map["ALLOC"], decl.identifier))
                     for index in range(len(function_parameters)):
-                        block.append('{}->arg{} = arg{};'.format(vf_param_var.name, index, index))
+                        block.append('{}->arg{} = arg{};'.format(vf_param_var._name, index, index))
                     if r_state.action.replicative:
                         call = self._call_cf(automata_peers[name]['automaton'], cf_param)
                         if self._conf.get('direct control functions calls'):

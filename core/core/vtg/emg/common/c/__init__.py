@@ -25,23 +25,24 @@ class Variable:
 
     name_re = re.compile(r'\(?\*?%s\)?')
 
-    def __init__(self, name, declaration):
-        self.name = name
-        self.static = False
-        self.raw_declaration = None
-        self.declaration = None
-        self.value = None
-        self.declaration_files = set()
+    def __init__(self, name, declaration, static=False):
+        self._name = name
+        self._declaration = None
+        self._static = False
+
         self.use = 0
+        self.value = None
+        self.raw_declaration = None
+        self.declaration_files = set()
         self.initialization_file = None
 
         if not declaration:
             declaration = 'void f(void)'
         if isinstance(declaration, str):
-            self.declaration = import_declaration(declaration)
+            self._declaration = import_declaration(declaration)
             self.raw_declaration = declaration
         elif issubclass(type(declaration), Declaration):
-            self.declaration = declaration
+            self._declaration = declaration
         else:
             raise ValueError("Attempt to add variable {!r} without signature".format(name))
 
@@ -69,7 +70,7 @@ class Variable:
         """
 
         # Generate declaration
-        expr = self.declaration.to_string(self.name, typedef='complex_and_params', scope=scope)
+        expr = self._declaration.to_string(self._name, typedef='complex_and_params', scope=scope)
 
         # Add extern prefix
         if extern:
@@ -162,8 +163,7 @@ class Function:
         :return: List of strings.
         """
         declaration = self.declaration.define_with_args(self.name, typedef='complex_and_params', scope=scope)
-        prefix = '/* AUX_FUNC {} */\n'.format(self.name)
-        lines = [prefix]
+        lines = ['/* AUX_FUNC {} */\n'.format(self.name)]
         lines.append(declaration + " {\n")
         lines.extend(['\t{}\n'.format(stm) for stm in self.body])
         lines.append("}\n")
