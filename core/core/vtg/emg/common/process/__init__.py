@@ -309,6 +309,29 @@ class Process:
         new.comment = comment
         return new
 
+    def add_choice(self, name, actions):
+        new = Choice(name)
+        self.actions[new] = new
+
+        for action in actions:
+            new.add_first(action)
+
+        return new
+
+    def add_concatenation(self, name, actions):
+        new = Concatenation(name)
+        self.actions[new] = new
+
+        for action in actions:
+            new.add_first(action)
+
+        return new
+
+    def add_parenthenses(self, name, action):
+        new = Parentheses(name, action)
+        self.actions[new] = new
+        return new
+
 
 class Actions(collections.UserDict):
 
