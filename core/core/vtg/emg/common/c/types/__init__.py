@@ -226,6 +226,7 @@ class Declaration:
         self.parents = []
         self.typedef = None
         self._str = None
+        self._str_no_specifiers = None
 
     def __str__(self):
         if not self._str:
@@ -236,13 +237,23 @@ class Declaration:
         return hash(str(self))
 
     def __eq__(self, other):
-        # Apply all transformations
-        if type(self) is type(other):
-            if self._str == str(other):
-                return True
-            elif str(self) == 'void *' or str(self) == 'void *':
-                return True
-        return False
+        if isinstance(other, Declaration):
+            # Apply all transformations
+            if type(self) is type(other):
+                if str(self) == str(other) or self.str_without_specifiers == other.str_without_specifiers:
+                    return True
+                elif self.str_without_specifiers == 'void *' or self.str_without_specifiers == 'void *':
+                    return True
+            return False
+        elif isinstance(other, str):
+            me = self.str_without_specifiers
+            return me == other or str(me) == other
+
+    @property
+    def str_without_specifiers(self):
+        if not self._str_no_specifiers:
+            self._str_no_specifiers = self.to_string('', specifiers=False)
+        return self._str_no_specifiers
 
     @property
     def take_pointer(self):
