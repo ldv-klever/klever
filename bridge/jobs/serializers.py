@@ -312,7 +312,7 @@ class JobStatusSerializer(serializers.ModelSerializer):
         if instance.status in {JOB_STATUS[1][0], JOB_STATUS[5][0], JOB_STATUS[6][0]}:
             with RMQConnect() as channel:
                 channel.basic_publish(
-                    exchange='', routing_key=settings.RABBIT_MQ['name'],
+                    exchange='', routing_key=settings.RABBIT_MQ_QUEUE,
                     properties=pika.BasicProperties(delivery_mode=2),
                     body="job {} {}".format(instance.identifier, instance.status)
                 )

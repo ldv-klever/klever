@@ -42,4 +42,4 @@ handler404 = 'bridge.views.error_404_view'
 handler500 = 'bridge.views.error_500_view'
 
 with RMQConnect() as channel:
-    channel.queue_declare(queue=settings.RABBIT_MQ['name'], durable=True)
+    channel.queue_declare(queue=settings.RABBIT_MQ_QUEUE, durable=True)

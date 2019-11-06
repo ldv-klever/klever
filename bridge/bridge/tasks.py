@@ -15,10 +15,11 @@
 # limitations under the License.
 #
 
-from bridge.common import *
+from __future__ import absolute_import
+from celery import shared_task
 
-TEMPLATES[0]['OPTIONS']['debug'] = DEBUG = False
-DEF_KLEVER_CORE_MODE = 'production'
-UNLOCK_FAILED_REQUESTS = False
-POPULATE_JUST_PRODUCTION_PRESETS = True
-RABBIT_MQ_QUEUE = 'klever'
+
+# TODO: remove the task
+@shared_task
+def add(x, y):
+    return x + y

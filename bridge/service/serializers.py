@@ -468,7 +468,7 @@ class NodeConfSerializer(serializers.ModelSerializer):
 def on_task_change(task_id, task_status):
     with RMQConnect() as channel:
         channel.basic_publish(
-            exchange='', routing_key=settings.RABBIT_MQ['name'],
+            exchange='', routing_key=settings.RABBIT_MQ_QUEUE,
             properties=pika.BasicProperties(delivery_mode=2),
             body="task {} {}".format(task_id, task_status)
         )

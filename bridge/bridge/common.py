@@ -35,7 +35,7 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'rest_framework', 'rest_framework.authtoken', 'mptt', 'compressor',
+    'rest_framework', 'rest_framework.authtoken', 'mptt', 'compressor', 'django_celery_results',
     'bridge', 'jobs', 'marks', 'reports', 'service', 'tools', 'users', 'caches'
 )
 
@@ -187,6 +187,13 @@ REST_FRAMEWORK = {
 
 MAX_FILE_SIZE = 104857600  # 100MB
 
-# username, password, host, name are requried
+# RabbitMQ
+# username, password, host, port are requried
 with open(os.path.join(BASE_DIR, 'bridge', 'rmq.json'), encoding='utf8') as fp:
     RABBIT_MQ = json.load(fp)
+
+
+# Celery, using the same RabbitMQ server
+CELERY_BROKER_URL = 'amqp://{username}:{password}@{host}:{port}'.format(**RABBIT_MQ)
+# CELERY_TIMEZONE = TIME_ZONE
+CELERY_RESULT_BACKEND = 'django-db'

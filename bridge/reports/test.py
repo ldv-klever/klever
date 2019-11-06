@@ -1058,7 +1058,7 @@ class DecideJobs:
         self._password = kwargs.get('password', 'service')
         self._full_coverage = bool(kwargs.get('with_full_coverage'))
         self._progress = bool(kwargs.get('with_progress'))
-        self._queue_name = kwargs.get('queue_name') or settings.RABBIT_MQ['name']
+        self._queue_name = kwargs.get('queue_name') or settings.RABBIT_MQ_QUEUE
 
         self.session = self.__login()
         self.__start()
