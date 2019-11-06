@@ -25,14 +25,12 @@ class Variable:
 
     name_re = re.compile(r'\(?\*?%s\)?')
 
-    def __init__(self, name, declaration, static=False):
+    def __init__(self, name, declaration):
         self._name = name
         self._declaration = None
-        self._static = False
 
         self.use = 0
         self.value = None
-        self.raw_declaration = None
         self.declaration_files = set()
         self.initialization_file = None
 
@@ -40,11 +38,18 @@ class Variable:
             declaration = 'void f(void)'
         if isinstance(declaration, str):
             self._declaration = import_declaration(declaration)
-            self.raw_declaration = declaration
         elif issubclass(type(declaration), Declaration):
             self._declaration = declaration
         else:
             raise ValueError("Attempt to add variable {!r} without signature".format(name))
+
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def declaration(self):
+        return self._declaration
 
     def declare_with_init(self, scope=None):
         """
@@ -83,10 +88,8 @@ class Function:
     """The class represents a C function."""
 
     def __init__(self, name, declaration=None):
-        self.name = name
-        self.static = False
-        self.raw_declaration = None
-        self.declaration = None
+        self._name = name
+        self._declaration = None
         self.body = []
         self.calls = dict()
         self.called_at = dict()
@@ -97,12 +100,19 @@ class Function:
         if not declaration:
             declaration = 'void f(void)'
         if isinstance(declaration, str):
-            self.declaration = import_declaration(declaration)
-            self.raw_declaration = declaration
+            self._declaration = import_declaration(declaration)
         elif issubclass(type(declaration), Declaration):
-            self.declaration = declaration
+            self._declaration = declaration
         else:
             raise ValueError("Attempt to add function {!r} without signature".format(name))
+
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def declaration(self):
+        return self._declaration
 
     @property
     def files_called_at(self):
@@ -149,7 +159,7 @@ class Function:
         :param extern: Add the 'extern' prefix.
         :return: Declaration string.
         """
-        declaration = self.declaration.to_string(self.name, typedef='complex_and_params', scope=scope)
+        declaration = self._declaration.to_string(self._name, typedef='complex_and_params', scope=scope)
         declaration += ';'
 
         if extern:
@@ -162,8 +172,8 @@ class Function:
 
         :return: List of strings.
         """
-        declaration = self.declaration.define_with_args(self.name, typedef='complex_and_params', scope=scope)
-        lines = ['/* AUX_FUNC {} */\n'.format(self.name)]
+        declaration = self._declaration.define_with_args(self._name, typedef='complex_and_params', scope=scope)
+        lines = ['/* AUX_FUNC {} */\n'.format(self._name)]
         lines.append(declaration + " {\n")
         lines.extend(['\t{}\n'.format(stm) for stm in self.body])
         lines.append("}\n")

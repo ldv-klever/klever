@@ -19,10 +19,10 @@
 from core.utils import report
 from core.vtg.plugins import Plugin
 from core.vtg.emg.common import get_or_die
-from core.vtg.emg.common.c.source import Source
 from core.vtg.emg.generators import generate_processes
 from core.vtg.emg.common.process import ProcessCollection
 from core.vtg.emg.translation import translate_intermediate_model
+from core.vtg.emg.common.c.source import create_source_representation
 
 
 class EMG(Plugin):
@@ -45,7 +45,7 @@ class EMG(Plugin):
 
         # Initialization of EMG
         self.logger.info("Import results of source analysis")
-        sa = Source(self.logger, self.conf, self.abstract_task_desc)
+        sa = create_source_representation(self.logger, self.conf, self.abstract_task_desc)
 
         # Generate processes
         self.logger.info("Generate processes of an environment model")
