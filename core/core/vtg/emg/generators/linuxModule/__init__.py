@@ -88,6 +88,8 @@ class ScenarioModelgenerator(AbstractGenerator):
         processes.parse_event_specification(data)
         processes.establish_peers()
 
+        return {}
+
 
 def __get_specs(logger, conf, directory):
     logger.info('Search for event and interface categories specifications in {}'.format(directory))

@@ -15,39 +15,36 @@
 # limitations under the License.
 #
 
-from core.vtg.emg.common import get_conf_property
-from core.vtg.emg.common.process import ProcessCollection
+import json
+
 from core.vtg.emg.generators.abstract import AbstractGenerator
+from core.vtg.emg.common.process.serialization import CollectionDecoder
 
 
-class genericManual(AbstractGenerator):
+class ScenarioModelgenerator(AbstractGenerator):
 
     specifications_endings = {
-        'intermediate specifications': {"intermediate spec.json"}
+        'manual event models': 'user model.json'
     }
 
-    def generate_processes(self, emg, source, processes, conf, specifications):
+    def make_scenarios(self, abstract_task_desc, collection, source, specifications):
         """
         This generator reads a manually prepared environment model description and some of them just adds to the already
         generated model and some generated processes with the same names it replaces by new manually prepared one. A user
         can just get an automatically generated model by setting option for a translator and modify it to rerun EMG next
         time to make it generate the model with desired properties without modifying any specifications.
-
-        :param emg: EMG Plugin object.
-        :param source: Source collection object.
-        :param processes: ProcessCollection object.
-        :param conf: Configuration dictionary of this generator.
-        :return: None.
+        
+        :param abstract_task_desc: Abstract task dictionary.
+        :param collection: ProcessCollection.
+        :param source: Source collection.
+        :param specifications: dictionary with merged specifications.
+        :return: Reports dict
         """
         # Import Specifications
-        or_models = list(processes.models.values())
-        or_processes = list(processes.environment.values())
-        or_entry = processes.entry
-
-        all_instance_maps = specifications["manual event models"].get("specification")
-        fragment_name = emg.abstract_task_desc['fragment']
+        all_instance_maps = specifications.get("manual event models", [])
+        fragment_name = abstract_task_desc['fragment']
         descriptions = None
-        for imap in all_instance_maps.get("manual event models", []):
+        for imap in all_instance_maps:
             if fragment_name in imap.get('fragments', []):
                 descriptions = imap.get("model", None)
 
@@ -55,41 +52,62 @@ class genericManual(AbstractGenerator):
         if descriptions and ("functions models" in descriptions or "environment processes" in descriptions or
                              "main process" in descriptions):
 
-            manual_processes = ProcessCollection(emg.logger, emg.conf)
-            manual_processes.parse_event_specification(descriptions)
+            parser = CollectionDecoder(self.logger, self.conf)
+            manual_processes = parser.parse_event_specification(source, descriptions)
 
             # Decide on process replacements
+            or_entry = collection.entry
             if manual_processes.entry:
-                if (get_conf_property(conf, "enforce replacement") and or_entry) or not or_entry:
-                    if get_conf_property(conf, "keep entry functions") and or_entry:
-                        for or_decl in or_entry.declarations:
+                if (self.conf.get("enforce replacement") and collection.entry) or not collection.entry:
+                    if self.conf.get("keep entry functions") and collection.entry:
+                        for or_decl in collection.entry.declarations:
                             if or_decl in manual_processes.entry.declarations:
-                                manual_processes.entry.declarations[or_decl] = {**manual_processes.entry.declarations[or_decl],
-                                                                                **or_entry.declarations[or_decl]}
+                                manual_processes.entry.declarations[or_decl] = {
+                                    **manual_processes.entry.declarations[or_decl],
+                                    **collection.entry.declarations[or_decl]
+                                }
                             else:
-                                manual_processes.entry.declarations[or_decl] = or_entry.declarations[or_decl]
-                        for or_def in or_entry.definitions:
+                                manual_processes.entry.declarations[or_decl] = collection.entry.declarations[or_decl]
+                        for or_def in collection.entry.definitions:
                             if or_def in manual_processes.entry.definitions:
-                                manual_processes.entry.definitions[or_def] = {**manual_processes.entry.definitions[or_def],
-                                                                              **or_entry.definitions[or_def]}
+                                manual_processes.entry.definitions[or_def] = {
+                                    **manual_processes.entry.definitions[or_def],
+                                    **collection.entry.definitions[or_def]
+                                }
                             else:
-                                manual_processes.entry.definitions[or_def] = or_entry.definitions[or_def]
+                                manual_processes.entry.definitions[or_def] = collection.entry.definitions[or_def]
 
                     or_entry = manual_processes.entry
 
             # Replace rest processes
-            for collection, manual in ((or_models, manual_processes.models.values()),
-                                       (or_processes, manual_processes.environment.values())):
-                for process in manual:
-                    if process.pretty_id in {p.pretty_id for p in collection} and \
-                            get_conf_property(conf, "enforce replacement"):
-                        collection[[p.pretty_id for p in collection].index(process.pretty_id)] = process
-                    elif process.pretty_id not in {p.pretty_id for p in collection}:
-                        collection.insert(0, process)
-        else:
-            emg.logger.info("There is no specification for {!r} or it has invalid format".format(fragment_name))
+            if self.conf.get("enforce replacement"):
+                for collection, manual in ((collection.models, manual_processes.models),
+                                           (collection.environment, manual_processes.environment)):
+                    collection.update(manual)
 
-        processes.entry = or_entry
-        processes.models = {p.pretty_id: p for p in or_models}
-        processes.environment = {p.pretty_id: p for p in or_processes}
-        processes.establish_peers(strict=True)
+            collection.entry = or_entry
+            collection.establish_peers(strict=True)
+        else:
+            self.logger.info("There is no specification for {!r} or it has invalid format".format(fragment_name))
+
+        return {}
+
+    def _merge_specifications(self, specifications_set, files):
+        merged_specification = list()
+        for file in files:
+            with open(file, 'r', encoding='utf8') as fp:
+                new_content = json.load(fp)
+
+            for spec_set in new_content:
+                if spec_set == specifications_set:
+                    # This is our specification
+                    merged_specification.extend(new_content[spec_set])
+                else:
+                    # Find reference ones
+                    for specification in (s.get('model', {}) for s in new_content[spec_set]):
+                        for subsection in specification:
+                            for k, v in list(specification[subsection].items()):
+                                if not v.get('reference'):
+                                    del specification[subsection][k]
+                    merged_specification.extend(new_content[spec_set])
+        return merged_specification

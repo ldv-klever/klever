@@ -63,10 +63,10 @@ def generate_processes(logger, conf, collection, abstract_task_desc, source):
             # Save specifications
             for kind in specifications:
                 file_name = "%s %s.json".format(generator_module.__name__, kind)
-                generator.save_specification(specifications_set, file_name)
+                generator.save_specification(specifications_set, specifications[kind], file_name)
 
             # Save processes
-            with open('{} intermediate model.json'.format(str(generator.__name__)), 'w', 'utf8') as fp:
+            with open('%s intermediate model.json' % str(type(generator).__name__), mode='w', encoding='utf8') as fp:
                 json.dump({specifications_set: collection}, fp, cls=CollectionEncoder)
 
     return reports
