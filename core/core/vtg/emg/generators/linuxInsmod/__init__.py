@@ -215,11 +215,11 @@ class ScenarioModelgenerator(AbstractGenerator):
             ki_subprocess.trace_relevant = True
 
             ki_success = ep.actions['ki_success']
-            ki_success.conditions = ["%ret% == 0"]
+            ki_success.condition = ["%ret% == 0"]
             ki_success.comment = "Kernel initialization is successful."
 
             ki_failed = ep.actions['kerninit_failed']
-            ki_failed.conditions = ["%ret% != 0"]
+            ki_failed.condition = ["%ret% != 0"]
             ki_failed.commnet = "Kernel initialization is unsuccessful."
         if len(inits) > 0:
             # Generate init subprocess
@@ -255,12 +255,12 @@ class ScenarioModelgenerator(AbstractGenerator):
     
         # Generate successful conditions
         for action in (a for a in ep.actions.filter(include={Block}) if str(a).startswith('init_success')):
-            action.conditions = ["%ret% == 0"]
+            action.condition = ["%ret% == 0"]
             action.comment = "Module has been initialized."
 
         # Generate else branch
-        for action in (a for a in ep.actions.filter(include={Block}) if str(a).startswith('init_success')):
-            action.conditions = ["%ret% != 0"]
+        for action in (a for a in ep.actions.filter(include={Block}) if str(a).startswith('init_failed')):
+            action.condition = ["%ret% != 0"]
             action.comment = "Failed to initialize the module."
     
         return ep
