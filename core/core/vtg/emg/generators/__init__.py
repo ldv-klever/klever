@@ -62,11 +62,14 @@ def generate_processes(logger, conf, collection, abstract_task_desc, source):
         if conf.get('keep intermediate files'):
             # Save specifications
             for kind in specifications:
-                file_name = "%s %s.json".format(generator_module.__name__, kind)
+                file_name = "{} {}.json".format(generator_module.__name__, kind)
                 generator.save_specification(specifications_set, specifications[kind], file_name)
 
             # Save processes
             with open('%s intermediate model.json' % str(type(generator).__name__), mode='w', encoding='utf8') as fp:
-                json.dump({specifications_set: collection}, fp, cls=CollectionEncoder)
+                json.dump({specifications_set: collection}, fp, cls=CollectionEncoder, sort_keys=True, indent=2)
+
+            # Save images of processes
+            collection.save_digraphs('images')
 
     return reports

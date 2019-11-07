@@ -16,6 +16,7 @@
 #
 
 import re
+import graphviz
 import collections
 
 
@@ -697,3 +698,55 @@ class ProcessCollection:
                         new_peers.add(peer)
 
                 action.peers = new_peers
+
+    def save_digraphs(self, directory):
+        """
+        Method saves Automaton with code in doe format in debug purposes. This functionality can be turned on by setting
+        corresponding configuration property. Each action is saved as a node and for each possible state transition
+        an edge is added. This function can be called only if code blocks for each action of all automata are already
+        generated.
+
+        :parameter directory: Name of the directory to save graphs of processes.
+        :return: None
+        """
+        def process_next(prevs, action):
+            if isinstance(action, Action):
+                for prev in prevs:
+                    graph.edge(str(prev), str(action))
+                return {action}
+            if isinstance(action, Choice):
+                new_prevs = set()
+                for act in action.actions:
+                    new_prevs.update(process_next(prevs, act))
+                return new_prevs
+            elif isinstance(action, Concatenation):
+                for act in action.actions:
+                    if isinstance(act, Action):
+                        for prev in prevs:
+                            graph.edge(str(prev), str(act))
+                        prevs = {act}
+                    else:
+                        prevs = process_next(prevs, act)
+                return prevs
+            elif isinstance(action, Parentheses):
+                process_next(prevs, action.action)
+                return prevs
+            else:
+                raise NotImplementedError
+
+        # Dump separetly all automata
+        for process in self.processes:
+            dg_file = "{}/{}.dot".format(directory, str(process))
+
+            graph = graphviz.Digraph(
+                name=str(process),
+                format="png"
+            )
+
+            for a in process.actions.filter(include={Action}, exclude={Subprocess}):
+                graph.node(str(a), r'{}\l'.format(repr(a)))
+            process_next(set(), process.actions.initial_action)
+
+            # Save to dg_file
+            graph.save(dg_file)
+            graph.render()
