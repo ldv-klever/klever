@@ -201,7 +201,7 @@ def _extract_req_spec_descs(conf, logger):
 
         check_req_spec_plugin_descs = []
         if 'plugins' in check_req_spec_desc:
-            check_req_spec_plugin_desc = check_req_spec_desc['plugins']
+            check_req_spec_plugin_descs = check_req_spec_desc['plugins']
             # Check requirement specification plugin descriptions.
             for idx, check_req_spec_plugin_desc in enumerate(check_req_spec_plugin_descs):
                 if 'name' not in check_req_spec_plugin_desc or 'options' not in check_req_spec_plugin_desc:
