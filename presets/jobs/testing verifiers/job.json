@@ -1,5 +1,5 @@
 {
-  "Class": "Verification of Linux kernel modules",
+  "project": "Linux",
   "build base": "testing/606cdb",
   "program": "Linux",
   "version": "3.14",

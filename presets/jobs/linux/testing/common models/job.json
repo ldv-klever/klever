@@ -1,11 +1,11 @@
 {
-  "Class": "Verification of Linux kernel modules",
+  "project": "Linux",
   "build base": "testing/6e6e1c",
   "program": "Linux",
   "version": "3.14",
   "fragmentation set": "Modules",
   "specifications set": "Linux 3.14 (base)",
-  "requirements": ["linux:test:common"],
+  "requirement specifications": ["test:common"],
   "ideal verdicts": [
     {
       "ideal verdict": "safe",

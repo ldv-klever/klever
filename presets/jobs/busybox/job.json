@@ -1,5 +1,4 @@
 {
-  "Class": "Verification of userspace programs",
   "project": "BusyBox",
   "build base": "busybox",
   "program": "Busybox",
@@ -7,7 +6,7 @@
   "fragmentation set": "Applets",
   "add targets": ["**"],
   "specifications set": "Linux 3.14 (base)",
-  "requirements": [
+  "requirement specifications": [
     "empty",
     "open",
     "memory safety"

@@ -1,19 +1,18 @@
 {
-  "Class": "Verification of Linux kernel modules",
-  "Common": {
-    "build base": "testing/5b3d50",
-    "program": "Linux",
-    "version": "3.14",
-    "fragmentation set": "Modules with callgraph",
-    "specifications set": "Linux 3.14 (base)",
-    "requirements": ["linux:test:common"],
-    "ideal verdicts": [{"ideal verdict": "safe"}],
-    "extra CIF opts": [
-      "-D__GNUC__=4",
-      "-D__GNUC_MINOR__=6"
-    ]
-  },
-  "Sub-jobs": [
+  "project": "Linux",
+  "build base": "testing/5b3d50",
+  "program": "Linux",
+  "version": "3.14",
+  "fragmentation set": "Modules with callgraph",
+  "specifications set": "Linux 3.14 (base)",
+  "requirement specifications": ["test:common"],
+  "ideal verdicts": [{"ideal verdict": "safe"}],
+  "extra results processing": "testing",
+  "extra CIF opts": [
+    "-D__GNUC__=4",
+    "-D__GNUC_MINOR__=6"
+  ],
+  "sub-jobs": [
     {"add targets": ["ext-modules/several_groups/init.ko"]},
     {"add targets": ["ext-modules/multimodule_error/init.ko"]},
     {
