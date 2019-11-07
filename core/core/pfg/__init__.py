@@ -36,7 +36,7 @@ class PFG(core.components.Component):
         """
         # Collect and merge configuration
         self.logger.info("Start program fragmentation stage")
-        fragdb = self.conf['program fragmentation DB']
+        fragdb = self.conf['program fragments base']
         with open(fragdb, encoding='utf8') as fp:
             fragdb = json.load(fp)
 

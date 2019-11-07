@@ -134,18 +134,18 @@ def get_verifier_opts_and_safe_prps(logger, resource_limits, conf):
 
         return desc1
 
-    logger.debug("Import verifier profiles DB")
+    logger.debug("Import verifier profiles base")
     try:
-        verifier_profile_db = conf["verifier profiles DB"]
+        verifier_profile_db = conf["verifier profiles base"]
     except KeyError:
-        raise KeyError('Set "verifier profiles DB" configuration option and provide corresponding file with '
+        raise KeyError('Set "verifier profiles base" configuration option and provide corresponding file with '
                        'verifiers profiles containing options')
     try:
         verifier_profile_db = core.utils.find_file_or_dir(logger, conf["main working directory"], verifier_profile_db)
         with open(verifier_profile_db, 'r', encoding='utf8') as fp:
             profiles = json.loads(fp.read())
     except FileNotFoundError:
-        raise FileNotFoundError("There is no verifier profiles DB file: {!r}".format(verifier_profile_db))
+        raise FileNotFoundError("There is no verifier profiles base file: {!r}".format(verifier_profile_db))
 
     logger.debug("Determine profile for the given verifier and its version")
     try:

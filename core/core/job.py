@@ -90,9 +90,9 @@ def start_jobs(core_obj, vals):
         core.utils.find_file_or_dir(core_obj.logger, os.path.curdir,
                                     os.path.join('specifications',
                                                  '{0}.json'.format(common_components_conf['project']))))
-    common_components_conf['verifier profiles DB'] = os.path.abspath(
+    common_components_conf['verifier profiles base'] = os.path.abspath(
         core.utils.find_file_or_dir(core_obj.logger, os.path.curdir, 'verifier profiles.json'))
-    common_components_conf['program fragmentation DB'] = os.path.abspath(
+    common_components_conf['program fragments base'] = os.path.abspath(
         core.utils.find_file_or_dir(core_obj.logger, os.path.curdir, 'program fragmentation.json'))
 
     subcomponents = []
