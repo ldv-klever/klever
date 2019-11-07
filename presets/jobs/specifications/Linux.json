@@ -151,7 +151,7 @@
     }
   },
   "requirement specifications": {
-    "description": "Linux specifications",
+    "description": "Linux requirement specifications",
     "template": "loadable kernel modules and kernel subsystems",
     "children": [
       {

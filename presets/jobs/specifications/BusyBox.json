@@ -1,9 +1,10 @@
 {
   "templates": {
-    "BusyBox": {
+    "applets": {
       "plugins": [
         {
-          "EMG": {
+          "name": "EMG",
+          "options": {
             "initialize requirements": true,
             "check final state": true,
             "source analysis": {
@@ -37,7 +38,8 @@
           }
         },
         {
-          "RSG": {
+          "name": "RSG",
+          "options": {
             "common sets model": "counter",
             "opts file": "applets/applets.c",
             "common models": {
@@ -50,18 +52,19 @@
               "userspace/string.c": {},
               "userspace/stdlib.c": {},
               "userspace/stdio.c": {},
-              "userspace/busybox/globals.c": {},
-              "userspace/busybox/fork.c": {},
-              "userspace/busybox/libbb/appletlib.c": {},
-              "userspace/busybox/libbb/verror_msg.c": {},
-              "userspace/busybox/libbb/perror_msg.c": {},
-              "userspace/busybox/libbb/xfuncs_printf.c": {}
+              "busybox/globals.c": {},
+              "busybox/fork.c": {},
+              "busybox/libbb/appletlib.c": {},
+              "busybox/libbb/verror_msg.c": {},
+              "busybox/libbb/perror_msg.c": {},
+              "busybox/libbb/xfuncs_printf.c": {}
             }
           }
         },
-        "Weaver",
+        {"name": "Weaver"},
         {
-          "FVTP": {
+          "name": "FVTP",
+          "options": {
             "merge source files": true,
             "verifier profile": "CPAchecker BAM BusyBox",
             "verifier": {
@@ -77,26 +80,42 @@
       ]
     }
   },
-  "requirements": {
-    "description": "BusyBox specifications",
-    "template": "BusyBox",
-    "empty": {
-      "description": "..."
-    },
-    "open": {
-      "description": "...",
-      "RSG": {"models": ["busybox/file.c"]}
-    },
-    "memory safety": {
-      "description": "BusyBox memory safety",
-      "RSG": {"models": ["userspace/memory safety/memory.c"]},
-      "FVTP": {
-        "verifier profile": "memory checking Linux64",
-        "verifier": {
-          "name": "CPAchecker",
-          "version": "trunk:31140"
-        }
+  "requirement specifications": {
+    "description": "BusyBox requirement specifications",
+    "template": "applets",
+    "children": [
+      {
+        "identifier": "empty",
+        "description": "..."
+      },
+      {
+        "identifer": "memory safety",
+        "description": "BusyBox memory safety",
+        "plugins": [
+          {
+            "name": "RSG",
+            "options": {"models": ["userspace/memory safety/memory.c"]}
+          },
+          {
+            "name":"FVTP",
+            "options": {
+              "verifier profile": "memory checking Linux64",
+              "verifier": {
+                "name": "CPAchecker",
+                "version": "trunk:31140"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "identifer": "open",
+        "description": "...",
+        "plugins": [{
+          "name": "RSG",
+          "options": {"models": ["busybox/file.c"]}
+        }]
       }
-    }
+    ]
   }
 }

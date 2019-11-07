@@ -1,9 +1,10 @@
 {
   "templates": {
-    "Zephyr": {
+    "drivers": {
       "plugins": [
         {
-          "EMG": {
+          "name": "EMG",
+          "options": {
             "initialize requirements": true,
             "check final state": true,
             "source analysis": {
@@ -55,7 +56,8 @@
           }
         },
         {
-          "RSG": {
+          "name": "RSG",
+          "options": {
             "common sets model": "counter",
             "opts file": "drivers/interrupt_controller/system_apic.c",
             "common models": {
@@ -66,9 +68,10 @@
             }
           }
         },
-        "Weaver",
+        {"name": "Weaver"},
         {
-          "FVTP": {
+          "name": "FVTP",
+          "options": {
             "merge source files": true,
             "verifier profile": "reachability",
             "verifier": {
@@ -84,13 +87,22 @@
       ]
     }
   },
-  "requirements": {
-    "template": "Zephyr",
-    "empty": {
-      "description": "..."
-    },
-    "locks": {
-      "RSG": {"models": ["zephyr/locks.c"]}
-    }
+  "requirement specifications": {
+    "description": "Zephyr requirement specifications",
+    "template": "drivers",
+    "children": [
+      {
+        "identifer": "empty",
+        "description": "..."
+      },
+      {
+        "identifier": "locks",
+        "plugins": [{
+          "name": "RSG",
+          "options": {"models": ["zephyr/locks.c"]}
+        }]
+
+      }
+    ]
   }
 }
