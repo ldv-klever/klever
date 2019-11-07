@@ -198,12 +198,15 @@ def _extract_req_spec_descs(conf, logger):
         # Copy template plugin descriptions since we will overwrite them while the same template can be used by
         # different requirement specifications.
         tmpl_plugin_descs = copy.deepcopy(tmpl_descs[check_req_spec_desc['template']]['plugins'])
-        check_req_spec_plugin_descs = check_req_spec_desc['plugins']
-        # Check requirement specification plugin descriptions.
-        for idx, check_req_spec_plugin_desc in enumerate(check_req_spec_plugin_descs):
-            if 'name' not in check_req_spec_plugin_desc or 'options' not in check_req_spec_plugin_desc:
-                raise KeyError('Invalid description of {0} plugin of requirement specification "{1}"'
-                               .format(idx, check_req_spec_id))
+
+        check_req_spec_plugin_descs = []
+        if 'plugins' in check_req_spec_desc:
+            check_req_spec_plugin_desc = check_req_spec_desc['plugins']
+            # Check requirement specification plugin descriptions.
+            for idx, check_req_spec_plugin_desc in enumerate(check_req_spec_plugin_descs):
+                if 'name' not in check_req_spec_plugin_desc or 'options' not in check_req_spec_plugin_desc:
+                    raise KeyError('Invalid description of {0} plugin of requirement specification "{1}"'
+                                   .format(idx, check_req_spec_id))
 
         matched_req_spec_plugin_names = set()
         for tmpl_plugin_desc in tmpl_plugin_descs:
