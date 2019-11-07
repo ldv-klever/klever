@@ -5,10 +5,6 @@
   "version": "3.14",
   "fragmentation set": "Modules",
   "specifications set": "Linux 3.14 (base)",
-  "extra CIF opts": [
-    "-D__GNUC__=4",
-    "-D__GNUC_MINOR__=6"
-  ],
   "ideal verdicts": [
     {
       "ideal verdict": "safe",

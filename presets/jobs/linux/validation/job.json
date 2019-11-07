@@ -4,10 +4,6 @@
   "fragmentation set": "Modules",
   "specifications set": "Linux 3.14 (base)",
   "extra results processing": "validation",
-  "extra CIF opts": [
-    "-D__GNUC__=4",
-    "-D__GNUC_MINOR__=6"
-  ],
   "sub-jobs": [
     {
       "build base": "validation/7ce77510c9c7~",

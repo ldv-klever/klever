@@ -7,10 +7,6 @@
   "specifications set": "Linux 3.14 (base)",
   "requirement specifications": ["test:common"],
   "add targets": ["**"],
-  "extra CIF opts": [
-    "-D__GNUC__=4",
-    "-D__GNUC_MINOR__=6"
-  ],
   "ideal verdicts": [
     {"ideal verdict": "safe"},
     {

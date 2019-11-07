@@ -30,9 +30,5 @@
     {"ideal verdict": "unsafe"}
   ],
   "extra results processing": "testing",
-  "extra CIF opts": [
-    "-D__GNUC__=4",
-    "-D__GNUC_MINOR__=6"
-  ],
   "add targets": ["**"]
 }

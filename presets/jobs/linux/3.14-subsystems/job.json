@@ -6,9 +6,5 @@
   "fragmentation set": "Subsystems",
   "add targets": ["drivers/tty", "drivers/char", "drivers/gpio"],
   "specifications set": "Linux 3.14 (base)",
-  "extra CIF opts": [
-    "-D__GNUC__=4",
-    "-D__GNUC_MINOR__=6"
-  ],
   "requirement specifications": ["memory safety"]
 }
