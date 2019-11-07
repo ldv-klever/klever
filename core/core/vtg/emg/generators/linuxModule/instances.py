@@ -54,8 +54,8 @@ def _simplify_process(logger, conf, sa, interfaces, process):
         d = l.get_declaration(a.interface.identifier)
         i = process.get_implementation(a)
         if i:
-            if not (i.declaration.compare(d) or i.declaration.pointer_alias(d) or
-                    (isinstance(i.declaration, Function) and i.declaration.take_pointer.compare(d))):
+            if not (i.declaration == d or i.declaration.pointer_alias(d) or
+                    (isinstance(i.declaration, Function) and i.declaration.take_pointer == d)):
                 logger.warning(
                     "Seems that driver provides inconsistent implementation for {!r} label of {!r} process "
                     "where expected {!r} but got {!r}".format(l.name, process.name, d.to_string(),
@@ -259,9 +259,9 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
         if ret_access:
             suits = [a for a in ret_access if
                      (a.interface and
-                      a.interface.declaration.compare(signature.points.return_value)) or
+                      a.interface.declaration == signature.points.return_value) or
                      (not a.interface and a.label and
-                      any((signature.points.return_value.compare(d) for d in a.label.declarations)))]
+                      any((signature.points.return_value == d for d in a.label.declarations)))]
             if len(suits) > 0:
                 if suits[0].interface:
                     lbl = label_map[suits[0].label.name][suits[0].interface.identifier]
@@ -282,7 +282,7 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
                 for position in (p for p in list(range(len(declaration.points.parameters)))[label_index:]
                                  if p not in found_positions):
                     parameter = declaration.points.parameters[position]
-                    if (acc.list_interface[-1].declaration.compare(parameter) or
+                    if (acc.list_interface[-1].declaration == parameter or
                             acc.list_interface[-1].declaration.pointer_alias(parameter)):
                         expression = acc.access_with_label(label_map[acc.label.name][acc.list_interface[0].identifier])
                         found_positions[position] = expression

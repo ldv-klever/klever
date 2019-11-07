@@ -92,7 +92,7 @@ class AbstractAccess(Access):
             while candidate:
                 tmp = candidate
 
-                if candidate.compare(target):
+                if candidate == target:
                     candidate = None
                     if isinstance(previous, Pointer):
                         expression = "*({})".format(expression)
@@ -287,14 +287,14 @@ class AbstractProcess(Process):
         ret = []
 
         # Match dispatches
-        for dispatch in self.dispatches:
+        for dispatch in self.actions.filter(include={Dispatch}):
             for receive in process.receives:
                 match = self.__compare_signals(process, dispatch, receive)
                 if match:
                     ret.append([dispatch.name, receive.name])
 
         # Match receives
-        for receive in self.receives:
+        for receive in self.actions.filter(include={Receive}):
             for dispatch in process.dispatches:
                 match = self.__compare_signals(process, receive, dispatch)
                 if match:
@@ -351,7 +351,7 @@ class AbstractProcess(Process):
 
     def resolve_access(self, access, interface=None):
         if isinstance(access, Label):
-            string = '%{}%'.format(access._name)
+            string = '%{}%'.format(access.name)
         elif isinstance(access, str):
             string = access
         else:
@@ -406,7 +406,7 @@ class AbstractProcess(Process):
         self.labels[name] = lb
         acc = AbstractAccess('%{}%'.format(name))
         acc.label = lb
-        acc.list_access = [lb._name]
+        acc.list_access = [lb.name]
         self._accesses[acc.expression] = [acc]
         return lb
 

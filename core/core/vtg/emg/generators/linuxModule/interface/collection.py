@@ -225,7 +225,7 @@ class InterfaceCollection:
                 interfaces = []
             else:
                 interfaces = [self.get_intf(name) for name in self.interfaces
-                              if self.get_intf(name).declaration and self.get_intf(name).declaration.compare(signature)
+                              if self.get_intf(name).declaration and self.get_intf(name).declaration == signature
                               and (not category or self.get_intf(name).category == category) and not
                               (self.get_intf(name).declaration.identifier == 'void' or
                                self.get_intf(name).declaration.identifier == 'void *' or

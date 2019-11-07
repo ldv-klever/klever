@@ -49,4 +49,4 @@ def test_exentions(intf_collection):
         # Test that it is the same
         new_obj, _ = import_interface_declaration(intf_collection, None, obj.to_string('name'))
         # todo: Pretty names are different but I am not sure whether it correct or not
-        assert obj.compare(new_obj)
+        assert obj == new_obj

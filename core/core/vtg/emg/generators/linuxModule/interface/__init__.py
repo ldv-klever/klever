@@ -153,14 +153,14 @@ class Implementation(Variable):
             self.sequence = sequence
 
     def adjusted_value(self, declaration):
-        if self._declaration.compare(declaration):
+        if self._declaration == declaration:
             return self.value
-        elif self._declaration.compare(declaration.take_pointer):
+        elif self._declaration == declaration.take_pointer:
             return '*' + self.value
-        elif self._declaration.take_pointer.compare(declaration):
+        elif self._declaration.take_pointer == declaration:
             return '&' + self.value
         elif isinstance(declaration, Pointer) and isinstance(self._declaration, Pointer) and \
-                self._declaration.identifier == 'void *':
+                self._declaration == 'void *':
             return self.value
         else:
             raise ValueError("Cannot adjust declaration '{}' to declaration '{}' for value {!r}".

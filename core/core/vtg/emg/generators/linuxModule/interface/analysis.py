@@ -93,8 +93,8 @@ def __check_static(name, file, sa):
 
 def check_relevant_interface(collection, declaration, category, connector):
     def strict_compare(d1, d2):
-        if d1.compare(d2):
-            if (d2.identifier == 'void *' or d1.identifier == 'void *') and not category:
+        if d1 == d2:
+            if (d2 == 'void *' or d1 == 'void *') and not category:
                 return False
             else:
                 return True
