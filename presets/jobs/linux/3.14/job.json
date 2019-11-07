@@ -11,7 +11,7 @@
     "drivers/uwb/hwa-rc.ko"
   ],
   "specifications set": "Linux 3.14 (base)",
-  "requirements": [
+  "requirement specifications": [
     "arch:io",
     "drivers:clk1",
     "kernel:locking:mutex",
