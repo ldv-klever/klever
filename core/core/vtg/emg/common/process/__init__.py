@@ -411,6 +411,9 @@ class BaseAction:
     def __hash__(self):
         return hash(self.name)
 
+    def __eq__(self, other):
+        return self.name == other.name
+
     @property
     def successors(self):
         """
@@ -598,6 +601,7 @@ class Block(Action):
     def __init__(self, name, number=1):
         super(Block, self).__init__(name, number)
         self.statements = []
+        self.condition = []
 
     def __repr__(self):
         return '<%s>' % str(self)
