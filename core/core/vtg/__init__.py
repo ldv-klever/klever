@@ -573,22 +573,16 @@ class VTGWL(core.components.Component):
         program_fragment_id = element[0]['id']
         req_spec_id = element[1]['identifier']
 
-        attrs = [
-            {
-                "name": "Requirements specification",
-                "value": req_spec_id
-            }
-        ]
-
+        attrs = None
         if element[3]:
             identifier = "{}/{}/{}/VTGW".format(program_fragment_id, req_spec_id, element[3])
             workdir = os.path.join(program_fragment_id, req_spec_id, str(element[3]))
-            attrs.append({
+            attrs = [{
                 "name": "Rescheduling attempt",
                 "value": str(element[3]),
                 "compare": False,
                 "associate": False
-            })
+            }]
         else:
             identifier = "{}/{}/VTGW".format(program_fragment_id, req_spec_id)
             workdir = os.path.join(program_fragment_id, req_spec_id)
@@ -628,10 +622,12 @@ class VTGW(core.components.Component):
                               'attrs': [
                                   {
                                       "name": "Program fragment",
-                                      "value": self.program_fragment_desc['id'],
-                                      "data": files_list_file,
-                                      "compare": True,
-                                      "associate": True
+                                      "value": self.program_fragment_id,
+                                      "data": files_list_file
+                                  },
+                                  {
+                                      "name": "Requirements specification",
+                                      "value": self.req_spec_id
                                   }
                               ]
                           },
