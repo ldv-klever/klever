@@ -91,7 +91,7 @@ class Aspect(Function):
         super(Aspect, self).__init__(name, declaration)
         self.aspect_type = aspect_type
 
-    def define(self):
+    def define(self, scope=None):
         """
         Print description of the replacement that should be made to the source funtion calls.
 
@@ -150,11 +150,7 @@ class CModel:
         :param headers: List of header files.
         :return: None.
         """
-        if file not in self._headers:
-            self._headers[file] = [headers]
-        else:
-            # This is to avoid dependencies broken
-            self._headers[file].append(headers)
+        self._headers.setdefault(file, []).append(headers)
 
     def add_function_definition(self, func):
         """
@@ -165,12 +161,10 @@ class CModel:
         """
         if not func.definition_file:
             raise RuntimeError('Always expect file to place function definition')
-        if func.definition_file not in self._function_definitions:
-            self._function_definitions[func.definition_file] = dict()
-        if self.entry_file not in self._function_definitions:
-            self._function_definitions[self.entry_file] = dict()
+        definitions = self._function_definitions.setdefault(func.definition_file, {})
+        self._function_definitions.setdefault(self.entry_file, {})
 
-        self._function_definitions[func.definition_file][func.name] = func.define(scope={func.definition_file})
+        definitions[func.name] = func.define(scope={func.definition_file})
         self.add_function_declaration(func.definition_file, func, extern=False)
 
     def add_function_declaration(self, file, func, extern=False):
@@ -182,12 +176,9 @@ class CModel:
         :param extern: Add it as an extern function.
         :return: None.
         """
-        if file not in self._function_declarations:
-            self._function_declarations[file] = dict()
-
-        if extern and func.name in self._function_declarations[file]:
-            return
-        self._function_declarations[file][func.name] = func.declare(extern=extern, scope={file})
+        declarations = self._function_declarations.setdefault(file, {})
+        if not (extern and func.name in declarations):
+            declarations[func.name] = func.declare(extern=extern, scope={file})
 
     def add_global_variable(self, variable, file, extern=False, initialize=True):
         """
@@ -204,24 +195,21 @@ class CModel:
         elif not file:
             file = self.entry_file
 
-        if file not in self._variables_declarations:
-            self._variables_declarations[file] = dict()
-        if file not in self._variables_initializations:
-            self._variables_initializations[file] = dict()
+        declarattions = self._variables_declarations.setdefault(file, {})
+        initializations = self._variables_initializations.setdefault(file, {})
 
-        if extern and variable.name not in self._variables_declarations[file]:
-            self._variables_declarations[file][variable.name] = variable.declare(extern=extern) + ";\n"
-        elif not extern:
-            self._variables_declarations[file][variable.name] = variable.declare(extern=extern) + ";\n"
+        if extern:
+            declarattions.setdefault(variable.name, variable.declare(extern=extern) + ";\n")
+        else:
+            declarattions[variable.name] = variable.declare(extern=extern) + ";\n"
             if initialize:
-                if variable.value and \
-                        ((isinstance(variable.declaration, Pointer) and isinstance(variable.declaration.points, Function))
-                         or isinstance(variable.declaration, Primitive)):
-                    self._variables_initializations[file][variable.name] = variable.declare_with_init() + ";\n"
+                if variable.value and (
+                        (isinstance(variable.declaration, Pointer) and
+                         isinstance(variable.declaration.points, Function)) or
+                        isinstance(variable.declaration, Primitive)):
+                    initializations[variable.name] = variable.declare_with_init() + ";\n"
                 elif not variable.value and isinstance(variable.declaration, Pointer):
-                    if file not in self.__external_allocated:
-                        self.__external_allocated[file] = []
-                    self.__external_allocated[file].append(variable)
+                    self.__external_allocated.setdefault(file, []).append(variable)
 
     def text_processor(self, automaton, statement):
         """
@@ -245,13 +233,9 @@ class CModel:
         """
         new_aspect = Aspect(func.name, func.declaration)
         new_aspect.body = body
-        files = set()
-        files.update(func.files_called_at)
-        files.update(func.declaration_files)
-        for file in files:
-            if file not in self._call_aspects:
-                self._call_aspects[file] = list()
-            self._call_aspects[file].append(new_aspect)
+
+        for file in func.files_called_at + func.declaration_files:
+            self._call_aspects.setdefault(file, []).append(new_aspect)
 
     def print_source_code(self, additional_lines):
         """
@@ -277,80 +261,60 @@ class CModel:
 
             # Check headers
             if file == self.entry_file:
-                if self.entry_file in self._headers:
-                    lines.extend(['#include <{}>\n'.format(h) for h in
-                                  self._collapse_headers_sets(self._headers[self.entry_file])])
-                lines.append("\n")
+                lines += ['#include <{}>\n'.format(h)
+                          for h in self._collapse_headers_sets(self._headers.get(self.entry_file, []))] + ["\n"]
             else:
                 # Generate function declarations
                 self._logger.info('Add aspects to a file {!r}'.format(file))
 
                 # Add headers
-                if file in self._headers and self._headers[file]:
-                    lines.append('before: file ("$this")\n')
-                    lines.append('{\n')
-                    lines.extend(['#include <{}>\n'.format(h) for h in
-                                  self._collapse_headers_sets(self._headers[file])])
-                    lines.append("\n")
-                    lines.append("}\n\n")
+                if self._headers.get(file):
+                    lines += ['before: file ("$this")\n', '{\n'] + \
+                             ['#include <{}>\n'.format(h) for h in self._collapse_headers_sets(self._headers[file])] + \
+                             ["\n", "}\n\n"]
 
                 # Add model itself
-                lines.append('after: file ("$this")\n')
-                lines.append('{\n')
+                lines.extend(['after: file ("$this")\n', '{\n'])
 
             for tp in self.types.get(file, list()):
-                lines.append(tp.to_string('') + " {\n")
-                for field in list(tp.fields.keys()):
-                    lines.append("\t{};\n".format(tp.fields[field].to_string(field, typedef='complex_and_params'),
-                                                  scope={file}))
-                lines.append("};\n")
-                lines.append("\n")
+                lines += [tp.to_string('') + " {\n"] + \
+                         [("\t{};\n".format(tp.fields[field].
+                                            to_string(field, typedef='complex_and_params'), scope={file}))
+                          for field in list(tp.fields.keys())] + \
+                         ["};\n", "\n"]
 
-            if file in additional_lines and 'declarations' in additional_lines[file] and \
-                    len(additional_lines[file]['declarations']) > 0:
-                lines.append("\n")
-                lines.append("/* EMG aliases */\n")
-                lines.extend(additional_lines[file]['declarations'])
-
+            # Add declarations
+            if additional_lines.get(file, {}).get('declarations'):
+                lines+= ["\n", "/* EMG aliases */\n"] + additional_lines[file]['declarations']
             if file in self._function_declarations:
-                lines.append("\n")
-                lines.append("/* EMG Function declarations */\n")
-                for func in self._function_declarations[file].keys():
-                    lines.extend(self._function_declarations[file][func])
+                lines += ["\n", "/* EMG Function declarations */\n"] + \
+                         [line for func in self._function_declarations[file].keys()
+                          for line in self._function_declarations[file][func]]
 
             if file in self._variables_declarations:
-                lines.append("\n")
-                lines.append("/* EMG variable declarations */\n")
-                for variable in self._variables_declarations[file].keys():
-                    lines.extend(self._variables_declarations[file][variable])
+                lines += ["\n", "/* EMG variable declarations */\n"] + \
+                         [decl for declarations in self._variables_declarations[file].values() for decl in declarations]
 
-            if file in self._variables_initializations and len(self._variables_initializations[file]) > 0:
-                lines.append("\n")
-                lines.append("/* EMG variable initialization */\n")
-                for variable in self._variables_initializations[file].keys():
-                    lines.extend(self._variables_initializations[file][variable])
+            if self._variables_initializations.get(file):
+                lines += ["\n", "/* EMG variable initialization */\n"] + \
+                         [i for inits in self._variables_initializations[file].values() for i in inits]
 
-            if file in additional_lines and 'definitions' in additional_lines[file] and \
-                    len(additional_lines[file]['definitions']) > 0:
-                lines.append("\n")
-                lines.append("/* EMG aliases for functions */\n")
-                lines.extend(additional_lines[file]['definitions'])
+            if additional_lines.get(file, {}).get('definitions'):
+                lines.extend(
+                    ["\n", "/* EMG aliases for functions */\n"] +
+                    additional_lines[file]['definitions']
+                )
 
-            if file in self._function_definitions and len(self._function_definitions[file]) > 0:
-                lines.append("\n")
-                lines.append("/* EMG function definitions */\n")
-                for func in self._function_definitions[file].keys():
-                    lines.extend(self._function_definitions[file][func])
-                    lines.append("\n")
+            if self._function_definitions.get(file):
+                lines += ["\n", "/* EMG function definitions */\n"] + \
+                         [line for defs in self._function_definitions[file].values() for line in defs + ["\n"]]
 
             if file != self.entry_file:
                 lines.append("}\n\n")
 
-            if file in self._call_aspects and len(self._call_aspects[file]) > 0:
-                lines.append("/* EMG kernel function models */\n")
-                for aspect in self._call_aspects[file]:
-                    lines.extend(aspect.define())
-                    lines.append("\n")
+            if self._call_aspects.get(file):
+                lines += ["/* EMG kernel function models */\n"] + \
+                         [line for aspect in self._call_aspects[file] for line in aspect.define() + ["\n"]]
 
             if file != self.entry_file:
                 name = "{}.aspect".format(unique_file_name("aspects/ldv_" + os.path.splitext(os.path.basename(file))[0],
@@ -381,14 +345,13 @@ class CModel:
         cnt = 0
         functions = []
         if len(self.__external_allocated.keys()) > 0:
-            for file in sorted([f for f in self.__external_allocated.keys() if len(self.__external_allocated[f]) > 0]):
+            for file, ext_vars in ((f, v) for f, v in self.__external_allocated.items() if v):
                 func = Function('ldv_allocate_external_{}'.format(cnt),
                                 "void ldv_allocate_external_{}(void)".format(cnt))
                 func.declaration_files.add(file)
                 func.definition_file = file
 
-                init = ["{} = {}();".format(var.name, 'external_allocated_data') for
-                        var in self.__external_allocated[file]]
+                init = ["{} = {}();".format(var.name, 'external_allocated_data') for var in ext_vars]
                 func.body = init
 
                 self.add_function_definition(func)
@@ -403,10 +366,10 @@ class CModel:
             init_body = ['{}();'.format(func.name) for func in functions]
             gl_init.body = init_body
             self.add_function_definition(gl_init)
-            body.extend([
+            body += [
                 '/* Initialize external data */',
                 'ldv_initialize_external_data();'
-            ])
+            ]
 
         if self._conf.get("initialize requirements"):
             body += [
@@ -428,9 +391,10 @@ class CModel:
                 '/* LDV {"action": "FINAL", "type": "CALL_END"} */'
             ]
 
-        body.append('return 0;')
-        body.append('/* LDV {' + '"comment": "Exit entry point \'{0}\'", "type": "CONTROL_FUNCTION_END",'
-                                 ' "function": "{0}"'.format(self.entry_name) + '} */')
+        body += ['return 0;',
+                 '/* LDV {' +
+                 '"comment": "Exit entry point \'{0}\'", "type": "CONTROL_FUNCTION_END", "function": "{0}"'.
+                 format(self.entry_name) + '} */']
 
         ep.body = body
         self.add_function_definition(ep)
@@ -460,14 +424,14 @@ class CModel:
 class FunctionModels:
     """Class represent common C extensions for simplifying environmen model C code generators."""
 
-    mem_function_template = "\$({})\(%({})%(?:,\s?(\w+))?\)"
-    simple_function_template = "\$({})\("
-    access_template = '\w+(?:(?:[.]|->)\w+)*'
-    comment_template = re.compile("\$COMMENT\((\w+), (\w+)\);$")
-    mem_function_re = re.compile(mem_function_template.format('\w+', access_template))
-    simple_function_re = re.compile(simple_function_template.format('\w+'))
-    access_re = re.compile('(%{}%)'.format(access_template))
-    arg_re = re.compile('\$ARG(\d+)')
+    mem_function_template = r'\$({})\(%({})%(?:,\s?(\w+))?\)'
+    simple_function_template = r'\$({})\('
+    access_template = r'\w+(?:(?:[.]|->)\w+)*'
+    comment_template = re.compile(r'\$COMMENT\((\w+), (\w+)\);$')
+    mem_function_re = re.compile(mem_function_template.format(r'\w+', access_template))
+    simple_function_re = re.compile(simple_function_template.format(r'\w+'))
+    access_re = re.compile(r'(%{}%)'.format(access_template))
+    arg_re = re.compile(r'\$ARG(\d+)')
 
     def __init__(self, logger, conf, mem_function_map, free_function_map, irq_function_map):
         self._logger = logger

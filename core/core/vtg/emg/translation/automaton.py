@@ -32,12 +32,21 @@ class Automaton:
 
         # Set given values
         self.process = process
-        self.identifier = identifier
         self.self_parallelism = True
+        self._identifier = identifier
 
         # Generate FSA itself
-        #self.fsa = FSA(self.process)
         self.variables()
+        self.code = dict()
+
+    def __str__(self):
+        return str(self._identifier)
+
+    def __hash__(self):
+        return hash(str(self))
+
+    def __eq__(self, other):
+        return type(self) is type(other) and str(self) == str(other)
 
     def variables(self, only_used=False):
         """
@@ -72,12 +81,10 @@ class Automaton:
             return self.__label_variables[label.name]["default"]
         else:
             if label.declaration:
-                var = Variable("ldv_{}_{}".format(self.identifier, label.name), label.declaration)
-                if label.value:
-                    var.value = label.value
+                var = Variable("ldv_{}_{}".format(self._identifier, label.name), label.declaration)
+                var.value = label.value
 
-                if label.name not in self.__label_variables:
-                    self.__label_variables[label.name] = {}
+                self.__label_variables.setdefault(label.name, {})
                 self.__label_variables[label.name]["default"] = var
                 if not shadow_use:
                     self.__label_variables[label.name]["default"].use += 1
