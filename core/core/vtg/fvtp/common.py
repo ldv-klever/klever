@@ -65,6 +65,9 @@ def merge_files(logger, conf, abstract_task_desc):
            ]
 
     core.utils.execute(logger, args=args, enforce_limitations=True)
+    # There will be empty file if CIL succeeded. Remove it to avoid unknown reports of whole FVTP later.
+    if os.path.isfile('problem desc.txt'):
+        os.unlink('problem desc.txt')
 
     logger.debug('Merged source files was outputted to "cil.i"')
 
