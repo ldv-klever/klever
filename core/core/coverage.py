@@ -127,8 +127,8 @@ class JCR(core.components.Component):
                                   attrs, separate_from_parent, include_child_resources)
 
         # This function adds callbacks and it should work until we call it in the new process
-        self.mqs['requirements and coverage info files'] = multiprocessing.Queue()
-        queues_to_terminate.append('requirements and coverage info files')
+        self.mqs['req spec ids and coverage info files'] = multiprocessing.Queue()
+        queues_to_terminate.append('req spec ids and coverage info files')
         self.coverage = dict()
 
     def collect_total_coverage(self):
@@ -140,11 +140,12 @@ class JCR(core.components.Component):
         counters = dict()
         try:
             while True:
-                coverage_info = self.mqs['requirements and coverage info files'].get()
+                coverage_info = self.mqs['req spec ids and coverage info files'].get()
 
                 if coverage_info is None:
-                    self.logger.debug('Requirement coverage info files message queue was terminated')
-                    self.mqs['requirements and coverage info files'].close()
+                    self.logger.debug(
+                        'Requirement specification identifiers and coverage info files message queue was terminated')
+                    self.mqs['req spec ids and coverage info files'].close()
                     break
 
                 sub_job_id = coverage_info['sub-job identifier']
@@ -154,9 +155,9 @@ class JCR(core.components.Component):
                     if sub_job_id not in total_coverage_infos:
                         total_coverage_infos[sub_job_id] = dict()
                         arcfiles[sub_job_id] = dict()
-                    requirement = coverage_info['requirement']
-                    total_coverage_infos[sub_job_id].setdefault(requirement, {})
-                    arcfiles[sub_job_id].setdefault(requirement, {})
+                    req_spec_id = coverage_info['req spec id']
+                    total_coverage_infos[sub_job_id].setdefault(req_spec_id, {})
+                    arcfiles[sub_job_id].setdefault(req_spec_id, {})
 
                     if os.path.isfile(coverage_info['coverage info file']):
                         with open(coverage_info['coverage info file'], encoding='utf8') as fp:
@@ -167,19 +168,19 @@ class JCR(core.components.Component):
                             os.remove(os.path.join(self.conf['main working directory'],
                                                    coverage_info['coverage info file']))
 
-                        add_to_coverage(total_coverage_infos[sub_job_id][requirement], loaded_coverage_info)
+                        add_to_coverage(total_coverage_infos[sub_job_id][req_spec_id], loaded_coverage_info)
                         for file in loaded_coverage_info.values():
-                            arcfiles[sub_job_id][requirement][file[0]['file name']] = file[0]['arcname']
+                            arcfiles[sub_job_id][req_spec_id][file[0]['file name']] = file[0]['arcname']
                         del loaded_coverage_info
 
                         counters.setdefault(sub_job_id, dict())
-                        counters[sub_job_id].setdefault(requirement, 0)
-                        counters[sub_job_id][requirement] += 1
-                        if counters[sub_job_id][requirement] >= 10:
-                            self.__read_data(total_coverage_infos, sub_job_id, requirement)
-                            self.__save_data(total_coverage_infos, sub_job_id, requirement)
-                            self.__clean_data(total_coverage_infos, sub_job_id, requirement)
-                            counters[sub_job_id][requirement] = 0
+                        counters[sub_job_id].setdefault(req_spec_id, 0)
+                        counters[sub_job_id][req_spec_id] += 1
+                        if counters[sub_job_id][req_spec_id] >= 10:
+                            self.__read_data(total_coverage_infos, sub_job_id, req_spec_id)
+                            self.__save_data(total_coverage_infos, sub_job_id, req_spec_id)
+                            self.__clean_data(total_coverage_infos, sub_job_id, req_spec_id)
+                            counters[sub_job_id][req_spec_id] = 0
                     else:
                         self.logger.warning("There is no coverage file {!r}".
                                             format(coverage_info['coverage info file']))
@@ -189,9 +190,9 @@ class JCR(core.components.Component):
                     total_coverages = dict()
                     total_coverage_dirs = []
 
-                    for requirement in counters[sub_job_id]:
-                        self.__read_data(total_coverage_infos, sub_job_id, requirement)
-                        coverage_info = total_coverage_infos[sub_job_id][requirement]
+                    for req_spec_id in counters[sub_job_id]:
+                        self.__read_data(total_coverage_infos, sub_job_id, req_spec_id)
+                        coverage_info = total_coverage_infos[sub_job_id][req_spec_id]
 
                         # TODO: there are too many questions regarding code coverage for non-source files of total coverage. Moreover, there are no corresponding additional sources yet. So, let's just get rid of them.
                         file_names_to_remove = list()
@@ -201,7 +202,7 @@ class JCR(core.components.Component):
                         for file_name_to_remove in file_names_to_remove:
                             del(coverage_info[file_name_to_remove])
 
-                        total_coverage_dir = os.path.join(self.__get_total_cov_dir(sub_job_id, requirement), 'report')
+                        total_coverage_dir = os.path.join(self.__get_total_cov_dir(sub_job_id, req_spec_id), 'report')
 
                         with open(os.path.join('job' if sub_job_id == '-' else sub_job_id,
                                                'original sources basic information.json')) as fp:
@@ -211,9 +212,9 @@ class JCR(core.components.Component):
                                          src_files_info)
                         total_coverage_dirs.append(total_coverage_dir)
 
-                        total_coverages[requirement] = core.utils.ArchiveFiles([total_coverage_dir])
-                        self.__save_data(total_coverage_infos, sub_job_id, requirement)
-                        self.__clean_data(total_coverage_infos, sub_job_id, requirement)
+                        total_coverages[req_spec_id] = core.utils.ArchiveFiles([total_coverage_dir])
+                        self.__save_data(total_coverage_infos, sub_job_id, req_spec_id)
+                        self.__clean_data(total_coverage_infos, sub_job_id, req_spec_id)
 
                     core.utils.report(self.logger,
                                       'coverage',

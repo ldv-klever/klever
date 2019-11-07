@@ -110,15 +110,15 @@ def start_jobs(core_obj, vals):
             def after_process_finished_task(context):
                 coverage_info_file = os.path.join(context.conf['main working directory'], context.coverage_info_file)
                 if os.path.isfile(coverage_info_file):
-                    context.mqs['requirements and coverage info files'].put({
+                    context.mqs['req spec ids and coverage info files'].put({
                         'sub-job identifier': context.conf['sub-job identifier'],
-                        'requirement': context.requirement,
+                        'req spec id': context.req_spec_id,
                         'coverage info file': coverage_info_file
                     })
 
             def after_launch_sub_job_components(context):
                 context.logger.debug('Put "{0}" sub-job identifier for finish coverage'.format(context.id))
-                context.mqs['requirements and coverage info files'].put({
+                context.mqs['req spec ids and coverage info files'].put({
                     'sub-job identifier': context.common_components_conf['sub-job identifier']
                 })
 
@@ -223,9 +223,9 @@ def __solve_sub_jobs(core_obj, vals, components_common_conf, job_type, subcompon
                 # need even to know about them.
                 # From ancient time we tried to assign nice names to sub-jobs to distinguish them, in particular to be
                 # able to compare corresponding verification results. These names were based on sub-job configurations,
-                # e.g. they included commit hashes, requirement identifiers, module names, etc. Such the approach
-                # turned out to be inadequate since we had to add more and more information to sub-job names that
-                # involves source code changes and results in large working directories that look like these names.
+                # e.g. they included commit hashes, requirement specification identifiers, module names, etc. Such the
+                # approach turned out to be inadequate since we had to add more and more information to sub-job names
+                # that involves source code changes and results in large working directories that look like these names.
                 # After all we decided to use sub-job ordinal numbers to distinguish them uniquely (during a some time
                 # old style names were used in addition to these ordinal numbers). The only bad news is that in case of
                 # any changes in a global arrangement of sub-jobs, such as a new sub-job is added somewhere in the
@@ -329,8 +329,8 @@ class RA(core.components.Component):
         # TODO: these 3 functions are very similar, so, they should be merged.
         def after_plugin_fail_processing(context):
             context.mqs['verification statuses'].put({
-                'program fragment': context.program_fragment['id'],
-                'requirement': context.requirement,
+                'program fragment id': context.program_fragment_id,
+                'req spec id': context.req_spec_id,
                 'verdict': 'non-verifier unknown',
                 'sub-job identifier': context.conf['sub-job identifier'],
                 'ideal verdicts': context.conf['ideal verdicts'],
@@ -339,8 +339,8 @@ class RA(core.components.Component):
 
         def after_process_failed_task(context):
             context.mqs['verification statuses'].put({
-                'program fragment': context.program_fragment,
-                'requirement': context.requirement,
+                'program fragment id': context.program_fragment_id,
+                'req spec id': context.req_spec_id,
                 'verdict': context.verdict,
                 'sub-job identifier': context.conf['sub-job identifier'],
                 'ideal verdicts': context.conf['ideal verdicts'],
@@ -349,8 +349,8 @@ class RA(core.components.Component):
 
         def after_process_single_verdict(context):
             context.mqs['verification statuses'].put({
-                'program fragment': context.program_fragment,
-                'requirement': context.requirement,
+                'program fragment id': context.program_fragment_id,
+                'req spec id': context.req_spec_id,
                 'verdict': context.verdict,
                 'sub-job identifier': context.conf['sub-job identifier'],
                 'ideal verdicts': context.conf['ideal verdicts'],
@@ -373,50 +373,50 @@ class RA(core.components.Component):
 
             return False
 
-        program_fragment = verification_status['program fragment']
-        requirement = verification_status['requirement']
+        program_fragment_id = verification_status['program fragment id']
+        req_spec_id = verification_status['req spec id']
         ideal_verdicts = verification_status['ideal verdicts']
 
         matched_ideal_verdict = None
 
-        # Try to match exactly by both program fragment and requirement.
+        # Try to match exactly by both program fragment and requirements specification.
         for ideal_verdict in ideal_verdicts:
-            if match_attr(program_fragment, ideal_verdict.get('program fragment')) \
-                    and match_attr(requirement, ideal_verdict.get('requirement')):
+            if match_attr(program_fragment_id, ideal_verdict.get('program fragment')) \
+                    and match_attr(req_spec_id, ideal_verdict.get('requirements specification')):
                 matched_ideal_verdict = ideal_verdict
                 break
 
         # Try to match just by program fragment.
         if not matched_ideal_verdict:
             for ideal_verdict in ideal_verdicts:
-                if 'requirement' not in ideal_verdict \
-                        and match_attr(program_fragment, ideal_verdict.get('program fragment')):
+                if 'requirements specification' not in ideal_verdict \
+                        and match_attr(program_fragment_id, ideal_verdict.get('program fragment')):
                     matched_ideal_verdict = ideal_verdict
                     break
 
-        # Try to match just by requirement specification.
+        # Try to match just by requirements specification.
         if not matched_ideal_verdict:
             for ideal_verdict in ideal_verdicts:
                 if 'program fragment' not in ideal_verdict \
-                        and match_attr(requirement, ideal_verdict.get('requirement')):
+                        and match_attr(req_spec_id, ideal_verdict.get('requirements specification')):
                     matched_ideal_verdict = ideal_verdict
                     break
 
         # If nothing of above matched.
         if not matched_ideal_verdict:
             for ideal_verdict in ideal_verdicts:
-                if 'program fragment' not in ideal_verdict and 'requirement' not in ideal_verdict:
+                if 'program fragment' not in ideal_verdict and 'requirements specification' not in ideal_verdict:
                     matched_ideal_verdict = ideal_verdict
                     break
 
         if not matched_ideal_verdict:
             raise ValueError(
-                'Could not match ideal verdict for program fragment "{0}" and requirement "{1}"'
-                .format(program_fragment, requirement))
+                'Could not match ideal verdict for program fragment "{0}" and requirements specification "{1}"'
+                .format(program_fragment_id, req_spec_id))
 
         # This suffix will help to distinguish sub-jobs easier.
-        id_suffix = os.path.join(program_fragment, requirement)\
-            if program_fragment and requirement else ''
+        id_suffix = os.path.join(program_fragment_id, req_spec_id)\
+            if program_fragment_id and req_spec_id else ''
 
         return id_suffix, {
             'verdict': verification_status['verdict'],
@@ -435,7 +435,7 @@ class RA(core.components.Component):
 
         # Identifier suffix clarifies bug nature without preventing relation of verification results, so, just add it
         # to bug identifier. Sometimes just this concatenation actually serves as unique identifier, e.g. when a bug
-        # identifier is just a commit hash, while an identifier suffix contains a program fragment and a requirement
+        # identifier is just a commit hash, while an identifier suffix contains a program fragment and a requirements
         # specification.
         bug_id = os.path.join(data['bug identifier'], id_suffix)
 

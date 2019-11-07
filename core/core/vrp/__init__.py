@@ -182,25 +182,16 @@ class VRP(core.components.Component):
             status, data, attempt, source_paths = element
             pf = data[2]['id']
             requirement = data[3]
-            attrs = [
-                {
-                    "name": "Requirement",
-                    "value": requirement,
-                    "compare": True,
-                    "associate": True
-                }
-            ]
+            attrs = None
             if attempt:
                 new_id = "{}/{}/{}/RP".format(pf, requirement, attempt)
                 workdir = os.path.join(pf, requirement, str(attempt))
-                attrs.append(
-                    {
-                        "name": "Rescheduling attempt",
-                        "value": str(attempt),
-                        "compare": False,
-                        "associate": False
-                    }
-                )
+                attrs = [{
+                    "name": "Rescheduling attempt",
+                    "value": str(attempt),
+                    "compare": False,
+                    "associate": False
+                }]
             else:
                 new_id = "{}/{}/RP".format(pf, requirement)
                 workdir = os.path.join(pf, requirement)
@@ -238,8 +229,8 @@ class RP(core.components.Component):
         # Read this in a callback
         self.element = element
         self.verdict = None
-        self.requirement = None
-        self.program_fragment = None
+        self.req_spec_id = None
+        self.program_fragment_id = None
         self.task_error = None
         self.source_paths = source_paths
         self.__exception = None
@@ -259,16 +250,16 @@ class RP(core.components.Component):
         self.logger.info("VRP instance is ready to work")
         element = self.element
         status, data = element
-        task_id, opts, program_fragment, requirement, verifier, additional_srcs = data
-        self.program_fragment = program_fragment['id']
-        self.requirement = requirement
-        self.results_key = '{}:{}'.format(self.program_fragment, self.requirement)
+        task_id, opts, program_fragment_desc, req_spec_id, verifier, additional_srcs = data
+        self.program_fragment_id = program_fragment_desc['id']
+        self.req_spec_id = req_spec_id
+        self.results_key = '{}:{}'.format(self.program_fragment_id, self.req_spec_id)
         self.additional_srcs = additional_srcs
         self.logger.debug("Process results of task {}".format(task_id))
 
         files_list_file = 'files list.txt'
         with open(files_list_file, 'w', encoding='utf8') as fp:
-            fp.writelines('\n'.join(sorted(f for grp in program_fragment['grps'] for f in grp['files'])))
+            fp.writelines('\n'.join(sorted(f for grp in program_fragment_desc['grps'] for f in grp['files'])))
         core.utils.report(self.logger,
                           'patch',
                           {
@@ -276,8 +267,14 @@ class RP(core.components.Component):
                               'attrs': [
                                   {
                                       "name": "Program fragment",
-                                      "value": program_fragment['id'],
+                                      "value": self.program_fragment_id,
                                       "data": files_list_file,
+                                      "compare": True,
+                                      "associate": True
+                                  },
+                                  {
+                                      "name": "Requirements specification",
+                                      "value": req_spec_id,
                                       "compare": True,
                                       "associate": True
                                   }
@@ -506,7 +503,7 @@ class RP(core.components.Component):
         # Get coverage
         coverage_info_dir = os.path.join('total coverages',
                                          self.conf['sub-job identifier'],
-                                         self.requirement.replace('/', '-'))
+                                         self.req_spec_id.replace('/', '-'))
         os.makedirs(os.path.join(self.conf['main working directory'], coverage_info_dir), exist_ok=True)
 
         self.coverage_info_file = os.path.join(coverage_info_dir,
