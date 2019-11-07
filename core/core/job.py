@@ -64,20 +64,6 @@ def start_jobs(core_obj, vals):
     common_components_conf = __get_common_components_conf(core_obj.logger, core_obj.conf)
     core_obj.logger.info("Start results arranging and reporting subcomponent")
 
-    core_obj.logger.info('Get job class')
-    if 'Class' in common_components_conf:
-        job_type = common_components_conf['Class']
-    else:
-        raise KeyError('Specify job class within job.json')
-    core_obj.logger.debug('Job class is "{0}"'.format(job_type))
-
-    if 'Common' in common_components_conf and 'Sub-jobs' not in common_components_conf:
-        raise KeyError('You can not specify common sub-jobs configuration without sub-jobs themselves')
-
-    if 'Common' in common_components_conf:
-        common_components_conf.update(common_components_conf['Common'])
-        del (common_components_conf['Common'])
-
     core_obj.logger.info('Get project')
     if 'project' in common_components_conf:
         project = common_components_conf['project']
@@ -101,7 +87,7 @@ def start_jobs(core_obj, vals):
 
         pc = PW(core_obj.conf, core_obj.logger, core_obj.ID, core_obj.callbacks, core_obj.mqs, vals,
                 separate_from_parent=False, include_child_resources=True, session=core_obj.session,
-                total_subjobs=(len(common_components_conf['Sub-jobs']) if 'Sub-jobs' in common_components_conf else 0))
+                total_subjobs=(len(common_components_conf['sub-jobs']) if 'sub-jobs' in common_components_conf else 0))
         pc.start()
         subcomponents.append(pc)
 
@@ -130,19 +116,18 @@ def start_jobs(core_obj, vals):
             cr.start()
             subcomponents.append(cr)
 
-        if 'Sub-jobs' in common_components_conf:
-            if __check_ideal_verdicts(common_components_conf):
-                ra = RA(core_obj.conf, core_obj.logger, core_obj.ID, core_obj.callbacks, core_obj.mqs,
-                        vals, separate_from_parent=False, include_child_resources=True,
-                        job_type=job_type, queues_to_terminate=queues_to_terminate)
-                ra.start()
-                subcomponents.append(ra)
+        if 'extra results processing' in common_components_conf:
+            ra = REP(common_components_conf, core_obj.logger, core_obj.ID, core_obj.callbacks, core_obj.mqs, vals,
+                     separate_from_parent=False, include_child_resources=True, queues_to_terminate=queues_to_terminate)
+            ra.start()
+            subcomponents.append(ra)
 
+        if 'sub-jobs' in common_components_conf:
             core_obj.logger.info('Decide sub-jobs')
             sub_job_solvers_num = core.utils.get_parallel_threads_num(core_obj.logger, common_components_conf,
                                                                       'Sub-jobs processing')
             core_obj.logger.debug('Sub-jobs will be decided in parallel by "{0}" solvers'.format(sub_job_solvers_num))
-            __solve_sub_jobs(core_obj, vals, common_components_conf, job_type,
+            __solve_sub_jobs(core_obj, vals, common_components_conf,
                              subcomponents + [core_obj.uploading_reports_process])
         else:
             job = Job(
@@ -152,7 +137,6 @@ def start_jobs(core_obj, vals):
                 work_dir=os.path.join(os.path.curdir, 'job'),
                 separate_from_parent=True,
                 include_child_resources=False,
-                job_type=job_type,
                 components_common_conf=common_components_conf)
             core.components.launch_workers(core_obj.logger, [job], subcomponents + [core_obj.uploading_reports_process])
             core_obj.logger.info("Finished main job")
@@ -173,17 +157,6 @@ def start_jobs(core_obj, vals):
     core_obj.logger.info('Jobs and arranging results reporter finished')
 
 
-def __check_ideal_verdicts(conf):
-    # Check that configuration has ideal verdicts sets for at least one sub-job
-    if 'ideal verdicts' in conf:
-        return True
-    if 'Sub-jobs' in conf:
-        for sj in conf['Sub-jobs']:
-            if 'ideal verdicts' in sj:
-                return True
-    return False
-
-
 def __get_common_components_conf(logger, conf):
     logger.info('Get components common configuration')
 
@@ -202,13 +175,13 @@ def __get_common_components_conf(logger, conf):
     return components_common_conf
 
 
-def __solve_sub_jobs(core_obj, vals, components_common_conf, job_type, subcomponents):
+def __solve_sub_jobs(core_obj, vals, components_common_conf, subcomponents):
     def constructor(number):
         # Sub-job configuration is based on common sub-jobs configuration.
         sub_job_components_common_conf = copy.deepcopy(components_common_conf)
-        del (sub_job_components_common_conf['Sub-jobs'])
+        del (sub_job_components_common_conf['sub-jobs'])
         sub_job_concrete_conf = core.utils.merge_confs(sub_job_components_common_conf,
-                                                       components_common_conf['Sub-jobs'][number])
+                                                       components_common_conf['sub-jobs'][number])
 
         job = SubJob(
             core_obj.conf, core_obj.logger, core_obj.ID, core_obj.callbacks, core_obj.mqs,
@@ -235,7 +208,6 @@ def __solve_sub_jobs(core_obj, vals, components_common_conf, job_type, subcompon
             }],
             separate_from_parent=True,
             include_child_resources=False,
-            job_type=job_type,
             components_common_conf=sub_job_concrete_conf
         )
 
@@ -249,7 +221,7 @@ def __solve_sub_jobs(core_obj, vals, components_common_conf, job_type, subcompon
     subjob_queue = multiprocessing.Queue()
     # Initialize queue first
     core_obj.logger.debug('Initialize workqueue with sub-job identifiers')
-    for num in range(len(components_common_conf['Sub-jobs'])):
+    for num in range(len(components_common_conf['sub-jobs'])):
         subjob_queue.put(num)
     subjob_queue.put(None)
 
@@ -259,22 +231,19 @@ def __solve_sub_jobs(core_obj, vals, components_common_conf, job_type, subcompon
                                          components_common_conf['ignore failed sub-jobs'], subcomponents)
 
 
-class RA(core.components.Component):
+class REP(core.components.Component):
 
     def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, id=None, work_dir=None, attrs=None,
-                 separate_from_parent=True, include_child_resources=False, job_type=None, queues_to_terminate=None):
-        super(RA, self).__init__(conf, logger, parent_id, callbacks, mqs, vals, id, work_dir, attrs,
-                                 separate_from_parent, include_child_resources)
-        self.job_type = job_type
+                 separate_from_parent=True, include_child_resources=False, queues_to_terminate=None):
+        super(REP, self).__init__(conf, logger, parent_id, callbacks, mqs, vals, id, work_dir, attrs,
+                                  separate_from_parent, include_child_resources)
         self.data = dict()
 
-        # Initialize callbacks
         self.mqs['verification statuses'] = multiprocessing.Queue()
         queues_to_terminate.append('verification statuses')
         self.__set_callbacks()
 
-    def report_results(self):
-        # Process exceptions like for uploading reports.
+    def process_results_extra(self):
         os.mkdir('results')
 
         while True:
@@ -288,7 +257,7 @@ class RA(core.components.Component):
             id_suffix, verification_result = self.__match_ideal_verdict(verification_status)
             sub_job_id = verification_status['sub-job identifier']
 
-            if self.job_type == 'Verification of Linux kernel modules':
+            if self.conf['extra results processing'] == 'testing':
                 # For testing jobs there can be several verification tasks for each sub-job, so for uniqueness of
                 # tasks and directories add identifier suffix in addition.
                 task_id = os.path.join(sub_job_id, id_suffix)
@@ -297,7 +266,7 @@ class RA(core.components.Component):
                     ' ("{0}")'.format(verification_result['comment'])
                     if verification_result['comment'] else ''))
                 results_dir = os.path.join('results', task_id)
-            elif self.job_type == 'Validation on commits in Linux kernel Git repositories':
+            elif self.conf['extra results processing'] == 'validation':
                 # For validation jobs we can't refer to sub-job identifier for additional identification of verification
                 # results because of most likely we will consider pairs of sub-jobs before and after corresponding bug
                 # fixes.
@@ -307,7 +276,8 @@ class RA(core.components.Component):
                 # the only verification task for each sub-job.
                 results_dir = os.path.join('results', sub_job_id)
             else:
-                raise NotImplementedError('Job class {!r} is not supported'.format(self.job_type))
+                raise NotImplementedError('Extra results processing {!r} is not supported'
+                                          .format(self.conf['extra results processing']))
 
             os.makedirs(results_dir)
 
@@ -322,7 +292,7 @@ class RA(core.components.Component):
                               self.conf['main working directory'],
                               results_dir)
 
-    main = report_results
+    main = process_results_extra
 
     def __set_callbacks(self):
 
@@ -491,22 +461,16 @@ class RA(core.components.Component):
 
 
 class Job(core.components.Component):
-    SUPPORTED_JOB_TYPES = [
-        'Verification of userspace programs',
-        'Verification of Linux kernel modules',
-        'Validation on commits in Linux kernel Git repositories'
-    ]
-    JOB_CLASS_COMPONENTS = [
+    CORE_COMPONENTS = [
         'PFG',
         'VTG',
         'VRP'
     ]
 
     def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, id=None, work_dir=None, attrs=None,
-                 separate_from_parent=True, include_child_resources=False, job_type=None, components_common_conf=None):
+                 separate_from_parent=True, include_child_resources=False, components_common_conf=None):
         super(Job, self).__init__(conf, logger, parent_id, callbacks, mqs, vals, id, work_dir, attrs,
                                   separate_from_parent, include_child_resources)
-        self.job_type = job_type
         self.common_components_conf = components_common_conf
 
         self.clade = None
@@ -514,7 +478,7 @@ class Job(core.components.Component):
         self.component_processes = []
 
     def decide_job_or_sub_job(self):
-        self.logger.info('Decide job/sub-job of type "{0}" with identifier "{1}"'.format(self.job_type, self.id))
+        self.logger.info('Decide job/sub-job "{0}"'.format(self.id))
 
         # This is required to associate verification results with particular sub-jobs.
         # Skip leading "/" since this identifier is used in os.path.join() that returns absolute path otherwise.
@@ -728,22 +692,18 @@ class Job(core.components.Component):
             os.remove('original sources.zip')
 
     def __get_job_or_sub_job_components(self):
-        self.logger.info('Get components for sub-job of type "{0}" with identifier "{1}"'.
-                         format(self.job_type, self.id))
-
-        if self.job_type not in self.SUPPORTED_JOB_TYPES:
-            raise NotImplementedError('Job class "{0}" is not supported'.format(self.job_type))
+        self.logger.info('Get components for sub-job "{0}"'.format(self.id))
 
         self.components = [getattr(importlib.import_module('.{0}'.format(component.lower()), 'core'), component) for
-                           component in self.JOB_CLASS_COMPONENTS]
+                           component in self.CORE_COMPONENTS]
 
         self.logger.debug('Components to be launched: "{0}"'.format(
             ', '.join([component.__name__ for component in self.components])))
 
     def launch_sub_job_components(self):
         """Has callbacks"""
-        self.logger.info('Launch components for sub-job of type "{0}" with identifier "{1}"'.
-                         format(self.job_type, self.id))
+        self.logger.info('Launch components for sub-job "{0}"'.format(self.id))
+
         for component in self.components:
             p = component(self.common_components_conf, self.logger, self.id, self.callbacks, self.mqs,
                           self.vals, separate_from_parent=True)
