@@ -143,7 +143,7 @@ class ASE(core.vtg.plugins.Plugin):
                                                  # Besides header files specific for requirements will be
                                                  # searched for.
                                                  '-I' + os.path.realpath(os.path.dirname(
-                                                     self.conf['requirements DB'])),
+                                                     self.conf['specifications base'])),
                                                  aspectator_search_dir
                                              ]),
                                        env,

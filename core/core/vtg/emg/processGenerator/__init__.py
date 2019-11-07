@@ -50,7 +50,7 @@ def generate_processes(emg, source):
     # Get specifications for each kind
     # Import Specifications
     emg.logger.info("Search for interface and event specifications")
-    possible_locations = [root for root, _, _ in os.walk(os.path.dirname(emg.conf['requirements DB']))] + \
+    possible_locations = [root for root, _, _ in os.walk(os.path.dirname(emg.conf['specifications base']))] + \
                          list(get_search_dirs(emg.conf['main working directory']))
     get_specs(emg.logger, emg.conf, possible_locations, specifications)
 

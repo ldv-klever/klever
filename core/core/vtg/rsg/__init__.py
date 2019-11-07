@@ -73,9 +73,9 @@ class RSG(core.vtg.plugins.Plugin):
                                               os.path.curdir))
 
         def get_model_c_file(model):
-            # Model may be a C file or a dictionary with one item that key is a C file and value is model settings.
+            # Model may be a C file or a dictionary with model file and option attributes.
             if isinstance(model, dict):
-                return list(model.keys())[0]
+                return model['model']
             else:
                 return model
 
@@ -98,8 +98,11 @@ class RSG(core.vtg.plugins.Plugin):
                     for generated_model_c_file in generated_models:
                         if generated_model_c_file.endswith(model_c_file[1:]):
                             if isinstance(model, dict):
-                                # Specify model settings for generated models that have not any settings yet.
-                                models.append({generated_model_c_file: model[model_c_file]})
+                                # Specify model options for generated models that can not have model options themselves.
+                                models.append({
+                                    'model': generated_model_c_file,
+                                    'options': model['options']
+                                })
                             else:
                                 models.append(generated_model_c_file)
                             is_generated_model_c_file_found = True
@@ -114,7 +117,10 @@ class RSG(core.vtg.plugins.Plugin):
                     self.logger.debug('Get model with C file "{0}"'.format(model_c_file_realpath))
 
                     if isinstance(model, dict):
-                        models.append({model_c_file_realpath: model[model_c_file]})
+                        models.append({
+                            'model': model_c_file_realpath,
+                            'options': model['options']
+                        })
                     else:
                         models.append(model_c_file_realpath)
 
@@ -199,7 +205,7 @@ class RSG(core.vtg.plugins.Plugin):
             out_file = '{0}.c'.format(base_name)
 
             # Always specify either specific model sets model or common one.
-            opts = ['-DLDV_SETS_MODEL_' + (model['sets model']
+            opts = ['-DLDV_SETS_MODEL_' + (model['options']['sets model']
                                            if isinstance(model, dict) and 'sets model' in model
                                            else self.conf['common sets model']).upper()]
 

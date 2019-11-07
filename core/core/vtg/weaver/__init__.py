@@ -123,7 +123,7 @@ class Weaver(core.vtg.plugins.Plugin):
                                   '--aspect', os.path.realpath(aspect),
                                   # Besides header files specific for requirements specifications will be searched for.
                                   '--general-opts',
-                                  '-I' + os.path.realpath(os.path.dirname(self.conf['requirements DB'])),
+                                  '-I' + os.path.realpath(os.path.dirname(self.conf['specifications base'])),
                                   '--aspect-preprocessing-opts', ' '.join(self.conf['aspect preprocessing options'])
                                                                  if 'aspect preprocessing options' in self.conf else '',
                                   '--out', os.path.realpath(outfile),
@@ -210,7 +210,7 @@ class Weaver(core.vtg.plugins.Plugin):
                                     '-ia',
                                     '--cmds', os.path.realpath('cmds.txt'),
                                     'aspectator',
-                                    '-I' + os.path.realpath(os.path.dirname(self.conf['requirements DB']))
+                                    '-I' + os.path.realpath(os.path.dirname(self.conf['specifications base']))
                                 ] +
                                 core.vtg.utils.prepare_cif_opts(cc['opts'], clade, grp['id'] == 'models') +
                                 [
