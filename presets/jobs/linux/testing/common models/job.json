@@ -9,7 +9,7 @@
   "ideal verdicts": [
     {
       "ideal verdict": "safe",
-      "program fragment": [
+      "program fragments": [
         "ext-modules/linux/drivers/base/dd/safe.ko",
         "ext-modules/linux/drivers/spi/safe.ko",
         "ext-modules/linux/err/safe.ko",
@@ -25,7 +25,8 @@
         "ext-modules/verifier/set/flag/safe.ko",
         "ext-modules/verifier/set/nonnegative-counter/safe.ko",
         "ext-modules/verifier/thread/safe.ko"
-      ]},
+      ]
+    },
     {"ideal verdict": "unsafe"}
   ],
   "extra results processing": "testing",

@@ -15,7 +15,7 @@
     {"ideal verdict": "safe"},
     {
       "ideal verdict": "unsafe",
-      "program fragment": [
+      "program fragments": [
         "ext-modules/arrays/one-element/unsafe.ko",
         "ext-modules/arrays/ten-elements/unsafe.ko",
         "ext-modules/arrays/two-dimensional/unsafe.ko",

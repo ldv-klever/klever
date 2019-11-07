@@ -351,7 +351,7 @@ class REP(core.components.Component):
 
         # Try to match exactly by both program fragment and requirements specification.
         for ideal_verdict in ideal_verdicts:
-            if match_attr(program_fragment_id, ideal_verdict.get('program fragment')) \
+            if match_attr(program_fragment_id, ideal_verdict.get('program fragments')) \
                     and match_attr(req_spec_id, ideal_verdict.get('requirements specification')):
                 matched_ideal_verdict = ideal_verdict
                 break
@@ -360,14 +360,14 @@ class REP(core.components.Component):
         if not matched_ideal_verdict:
             for ideal_verdict in ideal_verdicts:
                 if 'requirements specification' not in ideal_verdict \
-                        and match_attr(program_fragment_id, ideal_verdict.get('program fragment')):
+                        and match_attr(program_fragment_id, ideal_verdict.get('program fragments')):
                     matched_ideal_verdict = ideal_verdict
                     break
 
         # Try to match just by requirements specification.
         if not matched_ideal_verdict:
             for ideal_verdict in ideal_verdicts:
-                if 'program fragment' not in ideal_verdict \
+                if 'program fragments' not in ideal_verdict \
                         and match_attr(req_spec_id, ideal_verdict.get('requirements specification')):
                     matched_ideal_verdict = ideal_verdict
                     break
@@ -375,7 +375,7 @@ class REP(core.components.Component):
         # If nothing of above matched.
         if not matched_ideal_verdict:
             for ideal_verdict in ideal_verdicts:
-                if 'program fragment' not in ideal_verdict and 'requirements specification' not in ideal_verdict:
+                if 'program fragments' not in ideal_verdict and 'requirements specification' not in ideal_verdict:
                     matched_ideal_verdict = ideal_verdict
                     break
 
