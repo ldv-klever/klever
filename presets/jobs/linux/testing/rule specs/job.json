@@ -71,6 +71,7 @@
     {"ideal verdict": "safe", "program fragment": "ext-modules/linux/usb/urb/safe.ko"},
     {"ideal verdict": "unsafe"}
   ],
+  "extra results processing": "testing",
   "sub-jobs": [
     {
       "add targets": ["ext-modules/linux/alloc/irq"],
