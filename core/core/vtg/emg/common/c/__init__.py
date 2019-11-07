@@ -101,7 +101,7 @@ class Function:
             declaration = 'void f(void)'
         if isinstance(declaration, str):
             self._declaration = import_declaration(declaration)
-        elif issubclass(type(declaration), Declaration):
+        elif issubclass(declaration, Declaration):
             self._declaration = declaration
         else:
             raise ValueError("Attempt to add function {!r} without signature".format(name))

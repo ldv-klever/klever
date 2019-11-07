@@ -33,6 +33,22 @@ def parser_test(method):
     return new_method
 
 
+def test_equality():
+    tests = [
+        'int x',
+        'int *x',
+        'void x(void)',
+        'void *x(void)',
+        'void *x(void *)'
+    ]
+
+    for test in tests:
+        obj = import_declaration(test)
+        # Test that it is parsed
+        assert obj
+        assert obj.to_string('x') == test
+
+
 @parser_test
 def test_var():
     return [

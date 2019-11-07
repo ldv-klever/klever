@@ -607,9 +607,9 @@ def direct_declarator_processing(p):
             declarator, *data = p[1:]
             if isinstance(data[0], str):
                 # inside parenthenses
-                # direct_[abstract_]declarator PARENTH_OPEN PARENTH_CLOSE
-                # direct_[abstract_]declarator PARENTH_OPEN function_parameters_list PARENTH_CLOSE
-                function_parameters_list = data[2:-1]
+                # PARENTH_OPEN PARENTH_CLOSE
+                # PARENTH_OPEN function_parameters_list PARENTH_CLOSE
+                function_parameters_list = data[1:-1]
                 if function_parameters_list:
                     function_parameters_list, = function_parameters_list
                     top = function_parameters_list[0]
