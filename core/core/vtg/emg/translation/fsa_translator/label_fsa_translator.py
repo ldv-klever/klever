@@ -21,7 +21,7 @@ from core.vtg.emg.translation.fsa_translator import FSATranslator
 from core.vtg.emg.common.c import Variable
 from core.vtg.emg.common.c.types import import_declaration
 from core.vtg.emg.translation.fsa_translator.common import extract_relevant_automata
-from core.vtg.emg.translation.fsa_translator.label_control_function import label_based_function, normalize_fsa
+from core.vtg.emg.translation.fsa_translator.label_control_function import label_based_function
 
 
 class LabelTranslator(FSATranslator):
@@ -69,7 +69,7 @@ class LabelTranslator(FSATranslator):
                 return 'pthread_create({}, 0, {}, {});'.\
                     format('& ' + sv.name, self._control_function(automaton).name, parameter)
 
-    def _dispatch_blocks(self, state, automaton, function_parameters, automata_peers, replicative):
+    def _dispatch_blocks(self, action, automaton, function_parameters, automata_peers, replicative):
         pre = []
         post = []
         blocks = []
@@ -84,9 +84,9 @@ class LabelTranslator(FSATranslator):
                 for r_state in automata_peers[name]['states']:
                     block = list()
                     block.append('{} = {}(sizeof({}));'.
-                                 format(vf_param_var._name, self._cmodel.mem_function_map["ALLOC"], decl.identifier))
+                                 format(vf_param_var.name, self._cmodel.mem_function_map["ALLOC"], decl.identifier))
                     for index in range(len(function_parameters)):
-                        block.append('{}->arg{} = arg{};'.format(vf_param_var._name, index, index))
+                        block.append('{}->arg{} = arg{};'.format(vf_param_var.name, index, index))
                     if r_state.action.replicative:
                         call = self._call_cf(automata_peers[name]['automaton'], cf_param)
                         if self._conf.get('direct control functions calls'):
@@ -112,7 +112,7 @@ class LabelTranslator(FSATranslator):
                                     automata_peers[name]['automaton'].process.name,
                                     automata_peers[name]['automaton'].process.category))
             # todo: Pretty ugly, but works
-            elif state.action.name.find('dereg') != -1:
+            elif action.name.find('dereg') != -1:
                 block = list()
                 call = self._join_cf(automata_peers[name]['automaton'])
                 if not self._conf.get('direct control functions calls'):
@@ -131,30 +131,30 @@ class LabelTranslator(FSATranslator):
 
         return pre, blocks, post
 
-    def _receive(self, state, automaton):
-        code, v_code, conditions, comments = super(LabelTranslator, self)._receive(state, automaton)
+    def _receive(self, action, automaton):
+        code, v_code, conditions, comments = super(LabelTranslator, self)._receive(action, automaton)
 
         automata_peers = {}
-        if len(state.action.peers) > 0:
+        if len(action.peers) > 0:
             # Do call only if model which can be called will not hang
             extract_relevant_automata(self._event_fsa + self._model_fsa + [self._entry_fsa],
-                                      automata_peers, state.action.peers, Dispatch)
+                                      automata_peers, action.peers, Dispatch)
 
             # Add additional condition
-            if state.action.replicative:
+            if action.replicative:
                 param_declarations = []
                 param_expressions = []
 
-                if len(state.action.parameters) > 0:
-                    for index, param in enumerate(state.action.parameters):
+                if len(action.parameters) > 0:
+                    for index, param in enumerate(action.parameters):
                         receiver_access = automaton.process.resolve_access(param)
                         var = automaton.determine_variable(receiver_access.label)
                         param_declarations.append(var.declaration)
                         param_expressions.append(var.name)
 
-                if state.action.condition and len(state.action.condition) > 0:
+                if action.condition and len(action.condition) > 0:
                     # Arguments comparison is not supported in label-based model
-                    for statement in state.action.condition:
+                    for statement in action.condition:
                         # Replace first $ARG expressions
                         s = statement
                         for index, _ in enumerate(param_expressions):
@@ -167,32 +167,29 @@ class LabelTranslator(FSATranslator):
                 if len(param_declarations) > 0:
                     decl = self._get_cf_struct(automaton, [val for val in param_declarations])
                     var = Variable('data', decl.take_pointer)
-                    v_code.append('/* Received labels */')
-                    v_code.append('{} = ({}*) arg0;'.format(var.declare(), decl.to_string('', typedef='complex')))
-                    v_code.append('')
+                    v_code += ['/* Received labels */',
+                               '{} = ({}*) arg0;'.format(var.declare(), decl.to_string('', typedef='complex')), '']
 
-                    code.append('/* Assign recieved labels */')
-                    code.append('if (data) {')
-                    for index in range(len(param_expressions)):
-                        code.append('\t{} = data->arg{};'.format(param_expressions[index], index))
-                    code.append('\t{}({});'.format(self._cmodel.free_function_map["FREE"], 'data'))
-                    code.append('}')
+                    code += ['/* Assign recieved labels */',
+                             'if (data) {'] + \
+                            ['\t{} = data->arg{};'.format(v, i) for i, v in enumerate(param_expressions)] + \
+                            ['\t{}({});'.format(self._cmodel.free_function_map["FREE"], 'data'), '}']
                 else:
                     code.append('{}({});'.format(self._cmodel.free_function_map["FREE"], 'arg0'))
             else:
-                code.append('/* Skip a non-replicative signal receiving %s */' % state.action.name)
+                code.append('/* Skip a non-replicative signal receiving %s */' % action.name)
                 # Ignore conditions
                 conditions = []
         else:
             # Generate comment
             code.append("/* Signal receive {!r} does not expect any signal from existing processes */".
-                        format(state.action.name))
+                        format(action.name))
 
         return code, v_code, conditions, comments
         
     def _compose_control_function(self, automaton):
-        self._logger.info('Generate label-based control function for automaton {} based on process {} of category {}'.
-                          format(automaton.identifier, automaton.process.name, automaton.process.category))
+        self._logger.info('Generate label-based control function for automaton {} based on process {}'.
+                          format(str(automaton), str(automaton.process)))
 
         # Get function prototype
         cf = self._control_function(automaton)
@@ -242,24 +239,6 @@ class LabelTranslator(FSATranslator):
         if self._entry_fsa.process.file != self._cmodel.entry_file:
             self._cmodel.add_function_declaration(self._cmodel.entry_file, cf, extern=True)
         return self._cmodel.compose_entry_point(body)
-
-    def _normalize_model_fsa(self, automaton):
-        """
-        Since label-based control functions are generated use correponding function to normalize fsa.
-
-        :param automaton: Automaton object.
-        :return: None
-        """
-        normalize_fsa(automaton, self._compose_action)
-
-    def _normalize_event_fsa(self, automaton):
-        """
-        Since label-based control functions are generated use correponding function to normalize fsa.
-
-        :param automaton: Automaton object.
-        :return: None
-        """
-        normalize_fsa(automaton, self._compose_action)
 
     def __thread_variable(self, automaton, var_type='single'):
         if automaton.identifier not in self.__thread_variables:

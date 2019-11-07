@@ -15,6 +15,7 @@
 # limitations under the License.
 #
 
+from core.vtg.emg.common.process import Action
 from core.vtg.emg.common.c.types import Pointer, Primitive
 
 
@@ -32,16 +33,17 @@ def extract_relevant_automata(automata, automata_peers, peers, sb_type=None):
     :return: None, since it modifies the first argument.
     """
     for peer in peers:
-        relevant_automata = [a for a in automata if a.process.pretty_id == peer["process"].pretty_id]
+        relevant_automata = [a for a in automata if a.process == peer["process"]]
         for automaton in relevant_automata:
-            if automaton.identifier not in automata_peers:
-                automata_peers[automaton.identifier] = {
+            if automaton not in automata_peers:
+                automata_peers[automaton] = {
                     "automaton": automaton,
-                    "states": set()
+                    "actions": set()
                 }
-            for state in [n for n in automaton.fsa.states if n.action and n.action.name == peer["subprocess"].name]:
-                if not sb_type or isinstance(state.action, sb_type):
-                    automata_peers[automaton.identifier]["states"].add(state)
+            for action in [n for n in automaton.process.actions.filter(include={Action})
+                           if action == peer["action"]]:
+                if not sb_type or isinstance(action, sb_type):
+                    automata_peers[automaton]["actions"].add(action)
 
 
 def initialize_automaton_variables(conf, automaton):

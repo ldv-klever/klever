@@ -21,12 +21,14 @@ from core.vtg.emg.common.process import Dispatch, Receive, Block, Subprocess
 from core.vtg.emg.translation.code import control_function_comment_begin, control_function_comment_end
 from core.vtg.emg.translation.fsa_translator import FSATranslator
 from core.vtg.emg.translation.fsa_translator.common import initialize_automaton_variables
-from core.vtg.emg.translation.fsa_translator.label_control_function import label_based_function, normalize_fsa
+from core.vtg.emg.translation.fsa_translator.label_control_function import label_based_function
 
 
 class StateTranslator(FSATranslator):
 
     def __init__(self, logger, conf, source, cmodel, entry_fsa, model_fsa, event_fsa):
+        raise NotImplementedError('State translator requires update to the newst API which has not been done')
+
         self.__state_variables = dict()
         self.__state_chains_memoization = dict()
         self.__switchers_cache = dict()
@@ -53,7 +55,7 @@ class StateTranslator(FSATranslator):
     def _call_cf_code(self, automaton, parameter='0'):
         return "{}({});".format(self._control_function(automaton).name, parameter),
 
-    def _dispatch_blocks(self, state, automaton, function_parameters, automata_peers, replicative):
+    def _dispatch_blocks(self, action, automaton, function_parameters, automata_peers, replicative):
         pre = []
         post = []
         blocks = []
@@ -86,10 +88,10 @@ class StateTranslator(FSATranslator):
                         
         return pre, blocks, post
 
-    def _receive(self, state, automaton):
-        code, v_code, conditions, comments = super(StateTranslator, self)._receive(state, automaton)
+    def _receive(self, action, automaton):
+        code, v_code, conditions, comments = super(StateTranslator, self)._receive(action, automaton)
         code.append("/* Automaton itself cannot perform a receive, look at a dispatcher's code */".
-                    format(state.action.name))
+                    format(action.action.name))
 
         return code, v_code, conditions, comments
     
@@ -192,15 +194,6 @@ class StateTranslator(FSATranslator):
 
         return self._cmodel.compose_entry_point(body)
 
-    def _normalize_model_fsa(self, automaton):
-        """
-        Since label-based control functions are generated use correponding function to normalize fsa.
-
-        :param automaton: Automaton object.
-        :return: None
-        """
-        normalize_fsa(automaton, self._compose_action)
-
     def _normalize_event_fsa(self, automaton):
         """
         There are no specific requirements implied on fsa structure.
@@ -222,14 +215,14 @@ class StateTranslator(FSATranslator):
         code = []
         v_code = []
 
-        for state in state_block:
-            new_v_code, block = state.code
+        for action in state_block:
+            new_v_code, block = automaton.code[action]
             v_code.extend(new_v_code)
             code.extend(block)
 
         if not isinstance(state_block[0].action, Receive):
             code.append('/* Set the next state */')
-            code.extend(self.__switch_state_code(automaton, state))
+            code.extend(self.__switch_state_code(automaton, action))
         else:
             code.append('/* Omit state transition for a receive */')
 
@@ -361,5 +354,3 @@ class StateTranslator(FSATranslator):
                 body.append('}')
 
         return body
-
-__author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

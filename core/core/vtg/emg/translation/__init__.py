@@ -18,14 +18,14 @@
 import os
 
 from core.vtg.emg.common import get_or_die
+from core.vtg.utils import find_file_or_dir
 from core.vtg.emg.translation.code import CModel
-from core.vtg.emg.translation.fsa import Automaton
+from core.vtg.emg.translation.automaton import Automaton
 from core.vtg.emg.translation.fsa_translator.label_fsa_translator import LabelTranslator
 from core.vtg.emg.translation.fsa_translator.state_fsa_translator import StateTranslator
-from core.vtg.utils import find_file_or_dir
 
 
-def translate_intermediate_model(logger, conf, avt, source, processes):
+def translate_intermediate_model(logger, conf, avt, source, collection):
     """
     This is the main translator function. It generates automata first for all given processes of the environment model
     and then give them to particular translator chosen by the user defined configuration. At the end it triggers
@@ -35,7 +35,7 @@ def translate_intermediate_model(logger, conf, avt, source, processes):
     :param conf: Configuration dictionary for the whole EMG.
     :param avt: Verification task dictionary.
     :param source: Source object.
-    :param processes: ProcessCollection object.
+    :param collection: ProcessCollection object.
     :return: None.
     """
     # Prepare main configuration properties
@@ -47,26 +47,23 @@ def translate_intermediate_model(logger, conf, avt, source, processes):
     conf['translation options'].setdefault('code additional aspects', list())
     conf['translation options'].setdefault('additional headers', list())
 
-    if not processes.entry:
+    if not collection.entry:
         raise RuntimeError("It is impossible to generate an environment model without main process")
 
     if conf['translation options'].get('ignore missing function models'):
-        for name in list(processes.models.keys()):
+        for name in list(collection.models.keys()):
             fs = source.get_source_functions(name)
-            if len(fs) == 0:
+            if not fs:
                 logger.info("Ignore function model {!r} since there is no such function in the code".format(name))
-                del processes.models[name]
+                del collection.models[name]
 
     # If necessary match peers
     if conf['translation options'].get('implicit signal peers'):
-        process_list = list(processes.models.values()) + list(processes.environment.values()) + [processes.entry]
+        process_list = list(collection.processes)
         for i, first in enumerate(process_list):
             if i + 1 < len(process_list):
                 for second in process_list[i+1:]:
                     first.establish_peers(second)
-
-    if conf.get('keep intermediate files'):
-        processes.save_collection('environment processes.json')
 
     # Determine entry point file and function
     logger.info("Determine entry point file and function name")
@@ -85,7 +82,7 @@ def translate_intermediate_model(logger, conf, avt, source, processes):
 
     # First just merge all as is
     additional_code = dict()
-    for process in list(processes.models.values()) + list(processes.environment.values()) + [processes.entry]:
+    for process in list(collection.models.values()) + list(collection.environment.values()) + [collection.entry]:
         for att in ('declarations', 'definitions'):
             for file in getattr(process, att):
                 additional_code.setdefault(file, {'declarations': dict(), 'definitions': dict()})
@@ -125,14 +122,14 @@ def translate_intermediate_model(logger, conf, avt, source, processes):
         cmodel.add_headers(file, get_or_die(conf['translation options'], "additional headers"))
 
     logger.info("Generate finite state machine on each process")
-    entry_fsa = Automaton(processes.entry, 1)
+    entry_fsa = Automaton(collection.entry, 1)
     identifier_cnt = 2
     model_fsa = []
     main_fsa = []
-    for process in processes.models.values():
+    for process in collection.models.values():
         model_fsa.append(Automaton(process, identifier_cnt))
         identifier_cnt += 1
-    for process in processes.environment.values():
+    for process in collection.environment.values():
         main_fsa.append(Automaton(process, identifier_cnt))
         identifier_cnt += 1
 
@@ -183,8 +180,8 @@ def translate_intermediate_model(logger, conf, avt, source, processes):
                     }
                 )
 
-    extra_c_files = {f for p in list(processes.models.values()) + list(processes.environment.values()) +
-                     [processes.entry] for f in p.cfiles}
+    extra_c_files = {f for p in list(collection.models.values()) + list(collection.environment.values()) +
+                     [collection.entry] for f in p.cfiles}
     avt.setdefault('extra C files', list())
     avt['extra C files'].extend([
         {"C file": os.path.realpath(find_file_or_dir(logger,
