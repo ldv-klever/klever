@@ -73,7 +73,7 @@
         "ext-modules/linux/usb/register/safe.ko",
         "ext-modules/linux/usb/urb/safe.ko"
       ]
-    }b
+    },
     {"ideal verdict": "unsafe"}
   ],
   "extra results processing": "testing",
