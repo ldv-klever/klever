@@ -38,15 +38,15 @@ def generate_processes(logger, conf, collection, abstract_task_desc, source):
     """
     # In a specific order start proess generators
     generator_names = ('.vtg.emg.generators.{}'.format(e) for e in
-                       [list(e.keys())[0] for e in get_or_die(conf, "intermediate model options")])
-    configurations = [list(e.values())[0] for e in get_or_die(conf, "intermediate model options")]
-    specifications_set = get_or_die(conf, 'specifications set')
+                       [list(e.keys())[0] for e in get_or_die(conf, "generators options")])
+    configurations = [list(e.values())[0] for e in get_or_die(conf, "generators options")]
+    specifications_set = conf.get('specifications set')
 
     # Find genererators
     modules = [importlib.import_module(name, 'core') for name in generator_names]
 
     # Get specifications for each kind of a agenerator
-    possible_locations = [root for root, *_ in os.walk(os.path.dirname(conf['requirements DB']))] + \
+    possible_locations = [root for root, *_ in os.walk(os.path.dirname(conf['specifications dir']))] + \
                          list(get_search_dirs(conf['main working directory']))
 
     reports = dict()
@@ -63,11 +63,11 @@ def generate_processes(logger, conf, collection, abstract_task_desc, source):
             # Save specifications
             for kind in specifications:
                 file_name = "{} {}.json".format(generator_module.__name__, kind)
-                generator.save_specification(specifications_set, specifications[kind], file_name)
+                generator.save_specification(specifications[kind], file_name)
 
             # Save processes
             with open('%s intermediate model.json' % str(type(generator).__name__), mode='w', encoding='utf8') as fp:
-                json.dump({specifications_set: collection}, fp, cls=CollectionEncoder, sort_keys=True, indent=2)
+                json.dump(collection, fp, cls=CollectionEncoder, sort_keys=True, indent=2)
 
             # Save images of processes
             collection.save_digraphs('images')

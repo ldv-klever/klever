@@ -71,6 +71,8 @@ def start_jobs(core_obj, vals):
     core_obj.logger.debug('Project is "{0}"'.format(project))
 
     # Save bases for components.
+    common_components_conf['specifications dir'] = os.path.abspath(
+        core.utils.find_file_or_dir(core_obj.logger, os.path.curdir, 'specifications'))
     common_components_conf['specifications base'] = os.path.abspath(
         core.utils.find_file_or_dir(core_obj.logger, os.path.curdir,
                                     os.path.join('specifications',

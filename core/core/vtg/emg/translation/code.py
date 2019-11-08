@@ -250,7 +250,7 @@ class CModel:
         self._logger.info("Create directory for aspect files {}".format("aspects"))
         os.makedirs(aspect_dir.encode('utf8'), exist_ok=True)
 
-        if self._conf["translation options"].get("propogate headers to instrumented files"):
+        if self._conf["translation options"].get("propogate headers to instrumented files", True):
             for file in (f for f in self.files if f in additional_lines):
                 self.add_headers(file, get_or_die(self._conf["translation options"], "additional headers"))
 
@@ -546,7 +546,7 @@ class FunctionModels:
                 func = 'UALLOC'
             if self._conf.get('disable ualloc') and func == 'UALLOC':
                 func = 'ALLOC'
-            if func != 'UALLOC' and self._conf.get('allocate with sizeof'):
+            if func != 'UALLOC' and self._conf.get('allocate with sizeof', True):
                 size = 'sizeof({})'.format(self.signature.points.to_string('', typedef='complex_and_params'))
 
             return "{}({})".format(self.mem_function_map[func], size)

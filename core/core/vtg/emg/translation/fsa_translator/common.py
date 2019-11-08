@@ -57,7 +57,7 @@ def initialize_automaton_variables(conf, automaton):
     """
     initializations = []
     for var in automaton.variables():
-        if isinstance(var.declaration, Pointer) and conf.get('allocate external'):
+        if isinstance(var.declaration, Pointer) and conf.get('allocate external', True):
             var.use += 1
             initializations.append("{} = external_allocated_data();".format(var.name))
         elif isinstance(var.declaration, Primitive) and var.value:

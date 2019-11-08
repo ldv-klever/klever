@@ -160,7 +160,7 @@ class ScenarioModelgenerator(AbstractGenerator):
         initializations = []
 
         # Check retval and cast to void call
-        if obj.declaration.return_value and obj.declaration.return_value.identifier != 'void':
+        if obj.declaration.return_value and obj.declaration.return_value != 'void':
             expression += "(void) "
 
         # Get arguments and allocate memory for them
@@ -179,22 +179,26 @@ class ScenarioModelgenerator(AbstractGenerator):
                         else:
                             elements = 'ldv_undef_int()'
                         argvar_len = Variable(argvar.name + '_len', 'int')
+
                         # Define explicitly number of arguments, since undef value is too difficult sometimes
                         initializations.append("int {} = {};".format(argvar_len.name, elements))
                         initializations.append("{} = (char **) ldv_xmalloc({} * sizeof(char *));".
                                                format(argvar.name, argvar_len.name))
+
                         # Initialize all elements but the last one
                         initializations.append("for (int i = 0; i < {} - 1; i++)".format(argvar_len.name))
+
                         # Some undefined data
                         initializations.append("\t{}[i] = (char *) external_allocated_data();".format(argvar.name))
+
                         # The last element is a string
                         initializations.append("{}[{}] = (char * ) 0;".format(argvar.name, elements - 1))
                         free_args.append(argvar.name)
-                    elif get_or_die(self.conf["translation options"], "allocate external"):
+                    elif self.conf.get("allocate external", True):
                         value = "external_allocated_data();"
                         initializations.append("{} = {}".format(argvar.name, value))
                     else:
-                        if get_or_die(self.conf["translation options"], "allocate with sizeof"):
+                        if self.conf.get("allocate with sizeof", True):
                             apt = arg.points.to_string('', typedef='complex_and_params')
                             value = "ldv_xmalloc(sizeof({}));".\
                                 format(apt if apt != 'void' else apt + '*')

@@ -99,7 +99,7 @@ class ScenarioModelgenerator(AbstractGenerator):
                 new_content = json.load(fp)
 
             for spec_set in new_content:
-                if spec_set == specifications_set:
+                if specifications_set and spec_set == specifications_set:
                     # This is our specification
                     merged_specification.extend(new_content[spec_set])
                 else:

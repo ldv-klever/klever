@@ -168,11 +168,11 @@ class ScenarioModelgenerator(AbstractGenerator):
                         # The last element is a string
                         initializations.append("{}[{}] = (char * ) 0;".format(argvar.name, elements - 1))
                         free_args.append(argvar.name)
-                    elif get_or_die(self.conf["translation options"], "allocate external"):
+                    elif self.conf.get("allocate external", True):
                         value = "external_allocated_data();"
                         initializations.append("{} = {}".format(argvar.name, value))
                     else:
-                        if get_or_die(self.conf["translation options"], "allocate with sizeof"):
+                        if self.conf.get("allocate with sizeof", True):
                             apt = arg.points.to_string('', typedef='complex_and_params')
                             value = "ldv_xmalloc(sizeof({}));".\
                                 format(apt if apt != 'void' else apt + '*')

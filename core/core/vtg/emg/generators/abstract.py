@@ -64,16 +64,15 @@ class AbstractGenerator:
 
         return specifications
 
-    def save_specification(self, specifications_set: str, specification: dict, file_name: str):
+    def save_specification(self, specification: dict, file_name: str):
         """
         Save specification to a file.
 
-        :param specifications_set: String identifier of the current specification set.
         :param specification: Specification dictionary.
         :param file_name: String with a file name.
         :return:
         """
-        specification = {specifications_set: specification}
+        specification = specification
         with open(file_name, 'w', encoding='utf8') as fp:
             self.logger.debug('save specification %s' % file_name)
             json.dump(specification, fp, indent=2, sort_keys=True)
@@ -85,7 +84,7 @@ class AbstractGenerator:
                 new_content = json.load(fp)
 
             for spec_set in new_content:
-                if spec_set == specifications_set:
+                if specifications_set and spec_set == specifications_set:
                     # This is our specification
                     for title in new_content[spec_set]:
                         merged_specification.setdefault(title, dict())
