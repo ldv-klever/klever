@@ -315,7 +315,7 @@
       }
     }
   },
-  "Linux 3.14": {
+  "3.14": {
     "environment processes": {
       "tty_layer": {
         "actions": {

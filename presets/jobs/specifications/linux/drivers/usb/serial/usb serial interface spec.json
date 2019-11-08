@@ -106,7 +106,7 @@
       }
     }
   },
-  "Linux 3.14": {
+  "3.14": {
     "categories": {
       "usb_serial": {
         "callbacks": {

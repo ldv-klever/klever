@@ -1,5 +1,5 @@
 {
-  "Linux 3.14": {
+  "3.14": {
     "environment processes": {
       "scsi_LLDd_scenario": {
         "actions": {

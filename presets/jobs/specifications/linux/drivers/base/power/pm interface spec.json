@@ -90,7 +90,7 @@
     },
     "functions models": {}
   },
-  "Linux 3.14": {
+  "3.14": {
     "categories": {
       "pm": {
         "callbacks": {

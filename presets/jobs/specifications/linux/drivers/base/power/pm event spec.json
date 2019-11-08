@@ -159,7 +159,7 @@
     },
     "functions models": {}
   },
-  "Linux 3.14": {
+  "3.14": {
     "environment processes": {
       "pm_ops_scenario": {
         "actions": {

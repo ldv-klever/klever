@@ -1,11 +1,7 @@
 {
   "project": "BusyBox",
   "build base": "busybox",
-  "program": "Busybox",
-  "version": "1.28.3",
-  "fragmentation set": "Applets",
   "add targets": ["**"],
-  "specifications set": "Linux 3.14 (base)",
   "requirement specifications": [
     "empty",
     "open",

@@ -7,13 +7,10 @@
           "options": {
             "initialize requirements": true,
             "check final state": true,
-            "source analysis": {
-              "callstack deep search": 3
-            },
-            "intermediate model options": [
+            "generators options": [
               {
                 "genericFunctions": {
-                  "infinite call": false,
+                  "infinite calls sequence": false,
                   "initialize strings as null terminated": false,
                   "functions to call": ["\\w*main"]
                 }
@@ -22,11 +19,9 @@
             "translation options": {
               "entry point": "ldv_main",
               "direct control functions calls": true,
-              "nested automata": true,
               "allocate with sizeof": true,
               "allocate external": true,
               "environment model file": "environment_model.c",
-              "code additional aspects": [],
               "propogate headers to instrumented files": true,
               "additional headers": [
                 "verifier/common.h",
@@ -85,7 +80,7 @@
         "description": "..."
       },
       {
-        "identifer": "memory safety",
+        "identifier": "memory safety",
         "description": "BusyBox memory safety",
         "plugins": [
           {
@@ -105,7 +100,7 @@
         ]
       },
       {
-        "identifer": "open",
+        "identifier": "open",
         "description": "...",
         "plugins": [{
           "name": "RSG",

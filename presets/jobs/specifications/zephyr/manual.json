@@ -1,50 +1,49 @@
 {
-  "Linux 3.14 (base)": {
-    "manual event models": [
-      {
-        "fragments": [
-          "zephyr"
-        ],
-        "model": {
-          "functions models": {},
-          "environment processes": {},
-          "main process": {
-              "actions": {
-                "usb_transfer": {
-                  "comment": "Call init functions, invoke usb_transfer callback",
-                  "statements": [
-                    "ldv_emg_zephr();\n",
-                    "for (int i = 0; i < 4; i++) {\n",
-		              "\tldv_emg_wrapper_usb_transfer_work(i);\n",
-	                "}\n",
-                    "\n"
-                  ]
-                }
-              },
-              "category": "zephyr",
-              "comment": "Invoke usb_transfer callback.",
-              "declarations": {
-                "environment model": {
-                  "usb_transfer_work": "extern void ldv_emg_wrapper_usb_transfer_work(int);\n"
-                }
-              },
-              "definitions": {
-                "subsys/usb/usb_device.c": {
-                  "usb_transfer_work": [
-                    "void ldv_emg_wrapper_usb_transfer_work(int i) {\n",
-                    "\t usb_transfer_work(&usb_dev.transfer[i].work);\n",
-                    "}\n",
-                    "\n"
-                  ]
-                }
-              },
-              "headers": [],
-              "identifier": "zephyr/usb_transfer",
-              "labels": {},
-              "process": "<usb_transfer>"
+  "1.9.2": [
+    {
+      "fragments": [
+        "zephyr"
+      ],
+      "model": {
+        "functions models": {},
+        "environment processes": {},
+        "main process": {
+          "reference": true,
+          "actions": {
+            "usb_transfer": {
+              "comment": "Call init functions, invoke usb_transfer callback",
+              "statements": [
+                "ldv_emg_zephr();\n",
+                "for (int i = 0; i < 4; i++) {\n",
+                "\tldv_emg_wrapper_usb_transfer_work(i);\n",
+                "}\n",
+                "\n"
+              ]
             }
+          },
+          "category": "zephyr",
+          "comment": "Invoke usb_transfer callback.",
+          "declarations": {
+            "environment model": {
+              "usb_transfer_work": "extern void ldv_emg_wrapper_usb_transfer_work(int);\n"
+            }
+          },
+          "definitions": {
+            "subsys/usb/usb_device.c": {
+              "usb_transfer_work": [
+                "void ldv_emg_wrapper_usb_transfer_work(int i) {\n",
+                "\t usb_transfer_work(&usb_dev.transfer[i].work);\n",
+                "}\n",
+                "\n"
+              ]
+            }
+          },
+          "headers": [],
+          "identifier": "zephyr/usb_transfer",
+          "labels": {},
+          "process": "<usb_transfer>"
         }
       }
-    ]
-  }
+    }
+  ]
 }

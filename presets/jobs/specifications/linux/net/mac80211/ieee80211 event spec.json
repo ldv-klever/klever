@@ -175,7 +175,7 @@
       }
     }
   },
-  "Linux 3.14": {
+  "3.14": {
     "environment processes": {
       "ieee80211_scenario": {
         "actions": {
