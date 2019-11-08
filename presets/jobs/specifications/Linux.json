@@ -126,9 +126,6 @@
             "verifier": {
               "name": "CPAchecker",
               "version": "trunk:31140"
-            },
-            "result processing": {
-              "coverage": "lightweight"
             }
           }
         }
@@ -353,7 +350,10 @@
                 "name": "CPAchecker",
                 "version": "CPALockator-combat-mode:28916"
               },
-              "result processing": {"expect several witnesses": true}
+              "result processing": {
+                "expect several witnesses": true,
+                "code coverage details": "None"
+              }
             }
           }
         ]

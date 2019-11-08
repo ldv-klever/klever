@@ -70,9 +70,6 @@
             "verifier": {
               "name": "CPAchecker",
               "version": "trunk:31140"
-            },
-            "result processing": {
-              "coverage": "lightweight"
             }
           }
         }

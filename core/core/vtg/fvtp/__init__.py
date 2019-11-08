@@ -21,6 +21,11 @@ import core.vtg.plugins
 
 
 class FVTP(core.vtg.plugins.Plugin):
+    CODE_COVERAGE_DETAILS_MAP = {
+        '0': 'Original C source files',
+        '1': 'C source files including models',
+        '2': 'All source files'
+    }
 
     def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, id=None, work_dir=None, attrs=None,
                  separate_from_parent=False, include_child_resources=False):
@@ -55,8 +60,12 @@ class FVTP(core.vtg.plugins.Plugin):
 
         # Prepare final abstract verification task
         self.abstract_task_desc['verifier'] = self.conf['verifier']['name']
-        self.abstract_task_desc["result processing"] = \
-            self.conf["result processing"] if self.conf["result processing"] else {}
+        self.abstract_task_desc["result processing"] = {
+            'code coverage details': self.CODE_COVERAGE_DETAILS_MAP[self.conf['code coverage details']]
+        }
+        # Specific requirement specification settings can complement or/and overwrite common ones.
+        if 'result processing' in self.conf:
+            self.abstract_task_desc["result processing"].update(self.conf["result processing"])
 
     main = final_task_preparation
 

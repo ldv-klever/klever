@@ -307,7 +307,7 @@ class LCOV:
     FUNCTION_NAME_PREFIX = "FN:"
     PARIALLY_ALLOWED_EXT = ('.c', '.i', '.c.aux')
 
-    def __init__(self, conf, logger, coverage_file, clade, source_dirs, search_dirs, main_work_dir, coverage,
+    def __init__(self, conf, logger, coverage_file, clade, source_dirs, search_dirs, main_work_dir, coverage_details,
                  coverage_id, coverage_info_dir):
         # Public
         self.conf = conf
@@ -317,13 +317,14 @@ class LCOV:
         self.source_dirs = [os.path.normpath(p) for p in source_dirs]
         self.search_dirs = [os.path.normpath(p) for p in search_dirs]
         self.main_work_dir = main_work_dir
-        self.coverage = coverage
+        self.coverage_details = coverage_details
         self.coverage_info_dir = coverage_info_dir
         self.arcnames = {}
 
         # Sanity checks
-        if self.coverage not in ('full', 'partial', 'lightweight'):
-            raise NotImplementedError("Coverage type {!r} is not supported".format(self.coverage))
+        if self.coverage_details not in ('All source files', 'C source files including models',
+                                         'Original C source files'):
+            raise NotImplementedError("Code coverage details {!r} are not supported".format(self.coverage_details))
 
         # Import coverage
         try:
@@ -357,7 +358,7 @@ class LCOV:
 
         # Get source files that should be excluded.
         excluded_src_files = set()
-        if self.coverage in ('partial', 'lightweight'):
+        if self.coverage_details in ('C source files including models', 'Original C source files'):
             with open(self.coverage_file, encoding='utf-8') as fp:
                 # Build map, that contains dir as key and list of files in the dir as value
                 all_files = {}
@@ -375,15 +376,13 @@ class LCOV:
                             all_files[path].append(file)
 
                 for path, files in all_files.items():
-                    # Lightweight coverage keeps only source files from source directories.
-                    if self.coverage == 'lightweight' and \
+                    if self.coverage_details == 'Original C source files' and \
                             all(os.path.commonpath([s, path]) != s for s in self.source_dirs):
                         self.logger.debug('Exclude source files from "{0}"'.format(path))
                         for file in files:
                             excluded_src_files.add(os.path.join(path, file))
                         continue
 
-                    # Partial coverage keeps only C source files.
                     for file in files:
                         if not file.endswith('.c'):
                             excluded_src_files.add(os.path.join(path, file))

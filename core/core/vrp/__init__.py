@@ -520,16 +520,14 @@ class RP(core.components.Component):
         if self.conf['upload input files of static verifiers']:
             report['task'] = task_id
 
-        # Coverage may be non-specified or be one of the supported types (see at core.coverage.LCOV).
-        coverage = opts.get('coverage')
         # Remember exception and raise it if verdict is not unknown
         exception = None
-        if coverage:
+        if opts['code coverage details'] != "None":
             try:
                 LCOV(self.conf, self.logger, os.path.join('output', 'coverage.info'),
                      self.clade, self.source_paths,
                      self.search_dirs, self.conf['main working directory'],
-                     coverage,
+                     opts['code coverage details'],
                      os.path.join(self.conf['main working directory'], self.coverage_info_file),
                      os.path.join(self.conf['main working directory'], coverage_info_dir))
             except Exception as err:
