@@ -20,7 +20,7 @@ from django.db import models
 from django.db.models.signals import post_delete
 from mptt.models import MPTTModel, TreeForeignKey
 
-from bridge.vars import FORMAT, JOB_ROLES, JOB_STATUS, JOB_WEIGHT
+from bridge.vars import FORMAT, JOB_ROLES, JOB_STATUS, JOB_WEIGHT, COVERAGE_DETAILS
 from bridge.utils import WithFilesMixin, remove_instance_files
 
 from users.models import User
@@ -47,6 +47,8 @@ class Job(MPTTModel):
     format = models.PositiveSmallIntegerField(default=FORMAT, editable=False)
     status = models.CharField(max_length=1, choices=JOB_STATUS, default=JOB_STATUS[0][0])
     weight = models.CharField(max_length=1, choices=JOB_WEIGHT, default=JOB_WEIGHT[0][0])
+    coverage_details = models.CharField(max_length=1, choices=COVERAGE_DETAILS,
+                                        default=COVERAGE_DETAILS[0][0])
     author = models.ForeignKey(User, models.SET_NULL, blank=True, null=True, related_name='jobs')
 
     def __str__(self):

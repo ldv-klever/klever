@@ -87,6 +87,12 @@ JOB_WEIGHT = (
     ('1', _('Lightweight'))
 )
 
+COVERAGE_DETAILS = (
+    ('0', _('Original C source files')),
+    ('1', _('C source files including models')),
+    ('2', _('All source files'))
+)
+
 MARK_SOURCE = (
     ('0', _('Created')),
     ('1', _('Preset')),

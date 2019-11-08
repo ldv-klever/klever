@@ -23,7 +23,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from rest_framework import fields, serializers
 
-from bridge.vars import PRIORITY, SCHEDULER_TYPE, JOB_WEIGHT, SCHEDULER_STATUS
+from bridge.vars import PRIORITY, SCHEDULER_TYPE, JOB_WEIGHT, COVERAGE_DETAILS, SCHEDULER_STATUS
 from bridge.utils import logger, BridgeException
 
 from users.models import SchedulerUser
@@ -50,6 +50,7 @@ from service.models import Scheduler
 #   ignore_instances - ignore other instances (bool),
 #   ignore_subjobs - ignore failed sub-jobs (bool),
 #   total_coverage - collect total code coverage (bool).
+#   coverage_details - see vars.COVERAGE_DETAILS for available values,
 # id 'file_conf' is reserved
 
 LOGGING_LEVELS = ['NONE', 'CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTSET']
@@ -87,7 +88,8 @@ KLEVER_CORE_DEF_MODES = [
             'upload_other_files': False,
             'ignore_instances': False,
             'ignore_subjobs': False,
-            'total_coverage': True
+            'total_coverage': True,
+            'coverage_details': COVERAGE_DETAILS[0][0]
         }
     },
     {
@@ -111,7 +113,8 @@ KLEVER_CORE_DEF_MODES = [
             'upload_other_files': False,
             'ignore_instances': True,
             'ignore_subjobs': True,
-            'total_coverage': True
+            'total_coverage': True,
+            'coverage_details': COVERAGE_DETAILS[1][0]
         }
     },
     {
@@ -135,7 +138,8 @@ KLEVER_CORE_DEF_MODES = [
             'upload_other_files': True,
             'ignore_instances': True,
             'ignore_subjobs': True,
-            'total_coverage': True
+            'total_coverage': True,
+            'coverage_details': COVERAGE_DETAILS[2][0]
         }
     }
 ]
@@ -165,6 +169,7 @@ class ConfigurationSerializer(serializers.Serializer):
     ignore_instances = fields.BooleanField()
     ignore_subjobs = fields.BooleanField()
     total_coverage = fields.BooleanField()
+    coverage_details = fields.ChoiceField(COVERAGE_DETAILS)
 
 
 def get_configuration_value(name, value):
@@ -249,7 +254,8 @@ class GetConfiguration:
             'upload_other_files': filedata['upload other intermediate files'],
             'ignore_instances': filedata['ignore other instances'],
             'ignore_subjobs': filedata['ignore failed sub-jobs'],
-            'total_coverage': filedata['collect total code coverage']
+            'total_coverage': filedata['collect total code coverage'],
+            'coverage_details': filedata['code coverage details'],
         }
         serializer = ConfigurationSerializer(data=configuration)
         serializer.is_valid(raise_exception=True)
@@ -287,7 +293,8 @@ class GetConfiguration:
             'upload other intermediate files': self.configuration['upload_other_files'],
             'ignore other instances': self.configuration['ignore_instances'],
             'ignore failed sub-jobs': self.configuration['ignore_subjobs'],
-            'collect total code coverage': self.configuration['total_coverage']
+            'collect total code coverage': self.configuration['total_coverage'],
+            'code coverage details': self.configuration['coverage_details'],
         }
 
     def __validate_conf(self, configuration):
@@ -313,6 +320,7 @@ class StartDecisionData:
         self.parallelism = PARALLELISM_PACKS
         self.levels = LOGGING_LEVELS
         self.formatters = DEFAULT_FORMATTER
+        self.coverage_details = COVERAGE_DETAILS
         self.schedulers = self.__get_schedulers()
 
     def __get_schedulers(self):

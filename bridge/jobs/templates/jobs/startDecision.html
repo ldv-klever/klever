@@ -230,6 +230,16 @@
                 <label for="total_coverage">{% trans 'Collect total code coverage' %}</label>
             </div>
             <br><br>
+            <p class="bold-text">{% trans 'Code coverage details' %}</p>
+            <div class="switch-toggle switch-3 switch-candy switch-candy-blue">
+                {% for x in data.coverage_details %}
+                    <input id="coverage_details_{{ x.0 }}" name="coverage_details" type="radio" value="{{ x.0 }}" {% if data.conf.coverage_details == x.0 %} checked="checked"{% endif %}>
+                    <label for="coverage_details_{{ x.0 }}">{{ x.1 }}</label>
+                {% endfor %}
+                <a></a>
+            </div>
+            <br><br>
+            <p class="bold-text">{% trans 'Job reports' %}</p>
             <div class="switch-toggle switch-3 switch-candy switch-candy-blue">
                 {% for w in data.job_weight %}
                     <input id="weight_{{ w.0 }}" name="job_weight" type="radio" value="{{ w.0 }}" {% if data.conf.job_weight == w.0 %} checked="checked"{% endif %}>
