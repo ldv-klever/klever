@@ -371,7 +371,7 @@ class CModel:
                 'ldv_initialize_external_data();'
             ]
 
-        if self._conf.get("initialize requirements"):
+        if self._conf.get("initialize requirements", True):
             body += [
                 '/* LDV {"action": "INIT", "type": "CALL_BEGIN", "callback": true, '
                 '"comment": "Initialize requirement models."} */',
@@ -383,7 +383,7 @@ class CModel:
                  '"comment": "Begin Environment model scenarios."} */'] + given_body + \
                 ['/* LDV {"action": "SCENARIOS", "type": "CONDITION_END"} */']
 
-        if self._conf.get("check final state"):
+        if self._conf.get("check final state", True):
             body += [
                 '/* LDV {"action": "FINAL", "callback": true, "type": "CALL_BEGIN", '
                 '"comment": "Check requirement model final state at the exit if required."} */',

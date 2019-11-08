@@ -107,7 +107,7 @@ def _simplify_process(logger, conf, sa, interfaces, process):
                 new_expression = access.access_with_label(new_label)
                 action.parameters[index] = new_expression
 
-                if isinstance(action, Receive) and conf.get("add registration guards"):
+                if isinstance(action, Receive) and conf.get("add registration guards", True):
                     access = process.resolve_access(new_expression)[0]
                     implementation = process.get_implementation(access)
                     if implementation and implementation.value and not \
@@ -405,7 +405,7 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
                     break
                 invoke = sa.refined_name(implementation.value)
                 check = False
-            elif not isinstance(implementation, bool) and get_or_die(conf, 'implicit callback calls')\
+            elif not isinstance(implementation, bool) and conf.get('implicit callback calls', True)\
                     and not (access.label.callback and len(access.label.interfaces) > 1):
                 # Call by pointer
                 invoke = access.access_with_label(label_map[access.label.name][access.list_interface[0].identifier])
@@ -421,8 +421,8 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
                 invoke = sa.refined_name(access.label.value)
                 check = False
             else:
-                if access.list_interface and len(access.list_interface) > 0 and\
-                        get_or_die(conf, 'implicit callback calls'):
+                if access.list_interface and len(access.list_interface) > 0 and \
+                        conf.get('implicit callback calls', True):
                     # Call if label(variable) is provided but with no explicit value
                     try:
                         invoke = access.access_with_label(access.label)
@@ -586,7 +586,7 @@ def _yield_instances(logger, conf, sa, interfaces, model, instance_maps):
 
     # According to new identifiers change signals peers
     for process in model_fsa + callback_fsa:
-        if conf.get("convert statics to globals"):
+        if conf.get("convert statics to globals", True):
             _remove_statics(sa, process)
 
     return model_fsa, callback_fsa

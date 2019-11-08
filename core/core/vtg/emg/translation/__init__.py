@@ -46,6 +46,7 @@ def translate_intermediate_model(logger, conf, avt, source, collection):
     conf['translation options'].setdefault('direct control functions calls', True)
     conf['translation options'].setdefault('code additional aspects', list())
     conf['translation options'].setdefault('additional headers', list())
+    conf['translation options'].setdefault('self parallel processes', False)
 
     if not collection.entry:
         raise RuntimeError("It is impossible to generate an environment model without main process")

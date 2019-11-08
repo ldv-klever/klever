@@ -47,7 +47,7 @@ class ProcessModel:
                 raise ValueError("Found process without category {!r}".format(process.name))
 
         # Refine processes
-        if conf.get("delete unregistered processes"):
+        if conf.get("delete unregistered processes", True):
             self.__refine_processes()
 
     def __select_processes_and_models(self, interfaces):
@@ -67,8 +67,7 @@ class ProcessModel:
                 self.logger.info("Check again how many callbacks are not called still in category {!r}".
                                  format(category))
                 uncalled_callbacks = interfaces.uncalled_callbacks(category)
-                if uncalled_callbacks and not ('ignore missed callbacks' in self.conf and
-                                               self.conf['ignore missed callbacks']):
+                if uncalled_callbacks and not self.conf.get('ignore missed callbacks', True):
                     names = str([callback.identifier for callback in uncalled_callbacks])
                     raise RuntimeError("There are callbacks from category {!r} which are not called at all in the "
                                        "model: {}".format(category, names))
