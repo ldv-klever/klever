@@ -18,11 +18,7 @@
             ],
             "translation options": {
               "entry point": "ldv_main",
-              "direct control functions calls": true,
-              "allocate with sizeof": true,
-              "allocate external": true,
               "environment model file": "environment_model.c",
-              "propogate headers to instrumented files": true,
               "additional headers": [
                 "verifier/common.h",
                 "verifier/nondet.h",
