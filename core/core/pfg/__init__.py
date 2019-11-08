@@ -37,23 +37,17 @@ class PFG(core.components.Component):
         # Collect and merge configuration
         self.logger.info("Start program fragmentation stage")
         fragdb = self.conf['program fragments base']
-        with open(fragdb, encoding='utf8') as fp:
-            fragdb = json.load(fp)
 
         # Make basic sanity checks and merge configurations
-        desc = self._merge_configurations(fragdb, self.conf['program'], self.conf.get('version'),
-                                          self.conf['fragmentation set'])
+        tactic, fset = self._merge_configurations(fragdb, self.conf['project'], self.conf.get('fragmentation set'),
+                                                  self.conf.get('decomposition tactic'))
 
         # Import project strategy
-        program = desc.get('program')
-        if not program:
-            raise KeyError('There is no available supported program fragmentation template {!r}, the following are '
-                           'available: {}'.format(program, ', '.join(fragdb['templates'].keys())))
-        strategy = self._get_fragmentation_strategy(program)
+        strategy = self._get_fragmentation_strategy(self.conf['project'])
 
         # Fragmentation
-        strategy = strategy(self.logger, self.conf, desc, self.PF_DIR)
-        attr_data, fragments_files = strategy.fragmentation()
+        strategy = strategy(self.logger, self.conf, tactic, self.PF_DIR)
+        attr_data, fragments_files = strategy.fragmentation(fset)
 
         # Prepare attributes
         self.source_paths = strategy.source_paths
@@ -98,58 +92,65 @@ class PFG(core.components.Component):
         with open(self.PF_FILE, 'w') as fp:
             fp.writelines((os.path.relpath(f, self.conf['main working directory']) + '\n' for f in files))
 
-    def _merge_configurations(self, db, program, version, dset):
+    def _merge_configurations(self, db, program, fset_name, dset):
         """
         Program fragmentation depends on a template and fragmentation set prepared for a particular program version.
         This function reads the file with templates and fragmentation sets and merges required configuration properties
         into the single dictionary.
 
-        :param db: Content of fragmentation sets file.
+        :param db: Directory where to search for fragmentation sets description files.
         :param program: Program name.
-        :param version: Program version.
-        :param dset: Fragmentation set name.
-        :return: Merged dictionary.
+        :param fset_name: Fragmentation set name.
+        :param dset: Fragmentation tactic name.
+        :return: {options}, {fragmentation set}.
         """
-        self.logger.info("Search for fragmentation description and configuration for {!r}".format(program))
+        if program:
+            self.logger.info("Search for fragmentation description and configuration for {!r}".format(program))
+            file_name = os.path.join(db, '%s.json' % program.capitalize())
+            if not os.path.isfile(file_name):
+                self.logger.warning('There is no fragmentation sets description file {!r}'.format(file_name))
+                specification = {}
+            else:
+                with open(file_name, 'r', encoding='utf8') as fp:
+                    specification = json.load(fp)
+        else:
+            raise ValueError("Require 'project' attribute to be set in job.json to proceed")
 
-        # Basic sanity checks
-        if not db.get('fragmentation sets') or not db.get('templates'):
-            raise KeyError("Provide both 'templates' and 'fragmentation sets' sections to 'program configuration'.json")
+        # Read tactics
+        tactics = specification.get('tactics', {})
+        tactic = {}
+        if dset and dset in tactic:
+            self.logger.info('Found options for {!r} tactic'.format(tactic))
+            tactic.update(specification[dset])
+        elif dset:
+            raise KeyError('There is no {!r} tactic in fragmentation sets description file'.format(dset))
+        else:
+            for item, desc in tactics.items():
+                if desc.get('reference'):
+                    self.logger.info('Use default options from {!r} tactic'.format(item))
+                    tactic.update(desc)
+                    break
+            else:
+                self.logger.info('There is no either default or provided tactic')
 
-        if program not in db['fragmentation sets'] or dset not in db['fragmentation sets'][program]:
-            raise KeyError('There is no prepared fragmentation set {!r} for program {!r}'.format(dset, program))
-        if version not in db['fragmentation sets'][program][dset]:
-            self.logger.warning("There is no fragmentation set description for provided version {!r}".format(version))
-        desc = db['fragmentation sets'].get(program, dict()).get(dset, dict()).get(version, dict())
+        # Read fragmentation set
+        fsets = specification.get('fragmentation sets', {})
+        fset = {}
+        if fset_name and fset_name in fsets:
+            self.logger.info('Fragmentation set {!r}'.format(fset_name))
+            fset.update(fsets[fset_name])
+        elif fset_name:
+            raise KeyError('There is no {!r} fragmentation set in fragmentation sets description file'.format(dset))
+        else:
+            if fsets:
+                for item, desc in fsets.items():
+                    if desc.get('reference'):
+                        self.logger.info('Use default {!r} fragmentation set'.format(item))
+                        fset.update(desc)
+            else:
+                self.logger.info('There is no either default or provided tactic')
 
-        # Merge templates
-        template = db['templates'][dset]
-        do = [template]
-        while do:
-            tmplt = do.pop()
-            if tmplt.get('template'):
-                if db['templates'].get(tmplt.get('template')):
-                    do.append(db['templates'].get(tmplt.get('template')))
-                    del tmplt['template']
-                else:
-                    raise KeyError("There is no template {!r} in program fragmentation file".
-                                   format(tmplt.get('template')))
-
-            tmplt.update(template)
-            template = tmplt
-
-        # Merge template and fragmentation set
-        template.update(desc)
-
-        # Check if job contains options for fragmentation
-        for option in ('fragments', 'add to all fragments', 'exclude from all fragments'):
-            if option in self.conf:
-                template[option] = self.conf[option]
-
-        if "fragmentation configuration options" in self.conf:
-            template.update(self.conf["fragmentation configuration options"])
-
-        return template
+        return tactic, fset
 
     def _get_fragmentation_strategy(self, strategy_name):
         """

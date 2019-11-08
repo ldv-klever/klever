@@ -19,7 +19,7 @@ from core.utils import make_relative_path
 from core.pfg.fragmentation import FragmentationAlgorythm
 
 
-class Separate(FragmentationAlgorythm):
+class Default(FragmentationAlgorythm):
 
     def _determine_units(self, program):
         """

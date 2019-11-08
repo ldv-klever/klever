@@ -29,11 +29,11 @@ class Coverage(Abstract):
     functions exported by target ones.
     """
 
-    def __init__(self, logger, conf, fragmentation_set_conf, program):
-        super().__init__(logger, conf, fragmentation_set_conf, program)
+    def __init__(self, logger, conf, tactic, program):
+        super().__init__(logger, conf, tactic, program)
         self.archive = conf.get('coverage archive')
-        self._black_list = set(self.fragmentation_set_conf.get('ignore fragments', set()))
-        self._white_list = set(self.fragmentation_set_conf.get('prefer fragments', set()))
+        self._black_list = set(self.tactic.get('ignore fragments', set()))
+        self._white_list = set(self.tactic.get('prefer fragments', set()))
 
         # Get archive
         if not self.archive:

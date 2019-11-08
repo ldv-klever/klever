@@ -25,11 +25,11 @@ class Linux(FragmentationAlgorythm):
 
     CLADE_PRESET = 'linux_kernel'
 
-    def __init__(self, logger, conf, desc, pf_dir):
-        super().__init__(logger, conf, desc, pf_dir)
-        self._max_size = self.fragmentation_set_conf.get("maximum fragment size")
-        self._separate_nested = self.fragmentation_set_conf.get("separate nested subsystems", True)
-        self.kernel = self.fragmentation_set_conf.get("kernel", False)
+    def __init__(self, logger, conf, tactic, pf_dir):
+        super().__init__(logger, conf, tactic, pf_dir)
+        self._max_size = tactic.get("maximum fragment size")
+        self._separate_nested = tactic.get("separate nested subsystems", True)
+        self.kernel = tactic.get("kernel", False)
 
     def _determine_units(self, program):
         """
@@ -80,11 +80,11 @@ class Linux(FragmentationAlgorythm):
         :param program: Program object.
         :return: Dictionary with sets of fragments.
         """
-        if self.fragmentation_set_conf.get('add modules by coverage'):
-            aggregator = Coverage(self.logger, self.conf, self.fragmentation_set_conf, program)
+        if tactic.get('add modules by coverage'):
+            aggregator = Coverage(self.logger, self.conf, tactic, program)
             return aggregator.get_groups()
-        elif self.fragmentation_set_conf.get('add modules by callgraph'):
-            aggregator = Callgraph(self.logger, self.conf, self.fragmentation_set_conf, program)
+        elif tactic.get('add modules by callgraph'):
+            aggregator = Callgraph(self.logger, self.conf, tactic, program)
             return aggregator.get_groups()
         else:
             return super()._add_dependencies(program)

@@ -20,18 +20,18 @@ class Abstract:
 
     DESC_FILE = 'agregations description.json'
 
-    def __init__(self, logger, conf, fragmentation_set_conf, program):
+    def __init__(self, logger, conf, tactic, program):
         """
         Simple strategy to add dependencies to each target fragment.
 
         :param logger: Logger object.
         :param conf: Configuration dictionary.
-        :param fragmentation_set_conf: Fragmentation set dictionary.
+        :param tactic: Fragmentation set options dictionary.
         :param program: Program object.
         """
         self.logger = logger
         self.conf = conf
-        self.fragmentation_set_conf = fragmentation_set_conf
+        self.tactic = tactic
         self.program = program
         self.__groups = dict()
 

@@ -21,18 +21,18 @@ from core.pfg.abstractions.strategies import Abstract
 class Callgraph(Abstract):
     """This strategy gets a target fragment and adds recursievely fragments which are used by this one fragment."""
 
-    def __init__(self, logger, conf, fragmentation_set_conf, program):
+    def __init__(self, logger, conf, tactic, program):
         """
         Simple strategy to add dependencies to each target fragment.
 
         :param logger: Logger object.
         :param conf: Configuration dictionary.
-        :param fragmentation_set_conf: Fragmentation set dictionary.
+        :param tactic: Fragmentation set dictionary.
         :param program: Program object.
         """
-        super().__init__(logger, conf, fragmentation_set_conf, program)
-        self._max_deep = self.fragmentation_set_conf.get('dependencies recursive depth', 3)
-        self._max_size = self.fragmentation_set_conf.get('maximum files')
+        super().__init__(logger, conf, tactic, program)
+        self._max_deep = self.tactic.get('dependencies recursive depth', 3)
+        self._max_size = self.tactic.get('maximum files')
 
     def _generate_groups_for_target(self, fragment):
         """

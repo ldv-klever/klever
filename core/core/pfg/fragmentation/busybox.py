@@ -26,9 +26,9 @@ class Busybox(FragmentationAlgorythm):
 
     CLADE_PRESET = 'busybox_linux'
 
-    def __init__(self, logger, conf, desc, pf_dir):
-        super().__init__(logger, conf, desc, pf_dir)
-        self._incorporate_libbb = self.fragmentation_set_conf.get("include dependencies from libbb to applets fragments")
+    def __init__(self, logger, conf, tactic, pf_dir):
+        super().__init__(logger, conf, tactic, pf_dir)
+        self._incorporate_libbb = tactic.get("include dependencies from libbb to applets fragments")
         self._match_files = dict()
 
     def _determine_units(self, program):
