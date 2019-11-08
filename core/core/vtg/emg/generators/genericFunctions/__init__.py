@@ -100,7 +100,7 @@ class ScenarioModelgenerator(AbstractGenerator):
         def indented_line(t, s):
             return (t * "\t") + s
 
-        loop = get_or_die(self.conf, "infinite call")
+        loop = get_or_die(self.conf, "infinite calls sequence")
 
         # Generate process
         ep = Process("main")
