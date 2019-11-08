@@ -23,7 +23,7 @@ $(document).ready(function () {
             priority: $('input[name="priority"]:checked').val(),
             scheduler: $('input[name="scheduler"]:checked').val(),
             job_weight: $('input[name="job_weight"]:checked').val(),
-            code_coverage: $('input[name="coverage_details"]:checked').val(),
+            coverage_details: $('input[name="coverage_details"]:checked').val(),
             max_tasks: $('#max_tasks').val(),
             parallelism: [$('#parallelism_0').val(), $('#parallelism_1').val(), $('#parallelism_2').val()],
             memory: $('#memory').val().replace(/,/, '.'),

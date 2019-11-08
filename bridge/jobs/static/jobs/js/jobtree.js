@@ -71,13 +71,14 @@ $(document).ready(function () {
         confirm_delete_btn.unbind().click(function () {
             $('#remove_jobs_popup').modal('hide');
             $('#dimmer_of_page').addClass('active');
+            let remove_failed = false;
             $.each(jobs_for_delete, function (i, job_id) {
-                $.ajax({url: `/jobs/api/${job_id}/remove/`, method: "DELETE", data: {}});
+                $.ajax({url: `/jobs/api/${job_id}/remove/`, method: "DELETE", error: function () { remove_failed = true }});
             });
             // When all delete requests are finished then reload the page
             $(document).ajaxStop(function () {
                 $('#dimmer_of_page').removeClass('active');
-                window.location.replace('')
+                if (!remove_failed) window.location.replace('')
             });
         });
     });
