@@ -46,14 +46,11 @@ from jobs.JobTableProperties import TableTree
 from jobs.Download import JobFileGenerator, JobConfGenerator, JobArchiveGenerator, JobsArchivesGen, JobsTreesGen
 from jobs.preset import PresetsProcessor
 
-from bridge.tasks import add
-
 
 class JobsTree(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, TemplateView):
     template_name = 'jobs/tree.html'
 
     def get_context_data(self, **kwargs):
-        add.delay(180, 320)
         return {
             'users': User.objects.all(),
             'statuses': JOB_STATUS, 'weights': JOB_WEIGHT, 'priorities': list(reversed(PRIORITY)),
