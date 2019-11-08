@@ -1,16 +1,22 @@
 {
   "project": "Linux",
   "build base": "testing/5b3d50",
-  "fragmentation tactic": "modules groups",
   "requirement specifications": ["test:common"],
   "ideal verdicts": [{"ideal verdict": "safe"}],
   "extra results processing": "testing",
   "sub-jobs": [
-    {"add targets": ["ext-modules/several_groups/init.ko"]},
-    {"add targets": ["ext-modules/multimodule_error/init.ko"]},
+    {
+      "add targets": ["ext-modules/several_groups/init.ko"],
+      "fragmentation tactic": "modules groups"
+    },
+    {
+      "add targets": ["ext-modules/multimodule_error/init.ko"],
+      "fragmentation tactic": "modules groups"
+    },
     {
       "add targets": ["ext-modules/multimodule_false_error/init.ko"],
-      "ideal verdicts": [{"ideal verdict": "unsafe"}]
+      "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "fragmentation tactic": "modules groups"
     },
     {
       "add targets": ["ext-modules/multimodule_false_error/init.ko"],
@@ -21,13 +27,15 @@
             "ext-modules/multimodule_false_error/init.ko"
           ]
         }
-      }
+      },
+      "fragmentation tactic": "modules groups"
     },
     {
       "add targets": ["ext-modules/multimodule_false_error/init.ko"],
       "fragmentation set": {
         "add to all fragments": ["ext-modules/multimodule_false_error/external.ko"]
-      }
+      },
+      "fragmentation tactic": "modules groups"
     },
     {
       "add targets": ["ext-modules/multimodule_error/init.ko"],
@@ -39,7 +47,8 @@
           ]
         }
       },
-      "ideal verdicts": [{"ideal verdict": "unsafe"}]
+      "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "fragmentation tactic": "modules groups"
     },
     {
       "add targets": ["ext-modules/multimodule_error/init.ko"],
@@ -51,7 +60,8 @@
           ]
         }
       },
-      "ideal verdicts": [{"ideal verdict": "unsafe"}]
+      "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "fragmentation tactic": "modules groups"
     },
     {
       "add targets": [
@@ -79,7 +89,8 @@
           "ideal verdict": "safe",
           "program fragments": ["ext-modules/several_groups/init.ko:1"]
         }
-      ]
+      ],
+      "fragmentation tactic": "modules groups"
     },
     {
       "add targets": ["ext-modules/kernel_library/init.ko"],
@@ -93,7 +104,8 @@
         },
         "exclude from all fragments": ["ext-modules/several_groups/library1.ko"]
       },
-      "ideal verdicts": [{"ideal verdict": "unsafe"}]
+      "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "fragmentation tactic": "modules groups"
     },
     {
       "add targets": ["ext-modules/kernel_library/init.ko"],
@@ -105,7 +117,8 @@
         },
         "add to all fragments": ["kernel_library_export_with_error"]
       },
-      "ideal verdicts": [{"ideal verdict": "unsafe"}]
+      "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "fragmentation tactic": "modules groups"
     },
     {
       "add targets": ["ext-modules/load_order/init.ko"],
@@ -117,7 +130,8 @@
           ]
         }
       },
-      "ideal verdicts": [{"ideal verdict": "unsafe"}]
+      "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "fragmentation tactic": "modules groups"
     },
     {
       "add targets": ["ext-modules/several_groups/ini*"],
