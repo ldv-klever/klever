@@ -80,11 +80,11 @@ class Linux(FragmentationAlgorythm):
         :param program: Program object.
         :return: Dictionary with sets of fragments.
         """
-        if tactic.get('add modules by coverage'):
-            aggregator = Coverage(self.logger, self.conf, tactic, program)
+        if self.tactic.get('add modules by coverage'):
+            aggregator = Coverage(self.logger, self.conf, self.tactic, program)
             return aggregator.get_groups()
-        elif tactic.get('add modules by callgraph'):
-            aggregator = Callgraph(self.logger, self.conf, tactic, program)
+        elif self.tactic.get('add modules by callgraph'):
+            aggregator = Callgraph(self.logger, self.conf, self.tactic, program)
             return aggregator.get_groups()
         else:
             return super()._add_dependencies(program)

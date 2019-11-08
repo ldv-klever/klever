@@ -303,9 +303,15 @@ class FragmentationAlgorythm:
 
         main_desc = [
             {'name': 'program', 'value': self.conf['project'], 'data': 'agregations description.json'},
-            {'name': 'decomposition tactic', 'value': self.conf.get('decomposition tactic', 'default')}
         ]
-        main_desc.append({'name': 'fragmentation set', 'value': self.conf.get('fragmentation set', 'default')})
+        tactic = self.conf.get('fragmentation tactic', 'default')
+        if isinstance(tactic, dict):
+            tactic = 'custom'
+        main_desc.append({'name': 'fragmentation tactic', 'value': tactic})
+        fset = self.conf.get('fragmentation set', 'default')
+        if isinstance(fset, dict):
+            fset = 'custom'
+        main_desc.append({'name': 'fragmentation set', 'value': fset})
         return [{'name': 'Fragmentation set', 'value': main_desc}], ['agregations description.json']
 
     def __attributes(self):

@@ -40,7 +40,7 @@ class PFG(core.components.Component):
 
         # Make basic sanity checks and merge configurations
         tactic, fset = self._merge_configurations(fragdb, self.conf['project'], self.conf.get('fragmentation set'),
-                                                  self.conf.get('decomposition tactic'))
+                                                  self.conf.get('fragmentation tactic'))
 
         # Import project strategy
         strategy = self._get_fragmentation_strategy(self.conf['project'])
@@ -117,38 +117,44 @@ class PFG(core.components.Component):
             raise ValueError("Require 'project' attribute to be set in job.json to proceed")
 
         # Read tactics
-        tactics = specification.get('tactics', {})
-        tactic = {}
-        if dset and dset in tactic:
-            self.logger.info('Found options for {!r} tactic'.format(tactic))
-            tactic.update(specification[dset])
-        elif dset:
-            raise KeyError('There is no {!r} tactic in fragmentation sets description file'.format(dset))
-        else:
-            for item, desc in tactics.items():
-                if desc.get('reference'):
-                    self.logger.info('Use default options from {!r} tactic'.format(item))
-                    tactic.update(desc)
-                    break
+        if not isinstance(dset, dict):
+            tactics = specification.get('tactics', {})
+            tactic = {}
+            if dset and dset in tactics:
+                self.logger.info('Found options for {!r} tactic'.format(tactic))
+                tactic.update(tactics[dset])
+            elif dset:
+                raise KeyError('There is no {!r} tactic in fragmentation sets description file'.format(dset))
             else:
-                self.logger.info('There is no either default or provided tactic')
+                for item, desc in tactics.items():
+                    if desc.get('reference'):
+                        self.logger.info('Use default options from {!r} tactic'.format(item))
+                        tactic.update(desc)
+                        break
+                else:
+                    self.logger.info('There is no either default or provided tactic')
+        else:
+            tactic = dset
 
         # Read fragmentation set
-        fsets = specification.get('fragmentation sets', {})
-        fset = {}
-        if fset_name and fset_name in fsets:
-            self.logger.info('Fragmentation set {!r}'.format(fset_name))
-            fset.update(fsets[fset_name])
-        elif fset_name:
-            raise KeyError('There is no {!r} fragmentation set in fragmentation sets description file'.format(dset))
-        else:
-            if fsets:
-                for item, desc in fsets.items():
-                    if desc.get('reference'):
-                        self.logger.info('Use default {!r} fragmentation set'.format(item))
-                        fset.update(desc)
+        if not isinstance(fset_name, dict):
+            fsets = specification.get('fragmentation sets', {})
+            fset = {}
+            if fset_name and fset_name in fsets:
+                self.logger.info('Fragmentation set {!r}'.format(fset_name))
+                fset.update(fsets[fset_name])
+            elif fset_name:
+                raise KeyError('There is no {!r} fragmentation set in fragmentation sets description file'.format(dset))
             else:
-                self.logger.info('There is no either default or provided tactic')
+                if fsets:
+                    for item, desc in fsets.items():
+                        if desc.get('reference'):
+                            self.logger.info('Use default {!r} fragmentation set'.format(item))
+                            fset.update(desc)
+                else:
+                    self.logger.info('There is no either default or provided tactic')
+        else:
+            fset = fset_name
 
         return tactic, fset
 
