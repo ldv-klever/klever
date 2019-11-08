@@ -164,7 +164,6 @@ class CancelDecision:
         self.decision.tasks_processing = self.decision.tasks_pending = 0
         self.decision.tasks_cancelled += in_progress_num
         self.decision.finish_date = now()
-        self.decision.error = "The job was cancelled"
         self.decision.save()
         # If there are a lot of tasks that are not still deleted it could be too long
         # as there is request to DB for each task here (pre_delete signal)
