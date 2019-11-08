@@ -1,10 +1,6 @@
 {
   "project": "Linux",
   "build base": "testing/1de383",
-  "program": "Linux",
-  "version": "3.14",
-  "fragmentation set": "Modules",
-  "specifications set": "Linux 3.14 (base)",
   "ideal verdicts": [
     {
       "ideal verdict": "safe",

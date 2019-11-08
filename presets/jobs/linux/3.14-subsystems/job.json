@@ -1,10 +1,8 @@
 {
   "project": "Linux",
   "build base": "linux-3.14.79",
-  "program": "Linux",
-  "version": "3.14.79",
-  "fragmentation set": "Subsystems",
+  "fragmentation tactic": "subsystems with modules",
   "add targets": ["drivers/tty", "drivers/char", "drivers/gpio"],
-  "specifications set": "Linux 3.14 (base)",
+  "specifications set": "3.14",
   "requirement specifications": ["memory safety"]
 }
