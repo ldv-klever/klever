@@ -50,7 +50,7 @@ class JobsPopulation:
         # should be added for all preset jobs.
         return [
             self.__get_dir(os.path.join(self.jobs_dir, 'specifications'), 'specifications'),
-            self.__get_file(os.path.join(self.jobs_dir, 'program fragmentation.json'), 'program fragmentation.json'),
+            self.__get_dir(os.path.join(self.jobs_dir, 'fragmentation sets'), 'fragmentation sets'),
             self.__get_file(os.path.join(self.jobs_dir, 'verifier profiles.json'), 'verifier profiles.json')
         ]
 

@@ -1,0 +1,27 @@
+{
+  "tactics": {
+    "applets": {
+      "reference": true,
+      "include dependencies from libbb to applets fragments": true
+    }
+  },
+  "fragmentation sets": {
+    "1.28.3": {
+      "reference": true,
+      "exclude from all fragments": [
+        "libbb/getopt32.c",
+        "libbb/appletlib.c",
+        "libbb/verror_msg.c",
+        "libbb/perror_msg.c",
+        "libbb/xatonum_template.c",
+        "libbb/xfuncs_printf.c",
+        "libbb/xatonum.c",
+        "shell/*"
+      ],
+      "add to all fragments": [
+        "libbb/wfopen.c",
+        "libbb/wfopen_input.c"
+      ]
+    }
+  }
+}
