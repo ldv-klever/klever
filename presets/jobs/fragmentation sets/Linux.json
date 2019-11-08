@@ -1,6 +1,7 @@
 {
   "tactics": {
     "separate modules": {
+      "reference": true,
       "kernel": false,
       "ignore dependencies": true
     },
