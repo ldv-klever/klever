@@ -308,7 +308,7 @@ class LCOV:
     PARIALLY_ALLOWED_EXT = ('.c', '.i', '.c.aux')
 
     def __init__(self, conf, logger, coverage_file, clade, source_dirs, search_dirs, main_work_dir, coverage,
-                 coverage_id, coverage_info_dir, collect_functions, preprocessed_files=False):
+                 coverage_id, coverage_info_dir):
         # Public
         self.conf = conf
         self.logger = logger
@@ -320,7 +320,6 @@ class LCOV:
         self.coverage = coverage
         self.coverage_info_dir = coverage_info_dir
         self.arcnames = {}
-        self.collect_functions = collect_functions
 
         # Sanity checks
         if self.coverage not in ('full', 'partial', 'lightweight'):
@@ -478,11 +477,11 @@ class LCOV:
                         'arcname': file_name,
                         'total functions': len(function_to_line),
                         'covered lines': covered_lines,
-                        'covered functions': covered_functions
+                        'covered functions': covered_functions,
+                        'covered function names': list((name for name, line in function_to_line.items()
+                                                        if covered_functions[line] != 0))
                     }
-                    if self.collect_functions:
-                        new_cov['covered function names'] = list((name for name, line in function_to_line.items()
-                                                                  if covered_functions[line] != 0))
+
                     coverage_info[file_name].append(new_cov)
 
         if not coverage_info:

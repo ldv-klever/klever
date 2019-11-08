@@ -128,8 +128,7 @@
               "version": "trunk:31140"
             },
             "result processing": {
-              "coverage": "lightweight",
-              "collect function names": true
+              "coverage": "lightweight"
             }
           }
         }
