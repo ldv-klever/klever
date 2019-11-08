@@ -40,7 +40,6 @@ JOB_ARCHIVE = 'job.zip'
 NECESSARY_FILES = [
     'job.json',
     'tasks.json',
-    'program fragmentation.json',
     'verifier profiles.json'
 ]
 
@@ -79,7 +78,7 @@ def start_jobs(core_obj, vals):
     common_components_conf['verifier profiles base'] = os.path.abspath(
         core.utils.find_file_or_dir(core_obj.logger, os.path.curdir, 'verifier profiles.json'))
     common_components_conf['program fragments base'] = os.path.abspath(
-        core.utils.find_file_or_dir(core_obj.logger, os.path.curdir, 'program fragmentation.json'))
+        core.utils.find_file_or_dir(core_obj.logger, os.path.curdir, 'fragmentation sets'))
 
     subcomponents = []
     try:

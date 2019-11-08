@@ -99,9 +99,6 @@ def _extract_req_spec_descs(conf, logger):
     if 'requirement specifications' not in conf:
         raise KeyError('Nothing will be verified since requirement specifications to be checked are not specified')
 
-    if 'specifications set' not in conf:
-        raise KeyError('Nothing will be verified since specifications set is not specified')
-
     # Read specifications base.
     with open(conf['specifications base'], encoding='utf8') as fp:
         raw_req_spec_descs = json.load(fp)
