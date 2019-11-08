@@ -4,7 +4,7 @@
   "program": "Linux",
   "version": "3.14",
   "fragmentation set": "Modules",
-  "specifications set": "Linux 3.14 (base)",
+  "specifications set": "3.14",
   "requirement specifications": ["test:common"],
   "add targets": ["**"],
   "ideal verdicts": [

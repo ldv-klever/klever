@@ -1,5 +1,5 @@
 {
-  "Linux 2.6.33": {
+  "2.6.33": {
     "categories": {
       "usb_serial": {
         "callbacks": {
@@ -296,7 +296,7 @@
       }
     }
   },
-  "Linux 3.2": {
+  "3.2": {
     "categories": {
       "usb_serial": {
         "callbacks": {

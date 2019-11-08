@@ -68,7 +68,7 @@
       }
     }
   },
-  "Linux 4.17": {
+  "4.17": {
     "categories": {
       "scsi_host_template": {
         "containers": {

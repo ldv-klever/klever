@@ -5,8 +5,6 @@
         {
           "name": "EMG",
           "options": {
-            "initialize requirements": true,
-            "check final state": true,
             "generators options": [
               {
                 "genericFunctions": {

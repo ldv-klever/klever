@@ -59,7 +59,7 @@
       }
     }
   },
-  "Linux 4.15": {
+  "4.15": {
     "categories": {
       "timer": {
         "callbacks": {

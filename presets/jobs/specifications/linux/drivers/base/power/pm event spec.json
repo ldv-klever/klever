@@ -1,5 +1,5 @@
 {
-  "Linux 2.6.33": {
+  "2.6.33": {
     "environment processes": {
       "pm_ops_scenario": {
         "actions": {

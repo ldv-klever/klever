@@ -1,5 +1,5 @@
 {
-  "Linux 2.6.33": {
+  "2.6.33": {
     "environment processes": {
       "usb_serial_scenario": {
         "actions": {
@@ -739,7 +739,7 @@
       }
     }
   },
-  "Linux 3.2": {
+  "3.2": {
     "environment processes": {
       "usb_serial_scenario": {
         "actions": {

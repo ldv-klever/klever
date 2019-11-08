@@ -182,7 +182,7 @@
       }
     }
   },
-  "Linux 4.15": {
+  "4.15": {
     "environment processes": {
       "io_target_scenario": {
         "actions": {
@@ -362,7 +362,7 @@
       }
     }
   },
-  "Linux 4.17": {
+  "4.17": {
     "environment processes": {
       "io_target_scenario": {
         "actions": {
@@ -542,7 +542,7 @@
       }
     }
   },
-  "Linux 4.6.7": {
+  "4.6.7": {
     "environment processes": {
       "io_target_scenario": {
         "actions": {

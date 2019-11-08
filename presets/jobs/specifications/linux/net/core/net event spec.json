@@ -225,7 +225,7 @@
       }
     }
   },
-  "Linux 4.15": {
+  "4.15": {
     "environment processes": {},
     "functions models": {
       "alloc_etherdev_mqs": {
@@ -379,7 +379,7 @@
       }
     }
   },
-  "Linux 4.17": {
+  "4.17": {
     "environment processes": {},
     "functions models": {
       "alloc_etherdev_mqs": {
@@ -533,7 +533,7 @@
       }
     }
   },
-  "Linux 4.6.7": {
+  "4.6.7": {
     "environment processes": {},
     "functions models": {
       "alloc_etherdev_mqs": {

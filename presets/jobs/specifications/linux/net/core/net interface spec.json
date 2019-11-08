@@ -76,7 +76,7 @@
       }
     }
   },
-  "Linux 4.15": {
+  "4.15": {
     "categories": {},
     "functions models": {
       "alloc_netdev_mqs": {
@@ -85,7 +85,7 @@
       }
     }
   },
-  "Linux 4.17": {
+  "4.17": {
     "categories": {},
     "functions models": {
       "alloc_netdev_mqs": {
@@ -94,7 +94,7 @@
       }
     }
   },
-  "Linux 4.6.7": {
+  "4.6.7": {
     "categories": {},
     "functions models": {
       "alloc_netdev_mqs": {

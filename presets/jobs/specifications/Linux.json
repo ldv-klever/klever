@@ -5,23 +5,10 @@
         {
           "name": "EMG",
           "options": {
-            "entry point": "main",
-            "initialize requirements": true,
-            "check final state": true,
-            "source analysis": {
-              "callstack deep search": 3,
-              "macros white list": "linux/emg/macros white list.json"
-            },
-            "intermediate model options": [
+            "macros white list": "linux/emg/macros white list.json",
+            "generators options": [
               {
                 "linuxModule": {
-                  "dump instances": false,
-                  "convert statics to globals": true,
-                  "add registration guards": true,
-                  "ignore missed callbacks": true,
-                  "delete unregistered processes": true,
-                  "implicit callback calls": true,
-                  "generate new resource interfaces": false,
                   "callback comment": "Invoke callback {0} from {1}.",
                   "action comments": {
                     "dispatch": {
@@ -74,16 +61,8 @@
               }
             ],
             "translation options": {
-              "debug output": false,
-              "self parallel processes": false,
-              "self parallel model": false,
-              "always sequential processes": ["linux/initialization"],
-              "direct control functions calls": true,
-              "nested automata": true,
-              "allocate with sizeof": true,
               "allocate external": false,
               "environment model file": "environment_model.c",
-              "code additional aspects": [],
               "additional headers": [
                 "linux/ldv/common.h",
                 "linux/ldv/err.h",
@@ -253,35 +232,28 @@
                 "callstack deep search": 3,
                 "macros white list": "linux/emg/macros white list.json"
               },
-              "intermediate model options": [
+              "generators options": [
                 {
-                  "linuxModule": {
-                    "dump instances": false,
-                    "convert statics to globals": true,
-                    "add registration guards": false,
-                    "ignore missed callbacks": true,
-                    "delete unregistered processes": true,
-                    "implicit callback calls": true,
-                    "generate new resource interfaces": false,
-                    "callback comment": "Invoke callback {0} from {1}.",
-                    "action comments": {
-                      "dispatch": {
-                        "register": "Register {} callbacks.",
-                        "instance_register": "Register {} callbacks.",
-                        "deregister": "Deregister {} callbacks.",
-                        "instance_deregister": "Deregister {} callbacks.",
-                        "irq_register": "Register {} interrupt handler.",
-                        "irq_deregister": "Deregister {} interrupt handler."
-                      },
-                      "receive": {
-                        "register": "Begin {} callbacks invocations scenario.",
-                        "instance_register": "Begin {} callbacks invocations scenario.",
-                        "deregister": "Finish {} callbacks invocations scenario.",
-                        "instance_deregister": "Finish {} callbacks invocations scenario."
-                      }
+                "linuxModule": {
+                  "callback comment": "Invoke callback {0} from {1}.",
+                  "action comments": {
+                    "dispatch": {
+                      "register": "Register {} callbacks.",
+                      "instance_register": "Register {} callbacks.",
+                      "deregister": "Deregister {} callbacks.",
+                      "instance_deregister": "Deregister {} callbacks.",
+                      "irq_register": "Register {} interrupt handler.",
+                      "irq_deregister": "Deregister {} interrupt handler."
+                    },
+                    "receive": {
+                      "register": "Begin {} callbacks invocations scenario.",
+                      "instance_register": "Begin {} callbacks invocations scenario.",
+                      "deregister": "Finish {} callbacks invocations scenario.",
+                      "instance_deregister": "Finish {} callbacks invocations scenario."
                     }
                   }
-                },
+                }
+              },
                 {
                   "linuxInsmod": {
                     "init": "module_init",
@@ -313,19 +285,14 @@
                 {"genericManual": {"enforce replacement": true}}
               ],
               "translation options": {
-                "debug output": false,
                 "self parallel processes": true,
-                "self parallel model": false,
                 "do not skip signals": true,
                 "not self parallel processes": ["linux/initialization"],
                 "not self parallel processes from categories": ["usb"],
                 "not self parallel processes from scenarios": ["usb_serial_scenario"],
                 "direct control functions calls": false,
-                "nested automata": true,
-                "allocate with sizeof": true,
                 "allocate external": false,
                 "environment model file": "environment_model.c",
-                "code additional aspects": [],
                 "additional headers": [
                   "linux/ldv/common.h",
                   "linux/ldv/err.h",
@@ -635,16 +602,9 @@
                 "callstack deep search": 3,
                 "macros white list": "linux/emg/macros white list.json"
               },
-              "intermediate model options": [
+              "generators options": [
                 {
                   "linuxModule": {
-                    "dump instances": false,
-                    "convert statics to globals": true,
-                    "add registration guards": true,
-                    "ignore missed callbacks": true,
-                    "delete unregistered processes": true,
-                    "implicit callback calls": true,
-                    "generate new resource interfaces": false,
                     "callback comment": "Invoke callback {0} from {1}.",
                     "action comments": {
                       "dispatch": {
@@ -695,16 +655,8 @@
                 {"genericManual": {"enforce replacement": true}}
               ],
               "translation options": {
-                "debug output": false,
-                "self parallel processes": false,
-                "self parallel model": false,
-                "always sequential processes": ["linux/initialization"],
-                "direct control functions calls": true,
-                "nested automata": true,
-                "allocate with sizeof": true,
                 "allocate external": true,
                 "environment model file": "environment_model.c",
-                "code additional aspects": [],
                 "additional headers": [
                   "linux/user_namespace.h",
                   "linux/ldv/common.h",

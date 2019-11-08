@@ -151,7 +151,7 @@
       }
     }
   },
-  "Linux 4.15": {
+  "4.15": {
     "environment processes": {
       "timer_scenario": {
         "actions": {
@@ -226,7 +226,7 @@
       }
     }
   },
-  "Linux 4.17": {
+  "4.17": {
     "environment processes": {
       "timer_scenario": {
         "actions": {

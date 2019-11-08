@@ -234,7 +234,7 @@
       }
     }
   },
-  "Linux 4.15": {
+  "4.15": {
     "environment processes": {
       "platform_instance": {
         "actions": {
@@ -438,7 +438,7 @@
       }
     }
   },
-  "Linux 4.17": {
+  "4.17": {
     "environment processes": {
       "platform_instance": {
         "actions": {
@@ -642,7 +642,7 @@
       }
     }
   },
-  "Linux 4.6.7": {
+  "4.6.7": {
     "environment processes": {
       "platform_instance": {
         "actions": {

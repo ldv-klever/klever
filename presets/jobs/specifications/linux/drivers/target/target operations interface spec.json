@@ -52,7 +52,7 @@
       }
     }
   },
-  "Linux 4.15": {
+  "4.15": {
     "categories": {
       "target_backend": {
         "callbacks": {
@@ -102,7 +102,7 @@
       }
     }
   },
-  "Linux 4.17": {
+  "4.17": {
     "categories": {
       "target_backend": {
         "callbacks": {
@@ -152,7 +152,7 @@
       }
     }
   },
-  "Linux 4.6.7": {
+  "4.6.7": {
     "categories": {
       "target_backend": {
         "callbacks": {
