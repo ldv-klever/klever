@@ -23,10 +23,12 @@ import os
 import core.utils
 from core.vtg.emg.common import get_or_die
 from core.vtg.emg.generators.abstract import AbstractGenerator
-from core.vtg.emg.generators.linuxModule.processes import ProcessModel
+from core.vtg.emg.common.process.serialization import CollectionDecoder
 from core.vtg.emg.generators.linuxModule.instances import generate_instances
+from core.vtg.emg.generators.linuxModule.processes import process_specifications
+from core.vtg.emg.generators.linuxModule.interface.analysis import import_specification
 from core.vtg.emg.generators.linuxModule.interface.collection import InterfaceCollection
-from core.vtg.emg.generators.linuxModule.process.procImporter import AbstractProcessImporter
+from core.vtg.emg.generators.linuxModule.process.serialization import ExtendedProcessDecoder
 import core.vtg.utils
 
 
@@ -34,7 +36,8 @@ class ScenarioModelgenerator(AbstractGenerator):
 
     specifications_endings = {
         'event specifications': 'event spec.json',
-        'interface specifications': 'interface spec.json'
+        'interface specifications': 'interface spec.json',
+        'instance maps': 'insance map.json'
     }
 
     def make_scenarios(self, abstract_task_desc, collection, source, specifications):
@@ -48,20 +51,25 @@ class ScenarioModelgenerator(AbstractGenerator):
         :return: Reports dict
         """
         # Get instance maps if possible
-        all_instance_maps = specifications["instance maps"].get("specification")
-        task_name = abstract_task_desc['fragment']
         instance_maps = dict()
+        all_instance_maps = specifications.get("instance maps", [])
+
+        # Get fragment name
+        task_name = abstract_task_desc['fragment']
+
+        # Check availability of an instance map for it
         for imap in all_instance_maps.get('instance maps', []):
             if task_name in imap.get('fragments', []):
                 instance_maps = imap.get('instance map', dict())
 
         self.logger.info("Import interface categories specification")
-        interfaces = InterfaceCollection(self.logger, self.conf)
-        interfaces.fill_up_collection(source, specifications["interface specification"]["specification"])
+        interfaces = InterfaceCollection()
+        import_specification(self.logger, collection, source, specifications["interface specifications"])
 
         self.logger.info("Import event categories specification")
-        abstract_processes = AbstractProcessImporter(self.logger, self.conf)
-        abstract_processes.parse_event_specification(specifications["event specification"]["specification"])
+        decoder = ExtendedProcessDecoder(self.logger, self.conf)
+        abstract_processes = decoder.parse_event_specification(source,
+                                                               specifications["event specification"]["specification"])
 
         # Now check that we have all necessary interface specifications
         unspecified_functions = [func for func in abstract_processes.models
@@ -70,12 +78,11 @@ class ScenarioModelgenerator(AbstractGenerator):
         if len(unspecified_functions) > 0:
             raise RuntimeError("You need to specify interface specifications for the following function models: {}"
                                .format(', '.join(unspecified_functions)))
-        process_model = ProcessModel(self.logger, self.conf, interfaces, abstract_processes)
-        abstract_processes.environment = {p.identifier: p for p in process_model.event_processes}
-        abstract_processes.models = {p.identifier: p for p in process_model.model_processes}
+
+        chosen_processes = process_specifications(self.logger, self.conf, interfaces, abstract_processes)
 
         self.logger.info("Generate processes from abstract ones")
-        instance_maps, data = generate_instances(self.logger, self.conf, source, interfaces, abstract_processes,
+        instance_maps, data = generate_instances(self.logger, self.conf, source, interfaces, chosen_processes,
                                                  instance_maps)
 
         # Dump to disk instance map
@@ -85,8 +92,11 @@ class ScenarioModelgenerator(AbstractGenerator):
             fd.writelines(ujson.dumps(instance_maps, ensure_ascii=False, sort_keys=True, indent=4,
                                       escape_forward_slashes=False))
 
-        processes.parse_event_specification(data)
-        processes.establish_peers()
+        puredecoder = CollectionDecoder(self.logger, self.conf)
+        new_pure_collection = puredecoder.parse_event_specification(source, data)
+        collection.environment.update(new_pure_collection.environment)
+        collection.models.update(new_pure_collection.models)
+        collection.establish_peers()
 
         return {}
 
@@ -141,7 +151,7 @@ def __get_specs(logger, conf, directory):
 
 
 def __merge_spec_versions(collection, user_tag):
-    regex = re.compile('\(base\)')
+    regex = re.compile(r'\(base\)')
 
     # Copy data to a final spec
     def import_specification(spec, final_spec):
