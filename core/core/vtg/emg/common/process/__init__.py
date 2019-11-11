@@ -309,6 +309,13 @@ class Process:
         return new
 
     def add_choice(self, name, actions):
+        """
+        Add a new choice object.
+
+        :param name: New action name
+        :param actions: Actions iterable.
+        :return: Choice object.
+        """
         new = Choice(name)
         self.actions[new] = new
 
@@ -318,6 +325,13 @@ class Process:
         return new
 
     def add_concatenation(self, name, actions):
+        """
+       Add a new concatenation object.
+
+       :param name: New action name
+       :param actions: Actions iterable.
+       :return: Concatenation object.
+       """
         new = Concatenation(name)
         self.actions[new] = new
 
@@ -327,9 +341,42 @@ class Process:
         return new
 
     def add_parenthenses(self, name, action):
+        """
+        Add a new Parentheses object.
+
+        :param name: New action name
+        :param action: Actions iterable.
+        :return: Parentheses object.
+        """
         new = Parentheses(name, action)
         self.actions[new] = new
         return new
+
+    def replace_action(self, old, new):
+        """
+        Replace in actions graph the given action. This methods replaces successors and predecessors and also
+        changes operator attributes with references.
+
+        :param old: BaseAction object.
+        :param new: BaseAction object.
+        :return: None
+        """
+        for successor in old.successors:
+            successor.replace_predecessor(old, new)
+        for predecessor in old.predecessors:
+            predecessor.replace_successor(old, new)
+
+            if isinstance(predecessor, Parentheses):
+                predecessor.action = new
+            elif isinstance(predecessor, Choice):
+                predecessor.actions.remove(old)
+                predecessor.actions.add(new)
+            elif isinstance(predecessor, Concatenation):
+                index = predecessor.actions.index(old)
+                predecessor.actions[index] = new
+
+        del self.actions[str(old)]
+        self.actions[str(new)] = new
 
 
 class Actions(collections.UserDict):
