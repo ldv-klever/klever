@@ -16,9 +16,12 @@
 #
 
 import re
+import copy
 
-from core.vtg.emg.common.process import Process, Label, Access, Block, Dispatch, Receive, Action
+from core.vtg.emg.common import get_or_die
 from core.vtg.emg.common.c.types import Array, Structure, Pointer
+from core.vtg.emg.generators.linuxModule.interface import Interface, Callback, Container, StructureContainer
+from core.vtg.emg.common.process import Process, Label, Access, Block, Dispatch, Receive, Action, ProcessCollection
 
 
 def get_common_parameter(action, process, position):
@@ -27,7 +30,7 @@ def get_common_parameter(action, process, position):
 
     for peer in action.peers:
         candidates = [access.interface for access
-                      in peer['process'].resolve_access(peer['subprocess'].parameters[position])
+                      in peer['process'].resolve_access(peer['action'].parameters[position])
                       if access.interface]
         interfaces = set(interfaces) & set(candidates)
 
@@ -58,9 +61,9 @@ class CallRetval(Action):
         self.retlabel = None
 
 
-class AbstractAccess(Access):
+class ExtendedAccess(Access):
     def __init__(self, expression):
-        super(AbstractAccess, self).__init__(expression)
+        super(ExtendedAccess, self).__init__(expression)
         self.interface = None
         self.list_interface = None
         self.complete_list_interface = None
@@ -121,10 +124,10 @@ class AbstractAccess(Access):
         return expression
 
 
-class AbstractLabel(Label):
+class ExtendedLabel(Label):
 
     def __init__(self, name):
-        super(AbstractLabel, self).__init__(name)
+        super(ExtendedLabel, self).__init__(name)
         self.container = False
         self.resource = False
         self.callback = False
@@ -154,7 +157,13 @@ class AbstractLabel(Label):
     def set_declaration(self, identifier, declaration):
         self._signature_map[identifier] = declaration
 
-    def compare_with(self, label):
+    def set_interface(self, interface):
+        if isinstance(interface, Container):
+            self.set_declaration(str(interface), interface.declaration.take_pointer)
+        else:
+            self.set_declaration(str(interface), interface.declaration)
+
+    def __eq__(self, label):
         if len(self.interfaces) > 0 and len(label.interfaces) > 0:
             if len(list(set(self.interfaces) & set(label.interfaces))) > 0:
                 return 'equal'
@@ -167,14 +176,14 @@ class AbstractLabel(Label):
             else:
                 return 'different'
         else:
-            return super(AbstractLabel, self).compare_with(label)
+            return super(ExtendedLabel, self).__eq__(label)
 
 
-class AbstractProcess(Process):
+class ExtendedProcess(Process):
     label_re = re.compile(r'%(\w+)((?:\.\w*)*)%')
 
     def __init__(self, name):
-        super(AbstractProcess, self).__init__(name)
+        super(ExtendedProcess, self).__init__(name)
         self.self_parallelism = True
         self.allowed_implementations = dict()
 
@@ -280,7 +289,7 @@ class AbstractProcess(Process):
             process.actions[signals[1]].peers.append(
                 {
                     'process': self,
-                    'subprocess': self.actions[signals[0]]
+                    'action': self.actions[signals[0]]
                 })
 
     def get_available_peers(self, process):
@@ -376,35 +385,14 @@ class AbstractProcess(Process):
         else:
             return None
 
-    def __compare_signals(self, process, first, second):
-        if first.name == second.name and len(first.parameters) == len(second.parameters):
-            match = True
-            for index in range(len(first.parameters)):
-                label = self.extract_label(first.parameters[index])
-                if not label:
-                    raise ValueError("Provide label in subprocess '{}' at position '{}' in process '{}'".
-                                     format(first.name, index, self._name))
-                pair = process.extract_label(second.parameters[index])
-                if not pair:
-                    raise ValueError("Provide label in subprocess '{}' at position '{}'".
-                                     format(second.name, index, process.name))
-
-                ret = label.compare_with(pair)
-                if ret != "сompatible" and ret != "equal":
-                    match = False
-                    break
-            return match
-        else:
-            return False
-
     def add_label(self, name, declaration, value=None):
-        lb = AbstractLabel(name)
+        lb = ExtendedLabel(name)
         lb.declaration = declaration
         if value:
             lb.value = value
 
         self.labels[name] = lb
-        acc = AbstractAccess('%{}%'.format(name))
+        acc = ExtendedAccess('%{}%'.format(name))
         acc.label = lb
         acc.list_access = [lb.name]
         self._accesses[acc.expression] = [acc]
@@ -418,3 +406,24 @@ class AbstractProcess(Process):
         new.statements = statements
         new.comment = comment
         return new
+
+    def __compare_signals(self, process, first, second):
+        if first.name == second.name and len(first.parameters) == len(second.parameters):
+            match = True
+            for index in range(len(first.parameters)):
+                label = self.extract_label(first.parameters[index])
+                if not label:
+                    raise ValueError("Provide label in action '{}' at position '{}' in process '{}'".
+                                     format(first.name, index, self._name))
+                pair = process.extract_label(second.parameters[index])
+                if not pair:
+                    raise ValueError("Provide label in action '{}' at position '{}'".
+                                     format(second.name, index, process.name))
+
+                ret = label.compare_with(pair)
+                if ret != "сompatible" and ret != "equal":
+                    match = False
+                    break
+            return match
+        else:
+            return False
