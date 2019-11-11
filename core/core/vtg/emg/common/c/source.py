@@ -37,29 +37,26 @@ def create_source_representation(logger, conf, abstract_task):
     # Initialize Clade cient to make requests
     clade = Clade(conf['build base'])
 
+    prefixes = _prefixes(conf, clade)
+
     # Ask for dependencies for each CC
     cfiles, dep_paths, files_map = _collect_file_dependencies(clade, abstract_task)
 
     # Read file with source analysis
-    full_paths = _c_full_paths(conf, clade, cfiles)
-    collection = Source(clade, cfiles, full_paths, dep_paths)
+    collection = Source(cfiles, prefixes, dep_paths)
+    collection.c_full_paths = _c_full_paths(collection, cfiles)
+
     _import_code_analysis(logger, conf, clade, files_map, collection)
 
     return collection
 
 
-def _c_full_paths(conf, clade, cfiles):
-    full_paths = list()
-    for path in cfiles:
-        for spath in conf["working source trees"]:
-            abspath = os.path.join(spath, path)
-            storabspath = clade.get_storage_path(abspath)
-            if os.path.isfile(storabspath):
-                full_paths.append(abspath)
-                break
-        else:
-            raise FileNotFoundError('There is no file {!r} in the build base or the correct path to source files'
-                                    ' is not provided'.format(path))
+def _prefixes(conf, clade):
+    return {clade.get_storage_path(spath) for spath in conf["working source trees"]}
+
+
+def _c_full_paths(collection, cfiles):
+    full_paths = {collection.find_file(file) for file in cfiles}
     return full_paths
 
 
@@ -229,10 +226,10 @@ class Source:
     """
     __REGEX_TYPE = type(re.compile('a'))
 
-    def __init__(self, clade, cfiles, c_full_paths, deps):
-        self._clade = clade
+    def __init__(self, cfiles, prefixes, deps):
         self.cfiles = cfiles
-        self.c_full_paths = c_full_paths
+        self.prefixes = prefixes
+        self.possble_path_prefixes = set()
         self.deps = deps
         self.dep_paths = set()
 
@@ -250,6 +247,23 @@ class Source:
         :return: function names list.
         """
         return list(self._source_functions.keys())
+
+    def find_file(self, path):
+        """
+        Find real file that match the given either relative or absolute path.
+
+        :param path: String.
+        :return: Absolute path string.
+        """
+        if path == 'environment model':
+            return path
+        for prefix in self.prefixes:
+            abspath = os.path.join(prefix, path)
+            if os.path.isfile(abspath):
+                return abspath
+        else:
+            raise FileNotFoundError('There is no file {!r} in the build base or the correct path to source files'
+                                    ' is not provided'.format(path))
 
     def called_in_source_code(self, func):
         """
