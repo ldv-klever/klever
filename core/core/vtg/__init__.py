@@ -117,7 +117,7 @@ def _extract_req_spec_descs(conf, logger):
             raise KeyError('Template "{0}" for "{1}" is not described'.format(tmpl_id, cur_req_id))
 
     # Get identifiers, template identifiers and plugin options for all requirement specifications.
-    def get_req_spec_descs(cur_req_spec_descs, cur_req_id, cur_tmpl_id):
+    def get_req_spec_descs(cur_req_spec_descs, cur_req_id, parent_tmpl_id):
         # Requirement specifications are described as a tree where leaves correspond to individual requirement
         # specifications while intermediate nodes hold common parts of requirement specification identifiers, optional
         # template identifiers and optional descriptions.
@@ -136,6 +136,8 @@ def _extract_req_spec_descs(conf, logger):
                 if 'template' in cur_req_spec_desc:
                     cur_tmpl_id = cur_req_spec_desc['template']
                     exist_tmpl(cur_tmpl_id, next_req_id)
+                else:
+                    cur_tmpl_id = parent_tmpl_id
 
                 # Handle another one sub-tree.
                 if 'children' in cur_req_spec_desc:
@@ -158,10 +160,10 @@ def _extract_req_spec_descs(conf, logger):
         # Handle tree root.
         else:
             # Template can be specified for all requirement specifications.
-            cur_tmpl_id = cur_req_spec_descs.get('template')
-            exist_tmpl(cur_tmpl_id, cur_req_id)
+            root_tmpl_id = cur_req_spec_descs.get('template')
+            exist_tmpl(root_tmpl_id, cur_req_id)
             if 'children' in cur_req_spec_descs:
-                return get_req_spec_descs(cur_req_spec_descs['children'], '', cur_tmpl_id)
+                return get_req_spec_descs(cur_req_spec_descs['children'], '', root_tmpl_id)
             else:
                 raise KeyError('Specifications base does not describe any requirement specifications')
 
