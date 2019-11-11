@@ -27,7 +27,7 @@ def extract_relevant_automata(automata, automata_peers, peers, sb_type=None):
     :param automata_peers: Dictionary {'Automaton.identfier string' -> {'states': ['relevant State objects'],
                                                                         'automaton': 'Automaton object'}
     :param peers: List of relevant Process objects: [{'process': 'Process obj',
-                                                     'subprocess': 'Receive or Dispatch obj'}]
+                                                     'action': 'Receive or Dispatch obj'}]
     :param sb_type: Receive or Dispatch class to choose only those automata that reseive or send signals to the
                     given one
     :return: None, since it modifies the first argument.

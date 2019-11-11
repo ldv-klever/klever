@@ -126,7 +126,7 @@ class Process:
             for m in self.label_re.finditer(expr):
                 used_labels.add(self.labels[m.group(1)])
 
-        for action in (a for a in self.actions if isinstance(a, Action)):
+        for action in (a for a in self.actions.values() if isinstance(a, Action)):
             if isinstance(action, Receive) or isinstance(action, Dispatch):
                 for param in action.parameters:
                     extract_labels(param)
@@ -156,20 +156,18 @@ class Process:
 
             if len(self._accesses) == 0 or len(exclude) > 0 or no_labels:
                 # Collect all accesses across process subprocesses
-                for action in [self.actions[name] for name in self.actions.keys()]:
-                    tp = type(action)
-                    if tp not in exclude:
-                        if isinstance(action, Receive) or isinstance(action, Dispatch):
-                            for index in range(len(action.parameters)):
-                                accss[action.parameters[index]] = None
-                        if isinstance(action, Block):
-                            for statement in action.statements:
-                                for match in self.label_re.finditer(statement):
-                                    accss[match.group()] = None
-                        if action.condition:
-                            for statement in action.condition:
-                                for match in self.label_re.finditer(statement):
-                                    accss[match.group()] = None
+                for action in self.actions.filter(include={Action}, exclude=exclude):
+                    if isinstance(action, Receive) or isinstance(action, Dispatch):
+                        for index in range(len(action.parameters)):
+                            accss[action.parameters[index]] = None
+                    if isinstance(action, Block):
+                        for statement in action.statements:
+                            for match in self.label_re.finditer(statement):
+                                accss[match.group()] = None
+                    if action.condition:
+                        for statement in action.condition:
+                            for match in self.label_re.finditer(statement):
+                                accss[match.group()] = None
 
                 # Add labels with interfaces
                 if not no_labels:
@@ -218,8 +216,8 @@ class Process:
                         break
                 else:
                     # All parameters match each other
-                    self.actions[action].peers.append({'process': process, 'subprocess': process.actions[action]})
-                    process.actions[action].peers.append({'process': self, 'subprocess': self.actions[action]})
+                    self.actions[action].peers.append({'process': process, 'action': process.actions[action]})
+                    process.actions[action].peers.append({'process': self, 'action': self.actions[action]})
 
     def resolve_access(self, access):
         """
@@ -651,11 +649,10 @@ class Choice(BaseAction):
 
 class ProcessCollection:
     """
-        This class represents collection of processes for an environment model generators. Also it contains methods to
-        import or export processes in the JSON format. The collection contains function models processes, generic
-        environment model processes that acts as soon as they receives replicative signals and a main process.
-
-        """
+    This class represents collection of processes for an environment model generators. Also it contains methods to
+    import or export processes in the JSON format. The collection contains function models processes, generic
+    environment model processes that acts as soon as they receives replicative signals and a main process.
+    """
 
     def __init__(self):
         self.entry = None
@@ -666,6 +663,10 @@ class ProcessCollection:
     def processes(self):
         return list(self.models.values()) + list(self.environment.values()) + ([self.entry] if self.entry else [])
 
+    @property
+    def process_map(self):
+        return {str(p): p for p in self.processes}
+
     def establish_peers(self, strict=False):
         """
         Get processes and guarantee that all peers are correctly set for both receivers and dispatchers. The function
@@ -675,29 +676,8 @@ class ProcessCollection:
         :return: None
         """
         # Then check peers. This is because in generated processes there no peers set for manually written processes
-        process_map = {str(p): p for p in self.processes}
         for process in self.processes:
-            for action in [process.actions[a] for a in process.actions.filter(include={Receive, Dispatch})
-                           if process.actions[a].peers]:
-                new_peers = set()
-                for peer in action.peers:
-                    if isinstance(peer, str):
-                        if peer in process_map:
-                            target = process_map[peer]
-                            new_peer = {'process': target, 'subprocess': target.actions[action.name]}
-                            new_peers.add(new_peer)
-
-                            opposite_peers = [str(p['process']) if isinstance(p, dict) else p
-                                              for p in target.actions[action.name].peers]
-                            if str(process) not in opposite_peers:
-                                target.actions[action.name].peers.append({'process': process, 'subprocess': action})
-                        elif strict:
-                            raise KeyError("Process {!r} tries to send a signal {!r} to {!r} but there is no such "
-                                           "process in the model".format(str(process), str(action), peer))
-                    else:
-                        new_peers.add(peer)
-
-                action.peers = new_peers
+            self.__establist_peers_of_process(process, strict)
 
     def save_digraphs(self, directory):
         """
@@ -750,3 +730,28 @@ class ProcessCollection:
             # Save to dg_file
             graph.save(dg_file)
             graph.render()
+
+    def __establist_peers_of_process(self, process, strict=False):
+        # Then check peers. This is because in generated processes there no peers set for manually written processes
+        process_map = self.process_map
+        for action in [process.actions[a] for a in process.actions.filter(include={Receive, Dispatch})
+                       if process.actions[a].peers]:
+            new_peers = set()
+            for peer in action.peers:
+                if isinstance(peer, str):
+                    if peer in process_map:
+                        target = process_map[peer]
+                        new_peer = {'process': target, 'action': target.actions[action.name]}
+                        new_peers.add(new_peer)
+
+                        opposite_peers = [str(p['process']) if isinstance(p, dict) else p
+                                          for p in target.actions[action.name].peers]
+                        if str(process) not in opposite_peers:
+                            target.actions[action.name].peers.append({'process': process, 'subprocess': action})
+                    elif strict:
+                        raise KeyError("Process {!r} tries to send a signal {!r} to {!r} but there is no such "
+                                       "process in the model".format(str(process), str(action), peer))
+                else:
+                    new_peers.add(peer)
+
+            action.peers = new_peers
