@@ -123,7 +123,7 @@ def _simplify_process(logger, conf, sa, interfaces, process):
                         peer['interfaces'] = list()
                     if len(peer['interfaces']) == index:
                         peer['interfaces'].append(interface)
-                    for pr in peer['subprocess'].peers:
+                    for pr in peer['action'].peers:
                         if 'interfaces' not in pr:
                             pr['interfaces'] = list()
                         if len(pr['interfaces']) == index:
@@ -576,7 +576,7 @@ def _yield_instances(logger, conf, sa, interfaces, model, instance_maps):
                     for instance in identifiers_map[peer['process'].identifier]:
                         new_peer = {
                             "process": instance,
-                            "subprocess": instance.actions[peer['subprocess'].name]
+                            "action": instance.actions[peer['action'].name]
                         }
                         new_peers.append(new_peer)
                 # Do not add peers for deleted processes
