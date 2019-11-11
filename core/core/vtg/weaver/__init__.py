@@ -228,9 +228,6 @@ class Weaver(core.vtg.plugins.Plugin):
                 else:
                     extra_c_file = {}
 
-                if 'requirement id' in extra_cc:
-                    extra_c_file['requirement id'] = extra_cc['requirement id']
-
                 self.abstract_task_desc['extra C files'].append(extra_c_file)
 
         # Get cross references and everything required for them when all required commands were executed.
