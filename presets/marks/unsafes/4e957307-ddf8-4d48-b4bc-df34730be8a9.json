@@ -2,8 +2,8 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:drivers:clk2"
+      "name": "Requirements specification",
+      "value": "drivers:clk2"
     },
     {
       "is_compare": true,

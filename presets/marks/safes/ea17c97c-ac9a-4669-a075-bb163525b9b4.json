@@ -2,8 +2,8 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:block:genhd"
+      "name": "Requirements specification",
+      "value": "block:genhd"
     },
     {
       "is_compare": true,

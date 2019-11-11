@@ -2,8 +2,8 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:net:register"
+      "name": "Requirements specification",
+      "value": "net:register"
     },
     {
       "is_compare": true,

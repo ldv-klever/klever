@@ -2,8 +2,8 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:net:rtnetlink"
+      "name": "Requirements specification",
+      "value": "net:rtnetlink"
     },
     {
       "is_compare": true,

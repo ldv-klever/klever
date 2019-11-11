@@ -2,8 +2,8 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:usb:register"
+      "name": "Requirements specification",
+      "value": "usb:register"
     },
     {
       "is_compare": true,

@@ -2,8 +2,8 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:usb:urb"
+      "name": "Requirements specification",
+      "value": "usb:urb"
     },
     {
       "is_compare": true,

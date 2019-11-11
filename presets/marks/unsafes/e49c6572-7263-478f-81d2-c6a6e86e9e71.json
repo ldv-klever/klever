@@ -2,8 +2,8 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:fs:sysfs"
+      "name": "Requirements specification",
+      "value": "fs:sysfs"
     },
     {
       "is_compare": true,

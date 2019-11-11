@@ -2,8 +2,8 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:test:environment model specifications"
+      "name": "Requirements specification",
+      "value": "test:environment model specifications"
     },
     {
       "is_compare": true,

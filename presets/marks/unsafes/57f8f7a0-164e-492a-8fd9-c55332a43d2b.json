@@ -2,8 +2,8 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:lib:find_bit"
+      "name": "Requirements specification",
+      "value": "lib:find_bit"
     },
     {
       "is_compare": true,

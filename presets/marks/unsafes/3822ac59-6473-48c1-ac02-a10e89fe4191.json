@@ -2,8 +2,8 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:net:sock"
+      "name": "Requirements specification",
+      "value": "net:sock"
     },
     {
       "is_compare": true,

@@ -2,8 +2,8 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:test:common"
+      "name": "Requirements specification",
+      "value": "test:common"
     },
     {
       "is_compare": true,
