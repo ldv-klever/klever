@@ -52,7 +52,7 @@ def create_source_representation(logger, conf, abstract_task):
 
 
 def _prefixes(conf, clade):
-    return {clade.get_storage_path(spath) for spath in conf["working source trees"]}
+    return {clade.get_storage_path(spath) for spath in conf["working source trees"] + ['']}
 
 
 def _c_full_paths(collection, cfiles):
@@ -258,7 +258,7 @@ class Source:
         if path == 'environment model':
             return path
         for prefix in self.prefixes:
-            abspath = os.path.join(prefix, path)
+            abspath = prefix + '/' + path
             if os.path.isfile(abspath):
                 return abspath
         else:
@@ -268,7 +268,7 @@ class Source:
     def called_in_source_code(self, func):
         """
         Provides information about function calls in C source files of the program fragment.
-
+self.prefixes
         :param func: Function object.
         :return: Dictinary {'C file name': {Set of function caller names}}.
         """
