@@ -144,7 +144,9 @@
     },
     {
       "add targets": ["ext-modules/several_groups/init.ko"],
-      "exclude from all fragments": ["several_groups_export_with_error"],
+      "fragmentation set": {
+        "exclude from all fragments": ["several_groups_export_with_error"]
+      },
       "fragmentation tactic": {
         "kernel": false,
         "add modules by callgraph": true,
