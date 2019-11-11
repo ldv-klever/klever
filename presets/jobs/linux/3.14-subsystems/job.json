@@ -2,7 +2,7 @@
   "project": "Linux",
   "build base": "linux-3.14.79",
   "fragmentation tactic": "subsystems with modules",
-  "add targets": ["drivers/tty", "drivers/char", "drivers/gpio"],
+  "targets": ["drivers/tty", "drivers/char", "drivers/gpio"],
   "specifications set": "3.14",
   "requirement specifications": ["memory safety"]
 }

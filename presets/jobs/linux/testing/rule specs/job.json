@@ -71,63 +71,63 @@
   "extra results processing": "testing",
   "sub-jobs": [
     {
-      "add targets": ["ext-modules/linux/alloc/irq"],
+      "targets": ["ext-modules/linux/alloc/irq"],
       "requirement specifications": ["alloc:irq"]
     },
     {
-      "add targets": ["ext-modules/linux/alloc/spinlock"],
+      "targets": ["ext-modules/linux/alloc/spinlock"],
       "requirement specifications": ["alloc:spinlock"]
     },
     {
-      "add targets": ["ext-modules/linux/alloc/usb-lock"],
+      "targets": ["ext-modules/linux/alloc/usb-lock"],
       "requirement specifications": ["alloc:usb lock"]
     },
     {
-      "add targets": ["ext-modules/linux/arch/io"],
+      "targets": ["ext-modules/linux/arch/io"],
       "requirement specifications": ["arch:io"]
     },
     {
-      "add targets": ["ext-modules/linux/block/genhd"],
+      "targets": ["ext-modules/linux/block/genhd"],
       "requirement specifications": ["block:genhd"]
     },
     {
-      "add targets": ["ext-modules/linux/block/queue"],
+      "targets": ["ext-modules/linux/block/queue"],
       "requirement specifications": ["block:queue"]
     },
     {
-      "add targets": ["ext-modules/linux/block/request"],
+      "targets": ["ext-modules/linux/block/request"],
       "requirement specifications": ["block:request"]
     },
     {
-      "add targets": ["ext-modules/linux/concurrency-safety/lock-reduce"],
+      "targets": ["ext-modules/linux/concurrency-safety/lock-reduce"],
       "requirement specifications": ["concurrency safety"]
     },
     {
-      "add targets": ["ext-modules/linux/concurrency-safety/simple"],
+      "targets": ["ext-modules/linux/concurrency-safety/simple"],
       "requirement specifications": ["concurrency safety"]
     },
     {
-      "add targets": ["ext-modules/linux/concurrency-safety/unsorted"],
+      "targets": ["ext-modules/linux/concurrency-safety/unsorted"],
       "requirement specifications": ["concurrency safety"]
     },
     {
-      "add targets": ["ext-modules/linux/drivers/base/class"],
+      "targets": ["ext-modules/linux/drivers/base/class"],
       "requirement specifications": ["drivers:base:class"]
     },
     {
-      "add targets": ["ext-modules/linux/drivers/base/dma-mapping"],
+      "targets": ["ext-modules/linux/drivers/base/dma-mapping"],
       "requirement specifications": ["drivers:base:dma-mapping"]
     },
     {
-      "add targets": ["ext-modules/linux/drivers/clk1"],
+      "targets": ["ext-modules/linux/drivers/clk1"],
       "requirement specifications": ["drivers:clk1"]
     },
     {
-      "add targets": ["ext-modules/linux/drivers/clk2"],
+      "targets": ["ext-modules/linux/drivers/clk2"],
       "requirement specifications": ["drivers:clk2"]
     },
     {
-      "add targets": ["ext-modules/linux/empty"],
+      "targets": ["ext-modules/linux/empty"],
       "requirement specifications": [
         "alloc:irq",
         "alloc:spinlock",
@@ -138,92 +138,92 @@
       ]
     },
     {
-      "add targets": ["ext-modules/linux/fs/sysfs"],
+      "targets": ["ext-modules/linux/fs/sysfs"],
       "requirement specifications": ["fs:sysfs"]
     },
     {
-      "add targets": ["ext-modules/linux/kernel/locking/mutex"],
+      "targets": ["ext-modules/linux/kernel/locking/mutex"],
       "requirement specifications": ["kernel:locking:mutex"]
     },
     {
-      "add targets": ["ext-modules/linux/kernel/locking/rwlock"],
+      "targets": ["ext-modules/linux/kernel/locking/rwlock"],
       "requirement specifications": ["kernel:locking:rwlock"]
     },
     {
-      "add targets": ["ext-modules/linux/kernel/locking/spinlock"],
+      "targets": ["ext-modules/linux/kernel/locking/spinlock"],
       "requirement specifications": ["kernel:locking:spinlock"]
     },
     {
-      "add targets": ["ext-modules/linux/kernel/module"],
+      "targets": ["ext-modules/linux/kernel/module"],
       "requirement specifications": ["kernel:module"]
     },
     {
-      "add targets": ["ext-modules/linux/kernel/rcu/srcu"],
+      "targets": ["ext-modules/linux/kernel/rcu/srcu"],
       "requirement specifications": ["kernel:rcu:srcu"]
     },
     {
-      "add targets": ["ext-modules/linux/kernel/rcu/update/lock"],
+      "targets": ["ext-modules/linux/kernel/rcu/update/lock"],
       "requirement specifications": ["kernel:rcu:update:lock"]
     },
     {
-      "add targets": ["ext-modules/linux/kernel/rcu/update/lock-bh"],
+      "targets": ["ext-modules/linux/kernel/rcu/update/lock-bh"],
       "requirement specifications": ["kernel:rcu:update:lock bh"]
     },
     {
-      "add targets": ["ext-modules/linux/kernel/rcu/update/lock-sched"],
+      "targets": ["ext-modules/linux/kernel/rcu/update/lock-sched"],
       "requirement specifications": ["kernel:rcu:update:lock sched"]
     },
     {
-      "add targets": ["ext-modules/linux/kernel/sched/completion"],
+      "targets": ["ext-modules/linux/kernel/sched/completion"],
       "requirement specifications": ["kernel:sched:completion"]
     },
     {
       "build base": "testing/1cae6b",
-      "add targets": ["ext-modules/linux/kernel/sched/completion-no-lockdep"],
+      "targets": ["ext-modules/linux/kernel/sched/completion-no-lockdep"],
       "requirement specifications": ["kernel:sched:completion"]
     },
     {
-      "add targets": ["ext-modules/linux/lib/find_bit"],
+      "targets": ["ext-modules/linux/lib/find_bit"],
       "requirement specifications": ["lib:find_bit"]
     },
     {
-      "add targets": ["ext-modules/linux/lib/idr"],
+      "targets": ["ext-modules/linux/lib/idr"],
       "requirement specifications": ["lib:idr"]
     },
     {
-      "add targets": ["ext-modules/linux/memory-safety"],
+      "targets": ["ext-modules/linux/memory-safety"],
       "requirement specifications": ["memory safety"]
     },
     {
-      "add targets": ["ext-modules/linux/net/register"],
+      "targets": ["ext-modules/linux/net/register"],
       "requirement specifications": ["net:register"]
     },
     {
-      "add targets": ["ext-modules/linux/net/rtnetlink"],
+      "targets": ["ext-modules/linux/net/rtnetlink"],
       "requirement specifications": ["net:rtnetlink"]
     },
     {
-      "add targets": ["ext-modules/linux/net/sock"],
+      "targets": ["ext-modules/linux/net/sock"],
       "requirement specifications": ["net:sock"]
     },
     {
-      "add targets": ["ext-modules/linux/usb/coherent"],
+      "targets": ["ext-modules/linux/usb/coherent"],
       "requirement specifications": ["usb:coherent"]
     },
     {
-      "add targets": ["ext-modules/linux/usb/dev"],
+      "targets": ["ext-modules/linux/usb/dev"],
       "requirement specifications": ["usb:dev"]
     },
     {
-      "add targets": ["ext-modules/linux/usb/gadget"],
+      "targets": ["ext-modules/linux/usb/gadget"],
       "requirement specifications": ["usb:gadget"]
     },
     {
-      "add targets": ["ext-modules/linux/usb/register"],
+      "targets": ["ext-modules/linux/usb/register"],
       "requirement specifications": ["usb:register"]
     },
     {
-      "add targets": ["ext-modules/linux/usb/urb"],
+      "targets": ["ext-modules/linux/usb/urb"],
       "requirement specifications": ["usb:urb"]
     }
   ],

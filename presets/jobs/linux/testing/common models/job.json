@@ -26,5 +26,5 @@
     {"ideal verdict": "unsafe"}
   ],
   "extra results processing": "testing",
-  "add targets": ["**"]
+  "targets": ["**"]
 }

@@ -6,20 +6,20 @@
   "extra results processing": "testing",
   "sub-jobs": [
     {
-      "add targets": ["ext-modules/several_groups/init.ko"],
+      "targets": ["ext-modules/several_groups/init.ko"],
       "fragmentation tactic": "modules groups"
     },
     {
-      "add targets": ["ext-modules/multimodule_error/init.ko"],
+      "targets": ["ext-modules/multimodule_error/init.ko"],
       "fragmentation tactic": "modules groups"
     },
     {
-      "add targets": ["ext-modules/multimodule_false_error/init.ko"],
+      "targets": ["ext-modules/multimodule_false_error/init.ko"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
       "fragmentation tactic": "modules groups"
     },
     {
-      "add targets": ["ext-modules/multimodule_false_error/init.ko"],
+      "targets": ["ext-modules/multimodule_false_error/init.ko"],
       "fragmentation set": {
         "fragments": {
           "ext-modules/multimodule_false_error/init.ko": [
@@ -31,14 +31,14 @@
       "fragmentation tactic": "modules groups"
     },
     {
-      "add targets": ["ext-modules/multimodule_false_error/init.ko"],
+      "targets": ["ext-modules/multimodule_false_error/init.ko"],
       "fragmentation set": {
         "add to all fragments": ["ext-modules/multimodule_false_error/external.ko"]
       },
       "fragmentation tactic": "modules groups"
     },
     {
-      "add targets": ["ext-modules/multimodule_error/init.ko"],
+      "targets": ["ext-modules/multimodule_error/init.ko"],
       "fragmentation set": {
         "fragments": {
           "ext-modules/multimodule_error/init.ko": [
@@ -51,7 +51,7 @@
       "fragmentation tactic": "modules groups"
     },
     {
-      "add targets": ["ext-modules/multimodule_error/init.ko"],
+      "targets": ["ext-modules/multimodule_error/init.ko"],
       "fragmentation set": {
         "fragments": {
           "ext-modules/multimodule_error/init.ko": [
@@ -64,7 +64,7 @@
       "fragmentation tactic": "modules groups"
     },
     {
-      "add targets": [
+      "targets": [
         "ext-modules/several_groups/init.ko:0",
         "ext-modules/several_groups/init.ko:1"
       ],
@@ -93,7 +93,7 @@
       "fragmentation tactic": "modules groups"
     },
     {
-      "add targets": ["ext-modules/kernel_library/init.ko"],
+      "targets": ["ext-modules/kernel_library/init.ko"],
       "fragmentation set": {
         "fragments": {
           "ext-modules/kernel_library/init.ko": [
@@ -108,7 +108,7 @@
       "fragmentation tactic": "modules groups"
     },
     {
-      "add targets": ["ext-modules/kernel_library/init.ko"],
+      "targets": ["ext-modules/kernel_library/init.ko"],
       "fragmentation set": {
         "fragments": {
           "ext-modules/kernel_library/init.ko": [
@@ -121,7 +121,7 @@
       "fragmentation tactic": "modules groups"
     },
     {
-      "add targets": ["ext-modules/load_order/init.ko"],
+      "targets": ["ext-modules/load_order/init.ko"],
       "fragmentation set": {
         "fragments": {
           "ext-modules/load_order/init.ko": [
@@ -134,7 +134,7 @@
       "fragmentation tactic": "modules groups"
     },
     {
-      "add targets": ["ext-modules/several_groups/ini*"],
+      "targets": ["ext-modules/several_groups/ini*"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
       "fragmentation tactic": {
         "kernel": false,
@@ -143,7 +143,7 @@
       }
     },
     {
-      "add targets": ["ext-modules/several_groups/init.ko"],
+      "targets": ["ext-modules/several_groups/init.ko"],
       "fragmentation set": {
         "exclude from all fragments": ["several_groups_export_with_error"]
       },
@@ -154,7 +154,7 @@
       }
     },
     {
-      "add targets": ["ext-modules/multimodule_false_error/init.ko"],
+      "targets": ["ext-modules/multimodule_false_error/init.ko"],
       "fragmentation tactic": {
         "kernel": false,
         "add modules by callgraph": true,
@@ -162,7 +162,7 @@
       }
     },
     {
-      "add targets": ["ext-modules/multimodule_error/init.ko"],
+      "targets": ["ext-modules/multimodule_error/init.ko"],
       "fragmentation tactic": {
         "kernel": false,
         "add modules by callgraph": true,
