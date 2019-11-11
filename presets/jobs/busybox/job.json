@@ -1,7 +1,7 @@
 {
   "project": "BusyBox",
   "build base": "busybox",
-  "add targets": ["**"],
+  "targets": ["**"],
   "requirement specifications": [
     "empty",
     "open",

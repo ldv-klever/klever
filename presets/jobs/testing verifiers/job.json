@@ -6,7 +6,7 @@
   "fragmentation set": "Modules",
   "specifications set": "3.14",
   "requirement specifications": ["test:common"],
-  "add targets": ["**"],
+  "targets": ["**"],
   "ideal verdicts": [
     {"ideal verdict": "safe"},
     {

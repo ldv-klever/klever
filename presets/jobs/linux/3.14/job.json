@@ -1,7 +1,7 @@
 {
   "project": "Linux",
   "build base": "build-base-linux-3.14.79-x86_64-test.tar.xz",
-  "add targets": [
+  "targets": [
     "drivers/ata/pata_arasan_cf.ko",
     "drivers/idle/i7300_idle.ko",
     "drivers/uwb/hwa-rc.ko"
