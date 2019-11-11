@@ -20,7 +20,7 @@ from core.vtg.emg.generators.linuxModule.interface import Resource, Callback, St
     FunctionInterface, ArrayContainer
 
 
-def yield_categories(logger, collection, sa):
+def yield_categories(logger, conf, collection, sa):
     """
     Analyze all new types found by SA component and yield final set of interface categories built from manually prepared
     interface specifications and global variables. All new categories and interfaces are added directly to the
@@ -28,16 +28,17 @@ def yield_categories(logger, collection, sa):
     types. However, there are still unused interfaces present in the collection after this function termination.
 
     :param logger: Logger object.
+    :param conf: Configuration dict.
     :param collection: InterfaceCategoriesSpecification object.
     :param sa: Source object.
     """
 
     # Add resources
-    if collection.conf.get("generate new resource interfaces"):
+    if conf.get("generate new resource interfaces"):
         __populate_resources(collection)
 
     # Complement interface references
-    __complement_interfaces(collection)
+    __complement_interfaces(logger, collection)
 
     logger.info("Determine unrelevant to the checked code interfaces and remove them")
     __refine_categories(logger, collection, sa)
@@ -53,14 +54,14 @@ def __populate_resources(collection):
             for parameter in (p for i, p in enumerate(callback.declaration.points.parameters)
                               if isinstance(p, Declaration) and
                               not (len(callback.param_interfaces) > i and callback.param_interfaces[i])):
-                if parameter.identifier in usage:
-                    usage[parameter.identifier]["counter"] += 1
+                if str(parameter) in usage:
+                    usage[str(parameter)]["counter"] += 1
                 else:
                     # Try to resolve interface
                     intfs = collection.resolve_interface_weakly(parameter, category=callback.category, use_cache=False)
                     if len(intfs) == 0:
                         # Only unmatched resources should be introduced
-                        usage[parameter.identifier] = {
+                        usage[str(parameter)] = {
                             "counter": 1,
                             "declaration": parameter
                         }
@@ -73,7 +74,7 @@ def __populate_resources(collection):
                 identifier = 'ldv_' + declaration.pretty_name
             else:
                 raise RuntimeError("Cannot yield identifier for callback {!r} of category {!r}".
-                                   format(declaration.identifier, category))
+                                   format(str(declaration), category))
 
             interface = Resource(category, identifier)
             interface.declaration = declaration
@@ -109,12 +110,12 @@ def __fulfill_function_interfaces(logger, collection, interface, category=None):
         """
         # todo: Implement check agains arrays of primitives
         if isinstance(decl, Primitive) or (isinstance(decl, Pointer) and isinstance(decl.points, Primitive)) or \
-                decl.identifier in {'void *', 'void **'}:
+                (decl == 'void *' or decl == 'void **'):
             return True
         else:
             return False
 
-    logger.debug("Try to match collateral interfaces for function '{!r}'".format(interface.identifier))
+    logger.debug("Try to match collateral interfaces for function '{!r}'".format(str(interface)))
     # Check declaration type
     if isinstance(interface, Callback):
         declaration = interface.declaration.points
@@ -134,8 +135,7 @@ def __fulfill_function_interfaces(logger, collection, interface, category=None):
         elif len(rv_interface) > 1:
             logger.warning(
                 'Interface {!r} return value signature {!r} can be match with several following interfaces: {}'.
-                format(interface.name, declaration.return_value.identifier,
-                       ', '.join((i.identifier for i in rv_interface))))
+                format(interface.name, str(declaration.return_value), ', '.join((str(i) for i in rv_interface))))
 
     for index in range(len(declaration.parameters)):
         if not (len(interface.param_interfaces) > index and interface.param_interfaces[index]) and \
@@ -151,9 +151,9 @@ def __fulfill_function_interfaces(logger, collection, interface, category=None):
             else:
                 logger.warning(
                     'Interface {!r} parameter in the position {} with signature {!r} can be match with several '
-                    'following interfaces: {}'.format(interface.name,
-                                                      index, declaration.parameters[index].identifier,
-                                                      ', '.join((i.identifier for i in p_interface))))
+                    'following interfaces: {}'.
+                    format(interface.name, index, str(declaration.parameters[index]),
+                           ', '.join((str(i) for i in p_interface))))
                 p_interface = None
 
             interface.set_param_interface(index, p_interface)
@@ -162,7 +162,7 @@ def __fulfill_function_interfaces(logger, collection, interface, category=None):
                 category = p_interface.category
 
 
-def __complement_interfaces(collection):
+def __complement_interfaces(logger, collection):
     def __match_interface_for_container(signature, category, id_match):
         candidates = collection.resolve_interface_weakly(signature, category, use_cache=False)
         if len(candidates) == 1:
@@ -174,7 +174,7 @@ def __complement_interfaces(collection):
             if len(strict_candidates) == 1:
                 return strict_candidates[0]
             elif len(strict_candidates) > 1 and id_match:
-                id_candidates = [i for i in strict_candidates if i.short_identifier == id_match]
+                id_candidates = [i for i in strict_candidates if i.name == id_match]
                 if len(id_candidates) == 1:
                     return id_candidates[0]
                 else:
@@ -193,11 +193,11 @@ def __complement_interfaces(collection):
 
     # Resolve callback parameters
     for callback in collection.callbacks():
-        __fulfill_function_interfaces(collection, callback, callback.category)
+        __fulfill_function_interfaces(logger, collection, callback, callback.category)
 
     # Resolve kernel function parameters
     for func in collection.function_interfaces:
-        __fulfill_function_interfaces(collection, func)
+        __fulfill_function_interfaces(logger, collection, func)
 
     # todo: Remove dirty declarations in container references and add additional clean one
 
@@ -248,7 +248,7 @@ def __refine_categories(logger, collection, sa):
     # If category interfaces are not used in kernel functions it means that this structure is not transferred to
     # the kernel or just source analysis cannot find all containers
     # Add kernel function relevant interfaces
-    for intf in (i for i in collection.function_interfaces if i.short_identifier in sa.source_functions):
+    for intf in (i for i in collection.function_interfaces if i.name in sa.source_functions):
         intfs = __check_category_relevance(intf)
         # Skip resources from kernel functions
         relevant_interfaces.update([i for i in intfs if not isinstance(i, Resource)])
@@ -304,7 +304,7 @@ def __refine_categories(logger, collection, sa):
 
     for interface in [collection.get_intf(name) for name in collection.interfaces]:
         if interface not in relevant_interfaces:
-            logger.debug("Delete interface description {} as unrelevant".format(interface.identifier))
-            collection.del_intf(interface.identifier)
+            logger.debug("Delete interface description {!r} as unrelevant".format(str(interface)))
+            collection.del_intf(str(interface))
 
     return

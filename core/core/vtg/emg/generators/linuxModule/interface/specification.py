@@ -22,7 +22,7 @@ from core.vtg.emg.generators.linuxModule.interface import StructureContainer, Ar
 from core.vtg.emg.common.c.types import Structure, Array, import_declaration, reduce_level, parse_declaration
 
 
-def import_interface_specification(collection, sa, specification):
+def import_interface_specification(logger, collection, sa, specification):
     def get_clean_declaration(c, desc, i):
         if "declaration" in desc:
             decl = import_declaration(desc["declaration"])
@@ -32,7 +32,7 @@ def import_interface_specification(collection, sa, specification):
         return decl
 
     for category in specification["categories"]:
-        collection.logger.debug("Found interface category {}".format(category))
+        logger.debug("Found interface category {}".format(category))
         description = specification["categories"][category]
 
         # Import interfaces
@@ -86,7 +86,7 @@ def import_interface_specification(collection, sa, specification):
                     intf.declaration.element = declaration
 
     if "functions models" in specification:
-        collection.logger.info("Import functions description")
+        logger.info("Import functions description")
         category = 'functions models'
         for identifier in (i for i in specification["functions models"].keys() if i in sa.source_functions):
             if "declaration" not in specification["functions models"][identifier]:
@@ -195,11 +195,11 @@ def import_interface_declaration(collection, interface, declaration):
 
 
 def __import_interfaces(collection, interface, description):
-    exist = collection.get_intf(interface.identifier)
+    exist = collection.get_intf(str(interface))
     if not exist:
         collection.set_intf(interface)
     else:
-        raise ValueError('Interface {!r} is described twice'.format(interface.identifier))
+        raise ValueError('Interface {!r} is described twice'.format(str(interface)))
 
     if "header" in description:
         interface.header = [description["header"]]

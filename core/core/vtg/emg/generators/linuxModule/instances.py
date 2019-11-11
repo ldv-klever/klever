@@ -23,7 +23,7 @@ import core.vtg.emg.common.c as c
 from core.vtg.emg.common.c.types import Structure, Primitive, Pointer, Array, Function
 from core.vtg.emg.common.process import Dispatch, Receive, Block
 from core.vtg.emg.generators.linuxModule.interface import Implementation, Resource, Container, Callback
-from core.vtg.emg.generators.linuxModule.process import get_common_parameter, CallRetval, Call, AbstractAccess
+from core.vtg.emg.generators.linuxModule.process import get_common_parameter, CallRetval, Call, ExtendedAccess
 _declarations = {'environment model': list()}
 _definitions = {'environment model': list()}
 _values_map = dict()
@@ -693,7 +693,7 @@ def _fulfill_label_maps(logger, conf, sa, interfaces, instances, process, instan
                             if not acc:
                                 # TODO: I am not sure that this would guarantee all cases of adding new accesses
                                 prot = newp.resolve_access(access)[0]
-                                new = AbstractAccess(access)
+                                new = ExtendedAccess(access)
                                 new.label = prot.label
                                 new.interface = interface
                                 new.list_interface = prot.list_interface

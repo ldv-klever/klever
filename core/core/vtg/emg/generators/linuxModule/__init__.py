@@ -64,7 +64,7 @@ class ScenarioModelgenerator(AbstractGenerator):
 
         self.logger.info("Import interface categories specification")
         interfaces = InterfaceCollection()
-        import_specification(self.logger, collection, source, specifications["interface specifications"])
+        import_specification(self.logger, self.conf, interfaces, source, specifications["interface specifications"])
 
         self.logger.info("Import event categories specification")
         decoder = ExtendedProcessDecoder(self.logger, self.conf)

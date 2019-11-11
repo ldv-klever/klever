@@ -23,31 +23,32 @@ from core.vtg.emg.generators.linuxModule.interface.specification import import_i
 from core.vtg.emg.generators.linuxModule.interface.categories import yield_categories
 
 
-def import_specification(logger, collection, sa, specification):
+def import_specification(logger, conf, collection, sa, specification):
     """
     Import specifications and populate provided interface collection.
 
     :param logger: Logger object.
+    :param conf: Configuration dict.
     :param collection: InterfaceCollection object.
     :param sa: Source object.
     :param specification: Dict with imported specification.
     """
 
     logger.info("Analyze provided interface categories specification")
-    import_interface_specification(collection, sa, specification)
+    import_interface_specification(logger, collection, sa, specification)
 
     logger.info("Import results of source code analysis")
-    __extract_implementations(collection, sa)
+    __extract_implementations(logger, collection, sa)
 
     logger.info("Metch interfaces with existing categories and introduce new categories")
-    yield_categories(logger, collection, sa)
+    yield_categories(logger, conf, collection, sa)
 
     logger.info("Interface specifications are imported and categories are merged")
 
 
-def __extract_implementations(collection, sa):
+def __extract_implementations(logger, collection, sa):
     entities = []
-    collection.logger.info("Import values from global variables initializations")
+    logger.info("Import values from global variables initializations")
     for varname, var in ((varname, var) for varname in sa.source_variables for var in sa.get_source_variables(varname)):
         if var and (isinstance(var.declaration, Structure) or isinstance(var.declaration, Array) or
                     isinstance(var.declaration, Union)) and not isinstance(var.value, str):
@@ -63,8 +64,7 @@ def __extract_implementations(collection, sa):
             intfs = collection.resolve_interface_weakly(var.declaration)
 
             if len(intfs) > 1:
-                collection.logger.info("There are several containers with declation {!r}".
-                                       format(var.declaration.to_string('a')))
+                logger.info("There are several containers with declation {!r}".format(var.declaration.to_string('a')))
             for i in intfs:
                 implementation = i.add_implementation(
                     varname,
@@ -74,13 +74,13 @@ def __extract_implementations(collection, sa):
                     None,
                     []
                 )
-                implementation.static = var.static
+                implementation.static = var.declaration.static
                 # Actually we does not expect several declarations specific for containers
                 entity['category'] = i.category
             entities.append(entity)
     __import_entities(collection, sa, entities)
 
-    collection.logger.info("Search for callbacks provided as parameters")
+    logger.info("Search for callbacks provided as parameters")
     for funcname in sa.source_functions:
         for func_obj in sa.get_source_functions(funcname):
             for cf_name in func_obj.calls:
@@ -106,12 +106,12 @@ def __check_static(name, file, sa):
     # Check that is a function
     func = sa.get_source_function(name, file)
     if func:
-        static = func.static
+        static = func.declaraion.static
     else:
         # Check that it is a variable
         var = sa.get_source_variable(name, file)
         if var:
-            static = var.static
+            static = var.declaration.static
 
     return static
 
@@ -134,10 +134,10 @@ def check_relevant_interface(collection, declaration, category, connector):
             if isinstance(container, StructureContainer) and connector in container.field_interfaces and \
                     container.field_interfaces[connector] is not None and \
                     strict_compare(container.field_interfaces[connector].declaration, declaration):
-                children.add(container.field_interfaces[connector].identifier)
+                children.add(container.field_interfaces[connector].name)
             elif isinstance(container, ArrayContainer) and container.element_interface is not None and \
                     strict_compare(container.element_interface.declaration, declaration):
-                children.add(container.element_interface.identifier)
+                children.add(str(container.element_interface))
 
     return (collection.get_intf(i) for i in children)
 
@@ -173,7 +173,7 @@ def __import_entities(collection, sa, entities):
                             identifier = entity["type"].pretty_name
                         else:
                             raise RuntimeError("Cannot yield identifier for callback {!r} of category {!r}".
-                                               format(entity["type"].identifier, container.category))
+                                               format(str(entity["type"]), container.category))
                         interface = Callback(container.category, identifier)
                         interface.declaration = entity["type"]
                         collection.set_intf(interface)
@@ -181,7 +181,7 @@ def __import_entities(collection, sa, entities):
                         intfs.append(interface)
                         break
 
-                for intf in intfs:
+                for intf in (i for i in intfs if i):
                     impl = intf.add_implementation(
                         entity["description"]["value"],
                         entity['type'],

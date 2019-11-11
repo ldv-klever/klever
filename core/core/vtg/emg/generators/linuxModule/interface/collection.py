@@ -64,7 +64,7 @@ class InterfaceCollection:
         :param new_obj: Interface object
         :return: None
         """
-        self._interfaces[new_obj.identifier] = new_obj
+        self._interfaces[str(new_obj)] = new_obj
 
     def is_removed_intf(self, identifier):
         """
@@ -97,7 +97,7 @@ class InterfaceCollection:
             # Restore resources
             if isinstance(self._interfaces[identifier], Callback):
                 for pi in (pi for pi in self._interfaces[identifier].param_interfaces if pi):
-                    self.get_or_restore_intf(pi.identifier)
+                    self.get_or_restore_intf(str(pi))
 
             return self._interfaces[identifier]
         else:
@@ -173,21 +173,21 @@ class InterfaceCollection:
         :param category:  Category name string.
         :return: List with Container objects.
         """
-        if declaration.identifier not in self._containers_cache:
-            self._containers_cache[declaration.identifier] = {}
+        if str(declaration) not in self._containers_cache:
+            self._containers_cache[str(declaration)] = {}
 
-        if category and category not in self._containers_cache[declaration.identifier]:
+        if category and category not in self._containers_cache[str(declaration)]:
             cnts = self.__resolve_containers(declaration, category)
-            self._containers_cache[declaration.identifier][category] = cnts
+            self._containers_cache[str(declaration)][category] = cnts
             return cnts
-        elif not category and 'default' not in self._containers_cache[declaration.identifier]:
+        elif not category and 'default' not in self._containers_cache[str(declaration)]:
             cnts = self.__resolve_containers(declaration, category)
-            self._containers_cache[declaration.identifier]['default'] = cnts
+            self._containers_cache[str(declaration)]['default'] = cnts
             return cnts
-        elif category and category in self._containers_cache[declaration.identifier]:
-            return self._containers_cache[declaration.identifier][category]
+        elif category and category in self._containers_cache[str(declaration)]:
+            return self._containers_cache[str(declaration)][category]
         else:
-            return self._containers_cache[declaration.identifier]['default']
+            return self._containers_cache[str(declaration)]['default']
 
     def resolve_interface(self, signature, category=None, use_cache=True):
         """
@@ -199,19 +199,19 @@ class InterfaceCollection:
                           extracted or generated and no new types or interfaces will appear.
         :return: Returns list of Container objects.
         """
-        if not (signature.identifier in self._interface_cache and use_cache):
-            if signature.identifier == 'void' or signature.identifier == 'void *' or isinstance(signature, Primitive):
+        if not (str(signature) in self._interface_cache and use_cache):
+            if signature == 'void' or signature == 'void *' or isinstance(signature, Primitive):
                 interfaces = []
             else:
                 interfaces = [self.get_intf(name) for name in self.interfaces
                               if self.get_intf(name).declaration and self.get_intf(name).declaration == signature
                               and (not category or self.get_intf(name).category == category) and not
-                              (self.get_intf(name).declaration.identifier == 'void' or
-                               self.get_intf(name).declaration.identifier == 'void *' or
+                              (self.get_intf(name).declaration == 'void' or
+                               self.get_intf(name).declaration == 'void *' or
                                isinstance(self.get_intf(name).declaration, Primitive))]
-            self._interface_cache[signature.identifier] = interfaces
+            self._interface_cache[str(signature)] = interfaces
 
-        return self._interface_cache[signature.identifier]
+        return self._interface_cache[str(signature)]
 
     def resolve_interface_weakly(self, signature, category=None, use_cache=True):
         """
@@ -254,5 +254,5 @@ class InterfaceCollection:
         return implementation
 
     def __resolve_containers(self, target, category):
-        return {container.identifier: container.contains(target) for container in self.containers(category)
+        return {str(container): container.contains(target) for container in self.containers(category)
                 if container.contains(target)}
