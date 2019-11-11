@@ -16,37 +16,16 @@
 #
 
 from core.vtg.emg.common.c.types import Pointer, Primitive
-from core.vtg.emg.generators.linuxModule.interface import Container, Resource, Callback, FunctionInterface, \
-    StructureContainer, ArrayContainer
-from core.vtg.emg.generators.linuxModule.interface.analysis import extract_implementations
-from core.vtg.emg.generators.linuxModule.interface.specification import import_interface_specification
-from core.vtg.emg.generators.linuxModule.interface.categories import yield_categories
+from core.vtg.emg.generators.linuxModule.interface import Container, Resource, Callback, FunctionInterface
 
 
 class InterfaceCollection:
 
-    def __init__(self, logger, conf):
-        self.logger = logger
-        self.conf = conf
+    def __init__(self):
         self._interfaces = dict()
         self._interface_cache = dict()
         self._containers_cache = dict()
         self.__deleted_interfaces = dict()
-
-    def fill_up_collection(self, sa, interface_specification):
-        self.logger.info("Analyze provided interface categories specification")
-        import_interface_specification(self, sa, interface_specification)
-
-        self.logger.info("Import results of source code analysis")
-        extract_implementations(self, sa)
-
-        self.logger.info("Metch interfaces with existing categories and introduce new categories")
-        yield_categories(self)
-
-        self.logger.info("Determine unrelevant to the checked code interfaces and remove them")
-        self.__refine_categories(sa)
-
-        self.logger.info("Interface specifications are imported and categories are merged")
 
     @property
     def interfaces(self):
@@ -277,83 +256,3 @@ class InterfaceCollection:
     def __resolve_containers(self, target, category):
         return {container.identifier: container.contains(target) for container in self.containers(category)
                 if container.contains(target)}
-
-    def __refine_categories(self, sa):
-        def __check_category_relevance(func):
-            relevant = []
-
-            if func.rv_interface:
-                relevant.append(func.rv_interface)
-            for parameter in func.param_interfaces:
-                if parameter:
-                    relevant.append(parameter)
-
-            return relevant
-
-        # Remove categories without implementations
-        self.logger.info("Calculate relevant interfaces")
-        relevant_interfaces = set()
-
-        # If category interfaces are not used in kernel functions it means that this structure is not transferred to
-        # the kernel or just source analysis cannot find all containers
-        # Add kernel function relevant interfaces
-        for intf in (i for i in self.function_interfaces if i.short_identifier in sa.source_functions):
-            intfs = __check_category_relevance(intf)
-            # Skip resources from kernel functions
-            relevant_interfaces.update([i for i in intfs if not isinstance(i, Resource)])
-            relevant_interfaces.add(intf)
-
-        # Add all interfaces for non-container categories
-        for interface in set(relevant_interfaces):
-            containers = self.containers(interface.category)
-            if len(containers) == 0:
-                relevant_interfaces.update([self.get_intf(name) for name in self.interfaces
-                                            if self.get_intf(name).category == interface.category])
-
-        # Add callbacks and their resources
-        for callback in self.callbacks():
-            containers = self.resolve_containers(callback, callback.category)
-            if len(containers) > 0 and len(callback.implementations) > 0:
-                relevant_interfaces.add(callback)
-                relevant_interfaces.update(__check_category_relevance(callback))
-            elif len(containers) == 0 and len(callback.implementations) > 0 and \
-                    callback.category in {i.category for i in relevant_interfaces}:
-                relevant_interfaces.add(callback)
-                relevant_interfaces.update(__check_category_relevance(callback))
-            elif len(containers) > 0 and len(callback.implementations) == 0:
-                for container in containers:
-                    if self.get_intf(container) in relevant_interfaces and \
-                                    len(self.get_intf(container).implementations) == 0:
-                        relevant_interfaces.add(callback)
-                        relevant_interfaces.update(__check_category_relevance(callback))
-                        break
-
-        # Add containers
-        add_cnt = 1
-        while add_cnt != 0:
-            add_cnt = 0
-            for container in [cnt for cnt in self.containers() if cnt not in relevant_interfaces]:
-                if isinstance(container, StructureContainer):
-                    match = False
-
-                    for f_intf in [container.field_interfaces[name] for name in container.field_interfaces]:
-                        if f_intf and f_intf in relevant_interfaces:
-                            match = True
-                            break
-
-                    if match:
-                        relevant_interfaces.add(container)
-                        add_cnt += 1
-                elif isinstance(container, ArrayContainer):
-                    if container.element_interface in relevant_interfaces:
-                        relevant_interfaces.add(container)
-                        add_cnt += 1
-                else:
-                    raise TypeError('Expect structure or array container')
-
-        for interface in [self.get_intf(name) for name in self.interfaces]:
-            if interface not in relevant_interfaces:
-                self.logger.debug("Delete interface description {} as unrelevant".format(interface.identifier))
-                self.del_intf(interface.identifier)
-
-        return

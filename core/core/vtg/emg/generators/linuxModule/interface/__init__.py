@@ -15,26 +15,35 @@
 # limitations under the License.
 #
 
-from core.vtg.emg.common.c import Variable
+from core.vtg.emg.common.c import Variable, Declaration
 from core.vtg.emg.common.c.types import Structure, Array, Pointer, Function
 
 
 class Interface:
 
-    def __init__(self, category, identifier):
+    def __init__(self, category, name):
         self.category = category
-        self.short_identifier = identifier
-        self.identifier = "{}.{}".format(category, identifier)
-        self.header = None
+        self._name = name
         self._declaration = None
+        self.header = None
         self.implementations = []
+
+    def __str__(self):
+        return "{}.{}".format(self.category, self._name)
+
+    def __hash__(self):
+        return hash(str(self))
+
+    @property
+    def name(self):
+        return self._name
 
     @property
     def declaration(self):
         return self._declaration
 
     @declaration.setter
-    def declaration(self, new_declaration):
+    def declaration(self, new_declaration: Declaration):
         self._declaration = new_declaration
 
     def add_implementation(self, value, declaration, path, base_container=None, base_value=None, sequence=None):
@@ -48,7 +57,7 @@ class Interface:
             c = [v for v in self.implementations if v.value == new.value]
             if len(c) == 0 or len(c) > 1:
                 raise ValueError("Interface {!r} has two the same implementations {!r}".
-                                 format(self.identifier, mv))
+                                 format(self._name, mv))
             return c[0]
         return new
 
@@ -58,7 +67,7 @@ class Container(Interface):
         super(Container, self).__init__(category, identifier)
 
     def contains(self, target):
-        if issubclass(type(target), Interface):
+        if isinstance(target, Interface):
             target = target.declaration
 
         return self.declaration.contains(target)

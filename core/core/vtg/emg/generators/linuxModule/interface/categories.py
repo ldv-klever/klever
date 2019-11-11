@@ -17,19 +17,19 @@
 
 from core.vtg.emg.common.c.types import Declaration, Function, Array, Pointer, Primitive
 from core.vtg.emg.generators.linuxModule.interface import Resource, Callback, StructureContainer, \
-    FunctionInterface
+    FunctionInterface, ArrayContainer
 
 
-def yield_categories(collection):
+def yield_categories(logger, collection, sa):
     """
     Analyze all new types found by SA component and yield final set of interface categories built from manually prepared
     interface specifications and global variables. All new categories and interfaces are added directly to the
     InterfaceCategoriesSpecification object. Also all types declarations are updated according with new imported C
     types. However, there are still unused interfaces present in the collection after this function termination.
 
+    :param logger: Logger object.
     :param collection: InterfaceCategoriesSpecification object.
-    :param conf: Configuration property dictionary of InterfaceCategoriesSpecification object.
-    :return: None
+    :param sa: Source object.
     """
 
     # Add resources
@@ -39,7 +39,8 @@ def yield_categories(collection):
     # Complement interface references
     __complement_interfaces(collection)
 
-    return
+    logger.info("Determine unrelevant to the checked code interfaces and remove them")
+    __refine_categories(logger, collection, sa)
 
 
 def __populate_resources(collection):
@@ -81,7 +82,7 @@ def __populate_resources(collection):
     return
 
 
-def fulfill_function_interfaces(collection, interface, category=None):
+def __fulfill_function_interfaces(logger, collection, interface, category=None):
     """
     Check an interface declaration (function or function pointer) and try to match its return value type and
     parameters arguments types with existing interfaces. The algorythm should be the following:
@@ -113,7 +114,7 @@ def fulfill_function_interfaces(collection, interface, category=None):
         else:
             return False
 
-    collection.logger.debug("Try to match collateral interfaces for function '{!r}'".format(interface.identifier))
+    logger.debug("Try to match collateral interfaces for function '{!r}'".format(interface.identifier))
     # Check declaration type
     if isinstance(interface, Callback):
         declaration = interface.declaration.points
@@ -131,9 +132,9 @@ def fulfill_function_interfaces(collection, interface, category=None):
         if len(rv_interface) == 1:
             interface.rv_interface = rv_interface[-1]
         elif len(rv_interface) > 1:
-            collection.logger.warning(
+            logger.warning(
                 'Interface {!r} return value signature {!r} can be match with several following interfaces: {}'.
-                format(interface.identifier, declaration.return_value.identifier,
+                format(interface.name, declaration.return_value.identifier,
                        ', '.join((i.identifier for i in rv_interface))))
 
     for index in range(len(declaration.parameters)):
@@ -148,9 +149,9 @@ def fulfill_function_interfaces(collection, interface, category=None):
             elif len(p_interface) == 0:
                 p_interface = None
             else:
-                collection.logger.warning(
+                logger.warning(
                     'Interface {!r} parameter in the position {} with signature {!r} can be match with several '
-                    'following interfaces: {}'.format(interface.identifier,
+                    'following interfaces: {}'.format(interface.name,
                                                       index, declaration.parameters[index].identifier,
                                                       ', '.join((i.identifier for i in p_interface))))
                 p_interface = None
@@ -192,11 +193,11 @@ def __complement_interfaces(collection):
 
     # Resolve callback parameters
     for callback in collection.callbacks():
-        fulfill_function_interfaces(collection, callback, callback.category)
+        __fulfill_function_interfaces(collection, callback, callback.category)
 
     # Resolve kernel function parameters
     for func in collection.function_interfaces:
-        fulfill_function_interfaces(collection, func)
+        __fulfill_function_interfaces(collection, func)
 
     # todo: Remove dirty declarations in container references and add additional clean one
 
@@ -227,3 +228,83 @@ def __complement_interfaces(collection):
 
     return
 
+
+def __refine_categories(logger, collection, sa):
+    def __check_category_relevance(func):
+        relevant = []
+
+        if func.rv_interface:
+            relevant.append(func.rv_interface)
+        for parameter in func.param_interfaces:
+            if parameter:
+                relevant.append(parameter)
+
+        return relevant
+
+    # Remove categories without implementations
+    logger.info("Calculate relevant interfaces")
+    relevant_interfaces = set()
+
+    # If category interfaces are not used in kernel functions it means that this structure is not transferred to
+    # the kernel or just source analysis cannot find all containers
+    # Add kernel function relevant interfaces
+    for intf in (i for i in collection.function_interfaces if i.short_identifier in sa.source_functions):
+        intfs = __check_category_relevance(intf)
+        # Skip resources from kernel functions
+        relevant_interfaces.update([i for i in intfs if not isinstance(i, Resource)])
+        relevant_interfaces.add(intf)
+
+    # Add all interfaces for non-container categories
+    for interface in set(relevant_interfaces):
+        containers = collection.containers(interface.category)
+        if len(containers) == 0:
+            relevant_interfaces.update([collection.get_intf(name) for name in collection.interfaces
+                                        if collection.get_intf(name).category == interface.category])
+
+    # Add callbacks and their resources
+    for callback in collection.callbacks():
+        containers = collection.resolve_containers(callback, callback.category)
+        if len(containers) > 0 and len(callback.implementations) > 0:
+            relevant_interfaces.add(callback)
+            relevant_interfaces.update(__check_category_relevance(callback))
+        elif len(containers) == 0 and len(callback.implementations) > 0 and \
+                callback.category in {i.category for i in relevant_interfaces}:
+            relevant_interfaces.add(callback)
+            relevant_interfaces.update(__check_category_relevance(callback))
+        elif len(containers) > 0 and len(callback.implementations) == 0:
+            for container in containers:
+                if collection.get_intf(container) in relevant_interfaces and \
+                                len(collection.get_intf(container).implementations) == 0:
+                    relevant_interfaces.add(callback)
+                    relevant_interfaces.update(__check_category_relevance(callback))
+                    break
+
+    # Add containers
+    add_cnt = 1
+    while add_cnt != 0:
+        add_cnt = 0
+        for container in [cnt for cnt in collection.containers() if cnt not in relevant_interfaces]:
+            if isinstance(container, StructureContainer):
+                match = False
+
+                for f_intf in [container.field_interfaces[name] for name in container.field_interfaces]:
+                    if f_intf and f_intf in relevant_interfaces:
+                        match = True
+                        break
+
+                if match:
+                    relevant_interfaces.add(container)
+                    add_cnt += 1
+            elif isinstance(container, ArrayContainer):
+                if container.element_interface in relevant_interfaces:
+                    relevant_interfaces.add(container)
+                    add_cnt += 1
+            else:
+                raise TypeError('Expect structure or array container')
+
+    for interface in [collection.get_intf(name) for name in collection.interfaces]:
+        if interface not in relevant_interfaces:
+            logger.debug("Delete interface description {} as unrelevant".format(interface.identifier))
+            collection.del_intf(interface.identifier)
+
+    return

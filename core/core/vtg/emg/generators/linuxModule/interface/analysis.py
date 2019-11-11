@@ -15,44 +15,69 @@
 # limitations under the License.
 #
 
+
 from core.vtg.emg.common.c.types import Structure, Union, Array, Pointer, Function, import_declaration, extract_name, \
     is_not_null_function
-from core.vtg.emg.generators.linuxModule.interface import StructureContainer, ArrayContainer, Callback
+from core.vtg.emg.generators.linuxModule.interface import Callback, StructureContainer, ArrayContainer
+from core.vtg.emg.generators.linuxModule.interface.specification import import_interface_specification
+from core.vtg.emg.generators.linuxModule.interface.categories import yield_categories
 
 
-def extract_implementations(collection, sa):
+def import_specification(logger, collection, sa, specification):
+    """
+    Import specifications and populate provided interface collection.
+
+    :param logger: Logger object.
+    :param collection: InterfaceCollection object.
+    :param sa: Source object.
+    :param specification: Dict with imported specification.
+    """
+
+    logger.info("Analyze provided interface categories specification")
+    import_interface_specification(collection, sa, specification)
+
+    logger.info("Import results of source code analysis")
+    __extract_implementations(collection, sa)
+
+    logger.info("Metch interfaces with existing categories and introduce new categories")
+    yield_categories(logger, collection, sa)
+
+    logger.info("Interface specifications are imported and categories are merged")
+
+
+def __extract_implementations(collection, sa):
     entities = []
     collection.logger.info("Import values from global variables initializations")
-    for varname in sa.source_variables:
-        for var in sa.get_source_variables(varname):
-            if var and (isinstance(var.declaration, Structure) or isinstance(var.declaration, Array) or
-                        isinstance(var.declaration, Union)) and not isinstance(var.value, str):
-                # Here we rely on fact that any file should suit
-                entity = {
-                    "path": var.initialization_file,
-                    "description": {'value': var.value},
-                    "root value": varname,
-                    "root type": None,
-                    "root sequence": [],
-                    "type": var.declaration
-                }
-                intfs = collection.resolve_interface_weakly(var.declaration)
-                if len(intfs) > 1:
-                    collection.logger.info("There are several containers with declation {!r}".
-                                           format(var.declaration.to_string('a')))
-                for i in intfs:
-                    implementation = i.add_implementation(
-                        varname,
-                        var.declaration,
-                        var.initialization_file,
-                        None,
-                        None,
-                        []
-                    )
-                    implementation.static = var.static
-                    # Actually we does not expect several declarations specific for containers
-                    entity['category'] = i.category
-                entities.append(entity)
+    for varname, var in ((varname, var) for varname in sa.source_variables for var in sa.get_source_variables(varname)):
+        if var and (isinstance(var.declaration, Structure) or isinstance(var.declaration, Array) or
+                    isinstance(var.declaration, Union)) and not isinstance(var.value, str):
+            # Here we rely on fact that any file should suit
+            entity = {
+                "path": var.initialization_file,
+                "description": {'value': var.value},
+                "root value": varname,
+                "root type": None,
+                "root sequence": [],
+                "type": var.declaration
+            }
+            intfs = collection.resolve_interface_weakly(var.declaration)
+
+            if len(intfs) > 1:
+                collection.logger.info("There are several containers with declation {!r}".
+                                       format(var.declaration.to_string('a')))
+            for i in intfs:
+                implementation = i.add_implementation(
+                    varname,
+                    var.declaration,
+                    var.initialization_file,
+                    None,
+                    None,
+                    []
+                )
+                implementation.static = var.static
+                # Actually we does not expect several declarations specific for containers
+                entity['category'] = i.category
+            entities.append(entity)
     __import_entities(collection, sa, entities)
 
     collection.logger.info("Search for callbacks provided as parameters")
