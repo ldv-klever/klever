@@ -2,8 +2,8 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:kernel:rcu:update:lock sched"
+      "name": "Requirements specification",
+      "value": "kernel:rcu:update:lock sched"
     },
     {
       "is_compare": true,

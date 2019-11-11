@@ -2,8 +2,8 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:alloc:usb lock"
+      "name": "Requirements specification",
+      "value": "alloc:usb lock"
     },
     {
       "is_compare": true,

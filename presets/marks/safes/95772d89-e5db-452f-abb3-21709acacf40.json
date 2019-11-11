@@ -2,8 +2,8 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:test:environment model specifications with function pointer analysis"
+      "name": "Requirements specification",
+      "value": "test:environment model specifications with function pointer analysis"
     },
     {
       "is_compare": true,

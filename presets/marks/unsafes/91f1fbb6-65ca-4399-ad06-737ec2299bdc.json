@@ -2,8 +2,8 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:alloc:spinlock"
+      "name": "Requirements specification",
+      "value": "alloc:spinlock"
     },
     {
       "is_compare": true,

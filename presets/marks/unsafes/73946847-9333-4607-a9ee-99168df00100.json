@@ -2,8 +2,8 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:drivers:base:dma-mapping"
+      "name": "Requirements specification",
+      "value": "drivers:base:dma-mapping"
     },
     {
       "is_compare": true,

@@ -2,8 +2,8 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:kernel:rcu:srcu"
+      "name": "Requirements specification",
+      "value": "kernel:rcu:srcu"
     },
     {
       "is_compare": true,

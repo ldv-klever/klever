@@ -2,8 +2,8 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:usb:coherent"
+      "name": "Requirements specification",
+      "value": "usb:coherent"
     },
     {
       "is_compare": true,

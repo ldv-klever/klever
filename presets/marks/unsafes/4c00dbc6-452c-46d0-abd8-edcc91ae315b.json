@@ -2,8 +2,8 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:drivers:base:class"
+      "name": "Requirements specification",
+      "value": "drivers:base:class"
     },
     {
       "is_compare": true,

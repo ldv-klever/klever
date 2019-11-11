@@ -2,8 +2,8 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:arch:io"
+      "name": "Requirements specification",
+      "value": "arch:io"
     },
     {
       "is_compare": true,

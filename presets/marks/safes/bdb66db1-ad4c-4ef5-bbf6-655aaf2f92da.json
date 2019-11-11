@@ -2,8 +2,8 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:kernel:locking:mutex"
+      "name": "Requirements specification",
+      "value": "kernel:locking:mutex"
     },
     {
       "is_compare": true,

@@ -2,8 +2,8 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:memory safety"
+      "name": "Requirements specification",
+      "value": "memory safety"
     },
     {
       "is_compare": true,
