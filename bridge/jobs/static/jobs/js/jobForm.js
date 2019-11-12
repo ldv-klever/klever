@@ -16,8 +16,8 @@
  */
 
 
-function JobForm(job_id, action) {
-    this.save_url = `/jobs/api/save-job/${job_id}/`;
+function JobForm(save_url, action) {
+    this.save_url = save_url;
     this.method = (action === 'copy') ? 'POST' : 'PUT';
 
     this.labels = {};
@@ -26,19 +26,19 @@ function JobForm(job_id, action) {
 }
 
 JobForm.prototype.initialize = function(inputs, labels) {
-    var instance = this;
+    let instance = this;
     $.each(inputs, function (key, value) { instance.inputs[key] = value });
     $.each(labels, function (key, value) { instance.labels[key] = value });
 };
 
 JobForm.prototype.serialize = function() {
-    var instance = this, data = {};
+    let instance = this, data = {};
     $.each(instance.inputs, function (key, value) { data[key] = $('#' + value).val() });
     return data;
 };
 
 JobForm.prototype.save = function (extra_data) {
-    var instance = this, data = this.serialize();
+    let instance = this, data = this.serialize();
     if (extra_data) $.each(extra_data, function (key, value) { data[key] = value });
 
     $.ajax({
@@ -50,7 +50,7 @@ JobForm.prototype.save = function (extra_data) {
         },
         error: function (resp) {
             $('#dimmer_of_page').removeClass('active');
-            var errors = flatten_api_errors(resp['responseJSON'], instance.labels);
+            let errors = flatten_api_errors(resp['responseJSON'], instance.labels);
             $.each(errors, function (i, err_text) { err_notify(err_text, 3000) });
         }
     });

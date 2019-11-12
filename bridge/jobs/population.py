@@ -120,11 +120,6 @@ class JobsPopulation:
             job_name = "%s #%s" % (name, cnt)
         data['name'] = job_name
 
-        # Get description if specified
-        description = job_settings.get('description')
-        if isinstance(description, str):
-            data['description'] = description
-
         # Get identifier if it is specified
         if 'identifier' in job_settings:
             try:
@@ -159,15 +154,15 @@ class JobsPopulation:
 
 
 class PresetsFiles:
-    settings_file = "settings.json"
+    base_file = "base.json"
 
     def __init__(self):
         pass
 
     def get_presets_tree(self):
-        with open(os.path.join(self.jobs_dir, self.settings_file), mode='r', encoding='utf-8') as fp:
+        with open(os.path.join(self.jobs_dir, self.base_file), mode='r', encoding='utf-8') as fp:
             data = json.load(fp)
-        return data
+        return data['jobs']
 
     @cached_property
     def jobs_dir(self):

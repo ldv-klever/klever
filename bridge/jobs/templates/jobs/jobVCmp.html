@@ -61,16 +61,6 @@
     <div class="ui divider"></div>
 {% endif %}
 
-{% if data.v1.description != data.v2.description %}
-    <h5>{% trans 'Description was changed' %}</h5>
-    <i class="ui red minus icon"></i>
-    {{ data.v1.description|safe }}
-    <br>
-    <i class="ui green plus icon"></i>
-    {{ data.v2.description|safe }}
-    <div class="ui divider"></div>
-{% endif %}
-
 {% if data.v1.global_role != data.v2.global_role %}
     <h5>{% trans 'Global role was changed' %}</h5>
     <p>

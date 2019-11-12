@@ -84,7 +84,6 @@ class JobHistory(models.Model):
     comment = models.CharField(max_length=255, default='', blank=True)
 
     name = models.CharField(max_length=150)
-    description = models.TextField(default='')
     global_role = models.CharField(max_length=1, choices=JOB_ROLES, default=JOB_ROLES[0][0])
 
     class Meta:

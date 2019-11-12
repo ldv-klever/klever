@@ -50,6 +50,9 @@ class Migration(migrations.Migration):
                 blank=True, null=True, on_delete=models.deletion.SET_NULL,
                 related_name='jobs', to=settings.AUTH_USER_MODEL
             )),
+            ('coverage_details', models.CharField(choices=[
+                ('0', 'Original C source files'), ('1', 'C source files including models'), ('2', 'All source files')
+            ], default='0', max_length=1)),
         ], options={'db_table': 'job'}),
 
         migrations.CreateModel(name='JobFile', fields=[
@@ -64,7 +67,6 @@ class Migration(migrations.Migration):
             ('change_date', models.DateTimeField()),
             ('comment', models.CharField(blank=True, default='', max_length=255)),
             ('name', models.CharField(max_length=150)),
-            ('description', models.TextField(default='')),
             ('global_role', models.CharField(choices=[
                 ('0', 'No access'), ('1', 'Observer'), ('2', 'Expert'),
                 ('3', 'Observer and Operator'), ('4', 'Expert and Operator')

@@ -234,7 +234,7 @@ class JobVersionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = JobHistory
-        fields = ('comment', 'name', 'description', 'global_role')
+        fields = ('comment', 'name', 'global_role')
 
 
 class CreateJobSerializer(serializers.ModelSerializer):
@@ -362,7 +362,7 @@ class JVformSerializerRO(serializers.ModelSerializer):
 
     class Meta:
         model = JobHistory
-        fields = ('name', 'description', 'files', 'roles')
+        fields = ('name', 'files', 'roles')
 
 
 class JobStatusSerializer(serializers.ModelSerializer):
@@ -427,9 +427,7 @@ class DuplicateJobSerializer(serializers.ModelSerializer):
 
         # Create job version with parent files and user roles
         create_job_version(
-            instance, job_files, user_roles, change_author=self.author,
-            description=parent_version.description,
-            global_role=parent_version.global_role
+            instance, job_files, user_roles, change_author=self.author, global_role=parent_version.global_role
         )
 
         return instance
@@ -444,9 +442,7 @@ class DuplicateJobSerializer(serializers.ModelSerializer):
 
         # Copy job version with its files and user roles
         create_job_version(
-            instance, job_files, user_roles, change_author=self.author,
-            description=last_version.description,
-            global_role=last_version.global_role
+            instance, job_files, user_roles, change_author=self.author, global_role=last_version.global_role
         )
 
         instance.save()

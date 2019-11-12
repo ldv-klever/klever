@@ -64,12 +64,12 @@
             <label for="job_version_selector" class="purple-title">{% trans 'Previous versions' %}</label>
             <select id="job_version_selector" class="ui dropdown fluid">
                 {% for jv in versions %}
-                    <option value="{{ jv.version }}"{% if jv.version == object.version %} selected{% endif %}>{{ jv.title }}</option>
+                    <option value="{% url 'jobs:api-job-version' object.id jv.version %}"{% if jv.version == object.version %} selected{% endif %}>{{ jv.title }}</option>
                 {% endfor %}
             </select>
             <br>
 
-            {# Title, parent and description #}
+            {# Title and parent #}
             <div class="ui violet segment" style="margin-bottom: 0;">
                 <label for="job_name"><strong>{% trans 'Title' %}</strong></label>
                 <div class="ui fluid input{% if action == 'copy' %} error{% endif %} field">
@@ -80,11 +80,6 @@
                 <label for="parent_identifier"><strong>{% trans 'Parent identifier' %}</strong></label>
                 <div class="ui fluid input field">
                     <input id="parent_identifier" maxlength="36" type="text" value="{% if action == 'copy' %}{{ object.identifier }}{% else %}{{ parent }}{% endif %}">
-                </div>
-                <br>
-                <label style="width: 100%;"><strong>{% trans 'Description' %}</strong></label>
-                <div class="ui form">
-                    <textarea id="description" rows="10" style="resize: none" placeholder="{% trans 'Description' %}">{{ description }}</textarea>
                 </div>
             </div>
 
@@ -133,11 +128,10 @@
 
     <script type="application/javascript">
         jQuery(function () {
-            let job_id = "{{ object.id }}", versions_selector = $('#job_version_selector');
-
+            let versions_selector = $('#job_version_selector');
             versions_selector.dropdown();
 
-            let job_form = new JobForm(job_id, "{{ action }}"),
+            let job_form = new JobForm("{% url 'jobs:api-save-job' object.id %}", "{{ action }}"),
                 roles_form = new UserRoleForm('user_roles_form'),
                 files_form = new FilesTree('filestree', 'editor_container');
 
@@ -145,11 +139,9 @@
                 name: 'job_name',
                 comment: 'job_comment',
                 version: 'job_version',
-                description: 'description',
                 parent: 'parent_identifier'
             }, {
                 name: "{% trans 'Title' %}",
-                description: "{% trans 'Description' %}",
                 comment: "{% trans 'Change comment' %}",
                 version: "{% trans 'Latest version' %}",
                 parent: "{% trans 'Parent' %}"
@@ -174,12 +166,11 @@
             });
 
             function get_version_data() {
-                let version = versions_selector.children('option:selected').val();
+                let version_data_url = versions_selector.children('option:selected').val();
 
-                $.get('/jobs/api/job-version/{0}/{1}/'.format(job_id, version), {}, function (data) {
+                $.get(version_data_url, {}, function (data) {
                     if (data.error) return err_notify(data.error);
                     $('#job_name').val(data['name']);
-                    $('#description').val(data['description']);
                     roles_form.initialize(data['roles']);
                     files_form.initialize(data['files']);
                 });
