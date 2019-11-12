@@ -18,11 +18,16 @@
 
 {% load i18n %}
 {% load staticfiles %}
+{% load compress %}
 
 {% block head_block %}
-    <link href="{% static 'calendar/calendar.min.css' %}" rel="stylesheet">
-    <script src="{% static 'calendar/calendar.min.js' %}"></script>
-    <script src="{% static 'tools/js/logs.js' %}"></script>
+    {# Calendar #}
+    <link href="{% static 'bridge/calendar/calendar.min.css' %}" rel="stylesheet">
+    <script src="{% static 'bridge/calendar/calendar.min.js' %}"></script>
+
+    {% compress js file logs %}
+        <script src="{% static 'tools/js/logs.js' %}"></script>
+    {% endcompress %}
 {% endblock %}
 {% block title %}{% trans 'Call logs' %}{% endblock %}
 

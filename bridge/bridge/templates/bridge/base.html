@@ -18,7 +18,7 @@
 <!DOCTYPE html>
 
 {% load staticfiles %}
-
+{% load compress %}
 {% load i18n %}
 
 <html lang="en">
@@ -28,19 +28,26 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="description" content="">
         <meta name="author" content="">
-        <link rel="icon" href="/static/images/klever.ico">
+        <link rel="icon" href="{% static 'bridge/images/klever.ico' %}">
         <title>{% block title %}{% trans 'Sign in' %}{% endblock %} | Klever</title>
-        <script type="text/javascript" src="{% static "js/jquery-3.4.1.min.js" %}"></script>
-        {% if include_jquery_ui %}<script type="text/javascript" src="{% static "js/jquery-ui.min.js" %}"></script>{% endif %}
-        <script type="text/javascript" src="{% static 'js/notify.min.js' %}"></script>
-        <script type="text/javascript" src="{% static 'semantic/semantic.min.js' %}"></script>
-        <script type="text/javascript" src="{% static 'semantic-range/range.js' %}"></script>
-        <script type="text/javascript" src="{% static 'js/bridge.js' %}"></script>
-        <script type="text/javascript" src="{% static 'js/treetable.js' %}"></script>
+        <script type="text/javascript" src="{% static "bridge/js/jquery-3.4.1.min.js" %}"></script>
+        {% if include_jquery_ui %}<script type="text/javascript" src="{% static "bridge/js/jquery-ui.min.js" %}"></script>{% endif %}
+        <script type="text/javascript" src="{% static 'bridge/js/notify.min.js' %}"></script>
+        <script type="text/javascript" src="{% static 'bridge/semantic/semantic.min.js' %}"></script>
+        <script type="text/javascript" src="{% static 'bridge/semantic-range/range.js' %}"></script>
 
-        <link href="{% static 'semantic/semantic.min.css' %}" rel="stylesheet">
-        <link href="{% static 'semantic-range/range.css' %}" rel="stylesheet">
-        <link href="{% static 'css/bridge.css' %}" rel="stylesheet">
+        {% compress js file bridge %}
+            <script type="text/javascript" src="{% static 'bridge/js/bridge.js' %}"></script>
+            <script type="text/javascript" src="{% static 'bridge/js/treetable.js' %}"></script>
+        {% endcompress %}
+
+        <link href="{% static 'bridge/semantic/semantic.min.css' %}" rel="stylesheet">
+        <link href="{% static 'bridge/semantic-range/range.css' %}" rel="stylesheet">
+
+        {% compress css file bridge %}
+            <link href="{% static 'bridge/css/bridge.css' %}" rel="stylesheet">
+        {% endcompress %}
+
         {% block head_block %}{% endblock %}
     </head>
     <body>
@@ -51,7 +58,7 @@
         <div id="page_header" class="ui fixed inverted menu">
             <div class="item">
                 <a href="{% url 'jobs:tree' %}">
-                    <img height="30" width="105" src="/static/images/klever.png" alt="Klever">
+                    <img height="30" width="105" src="{% static 'bridge/images/klever.png' %}" alt="Klever">
                 </a>
             </div>
         {% if user.is_authenticated %}
@@ -84,7 +91,7 @@
                 </div>
             </div>
             {% if user.is_staff %}
-                <a class="item" href="/admin/">{% trans 'Admin Tools' %}</a>
+                <a class="item" href="{% url 'admin:index' %}">{% trans 'Admin Tools' %}</a>
             {% endif %}
             {% if user.role == '2' %}
                 <a class="item" href="{% url 'tools:manager' %}">{% trans 'Manager Tools' %}</a>

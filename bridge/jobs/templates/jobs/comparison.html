@@ -18,9 +18,12 @@
 
 {% load i18n %}
 {% load staticfiles %}
+{% load compress %}
 
 {% block head_block %}
-    <link href="{% static '/jobs/css/comparison.css' %}" rel="stylesheet">
+    {% compress css file comparison %}
+        <link href="{% static 'jobs/css/comparison.css' %}" rel="stylesheet">
+    {% endcompress %}
 {% endblock %}
 
 {% block title %}

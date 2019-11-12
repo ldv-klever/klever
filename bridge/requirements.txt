@@ -6,3 +6,4 @@ pika==1.1.0
 django-mptt==0.10.0
 slugify==0.0.1
 python-slugify
+django-compressor==2.3

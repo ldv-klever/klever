@@ -1,4 +1,4 @@
-{% extends 'jobs/base.html' %}
+{% extends 'bridge/base.html' %}
 {% comment "License" %}
 % Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
 % Ivannikov Institute for System Programming of the Russian Academy of Sciences
@@ -18,10 +18,15 @@
 
 {% load i18n %}
 {% load staticfiles %}
+{% load compress %}
 
 {% block title %}{% trans 'Jobs Tree' %}{% endblock %}
 
-{% block jobs_head_block %}<script src="{% static 'jobs/js/jobtree.js' %}"></script>{% endblock %}
+{% block head_block %}
+    {% compress js file jobtree %}
+        <script src="{% static 'jobs/js/jobtree.js' %}"></script>
+    {% endcompress %}
+{% endblock %}
 
 {% block body_block %}
     <div class="ui grid">

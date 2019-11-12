@@ -19,12 +19,15 @@
 {% load i18n %}
 {% load tz %}
 {% load staticfiles %}
+{% load compress %}
 
 {% block title %}{{ tabledata.title }}{% endblock %}
 
 {% block head_block %}
-    <script type="text/javascript" src="{% static 'semantic/tablesort.js' %}"></script>
-    <script type="text/javascript" src="{% static 'marks/js/marks.js' %}"></script>
+    {% compress js file marks %}
+        <script type="text/javascript" src="{% static 'bridge/semantic/tablesort.js' %}"></script>
+        <script type="text/javascript" src="{% static 'marks/js/marks.js' %}"></script>
+    {% endcompress %}
 {% endblock %}
 
 {% block body_block %}

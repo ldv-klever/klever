@@ -20,12 +20,17 @@
 
 {% load tz %}
 {% load staticfiles %}
+{% load compress %}
 
 {% block title %}{{ report.component }}{% endblock %}
 
 {% block head_block %}
-    <link href="{% static 'reports/css/reports.css' %}" rel="stylesheet">
-    <script src="{% static 'reports/js/reportComponent.js' %}"></script>
+    {% compress css file report %}
+        <link href="{% static 'reports/css/reports.css' %}" rel="stylesheet">
+    {% endcompress %}
+    {% compress js file report %}
+        <script src="{% static 'reports/js/reportComponent.js' %}"></script>
+    {% endcompress %}
 {% endblock %}
 
 {% block body_block %}

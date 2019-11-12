@@ -147,7 +147,8 @@ class ConnectUnknownMark:
 
         new_links = set()
         associations = []
-        for report in ReportUnknown.objects.filter(cache__attrs__contains=self._mark.cache_attrs)\
+        for report in ReportUnknown.objects\
+                .filter(component=self._mark.component, cache__attrs__contains=self._mark.cache_attrs)\
                 .select_related('cache').only('id', 'problem_description', 'cache__marks_confirmed'):
             unknown_desc = self.__get_unknown_desc(report)
             if not unknown_desc:
@@ -195,7 +196,8 @@ class ConnectUnknownReport:
 
     def __connect(self):
         new_markreports = []
-        for mark in MarkUnknown.objects.filter(cache_attrs__contained_by=self._report.cache.attrs):
+        for mark in MarkUnknown.objects\
+                .filter(component=self._report.component, cache_attrs__contained_by=self._report.cache.attrs):
             problem = MatchUnknown(self._unknown_desc, mark.function, mark.problem_pattern, mark.is_regexp).problem
             if not problem:
                 continue

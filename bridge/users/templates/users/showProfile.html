@@ -19,11 +19,14 @@
 {% load i18n %}
 {% load tz %}
 {% load staticfiles %}
+{% load compress %}
 
 {% block title %}{% trans 'Profile' %}{% endblock %}
 
 {% block head_block %}
-    <link href="{% static 'users/css/profile.css' %}" rel="stylesheet">
+    {% compress css file profile %}
+        <link href="{% static 'users/css/profile.css' %}" rel="stylesheet">
+    {% endcompress %}
 {% endblock %}
 
 {% block body_block %}

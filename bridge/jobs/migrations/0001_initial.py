@@ -42,10 +42,10 @@ class Migration(migrations.Migration):
             ('weight', models.CharField(
                 choices=[('0', 'Full-weight'), ('1', 'Lightweight')], default='0', max_length=1
             )),
-            ('lft', models.PositiveIntegerField(db_index=True, editable=False)),
-            ('rght', models.PositiveIntegerField(db_index=True, editable=False)),
+            ('lft', models.PositiveIntegerField(editable=False)),
+            ('rght', models.PositiveIntegerField(editable=False)),
             ('tree_id', models.PositiveIntegerField(db_index=True, editable=False)),
-            ('level', models.PositiveIntegerField(db_index=True, editable=False)),
+            ('level', models.PositiveIntegerField(editable=False)),
             ('author', models.ForeignKey(
                 blank=True, null=True, on_delete=models.deletion.SET_NULL,
                 related_name='jobs', to=settings.AUTH_USER_MODEL
