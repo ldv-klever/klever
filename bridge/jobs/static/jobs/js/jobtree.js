@@ -116,4 +116,11 @@ $(document).ready(function () {
 
     $('#compare_reports_btn').click(compare_reports);
     $('#compare_files_btn').click(compare_files);
+
+    let create_job_modal = $('#create_job_modal');
+    create_job_modal.modal({transition: 'fade', autofocus: false, closable: true})
+        .modal('attach events', '#create_job_modal_show');
+    create_job_modal.find('.modal-cancel').click(function () {
+        create_job_modal.modal('hide')
+    })
 });

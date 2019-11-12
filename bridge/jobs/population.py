@@ -156,3 +156,24 @@ class JobsPopulation:
             elif os.path.isdir(path):
                 children.append(self.__get_dir(path, fname))
         return children
+
+
+class PresetsFiles:
+    settings_file = "settings.json"
+
+    def __init__(self):
+        pass
+
+    def get_presets_tree(self):
+        with open(os.path.join(self.jobs_dir, self.settings_file), mode='r', encoding='utf-8') as fp:
+            data = json.load(fp)
+        return data
+
+    @cached_property
+    def jobs_dir(self):
+        presets = os.path.join(settings.BASE_DIR, 'jobs', 'presets')
+        if os.path.isdir(presets):
+            return presets
+        with open(presets, mode='r', encoding='utf-8') as fp:
+            presets_path = fp.read()
+        return os.path.abspath(os.path.join(settings.BASE_DIR, 'jobs', presets_path))

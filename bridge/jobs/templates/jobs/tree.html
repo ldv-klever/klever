@@ -24,26 +24,28 @@
 {% block jobs_head_block %}<script src="{% static 'jobs/js/jobtree.js' %}"></script>{% endblock %}
 
 {% block body_block %}
-    <div class="ui text small menu">
-        <div class="ui dropdown item">
-            <i class="ui check square outline icon"></i>{% trans 'Selected jobs' %}
-            <i class="dropdown icon"></i>
-            <div class="menu">
-                <div id="compare_reports_btn" class="item"><i class="ui columns icon"></i>{% trans 'Compare reports' %}</div>
-                <div id="compare_files_btn" class="item"><i class="ui columns icon"></i>{% trans 'Compare files' %}</div>
-                <div id="download_selected_jobs" class="item"><i class="ui download icon"></i>{% trans 'Download' %}</div>
+    <div class="ui grid">
+        <div class="eight wide column">
+            <button id="create_job_modal_show" class="ui labeled icon violet mini button"><i class="plus icon"></i>{% trans 'Create new job' %}</button>
+            <div class="ui small dropdown">
+                <i class="ui check square outline icon"></i>{% trans 'Selected jobs' %}
+                <i class="dropdown icon"></i>
+                <div class="menu">
+                    <div id="compare_reports_btn" class="item"><i class="ui columns icon"></i>{% trans 'Compare reports' %}</div>
+                    <div id="compare_files_btn" class="item"><i class="ui columns icon"></i>{% trans 'Compare files' %}</div>
+                    <div id="download_selected_jobs" class="item"><i class="ui download icon"></i>{% trans 'Download' %}</div>
 
-                {# Only managers can upload trees (USER_ROLES[2][0]) #}
-                <div id="download_selected_trees" class="item{% if user.role != '2' %} disabled{% endif %}"><i class="ui sitemap icon"></i>{% trans 'Download with children' %}</div>
-                <div id="show_remove_jobs_popup" class="item"><i class="ui remove icon"></i>{% trans 'Delete' %}</div>
+                    {# Only managers can upload trees (USER_ROLES[2][0]) #}
+                    <div id="download_selected_trees" class="item{% if user.role != '2' %} disabled{% endif %}"><i class="ui sitemap icon"></i>{% trans 'Download with children' %}</div>
+                    <div id="show_remove_jobs_popup" class="item"><i class="ui remove icon"></i>{% trans 'Delete' %}</div>
+                </div>
             </div>
         </div>
-        <div class="right menu">
-            <div class="item">
-                <button id="view_show_form_btn_{{ TableData.view.type }}" class="ui violet button">{{ TableData.view.viewtitle }}</button>
-            </div>
+        <div class="eight wide column right aligned">
+            <button id="view_show_form_btn_{{ TableData.view.type }}" class="ui violet mini button">{{ TableData.view.viewtitle }}</button>
         </div>
     </div>
+    <br>
     <div id="view_form_segment_{{ TableData.view.type }}" class="ui form yellow segment" style="display: none">
         {% include TableData.view.template with view=TableData.view selected_columns=TableData.selected_columns available_columns=TableData.available_columns %}
     </div>
@@ -69,6 +71,21 @@
             </div>
         </div>
     </div>
+
+    <div id="create_job_modal" class="ui modal">
+        <div class="header">{% trans 'Please select files base for the new job' %}</div>
+        <div class="content">
+            <div style="max-height: 80vh;overflow: auto;">
+                <div class="ui list">
+                    {% include 'jobs/presets.html' with children=presets_tree %}
+                </div>
+            </div>
+        </div>
+        <div class="actions">
+            <button class="ui blue button modal-cancel">{% trans 'Cancel' %}</button>
+        </div>
+    </div>
+
     <span id="error__no_jobs_to_download" hidden>{% trans 'Please select jobs you want to download' %}</span>
     <span id="error__no_jobs_to_delete" hidden>{% trans 'Please select jobs you want to delete' %}</span>
     <span id="error__no_jobs_to_compare" hidden>{% trans 'Please select exactly two jobs which reports you want to compare' %}</span>

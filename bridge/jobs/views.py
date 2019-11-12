@@ -44,6 +44,7 @@ from jobs.configuration import StartDecisionData
 from jobs.ViewJobData import ViewJobData
 from jobs.JobTableProperties import TableTree
 from jobs.Download import JobFileGenerator, JobConfGenerator, JobArchiveGenerator, JobsArchivesGen, JobsTreesGen
+from jobs.population import PresetsFiles
 
 
 class JobsTree(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, TemplateView):
@@ -54,7 +55,8 @@ class JobsTree(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, TemplateView)
             'users': User.objects.all(),
             'statuses': JOB_STATUS, 'weights': JOB_WEIGHT, 'priorities': list(reversed(PRIORITY)),
             'months': months_choices(), 'years': years_choices(),
-            'TableData': TableTree(self.request.user, self.get_view(VIEW_TYPES[1]))
+            'TableData': TableTree(self.request.user, self.get_view(VIEW_TYPES[1])),
+            'presets_tree': PresetsFiles().get_presets_tree()
         }
 
 
