@@ -6,7 +6,7 @@
       ],
       "model": {
         "functions models": {
-          "functions models/driver_register": {
+          "driver_register": {
             "reference": true,
             "actions": {
               "assign": {
@@ -48,7 +48,7 @@
             },
             "process": "<assign>.[register].<success> | <fail>"
           },
-          "functions models/driver_unregister": {
+          "driver_unregister": {
             "reference": true,
             "actions": {
               "assign": {
@@ -78,7 +78,7 @@
             },
             "process": "<assign>.[@deregister]"
           },
-          "functions models/tty_unregister_driver": {
+          "tty_unregister_driver": {
             "reference": true,
             "actions": {
               "assign": {
@@ -119,7 +119,7 @@
             },
             "process": "<assign>.<success> | <failed>"
           },
-          "functions models/tty_register_driver": {
+          "tty_register_driver": {
             "reference": true,
             "actions": {
               "assign": {
