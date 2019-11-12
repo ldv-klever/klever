@@ -52,10 +52,7 @@ class InterfaceCollection:
         :param identifier: Interface object identifier string.
         :return: Interface object.
         """
-        if identifier in self._interfaces:
-            return self._interfaces[identifier]
-        else:
-            return None
+        return self._interfaces.get(identifier)
 
     def set_intf(self, new_obj):
         """
@@ -73,10 +70,7 @@ class InterfaceCollection:
         :param identifier: Interface object identifier.
         :return: True or False.
         """
-        if identifier in self.__deleted_interfaces:
-            return True
-        else:
-            return False
+        return identifier in self.__deleted_interfaces
 
     def get_or_restore_intf(self, identifier):
         """
@@ -121,8 +115,7 @@ class InterfaceCollection:
         :param category: Category name string.
         :return: List with Container objects.
         """
-        return [self.get_intf(name) for name in self.interfaces
-                if isinstance(self.get_intf(name), Container) and
+        return [self.get_intf(name) for name in self.interfaces if isinstance(self.get_intf(name), Container) and
                 (not category or self.get_intf(name).category == category)]
 
     def callbacks(self, category=None):
@@ -133,8 +126,7 @@ class InterfaceCollection:
         :param category: Category name string.
         :return: List with Callback objects.
         """
-        return [self.get_intf(name) for name in self.interfaces
-                if isinstance(self.get_intf(name), Callback) and
+        return [self.get_intf(name) for name in self.interfaces if isinstance(self.get_intf(name), Callback) and
                 (not category or self.get_intf(name).category == category)]
 
     def resources(self, category=None):
@@ -145,8 +137,7 @@ class InterfaceCollection:
         :param category: Category name string.
         :return: List with Resource objects.
         """
-        return [self.get_intf(name) for name in self.interfaces
-                if isinstance(self.get_intf(name), Resource) and
+        return [self.get_intf(name) for name in self.interfaces if isinstance(self.get_intf(name), Resource) and
                 (not category or self.get_intf(name).category == category)]
 
     @property

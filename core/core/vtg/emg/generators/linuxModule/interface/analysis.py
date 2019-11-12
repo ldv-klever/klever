@@ -81,24 +81,22 @@ def __extract_implementations(logger, collection, sa):
     __import_entities(collection, sa, entities)
 
     logger.info("Search for callbacks provided as parameters")
-    for funcname in sa.source_functions:
-        for func_obj in sa.get_source_functions(funcname):
-            for cf_name in func_obj.calls:
-                called_function = collection.get_intf("functions models.{}".format(cf_name))
-                if called_function:
-                    for indx, parameter in enumerate(called_function.param_interfaces):
-                        if parameter:
-                            for call in (c[indx] for c in func_obj.calls[cf_name] if c[indx] and c[indx] != '0'):
-                                call_obj = sa.get_source_function(call, func_obj.definition_file)
-                                if not call_obj:
-                                    call_obj = sa.get_source_function(
-                                        call, declaration=called_function.declaration.parameters[indx].points)
-                                if not call_obj:
-                                    raise ValueError("Cannot find function definition for function pointer {!r}".
-                                                     format(call))
-                                impl = parameter.add_implementation(call, called_function.declaration.parameters[indx],
-                                                                    call_obj.definition_file, None, None, [])
-                                impl.static = call_obj.static
+    for name, obj, in ((name, obj) for name in sa.source_functions for obj in sa.get_source_functions(name)):
+        for cf_name, called_function in ((n, c) for n in obj.calls
+                                         for c in collection.get_intf("functions models.%s" % n) if c):
+            for indx, parameter in enumerate(called_function.param_interfaces):
+                if parameter:
+                    for call in (c[indx] for c in obj.calls[cf_name] if c[indx] and c[indx] != '0'):
+                        call_obj = sa.get_source_function(call, obj.definition_file)
+                        if not call_obj:
+                            call_obj = sa.get_source_function(
+                                call, declaration=called_function.declaration.parameters[indx].points)
+                        if not call_obj:
+                            raise ValueError("Cannot find function definition for function pointer {!r}".
+                                             format(call))
+                        impl = parameter.add_implementation(call, called_function.declaration.parameters[indx],
+                                                            call_obj.definition_file, None, None, [])
+                        impl.static = call_obj.declaration.static
 
 
 def __check_static(name, file, sa):
@@ -106,7 +104,7 @@ def __check_static(name, file, sa):
     # Check that is a function
     func = sa.get_source_function(name, file)
     if func:
-        static = func.declaraion.static
+        static = func.declaration.static
     else:
         # Check that it is a variable
         var = sa.get_source_variable(name, file)
@@ -126,18 +124,17 @@ def check_relevant_interface(collection, declaration, category, connector):
         else:
             return False
 
-    suits = collection.resolve_containers(declaration, category)
     children = set()
-    if len(suits) > 0:
-        for suit in suits:
-            container = collection.get_intf(suit)
-            if isinstance(container, StructureContainer) and connector in container.field_interfaces and \
-                    container.field_interfaces[connector] is not None and \
-                    strict_compare(container.field_interfaces[connector].declaration, declaration):
-                children.add(container.field_interfaces[connector].name)
-            elif isinstance(container, ArrayContainer) and container.element_interface is not None and \
-                    strict_compare(container.element_interface.declaration, declaration):
-                children.add(str(container.element_interface))
+    suits = collection.resolve_containers(declaration, category)
+    for suit in suits:
+        container = collection.get_intf(suit)
+        if isinstance(container, StructureContainer) and connector in container.field_interfaces and \
+                container.field_interfaces[connector] is not None and \
+                strict_compare(container.field_interfaces[connector].declaration, declaration):
+            children.add(str(container.field_interfaces[connector]))
+        elif isinstance(container, ArrayContainer) and container.element_interface is not None and \
+                strict_compare(container.element_interface.declaration, declaration):
+            children.add(str(container.element_interface))
 
     return (collection.get_intf(i) for i in children)
 
@@ -153,23 +150,20 @@ def __import_entities(collection, sa, entities):
                 c = resolved[0].category
         return c
 
-    while len(entities) > 0:
+    while entities:
         entity = entities.pop()
         bt = entity["type"]
 
         if "value" in entity["description"] and isinstance(entity["description"]['value'], str):
             if is_not_null_function(bt, entity["description"]["value"]):
                 category = entity["category"] if "category" in entity else None
-                intfs = list(check_relevant_interface(collection, entity["type"], category,
-                                                      entity["root sequence"][-1]))
-                if len(intfs) == 0 and isinstance(entity["type"], Pointer) and \
-                        isinstance(entity["type"].points, Function):
+                intfs = list(check_relevant_interface(collection, entity["type"], category, entity["root sequence"][-1]))
+                if not intfs and isinstance(entity["type"], Pointer) and isinstance(entity["type"].points, Function):
                     containers = collection.resolve_interface_weakly(entity['parent type'], category)
                     for container in (c for c in containers if isinstance(c, StructureContainer)):
                         if "{}.{}".format(container.category, entity["root sequence"][-1]) not in collection.interfaces:
                             identifier = entity["root sequence"][-1]
-                        elif "{}.{}".format(container.category, entity["type"].pretty_name) \
-                                not in collection.interfaces:
+                        elif "{}.{}".format(container.category, entity["type"].pretty_name) not in collection.interfaces:
                             identifier = entity["type"].pretty_name
                         else:
                             raise RuntimeError("Cannot yield identifier for callback {!r} of category {!r}".
@@ -181,7 +175,7 @@ def __import_entities(collection, sa, entities):
                         intfs.append(interface)
                         break
 
-                for intf in (i for i in intfs if i):
+                for intf in intfs:
                     impl = intf.add_implementation(
                         entity["description"]["value"],
                         entity['type'],

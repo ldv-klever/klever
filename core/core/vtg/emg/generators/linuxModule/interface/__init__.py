@@ -24,9 +24,9 @@ class Interface:
     def __init__(self, category, name):
         self.category = category
         self._name = name
-        self._declaration = None
         self.header = None
         self.implementations = []
+        self._declaration = None
 
     def __str__(self):
         return "{}.{}".format(self.category, self._name)
@@ -100,17 +100,13 @@ class ArrayContainer(Container):
         self.element_interface = None
 
     @Interface.declaration.setter
-    def declaration(self, new_declaration):
-        if not isinstance(new_declaration, Array):
-            raise ValueError("Array container must have Container declaration but {!r} is provided".
-                             format(str(type(new_declaration).__name__)))
+    def declaration(self, new_declaration: Array):
+        assert isinstance(new_declaration, Array)
         Interface.declaration.fset(self, new_declaration)
 
 
 class Resource(Interface):
-
-    def __init__(self, category, identifier):
-        super(Resource, self).__init__(category, identifier)
+    pass
 
 
 class FunctionInterface(Interface):
@@ -126,10 +122,8 @@ class FunctionInterface(Interface):
         self.param_interfaces[index] = interface
 
     @Interface.declaration.setter
-    def declaration(self, new_declaration):
-        if not isinstance(new_declaration, Function):
-            raise ValueError("FunctionINterface must have Function declaration but {!r} is provided".
-                             format(str(type(new_declaration).__name__)))
+    def declaration(self, new_declaration: Function):
+        assert isinstance(new_declaration, Function)
         Interface.declaration.fset(self, new_declaration)
 
 
@@ -142,9 +136,7 @@ class Callback(FunctionInterface):
 
     @Interface.declaration.setter
     def declaration(self, new_declaration):
-        if not (isinstance(new_declaration, Pointer) and isinstance(new_declaration.points, Function)):
-            raise ValueError("FunctionINterface must have Function Pointer declaration but {!r} is provided".
-                             format(str(type(new_declaration).__name__)))
+        assert isinstance(new_declaration, Pointer) and isinstance(new_declaration.points, Function)
         Interface.declaration.fset(self, new_declaration)
 
 
@@ -156,10 +148,7 @@ class Implementation(Variable):
         self.initialization_file = file
         self.base_container = base_container
         self.base_value = base_value
-        if not sequence:
-            self.sequence = []
-        else:
-            self.sequence = sequence
+        self.sequence = sequence if sequence else []
 
     def adjusted_value(self, declaration):
         if self._declaration == declaration:

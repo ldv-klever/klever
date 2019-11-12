@@ -27,8 +27,7 @@ def import_interface_specification(logger, collection, sa, specification):
         if "declaration" in desc:
             decl = import_declaration(desc["declaration"])
         else:
-            raise ValueError(
-                "Provide declaration at the interface specification of '{}.{}'".format(c, i))
+            raise ValueError("Provide declaration at the interface specification of '{}.{}'".format(c, i))
         return decl
 
     for category in specification["categories"]:
@@ -36,88 +35,82 @@ def import_interface_specification(logger, collection, sa, specification):
         description = specification["categories"][category]
 
         # Import interfaces
-        if "containers" in description:
-            for identifier in description['containers'].keys():
-                declaration = get_clean_declaration(category, description['containers'][identifier], identifier)
-                if isinstance(declaration, Structure):
-                    intf = StructureContainer(category, identifier)
-                elif isinstance(declaration, Array):
-                    intf = ArrayContainer(category, identifier)
-                else:
-                    raise ValueError("Container '{}.{}' should be either a structure or array"
-                                     .format(category, identifier))
-                intf.declaration = declaration
-                __import_interfaces(collection, intf, description["containers"][identifier])
-        if "resources" in description:
-            for identifier in description['resources'].keys():
-                declaration = get_clean_declaration(category, description['resources'][identifier], identifier)
-                intf = Resource(category, identifier)
-                intf.declaration = declaration
-                __import_interfaces(collection, intf, description["resources"][identifier])
-        if "callbacks" in description:
-            for identifier in description['callbacks'].keys():
-                intf = Callback(category, identifier)
-                if "declaration" in description['callbacks'][identifier]:
-                    d, _ = import_interface_declaration(collection, intf,
-                                                        description['callbacks'][identifier]["declaration"])
-                    intf.declaration = d
-                else:
-                    raise ValueError("Provide declaration at the interface specification of '{}.{}'".
-                                     format(category, identifier))
-                __import_interfaces(collection, intf, description["callbacks"][identifier])
-
-        if "containers" in description:
-            for identifier in description['containers'].keys():
-                fi = "{}.{}".format(category, identifier)
-                intf = collection.get_intf(fi)
-                # Import field interfaces
-                if "fields" in description['containers'][identifier]:
-                    for field in description['containers'][identifier]["fields"].keys():
-                        declaration, relevant_intf = \
-                            import_interface_declaration(collection, None,
-                                                         description['containers'][identifier]["fields"][field])
-                        intf.field_interfaces[field] = relevant_intf
-                        intf.declaration.fields[field] = declaration
-                if 'element' in description['containers'][identifier]:
-                    declaration, relevant_intf = \
-                        import_interface_declaration(collection, None,
-                                                     description['containers'][identifier]["element"])
-                    intf.element = relevant_intf
-                    intf.declaration.element = declaration
-
-    if "functions models" in specification:
-        logger.info("Import functions description")
-        category = 'functions models'
-        for identifier in (i for i in specification["functions models"].keys() if i in sa.source_functions):
-            if "declaration" not in specification["functions models"][identifier]:
-                raise TypeError("Specify 'signature' for function {} at {}".format(identifier, category))
-            elif "header" not in specification[category][identifier] and \
-                    "headers" not in specification[category][identifier]:
-                raise TypeError("Specify 'header' for kernel interface {} at {}".format(identifier, category))
-            interface = FunctionInterface(category, identifier)
-            if "declaration" in specification["functions models"][identifier]:
-                d, _ = import_interface_declaration(collection, interface,
-                                                    specification["functions models"][identifier]["declaration"])
-                interface.declaration = d
+        # First, import  containers
+        for identifier in description.get('containers', {}):
+            declaration = get_clean_declaration(category, description['containers'][identifier], identifier)
+            if isinstance(declaration, Structure):
+                intf = StructureContainer(category, identifier)
+            elif isinstance(declaration, Array):
+                intf = ArrayContainer(category, identifier)
             else:
-                raise ValueError("Provide declaration of function {!r}".format(identifier))
-            __import_interfaces(collection, interface, specification[category][identifier])
+                raise ValueError("Container '{}.{}' should be either a structure or array"
+                                 .format(category, identifier))
+            intf.declaration = declaration
+            __import_interfaces(collection, intf, description["containers"][identifier])
+
+        # Then resources
+        for identifier in description.get('resources', {}):
+            declaration = get_clean_declaration(category, description['resources'][identifier], identifier)
+            intf = Resource(category, identifier)
+            intf.declaration = declaration
+            __import_interfaces(collection, intf, description["resources"][identifier])
+
+        # Now callbacks that can refer to resources and containers
+        for identifier in description.get('callbacks', {}):
+            intf = Callback(category, identifier)
+            if "declaration" in description['callbacks'][identifier]:
+                d, _ = import_interface_declaration(collection, intf,
+                                                    description['callbacks'][identifier]["declaration"])
+                intf.declaration = d
+            else:
+                raise ValueError("Provide declaration at the interface specification of '{}.{}'".
+                                 format(category, identifier))
+            __import_interfaces(collection, intf, description["callbacks"][identifier])
+
+        for identifier in description.get('containers', {}):
+            fi = "{}.{}".format(category, identifier)
+            intf = collection.get_intf(fi)
+
+            # Import field interfaces
+            for field in description['containers'][identifier].get("fields", {}):
+                declaration, relevant_intf = \
+                    import_interface_declaration(collection, None,
+                                                 description['containers'][identifier]["fields"][field])
+                intf.field_interfaces[field] = relevant_intf
+                intf.declaration.fields[field] = declaration
+            if 'element' in description['containers'][identifier]:
+                declaration, relevant_intf = \
+                    import_interface_declaration(collection, None,
+                                                 description['containers'][identifier]["element"])
+                intf.element = relevant_intf
+                intf.declaration.element = declaration
+
+    logger.info("Import functions description")
+    category = 'functions models'
+    for identifier in (i for i in specification.get("functions models", {}) if i in sa.source_functions):
+        if "declaration" not in specification["functions models"][identifier]:
+            raise TypeError("Specify 'signature' for function {} at {}".format(identifier, category))
+        elif "header" not in specification[category][identifier] and \
+                "headers" not in specification[category][identifier]:
+            raise TypeError("Specify 'header' for kernel interface {} at {}".format(identifier, category))
+        interface = FunctionInterface(category, identifier)
+        if "declaration" in specification["functions models"][identifier]:
+            d, _ = import_interface_declaration(collection, interface,
+                                                specification["functions models"][identifier]["declaration"])
+            interface.declaration = d
+        else:
+            raise ValueError("Provide declaration of function {!r}".format(identifier))
+        __import_interfaces(collection, interface, specification[category][identifier])
 
 
 def import_interface_declaration(collection, interface, declaration):
     def check_array(given_ast):
-        if 'arrays' in given_ast['declarator'][-1] and len(given_ast['declarator'][-1]['arrays']) > 0:
-            return True
-        else:
-            return False
+        return 'arrays' in given_ast['declarator'][-1] and len(given_ast['declarator'][-1]['arrays']) > 0
 
     def check_function(given_ast):
-        if len(given_ast['declarator']) == 1 and \
-                ('pointer' not in given_ast['declarator'][-1] or given_ast['declarator'][-1]['pointer'] == 0) and \
-                ('arrays' not in given_ast['declarator'][-1] or len(given_ast['declarator'][-1]['arrays']) == 0):
-            return True
-        else:
-            return False
+        return len(given_ast['declarator']) == 1 and \
+            ('pointer' not in given_ast['declarator'][-1] or given_ast['declarator'][-1]['pointer'] == 0) and \
+            ('arrays' not in given_ast['declarator'][-1] or len(given_ast['declarator'][-1]['arrays']) == 0)
 
     def check_ast(given_ast, declarator, iint):
         try:
@@ -137,28 +130,27 @@ def import_interface_declaration(collection, interface, declaration):
                     d = i.declaration.to_string(declarator)
                 return d, i
             else:
-                if check_function(given_ast):
-                    if 'specifiers' not in given_ast:
-                        parameter_declarations = []
-                        for index, p in enumerate(given_ast['declarator'][0]['function arguments']):
-                            if isinstance(p, str):
-                                parameter_declarations.append(p)
-                            else:
-                                expr, i = check_ast(p, 'a', None)
-                                if iint and i:
-                                    iint.set_param_interface(index, i)
-                                parameter_declarations.append(expr)
-
-                        if len(parameter_declarations) == 0:
-                            declarator += '(void)'
+                if check_function(given_ast) and 'specifiers' not in given_ast:
+                    parameter_declarations = []
+                    for index, p in enumerate(given_ast['declarator'][0]['function arguments']):
+                        if isinstance(p, str):
+                            parameter_declarations.append(p)
                         else:
-                            declarator += '(' + ', '.join(parameter_declarations) + ')'
+                            expr, i = check_ast(p, 'a', None)
+                            if iint and i:
+                                iint.set_param_interface(index, i)
+                            parameter_declarations.append(expr)
 
-                        declarator, i = check_ast(given_ast['return value type'], declarator, None)
-                        if iint and i:
-                            iint.rv_interface = i
+                    if len(parameter_declarations) == 0:
+                        declarator += '(void)'
+                    else:
+                        declarator += '(' + ', '.join(parameter_declarations) + ')'
 
-                        return declarator, None
+                    declarator, i = check_ast(given_ast['return value type'], declarator, None)
+                    if iint and i:
+                        iint.rv_interface = i
+
+                    return declarator, None
 
                 elif check_array(given_ast):
                     array = given_ast['declarator'][-1]['arrays'].pop()
@@ -201,10 +193,7 @@ def __import_interfaces(collection, interface, description):
     else:
         raise ValueError('Interface {!r} is described twice'.format(str(interface)))
 
-    if "header" in description:
-        interface.header = [description["header"]]
-
-    if "interrupt context" in description and description["interrupt context"]:
-        interface.interrupt_context = True
+    interface.header = [description["header"]] if description.get("header") else []
+    interface.interrupt_context = description.get("interrupt context", False)
 
     return interface

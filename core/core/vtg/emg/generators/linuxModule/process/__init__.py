@@ -16,12 +16,10 @@
 #
 
 import re
-import copy
 
-from core.vtg.emg.common import get_or_die
 from core.vtg.emg.common.c.types import Array, Structure, Pointer
-from core.vtg.emg.generators.linuxModule.interface import Interface, Callback, Container, StructureContainer
-from core.vtg.emg.common.process import Process, Label, Access, Block, Dispatch, Receive, Action, ProcessCollection
+from core.vtg.emg.generators.linuxModule.interface import Container
+from core.vtg.emg.common.process import Process, Label, Access, Block, Dispatch, Receive, Action
 
 
 def get_common_parameter(action, process, position):
@@ -182,10 +180,29 @@ class ExtendedLabel(Label):
 class ExtendedProcess(Process):
     label_re = re.compile(r'%(\w+)((?:\.\w*)*)%')
 
-    def __init__(self, name):
-        super(ExtendedProcess, self).__init__(name)
+    def __init__(self, name: str, category: str):
+        super(ExtendedProcess, self).__init__(name, category)
         self.self_parallelism = True
         self.allowed_implementations = dict()
+        self.instance_number = 0
+
+    @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, new_name):
+        # Extended process allows setting new names if necessary
+        self._name = new_name
+
+    @property
+    def category(self):
+        return self._category
+
+    @category.setter
+    def category(self, category):
+        # Extended process allows setting categories if necessary
+        self._category = category
 
     @property
     def unmatched_labels(self):
@@ -201,8 +218,8 @@ class ExtendedProcess(Process):
             for m in self.label_re.finditer(expr):
                 used_labels.add(m.group(1))
 
-        for action in self.actions.values():
-            if isinstance(action, Call) or isinstance(action, CallRetval) and action.callback:
+        for action in self.actions.filter(include={Action}):
+            if (isinstance(action, Call) or isinstance(action, CallRetval)) and action.callback:
                 extract_labels(action.callback)
             if isinstance(action, Call):
                 for param in action.parameters:
@@ -218,24 +235,23 @@ class ExtendedProcess(Process):
             if action.condition:
                 for statement in action.condition:
                     extract_labels(statement)
-        unused_labels = set(self.labels.keys()).difference(used_labels)
-        return unused_labels
+        return set(self.labels.keys()).difference(used_labels)
 
     @property
     def calls(self):
-        return [self.actions[name] for name in self.actions.keys() if isinstance(self.actions[name], Call)]
+        return self.actions.filter(include={Call})
 
     @property
     def containers(self):
-        return [self.labels[name] for name in self.labels.keys() if self.labels[name].container]
+        return [self.labels[name] for name in self.labels if self.labels[name].container]
 
     @property
     def callbacks(self):
-        return [self.labels[name] for name in self.labels.keys() if self.labels[name].callback]
+        return [self.labels[name] for name in self.labels if self.labels[name].callback]
 
     @property
     def resources(self):
-        return [self.labels[name] for name in self.labels.keys() if self.labels[name].resource]
+        return [self.labels[name] for name in self.labels if self.labels[name].resource]
 
     def extract_label(self, string):
         name, tail = self.extract_label_with_tail(string)
@@ -296,19 +312,20 @@ class ExtendedProcess(Process):
         ret = []
 
         # Match dispatches
-        for dispatch in self.actions.filter(include={Dispatch}):
-            for receive in process.receives:
+        for dispatch, receive in ((d, r) for d in self.actions.filter(include={Dispatch})
+                                  for r in process.actions.filter(include={Receive})):
+            if process.instance_number not in {p['process'].instance_number for p in dispatch.peers}:
                 match = self.__compare_signals(process, dispatch, receive)
                 if match:
                     ret.append([dispatch.name, receive.name])
 
         # Match receives
-        for receive in self.actions.filter(include={Receive}):
-            for dispatch in process.dispatches:
+        for receive, dispatch in ((r, d) for r in self.actions.filter(include={Receive})
+                                  for d in process.actions.filter(include={Dispatch})):
+            if process.instance_number not in {p['process'].instance_number for p in receive.peers}:
                 match = self.__compare_signals(process, receive, dispatch)
                 if match:
                     ret.append([receive.name, dispatch.name])
-
         return ret
 
     def accesses(self, accesses=None, exclude=None, no_labels=False):
@@ -320,31 +337,29 @@ class ExtendedProcess(Process):
 
             if not self._accesses or len(exclude) > 0 or no_labels:
                 # Collect all accesses across process subprocesses
-                for action in [self.actions[name] for name in self.actions.keys()]:
-                    tp = type(action)
-                    if tp not in exclude:
-                        if isinstance(action, Call) or isinstance(action, CallRetval) and action.callback:
-                            accss[action.callback] = []
-                        if isinstance(action, Call):
-                            for index in range(len(action.parameters)):
-                                accss[action.parameters[index]] = []
-                        if isinstance(action, Receive) or isinstance(action, Dispatch):
-                            for index in range(len(action.parameters)):
-                                accss[action.parameters[index]] = []
-                        if isinstance(action, CallRetval) and action.retlabel:
-                            accss[action.retlabel] = []
-                        if isinstance(action, Block):
-                            for statement in action.statements:
-                                for match in self.label_re.finditer(statement):
-                                    accss[match.group()] = []
-                        if action.condition:
-                            for statement in action.condition:
-                                for match in self.label_re.finditer(statement):
-                                    accss[match.group()] = []
+                for action in self.actions.filter(include={Action}, exclude=exclude):
+                    if isinstance(action, Call) or isinstance(action, CallRetval) and action.callback:
+                        accss[action.callback] = []
+                    if isinstance(action, Call):
+                        for index in range(len(action.parameters)):
+                            accss[action.parameters[index]] = []
+                    if isinstance(action, Receive) or isinstance(action, Dispatch):
+                        for index in range(len(action.parameters)):
+                            accss[action.parameters[index]] = []
+                    if isinstance(action, CallRetval) and action.retlabel:
+                        accss[action.retlabel] = []
+                    if isinstance(action, Block):
+                        for statement in action.statements:
+                            for match in self.label_re.finditer(statement):
+                                accss[match.group()] = []
+                    if action.condition:
+                        for statement in action.condition:
+                            for match in self.label_re.finditer(statement):
+                                accss[match.group()] = []
 
                 # Add labels with interfaces
                 if not no_labels:
-                    for label in [self.labels[name] for name in self.labels.keys()]:
+                    for label in self.labels.values():
                         access = '%{}%'.format(label.name)
                         if access not in accss:
                             accss[access] = []
@@ -420,8 +435,7 @@ class ExtendedProcess(Process):
                     raise ValueError("Provide label in action '{}' at position '{}'".
                                      format(second.name, index, process.name))
 
-                ret = label.compare_with(pair)
-                if ret != "сompatible" and ret != "equal":
+                if label != pair:
                     match = False
                     break
             return match

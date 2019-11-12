@@ -57,22 +57,21 @@ class ExtendedProcessDecoder(CollectionDecoder):
         super().__init__(logger, conf)
         self.conf.setdefault("callback comment", 'Invoke callback {0!r} from {1!r}.')
 
-    def _import_process(self, source, name, category, dic):
-        process = super()._import_process(source, name, category, dic)
+    def _import_action(self, process, act, dic):
+        if 'callback' in dic:
+            if isinstance(act, Dispatch) and 'callback' in dic:
+                new = Call(act.name)
+            elif isinstance(act, Receive):
+                new = CallRetval(act.name)
+            else:
+                new = None
 
-        for name, desc in dic.get('actions', {}).items():
-            action = process.actions[name]
-
-            if 'callback' in dic:
-                if isinstance(action, Dispatch) and 'callback' in dic:
-                    new = Call(name)
-                elif isinstance(action, Receive):
-                    new = CallRetval(name)
-                else:
-                    return process
-
-                self._import_action(new, dic)
-                process.replace_action(action, new)
+            if new:
+                process.replace_action(act, new)
+                del process.actions[str(act)]
+                process.actions[str(new)] = new
+                act = new
+        super()._import_action(process, act, dic)
 
     def _import_label(self, name, dic):
         label = super()._import_label(name, dic)

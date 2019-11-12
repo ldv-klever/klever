@@ -172,7 +172,7 @@ def p_bracket(p):
     """
     # todo: support numbers to implement loops
     _, _, action_list, _ = p
-    par = Parentheses(next(_aux_identifier), action_list)
+    par = Parentheses(next(_aux_identifier), action=action_list)
     p.parser.process.actions[str(par)] = par
     p[0] = par
 
@@ -208,7 +208,7 @@ def p_dispatch(p):
         broadcast = False
     number = number[-1] if number else 1
 
-    action = Dispatch(name, number, broadcast)
+    action = Dispatch(name, broadcast=broadcast)
     p.parser.process.actions[str(action)] = action
     p[0] = action
 
@@ -230,7 +230,7 @@ def p_receive(p):
         name, *number = context
         replicative = False
     number = number[-1] if number else 1
-    action = Receive(name, number, replicative)
+    action = Receive(name, repliative=replicative)
     p.parser.process.actions[str(action)] = action
     p[0] = action
 
@@ -242,7 +242,7 @@ def p_condition(p):
     """
     name, *number = p[2:-1]
     number = number[-1] if number else 1
-    action = Block(name, number)
+    action = Block(name)
     p.parser.process.actions[str(action)] = action
     p[0] = action
 
@@ -254,7 +254,7 @@ def p_subprocess(p):
     """
     name, *number = p[2:-1]
     number = number[-1] if number else 1
-    action = Subprocess(name, number)
+    action = Subprocess(name)
     p.parser.process.actions[str(action)] = action
     p[0] = action
 

@@ -164,20 +164,26 @@ class CollectionDecoder:
 
                     # Set some default values
                     category = "functions models"
-                    _, pname = name.split('/')
-                    process = self._import_process(source, pname, category, process_desc)
-                    collection.models[process] = process
+                    process = self._import_process(source, name, category, process_desc)
+                    collection.models[str(process)] = process
         if "environment processes" in raw:
             self.logger.info("Import processes from 'environment processes'")
             for name, process_desc in raw["environment processes"].items():
                 self.logger.debug("Import environment process {!r}".format(name))
 
-                category, pname = name.split('/')
-                process = self._import_process(source, pname, category, process_desc)
+                # This simplifies parsing of event specifications for Linux but actually this can be avoided by adding
+                # categories to corresponding specifications.
+                if '/' in name:
+                    category, name = name.split('/')
+                else:
+                    category = None
+
+                process = self._import_process(source, name, category, process_desc)
                 if process in collection.environment:
                     raise ValueError("There is an already imported process {!r} in intermediate environment model".
                                      format(str(process)))
-                collection.environment[process] = process
+                collection.environment[str(process)] = process
+
         if "main process" in raw and isinstance(raw["main process"], dict):
             self.logger.info("Import main process")
             entry_process = self._import_process(source, "entry", "entry process", raw["main process"])
@@ -218,7 +224,7 @@ class CollectionDecoder:
         for action_name in dic.get('actions', {}):
             if not process.actions.get(action_name):
                 raise ValueError('Action {!r} was not used in {!r} process'.format(action_name, str(process)))
-            self._import_action(process.actions[action_name], dic['actions'][action_name])
+            self._import_action(process, process.actions[action_name], dic['actions'][action_name])
 
         for att in self.PROCESS_ATTRIBUTES:
             if att in dic:
@@ -238,7 +244,7 @@ class CollectionDecoder:
                 setattr(process, att, dic[att])
 
         unused_labels = {str(l) for l in process.unused_labels}
-        if len(unused_labels) > 0:
+        if unused_labels:
             raise RuntimeError("Found unused labels in process {!r}: {}".format(str(process), ', '.join(unused_labels)))
         if process.file != 'entry point':
             process.file = source.find_file(process.file)
@@ -246,7 +252,7 @@ class CollectionDecoder:
         process.accesses()
         return process
 
-    def _import_action(self, act, dic):
+    def _import_action(self, process, act, dic):
         for att in (att for att in self.ACTION_ATTRIBUTES if att in dic):
             if self.ACTION_ATTRIBUTES[att]:
                 attname = self.ACTION_ATTRIBUTES[att]

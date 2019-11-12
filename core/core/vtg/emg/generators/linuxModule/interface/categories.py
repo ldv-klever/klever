@@ -56,15 +56,12 @@ def __populate_resources(collection):
                               not (len(callback.param_interfaces) > i and callback.param_interfaces[i])):
                 if str(parameter) in usage:
                     usage[str(parameter)]["counter"] += 1
-                else:
-                    # Try to resolve interface
-                    intfs = collection.resolve_interface_weakly(parameter, category=callback.category, use_cache=False)
-                    if len(intfs) == 0:
-                        # Only unmatched resources should be introduced
-                        usage[str(parameter)] = {
-                            "counter": 1,
-                            "declaration": parameter
-                        }
+                elif not collection.resolve_interface_weakly(parameter, category=callback.category, use_cache=False):
+                    # Only unmatched resources should be introduced
+                    usage[str(parameter)] = {
+                        "counter": 1,
+                        "declaration": parameter
+                    }
 
         # Introduce new resources
         for declaration in (usage[i]["declaration"] for i in usage if usage[i]["counter"] > 1):
@@ -109,13 +106,10 @@ def __fulfill_function_interfaces(logger, collection, interface, category=None):
         :return: True - it is primitive, False - otherwise
         """
         # todo: Implement check agains arrays of primitives
-        if isinstance(decl, Primitive) or (isinstance(decl, Pointer) and isinstance(decl.points, Primitive)) or \
-                (decl == 'void *' or decl == 'void **'):
-            return True
-        else:
-            return False
+        return isinstance(decl, Primitive) or (isinstance(decl, Pointer) and isinstance(decl.points, Primitive)) or \
+            decl == 'void *' or decl == 'void **'
 
-    logger.debug("Try to match collateral interfaces for function '{!r}'".format(str(interface)))
+    logger.debug("Try to match collateral interfaces for function {!r}".format(str(interface)))
     # Check declaration type
     if isinstance(interface, Callback):
         declaration = interface.declaration.points
@@ -209,8 +203,7 @@ def __complement_interfaces(logger, collection):
             container.element_interface = intf
 
     # Resolve structure interfaces
-    for container in (cnt for cnt in collection.containers() if cnt.declaration and
-                      isinstance(cnt, StructureContainer)):
+    for container in (cnt for cnt in collection.containers() if cnt.declaration and isinstance(cnt, StructureContainer)):
         for field in container.declaration.fields:
             if field not in container.field_interfaces:
                 intf = __match_interface_for_container(container.declaration.fields[field], container.category,
@@ -257,7 +250,7 @@ def __refine_categories(logger, collection, sa):
     # Add all interfaces for non-container categories
     for interface in set(relevant_interfaces):
         containers = collection.containers(interface.category)
-        if len(containers) == 0:
+        if not containers:
             relevant_interfaces.update([collection.get_intf(name) for name in collection.interfaces
                                         if collection.get_intf(name).category == interface.category])
 

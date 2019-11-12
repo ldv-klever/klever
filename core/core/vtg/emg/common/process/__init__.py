@@ -442,14 +442,21 @@ class Actions(collections.UserDict):
 
 class BaseAction:
     """
-        Base class for actions which can be executed in terms of a Process. Each action of a process is executed strictly
-        one after another. All they are executed in the same context (depending on chosen translator).
-        """
+    Base class for actions which can be executed in terms of a Process. Each action of a process is executed strictly
+    one after another. All they are executed in the same context (depending on chosen translator).
+    """
 
-    def __init__(self, name: str):
+    def __new__(cls, name: str, **kwards):
+        # This is required to do deepcopy
+        self = super().__new__(cls)
         self.name = name
         self._predecessors = set()
         self._successors = set()
+        return self
+
+    def __getnewargs__(self):
+        # Return the arguments that *must* be passed to __new__ (required for deepcopy)
+        return self.name,
 
     def __str__(self):
         return self.name
@@ -569,9 +576,8 @@ class Action(BaseAction):
     one after another. All they are executed in the same context (depending on chosen translator).
     """
 
-    def __init__(self, name, number=1):
-        super(Action, self).__init__(name)
-        self.number = number
+    def __init__(self, name):
+        super(Action, self).__init__()
         self.condition = None
         self.trace_relevant = False
         self.comment = ''
@@ -587,8 +593,8 @@ class Subprocess(Action):
     An example of action string: "{mynewsequence}".
     """
 
-    def __init__(self, name, number=1):
-        super(Subprocess, self).__init__(name, number)
+    def __init__(self, name):
+        super(Subprocess, self).__init__(name)
         self.process = None
         self.fsa = None
 
@@ -606,8 +612,8 @@ class Dispatch(Action):
     An example of action string: "[mysend]".
     """
 
-    def __init__(self, name, number=1, broadcast=False):
-        super(Dispatch, self).__init__(name, number)
+    def __init__(self, name, broadcast=False):
+        super(Dispatch, self).__init__(name)
         self.broadcast = broadcast
         self.parameters = []
         self.peers = []
@@ -625,8 +631,8 @@ class Receive(Action):
     An example of action string: "(mysend)".
     """
 
-    def __init__(self, name, number=1, repliative=False):
-        super(Receive, self).__init__(name, number)
+    def __init__(self, name, repliative=False):
+        super(Receive, self).__init__(name)
         self.replicative = repliative
         self.parameters = []
         self.peers = []
@@ -644,8 +650,8 @@ class Block(Action):
     An example of action string: "<mycondition>".
     """
 
-    def __init__(self, name, number=1):
-        super(Block, self).__init__(name, number)
+    def __init__(self, name):
+        super(Block, self).__init__(name)
         self.statements = []
         self.condition = []
 
@@ -658,8 +664,8 @@ class Parentheses(BaseAction):
     This class represent an open parenthese symbol to simplify serialization and import.
     """
 
-    def __init__(self, name, action: BaseAction = None):
-        super(Parentheses, self).__init__(name)
+    def __init__(self, name, action=None):
+        super(Parentheses, self).__init__()
         self.action = action
         self.insert_successor(action)
 
@@ -670,7 +676,7 @@ class Concatenation(BaseAction):
     """
 
     def __init__(self, name):
-        super(Concatenation, self).__init__(name)
+        super(Concatenation, self).__init__()
         self.actions = collections.deque()
 
     def add_first(self, action: BaseAction):
@@ -686,7 +692,7 @@ class Choice(BaseAction):
     """
 
     def __init__(self, name):
-        super(Choice, self).__init__(name)
+        super(Choice, self).__init__()
         self.actions = set()
 
     def add_first(self, action: BaseAction):
@@ -794,7 +800,7 @@ class ProcessCollection:
                         opposite_peers = [str(p['process']) if isinstance(p, dict) else p
                                           for p in target.actions[action.name].peers]
                         if str(process) not in opposite_peers:
-                            target.actions[action.name].peers.append({'process': process, 'subprocess': action})
+                            target.actions[action.name].peers.append({'process': process, 'action': action})
                     elif strict:
                         raise KeyError("Process {!r} tries to send a signal {!r} to {!r} but there is no such "
                                        "process in the model".format(str(process), str(action), peer))
