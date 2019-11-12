@@ -310,8 +310,8 @@ class RP(core.components.Component):
 
     def process_witness(self, witness):
         error_trace, attrs = import_error_trace(self.logger, witness)
-        sources = self.__trim_file_names(error_trace['files'])
-        error_trace['files'] = [sources[file] for file in error_trace['files']]
+        trimmed_file_names = self.__trim_file_names(error_trace['files'])
+        error_trace['files'] = [trimmed_file_names[file] for file in error_trace['files']]
 
         # Distinguish multiple witnesses and error traces by using artificial unique identifiers encoded within witness
         # file names.
@@ -563,11 +563,11 @@ class RP(core.components.Component):
             self.logger.exception('Could not parse coverage')
 
     def __trim_file_names(self, file_names):
-        arcnames = {}
+        trimmed_file_names = {}
 
         for file_name in file_names:
             # Caller expects a returned dictionary maps each file name, so, let's fill it anyway.
-            arcnames[file_name] = file_name
+            trimmed_file_names[file_name] = file_name
 
             # Remove storage from file names if files were put there.
             storage_file = core.utils.make_relative_path([self.clade.storage_dir], file_name)
@@ -575,18 +575,18 @@ class RP(core.components.Component):
             tmp = core.utils.make_relative_path(self.source_paths, storage_file, absolutize=True)
             # Append special directory name "source files" when cutting off source file names.
             if tmp != os.path.join(os.path.sep, storage_file):
-                arcnames[file_name] = os.path.join('source files', tmp)
+                trimmed_file_names[file_name] = os.path.join('source files', tmp)
             else:
                 # Like in core.vtg.weaver.Weaver#weave.
                 tmp = core.utils.make_relative_path(self.search_dirs, storage_file, absolutize=True)
                 if tmp != os.path.join(os.path.sep, storage_file):
                     if tmp.startswith('specifications'):
-                        arcnames[file_name] = tmp
+                        trimmed_file_names[file_name] = tmp
                     else:
                         tmp = os.path.join('generated models', os.path.basename(tmp))
-                        if any(arcname == tmp for arcname in arcnames.values()):
+                        if any(arcname == tmp for arcname in trimmed_file_names.values()):
                             self.logger.warn("There is shrinked file name collision")
                             continue
-                        arcnames[file_name] = tmp
+                        trimmed_file_names[file_name] = tmp
 
-        return arcnames
+        return trimmed_file_names
