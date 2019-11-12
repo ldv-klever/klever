@@ -24,9 +24,11 @@ from core.vtg.emg.common.c.types import Structure, Primitive, Pointer, Array, Fu
 from core.vtg.emg.common.process import Dispatch, Receive, Block
 from core.vtg.emg.generators.linuxModule.interface import Implementation, Resource, Container, Callback
 from core.vtg.emg.generators.linuxModule.process import get_common_parameter, CallRetval, Call, ExtendedAccess
+
+
 _declarations = {'environment model': list()}
 _definitions = {'environment model': list()}
-_values_map = dict()
+_values_map = {}
 
 
 def generate_instances(logger, conf, sa, interfaces, model, instance_maps):
@@ -36,8 +38,9 @@ def generate_instances(logger, conf, sa, interfaces, model, instance_maps):
     for process in model_processes + callback_processes:
         _simplify_process(logger, conf, sa, interfaces, process)
 
-    model.environment = {p.pretty_id: p for p in callback_processes}
-    model.models = {p.pretty_id: p for p in model_processes}
+    # todo: Distinguish instances and dump them
+    model.environment = {str(p): p for p in callback_processes}
+    model.models = {str(p): p for p in model_processes}
     filename = 'instances.json'
     data = model.save_collection(filename)
 
@@ -51,7 +54,7 @@ def _simplify_process(logger, conf, sa, interfaces, process):
     label_map = dict()
 
     def get_declaration(l, a):
-        d = l.get_declaration(a.interface.identifier)
+        d = l.get_declaration(str(a.interface))
         i = process.get_implementation(a)
         if i:
             if not (i.declaration == d or i.declaration.pointer_alias(d) or
@@ -62,7 +65,7 @@ def _simplify_process(logger, conf, sa, interfaces, process):
                                                               i.declaration.to_string()))
                 d = i.declaration
             v = i.adjusted_value(d)
-        else:
+        elif not i:
             v = None
 
         return d, v
@@ -74,14 +77,14 @@ def _simplify_process(logger, conf, sa, interfaces, process):
             for number, access in enumerate(simpl_access):
                 declaration, value = get_declaration(label, access)
                 new = process.add_label("{}_{}".format(label.name, number), declaration, value=value)
-                label_map[label.name][access.interface.identifier] = new
+                label_map[label.name][str(access.interface)] = new
             del process.labels[label.name]
         elif len(simpl_access) == 1:
             access = simpl_access[0]
             declaration, value = get_declaration(label, access)
             label.declaration = declaration
             label.value = value
-            label_map[label.name][access.interface.identifier] = label
+            label_map[label.name][str(access.interface)] = label
 
     # Then replace accesses in parameters with simplified expressions
     for action in (a for a in list(process.actions.values()) if isinstance(a, Dispatch) or isinstance(a, Receive)):
@@ -91,8 +94,7 @@ def _simplify_process(logger, conf, sa, interfaces, process):
             for index in range(len(action.parameters)):
                 # Determine dispatcher parameter
                 try:
-                    interface = get_common_parameter(action, process, index)
-                    interface = interface.identifier
+                    interface = str(get_common_parameter(action, process, index))
                 except RuntimeError:
                     suts = [peer['interfaces'][index] for peer in action.peers
                             if 'interfaces' in peer and len(peer['interfaces']) > index]
@@ -103,7 +105,7 @@ def _simplify_process(logger, conf, sa, interfaces, process):
 
                 # Determine dispatch parameter
                 access = process.resolve_access(action.parameters[index], interface)
-                new_label = label_map[access.label.name][access.interface.identifier]
+                new_label = label_map[access.label.name][str(access.interface)]
                 new_expression = access.access_with_label(new_label)
                 action.parameters[index] = new_expression
 
@@ -167,7 +169,7 @@ def _simplify_process(logger, conf, sa, interfaces, process):
                     for s in tmp:
                         for acc in accesses:
                             if acc.interface:
-                                nl = label_map[acc.label.name][acc.list_interface[0].identifier]
+                                nl = label_map[acc.label.name][str(acc.list_interface[0])]
                                 s = acc.replace_with_label(s, nl)
                                 new_tmp.add(s)
                                 matched = True
@@ -264,7 +266,7 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
                       any((signature.points.return_value == d for d in a.label.declarations)))]
             if len(suits) > 0:
                 if suits[0].interface:
-                    lbl = label_map[suits[0].label.name][suits[0].interface.identifier]
+                    lbl = label_map[suits[0].label.name][str(suits[0].interface)]
                 else:
                     lbl = suits[0].label
                 return_expression = suits[0].access_with_label(lbl) + ' = '
@@ -284,7 +286,7 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
                     parameter = declaration.points.parameters[position]
                     if (acc.list_interface[-1].declaration == parameter or
                             acc.list_interface[-1].declaration.pointer_alias(parameter)):
-                        expression = acc.access_with_label(label_map[acc.label.name][acc.list_interface[0].identifier])
+                        expression = acc.access_with_label(label_map[acc.label.name][str(acc.list_interface[0])])
                         found_positions[position] = expression
                         break
 
@@ -408,7 +410,7 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
             elif not isinstance(implementation, bool) and conf.get('implicit callback calls', True)\
                     and not (access.label.callback and len(access.label.interfaces) > 1):
                 # Call by pointer
-                invoke = access.access_with_label(label_map[access.label.name][access.list_interface[0].identifier])
+                invoke = access.access_with_label(label_map[access.label.name][str(access.list_interface[0])])
                 check = True
                 reinitialize_vars_flag = True
             else:
@@ -521,7 +523,7 @@ def _yield_instances(logger, conf, sa, interfaces, model, instance_maps):
     :param interfaces: InterfaceCollection object.
     :param model: ProcessCollection object.
     :param instance_maps: Dictionary {'category name' -> {'process name' ->
-           {'Access.expression string'->'Interface.identifier string'->'value string'}}}.
+           {'Access.expression string'->'Interface string'->'value string'}}}.
     :return: List with model qutomata, list with callback automata.
     """
     logger.info("Generate automata for processes with callback calls")
@@ -529,12 +531,11 @@ def _yield_instances(logger, conf, sa, interfaces, model, instance_maps):
     identifiers_map = dict()
 
     def rename_process(inst):
-        old_id = inst.identifier
-        inst.identifier = "{}{}".format(inst.identifier, identifiers.__next__())
-        if old_id in identifiers_map:
-            identifiers_map[old_id].append(inst)
+        inst.instance_number = int(identifiers.__next__())
+        if str(inst) in identifiers_map:
+            identifiers_map[str(inst)].append(inst)
         else:
-            identifiers_map[old_id] = [inst]
+            identifiers_map[str(inst)] = [inst]
     
     # Check configuraition properties first
     conf.setdefault("max instances number", 1000)
@@ -554,7 +555,6 @@ def _yield_instances(logger, conf, sa, interfaces, model, instance_maps):
 
         for instance in base_list:
             rename_process(instance)
-            __set_pretty_id(instance)
             callback_fsa.append(instance)
 
     # Generate automata for models
@@ -564,16 +564,15 @@ def _yield_instances(logger, conf, sa, interfaces, model, instance_maps):
         processes = _fulfill_label_maps(logger, conf, sa, interfaces, [process], process, instance_maps, instances_left)
         for instance in processes:
             rename_process(instance)
-            __set_pretty_id(instance)
             model_fsa.append(instance)
 
     # According to new identifiers change signals peers
     for process in model_fsa + callback_fsa:
-        for action in (a for a in process.actions.values() if isinstance(a, Dispatch) or isinstance(a, Receive)):
+        for action in process.actions.filter(include={Dispatch, Receive}):
             new_peers = []
             for peer in action.peers:
-                if peer['process'].identifier in identifiers_map:
-                    for instance in identifiers_map[peer['process'].identifier]:
+                if str(peer['process']) in identifiers_map:
+                    for instance in identifiers_map[str(peer['process'])]:
                         new_peer = {
                             "process": instance,
                             "action": instance.actions[peer['action'].name]
@@ -645,7 +644,7 @@ def _fulfill_label_maps(logger, conf, sa, interfaces, instances, process, instan
     :param instances: List of Process objects.
     :param process: Process object.
     :param instance_maps: Dictionary {'category name' -> {'process name' ->
-           {'Access.expression string'->'Interface.identifier string'->'value string'}}}
+           {'Access.expression string'->'Interface string'->'value string'}}}
     :param instances_left: Number of instances which EMG is still allowed to generate.
     :return: List of Process objects.
     """
@@ -689,7 +688,7 @@ def _fulfill_label_maps(logger, conf, sa, interfaces, instances, process, instan
                                     if header not in header_list:
                                         header_list.append(header)
 
-                            acc = newp.resolve_access(access, interface.identifier)
+                            acc = newp.resolve_access(access, str(interface))
                             if not acc:
                                 # TODO: I am not sure that this would guarantee all cases of adding new accesses
                                 prot = newp.resolve_access(access)[0]
@@ -703,7 +702,7 @@ def _fulfill_label_maps(logger, conf, sa, interfaces, instances, process, instan
                                     new.list_interface = [interface]
                                 new.list_access = prot.list_access
                                 if len(new.list_access) == 1 and new.label:
-                                    new.label.set_declaration(interface.identifier, access_map[access][i].declaration)
+                                    new.label.set_declaration(str(interface), access_map[access][i].declaration)
 
                                 newp.add_access(access, new)
                     except KeyError:
@@ -723,11 +722,10 @@ def __get_relevant_expressions(process):
             if acc.interface and isinstance(acc.interface, Container) and \
                     acc.expression in process.allowed_implementations and \
                     process.allowed_implementations[acc.expression] and \
-                    acc.interface.identifier in process.allowed_implementations[acc.expression] and \
-                    process.allowed_implementations[acc.expression][acc.interface.identifier] and \
-                    process.allowed_implementations[acc.expression][acc.interface.identifier].value:
-                expressions.append(process.allowed_implementations[acc.expression]
-                                   [acc.interface.identifier].value)
+                    str(acc.interface) in process.allowed_implementations[acc.expression] and \
+                    process.allowed_implementations[acc.expression][str(acc.interface)] and \
+                    process.allowed_implementations[acc.expression][str(acc.interface)].value:
+                expressions.append(process.allowed_implementations[acc.expression][str(acc.interface)].value)
 
             if len(expressions) == 3:
                 break
@@ -739,27 +737,16 @@ def __get_relevant_expressions(process):
                 if acc.interface and isinstance(acc.interface, Callback) and \
                         acc.expression in process.allowed_implementations and \
                         process.allowed_implementations[acc.expression] and \
-                        acc.interface.identifier in process.allowed_implementations[acc.expression] and \
-                        process.allowed_implementations[acc.expression][acc.interface.identifier] and \
-                        process.allowed_implementations[acc.expression][acc.interface.identifier].value:
-                    expressions.append(process.allowed_implementations[acc.expression]
-                                       [acc.interface.identifier].value)
+                        str(acc.interface) in process.allowed_implementations[acc.expression] and \
+                        process.allowed_implementations[acc.expression][str(acc.interface)] and \
+                        process.allowed_implementations[acc.expression][str(acc.interface)].value:
+                    expressions.append(process.allowed_implementations[acc.expression][str(acc.interface)].value)
 
                 if len(expressions) == 3:
                     break
 
     expressions = [re.sub('\s|&', '', e) for e in expressions]
     return expressions
-
-
-def __set_pretty_id(process):
-    expressions = __get_relevant_expressions(process)
-    if process.category == 'functions models':
-        process.pretty_id = "{}/{}".format(process.category, process.name)
-    elif len(expressions) > 0:
-        process.pretty_id = "{}/{}_{}".format(process.category, process.name, expressions[0])
-    else:
-        process.pretty_id = "{}/{}_{}".format(process.category, process.name, process.identifier)
 
 
 def __generate_model_comment(process):
@@ -787,7 +774,7 @@ def _remove_statics(sa, process):
         f.definition_file = impl.initialization_file
 
         # Generate call
-        if not f.declaration.return_value or f.declaration.return_value.identifier == 'void':
+        if not f.declaration.return_value or f.declaration.return_value == 'void':
             ret = ''
         else:
             ret = 'return'
@@ -859,7 +846,7 @@ def _remove_statics(sa, process):
                             _declarations[file][name] = var
 
                     if var or func:
-                        new_value = func.name if func else var._name
+                        new_value = func.name if func else var.name
                         if file not in _values_map:
                             _values_map[file] = dict()
                         _values_map[file][new_value] = implementation.value
@@ -893,11 +880,9 @@ def _copy_process(process, instances_left):
     inst.accesses(new_accesses)
 
     for action in inst.actions.values():
-        if not (isinstance(action, Receive) or isinstance(action, Dispatch)):
-            cp = copy.deepcopy(action)
-        else:
+        cp = copy.deepcopy(action)
+        if isinstance(action, Receive) or isinstance(action, Dispatch):
             # They contain references to other processes in peers
-            cp = copy.copy(action)
             cp.parameters = copy.copy(action.parameters)
 
         inst.actions[cp.name] = cp
@@ -933,11 +918,11 @@ def _split_into_instances(sa, interfaces, process, resource_new_insts, simplifie
     :param interfaces: InterfaceCollection object.
     :param process: Process object.
     :param resource_new_insts: Number of new instances allowed to generate for resources.
-    :param simplified_map: {'Access.expression string'->'Interface.identifier string'->'value string'}
+    :param simplified_map: {'Access.expression string'->'Interface string'->'value string'}
     :return: List of dictionaries with implementations:
-              {'Access.expression string'->'Interface.identifier string'->'Implementation object/None'}.
+              {'Access.expression string'->'Interface string'->'Implementation object/None'}.
              List of dictionaries with values:
-              {'Access.expression string'->'Interface.identifier string'->'value string'}
+              {'Access.expression string'->'Interface string'->'value string'}
     """
     access_map = {}
 
@@ -948,7 +933,7 @@ def _split_into_instances(sa, interfaces, process, resource_new_insts, simplifie
     # Generate access maps itself with base values only
     maps = []
     total_chosen_values = set()
-    if len(final_options_list) > 0:
+    if final_options_list:
         ivector = [0 for _ in enumerate(final_options_list)]
 
         for _ in enumerate(interface_to_value[final_options_list[0]]):
@@ -964,7 +949,7 @@ def _split_into_instances(sa, interfaces, process, resource_new_insts, simplifie
                 implementation = value_to_implementation[chosen_value]
 
                 # Assign only values without base values
-                if len(interface_to_value[identifier][chosen_value]) == 0:
+                if not interface_to_value[identifier][chosen_value]:
                     new_map[expression][identifier] = implementation
                     chosen_values.add(chosen_value)
                     total_chosen_values.add(chosen_value)
@@ -976,7 +961,7 @@ def _split_into_instances(sa, interfaces, process, resource_new_insts, simplifie
             maps.append([new_map, chosen_values])
     else:
         # Choose atleast one map
-        if len(maps) == 0:
+        if not maps:
             maps = [[access_map, set()]]
 
     # Then set the other values
@@ -985,8 +970,8 @@ def _split_into_instances(sa, interfaces, process, resource_new_insts, simplifie
             intf_additional_maps = []
             # If container has values which depends on another container add a map with unitialized value for the
             # container
-            if access_map[expression][interface] and len([val for val in interface_to_value[interface]
-                                                          if len(interface_to_value[interface][val]) != 0]) > 0:
+            if access_map[expression][interface] and [val for val in interface_to_value[interface]
+                                                      if interface_to_value[interface][val]]:
                 new = [copy.deepcopy(maps[0][0]), copy.copy(maps[0][1])]
                 new[1].remove(new[0][expression][interface])
                 new[0][expression][interface] = None
@@ -1000,19 +985,19 @@ def _split_into_instances(sa, interfaces, process, resource_new_insts, simplifie
                     strict_suits = sorted(
                                    [value for value in interface_to_value[interface]
                                     if value not in total_chosen_values and
-                                    (len(interface_to_value[interface][value]) == 0 or
-                                     len(chosen_values.intersection(interface_to_value[interface][value])) > 0 or
-                                     len([cv for cv in interface_to_value[interface][value]
-                                          if cv not in value_to_implementation and cv not in chosen_values]) > 0)])
-                    if len(strict_suits) == 0:
+                                    (not interface_to_value[interface][value] or
+                                     chosen_values.intersection(interface_to_value[interface][value]) or
+                                     [cv for cv in interface_to_value[interface][value]
+                                      if cv not in value_to_implementation and cv not in chosen_values])])
+                    if not strict_suits:
                         # If values are repeated just choose random one
                         suits = sorted(
                                 [value for value in interface_to_value[interface]
-                                 if len(interface_to_value[interface][value]) == 0 or
-                                 len(chosen_values.intersection(interface_to_value[interface][value])) > 0 or
-                                 (len([cv for cv in interface_to_value[interface][value]
-                                       if cv not in value_to_implementation and cv not in chosen_values]) > 0)])
-                        if len(suits) > 0:
+                                 if not interface_to_value[interface][value]or
+                                 chosen_values.intersection(interface_to_value[interface][value]) or
+                                 ([cv for cv in interface_to_value[interface][value]
+                                   if cv not in value_to_implementation and cv not in chosen_values])])
+                        if suits:
                             suits = [suits.pop()]
                     else:
                         suits = strict_suits
@@ -1100,17 +1085,17 @@ def _extract_implementation_dependencies(access_map, accesses):
       child values to reduce number of instances with the same callbacks.
 
     :param access_map: Dictionary which is a prototype of an instance map used for process copying:
-                       {'Access.expression string'->'Interface.identifier string'->'Implementation object/None'}.
+                       {'Access.expression string'->'Interface string'->'Implementation object/None'}.
     :param accesses: Process.accesses() dictionary:
                      {'Access.expression string' -> [List with Access objects with the same expression attribute]}
     :return: The following data:
-    interface_to_value: Dictionary {'Interface.identifier string' -> 'Implementation.value string' ->
+    interface_to_value: Dictionary {'Interface string' -> 'Implementation.value string' ->
                                     'Implementation.base_value string'}
     value_to_implementation: Dictionary {'Implementation.value string' -> 'Implementation object'}
     basevalue_to_value: Dictionary with relevant implementations on each container value:
                         {'Value string' -> {'Set with relevant value strings'}
-    interface_to_expression: Dictionary {'Interface.identifier string' -> 'Access.expression string'}
-    final_options_list: List ['Interface.identifier string'] - contains sorted list of interfaces identifiers for which
+    interface_to_expression: Dictionary {'Interface string' -> 'Access.expression string'}
+    final_options_list: List ['Interface string'] - contains sorted list of interfaces identifiers for which
     is necessary to choose implementations first (see description above). The greatest element is the first.
     """
     # Necessary data to return
@@ -1128,34 +1113,33 @@ def _extract_implementation_dependencies(access_map, accesses):
         access_map[access] = {}
 
         for inst_access in [inst for inst in accesses[access] if inst.interface]:
-            access_map[inst_access.expression][inst_access.interface.identifier] = None
-            interface_to_expression[inst_access.interface.identifier] = access
+            access_map[inst_access.expression][str(inst_access.interface)] = None
+            interface_to_expression[str(inst_access.interface)] = access
 
             implementations = inst_access.interface.implementations
-            interface_to_value[inst_access.interface.identifier] = {}
+            interface_to_value[str(inst_access.interface)] = {}
             for impl in implementations:
                 value_to_implementation[impl.value] = impl
 
-                if impl.value not in interface_to_value[inst_access.interface.identifier]:
-                    interface_to_value[inst_access.interface.identifier][impl.value] = set()
+                if impl.value not in interface_to_value[str(inst_access.interface)]:
+                    interface_to_value[str(inst_access.interface)][impl.value] = set()
 
                 if impl.base_value:
-                    interface_to_value[inst_access.interface.identifier][impl.value].add(impl.base_value)
+                    interface_to_value[str(inst_access.interface)][impl.value].add(impl.base_value)
 
                     if impl.base_value not in basevalue_to_value:
                         basevalue_to_value[impl.base_value] = []
                         basevalue_to_interface[impl.base_value] = set()
                     basevalue_to_value[impl.base_value].append(impl.value)
-                    basevalue_to_interface[impl.base_value].add(inst_access.interface.identifier)
+                    basevalue_to_interface[impl.base_value].add(str(inst_access.interface))
                 else:
-                    options_interfaces.add(inst_access.interface.identifier)
+                    options_interfaces.add(str(inst_access.interface))
 
     # Choose greedy minimal set of container implementations which cover all relevant child interface implementations
     # (callbacks, resources ...)
     containers_impacts = {}
     for container_id in [container_id for container_id in list(options_interfaces)
-                         if len([value for value in interface_to_value[container_id]
-                                 if value in basevalue_to_value]) > 0]:
+                         if [value for value in interface_to_value[container_id] if value in basevalue_to_value]]:
         # Collect all child values
         summary_values = set()
         summary_interfaces = set()
@@ -1193,8 +1177,8 @@ def _extract_implementation_dependencies(access_map, accesses):
         interface_to_value[container_id] = {val: interface_to_value[container_id][val] for val in final_set}
 
     # Sort options
-    options = [o for o in options_interfaces if len([value for value in interface_to_value[o]
-                                                     if value in basevalue_to_value]) > 0]
+    options = [o for o in options_interfaces
+               if [value for value in interface_to_value[o] if value in basevalue_to_value]]
     final_options_list = sorted(sorted(options), key=lambda o: containers_impacts[o], reverse=True)
 
     return interface_to_value, value_to_implementation, basevalue_to_value, interface_to_expression, final_options_list
@@ -1211,13 +1195,13 @@ def _match_array_maps(expression, interface, values, maps, interface_to_value, v
     :param interface: An interface identifier.
     :param values: List of unique values implementing the interface.
     :param maps: Existing solutions: List with elements with a list of structure:
-                 [{'Access.expression string'->'Interface.identifier string'->'Implementation object/None'},
+                 [{'Access.expression string'->'Interface string'->'Implementation object/None'},
                    set{used values strings}].
-    :param interface_to_value: Dictionary {'Interface.identifier string' -> 'Implementation.value string' ->
+    :param interface_to_value: Dictionary {'Interface string' -> 'Implementation.value string' ->
                                            'Implementation.base_value string'}
     :param value_to_implementation: Dictionary {'Implementation.value string' -> 'Implementation object'}
     :return: Map from values to solutions (if so suitable found):
-             {'Value string'->[{'Access.expression string'->'Interface.identifier string'->
+             {'Value string'->[{'Access.expression string'->'Interface string'->
                                'Implementation object/None'}, set{used values strings}]}
     """
     result_map = dict()
@@ -1227,14 +1211,14 @@ def _match_array_maps(expression, interface, values, maps, interface_to_value, v
         v_implementation = value_to_implementation[value]
         result_map[value] = None
 
-        if len(interface_to_value[interface][value]) > 0:
+        if interface_to_value[interface][value]:
             suitable_map = None
             for mp, chosen_values in ((m, cv) for m, cv in maps if not m[expression][interface] and m not in added):
                 for e in (e for e in mp.keys() if isinstance(mp[e], dict)):
                     same_container = \
                         [mp for i in mp[e] if i != interface and isinstance(mp[e][i], Implementation) and
                          mp[e][i].base_value and _from_same_container(v_implementation, mp[e][i])]
-                    if len(same_container) > 0 and mp not in added:
+                    if same_container and mp not in added:
                         suitable_map = [mp, chosen_values]
                         added.append(mp)
                         break
@@ -1255,22 +1239,22 @@ def _fulfil_map(expression, interface, value_map, reuse, value_to_implementation
     :param expression: Expression string.
     :param interface: An interface identifier.
     :param value_map: {'Value string' ->
-                       [{'Access.expression string'->'Interface.identifier string'->'Implementation object/None'},
+                       [{'Access.expression string'->'Interface string'->'Implementation object/None'},
                         set{used values strings}]}
     :param reuse: List with elements with a list of structure:
-                  [{'Access.expression string'->'Interface.identifier string'->'Implementation object/None'},
+                  [{'Access.expression string'->'Interface string'->'Implementation object/None'},
                    set{used values strings}].
     :param value_to_implementation: Dictionary {'Implementation.value string' -> 'Implementation object'}.
     :param total_chosen_values: Set of already added values from all instance maps.
-    :param interface_to_value: Dictionary {'Interface.identifier string' -> 'Implementation.value string' ->
+    :param interface_to_value: Dictionary {'Interface string' -> 'Implementation.value string' ->
                                            'Implementation.base_value string'}
     :return: List with new created elements with a list of structure:
-                  [{'Access.expression string'->'Interface.identifier string'->'Implementation object/None'},
+                  [{'Access.expression string'->'Interface string'->'Implementation object/None'},
                    set{used values strings}].
     """
     new_maps = []
 
-    if len(reuse) == 0:
+    if not reuse:
         raise ValueError('Expect non-empty list of maps for instanciating from')
     first = reuse[0]
 
@@ -1278,7 +1262,7 @@ def _fulfil_map(expression, interface, value_map, reuse, value_to_implementation
         if value_map[value]:
             new = value_map[value]
         else:
-            if len(reuse) > 0:
+            if reuse:
                 new = reuse.pop()
             else:
                 new = [copy.deepcopy(first[0]), copy.copy(first[1])]
@@ -1298,7 +1282,7 @@ def _add_value(interface, value, chosen_values, total_chosen_values, interface_t
     :param value: Provided implementation of an interface.
     :param chosen_values: Set of already added values.
     :param total_chosen_values: Set of already added values from all instance maps.
-    :param interface_to_value: Dictionary {'Interface.identifier string' -> 'Access.expression string'}.
+    :param interface_to_value: Dictionary {'Interface string' -> 'Access.expression string'}.
     :param value_to_implementation: Dictionary {'Implementation.value string' -> 'Implementation object'}.
     :return: Set with all added values (a given one plus a container if so).
     """
@@ -1309,7 +1293,7 @@ def _add_value(interface, value, chosen_values, total_chosen_values, interface_t
 
     hidden_container_values = [cv for cv in interface_to_value[interface][value] if cv not in value_to_implementation]
 
-    if len(hidden_container_values) > 0:
+    if hidden_container_values:
         first_random = hidden_container_values.pop()
         chosen_values.add(first_random)
         total_chosen_values.add(first_random)
