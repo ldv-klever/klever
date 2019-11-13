@@ -63,11 +63,7 @@ class CollectionEncoder(json.JSONEncoder):
                 d['entry point'] = action.trace_relevant
 
             if isinstance(action, Subprocess):
-                if len(action.successors) != 1:
-                    raise ValueError('Expect exactly one successor in subprocess {!r} of process {!r}'.
-                                     format(str(action), str(process)))
-                next_action, = tuple(action.successors)
-                d['process'] = CollectionEncoder._serialize_fsa(next_action)
+                d['process'] = CollectionEncoder._serialize_fsa(action.action)
             elif isinstance(action, Dispatch) or isinstance(action, Receive):
                 d['parameters'] = action.parameters
 
@@ -241,7 +237,7 @@ class CollectionDecoder:
 
         # Connect actions
         for action in process.actions.filter(include={Subprocess}):
-            action.insert_successor(next_actions[action.reference_name])
+            action.action = next_actions[action.reference_name]
 
         # Import comments
         if 'comment' in dic:

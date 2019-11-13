@@ -139,13 +139,13 @@ def p_concatenation_list(p):
     if concatenation_list:
         concatenation_list = concatenation_list[-1]
         assert isinstance(concatenation_list, Concatenation)
-        concatenation_list.add_first(action)
+        concatenation_list.add_action(action, position=0)
         p[0] = concatenation_list
     else:
         new_action = Concatenation(next(_aux_identifier))
         _check_action(p.parser.process, new_action)
         p.parser.process.actions[str(new_action)] = new_action
-        new_action.add_first(action)
+        new_action.add_action(action)
         p[0] = new_action
 
 
@@ -158,13 +158,13 @@ def p_choice_list(p):
     if choice_list:
         choice_list = choice_list[-1]
         assert isinstance(choice_list, Choice)
-        choice_list.add_first(concatenation_list)
+        choice_list.add_action(concatenation_list)
         p[0] = choice_list
     else:
         new_action = Choice(next(_aux_identifier))
         _check_action(p.parser.process, new_action)
         p.parser.process.actions[str(new_action)] = new_action
-        new_action.add_first(concatenation_list)
+        new_action.add_action(concatenation_list)
         p[0] = new_action
 
 
@@ -174,7 +174,8 @@ def p_bracket(p):
     """
     # todo: support numbers to implement loops
     _, _, action_list, _ = p
-    par = Parentheses(next(_aux_identifier), action=action_list)
+    par = Parentheses(next(_aux_identifier))
+    par.action = action_list
     _check_action(p.parser.process, par)
     p.parser.process.actions[str(par)] = par
     p[0] = par

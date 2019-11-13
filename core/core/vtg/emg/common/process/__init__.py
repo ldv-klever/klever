@@ -243,7 +243,7 @@ class Process:
         :return: List with Access objects.
         """
         if isinstance(access, Label):
-            string = '%{}%'.format(access._name)
+            string = repr(access)
         elif isinstance(access, str):
             string = access
         else:
@@ -324,81 +324,31 @@ class Process:
         new.comment = comment
         return new
 
-    def add_choice(self, name, actions):
-        """
-        Add a new choice object.
-
-        :param name: New action name
-        :param actions: Actions iterable.
-        :return: Choice object.
-        """
-        new = Choice(name)
-        self.actions[new] = new
-
-        for action in actions:
-            new.add_first(action)
-
-        return new
-
-    def add_concatenation(self, name, actions):
-        """
-       Add a new concatenation object.
-
-       :param name: New action name
-       :param actions: Actions iterable.
-       :return: Concatenation object.
-       """
-        new = Concatenation(name)
-        self.actions[new] = new
-
-        for action in actions:
-            new.add_first(action)
-
-        return new
-
-    def add_parenthenses(self, name, action):
-        """
-        Add a new Parentheses object.
-
-        :param name: New action name
-        :param action: Actions iterable.
-        :return: Parentheses object.
-        """
-        new = Parentheses(name, action)
-        self.actions[new] = new
-        return new
-
     def replace_action(self, old, new, purge=True):
         """
-        Replace in actions graph the given action. This methods replaces successors and predecessors and also
-        changes operator attributes with references.
+        Replace in actions graph the given action.
 
         :param old: BaseAction object.
         :param new: BaseAction object.
         :param purge: Delete an object from collection.
         :return: None
         """
-        for successor in old.successors:
-            successor.replace_predecessor(old, new)
-        for predecessor in old.predecessors:
-            predecessor.replace_successor(old, new)
-
-            if isinstance(predecessor, Parentheses):
-                predecessor.action = None
-                predecessor.add_first(new)
-            elif isinstance(predecessor, Choice):
-                predecessor.actions.remove(old)
-                predecessor.actions.add(new)
+        operator = old.my_operator
+        if operator:
+            if isinstance(operator, Parentheses):
+                operator.action = None
+                operator.action = new
+            elif isinstance(operator, Choice):
+                operator.remove_action(old)
+                operator.add_action(new)
+            elif isinstance(operator, Concatenation):
+                index = operator.actions.index(old)
+                operator.remove_action(old)
+                operator.add_action(new, position=index)
             else:
-                if isinstance(predecessor, Concatenation):
-                    operator = predecessor
-                else:
-                    operator = predecessor.my_operator
-                if isinstance(operator, Concatenation):
-                    index = operator.actions.index(old)
-                    operator.actions[index] = new
-                else:
-                    raise RuntimeError('Expect concatenation operator')
+                raise RuntimeError('unsupported operator')
+        else:
+            raise RuntimeError('Expect operator')
 
         if purge:
             del self.actions[str(old)]
@@ -412,36 +362,30 @@ class Process:
         :param target: Action object.
         :param before: True if append left ot append to  the right end.
         """
-        def _replace_links(was, will, bef=True):
-            if bef:
-                for predecessor in was.predecessors:
-                    predecessor.replace_successor(was, will)
-
-                target.insert_predecessor(will)
-            else:
-                for successor in was.successors:
-                    successor.replace_predecessor(was, will)
-
-                target.insert_successor(will)
-
         operator = target.my_operator
         if isinstance(operator, Concatenation):
             position = operator.actions.index(target)
             if before:
-                operator.actions.insert(position, new)
+                operator.add_action(new, position=position)
             else:
-                operator.actions.insert(position + 1, new)
-
-            _replace_links(target, new, bef=before)
+                operator.add_action(new, position=position+1)
+        elif isinstance(operator, Parentheses):
+            conc = Concatenation(str(len(self.actions.keys()) + 1))
+            operator.action = None
+            if before:
+                conc.actions = [new, target]
+            else:
+                conc.actions = [target, new]
+            operator.action = conc
         elif isinstance(operator, Choice):
+            operator.remove_action(target)
             if before:
                 actions = [new, target]
-                new.insert_successor(target)
             else:
                 actions = [target, new]
-                target.insert_successor(new)
-            conc = self.add_concatenation(str(len(self.actions.keys()) + 1), actions)
-            self.replace_action(target, conc, purge=False)
+            conc = Concatenation(str(len(self.actions.keys()) + 1))
+            conc.actions = actions
+            operator.add_action(conc)
         else:
             raise ValueError("Unknown operator {!r}".format(str(type(operator).__name__)))
 
@@ -454,10 +398,18 @@ class Process:
         """
         operator = target.my_operator
         if isinstance(operator, Concatenation):
-            choice = self.add_choice(str(len(self.actions.keys()) + 1), {new, target})
-            self.replace_action(target, choice, purge=False)
+            index = operator.actions.index(target)
+            operator.actions.remove(target)
+            choice = Choice(str(len(self.actions.keys()) + 1))
+            choice.actions = {new, target}
+            operator.add_action(choice, position=index)
+        elif isinstance(operator, Parentheses):
+            choice = Choice(str(len(self.actions.keys()) + 1))
+            operator.action = None
+            choice.actions = {target, new}
+            operator.action = choice
         elif isinstance(operator, Choice):
-            operator.add_first(new)
+            operator.add_action(new)
         else:
             raise ValueError("Unknown operator {!r}".format(str(type(operator).__name__)))
 
@@ -489,25 +441,27 @@ class Actions(collections.UserDict):
         # Copy items
         new.data = {n: copy.copy(v) for n, v in self.data.items()}
 
-        # Replace references
-        for action in new.data.values():
+        # Explicitly clear operators (replacement forbidden by the API)
+        for action in new.values():
+            action.my_operator = None
             if isinstance(action, Receive) or isinstance(action, Dispatch):
                 # They contain references to other processes in peers
                 action.parameters = copy.copy(action.parameters)
-            elif isinstance(action, Parentheses):
-                action.action = new.data[action.action.name]
+            elif isinstance(action, Parentheses) or isinstance(action, Subprocess):
+                action.action = None
             elif isinstance(action, Concatenation):
-                action.actions = [new.data[act.name] for i, act in enumerate(action.actions)]
+                action.actions = []
             elif isinstance(action, Choice):
-                action.actions = {new.data[act.name] for act in action.actions}
+                action.actions = {}
 
-            # Replace successors and predecessors
-            for successor in set(action.successors):
-                action.remove_successor(successor)
-                action.add_successor(new.data[successor.name])
-            for predecessor in set(action.predecessors):
-                action.remove_predecessor(predecessor)
-                action.add_predecessor(new.data[predecessor.name])
+        # Set new references
+        for action in self.data.values():
+            if isinstance(action, Parentheses) or isinstance(action, Subprocess):
+                new.data[action.name].action = new.data[action.action.name]
+            elif isinstance(action, Concatenation):
+                new.data[action.name].actions = [new.data[act.name] for i, act in enumerate(action.actions)]
+            elif isinstance(action, Choice):
+                new.data[action.name].actions = {new.data[act.name] for act in action.actions}
 
     def filter(self, include=None, exclude=None):
         if not include:
@@ -525,7 +479,8 @@ class Actions(collections.UserDict):
 
         :return: Sorted list with starting process State objects.
         """
-        acts = [s for s in self.data.values() if not s.predecessors]
+        acts = {s for s in self.data.values() if not s.my_operator}
+        acts.difference_update({s.action for s in self.filter(include={Subprocess}) if s.action})
         if len(acts) != 1:
             raise ValueError('Process %s contains more than one action'.format(str(self)))
         act, *_ = acts
@@ -560,8 +515,7 @@ class BaseAction:
         # This is required to do deepcopy
         self = super().__new__(cls)
         self.name = name
-        self._predecessors = set()
-        self._successors = set()
+        self._my_operator = None
         return self
 
     def __getnewargs__(self):
@@ -578,106 +532,19 @@ class BaseAction:
         return self.name == other.name
 
     @property
-    def successors(self):
-        """
-        Returns deterministically list with all next states.
+    def my_operator(self):
+        return self._my_operator
 
-        :return: List with State objects.
-        """
-        return tuple(self._successors)
-
-    @property
-    def predecessors(self):
-        """
-        Returns deterministically list with all previous states.
-
-        :return: List with State objects.
-        """
-        return tuple(self._predecessors)
-
-    def insert_successor(self, new):
-        """
-        Link given State object to be a successor of this state.
-
-        :param new: New next State object.
-        :return: None
-        """
-        self.add_successor(new)
-        new.add_predecessor(self)
-
-    def insert_predecessor(self, new):
-        """
-        Link given State object to be a predecessor of this state.
-
-        :param new: New previous State object.
-        :return: None
-        """
-        self.add_predecessor(new)
-        new.add_successor(self)
-
-    def replace_successor(self, old, new):
-        """
-        Replace given successor State object with a new State object.
-
-        :param old: Old next State object.
-        :param new: New next State object.
-        :return: None
-        """
-        self.remove_successor(old)
-        old.remove_predecessor(self)
-        self.add_successor(new)
-        new.add_predecessor(self)
-
-    def replace_predecessor(self, old, new):
-        """
-        Replace given predecessor State object with a new State object.
-
-        :param old: Old predecessor State object.
-        :param new: New predecessor State object.
-        :return: None
-        """
-        self.remove_predecessor(old)
-        old.remove_successor(self)
-        self.add_predecessor(new)
-        new.add_successor(self)
-
-    def add_successor(self, new):
-        """
-        Link given State object to be a successor.
-
-        :param new: New next State object.
-        :return: None
-        """
-        self._successors.add(new)
-
-    def add_predecessor(self, new):
-        """
-        Link given State object to be a predecessor.
-
-        :param new: New previous State object.
-        :return: None
-        """
-        self._predecessors.add(new)
-
-    def remove_successor(self, old):
-        """
-        Unlink given State object and remove it from successors.
-
-        :param old: State object.
-        :return: None
-        """
-        if old in self._successors:
-            self._successors.remove(old)
-
-    def remove_predecessor(self, old):
-        """
-        Unlink given State object and remove it from predecessors.
-
-        :param old: State object.
-        :return: None
-        """
-        if old in self._predecessors:
-            self._predecessors.remove(old)
+    @my_operator.setter
+    def my_operator(self, new):
+        if (not self._my_operator and new) or (self._my_operator and not new):
+            if not isinstance(new, Action):
+                self._my_operator = new
+            else:
+                raise RuntimeError(
+                    "Cannot set action {!r} as operator for {!r}".format(str(type(new).__name__), str(self)))
+        elif self._my_operator and new:
+            raise RuntimeError('Explicitly clean first operator field')
 
 
 class Action(BaseAction):
@@ -688,21 +555,9 @@ class Action(BaseAction):
 
     def __init__(self, name):
         super(Action, self).__init__()
-        self.condition = None
+        self.condition = []
         self.trace_relevant = False
         self.comment = ''
-
-    @property
-    def my_operator(self):
-        todo = collections.deque([self])
-        while todo:
-            act = todo.pop()
-            if not isinstance(act, Action):
-                return act
-            else:
-                for predecessor in act.predecessors:
-                    todo.appendleft(predecessor)
-        return None
 
 
 class Subprocess(Action):
@@ -719,7 +574,20 @@ class Subprocess(Action):
         super(Subprocess, self).__init__(name)
         self.process = None
         self.reference_name = reference_name
+        self._action = None
         self.fsa = None
+
+    @property
+    def action(self):
+        return self._action
+
+    @action.setter
+    def action(self, new):
+        if (not self._action and new) or (self._action and not new):
+            new.my_operator = None
+            self._action = new
+        else:
+            raise RuntimeError('Explicitly clean first operator field')
 
     def __repr__(self):
         return '{%s}' % str(self.reference_name if self.reference_name else self.name)
@@ -787,16 +655,27 @@ class Parentheses(BaseAction):
     This class represent an open parenthese symbol to simplify serialization and import.
     """
 
-    def __init__(self, name, action=None):
+    def __init__(self, name):
         super(Parentheses, self).__init__()
-        self.action = None
-        self.add_first(action)
+        self._action = None
 
-    def add_first(self, action: BaseAction):
-        self.insert_successor(action)
-        if self.action:
-            raise RuntimeError('Attempt to overwrite child in parenthenses')
-        self.action = action
+    @property
+    def action(self):
+        return self._action
+
+    @action.setter
+    def action(self, new):
+        if (not self._action and new) or (self._action and not new):
+            if self._action:
+                self._action.my_operator = None
+            if new:
+                new.my_operator = self
+            self._action = new
+        else:
+            raise RuntimeError('Explicitly clean first operator field')
+
+    def __repr__(self):
+        return '{%s}' % str(self.reference_name if self.reference_name else self.name)
 
 
 class Concatenation(BaseAction):
@@ -806,13 +685,39 @@ class Concatenation(BaseAction):
 
     def __init__(self, name):
         super(Concatenation, self).__init__()
-        self.actions = collections.deque()
+        self._actions = collections.deque()
 
-    def add_first(self, action: BaseAction):
-        self.insert_successor(action)
-        if self.actions:
-            self.actions[0].replace_predecessor(self, action)
-        self.actions.appendleft(action)
+    @property
+    def actions(self):
+        return list(self._actions)
+
+    @actions.setter
+    def actions(self, actions):
+        if self._actions and actions:
+            raise RuntimeError('First clean actions before setting new ones')
+        for item in list(self._actions):
+            self.remove_action(item)
+        if actions:
+            for item in actions:
+                self.add_action(item)
+        else:
+            self._actions = collections.deque()
+
+    def add_action(self, action, position=None):
+        if action in self._actions:
+            raise RuntimeError('An action already present')
+        action.my_operator = self
+        if not isinstance(position, int):
+            self._actions.append(action)
+        else:
+            self._actions.insert(position, action)
+
+    def remove_action(self, action):
+        if action in self._actions:
+            self._actions.remove(action)
+            action.my_operator = None
+        else:
+            raise ValueError('There is no such action')
 
 
 class Choice(BaseAction):
@@ -822,11 +727,36 @@ class Choice(BaseAction):
 
     def __init__(self, name):
         super(Choice, self).__init__()
-        self.actions = set()
+        self._actions = set()
 
-    def add_first(self, action: BaseAction):
-        action.insert_predecessor(self)
-        self.actions.add(action)
+    @property
+    def actions(self):
+        return set(self._actions)
+
+    @actions.setter
+    def actions(self, actions):
+        if self._actions and actions:
+            raise RuntimeError('First clean actions before setting new ones')
+        for item in list(self._actions):
+            self.remove_action(item)
+        if actions:
+            for item in actions:
+                self.add_action(item)
+        else:
+            self._actions = collections.deque()
+
+    def add_action(self, action):
+        if action in self._actions:
+            raise RuntimeError('An action already present')
+        action.my_operator = self
+        self._actions.add(action)
+
+    def remove_action(self, action):
+        if action in self._actions:
+            self._actions.remove(action)
+            action.my_operator = None
+        else:
+            raise ValueError('There is no such action')
 
 
 class ProcessCollection:
@@ -918,13 +848,13 @@ class ProcessCollection:
         process_map = self.process_map
         for action in [process.actions[a] for a in process.actions.filter(include={Receive, Dispatch})
                        if process.actions[a].peers]:
-            new_peers = set()
+            new_peers = list()
             for peer in action.peers:
                 if isinstance(peer, str):
                     if peer in process_map:
                         target = process_map[peer]
                         new_peer = {'process': target, 'action': target.actions[action.name]}
-                        new_peers.add(new_peer)
+                        new_peers.append(new_peer)
 
                         opposite_peers = [str(p['process']) if isinstance(p, dict) else p
                                           for p in target.actions[action.name].peers]
@@ -934,6 +864,6 @@ class ProcessCollection:
                         raise KeyError("Process {!r} tries to send a signal {!r} to {!r} but there is no such "
                                        "process in the model".format(str(process), str(action), peer))
                 else:
-                    new_peers.add(peer)
+                    new_peers.append(peer)
 
             action.peers = new_peers
