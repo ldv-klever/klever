@@ -76,7 +76,7 @@
             "parameter": true
           }
         },
-        "process": "(!register).([init_state].{callbacks} | (deregister))",
+        "process": "(!register).[init_state].{callbacks}",
         "reference": true
       }
     },

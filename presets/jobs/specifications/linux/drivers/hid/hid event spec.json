@@ -32,7 +32,7 @@
           },
           "inside": {
             "comment": "Input layer operations.",
-            "process": "[open].(<open_success>.[callback].[close].{inside} | <open_fail>.[stop].{main}) | [stop].{main}"
+            "process": "[open].(<open_success>.[callback].[close].{inside} | <open_fail>.[stop1].{main}) | [stop2].{main}"
           },
           "main": {
             "comment": "Device initialization.",
@@ -85,7 +85,14 @@
               "%ret% == 0"
             ]
           },
-          "stop": {
+          "stop1": {
+            "callback": "%ll_driver.stop%",
+            "comment": "Stop the hid device.",
+            "parameters": [
+              "%hid_device%"
+            ]
+          },
+          "stop2": {
             "callback": "%ll_driver.stop%",
             "comment": "Stop the hid device.",
             "parameters": [

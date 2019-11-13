@@ -5,7 +5,7 @@
         "actions": {
           "call": {
             "comment": "Call rest TTY callbacks.",
-            "process": "([callback] | [set_termios] | [set_mctrl].[send_xchar].[start_tx_if].[send_xchar].[start_tx_if] | [start_tx].[stop_tx]).{call} | [stop_rx].[set_mctrl].[shutdown].<set_state_off>.[pm_off].{main}"
+            "process": "([callback] | [set_termios1] | [set_mctrl1].[send_xchar].[start_tx_if] | [start_tx1].[stop_tx1]).{call} | [stop_rx1].[set_mctrl2].[shutdown1].<set_state_off1>.[pm_off1].{main}"
           },
           "callback": {
             "callback": "%callback%",
@@ -40,7 +40,7 @@
           },
           "main": {
             "comment": "Start initialization.",
-            "process": "<set_state_on>.[pm_on].[verify_port].[startup].(<y_ret>.[set_termios].[get_mctrl].(<y_uret>.[stop_tx] | <n_uret>.[start_tx]).[set_mctrl].{call} | <n_ret>.[stop_rx].[shutdown].<set_state_off>.[pm_off]).{main} | (deregister)"
+            "process": "<set_state_on>.[pm_on].[verify_port].[startup].(<y_ret>.[set_termios2].[get_mctrl].(<y_uret>.[stop_tx2] | <n_uret>.[start_tx2]).[set_mctrl3].{call} | <n_ret>.[stop_rx2].[shutdown2].<set_state_off2>.[pm_off2]).{main} | (deregister)"
           },
           "n_ret": {
             "comment": "Failed to initialise any low level driver state.",
@@ -54,7 +54,19 @@
               "%uret% != 0"
             ]
           },
-          "pm_off": {
+          "pm_off1": {
+            "callback": "%uart_port.uart_ops.pm%",
+            "comment": "Set UART_PM_STATE_OFF state.",
+            "parameters": [
+              "%uart_port%",
+              "%state%",
+              "%oldstate%"
+            ],
+            "post_call": [
+              "%old% = 3U;"
+            ]
+          },
+          "pm_off2": {
             "callback": "%uart_port.uart_ops.pm%",
             "comment": "Set UART_PM_STATE_OFF state.",
             "parameters": [
@@ -93,40 +105,82 @@
               "%uart_port%"
             ]
           },
-          "set_mctrl": {
+          "set_mctrl1": {
             "callback": "%uart_port.uart_ops.set_mctrl%",
             "comment": "Set the modem control lines for port described by 'port' to the state described by mctrl.",
             "parameters": [
               "%uart_port%"
             ]
           },
-          "set_state_off": {
+          "set_mctrl2": {
+            "callback": "%uart_port.uart_ops.set_mctrl%",
+            "comment": "Set the modem control lines for port described by 'port' to the state described by mctrl.",
+            "parameters": [
+              "%uart_port%"
+            ]
+          },
+          "set_mctrl3": {
+            "callback": "%uart_port.uart_ops.set_mctrl%",
+            "comment": "Set the modem control lines for port described by 'port' to the state described by mctrl.",
+            "parameters": [
+              "%uart_port%"
+            ]
+          },
+          "set_state_off1": {
             "comment": "Set UART PM state off.",
             "statements": [
               "%state% = 3U;"
             ]
           },
+          "set_state_off2": {
+            "comment": "Set UART PM state off.",
+            "statements": [
+              "%state% = 3U;"
+            ]
+          },
+
           "set_state_on": {
             "comment": "Set UART PM state on.",
             "statements": [
               "%state% = 0U;"
             ]
           },
-          "set_termios": {
+          "set_termios1": {
             "callback": "%uart_port.uart_ops.set_termios%",
             "comment": "Change the port parameters, including word length, parity, stop bits.",
             "parameters": [
               "%uart_port%"
             ]
           },
-          "shutdown": {
+          "set_termios2": {
+            "callback": "%uart_port.uart_ops.set_termios%",
+            "comment": "Change the port parameters, including word length, parity, stop bits.",
+            "parameters": [
+              "%uart_port%"
+            ]
+          },
+          "shutdown1": {
             "callback": "%uart_port.uart_ops.shutdown%",
             "comment": "Disable the port.",
             "parameters": [
               "%uart_port%"
             ]
           },
-          "start_tx": {
+          "shutdown2": {
+            "callback": "%uart_port.uart_ops.shutdown%",
+            "comment": "Disable the port.",
+            "parameters": [
+              "%uart_port%"
+            ]
+          },
+          "start_tx1": {
+            "callback": "%uart_port.uart_ops.start_tx%",
+            "comment": "Start transmitting characters.",
+            "parameters": [
+              "%uart_port%"
+            ]
+          },
+          "start_tx2": {
             "callback": "%uart_port.uart_ops.start_tx%",
             "comment": "Start transmitting characters.",
             "parameters": [
@@ -154,14 +208,28 @@
               "%ret% = ldv_filter_err_code(%ret%);"
             ]
           },
-          "stop_rx": {
+          "stop_rx1": {
             "callback": "%uart_port.uart_ops.stop_rx%",
             "comment": "Stop receiving characters.",
             "parameters": [
               "%uart_port%"
             ]
           },
-          "stop_tx": {
+          "stop_rx2": {
+            "callback": "%uart_port.uart_ops.stop_rx%",
+            "comment": "Stop receiving characters.",
+            "parameters": [
+              "%uart_port%"
+            ]
+          },
+          "stop_tx1": {
+            "callback": "%uart_port.uart_ops.stop_tx%",
+            "comment": "Stop transmitting characters.",
+            "parameters": [
+              "%uart_port%"
+            ]
+          },
+          "stop_tx2": {
             "callback": "%uart_port.uart_ops.stop_tx%",
             "comment": "Stop transmitting characters.",
             "parameters": [
@@ -230,7 +298,7 @@
         "actions": {
           "call": {
             "comment": "Call rest TTY callbacks.",
-            "process": "([callback] | [set_termios] | [throttle].[set_mctrl].[send_xchar].[start_tx_if].[unthrottle].[send_xchar].[start_tx_if] | [start_tx].[stop_tx]).{call} | [stop_rx].[set_mctrl].[shutdown].<set_state_off>.[pm_off].{main}"
+            "process": "([callback] | [set_termios1] | [throttle].[set_mctrl1].[send_xchar].[start_tx_if1].[unthrottle].[start_tx_if2] | [start_tx1].[stop_tx2]).{call} | [stop_rx1].[set_mctrl2].[shutdown1].<set_state_off1>.[pm_off1].{main}"
           },
           "callback": {
             "callback": "%callback%",
@@ -265,7 +333,7 @@
           },
           "main": {
             "comment": "Start initialization.",
-            "process": "<set_state_on>.[pm_on].[verify_port].[startup].(<y_ret>.[set_termios].[get_mctrl].(<y_uret>.[stop_tx] | <n_uret>.[start_tx]).[set_mctrl].{call} | <n_ret>.[stop_rx].[shutdown].<set_state_off>.[pm_off]).{main} | (deregister)"
+            "process": "<set_state_on>.[pm_on].[verify_port].[startup].(<y_ret>.[set_termios2].[get_mctrl].(<y_uret>.[stop_tx1] | <n_uret>.[start_tx2]).[set_mctrl3].{call} | <n_ret>.[stop_rx2].[shutdown2].<set_state_off2>.[pm_off2]).{main} | (deregister)"
           },
           "n_ret": {
             "comment": "Failed to initialise any low level driver state.",
@@ -279,7 +347,19 @@
               "%uret% != 0"
             ]
           },
-          "pm_off": {
+          "pm_off1": {
+            "callback": "%uart_port.uart_ops.pm%",
+            "comment": "Set UART_PM_STATE_OFF state.",
+            "parameters": [
+              "%uart_port%",
+              "%state%",
+              "%oldstate%"
+            ],
+            "post_call": [
+              "%old% = 3U;"
+            ]
+          },
+          "pm_off2": {
             "callback": "%uart_port.uart_ops.pm%",
             "comment": "Set UART_PM_STATE_OFF state.",
             "parameters": [
@@ -318,14 +398,34 @@
               "%uart_port%"
             ]
           },
-          "set_mctrl": {
+          "set_mctrl1": {
             "callback": "%uart_port.uart_ops.set_mctrl%",
             "comment": "Set the modem control lines for port described by 'port' to the state described by mctrl.",
             "parameters": [
               "%uart_port%"
             ]
           },
-          "set_state_off": {
+          "set_mctrl2": {
+            "callback": "%uart_port.uart_ops.set_mctrl%",
+            "comment": "Set the modem control lines for port described by 'port' to the state described by mctrl.",
+            "parameters": [
+              "%uart_port%"
+            ]
+          },
+          "set_mctrl3": {
+            "callback": "%uart_port.uart_ops.set_mctrl%",
+            "comment": "Set the modem control lines for port described by 'port' to the state described by mctrl.",
+            "parameters": [
+              "%uart_port%"
+            ]
+          },
+          "set_state_off1": {
+            "comment": "Set UART PM state off.",
+            "statements": [
+              "%state% = 3U;"
+            ]
+          },
+          "set_state_off2": {
             "comment": "Set UART PM state off.",
             "statements": [
               "%state% = 3U;"
@@ -337,28 +437,59 @@
               "%state% = 0U;"
             ]
           },
-          "set_termios": {
+          "set_termios1": {
             "callback": "%uart_port.uart_ops.set_termios%",
             "comment": "Change the port parameters, including word length, parity, stop bits.",
             "parameters": [
               "%uart_port%"
             ]
           },
-          "shutdown": {
+          "set_termios2": {
+            "callback": "%uart_port.uart_ops.set_termios%",
+            "comment": "Change the port parameters, including word length, parity, stop bits.",
+            "parameters": [
+              "%uart_port%"
+            ]
+          },
+          "shutdown1": {
             "callback": "%uart_port.uart_ops.shutdown%",
             "comment": "Disable the port.",
             "parameters": [
               "%uart_port%"
             ]
           },
-          "start_tx": {
+          "shutdown2": {
+            "callback": "%uart_port.uart_ops.shutdown%",
+            "comment": "Disable the port.",
+            "parameters": [
+              "%uart_port%"
+            ]
+          },
+          "start_tx1": {
             "callback": "%uart_port.uart_ops.start_tx%",
             "comment": "Start transmitting characters.",
             "parameters": [
               "%uart_port%"
             ]
           },
-          "start_tx_if": {
+          "start_tx2": {
+            "callback": "%uart_port.uart_ops.start_tx%",
+            "comment": "Start transmitting characters.",
+            "parameters": [
+              "%uart_port%"
+            ]
+          },
+          "start_tx_if1": {
+            "callback": "%uart_port.uart_ops.start_tx%",
+            "comment": "Transmit a high priority character.",
+            "contition": [
+              "!%uart_port.uart_ops.send_xchar%"
+            ],
+            "parameters": [
+              "%uart_port%"
+            ]
+          },
+          "start_tx_if2": {
             "callback": "%uart_port.uart_ops.start_tx%",
             "comment": "Transmit a high priority character.",
             "contition": [
@@ -379,14 +510,28 @@
               "%ret% = ldv_filter_err_code(%ret%);"
             ]
           },
-          "stop_rx": {
+          "stop_rx1": {
             "callback": "%uart_port.uart_ops.stop_rx%",
             "comment": "Stop receiving characters.",
             "parameters": [
               "%uart_port%"
             ]
           },
-          "stop_tx": {
+          "stop_rx2": {
+            "callback": "%uart_port.uart_ops.stop_rx%",
+            "comment": "Stop receiving characters.",
+            "parameters": [
+              "%uart_port%"
+            ]
+          },
+          "stop_tx1": {
+            "callback": "%uart_port.uart_ops.stop_tx%",
+            "comment": "Stop transmitting characters.",
+            "parameters": [
+              "%uart_port%"
+            ]
+          },
+          "stop_tx2": {
             "callback": "%uart_port.uart_ops.stop_tx%",
             "comment": "Stop transmitting characters.",
             "parameters": [

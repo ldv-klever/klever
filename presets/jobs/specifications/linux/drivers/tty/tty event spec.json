@@ -5,7 +5,7 @@
         "actions": {
           "call": {
             "comment": "Call rest tty callbacks.",
-            "process": "([callback] | [set_termios] | [throttle].[unthrottle] | [start].[stop] | [set_termiox]).{call} | [close].[shutdown].[remove].[cleanup].{main}"
+            "process": "([callback] | [set_termios] | [throttle].[unthrottle] | [start].[stop] | [set_termiox]).{call} | [close].[shutdown].[remove1].[cleanup].{main}"
           },
           "callback": {
             "callback": "%callback%",
@@ -85,7 +85,7 @@
           },
           "main": {
             "comment": "Install tty or deregister.",
-            "process": "[lookup].[install].(<install_success>.[open].(<open_success>.{call} | <open_failed>.[remove]) | <install_failed>).{main} | <free>.(deregister)"
+            "process": "[lookup].[install].(<install_success>.[open].(<open_success>.{call} | <open_failed>.[remove2]) | <install_failed>).{main} | <free>.(deregister)"
           },
           "open": {
             "callback": "%tty_operations.open%",
@@ -117,7 +117,15 @@
               "%tty_operations%"
             ]
           },
-          "remove": {
+          "remove1": {
+            "callback": "%tty_operations.remove%",
+            "comment": "Remove a closed tty from the tty driver internal tables.",
+            "parameters": [
+              "%tty_driver%",
+              "%tty_struct%"
+            ]
+          },
+          "remove2": {
             "callback": "%tty_operations.remove%",
             "comment": "Remove a closed tty from the tty driver internal tables.",
             "parameters": [

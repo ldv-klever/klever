@@ -31,7 +31,7 @@
           },
           "inner_loop": {
             "comment": "New iteration of sequence traversing.",
-            "process": "<success>.[show].(<success_show>.[next].{inner_loop} | [stop].{outer_loop}) | <fail>.[stop].{outer_loop}"
+            "process": "<success>.[show].(<success_show>.[next].{inner_loop} | [stop1].{outer_loop}) | <fail>.[stop2].{outer_loop}"
           },
           "next": {
             "callback": "%ops.next%",
@@ -74,7 +74,21 @@
               "*%index% = 0;"
             ]
           },
-          "stop": {
+          "stop1": {
+            "callback": "%ops.stop%",
+            "comment": "End of the sequence is reached, do necessary cleanup.",
+            "parameters": [
+              "%seq_file%",
+              "%ret%"
+            ],
+            "post-call": [
+              "%seq_file%->index = *%index%;"
+            ],
+            "pre-call": [
+              "%seq_file%->index = *%index%;"
+            ]
+          },
+          "stop2": {
             "callback": "%ops.stop%",
             "comment": "End of the sequence is reached, do necessary cleanup.",
             "parameters": [

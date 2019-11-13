@@ -30,7 +30,7 @@
           },
           "main": {
             "comment": "Block device is not initialized.",
-            "process": "[open].(<y_ret>.{call} | <n_ret>.{main}) | <free>.(deregister)"
+            "process": "[open].(<y_ret>.{call} | <n_ret>.{main})"
           },
           "n_ret": {
             "comment": "Block device open has failed.",
