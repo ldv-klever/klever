@@ -16,10 +16,7 @@
  */
 
 
-function JobForm(save_url, action) {
-    this.save_url = save_url;
-    this.method = (action === 'copy') ? 'POST' : 'PUT';
-
+function JobForm() {
     this.labels = {};
     this.inputs = {};
     return this;
@@ -37,12 +34,12 @@ JobForm.prototype.serialize = function() {
     return data;
 };
 
-JobForm.prototype.save = function (extra_data) {
+JobForm.prototype.save = function (save_url, save_method, extra_data) {
     let instance = this, data = this.serialize();
     if (extra_data) $.each(extra_data, function (key, value) { data[key] = value });
 
     $.ajax({
-        url: instance.save_url, type: instance.method, data: JSON.stringify(data),
+        url: save_url, type: save_method, data: JSON.stringify(data),
         processData: false, dataType: "json", contentType: "application/json",
         success: function (resp) {
             $('#dimmer_of_page').removeClass('active');

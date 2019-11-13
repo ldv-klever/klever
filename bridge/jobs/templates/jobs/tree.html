@@ -31,7 +31,9 @@
 {% block body_block %}
     <div class="ui grid">
         <div class="eight wide column">
-            <button id="create_job_modal_show" class="ui labeled icon violet mini button"><i class="plus icon"></i>{% trans 'Create new job' %}</button>
+            {% if can_create %}
+                <button id="create_job_modal_show" class="ui labeled icon violet mini button"><i class="plus icon"></i>{% trans 'Create new job' %}</button>
+            {% endif %}
             <div class="ui small dropdown">
                 <i class="ui check square outline icon"></i>{% trans 'Selected jobs' %}
                 <i class="dropdown icon"></i>

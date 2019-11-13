@@ -15,6 +15,7 @@
 # limitations under the License.
 #
 
+import io
 import os
 from datetime import datetime
 
@@ -25,8 +26,9 @@ from django.utils.text import format_lazy
 from django.utils.translation import ugettext_lazy as _
 
 from bridge.vars import JOB_STATUS, USER_ROLES, JOB_ROLES, JOB_WEIGHT, SUBJOB_NAME
+from bridge.utils import file_get_or_create, BridgeException
 
-from jobs.models import JobHistory, FileSystem, UserRole, RunHistory
+from jobs.models import Job, JobHistory, JobFile, FileSystem, UserRole, RunHistory
 from reports.models import ReportRoot, ReportComponent
 from service.models import Decision
 
@@ -131,6 +133,16 @@ def years_choices():
 def is_readable(filename):
     ext = os.path.splitext(filename)[1]
     return len(ext) > 0 and ext[1:] in {'txt', 'json', 'xml', 'c', 'aspect', 'i', 'h', 'tmpl'}
+
+
+def get_unique_name(base_name):
+    names_in_use = set(Job.objects.filter(name__startswith=base_name).values_list('name', flat=True))
+    cnt = 1
+    while True:
+        new_name = "{} Copy #{}".format(base_name, cnt)
+        if new_name not in names_in_use:
+            return new_name
+        cnt += 1
 
 
 class JobAccess:
@@ -401,3 +413,89 @@ class CompareJobVersions:
         for fp2 in list(files2):
             changed_paths.append([None, files2[fp2]['hashsum'], None, fp2])
         return changed_paths, changed_files
+
+
+class JSTreeConverter:
+    file_sep = '/'
+
+    def make_tree(self, files_list):
+        """
+        Creates tree of files from list for jstree visualization.
+        :param files_list: list of pairs (<file path>, <file hash sum>)
+        :return: tree of files
+        """
+        # Create tree
+        files_tree = [{'type': 'root', 'text': 'Files', 'children': []}]
+        for name, hash_sum in files_list:
+            path = name.split(self.file_sep)
+            obj_p = files_tree[0]['children']
+            for dir_name in path[:-1]:
+                for child in obj_p:
+                    if isinstance(child, dict) and child['type'] == 'folder' and child['text'] == dir_name:
+                        obj_p = child['children']
+                        break
+                else:
+                    # Directory
+                    new_p = []
+                    obj_p.append({'text': dir_name, 'type': 'folder', 'children': new_p})
+                    obj_p = new_p
+            # File
+            obj_p.append({'text': path[-1], 'type': 'file', 'data': {'hashsum': hash_sum}})
+
+        # Sort files and folders by name and put folders before files
+        self.__sort_children(files_tree[0])
+
+        return files_tree
+
+    def parse_tree(self, tree_data):
+        """
+        Converts tree of files to list of kwargs for saving FileSystem object
+        :param tree_data: jstree object
+        :return: list of objects {"file_id": <JobFile object id>, "name": <file path in job files tree>}
+        """
+        assert isinstance(tree_data, list) and len(tree_data) == 1
+        files_list = self.__get_children_data(tree_data[0])
+
+        # Get files ids and check that there is a file for each provided hash_sum
+        hash_sums = set(fdata['hash_sum'] for fdata in files_list if 'hash_sum' in fdata)
+        db_files = dict(JobFile.objects.filter(hash_sum__in=hash_sums).values_list('hash_sum', 'id'))
+        if hash_sums - set(db_files):
+            raise BridgeException(_('There are not uploaded files'))
+
+        # Set file for each file data instead of hash_sum
+        for file_data in files_list:
+            if 'hash_sum' in file_data:
+                file_data['file_id'] = db_files[file_data['hash_sum']]
+                file_data.pop('hash_sum')
+            else:
+                file_data['file_id'] = self._empty_file
+
+        return files_list
+
+    @cached_property
+    def _empty_file(self):
+        db_file = file_get_or_create(io.BytesIO(), 'empty', JobFile, False)
+        return db_file.id
+
+    def __sort_children(self, obj):
+        if not obj.get('children'):
+            return
+        obj['children'].sort(key=lambda x: (x['type'] is 'file', x['text']))
+        for child in obj['children']:
+            self.__sort_children(child)
+
+    def __get_children_data(self, obj_p, prefix=None):
+        assert isinstance(obj_p, dict)
+        if not obj_p['text']:
+            raise BridgeException(_("The file/folder name can't be empty"))
+        files = []
+        name = ((prefix + self.file_sep) if prefix else '') + obj_p['text']
+        if obj_p['type'] == 'file':
+            file_data = {'name': name}
+            if 'data' in obj_p and 'hashsum' in obj_p['data']:
+                file_data['hash_sum'] = obj_p['data']['hashsum']
+            files.append(file_data)
+        elif 'children' in obj_p:
+            for child in obj_p['children']:
+                files.extend(self.__get_children_data(child, prefix=(name if obj_p['type'] != 'root' else None)))
+        return files

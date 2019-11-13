@@ -3,12 +3,12 @@
         <div class="item">
             <i class="folder icon"></i>
             <div class="content">
-                <div class="italic header"><a href="#">{{ child.name }}</a></div>
+                <div class="italic header"><a href="{% url 'jobs:preset-form' child.uuid %}">{{ child.name }}</a></div>
             </div>
         </div>
     {% else %}
         <div class="item">
-            <i class="list icon"></i>
+            <i class="archive icon"></i>
             <div class="content">
                 <div class="header">{{ child.name }}</div>
                 {% if child.children %}

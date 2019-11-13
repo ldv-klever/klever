@@ -38,8 +38,11 @@ urlpatterns = [
 
     # Job form
     re_path(r'^form/(?P<pk>[0-9]+)/(?P<action>edit|copy)/$', views.JobFormPage.as_view(), name='form'),
-    path('api/save-job/<int:pk>/', api.SaveJobView.as_view(), name='api-save-job'),
+    path('form/preset/<uuid:preset_uuid>/', views.PresetFormPage.as_view(), name='preset-form'),
+    path('api/create/', api.CreateJobView.as_view(), name='api-create-job'),
+    path('api/update/<int:pk>/', api.UpdateJobView.as_view(), name='api-update-job'),
     path('api/job-version/<int:job_id>/<int:version>/', api.JobVersionView.as_view(), name='api-job-version'),
+    path('api/preset-data/<uuid:preset_uuid>/', api.PresetFormDataView.as_view(), name='api-preset-data'),
 
     # Actions with job files
     path('downloadfile/<slug:hash_sum>/', views.DownloadJobFileView.as_view(), name='download_file'),

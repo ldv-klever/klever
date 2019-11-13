@@ -46,12 +46,13 @@ from tools.profiling import LoggedCallMixin
 
 from jobs.models import Job, JobHistory, JobFile, FileSystem, RunHistory
 from jobs.serializers import (
-    JobFilesField, CreateJobSerializer, JVformSerializerRO, JobFileSerializer, JobStatusSerializer,
+    CreateJobSerializer, JVformSerializerRO, JobFileSerializer, JobStatusSerializer,
     DuplicateJobSerializer, change_job_status
 )
 from jobs.configuration import get_configuration_value, GetConfiguration
 from jobs.Download import KleverCoreArchiveGen, UploadJob, UploadTree
 from jobs.utils import JobAccess, CompareJobVersions
+from jobs.preset import PresetsProcessor
 from reports.serializers import DecisionResultsSerializerRO
 from reports.UploadReport import collapse_reports
 from reports.coverage import JobCoverageStatistics
@@ -70,17 +71,18 @@ class JobStatusView(RetrieveAPIView):
     permission_classes = (IsAuthenticated,)
 
 
-class SaveJobView(LoggedCallMixin, UpdateModelMixin, CreateModelMixin, GenericAPIView):
+class CreateJobView(LoggedCallMixin, CreateAPIView):
     unparallel = [Job]
     queryset = Job.objects.all()
     serializer_class = CreateJobSerializer
     permission_classes = (WriteJobPermission,)
 
-    def post(self, request, *args, **kwargs):
-        return self.create(request, *args, **kwargs)
 
-    def put(self, request, *args, **kwargs):
-        return self.update(request, *args, **kwargs)
+class UpdateJobView(LoggedCallMixin, UpdateAPIView):
+    unparallel = [Job]
+    queryset = Job.objects.all()
+    serializer_class = CreateJobSerializer
+    permission_classes = (WriteJobPermission,)
 
 
 class JobVersionView(LoggedCallMixin, RetrieveAPIView):
@@ -94,16 +96,6 @@ class JobVersionView(LoggedCallMixin, RetrieveAPIView):
         obj = get_object_or_404(queryset, **self.kwargs)
         self.check_object_permissions(self.request, obj)
         return obj
-
-
-class JobHistoryFiles(RetrieveAPIView):
-    queryset = JobHistory.objects.all()
-    permission_classes = (IsAuthenticated,)
-
-    def retrieve(self, request, *args, **kwargs):
-        return Response(data=JobFilesField().to_representation(
-            get_object_or_404(self.get_queryset(), **self.kwargs))
-        )
 
 
 class CreateFileView(LoggedCallMixin, CreateAPIView):
@@ -437,3 +429,11 @@ class CompareJobVersionsView(LoggedCallMixin, TemplateAPIRetrieveView):
         context = super().get_context_data(instance, **kwargs)
         context['data'] = CompareJobVersions(*job_versions)
         return context
+
+
+class PresetFormDataView(LoggedCallMixin, APIView):
+    authentication_classes = (SessionAuthentication,)
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request, preset_uuid):
+        return Response(PresetsProcessor().get_form_data(preset_uuid))

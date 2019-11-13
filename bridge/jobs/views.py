@@ -44,7 +44,7 @@ from jobs.configuration import StartDecisionData
 from jobs.ViewJobData import ViewJobData
 from jobs.JobTableProperties import TableTree
 from jobs.Download import JobFileGenerator, JobConfGenerator, JobArchiveGenerator, JobsArchivesGen, JobsTreesGen
-from jobs.population import PresetsFiles
+from jobs.preset import PresetsProcessor
 
 
 class JobsTree(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, TemplateView):
@@ -56,7 +56,8 @@ class JobsTree(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, TemplateView)
             'statuses': JOB_STATUS, 'weights': JOB_WEIGHT, 'priorities': list(reversed(PRIORITY)),
             'months': months_choices(), 'years': years_choices(),
             'TableData': TableTree(self.request.user, self.get_view(VIEW_TYPES[1])),
-            'presets_tree': PresetsFiles().get_presets_tree()
+            'presets_tree': PresetsProcessor().get_jobs_tree(),
+            'can_create': JobAccess(self.request.user).can_create
         }
 
 
@@ -128,10 +129,28 @@ class JobFormPage(LoginRequiredMixin, LoggedCallMixin, DetailView):
     def get_context_data(self, **kwargs):
         if not JobAccess(self.request.user, self.object).can_view:
             raise BridgeException(code=400)
-        context = super().get_context_data(**kwargs)
-        context.update(JobFormSerializerRO(instance=self.object).data)
-        context.update({'action': self.kwargs['action'], 'job_roles': JOB_ROLES})
-        return context
+        return {
+            'initial': JobFormSerializerRO(self.kwargs['action'], instance=self.object).data,
+            'action': self.kwargs['action'], 'job_roles': JOB_ROLES,
+            'cancel_url': reverse('jobs:job', args=[self.object.id]),
+            'initial_url': reverse('jobs:api-job-version', args=[self.object.id, self.object.version])
+        }
+
+
+class PresetFormPage(LoginRequiredMixin, LoggedCallMixin, TemplateView):
+    template_name = 'jobs/jobForm.html'
+
+    def get_context_data(self, **kwargs):
+        if not JobAccess(self.request.user).can_create:
+            raise BridgeException(_("You don't have an access to create new job"))
+        return {
+            'initial': {
+                'name': PresetsProcessor().get_job_name(self.kwargs['preset_uuid']),
+                'parent': '', 'save_url': reverse('jobs:api-create-job')
+            },
+            'action': 'create', 'job_roles': JOB_ROLES, 'cancel_url': reverse('jobs:tree'),
+            'initial_url': reverse('jobs:api-preset-data', args=[self.kwargs['preset_uuid']])
+        }
 
 
 class DownloadJobFileView(LoginRequiredMixin, LoggedCallMixin, SingleObjectMixin, StreamingResponseView):
