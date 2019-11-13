@@ -234,7 +234,7 @@ class CModel:
         new_aspect = Aspect(func.name, func.declaration)
         new_aspect.body = body
 
-        for file in func.files_called_at + func.declaration_files:
+        for file in set(func.files_called_at).union(func.declaration_files):
             self._call_aspects.setdefault(file, []).append(new_aspect)
 
     def print_source_code(self, additional_lines):
