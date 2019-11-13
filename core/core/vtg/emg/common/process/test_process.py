@@ -48,7 +48,8 @@ def test_spaces():
 @parse_assert
 def test_pars():
     return [
-        "([a].[b]).[c]"
+        "([a].[b]).[c]",
+        "([suspend].(<suspended>.[resume] | <not_suspended>) | [port_probe].(<port_probed>.[open].(<opened>.{tty_layer} | <not_opened>.[port_remove]) | <not_port_probed>)).{main_workflow} | [disconnect].[release].{insert_device}"
     ]
 
 

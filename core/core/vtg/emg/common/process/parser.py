@@ -143,6 +143,7 @@ def p_concatenation_list(p):
         p[0] = concatenation_list
     else:
         new_action = Concatenation(next(_aux_identifier))
+        _check_action(p.parser.process, new_action)
         p.parser.process.actions[str(new_action)] = new_action
         new_action.add_first(action)
         p[0] = new_action
@@ -161,6 +162,7 @@ def p_choice_list(p):
         p[0] = choice_list
     else:
         new_action = Choice(next(_aux_identifier))
+        _check_action(p.parser.process, new_action)
         p.parser.process.actions[str(new_action)] = new_action
         new_action.add_first(concatenation_list)
         p[0] = new_action
@@ -173,6 +175,7 @@ def p_bracket(p):
     # todo: support numbers to implement loops
     _, _, action_list, _ = p
     par = Parentheses(next(_aux_identifier), action=action_list)
+    _check_action(p.parser.process, par)
     p.parser.process.actions[str(par)] = par
     p[0] = par
 
@@ -209,6 +212,7 @@ def p_dispatch(p):
     number = number[-1] if number else 1
 
     action = Dispatch(name, broadcast=broadcast)
+    _check_action(p.parser.process, action)
     p.parser.process.actions[str(action)] = action
     p[0] = action
 
@@ -231,6 +235,7 @@ def p_receive(p):
         replicative = False
     number = number[-1] if number else 1
     action = Receive(name, repliative=replicative)
+    _check_action(p.parser.process, action)
     p.parser.process.actions[str(action)] = action
     p[0] = action
 
@@ -243,6 +248,7 @@ def p_condition(p):
     name, *number = p[2:-1]
     number = number[-1] if number else 1
     action = Block(name)
+    _check_action(p.parser.process, action)
     p.parser.process.actions[str(action)] = action
     p[0] = action
 
@@ -254,7 +260,8 @@ def p_subprocess(p):
     """
     name, *number = p[2:-1]
     number = number[-1] if number else 1
-    action = Subprocess(name)
+    action = Subprocess(next(_aux_identifier), reference_name=name)
+    _check_action(p.parser.process, action)
     p.parser.process.actions[str(action)] = action
     p[0] = action
 
@@ -264,6 +271,12 @@ def _new_identifier():
     while True:
         i += 1
         yield str(i)
+
+
+def _check_action(process, action):
+    if action.name in process.actions:
+        raise ValueError('Do not use actions twice, remove second use of {!r} in {!r}'.
+                         format(str(action), str(process)))
 
 
 def setup_parser():

@@ -15,15 +15,17 @@
 # limitations under the License.
 #
 
-import copy
 import re
+import json
+import copy
 
-from core.vtg.emg.common import get_or_die, model_comment
 import core.vtg.emg.common.c as c
-from core.vtg.emg.common.c.types import Structure, Primitive, Pointer, Array, Function
+from core.vtg.emg.common import get_or_die, model_comment
 from core.vtg.emg.common.process import Dispatch, Receive, Block
+from core.vtg.emg.common.process.serialization import CollectionEncoder
+from core.vtg.emg.common.c.types import Structure, Primitive, Pointer, Array, Function
 from core.vtg.emg.generators.linuxModule.interface import Implementation, Resource, Container, Callback
-from core.vtg.emg.generators.linuxModule.process import get_common_parameter, CallRetval, Call, ExtendedAccess
+from core.vtg.emg.generators.linuxModule.process import get_common_parameter, CallRetval, Call, ExtendedAccess, Action
 
 
 _declarations = {'environment model': list()}
@@ -33,16 +35,27 @@ _values_map = {}
 
 def generate_instances(logger, conf, sa, interfaces, model, instance_maps):
     # todo: write docs
+    # todo: This should be done completely in another way. First we can prepare instance maps with implementations then
+    #       convert ExtendedProcesses into Processes at the same time applying instance maps. This would allow to avoid
+    #       unnecessary serialization of the whole collection at the end and reduce memory usage by avoiding
+    #       ExtendedProcess copying.
     model_processes, callback_processes = _yield_instances(logger, conf, sa, interfaces, model, instance_maps)
     # Simplify first and set ids then dump
     for process in model_processes + callback_processes:
         _simplify_process(logger, conf, sa, interfaces, process)
 
-    # todo: Distinguish instances and dump them
+    # Now we can change names
+    for process in callback_processes:
+        process.name = process.name + '_%d' % process.instance_number
+
     model.environment = {str(p): p for p in callback_processes}
     model.models = {str(p): p for p in model_processes}
     filename = 'instances.json'
-    data = model.save_collection(filename)
+
+    # Save processes
+    data = json.dumps(model, cls=CollectionEncoder, sort_keys=True, indent=2)
+    with open(filename, mode='w', encoding='utf8') as fp:
+        fp.write(data)
 
     return instance_maps, data
 
@@ -54,21 +67,20 @@ def _simplify_process(logger, conf, sa, interfaces, process):
     label_map = dict()
 
     def get_declaration(l, a):
-        d = l.get_declaration(str(a.interface))
-        i = process.get_implementation(a)
-        if i:
-            if not (i.declaration == d or i.declaration.pointer_alias(d) or
-                    (isinstance(i.declaration, Function) and i.declaration.take_pointer == d)):
+        decl = l.get_declaration(str(a.interface))
+        impl = process.get_implementation(a)
+        if impl:
+            if not (impl.declaration == decl or impl.declaration.pointer_alias(decl) or
+                    (isinstance(impl.declaration, Function) and impl.declaration.take_pointer == decl)):
                 logger.warning(
                     "Seems that driver provides inconsistent implementation for {!r} label of {!r} process "
-                    "where expected {!r} but got {!r}".format(l.name, process.name, d.to_string(),
-                                                              i.declaration.to_string()))
-                d = i.declaration
-            v = i.adjusted_value(d)
-        elif not i:
-            v = None
-
-        return d, v
+                    "where expected {!r} but got {!r}".format(l.name, process.name, decl.to_string(),
+                                                              impl.declaration.to_string()))
+                decl = impl.declaration
+            val = impl.adjusted_value(decl)
+        else:
+            val = None
+        return decl, val
 
     for label in (l for l in list(process.labels.values()) if l.interfaces and len(l.interfaces) > 0):
         label_map[label.name] = dict()
@@ -87,8 +99,8 @@ def _simplify_process(logger, conf, sa, interfaces, process):
             label_map[label.name][str(access.interface)] = label
 
     # Then replace accesses in parameters with simplified expressions
-    for action in (a for a in list(process.actions.values()) if isinstance(a, Dispatch) or isinstance(a, Receive)):
-        if len(action.peers) > 0:
+    for action in process.actions.filter(include={Dispatch, Receive}):
+        if action.peers:
             guards = []
 
             for index in range(len(action.parameters)):
@@ -98,7 +110,7 @@ def _simplify_process(logger, conf, sa, interfaces, process):
                 except RuntimeError:
                     suts = [peer['interfaces'][index] for peer in action.peers
                             if 'interfaces' in peer and len(peer['interfaces']) > index]
-                    if len(suts) > 0:
+                    if suts:
                         interface = suts[0]
                     else:
                         raise
@@ -131,7 +143,7 @@ def _simplify_process(logger, conf, sa, interfaces, process):
                         if len(pr['interfaces']) == index:
                             pr['interfaces'].append(interface)
 
-            if len(guards) > 0:
+            if guards:
                 if action.condition:
                     action.condition.extend(guards)
                 else:
@@ -141,19 +153,17 @@ def _simplify_process(logger, conf, sa, interfaces, process):
             new = process.add_condition(action.name, [],
                                         ["/* Skip signal {!r} as it has no peers */".format(action.name)],
                                         "Stub instead of the {!r} signal.".format(action.name))
-            process.insert_action(action.name, "<{}>".format(action.name), 'instead')
-            # Do this becouse deletaed and new actions have the same name
-            process.actions[action.name] = new
+            process.replace_action(action, new)
 
     # Remove callback actions
     param_identifiers = _yeild_identifier()
     action_identifiers = _yeild_identifier()
-    for action in (a for a in list(process.actions.values()) if isinstance(a, Call)):
+    for action in list(process.actions.filter(include={Call})):
         _convert_calls_to_conds(conf, sa, interfaces, process, label_map, action, action_identifiers, param_identifiers)
 
     # Process rest code
     def code_replacment(statments):
-        access_re = re.compile('(%\w+(?:(?:[.]|->)\w+)*%)')
+        access_re = re.compile(r'(%\w+(?:(?:[.]|->)\w+)*%)')
 
         # Replace rest accesses
         final = []
@@ -184,7 +194,7 @@ def _simplify_process(logger, conf, sa, interfaces, process):
 
         return final
 
-    for action in process.actions.values():
+    for action in process.actions.filter(include={Action}):
         if isinstance(action, Block):
             # Implement statements processing
             action.statements = code_replacment(action.statements)
@@ -200,17 +210,19 @@ def _simplify_process(logger, conf, sa, interfaces, process):
                     and not implementation.static:
                 # Maybe it is a variable
                 svar = sa.get_source_variable(implementation.value, file)
-                true_declaration = svar.raw_declaration if svar and svar.raw_declaration else None
+                true_declaration = svar.declaration.to_string(svar.name, typedef='complex_and_params', specifiers=True)\
+                    if svar else None
                 if not svar:
                     # Seems that it is a funciton
                     sf = sa.get_source_function(implementation.value, file)
                     if sf:
-                        true_declaration = sf.raw_declaration
+                        true_declaration = sf.declaration.to_string(sf.name, typedef='complex_and_params',
+                                                                    specifiers=True)
 
                 # Check
                 if true_declaration:
                     # Add declaration
-                    if re.compile('^\s*static\s+').match(true_declaration):
+                    if re.compile(r'^\s*static\s+').match(true_declaration):
                         true_declaration = true_declaration.replace('static', 'extern')
                     else:
                         true_declaration = 'extern ' + true_declaration
@@ -252,9 +264,8 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
         if call.retlabel:
             ret_access = process.resolve_access(call.retlabel)
         else:
-            ret_subprocess = [process.actions[an] for an in process.actions.keys()
-                              if isinstance(process.actions[an], CallRetval) and
-                              process.actions[an].callback == call.callback and process.actions[an].retlabel]
+            ret_subprocess = [a for a in process.actions.filter(include={CallRetval})
+                              if a.callback == call.callback and a.retlabel]
             if ret_subprocess:
                 ret_access = process.resolve_access(ret_subprocess[0].retlabel)
 
@@ -317,12 +328,12 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
         # Add precondition and postcondition
         pre = None
         post = None
-        if len(label_parameters) > 0:
+        if label_parameters:
             pre_stments = []
             post_stments = []
-            for label in list(set(label_parameters)):
-                pre_stments.append('%{}% = $UALLOC(%{}%);'.format(label.name, label.name))
-                post_stments.append('$FREE(%{}%);'.format(label.name))
+            for label in {l.name: l for l in label_parameters}.values():
+                pre_stments.append('{0} = $UALLOC({0});'.format(repr(label)))
+                post_stments.append('$FREE({});'.format(repr(label)))
 
             pre_name = 'pre_call_{}'.format(action_identifiers.__next__())
             pre = process.add_condition(pre_name, [], pre_stments,
@@ -355,10 +366,10 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
         if access.interface and access.interface.interrupt_context:
             post_call.append('$SWITCH_TO_PROCESS_CONTEXT();')
 
-        if call.post_call and len(call.post_call) > 0:
+        if call.post_call:
             post_call.extend(call.post_call)
 
-        if len(post_call) > 0:
+        if post_call:
             post_call.insert(0, '/* Callback post-call */')
             inv += post_call
 
@@ -366,13 +377,13 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
 
     def add_pre_conditions(inv):
         callback_pre_call = []
-        if call.pre_call and len(call.pre_call) > 0:
+        if call.pre_call:
             callback_pre_call.extend(call.pre_call)
 
         if access.interface and access.interface.interrupt_context:
             callback_pre_call.append('$SWITCH_TO_IRQ_CONTEXT();')
 
-        if len(callback_pre_call) > 0:
+        if callback_pre_call:
             callback_pre_call.insert(0, '/* Callback pre-call */')
             inv = callback_pre_call + inv
 
@@ -423,8 +434,7 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
                 invoke = sa.refined_name(access.label.value)
                 check = False
             else:
-                if access.list_interface and len(access.list_interface) > 0 and \
-                        conf.get('implicit callback calls', True):
+                if access.list_interface and conf.get('implicit callback calls', True):
                     # Call if label(variable) is provided but with no explicit value
                     try:
                         invoke = access.access_with_label(access.label)
@@ -439,7 +449,7 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
 
             # Determine structure type name of the container with the callback if such exists
             structure_name = None
-            if access.interface and implementation and len(implementation.sequence) > 0:
+            if access.interface and implementation and implementation.sequence:
                 field = implementation.sequence[-1]
                 containers = interfaces.resolve_containers(access.interface.declaration, access.interface.category)
                 if len(containers.keys()) > 0:
@@ -457,7 +467,7 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
 
             # Generate comment
             comment = call.comment.format(field, structure_name)
-            conditions = call.condition if call.condition and len(call.condition) > 0 else list()
+            conditions = call.condition if call.condition and call.condition else list()
             new_code, pre_action, post_action = make_action(signature, invoke)
             code.extend(new_code)
 
@@ -481,10 +491,11 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
             new.trace_relevant = True
 
             if generated_callbacks == 0:
-                process.insert_action(call.name, "<{}>".format(new.name), position='instead')
+                process.replace_action(call, new)
                 the_last_added = new
             else:
-                process.insert_action(the_last_added.name, "<{}>".format(new.name), position='in parallel')
+                process.insert_alternative_action(new, the_last_added)
+
             generated_callbacks += 1
 
             # Reinitialize state
@@ -493,9 +504,9 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
 
             # Add post and pre conditions
             if pre_action:
-                process.insert_action(new.name, "<{}>".format(pre_action.name), position='before')
+                process.insert_action(pre_action, new, before=True)
             if post_action:
-                process.insert_action(new.name, "<{}>".format(post_action.name), position='after')
+                process.insert_action(post_action, new, before=False)
 
     if generated_callbacks == 0:
         # It is simply enough to delete the action or generate an empty action with a specific comment
@@ -509,7 +520,7 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
 
         n = process.add_condition("{}_{}".format(call.name, action_identifiers.__next__()),
                                   [], code, "No callbacks implemented to call here")
-        process.insert_action(call.name, "<{}>".format(n.name), position='instead')
+        process.replace_action(call, n)
         n.statements = code
 
 
@@ -548,7 +559,7 @@ def _yield_instances(logger, conf, sa, interfaces, model, instance_maps):
 
     # Determine how many instances is required for a model
     for process in model.environment.values():
-        base_list = _original_process_copies(logger, conf, interfaces, process, instances_left)
+        base_list = [_copy_process(process, instances_left)]
         base_list = _fulfill_label_maps(logger, conf, sa, interfaces, base_list, process, instance_maps, instances_left)
         logger.info("Generate {} FSA instances for environment model processes {} with category {}".
                     format(len(base_list), process.name, process.category))
@@ -578,9 +589,6 @@ def _yield_instances(logger, conf, sa, interfaces, model, instance_maps):
                             "action": instance.actions[peer['action'].name]
                         }
                         new_peers.append(new_peer)
-                # Do not add peers for deleted processes
-                # else:
-                #     new_peers.append(peer)
             action.peers = new_peers
 
     # According to new identifiers change signals peers
@@ -589,47 +597,6 @@ def _yield_instances(logger, conf, sa, interfaces, model, instance_maps):
             _remove_statics(sa, process)
 
     return model_fsa, callback_fsa
-
-
-def _original_process_copies(logger, conf, interfaces, process, instances_left):
-    """
-    Generate process copies which would be used independently for instance creation.
-
-    :param logger: logging initialized object.
-    :param conf: Dictionary with configuration properties {'property name'->{'child property' -> {... -> value}}.
-    :param interfaces: InterfaceCollection object.
-    :param process: Process object.
-    :param instances_left: Number of instances which EMG is still allowed to generate.
-    :return: List of process copies.
-    """
-    # Determine max number of instances that can be generated
-    base_list = []
-    if get_or_die(conf, "instance modifier"):
-        # Used by a parallel env model
-        base_list.append(_copy_process(process, instances_left))
-    else:
-        undefined_labels = []
-        # Determine nonimplemented containers
-        logger.debug("Calculate number of not implemented labels and collateral values for process {} with "
-                     "category {}".format(process.name, process.category))
-        for label in [process.labels[name] for name in process.labels.keys()
-                      if len(process.labels[name].interfaces) > 0]:
-            nonimplemented_intrerfaces = [interface for interface in label.interfaces
-                                          if len(interfaces.get_intf(interface).implementations) == 0]
-            if len(nonimplemented_intrerfaces) > 0:
-                undefined_labels.append(label)
-
-        # Determine is it necessary to make several instances
-        if len(undefined_labels) > 0:
-            for i in range(get_or_die(conf, "instance modifier")):
-                base_list.append(_copy_process(process, instances_left))
-        else:
-            base_list.append(_copy_process(process, instances_left))
-
-        logger.info("Prepare {} instances for {} undefined labels of process {} with category {}".
-                    format(len(base_list), len(undefined_labels), process.name, process.category))
-
-    return base_list
 
 
 def _fulfill_label_maps(logger, conf, sa, interfaces, instances, process, instance_maps, instances_left):
@@ -651,8 +618,7 @@ def _fulfill_label_maps(logger, conf, sa, interfaces, instances, process, instan
     base_list = instances
 
     # Get map from accesses to implementations
-    logger.info("Determine number of instances for process '{}' with category '{}'".
-                format(process.name, process.category))
+    logger.info("Determine number of instances for process {!r}".format(str(process)))
 
     if process.category not in instance_maps:
         instance_maps[process.category] = dict()
@@ -873,29 +839,11 @@ def _copy_process(process, instances_left):
     :return: Process object copy.
     """
     inst = copy.copy(process)
-    inst.actions = copy.copy(process.actions)
-    inst.labels = copy.copy(process.labels)
-    accesses = process.accesses()
-    new_accesses = {a: accesses[a] for a in accesses}
-    inst.accesses(new_accesses)
-
-    for action in inst.actions.values():
-        cp = copy.deepcopy(action)
-        if isinstance(action, Receive) or isinstance(action, Dispatch):
-            # They contain references to other processes in peers
-            cp.parameters = copy.copy(action.parameters)
-
-        inst.actions[cp.name] = cp
-    for label in inst.labels.values():
-        cp = copy.copy(label)
-        inst.labels[cp.name] = cp
 
     if instances_left == 0:
         raise RuntimeError('EMG tries to generate more instances than it is allowed by configuration')
     elif instances_left:
         instances_left -= 1
-
-    inst.allowed_implementations = dict(process.allowed_implementations)
 
     return inst
 

@@ -16,6 +16,7 @@
 #
 
 import re
+import copy
 import graphviz
 import collections
 
@@ -104,6 +105,20 @@ class Process:
     def __hash__(self):
         return hash(str(self))
 
+    def __copy__(self):
+        inst = type(self)(self.name, self.category)
+
+        # Set simple attributes
+        for att, val in self.__dict__.items():
+            if isinstance(val, list) or isinstance(val, dict):
+                setattr(inst, att, copy.copy(val))
+            else:
+                setattr(inst, att, val)
+
+        # Copy labels
+        inst.labels = {l.name: copy.copy(l) for l in self.labels.values()}
+        return inst
+
     @property
     def name(self):
         return self._name
@@ -148,6 +163,7 @@ class Process:
         :param no_labels: Exclude accesses based on labels which are not referred anywhere (Bool).
         :return:
         """
+        # todo: Do not like this method. Prefer seeing it as property
         if not exclude:
             exclude = list()
 
@@ -352,13 +368,14 @@ class Process:
         self.actions[new] = new
         return new
 
-    def replace_action(self, old, new):
+    def replace_action(self, old, new, purge=True):
         """
         Replace in actions graph the given action. This methods replaces successors and predecessors and also
         changes operator attributes with references.
 
         :param old: BaseAction object.
         :param new: BaseAction object.
+        :param purge: Delete an object from collection.
         :return: None
         """
         for successor in old.successors:
@@ -367,16 +384,82 @@ class Process:
             predecessor.replace_successor(old, new)
 
             if isinstance(predecessor, Parentheses):
-                predecessor.action = new
+                predecessor.action = None
+                predecessor.add_first(new)
             elif isinstance(predecessor, Choice):
                 predecessor.actions.remove(old)
                 predecessor.actions.add(new)
-            elif isinstance(predecessor, Concatenation):
-                index = predecessor.actions.index(old)
-                predecessor.actions[index] = new
+            else:
+                if isinstance(predecessor, Concatenation):
+                    operator = predecessor
+                else:
+                    operator = predecessor.my_operator
+                if isinstance(operator, Concatenation):
+                    index = operator.actions.index(old)
+                    operator.actions[index] = new
+                else:
+                    raise RuntimeError('Expect concatenation operator')
 
-        del self.actions[str(old)]
-        self.actions[str(new)] = new
+        if purge:
+            del self.actions[str(old)]
+            self.actions[str(new)] = new
+
+    def insert_action(self, new, target, before=False):
+        """
+        Insert an existing action before or after the given target action.
+
+        :param new: Action object.
+        :param target: Action object.
+        :param before: True if append left ot append to  the right end.
+        """
+        def _replace_links(was, will, bef=True):
+            if bef:
+                for predecessor in was.predecessors:
+                    predecessor.replace_successor(was, will)
+
+                target.insert_predecessor(will)
+            else:
+                for successor in was.successors:
+                    successor.replace_predecessor(was, will)
+
+                target.insert_successor(will)
+
+        operator = target.my_operator
+        if isinstance(operator, Concatenation):
+            position = operator.actions.index(target)
+            if before:
+                operator.actions.insert(position, new)
+            else:
+                operator.actions.insert(position + 1, new)
+
+            _replace_links(target, new, bef=before)
+        elif isinstance(operator, Choice):
+            if before:
+                actions = [new, target]
+                new.insert_successor(target)
+            else:
+                actions = [target, new]
+                target.insert_successor(new)
+            conc = self.add_concatenation(str(len(self.actions.keys()) + 1), actions)
+            self.replace_action(target, conc, purge=False)
+        else:
+            raise ValueError("Unknown operator {!r}".format(str(type(operator).__name__)))
+
+    def insert_alternative_action(self, new, target):
+        """
+        Insert an existing action as an alternative choice for a given one.
+
+        :param new: Action object.
+        :param target: Action object.
+        """
+        operator = target.my_operator
+        if isinstance(operator, Concatenation):
+            choice = self.add_choice(str(len(self.actions.keys()) + 1), {new, target})
+            self.replace_action(target, choice, purge=False)
+        elif isinstance(operator, Choice):
+            operator.add_first(new)
+        else:
+            raise ValueError("Unknown operator {!r}".format(str(type(operator).__name__)))
 
 
 class Actions(collections.UserDict):
@@ -400,6 +483,32 @@ class Actions(collections.UserDict):
         else:
             return self.data[item]
 
+    def __copy__(self):
+        new = Actions()
+
+        # Copy items
+        new.data = {n: copy.copy(v) for n, v in self.data.items()}
+
+        # Replace references
+        for action in new.data.values():
+            if isinstance(action, Receive) or isinstance(action, Dispatch):
+                # They contain references to other processes in peers
+                action.parameters = copy.copy(action.parameters)
+            elif isinstance(action, Parentheses):
+                action.action = new.data[action.action.name]
+            elif isinstance(action, Concatenation):
+                action.actions = [new.data[act.name] for i, act in enumerate(action.actions)]
+            elif isinstance(action, Choice):
+                action.actions = {new.data[act.name] for act in action.actions}
+
+            # Replace successors and predecessors
+            for successor in set(action.successors):
+                action.remove_successor(successor)
+                action.add_successor(new.data[successor.name])
+            for predecessor in set(action.predecessors):
+                action.remove_predecessor(predecessor)
+                action.add_predecessor(new.data[predecessor.name])
+
     def filter(self, include=None, exclude=None):
         if not include:
             include = ()
@@ -417,7 +526,8 @@ class Actions(collections.UserDict):
         :return: Sorted list with starting process State objects.
         """
         acts = [s for s in self.data.values() if not s.predecessors]
-        assert len(acts) == 1
+        if len(acts) != 1:
+            raise ValueError('Process %s contains more than one action'.format(str(self)))
         act, *_ = acts
         return act
 
@@ -582,6 +692,18 @@ class Action(BaseAction):
         self.trace_relevant = False
         self.comment = ''
 
+    @property
+    def my_operator(self):
+        todo = collections.deque([self])
+        while todo:
+            act = todo.pop()
+            if not isinstance(act, Action):
+                return act
+            else:
+                for predecessor in act.predecessors:
+                    todo.appendleft(predecessor)
+        return None
+
 
 class Subprocess(Action):
     """
@@ -593,13 +715,14 @@ class Subprocess(Action):
     An example of action string: "{mynewsequence}".
     """
 
-    def __init__(self, name):
+    def __init__(self, name, reference_name=None):
         super(Subprocess, self).__init__(name)
         self.process = None
+        self.reference_name = reference_name
         self.fsa = None
 
     def __repr__(self):
-        return '{%s}' % str(self)
+        return '{%s}' % str(self.reference_name if self.reference_name else self.name)
 
 
 class Dispatch(Action):
@@ -666,8 +789,14 @@ class Parentheses(BaseAction):
 
     def __init__(self, name, action=None):
         super(Parentheses, self).__init__()
-        self.action = action
+        self.action = None
+        self.add_first(action)
+
+    def add_first(self, action: BaseAction):
         self.insert_successor(action)
+        if self.action:
+            raise RuntimeError('Attempt to overwrite child in parenthenses')
+        self.action = action
 
 
 class Concatenation(BaseAction):

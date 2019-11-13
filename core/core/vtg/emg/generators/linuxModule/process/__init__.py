@@ -79,8 +79,8 @@ class ExtendedAccess(Access):
 
         if self.label and self.label.declaration and not self.interface:
             target = self.label.declaration
-        elif self.label and self.list_interface[-1].identifier in self.label.interfaces:
-            target = self.label.get_declaration(self.list_interface[-1].identifier)
+        elif self.label and str(self.list_interface[-1]) in self.label.interfaces:
+            target = self.label.get_declaration(str(self.list_interface[-1]))
         else:
             target = self.list_interface[-1].declaration
 
@@ -300,7 +300,7 @@ class ExtendedProcess(Process):
             self.actions[signals[0]].peers.append(
                 {
                     'process': process,
-                    'subprocess': process.actions[signals[1]]
+                    'action': process.actions[signals[1]]
                 })
             process.actions[signals[1]].peers.append(
                 {
@@ -384,7 +384,7 @@ class ExtendedProcess(Process):
         if not interface:
             return self._accesses[string]
         else:
-            cnds = [acc for acc in self._accesses[string] if acc.interface and acc.interface.identifier == interface]
+            cnds = [acc for acc in self._accesses[string] if acc.interface and str(acc.interface) == interface]
             if cnds:
                 return cnds[0]
             else:
@@ -392,9 +392,9 @@ class ExtendedProcess(Process):
 
     def get_implementation(self, access):
         if access.interface:
-            if access.interface.identifier in self.allowed_implementations[access.expression] and \
-                    self.allowed_implementations[access.expression][access.interface.identifier] != '':
-                return self.allowed_implementations[access.expression][access.interface.identifier]
+            if str(access.interface) in self.allowed_implementations[access.expression] and \
+                    self.allowed_implementations[access.expression][str(access.interface)] != '':
+                return self.allowed_implementations[access.expression][str(access.interface)]
             else:
                 return False
         else:

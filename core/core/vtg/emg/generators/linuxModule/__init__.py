@@ -85,7 +85,7 @@ class ScenarioModelgenerator(AbstractGenerator):
                                       escape_forward_slashes=False))
 
         puredecoder = CollectionDecoder(self.logger, self.conf)
-        new_pure_collection = puredecoder.parse_event_specification(source, data)
+        new_pure_collection = puredecoder.parse_event_specification(source, ujson.loads(data))
         collection.environment.update(new_pure_collection.environment)
         collection.models.update(new_pure_collection.models)
         collection.establish_peers()

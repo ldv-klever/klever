@@ -36,7 +36,7 @@ class CollectionEncoder(json.JSONEncoder):
 
     def _serialize_collection(self, collection):
         data = {
-            "functions models": {str(p): self._export_process(p) for p in collection.models.values()},
+            "functions models": {p.name: self._export_process(p) for p in collection.models.values()},
             "environment processes": {str(p): self._export_process(p) for p in collection.environment.values()},
             "main process": self._export_process(collection.entry) if collection.entry else None
         }
@@ -63,7 +63,11 @@ class CollectionEncoder(json.JSONEncoder):
                 d['entry point'] = action.trace_relevant
 
             if isinstance(action, Subprocess):
-                d['process'] = action.process
+                if len(action.successors) != 1:
+                    raise ValueError('Expect exactly one successor in subprocess {!r} of process {!r}'.
+                                     format(str(action), str(process)))
+                next_action, = tuple(action.successors)
+                d['process'] = CollectionEncoder._serialize_fsa(next_action)
             elif isinstance(action, Dispatch) or isinstance(action, Receive):
                 d['parameters'] = action.parameters
 
@@ -82,10 +86,14 @@ class CollectionEncoder(json.JSONEncoder):
         data = {
             'category': process.category,
             'comment': process.comment,
-            'process': CollectionEncoder._serialize_fsa(process.actions),
+            'process': CollectionEncoder._serialize_fsa(process.actions.initial_action),
             'labels': {str(l): convert_label(l) for l in process.labels.values()},
-            'actions': {str(a): convert_action(a) for a in process.actions.filter(include={Action})}
+            'actions': {str(a): convert_action(a) for a in
+                        process.actions.filter(include={Action}, exclude={Subprocess})}
         }
+        data['actions'].update({a.reference_name: convert_action(a)
+                                for a in process.actions.filter(include={Subprocess})})
+
         if len(process.headers) > 0:
             data['headers'] = list(process.headers)
         if len(process.declarations.keys()) > 0:
@@ -96,7 +104,7 @@ class CollectionEncoder(json.JSONEncoder):
         return data
 
     @staticmethod
-    def _serialize_fsa(actions):
+    def _serialize_fsa(initial):
         def _serialize_action(action):
             if isinstance(action, Action):
                 return repr(action)
@@ -109,7 +117,7 @@ class CollectionEncoder(json.JSONEncoder):
             else:
                 raise NotImplementedError
 
-        return _serialize_action(actions.initial_action)
+        return _serialize_action(initial)
 
 
 class CollectionDecoder:
@@ -155,6 +163,7 @@ class CollectionDecoder:
         collection = ProcessCollection()
 
         self.logger.info("Import processes from provided event categories specification")
+        raise_exc = []
         if "functions models" in raw:
             self.logger.info("Import processes from 'kernel model'")
             for name_list, process_desc in raw["functions models"].items():
@@ -164,8 +173,12 @@ class CollectionDecoder:
 
                     # Set some default values
                     category = "functions models"
-                    process = self._import_process(source, name, category, process_desc)
-                    collection.models[str(process)] = process
+                    try:
+                        process = self._import_process(source, name, category, process_desc)
+                        collection.models[str(process)] = process
+                    except Exception as err:
+                        self.logger.warning("Cannot parse {!r}: {}".format(name, str(err)))
+                        raise_exc.append(name)
         if "environment processes" in raw:
             self.logger.info("Import processes from 'environment processes'")
             for name, process_desc in raw["environment processes"].items():
@@ -178,18 +191,30 @@ class CollectionDecoder:
                 else:
                     category = None
 
-                process = self._import_process(source, name, category, process_desc)
-                if process in collection.environment:
-                    raise ValueError("There is an already imported process {!r} in intermediate environment model".
-                                     format(str(process)))
-                collection.environment[str(process)] = process
+                try:
+                    process = self._import_process(source, name, category, process_desc)
+                    if process in collection.environment:
+                        raise ValueError("There is an already imported process {!r} in intermediate environment model".
+                                         format(str(process)))
+                    collection.environment[str(process)] = process
+                except Exception as err:
+                    self.logger.warning("Cannot parse {!r}: {}".format(name, str(err)))
+                    raise_exc.append(name)
 
         if "main process" in raw and isinstance(raw["main process"], dict):
             self.logger.info("Import main process")
-            entry_process = self._import_process(source, "entry", "entry process", raw["main process"])
-            collection.entry = entry_process
+            try:
+                entry_process = self._import_process(source, "entry", "entry process", raw["main process"])
+                collection.entry = entry_process
+            except Exception as err:
+                self.logger.warning("Cannot main process: {}".format(str(err)))
+                raise_exc.append('entry')
         else:
             collection.entry = None
+
+        if raise_exc:
+            raise RuntimeError("Some specifications cannot be parsed, inspect log to find problems with: {}".
+                               format(', '.join(raise_exc)))
 
         return collection
 
@@ -207,10 +232,16 @@ class CollectionDecoder:
             raise KeyError("Each process must have 'process' attribute, but {!r} misses it".format(name))
 
         # Then import subprocesses
-        for desc in dic.get('actions', {}).values():
+        next_actions = {}
+        for name, desc in dic.get('actions', {}).items():
             subp = desc.get('process')
             if subp:
-                parse_process(process, subp)
+                next_action = parse_process(process, subp)
+                next_actions[name] = next_action
+
+        # Connect actions
+        for action in process.actions.filter(include={Subprocess}):
+            action.insert_successor(next_actions[action.reference_name])
 
         # Import comments
         if 'comment' in dic:
@@ -221,10 +252,15 @@ class CollectionDecoder:
                 "function model process".format(name))
 
         # Import actiones
-        for action_name in dic.get('actions', {}):
-            if not process.actions.get(action_name):
-                raise ValueError('Action {!r} was not used in {!r} process'.format(action_name, str(process)))
-            self._import_action(process, process.actions[action_name], dic['actions'][action_name])
+        for act_name in dic.get('actions', {}):
+            if not process.actions.get(act_name):
+                if dic['actions'][act_name].get('process'):
+                    for act in (a for a in process.actions.filter(include={Subprocess}) if a.reference_name == act_name):
+                        self._import_action(process, act, dic['actions'][act_name])
+                else:
+                    raise ValueError('Action {!r} was not used in {!r} process'.format(act_name, str(process)))
+            else:
+                self._import_action(process, process.actions[act_name], dic['actions'][act_name])
 
         for att in self.PROCESS_ATTRIBUTES:
             if att in dic:
@@ -248,6 +284,8 @@ class CollectionDecoder:
             raise RuntimeError("Found unused labels in process {!r}: {}".format(str(process), ', '.join(unused_labels)))
         if process.file != 'entry point':
             process.file = source.find_file(process.file)
+        if not process.actions.initial_action:
+            raise RuntimeError('Process {!r} has no initial action'.format(str(process)))
 
         process.accesses()
         return process

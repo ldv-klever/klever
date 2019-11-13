@@ -15,7 +15,6 @@
 # limitations under the License.
 #
 
-
 from core.vtg.emg.common.c.types import Structure, Union, Array, Pointer, Function, import_declaration, extract_name, \
     is_not_null_function
 from core.vtg.emg.generators.linuxModule.interface import Callback, StructureContainer, ArrayContainer
