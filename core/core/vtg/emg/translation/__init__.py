@@ -72,7 +72,7 @@ def translate_intermediate_model(logger, conf, avt, source, collection):
     entry_point_name = get_or_die(conf['translation options'], 'entry point')
     files = source.c_full_paths
     if entry_file not in files:
-        files.append(entry_file)
+        files.add(entry_file)
         try:
             entry_file_realpath = find_file_or_dir(logger, conf['main working directory'], entry_file)
         except FileNotFoundError:
