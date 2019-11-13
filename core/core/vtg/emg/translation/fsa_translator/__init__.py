@@ -17,7 +17,7 @@
 
 from core.vtg.emg.common import get_or_die, model_comment
 from core.vtg.emg.common.c.types import import_declaration
-from core.vtg.emg.common.process import Action, Receive, Dispatch, Block, Subprocess, Choice
+from core.vtg.emg.common.process import Action, Receive, Dispatch, Block, Subprocess, Choice, Concatenation
 from core.vtg.emg.common.c import Function
 from core.vtg.emg.translation.code import action_model_comment
 from core.vtg.emg.translation.fsa_translator.common import extract_relevant_automata
@@ -210,10 +210,9 @@ class FSATranslator:
 
             # Check dispatch type
             replicative = False
-            for name in automata_peers:
-                # TODO: DEBUG
-                for st in automata_peers[name]:
-                    if st.action.replicative:
+            for a_peer in automata_peers:
+                for act in automata_peers[a_peer]['actions']:
+                    if act.replicative:
                         replicative = True
                         break
 
@@ -355,7 +354,7 @@ class FSATranslator:
             cache_identifier += str(param)
 
         if cache_identifier not in self._structures:
-            struct_name = 'ldv_struct_{}_{}'.format(str(automaton.process), str(automaton))
+            struct_name = 'ldv_struct_{}_{}'.format(automaton.process.name, str(automaton))
             if struct_name in self._structures:
                 raise KeyError('Structure name is not unique')
 
@@ -509,9 +508,9 @@ class FSATranslator:
         code, v_code, conditions, comments = list(), list(), list(), list()
 
         # Make comments
-        comment = action.action.comment.format(automaton.process.category.upper())
-        comments.append(action_model_comment(action.action, comment, begin=True))
-        comments.append(action_model_comment(action.action, None, begin=False))
+        comment = action.comment.format(automaton.process.category.upper())
+        comments.append(action_model_comment(action, comment, begin=True))
+        comments.append(action_model_comment(action, None, begin=False))
 
         return code, v_code, conditions, comments
 
@@ -545,11 +544,10 @@ class FSATranslator:
             final_code.append(comments[0])
 
             # Skip or assert action according to conditions
-            if conditions and len(act.predecessors) == 1:
-                predecessor, = act.predecessors
-
-                if not isinstance(predecessor, Receive):
-                    final_code += ['ldv_assume({});'.format(' && '.join(conditions))] + code
+            if conditions and (isinstance(act.my_operator, Choice) or
+                               (isinstance(act.my_operator, Concatenation) and act.my_operator.actions.index(act))):
+                # todo: if not isinstance(predecessor, Receive):
+                final_code += ['ldv_assume({});'.format(' && '.join(conditions))] + code
             elif conditions and code:
                 final_code += ['if ({}) '.format(' && '.join(conditions)) + '{'] + \
                               ['\t{}'.format(s) for s in code] + \

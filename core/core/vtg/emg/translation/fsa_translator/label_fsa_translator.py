@@ -74,28 +74,27 @@ class LabelTranslator(FSATranslator):
         post = []
         blocks = []
 
-        for name in (n for n in automata_peers if len(automata_peers[n]['states']) > 0):
+        for a_peer in (a for a in automata_peers if automata_peers[a]['actions']):
             decl = self._get_cf_struct(automaton, function_parameters)
-            cf_param = 'cf_arg_{}'.format(automata_peers[name]['automaton'].identifier)
+            cf_param = 'cf_arg_{}'.format(str(a_peer))
             vf_param_var = Variable(cf_param, decl.take_pointer)
             pre.append(vf_param_var.declare() + ';')
 
             if replicative:
-                for r_state in automata_peers[name]['states']:
+                for r_action in automata_peers[a_peer]['actions']:
                     block = list()
                     block.append('{} = {}(sizeof({}));'.
-                                 format(vf_param_var.name, self._cmodel.mem_function_map["ALLOC"], decl.identifier))
+                                 format(vf_param_var.name, self._cmodel.mem_function_map["ALLOC"], str(decl)))
                     for index in range(len(function_parameters)):
                         block.append('{}->arg{} = arg{};'.format(vf_param_var.name, index, index))
-                    if r_state.action.replicative:
-                        call = self._call_cf(automata_peers[name]['automaton'], cf_param)
+                    if r_action.replicative:
+                        call = self._call_cf(a_peer, cf_param)
                         if self._conf.get('direct control functions calls'):
                             block.append(call)
                         else:
-                            if automata_peers[name]['automaton'].self_parallelism and \
-                                    self._conf.get("self parallel processes") and \
+                            if a_peer.self_parallelism and self._conf.get("self parallel processes") and \
                                     self._conf.get('pure pthread interface'):
-                                thread_vars = self.__thread_variable(automata_peers[name]['automaton'], var_type='pair')
+                                thread_vars = self.__thread_variable(a_peer, var_type='pair')
                                 for v in thread_vars:
                                     # Expect that for this particular case the first argument is unset
                                     block.extend(['ret = {}'.format(call.format("& " + v.name)),
@@ -108,17 +107,15 @@ class LabelTranslator(FSATranslator):
                     else:
                         self._logger.warning(
                             'Cannot generate dispatch based on labels for receive {} in process {} with category {}'
-                            .format(r_state.action.name,
-                                    automata_peers[name]['automaton'].process.name,
-                                    automata_peers[name]['automaton'].process.category))
+                            .format(r_action.name, a_peer.process.name, a_peer.process.category))
             # todo: Pretty ugly, but works
             elif action.name.find('dereg') != -1:
                 block = list()
-                call = self._join_cf(automata_peers[name]['automaton'])
+                call = self._join_cf(automata_peers[a_peer]['automaton'])
                 if not self._conf.get('direct control functions calls'):
-                    if automata_peers[name]['automaton'].self_parallelism and self._conf.get("self parallel processes")\
+                    if automata_peers[a_peer]['automaton'].self_parallelism and self._conf.get("self parallel processes")\
                             and self._conf.get('pure pthread interface'):
-                        thread_vars = self.__thread_variable(automata_peers[name]['automaton'], var_type='pair')
+                        thread_vars = self.__thread_variable(automata_peers[a_peer]['automaton'], var_type='pair')
                         for v in thread_vars:
                             # Expect that for this particular case the first argument is unset
                             block.extend(['ret = {}'.format(call.format(v.name)),

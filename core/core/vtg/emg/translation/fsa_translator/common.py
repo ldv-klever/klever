@@ -40,8 +40,7 @@ def extract_relevant_automata(automata, automata_peers, peers, sb_type=None):
                     "automaton": automaton,
                     "actions": set()
                 }
-            for action in [n for n in automaton.process.actions.filter(include={Action})
-                           if action == peer["action"]]:
+            for action in [n for n in automaton.process.actions.filter(include={Action}) if n == peer["action"]]:
                 if not sb_type or isinstance(action, sb_type):
                     automata_peers[automaton]["actions"].add(action)
 

@@ -58,21 +58,21 @@ def label_based_function(conf, analysis, automaton, cf, model=True):
 
     processed = set()
     for subp in automaton.process.actions.filter(include={Subprocess}):
-        if subp not in processed:
-            first_actual_state, = subp.successors
+        if subp.reference_name not in processed:
+            first_actual_state = subp.action
             sp_v_code, sp_f_code = __subprocess_code(automaton, first_actual_state, ret_expression)
 
             v_code.extend(sp_v_code)
             f_code.extend([
                 '',
                 '/* Sbprocess {} */'.format(subp.action.name),
-                'ldv_{}_{}:'.format(str(subp.action), str(automaton))
+                'ldv_{}_{}:'.format(str(subp.reference_name), str(automaton))
             ])
             f_code.extend(sp_f_code)
             f_code.append("/* End of the subprocess '{}' */".format(subp.action.name))
             if ret_expression:
                 f_code.append(ret_expression)
-            processed.add(subp)
+            processed.add(subp.reference_name)
 
     v_code = [model_comment('CONTROL_FUNCTION_INIT_BEGIN', 'Declare auxiliary variables.')] + \
              v_code + \
@@ -96,8 +96,8 @@ def __subprocess_code(automaton, initial_action, ret_expression):
 
         if isinstance(action, Subprocess):
             f += [
-                '/* Jump to a subprocess {!r} initial state */'.format(action.name),
-                'goto ldv_{}_{};'.format(action.name, str(automaton))
+                '\t' * tab + '/* Jump to a subprocess {!r} initial state */'.format(action.name),
+                '\t' * tab + 'goto ldv_{}_{};'.format(action.reference_name, str(automaton))
             ]
         elif isinstance(action, Action):
             my_v, my_f = automaton.code[action]
@@ -118,7 +118,7 @@ def __subprocess_code(automaton, initial_action, ret_expression):
                     branch_v, branch_f = _serialize_action(branch, tab + 2)
                     v += branch_v
                     f += ['\t' * (tab + 1) + 'case {}: '.format(case) + '{'] + branch_f + \
-                         ['\t' + (tab + 2) + 'break;', '\t' * (tab + 1) + '}']
+                         ['\t' * (tab + 2) + 'break;', '\t' * (tab + 1) + '}']
                 f += ['\t' * (tab + 1) + 'default: ldv_assume(0);', '\t' * tab + '}']
             else:
                 raise ValueError('Invalid number of conditions in %s: %d' % (str(action), len(action.actions)))
