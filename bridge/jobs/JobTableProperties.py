@@ -94,7 +94,7 @@ class TableTree(ComplexHeaderMixin):
                list("unsafe:{0}".format(u) for u in UNSAFES) + \
                ['safe'] + list("safe:{0}".format(s) for s in SAFES) + \
                TASKS_COLUMNS + SUBJOBS_COLUMNS + [
-                   'problem', 'problem:total', 'resource', 'tag', 'tag:safe', 'tag:unsafe', 'identifier', 'format',
+                   'problem', 'problem:total', 'resource', 'tag', 'tag:safe', 'tag:unsafe', 'identifier',
                    'version', 'priority', 'start_date', 'finish_date', 'solution_wall_time', 'operator'
                ]
 
@@ -135,10 +135,6 @@ class TableTree(ComplexHeaderMixin):
 
         if 'status' in self.view:
             qs_filter &= Q(status__in=self.view['status'])
-
-        if 'format' in self.view:
-            format_filter = Q(format=int(self.view['format'][1]))
-            qs_filter &= format_filter if self.view['format'][0] == 'is' else ~format_filter
 
         if 'priority' in self.view:
             priority_filter = 'solvingprogress__priority'
@@ -394,7 +390,6 @@ class TableTree(ComplexHeaderMixin):
             self._values_data[job_version.job_id].update({
                 'name': self.__get_cell(job_version.job.name, url=job_url),
                 'identifier': self.__get_cell(job_version.job.identifier),
-                'format': self.__get_cell(job_version.job.format),
                 'date': self.__get_cell(HumanizedValue(job_version.change_date, user=self._user).date),
                 'author': self.__get_cell(author_val, url=author_url),
                 'status': self.__get_cell(job_version.job.get_status_display(), url=status_url),

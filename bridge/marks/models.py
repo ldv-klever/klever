@@ -24,7 +24,7 @@ from django.utils.timezone import now
 from django.utils.translation import ugettext_lazy as _
 from mptt.models import MPTTModel, TreeForeignKey
 
-from bridge.vars import FORMAT, MARK_STATUS, MARK_UNSAFE, MARK_SAFE, MARK_SOURCE, ASSOCIATION_TYPE
+from bridge.vars import MARK_STATUS, MARK_UNSAFE, MARK_SAFE, MARK_SOURCE, ASSOCIATION_TYPE
 from bridge.utils import WithFilesMixin, remove_instance_files
 
 from reports.models import MAX_COMPONENT_LEN, ReportUnsafe, ReportSafe, ReportComponent, ReportUnknown, AttrBase
@@ -53,7 +53,6 @@ class ConvertedTrace(WithFilesMixin, models.Model):
 class Mark(models.Model):
     identifier = models.UUIDField(unique=True, default=uuid.uuid4)
     job = models.ForeignKey(Job, models.SET_NULL, null=True, related_name='+')
-    format = models.PositiveSmallIntegerField(default=FORMAT)
     version = models.PositiveSmallIntegerField(default=1)
     # Author of first version
     author = models.ForeignKey(User, models.SET_NULL, null=True, related_name='+')

@@ -45,7 +45,6 @@ JOB_TREE_VIEW = {
     # status: <list of identifiers from JOB_STATUS>
     # resource_component: [iexact|istartswith|icontains, <any text>]
     # problem_component: [iexact|istartswith|icontains, <any text>]
-    # format: [is|isnot, <number>]
     # priority: [le|e|me, <identifier from PRIORITY>]
     # finish_date: [is|older|younger, <month number>, <year>]
 
@@ -56,7 +55,6 @@ JOB_TREE_VIEW = {
     # 'status': ['2', '5', '1'],
     # 'resource_component': ['istartswith', 'D'],
     # 'problem_component': ['iexact', 'BLAST'],
-    # 'format': ['is', '1'],
     # 'priority': ['me', 'LOW'],
     # 'finish_date': ['is', '1', '2016'],
     # 'hidden': ['confirmed_marks']
@@ -137,7 +135,7 @@ UNKNOWNS_VIEW = {
 
 UNSAFE_MARKS_VIEW = {
     'elements': [DEF_NUMBER_OF_ELEMENTS],
-    'columns': ['num_of_links', 'verdict', 'threshold', 'tags', 'status', 'author', 'format'],
+    'columns': ['num_of_links', 'verdict', 'threshold', 'tags', 'status', 'author'],
     # order: [up|down, change_date|num_of_links|attr, <any text, empty if not attr>]
     'order': ['up', 'change_date', ''],
 
@@ -160,7 +158,7 @@ UNSAFE_MARKS_VIEW = {
 
 SAFE_MARKS_VIEW = {
     'elements': [DEF_NUMBER_OF_ELEMENTS],
-    'columns': ['num_of_links', 'verdict', 'tags', 'author', 'format'],
+    'columns': ['num_of_links', 'verdict', 'tags', 'author'],
     # order: [up|down, change_date|num_of_links|attr, <any text, empty if not attr>]
     'order': ['up', 'change_date', ''],
 
@@ -181,7 +179,7 @@ SAFE_MARKS_VIEW = {
 
 UNKNOWN_MARKS_VIEW = {
     'elements': [DEF_NUMBER_OF_ELEMENTS],
-    'columns': ['num_of_links', 'component', 'author', 'format', 'problem_pattern'],
+    'columns': ['num_of_links', 'component', 'author', 'problem_pattern'],
     # order: [up|down, change_date|num_of_links|attr|component, <any text, empty if not attr>]
     'order': ['up', 'change_date'],
 
@@ -288,33 +286,30 @@ UNKNOWN_MARK_ASS_REPORTS_VIEW = {
 }
 
 SAFE_ASSOCIATION_CHANGES_VIEW = {
-    'columns': ['change_kind', 'sum_verdict', 'tags', 'job', 'format'],
+    'columns': ['change_kind', 'sum_verdict', 'tags', 'job'],
     # FILTERS:
     'hidden': ['unchanged']
     # change_kind: <sublist from ['changed', 'new', 'deleted']>
     # old_verdict: <list of identifiers from SAFE_VERDICTS>
     # new_verdict: <list of identifiers from SAFE_VERDICTS>
     # job_title: [iexact|istartswith|icontains, <any text>]
-    # format: [is|isnot, <number>]
     # attr: [<Attr name>, iexact|istartswith, <Attr value>]
 }
 UNSAFE_ASSOCIATION_CHANGES_VIEW = {
-    'columns': ['change_kind', 'sum_verdict', 'tags', 'job', 'format'],
+    'columns': ['change_kind', 'sum_verdict', 'tags', 'job'],
     # FILTERS:
     'hidden': ['unchanged']
     # change_kind: <sublist from ['changed', 'new', 'deleted']>
     # old_verdict: <list of identifiers from UNSAFE_VERDICTS>
     # new_verdict: <list of identifiers from UNSAFE_VERDICTS>
     # job_title: [iexact|istartswith|icontains, <any text>]
-    # format: [is|isnot, <number>]
     # attr: [<Attr name>, iexact|istartswith, <Attr value>]
 }
 UNKNOWN_ASSOCIATION_CHANGES_VIEW = {
-    'columns': ['change_kind', 'job', 'format', 'problems'],
+    'columns': ['change_kind', 'job', 'problems'],
     # FILTERS:
     # change_kind: <sublist from ['changed', 'new', 'deleted']>
     # job_title: [iexact|istartswith|icontains, <any text>]
-    # format: [is|isnot, <number>]
     # attr: [<Attr name>, iexact|istartswith, <Attr value>]
 }
 

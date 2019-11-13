@@ -31,7 +31,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from rest_framework import exceptions, serializers, fields
 
-from bridge.vars import FORMAT, REPORT_ARCHIVE, MPTT_FIELDS
+from bridge.vars import REPORT_ARCHIVE, MPTT_FIELDS
 from bridge.utils import logger, BridgeException
 from bridge.ZipGenerator import ZipStream, CHUNK_SIZE
 from bridge.serializers import TimeStampField
@@ -84,11 +84,6 @@ class UploadJobSerializer(serializers.ModelSerializer):
     def validate_archive_format(self, value):
         if value != ARCHIVE_FORMAT:
             raise exceptions.ValidationError(_("The job archive format is not supported"))
-        return value
-
-    def validate_format(self, value):
-        if value != FORMAT:
-            raise exceptions.ValidationError(_("The job format is not supported"))
         return value
 
     def validate(self, attrs):
@@ -207,9 +202,6 @@ class KleverCoreArchiveGen:
             file_src = '/'.join([settings.MEDIA_ROOT, file_inst.file.file.name])
             for data in self.stream.compress_file(file_src, arch_name):
                 yield data
-
-        for data in self.stream.compress_string('format', str(self.job.format)):
-            yield data
         yield self.stream.close_stream()
 
 

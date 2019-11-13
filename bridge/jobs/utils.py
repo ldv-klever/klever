@@ -84,7 +84,6 @@ TITLES = {
     'tag:safe': _('Safes'),
     'tag:unsafe': _('Unsafes'),
     'identifier': _('Identifier'),
-    'format': _('Format'),
     'version': _('Version'),
     'parent_id': format_lazy('{0}/{1}', _('Parent'), _('Identifier')),
     'role': _('Your role'),

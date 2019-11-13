@@ -46,7 +46,6 @@ class Migration(migrations.Migration):
         migrations.CreateModel(name='MarkSafe', fields=[
             ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
             ('identifier', models.UUIDField(default=uuid.uuid4, unique=True)),
-            ('format', models.PositiveSmallIntegerField(default=1)),
             ('version', models.PositiveSmallIntegerField(default=1)),
             ('is_modifiable', models.BooleanField(default=True)),
             ('source', models.CharField(choices=[
@@ -128,7 +127,6 @@ class Migration(migrations.Migration):
         migrations.CreateModel(name='MarkUnknown', fields=[
             ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
             ('identifier', models.UUIDField(default=uuid.uuid4, unique=True)),
-            ('format', models.PositiveSmallIntegerField(default=1)),
             ('version', models.PositiveSmallIntegerField(default=1)),
             ('is_modifiable', models.BooleanField(default=True)),
             ('source', models.CharField(choices=[
@@ -193,7 +191,6 @@ class Migration(migrations.Migration):
         migrations.CreateModel(name='MarkUnsafe', fields=[
             ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
             ('identifier', models.UUIDField(default=uuid.uuid4, unique=True)),
-            ('format', models.PositiveSmallIntegerField(default=1)),
             ('version', models.PositiveSmallIntegerField(default=1)),
             ('is_modifiable', models.BooleanField(default=True)),
             ('source', models.CharField(choices=[

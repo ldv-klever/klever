@@ -34,7 +34,6 @@ class Migration(migrations.Migration):
             ('identifier', models.UUIDField(db_index=True, default=uuid.uuid4, unique=True)),
             ('name', models.CharField(db_index=True, max_length=150, unique=True)),
             ('version', models.PositiveSmallIntegerField(default=1)),
-            ('format', models.PositiveSmallIntegerField(default=1, editable=False)),
             ('status', models.CharField(choices=[
                 ('0', 'Not solved'), ('1', 'Pending'), ('2', 'Is solving'), ('3', 'Solved'), ('4', 'Failed'),
                 ('5', 'Corrupted'), ('6', 'Cancelling'), ('7', 'Cancelled'), ('8', 'Terminated')
