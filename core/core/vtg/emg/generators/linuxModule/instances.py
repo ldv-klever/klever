@@ -215,9 +215,11 @@ def _simplify_process(logger, conf, sa, interfaces, process):
                 if not svar:
                     # Seems that it is a funciton
                     sf = sa.get_source_function(implementation.value, file)
-                    if sf:
+                    if sf and not (sf.static or sf.declaration.static):
                         true_declaration = sf.declaration.to_string(sf.name, typedef='complex_and_params',
                                                                     specifiers=True)
+                    else:
+                        continue
 
                 # Check
                 if true_declaration:
@@ -758,29 +760,31 @@ def _remove_statics(sa, process):
     for access in access_map:
         for interface in (i for i in access_map[access] if access_map[access][i]):
             implementation = access_map[access][interface]
-            if implementation.declaration.static:
-                file = implementation.initialization_file
-                func = None
-                var = None
+            static = implementation.declaration.static
+            file = implementation.initialization_file
+            func = None
+            var = None
 
-                svar = sa.get_source_variable(implementation.value, file)
-                function_flag = False
-                if not svar:
-                    candidate = sa.get_source_function(implementation.value, file)
-                    if candidate:
-                        declaration = candidate.declaration
-                        value = candidate.name
-                        function_flag = True
-                    else:
-                        # Seems that this is a variable without initialization
-                        declaration = implementation.declaration
-                        value = implementation.value
+            svar = sa.get_source_variable(implementation.value, file)
+            function_flag = False
+            if not svar:
+                candidate = sa.get_source_function(implementation.value, file)
+                if candidate:
+                    static = static or candidate.static
+                    declaration = candidate.declaration
+                    value = candidate.name
+                    function_flag = True
                 else:
-                    # Because this is a Variable
-                    declaration = svar.declaration
-                    value = svar.name
+                    # Seems that this is a variable without initialization
+                    declaration = implementation.declaration
+                    value = implementation.value
+            else:
+                # Because this is a Variable
+                declaration = svar.declaration
+                value = svar.name
 
-                # Determine name
+            # Determine name
+            if static:
                 name = sa.refined_name(implementation.value)
                 if declaration and (file not in _values_map or
                                     name not in _values_map[file]):
