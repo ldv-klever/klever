@@ -281,8 +281,11 @@ class Declaration:
 
         :return: Bool
         """
-        if 'static' in self._ast.get('specifiers', list()):
-            return True
+        specifiers = self._ast.get('specifiers')
+        if specifiers and isinstance(specifiers, list):
+            return 'static' in specifiers
+        elif specifiers and isinstance(specifiers, dict):
+            return 'static' in specifiers.get('specifiers', [])
         else:
             return False
 
@@ -703,6 +706,10 @@ class Array(Declaration):
         """
         return '{}_array'.format(self.element.pretty_name)
 
+    @property
+    def static(self):
+        return self.element.static
+
     def contains(self, target):
         """
         Check True if target declaration is used as the array element type.
@@ -749,6 +756,10 @@ class Pointer(Declaration):
         replacement = _take_pointer(replacement, self.points)
 
         return self.points.to_string(replacement, typedef=typedef, scope=scope, specifiers=False)
+
+    @property
+    def static(self):
+        return self.points.static
 
     @property
     def pretty_name(self):

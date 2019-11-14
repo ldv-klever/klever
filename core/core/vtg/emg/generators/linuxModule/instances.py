@@ -207,7 +207,7 @@ def _simplify_process(logger, conf, sa, interfaces, process):
             implementation = process.allowed_implementations[access][intf]
             file = implementation.initialization_file
             if (file not in _values_map or (implementation.value not in _values_map[file])) \
-                    and not implementation.static:
+                    and not implementation.declaration.static:
                 # Maybe it is a variable
                 svar = sa.get_source_variable(implementation.value, file)
                 true_declaration = svar.declaration.to_string(svar.name, typedef='complex_and_params', specifiers=True)\
@@ -235,7 +235,8 @@ def _simplify_process(logger, conf, sa, interfaces, process):
                                    format(implementation.value))
             else:
                 logger.warning("Skip import if an implementation {!r} and it is {}".
-                               format(implementation.value, 'static' if implementation.static else 'not static'))
+                               format(implementation.value,
+                                      'static' if implementation.declaration.static else 'not static'))
 
     process.allowed_implementations = None
 
@@ -754,11 +755,10 @@ def _remove_statics(sa, process):
 
     # For each static Implementation add to the origin file aspect which adds a variable with the same global
     # declaration
-
     for access in access_map:
         for interface in (i for i in access_map[access] if access_map[access][i]):
             implementation = access_map[access][interface]
-            if implementation.static:
+            if implementation.declaration.static:
                 file = implementation.initialization_file
                 func = None
                 var = None

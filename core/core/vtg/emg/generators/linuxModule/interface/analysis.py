@@ -73,7 +73,6 @@ def __extract_implementations(logger, collection, sa):
                     None,
                     []
                 )
-                implementation.static = var.declaration.static
                 # Actually we does not expect several declarations specific for containers
                 entity['category'] = i.category
             entities.append(entity)
@@ -97,19 +96,6 @@ def __extract_implementations(logger, collection, sa):
                             parameter.add_implementation(call, called_function.declaration.parameters[indx],
                                                          call_obj.definition_file, None, None, [])
 
-def __check_static(name, file, sa):
-    static = True
-    # Check that is a function
-    func = sa.get_source_function(name, file)
-    if func:
-        static = func.declaration.static
-    else:
-        # Check that it is a variable
-        var = sa.get_source_variable(name, file)
-        if var:
-            static = var.declaration.static
-
-    return static
 
 
 def check_relevant_interface(collection, declaration, category, connector):
@@ -174,14 +160,13 @@ def __import_entities(collection, sa, entities):
                         break
 
                 for intf in intfs:
-                    impl = intf.add_implementation(
+                    intf.add_implementation(
                         entity["description"]["value"],
                         entity['type'],
                         entity['path'],
                         entity["root type"],
                         entity["root value"],
                         entity["root sequence"])
-                    impl.static = __check_static(entity["description"]["value"], entity['path'], sa)
 
         elif "value" in entity["description"] and isinstance(entity["description"]['value'], list):
             if isinstance(bt, Array):
