@@ -37,20 +37,20 @@ def generate_processes(logger, conf, collection, abstract_task_desc, source):
     :return: ProcessCollection object.
     """
     # In a specific order start proess generators
-    generator_names = ('.vtg.emg.generators.{}'.format(e) for e in
+    generator_names = ((e, '.vtg.emg.generators.{}'.format(e)) for e in
                        [list(e.keys())[0] for e in get_or_die(conf, "generators options")])
     configurations = [list(e.values())[0] for e in get_or_die(conf, "generators options")]
     specifications_set = conf.get('specifications set')
 
     # Find genererators
-    modules = [importlib.import_module(name, 'core') for name in generator_names]
+    modules = [(shortname, importlib.import_module(name, 'core')) for shortname, name in generator_names]
 
     # Get specifications for each kind of a agenerator
     possible_locations = [root for root, *_ in os.walk(os.path.dirname(conf['specifications dir']))] + \
                          list(get_search_dirs(conf['main working directory']))
 
     reports = dict()
-    for index, generator_module in enumerate(modules):
+    for index, (shortname, generator_module) in enumerate(modules):
         # Set debug option
         configurations[index]['keep intermediate files'] = conf.get('keep intermediate files')
 
@@ -62,11 +62,11 @@ def generate_processes(logger, conf, collection, abstract_task_desc, source):
         if conf.get('keep intermediate files'):
             # Save specifications
             for kind in specifications:
-                file_name = "{} {}.json".format(generator_module.__name__, kind)
+                file_name = "{} {}.json".format(shortname, kind)
                 generator.save_specification(specifications[kind], file_name)
 
             # Save processes
-            with open('%s intermediate model.json' % str(type(generator).__name__), mode='w', encoding='utf8') as fp:
+            with open('%s intermediate model.json' % str(shortname), mode='w', encoding='utf8') as fp:
                 json.dump(collection, fp, cls=CollectionEncoder, sort_keys=True, indent=2)
 
             # Save images of processes
