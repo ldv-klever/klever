@@ -60,7 +60,6 @@ MARK_TITLES = {
     'ass_author': _('Association author'),
     'report': _('Report'),
     'job': _('Job'),
-    'format': _('Format'),
     'number': _('#'),
     'num_of_links': _('Number of associated leaf reports'),
     'problem': _("Problem"),
@@ -478,8 +477,6 @@ class MarksTableBase:
         select_related = ['mark']
         if 'identifier' in view_columns:
             select_only.append('mark__identifier')
-        if 'format' in view_columns:
-            select_only.append('mark__format')
         if 'source' in view_columns:
             select_only.append('mark__source')
         if 'change_date' in view_columns:
@@ -575,8 +572,6 @@ class MarksTableBase:
                         val = HumanizedValue.get_templated_text('{% load humanize %}{{ date|naturaltime }}', date=val)
                 elif col == 'source':
                     val = mark_version.mark.get_source_display()
-                elif col == 'format':
-                    val = mark_version.mark.format
                 elif col == 'identifier':
                     val = str(mark_version.mark.identifier)
                 else:
@@ -593,7 +588,7 @@ class SafeMarksTable(MarksTableBase):
     mark_table = 'mark_safe'
     columns_list = [
         'num_of_links', 'verdict', 'tags', 'author',
-        'change_date', 'format', 'source', 'identifier'
+        'change_date', 'source', 'identifier'
     ]
     attrs_model = MarkSafeAttr
     versions_model = MarkSafeHistory
@@ -618,7 +613,7 @@ class UnsafeMarksTable(MarksTableBase):
     mark_table = 'mark_unsafe'
     columns_list = [
         'num_of_links', 'verdict', 'tags', 'status',
-        'author', 'change_date', 'format', 'source', 'identifier'
+        'author', 'change_date', 'source', 'identifier'
     ]
     attrs_model = MarkUnsafeAttr
     versions_model = MarkUnsafeHistory
@@ -659,7 +654,7 @@ class UnknownMarksTable(MarksTableBase):
     mark_table = 'mark_unknown'
     columns_list = [
         'num_of_links', 'component', 'problem_pattern', 'author',
-        'change_date', 'format', 'source', 'identifier'
+        'change_date', 'source', 'identifier'
     ]
     attrs_model = MarkUnknownAttr
     versions_model = MarkUnknownHistory
@@ -947,12 +942,6 @@ class AssChangesBase:
             qs_filters &= Q(verdict_new__in=self.view['verdict_new'])
         if 'job_title' in self.view:
             qs_filters &= Q(**{'job__name__{}'.format(self.view['job_title'][0]): self.view['job_title'][1]})
-        if 'format' in self.view:
-            format_filter = Q(job__format=self.view['format'][1])
-            if self.view['format'][0] == 'is':
-                qs_filters &= format_filter
-            else:
-                qs_filters &= ~format_filter
         if 'attr' in self.view:
             select_related.extend(['report', 'report__cache'])
             annotations['attr_value'] = RawSQL(
@@ -973,8 +962,6 @@ class AssChangesBase:
             select_only.append('kind')
         if 'job' in selected_columns:
             select_only.extend(['job__id', 'job__name'])
-        if 'format' in selected_columns:
-            select_only.extend(['job__format'])
         if 'sum_verdict' in selected_columns:
             select_only.extend(['verdict_old', 'verdict_new'])
         if 'tags' in selected_columns:
@@ -1032,8 +1019,6 @@ class AssChangesBase:
                 elif col == 'job':
                     val = cache_obj.job.name
                     href = reverse('jobs:job', args=[cache_obj.job.id])
-                elif col == 'format':
-                    val = cache_obj.job.format
                 elif col == 'tags':
                     html = self.__get_tags_or_problems(cache_obj.tags_old, cache_obj.tags_new)
                 elif col == 'problems':
@@ -1046,18 +1031,18 @@ class AssChangesBase:
 class SafeAssChanges(AssChangesBase):
     model = SafeMarkAssociationChanges
     verdicts = SAFE_VERDICTS
-    supported_columns = ['change_kind', 'job', 'format', 'sum_verdict', 'tags']
+    supported_columns = ['change_kind', 'job', 'sum_verdict', 'tags']
     report_cache_table = 'cache_safe'
 
 
 class UnsafeAssChanges(AssChangesBase):
     model = UnsafeMarkAssociationChanges
     verdicts = UNSAFE_VERDICTS
-    supported_columns = ['change_kind', 'job', 'format', 'sum_verdict', 'tags']
+    supported_columns = ['change_kind', 'job', 'sum_verdict', 'tags']
     report_cache_table = 'cache_unsafe'
 
 
 class UnknownAssChanges(AssChangesBase):
     model = UnknownMarkAssociationChanges
-    supported_columns = ['change_kind', 'job', 'format', 'problems']
+    supported_columns = ['change_kind', 'job', 'problems']
     report_cache_table = 'cache_unknown'

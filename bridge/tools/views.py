@@ -43,7 +43,6 @@ from tools.models import LockTable
 from tools.utils import objects_without_relations, ClearFiles, Recalculation, RecalculateMarksCache
 from tools.profiling import ProfileData, clear_old_logs, ExecLocker, LoggedCallMixin
 
-from jobs.population import JobsPopulation
 from marks.population import (
     PopulateSafeTags, PopulateUnsafeTags, PopulateSafeMarks, PopulateUnsafeMarks, PopulateUnknownMarks
 )
@@ -216,9 +215,6 @@ class PopulationAPIView(LoggedCallMixin, APIView):
         if 'schedulers' in data:
             populuate_schedulers()
             messages.append('Schedulers were populated!')
-        if 'jobs' in data:
-            res = JobsPopulation().populate()
-            messages.append('Number of new jobs: {}'.format(res))
         if 'safe-tags' in data:
             res = PopulateSafeTags()
             messages.append("{} of {} safe tags were populated".format(res.created, res.total))

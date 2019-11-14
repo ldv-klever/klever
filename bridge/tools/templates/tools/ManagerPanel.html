@@ -18,11 +18,14 @@
 
 {% load i18n %}
 {% load staticfiles %}
+{% load compress %}
 
 {% block title %}{% trans 'Manager Tools' %}{% endblock %}
 
 {% block head_block %}
-    <script src="{% static 'tools/js/manager.js' %}"></script>
+    {% compress js file manager %}
+        <script src="{% static 'tools/js/manager.js' %}"></script>
+    {% endcompress %}
 {% endblock %}
 
 {% block body_block %}
@@ -104,12 +107,6 @@
                                 <div class="ui child checkbox">
                                     <input type="checkbox" value="schedulers">
                                     <label>{% trans 'Schedulers' %}</label>
-                                </div>
-                            </div>
-                            <div class="item">
-                                <div class="ui child checkbox">
-                                    <input type="checkbox" value="jobs">
-                                    <label>{% trans 'Jobs' %}</label>
                                 </div>
                             </div>
                             <div class="item">

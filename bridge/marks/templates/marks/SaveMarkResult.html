@@ -18,12 +18,15 @@
 
 {% load i18n %}
 {% load staticfiles %}
+{% load compress %}
 
 {% block title %}{% trans 'Total expert evaluation changes' %}{% endblock %}
 
 {% block head_block %}
-    <link href="{% static 'marks/css/mark.css' %}" rel="stylesheet">
-    <link href="{% static 'marks/css/tagsmap.css' %}" rel="stylesheet">
+    {% compress css file mark %}
+        <link href="{% static 'marks/css/mark.css' %}" rel="stylesheet">
+        <link href="{% static 'marks/css/tagsmap.css' %}" rel="stylesheet">
+    {% endcompress %}
 {% endblock %}
 
 {% block body_block %}

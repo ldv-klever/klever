@@ -20,6 +20,7 @@ import re
 import json
 import zipfile
 import tempfile
+import uuid
 from wsgiref.util import FileWrapper
 
 from django.conf import settings
@@ -31,7 +32,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from rest_framework import exceptions, serializers, fields
 
-from bridge.vars import FORMAT, REPORT_ARCHIVE, MPTT_FIELDS
+from bridge.vars import REPORT_ARCHIVE, MPTT_FIELDS
 from bridge.utils import logger, BridgeException
 from bridge.ZipGenerator import ZipStream, CHUNK_SIZE
 from bridge.serializers import TimeStampField
@@ -45,6 +46,7 @@ from service.models import Scheduler, Decision
 from caches.models import ReportSafeCache, ReportUnsafeCache, ReportUnknownCache
 
 from jobs.serializers import create_job_version, JobFileSerializer, JobFilesField
+from jobs.utils import get_unique_name
 from tools.utils import Recalculation
 from caches.utils import update_cache_atomic
 from reports.coverage import FillCoverageStatistics
@@ -76,19 +78,26 @@ class UploadDecisionSerializer(serializers.ModelSerializer):
 
 
 class UploadJobSerializer(serializers.ModelSerializer):
+    identifier = fields.UUIDField()
+    name = fields.CharField(max_length=150)
     archive_format = fields.IntegerField(write_only=True)
     run_history = RunHistorySerializer(many=True)
     decision = UploadDecisionSerializer(allow_null=True)
     parent = serializers.SlugRelatedField(slug_field='identifier', allow_null=True, queryset=Job.objects)
 
+    def validate_identifier(self, value):
+        if Job.objects.filter(identifier=value).exists():
+            return uuid.uuid4()
+        return value
+
+    def validate_name(self, value):
+        if Job.objects.filter(name=value).exists():
+            return get_unique_name(value)
+        return value
+
     def validate_archive_format(self, value):
         if value != ARCHIVE_FORMAT:
             raise exceptions.ValidationError(_("The job archive format is not supported"))
-        return value
-
-    def validate_format(self, value):
-        if value != FORMAT:
-            raise exceptions.ValidationError(_("The job format is not supported"))
         return value
 
     def validate(self, attrs):
@@ -207,9 +216,6 @@ class KleverCoreArchiveGen:
             file_src = '/'.join([settings.MEDIA_ROOT, file_inst.file.file.name])
             for data in self.stream.compress_file(file_src, arch_name):
                 yield data
-
-        for data in self.stream.compress_string('format', str(self.job.format)):
-            yield data
         yield self.stream.close_stream()
 
 

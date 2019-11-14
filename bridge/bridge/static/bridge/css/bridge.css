@@ -191,3 +191,15 @@ body {
 .unsafe-verdict-5 {
     color: #000000!important;
 }
+
+input[type=checkbox] {
+    margin-right: 3px;
+}
+
+.tableScroll {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: auto;
+    max-height: 85vh;
+}

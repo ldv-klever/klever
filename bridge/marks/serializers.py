@@ -220,9 +220,6 @@ class SafeMarkSerializer(DynamicFieldsModelSerializer):
 
         version_data = validated_data.pop('mark_version')
 
-        if validated_data.get('job'):
-            validated_data['format'] = validated_data['job'].format
-
         # Get user from context (on GUI creation)
         if 'request' in self.context:
             validated_data['author'] = self.context['request'].user
@@ -251,7 +248,7 @@ class SafeMarkSerializer(DynamicFieldsModelSerializer):
 
     class Meta:
         model = MarkSafe
-        fields = ('identifier', 'format', 'is_modifiable', 'verdict', 'mark_version')
+        fields = ('identifier', 'is_modifiable', 'verdict', 'mark_version')
 
 
 class UnsafeMarkVersionSerializer(WithTagsMixin, serializers.ModelSerializer):
@@ -347,9 +344,6 @@ class UnsafeMarkSerializer(DynamicFieldsModelSerializer):
         else:
             raise exceptions.ValidationError(detail={'error_trace': 'Required'})
 
-        if validated_data.get('job'):
-            validated_data['format'] = validated_data['job'].format
-
         # Get user from context (on GUI creation)
         if 'request' in self.context:
             validated_data['author'] = self.context['request'].user
@@ -383,7 +377,7 @@ class UnsafeMarkSerializer(DynamicFieldsModelSerializer):
     class Meta:
         model = MarkUnsafe
         fields = (
-            'identifier', 'format', 'is_modifiable', 'verdict',
+            'identifier', 'is_modifiable', 'verdict',
             'status', 'mark_version', 'function', 'threshold'
         )
 
@@ -444,9 +438,6 @@ class UnknownMarkSerializer(DynamicFieldsModelSerializer):
         # Can be raised only on wrong serializer usage on GUI creation
         assert 'component' in validated_data, 'Component is requred'
 
-        if validated_data.get('job'):
-            validated_data['format'] = validated_data['job'].format
-
         # Get user from context (on GUI creation)
         if 'request' in self.context:
             validated_data['author'] = self.context['request'].user
@@ -476,7 +467,7 @@ class UnknownMarkSerializer(DynamicFieldsModelSerializer):
     class Meta:
         model = MarkUnknown
         fields = (
-            'id', 'identifier', 'component', 'format',
+            'id', 'identifier', 'component',
             'is_modifiable', 'mark_version',
             'function', 'is_regexp', 'problem_pattern', 'link'
         )

@@ -29,7 +29,7 @@ from django.db.models import Q
 from django.test import Client
 from django.urls import reverse
 
-from bridge.vars import SCHEDULER_TYPE, JOB_STATUS, JOB_ROLES, FORMAT
+from bridge.vars import SCHEDULER_TYPE, JOB_STATUS, JOB_ROLES
 from bridge.utils import KleverTestCase, logger, RMQConnect
 
 from users.models import User
@@ -896,7 +896,7 @@ class TestReports(KleverTestCase):
 
         response = self.service_client.post('/jobs/decide_job/', {'report': json.dumps({
             'type': 'start', 'id': '/', 'attrs': [{'name': 'Klever Core version', 'value': 'latest'}], 'comp': COMPUTER
-        }), 'job format': FORMAT})
+        })})
         self.assertIn(response['Content-Type'], {'application/x-zip-compressed', 'application/zip'})
         self.assertEqual(Job.objects.get(pk=self.job.pk).status, JOB_STATUS[2][0])
 

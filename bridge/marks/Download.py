@@ -56,7 +56,7 @@ class MarkGeneratorBase:
 
     def common_data(self):
         return {
-            'type': self.type, 'format': self.mark.format,
+            'type': self.type,
             'identifier': str(self.mark.identifier),
             'is_modifiable': self.mark.is_modifiable
         }
@@ -281,9 +281,9 @@ class MarksUploader:
         for version_number in sorted(versions_data):
             mark_version = versions_data[version_number]
             if mark is None:
-                # Get identifier, format and is_modifiable from mark_data
+                # Get identifier and is_modifiable from mark_data
                 mark_version.update(mark_data)
-                serializer_fields = ('identifier', 'format', 'is_modifiable', 'verdict', 'mark_version')
+                serializer_fields = ('identifier', 'is_modifiable', 'verdict', 'mark_version')
                 save_kwargs = {'source': MARK_SOURCE[2][0], 'author': self._user}
             else:
                 serializer_fields = ('verdict', 'mark_version')
@@ -308,9 +308,9 @@ class MarksUploader:
         for version_number in sorted(versions_data):
             mark_version = versions_data[version_number]
             if mark is None:
-                # Get identifier, format and is_modifiable from mark_data
+                # Get identifier and is_modifiable from mark_data
                 mark_version.update(mark_data)
-                serializer_fields = ('identifier', 'format', 'is_modifiable', 'verdict', 'mark_version', 'function')
+                serializer_fields = ('identifier', 'is_modifiable', 'verdict', 'mark_version', 'function')
                 save_kwargs = {'source': MARK_SOURCE[2][0], 'author': self._user}
             else:
                 serializer_fields = ('verdict', 'mark_version', 'function')
@@ -332,10 +332,10 @@ class MarksUploader:
         for version_number in sorted(versions_data):
             mark_version = versions_data[version_number]
             if mark is None:
-                # Get identifier, format, component and is_modifiable from mark_data
+                # Get identifier, component and is_modifiable from mark_data
                 mark_version.update(mark_data)
                 serializer_fields = (
-                    'identifier', 'component', 'format', 'is_modifiable', 'mark_version',
+                    'identifier', 'component', 'is_modifiable', 'mark_version',
                     'function', 'is_regexp', 'problem_pattern', 'link'
                 )
                 save_kwargs = {'source': MARK_SOURCE[2][0], 'author': self._user}

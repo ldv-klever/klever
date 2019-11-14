@@ -20,7 +20,7 @@ from django.db import models
 from django.db.models.signals import post_delete
 from mptt.models import MPTTModel, TreeForeignKey
 
-from bridge.vars import FORMAT, JOB_ROLES, JOB_STATUS, JOB_WEIGHT, COVERAGE_DETAILS
+from bridge.vars import JOB_ROLES, JOB_STATUS, JOB_WEIGHT, COVERAGE_DETAILS
 from bridge.utils import WithFilesMixin, remove_instance_files
 
 from users.models import User
@@ -44,7 +44,6 @@ class Job(MPTTModel):
     name = models.CharField(max_length=150, unique=True, db_index=True)
     parent = TreeForeignKey('self', models.CASCADE, null=True, blank=True, related_name='children')
     version = models.PositiveSmallIntegerField(default=1)
-    format = models.PositiveSmallIntegerField(default=FORMAT, editable=False)
     status = models.CharField(max_length=1, choices=JOB_STATUS, default=JOB_STATUS[0][0])
     weight = models.CharField(max_length=1, choices=JOB_WEIGHT, default=JOB_WEIGHT[0][0])
     coverage_details = models.CharField(max_length=1, choices=COVERAGE_DETAILS,
@@ -84,7 +83,6 @@ class JobHistory(models.Model):
     comment = models.CharField(max_length=255, default='', blank=True)
 
     name = models.CharField(max_length=150)
-    description = models.TextField(default='')
     global_role = models.CharField(max_length=1, choices=JOB_ROLES, default=JOB_ROLES[0][0])
 
     class Meta:

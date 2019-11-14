@@ -46,7 +46,6 @@ class Migration(migrations.Migration):
         migrations.CreateModel(name='MarkSafe', fields=[
             ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
             ('identifier', models.UUIDField(default=uuid.uuid4, unique=True)),
-            ('format', models.PositiveSmallIntegerField(default=1)),
             ('version', models.PositiveSmallIntegerField(default=1)),
             ('is_modifiable', models.BooleanField(default=True)),
             ('source', models.CharField(choices=[
@@ -66,9 +65,6 @@ class Migration(migrations.Migration):
         migrations.CreateModel(name='MarkSafeHistory', fields=[
             ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
             ('version', models.PositiveSmallIntegerField()),
-            ('status', models.CharField(choices=[
-                ('0', 'Unreported'), ('1', 'Reported'), ('2', 'Fixed'), ('3', 'Rejected')
-            ], default='0', max_length=1)),
             ('change_date', models.DateTimeField(default=now)),
             ('comment', models.TextField(blank=True, default='')),
             ('description', models.TextField(blank=True, default='')),
@@ -105,6 +101,7 @@ class Migration(migrations.Migration):
             ('report', models.ForeignKey(
                 on_delete=models.deletion.CASCADE, related_name='markreport_set', to='reports.ReportSafe'
             )),
+            ('associated', models.BooleanField(default=True)),
         ], options={'db_table': 'cache_mark_safe_report'}),
 
         migrations.CreateModel(name='SafeTag', fields=[
@@ -112,10 +109,10 @@ class Migration(migrations.Migration):
             ('name', models.CharField(db_index=True, max_length=32)),
             ('description', models.TextField(blank=True, default='')),
             ('populated', models.BooleanField(default=False)),
-            ('lft', models.PositiveIntegerField(db_index=True, editable=False)),
-            ('rght', models.PositiveIntegerField(db_index=True, editable=False)),
+            ('lft', models.PositiveIntegerField(editable=False)),
+            ('rght', models.PositiveIntegerField(editable=False)),
             ('tree_id', models.PositiveIntegerField(db_index=True, editable=False)),
-            ('level', models.PositiveIntegerField(db_index=True, editable=False)),
+            ('level', models.PositiveIntegerField(editable=False)),
             ('author', models.ForeignKey(null=True, on_delete=models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
         ], options={'db_table': 'mark_safe_tag'}),
 
@@ -130,7 +127,6 @@ class Migration(migrations.Migration):
         migrations.CreateModel(name='MarkUnknown', fields=[
             ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
             ('identifier', models.UUIDField(default=uuid.uuid4, unique=True)),
-            ('format', models.PositiveSmallIntegerField(default=1)),
             ('version', models.PositiveSmallIntegerField(default=1)),
             ('is_modifiable', models.BooleanField(default=True)),
             ('source', models.CharField(choices=[
@@ -151,9 +147,6 @@ class Migration(migrations.Migration):
         migrations.CreateModel(name='MarkUnknownHistory', fields=[
             ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
             ('version', models.PositiveSmallIntegerField()),
-            ('status', models.CharField(choices=[
-                ('0', 'Unreported'), ('1', 'Reported'), ('2', 'Fixed'), ('3', 'Rejected')
-            ], default='0', max_length=1)),
             ('change_date', models.DateTimeField(default=now)),
             ('comment', models.TextField(blank=True, default='')),
             ('description', models.TextField(blank=True, default='')),
@@ -192,12 +185,12 @@ class Migration(migrations.Migration):
             ('report', models.ForeignKey(
                 on_delete=models.deletion.CASCADE, related_name='markreport_set', to='reports.ReportUnknown'
             )),
+            ('associated', models.BooleanField(default=True)),
         ], options={'db_table': 'cache_mark_unknown_report'}),
 
         migrations.CreateModel(name='MarkUnsafe', fields=[
             ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
             ('identifier', models.UUIDField(default=uuid.uuid4, unique=True)),
-            ('format', models.PositiveSmallIntegerField(default=1)),
             ('version', models.PositiveSmallIntegerField(default=1)),
             ('is_modifiable', models.BooleanField(default=True)),
             ('source', models.CharField(choices=[
@@ -214,6 +207,10 @@ class Migration(migrations.Migration):
             )),
             ('error_trace', models.ForeignKey(on_delete=models.deletion.CASCADE, to='marks.ConvertedTrace')),
             ('job', models.ForeignKey(null=True, on_delete=models.deletion.SET_NULL, related_name='+', to='jobs.Job')),
+            ('threshold', models.FloatField(default=0)),
+            ('status', models.CharField(choices=[
+                ('0', 'Unreported'), ('1', 'Reported'), ('2', 'Fixed'), ('3', 'Rejected')
+            ], max_length=1, null=True)),
         ], options={'verbose_name': 'Unsafes mark', 'db_table': 'mark_unsafe'}),
 
         migrations.CreateModel(name='MarkUnsafeHistory', fields=[
@@ -221,7 +218,7 @@ class Migration(migrations.Migration):
             ('version', models.PositiveSmallIntegerField()),
             ('status', models.CharField(choices=[
                 ('0', 'Unreported'), ('1', 'Reported'), ('2', 'Fixed'), ('3', 'Rejected')
-            ], default='0', max_length=1)),
+            ], max_length=1, null=True)),
             ('change_date', models.DateTimeField(default=now)),
             ('comment', models.TextField(blank=True, default='')),
             ('description', models.TextField(blank=True, default='')),
@@ -236,6 +233,7 @@ class Migration(migrations.Migration):
             ('mark', models.ForeignKey(
                 on_delete=models.deletion.CASCADE, related_name='versions', to='marks.MarkUnsafe'
             )),
+            ('threshold', models.FloatField(default=0)),
         ], options={'verbose_name': 'Unsafes mark version', 'db_table': 'mark_unsafe_history'}),
 
         migrations.CreateModel(name='MarkUnsafeAttr', fields=[
@@ -262,6 +260,7 @@ class Migration(migrations.Migration):
             ('report', models.ForeignKey(
                 on_delete=models.deletion.CASCADE, related_name='markreport_set', to='reports.ReportUnsafe'
             )),
+            ('associated', models.BooleanField(default=True)),
         ], options={'db_table': 'cache_mark_unsafe_report'}),
 
         migrations.CreateModel(name='SafeAssociationLike', fields=[
@@ -304,10 +303,10 @@ class Migration(migrations.Migration):
             ('name', models.CharField(db_index=True, max_length=32)),
             ('description', models.TextField(blank=True, default='')),
             ('populated', models.BooleanField(default=False)),
-            ('lft', models.PositiveIntegerField(db_index=True, editable=False)),
-            ('rght', models.PositiveIntegerField(db_index=True, editable=False)),
+            ('lft', models.PositiveIntegerField(editable=False)),
+            ('rght', models.PositiveIntegerField(editable=False)),
             ('tree_id', models.PositiveIntegerField(db_index=True, editable=False)),
-            ('level', models.PositiveIntegerField(db_index=True, editable=False)),
+            ('level', models.PositiveIntegerField(editable=False)),
             ('author', models.ForeignKey(null=True, on_delete=models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
         ], options={'db_table': 'mark_unsafe_tag'}),
 

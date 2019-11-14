@@ -18,11 +18,14 @@
 
 {% load i18n %}
 {% load staticfiles %}
+{% load compress %}
 
 {% block title %}{{ TableData.title }}{% endblock %}
 
 {% block head_block %}
-    <script type="text/javascript" src="{% static 'reports/js/reportsList.js' %}"></script>
+    {% compress js file reports %}
+        <script type="text/javascript" src="{% static 'reports/js/reportsList.js' %}"></script>
+    {% endcompress %}
 {% endblock %}
 
 {% block body_block %}

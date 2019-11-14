@@ -16,33 +16,30 @@
  */
 
 
-function JobForm(job_id, action) {
-    this.save_url = `/jobs/api/save-job/${job_id}/`;
-    this.method = (action === 'copy') ? 'POST' : 'PUT';
-
+function JobForm() {
     this.labels = {};
     this.inputs = {};
     return this;
 }
 
 JobForm.prototype.initialize = function(inputs, labels) {
-    var instance = this;
+    let instance = this;
     $.each(inputs, function (key, value) { instance.inputs[key] = value });
     $.each(labels, function (key, value) { instance.labels[key] = value });
 };
 
 JobForm.prototype.serialize = function() {
-    var instance = this, data = {};
+    let instance = this, data = {};
     $.each(instance.inputs, function (key, value) { data[key] = $('#' + value).val() });
     return data;
 };
 
-JobForm.prototype.save = function (extra_data) {
-    var instance = this, data = this.serialize();
+JobForm.prototype.save = function (save_url, save_method, extra_data) {
+    let instance = this, data = this.serialize();
     if (extra_data) $.each(extra_data, function (key, value) { data[key] = value });
 
     $.ajax({
-        url: instance.save_url, type: instance.method, data: JSON.stringify(data),
+        url: save_url, type: save_method, data: JSON.stringify(data),
         processData: false, dataType: "json", contentType: "application/json",
         success: function (resp) {
             $('#dimmer_of_page').removeClass('active');
@@ -50,7 +47,7 @@ JobForm.prototype.save = function (extra_data) {
         },
         error: function (resp) {
             $('#dimmer_of_page').removeClass('active');
-            var errors = flatten_api_errors(resp['responseJSON'], instance.labels);
+            let errors = flatten_api_errors(resp['responseJSON'], instance.labels);
             $.each(errors, function (i, err_text) { err_notify(err_text, 3000) });
         }
     });
