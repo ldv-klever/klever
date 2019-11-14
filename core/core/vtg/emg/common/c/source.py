@@ -52,7 +52,7 @@ def create_source_representation(logger, conf, abstract_task):
 
 
 def _prefixes(conf, clade):
-    return {clade.get_storage_path(spath) for spath in conf["working source trees"] + ['']}
+    return {spath: clade.get_storage_path(spath) for spath in conf["working source trees"] + ['']}
 
 
 def _c_full_paths(collection, cfiles):
@@ -255,12 +255,23 @@ class Source:
         :param path: String.
         :return: Absolute path string.
         """
+        def _accurate_concatenation(one, two):
+            if one:
+                if one[-1] == '/':
+                    one = one[:-1]
+                if two[0] == '/':
+                    two = two[1:]
+                return '%s/%s' % (one, two)
+            else:
+                return two
+
         if path == 'environment model':
             return path
-        for prefix in self.prefixes:
-            abspath = prefix + '/' + path
-            if os.path.isfile(abspath):
-                return abspath
+
+        for source_prefix, with_clade_dir in self.prefixes.items():
+            real_path = _accurate_concatenation(with_clade_dir, path)
+            if os.path.isfile(real_path):
+                return _accurate_concatenation(source_prefix, path)
         else:
             raise FileNotFoundError('There is no file {!r} in the build base or the correct path to source files'
                                     ' is not provided'.format(path))
@@ -268,7 +279,6 @@ class Source:
     def called_in_source_code(self, func):
         """
         Provides information about function calls in C source files of the program fragment.
-self.prefixes
         :param func: Function object.
         :return: Dictinary {'C file name': {Set of function caller names}}.
         """
