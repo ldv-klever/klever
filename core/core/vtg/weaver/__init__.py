@@ -255,15 +255,9 @@ class Weaver(core.vtg.plugins.Plugin):
                 # We treat all remaining source files which paths do not start with "specifications" as generated
                 # models. This is not correct for all cases, e.g. when users put some files within $KLEVER_DATA_DIR.
                 if not new_file.startswith('specifications'):
-                    new_file = os.path.join('generated models', os.path.basename(new_file))
+                    new_file = os.path.join('generated models', new_file)
 
                 new_file = os.path.join('additional sources', new_file)
-
-                if os.path.isfile(new_file):
-                    self.logger.warn('Additional source file "{0}" was already copied ({1})'
-                                     .format(new_file, 'most likely there is shrinked file name collision'))
-                    continue
-
                 os.makedirs(os.path.dirname(new_file), exist_ok=True)
                 shutil.copy(file, new_file)
 

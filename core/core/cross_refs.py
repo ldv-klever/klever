@@ -161,12 +161,7 @@ class CrossRefs:
                     if tmp.startswith('specifications'):
                         short_ref_src_files.append(tmp)
                     else:
-                        tmp = os.path.join('generated models', os.path.basename(tmp))
-
-                        if tmp in short_ref_src_files:
-                            self.logger.warn("There is shrinked file name collision")
-                            continue
-
+                        tmp = os.path.join('generated models', tmp)
                         short_ref_src_files.append(tmp)
             else:
                 short_ref_src_files.append(ref_src_file)

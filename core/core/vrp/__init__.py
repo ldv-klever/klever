@@ -583,10 +583,6 @@ class RP(core.components.Component):
                     if tmp.startswith('specifications'):
                         trimmed_file_names[file_name] = tmp
                     else:
-                        tmp = os.path.join('generated models', os.path.basename(tmp))
-                        if any(arcname == tmp for arcname in trimmed_file_names.values()):
-                            self.logger.warn("There is shrinked file name collision")
-                            continue
-                        trimmed_file_names[file_name] = tmp
+                        trimmed_file_names[file_name] = os.path.join('generated models', tmp)
 
         return trimmed_file_names
