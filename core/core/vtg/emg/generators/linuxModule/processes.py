@@ -691,7 +691,7 @@ def __resolve_interface(logger, interfaces, interface, string):
         # Match using an identifier
         if len(intf) == 0:
             intf = [matched[-1].field_interfaces[name] for name in matched[-1].field_interfaces
-                    if matched[-1].field_interfaces[name].short_identifier == field]
+                    if matched[-1].field_interfaces[name].name == field]
 
         if len(intf) == 0:
             return None

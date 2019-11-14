@@ -399,7 +399,7 @@ class Process:
         operator = target.my_operator
         if isinstance(operator, Concatenation):
             index = operator.actions.index(target)
-            operator.actions.remove(target)
+            operator.remove_action(target)
             choice = Choice(str(len(self.actions.keys()) + 1))
             choice.actions = {new, target}
             operator.add_action(choice, position=index)

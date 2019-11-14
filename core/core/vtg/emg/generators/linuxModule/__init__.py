@@ -66,7 +66,7 @@ class ScenarioModelgenerator(AbstractGenerator):
 
         # Now check that we have all necessary interface specifications
         unspecified_functions = [func for func in abstract_processes.models if func in source.source_functions and
-                                 func not in [i.short_identifier for i in interfaces.function_interfaces]]
+                                 func not in [i.name for i in interfaces.function_interfaces]]
         if unspecified_functions:
             raise RuntimeError("You need to specify interface specifications for the following function models: {}"
                                .format(', '.join(unspecified_functions)))

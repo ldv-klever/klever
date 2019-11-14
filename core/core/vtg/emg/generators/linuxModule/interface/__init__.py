@@ -150,6 +150,19 @@ class Implementation(Variable):
         self.base_value = base_value
         self.sequence = sequence if sequence else []
 
+    @property
+    def declaration(self):
+        return self._declaration
+
+    @declaration.setter
+    def declaration(self, declaration):
+        if isinstance(declaration, Declaration) and \
+                (self.declaration == declaration or self.declaration.pointer_alias(declaration)):
+            self._declaration = declaration
+        else:
+            raise RuntimeError('Cannot change declaration {!r} by {!r} for {!r} implementation'.
+                               format(str(self.declaration), str(declaration), str(self)))
+
     def adjusted_value(self, declaration):
         if self._declaration == declaration:
             return self.value

@@ -81,22 +81,21 @@ def __extract_implementations(logger, collection, sa):
 
     logger.info("Search for callbacks provided as parameters")
     for name, obj, in ((name, obj) for name in sa.source_functions for obj in sa.get_source_functions(name)):
-        for cf_name, called_function in ((n, c) for n in obj.calls
-                                         for c in collection.get_intf("functions models.%s" % n) if c):
-            for indx, parameter in enumerate(called_function.param_interfaces):
-                if parameter:
-                    for call in (c[indx] for c in obj.calls[cf_name] if c[indx] and c[indx] != '0'):
-                        call_obj = sa.get_source_function(call, obj.definition_file)
-                        if not call_obj:
-                            call_obj = sa.get_source_function(
-                                call, declaration=called_function.declaration.parameters[indx].points)
-                        if not call_obj:
-                            raise ValueError("Cannot find function definition for function pointer {!r}".
-                                             format(call))
-                        impl = parameter.add_implementation(call, called_function.declaration.parameters[indx],
-                                                            call_obj.definition_file, None, None, [])
-                        impl.static = call_obj.declaration.static
-
+        for cf_name in obj.calls:
+            called_function = collection.get_intf("functions models.%s" % cf_name)
+            if called_function:
+                for indx, parameter in enumerate(called_function.param_interfaces):
+                    if parameter:
+                        for call in (c[indx] for c in obj.calls[cf_name] if c[indx] and c[indx] != '0'):
+                            call_obj = sa.get_source_function(call, obj.definition_file)
+                            if not call_obj:
+                                call_obj = sa.get_source_function(
+                                    call, declaration=called_function.declaration.parameters[indx].points)
+                            if not call_obj:
+                                raise ValueError("Cannot find function definition for function pointer {!r}".
+                                                 format(call))
+                            parameter.add_implementation(call, called_function.declaration.parameters[indx],
+                                                         call_obj.definition_file, None, None, [])
 
 def __check_static(name, file, sa):
     static = True
