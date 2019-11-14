@@ -15,6 +15,7 @@
 # limitations under the License.
 #
 
+import glob
 import fileinput
 import json
 import os
@@ -264,6 +265,18 @@ class Weaver(core.vtg.plugins.Plugin):
                 cross_refs = CrossRefs(self.conf, self.logger, clade_extra, os.path.join(os.path.sep, storage_file),
                                        new_file, search_dirs)
                 cross_refs.get_cross_refs()
+
+        # For auxiliary files there is no cross references since it is rather hard to get them from Aspectator. But
+        # there still highlighting.
+        for aux_file in glob.glob('*.aux'):
+            new_file = os.path.join('additional sources', 'generated models',
+                                    os.path.relpath(aux_file, self.conf['main working directory']))
+
+            os.makedirs(os.path.dirname(new_file), exist_ok=True)
+            shutil.copy(aux_file, new_file)
+
+            cross_refs = CrossRefs(self.conf, self.logger, clade_extra, aux_file, new_file, search_dirs)
+            cross_refs.get_cross_refs()
 
         self.abstract_task_desc['additional sources'] = os.path.relpath('additional sources',
                                                                         self.conf['main working directory'])
