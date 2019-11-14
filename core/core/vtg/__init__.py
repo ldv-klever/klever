@@ -174,7 +174,7 @@ def _extract_req_spec_descs(conf, logger):
     matched_req_spec_id_patterns = set()
     for req_spec_id in req_spec_descs:
         for req_spec_id_pattern in conf['requirement specifications']:
-            if re.search(r'^{0}'.format(req_spec_id_pattern), req_spec_id):
+            if re.search(r'^{0}$'.format(req_spec_id_pattern), req_spec_id):
                 matched_req_spec_id_patterns.add(req_spec_id_pattern)
                 check_req_spec_ids.add(req_spec_id)
                 break
