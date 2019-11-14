@@ -545,14 +545,16 @@ class FSATranslator:
 
             # Skip or assert action according to conditions
             if conditions and (isinstance(act.my_operator, Choice) or
-                               (isinstance(act.my_operator, Concatenation) and act.my_operator.actions.index(act))):
+                               (isinstance(act.my_operator, Concatenation) and not act.my_operator.actions.index(act))):
                 # todo: if not isinstance(predecessor, Receive):
                 final_code += ['ldv_assume({});'.format(' && '.join(conditions))] + code
             elif conditions and code:
                 final_code += ['if ({}) '.format(' && '.join(conditions)) + '{'] + \
                               ['\t{}'.format(s) for s in code] + \
                               ['}']
-            elif code:
+            elif conditions:
+                raise ValueError('Cannot print assume or if statement')
+            else:
                 final_code += code
 
             if len(comments) == 2:
