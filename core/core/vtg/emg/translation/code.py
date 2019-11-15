@@ -285,7 +285,7 @@ class CModel:
 
             # Add declarations
             if additional_lines.get(file, {}).get('declarations'):
-                lines+= ["\n", "/* EMG aliases */\n"] + additional_lines[file]['declarations']
+                lines += ["\n", "/* EMG aliases */\n"] + additional_lines[file]['declarations']
             if file in self._function_declarations:
                 lines += ["\n", "/* EMG Function declarations */\n"] + \
                          [line for func in self._function_declarations[file].keys()
