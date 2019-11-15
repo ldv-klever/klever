@@ -156,6 +156,8 @@ class RemoveUnsafeMarks(RemoveMarksBase):
 
 
 class ConfirmUnsafeMark(ConfirmAssociationBase):
+    model = MarkUnsafeReport
+
     def recalculate_cache(self, report_id):
         RecalculateUnsafeCache(reports=[report_id])
 
