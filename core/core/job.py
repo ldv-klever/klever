@@ -118,7 +118,7 @@ def start_jobs(core_obj, vals):
                     'sub-job identifier': context.common_components_conf['sub-job identifier']
                 })
 
-            cr = JCR(core_obj.conf, core_obj.logger, core_obj.ID, core_obj.callbacks, core_obj.mqs, vals,
+            cr = JCR(common_components_conf, core_obj.logger, core_obj.ID, core_obj.callbacks, core_obj.mqs, vals,
                      separate_from_parent=False, include_child_resources=True, queues_to_terminate=queues_to_terminate)
             # This can be done only in this module otherwise callbacks will be missed
             core.components.set_component_callbacks(core_obj.logger, Job,
@@ -482,6 +482,9 @@ class Job(core.components.Component):
         super(Job, self).__init__(conf, logger, parent_id, callbacks, mqs, vals, id, work_dir, attrs,
                                   separate_from_parent, include_child_resources)
         self.common_components_conf = components_common_conf
+
+        self.common_components_conf['additional sources directory'] = os.path.join(os.path.realpath(work_dir),
+                                                                                   'additional sources')
 
         self.clade = None
         self.components = []
