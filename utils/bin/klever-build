@@ -100,7 +100,7 @@ target_program_descs = [
     #         'drivers/uwb/hwa-rc.ko'
     #     ]
     # },
-    # Testing on artificial loadable Linux kernel modules.
+    # # Testing on artificial loadable Linux kernel modules.
     # {
     #     'build base': 'build bases/testing/5b3d50',
     #     'name': 'Linux',
