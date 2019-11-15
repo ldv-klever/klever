@@ -733,6 +733,6 @@ def __refine_processes(logger, chosen):
 
         for p in delete:
             logger.info("Remove process {!r} as it cannot be registered".format(str(p)))
-            chosen.environment.remove(p)
+            del chosen.environment[p]
 
     return
