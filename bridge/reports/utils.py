@@ -895,7 +895,7 @@ class ReportChildrenTable:
 
 class FilesForCompetitionArchive:
     obj_attr = 'Program fragment'
-    requirement_attr = 'Requirement'
+    requirement_attr = 'Requirements specification'
 
     def __init__(self, job, filters):
         try:
