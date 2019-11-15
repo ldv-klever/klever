@@ -265,10 +265,10 @@ def __match_labels(logger, interfaces, process, category):
 
                     if interface_obj.category == category:
                         __add_label_match(logger, interfaces, label_map, label, interface)
-            elif label.interfaces and not label.declaration and tail and label.container and \
+            elif not label.interfaces and not label.declaration and tail and label.container and \
                     label.name not in label_map["matched labels"]:
                 for cn in (c for c in interfaces.containers(category)
-                                  if __resolve_interface(logger, interfaces, c, tail)):
+                           if __resolve_interface(logger, interfaces, c, tail)):
                     __add_label_match(logger, interfaces, label_map, label, str(cn))
 
             # Try to match callback itself
