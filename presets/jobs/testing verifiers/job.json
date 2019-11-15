@@ -1,10 +1,6 @@
 {
   "project": "Linux",
   "build base": "testing/606cdb",
-  "program": "Linux",
-  "version": "3.14",
-  "fragmentation set": "Modules",
-  "specifications set": "3.14",
   "requirement specifications": ["test:common"],
   "targets": ["**"],
   "ideal verdicts": [
