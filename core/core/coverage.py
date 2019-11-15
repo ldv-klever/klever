@@ -88,7 +88,8 @@ def convert_coverage(merged_coverage_info, coverage_dir, pretty, src_files_info=
     if src_files_info:
         # Remove data for covered source files. It is out of interest, but we did not know these files earlier.
         for file_name in coverage_stats['coverage statistics']:
-            del src_files_info[file_name]
+            if file_name in src_files_info:
+                del src_files_info[file_name]
 
         for file_name, info in src_files_info.items():
             # TODO: it would be better to make this depending on code coverage completeness. But for this here we will need to know completeness and source directories in addition.
@@ -190,22 +191,15 @@ class JCR(core.components.Component):
                     total_coverages = dict()
                     total_coverage_dirs = []
 
+                    # This is ugly. But this should disappear after implementing TODO at core.job.start_jobs.
+                    sub_job_dir = 'job' if sub_job_id == '-' else 'sub-job {0}'.format(sub_job_id)
+
                     for req_spec_id in counters[sub_job_id]:
                         self.__read_data(total_coverage_infos, sub_job_id, req_spec_id)
                         coverage_info = total_coverage_infos[sub_job_id][req_spec_id]
-
-                        # TODO: there are too many questions regarding code coverage for non-source files of total coverage. Moreover, there are no corresponding additional sources yet. So, let's just get rid of them.
-                        file_names_to_remove = list()
-                        for file_name in list(coverage_info.keys()):
-                            if not file_name.startswith('source files'):
-                                file_names_to_remove.append(file_name)
-                        for file_name_to_remove in file_names_to_remove:
-                            del(coverage_info[file_name_to_remove])
-
                         total_coverage_dir = os.path.join(self.__get_total_cov_dir(sub_job_id, req_spec_id), 'report')
 
-                        with open(os.path.join('job' if sub_job_id == '-' else sub_job_id,
-                                               'original sources basic information.json')) as fp:
+                        with open(os.path.join(sub_job_dir, 'original sources basic information.json')) as fp:
                             src_files_info = json.load(fp)
 
                         convert_coverage(coverage_info, total_coverage_dir, self.conf['keep intermediate files'],
@@ -216,14 +210,20 @@ class JCR(core.components.Component):
                         self.__save_data(total_coverage_infos, sub_job_id, req_spec_id)
                         self.__clean_data(total_coverage_infos, sub_job_id, req_spec_id)
 
+                    report = {
+                        # This isn't great to build component identifier in such the artificial way.
+                        # But otherwise we need to pass it everywhere like "sub-job identifier".
+                        'identifier': os.path.join(os.path.sep, sub_job_id),
+                        'coverage': total_coverages,
+                    }
+
+                    if self.conf['code coverage details'] == 'All source files':
+                        report['additional_sources'] = core.utils.ArchiveFiles(
+                            [os.path.join(sub_job_dir, 'additional sources')])
+
                     core.utils.report(self.logger,
                                       'coverage',
-                                      {
-                                          # This isn't great to build component identifier in such the artificial way.
-                                          # But otherwise we need to pass it everywhere like "sub-job identifier".
-                                          'identifier': os.path.join(os.path.sep, sub_job_id),
-                                          'coverage': total_coverages
-                                      },
+                                      report,
                                       self.mqs['report files'],
                                       self.vals['report id'],
                                       self.conf['main working directory'],

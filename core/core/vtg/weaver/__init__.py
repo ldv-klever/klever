@@ -281,6 +281,22 @@ class Weaver(core.vtg.plugins.Plugin):
         self.abstract_task_desc['additional sources'] = os.path.relpath('additional sources',
                                                                         self.conf['main working directory'])
 
+        # Copy additional sources for total code coverage.
+        if self.conf['code coverage details'] == 'All source files':
+            with core.utils.Cd('additional sources'):
+                for root, dirs, files in os.walk(os.path.curdir):
+                    for file in files:
+                        file = os.path.join(root, file)
+                        new_file = os.path.join(self.conf['additional sources directory'], file)
+
+                        if os.path.isfile(new_file):
+                            # TODO: this should never happen, otherwise there should be more explicit warning (note).
+                            self.logger.warning('Additional source file "{0}" already exists'.format(file))
+                            continue
+
+                        os.makedirs(os.path.dirname(new_file), exist_ok=True)
+                        shutil.copy(file, new_file)
+
         if not self.conf['keep intermediate files']:
             shutil.rmtree('clade')
             os.remove('cmds.txt')

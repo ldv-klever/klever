@@ -42,6 +42,11 @@ NECESSARY_FILES = [
     'tasks.json',
     'verifier profiles.json'
 ]
+CODE_COVERAGE_DETAILS_MAP = {
+    '0': 'Original C source files',
+    '1': 'C source files including models',
+    '2': 'All source files'
+}
 
 
 def start_jobs(core_obj, vals):
@@ -82,6 +87,9 @@ def start_jobs(core_obj, vals):
     common_components_conf['program fragments base'] = os.path.abspath(
         core.utils.find_file_or_dir(core_obj.logger, os.path.curdir, 'fragmentation sets'))
 
+    common_components_conf['code coverage details'] = CODE_COVERAGE_DETAILS_MAP[
+        common_components_conf['code coverage details']]
+
     subcomponents = []
     try:
         queues_to_terminate = []
@@ -92,6 +100,7 @@ def start_jobs(core_obj, vals):
         pc.start()
         subcomponents.append(pc)
 
+        # TODO: split collecting total code coverage for sub-jobs. Otherwise there is too much redundant data.
         if 'collect total code coverage' in common_components_conf and \
                 common_components_conf['collect total code coverage']:
             def after_process_finished_task(context):
@@ -188,7 +197,7 @@ def __solve_sub_jobs(core_obj, vals, components_common_conf, subcomponents):
             core_obj.conf, core_obj.logger, core_obj.ID, core_obj.callbacks, core_obj.mqs,
             vals,
             id=str(number),
-            work_dir=str(number),
+            work_dir='sub-job {0}'.format(number),
             attrs=[{
                 'name': 'Sub-job identifier',
                 'value': str(number),
