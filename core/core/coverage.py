@@ -210,20 +210,29 @@ class JCR(core.components.Component):
                         self.__save_data(total_coverage_infos, sub_job_id, req_spec_id)
                         self.__clean_data(total_coverage_infos, sub_job_id, req_spec_id)
 
-                    report = {
-                        # This isn't great to build component identifier in such the artificial way.
-                        # But otherwise we need to pass it everywhere like "sub-job identifier".
-                        'identifier': os.path.join(os.path.sep, sub_job_id),
-                        'coverage': total_coverages,
-                    }
+                    # This isn't great to build component identifier in such the artificial way.
+                    # But otherwise we need to pass it everywhere like "sub-job identifier".
+                    report_id = os.path.join(os.path.sep, sub_job_id)
 
                     if self.conf['code coverage details'] == 'All source files':
-                        report['additional_sources'] = core.utils.ArchiveFiles(
-                            [os.path.join(sub_job_dir, 'additional sources')])
+                        core.utils.report(self.logger,
+                                          'patch',
+                                          {
+                                              'identifier': report_id,
+                                              'additional_sources': core.utils.ArchiveFiles(
+                                                  [os.path.join(sub_job_dir, 'additional sources')]),
+                                          },
+                                          self.mqs['report files'],
+                                          self.vals['report id'],
+                                          self.conf['main working directory'],
+                                          os.path.join('total coverages', sub_job_id))
 
                     core.utils.report(self.logger,
                                       'coverage',
-                                      report,
+                                      {
+                                          'identifier': report_id,
+                                          'coverage': total_coverages,
+                                      },
                                       self.mqs['report files'],
                                       self.vals['report id'],
                                       self.conf['main working directory'],
