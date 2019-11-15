@@ -800,7 +800,7 @@ def _remove_statics(sa, process):
                     if function_flag:
                         func = resolve_existing(name, implementation, _definitions)
                         if not func:
-                            func = create_definition(declaration, name, implementation)
+                            func = create_definition(declaration.to_string('x', specifiers=False), name, implementation)
                             _definitions[file][name] = func
                     elif not function_flag and not isinstance(declaration, Primitive):
                         var = resolve_existing(name, implementation, _declarations)
@@ -813,7 +813,7 @@ def _remove_statics(sa, process):
                                 declaration = declaration.take_pointer
                                 value = '& ' + value
                             var = c.Variable("ldv_emg_alias_{}_{}".format(name, identifiers.__next__()),
-                                             declaration)
+                                             declaration.to_string('x', specifiers=False))
                             var.declaration_files.add(file)
                             var.value = value
                             _declarations[file][name] = var
