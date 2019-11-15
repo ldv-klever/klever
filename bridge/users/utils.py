@@ -212,7 +212,7 @@ UNSAFE_ASS_MARKS_VIEW = {
 
     # EXAMPLES:
     # 'verdict': ['0', '2'],
-    'similarity': ['30'],
+    'similarity': ['0'],
     # 'status': ['1'],
     # 'ass_type': ['0', '1'],
     # 'associated': [True]
