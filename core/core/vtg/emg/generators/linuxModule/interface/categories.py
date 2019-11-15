@@ -109,7 +109,6 @@ def __fulfill_function_interfaces(logger, collection, interface, category=None):
         return isinstance(decl, Primitive) or (isinstance(decl, Pointer) and isinstance(decl.points, Primitive)) or \
             decl == 'void *' or decl == 'void **'
 
-    logger.debug("Try to match collateral interfaces for function {!r}".format(str(interface)))
     # Check declaration type
     if isinstance(interface, Callback):
         declaration = interface.declaration.points
