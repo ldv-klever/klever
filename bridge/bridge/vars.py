@@ -327,7 +327,7 @@ TASK_STATUS = (
 REPORT_ARCHIVE = {
     'log': 'Log.zip',
     'coverage': 'Coverage.zip',
-    'verifier_input': 'VerifierInput.zip',
+    'verifier_files': 'VerifierFiles.zip',
     'error_trace': 'ErrorTrace.zip',
     'original_sources': 'OriginalSources.zip',
     'additional_sources': 'AdditionalSources.zip',

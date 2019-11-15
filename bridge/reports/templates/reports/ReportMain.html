@@ -156,8 +156,8 @@
             {% if report.log %}
                 <button class="ui violet button file-content-activator" data-url="{% url 'reports:log-content' report.pk %}" data-download="{% url 'reports:log' report.pk %}">{% trans 'Log' %}</button>
             {% endif %}
-            {% if report.verifier_input %}
-                <a href="{% url 'reports:download_files' report.pk %}" class="ui violet button">{% trans 'Download input files of static verifiers' %}</a>
+            {% if report.verifier_files %}
+                <a href="{% url 'reports:download_files' report.pk %}" class="ui violet button">{% trans 'Download verifier input files' %}</a>
             {% endif %}
         </div>
     </div>

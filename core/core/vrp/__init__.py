@@ -517,7 +517,7 @@ class RP(core.components.Component):
         if not self.logger.disabled and log_file:
             report['log'] = core.utils.ArchiveFiles([log_file], {log_file: 'log.txt'})
 
-        if self.conf['upload input files of static verifiers']:
+        if self.conf['upload verifier input files']:
             report['task'] = task_id
 
         # Remember exception and raise it if verdict is not unknown

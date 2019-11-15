@@ -316,8 +316,8 @@ class JobArchiveGenerator:
             # Add report files
             if report_data['log']:
                 self._arch_files.add((report.log.path, report_data['log']))
-            if report_data['verifier_input']:
-                self._arch_files.add((report.verifier_input.path, report_data['verifier_input']))
+            if report_data['verifier_files']:
+                self._arch_files.add((report.verifier_files.path, report_data['verifier_files']))
             reports.append(report_data)
 
         return self.__get_json(reports)
@@ -608,9 +608,9 @@ class UploadReports:
                 fp = open(self.__full_path(report_data['log']), mode='rb')
                 report_data['log'] = File(fp, name=REPORT_ARCHIVE['log'])
                 self.opened_files.append(fp)
-            if report_data.get('verifier_input'):
-                fp = open(self.__full_path(report_data['verifier_input']), mode='rb')
-                report_data['verifier_input'] = File(fp, name=REPORT_ARCHIVE['verifier_input'])
+            if report_data.get('verifier_files'):
+                fp = open(self.__full_path(report_data['verifier_files']), mode='rb')
+                report_data['verifier_files'] = File(fp, name=REPORT_ARCHIVE['verifier_files'])
                 self.opened_files.append(fp)
             if self._fake:
                 report_data['start_date'] = report_data.get('start_date', self._current_date)

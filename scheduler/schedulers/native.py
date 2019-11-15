@@ -333,7 +333,7 @@ class Native(runners.Speculative):
             client_conf["Klever Bridge"] = self.conf["Klever Bridge"]
             client_conf["identifier"] = identifier
             client_conf["common"]["working directory"] = work_dir
-            for name in ("verifier", "upload input files of static verifiers"):
+            for name in ("verifier", "upload verifier input files"):
                 client_conf[name] = configuration[name]
 
             # Speculative flag

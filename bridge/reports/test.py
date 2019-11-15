@@ -484,7 +484,7 @@ class TestReports(KleverTestCase):
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
 
         # Test verifier input files
-        report = ReportComponent.objects.exclude(root__job_id=self.job.pk, verifier_input='').first()
+        report = ReportComponent.objects.exclude(root__job_id=self.job.pk, verifier_files='').first()
         self.assertIsNotNone(report)
 
         response = self.client.post(reverse('jobs:download_file_for_compet', args=[self.job.pk]),
@@ -496,13 +496,13 @@ class TestReports(KleverTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn(response['Content-Type'], {'application/x-zip-compressed', 'application/zip'})
 
-        # Clear verification files
-        response = self.client.post('/reports/clear_verification_files/%s/' % self.job.pk)
+        # Clear verifier input files
+        response = self.client.post('/reports/clear_verifier_files/%s/' % self.job.pk)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
         self.assertEqual(ReportComponent.objects.filter(root=self.job.reportroot, verification=True)
-                         .exclude(verifier_input='').count(), 0)
+                         .exclude(verifier_files='').count(), 0)
 
     def test_coverage(self):
         self.job = Job.objects.order_by('parent').first()
@@ -770,10 +770,10 @@ class TestReports(KleverTestCase):
             self.assertNotEqual(report.log, '')
         else:
             self.assertEqual(report.log, '')
-        if verifier_input:
-            self.assertNotEqual(report.verifier_input, '')
+        if verifier_files:
+            self.assertNotEqual(report.verifier_files, '')
         else:
-            self.assertEqual(report.verifier_input, '')
+            self.assertEqual(report.verifier_files, '')
         return r_id
 
     def __upload_progress(self, ts, sj=None, start=False, finish=False):
@@ -1027,7 +1027,7 @@ class TestReports(KleverTestCase):
             coverage = None
         tool = self.__upload_verification_report(
             chunk['tool'], parent, coverage=coverage,
-            verifier_input=chunk.get('verifier_input', False), log=chunk.get('log', False)
+            verifier_files=chunk.get('verifier_files', False), log=chunk.get('log', False)
         )
         if 'safe' in chunk:
             self.__upload_safe_report(tool, [], chunk['safe'])

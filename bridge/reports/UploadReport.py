@@ -261,8 +261,8 @@ class ReportVerificationSerializer(UploadBaseSerializer):
         if task:
             # If task is set then get verifier input archive from it
             with task.archive.file as fp:
-                verifier_input = File(fp, name=REPORT_ARCHIVE['verifier_input'])
-                instance.add_verifier_input(verifier_input, save=True)
+                verifier_files = File(fp, name=REPORT_ARCHIVE['verifier_files'])
+                instance.add_verifier_files(verifier_files, save=True)
         return instance
 
     class Meta:

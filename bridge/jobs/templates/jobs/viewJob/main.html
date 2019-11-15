@@ -83,8 +83,8 @@
                     <div class="header">{% trans 'Reports' %}</div><i class="dropdown icon"></i>
                     <div class="menu">
                         <a id="collapse_reports_btn" class="item{% if not job_access.can_collapse %} disabled{% endif %}"><i class="adjust icon"></i> {% trans 'Collapse' %}</a>
-                        <a id="dfc_modal_show" class="item{% if not job_access.can_download_verifier_input %} disabled{% endif %}"><i class="download icon"></i> {% trans 'Download files for competition' %}</a>
-                        <a id="clear_verifications_modal_show" class="item{% if not job_access.can_clear_verifications %} disabled{% endif %}" data-url="{% url 'reports:clear-verification-files' object.id %}"><i class="eraser icon"></i> {% trans 'Clear verification files' %}</a>
+                        <a id="dfc_modal_show" class="item{% if not job_access.can_download_verifier_files %} disabled{% endif %}"><i class="download icon"></i> {% trans 'Download files for competition' %}</a>
+                        <a id="clear_verifier_files_modal_show" class="item{% if not job_access.can_clear_verifier_files %} disabled{% endif %}" data-url="{% url 'reports:clear-verification-files' object.id %}"><i class="eraser icon"></i> {% trans 'Clear verifier input files' %}</a>
                     </div>
                 </div>
 

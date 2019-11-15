@@ -928,8 +928,8 @@ class FilesForCompetitionArchive:
     def __get_archives(self):
         archives = {}
         for report in ReportComponent.objects.filter(root=self.root, verification=True)\
-                .exclude(verifier_input='').only('id', 'verifier_input'):
-            archives[report.id] = report.verifier_input.path
+                .exclude(verifier_files='').only('id', 'verifier_files'):
+            archives[report.id] = report.verifier_files.path
         return archives
 
     def __get_attrs(self):
@@ -987,9 +987,9 @@ def report_attributes_with_parents(report):
     return list(attrs_qs.values_list('name', 'value'))
 
 
-def remove_verification_files(job):
-    for report in ReportComponent.objects.filter(root=job.reportroot, verification=True).exclude(verifier_input=''):
-        report.verifier_input.delete()
+def remove_verifier_files(job):
+    for report in ReportComponent.objects.filter(root=job.reportroot, verification=True).exclude(verifier_files=''):
+        report.verifier_files.delete()
 
 
 def get_report_data_type(component, data):
@@ -1071,11 +1071,11 @@ class AttrDataGenerator(FileWrapper):
 
 class VerifierFilesGenerator(FileWrapper):
     def __init__(self, instance):
-        if not instance.verifier_input:
-            raise BridgeException(_("The report doesn't have input files of static verifiers"))
-        self.name = '%s files.zip' % instance.component
-        self.size = instance.verifier_input.file.size
-        super().__init__(instance.verifier_input.file, 8192)
+        if not instance.verifier_files:
+            raise BridgeException(_("The report doesn't have verifier input files"))
+        self.name = '%s input files.zip' % instance.component
+        self.size = instance.verifier_files.file.size
+        super().__init__(instance.verifier_files.file, 8192)
 
 
 class ErrorTraceFileGenerator(FileWrapper):

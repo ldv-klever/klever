@@ -170,7 +170,7 @@ class DownloadFilesForCompetition(LoginRequiredMixin, LoggedCallMixin, SingleObj
 
     def get_generator(self):
         instance = self.get_object()
-        if not JobAccess(self.request.user, instance).can_download_verifier_input:
+        if not JobAccess(self.request.user, instance).can_download_verifier_files:
             raise BridgeException(code=400)
         if 'filters' not in self.request.GET:
             raise BridgeException()

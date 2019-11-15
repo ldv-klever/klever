@@ -141,7 +141,7 @@ $(document).ready(function () {
         $.post(PAGE_URLS.collapse_reports, {}, reload_page);
     }
 
-    function clear_verification_files(btn) {
+    function clear_verifier_files(btn) {
         $('#dimmer_of_page').addClass('active');
         $.ajax({url: btn.data('url'), method: 'DELETE', success: reload_page});
     }
@@ -163,7 +163,7 @@ $(document).ready(function () {
     $('#last_decide_job_btn').click(function () { show_warn_modal($(this), 'warn__decide_job', lastconf_run_decision) });
     $('#stop_job_btn').click(function () { show_warn_modal($(this), 'warn__stop_decision', stop_job_decision) });
     $('#collapse_reports_btn').click(function () { show_warn_modal($(this), 'warn__collapse', collapse_reports) });
-    $('#clear_verifications_modal_show').click(function () { show_warn_modal($(this), 'warn__clear_files', clear_verification_files) });
+    $('#clear_verifier_files_modal_show').click(function () { show_warn_modal($(this), 'warn__clear_files', clear_verifier_files) });
 
 
     let num_of_updates = 0, is_filters_open = false, autoupdate_btn = $('#job_autoupdate_btn');

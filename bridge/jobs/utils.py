@@ -252,18 +252,18 @@ class JobAccess:
         return not ReportComponent.objects.filter(root__job=self.job, component=SUBJOB_NAME).exists()
 
     @cached_property
-    def _has_verifier_input(self):
+    def _has_verifier_files(self):
         if not self._root:
             return False
-        return ReportComponent.objects.filter(root=self._root, verification=True).exclude(verifier_input='').exists()
+        return ReportComponent.objects.filter(root=self._root, verification=True).exclude(verifier_files='').exists()
 
     @cached_property
-    def can_clear_verifications(self):
-        return self._is_finished and (self._is_author or self._is_manager) and self._has_verifier_input
+    def can_clear_verifier_files(self):
+        return self._is_finished and (self._is_author or self._is_manager) and self._has_verifier_files
 
     @cached_property
-    def can_download_verifier_input(self):
-        return self._is_finished and self._has_verifier_input
+    def can_download_verifier_files(self):
+        return self._is_finished and self._has_verifier_files
 
 
 class JobDecisionData:

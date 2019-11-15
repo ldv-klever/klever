@@ -113,7 +113,7 @@ class Basic:
             'format': 1,
         }
         # Copy attributes from parent job.
-        for attr_name in ('priority', 'upload input files of static verifiers'):
+        for attr_name in ('priority', 'upload verifier input files'):
             task_desc[attr_name] = self.conf[attr_name]
 
         for attr in self.abstract_task_desc['attrs']:

@@ -45,7 +45,7 @@ from reports.comparison import FillComparisonCache, ComparisonData
 from reports.UploadReport import UploadReport, CheckArchiveError
 from reports.serializers import OriginalSourcesSerializer
 from reports.source import GetSource
-from reports.utils import remove_verification_files
+from reports.utils import remove_verifier_files
 from reports.coverage import GetCoverageData, ReportCoverageStatistics
 
 
@@ -150,11 +150,11 @@ class ClearVerificationFilesView(LoggedCallMixin, DestroyAPIView):
 
     def check_object_permissions(self, request, obj):
         super().check_object_permissions(request, obj)
-        if not JobAccess(request.user, obj).can_clear_verifications:
-            self.permission_denied(request, message=_("You can't remove verification files of this job"))
+        if not JobAccess(request.user, obj).can_clear_verifier_files:
+            self.permission_denied(request, message=_("You can't clear verifier input files of this job"))
 
     def perform_destroy(self, instance):
-        remove_verification_files(instance)
+        remove_verifier_files(instance)
 
 
 class GetCoverageDataAPIView(LoggedCallMixin, TemplateAPIRetrieveView):

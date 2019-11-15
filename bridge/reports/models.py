@@ -153,7 +153,7 @@ class ReportComponent(WithFilesMixin, Report):
 
     data = JSONField(null=True)
     log = models.FileField(upload_to=get_component_path, null=True)
-    verifier_input = models.FileField(upload_to=get_component_path, null=True)
+    verifier_files = models.FileField(upload_to=get_component_path, null=True)
 
     # Sources for Verification reports
     original_sources = models.ForeignKey(OriginalSources, models.PROTECT, null=True)
@@ -164,10 +164,10 @@ class ReportComponent(WithFilesMixin, Report):
         if not os.path.isfile(os.path.join(settings.MEDIA_ROOT, self.log.name)):
             raise CheckArchiveError('ReportComponent.log was not saved')
 
-    def add_verifier_input(self, fp, save=False):
-        self.verifier_input.save(REPORT_ARCHIVE['verifier_input'], File(fp), save)
-        if not os.path.isfile(os.path.join(settings.MEDIA_ROOT, self.verifier_input.name)):
-            raise CheckArchiveError('ReportComponent.verifier_input was not saved')
+    def add_verifier_files(self, fp, save=False):
+        self.verifier_files.save(REPORT_ARCHIVE['verifier_files'], File(fp), save)
+        if not os.path.isfile(os.path.join(settings.MEDIA_ROOT, self.verifier_files.name)):
+            raise CheckArchiveError('ReportComponent.verifier_files was not saved')
 
     class Meta:
         db_table = 'report_component'

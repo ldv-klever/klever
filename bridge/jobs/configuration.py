@@ -45,7 +45,7 @@ from service.models import Scheduler
 #   file_level - file log level; like console_level,
 #   file_formatter - file log formatter,
 #   keep_intermediate_files - keep intermediate files (bool),
-#   upload_verifiers_files - upload input files of static verifiers (bool),
+#   upload_verifier_files - upload verifier input files (bool),
 #   upload_other_files - upload other intermediate files (bool),
 #   ignore_instances - ignore other instances (bool),
 #   ignore_subjobs - ignore failed sub-jobs (bool),
@@ -84,7 +84,7 @@ KLEVER_CORE_DEF_MODES = [
             'console_formatter': DEFAULT_FORMATTER[0][2],
             'file_formatter': DEFAULT_FORMATTER[0][2],
             'keep_intermediate_files': False,
-            'upload_verifiers_files': False,
+            'upload_verifier_files': False,
             'upload_other_files': False,
             'ignore_instances': False,
             'ignore_subjobs': False,
@@ -109,7 +109,7 @@ KLEVER_CORE_DEF_MODES = [
             'console_formatter': DEFAULT_FORMATTER[1][2],
             'file_formatter': DEFAULT_FORMATTER[1][2],
             'keep_intermediate_files': True,
-            'upload_verifiers_files': True,
+            'upload_verifier_files': True,
             'upload_other_files': False,
             'ignore_instances': True,
             'ignore_subjobs': True,
@@ -134,7 +134,7 @@ KLEVER_CORE_DEF_MODES = [
             'console_formatter': DEFAULT_FORMATTER[1][2],
             'file_formatter': DEFAULT_FORMATTER[2][2],
             'keep_intermediate_files': True,
-            'upload_verifiers_files': True,
+            'upload_verifier_files': True,
             'upload_other_files': True,
             'ignore_instances': True,
             'ignore_subjobs': True,
@@ -164,7 +164,7 @@ class ConfigurationSerializer(serializers.Serializer):
     file_formatter = fields.CharField()
 
     keep_intermediate_files = fields.BooleanField()
-    upload_verifiers_files = fields.BooleanField()
+    upload_verifier_files = fields.BooleanField()
     upload_other_files = fields.BooleanField()
     ignore_instances = fields.BooleanField()
     ignore_subjobs = fields.BooleanField()
@@ -250,7 +250,7 @@ class GetConfiguration:
             'console_formatter': loggers['console']['formatter'],
             'file_formatter': loggers['file']['formatter'],
             'keep_intermediate_files': filedata['keep intermediate files'],
-            'upload_verifiers_files': filedata['upload input files of static verifiers'],
+            'upload_verifier_files': filedata['upload verifier input files'],
             'upload_other_files': filedata['upload other intermediate files'],
             'ignore_instances': filedata['ignore other instances'],
             'ignore_subjobs': filedata['ignore failed sub-jobs'],
@@ -289,7 +289,7 @@ class GetConfiguration:
                 ]}]
             },
             'keep intermediate files': self.configuration['keep_intermediate_files'],
-            'upload input files of static verifiers': self.configuration['upload_verifiers_files'],
+            'upload verifier input files': self.configuration['upload_verifier_files'],
             'upload other intermediate files': self.configuration['upload_other_files'],
             'ignore other instances': self.configuration['ignore_instances'],
             'ignore failed sub-jobs': self.configuration['ignore_subjobs'],
