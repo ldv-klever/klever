@@ -18,8 +18,7 @@
 #include <linux/module.h>
 #include <linux/device.h>
 #include <linux/spi/spi.h>
-#include <verifier/common.h>
-#include <verifier/nondet.h>
+#include <ldv/test.h>
 
 static int __init ldv_init(void)
 {
@@ -31,7 +30,7 @@ static int __init ldv_init(void)
 	master2 = spi_alloc_master(host2, size2);
 
 	if (!master1 && master2 && dev_get_drvdata(&master2->dev) == &master2[1])
-		ldv_error();
+		ldv_expected_error();
 
 	return 0;
 }

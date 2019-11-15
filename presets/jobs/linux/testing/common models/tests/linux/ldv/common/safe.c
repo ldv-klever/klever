@@ -19,8 +19,7 @@
 #include <linux/usb.h>
 #include <linux/netdevice.h>
 #include <linux/ldv/common.h>
-#include <verifier/common.h>
-#include <verifier/nondet.h>
+#include <ldv/test.h>
 
 static bool ldv_is_initialized = false;
 static bool ldv_is_failed_usb_register_driver = false;
@@ -42,7 +41,7 @@ static void ldv_usb_disconnect(struct usb_interface *interface)
 	/*
 	 * This shouldn't be reachable if ldv_post_probe() filters out positive
 	 * integers. */
-	ldv_error();
+	ldv_unexpected_error();
 }
 
 static struct usb_driver ldv_usb_driver = {
@@ -56,33 +55,33 @@ static int __init ldv_init(void)
 	struct net_device *dev = ldv_undef_ptr();
 
 	if (ldv_in_interrupt_context())
-		ldv_error();
+		ldv_unexpected_error();
 
 	ldv_switch_to_interrupt_context();
 
 	if (!ldv_in_interrupt_context())
-		ldv_error();
+		ldv_unexpected_error();
 
 	ldv_switch_to_process_context();
 
 	if (ldv_in_interrupt_context())
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (!ldv_is_initialized)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (ldv_post_init(var) > 0)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (ldv_post_probe(var) > 0)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (ldv_filter_err_code(var) > 0)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (usb_register(&ldv_usb_driver)) {
 		if (!ldv_is_failed_usb_register_driver)
-			ldv_error();
+			ldv_unexpected_error();
 
 		return ldv_undef_int_negative();
 	}
@@ -91,7 +90,7 @@ static int __init ldv_init(void)
 
 	if (register_netdev(dev)) {
 		if (!ldv_is_failed_register_netdev)
-			ldv_error();
+			ldv_unexpected_error();
 
 		return ldv_undef_int_negative();
 	}
@@ -121,7 +120,7 @@ static void __exit ldv_exit(void)
 	/*
 	 * This shouldn't be reachable if ldv_post_init() filters out positive
 	 * integers. */
-	ldv_error();
+	ldv_unexpected_error();
 }
 
 module_init(ldv_init);

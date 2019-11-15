@@ -17,8 +17,7 @@
 
 #include <linux/module.h>
 #include <linux/device.h>
-#include <verifier/common.h>
-#include <verifier/nondet.h>
+#include <ldv/test.h>
 
 static int __init ldv_init(void)
 {
@@ -26,7 +25,7 @@ static int __init ldv_init(void)
 
 	if (!dev_set_drvdata(&dev, &data) &&
 		dev_get_drvdata(&dev) == &data)
-		ldv_error();
+		ldv_expected_error();
 
 	return 0;
 }

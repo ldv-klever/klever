@@ -17,9 +17,7 @@
 
 #include <linux/module.h>
 #include <linux/ldv/err.h>
-#include <verifier/common.h>
-#include <verifier/memory.h>
-#include <verifier/nondet.h>
+#include <ldv/test.h>
 
 static int __init ldv_init(void)
 {
@@ -29,56 +27,56 @@ static int __init ldv_init(void)
 	data = ldv_malloc(size);
 
 	if (ldv_is_err(data))
-		ldv_error();
+		ldv_unexpected_error();
 
 	ldv_free(data);
 
 	data = ldv_calloc(nmemb, size);
 
 	if (ldv_is_err(data))
-		ldv_error();
+		ldv_unexpected_error();
 
 	ldv_free(data);
 
 	data = ldv_zalloc(size);
 
 	if (ldv_is_err(data))
-		ldv_error();
+		ldv_unexpected_error();
 
 	ldv_free(data);
 
 	data = ldv_xmalloc(size);
 
 	if (!data || ldv_is_err(data))
-		ldv_error();
+		ldv_unexpected_error();
 
 	ldv_free(data);
 
 	data = ldv_xzalloc(size);
 
 	if (!data || ldv_is_err(data))
-		ldv_error();
+		ldv_unexpected_error();
 
 	ldv_free(data);
 
 	data = ldv_malloc_unknown_size();
 
 	if (ldv_is_err(data))
-		ldv_error();
+		ldv_unexpected_error();
 
 	ldv_free(data);
 
 	data = ldv_calloc_unknown_size();
 
 	if (ldv_is_err(data))
-		ldv_error();
+		ldv_unexpected_error();
 
 	ldv_free(data);
 
 	data = ldv_zalloc_unknown_size();
 
 	if (ldv_is_err(data))
-		ldv_error();
+		ldv_unexpected_error();
 
 	ldv_free(data);
 

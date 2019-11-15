@@ -18,8 +18,7 @@
 #include <linux/module.h>
 #include <linux/device.h>
 #include <linux/spi/spi.h>
-#include <verifier/common.h>
-#include <verifier/nondet.h>
+#include <ldv/test.h>
 
 static int __init ldv_init(void)
 {
@@ -33,7 +32,7 @@ static int __init ldv_init(void)
 		return ldv_undef_int_negative();
 
 	if (dev_get_drvdata(&master->dev) != &master[1])
-		ldv_error();
+		ldv_unexpected_error();
 
 	return 0;
 }

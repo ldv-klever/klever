@@ -17,11 +17,11 @@
 
 #include <linux/module.h>
 #include <linux/ldv/common.h>
-#include <verifier/common.h>
+#include <ldv/test.h>
 
 void ldv_check_final_state(void)
 {
-	ldv_error();
+	ldv_expected_error();
 }
 
 static int __init ldv_init(void)

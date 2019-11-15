@@ -18,7 +18,7 @@
 #include <linux/module.h>
 #include <linux/usb.h>
 #include <linux/ldv/common.h>
-#include <verifier/common.h>
+#include <ldv/test.h>
 
 static int __init ldv_init(void)
 {
@@ -31,7 +31,7 @@ static int __init ldv_init(void)
 
 void ldv_failed_usb_register_driver(void)
 {
-	ldv_error();
+	ldv_expected_error();
 }
 
 module_init(ldv_init);

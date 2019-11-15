@@ -17,8 +17,7 @@
 
 #include <linux/module.h>
 #include <linux/ldv/err.h>
-#include <verifier/common.h>
-#include <verifier/nondet.h>
+#include <ldv/test.h>
 
 static int __init ldv_init(void)
 {
@@ -29,13 +28,13 @@ static int __init ldv_init(void)
 	ptr = ERR_PTR(error);
 
 	if (!IS_ERR(ptr))
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (!IS_ERR_OR_NULL(ptr))
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (PTR_ERR(ptr) != error)
-		ldv_error();
+		ldv_unexpected_error();
 
 	return 0;
 }

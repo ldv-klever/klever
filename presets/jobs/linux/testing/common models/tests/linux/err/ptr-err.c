@@ -17,12 +17,12 @@
 
 #include <linux/module.h>
 #include <linux/ldv/err.h>
-#include <verifier/common.h>
+#include <ldv/test.h>
 
 static int __init ldv_init(void)
 {
 	if (PTR_ERR(ERR_PTR(-1)) == -1 && PTR_ERR(ERR_PTR(-10)) == -10 && PTR_ERR(ERR_PTR(-MAX_ERRNO)) == -MAX_ERRNO)
-		ldv_error();
+		ldv_expected_error();
 
 	return 0;
 }

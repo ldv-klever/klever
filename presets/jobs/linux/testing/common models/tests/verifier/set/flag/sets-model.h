@@ -15,5 +15,5 @@
  * limitations under the License.
  */
 
-# define LDV_SETS_MODEL_FLAG
+#define LDV_SETS_MODEL_FLAG
 #include <verifier/set.h>
