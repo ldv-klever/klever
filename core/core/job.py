@@ -483,8 +483,9 @@ class Job(core.components.Component):
                                   separate_from_parent, include_child_resources)
         self.common_components_conf = components_common_conf
 
-        self.common_components_conf['additional sources directory'] = os.path.join(os.path.realpath(work_dir),
-                                                                                   'additional sources')
+        if work_dir:
+            self.common_components_conf['additional sources directory'] = os.path.join(os.path.realpath(work_dir),
+                                                                                       'additional sources')
 
         self.clade = None
         self.components = []
