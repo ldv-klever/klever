@@ -110,7 +110,7 @@ class Process:
 
         # Set simple attributes
         for att, val in self.__dict__.items():
-            if isinstance(val, list) or isinstance(val, dict):
+            if isinstance(val, list) or isinstance(val, dict) or isinstance(val, Actions):
                 setattr(inst, att, copy.copy(val))
             else:
                 setattr(inst, att, val)
@@ -442,17 +442,18 @@ class Actions(collections.UserDict):
         new.data = {n: copy.copy(v) for n, v in self.data.items()}
 
         # Explicitly clear operators (replacement forbidden by the API)
-        for action in new.values():
+        # todo: Avoid using private methods. But now this is the simplest wat to clean values
+        for action in new.data.values():
             action.my_operator = None
             if isinstance(action, Receive) or isinstance(action, Dispatch):
                 # They contain references to other processes in peers
                 action.parameters = copy.copy(action.parameters)
             elif isinstance(action, Parentheses) or isinstance(action, Subprocess):
-                action.action = None
+                action._action = None
             elif isinstance(action, Concatenation):
-                action.actions = []
+                action._actions = collections.deque()
             elif isinstance(action, Choice):
-                action.actions = {}
+                action._actions = set()
 
         # Set new references
         for action in self.data.values():
@@ -462,6 +463,8 @@ class Actions(collections.UserDict):
                 new.data[action.name].actions = [new.data[act.name] for i, act in enumerate(action.actions)]
             elif isinstance(action, Choice):
                 new.data[action.name].actions = {new.data[act.name] for act in action.actions}
+
+        return new
 
     def filter(self, include=None, exclude=None):
         if not include:
@@ -584,7 +587,8 @@ class Subprocess(Action):
     @action.setter
     def action(self, new):
         if (not self._action and new) or (self._action and not new):
-            new.my_operator = None
+            if new:
+                new.my_operator = None
             self._action = new
         else:
             raise RuntimeError('Explicitly clean first operator field')

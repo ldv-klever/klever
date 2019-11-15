@@ -186,6 +186,9 @@ class ExtendedProcess(Process):
         self.allowed_implementations = dict()
         self.instance_number = 0
 
+    def __copy__(self):
+        return super().__copy__()
+
     @property
     def name(self):
         return self._name
@@ -406,7 +409,7 @@ class ExtendedProcess(Process):
         if value:
             lb.value = value
 
-        self.labels[name] = lb
+        self.labels[str(lb)] = lb
         acc = ExtendedAccess('%{}%'.format(name))
         acc.label = lb
         acc.list_access = [lb.name]
