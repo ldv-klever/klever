@@ -39,10 +39,21 @@ def prepare_cif_opts(opts, clade, model_opts=False):
 
     # Keep model options as well as build options when input files were not preprocessed.
     if model_opts or not meta['conf'].get("Compiler.preprocess_cmds", False):
+        skip_opt_value = False
         for opt in opts:
+            if skip_opt_value:
+                skip_opt_value = False
+                continue
+
             # Get rid of options unsupported by Aspectator.
-            match = re.match('(-Werror=date-time|-mpreferred-stack-boundary|.*?-MD).*', opt)
+            match = re.match('(-Werror=date-time|-mpreferred-stack-boundary|-fsanitize-coverage|--param=|.*?-MD).*'
+                             , opt)
             if match:
+                continue
+
+            match = re.match('--param', opt)
+            if match:
+                skip_opt_value = True
                 continue
 
             new_opt = opt
