@@ -16,7 +16,7 @@
  */
 
 #include <linux/module.h>
-#include <verifier/common.h>
+#include <ldv/test.h>
 
 static int __init ldv_init(void)
 {
@@ -101,7 +101,7 @@ static int __init ldv_init(void)
 	    ((10 >= 2) == 1) &&
 	    ((10 >= 5) == 1) &&
 	    ((10 >= 10) == 1))
-		ldv_error();
+		ldv_expected_error();
 
 	return 0;
 }

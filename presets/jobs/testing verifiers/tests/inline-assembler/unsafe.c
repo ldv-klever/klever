@@ -16,7 +16,7 @@
  */
 
 #include <linux/module.h>
-#include <verifier/common.h>
+#include <ldv/test.h>
 #include "asm-add.h"
 
 static int __init ldv_init(void)
@@ -25,7 +25,7 @@ static int __init ldv_init(void)
 
 	ldv_asm_add(1, &var);
 	if (var == 1)
-		ldv_error();
+		ldv_expected_error();
 
 	return 0;
 }

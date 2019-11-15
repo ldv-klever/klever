@@ -16,8 +16,7 @@
  */
 
 #include <linux/module.h>
-#include <verifier/common.h>
-#include <verifier/memory.h>
+#include <ldv/test.h>
 #include "structs.h"
 
 static int __init ldv_init(void)
@@ -33,7 +32,7 @@ static int __init ldv_init(void)
 
 	if (var1->field1 == 1 &&
 	    *(int *)(var1->field2) == 2)
-		ldv_error();
+		ldv_expected_error();
 
 	return 0;
 }

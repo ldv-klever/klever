@@ -16,8 +16,7 @@
  */
 
 #include <linux/module.h>
-#include <verifier/common.h>
-#include <verifier/nondet.h>
+#include <ldv/test.h>
 #include "lists.h"
 
 static int __init ldv_init(void)
@@ -31,121 +30,121 @@ static int __init ldv_init(void)
 	ldv_list_ptr var7;
 
 	if (ldv_list_len(var2) != 1)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (ldv_list_get_next(var2))
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (ldv_list_get_last(var2) != var2)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (ldv_list_get_prev(var2, var2) != var2)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (*(int *)ldv_list_get_data(var2) != var1)
-		ldv_error();
+		ldv_unexpected_error();
 
 	var4 = ldv_list_insert_data(var2, &var3);
 
 	if (ldv_list_len(var2) != 2)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (ldv_list_get_next(var2) != var4)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (ldv_list_get_next(var4))
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (ldv_list_get_last(var2) != var4)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (ldv_list_get_last(var4) != var4)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (ldv_list_get_prev(var2, var2) != var2)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (ldv_list_get_prev(var2, var4) != var2)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (*(int *)ldv_list_get_data(var2) != var1)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (*(int *)ldv_list_get_data(var4) != var3)
-		ldv_error();
+		ldv_unexpected_error();
 
 	var6 = ldv_list_insert_data(var2, &var5);
 
 	if (ldv_list_len(var2) != 3)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (ldv_list_get_next(var2) != var6)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (ldv_list_get_next(var6) != var4)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (ldv_list_get_next(var4))
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (ldv_list_get_last(var2) != var4)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (ldv_list_get_last(var6) != var4)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (ldv_list_get_last(var4) != var4)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (ldv_list_get_prev(var2, var2) != var2)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (ldv_list_get_prev(var2, var6) != var2)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (ldv_list_get_prev(var2, var4) != var6)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (*(int *)ldv_list_get_data(var2) != var1)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (*(int *)ldv_list_get_data(var6) != var5)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (*(int *)ldv_list_get_data(var4) != var3)
-		ldv_error();
+		ldv_unexpected_error();
 
 	var7 = ldv_list_delete(&var2, var6);
 
 	if (var7 != var2)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (ldv_list_len(var2) != 2)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (ldv_list_get_next(var2) != var4)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (ldv_list_get_next(var4))
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (ldv_list_get_last(var2) != var4)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (ldv_list_get_last(var4) != var4)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (ldv_list_get_prev(var2, var2) != var2)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (ldv_list_get_prev(var2, var4) != var2)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (*(int *)ldv_list_get_data(var2) != var1)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (*(int *)ldv_list_get_data(var4) != var3)
-		ldv_error();
+		ldv_unexpected_error();
 
 	ldv_list_delete_all(var2);
 

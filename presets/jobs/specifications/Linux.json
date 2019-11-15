@@ -749,7 +749,10 @@
           {
             "identifier": "common",
             "description": "...",
-            "template": "loadable kernel modules and kernel subsystems"
+            "plugins": [{
+              "name": "RSG",
+              "options": {"models": ["ldv/test.c"]}
+            }]
           }
         ]
       },

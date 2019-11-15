@@ -16,8 +16,7 @@
  */
 
 #include <linux/module.h>
-#include <verifier/common.h>
-#include <verifier/nondet.h>
+#include <ldv/test.h>
 
 struct ldv_struct1 {
 	char field;
@@ -39,43 +38,43 @@ static int __init ldv_init(void)
 	struct ldv_struct1 var3, *var4;
 
 	if (sizeof(char) != 1)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (sizeof(short int) != 2)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (sizeof(int) != 4)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (sizeof(long int) != 8)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (sizeof(long long int) != 8)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (sizeof(void *) != 8)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (sizeof(struct ldv_struct1) != 1)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (sizeof(struct ldv_struct2) != 8)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (sizeof(struct ldv_struct3) != 8)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (sizeof(var1) != 4)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (sizeof(var2) != 8)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (sizeof(var3) != 1)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (sizeof(var4) != 8)
-		ldv_error();
+		ldv_unexpected_error();
 
 	return 0;
 }

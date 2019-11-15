@@ -16,7 +16,7 @@
  */
 
 #include <linux/module.h>
-#include <verifier/common.h>
+#include <ldv/test.h>
 #include "union.h"
 
 static int __init ldv_init(void)
@@ -25,19 +25,19 @@ static int __init ldv_init(void)
 	                var2 = {.field2 = 1234567890};
 
 	if (var1.field2 != 67305985)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (var2.field1.field1 != 210)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (var2.field1.field2 != 2)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (var2.field1.field3 != 150)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (var2.field1.field4 != 73)
-		ldv_error();
+		ldv_unexpected_error();
 
 	return 0;
 }

@@ -16,8 +16,7 @@
  */
 
 #include <linux/module.h>
-#include <verifier/common.h>
-#include <verifier/nondet.h>
+#include <ldv/test.h>
 
 static int __init ldv_init(void)
 {
@@ -25,10 +24,10 @@ static int __init ldv_init(void)
 	    *var4 = &var3;
 
 	if (*var2 != var1)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (*var4 != var3)
-		ldv_error();
+		ldv_unexpected_error();
 
 	return 0;
 }

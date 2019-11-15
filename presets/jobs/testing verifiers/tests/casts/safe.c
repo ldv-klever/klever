@@ -16,24 +16,23 @@
  */
 
 #include <linux/module.h>
-#include <verifier/common.h>
-#include <verifier/nondet.h>
+#include <ldv/test.h>
 
 static int __init ldv_init(void)
 {
 	int var1 = ldv_undef_int_nonpositive(), var2 = ldv_undef_int_positive();
 
 	if ((unsigned int)var1 != UINT_MAX + var1 + 1)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if ((int)(UINT_MAX + var1 + 1) != var1)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if ((unsigned int)var2 != var2)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if ((int)var2 != var2)
-		ldv_error();
+		ldv_unexpected_error();
 
 	return 0;
 }

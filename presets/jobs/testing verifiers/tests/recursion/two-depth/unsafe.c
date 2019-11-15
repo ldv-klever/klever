@@ -16,7 +16,7 @@
  */
 
 #include <linux/module.h>
-#include <verifier/common.h>
+#include <ldv/test.h>
 #include "fibonacci.h"
 
 static int __init ldv_init(void)
@@ -25,7 +25,7 @@ static int __init ldv_init(void)
 	    ldv_fibonacci(1) == 1 &&
 	    ldv_fibonacci(2) == 1 &&
 	    ldv_fibonacci(3) == 2)
-		ldv_error();
+		ldv_expected_error();
 
 	return 0;
 }

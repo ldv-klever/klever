@@ -16,8 +16,7 @@
  */
 
 #include <linux/module.h>
-#include <verifier/common.h>
-#include <verifier/memory.h>
+#include <ldv/test.h>
 #include "structs.h"
 
 static int __init ldv_init(void)
@@ -29,16 +28,16 @@ static int __init ldv_init(void)
 	var2 = ldv_xzalloc(sizeof(*var2));
 
 	if (*var1)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (var2->field1)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (var2->field2)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (var2->field3)
-		ldv_error();
+		ldv_unexpected_error();
 
 	ldv_free(var2);
 	ldv_free(var1);

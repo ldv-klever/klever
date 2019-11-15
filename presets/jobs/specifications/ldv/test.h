@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+ * Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
  * Ivannikov Institute for System Programming of the Russian Academy of Sciences
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,17 +15,14 @@
  * limitations under the License.
  */
 
-#include <linux/module.h>
-#include <ldv/test.h>
+#ifndef __LDV_TEST_H
+#define __LDV_TEST_H
 
-static int __init ldv_init(void)
-{
-	switch (1) {
-	case 1:
-		ldv_expected_error();
-	}
+#include <verifier/common.h>
+#include <verifier/memory.h>
+#include <verifier/nondet.h>
 
-	return 0;
-}
+extern void ldv_expected_error(void);
+extern void ldv_unexpected_error(void);
 
-module_init(ldv_init);
+#endif /* __LDV_TEST_H */
