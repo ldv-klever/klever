@@ -87,13 +87,12 @@ class ErrorTrace:
         for edge in self.trace_iterator():
             # TODO: new witness format will have another marker for global variable declarations.
             if edge['thread'] == 0:
-                global_var_decls.append(
-                    {
-                        'line': edge['start line'],
-                        'file': edge['file'],
-                        'source': edge['source']
-                    }
-                )
+                global_var_decl = {
+                    'line': edge['start line'],
+                    'file': edge['file']
+                }
+                global_var_decl.update(self.highlight(edge['source']))
+                global_var_decls.append(global_var_decl)
                 continue
 
             if edge['thread'] not in thread_node_refs:
