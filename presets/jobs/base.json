@@ -35,12 +35,12 @@
             {
               "uuid": "3d1158e6-cfec-4863-b4a6-366a6cb20478",
               "name": "Environment model specifications",
-              "directory": "linux/testing/environment model specs"
+              "directory": "linux/testing/environment model specifications"
             },
             {
               "uuid": "eafba0a0-dd6a-46aa-9af9-47a03a7360d5",
               "name": "Requirement specifications",
-              "directory": "linux/testing/rule specs"
+              "directory": "linux/testing/requirement specifications"
             }
           ]
         },
