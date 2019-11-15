@@ -52,6 +52,9 @@ def merge_files(logger, conf, abstract_task_desc):
             # This helps to reduce considerable memory consumption by CIL itself since input files are processed more
             # sequentially.
             '-no-annot',
+            # This allows to avoid temporary variables to hold return values for all functions and returns at the end of
+            # functions even when returning in the middle.
+            '-no-single-return',
             # Rest options.
             '-keep-logical-operators',
             '-aggressive-merging',
