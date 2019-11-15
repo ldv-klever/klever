@@ -467,7 +467,7 @@ class Source:
         else:
             return None
 
-    def _search_function(self, func_name, some_scope, fs):
+    def search_function(self, func_name, some_scope, fs):
         # Be aware of  this funciton - it is costly
         if some_scope in fs and func_name in fs[some_scope]:
             return some_scope
