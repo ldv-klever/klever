@@ -2,64 +2,64 @@
   "jobs": [
     {
       "uuid": "5ba02606-8bd8-4bc0-a72d-d1ddded47f79",
-      "name": "Busybox",
-      "source": "busybox"
+      "name": "BusyBox",
+      "directory": "busybox"
     },
     {
       "name": "Linux",
       "children": [
         {
           "uuid": "c1529fbf-a7db-4507-829e-55f846044309",
-          "name": "Linux 3.14",
-          "source": "linux/3.14",
+          "name": "Loadable kernel modules sample",
+          "directory": "linux/loadable kernel modules sample",
           "production": true
         },
         {
           "uuid": "38c96aee-77e8-4964-8d76-564173226c3a",
-          "name": "Linux 3.14 kernel subsystems",
-          "source": "linux/3.14-subsystems"
+          "name": "Kernel subsystems sample",
+          "directory": "linux/kernel subsystems sample"
         },
         {
           "name": "Testing",
           "children": [
             {
               "uuid": "6ca7df9c-c480-46ce-8a51-2282b12cce35",
-              "name": "Testing common models",
-              "source": "linux/testing/common models"
+              "name": "Common models",
+              "directory": "linux/testing/common models"
             },
             {
               "uuid": "b5599f0d-123c-43f7-aaaa-449b8b760f93",
-              "name": "Testing decomposition strategies",
-              "source": "linux/testing/decomposition strategies"
+              "name": "Decomposition strategies",
+              "directory": "linux/testing/decomposition strategies"
             },
             {
               "uuid": "3d1158e6-cfec-4863-b4a6-366a6cb20478",
-              "name": "Testing environment model specifications",
-              "source": "linux/testing/environment model specs"
+              "name": "Environment model specifications",
+              "directory": "linux/testing/environment model specs"
             },
             {
               "uuid": "eafba0a0-dd6a-46aa-9af9-47a03a7360d5",
-              "name": "Testing requirements",
-              "source": "linux/testing/rule specs"
+              "name": "Requirement specifications",
+              "directory": "linux/testing/rule specs"
             }
           ]
         },
         {
           "uuid": "88151938-64da-4809-8562-6cf736fbaec2",
           "name": "Validation",
-          "source": "linux/validation"
+          "directory": "linux/validation"
         }
       ]
     },
     {
       "uuid": "62439b5a-9039-4ef8-9bfe-fbf50a4a2112",
       "name": "Testing verifiers",
-      "source": "testing verifiers"
+      "directory": "testing verifiers"
     }
   ],
-  "common files": [
-    "verifier profiles.json",
+  "common directories and files": [
+    "fragmentation sets",
     "specifications",
-    "fragmentation sets"
+    "verifier profiles.json"
   ]
 }

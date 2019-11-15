@@ -95,27 +95,27 @@ class PresetsProcessor:
     def __collect_main_files(self, preset_uuid):
         preset_uuid = str(preset_uuid)
 
-        def find_source(jobs_list):
+        def find_directory(jobs_list):
             for data in jobs_list:
                 if 'uuid' in data and data['uuid'] == preset_uuid:
-                    return data['source']
+                    return data['directory']
                 elif 'children' in data:
-                    source = find_source(data['children'])
-                    if source:
-                        return source
+                    directory = find_directory(data['children'])
+                    if directory:
+                        return directory
             return None
 
-        job_source = find_source(self._presets_data['jobs'])
-        if not job_source:
+        job_directory = find_directory(self._presets_data['jobs'])
+        if not job_directory:
             raise ValueError('The preset job was not found')
         return [
-            (self.job_file, self.__save_file(os.path.join(self._presets_dir, job_source, self.job_file))),
-            (self.tasks_file, self.__save_file(os.path.join(self._presets_dir, job_source, self.tasks_file)))
+            (self.job_file, self.__save_file(os.path.join(self._presets_dir, job_directory, self.job_file))),
+            (self.tasks_file, self.__save_file(os.path.join(self._presets_dir, job_directory, self.tasks_file)))
         ]
 
     def __collect_common_files(self):
         common_files = []
-        for name in self._presets_data['common files']:
+        for name in self._presets_data['common directories and files']:
             path = os.path.join(self._presets_dir, name)
             if os.path.isdir(path):
                 for dir_path, dir_names, file_names in os.walk(path):

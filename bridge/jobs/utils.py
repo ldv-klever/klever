@@ -139,7 +139,7 @@ def get_unique_name(base_name):
     names_in_use = set(Job.objects.filter(name__startswith=base_name).values_list('name', flat=True))
     cnt = 1
     while True:
-        new_name = "{} Copy #{}".format(base_name, cnt)
+        new_name = "{} #{}".format(base_name, cnt)
         if new_name not in names_in_use:
             return new_name
         cnt += 1
