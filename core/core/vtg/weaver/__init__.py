@@ -253,6 +253,11 @@ class Weaver(core.vtg.plugins.Plugin):
 
                 new_file = core.utils.make_relative_path(search_dirs, storage_file, absolutize=True)
 
+                # These source files do not belong neither to original sources nor to models, e.g. there are compiler
+                # headers.
+                if os.path.isabs(new_file):
+                    continue
+
                 # We treat all remaining source files which paths do not start with "specifications" as generated
                 # models. This is not correct for all cases, e.g. when users put some files within $KLEVER_DATA_DIR.
                 if not new_file.startswith('specifications'):
