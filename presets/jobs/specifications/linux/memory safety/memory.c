@@ -24,7 +24,7 @@ void ldv_after_alloc(void *res)
 
 struct fb_info *ldv_framebuffer_alloc(size_t size, struct device *dev)
 {
-	char *res = ldv_zalloc(sizeof(struct fb_info) + size);
+	void *res = ldv_zalloc(sizeof(struct fb_info) + size);
 	ldv_after_alloc(res);
 	if (!res) {
 		return NULL;
