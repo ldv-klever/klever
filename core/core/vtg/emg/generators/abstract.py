@@ -94,6 +94,7 @@ class AbstractGenerator:
                     for title in new_content[spec_set]:
                         merged_specification.setdefault(title, dict())
                         for k, v in new_content[spec_set][title].items():
-                            if v.get('reference'):
+                            # Do not replace already imported process descriptions
+                            if v.get('reference') and not merged_specification[title].get(k):
                                 merged_specification[title][k] = v
         return merged_specification
