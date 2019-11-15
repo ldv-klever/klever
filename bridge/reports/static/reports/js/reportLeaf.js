@@ -42,5 +42,30 @@ $(document).ready(function () {
             success: function () { window.location.replace('') }
         })
     });
-    $('.like-popup').popup({hoverable: true, position: 'top right'});
+
+    $('.like-popup').each(function () {
+        let popup_id = $(this).data('popupid');
+        if (!popup_id) return;
+        $(this).popup({
+            hoverable: true,
+            popup: popup_id,
+            position: 'top left',
+            lastResort: 'bottom left',
+            target: $(this).parent().find('button').last(),
+            offset: -30,
+            delay: {show: 100, hide: 300}
+        });
+    });
+    $('.dislike-popup').each(function () {
+        let popup_id = $(this).data('popupid');
+        if (!popup_id) return;
+        $(this).popup({
+            hoverable: true,
+            popup: popup_id,
+            position: 'top left',
+            lastResort: 'bottom left',
+            delay: {show: 100, hide: 300}
+        });
+    });
+
 });

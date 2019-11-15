@@ -254,7 +254,7 @@ UNSAFE_MARK_ASS_REPORTS_VIEW = {
     # associated: <list with any value>
 
     # EXAMPLES:
-    'similarity': ['gt', '30'],
+    # 'similarity': ['gt', '30'],
     # 'ass_type': ['0', '1'],
     # 'associated': [True]
 }

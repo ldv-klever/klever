@@ -18,82 +18,79 @@
 {% load i18n %}
 
 {% if MarkTable.values|length %}
-    <table class="ui celled compact pink selectable table alternate-color">
-        <thead>
-            {% for column_row in MarkTable.header %}
-                <tr>
-                {% for coldata in column_row %}
-                    <th style="background: {% if tabledata.view.type == '7' %}#fff1df{% elif tabledata.view.type == '8' %}#dcffed{% elif tabledata.view.type == '9' %}#ffd3d5{% endif %}" colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.title }}</th>
-                {% endfor %}
-                </tr>
-            {% endfor %}
-        </thead>
-        <tbody>
-            {% for row_data in MarkTable.values %}
-                <tr>
-                    {% for v in row_data %}
-                        <td>
-                            {% if v.column == 'likes' %}
-                                <div class="ui mini basic buttons">
-                                    <button class="ui green basic icon button like-mark-btn {% if v.value.likes|length %} like-popup{% endif %}" data-url="{{ v.value.like_url }}" data-method="POST">
-                                        <i class="ui thumbs up icon"></i>{{ v.value.likes|length }}
-                                    </button>
-                                    {% if v.value.likes|length %}
-                                        <div class="ui popup">
-                                            {% for like_author in v.value.likes %}
-                                                <span><a href="{{ like_author.href }}">{{ like_author.value }}</a></span><br>
-                                            {% endfor %}
-                                        </div>
-                                    {% endif %}
-                                    <button class="ui red icon basic right attached button like-mark-btn {% if v.value.dislikes|length %} like-popup{% endif %}" data-url="{{ v.value.like_url }}" data-method="DELETE">
-                                        <i class="ui thumbs down icon"></i>{{ v.value.dislikes|length }}
-                                    </button>
-                                    {% if v.value.dislikes|length %}
-                                        <div class="ui popup">
-                                            {% for dislike_author in v.value.dislikes %}
-                                                <span><a href="{{ dislike_author.href }}">{{ dislike_author.value }}</a></span><br>
-                                            {% endfor %}
-                                        </div>
-                                    {% endif %}
-                                </div>
-                            {% elif v.column == 'buttons' %}
-                                <div class="ui mini buttons">
-                                    <button class="ui blue icon button note-popup mark-inline-form" data-position="top right" data-content="{% trans 'Edit' %}" data-url="{{ v.value.edit }}"><i class="edit icon"></i></button>
-                                    <button class="ui red icon button note-popup mark-inline-delete" data-position="top right" data-content="{% trans 'Remove' %}" data-url="{{ v.value.delete }}"><i class="remove icon"></i></button>
-                                </div>
-                            {% elif v.column == 'description' %}
-                                {{ v.value|safe }}
-                            {% elif v.column == 'ass_type' %}
-                                <div class="ui dropdown">
-                                    <div style="white-space: nowrap;">
-                                        <span{% if v.color %} style="color:{{ v.color }}"{% endif %}>{{ v.value.display }}</span><i style="margin-left: 5px;" class="ui dropdown icon"></i>
-                                    </div>
-                                    <div class="menu">
-                                        {% if v.value.confirm_url %}
-                                            <a class="item confirm-mark-btn" data-url="{{ v.value.confirm_url }}" data-method="POST"><i class="legal green icon"></i>{% trans 'Confirm' %}</a>
-                                        {% endif %}
-                                        {% if v.value.unconfirm_url %}
-                                            <a class="item confirm-mark-btn" data-url="{{ v.value.unconfirm_url }}" data-method="DELETE"><i class="trash red icon"></i>{% trans 'Unconfirm' %}</a>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            {% elif v.column == 'associated' %}
-                                {% if v.value %}
-                                    <i class="ui green check icon"></i>
-                                {% else %}
-                                    <i class="ui red minus icon"></i>
-                                {% endif %}
-                            {% elif v.href %}
-                                <a href="{{ v.href }}">{{ v.value }}</a>
-                            {% else %}
-                                <span{% if v.color %} style="color:{{ v.color }}"{% endif %}>{{ v.value }}</span>
-                            {% endif %}
-                        </td>
+    <div>
+        <table class="ui celled compact pink selectable table alternate-color">
+            <thead>
+                {% for column_row in MarkTable.header %}
+                    <tr>
+                    {% for coldata in column_row %}
+                        <th style="background: {% if tabledata.view.type == '7' %}#fff1df{% elif tabledata.view.type == '8' %}#dcffed{% elif tabledata.view.type == '9' %}#ffd3d5{% endif %}" colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.title }}</th>
                     {% endfor %}
-                </tr>
-            {%  endfor %}
-        </tbody>
-    </table>
+                    </tr>
+                {% endfor %}
+            </thead>
+            <tbody>
+                {% for row_data in MarkTable.values %}
+                    <tr>
+                        {% for v in row_data %}
+                            <td>
+                                {% if v.column == 'likes' %}
+                                    <div class="ui mini buttons">
+                                        <button class="ui green basic icon mini button like-mark-btn {% if v.value.likes_num %} like-popup{% endif %}" data-url="{{ v.value.like_url }}" data-method="POST"{% if v.value.likes_num %} data-popupid="#like_popup_{{ v.value.id }}"{% endif %}>
+                                            <i class="ui thumbs up icon"></i>{{ v.value.likes_num }}
+                                        </button>
+                                        <button class="ui red icon basic right attached mini button like-mark-btn {% if v.value.dislikes_num %} dislike-popup{% endif %}" data-url="{{ v.value.like_url }}" data-method="DELETE"{% if v.value.dislikes_num %} data-popupid="#like_popup_{{ v.value.id }}"{% endif %}>
+                                            <i class="ui thumbs down icon"></i>{{ v.value.dislikes_num }}
+                                        </button>
+                                    </div>
+                                {% elif v.column == 'buttons' %}
+                                    <div class="ui mini buttons">
+                                        <button class="ui blue icon button note-popup mark-inline-form" data-position="top right" data-content="{% trans 'Edit' %}" data-url="{{ v.value.edit }}"><i class="edit icon"></i></button>
+                                        <button class="ui red icon button note-popup mark-inline-delete" data-position="top right" data-content="{% trans 'Remove' %}" data-url="{{ v.value.delete }}"><i class="remove icon"></i></button>
+                                    </div>
+                                {% elif v.column == 'description' %}
+                                    {{ v.value|safe }}
+                                {% elif v.column == 'ass_type' %}
+                                    <div class="ui dropdown">
+                                        <div style="white-space: nowrap;">
+                                            <span{% if v.color %} style="color:{{ v.color }}"{% endif %}>{{ v.value.display }}</span><i style="margin-left: 5px;" class="ui dropdown icon"></i>
+                                        </div>
+                                        <div class="menu">
+                                            {% if v.value.confirm_url %}
+                                                <a class="item confirm-mark-btn" data-url="{{ v.value.confirm_url }}" data-method="POST"><i class="legal green icon"></i>{% trans 'Confirm' %}</a>
+                                            {% endif %}
+                                            {% if v.value.unconfirm_url %}
+                                                <a class="item confirm-mark-btn" data-url="{{ v.value.unconfirm_url }}" data-method="DELETE"><i class="trash red icon"></i>{% trans 'Unconfirm' %}</a>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                {% elif v.column == 'associated' %}
+                                    {% if v.value %}
+                                        <i class="ui green check icon"></i>
+                                    {% else %}
+                                        <i class="ui red minus icon"></i>
+                                    {% endif %}
+                                {% elif v.href %}
+                                    <a href="{{ v.href }}">{{ v.value }}</a>
+                                {% else %}
+                                    <span{% if v.color %} style="color:{{ v.color }}"{% endif %}>{{ v.value }}</span>
+                                {% endif %}
+                            </td>
+                        {% endfor %}
+                    </tr>
+                {%  endfor %}
+            </tbody>
+        </table>
+        {% for likes_datum in MarkTable.likes_popups %}
+            <div id="like_popup_{{ likes_datum.id }}" class="ui special mini popup">
+                <div class="content">
+                    {% for like_author in likes_datum.authors %}
+                        <a href="{{ like_author.href }}">{{ like_author.value }}</a><br>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endfor %}
+    </div>
     <div id="remove_mark_inline_modal" class="ui basic modal">
         <div class="ui icon header">
             <i class="warning sign icon"></i>
@@ -111,6 +108,7 @@
             </div>
         </div>
     </div>
+
     <script type="application/javascript">
         jQuery(function () {
             // Remove mark actions

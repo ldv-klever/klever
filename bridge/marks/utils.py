@@ -285,30 +285,35 @@ class ConfirmAssociationBase:
     def __init__(self, author, association_obj):
         assert self.model
         self._author = author
-        self._object = association_obj
+        self.association = association_obj
         self.__confirm()
 
     def recalculate_cache(self, report_id):
         raise NotImplementedError('Please implement the method!')
 
+    def can_confirm_validation(self):
+        pass
+
     def __confirm(self):
+        self.can_confirm_validation()
+
         # Already confirmed
-        if self._object.type == ASSOCIATION_TYPE[1][0]:
+        if self.association.type == ASSOCIATION_TYPE[1][0]:
             return
 
         # Update association
-        self._object.author = self._author
-        self._object.type = ASSOCIATION_TYPE[1][0]
-        self._object.associated = True
-        self._object.save()
+        self.association.author = self._author
+        self.association.type = ASSOCIATION_TYPE[1][0]
+        self.association.associated = True
+        self.association.save()
 
         # Do not count automatic associations as there is already confirmed one
         self.model.objects.filter(
-            report_id=self._object.report_id, associated=True, type=ASSOCIATION_TYPE[0][0]
+            report_id=self.association.report_id, associated=True, type=ASSOCIATION_TYPE[0][0]
         ).update(associated=False)
 
         # Recalculate verdicts and numbers of associations
-        self.recalculate_cache(self._object.report_id)
+        self.recalculate_cache(self.association.report_id)
 
 
 class UnconfirmAssociationBase:

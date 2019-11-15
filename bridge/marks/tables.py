@@ -143,7 +143,8 @@ class ReportMarksTableBase:
             columns.append('buttons')
         return columns
 
-    def __get_likes_data(self):
+    @cached_property
+    def likes_data(self):
         assert self.likes_model is not None, 'Wrong usage'
         queryset = self.likes_model.objects.filter(association__report=self.report).select_related('author').order_by(
             'author__username', 'author__first_name', 'author__last_name'
@@ -163,7 +164,7 @@ class ReportMarksTableBase:
             else:
                 likes.setdefault(ass_like.association_id, [])
                 likes[ass_like.association_id].append(author_data)
-        return likes, dislikes
+        return {'likes': likes, 'dislikes': dislikes}
 
     @cached_property
     def queryset(self):
@@ -234,10 +235,19 @@ class ReportMarksTableBase:
                 users_ids.add(mark_data['ass_author'])
         return dict((usr.id, usr) for usr in User.objects.filter(id__in=users_ids))
 
+    @cached_property
+    def likes_popups(self):
+        likes_data_list = []
+        for ass_id in self.likes_data['likes']:
+            if self.likes_data['likes'][ass_id]:
+                likes_data_list.append({'id': ass_id, 'authors': self.likes_data['likes'][ass_id]})
+        for ass_id in self.likes_data['dislikes']:
+            if self.likes_data['dislikes'][ass_id]:
+                likes_data_list.append({'id': ass_id, 'authors': self.likes_data['dislikes'][ass_id]})
+        return likes_data_list
+
     def __get_values(self):
         value_data = []
-
-        likes, dislikes = self.__get_likes_data()
         source_dict = dict(MARK_SOURCE)
         ass_type_dict = dict(self.ass_types)
 
@@ -305,9 +315,9 @@ class ReportMarksTableBase:
                         val = mark_data['description']
                 elif col == 'likes':
                     val = {
-                        'id': mark_data['id'],
-                        'likes': likes.get(mark_data['ass_id'], []),
-                        'dislikes': dislikes.get(mark_data['ass_id'], []),
+                        'id': mark_data['ass_id'],
+                        'likes_num': len(self.likes_data['likes'].get(mark_data['ass_id'], [])),
+                        'dislikes_num': len(self.likes_data['dislikes'].get(mark_data['ass_id'], [])),
                         'like_url': reverse('marks:api-like-{}'.format(self.report_type), args=[mark_data['ass_id']])
                     }
                 elif col == 'buttons':

@@ -24,6 +24,9 @@ from collections import OrderedDict
 from django.core.files import File
 from django.db import transaction
 from django.db.models import Case, When, Value, Q, F
+from django.utils.translation import ugettext as _
+
+from rest_framework.exceptions import APIException
 
 from bridge.vars import ASSOCIATION_TYPE, UNKNOWN_ERROR, ERROR_TRACE_FILE, COMPARE_FUNCTIONS, CONVERT_FUNCTIONS
 from bridge.utils import logger, BridgeException, ArchiveFileContent, file_checksum
@@ -151,12 +154,16 @@ class RemoveUnsafeMarks(RemoveMarksBase):
         queryset = self.without_associations_qs
         with transaction.atomic():
             for mr in queryset.select_related('mark'):
-                mr.associated = (mr.result >= mr.mark.threshold)
+                mr.associated = bool(mr.result > 0 and mr.result >= mr.mark.threshold)
                 mr.save()
 
 
 class ConfirmUnsafeMark(ConfirmAssociationBase):
     model = MarkUnsafeReport
+
+    def can_confirm_validation(self):
+        if not self.association.result:
+            raise APIException(_("You can't confirm mark with zero similarity"))
 
     def recalculate_cache(self, report_id):
         RecalculateUnsafeCache(reports=[report_id])
@@ -337,7 +344,7 @@ class CompareMark:
                 res = jaccard(self._mark_cache, reports_cache[report_id])
                 results[report_id] = {
                     'result': res, 'error': None,
-                    'associated': bool(res >= self._mark.threshold)
+                    'associated': bool(res > 0 and res >= self._mark.threshold)
                 }
         return results
 
