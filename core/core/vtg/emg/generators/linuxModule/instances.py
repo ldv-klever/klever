@@ -210,9 +210,10 @@ def _simplify_process(logger, conf, sa, interfaces, process):
                     and not implementation.declaration.static:
                 # Maybe it is a variable
                 svar = sa.get_source_variable(implementation.value, file)
-                true_declaration = svar.declaration.to_string(svar.name, typedef='complex_and_params', specifiers=True)\
-                    if svar else None
-                if not svar:
+                if svar and (implementation.declaration.static or svar.declaration.static):
+                    true_declaration = svar.declaration.to_string(svar.name, typedef='complex_and_params',
+                                                                  specifiers=True)
+                elif not svar:
                     # Seems that it is a funciton
                     sf = sa.get_source_function(implementation.value, file)
                     if sf and not (sf.static or sf.declaration.static):
@@ -220,6 +221,8 @@ def _simplify_process(logger, conf, sa, interfaces, process):
                                                                     specifiers=True)
                     else:
                         continue
+                else:
+                    true_declaration = None
 
                 # Check
                 if true_declaration:
@@ -780,6 +783,7 @@ def _remove_statics(sa, process):
                     value = implementation.value
             else:
                 # Because this is a Variable
+                static = static or svar.declaration.static
                 declaration = svar.declaration
                 value = svar.name
 
