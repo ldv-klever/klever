@@ -16,6 +16,7 @@
  */
 
 #include <linux/module.h>
+#include <ldv/test.h>
 
 extern int kernel_library_export_with_error(void);
 

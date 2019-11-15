@@ -16,6 +16,7 @@
  */
 
 #include <linux/module.h>
+#include <ldv/test.h>
 
 extern void load_order_set_i(void);
 
