@@ -73,13 +73,13 @@ class Variable:
         :param extern: Add an 'extern' prefix if True.
         :return: Declartion string.
         """
-
-        # Generate declaration
-        expr = self._declaration.to_string(self._name, typedef='complex_and_params', scope=scope)
-
         # Add extern prefix
         if extern:
+            # Generate declaration
+            expr = self._declaration.to_string(self._name, typedef='complex_and_params', scope=scope, specifiers=False)
             expr = "extern " + expr
+        else:
+            expr = self._declaration.to_string(self._name, typedef='complex_and_params', scope=scope, specifiers=True)
 
         return expr
 
@@ -159,11 +159,13 @@ class Function:
         :param extern: Add the 'extern' prefix.
         :return: Declaration string.
         """
-        declaration = self._declaration.to_string(self._name, typedef='complex_and_params', scope=scope)
-        declaration += ';'
-
         if extern:
+            declaration = self._declaration.to_string(self._name, typedef='complex_and_params', scope=scope,
+                                                      specifiers=False)
             declaration = "extern " + declaration
+        else:
+            declaration = self._declaration.to_string(self._name, typedef='complex_and_params', scope=scope)
+        declaration += ';'
         return [declaration + "\n"]
 
     def define(self, scope=None):
