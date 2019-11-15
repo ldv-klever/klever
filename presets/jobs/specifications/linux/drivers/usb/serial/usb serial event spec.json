@@ -35,7 +35,14 @@
               "%driver%"
             ]
           },
-          "disconnect": {
+          "disconnect1": {
+            "callback": "%driver.disconnect%",
+            "comment": "The device is unplugged.",
+            "parameters": [
+              "%resource%"
+            ]
+          },
+          "disconnect2": {
             "callback": "%driver.disconnect%",
             "comment": "The device is unplugged.",
             "parameters": [
@@ -56,7 +63,7 @@
           },
           "insert_device": {
             "comment": "Device is inserted in the system.",
-            "process": "[probe].(<probed>.[attach].(<attached>.{main_workflow} | <not_attached>.[disconnect]) | <not_probed>).{insert_device} | <free>.(deregister)"
+            "process": "[probe].(<probed>.[attach].(<attached>.{main_workflow} | <not_attached>.[disconnect1]) | <not_probed>).{insert_device} | <free>.(deregister)"
           },
           "irq_write": {
             "callback": "%driver.write%",
@@ -73,7 +80,7 @@
           },
           "main_workflow": {
             "comment": "All initializations of usb_serial and device has been done, call the other callbacks.",
-            "process": "([suspend].(<suspended>.[resume] | <not_suspended>) | [port_probe].(<port_probed>.[open].(<opened>.{tty_layer} | <not_opened>.[port_remove]) | <not_port_probed>)).{main_workflow} | [disconnect].[release].{insert_device}"
+            "process": "([suspend].(<suspended>.[resume] | <not_suspended>) | [port_probe].(<port_probed>.[open].(<opened>.{tty_layer} | <not_opened>.[port_remove]) | <not_port_probed>)).{main_workflow} | [disconnect2].[release].{insert_device}"
           },
           "not_attached": {
             "comment": "Local initialization has failed.",
@@ -775,7 +782,13 @@
               "%driver%"
             ]
           },
-          "disconnect": {
+          "disconnect1": {
+            "callback": "%driver.disconnect%",
+            "comment": "The device is unplugged.",
+            "parameters": [
+              "%resource%"
+            ]
+          },"disconnect2": {
             "callback": "%driver.disconnect%",
             "comment": "The device is unplugged.",
             "parameters": [
@@ -796,7 +809,7 @@
           },
           "insert_device": {
             "comment": "Device is inserted in the system.",
-            "process": "[probe].(<probed>.[attach].(<attached>.{main_workflow} | <not_attached>.[disconnect]) | <not_probed>).{insert_device} | <free>.(deregister)"
+            "process": "[probe].(<probed>.[attach].(<attached>.{main_workflow} | <not_attached>.[disconnect1]) | <not_probed>).{insert_device} | <free>.(deregister)"
           },
           "irq_write": {
             "callback": "%driver.write%",
@@ -813,7 +826,7 @@
           },
           "main_workflow": {
             "comment": "All initializations of usb_serial and device has been done, call the other callbacks.",
-            "process": "([suspend].(<suspended>.[resume] | <not_suspended>) | [port_probe].(<port_probed>.[open].(<opened>.{tty_layer} | <not_opened>.[port_remove]) | <not_port_probed>)).{main_workflow} | [disconnect].[release].{insert_device}"
+            "process": "([suspend].(<suspended>.[resume] | <not_suspended>) | [port_probe].(<port_probed>.[open].(<opened>.{tty_layer} | <not_opened>.[port_remove]) | <not_port_probed>)).{main_workflow} | [disconnect2].[release].{insert_device}"
           },
           "not_attached": {
             "comment": "Local initialization has failed.",

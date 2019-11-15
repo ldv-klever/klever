@@ -12,7 +12,7 @@
           },
           "do": {
             "comment": "Begin a power management scenario.",
-            "process": "[runtime_idle].{do} | [runtime_suspend].[runtime_resume].{do} | [prepare].([suspend].([suspend_noirq].[resume_noirq] | <skip_noirq>).[resume] | [freeze].(<skip_noirq> | [freeze_noirq].[thaw_noirq]).[thaw] | [poweroff].([poweroff_noirq].[restore_noirq] | <skip_noirq>).[restore]).[complete].{do} | (pm_deregister)"
+            "process": "[runtime_idle].{do} | [runtime_suspend].[runtime_resume].{do} | [prepare].([suspend].([suspend_noirq].[resume_noirq] | <skip_noirq1>).[resume] | [freeze].(<skip_noirq2> | [freeze_noirq].[thaw_noirq]).[thaw] | [poweroff].([poweroff_noirq].[restore_noirq] | <skip_noirq3>).[restore]).[complete].{do} | (pm_deregister)"
           },
           "freeze": {
             "callback": "%pm_ops.freeze%",
@@ -106,7 +106,15 @@
               "%device%"
             ]
           },
-          "skip_noirq": {
+          "skip_noirq1": {
+            "comment": "Skip noirq callbacks",
+            "statements": []
+          },
+          "skip_noirq2": {
+            "comment": "Skip noirq callbacks",
+            "statements": []
+          },
+          "skip_noirq3": {
             "comment": "Skip noirq callbacks",
             "statements": []
           },
