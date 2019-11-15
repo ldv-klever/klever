@@ -152,6 +152,8 @@ class ErrorTrace:
                 # TODO: remove this redundant check after switching to new violation witness format since "bad" edge is artificial.
                 if 'source' in edge:
                     func_call_node.update(self.highlight(edge['source']))
+                else:
+                    func_call_node['source'] = 'Unknown'
 
                 if 'note' in edge:
                     func_call_node['note'] = edge['note']
