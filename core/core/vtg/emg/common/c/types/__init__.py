@@ -242,7 +242,7 @@ class Declaration:
             if type(self) is type(other):
                 if str(self) == str(other) or self.str_without_specifiers == other.str_without_specifiers:
                     return True
-                elif self.str_without_specifiers == 'void *' or self.str_without_specifiers == 'void *':
+                elif self.str_without_specifiers == 'void *' or other.str_without_specifiers == 'void *':
                     return True
             return False
         elif isinstance(other, str):
