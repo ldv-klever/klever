@@ -206,11 +206,10 @@ def _simplify_process(logger, conf, sa, interfaces, process):
         for intf in (i for i in process.allowed_implementations[access] if process.allowed_implementations[access][i]):
             implementation = process.allowed_implementations[access][intf]
             file = implementation.initialization_file
-            if (file not in _values_map or (implementation.value not in _values_map[file])) \
-                    and not implementation.declaration.static:
+            if file not in _values_map or (implementation.value not in _values_map[file]):
                 # Maybe it is a variable
                 svar = sa.get_source_variable(implementation.value, file)
-                if svar and (implementation.declaration.static or svar.declaration.static):
+                if svar and not (implementation.declaration.static or svar.declaration.static):
                     true_declaration = svar.declaration.to_string(svar.name, typedef='complex_and_params',
                                                                   specifiers=True)
                 elif not svar:
