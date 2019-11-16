@@ -57,7 +57,7 @@ class Automaton:
         variables = []
 
         # Generate variable for each label
-        for label in [self.process.labels[name] for name in self.process.labels.keys()]:
+        for label in self.process.labels.values():
             var = self.determine_variable(label, shadow_use=True)
             if var:
                 variables.append(self.determine_variable(label, shadow_use=True))

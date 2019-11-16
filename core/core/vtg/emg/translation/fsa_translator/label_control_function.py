@@ -15,8 +15,6 @@
 # limitations under the License.
 #
 
-from operator import attrgetter
-
 from core.vtg.emg.common import model_comment
 from core.vtg.emg.common.process import Subprocess, Parentheses, Choice, Concatenation, Action
 from core.vtg.emg.translation.code import control_function_comment_begin, control_function_comment_end
@@ -37,14 +35,14 @@ def label_based_function(conf, analysis, automaton, cf, model=True):
         if kfunction_obj.declaration.return_value != 'void':
             ret_expression = None
 
+    # Then add memory external allocation marks
+    f_code.extend(initialize_automaton_variables(conf, automaton))
+
     # Initialize variables
     # First add variables declarations
     for var in automaton.variables(only_used=True):
         scope = {automaton.process.file} if automaton.process.file else None
         v_code.append(var.declare(scope=scope) + ';')
-
-    # Then add memory external allocation marks
-    f_code.extend(initialize_automaton_variables(conf, automaton))
 
     # After that assign explicit values
     for var in (v for v in automaton.variables(only_used=True) if v.value):
