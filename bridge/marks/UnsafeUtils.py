@@ -174,7 +174,7 @@ class UnconfirmUnsafeMark(UnconfirmAssociationBase):
 
     def get_automatically_associated_qs(self):
         queryset = super(UnconfirmUnsafeMark, self).get_automatically_associated_qs()
-        return queryset.filter(error=None, result__gte=F('mark__threshold'))
+        return queryset.filter(error=None, result__gte=F('mark__threshold'), result__gt=0)
 
     def recalculate_cache(self, report_id):
         RecalculateUnsafeCache(reports=[report_id])
@@ -444,7 +444,7 @@ class CompareReport:
                 res = jaccard(marks_cache[mark_id]['cache'], rep_cache_set)
                 results[mark_id] = {
                     'result': res, 'error': None,
-                    'associated': bool(res >= marks_cache[mark_id]['threshold'])
+                    'associated': bool(res > 0 and res >= marks_cache[mark_id]['threshold'])
                 }
         return results
 
@@ -464,7 +464,7 @@ class UpdateAssociated:
                 result__lt=self._mark.threshold, type=ASSOCIATION_TYPE[1][0]
             ).update(type=ASSOCIATION_TYPE[0][0])
 
-        associate_condition = Q(result__gte=self._mark.threshold)
+        associate_condition = Q(result__gte=self._mark.threshold, result__gt=0)
         if has_confirmed:
             associate_condition &= Q(type=ASSOCIATION_TYPE[1][0])
 
