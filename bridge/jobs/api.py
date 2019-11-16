@@ -436,4 +436,4 @@ class PresetFormDataView(LoggedCallMixin, APIView):
     permission_classes = (IsAuthenticated,)
 
     def get(self, request, preset_uuid):
-        return Response(PresetsProcessor().get_form_data(preset_uuid))
+        return Response(PresetsProcessor(self.request.user).get_form_data(preset_uuid))

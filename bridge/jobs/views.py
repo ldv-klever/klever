@@ -56,7 +56,7 @@ class JobsTree(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, TemplateView)
             'statuses': JOB_STATUS, 'weights': JOB_WEIGHT, 'priorities': list(reversed(PRIORITY)),
             'months': months_choices(), 'years': years_choices(),
             'TableData': TableTree(self.request.user, self.get_view(VIEW_TYPES[1])),
-            'presets_tree': PresetsProcessor().get_jobs_tree(),
+            'presets_tree': PresetsProcessor(self.request.user).get_jobs_tree(),
             'can_create': JobAccess(self.request.user).can_create
         }
 
@@ -143,11 +143,9 @@ class PresetFormPage(LoginRequiredMixin, LoggedCallMixin, TemplateView):
     def get_context_data(self, **kwargs):
         if not JobAccess(self.request.user).can_create:
             raise BridgeException(_("You don't have an access to create new job"))
+        name, parent = PresetsProcessor(self.request.user).get_job_name_and_parent(self.kwargs['preset_uuid'])
         return {
-            'initial': {
-                'name': PresetsProcessor().get_job_name(self.kwargs['preset_uuid']),
-                'parent': '', 'save_url': reverse('jobs:api-create-job')
-            },
+            'initial': {'name': name, 'parent': parent, 'save_url': reverse('jobs:api-create-job')},
             'action': 'create', 'job_roles': JOB_ROLES, 'cancel_url': reverse('jobs:tree'),
             'initial_url': reverse('jobs:api-preset-data', args=[self.kwargs['preset_uuid']])
         }

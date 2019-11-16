@@ -20,10 +20,12 @@ import json
 from django.conf import settings
 from django.core.files import File
 from django.utils.functional import cached_property
+from django.utils.timezone import now
 
 from bridge.vars import USER_ROLES, JOB_ROLES
 
 from users.models import User
+from jobs.models import Job, JobHistory
 
 from jobs.utils import JSTreeConverter, get_unique_name
 from jobs.serializers import JobFileSerializer
@@ -43,7 +45,9 @@ class PresetsProcessor:
     tasks_file = 'tasks.json'
     job_file = 'job.json'
 
-    def __init__(self):
+    def __init__(self, user):
+        self._user = user
+        self._parent = None
         self._presets_dir = get_presets_dir()
 
     def get_jobs_tree(self):
@@ -51,20 +55,34 @@ class PresetsProcessor:
             return self.__get_production_tree(self._presets_data['jobs'])
         return self._presets_data['jobs']
 
-    def get_job_name(self, preset_uuid):
-        preset_uuid = str(preset_uuid)
+    def __get_fake_job(self, name, identifier):
+        try:
+            return Job.objects.get(identifier=identifier)
+        except Job.DoesNotExist:
+            new_job = Job.objects.create(name=name, parent=self._parent, identifier=identifier, author=self._user)
+        JobHistory.objects.create(
+            job=new_job, name=new_job.name, version=new_job.version, change_author=new_job.author, change_date=now()
+        )
+        return new_job
 
-        def find_name(jobs_list):
-            for data in jobs_list:
-                if 'uuid' in data and data['uuid'] == preset_uuid:
-                    return data['name']
-                elif 'children' in data:
-                    name = find_name(data['children'])
-                    if name:
-                        return name
-            return None
-        base_name = find_name(self._presets_data['jobs'])
-        return get_unique_name(base_name)
+    def __find_name(self, preset_uuid, jobs_list):
+        for data in jobs_list:
+            if 'uuid' in data and data['uuid'] == preset_uuid:
+                return data['name']
+            elif 'children' in data:
+                self._parent = self.__get_fake_job(data['name'], data['uuid'])
+                name = self.__find_name(preset_uuid, data['children'])
+                if name:
+                    return name
+                self._parent = self._parent.parent
+        return None
+
+    def get_job_name_and_parent(self, preset_uuid):
+        self._parent = None
+        preset_uuid = str(preset_uuid)
+        base_name = self.__find_name(preset_uuid, self._presets_data['jobs'])
+        parent = str(self._parent.identifier) if self._parent else ''
+        return get_unique_name(base_name), parent
 
     @cached_property
     def _presets_data(self):

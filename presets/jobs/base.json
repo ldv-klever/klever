@@ -7,6 +7,7 @@
     },
     {
       "name": "Linux",
+      "uuid": "027012dc-c23b-45d8-bc5d-e31ab8a62c42",
       "children": [
         {
           "uuid": "c1529fbf-a7db-4507-829e-55f846044309",
@@ -21,6 +22,7 @@
         },
         {
           "name": "Testing",
+          "uuid": "3a17feb4-84b3-4f44-b01e-43717a58ce5d",
           "children": [
             {
               "uuid": "6ca7df9c-c480-46ce-8a51-2282b12cce35",

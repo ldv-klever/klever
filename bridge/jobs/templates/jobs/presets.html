@@ -1,12 +1,5 @@
 {% for child in children %}
-    {% if child.uuid %}
-        <div class="item">
-            <i class="folder icon"></i>
-            <div class="content">
-                <div class="italic header"><a href="{% url 'jobs:preset-form' child.uuid %}">{{ child.name }}</a></div>
-            </div>
-        </div>
-    {% else %}
+    {% if child.children %}
         <div class="item">
             <i class="archive icon"></i>
             <div class="content">
@@ -16,6 +9,13 @@
                         {% include 'jobs/presets.html' with children=child.children %}
                     </div>
                 {% endif %}
+            </div>
+        </div>
+    {% else %}
+        <div class="item">
+            <i class="folder icon"></i>
+            <div class="content">
+                <div class="italic header"><a href="{% url 'jobs:preset-form' child.uuid %}">{{ child.name }}</a></div>
             </div>
         </div>
     {% endif %}
