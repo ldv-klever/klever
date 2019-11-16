@@ -138,9 +138,9 @@ def save_converted_trace(forests, function):
 def convert_error_trace(error_trace, function):
     # Convert error trace to forests
     if function == 'callback_call_forests':
-        forests = ErrorTraceForests(error_trace, only_callbacks=True).forests
+        forests = CallbackCallForests(error_trace).forests
     elif function == 'thread_call_forests':
-        forests = ErrorTraceForests(error_trace).forests
+        forests = ThreadCallForests(error_trace).forests
     else:
         raise ValueError('Error trace convert function is not supported')
     return save_converted_trace(forests, function)
@@ -240,54 +240,99 @@ class ConnectUnsafeReport:
         RecalculateUnsafeCache(reports=[self._report.id])
 
 
-class ErrorTraceForests:
-    def __init__(self, error_trace, only_callbacks=False):
+class ThreadCallForests:
+    def __init__(self, error_trace):
         self._trace = error_trace
-        self._only_callbacks = only_callbacks
         self._forests_dict = OrderedDict()
         self.forests = self.__collect_forests()
 
     def __collect_forests(self):
         self.__parse_child(self._trace['trace'])
-        all_forests = []
-        for thread_forests in self._forests_dict.values():
-            all_forests.extend(thread_forests)
-        return all_forests
+        return list(self._forests_dict.values())
 
     def __parse_child(self, node, thread=None):
         if node['type'] == 'statement':
             return []
 
         if node['type'] == 'thread':
-            self._forests_dict[node['thread']] = []
-            children_forests = []
+            self._forests_dict.setdefault(node['thread'], [])
+            children_call_trees = []
             for child in node['children']:
-                children_forests.extend(self.__parse_child(child, node['thread']))
-            if not self._only_callbacks:
-                # Children forests here have function roots, not callbacks
-                self._forests_dict[node['thread']].extend(children_forests)
+                children_call_trees.extend(self.__parse_child(child, node['thread']))
+            self._forests_dict[node['thread']].extend(children_call_trees)
             return []
 
         if node['type'] == 'function call':
             has_body_note = False
-            children_forests = []
+            children_call_trees = []
             for child in node['children']:
                 has_body_note |= self.__has_note(child)
-                children_forests.extend(self.__parse_child(child, thread))
+                children_call_trees.extend(self.__parse_child(child, thread))
 
-            if children_forests or has_body_note or bool(node.get('note')):
-                return [{node.get('display', node['source']): children_forests}]
+            if children_call_trees or has_body_note or bool(node.get('note')):
+                return [{node.get('display', node['source']): children_call_trees}]
             # No children and no notes in body and no notes in call
             return []
 
         if node['type'] == 'action':
-            new_forests = []
+            children_call_trees = []
             for child in node['children']:
-                new_forests.extend(self.__parse_child(child, thread))
+                children_call_trees.extend(self.__parse_child(child, thread))
             if node.get('callback'):
-                self._forests_dict[thread].append({node['display']: new_forests})
+                # Add to the thread forest its call tree with callback action at the root
+                if children_call_trees:
+                    self._forests_dict[thread].append(children_call_trees)
                 return []
-            return new_forests
+            return children_call_trees
+
+    def __has_note(self, node):
+        if node['type'] == 'action':
+            # Skip callback actions
+            if node.get('callback'):
+                return False
+            for child in node['children']:
+                if self.__has_note(child):
+                    return True
+            return False
+        return bool(node.get('note'))
+
+
+class CallbackCallForests:
+    def __init__(self, error_trace):
+        self._trace = error_trace
+        self.forests = []
+        self.__parse_child(self._trace['trace'])
+
+    def __parse_child(self, node):
+        if node['type'] == 'statement':
+            return []
+
+        if node['type'] == 'thread':
+            for child in node['children']:
+                self.__parse_child(child)
+            return []
+
+        if node['type'] == 'function call':
+            has_body_note = False
+            children_call_trees = []
+            for child in node['children']:
+                has_body_note |= self.__has_note(child)
+                children_call_trees.extend(self.__parse_child(child))
+
+            if children_call_trees or has_body_note or bool(node.get('note')):
+                return [{node.get('display', node['source']): children_call_trees}]
+            # No children and no notes in body and no notes in call
+            return []
+
+        if node['type'] == 'action':
+            children_call_trees = []
+            for child in node['children']:
+                children_call_trees.extend(self.__parse_child(child))
+            if node.get('callback'):
+                if children_call_trees:
+                    self.forests.append(children_call_trees)
+                return []
+            return children_call_trees
 
     def __has_note(self, node):
         if node['type'] == 'action':

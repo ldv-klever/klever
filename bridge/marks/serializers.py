@@ -267,8 +267,6 @@ class UnsafeMarkVersionSerializer(WithTagsMixin, serializers.ModelSerializer):
         convert_func = COMPARE_FUNCTIONS[compare_func]['convert']
         assert convert_func in CONVERT_FUNCTIONS
         forests = json.loads(err_trace_str)
-        # TODO: is it enough? Or we need deeper check of forests format?
-        assert isinstance(forests, list)
         return save_converted_trace(forests, convert_func)
 
     def validate(self, attrs):
