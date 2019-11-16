@@ -42,7 +42,7 @@ def _collect_action_diaposons(logger, error_trace):
     main_data = None
 
     # Determine control functions and allowed intervals
-    intervals = ['CONTROL_FUNCTION_INIT', 'CALL', 'DISPATCH', 'RECEIVE', 'SUBPROCESS', 'CONDITION']
+    intervals = ['CONTROL_FUNCTION_INIT', 'CALL', 'DISPATCH', 'RECEIVE', 'SUBPROCESS', 'BLOCK']
     data = dict()
     for file in error_trace.emg_comments.keys():
         data[file] = dict()
