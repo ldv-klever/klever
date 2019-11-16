@@ -375,7 +375,7 @@ class UnsafeMarkSerializer(DynamicFieldsModelSerializer):
     class Meta:
         model = MarkUnsafe
         fields = (
-            'identifier', 'is_modifiable', 'verdict',
+            'id', 'identifier', 'is_modifiable', 'verdict',
             'status', 'mark_version', 'function', 'threshold'
         )
 
