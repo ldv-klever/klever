@@ -48,6 +48,10 @@ class Automaton:
     def __eq__(self, other):
         return type(self) is type(other) and str(self) == str(other)
 
+    @property
+    def identifier(self):
+        return self._identifier
+
     def variables(self, only_used=False):
         """
         Generate a variable for each process label or just return an already generated list of variables.

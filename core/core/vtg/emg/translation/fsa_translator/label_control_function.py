@@ -80,7 +80,7 @@ def label_based_function(conf, analysis, automaton, cf, model=True):
         v_code.insert(0, control_function_comment_begin(cf.name, automaton.process.comment))
     else:
         name = '{}({})'.format(automaton.process.name, automaton.process.category)
-        v_code.insert(0, control_function_comment_begin(cf.name, automaton.process.comment, str(automaton)))
+        v_code.insert(0, control_function_comment_begin(cf.name, automaton.process.comment, automaton.identifier))
     f_code.append(control_function_comment_end(cf.name, name))
     cf.body.extend(v_code + f_code)
 
