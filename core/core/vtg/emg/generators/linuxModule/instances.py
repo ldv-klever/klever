@@ -373,8 +373,7 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
             comment_invoke = return_expression + '{}'.format(true_call) + '(' + ', '.join(external_parameters) + ');'
         else:
             comment_invoke = true_invoke
-        cmnt = model_comment('callback', call.name, {'call': comment_invoke})
-        return [cmnt, true_invoke], pre, post
+        return [true_invoke], pre, post
 
     def add_post_conditions(inv):
         post_call = []
@@ -763,6 +762,7 @@ def _remove_statics(sa, process):
         # Generate params
         params = ', '.join(["arg{}".format(i) for i in range(len(f.declaration.parameters))])
         call = "{} {}({});".format(ret, sa.refined_name(implementation.value), params)
+        f.body.append(model_comment('callback', sa.refined_name(implementation.value), {'call': call}))
         f.body.append(call)
 
         return f
