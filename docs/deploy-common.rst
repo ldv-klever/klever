@@ -86,7 +86,7 @@ Frama-C (CIL)
 ^^^^^^^^^^^^^
 
 You can get `Frama-C (CIL) <https://frama-c.com/>`__ binaries from
-`here <https://forge.ispras.ru/attachments/download/7044/frama-c-cil-2d01483.tar.xz>`__.
+`here <https://forge.ispras.ru/attachments/download/7045/frama-c-cil-18b9546.tar.xz>`__.
 As well, you can build it from
 `this source <https://forge.ispras.ru/projects/astraver/repository/framac>`__ (branch :file:`18.0`)
 which has several specific patches relatively to the mainline.
