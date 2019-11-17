@@ -55,9 +55,6 @@ def merge_files(logger, conf, abstract_task_desc):
             # This allows to avoid temporary variables to hold return values for all functions and returns at the end of
             # functions even when returning in the middle.
             '-no-single-return',
-            # Remove redundant zero initializers of global variables that are specified in original sources (rarely) or
-            # added by CIL itself.
-            '-shrink-initializers',
             # Rest options.
             '-keep-logical-operators',
             '-aggressive-merging',
