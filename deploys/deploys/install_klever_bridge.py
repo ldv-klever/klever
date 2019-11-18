@@ -118,8 +118,10 @@ def install_klever_bridge_production(logger, deploy_dir, populate_just_productio
         logger.info('Collect static files')
         execute_cmd(logger, './manage.py', 'collectstatic', '--noinput')
 
-    # Make available data from media for its actual user.
+    # Make available data from media, logs and static for its actual user.
     execute_cmd(logger, 'chown', '-R', 'www-data:www-data', media_real)
+    execute_cmd(logger, 'chown', '-R', 'www-data:www-data', '/var/www/klever-bridge/logs')
+    execute_cmd(logger, 'chown', '-R', 'www-data:www-data', '/var/www/klever-bridge/static')
 
     start_services(logger, services)
 
