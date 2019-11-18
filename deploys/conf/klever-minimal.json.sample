@@ -68,7 +68,7 @@
       "path": "https://forge.ispras.ru/attachments/download/6780/cif-d09b7a5.tar.xz"
     },
     "CIL": {
-      "version": "460aed4",
+      "version": "2d01483",
       "path": "https://forge.ispras.ru/attachments/download/7044/frama-c-cil-2d01483.tar.xz",
       "executable path": "."
     },
