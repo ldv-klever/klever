@@ -248,7 +248,7 @@ class ThreadCallForests:
 
     def __collect_forests(self):
         self.__parse_child(self._trace['trace'])
-        return list(self._forests_dict.values())
+        return list(forest for forest in self._forests_dict.values() if forest)
 
     def __parse_child(self, node, thread=None):
         if node['type'] == 'statement':
