@@ -316,14 +316,13 @@ FilesTree.prototype.initialize_modals = function() {
 
     // Upload new file and replace old one on confirm button click
     instance.tree_replace_modal.find('.modal-confirm').click(function () {
-        let confirm_btn = $(this),
-            form_data = new FormData(instance.tree_replace_modal.find('.modal-form')[0]);
+        let confirm_btn = $(this), form_data = new FormData(),
+            form_container = instance.tree_replace_modal.find('.modal-form');
 
-        if (form_data.get('file').name.length === 0) {
-            err_notify(instance.messages.file_required);
-            return false;
-        }
+        form_data.append('name', form_container.find('input[name="name"]').first().val());
+        form_data.append('file', form_container.find('input[name="file"]')[0].files[0]);
 
+        if (form_data.get('file').name.length === 0) return err_notify(instance.messages.file_required);
         if (!instance.check_filename(form_data.get('name'))) return false;
 
         confirm_btn.addClass('loading disabled');
@@ -365,8 +364,11 @@ FilesTree.prototype.initialize_modals = function() {
 
     // Upload new file on confirm
     instance.tree_upload_modal.find('.modal-confirm').click(function () {
-        let confirm_btn = $(this),
-            form_data = new FormData(instance.tree_upload_modal.find('.modal-form')[0]);
+        let confirm_btn = $(this), form_data = new FormData(),
+            form_container = instance.tree_upload_modal.find('.modal-form');
+
+        form_data.append('name', form_container.find('input[name="name"]').first().val());
+        form_data.append('file', form_container.find('input[name="file"]')[0].files[0]);
 
         if (form_data.get('file').name.length === 0) {
             err_notify(instance.messages.file_required);
