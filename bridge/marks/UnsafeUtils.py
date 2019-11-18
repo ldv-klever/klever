@@ -256,10 +256,8 @@ class ThreadCallForests:
 
         if node['type'] == 'thread':
             self._forests_dict.setdefault(node['thread'], [])
-            children_call_trees = []
             for child in node['children']:
-                children_call_trees.extend(self.__parse_child(child, node['thread']))
-            self._forests_dict[node['thread']].extend(children_call_trees)
+                self.__parse_child(child, node['thread'])
             return []
 
         if node['type'] == 'function call':
