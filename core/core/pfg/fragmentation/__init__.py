@@ -59,7 +59,7 @@ class FragmentationAlgorythm:
         # Complex attributes
         self.attributes = self.__attributes()
 
-    def fragmentation(self, fragmentation_set):
+    def fragmentation(self, fragmentation_set, tactic_name, fset_name):
         """
         It is the main function for a fragmentation strategy. The workflow is the following: it determines logical
         components of the program called units, then chooses files and units that should be verified according to the
@@ -69,6 +69,8 @@ class FragmentationAlgorythm:
         files names compilation commands to get their options and dependencies between files.
 
         :parameter fragmentation_set: Fragmentation set description dict.
+        :parameter tactic_name: Fragmentation tactic name.
+        :parameter fset_name: Fragmentation set name.
         """
         # Extract dependencies
         self.logger.info("Start program fragmentation")
@@ -124,7 +126,7 @@ class FragmentationAlgorythm:
 
         # Prepare data attributes
         self.logger.info("Prepare data attributes for generated fragments")
-        attr_data = self.__prepare_data_files(grps)
+        attr_data = self.__prepare_data_files(grps, tactic_name, fset_name)
 
         # Print fragments
         if self.tactic.get('print fragments'):
@@ -285,11 +287,13 @@ class FragmentationAlgorythm:
         aggregator = Abstract(self.logger, self.conf, self.tactic, program)
         return aggregator.get_groups()
 
-    def __prepare_data_files(self, grps):
+    def __prepare_data_files(self, grps, tactic, fragmentation_set):
         """
         Prepare data files that describe program fragments content.
 
         :param grps: Dictionary with program fragments with dependencies.
+        :param tactic: Name of the tactic.
+        :param grps: Name of the fragmentation set.
         :return: Attributes and dict a list of data files.
         """
         data = dict()
@@ -301,17 +305,9 @@ class FragmentationAlgorythm:
             ujson.dump(data, fp, sort_keys=True, indent=4, ensure_ascii=False,
                        escape_forward_slashes=False)
 
-        main_desc = [
-            {'name': 'program', 'value': self.conf['project'], 'data': 'agregations description.json'},
-        ]
-        tactic = self.conf.get('fragmentation tactic', 'default')
-        if isinstance(tactic, dict):
-            tactic = 'custom'
+        main_desc = [{'name': 'program', 'value': self.conf['project'], 'data': 'agregations description.json'}]
         main_desc.append({'name': 'fragmentation tactic', 'value': tactic})
-        fset = self.conf.get('fragmentation set', 'default')
-        if isinstance(fset, dict):
-            fset = 'custom'
-        main_desc.append({'name': 'fragmentation set', 'value': fset})
+        main_desc.append({'name': 'fragmentation set', 'value': fragmentation_set})
         return [{'name': 'Fragmentation set', 'value': main_desc}], ['agregations description.json']
 
     def __attributes(self):

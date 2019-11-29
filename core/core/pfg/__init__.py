@@ -39,15 +39,14 @@ class PFG(core.components.Component):
         fragdb = self.conf['program fragments base']
 
         # Make basic sanity checks and merge configurations
-        tactic, fset = self._merge_configurations(fragdb, self.conf['project'], self.conf.get('fragmentation set'),
-                                                  self.conf.get('fragmentation tactic'))
+        tactic, fset, tactic_name, fset_name = self._merge_configurations(fragdb, self.conf['project'])
 
         # Import project strategy
         strategy = self._get_fragmentation_strategy(self.conf['project'])
 
         # Fragmentation
         strategy = strategy(self.logger, self.conf, tactic, self.PF_DIR)
-        attr_data, fragments_files = strategy.fragmentation(fset)
+        attr_data, fragments_files = strategy.fragmentation(fset, tactic_name, fset_name)
 
         # Prepare attributes
         self.source_paths = strategy.source_paths
@@ -92,7 +91,7 @@ class PFG(core.components.Component):
         with open(self.PF_FILE, 'w') as fp:
             fp.writelines((os.path.relpath(f, self.conf['main working directory']) + '\n' for f in files))
 
-    def _merge_configurations(self, db, program, fset_name, dset):
+    def _merge_configurations(self, db, program):
         """
         Program fragmentation depends on a template and fragmentation set prepared for a particular program version.
         This function reads the file with templates and fragmentation sets and merges required configuration properties
@@ -100,10 +99,11 @@ class PFG(core.components.Component):
 
         :param db: Directory where to search for fragmentation sets description files.
         :param program: Program name.
-        :param fset_name: Fragmentation set name.
-        :param dset: Fragmentation tactic name.
-        :return: {options}, {fragmentation set}.
+        :return: {options}, {fragmentation set}, tactic_name, fset_name.
         """
+        fset_name = self.conf.get('fragmentation set')
+        tactic_name = self.conf.get('fragmentation tactic')
+
         if program:
             self.logger.info("Search for fragmentation description and configuration for {!r}".format(program))
             file_name = os.path.join(db, '%s.json' % program.capitalize())
@@ -117,24 +117,26 @@ class PFG(core.components.Component):
             raise ValueError("Require 'project' attribute to be set in job.json to proceed")
 
         # Read tactics
-        if not isinstance(dset, dict):
+        if not isinstance(tactic_name, dict):
             tactics = specification.get('tactics', {})
             tactic = {}
-            if dset and dset in tactics:
+            if tactic_name and tactic_name in tactics:
                 self.logger.info('Found options for {!r} tactic'.format(tactic))
-                tactic.update(tactics[dset])
-            elif dset:
-                raise KeyError('There is no {!r} tactic in fragmentation sets description file'.format(dset))
+                tactic.update(tactics[tactic_name])
+            elif tactic_name:
+                raise KeyError('There is no {!r} tactic in fragmentation sets description file'.format(tactic_name))
             else:
                 for item, desc in tactics.items():
                     if desc.get('reference'):
                         self.logger.info('Use default options from {!r} tactic'.format(item))
                         tactic.update(desc)
+                        tactic_name = item
                         break
                 else:
                     self.logger.info('There is no either default or provided tactic')
         else:
-            tactic = dset
+            tactic = tactic_name
+            tactic_name = 'custom'
 
         # Read fragmentation set
         if not isinstance(fset_name, dict):
@@ -144,19 +146,26 @@ class PFG(core.components.Component):
                 self.logger.info('Fragmentation set {!r}'.format(fset_name))
                 fset.update(fsets[fset_name])
             elif fset_name:
-                raise KeyError('There is no {!r} fragmentation set in fragmentation sets description file'.format(dset))
+                raise KeyError('There is no {!r} fragmentation set in fragmentation sets description file'.format(tactic_name))
             else:
+                fset_name = None
                 if fsets:
                     for item, desc in fsets.items():
                         if desc.get('reference'):
                             self.logger.info('Use default {!r} fragmentation set'.format(item))
                             fset.update(desc)
+                            if not fset_name:
+                                fset_name = item
+                            else:
+                                # There are several sets were merged
+                                fset_name = 'default'
                 else:
-                    self.logger.info('There is no either default or provided tactic')
+                    self.logger.info('There is no either default or provided fragmentation set')
+                    fset_name = 'custom'
         else:
             fset = fset_name
 
-        return tactic, fset
+        return tactic, fset, tactic_name, fset_name
 
     def _get_fragmentation_strategy(self, strategy_name):
         """
