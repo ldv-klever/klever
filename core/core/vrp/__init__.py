@@ -97,8 +97,8 @@ class VRP(core.components.Component):
     def __result_processing(self):
         pending = dict()
         # todo: implement them in GUI
-        solution_timeout = 10
-        generation_timeout = 5
+        solution_timeout = 1
+        generation_timeout = 1
 
         source_paths = self.conf['working source trees']
         self.logger.info('Source paths to be trimmed file names: {0}'.format(source_paths))
