@@ -299,7 +299,14 @@ class FragmentationAlgorythm:
         data = dict()
         for name, main_and_frgs in grps.items():
             main, frags = main_and_frgs
-            data[name] = {f.name: sorted(make_relative_path(self.source_paths, l.name) for l in f.files) for f in frags}
+            data[name] = {
+                "fragments": {
+                    f.name: {
+                        'content': {make_relative_path(self.source_paths, l.name): l.size for l in f.files},
+                        'size': str(f.size)
+                } for f in frags},
+                "size": str(sum(int(f.size) for f in frags))
+            }
 
         with open('agregations description.json', 'w', encoding='utf8') as fp:
             ujson.dump(data, fp, sort_keys=True, indent=4, ensure_ascii=False,
@@ -358,7 +365,8 @@ class FragmentationAlgorythm:
             'fragment': name,
             'targets': sorted([str(f) for f in main_fragment.target_files]),
             'grps': list(),
-            'deps': dict()
+            'deps': dict(),
+            'size': str(sum((int(f.size) for f in fragments)))
         }
 
         for frag in fragments:

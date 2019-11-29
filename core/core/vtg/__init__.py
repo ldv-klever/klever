@@ -630,6 +630,10 @@ class VTGW(core.components.Component):
                                   {
                                       "name": "Requirements specification",
                                       "value": self.req_spec_id
+                                  },
+                                  {
+                                      "name": "Size",
+                                      "value": self.program_fragment_desc['size']
                                   }
                               ]
                           },

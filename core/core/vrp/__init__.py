@@ -277,6 +277,12 @@ class RP(core.components.Component):
                                       "value": req_spec_id,
                                       "compare": True,
                                       "associate": True
+                                  },
+                                  {
+                                      "name": "Size",
+                                      "value": program_fragment_desc['size'],
+                                      "compare": False,
+                                      "associate": False
                                   }
                               ]
                           },
