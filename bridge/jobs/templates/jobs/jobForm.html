@@ -83,6 +83,7 @@
                 <div class="ui fluid input field">
                     <input id="parent_identifier" maxlength="36" type="text" value="{{ initial.parent }}">
                 </div>
+                <input id="preset_uuid" type="hidden" value="{% if initial.preset_uuid %}{{ initial.preset_uuid }}{% endif %}">
             </div>
 
             {# Files table #}
@@ -136,7 +137,8 @@
             job_form.initialize({
                 name: 'job_name',
                 comment: 'job_comment',
-                parent: 'parent_identifier'
+                parent: 'parent_identifier',
+                preset_uuid: 'preset_uuid'
             }, {
                 name: "{% trans 'Title' %}",
                 comment: "{% trans 'Change comment' %}",

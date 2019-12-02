@@ -39,6 +39,15 @@ class JobFile(WithFilesMixin, models.Model):
         return self.hash_sum
 
 
+class PresetStatus(models.Model):
+    identifier = models.UUIDField(db_index=True)
+    check_date = models.DateTimeField(auto_now=True)
+    hash_sum = models.CharField(max_length=128)
+
+    class Meta:
+        db_table = 'job_preset'
+
+
 class Job(MPTTModel):
     identifier = models.UUIDField(unique=True, db_index=True, default=uuid.uuid4)
     name = models.CharField(max_length=150, unique=True, db_index=True)
@@ -49,6 +58,9 @@ class Job(MPTTModel):
     coverage_details = models.CharField(max_length=1, choices=COVERAGE_DETAILS,
                                         default=COVERAGE_DETAILS[0][0])
     author = models.ForeignKey(User, models.SET_NULL, blank=True, null=True, related_name='jobs')
+
+    preset_uuid = models.UUIDField(null=True, blank=True)
+    creation_date = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return self.name

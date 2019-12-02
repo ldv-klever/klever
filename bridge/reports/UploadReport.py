@@ -38,12 +38,13 @@ from reports.models import (
     ReportRoot, ReportComponent, ReportSafe, ReportUnsafe, ReportUnknown, ReportAttr,
     ReportComponentLeaf, CoverageArchive, AttrFile, Computer, OriginalSources, AdditionalSources
 )
-from marks.SafeUtils import ConnectSafeReport
-from marks.UnsafeUtils import ConnectUnsafeReport
-from marks.UnknownUtils import ConnectUnknownReport
 from service.models import Task, Decision
 from service.utils import FinishJobDecision
 from caches.models import ReportSafeCache, ReportUnsafeCache, ReportUnknownCache
+
+from marks.SafeUtils import ConnectSafeReport
+from marks.UnknownUtils import ConnectUnknownReport
+from marks.tasks import connect_unsafe_report
 
 from reports.serializers import ReportAttrSerializer, ComputerSerializer
 from reports.coverage import FillCoverageStatistics
@@ -702,7 +703,7 @@ class UploadReport:
         ))
 
         # Connect new unsafe with marks
-        ConnectUnsafeReport(report)
+        connect_unsafe_report.delay(report.id)
 
     def __upload_additional_sources(self, arch_name):
         add_src = AdditionalSources(root=self.root)

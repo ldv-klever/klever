@@ -38,8 +38,8 @@ from reports.models import (
     CoverageArchive, OriginalSources, ORIGINAL_SOURCES_DIR
 )
 from marks.SafeUtils import ConnectSafeReport
-from marks.UnsafeUtils import ConnectUnsafeReport
 from marks.UnknownUtils import ConnectUnknownReport
+from marks.tasks import connect_unsafe_report
 
 from caches.utils import RecalculateSafeCache, RecalculateUnsafeCache, RecalculateUnknownCache
 from reports.coverage import FillCoverageStatistics
@@ -170,8 +170,7 @@ class RecalculateUnsafeLinks:
     def __connect_marks(self):
         MarkUnsafeReport.objects.filter(report__root__in=self._roots).delete()
         for report in ReportUnsafe.objects.filter(root__in=self._roots):
-            ConnectUnsafeReport(report)
-        RecalculateUnsafeCache(roots=set(r.id for r in self._roots))
+            connect_unsafe_report.delay(report.id)
 
 
 class RecalculateUnknownLinks:

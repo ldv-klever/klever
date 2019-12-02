@@ -39,7 +39,7 @@ from reports.coverage import JobCoverageStatistics
 
 from jobs.models import Job, RunHistory, JobFile
 from jobs.serializers import JobFormSerializerRO, get_view_job_data
-from jobs.utils import months_choices, years_choices, JobDecisionData, JobAccess, CompareFileSet
+from jobs.utils import months_choices, years_choices, is_preset_changed, JobDecisionData, JobAccess, CompareFileSet
 from jobs.configuration import StartDecisionData
 from jobs.ViewJobData import ViewJobData
 from jobs.JobTableProperties import TableTree
@@ -88,6 +88,7 @@ class JobPage(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, DetailView):
 
         # Job coverages
         context['Coverage'] = JobCoverageStatistics(self.object)
+        context['preset_changed'] = is_preset_changed(self.object.preset_uuid, self.object.creation_date)
 
         return context
 
@@ -145,7 +146,11 @@ class PresetFormPage(LoginRequiredMixin, LoggedCallMixin, TemplateView):
             raise BridgeException(_("You don't have an access to create new job"))
         name, parent = PresetsProcessor(self.request.user).get_job_name_and_parent(self.kwargs['preset_uuid'])
         return {
-            'initial': {'name': name, 'parent': parent, 'save_url': reverse('jobs:api-create-job')},
+            'initial': {
+                'name': name, 'parent': parent,
+                'save_url': reverse('jobs:api-create-job'),
+                'preset_uuid': self.kwargs['preset_uuid']
+            },
             'action': 'create', 'job_roles': JOB_ROLES, 'cancel_url': reverse('jobs:tree'),
             'initial_url': reverse('jobs:api-preset-data', args=[self.kwargs['preset_uuid']])
         }

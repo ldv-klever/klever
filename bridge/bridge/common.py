@@ -35,7 +35,7 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'rest_framework', 'rest_framework.authtoken', 'mptt', 'compressor', 'django_celery_results',
+    'rest_framework', 'rest_framework.authtoken', 'mptt', 'compressor', 'django_celery_results', 'django_celery_beat',
     'bridge', 'jobs', 'marks', 'reports', 'service', 'tools', 'users', 'caches'
 )
 
@@ -197,3 +197,12 @@ with open(os.path.join(BASE_DIR, 'bridge', 'rmq.json'), encoding='utf8') as fp:
 CELERY_BROKER_URL = 'amqp://{username}:{password}@{host}:{port}'.format(**RABBIT_MQ)
 # CELERY_TIMEZONE = TIME_ZONE
 CELERY_RESULT_BACKEND = 'django-db'
+CELERY_TIMEZONE = 'Europe/Moscow'
+
+CELERY_BEAT_SCHEDULE = {
+    'check-preset-60-sec': {
+        'task': 'jobs.check_presets',
+        'schedule': 60.0,
+        'args': ()
+    },
+}

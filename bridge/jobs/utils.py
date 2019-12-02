@@ -28,7 +28,7 @@ from django.utils.translation import ugettext_lazy as _
 from bridge.vars import JOB_STATUS, USER_ROLES, JOB_ROLES, JOB_WEIGHT, SUBJOB_NAME
 from bridge.utils import file_get_or_create, BridgeException
 
-from jobs.models import Job, JobHistory, JobFile, FileSystem, UserRole, RunHistory
+from jobs.models import Job, JobHistory, JobFile, FileSystem, UserRole, RunHistory, PresetStatus
 from reports.models import ReportRoot, ReportComponent
 from service.models import Decision
 
@@ -143,6 +143,13 @@ def get_unique_name(base_name):
         if new_name not in names_in_use:
             return new_name
         cnt += 1
+
+
+def is_preset_changed(preset_uuid, creation_date):
+    preset_obj = PresetStatus.objects.filter(identifier=preset_uuid).only('check_date').first()
+    if preset_obj:
+        return bool(preset_obj.check_date > creation_date)
+    return True
 
 
 class JobAccess:

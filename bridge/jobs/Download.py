@@ -121,7 +121,7 @@ class UploadJobSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Job
-        exclude = ('id', 'author', *MPTT_FIELDS)
+        exclude = ('id', 'author', 'creation_date', *MPTT_FIELDS)
         extra_kwargs = {'parent': {'write_only': True}}
 
 
