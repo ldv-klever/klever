@@ -72,8 +72,13 @@
                 <div class="ui dropdown item">
                     <div class="header">{% trans 'Decision' %}</div><i class="dropdown icon"></i>
                     <div class="menu">
-                        <a id="decide_job_btn" class="item{% if not job_access.can_decide %} disabled{% endif %}"><i class="play icon"></i> {% trans 'Start' %}</a>
-                        <a id="fast_decide_job_btn" class="item{% if not job_access.can_decide %} disabled{% endif %}"><i class="forward icon"></i> {% trans 'Start with default values' %}</a>
+                        {% if run_history|length %}
+                            <a id="decide_job_btn" class="item{% if not job_access.can_decide %} disabled{% endif %}"><i class="play icon"></i> {% trans 'Start' %}</a>
+                            <a id="fast_decide_job_btn" class="item{% if not job_access.can_decide %} disabled{% endif %}"><i class="forward icon"></i> {% trans 'Start with default values' %}</a>
+                        {% else %}
+                            <a href="{% url 'jobs:prepare-decision' job.id %}" class="item{% if not job_access.can_decide %} disabled{% endif %}"><i class="play icon"></i> {% trans 'Start' %}</a>
+                            <a id="force_fast_decide_job_btn" class="item{% if not job_access.can_decide %} disabled{% endif %}"><i class="forward icon"></i> {% trans 'Start with default values' %}</a>
+                        {% endif %}
                         <a id="last_decide_job_btn" class="item{% if not job_access.can_decide_last %} disabled{% endif %}"><i class="redo icon"></i> {% trans 'Start with last configuration' %}</a>
                         <a id="stop_job_btn" class="item{% if not job_access.can_stop %} disabled{% endif %}"><i class="stop icon"></i> {% trans 'Stop' %}</a>
                     </div>
@@ -223,7 +228,7 @@
         <span id="jstree_view_label">{% trans 'View' %}</span>
         <span id="jstree_download_label">{% trans 'Download' %}</span>
 
-        <span id="warn__decide_job">{% trans 'All existing reports of this job will be deleted' %}!</span>
+        <span id="warn__decide_job">{% trans 'All existing reports and previous decision results of this job will be deleted' %}!</span>
         <span id="warn__remove_job">{% trans 'All versions and all data of this job will be deleted' %}!</span>
         <span id="warn__collapse">{% trans 'There is no reverse of this action' %}!</span>
         <span id="warn__has_children">{% trans 'The job has children, and all of them will be deleted' %}!</span>

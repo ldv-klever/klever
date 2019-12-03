@@ -160,6 +160,7 @@ $(document).ready(function () {
         window.location.href = PAGE_URLS.prepare_decision })
     });
     $('#fast_decide_job_btn').click(function () { show_warn_modal($(this), 'warn__decide_job', fast_run_decision) });
+    $('#force_fast_decide_job_btn').click(fast_run_decision);
     $('#last_decide_job_btn').click(function () { show_warn_modal($(this), 'warn__decide_job', lastconf_run_decision) });
     $('#stop_job_btn').click(function () { show_warn_modal($(this), 'warn__stop_decision', stop_job_decision) });
     $('#collapse_reports_btn').click(function () { show_warn_modal($(this), 'warn__collapse', collapse_reports) });
