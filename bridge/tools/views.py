@@ -41,7 +41,7 @@ from service.models import Task
 from tools.models import LockTable
 
 from tools.utils import objects_without_relations, ClearFiles, Recalculation, RecalculateMarksCache
-from tools.profiling import ProfileData, clear_old_logs, ExecLocker, LoggedCallMixin
+from tools.profiling import ProfileData, ExecLocker, LoggedCallMixin
 
 from marks.population import (
     PopulateSafeTags, PopulateUnsafeTags, PopulateSafeMarks, PopulateUnsafeMarks, PopulateUnknownMarks
@@ -172,15 +172,6 @@ class ProcessingListView(LoginRequiredMixin, TemplateView):
         context['data'] = ProfileData().processing()
         context['locked'] = LockTable.objects.filter(locked=True)
         return context
-
-
-class ClearLogsAPIView(LoggedCallMixin, APIView):
-    permission_classes = (ManagerPermission,)
-
-    def delete(self, request):
-        assert request.user.role == USER_ROLES[2][0]
-        clear_old_logs()
-        return Response({'message': _('Logs were successfully cleared')})
 
 
 class ClearTasksAPIView(LoggedCallMixin, APIView):

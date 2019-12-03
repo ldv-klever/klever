@@ -50,7 +50,6 @@
                 <a class="ui icon mini basic button" href="{% url 'reports:coverage-download' statistics.coverage.id %}" style="float:left;">{% trans 'Download coverage' %}</a>
             {% endif %}
             <div class="ui mini icon buttons">
-                <button id="src_back_btn" class="ui violet disabled icon button note-popup" data-content="{% trans 'Previous source' %}"><i class="ui arrow left icon"></i></button>
                 <button id="prev_cov_btn" class="ui green button note-popup" data-content="{% trans 'Previous covered function' %}"><i class="step backward icon"></i></button>
                 <button id="next_cov_btn" class="ui green button note-popup" data-content="{% trans 'Next covered function' %}"><i class="step forward icon"></i></button>
                 <button id="prev_uncov_btn" class="ui red button note-popup" data-content="{% trans 'Previous uncovered function' %}"><i class="step backward icon"></i></button>

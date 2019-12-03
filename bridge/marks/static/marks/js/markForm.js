@@ -144,7 +144,7 @@ $(document).ready(function () {
     });
 
     $('#mark_version_selector').change(function () {
-        window.location.replace(get_url_with_get_parameter(window.location.href, 'version', $(this).val()));
+        window.location.replace(get_url_with_get_parameters(window.location.href, {'version': $(this).val()}));
     });
 
     $('#compare_name').change(function () {

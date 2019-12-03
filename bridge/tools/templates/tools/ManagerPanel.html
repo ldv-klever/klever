@@ -86,7 +86,6 @@
                 <button class="ui red button api-request-btn" data-url="{% url 'tools:api-clear-tasks' %}" data-method="DELETE">{% trans 'Remove tasks for not solving jobs' %}</button>
                 <a href="{% url 'tools:processing-list' %}" class="ui yellow button">{% trans 'View processing reqeusts' %}</a>
                 <a href="{% url 'tools:call-logs' %}" class="ui yellow button">{% trans 'View function call logs' %}</a>
-                <button class="ui yellow button api-request-btn" data-url="{% url 'tools:api-clear-logs' %}" data-method="DELETE">{% trans 'Remove call log that is older than 30 days' %}</button>
             </div>
         </div>
     </div>

@@ -31,7 +31,7 @@ from bridge.vars import USER_ROLES, MPTT_FIELDS, JOB_STATUS
 from bridge.utils import logger, file_checksum, RMQConnect, BridgeException
 
 from users.models import User
-from jobs.models import Job, JobHistory, JobFile, FileSystem, UserRole, RunHistory, PresetStatus
+from jobs.models import Job, JobHistory, JobFile, FileSystem, UserRole, RunHistory
 from jobs.utils import get_unique_name, JobAccess, JSTreeConverter
 
 FILE_SEP = '/'
@@ -404,12 +404,6 @@ def get_view_job_data(user, job: Job):
 
     # Versions queryset
     versions_qs = job.versions.select_related('change_author').all()
-
-    # Check if preset files for the job were changed
-    try:
-        preset_obj = PresetStatus.objects.get(identifier=job.identifier)
-    except PresetStatus.DoesNotExist:
-        pass
 
     return {
         'author': job.author, 'parents': parents, 'children': children, 'last_version': versions_qs[0],

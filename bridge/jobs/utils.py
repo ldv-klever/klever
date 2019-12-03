@@ -146,9 +146,13 @@ def get_unique_name(base_name):
 
 
 def is_preset_changed(preset_uuid, creation_date):
+    if not preset_uuid:
+        # Preset is missed for uploaded jobs
+        return False
     preset_obj = PresetStatus.objects.filter(identifier=preset_uuid).only('check_date').first()
     if preset_obj:
         return bool(preset_obj.check_date > creation_date)
+    # Case if preset check was not launched
     return True
 
 

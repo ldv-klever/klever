@@ -18,8 +18,8 @@
 $(document).ready(function () {
     let source_processor = new SourceProcessor(
         '#CoverageSourceCode', '#CoverageSourceTitle',
-        '#src_back_btn', '#sources_history',
-        '#CoverageDataContent', '#CoverageLegend'
+        '#sources_history', '#CoverageDataContent',
+        '#CoverageLegend'
     );
     source_processor.initialize(null, $('#source_url').val());
     source_processor.errors.line_not_found = $('#error__line_not_found').text();

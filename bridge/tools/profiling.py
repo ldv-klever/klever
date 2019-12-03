@@ -300,9 +300,3 @@ class ProfileData:
         elif not isinstance(date, float):
             date = None
         return date
-
-
-def clear_old_logs():
-    # 30 days exactly
-    border_time = time.time() - 2592000
-    CallLogs.objects.filter(enter_time__lt=border_time).delete()

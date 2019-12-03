@@ -405,13 +405,31 @@ window.isFileReadable = function(name) {
     return ($.inArray(extension, readable_extensions) !== -1 || name === 'README');
 };
 
-window.get_url_with_get_parameter = function (url, key, value) {
-    if (url.indexOf(key + '=') > -1) {
-        let url_regex = new RegExp('(' + key + "=).*?(&|$)");
-        return url.replace(url_regex, '$1' + value + '$2');
+window.getUrlParameter = function (sParam) {
+    let sPageURL = window.location.search.substring(1),
+        sURLVariables = sPageURL.split('&'),
+        sParameterName, i;
+
+    for (i = 0; i < sURLVariables.length; i++) {
+        sParameterName = sURLVariables[i].split('=');
+
+        if (sParameterName[0] === sParam) {
+            return sParameterName[1] === undefined ? true : decodeURIComponent(sParameterName[1]);
+        }
     }
-    else if (url.indexOf('?') > -1) return url + '&' + key + '=' + value;
-    else return url + '?' + key + '=' + value;
+};
+
+window.get_url_with_get_parameters = function (url, params) {
+    let new_url = url;
+    $.each(params, function (key, value) {
+        if (new_url.indexOf(key + '=') > -1) {
+            let url_regex = new RegExp('(' + key + "=).*?(&|$)");
+            new_url = new_url.replace(url_regex, '$1' + value + '$2');
+        }
+        else if (new_url.indexOf('?') > -1) new_url += '&' + key + '=' + value;
+        else new_url += '?' + key + '=' + value;
+    });
+    return new_url;
 };
 
 String.prototype.format = String.prototype.f = function(){
@@ -457,7 +475,9 @@ $(document).ready(function () {
     });
 
     $('.page-link-icon').click(function () {
-        window.location.replace(get_url_with_get_parameter(window.location.href, 'page', $(this).data('page-number')));
+        window.location.replace(
+            get_url_with_get_parameters(window.location.href, {'page': $(this).data('page-number')})
+        );
     });
 
     $('.view-type-buttons').each(function () {

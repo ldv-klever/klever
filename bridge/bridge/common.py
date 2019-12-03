@@ -19,6 +19,8 @@ import os
 import json
 import sys
 
+from celery.schedules import crontab
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 AUTH_USER_MODEL = 'users.User'
@@ -195,13 +197,13 @@ with open(os.path.join(BASE_DIR, 'bridge', 'rmq.json'), encoding='utf8') as fp:
 
 # Celery, using the same RabbitMQ server
 CELERY_BROKER_URL = 'amqp://{username}:{password}@{host}:{port}'.format(**RABBIT_MQ)
-# CELERY_TIMEZONE = TIME_ZONE
 CELERY_RESULT_BACKEND = 'django-db'
 CELERY_TIMEZONE = 'Europe/Moscow'
 
 CELERY_BEAT_SCHEDULE = {
-    'check-preset-60-sec': {
-        'task': 'jobs.tasks.check_presets',
-        'schedule': 60.0
+    'remove-call-logs-every-month': {
+        'task': 'tools.tasks.clear_call_logs',
+        'schedule': crontab(0, 0, day_of_month='1'),
+        'args': (30,)  # 30 days
     },
 }

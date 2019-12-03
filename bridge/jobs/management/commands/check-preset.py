@@ -15,11 +15,15 @@
 # limitations under the License.
 #
 
-from celery import shared_task
-
+from django.core.management.base import BaseCommand
 from jobs.preset import PresetsChecker
 
 
-@shared_task
-def check_presets():
-    PresetsChecker().calculate_hash_sums()
+class Command(BaseCommand):
+    help = 'Used to calculate checksums of jobs preset files and store check date if it total checksum has changed.'
+    requires_migrations_checks = True
+
+    def handle(self, *args, **options):
+        PresetsChecker().calculate_hash_sums()
+        if options['verbosity'] >= 1:
+            self.stdout.write("Preset files were successfully checked.")
