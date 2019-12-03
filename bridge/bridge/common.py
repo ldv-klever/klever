@@ -201,7 +201,7 @@ CELERY_TIMEZONE = 'Europe/Moscow'
 
 CELERY_BEAT_SCHEDULE = {
     'check-preset-60-sec': {
-        'task': 'jobs.check_presets',
+        'task': 'jobs.tasks.check_presets',
         'schedule': 60.0,
         'args': ()
     },
