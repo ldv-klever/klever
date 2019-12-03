@@ -139,7 +139,9 @@
         {% if data.data %}
             <h4 class="header ui violet">{% trans 'Data' %}</h4>
             <div class="ui brown segment">
-                {% include 'reports/ReportData.html' with data=data.data component=report.component.name type=data.type %}
+                <div style="overflow-x: auto;">
+                    {% include 'reports/ReportData.html' with data=data.data component=report.component.name type=data.type %}
+                </div>
             </div>
         {% endif %}
         {% if Coverage %}
