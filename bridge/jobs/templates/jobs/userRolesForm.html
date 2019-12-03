@@ -45,8 +45,9 @@
 
 {# Template #}
 <div id="template__user_role" hidden>
-    <div class="six wide column right aligned">
+    <div class="eight wide column right aligned">
         <strong><label for="user_role_select__"></label></strong>
+        <i id="user_role_remove__" class="ui red link remove icon"></i>
     </div>
     <div class="eight wide column">
         <select id="user_role_select__">
@@ -54,8 +55,5 @@
                 <option value="{{ jr.0 }}">{{ jr.1 }}</option>
             {% endfor %}
         </select>
-    </div>
-    <div class="two wide column">
-        <button id="user_role_remove__" class="ui icon red basic button"><i class="remove icon"></i></button>
     </div>
 </div>

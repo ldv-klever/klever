@@ -83,7 +83,9 @@
                 <div class="ui fluid input field">
                     <input id="parent_identifier" maxlength="36" type="text" value="{{ initial.parent }}">
                 </div>
-                <input id="preset_uuid" type="hidden" value="{% if initial.preset_uuid %}{{ initial.preset_uuid }}{% endif %}">
+                {% if initial.preset_uuid %}
+                    <input id="preset_uuid" type="hidden" value="{{ initial.preset_uuid }}">
+                {% endif %}
             </div>
 
             {# Files table #}
