@@ -22,7 +22,6 @@ $(document).ready(function () {
         '#CoverageLegend'
     );
     source_processor.initialize(null, $('#source_url').val());
-    source_processor.errors.line_not_found = $('#error__line_not_found').text();
 
     let coverage_processor = new CoverageProcessor(
         source_processor, '#CoverageDataContent', '#CoverageStatisticsTable'

@@ -189,6 +189,5 @@
         {% include 'reports/coverage/coverageDataStatisticsModal.html' with DataStatistics=coverage.data_statistic %}
 
         <input id="source_url" type="hidden" value="{% url 'reports:api-get-source' object.parent_id %}">
-        <span id="error__line_not_found" hidden>{% trans 'Could not find the specified line' %}</span>
     {% endif %}
 {% endblock %}

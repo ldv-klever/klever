@@ -116,7 +116,6 @@
         <input id="coverage_id" value="{{ coverage_id }}" type="hidden">
     {% endif %}
     <input id="source_url" type="hidden" value="{% url 'reports:api-get-source' object.id %}{% if coverage_id %}?coverage_id={{ coverage_id }}{% endif %}">
-    <span id="error__line_not_found" hidden>{% trans 'Could not find the specified line' %}</span>
     <script type="application/javascript">
         jQuery(function () {
             $('.parent-popup').popup({inline:true});

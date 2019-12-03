@@ -180,8 +180,6 @@
     {% include 'reports/AssociatedMarksTable.html' with MarkTable=MarkTable %}
     <br>
 
-    <span id="error__line_not_found" hidden>{% trans 'Could not find the specified line' %}</span>
-
     {% if coverage %}
         {# Coverage data statistics modal #}
         {% include 'reports/coverage/coverageDataStatisticsModal.html' with DataStatistics=coverage.data_statistic %}

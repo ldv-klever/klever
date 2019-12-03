@@ -120,6 +120,16 @@ window.err_notify = function (message, duration) {
     return false;
 };
 
+window.warn_notify = function (message, duration) {
+    let notify_opts = {autoHide: false, style: 'bootstrap', className: 'warn'};
+    if (!isNaN(duration)) {
+        notify_opts['autoHide'] = true;
+        notify_opts['autoHideDelay'] = duration;
+    }
+    $.notify(message, notify_opts);
+    return false;
+};
+
 window.success_notify = function (message, duration) {
     let notify_opts = {autoHide: false, style: 'bootstrap', className: 'success'};
     if (!isNaN(duration)) {

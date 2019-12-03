@@ -33,7 +33,6 @@ $(document).ready(function () {
     );
     if (!etv_window.length) return false;
     source_processor.initialize(unselect_etv_line, $('#source_url').val());
-    source_processor.errors.line_not_found = $('#error__line_not_found').text();
 
     $('.ETV_GlobalExpander').click(function (event) {
         event.preventDefault();
