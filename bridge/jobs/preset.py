@@ -178,7 +178,7 @@ class PresetsChecker:
             return json.load(fp)
 
     def __get_check_sum(self, file_path):
-        with open(file_path, mode='r', encoding='utf-8') as fp:
+        with open(file_path, mode='rb') as fp:
             return file_checksum(fp)
 
     def __files_checksums(self, job_directory):
