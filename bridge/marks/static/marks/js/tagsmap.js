@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-$(document).ready(function () {
+jQuery(function () {
 
     // Draw connections
     $('.tag-tree-link').each(function () {
@@ -31,6 +31,8 @@ $(document).ready(function () {
         $('#tag__' + $(this).data('tag')).popup({
             popup: $(this),
             hoverable: true,
+            position: 'top left',
+            exclusive: true,
             delay: {show: 100, hide: 300},
             variation: 'very wide'
         })
