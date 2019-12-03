@@ -35,7 +35,7 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'rest_framework', 'rest_framework.authtoken', 'mptt', 'compressor', 'django_celery_results', 'django_celery_beat',
+    'rest_framework', 'rest_framework.authtoken', 'mptt', 'compressor', 'django_celery_results',
     'bridge', 'jobs', 'marks', 'reports', 'service', 'tools', 'users', 'caches'
 )
 
@@ -202,7 +202,6 @@ CELERY_TIMEZONE = 'Europe/Moscow'
 CELERY_BEAT_SCHEDULE = {
     'check-preset-60-sec': {
         'task': 'jobs.tasks.check_presets',
-        'schedule': 60.0,
-        'args': ()
+        'schedule': 60.0
     },
 }
