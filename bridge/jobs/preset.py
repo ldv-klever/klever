@@ -214,7 +214,7 @@ class PresetsChecker:
     def __check_all(self, jobs_list):
         for data in jobs_list:
             if 'uuid' in data and 'directory' in data:
-                if not settings.POPULATE_JUST_PRODUCTION_PRESETS or data['production']:
+                if not settings.POPULATE_JUST_PRODUCTION_PRESETS or data.get('production'):
                     self.__calculate_for_job(data)
             elif 'children' in data:
                 self.__check_all(data['children'])
