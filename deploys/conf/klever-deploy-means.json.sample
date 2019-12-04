@@ -36,6 +36,7 @@
     "For building and running Klever Bridge": [
       "Django==2.1.7",
       "celery",
+      "django_celery_results",
       "djangorestframework",
       "django-compressor",
       "django-mptt",
