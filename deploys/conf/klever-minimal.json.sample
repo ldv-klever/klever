@@ -35,6 +35,7 @@
   "Python3 Packages": {
     "For building and running Klever Bridge": [
       "Django==2.1.7",
+      "celery",
       "djangorestframework",
       "django-compressor",
       "django-mptt",
