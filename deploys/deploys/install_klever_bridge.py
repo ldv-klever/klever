@@ -40,7 +40,7 @@ def _install_klever_bridge(logger):
             'username': 'service',
             'password': 'service',
             'host': 'localhost',
-            'name': 'Klever jobs and tasks'
+            'queue': 'Klever jobs and tasks'
         }, fp, indent=4)
 
     logger.info('Update translations')
