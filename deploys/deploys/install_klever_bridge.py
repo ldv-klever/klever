@@ -35,14 +35,12 @@ def _install_klever_bridge(logger):
             'PASSWORD': 'klever'
         }, fp, indent=4)
 
-    # TODO: Port at the moment is hardcoded
     with open('bridge/rmq.json', 'w') as fp:
         json.dump({
             'username': 'service',
             'password': 'service',
             'host': 'localhost',
-            'name': 'Klever jobs and tasks',
-            'port': '5672'
+            'name': 'Klever jobs and tasks'
         }, fp, indent=4)
 
     logger.info('Update translations')
