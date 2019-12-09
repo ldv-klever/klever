@@ -38,13 +38,13 @@ from core.coverage import LCOV
 
 @core.components.before_callback
 def __launch_sub_job_components(context):
-    context.mqs['VRP common prj attrs'] = multiprocessing.Queue()
+    context.mqs['VRP common attrs'] = multiprocessing.Queue()
     context.mqs['processing tasks'] = multiprocessing.Queue()
 
 
 @core.components.after_callback
-def __submit_project_attrs(context):
-    context.mqs['VRP common prj attrs'].put(context.common_prj_attrs)
+def __submit_common_attrs(context):
+    context.mqs['VRP common attrs'].put(context.common_attrs)
 
 
 class VRP(core.components.Component):
@@ -73,7 +73,7 @@ class VRP(core.components.Component):
                           'patch',
                           {
                               'identifier': self.id,
-                              'attrs': self.__get_common_prj_attrs()
+                              'attrs': self.__get_common_attrs()
                           },
                           self.mqs['report files'],
                           self.vals['report id'],
@@ -211,14 +211,14 @@ class VRP(core.components.Component):
 
         self.logger.info("VRP fetcher finishes its work")
 
-    def __get_common_prj_attrs(self):
-        self.logger.info('Get common project atributes')
+    def __get_common_attrs(self):
+        self.logger.info('Get common atributes')
 
-        common_prj_attrs = self.mqs['VRP common prj attrs'].get()
+        common_attrs = self.mqs['VRP common attrs'].get()
 
-        self.mqs['VRP common prj attrs'].close()
+        self.mqs['VRP common attrs'].close()
 
-        return common_prj_attrs
+        return common_attrs
 
 
 class RP(core.components.Component):
