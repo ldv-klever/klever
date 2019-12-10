@@ -214,41 +214,6 @@ class ArchiveFileContent:
                 return zfp.read(self._name)
 
 
-class OpenFiles:
-    def __init__(self, *args, mode='rb', rel_path=None):
-        self._files = {}
-        self._mode = mode
-        self._rel_path = rel_path
-        self._paths = self.__check_files(*args)
-
-    def __enter__(self):
-        try:
-            for p in self._paths:
-                dict_key = p
-                if isinstance(self._rel_path, str) and os.path.isdir(self._rel_path):
-                    dict_key = os.path.relpath(dict_key, self._rel_path)
-                dict_key = dict_key.replace('\\', '/')
-                if dict_key not in self._files:
-                    self._files[dict_key] = File(open(p, mode=self._mode))
-        except Exception as e:
-            self.__exit__(type(e), str(e), e.__traceback__)
-        return self._files
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        for fp in self._files.values():
-            fp.close()
-
-    def __check_files(self, *args):
-        paths = set()
-        for arg in args:
-            if not isinstance(arg, str):
-                raise ValueError('Unsupported argument: {0}'.format(arg))
-            if not os.path.isfile(arg):
-                raise FileNotFoundError("The file doesn't exist: {0}".format(arg))
-            paths.add(arg)
-        return paths
-
-
 class BridgeException(Exception):
     def __init__(self, message=None, code=None, back=None):
         self.back = back

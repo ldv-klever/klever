@@ -77,10 +77,10 @@
                         <a class="item" href="{% url 'service:schedulers' %}">{% trans 'Schedulers' %}</a>
 
                         {# Show only if user has an access to upload jobs (USER_ROLES[1..3][0]) #}
-                        <a class="item{% if user.role == '0' or user.role == '4' %} disabled{% endif %}" id="upload_jobs_modal_show">{% trans 'Upload jobs' %}</a>
-
-                        {# Only managers can upload trees (USER_ROLES[2][0]) #}
-                        <a class="item{% if user.role != '2' %} disabled{% endif %}" id="upload_jobtree_modal_show">{% trans 'Upload jobs tree' %}</a>
+                        {% if user.role != '0' and user.role != '4' %}
+                            <a class="item" id="upload_jobs_modal_show">{% trans 'Upload jobs' %}</a>
+                            <a id="uploading_status_link" class="item" href="{% url 'jobs:uploading-status' %}">{% trans 'Uploading status' %}</a>
+                        {% endif %}
                     </div>
                     <div class="column">
                         <h3 class="ui purple header">{% trans 'Marks' %}</h3>
@@ -137,30 +137,6 @@
             </div>
             <div class="actions">
                 <button class="ui positive button modal-confirm" data-url="{% url 'jobs:api-upload-jobs' %}">{% trans 'Upload' %}</button>
-                <button class="ui blue button modal-cancel">{% trans 'Cancel' %}</button>
-            </div>
-        </div>
-
-        <div id="upload_jobtree_modal" class="ui modal" data-activator="#upload_jobtree_modal_show">
-            <div class="header">{% trans 'Upload jobs tree' %}</div>
-            <div class="content">
-                <p>{% trans "Set parent identifier or leave it empty for root jobs from tree to be without a parent." %}</p>
-                <div class="ui grid">
-                    <div class="five wide column">
-                        <div class="ui fluid input">
-                            <input id="upload_jobtree_parent" type="text" placeholder="{% trans 'Identifier' %}" maxlength="32">
-                        </div>
-                    </div>
-                    <div class="three wide column right aligned">
-                        <span class="ui violet button btn-file">{% trans 'Browse' %}<input id="upload_jobtree_file" type="file"></span>
-                    </div>
-                    <div class="eight wide column">
-                        <span id="upload_jobtree_filename"></span>
-                    </div>
-                </div>
-            </div>
-            <div class="actions">
-                <button class="ui positive button modal-confirm" data-url="{% url 'jobs:api-upload-tree' %}">{% trans 'Upload' %}</button>
                 <button class="ui blue button modal-cancel">{% trans 'Cancel' %}</button>
             </div>
         </div>

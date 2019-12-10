@@ -78,7 +78,8 @@ JOB_STATUS = (
     ('5', _('Corrupted')),
     ('6', _('Cancelling')),
     ('7', _('Cancelled')),
-    ('8', _('Terminated'))
+    ('8', _('Terminated')),
+    ('9', _('Uploading')),
 )
 
 JOB_WEIGHT = (
@@ -387,3 +388,16 @@ with the “note” or “warn” attribute. The function returns a list of fore
 to an execution order of first statements of forest threads.
     """
 }
+
+JOB_UPLOAD_STATUS = (
+    ('0', _('Pending')),
+    ('1', _('Extracting archive files')),
+    ('2', _('Uploading files')),
+    ('3', _('Uploading job with versions')),
+    ('4', _('Uploading reports')),
+    ('5', _('Associating marks and cache recalculation')),
+    ('6', _('Finished')),
+    ('7', _('Failed')),
+)
+
+TREE_LIST_JSON = 'TreeList.json'
