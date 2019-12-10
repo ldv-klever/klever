@@ -40,7 +40,7 @@
                     <i class="ui red minus icon"></i>
                 {% endif %}
             </td>
-            <td>{% if upload_obj.job %}<a href="{% url 'jobs:job' upload_obj.job_id %}"></a>{% else %}<i class="ui red minus icon"></i>{% endif %}</td>
+            <td>{% if upload_obj.job %}<a href="{% url 'jobs:job' upload_obj.job_id %}">{{ upload_obj.job.name }}</a>{% else %}<i class="ui red minus icon"></i>{% endif %}</td>
             <td>{% if upload_obj.error %}{{ upload_obj.error }}{% else %}<i class="ui red minus icon"></i>{% endif %}</td>
         </tr>
     {% endfor %}
