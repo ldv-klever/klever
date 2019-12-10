@@ -233,4 +233,4 @@ class JobsUploadingStatus(LoginRequiredMixin, LoggedCallMixin, ListView):
     template_name = 'jobs/UploadingStatus.html'
 
     def get_queryset(self):
-        return UploadedJobArchive.objects.filter(author=self.request.user).order_by('-start_date')
+        return UploadedJobArchive.objects.filter(author=self.request.user).select_related('job').order_by('-start_date')

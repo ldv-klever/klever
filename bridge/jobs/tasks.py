@@ -51,6 +51,10 @@ def link_uploaded_job_parent(self, upload_id, parent_upload_id):
         upload_obj.job.parent_id = upload_parent_obj.job_id
         upload_obj.job.save()
         return
+    elif upload_obj.status == JOB_UPLOAD_STATUS[7][0] or \
+            upload_parent_obj.status == JOB_UPLOAD_STATUS[7][0]:
+        # Job or its parent uploading failed!
+        return
     # Try each 10 seconds for 2 hours maximum
     raise self.retry(countdown=10, max_retries=720)
 
