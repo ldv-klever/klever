@@ -110,11 +110,12 @@ class JobArchiveUploader:
 
         # Upload job reports
         self.__change_upload_status(JOB_UPLOAD_STATUS[4][0])
-        UploadReports(self._upload_obj.author, self.job, job_dir.name)
+        res = UploadReports(self._upload_obj.author, self.job, job_dir.name)
 
-        # Recalculate cache
-        self.__change_upload_status(JOB_UPLOAD_STATUS[5][0])
-        Recalculation('all', [self.job.id])
+        # Recalculate cache if job has ReportRoot instance
+        if res.root:
+            self.__change_upload_status(JOB_UPLOAD_STATUS[5][0])
+            Recalculation('all', [self.job.id])
 
         # Set uploaded status
         self.job.status = final_status
