@@ -139,7 +139,8 @@ target_program_descs = [
     #     'build base': 'build bases/testing/455c6f',
     #     'name': 'Linux',
     #     'Git repository version': 'v2.6.33.20',
-    #     'external modules': os.path.join(preset_jobs_dir, 'linux', 'testing', 'environment model specs', 'tests'),
+    #     'external modules': os.path.join(preset_jobs_dir, 'linux', 'testing', 'environment model specifications',
+    #                         'tests'),
     #     'loadable kernel modules': [
     #         'ext-modules/block_device_operations_v.1',
     #         'ext-modules/class_v.1',
@@ -178,7 +179,8 @@ target_program_descs = [
     # {
     #     'build base': 'build bases/testing/fedc1e',
     #     'name': 'Linux',
-    #     'external modules': os.path.join(preset_jobs_dir, 'linux', 'testing', 'environment model specs', 'tests'),
+    #     'external modules': os.path.join(preset_jobs_dir, 'linux', 'testing', 'environment model specifications',
+    #                                      'tests'),
     #     'loadable kernel modules': [
     #         'ext-modules/block_device_operations_v.1',
     #         'ext-modules/class_v.1',
@@ -213,7 +215,8 @@ target_program_descs = [
     #     'build base': 'build bases/testing/01358e',
     #     'name': 'Linux',
     #     'Git repository version': 'v4.6.7',
-    #     'external modules': os.path.join(preset_jobs_dir, 'linux', 'testing', 'environment model specs', 'tests'),
+    #     'external modules': os.path.join(preset_jobs_dir, 'linux', 'testing', 'environment model specifications',
+    #                                      'tests'),
     #     'loadable kernel modules': [
     #         'ext-modules/block_device_operations_v.1',
     #         'ext-modules/class_v.1',
@@ -250,7 +253,7 @@ target_program_descs = [
     # {
     #     'build base': 'build bases/testing/1de383',
     #     'name': 'Linux',
-    #     'external modules': os.path.join(preset_jobs_dir, 'linux', 'testing', 'rule specs', 'tests'),
+    #     'external modules': os.path.join(preset_jobs_dir, 'linux', 'testing', 'requirement specifications', 'tests'),
     #     'loadable kernel modules': [
     #         'ext-modules/linux/alloc/irq',
     #         'ext-modules/linux/alloc/spinlock',
@@ -293,8 +296,9 @@ target_program_descs = [
     # {
     #     'build base': 'build bases/testing/1cae6b',
     #     'name': 'Linux',
-    #     'configuration': os.path.join(preset_jobs_dir, 'linux', 'testing', 'rule specs', 'configs', 'no-lockdep'),
-    #     'external modules': os.path.join(preset_jobs_dir, 'linux', 'testing', 'rule specs', 'tests'),
+    #     'configuration': os.path.join(preset_jobs_dir, 'linux', 'testing', 'requirement specifications', 'configs',
+    #                                   'no-lockdep'),
+    #     'external modules': os.path.join(preset_jobs_dir, 'linux', 'testing', 'requirement specifications', 'tests'),
     #     # The only module needs specific kernel configuration for testing.
     #     'loadable kernel modules': ['ext-modules/linux/kernel/sched/completion-no-lockdep']
     # },
