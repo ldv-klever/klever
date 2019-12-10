@@ -315,11 +315,11 @@ class FragmentationAlgorythm:
             'name': 'Program fragmentation',
             'value': [
                 {
-                    'name': 'fragmentation tactic',
+                    'name': 'tactic',
                     'value': tactic
                 },
                 {
-                    'name': 'fragmentation set',
+                    'name': 'set',
                     'value': fragmentation_set
                 }
             ]
