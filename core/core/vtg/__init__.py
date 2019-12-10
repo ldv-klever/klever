@@ -33,7 +33,7 @@ from core.vtg.scheduling import Balancer
 
 @core.components.before_callback
 def __launch_sub_job_components(context):
-    context.mqs['VTG common prj attrs'] = multiprocessing.Queue()
+    context.mqs['VTG common attrs'] = multiprocessing.Queue()
     context.mqs['pending tasks'] = multiprocessing.Queue()
     context.mqs['processed tasks'] = multiprocessing.Queue()
     context.mqs['prepared verification tasks'] = multiprocessing.Queue()
@@ -49,8 +49,8 @@ def __prepare_descriptions_file(context):
 
 
 @core.components.after_callback
-def __submit_project_attrs(context):
-    context.mqs['VTG common prj attrs'].put(context.common_prj_attrs)
+def __submit_common_attrs(context):
+    context.mqs['VTG common attrs'].put(context.common_attrs)
 
 
 def _extract_template_plugin_descs(logger, tmpl_descs):
@@ -321,7 +321,7 @@ class VTG(core.components.Component):
                           'patch',
                           {
                               'identifier': self.id,
-                              'attrs': self.__get_common_prj_attrs()
+                              'attrs': self.__get_common_attrs()
                           },
                           self.mqs['report files'],
                           self.vals['report id'],
@@ -550,11 +550,11 @@ class VTG(core.components.Component):
 
         self.logger.info("Stop generating verification tasks")
 
-    def __get_common_prj_attrs(self):
-        self.logger.info('Get common project atributes')
-        common_prj_attrs = self.mqs['VTG common prj attrs'].get()
-        self.mqs['VTG common prj attrs'].close()
-        return common_prj_attrs
+    def __get_common_attrs(self):
+        self.logger.info('Get common atributes')
+        common_attrs = self.mqs['VTG common attrs'].get()
+        self.mqs['VTG common attrs'].close()
+        return common_attrs
 
 
 class VTGWL(core.components.Component):

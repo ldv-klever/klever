@@ -49,15 +49,14 @@ class FragmentationAlgorythm:
         self.tactic = tactic
         self.pf_dir = pf_dir
         self.files_to_keep = list()
-        self.common_attributes = list()
+        self.project_attrs = list()
 
         self.source_paths = self.conf['working source trees']
 
         # Import clade
         self.clade = Clade(work_dir=self.conf['build base'], preset=self.CLADE_PRESET)
 
-        # Complex attributes
-        self.attributes = self.__attributes()
+        self.__get_project_attrs()
 
     def fragmentation(self, fragmentation_set, tactic_name, fset_name):
         """
@@ -312,27 +311,30 @@ class FragmentationAlgorythm:
             ujson.dump(data, fp, sort_keys=True, indent=4, ensure_ascii=False,
                        escape_forward_slashes=False)
 
-        main_desc = [{'name': 'program', 'value': self.conf['project'], 'data': 'agregations description.json'}]
-        main_desc.append({'name': 'fragmentation tactic', 'value': tactic})
-        main_desc.append({'name': 'fragmentation set', 'value': fragmentation_set})
-        return [{'name': 'Fragmentation set', 'value': main_desc}], ['agregations description.json']
+        return [{
+            'name': 'Program fragmentation',
+            'value': [
+                {
+                    'name': 'tactic',
+                    'value': tactic
+                },
+                {
+                    'name': 'set',
+                    'value': fragmentation_set
+                }
+            ]
+        }], 'agregations description.json'
 
-    def __attributes(self):
+    def __get_project_attrs(self):
         """
         Extract attributes that describe the program from the build base storage.
-
-        :return: Attributes list.
         """
-        attrs = []
         clade_meta = self.clade.get_meta()
 
         if 'project attrs' in clade_meta:
-            self.common_attributes = clade_meta['project attrs']
-            attrs.extend(self.common_attributes)
+            self.project_attrs = clade_meta['project attrs']
         else:
             self.logger.warning("There is no project attributes in build base")
-
-        return attrs
 
     def __generate_program_fragments_descriptions(self, program, grps):
         """

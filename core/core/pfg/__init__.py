@@ -50,9 +50,20 @@ class PFG(core.components.Component):
 
         # Prepare attributes
         self.source_paths = strategy.source_paths
-        self.common_prj_attrs = strategy.common_attributes
-        attr_data[0].extend(strategy.common_attributes)
-        self.submit_project_attrs(*attr_data)
+        self.common_attrs = strategy.project_attrs
+        self.common_attrs.extend(attr_data[0])
+        self.submit_common_attrs(self.common_attrs)
+
+        with open(attr_data[1]) as fp:
+            core.utils.report(self.logger,
+                              'patch',
+                              {
+                                  'identifier': self.id,
+                                  'data': json.load(fp)
+                              },
+                              self.mqs['report files'],
+                              self.vals['report id'],
+                              self.conf['main working directory'])
 
         self.prepare_descriptions_file(fragments_files)
         self.excluded_clean = [self.PF_DIR, self.PF_FILE]
@@ -62,10 +73,10 @@ class PFG(core.components.Component):
 
     main = generate_program_fragments
 
-    def submit_project_attrs(self, attrs, dfiles):
+    def submit_common_attrs(self, attrs):
         """
         !Has a callback!
-        Submit project attribute to Bridge.
+        Submit common attributes to Bridge.
 
         :param attrs: Prepared list of attributes.
         :param dfiles: Fiels to attach as data attribute values.
@@ -78,8 +89,7 @@ class PFG(core.components.Component):
                           },
                           self.mqs['report files'],
                           self.vals['report id'],
-                          self.conf['main working directory'],
-                          data_files=dfiles)
+                          self.conf['main working directory'])
 
     def prepare_descriptions_file(self, files):
         """

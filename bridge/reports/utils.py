@@ -999,8 +999,8 @@ def get_report_data_type(component, data):
         elif all(x in res for x in ['before fix', 'after fix'] for res in data.values()) \
                 and all('verdict' in data[mod]['before fix'] and 'verdict' in data[mod]['after fix'] for mod in data):
             return 'Core:validation'
-    elif component == 'LKVOG' and isinstance(data, dict):
-        return 'LKVOG:lines'
+    elif component == 'PFG' and isinstance(data, dict):
+        return 'PRG:lines'
     return 'Unknown'
 
 
@@ -1046,8 +1046,8 @@ class ReportData:
                             or ('verdict' in self.data[bug]['after fix'] if 'after fix' in self.data[bug] else True)
                             for bug in self.data):
                 return 'Core:validation'
-        elif component == 'LKVOG' and isinstance(self.data, dict):
-            return 'LKVOG:lines'
+        elif component == 'PFG' and isinstance(self.data, dict):
+            return 'PFG:lines'
         return 'Unknown'
 
 
