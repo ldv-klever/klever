@@ -185,7 +185,9 @@ class JobAccess:
 
     @cached_property
     def _is_finished(self):
-        return self.job is not None and self.job.status not in {JOB_STATUS[1][0], JOB_STATUS[2][0], JOB_STATUS[6][0]}
+        return self.job is not None and self.job.status not in {
+            JOB_STATUS[1][0], JOB_STATUS[2][0], JOB_STATUS[6][0], JOB_STATUS[9][0]
+        }
 
     def can_view_jobs(self, queryset):
         """Filter queryset by view job access"""
@@ -223,7 +225,7 @@ class JobAccess:
 
     @cached_property
     def can_view(self):
-        if self.job is None:
+        if self.job is None or self.job.status == JOB_STATUS[9][0]:
             return False
         return self._is_manager or self._is_author or self._is_expert or self._job_role != JOB_ROLES[0][0]
 
@@ -249,7 +251,7 @@ class JobAccess:
         if self.job is None:
             return False
         for job in self.job.get_descendants(include_self=True):
-            is_finished = job.status not in {JOB_STATUS[1][0], JOB_STATUS[2][0], JOB_STATUS[6][0]}
+            is_finished = job.status not in {JOB_STATUS[1][0], JOB_STATUS[2][0], JOB_STATUS[6][0], JOB_STATUS[9][0]}
             if not is_finished or not self._is_manager and job.author != self.user:
                 return False
         return True

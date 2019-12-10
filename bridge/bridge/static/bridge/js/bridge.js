@@ -539,55 +539,7 @@ $(document).ready(function () {
                 },
                 success: function () {
                     $('#dimmer_of_page').removeClass('active');
-                    window.location.replace('');
-                }
-            });
-            return false;
-        });
-    }
-
-    //==================
-    // Upload jobs tree
-    let upload_jobtree_modal = $('#upload_jobtree_modal'),
-        upload_jobtree_modal_show = $(upload_jobtree_modal.data('activator'));
-    if (upload_jobtree_modal_show.length && !upload_jobtree_modal_show.hasClass('disabled')) {
-        let upload_jobtree_file_input = $('#upload_jobtree_file');
-        upload_jobtree_modal.modal({transition: 'vertical flip', onShow: function () {
-            let parent_identifier = $('#job_identifier');
-            if (parent_identifier.length) $('#upload_jobtree_parent').val(parent_identifier.val());
-        }}).modal('attach events', upload_jobtree_modal.data('activator'), 'show');
-
-        upload_jobtree_modal.find('.modal-cancel').click(function () {
-            upload_jobtree_modal.modal('hide')
-        });
-
-        upload_jobtree_file_input.on('fileselect', function () {
-            $('#upload_jobtree_filename').text($(this)[0].files[0].name);
-        });
-
-        upload_jobtree_modal.find('.modal-confirm').click(function () {
-            let files = upload_jobtree_file_input[0].files,
-                data = new FormData();
-            if (!files.length) return err_notify($('#error__no_file_chosen').text());
-            data.append('file', files[0]);
-            data.append('parent', $('#upload_jobtree_parent').val());
-
-            upload_jobtree_modal.modal('hide');
-            $('#dimmer_of_page').addClass('active');
-            $.ajax({
-                url: $(this).data('url'),
-                type: 'POST',
-                data: data,
-                dataType: 'json',
-                contentType: false,
-                processData: false,
-                mimeType: 'multipart/form-data',
-                xhr: function() {
-                    return $.ajaxSettings.xhr();
-                },
-                success: function () {
-                    $('#dimmer_of_page').removeClass('active');
-                    window.location.replace('');
+                    window.location.href = $('#uploading_status_link').attr('href');
                 }
             });
             return false;

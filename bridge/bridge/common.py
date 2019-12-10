@@ -19,6 +19,7 @@ import os
 import json
 import sys
 
+from datetime import timedelta
 from celery.schedules import crontab
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -206,5 +207,10 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'tools.tasks.clear_call_logs',
         'schedule': crontab(0, 0, day_of_month='1'),
         'args': (30,)  # 30 days
+    },
+    'remove-old-job-archives': {
+        'task': 'jobs.tasks.clear_old_uploads',
+        'schedule': timedelta(hours=1),
+        'args': (60,)  # Clear archives older than 60 minutes
     },
 }

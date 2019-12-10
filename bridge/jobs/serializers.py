@@ -31,7 +31,7 @@ from bridge.vars import USER_ROLES, MPTT_FIELDS, JOB_STATUS
 from bridge.utils import logger, file_checksum, RMQConnect, BridgeException
 
 from users.models import User
-from jobs.models import Job, JobHistory, JobFile, FileSystem, UserRole, RunHistory
+from jobs.models import Job, JobHistory, JobFile, FileSystem, UserRole, RunHistory, UploadedJobArchive
 from jobs.utils import get_unique_name, JobAccess, JSTreeConverter
 
 FILE_SEP = '/'
@@ -414,3 +414,14 @@ def get_view_job_data(user, job: Job):
             'user__first_name', 'user__last_name', 'user__username'
         )
     }
+
+
+class UploadedJobArchiveSerializer(serializers.ModelSerializer):
+    def create(self, validated_data):
+        assert 'author' in validated_data, 'Wrong serializer usage'
+        validated_data['name'] = validated_data['archive'].name
+        return super(UploadedJobArchiveSerializer, self).create(validated_data)
+
+    class Meta:
+        model = UploadedJobArchive
+        fields = ('archive',)

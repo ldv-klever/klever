@@ -20,12 +20,13 @@ from django.db import models
 from django.db.models.signals import post_delete
 from mptt.models import MPTTModel, TreeForeignKey
 
-from bridge.vars import JOB_ROLES, JOB_STATUS, JOB_WEIGHT, COVERAGE_DETAILS
+from bridge.vars import JOB_ROLES, JOB_STATUS, JOB_WEIGHT, COVERAGE_DETAILS, JOB_UPLOAD_STATUS
 from bridge.utils import WithFilesMixin, remove_instance_files
 
 from users.models import User
 
 JOBFILE_DIR = 'Job'
+UPLOAD_DIR = 'UploadedJobs'
 
 
 class JobFile(WithFilesMixin, models.Model):
@@ -74,6 +75,20 @@ class Job(MPTTModel):
 
     class Meta:
         db_table = 'job'
+
+
+class UploadedJobArchive(models.Model):
+    author = models.ForeignKey(User, models.CASCADE)
+    name = models.CharField(max_length=128)
+    archive = models.FileField(upload_to=UPLOAD_DIR)
+    status = models.CharField(max_length=1, choices=JOB_UPLOAD_STATUS, default=JOB_UPLOAD_STATUS[0][0])
+    job = models.ForeignKey(Job, models.SET_NULL, null=True, related_name='+')  # Filled after upload is started
+    start_date = models.DateTimeField(auto_now_add=True)  # Upload archive date
+    finish_date = models.DateTimeField(null=True)
+    error = models.TextField(null=True)  # Filled if uploading is failed
+
+    class Meta:
+        db_table = 'job_uploaded_archives'
 
 
 class RunHistory(models.Model):
@@ -125,3 +140,4 @@ class UserRole(models.Model):
 
 
 post_delete.connect(remove_instance_files, sender=JobFile)
+post_delete.connect(remove_instance_files, sender=UploadedJobArchive)

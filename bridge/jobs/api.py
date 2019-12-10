@@ -37,20 +37,20 @@ from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import IsAuthenticated
 
 from bridge.access import (
-    WriteJobPermission, ViewJobPermission, DestroyJobPermission, ServicePermission, ManagerPermission
+    WriteJobPermission, ViewJobPermission, DestroyJobPermission, ServicePermission
 )
 from bridge.vars import JOB_STATUS
-from bridge.utils import logger, BridgeException, extract_archive
-from bridge.CustomViews import TemplateAPIRetrieveView
+from bridge.utils import BridgeException
+from bridge.CustomViews import TemplateAPIRetrieveView, TemplateAPIListView
 from tools.profiling import LoggedCallMixin
 
-from jobs.models import Job, JobHistory, JobFile, FileSystem, RunHistory
+from jobs.models import Job, JobHistory, JobFile, FileSystem, RunHistory, UploadedJobArchive
 from jobs.serializers import (
     CreateJobSerializer, JVformSerializerRO, JobFileSerializer, JobStatusSerializer,
     DuplicateJobSerializer, change_job_status
 )
 from jobs.configuration import get_configuration_value, GetConfiguration
-from jobs.Download import KleverCoreArchiveGen, UploadJob, UploadTree
+from jobs.Download import KleverCoreArchiveGen, UploadJobsScheduler
 from jobs.utils import JobAccess, CompareJobVersions
 from jobs.preset import PresetsProcessor
 from reports.serializers import DecisionResultsSerializerRO
@@ -207,46 +207,8 @@ class UploadJobsAPIView(LoggedCallMixin, APIView):
 
     def post(self, request):
         for f in request.FILES.getlist('file'):
-            try:
-                job_dir = extract_archive(f)
-            except Exception as e:
-                logger.exception(e)
-                raise exceptions.APIException(
-                    _('Extraction of the archive "%(arcname)s" has failed') % {'arcname': f.name}
-                )
-            try:
-                UploadJob(request.data['parent'], request.user, job_dir.name)
-            except BridgeException as e:
-                raise exceptions.APIException(
-                    _('Creating the job from archive "%(arcname)s" failed: %(message)s') % {
-                        'arcname': f.name, 'message': str(e)
-                    }
-                )
-            except Exception as e:
-                logger.exception(e)
-                raise exceptions.APIException(
-                    _('Creating the job from archive "%(arcname)s" failed: %(message)s') % {
-                        'arcname': f.name, 'message': _('The job archive is corrupted')
-                    }
-                )
-        return Response({})
-
-
-class UploadJobsTreeAPIView(LoggedCallMixin, APIView):
-    unparallel = [Job]
-    permission_classes = (ManagerPermission,)
-
-    def post(self, request):
-        if Job.objects.filter(status__in=[JOB_STATUS[1][0], JOB_STATUS[2][0]]).count() > 0:
-            raise BridgeException(_("There are jobs in progress right now, uploading may corrupt it results. "
-                                    "Please wait until it will be finished."))
-
-        jobs_dir = extract_archive(request.FILES['file'])
-        try:
-            UploadTree(request.data['parent'], request.user, jobs_dir.name)
-        except Exception as e:
-            logger.exception(e)
-            raise exceptions.APIException(_('Creating the jobs tree failed: %(message)s') % {'message': str(e)})
+            upload_scheduler = UploadJobsScheduler(request.user, f, request.data['parent'])
+            upload_scheduler.upload_all()
         return Response({})
 
 
@@ -437,3 +399,12 @@ class PresetFormDataView(LoggedCallMixin, APIView):
 
     def get(self, request, preset_uuid):
         return Response(PresetsProcessor(self.request.user).get_form_data(preset_uuid))
+
+
+class UploadStatusAPIView(LoggedCallMixin, TemplateAPIListView):
+    permission_classes = (IsAuthenticated,)
+    authentication_classes = (SessionAuthentication,)
+    template_name = 'jobs/UploadStatusTableBody.html'
+
+    def get_queryset(self):
+        return UploadedJobArchive.objects.filter(author=self.request.user).order_by('-start_date')
