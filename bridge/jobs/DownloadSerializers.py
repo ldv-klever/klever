@@ -119,11 +119,8 @@ class DownloadJobVersionSerializer(serializers.ModelSerializer):
 
 class DownloadComputerSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
-        try:
-            # Do not create the computer with the same identifier again
-            return Computer.objects.get(identifier=validated_data['identifier'])
-        except Computer.DoesNotExist:
-            return super().create(validated_data)
+        # Do not create the computer with the same identifier again
+        return Computer.objects.get_or_create(identifier=validated_data['identifier'], defaults=validated_data)[0]
 
     class Meta:
         model = Computer
