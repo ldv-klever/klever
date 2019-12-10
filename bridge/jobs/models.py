@@ -30,7 +30,7 @@ UPLOAD_DIR = 'UploadedJobs'
 
 
 class JobFile(WithFilesMixin, models.Model):
-    hash_sum = models.CharField(max_length=255, db_index=True)
+    hash_sum = models.CharField(max_length=255, db_index=True, unique=True)
     file = models.FileField(upload_to=JOBFILE_DIR, null=False)
 
     class Meta:
