@@ -120,10 +120,11 @@ class JobFileSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         validated_data['hash_sum'] = file_checksum(validated_data['file'])
-        try:
-            return JobFile.objects.get(hash_sum=validated_data['hash_sum'])
-        except JobFile.DoesNotExist:
-            return super().create(validated_data)
+        # try:
+        #     return JobFile.objects.get(hash_sum=validated_data['hash_sum'])
+        # except JobFile.DoesNotExist:
+        #     return super().create(validated_data)
+        return JobFile.objects.get_or_create(hash_sum=validated_data['hash_sum'], defaults=validated_data)[0]
 
     def update(self, instance, validated_data):
         raise RuntimeError('Update files is not allowed')
