@@ -56,6 +56,9 @@ def _install_klever_bridge(logger):
     execute_cmd(logger, './manage.py', 'createuser', '--username', 'service', '--password', 'service', '--role', '4')
     execute_cmd(logger, './manage.py', 'populate', '--all')
 
+    logger.info('Check whether preset files of existing verification jobs differ from new ones')
+    execute_cmd(logger, './manage.py', 'check-preset')
+
 
 def install_klever_bridge_development(logger, deploy_dir):
     logger.info('Install/update development Klever Bridge')
