@@ -1,0 +1,4 @@
+CELERYBEAT_CHDIR="/var/www/klever-bridge"
+
+CELERYBEAT_LOG_FILE="/var/log/celery/beat.log"
+CELERYBEAT_PID_FILE="/var/run/celery/beat.pid"
