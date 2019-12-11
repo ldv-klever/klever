@@ -230,7 +230,11 @@ class KleverDevelopment(Klever):
         self._post_install_or_update(is_dev=True)
 
     def uninstall(self):
-        self._pre_uninstall(('klever-bridge-development',))
+        self._pre_uninstall((
+            'klever-bridge-development',
+            'klever-celeryd-development',
+            'klever-celerybeat-development'
+        ))
 
 
 class KleverProduction(Klever):
