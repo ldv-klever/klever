@@ -186,12 +186,13 @@ class DecisionResultsView(LoggedCallMixin, RetrieveAPIView):
     serializer_class = DecisionResultsSerializerRO
     permission_classes = (ViewJobPermission,)
     queryset = Job.objects.all()
+    lookup_url_kwarg = 'identifier'
+    lookup_field = 'identifier'
 
     def get_object(self):
         obj = super().get_object()
-
-        # Not finished jobs don't have results
-        if obj.status in {JOB_STATUS[0][0], JOB_STATUS[1][0], JOB_STATUS[2][0]}:
+        if not obj.is_finished:
+            # Not finished jobs can be without results
             raise exceptions.ValidationError(detail='The job is not decided yet')
         return obj
 

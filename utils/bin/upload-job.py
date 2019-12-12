@@ -17,11 +17,13 @@
 #
 
 import os
+from uuid import UUID
 
 from utils.utils import get_args_parser, Session
 
-parser = get_args_parser('Upload ZIP archive of verification job to parent verification job.')
-parser.add_argument('parent', help='Parent verification job identifier or its name.')
+parser = get_args_parser('Upload ZIP archive of verification job.')
+parser.add_argument('--parent', type=UUID, help='Parent verification job identifier (uuid). '
+                                                'By default the job will be uploaded to the root.')
 parser.add_argument('--archive', help='ZIP archive name.', required=True)
 args = parser.parse_args()
 
@@ -31,5 +33,5 @@ if not os.path.exists(args.archive):
 session = Session(args)
 session.upload_job(args.parent, args.archive)
 
-print('ZIP archive of verification job "{0}" was successfully uploaded for parent verification job "{1}"'
-      .format(args.archive, args.parent))
+print('ZIP archive of verification job "{0}" was successfully uploaded. '
+      'If archive is not corrupted the job will be soon created.'.format(args.archive))

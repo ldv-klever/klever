@@ -70,6 +70,16 @@ class Job(MPTTModel):
     def is_lightweight(self):
         return self.weight == JOB_WEIGHT[1][0]
 
+    @property
+    def is_finished(self):
+        return self.status in {
+            JOB_STATUS[3][0], JOB_STATUS[4][0], JOB_STATUS[5][0], JOB_STATUS[7][0], JOB_STATUS[8][0]
+        }
+
+    @property
+    def not_decided(self):
+        return self.status == JOB_STATUS[0][0]
+
     class MPTTMeta:
         order_insertion_by = ['name']
 

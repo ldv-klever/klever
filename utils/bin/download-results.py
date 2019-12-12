@@ -16,10 +16,11 @@
 # limitations under the License.
 #
 
+from uuid import UUID
 from utils.utils import get_args_parser, Session
 
 parser = get_args_parser('Download JSON file with verification results of verificaiton job.')
-parser.add_argument('job', help='Verification job identifier or its name.')
+parser.add_argument('job', type=UUID, help='Verification job identifier (uuid).')
 parser.add_argument('-o', '--out', help='JSON file name.', default='results.json')
 args = parser.parse_args()
 

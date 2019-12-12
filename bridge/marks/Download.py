@@ -40,7 +40,9 @@ from marks.SafeUtils import ConnectSafeMark, RemoveSafeMarks
 from marks.UnsafeUtils import ConnectUnsafeMark, RemoveUnsafeMarks
 from marks.UnknownUtils import ConnectUnknownMark, RemoveUnknownMarks
 
-from caches.utils import UpdateCachesOnMarkPopulate, RecalculateSafeCache, RecalculateUnsafeCache
+from caches.utils import (
+    UpdateCachesOnMarkPopulate, RecalculateSafeCache, RecalculateUnsafeCache, RecalculateUnknownCache
+)
 
 
 class MarkGeneratorBase:
@@ -394,7 +396,7 @@ class UploadAllMarks:
         RemoveUnknownMarks()
         RecalculateSafeCache()
         RecalculateUnsafeCache()
-        RecalculateUnsafeCache()
+        RecalculateUnknownCache()
 
     def __upload_all(self, marks_dir):
         upload_result = {'safe': 0, 'unsafe': 0, 'unknown': 0, 'fail': 0}

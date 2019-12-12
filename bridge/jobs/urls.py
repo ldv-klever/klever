@@ -24,6 +24,7 @@ urlpatterns = [
     path('', views.JobsTree.as_view(), name='tree'),
     path('<int:pk>/', views.JobPage.as_view(), name='job'),
     path('decision-results/<int:pk>/', views.DecisionResults.as_view(), name='decision-results'),
+    path('api/decision-results/<uuid:identifier>/', api.DecisionResultsView.as_view(), name='api-decision-results'),
     path('progress/<int:pk>/', views.JobProgress.as_view(), name='progress'),
     path('api/job-status/', api.JobStatusListView.as_view(), name='api-jobs-statuses'),
     path('api/job-status/<int:pk>/', api.JobStatusView.as_view(), name='api-job-status'),
@@ -33,8 +34,6 @@ urlpatterns = [
     path('api/<int:pk>/remove/', api.RemoveJobView.as_view(), name='api-remove-job'),
     path('api/duplicate/', api.DuplicateJobView.as_view(), name='api-duplicate-job'),
     path('api/duplicate/<int:pk>/', api.DuplicateJobView.as_view(), name='api-duplicate-version'),
-
-    path('api/decision-results/<int:pk>/', api.DecisionResultsView.as_view(), name='api-decision-results'),
 
     # Job form
     re_path(r'^form/(?P<pk>[0-9]+)/(?P<action>edit|copy)/$', views.JobFormPage.as_view(), name='form'),
@@ -55,6 +54,7 @@ urlpatterns = [
 
     # Download/upload actions
     path('downloadjob/<int:pk>/', views.DownloadJobView.as_view(), name='download'),
+    path('api/downloadjob/<uuid:identifier>/', views.DownloadJobByUUID.as_view(), name='api-download'),
     path('downloadjobs/', views.DownloadJobsListView.as_view(), name='download-jobs'),
     path('downloadtrees/', views.DownloadJobsTreeView.as_view(), name='download-trees'),
     path('api/upload_jobs/', api.UploadJobsAPIView.as_view(), name='api-upload-jobs'),

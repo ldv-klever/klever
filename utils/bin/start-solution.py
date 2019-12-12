@@ -21,6 +21,7 @@ import json
 
 from utils.utils import get_args_parser, Session
 
+# TODO. Add support to create preset job. Update this script.
 parser = get_args_parser('Start solution of verification job.')
 parser.add_argument('job', help='Verification job identifier or its name.')
 parser.add_argument('--copy', action='store_true',

@@ -124,28 +124,25 @@ class Session:
         resp = self.__request('jobs/get_job_field/', 'POST', data={'job': job, 'field': 'identifier'})
         return resp.json()['identifier']
 
-    def download_job(self, job, archive):
-        return self.__download_archive('/jobs/downloadjob/{0}/'.format(self.__get_job_id(job)), archive)
+    def download_job(self, job_uuid, archive):
+        return self.__download_archive('/jobs/api/downloadjob/{0}/'.format(job_uuid), archive)
 
-    def upload_job(self, parent, archive):
-        if len(parent) == 0:
-            raise ValueError('The parent identifier or its name is not set')
-        job_identifier = self.__get_job_uuid(parent)
-        resp = self.__request(
-            'jobs/api/upload_jobs/', 'POST', data={'parent': job_identifier},
+    def upload_job(self, parent_uuid, archive):
+        request_data = {}
+        if parent_uuid:
+            request_data['parent'] = str(parent_uuid)
+        self.__request(
+            'jobs/api/upload_jobs/', 'POST', data=request_data,
             files=[('file', open(archive, 'rb', buffering=0))], stream=True
         )
-        error = str(resp.json())
-        resp.close()
-        raise BridgeError('Got error "{0}" while uploading job'.format(error))
 
-    def job_progress(self, job, filename):
-        resp = self.__request('service/progress/{}/'.format(self.__get_job_uuid(job)))
+    def job_progress(self, job_uuid, filename):
+        resp = self.__request('service/progress/{}/'.format(job_uuid))
         with open(filename, mode='w', encoding='utf8') as fp:
             json.dump(resp.json(), fp, ensure_ascii=False, sort_keys=True, indent=4)
 
-    def decision_results(self, job, filename):
-        resp = self.__request('jobs/api/decision-results/{0}/'.format(self.__get_job_id(job)))
+    def decision_results(self, job_uuid, filename):
+        resp = self.__request('jobs/api/decision-results/{0}/'.format(job_uuid))
         with open(filename, mode='w', encoding='utf8') as fp:
             json.dump(resp.json(), fp, ensure_ascii=False, sort_keys=True, indent=4)
 

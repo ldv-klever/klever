@@ -184,10 +184,9 @@ class JobAccess:
         return self._root and self._root.user == self.user
 
     @cached_property
-    def _is_finished(self):
-        return self.job is not None and self.job.status not in {
-            JOB_STATUS[1][0], JOB_STATUS[2][0], JOB_STATUS[6][0], JOB_STATUS[9][0]
-        }
+    def _in_progress(self):
+        assert isinstance(self.job, Job), "Can't check the job access if job is not provided"
+        return not self.job.not_decided and not self.job.is_finished
 
     def can_view_jobs(self, queryset):
         """Filter queryset by view job access"""
@@ -208,16 +207,15 @@ class JobAccess:
 
     def can_download_jobs(self, queryset):
         """Check if all jobs in queryset can be downloaded"""
-        unfinished_statues = {JOB_STATUS[1][0], JOB_STATUS[2][0], JOB_STATUS[6][0]}
-        if any(job.status in unfinished_statues for job in queryset):
+        if any(not job.is_finished and not job.not_decided for job in queryset):
             return False
         jobs_ids = self.can_view_jobs(queryset)
         return len(jobs_ids) == len(queryset)
 
     @cached_property
     def can_decide(self):
-        return self._is_finished and (self._is_manager or self._is_author or
-                                      self._job_role in {JOB_ROLES[3][0], JOB_ROLES[4][0]})
+        return not self._in_progress and \
+               (self._is_manager or self._is_author or self._job_role in {JOB_ROLES[3][0], JOB_ROLES[4][0]})
 
     @cached_property
     def can_decide_last(self):
@@ -235,32 +233,30 @@ class JobAccess:
 
     @cached_property
     def can_edit(self):
-        return self._is_finished and (self._is_author or self._is_manager)
+        return not self._in_progress and (self._is_author or self._is_manager)
 
     @cached_property
     def can_stop(self):
-        return self.job is not None and self.job.status in {JOB_STATUS[1][0], JOB_STATUS[2][0]} \
-               and (self._is_operator or self._is_manager)
+        assert isinstance(self.job, Job), "Can't check the job access if job is not provided"
+        return self.job.status in {JOB_STATUS[1][0], JOB_STATUS[2][0]} and (self._is_operator or self._is_manager)
 
     @cached_property
     def can_download(self):
-        return self._is_finished and self.can_view
+        return not self._in_progress and self.can_view
 
     @cached_property
     def can_delete(self):
         if self.job is None:
             return False
         for job in self.job.get_descendants(include_self=True):
-            is_finished = job.status not in {JOB_STATUS[1][0], JOB_STATUS[2][0], JOB_STATUS[6][0], JOB_STATUS[9][0]}
-            if not is_finished or not self._is_manager and job.author != self.user:
+            if not (job.is_finished or job.not_decided) or not self._is_manager and job.author != self.user:
                 return False
         return True
 
     @cached_property
     def can_collapse(self):
-        if not self._is_finished or not (self._is_author or self._is_manager):
-            return False
-        if self.job.weight != JOB_WEIGHT[0][0]:
+        assert isinstance(self.job, Job), "Can't check the job access if job is not provided"
+        if not self.job.is_finished or self.job.is_lightweight or not (self._is_author or self._is_manager):
             return False
         return not ReportComponent.objects.filter(root__job=self.job, component=SUBJOB_NAME).exists()
 
@@ -272,11 +268,11 @@ class JobAccess:
 
     @cached_property
     def can_clear_verifier_files(self):
-        return self._is_finished and (self._is_author or self._is_manager) and self._has_verifier_files
+        return self.job.is_finished and (self._is_author or self._is_manager) and self._has_verifier_files
 
     @cached_property
     def can_download_verifier_files(self):
-        return self._is_finished and self._has_verifier_files
+        return self.job.is_finished and self.can_view and self._has_verifier_files
 
 
 class JobDecisionData:

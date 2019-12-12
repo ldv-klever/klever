@@ -332,7 +332,16 @@ class UploadJobsScheduler:
     def __init__(self, user, archive, parent_uuid):
         self._author = user
         self._archive = archive
-        self._parent_uuid = uuid.UUID(parent_uuid) if parent_uuid else None
+        self._parent_uuid = self.__get_parent(parent_uuid)
+
+    def __get_parent(self, parent_uuid):
+        if not parent_uuid:
+            return None
+        try:
+            parent_job = Job.objects.get(identifier=parent_uuid)
+        except Job.DoesNotExist:
+            raise exceptions.APIException(_('The job(s) parent was not found'))
+        return str(parent_job.identifier)
 
     @cached_property
     def _arch_files(self):
