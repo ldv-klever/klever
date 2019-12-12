@@ -245,6 +245,28 @@ class OSKleverInstance(OSEntity):
                     fp.flush()
                     ssh.sftp_put(fp.name, '/etc/default/klever', sudo=True, directory=os.path.sep)
 
+                self.logger.info('Install systemd configuration files and services')
+                ssh.execute_cmd('sudo mkdir -p /etc/conf.d')
+                for dirpath, _, filenames in os.walk(os.path.join(os.path.dirname(__file__), os.path.pardir,
+                                                                  os.path.pardir, 'systemd', 'conf.d')):
+                    for filename in filenames:
+                        ssh.sftp_put(os.path.join(dirpath, filename), os.path.join('/etc/conf.d', filename),
+                                     sudo=True, directory=os.path.sep)
+
+                for dirpath, _, filenames in os.walk(os.path.join(os.path.dirname(__file__), os.path.pardir,
+                                                                  os.path.pardir, 'systemd', 'tmpfiles.d')):
+                    for filename in filenames:
+                        ssh.sftp_put(os.path.join(dirpath, filename), os.path.join('/etc/tmpfiles.d', filename),
+                                     sudo=True, directory=os.path.sep)
+
+                ssh.execute_cmd('sudo systemd-tmpfiles --create')
+
+                for dirpath, _, filenames in os.walk(os.path.join(os.path.dirname(__file__), os.path.pardir,
+                                                                  os.path.pardir, 'systemd', 'system')):
+                    for filename in filenames:
+                        ssh.sftp_put(os.path.join(dirpath, filename), os.path.join('/etc/systemd/system', filename),
+                                     sudo=True, directory=os.path.sep)
+
                 with DeployConfAndScripts(self.logger, ssh, self.args.deployment_configuration_file,
                                           'creation of Klever instance'):
                     self._install_or_update_deps(ssh)

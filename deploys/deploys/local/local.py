@@ -115,6 +115,25 @@ class Klever:
             fp.write('KLEVER_DATA_DIR="{0}"\n'
                      .format(os.path.join(os.path.realpath(self.args.deployment_directory), 'klever', 'build bases')))
 
+        self.logger.info('Install systemd configuration files and services')
+        execute_cmd(self.logger, 'mkdir', '-p', '/etc/conf.d')
+        for dirpath, _, filenames in os.walk(os.path.join(os.path.dirname(__file__), os.path.pardir,
+                                                          os.path.pardir, 'systemd', 'conf.d')):
+            for filename in filenames:
+                shutil.copy(os.path.join(dirpath, filename), os.path.join('/etc/conf.d', filename))
+
+        for dirpath, _, filenames in os.walk(os.path.join(os.path.dirname(__file__), os.path.pardir,
+                                                          os.path.pardir, 'systemd', 'tmpfiles.d')):
+            for filename in filenames:
+                shutil.copy(os.path.join(dirpath, filename), os.path.join('/etc/tmpfiles.d', filename))
+
+        execute_cmd(self.logger, 'systemd-tmpfiles', '--create')
+
+        for dirpath, _, filenames in os.walk(os.path.join(os.path.dirname(__file__), os.path.pardir,
+                                                          os.path.pardir, 'systemd', 'system')):
+            for filename in filenames:
+                shutil.copy(os.path.join(dirpath, filename), os.path.join('/etc/systemd/system', filename))
+
         self._install_or_update_deps()
         prepare_env(self.logger, self.args.deployment_directory)
         self._pre_install_or_update()
@@ -260,7 +279,7 @@ class KleverProduction(Klever):
         self._post_install_or_update(self._IS_DEV)
 
     def uninstall(self):
-        self._pre_uninstall(('nginx', 'klever-bridge'))
+        self._pre_uninstall(('nginx', 'klever-bridge', 'klever-celery', 'klever-celerybeat'))
 
         nginx_klever_bridge_conf_file = '/etc/nginx/sites-enabled/klever-bridge'
         if os.path.exists(nginx_klever_bridge_conf_file):

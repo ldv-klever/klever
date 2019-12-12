@@ -92,7 +92,7 @@ def install_klever_bridge_development(logger, deploy_dir):
 def install_klever_bridge_production(logger, deploy_dir, populate_just_production_presets=True):
     logger.info('Install/update production Klever Bridge')
 
-    services = ('nginx', 'klever-bridge')
+    services = ('nginx', 'klever-bridge', 'klever-celery', 'klever-celerybeat')
     stop_services(logger, services)
 
     logger.info('Copy Klever Bridge configuration file for NGINX')
