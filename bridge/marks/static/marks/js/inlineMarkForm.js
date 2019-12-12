@@ -113,4 +113,3 @@ window.get_inline_mark_form = function(url, container) {
         }
     });
 };
-
