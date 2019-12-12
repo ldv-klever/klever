@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
 # Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
