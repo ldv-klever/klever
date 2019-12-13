@@ -24,14 +24,12 @@
 /* NOTE SDIO bus is unclaimed */
 unsigned short ldv_sdio_element = 0;
 
-/* MODEL_FUNC Check that SDIO bus was claimed */
 void ldv_check_context(struct sdio_func *func)
 {
 	/* ASSERT SDIO bus should be claimed before usage */
 	ldv_assert(ldv_sdio_element == func->card->host->index);
 }
 
-/* MODEL_FUNC Check that SDIO bus was not claimed */
 void ldv_sdio_claim_host(struct sdio_func *func)
 {
 	/* ASSERT SDIO bus should be unclaimed */
@@ -41,7 +39,6 @@ void ldv_sdio_claim_host(struct sdio_func *func)
 	ldv_sdio_element = func->card->host->index;
 }
 
-/* MODEL_FUNC Check that SDIO bus was claimed by the same device */
 void ldv_sdio_release_host(struct sdio_func *func)
 {
 	/* ASSERT SDIO bus was claimed by the same device */
@@ -50,7 +47,7 @@ void ldv_sdio_release_host(struct sdio_func *func)
 	/* NOTE Release SDIO bus */
 	ldv_sdio_element = 0;
 }
-/* MODEL_FUNC Check that SDIO bus is not claimed at the end */
+
 void ldv_check_final_state(void)
 {
 	/* ASSERT SDIO bus should be released before finishing operation */

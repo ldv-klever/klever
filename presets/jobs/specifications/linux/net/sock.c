@@ -23,14 +23,12 @@
 /* NOTE There is no locked sockets at the beginning */
 int locksocknumber = 0;
 
-/* MODEL_FUNC executed after locking socket using nested function */
 void ldv_past_lock_sock_nested(void)
 {
-        /* NOTE locking socket */
+	/* NOTE locking socket */
 	locksocknumber++;
 }
 
-/* MODEL_FUNC executed around locking socket using fast function */
 bool ldv_lock_sock_fast(void)
 {
 	/* NOTE we dont know lock this socket or not */
@@ -44,7 +42,6 @@ bool ldv_lock_sock_fast(void)
 	return false;
 }
 
-/* MODEL_FUNC executed around unlocking socket using fast function */
 void ldv_unlock_sock_fast(void)
 {
 	/* ASSERT unlock_sock_fas negative locksocknumber the result of multiply releases */
@@ -53,7 +50,6 @@ void ldv_unlock_sock_fast(void)
 	locksocknumber--;
 }
 
-/* MODEL_FUNC executed after releasing socket */
 void ldv_before_release_sock(void)
 {
 	/* ASSERT lock_sock negative locksocknumber the result of multiply releases */
@@ -62,7 +58,6 @@ void ldv_before_release_sock(void)
 	locksocknumber--;
 }
 
-/* MODEL_FUNC check on exit */
 void ldv_check_final_state(void)
 {
 	/* ASSERT lock_sock number */

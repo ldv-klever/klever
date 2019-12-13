@@ -24,14 +24,12 @@ struct clk;
 /* NOTE Initialize counter to zero */
 int ldv_counter{{ arg_sign.id }} = 0;
 
-/* MODEL_FUNC Release */
 void ldv_clk_disable{{ arg_sign.id }}(struct clk *clk)
 {
     /* NOTE Increase counter */
     ldv_counter{{ arg_sign.id }} = 0;
 }
 
-/* MODEL_FUNC Reset counter */
 int ldv_clk_enable{{ arg_sign.id }}(void)
 {
 	int retval = ldv_undef_int();
@@ -43,7 +41,6 @@ int ldv_clk_enable{{ arg_sign.id }}(void)
 }
 // endfor
 
-/* MODEL_FUNC Check that all clk are freed at the end */
 void ldv_check_final_state(void)
 {
 	// for arg_sign in clk1_arg_signs

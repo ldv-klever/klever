@@ -24,7 +24,6 @@ struct clk;
 /* NOTE Initialize counter to zero */
 int ldv_counter{{ arg_sign.id }} = 0;
 
-/* MODEL_FUNC Release */
 void ldv_clk_disable{{ arg_sign.id }}(struct clk *clk)
 {
     /* ASSERT The clk must be freed only once */
@@ -33,7 +32,6 @@ void ldv_clk_disable{{ arg_sign.id }}(struct clk *clk)
     ldv_counter{{ arg_sign.id }} = 0;
 }
 
-/* MODEL_FUNC Reset counter */
 int ldv_clk_enable{{ arg_sign.id }}(void)
 {
 	int retval = ldv_undef_int();

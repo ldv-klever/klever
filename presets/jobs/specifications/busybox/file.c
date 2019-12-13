@@ -46,7 +46,6 @@ void ldv_access(int fd);
 int ldv_pipe(int pipefd[2]);
 void ldv_check_final_state(void);
 
-/* MODEL_FUNC Initialize standard streams */
 void ldv_initialize(void)
 {
 	stdin = ldv_reference_xmalloc(0);
@@ -54,7 +53,6 @@ void ldv_initialize(void)
 	stderr = ldv_reference_xmalloc(0);
 }
 
-/* MODEL_FUNC Get a file descriptor of the stream */
 int ldv_fileno(FILE *stream)
 {
 	int ret;
@@ -91,7 +89,6 @@ int ldv_fileno(FILE *stream)
 	return ret;
 }
 
-/* MODEL_FUNC Open a new stream */
 FILE *ldv_fopen(void)
 {
 	if (ldv_tmp_file_fd1 == -1) {
@@ -130,7 +127,6 @@ FILE *ldv_fopen(void)
 	    ldv_assume(0);
 }
 
-/* MODEL_FUNC Open a new file */
 int ldv_open(void)
 {
 	if (ldv_tmp_file_fd1 == -1) {
@@ -164,7 +160,6 @@ int ldv_open(void)
 	    ldv_assume(0);
 }
 
-/* MODEL_FUNC Open a stream for an opened file descriptor */
 FILE *ldv_fdopen(int fd)
 {
 	if (fd == 0)
@@ -223,7 +218,6 @@ FILE *ldv_fdopen(int fd)
 	    ldv_assert(0);
 }
 
-/* MODEL_FUNC Should close an opened file descriptor */
 int ldv_close(int fd)
 {
 	if (fd == 0 || fd == 1 || fd == 2)
@@ -283,7 +277,6 @@ int ldv_close(int fd)
 	ldv_assert(0);
 }
 
-/* MODEL_FUNC Should close an opened stream or a standard stream */
 int ldv_fclose(FILE *fp)
 {
 	if (fp == stdin || fp == stdout || fp == stderr)
@@ -333,7 +326,6 @@ int ldv_fclose(FILE *fp)
 	ldv_assert(0);
 }
 
-/* MODEL_FUNC Should read from an opened stream */
 void ldv_faccess(FILE *fp)
 {
 	if (fp == stdin || fp == stdout || fp == stderr)
@@ -373,7 +365,6 @@ void ldv_faccess(FILE *fp)
 	ldv_assert(0);
 }
 
-/* MODEL_FUNC Should read from an opened file descriptor */
 void ldv_access(int fd)
 {
 	if (fd == 0 || fd == 1 || fd == 2)
@@ -412,7 +403,6 @@ void ldv_access(int fd)
 	ldv_assert(0);
 }
 
-/* MODEL_FUNC Should open file descriptors for a pipe */
 int ldv_pipe(int pipefd[2])
 {
     if (ldv_undef_int()) {

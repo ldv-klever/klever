@@ -250,11 +250,12 @@ class RP(core.components.Component):
         self.logger.info("VRP instance is ready to work")
         element = self.element
         status, data = element
-        task_id, opts, program_fragment_desc, req_spec_id, verifier, additional_srcs = data
+        task_id, opts, program_fragment_desc, req_spec_id, verifier, additional_srcs, verification_task_files = data
         self.program_fragment_id = program_fragment_desc['id']
         self.req_spec_id = req_spec_id
         self.results_key = '{}:{}'.format(self.program_fragment_id, self.req_spec_id)
         self.additional_srcs = additional_srcs
+        self.verification_task_files = verification_task_files
         self.logger.debug("Process results of task {}".format(task_id))
 
         files_list_file = 'files list.txt'
@@ -315,7 +316,7 @@ class RP(core.components.Component):
     main = fetcher
 
     def process_witness(self, witness):
-        error_trace, attrs = import_error_trace(self.logger, witness)
+        error_trace, attrs = import_error_trace(self.logger, witness, self.verification_task_files)
         trimmed_file_names = self.__trim_file_names(error_trace['files'])
         error_trace['files'] = [trimmed_file_names[file] for file in error_trace['files']]
 

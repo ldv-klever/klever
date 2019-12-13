@@ -18,7 +18,7 @@
 from core.vrp.et.error_trace import get_original_file, get_original_start_line
 
 
-def envmodel_simplifications(logger, error_trace, less_processing=False):
+def envmodel_simplifications(logger, error_trace):
     logger.info('Start environment model driven error trace simplifications')
     data, main_data, main = _collect_action_diaposons(logger, error_trace)
     _set_main(main_data, main, error_trace)
@@ -26,15 +26,13 @@ def envmodel_simplifications(logger, error_trace, less_processing=False):
 
     # This is quite tricky code and it is ensure that before deleting any edges the trace was correct
     error_trace.final_checks()
-    if not less_processing:
-        _remove_control_func_aux_code(data, error_trace)
+    _remove_control_func_aux_code(data, error_trace)
     try:
         error_trace.final_checks()
     except ValueError as e:
         raise RuntimeError("Edges from error trace has been deleted incorrectly and it cannot be visualized: {}".
                            format(e))
-    if not less_processing:
-        _wrap_actions(data, error_trace)
+    _wrap_actions(data, error_trace)
 
 
 def _collect_action_diaposons(logger, error_trace):
@@ -166,7 +164,7 @@ def _set_main(data, main, error_trace):
     for edge in error_trace.trace_iterator():
         if edge.get("source", "") == "Begin program execution":
             edge["file"] = data['file']
-            edge["line"] = data['begin'] - 1
+            edge["start line"] = data['begin'] - 1
             return
 
         if _inside_this_control_function(data, edge['file'], edge['start line']):
@@ -177,7 +175,7 @@ def _set_main(data, main, error_trace):
             new_edge = error_trace.insert_edge_and_target_node(edge, after=False)
             new_edge["enter"] = identifier
             new_edge["file"] = data['file']
-            new_edge["line"] = data['begin'] - 1
+            new_edge["start line"] = data['begin'] - 1
             new_edge["source"] = "Begin program execution"
 
             return

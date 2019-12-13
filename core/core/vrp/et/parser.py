@@ -15,6 +15,8 @@
 # limitations under the License.
 #
 
+import os
+import re
 import xml.etree.ElementTree as ET
 
 from core.vrp.et.error_trace import ErrorTrace
@@ -23,8 +25,9 @@ from core.vrp.et.error_trace import ErrorTrace
 class ErrorTraceParser:
     WITNESS_NS = {'graphml': 'http://graphml.graphdrawing.org/xmlns'}
 
-    def __init__(self, logger, witness):
+    def __init__(self, logger, witness, verification_task_files):
         self._logger = logger
+        self.verification_task_files = verification_task_files
 
         # Start parsing
         self.error_trace = ErrorTrace(logger)
@@ -67,6 +70,11 @@ class ErrorTraceParser:
                 self.error_trace.add_attr(data.attrib['key'], data.text,
                                           True if data.attrib['associate'] == 'true' else False,
                                           True if data.attrib['compare'] == 'true' else False)
+
+            # TODO: at the moment violation witnesses do not support multiple program files.
+            if data.attrib['key'] == 'programfile':
+                with open(self.verification_task_files[os.path.normpath(data.text)]) as fp:
+                    self.error_trace.programfile = fp.read()
 
     def __parse_witness_nodes(self, graph):
         sink_nodes_map = dict()
@@ -137,6 +145,9 @@ class ErrorTraceParser:
             # Update lists of input and output edges for source and target nodes.
             _edge = self.error_trace.add_edge(source_node_id, target_node_id)
 
+            startoffset = None
+            endoffset = None
+            control = None
             for data in edge.findall('graphml:data', self.WITNESS_NS):
                 data_key = data.attrib['key']
                 if data_key == 'originfile':
@@ -149,8 +160,10 @@ class ErrorTraceParser:
                     _edge['start line'] = int(data.text)
                 elif data_key == 'endline':
                     _edge['end line'] = int(data.text)
-                elif data_key == 'sourcecode':
-                    _edge['source'] = data.text
+                elif data_key == 'startoffset':
+                    startoffset = int(data.text)
+                elif data_key == 'endoffset':
+                    endoffset = int(data.text)
                 elif data_key == 'enterFunction' or data_key == 'returnFrom' or data_key == 'assumption.scope':
                     self.error_trace.add_function(data.text)
                     if data_key == 'enterFunction':
@@ -160,6 +173,7 @@ class ErrorTraceParser:
                     else:
                         _edge['assumption scope'] = self.error_trace.resolve_function_id(data.text)
                 elif data_key == 'control':
+                    control = True if data.text == 'condition-true' else False
                     _edge['condition'] = True
                 elif data_key == 'assumption':
                     _edge['assumption'] = data.text
@@ -173,6 +187,25 @@ class ErrorTraceParser:
                 elif data_key not in unsupported_edge_data_keys:
                     self._logger.warning('Edge data key {!r} is not supported'.format(data_key))
                     unsupported_edge_data_keys[data_key] = None
+
+            if startoffset and endoffset:
+                _edge['source'] = self.error_trace.programfile[startoffset:(endoffset + 1)]
+                if control is not None:
+                    # Replace conditions to negative ones to consider else branches.
+                    if not control:
+                        cond_replaces = {'==': '!=', '!=': '==', '<=': '>', '>=': '<', '<': '>=', '>': '<='}
+                        for orig_cond, replace_cond in cond_replaces.items():
+                            m = re.match(r'^(.+){0}(.+)$'.format(orig_cond), _edge['source'])
+                            if m:
+                                _edge['source'] = '{0}{1}{2}'.format(m.group(1), replace_cond, m.group(2))
+                                # Do not proceed after some replacement is applied - others won't be done.
+                                break
+
+                    control = None
+                else:
+                    # End all statements with ";" like in C.
+                    if _edge['source'][-1] != ';':
+                        _edge['source'] += ';'
 
             edges_num += 1
 

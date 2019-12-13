@@ -84,6 +84,9 @@ class Basic:
 
         # Files
         files = self._prepare_task_files(benchmark)
+        self.abstract_task_desc['verification task files'] = {file: (file if os.path.isabs(file)
+                                                                     else os.path.realpath(file))
+                                                              for file in files}
 
         # Safety properties specification
         self._prepare_safe_prps_spec(benchmark, safe_prps)

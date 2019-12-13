@@ -435,7 +435,7 @@ class FSATranslator:
                     ', '.join(param_types))
                 cf = Function(name, declaration)
             else:
-                name = 'ldv_{}_{}'.format(automaton.process.name, str(automaton))
+                name = 'ldv_emg_{}_{}'.format(automaton.process.name, str(automaton))
                 if not get_or_die(self._conf, "direct control functions calls"):
                     declaration = 'void *f(void *data)'
                 else:

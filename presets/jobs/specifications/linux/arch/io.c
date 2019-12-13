@@ -21,7 +21,6 @@
 
 int ldv_iomem = 0;
 
-/* MODEL_FUNC Create some io-memory map for specified address */
 void *ldv_io_mem_remap(void)
 {
 	void *ptr = ldv_undef_ptr();
@@ -36,16 +35,14 @@ void *ldv_io_mem_remap(void)
 	return ptr;
 }
 
-/* MODEL_FUNC Delete some io-memory map for specified address */
 void ldv_io_mem_unmap(void)
 {
-	/* ASSERT io-memory should be alloctaed before release */
+	/* ASSERT io-memory should be allocated before release */
 	ldv_assert(ldv_iomem >= 1);
 	/* NOTE Decrease allocated counter. */
 	ldv_iomem--;
 }
 
-/* MODEL_FUNC Check that all io-memory map are unmapped properly */
 void ldv_check_final_state(void)
 {
 	/* ASSERT io-memory should be released at exit */

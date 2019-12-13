@@ -20,7 +20,6 @@
 int pid;
 int ldv_fork(void);
 
-/* MODEL_FUNC Fork the program */
 int ldv_fork(void)
 {
     if (ldv_undef_int())
