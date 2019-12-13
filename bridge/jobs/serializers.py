@@ -358,7 +358,7 @@ class DuplicateJobSerializer(serializers.ModelSerializer):
         # Copy job version with its files and user roles
         create_job_version(
             instance, job_files, user_roles,
-            change_author=validated_data['author'],
+            change_author=self.context['request'].user,
             global_role=last_version.global_role
         )
 

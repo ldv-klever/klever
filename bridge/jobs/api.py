@@ -195,8 +195,8 @@ class DuplicateJobView(LoggedCallMixin, UpdateModelMixin, CreateModelMixin, Gene
     def post(self, request, *args, **kwargs):
         return self.create(request, *args, **kwargs)
 
-    def put(self, request, *args, **kwargs):
-        return self.update(request, *args, **kwargs)
+    def patch(self, request, *args, **kwargs):
+        return self.partial_update(request, *args, **kwargs)
 
 
 class DecisionResultsView(LoggedCallMixin, RetrieveAPIView):
