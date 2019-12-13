@@ -105,41 +105,55 @@ class PresetFiles:
 class PresetsProcessor:
     def __init__(self, user):
         self._user = user
-        self._parent = None
+        self._parents = []
         self._presets_dir = get_presets_dir()
 
     def get_jobs_tree(self):
         if settings.POPULATE_JUST_PRODUCTION_PRESETS:
-            return self.__get_production_tree(self._presets_data['jobs'])
+            return self.__get_production_children(self._presets_data['jobs'])
         return self._presets_data['jobs']
-
-    def __get_fake_job(self, name, identifier):
-        try:
-            return Job.objects.get(identifier=identifier)
-        except Job.DoesNotExist:
-            new_job = Job.objects.create(name=name, parent=self._parent, identifier=identifier, author=self._user)
-        JobHistory.objects.create(
-            job=new_job, name=new_job.name, version=new_job.version, change_author=new_job.author, change_date=now()
-        )
-        return new_job
 
     def __find_name(self, preset_uuid, jobs_list):
         for data in jobs_list:
             if 'uuid' in data and data['uuid'] == preset_uuid:
                 return data['name']
             elif 'children' in data:
-                self._parent = self.__get_fake_job(data['name'], data['uuid'])
+                self._parents.append({'name': data['name'], 'identifier': data['uuid']})
                 name = self.__find_name(preset_uuid, data['children'])
                 if name:
                     return name
-                self._parent = self._parent.parent
+                self._parents.pop()
         return None
 
+    def __get_job_parent(self):
+        # If preset job don't have parents, then new job will not have it
+        if not self._parents:
+            return None
+        # Try to get last the closest parent from DB
+        try:
+            return Job.objects.get(identifier=self._parents[-1]['identifier'])
+        except Job.DoesNotExist:
+            pass
+        # Get or create all parents branch
+        prev_parent = None
+        for parent_data in self._parents:
+            new_job, created = Job.objects.get_or_create(identifier=parent_data['identifier'], defaults={
+                'name': parent_data['name'], 'parent': prev_parent, 'author': self._user
+            })
+            if created:
+                JobHistory.objects.create(
+                    job=new_job, name=new_job.name, version=new_job.version,
+                    change_author=new_job.author, change_date=now()
+                )
+            prev_parent = new_job
+        return prev_parent
+
     def get_job_name_and_parent(self, preset_uuid):
-        self._parent = None
-        preset_uuid = str(preset_uuid)
-        base_name = self.__find_name(preset_uuid, self._presets_data['jobs'])
-        return get_unique_name(base_name), self._parent
+        self._parents = []
+        base_name = self.__find_name(str(preset_uuid), self._presets_data['jobs'])
+        if not base_name:
+            raise ValueError('The preset job with identifier "{}" was not found'.format(preset_uuid))
+        return get_unique_name(base_name), self.__get_job_parent()
 
     @cached_property
     def _presets_data(self):
@@ -157,9 +171,6 @@ class PresetsProcessor:
             elif 'uuid' in job_data and job_data.get('production'):
                 new_tree.append(job_data)
         return new_tree
-
-    def __get_production_tree(self, data):
-        return self.__get_production_children(data)
 
     def initial_roles(self):
         users_qs = User.objects.exclude(role__in=[USER_ROLES[2][0], USER_ROLES[4][0]])
