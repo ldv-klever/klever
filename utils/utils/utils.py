@@ -110,7 +110,7 @@ class Session:
         return archive
 
     def download_job(self, job_uuid, archive):
-        return self.__download_archive('/jobs/api/downloadjob/{0}/'.format(job_uuid), archive)
+        return self.__download_archive('jobs/api/downloadjob/{0}/'.format(job_uuid), archive)
 
     def upload_job(self, parent_uuid, archive):
         request_data = {}
@@ -170,7 +170,7 @@ class Session:
             self.__request(url, 'POST', data={'mode': 'fast'})
 
     def download_all_marks(self, archive):
-        return self.__download_archive('/marks/api/download-all/', archive)
+        return self.__download_archive('marks/api/download-all/', archive)
 
 
 def execute_cmd(logger, *args, **kwargs):
