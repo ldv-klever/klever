@@ -55,7 +55,10 @@ HIGHLIGHT_CLASSES = {
     'FuncDeclRefTo': 'SrcHlFuncDeclRefTo',
     'MacroDefRefTo': 'SrcHlMacroDefRefTo',
     'FuncCallRefFrom': 'SrcHlFuncCallRefFrom',
-    'MacroExpansionRefFrom': 'SrcHlMacroExpansionRefFrom'
+    'MacroExpansionRefFrom': 'SrcHlMacroExpansionRefFrom',
+    'LDVModelFunc': 'SrcHlLDVModelFunc',
+    'LDVEnvModelFunc': 'SrcHlLDVEnvModelFunc',
+    'CIFAuxFunc': 'SrcHlCIFAuxFunc'
 }
 
 COVERAGE_CLASSES = {

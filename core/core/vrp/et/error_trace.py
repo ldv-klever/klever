@@ -68,7 +68,15 @@ class ErrorTrace:
         if func_name:
             idx = src.find(func_name)
             if idx != -1:
-                highlight.extra_highlight([['FuncDefRefTo', 1, idx, idx + len(func_name)]])
+                if func_name.startswith('cif_'):
+                    highlight_kind = 'CIFAuxFunc'
+                elif func_name.startswith('ldv_emg_'):
+                    highlight_kind = 'LDVEnvModelFunc'
+                elif func_name.startswith('ldv_'):
+                    highlight_kind = 'LDVModelFunc'
+                else:
+                    highlight_kind = 'FuncDefRefTo'
+                highlight.extra_highlight([[highlight_kind, 1, idx, idx + len(func_name)]])
 
         return {
             'source': src,

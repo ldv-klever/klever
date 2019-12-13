@@ -154,6 +154,19 @@
     color: #8B008B;
     font-weight: bold;
 }
+
+.SrcHlLDVModelFunc {
+    color: #4169E1;
+    font-weight: bold;
+}
+.SrcHlLDVEnvModelFunc {
+    color: #800000;
+    font-weight: bold;
+}
+.SrcHlCIFAuxFunc {
+    color: #008B8B;
+    font-weight: bold;
+}
 .SrcHlAssume {
     color: #551175;
     font-weight: bold;
