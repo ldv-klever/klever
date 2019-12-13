@@ -33,12 +33,13 @@ urlpatterns = [
     # Main actions with jobs
     path('api/<int:pk>/remove/', api.RemoveJobView.as_view(), name='api-remove-job'),
     path('api/duplicate/', api.DuplicateJobView.as_view(), name='api-duplicate-job'),
-    path('api/duplicate/<int:pk>/', api.DuplicateJobView.as_view(), name='api-duplicate-version'),
+    path('api/duplicate/<uuid:identifier>/', api.DuplicateJobView.as_view(), name='api-duplicate-version'),
 
     # Job form
     re_path(r'^form/(?P<pk>[0-9]+)/(?P<action>edit|copy)/$', views.JobFormPage.as_view(), name='form'),
     path('form/preset/<uuid:preset_uuid>/', views.PresetFormPage.as_view(), name='preset-form'),
     path('api/create/', api.CreateJobView.as_view(), name='api-create-job'),
+    path('api/create-preset/<uuid:preset_uuid>/', api.CreatePresetJobView.as_view(), name='api-create-preset'),
     path('api/update/<int:pk>/', api.UpdateJobView.as_view(), name='api-update-job'),
     path('api/job-version/<int:job_id>/<int:version>/', api.JobVersionView.as_view(), name='api-job-version'),
     path('api/preset-data/<uuid:preset_uuid>/', api.PresetFormDataView.as_view(), name='api-preset-data'),
@@ -71,6 +72,7 @@ urlpatterns = [
     path('api/configuration/', api.GetConfigurationView.as_view(), name='api-configuration'),
     path('api/conf-def-value/', api.StartJobDefValueView.as_view(), name='api-def-start-value'),
     path('api/decide/<int:job_id>/', api.StartDecisionView.as_view(), name='api-decide'),
+    path('api/decide-uuid/<uuid:job_uuid>/', api.StartDecisionByUUIDView.as_view(), name='api-decide-uuid'),
     path('api/stop/<int:job_id>/', api.StopDecisionView.as_view(), name='api-cancel-decision'),
     path('api/download-files/<uuid:identifier>/', api.CoreJobArchiveView.as_view()),
 

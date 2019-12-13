@@ -17,12 +17,12 @@
 #
 
 from uuid import UUID
+
 from utils.utils import get_args_parser, Session
 
-parser = get_args_parser('Start solution of verification job.')
-parser.add_argument('job', type=UUID, help='Verification job identifier (uuid).')
-parser.add_argument('--copy', action='store_true',
-                    help='Set it if you would like to copy verification job before starting solution.')
+parser = get_args_parser('Create and start solution of verification job created on the base of specified preset.')
+parser.add_argument('preset', type=UUID,
+                    help='Preset job identifier (uuid). Can be obtained form presets/jobs/base.json')
 parser.add_argument('--replacement',
                     help='JSON file name or string with data what files should be replaced before starting solution.')
 parser.add_argument('--rundata', type=open,
@@ -30,11 +30,7 @@ parser.add_argument('--rundata', type=open,
 args = parser.parse_args()
 
 session = Session(args)
-job_uuid = args.job
-if args.copy:
-    job_uuid = session.copy_job(args.job)
-elif args.replacement:
-    session.copy_job_version(args.job)
+job_id, job_uuid = session.create_preset_job(args.preset)
 
 # Replace files before start
 if args.replacement:

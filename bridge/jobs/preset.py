@@ -47,6 +47,61 @@ def get_presets_dir():
     return os.path.abspath(os.path.join(settings.BASE_DIR, 'jobs', presets_path))
 
 
+class PresetFiles:
+    def __init__(self, preset_uuid):
+        self._preset_uuid = str(preset_uuid)
+        self._presets_dir = get_presets_dir()
+
+    def __iter__(self):
+        # Get specific preset files
+        job_directory = self.__find_directory(self._presets_data['jobs'])
+        if not job_directory:
+            raise ValueError('The preset job was not found')
+        yield JOB_FILE, self.__save_file(os.path.join(job_directory, JOB_FILE))
+        yield TASKS_FILE, self.__save_file(os.path.join(job_directory, TASKS_FILE))
+
+        # Common presets files
+        for name in self._presets_data['common directories and files']:
+            path = os.path.join(self._presets_dir, name)
+            if os.path.isdir(path):
+                for dir_path, dir_names, file_names in os.walk(path):
+                    for file_name in file_names:
+                        file_path = os.path.join(dir_path, file_name)
+                        rel_path = os.path.relpath(file_path, self._presets_dir)
+                        yield rel_path.replace('\\', '/'), self.__save_file(file_path)
+            elif os.path.isfile(path):
+                yield name, self.__save_file(path)
+            else:
+                raise ValueError('Preset file/dir "{}" was not found'.format(name))
+
+    @cached_property
+    def _presets_data(self):
+        with open(os.path.join(self._presets_dir, BASE_FILE), mode='r', encoding='utf-8') as fp:
+            return json.load(fp)
+
+    def __find_directory(self, jobs_list):
+        for data in jobs_list:
+            if 'uuid' in data and data['uuid'] == self._preset_uuid:
+                directory = os.path.join(self._presets_dir, data['directory'])
+                if not os.path.isdir(directory):
+                    raise ValueError('The preset job directory does not exist')
+                return directory
+            elif 'children' in data:
+                directory = self.__find_directory(data['children'])
+                if directory:
+                    return directory
+        return None
+
+    def __save_file(self, file_path):
+        if not os.path.isfile(file_path):
+            raise ValueError('File was not found: {}'.format(file_path))
+        with open(file_path, mode='rb') as fp:
+            serializer = JobFileSerializer(data={'file': File(fp, name=os.path.basename(file_path))})
+            serializer.is_valid(raise_exception=True)
+            instance = serializer.save()
+        return instance
+
+
 class PresetsProcessor:
     def __init__(self, user):
         self._user = user
@@ -84,8 +139,7 @@ class PresetsProcessor:
         self._parent = None
         preset_uuid = str(preset_uuid)
         base_name = self.__find_name(preset_uuid, self._presets_data['jobs'])
-        parent = str(self._parent.identifier) if self._parent else ''
-        return get_unique_name(base_name), parent
+        return get_unique_name(base_name), self._parent
 
     @cached_property
     def _presets_data(self):
@@ -107,65 +161,21 @@ class PresetsProcessor:
     def __get_production_tree(self, data):
         return self.__get_production_children(data)
 
-    def __initial_roles(self):
+    def initial_roles(self):
         users_qs = User.objects.exclude(role__in=[USER_ROLES[2][0], USER_ROLES[4][0]])
         available_users = list({'id': u.id, 'name': u.get_full_name()} for u in users_qs)
         available_users.sort(key=lambda x: x['name'])
         return {'user_roles': [], 'available_users': available_users, 'global_role': JOB_ROLES[0][0]}
 
-    def __collect_main_files(self, preset_uuid):
-        preset_uuid = str(preset_uuid)
-
-        def find_directory(jobs_list):
-            for data in jobs_list:
-                if 'uuid' in data and data['uuid'] == preset_uuid:
-                    return data['directory']
-                elif 'children' in data:
-                    directory = find_directory(data['children'])
-                    if directory:
-                        return directory
-            return None
-
-        job_directory = find_directory(self._presets_data['jobs'])
-        if not job_directory:
-            raise ValueError('The preset job was not found')
-        return [
-            (JOB_FILE, self.__save_file(os.path.join(self._presets_dir, job_directory, JOB_FILE))),
-            (TASKS_FILE, self.__save_file(os.path.join(self._presets_dir, job_directory, TASKS_FILE)))
-        ]
-
-    def __collect_common_files(self):
-        common_files = []
-        for name in self._presets_data['common directories and files']:
-            path = os.path.join(self._presets_dir, name)
-            if os.path.isdir(path):
-                for dir_path, dir_names, file_names in os.walk(path):
-                    for file_name in file_names:
-                        file_path = os.path.join(dir_path, file_name)
-                        rel_path = os.path.relpath(file_path, self._presets_dir)
-                        common_files.append((rel_path.replace('\\', '/'), self.__save_file(file_path)))
-            elif os.path.isfile(path):
-                common_files.append((name, self.__save_file(path)))
-            else:
-                raise ValueError('Preset file/dir "{}" was not found'.format(name))
-        return common_files
-
     def get_form_data(self, preset_uuid):
-        files_list = self.__collect_main_files(preset_uuid) + self.__collect_common_files()
-
+        preset_files_hashsums = list((name, obj.hash_sum) for name, obj in PresetFiles(preset_uuid))
         return {
-            'files': JSTreeConverter().make_tree(files_list),
-            'roles': self.__initial_roles()
+            'files': JSTreeConverter().make_tree(preset_files_hashsums),
+            'roles': self.initial_roles()
         }
 
-    def __save_file(self, file_path):
-        if not os.path.isfile(file_path):
-            raise ValueError('File was not found: {}'.format(file_path))
-        with open(file_path, mode='rb') as fp:
-            serializer = JobFileSerializer(data={'file': File(fp, name=os.path.basename(file_path))})
-            serializer.is_valid(raise_exception=True)
-            instance = serializer.save()
-        return instance.hash_sum
+    def get_file_system_kwargs(self, preset_uuid):
+        return list({'name': name, 'file_id': obj.id} for name, obj in PresetFiles(preset_uuid))
 
 
 class PresetsChecker:

@@ -324,13 +324,12 @@ class JobStatusSerializer(serializers.ModelSerializer):
 
 
 class DuplicateJobSerializer(serializers.ModelSerializer):
+    parent = serializers.SlugRelatedField(slug_field='identifier', queryset=Job.objects.all())
     author = fields.HiddenField(default=serializers.CurrentUserDefault())
     name = fields.CharField(max_length=150, required=False)
 
     def validate_name(self, name):
-        if name and Job.objects.filter(name=name).count():
-            raise exceptions.ValidationError('The job name is used already.')
-        return name
+        return get_unique_name(name)
 
     def create(self, validated_data):
         parent_version = validated_data['parent'].versions.first()

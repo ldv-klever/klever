@@ -47,7 +47,7 @@ from tools.profiling import LoggedCallMixin
 from jobs.models import Job, JobHistory, JobFile, FileSystem, RunHistory, UploadedJobArchive
 from jobs.serializers import (
     CreateJobSerializer, JVformSerializerRO, JobFileSerializer, JobStatusSerializer,
-    DuplicateJobSerializer, change_job_status
+    DuplicateJobSerializer, change_job_status, create_job_version
 )
 from jobs.configuration import get_configuration_value, GetConfiguration
 from jobs.Download import KleverCoreArchiveGen, UploadJobsScheduler
@@ -76,6 +76,19 @@ class CreateJobView(LoggedCallMixin, CreateAPIView):
     queryset = Job.objects.all()
     serializer_class = CreateJobSerializer
     permission_classes = (WriteJobPermission,)
+
+
+class CreatePresetJobView(LoggedCallMixin, APIView):
+    unparallel = [Job]
+    permission_classes = (WriteJobPermission,)
+
+    def post(self, request, preset_uuid):
+        presets_processor = PresetsProcessor(request.user)
+        name, parent = presets_processor.get_job_name_and_parent(preset_uuid)
+        version_files = presets_processor.get_file_system_kwargs(preset_uuid)
+        job = Job.objects.create(name=name, parent=parent, author=request.user, preset_uuid=preset_uuid)
+        create_job_version(job, version_files, [], change_date=job.creation_date, change_author=request.user)
+        return Response({'id': job.id, 'identifier': str(job.identifier)})
 
 
 class UpdateJobView(LoggedCallMixin, UpdateAPIView):
@@ -146,7 +159,8 @@ class ReplaceJobFileView(LoggedCallMixin, UpdateAPIView):
         # Get last job version
         job_version = get_object_or_404(
             JobHistory.objects.select_related('job'),
-            job_id=self.request.data['job'], version=F('job__version')
+            job__identifier=self.request.data['job'],
+            version=F('job__version')
         )
 
         # Check job permission
@@ -174,6 +188,8 @@ class DuplicateJobView(LoggedCallMixin, UpdateModelMixin, CreateModelMixin, Gene
     unparallel = [Job]
     serializer_class = DuplicateJobSerializer
     permission_classes = (WriteJobPermission,)
+    lookup_field = 'identifier'
+    lookup_url_kwarg = 'identifier'
 
     def post(self, request, *args, **kwargs):
         return self.create(request, *args, **kwargs)
@@ -254,6 +270,7 @@ class CheckDownloadAccessView(LoggedCallMixin, APIView):
 
 class RemoveJobVersions(LoggedCallMixin, APIView):
     unparallel = ['Job', JobHistory]
+    permission_classes = (IsAuthenticated,)
 
     def delete(self, request, job_id):
         job = get_object_or_404(Job, pk=job_id)
@@ -267,6 +284,8 @@ class RemoveJobVersions(LoggedCallMixin, APIView):
 
 
 class GetConfigurationView(LoggedCallMixin, APIView):
+    permission_classes = (IsAuthenticated,)
+
     def post(self, request):
         if 'name' not in request.data:
             raise exceptions.APIException('Configuration name was not provided')
@@ -281,32 +300,48 @@ class GetConfigurationView(LoggedCallMixin, APIView):
 
 
 class StartDecisionView(LoggedCallMixin, APIView):
-    def post(self, request, job_id):
-        getconf_kwargs = {}
-        job = get_object_or_404(Job, id=job_id)
-        if not JobAccess(request.user, job).can_decide:
-            raise exceptions.PermissionDenied(_("You don't have an access to start decision of this job"))
+    permission_classes = (IsAuthenticated,)
 
-        # If self.request.POST['mode'] == 'fast' or any other then default configuration is used
-        if request.data['mode'] == 'data':
-            getconf_kwargs['user_conf'] = json.loads(request.data['data'])
-        elif request.data['mode'] == 'file_conf':
-            getconf_kwargs['file_conf'] = request.FILES['file_conf']
-        elif request.data['mode'] == 'lastconf':
-            last_run = RunHistory.objects.filter(job_id=job.id).order_by('-date').first()
+    def get_job(self, **kwargs):
+        job = get_object_or_404(Job, **kwargs)
+        if not JobAccess(self.request.user, job).can_decide:
+            raise exceptions.PermissionDenied(_("You don't have an access to start decision of this job"))
+        return job
+
+    def get_configuration(self):
+        start_mode = self.request.data['mode']
+        getconf_kwargs = {}
+        # If start_mode == 'fast' or any other then default configuration is used
+        if start_mode == 'data':
+            getconf_kwargs['user_conf'] = json.loads(self.request.data['data'])
+        elif start_mode == 'file_conf':
+            getconf_kwargs['file_conf'] = self.request.FILES['file_conf']
+        elif start_mode == 'lastconf':
+            last_run = RunHistory.objects.filter(job_id=self.kwargs['job_id']).order_by('-date').first()
             if last_run is None:
                 raise exceptions.APIException(_('The job was not decided before'))
             getconf_kwargs['last_run'] = last_run
-        elif request.data['mode'] == 'default':
-            getconf_kwargs['conf_name'] = request.data['conf_name']
+        elif start_mode == 'default':
+            getconf_kwargs['conf_name'] = self.request.data['conf_name']
+        return GetConfiguration(**getconf_kwargs).for_json()
 
-        StartJobDecision(request.user, job, GetConfiguration(**getconf_kwargs).for_json())
+    def post(self, request, job_id):
+        job = self.get_job(id=job_id)
+        StartJobDecision(request.user, job, self.get_configuration())
         return Response({'url': reverse('jobs:job', args=[job.id])})
+
+
+class StartDecisionByUUIDView(StartDecisionView):
+    def post(self, request, job_uuid):
+        job = self.get_job(identifier=job_uuid)
+        StartJobDecision(request.user, job, self.get_configuration())
+        return Response({})
 
 
 class StopDecisionView(LoggedCallMixin, APIView):
     model = Job
     unparallel = [Job]
+    permission_classes = (IsAuthenticated,)
 
     def post(self, request, job_id):
         job = get_object_or_404(Job, pk=job_id)

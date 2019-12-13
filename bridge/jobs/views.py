@@ -148,7 +148,7 @@ class PresetFormPage(LoginRequiredMixin, LoggedCallMixin, TemplateView):
         name, parent = PresetsProcessor(self.request.user).get_job_name_and_parent(self.kwargs['preset_uuid'])
         return {
             'initial': {
-                'name': name, 'parent': parent,
+                'name': name, 'parent': str(parent.identifier) if parent else '',
                 'save_url': reverse('jobs:api-create-job'),
                 'preset_uuid': self.kwargs['preset_uuid']
             },
