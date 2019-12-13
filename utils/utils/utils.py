@@ -174,7 +174,7 @@ class Session:
         :param job_uuid: job identifier
         :return: None
         """
-        self.__request('jobs/api/duplicate/{0}/'.format(job_uuid), 'PATCH')
+        self.__request('jobs/api/duplicate/{0}/'.format(job_uuid), 'PUT')
 
     def create_preset_job(self, preset_uuid):
         """
