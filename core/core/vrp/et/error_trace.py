@@ -24,7 +24,7 @@ from core.highlight import Highlight
 
 
 class ErrorTrace:
-    MODEL_COMMENT_TYPES = 'AUX_FUNC|AUX_FUNC_CALLBACK|MODEL_FUNC|NOTE|ASSERT'
+    MODEL_COMMENT_TYPES = 'NOTE|ASSERT'
     ERROR_TRACE_FORMAT_VERSION = 1
 
     def __init__(self, logger):
@@ -36,12 +36,10 @@ class ErrorTrace:
         self._entry_node_id = None
         self._violation_node_ids = set()
         self._violation_edges = list()
-        self._model_funcs = dict()
         self._notes = dict()
         self._asserts = dict()
         self._actions = list()
         self._callback_actions = list()
-        self.aux_funcs = dict()
         self.emg_comments = dict()
 
     @property
@@ -288,9 +286,6 @@ class ErrorTrace:
 
         return action_id
 
-    def add_aux_func(self, identifier, is_callback, formal_arg_names):
-        self.aux_funcs[identifier] = {'is callback': is_callback, 'formal arg names': formal_arg_names}
-
     def add_emg_comment(self, file, line, data):
         if file not in self.emg_comments:
             self.emg_comments[file] = dict()
@@ -476,79 +471,18 @@ class ErrorTrace:
 
                         comment = comment.rstrip()
 
-                        if kind in ('AUX_FUNC', 'AUX_FUNC_CALLBACK', 'MODEL_FUNC'):
-                            # Get necessary function declaration located on following line.
-                            try:
-                                func_decl = next(fp)
-                                # Don't forget to increase counter.
-                                line += 1
-
-                                if kind in ('AUX_FUNC', 'AUX_FUNC_CALLBACK'):
-                                    func_name = comment
-                                else:
-                                    match = re.search(r'(ldv_\w+|LDV\w+)', func_decl)
-                                    if match:
-                                        func_name = match.group(1)
-                                    else:
-                                        raise ValueError(
-                                            'Auxiliary/model function definition is not specified in {!r}'.format(
-                                                func_decl))
-
-                                # Try to get names for formal arguments (in form "type name") that is required for
-                                # removing auxiliary function calls.
-                                formal_arg_names = []
-                                match = re.search(r'{0}\s*\((.+)\)'.format(func_name), func_decl)
-                                if match:
-                                    formal_args_str = match.group(1)
-
-                                    # Remove arguments of function pointers and braces around corresponding argument
-                                    # names.
-                                    formal_args_str = re.sub(r'\((.+)\)\(.+\)', '\g<1>', formal_args_str)
-
-                                    for formal_arg in formal_args_str.split(','):
-                                        match = re.search(r'^.*\W+(\w+)\s*$', formal_arg)
-
-                                        # Give up if meet complicated formal argument.
-                                        if not match:
-                                            formal_arg_names = []
-                                            break
-
-                                        formal_arg_names.append(match.group(1))
-                            except StopIteration:
-                                raise ValueError('Auxiliary/model function definition does not exist')
-
-                            # Deal with functions referenced by witness.
-                            try:
-                                func_id = self.resolve_function_id(func_name)
-                            except ValueError:
-                                self.add_function(func_name)
-                                func_id = self.resolve_function_id(func_name)
-
-                            if kind == 'AUX_FUNC':
-                                self.add_aux_func(func_id, False, formal_arg_names)
-                                self._logger.debug("Get auxiliary function '{0}' from '{1}:{2}'".
-                                                   format(func_name, file, line))
-                            elif kind == 'AUX_FUNC_CALLBACK':
-                                self.add_aux_func(func_id, True, formal_arg_names)
-                                self._logger.debug("Get auxiliary function '{0}' for callback from '{1}:{2}'".
-                                                   format(func_name, file, line))
-                            else:
-                                self._model_funcs[func_id] = comment
-                                self._logger.debug("Get note '{0}' for model function '{1}' from '{2}:{3}'".
-                                                   format(comment, func_name, file, line))
-                        else:
+                        if kind == "NOTE":
                             if file_id not in self._notes:
                                 self._notes[file_id] = dict()
                             self._notes[file_id][line + 1] = comment
                             self._logger.debug(
                                 "Get note '{0}' for statement from '{1}:{2}'".format(comment, file, line + 1))
-                            # Some assertions will become warnings.
-                            if kind == 'ASSERT':
-                                if file_id not in self._asserts:
-                                    self._asserts[file_id] = dict()
-                                self._asserts[file_id][line + 1] = comment
-                                self._logger.debug("Get assertiom '{0}' for statement from '{1}:{2}'".
-                                                   format(comment, file, line + 1))
+                        elif kind == 'ASSERT':
+                            if file_id not in self._asserts:
+                                self._asserts[file_id] = dict()
+                            self._asserts[file_id][line + 1] = comment
+                            self._logger.debug(
+                                "Get assertiom '{0}' for statement from '{1}:{2}'".format(comment, file, line + 1))
 
         return
 
@@ -608,14 +542,6 @@ class ErrorTrace:
                 continue
             start_line = edge['start line']
 
-            if 'enter' in edge:
-                func_id = edge['enter']
-                if func_id in self._model_funcs:
-                    note = self._model_funcs[func_id]
-                    self._logger.debug("Add note {!r} for model function '{}'".format(note,
-                                                                                      self.resolve_function(func_id)))
-                    edge['note'] = note
-
             if file_id in self._notes and start_line in self._notes[file_id]:
                 note = self._notes[file_id][start_line]
                 self._logger.debug("Add note {!r} for statement from '{}:{}'".format(note, file, start_line))
@@ -661,7 +587,7 @@ class ErrorTrace:
             if 'note' in warn_edge:
                 del warn_edge['note']
 
-        del self._violation_edges, self._model_funcs, self._notes, self._asserts
+        del self._violation_edges, self._notes, self._asserts
 
     def get_func_return_edge(self, func_enter_edge):
         next_edge = self.next_edge(func_enter_edge)

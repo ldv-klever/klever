@@ -175,7 +175,7 @@ class Function:
         :return: List of strings.
         """
         declaration = self._declaration.define_with_args(self._name, typedef='complex_and_params', scope=scope)
-        lines = ['/* AUX_FUNC {} */\n'.format(self._name)]
+        lines = list()
         lines.append(declaration + " {\n")
         lines.extend(['\t{}\n'.format(stm) for stm in self.body])
         lines.append("}\n")
