@@ -22,19 +22,19 @@ from core.vrp.et.envmodel import envmodel_simplifications
 
 
 # TODO: get rid of this completely.
-def import_error_trace(logger, witness):
+def import_error_trace(logger, witness, verification_task_files):
     # todo: to implement it in the right way we should add a graphical switch at Bridge to disable tolerable witness processing and do not apply this fallback always
     try:
-        et, attrs = _import_error_trace(logger, witness)
+        et, attrs = _import_error_trace(logger, witness, verification_task_files)
     except Exception:
         logger.warning('Cannot parse witness, let us try to disable our witness processing optimizations')
-        et, attrs = _import_error_trace(logger, witness, True)
+        et, attrs = _import_error_trace(logger, witness, verification_task_files, True)
     return et, attrs
 
 
-def _import_error_trace(logger, witness, less_processing=False):
+def _import_error_trace(logger, witness, verification_task_files, less_processing=False):
     # Parse witness
-    po = ErrorTraceParser(logger, witness)
+    po = ErrorTraceParser(logger, witness, verification_task_files)
     trace = po.error_trace
 
     # Parse comments from sources
@@ -70,7 +70,7 @@ if __name__ == '__main__':
     handler.setFormatter(formatter)
     gl_logger.addHandler(handler)
 
-    et, attrs = import_error_trace(gl_logger, 'witness.0.graphml')
+    et, attrs = import_error_trace(gl_logger, 'witness.0.graphml', {'cil.i': 'cil.i'})
 
     with open('error trace.json', 'w', encoding='utf8') as fp:
         json.dump(et, fp, ensure_ascii=False, sort_keys=True, indent=4)

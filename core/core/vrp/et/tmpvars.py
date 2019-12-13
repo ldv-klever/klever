@@ -20,69 +20,10 @@ import re
 
 def generic_simplifications(logger, trace):
     logger.info('Simplify error trace')
-    _basic_simplification(logger, trace)
+    # _basic_simplification(logger, trace)
     _remove_switch_cases(logger, trace)
     # _remove_tmp_vars(logger, trace)
     trace.sanity_checks()
-
-
-def _basic_simplification(logger, error_trace):
-    # Remove all edges without source attribute. Otherwise visualization will be very poor.
-    for edge in (e for e in error_trace.trace_iterator() if 'source' not in e):
-        # Now we do need source code to be presented with all edges.
-        logger.warning('Do not expect edges without source attribute')
-        error_trace.remove_edge_and_target_node(edge)
-
-    # Simple transformations.
-    for edge in error_trace.trace_iterator():
-        # Make source code more human readable.
-        # Remove all broken indentations - error traces visualizer will add its own ones but will do this in much
-        # more attractive way.
-        edge['source'] = re.sub(r'[ \t]*\n[ \t]*', ' ', edge['source'])
-
-        # Remove pointer calls
-        if 'enter' in edge:
-            match = re.match(r'\s*pointer call\((\w+)\)\s*', edge['source'])
-            if match:
-                func_name = match.group(1)
-                # Remove function pointer expression
-                edge['source'] = re.sub(r'\s*pointer call\(\w+\)\s*', '', edge['source'])
-                # Replace call by pointer
-                edge['source'] = re.sub(r'=\s*\(\*.+\)\s*\(', '= {}('.format(func_name), edge['source'])
-
-        # Remove "[...]" around conditions.
-        if 'condition' in edge:
-            edge['source'] = edge['source'].strip('[]')
-
-        # Get rid of continues whitespaces.
-        edge['source'] = re.sub(r'[ \t]+', ' ', edge['source'])
-
-        # Remove space before trailing ";".
-        edge['source'] = re.sub(r' ;$', ';', edge['source'])
-
-        # Remove space before "," and ")".
-        edge['source'] = re.sub(r' (,|\))', '\g<1>', edge['source'])
-
-        # Replace "!(... ==/!=/<=/>=/</> ...)" with "... !=/==/>/</>=/<= ...".
-        cond_replacements = {'==': '!=', '!=': '==', '<=': '>', '>=': '<', '<': '>=', '>': '<='}
-        for orig_cond, replacement_cond in cond_replacements.items():
-            m = re.match(r'^!\((.+) {0} (.+)\)$'.format(orig_cond), edge['source'])
-            if m:
-                edge['source'] = '{0} {1} {2}'.format(m.group(1), replacement_cond, m.group(2))
-                # Do not proceed after some replacement is applied - others won't be done.
-                break
-
-        # Remove unnessary "(...)" around returned values/expressions.
-        edge['source'] = re.sub(r'^return \((.*)\);$', 'return \g<1>;', edge['source'])
-
-        # Make source code and assumptions more human readable (common improvements).
-        for source_kind in ('source', 'assumption'):
-            if source_kind in edge:
-                # Remove unnessary "(...)" around integers.
-                edge[source_kind] = re.sub(r' \((-?[0-9]+\w*)\)', ' \g<1>', edge[source_kind])
-
-                # Replace "& " with "&".
-                edge[source_kind] = re.sub(r'& ', '&', edge[source_kind])
 
 
 def _remove_tmp_vars(logger, error_trace):

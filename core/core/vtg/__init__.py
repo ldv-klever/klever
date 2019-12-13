@@ -777,7 +777,8 @@ class VTGW(core.components.Component):
                 # Plan for checking status
                 self.mqs['pending tasks'].put([
                     [str(task_id), final_task_data["result processing"], self.program_fragment_desc,
-                     self.req_spec_id, final_task_data['verifier'], final_task_data['additional sources']],
+                     self.req_spec_id, final_task_data['verifier'], final_task_data['additional sources'],
+                     final_task_data['verification task files']],
                     self.rerun
                 ])
                 self.logger.info("Submitted successfully verification task {} for solution".
