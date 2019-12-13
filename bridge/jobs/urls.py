@@ -55,7 +55,7 @@ urlpatterns = [
 
     # Download/upload actions
     path('downloadjob/<int:pk>/', views.DownloadJobView.as_view(), name='download'),
-    path('api/downloadjob/<uuid:identifier>/', views.DownloadJobByUUID.as_view(), name='api-download'),
+    path('api/downloadjob/<uuid:identifier>/', api.DownloadJobByUUIDView.as_view(), name='api-download'),
     path('downloadjobs/', views.DownloadJobsListView.as_view(), name='download-jobs'),
     path('downloadtrees/', views.DownloadJobsTreeView.as_view(), name='download-trees'),
     path('api/upload_jobs/', api.UploadJobsAPIView.as_view(), name='api-upload-jobs'),
@@ -77,7 +77,6 @@ urlpatterns = [
     path('api/download-files/<uuid:identifier>/', api.CoreJobArchiveView.as_view()),
 
     # "Utils"
-    path('get_job_field/', api.GetJobFieldView.as_view()),
     path('api/has-children/<int:pk>/', api.DoJobHasChildrenView.as_view(), name='api-has-children'),
     path('api/can-download/', api.CheckDownloadAccessView.as_view(), name='api-can-download'),
     path('api/collapse/<int:pk>/', api.CollapseReportsView.as_view(), name='api-collapse-reports'),

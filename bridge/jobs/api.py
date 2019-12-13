@@ -33,7 +33,7 @@ from rest_framework.generics import (
 )
 from rest_framework.mixins import UpdateModelMixin, CreateModelMixin
 from rest_framework.response import Response
-from rest_framework.authentication import SessionAuthentication
+from rest_framework.authentication import SessionAuthentication, TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
 
 from bridge.access import (
@@ -41,7 +41,7 @@ from bridge.access import (
 )
 from bridge.vars import JOB_STATUS
 from bridge.utils import BridgeException
-from bridge.CustomViews import TemplateAPIRetrieveView, TemplateAPIListView
+from bridge.CustomViews import TemplateAPIRetrieveView, TemplateAPIListView, StreamingResponseAPIView
 from tools.profiling import LoggedCallMixin
 
 from jobs.models import Job, JobHistory, JobFile, FileSystem, RunHistory, UploadedJobArchive
@@ -50,7 +50,7 @@ from jobs.serializers import (
     DuplicateJobSerializer, change_job_status, create_job_version
 )
 from jobs.configuration import get_configuration_value, GetConfiguration
-from jobs.Download import KleverCoreArchiveGen, UploadJobsScheduler
+from jobs.Download import KleverCoreArchiveGen, UploadJobsScheduler, JobArchiveGenerator
 from jobs.utils import JobAccess, CompareJobVersions
 from jobs.preset import PresetsProcessor
 from reports.serializers import DecisionResultsSerializerRO
@@ -351,32 +351,6 @@ class StopDecisionView(LoggedCallMixin, APIView):
         return Response({})
 
 
-class GetJobFieldView(LoggedCallMixin, APIView):
-    def post(self, request):
-        if 'job' not in request.data:
-            raise exceptions.APIException(_('The job was not provided'))
-        if 'field' not in request.data:
-            raise exceptions.APIException(_('The job field name was not provided'))
-        name_or_id = request.data['job']
-        try:
-            job = Job.objects.only('id').get(name=name_or_id)
-        except Job.DoesNotExist:
-            found_jobs = Job.objects.only('id').filter(identifier__startswith=name_or_id)
-            if len(found_jobs) == 0:
-                raise exceptions.ValidationError(_('The job with specified identifier or name was not found'))
-            elif len(found_jobs) > 1:
-                raise exceptions.ValidationError(
-                    _('Several jobs match the specified identifier, please increase the length of the job identifier')
-                )
-            job = found_jobs[0]
-        if not hasattr(job, request.data['field']):
-            raise exceptions.ValidationError(_('The job does not have attribute %(field)s') % {
-                'field': request.data['field']
-            })
-        value = getattr(job, request.data['field'])
-        return Response({request.data['field']: str(value)})
-
-
 class DoJobHasChildrenView(LoggedCallMixin, RetrieveAPIView):
     def get_queryset(self):
         return Job.objects.only('id')
@@ -444,3 +418,11 @@ class UploadStatusAPIView(LoggedCallMixin, TemplateAPIListView):
 
     def get_queryset(self):
         return UploadedJobArchive.objects.filter(author=self.request.user).select_related('job').order_by('-start_date')
+
+
+class DownloadJobByUUIDView(LoggedCallMixin, StreamingResponseAPIView):
+    permission_classes = (ServicePermission,)
+
+    def get_generator(self):
+        job = get_object_or_404(Job, identifier=self.kwargs['identifier'])
+        return JobArchiveGenerator(job)

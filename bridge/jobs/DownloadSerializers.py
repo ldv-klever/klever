@@ -94,8 +94,6 @@ class DownloadJobSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         value = super().to_representation(instance)
         value['archive_format'] = ARCHIVE_FORMAT
-        if value['parent']:
-            value['parent'] = str(value['parent'])
         return value
 
     class Meta:

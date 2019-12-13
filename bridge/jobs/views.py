@@ -191,11 +191,6 @@ class DownloadJobView(LoginRequiredMixin, LoggedCallMixin, SingleObjectMixin, St
         return JobArchiveGenerator(instance)
 
 
-class DownloadJobByUUID(DownloadJobView):
-    slug_url_kwarg = 'identifier'
-    slug_field = 'identifier'
-
-
 class DownloadJobsListView(LoginRequiredMixin, LoggedCallMixin, StreamingResponseView):
     def get_generator(self):
         jobs_qs = Job.objects.filter(pk__in=json.loads(unquote(self.request.GET['jobs'])))

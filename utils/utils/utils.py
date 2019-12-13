@@ -110,9 +110,21 @@ class Session:
         return archive
 
     def download_job(self, job_uuid, archive):
+        """
+        Download job archive.
+        :param job_uuid: job identifier
+        :param archive: path where to save the archive.
+        :return: path where the archive is saved.
+        """
         return self.__download_archive('jobs/api/downloadjob/{0}/'.format(job_uuid), archive)
 
     def upload_job(self, parent_uuid, archive):
+        """
+        Upload job archive.
+        :param parent_uuid: an identifier of the parent job
+        :param archive: path to archive
+        :return: None
+        """
         request_data = {}
         if parent_uuid:
             request_data['parent'] = str(parent_uuid)
@@ -122,16 +134,34 @@ class Session:
         )
 
     def job_progress(self, job_uuid, filename):
+        """
+        Save job progress to json file.
+        :param job_uuid: job identifier.
+        :param filename: path where to save the file.
+        :return: None
+        """
         resp = self.__request('service/progress/{}/'.format(job_uuid))
         with open(filename, mode='w', encoding='utf8') as fp:
             json.dump(resp.json(), fp, ensure_ascii=False, sort_keys=True, indent=4)
 
     def decision_results(self, job_uuid, filename):
+        """
+        Save job decision results to json file.
+        :param job_uuid: job identifier
+        :param filename: path where to save the file
+        :return: None
+        """
         resp = self.__request('jobs/api/decision-results/{0}/'.format(job_uuid))
         with open(filename, mode='w', encoding='utf8') as fp:
             json.dump(resp.json(), fp, ensure_ascii=False, sort_keys=True, indent=4)
 
     def copy_job(self, job_uuid, name=None):
+        """
+        Copy job.
+        :param job_uuid: job identifier
+        :param name: new job name, optional
+        :return: identifier of the new job.
+        """
         request_data = {'parent': str(job_uuid)}
         if isinstance(name, str) and len(name) > 0:
             request_data['name'] = name
@@ -139,14 +169,30 @@ class Session:
         return resp.json()['identifier']
 
     def copy_job_version(self, job_uuid):
+        """
+        Create new job version.
+        :param job_uuid: job identifier
+        :return: None
+        """
         self.__request('jobs/api/duplicate/{0}/'.format(job_uuid), 'PATCH')
 
     def create_preset_job(self, preset_uuid):
+        """
+        Create new job on the base of preset files.
+        :param preset_uuid: preset job uuid.
+        :return: job primary key and identifier
+        """
         resp = self.__request('jobs/api/create-preset/{0}/'.format(preset_uuid), 'POST')
         resp_json = resp.json()
         return resp_json['id'], resp_json['identifier']
 
     def replace_files(self, job_uuid, replacement):
+        """
+        Replace job files.
+        :param job_uuid: job identifier
+        :param replacement: path to json with replacement info or json string with it.
+        :return: None
+        """
         if os.path.exists(replacement):
             with open(replacement, mode='r', encoding='utf8') as fp:
                 new_files = json.load(fp)
@@ -163,6 +209,12 @@ class Session:
                 )
 
     def start_job_decision(self, job_uuid, data_fp):
+        """
+        Start job decision.
+        :param job_uuid: job identifier.
+        :param data_fp: configuration file instance, optional (provide None)
+        :return: None
+        """
         url = 'jobs/api/decide-uuid/{}/'.format(job_uuid)
         if data_fp:
             self.__request(url, 'POST', data={'mode': 'file_conf'}, files=[('file_conf', data_fp)], stream=True)
@@ -170,6 +222,11 @@ class Session:
             self.__request(url, 'POST', data={'mode': 'fast'})
 
     def download_all_marks(self, archive):
+        """
+        Download all marks.
+        :param archive: path to an archive where to save all marks
+        :return: path to saved archive.
+        """
         return self.__download_archive('marks/api/download-all/', archive)
 
 
