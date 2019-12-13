@@ -23,7 +23,6 @@
 /* NOTE Initialize allocated coherent counter to zero. */
 int ldv_coherent_state = 0;
 
-/* MODEL_FUNC Allocates coherent memory. */
 void *ldv_usb_alloc_coherent(void)
 {
     /* NOTE Choose an arbitrary memory location. */
@@ -39,7 +38,6 @@ void *ldv_usb_alloc_coherent(void)
     return arbitrary_memory;
 }
 
-/* MODEL_FUNC Releases coherent memory. */
 void ldv_usb_free_coherent(void *addr)
 {
     if (addr) {
@@ -50,7 +48,6 @@ void ldv_usb_free_coherent(void *addr)
     }
 }
 
-/* MODEL_FUNC Check that coherent memory reference counters  are not incremented at the end. */
 void ldv_check_final_state(void)
 {
     /* ASSERT The coherent memory must be freed at the end. */

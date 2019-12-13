@@ -29,7 +29,6 @@ enum {
 
 static int ldv_queue_state = LDV_NO_QUEUE;
 
-/* MODEL_FUNC Allocate queue. */
 struct request_queue *ldv_request_queue(void)
 {
 	/* ASSERT Queue should not be allocated twice. */
@@ -47,7 +46,6 @@ struct request_queue *ldv_request_queue(void)
 	return res;
 }
 
-/* MODEL_FUNC Free queue. */
 void ldv_blk_cleanup_queue(void)
 {
 	/* ASSERT Queue should be allocated . */
@@ -56,7 +54,6 @@ void ldv_blk_cleanup_queue(void)
 	ldv_queue_state = LDV_NO_QUEUE;
 }
 
-/* MODEL_FUNC Check that queue are not allocated at the end */
 void ldv_check_final_state(void)
 {
 	/* ASSERT Queue must be freed at the end. */

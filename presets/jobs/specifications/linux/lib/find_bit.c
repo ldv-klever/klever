@@ -20,7 +20,6 @@
 #include <verifier/common.h>
 #include <verifier/nondet.h>
 
-/* MODEL_FUNC Check offset value and return value between 0 and size. */
 unsigned long ldv_find_next_bit(unsigned long size, unsigned long offset)
 {
 	/* ASSERT Offset should not be greater than size. */
@@ -32,7 +31,6 @@ unsigned long ldv_find_next_bit(unsigned long size, unsigned long offset)
 	return nondet;
 }
 
-/* MODEL_FUNC Function returns value between 0 and size. */
 unsigned long ldv_find_first_bit(unsigned long size)
 {
 	/* NOTE Return value between 0 and size. */
@@ -42,7 +40,6 @@ unsigned long ldv_find_first_bit(unsigned long size)
 	return nondet;
 }
 
-/* MODEL_FUNC Cut impossible pathes */
 void ldv_initialize(void)
 {
 	ldv_assume(nr_cpu_ids > 0);

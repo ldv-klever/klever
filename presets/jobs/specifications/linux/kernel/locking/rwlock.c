@@ -24,7 +24,6 @@ int ldv_rlock = 1;
 /* NOTE Write lock is not aquired at the beginning */
 int ldv_wlock = 1;
 
-/* MODEL_FUNC Check that write lock is not acquired and acquire read lock */
 void ldv_read_lock(void)
 {
 	/* ASSERT Write lock should not be aquired */
@@ -33,7 +32,6 @@ void ldv_read_lock(void)
 	ldv_rlock += 1;
 }
 
-/* MODEL_FUNC Check that read lock is acquired and release it */
 void ldv_read_unlock(void)
 {
 	/* ASSERT Read lock should be acquired */
@@ -42,7 +40,6 @@ void ldv_read_unlock(void)
 	ldv_rlock -= 1;
 }
 
-/* MODEL_FUNC Check that write lock is not aquired and acquire it */
 void ldv_write_lock(void)
 {
 	/* ASSERT Write lock should not be aquired */
@@ -51,7 +48,6 @@ void ldv_write_lock(void)
 	ldv_wlock = 2;
 }
 
-/* MODEL_FUNC Check that write lock is aquired and release it */
 void ldv_write_unlock(void)
 {
 	/* ASSERT Write lock should be aquired */
@@ -60,7 +56,6 @@ void ldv_write_unlock(void)
 	ldv_wlock = 1;
 }
 
-/* MODEL_FUNC Try to acquire read lock */
 int ldv_read_trylock(void)
 {
 	/* NOTE Nondeterministically acquire read lock if write lock is not acquired */
@@ -76,7 +71,6 @@ int ldv_read_trylock(void)
 	}
 }
 
-/* MODEL_FUNC Try to acquire write lock */
 int ldv_write_trylock(void)
 {
 	/* NOTE Nondeterministically acquire write lock if it is not acquired */
@@ -92,7 +86,6 @@ int ldv_write_trylock(void)
 	}
 }
 
-/* MODEL_FUNC Check that all read/write locks are unacquired at the end */
 void ldv_check_final_state(void)
 {
 	/* ASSERT All acquired read locks should be released before finishing operation */

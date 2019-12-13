@@ -25,7 +25,6 @@ struct urb;
 /* NOTE Initialize allocated urb counter to zero. */
 int ldv_urb_state = 0;
 
-/* MODEL_FUNC Allocates memory for urb request. */
 struct urb *ldv_usb_alloc_urb(void)
 {
 	/* NOTE Choose an arbitrary memory location. */
@@ -41,7 +40,6 @@ struct urb *ldv_usb_alloc_urb(void)
 	return arbitrary_memory;
 }
 
-/* MODEL_FUNC Allocates memory for urb request. */
 struct urb *ldv_usb_get_urb(struct urb *urb)
 {
 	if (urb) {
@@ -53,7 +51,6 @@ struct urb *ldv_usb_get_urb(struct urb *urb)
 	}
 }
 
-/* MODEL_FUNC Releases memory of urb request. */
 void ldv_usb_free_urb(struct urb *urb) {
 	if (urb) {
 		/* ASSERT The memory must be allocated before. */
@@ -63,7 +60,6 @@ void ldv_usb_free_urb(struct urb *urb) {
 	}
 }
 
-/* MODEL_FUNC Check that all URB reference counters are not incremented at the end */
 void ldv_check_final_state( void )
 {
 	/* ASSERT The urb requests must be freed at the end. */

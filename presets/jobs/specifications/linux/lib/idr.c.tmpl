@@ -30,7 +30,6 @@ enum
 
 static int ldv_idr{{ arg_sign.id }} = LDV_NOT_INITIALIZED;
 
-/* MODEL_FUNC Init IDR. */
 void ldv_idr_init{{ arg_sign.id }}(void)
 {
 	/* ASSERT If IDR not initialized it can be initialized */
@@ -39,7 +38,6 @@ void ldv_idr_init{{ arg_sign.id }}(void)
 	ldv_idr{{ arg_sign.id }} = LDV_INITIALIZED;
 }
 
-/* MODEL_FUNC Alloc new object in IDR. */
 void ldv_idr_alloc{{ arg_sign.id }}(void)
 {
 	/* ASSERT IDR should be initialized */
@@ -50,7 +48,6 @@ void ldv_idr_alloc{{ arg_sign.id }}(void)
 	ldv_idr{{ arg_sign.id }} = LDV_CHANGED;
 }
 
-/* MODEL_FUNC Find object in IDR. */
 void ldv_idr_find{{ arg_sign.id }}(void)
 {
 	/* ASSERT IDR should be initialized */
@@ -61,7 +58,6 @@ void ldv_idr_find{{ arg_sign.id }}(void)
 	ldv_idr{{ arg_sign.id }} = LDV_CHANGED;
 }
 
-/* MODEL_FUNC Remove object from IDR. */
 void ldv_idr_remove{{ arg_sign.id }}(void)
 {
 	/* ASSERT IDR should be initialized */
@@ -72,7 +68,6 @@ void ldv_idr_remove{{ arg_sign.id }}(void)
 	ldv_idr{{ arg_sign.id }} = LDV_CHANGED;
 }
 
-/* MODEL_FUNC Destroy IDR. */
 void ldv_idr_destroy{{ arg_sign.id }}(void)
 {
 	/* ASSERT IDR should be initialized */
@@ -85,7 +80,6 @@ void ldv_idr_destroy{{ arg_sign.id }}(void)
 
 // endfor
 
-/* MODEL_FUNC Check that all module reference counters have their end values at the end */
 void ldv_check_final_state(void)
 {
 	// for arg_sign in idr_arg_signs

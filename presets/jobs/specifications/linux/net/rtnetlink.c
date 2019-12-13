@@ -25,7 +25,6 @@ void rtnl_unlock(void);
 /* NOTE There is no rtnllock at the beginning */
 int rtnllocknumber = 0;
 
-/* MODEL_FUNC executed after rtnl_unlock */
 void ldv_past_rtnl_unlock(void)
 {
 	/* ASSERT double rtnl_unlock */
@@ -34,7 +33,6 @@ void ldv_past_rtnl_unlock(void)
 	rtnllocknumber=0;
 }
 
-/* MODEL_FUNC executed after rtnl_lock */
 void ldv_past_rtnl_lock(void)
 {
 	/* ASSERT double rtnl_lock */
@@ -43,7 +41,6 @@ void ldv_past_rtnl_lock(void)
 	rtnllocknumber=1;
 }
 
-/* MODEL_FUNC executed before ieee80211_unregister_hw */
 void ldv_before_ieee80211_unregister_hw(void)
 {
 	/* NOTE Modeling lock */
@@ -52,7 +49,6 @@ void ldv_before_ieee80211_unregister_hw(void)
 	ldv_past_rtnl_unlock();
 }
 
-/* MODEL_FUNC rtnl is locked */
 int ldv_rtnl_is_locked(void)
 {
 	/* NOTE If we know about lock */
@@ -68,7 +64,6 @@ int ldv_rtnl_is_locked(void)
 		return 0;
 }
 
-/* MODEL_FUNC trylock */
 int ldv_rtnl_trylock(void)
 {
 	/* ASSERT double rtnl_trylock */
@@ -84,7 +79,6 @@ int ldv_rtnl_trylock(void)
 	else return 0;
 }
 
-/* MODEL_FUNC check on exit */
 void ldv_check_final_state(void)
 {
 	/* ASSERT lock_sock number */

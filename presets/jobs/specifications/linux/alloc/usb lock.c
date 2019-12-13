@@ -23,7 +23,6 @@
 /* NOTE USB lock is not acquired at the beginning */
 int ldv_lock = 1;
 
-/* MODEL_FUNC Check that correct flag was used when USB lock is aquired */
 void ldv_check_alloc_flags(gfp_t flags) 
 {
 	if (ldv_lock == 2)
@@ -33,21 +32,18 @@ void ldv_check_alloc_flags(gfp_t flags)
 	}
 }
 
-/* MODEL_FUNC Check that USB lock is not acquired */
 void ldv_check_alloc_nonatomic(void)
 {
 	/* ASSERT USB lock should not be acquired */
 	ldv_assert(ldv_lock == 1);
 }
 
-/* MODEL_FUNC Acquire USB lock */
 void ldv_usb_lock_device(void)
 {
 	/* NOTE Acquire USB lock */
 	ldv_lock = 2;
 }
 
-/* MODEL_FUNC Try to acquire USB lock */
 int ldv_usb_trylock_device(void)
 {
 	if (ldv_lock == 1 && ldv_undef_int())
@@ -64,7 +60,6 @@ int ldv_usb_trylock_device(void)
 	}
 }
 
-/* MODEL_FUNC Try to acquire USB lock */
 int ldv_usb_lock_device_for_reset(void)
 {
 	if (ldv_lock == 1 && ldv_undef_int())
@@ -81,7 +76,6 @@ int ldv_usb_lock_device_for_reset(void)
 	}
 }
 
-/* MODEL_FUNC Release USB lock */
 void ldv_usb_unlock_device(void)
 {
 	/* NOTE Release USB lock */

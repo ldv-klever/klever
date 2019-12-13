@@ -23,7 +23,6 @@ struct usb_device;
 
 ldv_map LDV_USB_DEV_REF_COUNTS;
 
-/* MODEL_FUNC Increment USB device reference counter */
 struct usb_device *ldv_usb_get_dev(struct usb_device *dev)
 {
 	/* NOTE Whether USB device is not NULL */
@@ -39,7 +38,6 @@ struct usb_device *ldv_usb_get_dev(struct usb_device *dev)
 	return dev;
 }
 
-/* MODEL_FUNC Check that USB device reference counter was incremented and decrement it */
 void ldv_usb_put_dev(struct usb_device *dev)
 {
 	/* NOTE Whether USB device is not NULL */
@@ -55,7 +53,6 @@ void ldv_usb_put_dev(struct usb_device *dev)
 	}
 }
 
-/* MODEL_FUNC Check that probe() keeps model in proper state */
 void ldv_check_return_value_probe(int retval)
 {
 	/* NOTE probe() finished unsuccessfully and returned error code */
@@ -65,14 +62,12 @@ void ldv_check_return_value_probe(int retval)
 	}
 }
 
-/* MODEL_FUNC Initialize all USB device reference counters at the beginning */
 void ldv_initialize(void)
 {
 	/* NOTE All USB device reference counters aren't incremented at the beginning */
 	ldv_map_init(LDV_USB_DEV_REF_COUNTS);
 }
 
-/* MODEL_FUNC Check that all USB device reference counters are not incremented at the end */
 void ldv_check_final_state(void)
 {
 	/* ASSERT All incremented USB device reference counters must be decremented at the end */

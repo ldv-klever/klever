@@ -23,7 +23,6 @@
 /* NOTE At the beginning nothing is allocated. */
 int ldv_alloc_count = 0;
 
-/* MODEL_FUNC Allocate a "memory". */
 void ldv_after_alloc(void *res)
 {
 	ldv_assume(res <= LDV_PTR_MAX);
@@ -33,7 +32,6 @@ void ldv_after_alloc(void *res)
 	}
 }
 
-/* MODEL_FUNC Allocate a non zero "memory", but can return PTR_ERR. */
 void* ldv_nonzero_alloc(size_t size)
 {
 	void *res = ldv_malloc(size);
@@ -48,14 +46,12 @@ void* ldv_nonzero_alloc(size_t size)
 	return res;
 }
 
-/* MODEL_FUNC Free a "memory". */
 void ldv_memory_free(void)
 {
 	/* NOTE Free a "memory". */
 	ldv_alloc_count--;
 }
 
-/* MODEL_FUNC All allocated memory should be freed at the end. */
 void ldv_check_final_state(void)
 {
 	/* ASSERT Nothing should be allocated at the end. */

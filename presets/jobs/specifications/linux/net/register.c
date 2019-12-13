@@ -29,33 +29,28 @@ enum
 /* NOTE Model automaton state (one of two possible ones) */
 int ldv_probe_state = LDV_PROBE_ZERO_STATE;
 
-/* MODEL_FUNC Change state after failed call of register_netdev() */
 void ldv_failed_register_netdev(void)
 {
 	/* NOTE Error occured */
 	ldv_probe_state = LDV_PROBE_ERROR;
 }
 
-/* MODEL_FUNC Reset error counter from previous calls */
 void ldv_reset_error_counter(void)
 {
-	/* NOTE Reset counter */
+	/* NOTE Reset error counter from previous calls */
 	ldv_probe_state = LDV_PROBE_ZERO_STATE;
 }
 
-/* MODEL_FUNC Reset error counter from previous calls */
 void ldv_pre_probe(void)
 {
 	ldv_reset_error_counter();
 }
 
-/* MODEL_FUNC Reset error counter from previous calls */
 int ldv_post_init(int init_ret_val)
 {
 	ldv_reset_error_counter();
 }
 
-/* MODEL_FUNC Check that error code was properly propagated in probe() */
 void ldv_check_return_value_probe(int retval)
 {
 	if (ldv_probe_state == LDV_PROBE_ERROR) {

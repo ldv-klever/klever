@@ -31,7 +31,6 @@ enum
 /* NOTE At the beginning blk request is not got. */
 int ldv_blk_rq = LDV_BLK_RQ_ZERO_STATE;
 
-/* MODEL_FUNC Check that a blk request was not got and get it. Returns NULL if failed. */
 struct request *ldv_blk_get_request(gfp_t mask)
 {
 	struct request *res;
@@ -54,7 +53,6 @@ struct request *ldv_blk_get_request(gfp_t mask)
 	return res;
 }
 
-/* MODEL_FUNC Check that a blk request was not got and get it. Returns ERRPTR if failed. */
 struct request *ldv_blk_make_request(gfp_t mask)
 {
 	struct request *res;
@@ -75,7 +73,6 @@ struct request *ldv_blk_make_request(gfp_t mask)
 	return res;
 }
 
-/* MODEL_FUNC Check that a blk request was got and free it. */
 void ldv_put_blk_rq(void)
 {
 	/* ASSERT blk request could be put just in case when it was got. */
@@ -84,7 +81,6 @@ void ldv_put_blk_rq(void)
 	ldv_blk_rq = LDV_BLK_RQ_ZERO_STATE;
 }
 
-/* MODEL_FUNC All got blk requests should be put at the end. */
 void ldv_check_final_state(void)
 {
 	/* ASSERT blk request could not be got at the end. */

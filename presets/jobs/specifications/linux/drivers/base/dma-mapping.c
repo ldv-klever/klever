@@ -22,7 +22,6 @@
 
 int ldv_dma_calls = 0;
 
-/* MODEL_FUNC Map page */
 dma_addr_t ldv_dma_map_page(void) {
 	/* ASSERT Check that previous dma_mapping call was checked */
 	ldv_assert(ldv_dma_calls == 0);
@@ -32,7 +31,6 @@ dma_addr_t ldv_dma_map_page(void) {
 	return ldv_undef_int();
 }
 
-/* MODEL_FUNC Check page */
 int ldv_dma_mapping_error(void) {
 	/* ASSERT No dma_mapping calls to verify */				
 	ldv_assert(ldv_dma_calls > 0);
@@ -41,7 +39,6 @@ int ldv_dma_mapping_error(void) {
 	return ldv_undef_int();
 }
 
-/* MODEL_FUNC Map page */
 dma_addr_t ldv_dma_map_single(void) {
 	/* ASSERT Check that previous dma_mapping call was checked */
 	ldv_assert(ldv_dma_calls == 0);
@@ -50,8 +47,7 @@ dma_addr_t ldv_dma_map_single(void) {
 
 	return ldv_undef_int();
 }
-	
-/* MODEL_FUNC Map page */
+
 dma_addr_t ldv_dma_map_single_attrs(void) {
 	/* ASSERT Check that previous dma_mapping call was checked */
 	ldv_assert(ldv_dma_calls == 0);
@@ -61,7 +57,6 @@ dma_addr_t ldv_dma_map_single_attrs(void) {
 	return ldv_undef_int();
 }
 
-/* MODEL_FUNC Check that all dma_mapping calls are checked at the end */
 void ldv_check_final_state(void) {
 	/* ASSERT All dma_mapping calls should be checked before module unloading */
 	ldv_assert(ldv_dma_calls == 0);

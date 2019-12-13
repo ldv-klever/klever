@@ -29,7 +29,6 @@ enum
 /* NOTE Char device region is not registered at the beginning */
 int ldv_usb_gadget_chrdev = LDV_CHRDEV_ZERO_STATE;
 
-/* MODEL_FUNC Check that chrdev region was not registered and register it */
 int ldv_register_chrdev(int major)
 {
 	int is_reg;
@@ -54,7 +53,6 @@ int ldv_register_chrdev(int major)
 	return is_reg;
 }
 
-/* MODEL_FUNC Check that chrdev region was not registered and register it */
 int ldv_register_chrdev_region(void)
 {
 	int is_reg;
@@ -74,7 +72,6 @@ int ldv_register_chrdev_region(void)
 	return is_reg;
 }
 
-/* MODEL_FUNC Check that chrdev region was registered and unregister it */
 void ldv_unregister_chrdev_region(void)
 {
 	/* ASSERT Check that chrdev region is registered */
@@ -83,7 +80,6 @@ void ldv_unregister_chrdev_region(void)
 	ldv_usb_gadget_chrdev = LDV_CHRDEV_ZERO_STATE;
 }
 
-/* MODEL_FUNC Check that usb gadget is fully unregistered at the end */
 void ldv_check_final_state(void)
 {
 	/* ASSERT Chrdev region should be unregistered at the end */

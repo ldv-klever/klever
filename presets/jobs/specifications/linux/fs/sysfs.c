@@ -21,23 +21,22 @@
 
 int ldv_sysfs = 0;
 
-/* MODEL_FUNC Create sysfs group. */
 int ldv_sysfs_create_group(void)
 {
 	/* NOTE Choose an arbitrary return value. */
 	int res = ldv_undef_int_nonpositive();
-	/* NOTE If memory is not available. */
+
 	if (!res) {
 		/* NOTE Increase allocated counter. */
 		ldv_sysfs++;
 		/* NOTE Sysfs group was successfully created. */
 		return 0;
 	}
+
 	/* NOTE There was an error during sysfs group creation. */
 	return res;
 }
 
-/* MODEL_FUNC Remove sysfs group. */
 void ldv_sysfs_remove_group(void)
 {
 	/* ASSERT Sysfs group must be allocated before. */
@@ -46,7 +45,6 @@ void ldv_sysfs_remove_group(void)
 	ldv_sysfs--;
 }
 
-/* MODEL_FUNC Check that all sysfs groups are not incremented at the end */
 void ldv_check_final_state( void )
 {
 	/* ASSERT Sysfs groups must be freed at the end. */
