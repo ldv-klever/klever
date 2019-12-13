@@ -61,9 +61,14 @@ class ErrorTrace:
         else:
             raise KeyError('Entry node has not been set yet')
 
-    def highlight(self, src):
+    def highlight(self, src, func_name=None):
         highlight = Highlight(self._logger, src)
         highlight.highlight()
+
+        if func_name:
+            idx = src.find(func_name)
+            if idx != -1:
+                highlight.extra_highlight([['FuncDefRefTo', 1, idx, idx + len(func_name)]])
 
         return {
             'source': src,
@@ -149,7 +154,7 @@ class ErrorTrace:
 
                 # TODO: remove this redundant check after switching to new violation witness format since "bad" edge is artificial.
                 if 'source' in edge:
-                    func_call_node.update(self.highlight(edge['source']))
+                    func_call_node.update(self.highlight(edge['source'], self.resolve_function(edge['enter'])))
                 else:
                     func_call_node['source'] = 'Unknown'
 
