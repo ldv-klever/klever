@@ -154,14 +154,29 @@
             <tr>
                 <th>{% trans 'Module' %}</th>
                 <th>{% trans 'Lines of code' %}</th>
+                <th align="center">{% trans 'Files' %}</th>
             </tr>
         </thead>
         <tbody>
-            {% for module, loc in data.items|sort_list %}
-                <tr>
-                    <td>{{ module }}</td>
-                    <td>{{ loc }}</td>
-                </tr>
+            {% for module, desc in data.items|sort_list %}
+                {% if desc.files.length == 0 %}
+                    <tr>
+                        <td>{{ module }}</td>
+                        <td>{{ desc.size }}</td>
+                        <td>"0"</td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td rowspan="{{ desc.files|length }}">{{ module }}</td>
+                        <td rowspan="{{ desc.files|length }}">{{ desc.size }}</td>
+                        <td>{{ desc.files.0 }}</td>
+                    </tr>
+                    {% for file in desc.files|slice:"1:" %}
+                    <tr>
+                        <td>{{ file }}</td>
+                    </tr>
+                    {% endfor %}
+                {% endif %}
             {% endfor %}
         </tbody>
     </table>
