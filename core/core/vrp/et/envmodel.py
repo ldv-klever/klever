@@ -18,7 +18,7 @@
 from core.vrp.et.error_trace import get_original_file, get_original_start_line
 
 
-def envmodel_simplifications(logger, error_trace, less_processing=False):
+def envmodel_simplifications(logger, error_trace):
     logger.info('Start environment model driven error trace simplifications')
     data, main_data, main = _collect_action_diaposons(logger, error_trace)
     _set_main(main_data, main, error_trace)
@@ -32,8 +32,7 @@ def envmodel_simplifications(logger, error_trace, less_processing=False):
     except ValueError as e:
         raise RuntimeError("Edges from error trace has been deleted incorrectly and it cannot be visualized: {}".
                            format(e))
-    if not less_processing:
-        _wrap_actions(data, error_trace)
+    _wrap_actions(data, error_trace)
 
 
 def _collect_action_diaposons(logger, error_trace):

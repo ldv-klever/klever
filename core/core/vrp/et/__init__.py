@@ -21,18 +21,7 @@ from core.vrp.et.tmpvars import generic_simplifications
 from core.vrp.et.envmodel import envmodel_simplifications
 
 
-# TODO: get rid of this completely.
 def import_error_trace(logger, witness, verification_task_files):
-    # todo: to implement it in the right way we should add a graphical switch at Bridge to disable tolerable witness processing and do not apply this fallback always
-    try:
-        et, attrs = _import_error_trace(logger, witness, verification_task_files)
-    except Exception:
-        logger.warning('Cannot parse witness, let us try to disable our witness processing optimizations')
-        et, attrs = _import_error_trace(logger, witness, verification_task_files, True)
-    return et, attrs
-
-
-def _import_error_trace(logger, witness, verification_task_files, less_processing=False):
     # Parse witness
     po = ErrorTraceParser(logger, witness, verification_task_files)
     trace = po.error_trace
@@ -40,15 +29,14 @@ def _import_error_trace(logger, witness, verification_task_files, less_processin
     # Parse comments from sources
     trace.parse_model_comments()
 
-    # Remove ugly code
-    if not less_processing:
-        generic_simplifications(logger, trace)
+    # TODO: inline it after all.
+    generic_simplifications(logger, trace)
 
     # Find violation
     trace.find_violation_path()
 
     # Make more difficult transformations
-    envmodel_simplifications(logger, trace, less_processing)
+    envmodel_simplifications(logger, trace)
 
     # Do final checks
     trace.final_checks()
