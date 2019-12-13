@@ -26,8 +26,7 @@ def envmodel_simplifications(logger, error_trace, less_processing=False):
 
     # This is quite tricky code and it is ensure that before deleting any edges the trace was correct
     error_trace.final_checks()
-    if not less_processing:
-        _remove_control_func_aux_code(data, error_trace)
+    _remove_control_func_aux_code(data, error_trace)
     try:
         error_trace.final_checks()
     except ValueError as e:
@@ -166,7 +165,7 @@ def _set_main(data, main, error_trace):
     for edge in error_trace.trace_iterator():
         if edge.get("source", "") == "Begin program execution":
             edge["file"] = data['file']
-            edge["line"] = data['begin'] - 1
+            edge["start line"] = data['begin'] - 1
             return
 
         if _inside_this_control_function(data, edge['file'], edge['start line']):
@@ -177,7 +176,7 @@ def _set_main(data, main, error_trace):
             new_edge = error_trace.insert_edge_and_target_node(edge, after=False)
             new_edge["enter"] = identifier
             new_edge["file"] = data['file']
-            new_edge["line"] = data['begin'] - 1
+            new_edge["start line"] = data['begin'] - 1
             new_edge["source"] = "Begin program execution"
 
             return
