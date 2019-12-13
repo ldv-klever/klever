@@ -33,7 +33,7 @@ from rest_framework.generics import (
 )
 from rest_framework.mixins import UpdateModelMixin, CreateModelMixin
 from rest_framework.response import Response
-from rest_framework.authentication import SessionAuthentication, TokenAuthentication
+from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import IsAuthenticated
 
 from bridge.access import (
@@ -190,6 +190,7 @@ class DuplicateJobView(LoggedCallMixin, UpdateModelMixin, CreateModelMixin, Gene
     permission_classes = (WriteJobPermission,)
     lookup_field = 'identifier'
     lookup_url_kwarg = 'identifier'
+    queryset = Job.objects
 
     def post(self, request, *args, **kwargs):
         return self.create(request, *args, **kwargs)
