@@ -1,6 +1,6 @@
 psycopg2==2.8.3
 djangorestframework==3.10.3
-django==2.2.5
+django==2.2.8
 pytz==2019.2
 requests==2.22.0
 pika==1.1.0
