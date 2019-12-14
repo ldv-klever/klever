@@ -615,8 +615,7 @@ class VTGW(core.components.Component):
 
     def tasks_generator_worker(self):
         files_list_file = 'files list.txt'
-        with open(files_list_file, 'w', encoding='utf8') as fp:
-            fp.writelines('\n'.join(sorted(f for grp in self.program_fragment_desc['grps'] for f in grp['files'])))
+        core.utils.save_program_fragment_description(self.program_fragment_desc, files_list_file)
         core.utils.report(self.logger,
                           'patch',
                           {
@@ -630,10 +629,6 @@ class VTGW(core.components.Component):
                                   {
                                       "name": "Requirements specification",
                                       "value": self.req_spec_id
-                                  },
-                                  {
-                                      "name": "Size",
-                                      "value": self.program_fragment_desc['size']
                                   }
                               ]
                           },
