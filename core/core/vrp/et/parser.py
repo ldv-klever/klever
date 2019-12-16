@@ -158,8 +158,6 @@ class ErrorTraceParser:
                         _edge['file'] = identifier
                 elif data_key == 'startline':
                     _edge['start line'] = int(data.text)
-                elif data_key == 'endline':
-                    _edge['end line'] = int(data.text)
                 elif data_key == 'startoffset':
                     startoffset = int(data.text)
                 elif data_key == 'endoffset':
