@@ -702,7 +702,26 @@ def drain_queue(collection, given_queue):
 
 
 def json_dump(obj, fp, pretty=True):
+    """
+    Save JSON file.
+
+    :param obj: Some serializable object.
+    :param fp: File descriptor.
+    :param pretty: pretty printing flag.
+    """
     if pretty:
         json.dump(obj, fp, ensure_ascii=True, sort_keys=True, indent=4)
     else:
         json.dump(obj, fp, ensure_ascii=True)
+
+
+def save_program_fragment_description(program_fragment_desc, file_name):
+    """
+    Save file for program fragment data attribute value.
+
+    :param program_fragment_desc: Program fragment description dict.
+    :param file_name: File name to save values.
+    """
+    with open(file_name, 'w', encoding='utf8') as fp:
+        fp.writelines(['Lines of code: {}\n'.format(program_fragment_desc['size']), 'Files:\n'])
+        fp.writelines('\n'.join(sorted(f for grp in program_fragment_desc['grps'] for f in grp['files'])))
