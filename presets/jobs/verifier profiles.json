@@ -82,7 +82,7 @@
     "CPALockator": {
       "description": "CPAchecker for checking races",
       "inherit": "CPAchecker common",
-      "safety properties": ["CHECK( init({entry_point}()), LTL(G ! call(__VERIFIER_error())) )"],
+      "safety properties": ["CHECK( init({entry_point}()), LTL(G ! data-race) )"],
       "add options": [
         {"-lockator-linux": ""},
         {"-setprop": "parser.readLineDirectives=true"},
