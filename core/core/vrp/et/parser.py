@@ -44,7 +44,7 @@ class ErrorTraceParser:
                 edge['file'] = last_used_file
             else:
                 self._logger.warning("Cannot determine file for edge: '{}: {}'".
-                                     format(edge['start line'], edge['source']))
+                                     format(edge['line'], edge['source']))
                 # We cannot predict the file and have to delete it
                 if 'enter' in edge or 'return' in edge:
                     raise ValueError("There should not be 'enter' or 'return' in the edge")
@@ -157,7 +157,7 @@ class ErrorTraceParser:
                         identifier = self.error_trace.add_file(data.text)
                         _edge['file'] = identifier
                 elif data_key == 'startline':
-                    _edge['start line'] = int(data.text)
+                    _edge['line'] = int(data.text)
                 elif data_key == 'startoffset':
                     startoffset = int(data.text)
                 elif data_key == 'endoffset':
