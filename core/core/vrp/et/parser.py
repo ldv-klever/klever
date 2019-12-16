@@ -178,8 +178,6 @@ class ErrorTraceParser:
                 elif data_key == 'threadId':
                     # TODO: SV-COMP states that thread identifiers should unique, they may be non-numbers as we want.
                     _edge['thread'] = int(data.text)
-                elif data_key in ('startoffset', 'endoffset'):
-                    pass
                 elif data_key in ('note', 'warning'):
                     _edge[data_key if data_key == 'note' else 'warn'] = data.text
                 elif data_key not in unsupported_edge_data_keys:
