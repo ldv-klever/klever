@@ -410,7 +410,7 @@ class FSATranslator:
         if str(automaton) not in self._control_functions:
             # Check that this is an aspect function or not
             if automaton in self._model_fsa:
-                name = 'ldv_emg_{}'.format(automaton.process.name)
+                name = 'ldv_{}'.format(automaton.process.name)
                 function_objs = self._source.get_source_functions(automaton.process.name)
                 if len(function_objs) == 0:
                     raise ValueError("Unfortunately there is no function {!r} found by the source analysis".
@@ -435,7 +435,7 @@ class FSATranslator:
                     ', '.join(param_types))
                 cf = Function(name, declaration)
             else:
-                name = 'ldv_emg_{}_{}'.format(automaton.process.name, str(automaton))
+                name = 'ldv_{}_{}'.format(automaton.process.name, str(automaton))
                 if not get_or_die(self._conf, "direct control functions calls"):
                     declaration = 'void *f(void *data)'
                 else:

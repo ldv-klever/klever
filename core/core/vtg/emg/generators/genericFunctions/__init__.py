@@ -153,7 +153,7 @@ class ScenarioModelgenerator(AbstractGenerator):
 
     def __generate_call(self, ep, func, obj, identifier):
         # Add declaration of caller
-        caller_func = Function("ldv_emg_{}_caller_{}".format(func, identifier), "void a(void)")
+        caller_func = Function("ldv_{}_caller_{}".format(func, identifier), "void a(void)")
         ep.add_declaration("environment model", caller_func.name, caller_func.declare(True)[0])
         expression = ""
         body = []

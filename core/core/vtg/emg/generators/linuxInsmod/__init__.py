@@ -266,7 +266,7 @@ class ScenarioModelgenerator(AbstractGenerator):
         return ep
 
     def __generate_alias(self, process, name, file, int_retval=False):
-        new_name = "ldv_emg_{}".format(name)
+        new_name = "ldv_{}".format(name)
         code = [
             "{}();".format("return {}".format(name) if int_retval else name)
         ]

@@ -750,7 +750,7 @@ def _remove_statics(sa, process):
         return None
 
     def create_definition(decl, nm, impl):
-        f = c.Function("ldv_emg_wrapper_{}_{}".format(nm, identifiers.__next__()),
+        f = c.Function("ldv_wrapper_{}_{}".format(nm, identifiers.__next__()),
                        decl)
         f.definition_file = impl.initialization_file
 
@@ -822,7 +822,7 @@ def _remove_statics(sa, process):
                                 # Try to use pointer instead of the value
                                 declaration = declaration.take_pointer
                                 value = '& ' + value
-                            var = c.Variable("ldv_emg_alias_{}_{}".format(name, identifiers.__next__()),
+                            var = c.Variable("ldv_alias_{}_{}".format(name, identifiers.__next__()),
                                              declaration.to_string('x', specifiers=False))
                             var.declaration_files.add(file)
                             var.value = value
