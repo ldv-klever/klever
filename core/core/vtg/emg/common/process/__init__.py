@@ -649,6 +649,7 @@ class Block(Action):
         super(Block, self).__init__(name)
         self.statements = []
         self.condition = []
+        self.trace_relevant = True
 
     def __repr__(self):
         return '<%s>' % str(self)

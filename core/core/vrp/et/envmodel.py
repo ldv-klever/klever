@@ -40,11 +40,11 @@ def _collect_action_diaposons(logger, error_trace):
     main_data = None
 
     # Determine control functions and allowed intervals
-    intervals = ['CONTROL_FUNCTION_INIT', 'CALL', 'DISPATCH', 'RECEIVE', 'SUBPROCESS', 'BLOCK']
     data = dict()
     for file in error_trace.emg_comments.keys():
         data[file] = dict()
         # Set control function start point
+        # todo: track action names
         for line in (l for l in error_trace.emg_comments[file]
                      if error_trace.emg_comments[file][l]['type'] == 'CONTROL_FUNCTION_BEGIN'):
             data[file][error_trace.emg_comments[file][line]['function']] = {
@@ -72,7 +72,7 @@ def _collect_action_diaposons(logger, error_trace):
             inside_action = False
             for line in range(data[file][func]['begin'], data[file][func]['end']):
                 if not inside_action and line in error_trace.emg_comments[file] and \
-                                error_trace.emg_comments[file][line]['type'] in {t + '_BEGIN' for t in intervals}:
+                                error_trace.emg_comments[file][line]['type'] == 'ACTION_BEGIN':
                     if 'type' not in error_trace.emg_comments[file][line] or \
                             'comment' not in error_trace.emg_comments[file][line]:
                         logger.warning("Incomplete EMG comment at line {} of file {!r}".format(line, file))
@@ -85,7 +85,7 @@ def _collect_action_diaposons(logger, error_trace):
                         data[file][func]['actions'][-1]['callback'] = True
                     inside_action = True
                 elif inside_action and line in error_trace.emg_comments[file] and \
-                        error_trace.emg_comments[file][line]['type'] in {t + '_END' for t in intervals}:
+                        error_trace.emg_comments[file][line]['type'] == 'ACTION_END':
                     data[file][func]['actions'][-1]['end'] = line
                     inside_action = False
 

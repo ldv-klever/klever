@@ -72,9 +72,10 @@ def label_based_function(conf, analysis, automaton, cf, model=True):
                 f_code.append(ret_expression)
             processed.add(subp.reference_name)
 
-    v_code = [model_comment('CONTROL_FUNCTION_INIT_BEGIN', 'Declare auxiliary variables.')] + \
+    comment_data = {'name': 'aux_variables_declaration'}
+    v_code = [model_comment('ACTION_BEGIN', 'Declare auxiliary variables.', comment_data)] + \
              v_code + \
-             [model_comment('CONTROL_FUNCTION_INIT_END', 'Declare auxiliary variables.')]
+             [model_comment('ACTION_END', other=comment_data)]
     if model:
         name = automaton.process.name
         v_code.insert(0, control_function_comment_begin(cf.name, automaton.process.comment))

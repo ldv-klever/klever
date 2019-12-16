@@ -187,7 +187,7 @@ class ScenarioModelgenerator(AbstractGenerator):
                         raise RuntimeError("Cannot resolve function {!r} in file {!r}".format(name, filename))
                     new_name = self.__generate_alias(ep, func_name, filename, retval)
                     statements = [
-                        model_comment('callback', func_name, {'call': "{}();".format(func_name)}),
+                        model_comment('callback', other={'call': "{}();".format(func_name)}),
                     ]
                     if retval:
                         statements.extend([
@@ -229,7 +229,7 @@ class ScenarioModelgenerator(AbstractGenerator):
                 init_subprocess = ep.actions[init_name]
                 init_subprocess.comment = 'Initialize the module after insmod with {!r} function.'.format(init_name)
                 init_subprocess.statements = [
-                    model_comment('callback', init_name, {'call': "{}();".format(init_name)}),
+                    model_comment('callback', other={'call': "{}();".format(init_name)}),
                     "%ret% = {}();".format(new_name),
                     "%ret% = ldv_post_init(%ret%);"
                 ]
@@ -248,7 +248,7 @@ class ScenarioModelgenerator(AbstractGenerator):
                 exit_subprocess = ep.actions[exit_name]
                 exit_subprocess.comment = 'Exit the module before its unloading with {!r} function.'.format(exit_name)
                 exit_subprocess.statements = [
-                    model_comment('callback', exit_name, {'call': "{}();".format(exit_name)}),
+                    model_comment('callback', other={'call': "{}();".format(exit_name)}),
                     "{}();".format(new_name)
                 ]
                 exit_subprocess.trace_relevant = True

@@ -373,7 +373,7 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
             comment_invoke = return_expression + '{}'.format(true_call) + '(' + ', '.join(external_parameters) + ');'
         else:
             comment_invoke = true_invoke
-        cmnt = model_comment('callback', call.name, {'call': comment_invoke})
+        cmnt = model_comment('callback', other={'call': comment_invoke})
         return [cmnt, true_invoke], pre, post
 
     def add_post_conditions(inv):

@@ -33,24 +33,14 @@ def action_model_comment(action, text, begin=None):
     :param begin: True if this is a comment before the action and False otherwise.
     :return: Model comment string.
     """
-    if action:
-        if action.trace_relevant:
-            type_comment = 'CALL'
-        else:
-            type_comment = type(action).__name__.upper()
-        if begin is True:
-            type_comment += '_BEGIN'
-        elif begin is False:
-            type_comment += '_END'
-
-        name_comment = action.name.upper()
+    type_comment = 'ACTION'
+    if begin is True:
+        type_comment += '_BEGIN'
     else:
-        type_comment = 'ARTIFICIAL'
-        name_comment = None
-
-    data = {'action': name_comment}
+        type_comment += '_END'
+    data = {'name': str(action)}
     if action and action.trace_relevant and begin is True:
-        data['callback'] = True
+        data['relevant'] = True
     return model_comment(type_comment, text, data)
 
 
@@ -372,23 +362,24 @@ class CModel:
             ]
 
         if self._conf.get("initialize requirements", True):
+            comment_data = {'relevant': True, 'name': 'init_requirements'}
             body += [
-                '/* LDV {"action": "INIT", "type": "CALL_BEGIN", "callback": true, '
-                '"comment": "Initialize requirement models."} */',
+                model_comment('ACTION_BEGIN', 'Initialize requirement models.', other=comment_data),
                 'ldv_initialize();',
-                '/* LDV {"action": "INIT", "type": "CALL_END"} */'
+                model_comment('ACTION_END', other=comment_data),
             ]
 
-        body += ['/* LDV {"action": "SCENARIOS", "type": "CONDITION_BEGIN", '
-                 '"comment": "Begin Environment model scenarios."} */'] + given_body + \
-                ['/* LDV {"action": "SCENARIOS", "type": "CONDITION_END"} */']
+        comment_data = {'action': 'scenarios'}
+        body += [model_comment('ACTION_BEGIN', 'Begin Environment model scenarios', comment_data)] + given_body + \
+                [model_comment('ACTION_END', other=comment_data)]
 
         if self._conf.get("check final state", True):
+            comment_data = {'action': 'check_final_state', 'relevant': True}
             body += [
-                '/* LDV {"action": "FINAL", "callback": true, "type": "CALL_BEGIN", '
-                '"comment": "Check requirement model final state at the exit if required."} */',
+                model_comment('ACTION_BEGIN', 'Check requirement model final state at the exit if required.',
+                              comment_data),
                 'ldv_check_final_state();',
-                '/* LDV {"action": "FINAL", "type": "CALL_END"} */'
+                model_comment('ACTION_END', other=comment_data)
             ]
 
         body += ['return 0;',
