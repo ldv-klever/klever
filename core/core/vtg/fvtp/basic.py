@@ -171,8 +171,13 @@ class Basic:
         tasks = ElementTree.SubElement(benchmark_definition, "tasks")
         if "merge source files" in self.conf and self.conf["merge source files"]:
             file = common.merge_files(self.logger, self.conf, self.abstract_task_desc)
-            ElementTree.SubElement(tasks, "include").text = file
-            return [file]
+            with open('cil.yml', 'w') as fp:
+                fp.write("format_version: '1.0'\n\n")
+                fp.write("input_files: 'cil.i'\n\n")
+                fp.write("properties:\n  - property_file: safe-prps.prp\n")
+            ElementTree.SubElement(tasks, "include").text = 'cil.yml'
+            return ['cil.yml', file]
+        # TODO: this is for experimental purposes only!
         else:
             c_files = [os.path.join(self.conf['main working directory'], extra_c_file['C file']) for
                        extra_c_file in self.abstract_task_desc['extra C files'] if 'C file' in extra_c_file]
