@@ -113,7 +113,7 @@ Some other verification backends are supported experimentally and currently we d
 You can download binaries of CPAchecker suitable for checking most of requirements from
 `here https://forge.ispras.ru/attachments/download/6427/CPAchecker-1.8-svn 31140-unix.tar.xz>`__.
 For finding data races additionally download binaries of another custom version of CPAchecker from
-`here <https://forge.ispras.ru/attachments/download/5871/CPAchecker-1.7-svn  28916-unix.tar.gz>`__.
+`here <https://forge.ispras.ru/attachments/download/7133/CPAchecker-1.8-svn 32118-unix.tar.xz>`__.
 In addition, you can clone `CPAchecker Git or Subversion repository <https://cpachecker.sosy-lab.org/download.php>`__
 and build other versions of CPAchecker from source referring corresponding instructions.
 

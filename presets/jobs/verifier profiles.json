@@ -117,7 +117,7 @@
       }
     },
     "race checking": {
-      "CPAchecker": {"CPALockator-combat-mode:28916": {"inherit": "CPALockator"}}
+      "CPAchecker": {"CPALockator-combat-mode:32118": {"inherit": "CPALockator"}}
     },
     "memory checking Linux64": {
       "CPAchecker": {"trunk:31140": {"inherit": "CPAchecker SMG memory checking"}}
