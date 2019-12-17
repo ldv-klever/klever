@@ -21,6 +21,7 @@ import re
 def generic_simplifications(logger, trace):
     logger.info('Simplify error trace')
     _remove_switch_cases(logger, trace)
+    _merge_func_entry_and_exit(logger, trace)
     # _remove_tmp_vars(logger, trace)
     trace.sanity_checks()
 
@@ -228,3 +229,20 @@ def _remove_switch_cases(logger, error_trace):
     if removed_switch_cases_num:
         logger.debug('{0} switch cases were removed'.format(removed_switch_cases_num))
 
+
+def _merge_func_entry_and_exit(logger, error_trace):
+    # For each function call with return there is an edge corresponding to function entry and an edge
+    # corresponding to function exit. Both edges are located at a function call. The second edge can contain an
+    # assigment of result to some variable.
+    # This is good for analysis, but this is redundant for visualization. Let's merge these edges together.
+    edges_to_remove = []
+    for edge in error_trace.trace_iterator():
+        if 'enter' in edge:
+            return_edge = error_trace.get_func_return_edge(edge)
+            if return_edge:
+                exit_edge = error_trace.next_edge(return_edge)
+                edges_to_remove.insert(0, exit_edge)
+                edge['source'] = exit_edge['source']
+
+    for edge_to_remove in edges_to_remove:
+        error_trace.remove_edge_and_target_node(edge_to_remove)

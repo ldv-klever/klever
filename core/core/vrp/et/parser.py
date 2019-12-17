@@ -215,4 +215,3 @@ class ErrorTraceParser:
             edges_num += 1
 
         self._logger.debug('Parse {0} edges and {1} sink edges'.format(edges_num, sink_edges_num))
-
