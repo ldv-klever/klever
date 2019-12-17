@@ -39,7 +39,7 @@ class ExtendedProcessDecoder(CollectionDecoder):
         'post-call': 'post_call',
         'callback': None,
         'callback return value': 'retlabel',
-        'entry point': 'trace_relevant'
+        'trace relevant': 'trace_relevant'
     }
     LABEL_CONSTRUCTOR = ExtendedLabel
     LABEL_ATTRIBUTES = {
