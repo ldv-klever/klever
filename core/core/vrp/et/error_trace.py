@@ -72,7 +72,7 @@ class ErrorTrace:
             if idx != -1:
                 if func_name.startswith('cif_'):
                     highlight_kind = 'CIFAuxFunc'
-                elif func_name.startswith('ldv_emg_'):
+                elif func_name.startswith('emg_'):
                     highlight_kind = 'LDVEnvModelFunc'
                 elif func_name.startswith('ldv_'):
                     highlight_kind = 'LDVModelFunc'
@@ -145,7 +145,7 @@ class ErrorTrace:
                     }
 
                     if edge['action'] in self._callback_actions:
-                        action_node['callback'] = True
+                        action_node['relevant'] = True
 
                     # Add created action node to last function call node from corresponding thread function call stack
                     # like for statement node below.
