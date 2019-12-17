@@ -148,7 +148,7 @@ def __choose_processes(logger, conf, interfaces, category, chosen, collection):
             do = False
             if label_map["native interfaces"] > best_map["native interfaces"]:
                 do = True
-            elif best_map["native interfaces"] == 0:
+            elif label_map["native interfaces"] == best_map["native interfaces"] or best_map["native interfaces"] == 0:
                 if len(label_map["matched calls"]) > len(best_map["matched calls"]) and \
                                 len(label_map["unmatched callbacks"]) <= len(best_map["unmatched callbacks"]):
                     do = True
