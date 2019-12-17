@@ -581,15 +581,10 @@ class ErrorTrace:
 
                 if not note_found:
                     warn = self._asserts[file_id][line]
-                    self._logger.debug(
-                        "Add warning {!r} for statement from '{}:{}'".format(warn, file, line))
-                    # Add warning either to edge itself or to first edge that enters function and has note at
-                    # violation path. If don't do the latter warning will be hidden by error trace visualizer.
+
+                    self._logger.debug("Add warning {!r} for statement from '{}:{}'".format(warn, file, line))
+
                     warn_edge = edge
-                    # TODO: at the moment warnings are always added to edges themselves.
-                    # for violation_edge in self._violation_edges:
-                    #     if 'enter' in violation_edge and 'note' in violation_edge:
-                    #         warn_edge = violation_edge
                     warn_edge['warn'] = warn
                     warn_edges.append(warn_edge)
 
