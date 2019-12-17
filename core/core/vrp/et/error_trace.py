@@ -41,7 +41,8 @@ class ErrorTrace:
         self._actions = list()
         self._callback_actions = list()
         self.emg_comments = dict()
-        self.programfile = None
+        self.programfile_content = ''
+        self.programfile_line_map = dict()
 
     @property
     def functions(self):
