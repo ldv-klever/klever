@@ -212,6 +212,7 @@ class ErrorTraceParser:
                     # End all statements with ";" like in C.
                     if _edge['source'][-1] != ';':
                         _edge['source'] += ';'
+            # TODO: workaround! Here VRP should fail since violation witnesses format is not valid.
             else:
                 self._logger.warning('Edge from {0} to {1} does not have start or/and end offsets'
                                      .format(source_node_id, target_node_id))
