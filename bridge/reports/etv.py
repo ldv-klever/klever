@@ -193,7 +193,7 @@ class GetETV:
     def __parse_action(self, node, depth, thread, scope):
         return {
             'type': node['type'],
-            'callback': node.get('callback', False),
+            'callback': node.get('relevant', False),
             'thread': self._html_thread[thread],
             'line': self.__get_line(node['line']),
             'file': self.trace['files'][node['file']],
