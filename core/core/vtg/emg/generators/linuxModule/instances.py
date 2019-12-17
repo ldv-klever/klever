@@ -341,22 +341,19 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
 
     def manage_default_resources(label_parameters):
         # Add precondition and postcondition
-        pre = None
-        post = None
+        pre = add_pre_conditions()
+        post = add_post_conditions()
         if label_parameters:
-            pre_stments = []
-            post_stments = []
             for label in {l.name: l for l in label_parameters}.values():
-                pre_stments.append('{0} = $UALLOC({0});'.format(repr(label)))
-                post_stments.append('$FREE({});'.format(repr(label)))
+                pre.append('{0} = $UALLOC({0});'.format(repr(label)))
+                post.append('$FREE({});'.format(repr(label)))
 
+        if pre:
             pre_name = 'pre_call_{}'.format(action_identifiers.__next__())
-            pre = process.add_condition(pre_name, [], pre_stments,
-                                        "Allocate memory for adhoc callback parameters.")
-
+            pre = process.add_condition(pre_name, [], pre, "Callback {} precondition.".format(call.name))
+        if post:
             post_name = 'post_call_{}'.format(action_identifiers.__next__())
-            post = process.add_condition(post_name, [], post_stments,
-                                         "Free memory of adhoc callback parameters.")
+            post = process.add_condition(post_name, [], post, "Callback {} postcondition.".format(format(call.name)))
 
         return pre, post
 
@@ -369,14 +366,9 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
         external_parameters = [external_parameters[i] for i in sorted(list(external_parameters.keys()))]
 
         true_invoke = return_expression + '{}'.format(inv) + '(' + ', '.join(external_parameters) + ');'
-        if true_call:
-            comment_invoke = return_expression + '{}'.format(true_call) + '(' + ', '.join(external_parameters) + ');'
-        else:
-            comment_invoke = true_invoke
-        cmnt = model_comment('callback', other={'call': comment_invoke})
-        return [cmnt, true_invoke], pre, post
+        return [true_invoke], pre, post
 
-    def add_post_conditions(inv):
+    def add_post_conditions():
         post_call = []
         if access.interface and access.interface.interrupt_context:
             post_call.append('$SWITCH_TO_PROCESS_CONTEXT();')
@@ -386,11 +378,10 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
 
         if post_call:
             post_call.insert(0, '/* Callback post-call */')
-            inv += post_call
 
-        return inv
+        return post_call
 
-    def add_pre_conditions(inv):
+    def add_pre_conditions():
         callback_pre_call = []
         if call.pre_call:
             callback_pre_call.extend(call.pre_call)
@@ -400,14 +391,11 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
 
         if callback_pre_call:
             callback_pre_call.insert(0, '/* Callback pre-call */')
-            inv = callback_pre_call + inv
 
-        return inv
+        return callback_pre_call
 
     def make_action(declaration, inv):
         cd, pre, post = generate_function(declaration, inv)
-        cd = add_pre_conditions(cd)
-        cd = add_post_conditions(cd)
 
         return cd, pre, post
 
