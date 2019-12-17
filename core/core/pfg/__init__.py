@@ -174,6 +174,7 @@ class PFG(core.components.Component):
                     fset_name = 'custom'
         else:
             fset = fset_name
+            fset_name = 'custom'
 
         return tactic, fset, tactic_name, fset_name
 
