@@ -287,7 +287,7 @@
               "translation options": {
                 "self parallel processes": true,
                 "do not skip signals": true,
-                "not self parallel processes": ["linux/initialization"],
+                "not self parallel processes": ["linux/insmod"],
                 "not self parallel processes from categories": ["usb"],
                 "not self parallel processes from scenarios": ["usb_serial_scenario"],
                 "direct control functions calls": false,
@@ -315,7 +315,7 @@
               "verifier profile": "race checking",
               "verifier": {
                 "name": "CPAchecker",
-                "version": "CPALockator-combat-mode:28916"
+                "version": "CPALockator-combat-mode:32118"
               },
               "result processing": {
                 "expect several witnesses": true,

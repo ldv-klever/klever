@@ -259,8 +259,7 @@ class RP(core.components.Component):
         self.logger.debug("Process results of task {}".format(task_id))
 
         files_list_file = 'files list.txt'
-        with open(files_list_file, 'w', encoding='utf8') as fp:
-            fp.writelines('\n'.join(sorted(f for grp in program_fragment_desc['grps'] for f in grp['files'])))
+        core.utils.save_program_fragment_description(program_fragment_desc, files_list_file)
         core.utils.report(self.logger,
                           'patch',
                           {
@@ -278,12 +277,6 @@ class RP(core.components.Component):
                                       "value": req_spec_id,
                                       "compare": True,
                                       "associate": True
-                                  },
-                                  {
-                                      "name": "Size",
-                                      "value": program_fragment_desc['size'],
-                                      "compare": False,
-                                      "associate": False
                                   }
                               ]
                           },

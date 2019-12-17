@@ -299,11 +299,7 @@ class FragmentationAlgorythm:
         for name, main_and_frgs in grps.items():
             main, frags = main_and_frgs
             data[name] = {
-                "fragments": {
-                    f.name: {
-                        'content': {make_relative_path(self.source_paths, l.name): l.size for l in f.files},
-                        'size': str(f.size)
-                } for f in frags},
+                "files": [make_relative_path(self.source_paths, l.name) for f in frags for l in f.files],
                 "size": str(sum(int(f.size) for f in frags))
             }
 

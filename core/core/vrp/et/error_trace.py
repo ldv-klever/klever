@@ -41,7 +41,8 @@ class ErrorTrace:
         self._actions = list()
         self._callback_actions = list()
         self.emg_comments = dict()
-        self.programfile = None
+        self.programfile_content = ''
+        self.programfile_line_map = dict()
 
     @property
     def functions(self):
@@ -100,7 +101,7 @@ class ErrorTrace:
             # TODO: new witness format will have another marker for global variable declarations.
             if edge['thread'] == 0:
                 global_var_decl = {
-                    'line': edge['start line'],
+                    'line': edge['line'],
                     'file': edge['file']
                 }
                 global_var_decl.update(self.highlight(edge['source']))
@@ -138,7 +139,7 @@ class ErrorTrace:
                     action_node = {
                         'type': 'action',
                         'file': edge['file'],
-                        'line': edge['start line'],
+                        'line': edge['line'],
                         'display': self.resolve_action(edge['action']),
                         'children': list()
                     }
@@ -156,7 +157,7 @@ class ErrorTrace:
                     'type': 'function call',
                     'file': edge['file'],
                     # TODO: like below.
-                    'line': edge['start line'] if 'start line' in edge else 0,
+                    'line': edge['line'] if 'line' in edge else 0,
                     'display': self.resolve_function(edge['enter']),
                     'children': list()
                 }
@@ -203,7 +204,7 @@ class ErrorTrace:
                 stmt_node = {
                     'type': 'statement',
                     'file': edge['file'],
-                    'line': edge['start line']
+                    'line': edge['line']
                 }
 
                 stmt_node.update(self.highlight(edge['source']))
@@ -554,19 +555,19 @@ class ErrorTrace:
 
             if 'warn' in edge:
                 continue
-            start_line = edge['start line']
+            line = edge['line']
 
-            if file_id in self._notes and start_line in self._notes[file_id]:
-                note = self._notes[file_id][start_line]
-                self._logger.debug("Add note {!r} for statement from '{}:{}'".format(note, file, start_line))
+            if file_id in self._notes and line in self._notes[file_id]:
+                note = self._notes[file_id][line]
+                self._logger.debug("Add note {!r} for statement from '{}:{}'".format(note, file, line))
                 edge['note'] = note
 
         for edge in self.trace_iterator(backward=True):
             file_id = edge['file']
             file = self.resolve_file(file_id)
-            start_line = edge['start line']
+            line = edge['line']
 
-            if file_id in self._asserts and start_line in self._asserts[file_id]:
+            if file_id in self._asserts and line in self._asserts[file_id]:
                 # Add warning just if there are no more edges with notes at violation path below.
                 track_notes = False
                 note_found = False
@@ -579,9 +580,9 @@ class ErrorTrace:
                         track_notes = True
 
                 if not note_found:
-                    warn = self._asserts[file_id][start_line]
+                    warn = self._asserts[file_id][line]
                     self._logger.debug(
-                        "Add warning {!r} for statement from '{}:{}'".format(warn, file, start_line))
+                        "Add warning {!r} for statement from '{}:{}'".format(warn, file, line))
                     # Add warning either to edge itself or to first edge that enters function and has note at
                     # violation path. If don't do the latter warning will be hidden by error trace visualizer.
                     warn_edge = edge
@@ -624,11 +625,3 @@ class ErrorTrace:
                 subcalls -= 1
 
         return None
-
-
-def get_original_file(edge):
-    return edge.get('original file', edge['file'])
-
-
-def get_original_start_line(edge):
-    return edge.get('original start line', edge['start line'])

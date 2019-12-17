@@ -15,8 +15,6 @@
 # limitations under the License.
 #
 
-from core.vrp.et.error_trace import get_original_file, get_original_start_line
-
 
 def envmodel_simplifications(logger, error_trace):
     logger.info('Start environment model driven error trace simplifications')
@@ -164,10 +162,10 @@ def _set_main(data, main, error_trace):
     for edge in error_trace.trace_iterator():
         if edge.get("source", "") == "Begin program execution":
             edge["file"] = data['file']
-            edge["start line"] = data['begin'] - 1
+            edge["line"] = data['begin'] - 1
             return
 
-        if _inside_this_control_function(data, edge['file'], edge['start line']):
+        if _inside_this_control_function(data, edge['file'], edge['line']):
             # Got it!
             if edge["file"] != data['file']:
                 edge["file"] = data['file']
@@ -175,7 +173,7 @@ def _set_main(data, main, error_trace):
             new_edge = error_trace.insert_edge_and_target_node(edge, after=False)
             new_edge["enter"] = identifier
             new_edge["file"] = data['file']
-            new_edge["start line"] = data['begin'] - 1
+            new_edge["line"] = data['begin'] - 1
             new_edge["source"] = "Begin program execution"
 
             return
@@ -245,9 +243,9 @@ def _remove_control_func_aux_code(data, error_trace):
 
         if len(stack) != 0:
             # todo: here we need actually should be sure that we are still withtin an action but it is hard to check
-            cf = _inside_control_function(stack, get_original_file(e), get_original_start_line(e), e['thread'])
+            cf = _inside_control_function(stack, e['file'], e['line'], e['thread'])
             if cf:
-                act = _inside_action(cf['cf'], get_original_start_line(e))
+                act = _inside_action(cf['cf'], e['line'])
                 if not act:
                     cf['action'] = None
                     cf['in aux code'] = True
@@ -262,10 +260,10 @@ def _remove_control_func_aux_code(data, error_trace):
 
     def if_simple_state(e, stack):
         """Simple e."""
-        cf = _inside_control_function(stack, get_original_file(e), get_original_start_line(e), e['thread'])
+        cf = _inside_control_function(stack, e['file'], e['line'], e['thread'])
         if cf:
             cf['in aux code'] = False
-            act = _inside_action(cf['cf'], get_original_start_line(e))
+            act = _inside_action(cf['cf'], e['line'])
             if (act and cf['action'] and cf['action'] != act) or \
                     (act and not cf['action']):
                 # First action or another action
@@ -298,10 +296,9 @@ def _wrap_actions(data, error_trace):
     cf_stack = list()
     for edge in error_trace.trace_iterator():
         if len(cf_stack) > 0:
-            cf = _inside_control_function(cf_stack, get_original_file(edge), get_original_start_line(edge),
-                                          edge['thread'])
+            cf = _inside_control_function(cf_stack, edge['file'], edge['line'], edge['thread'])
             if cf:
-                act = _inside_action(cf['cf'], get_original_start_line(edge))
+                act = _inside_action(cf['cf'], edge['line'])
                 if act:
                     if act.get('relevant'):
                         relevant_flag = True

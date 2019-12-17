@@ -137,17 +137,17 @@ def translate_intermediate_model(logger, conf, avt, source, collection):
     # Set self parallel flag
     sp_ids = conf["translation options"].get('not self parallel processes')
     if sp_ids and isinstance(sp_ids, list):
-        for automaton in (a for a in model_fsa + main_fsa + [entry_fsa] if a.process.pretty_id in sp_ids):
-            automaton.self_parallelism = False
+        for amtn in (a for a in model_fsa + main_fsa + [entry_fsa] if str(a.process) in sp_ids):
+            amtn.self_parallelism = False
 
     sp_categories = conf["translation options"].get("not self parallel processes from categories")
     sp_scenarios = conf["translation options"].get("not self parallel processes from scenarios")
     if sp_categories and isinstance(sp_categories, list):
-        for automaton in (a for a in model_fsa + main_fsa + [entry_fsa] if a.process.category in sp_categories):
-            automaton.self_parallelism = False
+        for amtn in (a for a in model_fsa + main_fsa + [entry_fsa] if a.process.category in sp_categories):
+            amtn.self_parallelism = False
     if sp_scenarios and isinstance(sp_scenarios, list):
-        for automaton in (a for a in model_fsa + main_fsa + [entry_fsa] if a.process.name in sp_scenarios):
-            automaton.self_parallelism = False
+        for amtn in (a for a in model_fsa + main_fsa + [entry_fsa] if a.process.name in sp_scenarios):
+            amtn.self_parallelism = False
 
     # Prepare code on each automaton
     logger.info("Translate finite state machines into C code")

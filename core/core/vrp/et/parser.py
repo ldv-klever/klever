@@ -44,7 +44,7 @@ class ErrorTraceParser:
                 edge['file'] = last_used_file
             else:
                 self._logger.warning("Cannot determine file for edge: '{}: {}'".
-                                     format(edge['start line'], edge['source']))
+                                     format(edge['line'], edge['source']))
                 # We cannot predict the file and have to delete it
                 if 'enter' in edge or 'return' in edge:
                     raise ValueError("There should not be 'enter' or 'return' in the edge")
@@ -74,7 +74,20 @@ class ErrorTraceParser:
             # TODO: at the moment violation witnesses do not support multiple program files.
             if data.attrib['key'] == 'programfile':
                 with open(self.verification_task_files[os.path.normpath(data.text)]) as fp:
-                    self.error_trace.programfile = fp.read()
+                    line_num = 1
+                    orig_file_id = None
+                    orig_file_line_num = 0
+                    for line in fp:
+                        self.error_trace.programfile_content += line
+                        m = re.match('#line\s+(\d+)\s*(.*)', line)
+                        if m:
+                            orig_file_line_num = int(m.group(1))
+                            if m.group(2):
+                                orig_file_id = self.error_trace.add_file(m.group(2)[1:-1])
+                        else:
+                            self.error_trace.programfile_line_map[line_num] = (orig_file_id, orig_file_line_num)
+                            orig_file_line_num += 1
+                        line_num += 1
 
     def __parse_witness_nodes(self, graph):
         sink_nodes_map = dict()
@@ -149,17 +162,7 @@ class ErrorTraceParser:
             control = None
             for data in edge.findall('graphml:data', self.WITNESS_NS):
                 data_key = data.attrib['key']
-                if data_key == 'originfile':
-                    if data.text == '<multiple files>':
-                        self._logger.debug('Verifier could not resolve source file name')
-                    else:
-                        identifier = self.error_trace.add_file(data.text)
-                        _edge['file'] = identifier
-                elif data_key == 'startline':
-                    _edge['start line'] = int(data.text)
-                elif data_key == 'endline':
-                    _edge['end line'] = int(data.text)
-                elif data_key == 'startoffset':
+                if data_key == 'startoffset':
                     startoffset = int(data.text)
                 elif data_key == 'endoffset':
                     endoffset = int(data.text)
@@ -179,8 +182,6 @@ class ErrorTraceParser:
                 elif data_key == 'threadId':
                     # TODO: SV-COMP states that thread identifiers should unique, they may be non-numbers as we want.
                     _edge['thread'] = int(data.text)
-                elif data_key in ('startoffset', 'endoffset'):
-                    pass
                 elif data_key in ('note', 'warning'):
                     _edge[data_key if data_key == 'note' else 'warn'] = data.text
                 elif data_key not in unsupported_edge_data_keys:
@@ -188,7 +189,12 @@ class ErrorTraceParser:
                     unsupported_edge_data_keys[data_key] = None
 
             if startoffset and endoffset:
-                _edge['source'] = self.error_trace.programfile[startoffset:(endoffset + 1)]
+                _edge['source'] = self.error_trace.programfile_content[startoffset:(endoffset + 1)]
+
+                # Calculate the number of lines up to start offset. It is key within line map hash.
+                lines_num = len(re.findall(r'\n', self.error_trace.programfile_content[:startoffset])) + 1
+                _edge['file'], _edge['line'] = self.error_trace.programfile_line_map[lines_num]
+
                 if control is not None:
                     # Replace conditions to negative ones to consider else branches.
                     if not control:
