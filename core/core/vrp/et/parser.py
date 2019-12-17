@@ -138,7 +138,6 @@ class ErrorTraceParser:
         # The number of edges leading to sink nodes. Such edges will be completely removed.
         sink_edges_num = 0
         edges_num = 0
-        main_id = None
 
         for edge in graph.findall('graphml:edge', self.WITNESS_NS):
             # Sanity checks.

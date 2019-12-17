@@ -241,14 +241,14 @@ class LabelTranslator(FSATranslator):
             if var_type == 'pair':
                 thread_vars = []
                 for i in range(2):
-                    var = Variable('ldv_thread_{}_{}'.format(automaton.identifier, i), signature)
+                    var = Variable('emg_thread_{}_{}'.format(automaton.identifier, i), signature)
                     var.use += 1
                     thread_vars.append(var)
                 ret = thread_vars
             else:
                 if var_type == 'array':
                     signature = 'pthread_t **a'
-                var = Variable('ldv_thread_{}'.format(automaton.identifier),  signature)
+                var = Variable('emg_thread_{}'.format(automaton.identifier),  signature)
                 var.use += 1
                 ret = var
             self.__thread_variables[automaton.identifier] = ret

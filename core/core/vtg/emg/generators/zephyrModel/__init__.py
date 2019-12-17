@@ -104,7 +104,7 @@ class ScenarioModelgenerator(AbstractGenerator):
         ep.pretty_id = 'zephyr/generic'
         ep.process = ''
     
-        caller_func = Function("ldv_emg_zephr", "void a(void)")
+        caller_func = Function("ldv_zephr", "void a(void)")
     
         # Generate actions for all sequence
         expressions = []
@@ -131,7 +131,7 @@ class ScenarioModelgenerator(AbstractGenerator):
     
     def __generate_call(self, ep, func, obj, identifier):
         # Add declaration of caller
-        caller_func = Function("ldv_emg_{}_caller_{}".format(func, identifier), "void a(void)")
+        caller_func = Function("emg_{}_caller_{}".format(func, identifier), "void a(void)")
         ep.add_declaration("environment model", caller_func.name, caller_func.declare(True)[0])
         expression = ""
         body = []
@@ -146,7 +146,7 @@ class ScenarioModelgenerator(AbstractGenerator):
         free_args = []
         for index, arg in enumerate(obj.declaration.parameters):
             if not isinstance(arg, str):
-                argvar = Variable("ldv_arg_{}".format(index), arg)
+                argvar = Variable("emg_arg_{}".format(index), arg)
                 body.append(argvar.declare() + ";")
                 args.append(argvar.name)
                 if isinstance(arg, Pointer):

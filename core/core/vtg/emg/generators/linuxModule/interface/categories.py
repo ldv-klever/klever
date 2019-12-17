@@ -67,8 +67,8 @@ def __populate_resources(collection):
         for declaration in (usage[i]["declaration"] for i in usage if usage[i]["counter"] > 1):
             if "{}.{}".format(category, declaration.pretty_name) not in collection.interfaces:
                 identifier = declaration.pretty_name
-            elif "{}.{}".format(category, 'ldv_' + declaration.pretty_name) not in collection.interfaces:
-                identifier = 'ldv_' + declaration.pretty_name
+            elif "{}.{}".format(category, 'emg_' + declaration.pretty_name) not in collection.interfaces:
+                identifier = 'emg_' + declaration.pretty_name
             else:
                 raise RuntimeError("Cannot yield identifier for callback {!r} of category {!r}".
                                    format(str(declaration), category))

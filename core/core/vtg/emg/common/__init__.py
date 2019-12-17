@@ -33,7 +33,7 @@ def get_or_die(conf, name, expected_type=None):
     return conf[name]
 
 
-def model_comment(comment_type, text, other=None):
+def model_comment(comment_type, text=None, other=None):
     """
     Print model comment in the form accepted by the Klever error trace parser from VRP. This simple comment contains
     short json to parse.
