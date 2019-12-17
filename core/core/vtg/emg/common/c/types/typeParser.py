@@ -187,7 +187,15 @@ def p_declaration_specifiers_list(p):
 
     declaration_specifiers_list['type specifier'] = type_specififier
     if specifiers:
-        declaration_specifiers_list['specifiers'] = specifiers
+        new_specifiers = []
+        new_qualifiers = []
+        for specifier in specifiers:
+            if keyword_lookup(specifier) == 'TYPE_QUALIFIER':
+                new_qualifiers.append(specifier)
+            else:
+                new_specifiers.append(specifier)
+        declaration_specifiers_list['specifiers'] = new_specifiers
+        declaration_specifiers_list['qualifiers'] = new_qualifiers
 
     p[0] = declaration_specifiers_list
 

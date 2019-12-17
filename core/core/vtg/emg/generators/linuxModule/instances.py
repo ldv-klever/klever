@@ -211,23 +211,23 @@ def _simplify_process(logger, conf, sa, interfaces, process):
                 svar = sa.get_source_variable(implementation.value, file)
                 if svar and not (implementation.declaration.static or svar.declaration.static):
                     true_declaration = svar.declaration.to_string(svar.name, typedef='complex_and_params',
-                                                                  specifiers=True)
+                                                                  specifiers=True, qualifiers=True)
                 elif not svar:
                     # Seems that it is a funciton
                     sf = sa.get_source_function(implementation.value, file)
                     if sf and not (sf.static or sf.declaration.static):
                         true_declaration = sf.declaration.to_string(sf.name, typedef='complex_and_params',
-                                                                    specifiers=True)
+                                                                    specifiers=True, qualifiers=True)
                     elif not svar and not sf:
                         # This is something from outside. Add external declaration.
                         if '&' in implementation.value and isinstance(implementation.declaration, Pointer):
                             true_declaration = implementation.declaration.points.to_string(
                                 implementation.value.replace('&', '').strip(), typedef='complex_and_params',
-                                specifiers=False)
+                                specifiers=False, qualifiers=True)
                         else:
-                            true_declaration = implementation.declaration.points.to_string(
+                            true_declaration = implementation.declaration.to_string(
                                 implementation.value.strip(), typedef='complex_and_params',
-                                specifiers=False)
+                                specifiers=False, qualifiers=True)
                     else:
                         true_declaration = None
                 else:

@@ -335,7 +335,7 @@ class Declaration:
 
         return ret
 
-    def to_string(self, declarator='', pointer=False, typedef='none', scope=None, specifiers=True):
+    def to_string(self, declarator='', pointer=False, typedef='none', scope=None, specifiers=True, qualifiers=False):
         """
         Print declaration as a string with the given declarator.
 
@@ -361,15 +361,17 @@ class Declaration:
                                    len(_typedefs[self.typedef][1] & scope) > 0)):
                 result = "{} {}".format(self.typedef, declarator)
             else:
-                result = self._to_string(declarator, typedef=typedef, scope=scope)
+                result = self._to_string(declarator, typedef=typedef, scope=scope, qualifiers=qualifiers)
         else:
             raise TypeError('Expect typedef flag to be set or str instead of {!r}'.format(type(typedef).__name__))
 
+        if qualifiers and self._ast.get('specifiers', dict()).get('qualifiers'):
+            result = ' '.join(self._ast['specifiers']['qualifiers']) + ' ' + result
         if specifiers and self._ast.get('specifiers', dict()).get('specifiers'):
             result = ' '.join(self._ast['specifiers']['specifiers']) + ' ' + result
         return result
 
-    def _to_string(self, replacement, typedef=None, scope=None):
+    def _to_string(self, replacement, typedef=None, scope=None, qualifiers=False):
         raise NotImplementedError
 
 
@@ -390,7 +392,7 @@ class Primitive(Declaration):
         pn = self._ast['specifiers']['type specifier']['name']
         return pn.replace(' ', '_')
 
-    def _to_string(self, replacement, typedef='none', scope=None):
+    def _to_string(self, replacement, typedef='none', scope=None, qualifiers=False):
         if replacement == '':
             return self._ast['specifiers']['type specifier']['name']
         else:
@@ -425,7 +427,7 @@ class Enum(Declaration):
         """
         return 'enum_{}'.format(self.name)
 
-    def _to_string(self, replacement, typedef='none', scope=None):
+    def _to_string(self, replacement, typedef='none', scope=None, qualifiers=False):
         if not self.name:
             name = '{ ' + ', '.join(self.enumerators) + ' }'
         else:
@@ -484,7 +486,7 @@ class Function(Declaration):
         """
         return self.return_value.static
 
-    def _to_string(self, replacement, typedef='none', scope=None, with_args=False):
+    def _to_string(self, replacement, typedef='none', scope=None, with_args=False, qualifiers=False):
         def filtered_typedef_param(available):
             if isinstance(typedef, set):
                 return {available}
@@ -509,13 +511,13 @@ class Function(Declaration):
                     else:
                         declarator = ''
                     expr = param.to_string(declarator, typedef=filtered_typedef_param(self.params_typedef[index]),
-                                           scope=scope, specifiers=False)
+                                           scope=scope, specifiers=False, qualifiers=qualifiers)
                     parameter_declarations.append(expr)
             replacement += '(' + ', '.join(parameter_declarations) + ')'
 
         if self.return_value:
             replacement = self.return_value.to_string(replacement, typedef=filtered_typedef_param(self.ret_typedef),
-                                                      scope=scope, specifiers=False)
+                                                      scope=scope, specifiers=False, qualifiers=qualifiers)
         else:
             replacement = 'void {}'.format(replacement)
         return replacement
@@ -594,10 +596,11 @@ class Structure(Declaration):
         return [field for field in self.fields.keys() if self.fields[field] == target or
                 self.fields[field].pointer_alias(target)]
 
-    def _to_string(self, replacement, typedef='none', scope=None):
+    def _to_string(self, replacement, typedef='none', scope=None, qualifiers=False):
         if not self.name:
             name = '{' + \
-                   ('; '.join([self.fields[field].to_string(field, typedef=typedef, scope=scope, specifiers=False)
+                   ('; '.join([self.fields[field].to_string(field, typedef=typedef, scope=scope, specifiers=False,
+                                                            qualifiers=qualifiers)
                                for field in self.fields.keys()]) +
                     '; ' if len(self.fields) > 0 else '') \
                    + '}'
@@ -669,9 +672,10 @@ class Union(Declaration):
         return [field for field in self.fields.keys() if self.fields[field] == target or
                 self.fields[field].pointer_alias(target)]
 
-    def _to_string(self, replacement, typedef='none', scope=None):
+    def _to_string(self, replacement, typedef='none', scope=None, qualifiers=False):
         if not self.name:
-            name = '{ ' + '; '.join([self.fields[field].to_string(field, typedef=typedef, scope=scope, specifiers=False)
+            name = '{ ' + '; '.join([self.fields[field].to_string(field, typedef=typedef, scope=scope, specifiers=False,
+                                                                  qualifiers=qualifiers)
                                      for field in sorted(self.fields.keys())]) + \
                    '; ' + ' }'
         else:
@@ -732,13 +736,14 @@ class Array(Declaration):
         else:
             return False
 
-    def _to_string(self, replacement, typedef='none', scope=None):
+    def _to_string(self, replacement, typedef='none', scope=None, qualifiers=False):
         if self.size:
             size = self.size
         else:
             size = ''
         replacement += '[{}]'.format(size)
-        return self.element.to_string(replacement, typedef=typedef, scope=scope, specifiers=False)
+        return self.element.to_string(replacement, typedef=typedef, scope=scope, specifiers=False,
+                                      qualifiers=qualifiers)
 
 
 class Pointer(Declaration):
@@ -752,10 +757,10 @@ class Pointer(Declaration):
         self.points = import_declaration(None, ast)
         self.points.add_parent(self)
 
-    def _to_string(self, replacement, typedef='none', scope=None):
+    def _to_string(self, replacement, typedef='none', scope=None, qualifiers=False):
         replacement = _take_pointer(replacement, self.points)
 
-        return self.points.to_string(replacement, typedef=typedef, scope=scope, specifiers=False)
+        return self.points.to_string(replacement, typedef=typedef, scope=scope, specifiers=False, qualifiers=False)
 
     @property
     def static(self):
