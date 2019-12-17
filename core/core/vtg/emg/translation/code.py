@@ -33,24 +33,14 @@ def action_model_comment(action, text, begin=None):
     :param begin: True if this is a comment before the action and False otherwise.
     :return: Model comment string.
     """
-    if action:
-        if action.trace_relevant:
-            type_comment = 'CALL'
-        else:
-            type_comment = type(action).__name__.upper()
-        if begin is True:
-            type_comment += '_BEGIN'
-        elif begin is False:
-            type_comment += '_END'
-
-        name_comment = action.name.upper()
+    type_comment = 'ACTION'
+    if begin is True:
+        type_comment += '_BEGIN'
     else:
-        type_comment = 'ARTIFICIAL'
-        name_comment = None
-
-    data = {'action': name_comment}
+        type_comment += '_END'
+    data = {'name': str(action)}
     if action and action.trace_relevant and begin is True:
-        data['callback'] = True
+        data['relevant'] = True
     return model_comment(type_comment, text, data)
 
 
@@ -346,8 +336,8 @@ class CModel:
         functions = []
         if len(self.__external_allocated.keys()) > 0:
             for file, ext_vars in ((f, v) for f, v in self.__external_allocated.items() if v):
-                func = Function('ldv_allocate_external_{}'.format(cnt),
-                                "void ldv_allocate_external_{}(void)".format(cnt))
+                func = Function('emg_allocate_external_{}'.format(cnt),
+                                "void emg_allocate_external_{}(void)".format(cnt))
                 func.declaration_files.add(file)
                 func.definition_file = file
 
@@ -359,8 +349,7 @@ class CModel:
                 functions.append(func)
                 cnt += 1
 
-            gl_init = Function('ldv_initialize_external_data',
-                               'void ldv_initialize_external_data(void)')
+            gl_init = Function('emg_initialize_external_data', 'void emg_initialize_external_data(void)')
             gl_init.declaration_files.add(self.entry_file)
             gl_init.definition_file = self.entry_file
             init_body = ['{}();'.format(func.name) for func in functions]
@@ -368,27 +357,28 @@ class CModel:
             self.add_function_definition(gl_init)
             body += [
                 '/* Initialize external data */',
-                'ldv_initialize_external_data();'
+                'emg_initialize_external_data();'
             ]
 
         if self._conf.get("initialize requirements", True):
+            comment_data = {'relevant': True, 'name': 'init_requirements'}
             body += [
-                '/* LDV {"action": "INIT", "type": "CALL_BEGIN", "callback": true, '
-                '"comment": "Initialize requirement models."} */',
+                model_comment('ACTION_BEGIN', 'Initialize requirement models.', other=comment_data),
                 'ldv_initialize();',
-                '/* LDV {"action": "INIT", "type": "CALL_END"} */'
+                model_comment('ACTION_END', other=comment_data),
             ]
 
-        body += ['/* LDV {"action": "SCENARIOS", "type": "CONDITION_BEGIN", '
-                 '"comment": "Begin Environment model scenarios."} */'] + given_body + \
-                ['/* LDV {"action": "SCENARIOS", "type": "CONDITION_END"} */']
+        comment_data = {'action': 'scenarios'}
+        body += [model_comment('ACTION_BEGIN', 'Begin Environment model scenarios', comment_data)] + given_body + \
+                [model_comment('ACTION_END', other=comment_data)]
 
         if self._conf.get("check final state", True):
+            comment_data = {'action': 'check_final_state', 'relevant': True}
             body += [
-                '/* LDV {"action": "FINAL", "callback": true, "type": "CALL_BEGIN", '
-                '"comment": "Check requirement model final state at the exit if required."} */',
+                model_comment('ACTION_BEGIN', 'Check requirement model final state at the exit if required.',
+                              comment_data),
                 'ldv_check_final_state();',
-                '/* LDV {"action": "FINAL", "type": "CALL_END"} */'
+                model_comment('ACTION_END', other=comment_data)
             ]
 
         body += ['return 0;',

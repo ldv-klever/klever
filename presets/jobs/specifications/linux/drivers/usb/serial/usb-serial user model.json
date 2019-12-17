@@ -175,7 +175,7 @@
             "actions": {
               "match": {
                 "comment": "Call match callback",
-                "entry point": true,
+                "trace relevant": true,
                 "statements": [
                   "/* LDV {\"call\": \"ldv_wrapper_usb_serial_device_match(%device%, %device_driver%);\", \"type\": \"CALLBACK\", \"comment\": \"match\"} */",
                   "ldv_wrapper_usb_serial_device_match(%device%, %device_driver%);"
@@ -183,7 +183,7 @@
               },
               "show": {
                 "comment": "Show callback",
-                "entry point": true,
+                "trace relevant": true,
                 "statements": [
                   "$ALLOC(%buf%);",
                   "/* LDV {\"call\": \"ldv_wrapper_new_id_show(%device_driver%, %buf%);\", \"type\": \"CALLBACK\", \"comment\": \"show\"} */",
@@ -193,7 +193,7 @@
               },
               "store": {
                 "comment": "Store callback",
-                "entry point": true,
+                "trace relevant": true,
                 "statements": [
                   "$ALLOC(%buf%);",
                   "%count% = ldv_undef_int();",
@@ -234,7 +234,7 @@
               },
               "probe": {
                 "comment": "Probe device.",
-                "entry point": true,
+                "trace relevant": true,
                 "statements": [
                   "/* LDV {\"call\": \"%probe_retval% = ldv_wrapper_usb_serial_device_probe(%device%);\", \"type\": \"CALLBACK\", \"comment\": \"probe\"} */",
                   "%probe_retval% = ldv_wrapper_usb_serial_device_probe(%device%);",
@@ -261,7 +261,7 @@
               },
               "release": {
                 "comment": "Remove device.",
-                "entry point": true,
+                "trace relevant": true,
                 "statements": [
                   "/* LDV {\"call\": \"ldv_wrapper_usb_serial_device_remove(%device%);\", \"type\": \"CALLBACK\", \"comment\": \"release\"} */",
                   "ldv_wrapper_usb_serial_device_remove(%device%);"
@@ -361,7 +361,7 @@
               },
               "irq_write_4": {
                 "comment": "Write a block of characters to the tty device in atomic context. Invoke callback irq_write from USB_SERIAL.",
-                "entry point": true,
+                "trace relevant": true,
                 "statements": [
                   "if (%driver%->write) {",
                   "\t/* Callback pre-call */",
@@ -496,7 +496,7 @@
               },
               "rest_line_attached_callbacks_12": {
                 "comment": "Invoke callback rest_line_attached_callbacks from USB_SERIAL.",
-                "entry point": true,
+                "trace relevant": true,
                 "statements": [
                   "/* LDV {\"call\": \"usb_serial_generic_tiocmiwait(%resource_1%, %ldv_param_1_8%);\", \"type\": \"CALLBACK\", \"comment\": \"rest_line_attached_callbacks\"} */",
                   "usb_serial_generic_tiocmiwait(%resource_1%, %ldv_param_1_8%);"
@@ -504,7 +504,7 @@
               },
               "rest_line_attached_callbacks_15": {
                 "comment": "Invoke callback rest_line_attached_callbacks from USB_SERIAL.",
-                "entry point": true,
+                "trace relevant": true,
                 "statements": [
                   "/* LDV {\"call\": \"usb_serial_generic_get_icount(%resource_1%, %ldv_param_1_9%);\", \"type\": \"CALLBACK\", \"comment\": \"rest_line_attached_callbacks\"} */",
                   "usb_serial_generic_get_icount(%resource_1%, %ldv_param_1_9%);"
@@ -512,7 +512,7 @@
               },
               "rest_line_attached_callbacks_18": {
                 "comment": "Invoke callback rest_line_attached_callbacks from USB_SERIAL.",
-                "entry point": true,
+                "trace relevant": true,
                 "statements": [
                   "/* LDV {\"call\": \"usb_serial_generic_prepare_write_buffer(%ldv_param_0_10%, %resource_0%, %ldv_param_2_11%);\", \"type\": \"CALLBACK\", \"comment\": \"rest_line_attached_callbacks\"} */",
                   "usb_serial_generic_prepare_write_buffer(%ldv_param_0_10%, %resource_0%, %ldv_param_2_11%);"
@@ -520,7 +520,7 @@
               },
               "rest_line_attached_callbacks_19": {
                 "comment": "Invoke callback rest_line_attached_callbacks from USB_SERIAL.",
-                "entry point": true,
+                "trace relevant": true,
                 "statements": [
                   "/* LDV {\"call\": \"usb_serial_generic_chars_in_buffer(%resource_1%);\", \"type\": \"CALLBACK\", \"comment\": \"rest_line_attached_callbacks\"} */",
                   "usb_serial_generic_chars_in_buffer(%resource_1%);"
@@ -528,7 +528,7 @@
               },
               "rest_line_attached_callbacks_22": {
                 "comment": "Invoke callback rest_line_attached_callbacks from USB_SERIAL.",
-                "entry point": true,
+                "trace relevant": true,
                 "statements": [
                   "/* LDV {\"call\": \"usb_serial_generic_wait_until_sent(%resource_1%, %ldv_param_1_12%);\", \"type\": \"CALLBACK\", \"comment\": \"rest_line_attached_callbacks\"} */",
                   "usb_serial_generic_wait_until_sent(%resource_1%, %ldv_param_1_12%);"
@@ -536,7 +536,7 @@
               },
               "rest_line_attached_callbacks_23": {
                 "comment": "Invoke callback rest_line_attached_callbacks from USB_SERIAL.",
-                "entry point": true,
+                "trace relevant": true,
                 "statements": [
                   "/* LDV {\"call\": \"usb_serial_generic_write_room(%resource_1%);\", \"type\": \"CALLBACK\", \"comment\": \"rest_line_attached_callbacks\"} */",
                   "usb_serial_generic_write_room(%resource_1%);"
@@ -544,7 +544,7 @@
               },
               "rest_line_attached_callbacks_26": {
                 "comment": "Invoke callback rest_line_attached_callbacks from USB_SERIAL.",
-                "entry point": true,
+                "trace relevant": true,
                 "statements": [
                   "/* LDV {\"call\": \"usb_serial_generic_read_bulk_callback(%ldv_param_0_13%);\", \"type\": \"CALLBACK\", \"comment\": \"rest_line_attached_callbacks\"} */",
                   "usb_serial_generic_read_bulk_callback(%ldv_param_0_13%);"
@@ -552,7 +552,7 @@
               },
               "rest_line_attached_callbacks_29": {
                 "comment": "Invoke callback rest_line_attached_callbacks from USB_SERIAL.",
-                "entry point": true,
+                "trace relevant": true,
                 "statements": [
                   "/* LDV {\"call\": \"usb_serial_generic_write_bulk_callback(%ldv_param_0_14%);\", \"type\": \"CALLBACK\", \"comment\": \"rest_line_attached_callbacks\"} */",
                   "usb_serial_generic_write_bulk_callback(%ldv_param_0_14%);"
@@ -560,7 +560,7 @@
               },
               "throttle_8": {
                 "comment": "Notify the tty driver that input buffers for the line discipline are close to full. Invoke callback throttle from usb_serial_driver.",
-                "entry point": true,
+                "trace relevant": true,
                 "statements": [
                   "/* LDV {\"call\": \"usb_serial_generic_throttle(%resource_1%);\", \"type\": \"CALLBACK\", \"comment\": \"throttle\"} */",
                   "usb_serial_generic_throttle(%resource_1%);"
@@ -572,7 +572,7 @@
               },
               "dtr": {
                 "comment": ".",
-                "entry point": true,
+                "trace relevant": true,
                 "statements": [
                   "/* LDV {\"call\": \"ldv_wrapper_serial_port_dtr_rts(& %port%->port, ldv_undef_int());\", \"type\": \"CALLBACK\", \"comment\": \"unthrottle\"} */",
                   "ldv_wrapper_serial_port_dtr_rts(& %port%->port, ldv_undef_int());"
@@ -580,7 +580,7 @@
               },
               "carrier_raised": {
                 "comment": "Call serial_port_carrier_raised.",
-                "entry point": true,
+                "trace relevant": true,
                 "statements": [
                   "/* LDV {\"call\": \"ldv_wrapper_serial_port_carrier_raised(& %port%->port);\", \"type\": \"CALLBACK\", \"comment\": \"unthrottle\"} */",
                   "ldv_wrapper_serial_port_carrier_raised(& %port%->port);"
@@ -588,7 +588,7 @@
               },
               "unthrottle_9": {
                 "comment": "Notify the tty drivers that it should signals that characters can now be sent. Invoke callback unthrottle from usb_serial_driver.",
-                "entry point": true,
+                "trace relevant": true,
                 "statements": [
                   "/* LDV {\"call\": \"usb_serial_generic_unthrottle(%resource_1%);\", \"type\": \"CALLBACK\", \"comment\": \"unthrottle\"} */",
                   "usb_serial_generic_unthrottle(%resource_1%);"
@@ -596,7 +596,7 @@
               },
               "write_7": {
                 "comment": "Write a block of characters to the tty device in atomic context. Invoke callback write from USB_SERIAL.",
-                "entry point": true,
+                "trace relevant": true,
                 "statements": [
                   "if (%driver%->write) {",
                   "\t/* LDV {\"call\": \"%driver%->write(%resource_1%, %ldv_param_1_5%, %ldv_param_2_6%, %ldv_param_3_7%);\", \"type\": \"CALLBACK\", \"comment\": \"write\"} */",
@@ -740,7 +740,7 @@
               },
               "callback_10": {
                 "comment": "Invoke callback write_room from tty_operations.",
-                "entry point": true,
+                "trace relevant": true,
                 "statements": [
                   "/* LDV {\"call\": \"ldv_emg_wrapper_serial_write_room_6(%tty_struct%);\", \"type\": \"CALLBACK\", \"comment\": \"callback\"} */",
                   "ldv_emg_wrapper_serial_write_room_6(%tty_struct%);"
@@ -748,7 +748,7 @@
               },
               "callback_13": {
                 "comment": "Invoke callback activate from tty_port_operations.",
-                "entry point": true,
+                "trace relevant": true,
                 "statements": [
                   "/* LDV {\"call\": \"ldv_emg_wrapper_serial_port_activate_7(%ldv_param_0_4%, %tty_struct%);\", \"type\": \"CALLBACK\", \"comment\": \"callback\"} */",
                   "ldv_emg_wrapper_serial_port_activate_7(%ldv_param_0_4%, %tty_struct%);"
@@ -756,7 +756,7 @@
               },
               "callback_14": {
                 "comment": "Invoke callback hangup from tty_operations.",
-                "entry point": true,
+                "trace relevant": true,
                 "statements": [
                   "/* LDV {\"call\": \"ldv_emg_wrapper_serial_hangup_8(%tty_struct%);\", \"type\": \"CALLBACK\", \"comment\": \"callback\"} */",
                   "ldv_emg_wrapper_serial_hangup_8(%tty_struct%);"
@@ -764,7 +764,7 @@
               },
               "callback_17": {
                 "comment": "Invoke callback write from tty_operations.",
-                "entry point": true,
+                "trace relevant": true,
                 "statements": [
                   "/* LDV {\"call\": \"ldv_emg_wrapper_serial_write_9(%tty_struct%, %ldv_param_1_5%, %ldv_param_2_6%);\", \"type\": \"CALLBACK\", \"comment\": \"callback\"} */",
                   "ldv_emg_wrapper_serial_write_9(%tty_struct%, %ldv_param_1_5%, %ldv_param_2_6%);"
@@ -772,7 +772,7 @@
               },
               "callback_2": {
                 "comment": "Invoke callback tiocmget from tty_operations.",
-                "entry point": true,
+                "trace relevant": true,
                 "statements": [
                   "/* LDV {\"call\": \"ldv_emg_wrapper_serial_tiocmget_2(%tty_struct%);\", \"type\": \"CALLBACK\", \"comment\": \"callback\"} */",
                   "ldv_emg_wrapper_serial_tiocmget_2(%tty_struct%);"
@@ -780,7 +780,7 @@
               },
               "callback_20": {
                 "comment": "Invoke callback tiocmset from tty_operations.",
-                "entry point": true,
+                "trace relevant": true,
                 "statements": [
                   "/* LDV {\"call\": \"ldv_emg_wrapper_serial_tiocmset_10(%tty_struct%, %ldv_param_1_7%, %ldv_param_2_8%);\", \"type\": \"CALLBACK\", \"comment\": \"callback\"} */",
                   "ldv_emg_wrapper_serial_tiocmset_10(%tty_struct%, %ldv_param_1_7%, %ldv_param_2_8%);"
@@ -788,7 +788,7 @@
               },
               "callback_23": {
                 "comment": "Invoke callback wait_until_sent from tty_operations.",
-                "entry point": true,
+                "trace relevant": true,
                 "statements": [
                   "/* LDV {\"call\": \"ldv_emg_wrapper_serial_wait_until_sent_11(%tty_struct%, %ldv_param_1_9%);\", \"type\": \"CALLBACK\", \"comment\": \"callback\"} */",
                   "ldv_emg_wrapper_serial_wait_until_sent_11(%tty_struct%, %ldv_param_1_9%);"
@@ -796,7 +796,7 @@
               },
               "callback_26": {
                 "comment": "Invoke callback shutdown from tty_port_operations.",
-                "entry point": true,
+                "trace relevant": true,
                 "statements": [
                   "/* LDV {\"call\": \"ldv_emg_wrapper_serial_port_shutdown_12(%ldv_param_0_10%);\", \"type\": \"CALLBACK\", \"comment\": \"callback\"} */",
                   "ldv_emg_wrapper_serial_port_shutdown_12(%ldv_param_0_10%);"
@@ -804,7 +804,7 @@
               },
               "callback_29": {
                 "comment": "Invoke callback ioctl from tty_operations.",
-                "entry point": true,
+                "trace relevant": true,
                 "statements": [
                   "/* LDV {\"call\": \"ldv_emg_wrapper_serial_ioctl_13(%tty_struct%, %ldv_param_1_11%, %ldv_param_2_12%);\", \"type\": \"CALLBACK\", \"comment\": \"callback\"} */",
                   "ldv_emg_wrapper_serial_ioctl_13(%tty_struct%, %ldv_param_1_11%, %ldv_param_2_12%);"
@@ -812,7 +812,7 @@
               },
               "callback_5": {
                 "comment": "Invoke callback break_ctl from tty_operations.",
-                "entry point": true,
+                "trace relevant": true,
                 "statements": [
                   "/* LDV {\"call\": \"ldv_emg_wrapper_serial_break_3(%tty_struct%, %ldv_param_1_2%);\", \"type\": \"CALLBACK\", \"comment\": \"callback\"} */",
                   "ldv_emg_wrapper_serial_break_3(%tty_struct%, %ldv_param_1_2%);"
@@ -820,7 +820,7 @@
               },
               "callback_6": {
                 "comment": "Invoke callback chars_in_buffer from tty_operations.",
-                "entry point": true,
+                "trace relevant": true,
                 "statements": [
                   "/* LDV {\"call\": \"ldv_emg_wrapper_serial_chars_in_buffer_4(%tty_struct%);\", \"type\": \"CALLBACK\", \"comment\": \"callback\"} */",
                   "ldv_emg_wrapper_serial_chars_in_buffer_4(%tty_struct%);"
@@ -828,7 +828,7 @@
               },
               "callback_9": {
                 "comment": "Invoke callback get_icount from tty_operations.",
-                "entry point": true,
+                "trace relevant": true,
                 "statements": [
                   "/* LDV {\"call\": \"ldv_emg_wrapper_serial_get_icount_5(%tty_struct%, %ldv_param_1_3%);\", \"type\": \"CALLBACK\", \"comment\": \"callback\"} */",
                   "ldv_emg_wrapper_serial_get_icount_5(%tty_struct%, %ldv_param_1_3%);"
@@ -836,7 +836,7 @@
               },
               "cleanup_40": {
                 "comment": "Free resources after a tty device has been closed for the last time. Invoke callback cleanup from tty_operations.",
-                "entry point": true,
+                "trace relevant": true,
                 "statements": [
                   "/* LDV {\"call\": \"ldv_emg_wrapper_serial_cleanup_17(%tty_struct%);\", \"type\": \"CALLBACK\", \"comment\": \"cleanup\"} */",
                   "ldv_emg_wrapper_serial_cleanup_17(%tty_struct%);"
@@ -844,7 +844,7 @@
               },
               "close_38": {
                 "comment": "Close a tty device. Invoke callback close from tty_operations.",
-                "entry point": true,
+                "trace relevant": true,
                 "statements": [
                   "/* LDV {\"call\": \"ldv_emg_wrapper_serial_close_16(%tty_struct%, %ldv_param_1_15%);\", \"type\": \"CALLBACK\", \"comment\": \"close\"} */",
                   "ldv_emg_wrapper_serial_close_16(%tty_struct%, %ldv_param_1_15%);"
@@ -870,7 +870,7 @@
               },
               "install_33": {
                 "comment": "Install a new tty into the tty driver internal tables. Invoke callback install from tty_operations.",
-                "entry point": true,
+                "trace relevant": true,
                 "statements": [
                   "/* LDV {\"call\": \"%ret% = ldv_emg_wrapper_serial_install_14(%tty_driver%, %tty_struct%);\", \"type\": \"CALLBACK\", \"comment\": \"install\"} */",
                   "%ret% = ldv_emg_wrapper_serial_install_14(%tty_driver%, %tty_struct%);",
@@ -892,7 +892,7 @@
               },
               "lookup_32": {
                 "comment": "Return the tty device corresponding to idx. Invoke callback lookup from TTY.",
-                "entry point": true,
+                "trace relevant": true,
                 "statements": [
                   "if (%tty_operations%->lookup) {",
                   "\t/* Callback pre-call */",
@@ -910,7 +910,7 @@
               },
               "open_35": {
                 "comment": "Open a tty device. Invoke callback open from tty_operations.",
-                "entry point": true,
+                "trace relevant": true,
                 "statements": [
                   "/* LDV {\"call\": \"%ret% = ldv_emg_wrapper_serial_open_15(%tty_struct%, %file%);\", \"type\": \"CALLBACK\", \"comment\": \"open\"} */",
                   "%ret% = ldv_emg_wrapper_serial_open_15(%tty_struct%, %file%);",
@@ -1091,7 +1091,7 @@
               },
               "remove_34": {
                 "comment": "Remove a closed tty from the tty driver internal tables. Invoke callback remove from TTY.",
-                "entry point": true,
+                "trace relevant": true,
                 "statements": [
                   "if (%tty_operations%->remove) {",
                   "\t/* LDV {\"call\": \"%tty_operations%->remove(%tty_driver%, %tty_struct%);\", \"type\": \"CALLBACK\", \"comment\": \"remove\"} */",
@@ -1101,7 +1101,7 @@
               },
               "set_termios_43": {
                 "comment": "Device's termios settings have changed. Invoke callback set_termios from tty_operations.",
-                "entry point": true,
+                "trace relevant": true,
                 "statements": [
                   "/* Callback pre-call */",
                   "/* Expect that termios mutex is locked */",
@@ -1111,7 +1111,7 @@
               },
               "set_termiox_46": {
                 "comment": "The device receives a termiox based ioctl. Invoke callback set_termiox from TTY.",
-                "entry point": true,
+                "trace relevant": true,
                 "statements": [
                   "if (%tty_operations%->set_termiox) {",
                   "\t/* Callback pre-call */",
@@ -1123,7 +1123,7 @@
               },
               "shutdown_39": {
                 "comment": "Close a tty device for the last time. Invoke callback shutdown from TTY.",
-                "entry point": true,
+                "trace relevant": true,
                 "statements": [
                   "if (%tty_operations%->shutdown) {",
                   "\t/* Callback pre-call */",
@@ -1135,7 +1135,7 @@
               },
               "start_49": {
                 "comment": "Resume sending characters to tty device. Invoke callback start from TTY.",
-                "entry point": true,
+                "trace relevant": true,
                 "statements": [
                   "if (%tty_operations%->start) {",
                   "\t/* LDV {\"call\": \"%tty_operations%->start(%tty_struct%);\", \"type\": \"CALLBACK\", \"comment\": \"start\"} */",
@@ -1145,7 +1145,7 @@
               },
               "stop_50": {
                 "comment": "Stop outputting characters to the tty device Invoke callback stop from TTY.",
-                "entry point": true,
+                "trace relevant": true,
                 "statements": [
                   "if (%tty_operations%->stop) {",
                   "\t/* LDV {\"call\": \"%tty_operations%->stop(%tty_struct%);\", \"type\": \"CALLBACK\", \"comment\": \"stop\"} */",
@@ -1155,7 +1155,7 @@
               },
               "throttle_47": {
                 "comment": "Input buffers for the line discipline are close to full. Invoke callback throttle from tty_operations.",
-                "entry point": true,
+                "trace relevant": true,
                 "statements": [
                   "/* Callback pre-call */",
                   "/* Expect that termios mutex is locked */",
@@ -1165,7 +1165,7 @@
               },
               "unthrottle_48": {
                 "comment": "Characters can now be sent to the tty without fear of overrunning the input buffers of the line disciplines. Invoke callback unthrottle from tty_operations.",
-                "entry point": true,
+                "trace relevant": true,
                 "statements": [
                   "/* Callback pre-call */",
                   "/* Expect that termios mutex is locked */",
@@ -1175,7 +1175,7 @@
               },
               "seq_ops": {
                 "comment": "Characters can now be sent to the tty without fear of overrunning the input buffers of the line disciplines. Invoke callback unthrottle from tty_operations.",
-                "entry point": true,
+                "trace relevant": true,
                 "statements": [
                   "/* Callback pre-call */",
                   "%inode% = $UALLOC(%inode%);",
@@ -1510,7 +1510,7 @@
               },
               "post_13": {
                 "comment": "Initialize device after reset. Invoke callback post from USB.",
-                "entry point": true,
+                "trace relevant": true,
                 "statements": [
                   "if (%container%->post_reset) {",
                   "\t/* LDV {\"call\": \"%container%->post_reset(%resource%);\", \"type\": \"CALLBACK\", \"comment\": \"post\"} */",
@@ -1532,7 +1532,7 @@
               },
               "pre_12": {
                 "comment": "Prepare for resetting device. Invoke callback pre from USB.",
-                "entry point": true,
+                "trace relevant": true,
                 "statements": [
                   "if (%container%->pre_reset) {",
                   "\t/* LDV {\"call\": \"%container%->pre_reset(%resource%);\", \"type\": \"CALLBACK\", \"comment\": \"pre\"} */",
@@ -1554,7 +1554,7 @@
               },
               "probe_5": {
                 "comment": "Associate driver-specific data with the USB interface. Invoke callback probe from usb_driver.",
-                "entry point": true,
+                "trace relevant": true,
                 "statements": [
                   "/* Callback pre-call */",
                   "ldv_pre_probe();",
@@ -1585,7 +1585,7 @@
               },
               "release_6": {
                 "comment": "USB interface is no more accessible. Invoke callback disconnect from usb_driver.",
-                "entry point": true,
+                "trace relevant": true,
                 "statements": [
                   "/* LDV {\"call\": \"ldv_emg_wrapper_usb_serial_disconnect_3(%resource%);\", \"type\": \"CALLBACK\", \"comment\": \"release\"} */",
                   "ldv_emg_wrapper_usb_serial_disconnect_3(%resource%);"
@@ -1593,7 +1593,7 @@
               },
               "reset_resume_11": {
                 "comment": "Device is about to be resumed. Invoke callback reset_resume from USB.",
-                "entry point": true,
+                "trace relevant": true,
                 "statements": [
                   "if (%container%->reset_resume) {",
                   "\t/* LDV {\"call\": \"%container%->reset_resume(%resource%);\", \"type\": \"CALLBACK\", \"comment\": \"reset_resume\"} */",
@@ -1603,7 +1603,7 @@
               },
               "resume_10": {
                 "comment": "Device is about to be resumed. Invoke callback resume from usb_driver.",
-                "entry point": true,
+                "trace relevant": true,
                 "statements": [
                   "/* LDV {\"call\": \"usb_serial_resume(%resource%);\", \"type\": \"CALLBACK\", \"comment\": \"resume\"} */",
                   "usb_serial_resume(%resource%);"
@@ -1614,7 +1614,7 @@
               },
               "suspend_9": {
                 "comment": "Device is about to be suspended. Invoke callback suspend from usb_driver.",
-                "entry point": true,
+                "trace relevant": true,
                 "statements": [
                   "/* LDV {\"call\": \"usb_serial_suspend(%resource%, *%ldv_param_1_3%);\", \"type\": \"CALLBACK\", \"comment\": \"suspend\"} */",
                   "usb_serial_suspend(%resource%, *%ldv_param_1_3%);"

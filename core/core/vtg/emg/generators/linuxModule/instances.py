@@ -329,7 +329,7 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
                 else:
                     param_signature = declaration.points.parameters[index]
                     expression = "%{}%"
-                tmp_lb = process.add_label("ldv_param_{}_{}".format(index, param_identifiers.__next__()),
+                tmp_lb = process.add_label("emg_param_{}_{}".format(index, param_identifiers.__next__()),
                                            param_signature)
                 label_params.append(tmp_lb)
                 expression = expression.format(tmp_lb.name)
@@ -341,22 +341,19 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
 
     def manage_default_resources(label_parameters):
         # Add precondition and postcondition
-        pre = None
-        post = None
+        pre = add_pre_conditions()
+        post = add_post_conditions()
         if label_parameters:
-            pre_stments = []
-            post_stments = []
             for label in {l.name: l for l in label_parameters}.values():
-                pre_stments.append('{0} = $UALLOC({0});'.format(repr(label)))
-                post_stments.append('$FREE({});'.format(repr(label)))
+                pre.append('{0} = $UALLOC({0});'.format(repr(label)))
+                post.append('$FREE({});'.format(repr(label)))
 
+        if pre:
             pre_name = 'pre_call_{}'.format(action_identifiers.__next__())
-            pre = process.add_condition(pre_name, [], pre_stments,
-                                        "Allocate memory for adhoc callback parameters.")
-
+            pre = process.add_condition(pre_name, [], pre, "Callback {} precondition.".format(call.name))
+        if post:
             post_name = 'post_call_{}'.format(action_identifiers.__next__())
-            post = process.add_condition(post_name, [], post_stments,
-                                         "Free memory of adhoc callback parameters.")
+            post = process.add_condition(post_name, [], post, "Callback {} postcondition.".format(format(call.name)))
 
         return pre, post
 
@@ -369,14 +366,9 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
         external_parameters = [external_parameters[i] for i in sorted(list(external_parameters.keys()))]
 
         true_invoke = return_expression + '{}'.format(inv) + '(' + ', '.join(external_parameters) + ');'
-        if true_call:
-            comment_invoke = return_expression + '{}'.format(true_call) + '(' + ', '.join(external_parameters) + ');'
-        else:
-            comment_invoke = true_invoke
-        cmnt = model_comment('callback', call.name, {'call': comment_invoke})
-        return [cmnt, true_invoke], pre, post
+        return [true_invoke], pre, post
 
-    def add_post_conditions(inv):
+    def add_post_conditions():
         post_call = []
         if access.interface and access.interface.interrupt_context:
             post_call.append('$SWITCH_TO_PROCESS_CONTEXT();')
@@ -386,11 +378,10 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
 
         if post_call:
             post_call.insert(0, '/* Callback post-call */')
-            inv += post_call
 
-        return inv
+        return post_call
 
-    def add_pre_conditions(inv):
+    def add_pre_conditions():
         callback_pre_call = []
         if call.pre_call:
             callback_pre_call.extend(call.pre_call)
@@ -400,14 +391,11 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
 
         if callback_pre_call:
             callback_pre_call.insert(0, '/* Callback pre-call */')
-            inv = callback_pre_call + inv
 
-        return inv
+        return callback_pre_call
 
     def make_action(declaration, inv):
         cd, pre, post = generate_function(declaration, inv)
-        cd = add_pre_conditions(cd)
-        cd = add_post_conditions(cd)
 
         return cd, pre, post
 
@@ -741,7 +729,8 @@ def __generate_model_comment(process):
 
 def _remove_statics(sa, process):
     # todo: write docstring
-    identifiers = _yeild_identifier()
+    f_identifiers = _yeild_identifier()
+    v_identifiers = _yeild_identifier()
     access_map = process.allowed_implementations
 
     def resolve_existing(nm, f, collection):
@@ -749,9 +738,12 @@ def _remove_statics(sa, process):
             return collection[f][nm]
         return None
 
-    def create_definition(decl, nm, impl):
-        f = c.Function("ldv_emg_wrapper_{}_{}".format(nm, identifiers.__next__()),
-                       decl)
+    def create_definition(decl, nm, impl, requre_suffix=False):
+        if requre_suffix:
+            new_name = "emg_wrapper_{}_{}".format(nm, f_identifiers.__next__())
+        else:
+            new_name = "emg_wrapper_{}".format(nm)
+        f = c.Function(new_name, decl)
         f.definition_file = impl.initialization_file
 
         # Generate call
@@ -778,14 +770,14 @@ def _remove_statics(sa, process):
             var = None
 
             svar = sa.get_source_variable(implementation.value, file)
-            function_flag = False
+            function_name = False
             if not svar:
                 candidate = sa.get_source_function(implementation.value, file)
                 if candidate:
                     static = static or candidate.static
                     declaration = candidate.declaration
                     value = candidate.name
-                    function_flag = True
+                    function_name = candidate.name
                 else:
                     # Seems that this is a variable without initialization
                     declaration = implementation.declaration
@@ -807,12 +799,16 @@ def _remove_statics(sa, process):
                             coll[file] = dict()
 
                     # Create new artificial variables and functions
-                    if function_flag:
+                    if function_name:
                         func = resolve_existing(name, implementation, _definitions)
                         if not func:
-                            func = create_definition(declaration.to_string('x', specifiers=False), name, implementation)
+                            suffix = False
+                            if len(sa.get_source_functions(function_name)) > 1:
+                                suffix = True
+                            func = create_definition(declaration.to_string('x', specifiers=False), name, implementation,
+                                                     requre_suffix=suffix)
                             _definitions[file][name] = func
-                    elif not function_flag and not isinstance(declaration, Primitive):
+                    elif not function_name and not isinstance(declaration, Primitive):
                         var = resolve_existing(name, implementation, _declarations)
                         if not var:
                             if isinstance(declaration, Array):
@@ -822,8 +818,12 @@ def _remove_statics(sa, process):
                                 # Try to use pointer instead of the value
                                 declaration = declaration.take_pointer
                                 value = '& ' + value
-                            var = c.Variable("ldv_emg_alias_{}_{}".format(name, identifiers.__next__()),
-                                             declaration.to_string('x', specifiers=False))
+
+                            if len(sa.get_source_variables(name)) > 1:
+                                v_name = "emg_alias_{}_{}".format(name, v_identifiers.__next__())
+                            else:
+                                v_name = "emg_alias_{}".format(name)
+                            var = c.Variable(v_name, declaration.to_string('x', specifiers=False))
                             var.declaration_files.add(file)
                             var.value = value
                             _declarations[file][name] = var

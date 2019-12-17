@@ -175,7 +175,7 @@ class ScenarioModelgenerator(AbstractGenerator):
             body = [
                 "int ret;"
             ]
-            label_name = 'ldv_kernel_initialization_exit'
+            label_name = 'emg_kernel_initialization_exit'
     
             # Generate kernel initializations
             for name, calls in kernel_initializations:
@@ -186,9 +186,7 @@ class ScenarioModelgenerator(AbstractGenerator):
                     else:
                         raise RuntimeError("Cannot resolve function {!r} in file {!r}".format(name, filename))
                     new_name = self.__generate_alias(ep, func_name, filename, retval)
-                    statements = [
-                        model_comment('callback', func_name, {'call': "{}();".format(func_name)}),
-                    ]
+                    statements = []
                     if retval:
                         statements.extend([
                             "ret = {}();".format(new_name),
@@ -204,13 +202,13 @@ class ScenarioModelgenerator(AbstractGenerator):
                 "{}:".format(label_name),
                 "return ret;"
             ])
-            func = Function('ldv_kernel_init', 'int ldv_kernel_init(void)')
+            func = Function('emg_kernel_init', 'int emg_kernel_init(void)')
             func.body = body
             addon = func.define()
-            ep.add_definition('environment model', 'ldv_kernel_init', addon)
+            ep.add_definition('environment model', 'emg_kernel_init', addon)
 
             ki_subprocess = ep.actions['kernel_initialization']
-            ki_subprocess.statements = ["%ret% = ldv_kernel_init();"]
+            ki_subprocess.statements = ["%ret% = emg_kernel_init();"]
             ki_subprocess.comment = 'Kernel initialization stage.'
             ki_subprocess.trace_relevant = True
 
@@ -229,7 +227,6 @@ class ScenarioModelgenerator(AbstractGenerator):
                 init_subprocess = ep.actions[init_name]
                 init_subprocess.comment = 'Initialize the module after insmod with {!r} function.'.format(init_name)
                 init_subprocess.statements = [
-                    model_comment('callback', init_name, {'call': "{}();".format(init_name)}),
                     "%ret% = {}();".format(new_name),
                     "%ret% = ldv_post_init(%ret%);"
                 ]
@@ -248,7 +245,6 @@ class ScenarioModelgenerator(AbstractGenerator):
                 exit_subprocess = ep.actions[exit_name]
                 exit_subprocess.comment = 'Exit the module before its unloading with {!r} function.'.format(exit_name)
                 exit_subprocess.statements = [
-                    model_comment('callback', exit_name, {'call': "{}();".format(exit_name)}),
                     "{}();".format(new_name)
                 ]
                 exit_subprocess.trace_relevant = True
@@ -266,7 +262,7 @@ class ScenarioModelgenerator(AbstractGenerator):
         return ep
 
     def __generate_alias(self, process, name, file, int_retval=False):
-        new_name = "ldv_emg_{}".format(name)
+        new_name = "emg_{}".format(name)
         code = [
             "{}();".format("return {}".format(name) if int_retval else name)
         ]

@@ -610,6 +610,7 @@ class Dispatch(Action):
     def __init__(self, name, broadcast=False):
         super(Dispatch, self).__init__(name)
         self.broadcast = broadcast
+        self.trace_relevant = True
         self.parameters = []
         self.peers = []
 
@@ -649,6 +650,7 @@ class Block(Action):
         super(Block, self).__init__(name)
         self.statements = []
         self.condition = []
+        self.trace_relevant = False
 
     def __repr__(self):
         return '<%s>' % str(self)

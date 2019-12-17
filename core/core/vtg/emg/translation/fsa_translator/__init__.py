@@ -255,14 +255,14 @@ class FSATranslator:
 
                 if len(function_parameters) > 0:
                     df = Function(
-                        "ldv_dispatch_{}_{}".format(str(action), str(automaton)),
+                        "emg_dispatch_{}_{}".format(str(action), str(automaton)),
                         "void f({})".format(', '.
                                             join([function_parameters[index].to_string('arg{}'.format(index),
                                                                                        typedef='complex_and_params')
                                                   for index in range(len(function_parameters))])))
                 else:
                     df = Function(
-                        "ldv_dispatch_{}_{}".format(str(action), str(automaton)),
+                        "emg_dispatch_{}_{}".format(str(action), str(automaton)),
                         "void f(void)")
                 df.definition_file = automaton.process.file
                 body.extend(post)
@@ -354,7 +354,7 @@ class FSATranslator:
             cache_identifier += str(param)
 
         if cache_identifier not in self._structures:
-            struct_name = 'ldv_struct_{}_{}'.format(automaton.process.name, str(automaton))
+            struct_name = 'emg_struct_{}_{}'.format(automaton.process.name, str(automaton))
             if struct_name in self._structures:
                 raise KeyError('Structure name is not unique')
 
@@ -410,7 +410,7 @@ class FSATranslator:
         if str(automaton) not in self._control_functions:
             # Check that this is an aspect function or not
             if automaton in self._model_fsa:
-                name = 'ldv_emg_{}'.format(automaton.process.name)
+                name = 'emg_{}'.format(automaton.process.name)
                 function_objs = self._source.get_source_functions(automaton.process.name)
                 if len(function_objs) == 0:
                     raise ValueError("Unfortunately there is no function {!r} found by the source analysis".
@@ -435,7 +435,7 @@ class FSATranslator:
                     ', '.join(param_types))
                 cf = Function(name, declaration)
             else:
-                name = 'ldv_emg_{}_{}'.format(automaton.process.name, str(automaton))
+                name = 'emg_{}_{}'.format(automaton.process.name, str(automaton))
                 if not get_or_die(self._conf, "direct control functions calls"):
                     declaration = 'void *f(void *data)'
                 else:
