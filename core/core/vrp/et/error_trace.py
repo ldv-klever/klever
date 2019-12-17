@@ -289,11 +289,11 @@ class ErrorTrace:
         else:
             return self.resolve_function_id(name)
 
-    def add_action(self, comment, callback=False):
+    def add_action(self, comment, relevant=False):
         if comment not in self._actions:
             self._actions.append(comment)
             action_id = len(self._actions) - 1
-            if callback:
+            if relevant:
                 self._callback_actions.append(action_id)
         else:
             action_id = self.resolve_action_id(comment)

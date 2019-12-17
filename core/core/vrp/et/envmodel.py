@@ -77,12 +77,12 @@ def _collect_action_diaposons(logger, error_trace):
                             'comment' not in error_trace.emg_comments[file][line]:
                         logger.warning("Incomplete EMG comment at line {} of file {!r}".format(line, file))
                         error_trace.emg_comments[file][line].setdefault('comment', 'EMG action')
-                    data[file][func]['actions'].append({'begin': line,
-                                                        'comment': error_trace.emg_comments[file][line]['comment'],
-                                                        'type': error_trace.emg_comments[file][line]['type']})
-                    if 'callback' in error_trace.emg_comments[file][line] and \
-                            error_trace.emg_comments[file][line]['callback']:
-                        data[file][func]['actions'][-1]['callback'] = True
+                    data[file][func]['actions'].append({
+                        'begin': line,
+                        'comment': error_trace.emg_comments[file][line]['comment'],
+                        'type': error_trace.emg_comments[file][line]['type']})
+                    if error_trace.emg_comments[file][line].get('relevant'):
+                        data[file][func]['actions'][-1]['relevant'] = True
                     inside_action = True
                 elif inside_action and line in error_trace.emg_comments[file] and \
                         error_trace.emg_comments[file][line]['type'] == 'ACTION_END':
@@ -303,11 +303,11 @@ def _wrap_actions(data, error_trace):
             if cf:
                 act = _inside_action(cf['cf'], get_original_start_line(edge))
                 if act:
-                    if 'callback' in act and act['callback']:
-                        callback_flag = True
+                    if act.get('relevant'):
+                        relevant_flag = True
                     else:
-                        callback_flag = False
-                    edge['action'] = error_trace.add_action(act['comment'], callback_flag)
+                        relevant_flag = False
+                    edge['action'] = error_trace.add_action(act['comment'], relevant_flag)
         if 'enter' in edge:
             _match_control_function(error_trace, edge, cf_stack, data)
         elif len(cf_stack) > 0 and 'return' in edge:
