@@ -140,6 +140,7 @@ class ErrorTraceParser:
         edges_num = 0
         main_id = None
 
+        edges_to_remove = []
         for edge in graph.findall('graphml:edge', self.WITNESS_NS):
             # Sanity checks.
             if 'source' not in edge.attrib:
@@ -212,8 +213,15 @@ class ErrorTraceParser:
                     # End all statements with ";" like in C.
                     if _edge['source'][-1] != ';':
                         _edge['source'] += ';'
+            else:
+                self._logger.warning('Edge from {0} to {1} does not have start or/and end offsets'
+                                     .format(source_node_id, target_node_id))
+                edges_to_remove.append(_edge)
 
             edges_num += 1
+
+        for edge_to_remove in edges_to_remove:
+            self.error_trace.remove_edge_and_target_node(edge_to_remove)
 
         self._logger.debug('Parse {0} edges and {1} sink edges'.format(edges_num, sink_edges_num))
 
