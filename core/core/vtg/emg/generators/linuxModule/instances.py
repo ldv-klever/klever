@@ -741,7 +741,8 @@ def __generate_model_comment(process):
 
 def _remove_statics(sa, process):
     # todo: write docstring
-    identifiers = _yeild_identifier()
+    f_identifiers = _yeild_identifier()
+    v_identifiers = _yeild_identifier()
     access_map = process.allowed_implementations
 
     def resolve_existing(nm, f, collection):
@@ -749,9 +750,12 @@ def _remove_statics(sa, process):
             return collection[f][nm]
         return None
 
-    def create_definition(decl, nm, impl):
-        f = c.Function("ldv_wrapper_{}_{}".format(nm, identifiers.__next__()),
-                       decl)
+    def create_definition(decl, nm, impl, requre_suffix=False):
+        if requre_suffix:
+            new_name = "ldv_wrapper_{}_{}".format(nm, f_identifiers.__next__())
+        else:
+            new_name = "ldv_wrapper_{}".format(nm)
+        f = c.Function(new_name, decl)
         f.definition_file = impl.initialization_file
 
         # Generate call
@@ -778,14 +782,14 @@ def _remove_statics(sa, process):
             var = None
 
             svar = sa.get_source_variable(implementation.value, file)
-            function_flag = False
+            function_name = False
             if not svar:
                 candidate = sa.get_source_function(implementation.value, file)
                 if candidate:
                     static = static or candidate.static
                     declaration = candidate.declaration
                     value = candidate.name
-                    function_flag = True
+                    function_name = candidate.name
                 else:
                     # Seems that this is a variable without initialization
                     declaration = implementation.declaration
@@ -807,12 +811,16 @@ def _remove_statics(sa, process):
                             coll[file] = dict()
 
                     # Create new artificial variables and functions
-                    if function_flag:
+                    if function_name:
                         func = resolve_existing(name, implementation, _definitions)
                         if not func:
-                            func = create_definition(declaration.to_string('x', specifiers=False), name, implementation)
+                            suffix = False
+                            if len(sa.get_source_functions(function_name)) > 1:
+                                suffix = True
+                            func = create_definition(declaration.to_string('x', specifiers=False), name, implementation,
+                                                     requre_suffix=suffix)
                             _definitions[file][name] = func
-                    elif not function_flag and not isinstance(declaration, Primitive):
+                    elif not function_name and not isinstance(declaration, Primitive):
                         var = resolve_existing(name, implementation, _declarations)
                         if not var:
                             if isinstance(declaration, Array):
@@ -822,8 +830,12 @@ def _remove_statics(sa, process):
                                 # Try to use pointer instead of the value
                                 declaration = declaration.take_pointer
                                 value = '& ' + value
-                            var = c.Variable("ldv_alias_{}_{}".format(name, identifiers.__next__()),
-                                             declaration.to_string('x', specifiers=False))
+
+                            if len(sa.get_source_variables(name)) > 1:
+                                v_name = "ldv_alias_{}_{}".format(name, v_identifiers.__next__())
+                            else:
+                                v_name = "ldv_alias_{}".format(name)
+                            var = c.Variable(v_name, declaration.to_string('x', specifiers=False))
                             var.declaration_files.add(file)
                             var.value = value
                             _declarations[file][name] = var
