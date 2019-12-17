@@ -329,7 +329,7 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
                 else:
                     param_signature = declaration.points.parameters[index]
                     expression = "%{}%"
-                tmp_lb = process.add_label("ldv_param_{}_{}".format(index, param_identifiers.__next__()),
+                tmp_lb = process.add_label("emg_param_{}_{}".format(index, param_identifiers.__next__()),
                                            param_signature)
                 label_params.append(tmp_lb)
                 expression = expression.format(tmp_lb.name)
@@ -752,9 +752,9 @@ def _remove_statics(sa, process):
 
     def create_definition(decl, nm, impl, requre_suffix=False):
         if requre_suffix:
-            new_name = "ldv_wrapper_{}_{}".format(nm, f_identifiers.__next__())
+            new_name = "emg_wrapper_{}_{}".format(nm, f_identifiers.__next__())
         else:
-            new_name = "ldv_wrapper_{}".format(nm)
+            new_name = "emg_wrapper_{}".format(nm)
         f = c.Function(new_name, decl)
         f.definition_file = impl.initialization_file
 
@@ -832,9 +832,9 @@ def _remove_statics(sa, process):
                                 value = '& ' + value
 
                             if len(sa.get_source_variables(name)) > 1:
-                                v_name = "ldv_alias_{}_{}".format(name, v_identifiers.__next__())
+                                v_name = "emg_alias_{}_{}".format(name, v_identifiers.__next__())
                             else:
-                                v_name = "ldv_alias_{}".format(name)
+                                v_name = "emg_alias_{}".format(name)
                             var = c.Variable(v_name, declaration.to_string('x', specifiers=False))
                             var.declaration_files.add(file)
                             var.value = value

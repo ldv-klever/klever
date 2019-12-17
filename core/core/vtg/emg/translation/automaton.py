@@ -85,7 +85,7 @@ class Automaton:
             return self.__label_variables[label.name]["default"]
         else:
             if label.declaration:
-                var = Variable("ldv_{}_{}".format(self._identifier, label.name), label.declaration)
+                var = Variable("emg_{}_{}".format(self._identifier, label.name), label.declaration)
                 var.value = label.value
 
                 self.__label_variables.setdefault(label.name, {})

@@ -64,7 +64,7 @@ def label_based_function(conf, analysis, automaton, cf, model=True):
             f_code.extend([
                 '',
                 '/* Sbprocess {} */'.format(subp.action.name),
-                'ldv_{}_{}:'.format(str(subp.reference_name), str(automaton))
+                'emg_{}_{}:'.format(str(subp.reference_name), str(automaton))
             ])
             f_code.extend(sp_f_code)
             f_code.append("/* End of the subprocess '{}' */".format(subp.action.name))
@@ -96,7 +96,7 @@ def __subprocess_code(automaton, initial_action, ret_expression):
         if isinstance(action, Subprocess):
             f += [
                 '\t' * tab + '/* Jump to a subprocess {!r} initial state */'.format(action.name),
-                '\t' * tab + 'goto ldv_{}_{};'.format(action.reference_name, str(automaton))
+                '\t' * tab + 'goto emg_{}_{};'.format(action.reference_name, str(automaton))
             ]
         elif isinstance(action, Action):
             my_v, my_f = automaton.code[action]

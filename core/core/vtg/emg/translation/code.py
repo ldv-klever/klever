@@ -336,8 +336,8 @@ class CModel:
         functions = []
         if len(self.__external_allocated.keys()) > 0:
             for file, ext_vars in ((f, v) for f, v in self.__external_allocated.items() if v):
-                func = Function('ldv_allocate_external_{}'.format(cnt),
-                                "void ldv_allocate_external_{}(void)".format(cnt))
+                func = Function('emg_allocate_external_{}'.format(cnt),
+                                "void emg_allocate_external_{}(void)".format(cnt))
                 func.declaration_files.add(file)
                 func.definition_file = file
 
@@ -349,8 +349,7 @@ class CModel:
                 functions.append(func)
                 cnt += 1
 
-            gl_init = Function('ldv_initialize_external_data',
-                               'void ldv_initialize_external_data(void)')
+            gl_init = Function('emg_initialize_external_data', 'void emg_initialize_external_data(void)')
             gl_init.declaration_files.add(self.entry_file)
             gl_init.definition_file = self.entry_file
             init_body = ['{}();'.format(func.name) for func in functions]
@@ -358,7 +357,7 @@ class CModel:
             self.add_function_definition(gl_init)
             body += [
                 '/* Initialize external data */',
-                'ldv_initialize_external_data();'
+                'emg_initialize_external_data();'
             ]
 
         if self._conf.get("initialize requirements", True):
