@@ -211,23 +211,23 @@ def _simplify_process(logger, conf, sa, interfaces, process):
                 svar = sa.get_source_variable(implementation.value, file)
                 if svar and not (implementation.declaration.static or svar.declaration.static):
                     true_declaration = svar.declaration.to_string(svar.name, typedef='complex_and_params',
-                                                                  specifiers=True)
+                                                                  specifiers=True, qualifiers=True)
                 elif not svar:
                     # Seems that it is a funciton
                     sf = sa.get_source_function(implementation.value, file)
                     if sf and not (sf.static or sf.declaration.static):
                         true_declaration = sf.declaration.to_string(sf.name, typedef='complex_and_params',
-                                                                    specifiers=True)
-                    elif not svar and not sf:
+                                                                    specifiers=True, qualifiers=True)
+                    elif not svar and re.match(r'[a-zA-Z_]+', implementation.value.replace('&', '').strip()):
                         # This is something from outside. Add external declaration.
                         if '&' in implementation.value and isinstance(implementation.declaration, Pointer):
                             true_declaration = implementation.declaration.points.to_string(
                                 implementation.value.replace('&', '').strip(), typedef='complex_and_params',
-                                specifiers=False)
+                                specifiers=False, qualifiers=True)
                         else:
-                            true_declaration = implementation.declaration.points.to_string(
+                            true_declaration = implementation.declaration.to_string(
                                 implementation.value.strip(), typedef='complex_and_params',
-                                specifiers=False)
+                                specifiers=False, qualifiers=True)
                     else:
                         true_declaration = None
                 else:
@@ -407,7 +407,6 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
     # Determine callback implementations
     generated_callbacks = 0
     accesses = process.resolve_access(call.callback)
-    true_call = None
     for access in accesses:
         reinitialize_vars_flag = False
         if access.interface:
@@ -417,7 +416,6 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
             if implementation and sa.refined_name(implementation.value):
                 file = implementation.initialization_file
                 if file in _values_map and implementation.value in _values_map:
-                    true_call = '(' + _values_map[file][implementation.value] + ')'
                     break
                 invoke = sa.refined_name(implementation.value)
                 check = False
