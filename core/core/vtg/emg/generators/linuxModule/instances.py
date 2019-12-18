@@ -407,7 +407,6 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
     # Determine callback implementations
     generated_callbacks = 0
     accesses = process.resolve_access(call.callback)
-    true_call = None
     for access in accesses:
         reinitialize_vars_flag = False
         if access.interface:
@@ -417,7 +416,6 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
             if implementation and sa.refined_name(implementation.value):
                 file = implementation.initialization_file
                 if file in _values_map and implementation.value in _values_map:
-                    true_call = '(' + _values_map[file][implementation.value] + ')'
                     break
                 invoke = sa.refined_name(implementation.value)
                 check = False

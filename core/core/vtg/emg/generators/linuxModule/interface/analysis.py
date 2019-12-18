@@ -65,7 +65,7 @@ def __extract_implementations(logger, collection, sa):
             if len(intfs) > 1:
                 logger.info("There are several containers with declation {!r}".format(var.declaration.to_string('a')))
             for i in intfs:
-                implementation = i.add_implementation(
+                i.add_implementation(
                     varname,
                     var.declaration,
                     var.initialization_file,
@@ -95,7 +95,6 @@ def __extract_implementations(logger, collection, sa):
                                                  format(call))
                             parameter.add_implementation(call, called_function.declaration.parameters[indx],
                                                          call_obj.definition_file, None, None, [])
-
 
 
 def check_relevant_interface(collection, declaration, category, connector):
