@@ -3,5 +3,6 @@
   "function": "Exception in thread \"main\" java.lang.IllegalArgumentException",
   "is_regexp": false,
   "problem_pattern": "IllegalArg Except",
-  "production": true
+  "production": true,
+  "is_modifiable": false
 }

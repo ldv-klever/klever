@@ -13,7 +13,7 @@
   ],
   "description": "",
   "function": "CPU time exhausted",
-  "is_modifiable": true,
+  "is_modifiable": false,
   "is_regexp": false,
   "problem_pattern": "Timeout"
 }

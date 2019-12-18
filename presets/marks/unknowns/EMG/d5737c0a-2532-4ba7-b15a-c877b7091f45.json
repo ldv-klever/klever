@@ -4,5 +4,6 @@
   "is_regexp": false,
   "link": "http://forge.ispras.ru/issues/6571",
   "problem_pattern": "No init",
-  "production": true
+  "production": true,
+  "is_modifiable": false
 }
