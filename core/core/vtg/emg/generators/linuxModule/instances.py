@@ -218,7 +218,7 @@ def _simplify_process(logger, conf, sa, interfaces, process):
                     if sf and not (sf.static or sf.declaration.static):
                         true_declaration = sf.declaration.to_string(sf.name, typedef='complex_and_params',
                                                                     specifiers=True, qualifiers=True)
-                    elif not svar and not sf:
+                    elif not svar and re.match(r'[a-zA-Z_]+', implementation.value.replace('&', '').strip()):
                         # This is something from outside. Add external declaration.
                         if '&' in implementation.value and isinstance(implementation.declaration, Pointer):
                             true_declaration = implementation.declaration.points.to_string(
