@@ -359,9 +359,9 @@ NAME_ATTR = 'Sub-job identifier'
 UNKNOWN_ATTRS_NOT_ASSOCIATE = {'Verification object', 'Program fragment'}
 
 COMPARE_FUNCTIONS = {
-    'callback_call_forests': {
-        'desc': 'Jaccard index of "callback_call_forests" convertion.',
-        'convert': 'callback_call_forests'
+    'relevant_call_forests': {
+        'desc': 'Jaccard index of "relevant_call_forests" convertion.',
+        'convert': 'relevant_call_forests'
     },
     'thread_call_forests': {
         'desc': 'Jaccard index of "thread_call_forests" convertion.',
@@ -372,9 +372,9 @@ COMPARE_FUNCTIONS = {
 DEFAULT_COMPARE = 'thread_call_forests'
 
 CONVERT_FUNCTIONS = {
-    'callback_call_forests': """
+    'relevant_call_forests': """
 This function is extracting the error trace call stack forests.
-The forest is a couple of call trees under callback action.
+The forest is a couple of call trees under relevant action.
 Call tree is tree of function names in their execution order.
 All its leaves are names of functions which calls or statements
 are marked with the "note" or "warn" attribute. Returns list of forests.
@@ -382,7 +382,7 @@ are marked with the "note" or "warn" attribute. Returns list of forests.
     'thread_call_forests': """
 This function extracts error trace call forests. Each call forest is one or more call trees in the same thread.
 A call tree is a tree of names of functions in their execution order. Some call trees can be grouped by
-callback action into list. Each call tree root is either a callback action if it exists in a corresponding call stack
+relevant action into list. Each call tree root is either a relevant action if it exists in a corresponding call stack
 or a thread function. All call tree leaves are names of functions which calls or statements are marked
 with the “note” or “warn” attribute. The function returns a list of forests. A forests order corresponds
 to an execution order of first statements of forest threads.

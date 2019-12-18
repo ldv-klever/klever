@@ -137,8 +137,8 @@ def save_converted_trace(forests, function):
 
 def convert_error_trace(error_trace, function):
     # Convert error trace to forests
-    if function == 'callback_call_forests':
-        forests = CallbackCallForests(error_trace).forests
+    if function == 'relevant_call_forests':
+        forests = RelevantCallForests(error_trace).forests
     elif function == 'thread_call_forests':
         forests = ThreadCallForests(error_trace).forests
     else:
@@ -276,8 +276,8 @@ class ThreadCallForests:
             children_call_trees = []
             for child in node['children']:
                 children_call_trees.extend(self.__parse_child(child, thread))
-            if node.get('callback'):
-                # Add to the thread forest its call tree with callback action at the root
+            if node.get('relevant'):
+                # Add to the thread forest its call tree with relevant action at the root
                 if children_call_trees:
                     self._forests_dict[thread].append(children_call_trees)
                 return []
@@ -285,8 +285,8 @@ class ThreadCallForests:
 
     def __has_note(self, node):
         if node['type'] == 'action':
-            # Skip callback actions
-            if node.get('callback'):
+            # Skip relevant actions
+            if node.get('relevant'):
                 return False
             for child in node['children']:
                 if self.__has_note(child):
@@ -295,7 +295,7 @@ class ThreadCallForests:
         return bool(node.get('note'))
 
 
-class CallbackCallForests:
+class RelevantCallForests:
     def __init__(self, error_trace):
         self._trace = error_trace
         self.forests = []
@@ -326,7 +326,7 @@ class CallbackCallForests:
             children_call_trees = []
             for child in node['children']:
                 children_call_trees.extend(self.__parse_child(child))
-            if node.get('callback'):
+            if node.get('relevant'):
                 if children_call_trees:
                     self.forests.append(children_call_trees)
                 return []
@@ -334,8 +334,8 @@ class CallbackCallForests:
 
     def __has_note(self, node):
         if node['type'] == 'action':
-            # Skip callback actions
-            if node.get('callback'):
+            # Skip relevant actions
+            if node.get('relevant'):
                 return False
             for child in node['children']:
                 if self.__has_note(child):

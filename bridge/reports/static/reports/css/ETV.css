@@ -179,13 +179,13 @@
     background-color: #fffcf5;
 }
 
-.ETV_CallbackAction {
+.ETV_RelevantAction {
     font-style: italic;
     font-weight: bold;
     color: #9e4b2e;
     cursor: pointer;
 }
-.ETV_CallbackAction:hover {
+.ETV_RelevantAction:hover {
     color: #dd5e3f;
 }
 

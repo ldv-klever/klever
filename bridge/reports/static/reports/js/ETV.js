@@ -189,7 +189,7 @@ $(document).ready(function () {
         }
     });
 
-    $('.ETV_Action,.ETV_CallbackAction').click(function () {
+    $('.ETV_Action,.ETV_RelevantAction').click(function () {
         let node = $(this).parent().parent();
 
         // If action can be collapsed/expanded, do it
