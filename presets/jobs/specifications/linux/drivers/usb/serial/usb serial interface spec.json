@@ -171,7 +171,7 @@
             "declaration": "int (*resume)(%usb_serial.usb_serial%)"
           },
           "set_termios": {
-            "declaration": "void (*close)(%usb_serial.usb_serial_port%)"
+            "declaration": "void (*set_termios)(%usb_serial.tty_struct%, %usb_serial.usb_serial_port%, struct ktermios *old)"
           },
           "suspend": {
             "declaration": "int (*suspend)(%usb_serial.usb_serial%, pm_message_t message)"
