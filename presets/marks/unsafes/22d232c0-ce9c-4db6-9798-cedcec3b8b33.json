@@ -53,7 +53,7 @@
     ]
   ],
   "function": "thread_call_forests",
-  "is_modifiable": true,
+  "is_modifiable": false,
   "tags": [],
   "verdict": "2"
 }
