@@ -12,7 +12,7 @@
     }
   ],
   "description": "Necessary code is covered.",
-  "is_modifiable": true,
+  "is_modifiable": false,
   "tags": [],
   "verdict": "0"
 }
