@@ -249,14 +249,16 @@ def _remove_control_func_aux_code(data, error_trace):
                 if not act:
                     cf['action'] = None
                     cf['in aux code'] = True
-                    error_trace.remove_edge_and_target_node(e)
+                    # TODO: FIXME!
+                    # error_trace.remove_edge_and_target_node(e)
                 else:
                     cf['action'] = act
                     cf['in aux code'] = False
             else:
                 cfs = [cf for cf in stack if cf['thread'] == e['thread'] and cf['in aux code']]
-                if len(cfs) > 0:
-                    error_trace.remove_edge_and_target_node(e)
+                # TODO: FIXME!
+                # if len(cfs) > 0:
+                #     error_trace.remove_edge_and_target_node(e)
 
     def if_simple_state(e, stack):
         """Simple e."""
@@ -271,12 +273,14 @@ def _remove_control_func_aux_code(data, error_trace):
             elif not act:
                 # Not in action
                 cf['action'] = None
-                error_trace.remove_edge_and_target_node(e)
+                # TODO: FIXME!
+                # error_trace.remove_edge_and_target_node(e)
         else:
             # Check whether there are control functions from this thread which have stack stopped in aux code
             cfs = [cf for cf in stack if cf['thread'] == e['thread'] and cf['in aux code']]
-            if len(cfs) > 0:
-                error_trace.remove_edge_and_target_node(e)
+            # TODO: FIXME!
+            # if len(cfs) > 0:
+            #     error_trace.remove_edge_and_target_node(e)
 
         return
 
