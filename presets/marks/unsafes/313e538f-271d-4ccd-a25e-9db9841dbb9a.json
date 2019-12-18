@@ -16,11 +16,11 @@
     [
       [
         {
-          "emg_exit1": [
+          "EMG wrapper": [
             {
               "exit1": [
                 {
-                  "ldv_expected_error": []
+                  "LDV model 'expected_error'": []
                 }
               ]
             }

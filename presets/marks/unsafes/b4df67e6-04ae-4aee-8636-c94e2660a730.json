@@ -16,13 +16,13 @@
     [
       [
         {
-          "emg_init": [
+          "EMG wrapper": [
             {
               "init": [
                 {
                   "kernel_library_export_with_error": [
                     {
-                      "ldv_expected_error": []
+                      "LDV model 'expected_error'": []
                     }
                   ]
                 }
