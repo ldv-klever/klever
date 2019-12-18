@@ -14,13 +14,19 @@
   "description": "",
   "error_trace": [
     [
-      {
-        "exit1": [
-          {
-            "ldv_error": []
-          }
-        ]
-      }
+      [
+        {
+          "emg_exit1": [
+            {
+              "exit1": [
+                {
+                  "ldv_expected_error": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",
