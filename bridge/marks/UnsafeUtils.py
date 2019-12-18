@@ -261,7 +261,7 @@ class ThreadCallForests:
                 children_call_trees.extend(self.__parse_child(child, node['thread']))
             # If thread has forests and don't have any relevant actions, than add forests for that thread
             if children_call_trees and not self._forests_dict[node['thread']]:
-                self._forests_dict[thread].append(children_call_trees)
+                self._forests_dict[node['thread']].append(children_call_trees)
             return []
 
         if node['type'] == 'function call':
