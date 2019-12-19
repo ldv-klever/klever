@@ -14,25 +14,37 @@
   "description": "",
   "error_trace": [
     [
-      {
-        "ldv_init": [
-          {
-            "ldv_emg_register_netdev": [
-              {
-                "ldv_failed_register_netdev": [
-                  {
-                    "ldv_error": []
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      }
+      [
+        {
+          "EMG wrapper": [
+            {
+              "LDV model 'init'": [
+                {
+                  "Instrumented function 'register_netdev'": [
+                    {
+                      "Register network device and its callbacks.": [
+                        {
+                          "LDV model 'failed_register_netdev'": [
+                            {
+                              "LDV model 'expected_error'": []
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",
   "is_modifiable": false,
+  "status": null,
   "tags": [],
+  "threshold": 0,
   "verdict": "2"
 }
