@@ -11,29 +11,45 @@
       "value": "drivers/idle/i7300_idle.ko"
     }
   ],
-  "description": "Authors also have a comment that it is a memory leak (lines 305-307). ",
+  "description": "Authors also have a comment that it is a memory leak (lines 305-307).",
   "error_trace": [
     [
-      {
-        "ldv_check_final_state": [
-          {
-            "ldv_assert_linux_arch_io__more_initial_at_exit": []
-          }
-        ]
-      }
+      [
+        {
+          "Entry point 'main'": [
+            {
+              "LDV model 'check_final_state'": [
+                {
+                  "LDV model 'assert'": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ],
     [
-      {
-        "i7300_idle_init": [
-          {
-            "i7300_idle_ioat_init": [
-              {
-                "ldv_io_mem_remap": []
-              }
-            ]
-          }
-        ]
-      }
+      [
+        {
+          "EMG wrapper": [
+            {
+              "i7300_idle_init": [
+                {
+                  "i7300_idle_ioat_init": [
+                    {
+                      "Instrumented function 'ioremap_nocache'": [
+                        {
+                          "LDV model 'io_mem_remap'": []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",
@@ -41,5 +57,6 @@
   "production": true,
   "status": "0",
   "tags": [],
+  "threshold": 0,
   "verdict": "1"
 }
