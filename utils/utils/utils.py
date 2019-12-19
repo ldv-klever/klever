@@ -229,6 +229,10 @@ class Session:
         """
         return self.__download_archive('marks/api/download-all/', archive)
 
+    def get_updated_preset_mark(self, identifier):
+        resp = self.__request("api/get-updated-preset/{}/".format(identifier))
+        return resp.json()
+
 
 def execute_cmd(logger, *args, **kwargs):
     logger.info('Execute command "{0}"'.format(' '.join(args)))

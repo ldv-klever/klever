@@ -18,6 +18,7 @@
 import re
 import json
 
+from django.db.models import F
 from django.utils.translation import ugettext_lazy as _
 
 from rest_framework import fields, serializers, exceptions
@@ -29,9 +30,9 @@ from bridge.serializers import DynamicFieldsModelSerializer
 from marks.models import (
     MAX_TAG_LEN, SafeTag, MarkSafe, MarkSafeHistory, MarkSafeAttr, MarkSafeTag,
     UnsafeTag, MarkUnsafe, MarkUnsafeHistory, MarkUnsafeAttr, MarkUnsafeTag,
-    ConvertedTrace, MarkUnknown, MarkUnknownHistory, MarkUnknownAttr
+    ConvertedTrace, MarkUnknown, MarkUnknownHistory, MarkUnknownAttr, MarkUnsafeReport, UnsafeConvertionCache
 )
-from marks.UnsafeUtils import save_converted_trace
+from marks.UnsafeUtils import save_converted_trace, convert_error_trace
 
 
 def create_mark_version(mark, cache=True, **kwargs):
@@ -511,3 +512,53 @@ class FMVlistSerializerRO(MVSerializerBase):
     class Meta:
         model = MarkUnknownHistory
         fields = ('version', 'title')
+
+
+class UpdatedPresetUnsafeMarkSerializer(serializers.ModelSerializer):
+    attrs = serializers.SerializerMethodField()
+    threshold = serializers.SerializerMethodField()
+    tags = serializers.SerializerMethodField()
+    error_trace = serializers.SerializerMethodField()
+
+    def get_attrs(self, instance):
+        return list(MarkUnsafeAttr.objects.filter(
+            is_compare=True, mark_version__mark=instance,
+            mark_version__version=F('mark_version__mark__version')
+        ).order_by('id').values('name', 'value', 'is_compare'))
+
+    def get_threshold(self, instance):
+        return instance.threshold_percentage
+
+    def get_tags(self, instance):
+        return list(MarkUnsafeTag.objects.filter(
+            mark_version__mark=instance,
+            mark_version__version=F('mark_version__mark__version')
+        ).values_list('tag__name', flat=True))
+
+    def get_error_trace(self, instance):
+        # Get the most relevant mark association
+        mark_report = MarkUnsafeReport.objects.filter(mark=instance, associated=True).order_by('-result').first()
+        if not mark_report:
+            raise exceptions.APIException("The mark don't have any associations")
+
+        # Trying to get converted report's error trace
+        converted = ConvertedTrace.objects.filter(
+            unsafeconvertioncache__unsafe=mark_report.report, function=instance.function
+        ).first()
+
+        if not converted:
+            # If not found convert error trace and save the convertion cache
+            with open(mark_report.report.error_trace.path, mode='r', encoding='utf-8') as fp:
+                error_trace = json.load(fp)
+            converted = convert_error_trace(error_trace, instance.function)
+            UnsafeConvertionCache.objects.create(unsafe_id=mark_report.report_id, converted_id=converted.id)
+
+        with open(converted.file.path, mode='r', encoding='utf-8') as fp:
+            # Return converted error trace
+            return json.load(fp)
+
+    class Meta:
+        model = MarkUnsafe
+        fields = (
+            'is_modifiable', 'description', 'attrs', 'verdict', 'status', 'function', 'threshold', 'tags', 'error_trace'
+        )
