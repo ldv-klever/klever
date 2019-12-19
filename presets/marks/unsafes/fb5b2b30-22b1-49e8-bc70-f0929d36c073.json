@@ -14,13 +14,19 @@
   "description": "",
   "error_trace": [
     [
-      {
-        "ldv_init": [
-          {
-            "ldv_error": []
-          }
-        ]
-      }
+      [
+        {
+          "EMG wrapper": [
+            {
+              "LDV model 'init'": [
+                {
+                  "LDV model 'expected_error'": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",
