@@ -41,6 +41,8 @@ class Weaver(core.vtg.plugins.Plugin):
         self.abstract_task_desc.setdefault('extra C files', dict())
 
         clade = Clade(self.conf['build base'])
+        if not clade.work_dir_ok():
+            raise RuntimeError('Build base is not OK')
         meta = clade.get_meta()
 
         # This is required to get compiler (Aspectator) specific stdarg.h since kernel C files are compiled
@@ -236,6 +238,8 @@ class Weaver(core.vtg.plugins.Plugin):
         # prefer their parallelism over the Clade one.
         clade_extra = Clade(cmds_file='cmds.txt', conf={'cpu_count': 1})
         clade_extra.parse_list(["CrossRef"])
+        if not clade_extra.work_dir_ok():
+            raise RuntimeError('Build base is not OK')
 
         # Like in core.job.Job#__upload_original_sources.
         search_dirs = core.utils.get_search_dirs(self.conf['main working directory'], abs_paths=True)

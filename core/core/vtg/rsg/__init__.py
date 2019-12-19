@@ -171,6 +171,8 @@ class RSG(core.vtg.plugins.Plugin):
         # Generate CC full description file per each model and add it to abstract task description.
         # First of all obtain CC options to be used to compile models.
         clade = Clade(self.conf['build base'])
+        if not clade.work_dir_ok():
+            raise RuntimeError('Build base is not OK')
         meta = clade.get_meta()
 
         # Relative path to source file which CC options to be used is specified in configuration. Clade needs absolute

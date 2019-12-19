@@ -55,6 +55,8 @@ class FragmentationAlgorythm:
 
         # Import clade
         self.clade = Clade(work_dir=self.conf['build base'], preset=self.CLADE_PRESET)
+        if not self.clade.work_dir_ok():
+            raise RuntimeError('Build base is not OK')
 
         self.__get_project_attrs()
 
