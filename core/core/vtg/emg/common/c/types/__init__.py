@@ -234,7 +234,7 @@ class Declaration:
         return self._str
 
     def __hash__(self):
-        return hash(str(self))
+        return hash(self.to_string(declarator='', qualifiers=True))
 
     def __eq__(self, other):
         if isinstance(other, Declaration):
@@ -262,7 +262,7 @@ class Declaration:
 
         :return: Declaration object.
         """
-        pointer_declaration = self.to_string('a', True)
+        pointer_declaration = self.to_string('a', pointer=True, specifiers=True, qualifiers=True)
         return import_declaration(pointer_declaration)
 
     @property
