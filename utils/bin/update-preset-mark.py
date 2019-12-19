@@ -22,7 +22,7 @@ import json
 from uuid import UUID
 from utils.utils import get_args_parser, Session
 
-parser = get_args_parser('Start solution of verification job.')
+parser = get_args_parser('Update preset mark on the base of most relevant associated report and current version.')
 parser.add_argument('mark', type=str, help='Preset mark path.')
 args = parser.parse_args()
 
