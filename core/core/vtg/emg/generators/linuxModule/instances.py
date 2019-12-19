@@ -216,14 +216,14 @@ def _simplify_process(logger, conf, sa, interfaces, process):
                     # Seems that it is a funciton
                     sf = sa.get_source_function(implementation.value, file)
                     if sf and not (sf.static or sf.declaration.static):
-                        true_declaration = sf.declaration.to_string(sf.name, typedef='complex_and_params',
+                        true_declaration = sf.declaration.to_string(sf.name, typedef='complex_and_params', scope={file},
                                                                     specifiers=True, qualifiers=True)
                     elif not svar and re.match(r'[a-zA-Z_]+', implementation.value.replace('&', '').strip()):
                         # This is something from outside. Add external declaration.
                         if '&' in implementation.value and isinstance(implementation.declaration, Pointer):
                             true_declaration = implementation.declaration.points.to_string(
                                 implementation.value.replace('&', '').strip(), typedef='complex_and_params',
-                                specifiers=False, qualifiers=True)
+                                scope={file}, specifiers=False, qualifiers=True)
                         else:
                             true_declaration = implementation.declaration.to_string(
                                 implementation.value.strip(), typedef='complex_and_params',
