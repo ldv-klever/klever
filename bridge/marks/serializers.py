@@ -519,6 +519,7 @@ class UpdatedPresetUnsafeMarkSerializer(serializers.ModelSerializer):
     threshold = serializers.SerializerMethodField()
     tags = serializers.SerializerMethodField()
     error_trace = serializers.SerializerMethodField()
+    description = serializers.SerializerMethodField()
 
     def get_attrs(self, instance):
         return list(MarkUnsafeAttr.objects.filter(
@@ -556,6 +557,10 @@ class UpdatedPresetUnsafeMarkSerializer(serializers.ModelSerializer):
         with open(converted.file.path, mode='r', encoding='utf-8') as fp:
             # Return converted error trace
             return json.load(fp)
+
+    def get_description(self, instance):
+        last_version = MarkUnsafeHistory.objects.only('description').get(mark=instance, mark__version=F('version'))
+        return last_version.description
 
     class Meta:
         model = MarkUnsafe
