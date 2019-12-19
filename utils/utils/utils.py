@@ -233,8 +233,10 @@ class Session:
         """
         return self.__download_archive('marks/api/download-all/', archive)
 
-    def get_updated_preset_mark(self, identifier):
-        resp = self.__request("marks/api/get-updated-preset/{}/".format(identifier))
+    def get_updated_preset_mark(self, identifier, report_id):
+        url = "marks/api/get-updated-preset/{}/".format(identifier)
+        params = {'report': report_id} if report_id else None
+        resp = self.__request(url, params=params)
         return resp.json()
 
 
