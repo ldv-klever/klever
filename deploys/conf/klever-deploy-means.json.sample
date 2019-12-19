@@ -93,8 +93,8 @@
       },
       "CPALockator": {
         "name": "CPAchecker",
-        "version": "CPALockator-combat-mode:32118",
-        "path": "addons/CPAchecker-1.8-svn 32118-unix",
+        "version": "CPALockator-combat-mode:32435",
+        "path": "addons/CPAchecker-1.8-svn 32435-unix",
         "executable path": "scripts"
       }
     }
