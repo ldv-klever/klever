@@ -537,8 +537,13 @@ class UpdatedPresetUnsafeMarkSerializer(serializers.ModelSerializer):
         ).values_list('tag__name', flat=True))
 
     def get_error_trace(self, instance):
+        report_id = self.context['request'].query_params.get('report')
+
         # Get the most relevant mark association
-        mark_report = MarkUnsafeReport.objects.filter(mark=instance, associated=True).order_by('-result').first()
+        if report_id:
+            mark_report = MarkUnsafeReport.objects.filter(mark=instance, report_id=report_id).first()
+        else:
+            mark_report = MarkUnsafeReport.objects.filter(mark=instance).order_by('-result').first()
         if not mark_report:
             raise exceptions.APIException("The mark don't have any associations")
 

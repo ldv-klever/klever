@@ -520,7 +520,7 @@ class InlineCreateForm(LoggedCallMixin, TemplateAPIRetrieveView):
         return context
 
 
-class GetUpdatedPreset(LoggedCallMixin, RetrieveAPIView):
+class GetUpdatedPresetView(LoggedCallMixin, RetrieveAPIView):
     permission_classes = (ServicePermission,)
     queryset = MarkUnsafe.objects.all()
     serializer_class = UpdatedPresetUnsafeMarkSerializer
