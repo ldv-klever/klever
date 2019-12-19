@@ -19,7 +19,6 @@
 def envmodel_simplifications(logger, error_trace):
     logger.info('Start environment model driven error trace simplifications')
     data, main_data, main = _collect_action_diaposons(logger, error_trace)
-    _set_main(main_data, main, error_trace)
     _set_thread(data, error_trace)
 
     # This is quite tricky code and it is ensure that before deleting any edges the trace was correct
@@ -153,32 +152,6 @@ def _match_exit_function(edge, stack):
                 return True
 
     return False
-
-
-def _set_main(data, main, error_trace):
-    if not data or not main:
-        return
-
-    for edge in error_trace.trace_iterator():
-        if edge.get("source", "") == "Begin program execution":
-            edge["file"] = data['file']
-            edge["line"] = data['begin'] - 1
-            return
-
-        if _inside_this_control_function(data, edge['file'], edge['line']):
-            # Got it!
-            if edge["file"] != data['file']:
-                edge["file"] = data['file']
-            identifier = error_trace.resolve_function_id(main)
-            new_edge = error_trace.insert_edge_and_target_node(edge, after=False)
-            new_edge["enter"] = identifier
-            new_edge["file"] = data['file']
-            new_edge["line"] = data['begin'] - 1
-            new_edge["source"] = "Begin program execution"
-
-            return
-
-    raise RuntimeError("Cannot determine main function in the witness")
 
 
 def _set_thread(data, error_trace):
