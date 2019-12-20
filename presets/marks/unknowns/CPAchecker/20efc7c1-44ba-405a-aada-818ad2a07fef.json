@@ -13,7 +13,7 @@
   ],
   "description": "",
   "function": "Refinement failed",
-  "is_modifiable": true,
+  "is_modifiable": false,
   "is_regexp": false,
   "problem_pattern": "RefFailed"
 }

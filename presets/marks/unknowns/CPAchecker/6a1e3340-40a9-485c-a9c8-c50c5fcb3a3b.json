@@ -3,5 +3,6 @@
   "function": "A fatal error has been detected by the Java Runtime Environment",
   "is_regexp": false,
   "problem_pattern": "JRE fatal error",
-  "production": true
+  "production": true,
+  "is_modifiable": false
 }

@@ -12,7 +12,7 @@
     }
   ],
   "description": "One should add model for function request_firmware_nowait() (model for function request_firmware() is also welcome since it is used much often) but this will likely lead to calls by function pointers that aren't supported well by verifiers",
-  "is_modifiable": true,
+  "is_modifiable": false,
   "tags": [
     "KernelModel"
   ],

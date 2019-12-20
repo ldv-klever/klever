@@ -39,7 +39,7 @@ def model_comment(comment_type, text=None, other=None):
     short json to parse.
 
     For example:
-    /* LDV {"action": "REGISTER", "type": "DISPATCH_BEGIN", "comment": "Register TTY callbacks."} */
+    /* EMG_ACTION {"action": "REGISTER", "type": "DISPATCH_BEGIN", "comment": "Register TTY callbacks."} */
 
     :param comment_type: Comment type string.
     :param text: Sentence string with a comment itself.
@@ -56,4 +56,4 @@ def model_comment(comment_type, text=None, other=None):
         comment['comment'] = text
 
     string = json.dumps(comment)
-    return "/* LDV {} */".format(string)
+    return "/* EMG_ACTION {} */".format(string)

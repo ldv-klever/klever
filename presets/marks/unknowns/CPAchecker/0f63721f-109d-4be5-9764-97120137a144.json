@@ -19,5 +19,6 @@
   "description": "This is a known bug in CPAchecker",
   "function": "Error: Refinement failed: Counterexample could not be ruled out and was found again",
   "is_regexp": true,
-  "problem_pattern": "RefFailed"
+  "problem_pattern": "RefFailed",
+  "is_modifiable": false
 }

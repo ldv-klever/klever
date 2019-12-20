@@ -3,5 +3,6 @@
   "function": "CPU time exhausted",
   "is_regexp": false,
   "problem_pattern": "Timeout",
-  "production": true
+  "production": true,
+  "is_modifiable": false
 }

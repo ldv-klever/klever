@@ -19,5 +19,6 @@
   "description": "Relevant code is covered, but CPAchecker cannot handle driver. Previously there was a non-target bug.",
   "function": "CPU time exhausted",
   "is_regexp": true,
-  "problem_pattern": "Timeout"
+  "problem_pattern": "Timeout",
+  "is_modifiable": false
 }

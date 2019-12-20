@@ -23,7 +23,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from rest_framework import status, exceptions
 from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
-from rest_framework.generics import get_object_or_404, DestroyAPIView
+from rest_framework.generics import get_object_or_404, DestroyAPIView, RetrieveAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -44,7 +44,8 @@ from marks.models import (
 from marks.utils import MarkAccess
 from marks.tags import TagAccess, ChangeTagsAccess, UploadTags
 from marks.serializers import (
-    SafeMarkSerializer, UnsafeMarkSerializer, UnknownMarkSerializer, SafeTagSerializer, UnsafeTagSerializer
+    SafeMarkSerializer, UnsafeMarkSerializer, UnknownMarkSerializer, SafeTagSerializer, UnsafeTagSerializer,
+    UpdatedPresetUnsafeMarkSerializer
 )
 from marks.SafeUtils import (
     perform_safe_mark_create, perform_safe_mark_update, RemoveSafeMarks, ConfirmSafeMark, UnconfirmSafeMark
@@ -517,3 +518,11 @@ class InlineCreateForm(LoggedCallMixin, TemplateAPIRetrieveView):
             'save_method': 'POST'
         })
         return context
+
+
+class GetUpdatedPresetView(LoggedCallMixin, RetrieveAPIView):
+    permission_classes = (ServicePermission,)
+    queryset = MarkUnsafe.objects.all()
+    serializer_class = UpdatedPresetUnsafeMarkSerializer
+    lookup_url_kwarg = "identifier"
+    lookup_field = "identifier"

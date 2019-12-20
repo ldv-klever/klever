@@ -24,7 +24,7 @@ from core.highlight import Highlight
 
 
 class ErrorTrace:
-    MODEL_COMMENT_TYPES = 'NOTE|ASSERT'
+    MODEL_COMMENT_TYPES = 'NOTE|ASSERT|CIF|EMG_WRAPPER'
     ERROR_TRACE_FORMAT_VERSION = 1
 
     def __init__(self, logger):
@@ -41,6 +41,7 @@ class ErrorTrace:
         self._actions = list()
         self._callback_actions = list()
         self.emg_comments = dict()
+        self.displays = dict()
         self.programfile_content = ''
         self.programfile_line_map = dict()
 
@@ -151,6 +152,11 @@ class ErrorTrace:
                     # like for statement node below.
                     thread_func_call_stacks[edge['thread']][-1]['children'].append(action_node)
 
+            def display(func_name):
+                if func_name.startswith('ldv_'):
+                    return "LDV model '{0}'".format(func_name[4:])
+                return func_name
+
             if 'enter' in edge:
                 # Create node representing given function call.
                 func_call_node = {
@@ -158,7 +164,7 @@ class ErrorTrace:
                     'file': edge['file'],
                     # TODO: like below.
                     'line': edge['line'] if 'line' in edge else 0,
-                    'display': self.resolve_function(edge['enter']),
+                    'display': edge.get('display', display(self.resolve_function(edge['enter']))),
                     'children': list()
                 }
 
@@ -459,7 +465,7 @@ class ErrorTrace:
 
     def parse_model_comments(self):
         self._logger.info('Parse model comments from source files referred by witness')
-        emg_comment = re.compile('/\*\sLDV\s(.*)\s\*/')
+        emg_comment = re.compile('/\*\sEMG_ACTION\s(.*)\s\*/')
 
         for file_id, file in self.files:
             if not os.path.isfile(file):
@@ -498,6 +504,33 @@ class ErrorTrace:
                             self._asserts[file_id][line + 1] = comment
                             self._logger.debug(
                                 "Get assertiom '{0}' for statement from '{1}:{2}'".format(comment, file, line + 1))
+                        elif kind == 'CIF':
+                            m = re.match(r'Original function \"([^"]+)\"\. Instrumenting function \"([^"]+)\"', comment)
+                            if m:
+                                orig_func_name = m.group(1)
+                                instr_func_name = m.group(2)
+
+                                try:
+                                    instr_func_id = self.resolve_function_id(instr_func_name)
+                                except ValueError:
+                                    self.add_function(instr_func_name)
+                                    instr_func_id = self.resolve_function_id(instr_func_name)
+
+                                self.displays[instr_func_id] = "Instrumented function '{0}'".format(orig_func_name)
+                                self._logger.debug("Get display '{0}' for function '{1}' from '{2}:{3}'"
+                                                   .format(comment, orig_func_name, file, line + 1))
+                            else:
+                                raise RuntimeError('Invalid format of CIF comment "{0}"'.format(comment))
+                        elif kind == 'EMG_WRAPPER':
+                            try:
+                                emg_wrapper_id = self.resolve_function_id(comment)
+                            except ValueError:
+                                self.add_function(comment)
+                                emg_wrapper_id = self.resolve_function_id(comment)
+
+                            self.displays[emg_wrapper_id] = "EMG wrapper"
+                            self._logger.debug("Get display '{0}' for EMG wrapper '{1}' from '{2}:{3}'"
+                                               .format(comment, comment, file, line + 1))
 
         return
 
@@ -557,6 +590,14 @@ class ErrorTrace:
                 continue
             line = edge['line']
 
+            if 'enter' in edge:
+                func_id = edge['enter']
+                if func_id in self.displays:
+                    display = self.displays[func_id]
+                    self._logger.debug("Add display {!r} for function '{}'"
+                                       .format(display, self.resolve_function(func_id)))
+                    edge['display'] = display
+
             if file_id in self._notes and line in self._notes[file_id]:
                 note = self._notes[file_id][line]
                 self._logger.debug("Add note {!r} for statement from '{}:{}'".format(note, file, line))
@@ -597,7 +638,7 @@ class ErrorTrace:
             if 'note' in warn_edge:
                 del warn_edge['note']
 
-        del self._violation_edges, self._notes, self._asserts
+        del self._violation_edges, self._notes, self._asserts, self.displays
 
     def get_func_return_edge(self, func_enter_edge):
         next_edge = self.next_edge(func_enter_edge)

@@ -66,8 +66,8 @@
   },
   "Klever Addons": {
     "CIF": {
-      "version": "553e26d",
-      "path": "addons/cif-553e26d.tar.xz"
+      "version": "1fe6ecc",
+      "path": "addons/cif-1fe6ecc.tar.xz"
     },
     "CIL": {
       "version": "8ded734",
@@ -93,8 +93,8 @@
       },
       "CPALockator": {
         "name": "CPAchecker",
-        "version": "CPALockator-combat-mode:32118",
-        "path": "addons/CPAchecker-1.8-svn 32118-unix",
+        "version": "CPALockator-combat-mode:32435",
+        "path": "addons/CPAchecker-1.8-svn 32435-unix",
         "executable path": "scripts"
       }
     }

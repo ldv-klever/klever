@@ -81,9 +81,13 @@ class Session:
             with open('response error.html', 'w', encoding='utf8') as fp:
                 fp.write(resp.text)
             status_code = resp.status_code
+            if resp.headers['content-type'] == 'application/json':
+                error_str = str(resp.json())
+            else:
+                error_str = resp.content
             resp.close()
-            raise UnexpectedStatusCode('Got unexpected status code "{0}" when send "{1}" request to "{2}"'
-                                       .format(status_code, method, url))
+            raise UnexpectedStatusCode('Got unexpected status code "{0}" when send "{1}" request to "{2}": {3}'
+                                       .format(status_code, method, url, error_str))
         return resp
 
     def __download_archive(self, path_url, archive):
@@ -228,6 +232,12 @@ class Session:
         :return: path to saved archive.
         """
         return self.__download_archive('marks/api/download-all/', archive)
+
+    def get_updated_preset_mark(self, identifier, report_id):
+        url = "marks/api/get-updated-preset/{}/".format(identifier)
+        params = {'report': report_id} if report_id else None
+        resp = self.__request(url, params=params)
+        return resp.json()
 
 
 def execute_cmd(logger, *args, **kwargs):
