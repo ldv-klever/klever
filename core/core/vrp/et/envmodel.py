@@ -19,7 +19,6 @@
 def envmodel_simplifications(logger, error_trace):
     logger.info('Start environment model driven error trace simplifications')
     data, main_data, main = _collect_action_diaposons(logger, error_trace)
-    _set_main(main_data, main, error_trace)
     _set_thread(data, error_trace)
 
     # This is quite tricky code and it is ensure that before deleting any edges the trace was correct
@@ -155,32 +154,6 @@ def _match_exit_function(edge, stack):
     return False
 
 
-def _set_main(data, main, error_trace):
-    if not data or not main:
-        return
-
-    for edge in error_trace.trace_iterator():
-        if edge.get("source", "") == "Begin program execution":
-            edge["file"] = data['file']
-            edge["line"] = data['begin'] - 1
-            return
-
-        if _inside_this_control_function(data, edge['file'], edge['line']):
-            # Got it!
-            if edge["file"] != data['file']:
-                edge["file"] = data['file']
-            identifier = error_trace.resolve_function_id(main)
-            new_edge = error_trace.insert_edge_and_target_node(edge, after=False)
-            new_edge["enter"] = identifier
-            new_edge["file"] = data['file']
-            new_edge["line"] = data['begin'] - 1
-            new_edge["source"] = "Begin program execution"
-
-            return
-
-    raise RuntimeError("Cannot determine main function in the witness")
-
-
 def _set_thread(data, error_trace):
     def update_thread(stack):
         having_thread = [f for f in stack if 'thread' in f['cf']]
@@ -249,14 +222,16 @@ def _remove_control_func_aux_code(data, error_trace):
                 if not act:
                     cf['action'] = None
                     cf['in aux code'] = True
-                    error_trace.remove_edge_and_target_node(e)
+                    # TODO: FIXME!
+                    # error_trace.remove_edge_and_target_node(e)
                 else:
                     cf['action'] = act
                     cf['in aux code'] = False
             else:
                 cfs = [cf for cf in stack if cf['thread'] == e['thread'] and cf['in aux code']]
-                if len(cfs) > 0:
-                    error_trace.remove_edge_and_target_node(e)
+                # TODO: FIXME!
+                # if len(cfs) > 0:
+                #     error_trace.remove_edge_and_target_node(e)
 
     def if_simple_state(e, stack):
         """Simple e."""
@@ -271,12 +246,14 @@ def _remove_control_func_aux_code(data, error_trace):
             elif not act:
                 # Not in action
                 cf['action'] = None
-                error_trace.remove_edge_and_target_node(e)
+                # TODO: FIXME!
+                # error_trace.remove_edge_and_target_node(e)
         else:
             # Check whether there are control functions from this thread which have stack stopped in aux code
             cfs = [cf for cf in stack if cf['thread'] == e['thread'] and cf['in aux code']]
-            if len(cfs) > 0:
-                error_trace.remove_edge_and_target_node(e)
+            # TODO: FIXME!
+            # if len(cfs) > 0:
+            #     error_trace.remove_edge_and_target_node(e)
 
         return
 

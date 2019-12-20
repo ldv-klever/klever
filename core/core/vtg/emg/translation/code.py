@@ -328,7 +328,7 @@ class CModel:
         """
         ep = Function(self.entry_name, "int {}(void)".format(self.entry_name))
         ep.definition_file = self.entry_file
-        body = ['/* LDV {' + '"thread": 1, "type": "CONTROL_FUNCTION_BEGIN", "comment": "Entry point \'{0}\'", '
+        body = ['/* EMG_ACTION {' + '"thread": 1, "type": "CONTROL_FUNCTION_BEGIN", "comment": "Entry point \'{0}\'", '
                 '"function": "{0}"'.format(self.entry_name) + '} */']
 
         # Init external allocated pointers
@@ -361,28 +361,17 @@ class CModel:
             ]
 
         if self._conf.get("initialize requirements", True):
-            comment_data = {'relevant': True, 'name': 'init_requirements'}
-            body += [
-                model_comment('ACTION_BEGIN', 'Initialize requirement models.', other=comment_data),
-                'ldv_initialize();',
-                model_comment('ACTION_END', other=comment_data),
-            ]
+            body.append('ldv_initialize();')
 
         comment_data = {'action': 'scenarios'}
         body += [model_comment('ACTION_BEGIN', 'Begin Environment model scenarios', comment_data)] + given_body + \
                 [model_comment('ACTION_END', other=comment_data)]
 
         if self._conf.get("check final state", True):
-            comment_data = {'action': 'check_final_state', 'relevant': True}
-            body += [
-                model_comment('ACTION_BEGIN', 'Check requirement model final state at the exit if required.',
-                              comment_data),
-                'ldv_check_final_state();',
-                model_comment('ACTION_END', other=comment_data)
-            ]
+            body.append('ldv_check_final_state();')
 
         body += ['return 0;',
-                 '/* LDV {' +
+                 '/* EMG_ACTION {' +
                  '"comment": "Exit entry point \'{0}\'", "type": "CONTROL_FUNCTION_END", "function": "{0}"'.
                  format(self.entry_name) + '} */']
 

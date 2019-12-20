@@ -14,17 +14,23 @@
   "description": "",
   "error_trace": [
     [
-      {
-        "init": [
-          {
-            "ldv_error": []
-          }
-        ]
-      }
+      [
+        {
+          "EMG wrapper": [
+            {
+              "init": [
+                {
+                  "LDV model 'expected_error'": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",
-  "is_modifiable": true,
+  "is_modifiable": false,
   "tags": [],
   "verdict": "2"
 }

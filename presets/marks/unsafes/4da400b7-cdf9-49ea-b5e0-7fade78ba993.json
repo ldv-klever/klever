@@ -14,17 +14,23 @@
   "description": "",
   "error_trace": [
     [
-      {
-        "init": [
-          {
-            "several_groups_export_with_error": [
-              {
-                "ldv_error": []
-              }
-            ]
-          }
-        ]
-      }
+      [
+        {
+          "EMG wrapper": [
+            {
+              "init": [
+                {
+                  "several_groups_export_with_error": [
+                    {
+                      "LDV model 'expected_error'": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",

@@ -5,5 +5,6 @@
   "is_regexp": false,
   "link": "http://forge.ispras.ru/issues/7562",
   "problem_pattern": "Not a func",
-  "production": true
+  "production": true,
+  "is_modifiable": false
 }

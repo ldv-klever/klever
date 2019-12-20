@@ -19,5 +19,6 @@
   "description": "Too many and long value refinements.",
   "function": "CPU time exhausted",
   "is_regexp": true,
-  "problem_pattern": "Timeout"
+  "problem_pattern": "Timeout",
+  "is_modifiable": false
 }

@@ -3,5 +3,6 @@
   "function": "Warning: Analysis interrupted",
   "is_regexp": false,
   "problem_pattern": "Interruption",
-  "production": true
+  "production": true,
+  "is_modifiable": false
 }

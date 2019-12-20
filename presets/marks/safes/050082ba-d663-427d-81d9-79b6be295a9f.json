@@ -17,7 +17,7 @@
     }
   ],
   "description": "Seems that all is right.",
-  "is_modifiable": true,
+  "is_modifiable": false,
   "tags": [],
   "verdict": "0"
 }

@@ -4,5 +4,6 @@
   "is_regexp": false,
   "link": "https://forge.ispras.ru/issues/7143",
   "problem_pattern": "UnsupAsmExpr",
-  "production": true
+  "production": true,
+  "is_modifiable": false
 }
