@@ -31,14 +31,17 @@ void ldv_handler(unsigned long data)
 
 static int __init ldv_init(void)
 {
+	int ret1;
 	int ret = ldv_undef_int();
 	setup_timer_on_stack(&ldv_timer, ldv_handler, data);
 	flip_a_coin = ldv_undef_int();
 	if (flip_a_coin) {
 		ldv_register();
-		ret = mod_timer(&ldv_timer, jiffies + msecs_to_jiffies(200));
-		if (ret)
+		ret1 = mod_timer(&ldv_timer, jiffies + msecs_to_jiffies(200));
+		if (!ret1)
 			ldv_deregister();
+		else
+		    return 0;
 	}
 	return ret;
 }

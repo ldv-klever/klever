@@ -74,9 +74,9 @@
             ]
           },
           "fail": {
-            "comment": "Failed to modify a timer's timeout",
+            "comment": "Timer is inactive.",
             "statements": [
-              "return ldv_undef_int_negative();"
+              "return 0;"
             ]
           },
           "instance_register": {
@@ -85,9 +85,9 @@
             ]
           },
           "success": {
-            "comment": "Successfully modified a timer's timeout",
+            "comment": "Timer is active.",
             "statements": [
-              "return 0;"
+              "return 1;"
             ]
           }
         },
