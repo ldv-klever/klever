@@ -244,6 +244,9 @@ class RP(core.components.Component):
 
         # Obtain file prefixes that can be removed from file paths.
         self.clade = Clade(self.conf['build base'])
+        if not self.clade.work_dir_ok():
+            raise RuntimeError('Build base is not OK')
+
         self.search_dirs = core.utils.get_search_dirs(self.conf['main working directory'], abs_paths=True)
 
     def fetcher(self):

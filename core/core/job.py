@@ -501,6 +501,9 @@ class Job(core.components.Component):
         # Check and set build base here since many Core components need it.
         self.__set_build_base()
         self.clade = Clade(self.common_components_conf['build base'])
+        if not self.clade.work_dir_ok():
+            raise RuntimeError('Build base is not OK')
+
         self.__retrieve_working_src_trees()
         self.__get_original_sources_basic_info()
         self.__upload_original_sources()
