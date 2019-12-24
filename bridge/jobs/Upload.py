@@ -33,7 +33,7 @@ from bridge.utils import BridgeException, extract_archive
 from jobs.models import JOBFILE_DIR, Job, RunHistory, JobHistory
 from reports.models import (
     ReportRoot, ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent,
-    ReportAttr, CoverageArchive, AttrFile, OriginalSources, AdditionalSources
+    ReportAttr, CoverageArchive, AttrFile, OriginalSources, AdditionalSources, RootCache
 )
 from service.models import Decision
 from caches.models import ReportSafeCache, ReportUnsafeCache, ReportUnknownCache
@@ -43,9 +43,9 @@ from caches.utils import update_cache_atomic
 from reports.coverage import FillCoverageStatistics
 from jobs.serializers import JobFileSerializer
 from jobs.DownloadSerializers import (
-    DownloadJobSerializer, DownloadJobVersionSerializer,
-    DownloadComputerSerializer, DownloadReportAttrSerializer, DownloadReportComponentSerializer,
-    DownloadReportSafeSerializer, DownloadReportUnsafeSerializer, DownloadReportUnknownSerializer
+    DownloadJobSerializer, DownloadJobVersionSerializer, DownloadComputerSerializer,
+    DownloadReportAttrSerializer, DownloadReportComponentSerializer, DownloadReportSafeSerializer,
+    DownloadReportUnsafeSerializer, DownloadReportUnknownSerializer, RootCacheSerializer
 )
 
 
@@ -193,12 +193,20 @@ class UploadReports:
 
     def __create_root(self, job):
         # Create report root
-        root_data = self.__read_json_file('{}.json'.format(ReportRoot.__name__))
-        if not root_data:
+        cache_data = self.__read_json_file('{}.json'.format(RootCache.__name__))
+        if not cache_data:
             # The job is without reports
             return None
-        # TODO: validate root_data
-        return ReportRoot.objects.create(user=self._user, job=job, **root_data)
+        serializer = RootCacheSerializer(data=cache_data, many=True)
+        serializer.is_valid(raise_exception=True)
+
+        # Create reportroot
+        root = ReportRoot.objects.create(user=self._user, job=job)
+
+        # Fill resources and instances cache
+        RootCache.objects.bulk_create(list(RootCache(root=root, **kwargs) for kwargs in serializer.validated_data))
+
+        return root
 
     def __upload_original_sources(self):
         original_sources = {}
