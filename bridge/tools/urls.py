@@ -16,13 +16,14 @@
 #
 
 from django.urls import path
-from tools import views
+from tools import views, api
 
 
 urlpatterns = [
     path('manager/', views.ManagerPageView.as_view(), name='manager'),
     path('call-logs/', views.CallLogsView.as_view(), name='call-logs'),
     path('processing-list/', views.ProcessingListView.as_view(), name='processing-list'),
+    path('db-statistics/', views.DBLogsStatistics.as_view(), name='db-statistics'),
 
     path('api/clear-system/', views.ClearSystemAPIView.as_view(), name='api-clear-system'),
     path('api/clear-comparison/<int:pk>/', views.ClearComparisonAPIView.as_view(), name='api-clear-comparison'),
@@ -33,4 +34,5 @@ urlpatterns = [
     path('api/clear-tasks/', views.ClearTasksAPIView.as_view(), name='api-clear-tasks'),
     path('api/manual-unlock/', views.ManualUnlockAPIView.as_view(), name='api-manual-unlock'),
     path('api/population/', views.PopulationAPIView.as_view(), name='api-populate'),
+    path('api/db-statistics/', api.CalculateDBLogStatisticsView.as_view(), name='api-db-statistics'),
 ]

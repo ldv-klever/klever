@@ -1563,3 +1563,82 @@ class DecideJob:
 
     def __is_not_used(self):
         pass
+
+
+class UploadRawReports:
+    base_url = 'http://127.0.0.1:8998'
+
+    def __init__(self, job_uuid, reports_dir):
+        self._upload_url = '/reports/api/upload/{}/'.format(job_uuid)
+        self._reports_dir = os.path.abspath(reports_dir)
+        assert os.path.isdir(self._reports_dir), 'Reports directory not found!'
+        self.session = requests.Session()
+        self.__login()
+        self.__decide_job(job_uuid)
+
+    def __login(self):
+        resp = self.__request('/service/get_token/', data={'username': 'service', 'password': 'service'})
+        self.session.headers.update({'Authorization': 'Token {}'.format(resp.json()['token'])})
+
+    def __decide_job(self, job_uuid):
+        self.__request('/jobs/api/download-files/{}/'.format(job_uuid), method='GET')
+        self.__send_reports()
+        self.__request('/service/job-status/{}/'.format(job_uuid), method='PATCH', data={'status': '3'})
+
+    def __send_reports(self):
+        all_archives = list(f for f in os.listdir(self._reports_dir) if f.endswith('.zip'))
+        cnt = 1
+        while True:
+            report_json = os.path.join(self._reports_dir, '{}.json'.format(cnt))
+            if not os.path.isfile(report_json):
+                logger.info('{}.json not found!'.format(cnt))
+                return
+            with open(report_json, mode='r', encoding='utf-8') as fp:
+                report = json.load(fp)
+            report_archives = []
+            for a_name in all_archives:
+                if a_name.startswith('{}-'.format(cnt)) or a_name.startswith('{} '.format(cnt)):
+                    report_archives.append(a_name)
+            self.__upload_report(report, report_archives)
+            cnt += 1
+            time.sleep(0.01)
+
+    def __upload_report(self, report, archives):
+        if report.get('original_sources'):
+            report['original_sources'] = '936d4726-6d0b-4244-a63e-bb1133706555'
+        report.pop('task', None)
+
+        logger.info('{}: {}; '.format(report.get('type'), report.get('identifier')) + str(archives))
+        archives_fp = {}
+        try:
+            for a_name in archives:
+                archives_fp[os.path.basename(a_name)] = open(os.path.join(self._reports_dir, a_name), mode='rb')
+            self.__request(self._upload_url, data={'report': json.dumps(report)}, files=archives_fp)
+        finally:
+            for fp in archives_fp.values():
+                fp.close()
+
+    def __request(self, url, method='POST', **kwargs):
+        cnt = 0
+        while True:
+            try:
+                resp = self.session.request(method, self.base_url + url, **kwargs)
+            except Exception as e:
+                logger.error(str(e))
+            else:
+                break
+            time.sleep(1)
+            cnt += 1
+            if cnt > 3:
+                raise ResponseError('Connection max tries exceeded')
+
+        if not 200 <= resp.status_code < 300:
+            try:
+                error_str = str(resp.json())
+            except Exception as e:
+                print(e)
+                error_str = resp.content
+            logger.error(error_str)
+            resp.close()
+            raise ResponseError('Unexpected status code returned: {}'.format(resp.status_code))
+        return resp

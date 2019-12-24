@@ -41,7 +41,7 @@ from service.models import Task
 from tools.models import LockTable
 
 from tools.utils import objects_without_relations, ClearFiles, Recalculation, RecalculateMarksCache
-from tools.profiling import ProfileData, ExecLocker, LoggedCallMixin
+from tools.profiling import ProfileData, ExecLocker, LoggedCallMixin, DBLogsAnalizer
 
 from marks.population import (
     PopulateSafeTags, PopulateUnsafeTags, PopulateSafeMarks, PopulateUnsafeMarks, PopulateUnknownMarks
@@ -222,3 +222,22 @@ class PopulationAPIView(LoggedCallMixin, APIView):
             res = PopulateUnknownMarks()
             messages.append("{} of {} unknown marks were populated".format(res.created, res.total))
         return Response({'messages': messages})
+
+
+class DBLogsStatistics(TemplateView):
+    template_name = 'tools/DBLogsStatistics.html'
+
+    def get_context_data(self, **kwargs):
+        context = super(DBLogsStatistics, self).get_context_data(**kwargs)
+        results_file = os.path.join('logs', DBLogsAnalizer.results_file)
+        if os.path.isfile(results_file):
+            with open(results_file, mode='r', encoding='utf-8') as fp:
+                data = json.load(fp)
+                context['data'] = list({
+                    'name': k,
+                    'numbers': data[k][:6],
+                    'percents': list(int(x / data[k][5] * 100) for x in data[k][:5]),
+                    'average': data[k][6] / data[k][5],
+                    'total': data[k][6]
+                } for k in sorted(data))
+        return context

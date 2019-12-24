@@ -16,6 +16,7 @@
 #
 
 import os
+import re
 import time
 from datetime import datetime
 
@@ -300,3 +301,113 @@ class ProfileData:
         elif not isinstance(date, float):
             date = None
         return date
+
+
+class DBLogsAnalizer:
+    results_file = 'db-stat.json'
+
+    def __init__(self):
+        self.data = {}
+
+    @property
+    def _log_file(self):
+        file_name = os.path.join('logs', 'db.log')
+        assert os.path.isfile(file_name), 'DB log file does not exist'
+        return file_name
+
+    def analize(self, max_cnt=None):
+        with open(self._log_file, mode='r', encoding='utf-8') as fp:
+            cnt = 0
+            for line in fp:
+                m = re.match(r'^\[.*?\]\s\((.*?)\)\s(.*)$', line)
+                if m:
+                    try:
+                        exec_time = float(m.group(1))
+                    except ValueError:
+                        print(m.group(1))
+                        print(line)
+                        print(m.groups())
+                        raise
+                    query_sql = m.group(2)
+                    if query_sql:
+                        query_sql = self.parse_sql(query_sql)
+                    if not query_sql:
+                        query_sql = 'UPDATE report TREE'
+                    self.__save_data(query_sql, exec_time)
+                    cnt += 1
+                    if max_cnt and cnt > max_cnt:
+                        break
+
+    def __save_data(self, query_sql, exec_time):
+        if query_sql not in self.data:
+            # 0 <= x0 < 0.005 <= x1 < 0.01 <= x2 < 0.05 <= x3 < 0.1 <= x4, total_number, total_execution
+            self.data[query_sql] = [0, 0, 0, 0, 0, 0, 0.000]
+
+        save_index = 4
+        if exec_time < 0.005:
+            save_index = 0
+        elif exec_time < 0.01:
+            save_index = 1
+        elif exec_time < 0.05:
+            save_index = 2
+        elif exec_time < 0.1:
+            save_index = 3
+        self.data[query_sql][save_index] += 1
+        self.data[query_sql][5] += 1
+        self.data[query_sql][6] += exec_time
+
+    def parse_sql(self, value):
+        if value.startswith('SELECT'):
+            m = re.match(r'^SELECT(.*)FROM(.*)WHERE(.*)$', value)
+            if m:
+                return 'SELECT ({}) FROM ({}) WHERE ({})'.format(
+                    self.__parse_fields(m.group(1)),
+                    self.__parse_from(m.group(2)),
+                    self.__parse_where(m.group(3))
+                )
+            m = re.match(r'^SELECT(.*)FROM(.*)$', value)
+            if m:
+                return 'SELECT ({}) FROM ({})'.format(self.__parse_fields(m.group(1)), self.__parse_from(m.group(2)))
+        elif value.startswith('UPDATE'):
+            m = re.match(r'^UPDATE\s"(.*)"\sSET.*WHERE(.*)$', value)
+            if m:
+                return 'UPDATE {} WHERE ({})'.format(m.group(1), self.__parse_where(m.group(2)))
+        elif value.startswith('INSERT'):
+            m = re.match(r'^INSERT\sINTO\s"(.*?)"\s\(.*$', value)
+            if m:
+                return 'INSERT INTO {}'.format(m.group(1))
+        elif value.startswith('DELETE'):
+            m = re.match(r'^DELETE\sFROM\s"(.*)"\sWHERE\s(.*)$', value)
+            if m:
+                return 'DELETE FROM {} WHERE ({})'.format(m.group(1), self.__parse_where(m.group(2)))
+        return value
+
+    def __parse_fields(self, fields_str):
+        fields_list = []
+        for field_name in fields_str.split(', '):
+            if fields_str.startswith('(1)'):
+                fields_list.append('(1)')
+            m = re.search(r'\."(\w+)"', field_name)
+            if m:
+                fields_list.append(m.group(1))
+            else:
+                fields_list.append(field_name.strip())
+        return ', '.join(list(sorted(fields_list)))
+
+    def __parse_where(self, value_str):
+        fields_list = []
+        m = re.match(r'^\s*(.*?)\s*(ORDER.*)?;.*$', value_str)
+        if m:
+            for field_name in m.group(1).split():
+                m = re.match(r'^.*\S+\."(\w+)".*$', field_name)
+                if m:
+                    fields_list.append(m.group(1))
+        return ', '.join(list(sorted(fields_list)))
+
+    def __parse_from(self, value_str):
+        return ', '.join(list(sorted(re.findall(r'\s"(\w+)"\s', value_str))))
+
+    def print_results(self):
+        import json
+        with open(os.path.join('logs', self.results_file), mode='w', encoding='utf-8') as fp:
+            json.dump(self.data, fp, sort_keys=True, indent=2, ensure_ascii=False)
