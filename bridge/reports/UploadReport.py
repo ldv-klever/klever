@@ -35,8 +35,8 @@ from bridge.vars import (
 from bridge.utils import logger, extract_archive, CheckArchiveError
 
 from reports.models import (
-    ReportRoot, ReportComponent, ReportSafe, ReportUnsafe, ReportUnknown, ReportAttr,
-    ReportComponentLeaf, CoverageArchive, AttrFile, Computer, OriginalSources, AdditionalSources
+    ReportRoot, ReportComponent, ReportSafe, ReportUnsafe, ReportUnknown, ReportAttr, ReportComponentLeaf,
+    CoverageArchive, AttrFile, Computer, OriginalSources, AdditionalSources, RootCache
 )
 from service.models import Task, Decision
 from service.utils import FinishJobDecision
@@ -730,28 +730,21 @@ class UploadReport:
         carch.save()
 
     def __update_root_cache(self, component, **kwargs):
-        # Update resources cache
-        self.root.resources.setdefault(component, {'cpu_time': 0, 'wall_time': 0, 'memory': 0})
-        self.root.resources.setdefault('total', {'cpu_time': 0, 'wall_time': 0, 'memory': 0})
+        try:
+            cache_obj = RootCache.objects.get(root=self.root, component=component)
+        except RootCache.DoesNotExist:
+            cache_obj = RootCache(root=self.root, component=component)
         if kwargs.get('cpu_time'):
-            self.root.resources[component]['cpu_time'] += kwargs['cpu_time']
-            self.root.resources['total']['cpu_time'] += kwargs['cpu_time']
+            cache_obj.cpu_time += kwargs['cpu_time']
         if kwargs.get('wall_time'):
-            self.root.resources[component]['wall_time'] += kwargs['wall_time']
-            self.root.resources['total']['wall_time'] += kwargs['wall_time']
+            cache_obj.wall_time += kwargs['wall_time']
         if kwargs.get('memory'):
-            self.root.resources[component]['memory'] = max(kwargs['memory'], self.root.resources[component]['memory'])
-            self.root.resources['total']['memory'] = max(kwargs['memory'], self.root.resources['total']['memory'])
-
-        # Update instances cache
-        self.root.instances.setdefault(component, {'finished': 0, 'total': 0})
+            cache_obj.memory = max(cache_obj.memory, kwargs['memory'])
         if kwargs.get('started'):
-            self.root.instances[component]['total'] += 1
+            cache_obj.total += 1
         if kwargs.get('finished'):
-            self.root.instances[component]['finished'] += 1
-
-        # Save
-        self.root.save()
+            cache_obj.finished += 1
+        cache_obj.save()
 
     def __upload_attrs_files(self, archive):
         if not archive:

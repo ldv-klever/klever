@@ -59,8 +59,6 @@ def get_attr_data_path(instance, filename):
 class ReportRoot(models.Model):
     user = models.ForeignKey(User, models.SET_NULL, null=True, related_name='roots')
     job = models.OneToOneField(Job, models.CASCADE)
-    resources = JSONField(default=dict)
-    instances = JSONField(default=dict)
 
     class Meta:
         db_table = 'report_root'
@@ -364,6 +362,21 @@ class ComparisonLink(models.Model):
 
     class Meta:
         db_table = 'cache_report_comparison_link'
+
+
+class RootCache(models.Model):
+    root = models.ForeignKey(ReportRoot, models.CASCADE)
+    component = models.CharField(max_length=MAX_COMPONENT_LEN)
+    cpu_time = models.BigIntegerField(default=0)
+    wall_time = models.BigIntegerField(default=0)
+    memory = models.BigIntegerField(default=0)
+
+    total = models.IntegerField(default=0)
+    finished = models.IntegerField(default=0)
+
+    class Meta:
+        db_table = 'cache_report_root'
+        index_together = ['root', 'component']
 
 
 post_delete.connect(remove_instance_files, sender=AttrFile)

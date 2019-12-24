@@ -35,7 +35,7 @@ from marks.models import (
 )
 from reports.models import (
     ReportRoot, ReportComponent, ReportSafe, ReportUnsafe, ReportUnknown, ReportComponentLeaf,
-    CoverageArchive, OriginalSources, ORIGINAL_SOURCES_DIR
+    CoverageArchive, OriginalSources, RootCache, ORIGINAL_SOURCES_DIR
 )
 from marks.SafeUtils import ConnectSafeReport
 from marks.UnknownUtils import ConnectUnknownReport
@@ -79,12 +79,7 @@ class ClearFiles:
                     to_delete.add(instance.pk)
         model.objects.filter(id__in=to_delete).delete()
 
-        files_directory = os.path.join(settings.MEDIA_ROOT, files_dir)
-        if os.path.exists(files_directory):
-            files_on_disk = set(os.path.abspath(os.path.join(files_directory, x))
-                                for x in os.listdir(files_directory))
-            for f in files_on_disk - files_in_the_system:
-                os.remove(f)
+        self.__clear_unused_files(files_dir, files_in_the_system)
 
     def __files_paths(self, instance):
         paths_list = []
@@ -99,10 +94,13 @@ class ClearFiles:
             files_in_the_system.add(os.path.abspath(os.path.join(settings.MEDIA_ROOT, s)))
         for s in Task.objects.values_list('archive', flat=True):
             files_in_the_system.add(os.path.abspath(os.path.join(settings.MEDIA_ROOT, s)))
-        files_directory = os.path.join(settings.MEDIA_ROOT, SERVICE_DIR)
+        self.__clear_unused_files(SERVICE_DIR, files_in_the_system)
+
+    def __clear_unused_files(self, files_dir, excluded: set):
+        files_directory = os.path.join(settings.MEDIA_ROOT, files_dir)
         if os.path.exists(files_directory):
             files_on_disk = set(os.path.abspath(os.path.join(files_directory, x)) for x in os.listdir(files_directory))
-            for f in files_on_disk - files_in_the_system:
+            for f in files_on_disk - excluded:
                 os.remove(f)
 
 
@@ -123,30 +121,6 @@ class RecalculateLeaves:
         for report in ReportUnknown.objects.filter(root__in=self._roots).only('id', 'parent_id'):
             self._leaves.add_leaf(report)
         self._leaves.upload()
-
-
-class RecalculateComponentInstances:
-    def __init__(self, roots):
-        self._roots = list(root for root in roots if root.job.weight == JOB_WEIGHT[0][0])
-        self.__recalc()
-
-    def __recalc(self):
-        inst_cache = {}
-        for report in ReportComponent.objects.filter(root__in=self._roots)\
-                .order_by('id').only('component', 'finish_date'):
-            if report.root_id not in inst_cache:
-                inst_cache[report.root_id] = {}
-            if report.component not in inst_cache[report.root_id]:
-                inst_cache[report.root_id][report.component] = {'finished': 0, 'total': 0}
-
-            inst_cache[report.root_id][report.component]['total'] += 1
-            if report.finish_date:
-                inst_cache[report.root_id][report.component]['finished'] += 1
-
-        with transaction.atomic():
-            for root in self._roots:
-                root.instances = inst_cache.get(root.id, {})
-                root.save()
 
 
 class RecalculateSafeLinks:
@@ -185,6 +159,36 @@ class RecalculateUnknownLinks:
         RecalculateUnknownCache(roots=set(r.id for r in self._roots))
 
 
+class RecalculateRootCache:
+    def __init__(self, roots):
+        self._roots = list(root for root in roots if root.job.weight == JOB_WEIGHT[0][0])
+        self.__recalc()
+
+    def __recalc(self):
+        cache_data = {}
+        for report in ReportComponent.objects.filter(root__in=self._roots):
+            if (report.root_id, report.component) not in cache_data:
+                cache_data[(report.root_id, report.component)] = {
+                    'total': 0, 'finished': 0, 'cpu_time': 0, 'wall_time': 0, 'memory': 0
+                }
+            cache_data[(report.root_id, report.component)]['total'] += 1
+            if report.finish_date:
+                cache_data[(report.root_id, report.component)]['finished'] += 1
+            if report.cpu_time:
+                cache_data[(report.root_id, report.component)]['cpu_time'] += report.cpu_time
+            if report.wall_time:
+                cache_data[(report.root_id, report.component)]['wall_time'] += report.wall_time
+            if report.memory:
+                cache_data[(report.root_id, report.component)]['memory'] += max(
+                    cache_data[(report.root_id, report.component)]['memory'], report.memory
+                )
+        RootCache.objects.filter(root_id__in=self._roots).delete()
+        RootCache.objects.bulk_create(list(
+            RootCache(root_id=r_id, component=component, **obj_kwargs)
+            for (r_id, component), obj_kwargs in cache_data.items()
+        ))
+
+
 class Recalculation:
     def __init__(self, rec_type, jobs):
         self.type = rec_type
@@ -214,10 +218,8 @@ class Recalculation:
             RecalculateUnsafeCache(roots=set(r.id for r in self._roots))
         elif self.type == 'unknown_reports':
             RecalculateUnknownCache(roots=set(r.id for r in self._roots))
-        elif self.type == 'resources':
-            RecalculateResources(self._roots)
-        elif self.type == 'compinst':
-            RecalculateComponentInstances(self._roots)
+        elif self.type == 'root_cache':
+            RecalculateRootCache(self._roots)
         elif self.type == 'coverage':
             RecalculateCoverage(self._roots)
         elif self.type == 'all':
@@ -225,8 +227,7 @@ class Recalculation:
             RecalculateSafeLinks(self._roots)
             RecalculateUnsafeLinks(self._roots)
             RecalculateUnknownLinks(self._roots)
-            RecalculateResources(self._roots)
-            RecalculateComponentInstances(self._roots)
+            RecalculateRootCache(self._roots)
             RecalculateCoverage(self._roots)
         else:
             logger.error('Wrong type of recalculation')
@@ -318,28 +319,6 @@ class RecalculateMarksCache:
                 for field_name, field_value in cache_data[mark.id].items():
                     setattr(mark, field_name, field_value)
                 mark.save()
-
-
-class RecalculateResources:
-    def __init__(self, roots):
-        self._roots = list(root for root in roots if root.job.weight == JOB_WEIGHT[0][0])
-        self.__recalc()
-
-    def __recalc(self):
-        data = {}
-        for report in ReportComponent.objects.filter(root__in=self._roots):
-            data.setdefault(report.root_id, {'cpu_time': 0, 'wall_time': 0, 'memory': 0})
-            if report.cpu_time:
-                data[report.root_id]['cpu_time'] += report.cpu_time
-            if report.wall_time:
-                data[report.root_id]['wall_time'] += report.wall_time
-            if report.memory:
-                data[report.root_id]['memory'] = max(report.cpu_time, data[report.root_id]['memory'])
-
-        with transaction.atomic():
-            for root in self._roots:
-                root.resources = data.get(root.id, {})
-                root.save()
 
 
 class LeavesData:

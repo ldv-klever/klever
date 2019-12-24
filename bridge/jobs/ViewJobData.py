@@ -24,7 +24,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from bridge.vars import ASSOCIATION_TYPE, SafeVerdicts, UnsafeVerdicts, JOB_WEIGHT
 
-from reports.models import ReportSafe, ReportUnsafe, ReportUnknown, ReportRoot, ReportComponent, Report
+from reports.models import ReportSafe, ReportUnsafe, ReportUnknown, ReportRoot, ReportComponent, Report, RootCache
 from marks.models import MarkUnknownReport, SafeTag, UnsafeTag
 
 from users.utils import HumanizedValue
@@ -223,25 +223,25 @@ class TagsInfo:
 
 
 class ResourcesInfo:
-    def __init__(self, user, view, instances, data, total):
+    def __init__(self, user, view, data):
         self.user = user
         self.view = view
-        self._instances = instances
         self._data = data
-        self._total = total
         self.info = self.__get_info()
 
     def __get_info(self):
         resource_data = []
-        for component in sorted(self._instances):
+
+        total_resources = {'wall_time': 0, 'cpu_time': 0, 'memory': 0}
+        for component in sorted(self._data):
             component_data = {
                 'component': component,
                 'wall_time': '-',
                 'cpu_time': '-',
                 'memory': '-',
-                'instances': '{}/{}'.format(self._instances[component]['finished'], self._instances[component]['total'])
+                'instances': '{}/{}'.format(self._data[component]['finished'], self._data[component]['total'])
             }
-            if self._instances[component]['finished'] and component in self._data:
+            if self._data[component]['finished'] and component in self._data:
                 component_data['wall_time'] = HumanizedValue(
                     self._data[component]['wall_time'], user=self.user
                 ).timedelta
@@ -251,15 +251,19 @@ class ResourcesInfo:
                 component_data['memory'] = HumanizedValue(
                     self._data[component]['memory'], user=self.user
                 ).memory
+
+                total_resources['wall_time'] += self._data[component]['wall_time']
+                total_resources['cpu_time'] += self._data[component]['cpu_time']
+                total_resources['memory'] = max(total_resources['memory'], self._data[component]['memory'])
             resource_data.append(component_data)
 
         if 'hidden' not in self.view or 'resource_total' not in self.view['hidden']:
-            if self._total and (self._total['wall_time'] or self._total['cpu_time'] or self._total['memory']):
+            if total_resources['wall_time'] or total_resources['cpu_time'] or total_resources['memory']:
                 resource_data.append({
                     'component': 'total', 'instances': '-',
-                    'wall_time': HumanizedValue(self._total['wall_time'], user=self.user).timedelta,
-                    'cpu_time': HumanizedValue(self._total['cpu_time'], user=self.user).timedelta,
-                    'memory': HumanizedValue(self._total['memory'], user=self.user).memory
+                    'wall_time': HumanizedValue(total_resources['wall_time'], user=self.user).timedelta,
+                    'cpu_time': HumanizedValue(total_resources['cpu_time'], user=self.user).timedelta,
+                    'memory': HumanizedValue(total_resources['memory'], user=self.user).memory
                 })
         return resource_data
 
@@ -372,10 +376,16 @@ class ViewJobData:
     def __resource_info(self):
         if not self.root:
             return []
-        return ResourcesInfo(
-            self.user, self.view, self.root.instances,
-            self.root.resources, self.root.resources.get('total')
-        ).info
+        cache_data = {}
+        for cache_obj in RootCache.objects.filter(root=self.root):
+            cache_data[cache_obj.component] = {
+                'cpu_time': cache_obj.cpu_time,
+                'wall_time': cache_obj.wall_time,
+                'memory': cache_obj.memory,
+                'finished': cache_obj.finished,
+                'total': cache_obj.total
+            }
+        return ResourcesInfo(self.user, self.view, cache_data).info
 
     def __unknowns_info(self):
         if not self.report:
@@ -458,30 +468,22 @@ class ViewReportData:
             .annotate(component=F('reportcomponent__component'), finish_date=F('reportcomponent__finish_date'))\
             .only('reportcomponent__component', 'cpu_time', 'wall_time', 'memory', 'reportcomponent__finish_date')
 
-        instances = {}
-        res_data = {}
-        res_total = {'cpu_time': 0, 'wall_time': 0, 'memory': 0}
+        cache_data = {}
         for report in reports_qs:
             component = report.component
-
-            instances.setdefault(component, {'finished': 0, 'total': 0})
-            instances[component]['total'] += 1
+            if report.component not in cache_data:
+                cache_data[component] = {'cpu_time': 0, 'wall_time': 0, 'memory': 0, 'finished': 0, 'total': 0}
+            cache_data[component]['total'] += 1
             if report.reportcomponent.finish_date:
-                instances[component]['finished'] += 1
-
-            if report.cpu_time or report.wall_time or report.memory:
-                res_data.setdefault(component, {'cpu_time': 0, 'wall_time': 0, 'memory': 0})
+                cache_data[component]['finished'] += 1
             if report.cpu_time:
-                res_data[component]['cpu_time'] += report.cpu_time
-                res_total['cpu_time'] += report.cpu_time
+                cache_data[component]['cpu_time'] += report.cpu_time
             if report.wall_time:
-                res_data[component]['wall_time'] += report.wall_time
-                res_total['wall_time'] += report.wall_time
+                cache_data[component]['wall_time'] += report.wall_time
             if report.memory:
-                res_data[component]['memory'] = max(report.memory, res_data[component]['memory'])
-                res_total['memory'] = max(report.memory, res_total['memory'])
+                cache_data[component]['memory'] = max(cache_data[component]['memory'], report.memory)
 
-        return ResourcesInfo(self.user, self.view, instances, res_data, res_total).info
+        return ResourcesInfo(self.user, self.view, cache_data).info
 
     def __unknowns_info(self):
         return UnknownsInfo(

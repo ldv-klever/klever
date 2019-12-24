@@ -239,5 +239,5 @@ class DBLogsStatistics(TemplateView):
                     'percents': list(int(x / data[k][5] * 100) for x in data[k][:5]),
                     'average': data[k][6] / data[k][5],
                     'total': data[k][6]
-                } for k in sorted(data))
+                } for k in sorted(data) if data[k][0] != data[k][5] > 10)
         return context
