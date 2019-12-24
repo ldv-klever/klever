@@ -49,7 +49,8 @@ class Interface:
     def add_implementation(self, value, declaration, path, base_container=None, base_value=None, sequence=None):
         new = Implementation(value, declaration, value, path, base_container, base_value, sequence)
         mv = new.adjusted_value(self.declaration)
-        new._declaration = self.declaration
+        if new.declaration != self.declaration:
+            new._declaration = self.declaration
         new.value = mv
         if new.value not in self.implementations:
             self.implementations.append(new)

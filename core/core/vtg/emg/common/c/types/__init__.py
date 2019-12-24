@@ -365,7 +365,7 @@ class Declaration:
         else:
             raise TypeError('Expect typedef flag to be set or str instead of {!r}'.format(type(typedef).__name__))
 
-        if qualifiers and self._ast.get('specifiers', dict()).get('qualifiers'):
+        if not isinstance(self, Pointer) and qualifiers and self._ast.get('specifiers', dict()).get('qualifiers'):
             result = ' '.join(self._ast['specifiers']['qualifiers']) + ' ' + result
         if specifiers and self._ast.get('specifiers', dict()).get('specifiers'):
             result = ' '.join(self._ast['specifiers']['specifiers']) + ' ' + result
@@ -760,7 +760,7 @@ class Pointer(Declaration):
     def _to_string(self, replacement, typedef='none', scope=None, qualifiers=False):
         replacement = _take_pointer(replacement, self.points)
 
-        return self.points.to_string(replacement, typedef=typedef, scope=scope, specifiers=False, qualifiers=False)
+        return self.points.to_string(replacement, typedef=typedef, scope=scope, specifiers=False, qualifiers=qualifiers)
 
     @property
     def static(self):
