@@ -39,9 +39,7 @@ static int ldv_func(void)
 
 static void *ldv_main(void *arg)
 {
-	_ldv_unsafe = 0;
 	ldv_func();
-
 	return NULL;
 }
 

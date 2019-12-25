@@ -41,6 +41,8 @@ class Weaver(core.vtg.plugins.Plugin):
         self.abstract_task_desc.setdefault('extra C files', dict())
 
         clade = Clade(self.conf['build base'])
+        if not clade.work_dir_ok():
+            raise RuntimeError('Build base is not OK')
         meta = clade.get_meta()
 
         # This is required to get compiler (Aspectator) specific stdarg.h since kernel C files are compiled
@@ -109,8 +111,11 @@ class Weaver(core.vtg.plugins.Plugin):
                             for line in fin:
                                 fout.write(line)
                     else:
-                        # Simulate resulting aspect.
-                        aspect = '/dev/null'
+                        # Instrumentation is not required when there is no aspects. But we will still pass source files
+                        # through C-backend to make resulting code to look similarly and thus to avoid different issues
+                        # at merging source files and models together.
+                        aspect = None
+
                     self.logger.debug('Aspect to be weaved in is "{0}"'.format(aspect))
                     storage_path = clade.get_storage_path(infile)
                     if meta['conf'].get('Compiler.preprocess_cmds', False) and \
@@ -121,7 +126,6 @@ class Weaver(core.vtg.plugins.Plugin):
                         tuple([
                                   'cif',
                                   '--in', storage_path,
-                                  '--aspect', os.path.realpath(aspect),
                                   # Besides header files specific for requirements specifications will be searched for.
                                   '--general-opts',
                                   '-I' + os.path.realpath(os.path.dirname(self.conf['specifications base'])),
@@ -132,6 +136,7 @@ class Weaver(core.vtg.plugins.Plugin):
                                   '--debug', 'DEBUG'
                               ] +
                               (['--keep'] if self.conf['keep intermediate files'] else []) +
+                              (['--aspect', os.path.realpath(aspect)] if aspect else ['--stage', 'C-backend']) +
                               ['--'] +
                               core.vtg.utils.prepare_cif_opts(cc['opts'], clade, grp['id'] == 'models') +
                               [aspectator_search_dir] +
@@ -236,6 +241,8 @@ class Weaver(core.vtg.plugins.Plugin):
         # prefer their parallelism over the Clade one.
         clade_extra = Clade(cmds_file='cmds.txt', conf={'cpu_count': 1})
         clade_extra.parse_list(["CrossRef"])
+        if not clade_extra.work_dir_ok():
+            raise RuntimeError('Build base is not OK')
 
         # Like in core.job.Job#__upload_original_sources.
         search_dirs = core.utils.get_search_dirs(self.conf['main working directory'], abs_paths=True)

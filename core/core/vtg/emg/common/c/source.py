@@ -36,6 +36,8 @@ def create_source_representation(logger, conf, abstract_task):
     """
     # Initialize Clade cient to make requests
     clade = Clade(conf['build base'])
+    if not clade.work_dir_ok():
+        raise RuntimeError('Build base is not OK')
 
     prefixes = _prefixes(conf, clade)
 

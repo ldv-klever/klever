@@ -70,6 +70,8 @@ class ASE(core.vtg.plugins.Plugin):
         self.logger.info('Request argument signatures')
 
         clade = Clade(work_dir=self.conf['build base'])
+        if not clade.work_dir_ok():
+            raise RuntimeError('Build base is not OK')
         meta = clade.get_meta()
 
         for request_aspect in self.conf['request aspects']:

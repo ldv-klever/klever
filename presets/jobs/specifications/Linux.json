@@ -312,7 +312,7 @@
               "verifier profile": "race checking",
               "verifier": {
                 "name": "CPAchecker",
-                "version": "CPALockator-combat-mode:32118"
+                "version": "CPALockator-combat-mode:32435"
               },
               "result processing": {
                 "expect several witnesses": true,
