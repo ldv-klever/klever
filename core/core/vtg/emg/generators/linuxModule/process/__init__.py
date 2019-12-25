@@ -164,15 +164,15 @@ class ExtendedLabel(Label):
     def __eq__(self, label):
         if len(self.interfaces) > 0 and len(label.interfaces) > 0:
             if len(list(set(self.interfaces) & set(label.interfaces))) > 0:
-                return 'equal'
+                return True
             else:
-                return 'different'
+                return False
         elif len(label.interfaces) > 0 or len(self.interfaces) > 0:
             if (self.container and label.container) or (self.resource and label.resource) or \
                     (self.callback and label.callback):
-                return 'сompatible'
+                return True
             else:
-                return 'different'
+                return False
         else:
             return super(ExtendedLabel, self).__eq__(label)
 
