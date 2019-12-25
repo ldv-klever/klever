@@ -449,7 +449,7 @@ def __find_native_categories(process):
 def __add_process(logger, conf, interfaces, process, chosen, category=None, model=False, label_map=None, peer=None):
     logger.info("Add process {!r} to the model".format(process.name))
     logger.debug("Make copy of process {!r} before adding it to the model".format(process.name))
-    new = copy.deepcopy(process)
+    new = copy.copy(process)
     if not category:
         new.category = 'functions models'
         if not new.comment:
