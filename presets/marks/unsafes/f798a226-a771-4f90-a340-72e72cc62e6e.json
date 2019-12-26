@@ -14,163 +14,37 @@
   "description": "All is right.",
   "error_trace": [
     [
-      {
-        "opticon_startup": [
-          {
-            "ldv_kzalloc": [
-              {
-                "ldv_check_alloc_flags": [
-                  {
-                    "ldv_in_interrupt_context": []
-                  },
-                  {
-                    "ldv_assert_linux_alloc_irq__wrong_flags": []
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "ldv_usb_alloc_urb_35": [
-              {
-                "ldv_check_alloc_flags": [
-                  {
-                    "ldv_in_interrupt_context": []
-                  },
-                  {
-                    "ldv_assert_linux_alloc_irq__wrong_flags": []
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "ldv_kmalloc": [
-              {
-                "ldv_check_alloc_flags": [
-                  {
-                    "ldv_in_interrupt_context": []
-                  },
-                  {
-                    "ldv_assert_linux_alloc_irq__wrong_flags": []
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      }
-    ],
-    [
-      {
-        "opticon_open": [
-          {
-            "send_control_msg": [
-              {
-                "ldv_kzalloc": [
-                  {
-                    "ldv_check_alloc_flags": [
-                      {
-                        "ldv_in_interrupt_context": []
-                      },
-                      {
-                        "ldv_assert_linux_alloc_irq__wrong_flags": []
-                      }
-                    ]
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "ldv_usb_submit_urb_30": [
-              {
-                "ldv_check_alloc_flags": [
-                  {
-                    "ldv_in_interrupt_context": []
-                  },
-                  {
-                    "ldv_assert_linux_alloc_irq__wrong_flags": []
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "send_control_msg": [
-              {
-                "ldv_kzalloc": [
-                  {
-                    "ldv_check_alloc_flags": [
-                      {
-                        "ldv_in_interrupt_context": []
-                      },
-                      {
-                        "ldv_assert_linux_alloc_irq__wrong_flags": []
-                      }
-                    ]
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      }
-    ],
-    [
-      {
-        "ldv_switch_to_interrupt_context": []
-      },
-      {
-        "opticon_write": [
-          {
-            "ldv_kmalloc": [
-              {
-                "ldv_check_alloc_flags": [
-                  {
-                    "ldv_in_interrupt_context": []
-                  },
-                  {
-                    "ldv_assert_linux_alloc_irq__wrong_flags": []
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "ldv_usb_alloc_urb_32": [
-              {
-                "ldv_check_alloc_flags": [
-                  {
-                    "ldv_in_interrupt_context": []
-                  },
-                  {
-                    "ldv_assert_linux_alloc_irq__wrong_flags": []
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "ldv_kmalloc": [
-              {
-                "ldv_check_alloc_flags": [
-                  {
-                    "ldv_in_interrupt_context": []
-                  },
-                  {
-                    "ldv_assert_linux_alloc_irq__wrong_flags": []
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      }
+      [
+        {
+          "EMG wrapper": [
+            {
+              "opticon_write": [
+                {
+                  "Instrumented function 'kmalloc'": [
+                    {
+                      "LDV model 'kmalloc'": [
+                        {
+                          "LDV model 'check_alloc_flags'": [
+                            {
+                              "LDV model 'assert'": []
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",
   "is_modifiable": false,
+  "status": null,
   "tags": [],
+  "threshold": 0,
   "verdict": "2"
 }

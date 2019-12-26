@@ -2,7 +2,7 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Linux:Version",
+      "name": "Project:Version",
       "value": "v3.16.3-147-g2ba4b92e8773"
     },
     {
