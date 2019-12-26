@@ -150,7 +150,7 @@ class JobArchiveGenerator:
             self._arch_files.add((rh.configuration.file.path, rh.configuration.file.name))
 
     def __get_root_cache(self, root):
-        return RootCacheSerializer(instance=RootCache.objects.filter(root=root), many=True).data
+        return self.__get_json(RootCacheSerializer(instance=RootCache.objects.filter(root=root), many=True).data)
 
     def __get_reports_data(self, root):
         reports = []

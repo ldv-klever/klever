@@ -21,6 +21,7 @@ import uuid
 import zipfile
 
 from django.core.files import File
+from django.db import transaction
 from django.db.models import Q
 from django.utils.functional import cached_property
 from django.utils.timezone import now
@@ -30,7 +31,7 @@ from rest_framework.settings import api_settings
 
 from bridge.vars import (
     JOB_WEIGHT, JOB_STATUS, ERROR_TRACE_FILE, REPORT_ARCHIVE,
-    SUBJOB_NAME, NAME_ATTR, UNKNOWN_ATTRS_NOT_ASSOCIATE
+    SUBJOB_NAME, NAME_ATTR, UNKNOWN_ATTRS_NOT_ASSOCIATE, MPTT_FIELDS
 )
 from bridge.utils import logger, extract_archive, CheckArchiveError
 
@@ -42,12 +43,10 @@ from service.models import Task, Decision
 from service.utils import FinishJobDecision
 from caches.models import ReportSafeCache, ReportUnsafeCache, ReportUnknownCache
 
-from marks.SafeUtils import ConnectSafeReport
-from marks.UnknownUtils import ConnectUnknownReport
-from marks.tasks import connect_unsafe_report
+from marks.tasks import connect_safe_report, connect_unsafe_report, connect_unknown_report
 
 from reports.serializers import ReportAttrSerializer, ComputerSerializer
-from reports.coverage import FillCoverageStatistics
+from reports.tasks import fill_coverage_statistics
 
 
 class ReportParentField(serializers.SlugRelatedField):
@@ -218,7 +217,7 @@ class ReportComponentSerializer(UploadBaseSerializer):
     computer = ComputerSerializer(required=False)
     parent = ReportParentField(allow_null=True)  # Allow null parent for Core
     original_sources = serializers.SlugRelatedField(
-        slug_field='identifier', queryset=OriginalSources.objects, required=False
+        slug_field='identifier', queryset=OriginalSources.objects.only('id'), required=False
     )
 
     def create(self, validated_data):
@@ -235,21 +234,22 @@ class ReportComponentSerializer(UploadBaseSerializer):
         model = ReportComponent
         fields = (
             'identifier', 'parent', 'component', 'computer', 'attrs', 'data',
-            'finish_date', 'cpu_time', 'wall_time', 'memory', 'log', 'original_sources'
+            'cpu_time', 'wall_time', 'memory', 'log', 'original_sources'
         )
         extra_kwargs = {
             'cpu_time': {'allow_null': False, 'required': True},
             'wall_time': {'allow_null': False, 'required': True},
             'memory': {'allow_null': False, 'required': True},
-            'finish_date': {'allow_null': False, 'required': True},
             'parent': {'allow_null': True, 'required': False}
         }
 
 
 class ReportVerificationSerializer(UploadBaseSerializer):
     computer = ComputerSerializer(required=False)
-    task = serializers.PrimaryKeyRelatedField(queryset=Task.objects, required=False)
-    original_sources = serializers.SlugRelatedField(slug_field='identifier', queryset=OriginalSources.objects)
+    task = serializers.PrimaryKeyRelatedField(queryset=Task.objects.only('archive'), required=False)
+    original_sources = serializers.SlugRelatedField(
+        slug_field='identifier', queryset=OriginalSources.objects.only('id')
+    )
 
     def validate(self, value):
         value['verification'] = True
@@ -479,9 +479,10 @@ class UploadReport:
             if not zipfile.is_zipfile(arch) or zipfile.ZipFile(arch).testzip():
                 raise CheckArchiveError('The archive "{}" is not a ZIP file'.format(arch.name))
 
+    @transaction.atomic
     def __start_decision(self):
         try:
-            progress = Decision.objects.get(job=self.job)
+            progress = Decision.objects.select_for_update().get(job=self.job)
         except Decision.DoesNotExist:
             raise exceptions.ValidationError(detail={'job': "The decision wasn't successfully started"})
         if progress.start_date is not None:
@@ -510,11 +511,16 @@ class UploadReport:
     def _is_fullweight(self):
         return self.job.weight == JOB_WEIGHT[0][0]
 
-    def __get_report(self, identifier):
+    def __get_report_for_update(self, identifier):
+        """
+        Get report by identifier for update. Must be used in atomic transaction block.
+        :param identifier: report identifier
+        :return: ReportComponent instance
+        """
         if not identifier:
             raise exceptions.ValidationError(detail={'identifier': "Required"})
         try:
-            return ReportComponent.objects.get(root=self.root, identifier=identifier)
+            return ReportComponent.objects.select_for_update().get(root=self.root, identifier=identifier)
         except ReportComponent.DoesNotExist:
             raise exceptions.ValidationError(detail={'identifier': "The report wasn't found"})
 
@@ -562,16 +568,17 @@ class UploadReport:
         )
 
     def __upload_coverage(self, data):
-        # Uploads global coverage
-        report = self.__get_report(data.get('identifier'))
-        if report.verification:
-            raise exceptions.ValidationError(detail={
-                'coverage': "The full coverage can be uploaded only for non-verification reports"
-            })
-
-        if not self._is_fullweight:
+        if not data.get('identifier'):
+            raise exceptions.ValidationError(detail={'identifier': "Required"})
+        if self._is_fullweight:
+            # Get component report
+            try:
+                report = ReportComponent.objects.get(root=self.root, identifier=data['identifier'], verification=False)
+            except ReportComponent.DoesNotExist:
+                raise exceptions.ValidationError(detail={'identifier': "The component report wasn't found"})
+        else:
             # Upload for Core for lightweight jobs
-            report = ReportComponent.objects.get(parent=None, root_id=report.root_id)
+            report = ReportComponent.objects.get(parent=None, root=self.root)
 
         if not report.original_sources:
             raise exceptions.ValidationError(detail={
@@ -579,45 +586,50 @@ class UploadReport:
             })
 
         for cov_id in data['coverage']:
+            # Save global coverage archive
             self.__save_coverage(report, self.__get_archive(data['coverage'][cov_id]), identifier=cov_id)
 
     def __patch_report_component(self, data):
-        report = self.__get_report(data.get('identifier'))
-        save_kwargs = {}
+        with transaction.atomic():
+            report = self.__get_report_for_update(data.get('identifier'))
+            save_kwargs = {}
 
-        if 'attrs' in data:
-            data['attr_data'] = self.__upload_attrs_files(self.__get_archive(data.get('attr_data')))
+            if 'attrs' in data:
+                data['attr_data'] = self.__upload_attrs_files(self.__get_archive(data.get('attr_data')))
 
-        if 'additional_sources' in data:
-            save_kwargs['additional_sources_id'] = self.__upload_additional_sources(data['additional_sources'])
+            if 'additional_sources' in data:
+                save_kwargs['additional_sources_id'] = self.__upload_additional_sources(data['additional_sources'])
 
-        serializer = ReportComponentSerializer(
-            instance=report, data=data, partial=True,
-            reportroot=report.root, fullweight=self._is_fullweight,
-            fields={'data', 'attrs', 'original_sources'}
-        )
-        serializer.is_valid(raise_exception=True)
-        report = serializer.save(**save_kwargs)
+            serializer = ReportComponentSerializer(
+                instance=report, data=data, partial=True,
+                reportroot=report.root, fullweight=self._is_fullweight,
+                fields={'data', 'attrs', 'original_sources'}
+            )
+            serializer.is_valid(raise_exception=True)
+            report = serializer.save(**save_kwargs)
 
         if not self._is_fullweight and report.parent and (report.additional_sources or report.original_sources):
-            core_report = ReportComponent.objects.get(root=self.root, parent=None)
-            if report.original_sources:
-                core_report.original_sources = report.original_sources
-            if report.additional_sources:
-                core_report.additional_sources = report.additional_sources
-            core_report.save()
+            with transaction.atomic():
+                core_report = ReportComponent.objects.select_for_update().get(root=self.root, parent=None)
+                if report.original_sources:
+                    core_report.original_sources = report.original_sources
+                if report.additional_sources:
+                    core_report.additional_sources = report.additional_sources
+                core_report.save()
 
     def __finish_report_component(self, data):
-        report = self.__get_report(data.get('identifier'))
-        data['finish_date'] = now()
         data['log'] = self.__get_archive(data.get('log'))
         data['attr_data'] = self.__upload_attrs_files(self.__get_archive(data.get('attr_data')))
-        serializer = ReportComponentSerializer(
-            instance=report, data=data, reportroot=report.root,
-            fields={'finish_date', 'wall_time', 'cpu_time', 'memory', 'attrs', 'data', 'log'}
-        )
-        serializer.is_valid(raise_exception=True)
-        report = serializer.save()
+
+        # Update report atomicly
+        with transaction.atomic():
+            report = self.__get_report_for_update(data.get('identifier'))
+            serializer = ReportComponentSerializer(
+                instance=report, data=data, reportroot=report.root,
+                fields={'wall_time', 'cpu_time', 'memory', 'attrs', 'data', 'log'}
+            )
+            serializer.is_valid(raise_exception=True)
+            report = serializer.save(finish_date=now())
 
         self.__update_root_cache(
             report.component, finished=True,
@@ -631,9 +643,16 @@ class UploadReport:
             report.delete()
 
     def __finish_verification_report(self, data):
-        report = self.__get_report(data.get('identifier'))
-        if not report.verification:
-            raise exceptions.ValidationError(detail={'identifier': "The report is not verification"})
+        update_data = {'finish_date': now()}
+
+        # Get verification report by identifier
+        if not data.get('identifier'):
+            raise exceptions.ValidationError(detail={'identifier': "Required"})
+        try:
+            report = ReportComponent.objects.only('id', 'component', *MPTT_FIELDS)\
+                .get(root=self.root, identifier=data['identifier'], verification=True)
+        except ReportComponent.DoesNotExist:
+            raise exceptions.ValidationError(detail={'identifier': "The report wasn't found"})
 
         if not self._is_fullweight:
             if report.is_leaf_node():
@@ -643,11 +662,10 @@ class UploadReport:
                 report.delete()
                 return
             # Set parent to Core for lightweight jobs that will be preserved
-            report.parent = ReportComponent.objects.get(root=self.root, parent=None)
+            update_data['parent_id'] = ReportComponent.objects.only('id').get(root=self.root, parent=None).id
 
         # Save report with new data
-        report.finish_date = now()
-        report.save()
+        ReportComponent.objects.filter(id=report.id).update(**update_data)
 
         self.__update_root_cache(report.component, finished=True)
 
@@ -672,7 +690,7 @@ class UploadReport:
         ))
 
         # Connect report with marks
-        ConnectUnknownReport(report)
+        connect_unknown_report.delay(report.id)
 
     def __create_report_safe(self, data):
         data['attr_data'] = self.__upload_attrs_files(self.__get_archive(data.get('attr_data')))
@@ -687,7 +705,7 @@ class UploadReport:
         ))
 
         # Connect report with marks
-        ConnectSafeReport(report)
+        connect_safe_report.delay(report.id)
 
     def __create_report_unsafe(self, data):
         data['attr_data'] = self.__upload_attrs_files(self.__get_archive(data.get('attr_data')))
@@ -711,27 +729,23 @@ class UploadReport:
         return add_src.id
 
     def __save_coverage(self, report, archive, identifier=''):
-        carch = CoverageArchive(
-            report=report, identifier=identifier,
-            name=self.__get_coverage_name(report)
-        )
-        carch.add_coverage(archive, save=True)
-        try:
-            res = FillCoverageStatistics(carch)
-        except Exception as e:
-            logger.exception(e)
-            carch.delete()
-            raise exceptions.ValidationError({
-                'coverage': 'Error while parsing coverage statistics: {}'.format(e)
-            })
-        # Save again after statistics is calculated
-        carch.total = res.total_coverage
-        carch.has_extra = res.has_extra
-        carch.save()
+        # Get coverage name
+        name = '-'
+        if not report.verification:
+            attr = ReportAttr.objects.filter(report=report, name=NAME_ATTR).only('value').first()
+            name = attr.value if attr else '...'
 
+        # Save coverage archive
+        carch = CoverageArchive(report=report, identifier=identifier, name=name)
+        carch.add_coverage(archive, save=True)
+
+        # Fill coverage statistics in background
+        fill_coverage_statistics.delay(carch.id)
+
+    @transaction.atomic
     def __update_root_cache(self, component, **kwargs):
         try:
-            cache_obj = RootCache.objects.get(root=self.root, component=component)
+            cache_obj = RootCache.objects.select_for_update().get(root=self.root, component=component)
         except RootCache.DoesNotExist:
             cache_obj = RootCache(root=self.root, component=component)
         if kwargs.get('cpu_time'):
@@ -764,12 +778,6 @@ class UploadReport:
                     newfile.file.save(os.path.basename(rel_path), File(fp), save=True)
                 db_files[rel_path] = newfile.pk
         return db_files
-
-    def __get_coverage_name(self, report):
-        if report.verification:
-            return '-'
-        attr = ReportAttr.objects.filter(report=report, name=NAME_ATTR).only('value').first()
-        return attr.value if attr else '...'
 
 
 def collapse_reports(job):

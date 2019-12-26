@@ -37,9 +37,7 @@ from reports.models import (
     ReportRoot, ReportComponent, ReportSafe, ReportUnsafe, ReportUnknown, ReportComponentLeaf,
     CoverageArchive, OriginalSources, RootCache, ORIGINAL_SOURCES_DIR
 )
-from marks.SafeUtils import ConnectSafeReport
-from marks.UnknownUtils import ConnectUnknownReport
-from marks.tasks import connect_unsafe_report
+from marks.tasks import connect_safe_report, connect_unsafe_report, connect_unknown_report
 
 from caches.utils import RecalculateSafeCache, RecalculateUnsafeCache, RecalculateUnknownCache
 from reports.coverage import FillCoverageStatistics
@@ -54,6 +52,25 @@ def objects_without_relations(table):
             accessor_name = accessor_name[:-4]
         filters[accessor_name] = None
     return table.objects.filter(**filters)
+
+
+def recalculate_safe_links(roots):
+    MarkSafeReport.objects.filter(report__root__in=roots).delete()
+    # It could be long
+    for report_id in ReportSafe.objects.filter(root__in=roots).values_list('id', flat=True):
+        connect_safe_report.delay(report_id)
+
+
+def recalculate_unsafe_links(roots):
+    MarkUnsafeReport.objects.filter(report__root__in=roots).delete()
+    for report_id in ReportUnsafe.objects.filter(root__in=roots).values_list('id', flat=True):
+        connect_unsafe_report.delay(report_id)
+
+
+def recalculate_unknown_links(roots):
+    MarkUnknownReport.objects.filter(report__root__in=roots).delete()
+    for report_id in ReportUnknown.objects.filter(root__in=roots).values_list('id', flat=True):
+        connect_unknown_report.delay(report_id)
 
 
 class ClearFiles:
@@ -123,42 +140,6 @@ class RecalculateLeaves:
         self._leaves.upload()
 
 
-class RecalculateSafeLinks:
-    def __init__(self, roots):
-        self._roots = roots
-        self.__connect_marks()
-
-    def __connect_marks(self):
-        MarkSafeReport.objects.filter(report__root__in=self._roots).delete()
-        # It could be long
-        for report in ReportSafe.objects.filter(root__in=self._roots):
-            ConnectSafeReport(report)
-        RecalculateSafeCache(roots=set(r.id for r in self._roots))
-
-
-class RecalculateUnsafeLinks:
-    def __init__(self, roots):
-        self._roots = roots
-        self.__connect_marks()
-
-    def __connect_marks(self):
-        MarkUnsafeReport.objects.filter(report__root__in=self._roots).delete()
-        for report in ReportUnsafe.objects.filter(root__in=self._roots):
-            connect_unsafe_report.delay(report.id)
-
-
-class RecalculateUnknownLinks:
-    def __init__(self, roots):
-        self._roots = roots
-        self.__connect_marks()
-
-    def __connect_marks(self):
-        MarkUnknownReport.objects.filter(report__root__in=self._roots).delete()
-        for report in ReportUnknown.objects.filter(root__in=self._roots):
-            ConnectUnknownReport(report)
-        RecalculateUnknownCache(roots=set(r.id for r in self._roots))
-
-
 class RecalculateRootCache:
     def __init__(self, roots):
         self._roots = list(root for root in roots if root.job.weight == JOB_WEIGHT[0][0])
@@ -207,11 +188,11 @@ class Recalculation:
         if self.type == 'leaves':
             RecalculateLeaves(self._roots)
         elif self.type == 'safe_links':
-            RecalculateSafeLinks(self._roots)
+            recalculate_safe_links(self._roots)
         elif self.type == 'unsafe_links':
-            RecalculateUnsafeLinks(self._roots)
+            recalculate_unsafe_links(self._roots)
         elif self.type == 'unknown_links':
-            RecalculateUnknownLinks(self._roots)
+            recalculate_unknown_links(self._roots)
         elif self.type == 'safe_reports':
             RecalculateSafeCache(roots=set(r.id for r in self._roots))
         elif self.type == 'unsafe_reports':
@@ -224,9 +205,9 @@ class Recalculation:
             RecalculateCoverage(self._roots)
         elif self.type == 'all':
             RecalculateLeaves(self._roots)
-            RecalculateSafeLinks(self._roots)
-            RecalculateUnsafeLinks(self._roots)
-            RecalculateUnknownLinks(self._roots)
+            recalculate_safe_links(self._roots)
+            recalculate_unsafe_links(self._roots)
+            recalculate_unknown_links(self._roots)
             RecalculateRootCache(self._roots)
             RecalculateCoverage(self._roots)
         else:

@@ -179,35 +179,6 @@ class ConnectUnknownMark:
         return new_links
 
 
-# Used only after report is created, so there are never old associations
-class ConnectUnknownReport:
-    def __init__(self, unknown):
-        self._report = unknown
-        self._unknown_desc = self.__get_unknown_desc()
-        if self._unknown_desc:
-            self.__connect()
-
-    def __get_unknown_desc(self):
-        try:
-            return ArchiveFileContent(self._report, 'problem_description', PROBLEM_DESC_FILE).content.decode('utf8')
-        except Exception as e:
-            logger.error("Can't get problem description for unknown '%s': %s" % (self._report.id, e))
-            return None
-
-    def __connect(self):
-        new_markreports = []
-        for mark in MarkUnknown.objects\
-                .filter(component=self._report.component, cache_attrs__contained_by=self._report.cache.attrs):
-            problem = MatchUnknown(self._unknown_desc, mark.function, mark.problem_pattern, mark.is_regexp).problem
-            if not problem:
-                continue
-            new_markreports.append(MarkUnknownReport(
-                mark_id=mark.id, report=self._report, problem=problem, associated=True
-            ))
-        MarkUnknownReport.objects.bulk_create(new_markreports)
-        RecalculateUnknownCache(reports=[self._report.id])
-
-
 class CheckUnknownFunction:
     def __init__(self, report, mark_function, pattern, is_regexp):
         self._desc = self.__read_unknown_desc(report)
