@@ -376,7 +376,7 @@ class RootCache(models.Model):
 
     class Meta:
         db_table = 'cache_report_root'
-        index_together = ['root', 'component']
+        index_together = ['component', 'root']
 
 
 post_delete.connect(remove_instance_files, sender=AttrFile)

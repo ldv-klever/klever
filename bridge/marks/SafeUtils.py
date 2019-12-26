@@ -125,18 +125,3 @@ class ConnectSafeMark:
                 report_id=prime_id, associated=True, type=ASSOCIATION_TYPE[0][0]
             ).update(associated=False)
         return new_links
-
-
-# Used only after report is created, so there are never old associations
-class ConnectSafeReport:
-    def __init__(self, safe):
-        self._report = safe
-        self.__connect()
-
-    def __connect(self):
-        marks_qs = MarkSafe.objects.filter(cache_attrs__contained_by=self._report.cache.attrs)
-        MarkSafeReport.objects.bulk_create(list(
-            MarkSafeReport(mark_id=m_id, report=self._report, associated=True)
-            for m_id in marks_qs.values_list('id', flat=True)
-        ))
-        RecalculateSafeCache(reports=[self._report.id])

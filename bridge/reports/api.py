@@ -104,7 +104,6 @@ class UploadOriginalSourcesView(LoggedCallMixin, CreateAPIView):
 
 
 class UploadReportView(LoggedCallMixin, APIView):
-    unparallel = [ReportRoot]
     permission_classes = (ServicePermission,)
 
     def post(self, request, job_uuid):

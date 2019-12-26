@@ -223,23 +223,6 @@ class ConnectUnsafeMark:
         return new_links
 
 
-# Used only after report is created, so there are never old associations
-class ConnectUnsafeReport:
-    def __init__(self, unsafe):
-        self._report = unsafe
-        self.__connect()
-
-    def __connect(self):
-        marks_qs = MarkUnsafe.objects\
-            .filter(cache_attrs__contained_by=self._report.cache.attrs).select_related('error_trace')
-        compare_results = CompareReport(self._report).compare(marks_qs)
-
-        MarkUnsafeReport.objects.bulk_create(list(MarkUnsafeReport(
-            mark_id=mark.id, report=self._report, **compare_results[mark.id]
-        ) for mark in marks_qs))
-        RecalculateUnsafeCache(reports=[self._report.id])
-
-
 class ThreadCallForests:
     def __init__(self, error_trace):
         self._trace = error_trace
