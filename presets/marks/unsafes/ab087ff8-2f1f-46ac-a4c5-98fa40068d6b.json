@@ -19,21 +19,33 @@
   "description": "Target bug.",
   "error_trace": [
     [
-      {
-        "s3c_hsotg_probe": [
-          {
-            "ldv_clk_disable_clk_of_s3c_hsotg": [
-              {
-                "ldv_assert_linux_drivers_clk2__less_initial_decrement": []
-              }
-            ]
-          }
-        ]
-      }
+      [
+        {
+          "EMG wrapper": [
+            {
+              "s3c_hsotg_probe": [
+                {
+                  "Instrumented function 'clk_disable_unprepare'": [
+                    {
+                      "LDV model 'clk_disable_clk_of_s3c_hsotg'": [
+                        {
+                          "LDV model 'assert'": []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",
   "is_modifiable": false,
+  "status": null,
   "tags": [],
+  "threshold": 0,
   "verdict": "2"
 }
