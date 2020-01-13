@@ -400,9 +400,11 @@ class Process:
         if isinstance(operator, Concatenation):
             index = operator.actions.index(target)
             operator.remove_action(target)
-            choice = Choice(str(len(self.actions.keys()) + 1))
+            new_par = Parentheses(str(len(self.actions.keys()) + 1))
+            choice = Choice(str(len(self.actions.keys()) + 2))
+            new_par.action = choice
             choice.actions = {new, target}
-            operator.add_action(choice, position=index)
+            operator.add_action(new_par, position=index)
         elif isinstance(operator, Parentheses):
             choice = Choice(str(len(self.actions.keys()) + 1))
             operator.action = None
