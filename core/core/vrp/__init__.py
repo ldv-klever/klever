@@ -532,7 +532,8 @@ class RP(core.components.Component):
                      self.search_dirs, self.conf['main working directory'],
                      opts['code coverage details'],
                      os.path.join(self.conf['main working directory'], self.coverage_info_file),
-                     os.path.join(self.conf['main working directory'], coverage_info_dir))
+                     os.path.join(self.conf['main working directory'], coverage_info_dir),
+                     self.verification_task_files)
             except Exception as err:
                 exception = err
             else:
