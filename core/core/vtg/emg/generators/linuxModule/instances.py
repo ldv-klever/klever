@@ -206,7 +206,7 @@ def _simplify_process(logger, conf, sa, interfaces, process):
         for intf in (i for i in process.allowed_implementations[access] if process.allowed_implementations[access][i]):
             implementation = process.allowed_implementations[access][intf]
             file = implementation.initialization_file
-            if file not in _values_map or (implementation.value not in _values_map[file]):
+            if implementation.value not in _values_map.get(file, dict()):
                 # Maybe it is a variable
                 svar = sa.get_source_variable(implementation.value, file)
                 if svar and not (implementation.declaration.static or svar.declaration.static):
@@ -595,7 +595,7 @@ def _yield_instances(logger, conf, sa, interfaces, model, instance_maps):
     # According to new identifiers change signals peers
     for process in model_fsa + callback_fsa:
         if conf.get("convert statics to globals", True):
-            _remove_statics(sa, process)
+            _remove_statics(logger, sa, process)
 
     return model_fsa, callback_fsa
 
@@ -725,7 +725,7 @@ def __generate_model_comment(process):
         process.comment = comment
 
 
-def _remove_statics(sa, process):
+def _remove_statics(logger, sa, process):
     # todo: write docstring
     f_identifiers = _yeild_identifier()
     v_identifiers = _yeild_identifier()
@@ -754,7 +754,7 @@ def _remove_statics(sa, process):
         params = ', '.join(["arg{}".format(i) for i in range(len(f.declaration.parameters))])
         call = "{} {}({});".format(ret, sa.refined_name(implementation.value), params)
         f.body.append(call)
-
+        logger.info("Generated new wrapper function {!r}".format(f.name))
         return f
 
     # For each static Implementation add to the origin file aspect which adds a variable with the same global
@@ -789,8 +789,7 @@ def _remove_statics(sa, process):
             # Determine name
             if static:
                 name = sa.refined_name(implementation.value)
-                if declaration and (file not in _values_map or
-                                    name not in _values_map[file]):
+                if declaration and name not in _values_map.get(file, dict()):
                     # Prepare dictionary
                     for coll in (_definitions, _declarations):
                         coll.setdefault(file, dict())
@@ -834,11 +833,15 @@ def _remove_statics(sa, process):
                         implementation.value = new_value
 
                         if var:
+                            logger.info('Add declaration of alias variable {!r}'.format(var.name))
                             process.add_declaration(file, name, var.declare_with_init() + ";\n")
                             process.add_declaration('environment model', name, var.declare(extern=True) + ";\n")
                         else:
+                            logger.info('Add declaration of wrapper function {!r}'.format(func.name))
                             process.add_definition(file, name, func.define() + ["\n"])
                             process.add_declaration('environment model', name, func.declare(extern=True)[0])
+                else:
+                    logger.info("Do not generate wrappers for function {!r} as it is already processed".format(name))
 
     return
 
