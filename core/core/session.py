@@ -85,15 +85,19 @@ class Session:
 
     def start_job_decision(self, job_format, archive):
         self.__download_archive('job', 'jobs/api/download-files/' + self.job_id,
-                                {'job format': job_format}, archive)
+                                {'job format': job_format},
+                                archive)
 
     def schedule_task(self, task_file, archive):
         with open(task_file, 'r', encoding='utf8') as fp:
             data = fp.read()
 
         resp = self.__upload_archives('service/tasks/',
-                                      {'job': str(self.job_id), 'description': data},
-                                      {'archive': self.__open_archive(archive)})
+                                      {
+                                          'job': str(self.job_id),
+                                          'description': data
+                                      },
+                                      {'archive': archive})
 
         return resp['id']
 
@@ -122,7 +126,7 @@ class Session:
     def upload_original_sources(self, src_id, src_archive):
         self.__upload_archives('reports/api/upload-sources/',
                                {'identifier': src_id},
-                               {'archive': self.__open_archive(src_archive)})
+                               {'archive': src_archive})
 
     def upload_reports_and_report_file_archives(self, reports_and_report_file_archives):
         batch_reports = []
@@ -138,8 +142,7 @@ class Session:
         # TODO: report is likely should be compressed.
         self.__upload_archives('reports/api/upload/{0}/'.format(self.job_id),
                                {'reports': json.dumps(batch_reports)},
-                               {os.path.basename(archive): self.__open_archive(archive)
-                                for archive in batch_report_file_archives})
+                               {os.path.basename(archive): archive for archive in batch_report_file_archives})
 
         # We can safely remove task and its files after uploading report referencing task files.
         for report in batch_reports:
@@ -149,9 +152,6 @@ class Session:
     def submit_progress(self, progress):
         self.logger.info('Submit solution progress')
         self.__request('service/progress/{0}/'.format(self.job_id), 'PATCH', data=progress)
-
-    def __open_archive(self, archive):
-        return open(archive, 'rb', buffering=0)
 
     def __download_archive(self, kind, path_url, data=None, archive=None):
         while True:
@@ -176,7 +176,10 @@ class Session:
         while True:
             resp = None
             try:
-                resp = self.__request(path_url, 'POST', data=data, files=archives, stream=True)
+                resp = self.__request(path_url, 'POST', data=data,
+                                      files={archive_name: open(archive_path, 'rb', buffering=0)
+                                             for archive_name, archive_path in archives.items()},
+                                      stream=True)
                 return resp.json()
             except BridgeError:
                 if 'ZIP error' in self.error:
