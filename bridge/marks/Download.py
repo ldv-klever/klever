@@ -26,23 +26,22 @@ from django.utils.functional import cached_property
 from django.utils.timezone import now
 from django.utils.translation import ugettext_lazy as _
 
-from bridge.vars import MARK_SOURCE
+from bridge.vars import MARK_SOURCE, SAFE_VERDICTS, UNSAFE_VERDICTS
 from bridge.utils import logger, BridgeException
 from bridge.ZipGenerator import ZipStream, CHUNK_SIZE
 
+from caches.models import ReportSafeCache, ReportUnsafeCache, ReportUnknownCache
 from marks.models import (
     MarkSafe, MarkUnsafe, MarkUnknown, SafeTag, UnsafeTag,
     MarkSafeAttr, MarkUnsafeAttr, MarkUnknownAttr, MarkSafeTag, MarkUnsafeTag
 )
 from marks.serializers import SafeMarkSerializer, UnsafeMarkSerializer, UnknownMarkSerializer
 
-from marks.SafeUtils import ConnectSafeMark, RemoveSafeMarks
-from marks.UnsafeUtils import ConnectUnsafeMark, RemoveUnsafeMarks
-from marks.UnknownUtils import ConnectUnknownMark, RemoveUnknownMarks
+from marks.SafeUtils import ConnectSafeMark
+from marks.UnsafeUtils import ConnectUnsafeMark
+from marks.UnknownUtils import ConnectUnknownMark
 
-from caches.utils import (
-    UpdateCachesOnMarkPopulate, RecalculateSafeCache, RecalculateUnsafeCache, RecalculateUnknownCache
-)
+from caches.utils import UpdateCachesOnMarkPopulate
 
 
 class MarkGeneratorBase:
@@ -391,12 +390,12 @@ class UploadAllMarks:
         self.numbers = self.__upload_all(marks_dir)
 
     def __clear_old_marks(self):
-        RemoveSafeMarks()
-        RemoveUnsafeMarks()
-        RemoveUnknownMarks()
-        RecalculateSafeCache()
-        RecalculateUnsafeCache()
-        RecalculateUnknownCache()
+        MarkSafe.objects.all().delete()
+        MarkUnsafe.objects.all().delete()
+        MarkUnknown.objects.all().delete()
+        ReportSafeCache.objects.update(marks_total=0, marks_confirmed=0, verdict=SAFE_VERDICTS[4][0], tags={})
+        ReportUnsafeCache.objects.update(marks_total=0, marks_confirmed=0, verdict=UNSAFE_VERDICTS[5][0], tags={})
+        ReportUnknownCache.objects.update(marks_total=0, marks_confirmed=0, problems={})
 
     def __upload_all(self, marks_dir):
         upload_result = {'safe': 0, 'unsafe': 0, 'unknown': 0, 'fail': 0}

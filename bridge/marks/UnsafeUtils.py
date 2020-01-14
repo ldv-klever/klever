@@ -22,19 +22,18 @@ import hashlib
 from collections import OrderedDict
 
 from django.core.files import File
-from django.db import transaction
 from django.db.models import Case, When, Value, Q, F
 from django.utils.translation import ugettext as _
 
 from rest_framework.exceptions import APIException
 
 from bridge.vars import ASSOCIATION_TYPE, UNKNOWN_ERROR, ERROR_TRACE_FILE, COMPARE_FUNCTIONS, CONVERT_FUNCTIONS
-from bridge.utils import logger, BridgeException, ArchiveFileContent, file_checksum
+from bridge.utils import logger, BridgeException, ArchiveFileContent, file_checksum, require_lock
 
 from reports.models import ReportUnsafe
 from marks.models import MarkUnsafe, MarkUnsafeHistory, MarkUnsafeReport, UnsafeConvertionCache, ConvertedTrace
 
-from marks.utils import RemoveMarksBase, ConfirmAssociationBase, UnconfirmAssociationBase
+from marks.utils import ConfirmAssociationBase, UnconfirmAssociationBase
 from caches.utils import RecalculateUnsafeCache, UpdateUnsafeCachesOnMarkChange
 
 
@@ -146,16 +145,29 @@ def convert_error_trace(error_trace, function):
     return save_converted_trace(forests, function)
 
 
-class RemoveUnsafeMarks(RemoveMarksBase):
-    model = MarkUnsafe
-    associations_model = MarkUnsafeReport
+class RemoveUnsafeMark:
+    def __init__(self, mark):
+        self._mark = mark
 
-    def update_associated(self):
-        queryset = self.without_associations_qs
-        with transaction.atomic():
-            for mr in queryset.select_related('mark'):
-                mr.associated = bool(mr.result > 0 and mr.result >= mr.mark.threshold)
-                mr.save()
+    @require_lock(MarkUnsafeReport)
+    def destroy(self):
+        affected_reports = set(MarkUnsafeReport.objects.filter(mark=self._mark).values_list('report_id', flat=True))
+        self._mark.delete()
+
+        # Find reports that have marks associations when all association are disabled. It can be in 2 cases:
+        # 1) All associations are unconfirmed
+        # 2) All confirmed associations were with deleted mark
+        # We need to update 2nd case, so auto-associations are counting again
+        changed_ids = affected_reports - set(MarkUnsafeReport.objects.filter(
+            report_id__in=affected_reports, associated=True
+        ).values_list('report_id', flat=True))
+
+        # Update associations
+        for mr in MarkUnsafeReport.objects.select_related('mark').select_for_update()\
+                .filter(report_id__in=changed_ids).exclude(type=ASSOCIATION_TYPE[2][0]):
+            mr.associated = bool(mr.result > 0 and mr.result >= mr.mark.threshold)
+            mr.save()
+        return affected_reports
 
 
 class ConfirmUnsafeMark(ConfirmAssociationBase):
@@ -166,7 +178,7 @@ class ConfirmUnsafeMark(ConfirmAssociationBase):
             raise APIException(_("You can't confirm mark with zero similarity"))
 
     def recalculate_cache(self, report_id):
-        RecalculateUnsafeCache(reports=[report_id])
+        RecalculateUnsafeCache(report_id)
 
 
 class UnconfirmUnsafeMark(UnconfirmAssociationBase):
@@ -177,7 +189,7 @@ class UnconfirmUnsafeMark(UnconfirmAssociationBase):
         return queryset.filter(error=None, result__gte=F('mark__threshold'), result__gt=0)
 
     def recalculate_cache(self, report_id):
-        RecalculateUnsafeCache(reports=[report_id])
+        RecalculateUnsafeCache(report_id)
 
 
 class ConnectUnsafeMark:

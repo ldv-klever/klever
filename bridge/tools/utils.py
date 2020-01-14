@@ -21,6 +21,7 @@ from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.db import transaction
 from django.db.models import F, FileField
+from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 
 from bridge.vars import JOB_WEIGHT
@@ -184,6 +185,10 @@ class Recalculation:
             raise BridgeException(_('Please select jobs to recalculate caches for them'))
         return roots
 
+    @cached_property
+    def _root_ids(self):
+        return set(r.id for r in self._roots)
+
     def __recalc(self):
         if self.type == 'leaves':
             RecalculateLeaves(self._roots)
@@ -194,11 +199,14 @@ class Recalculation:
         elif self.type == 'unknown_links':
             recalculate_unknown_links(self._roots)
         elif self.type == 'safe_reports':
-            RecalculateSafeCache(roots=set(r.id for r in self._roots))
+            reports_ids = list(ReportSafe.objects.filter(root_id__in=self._root_ids).values_list('id', flat=True))
+            RecalculateSafeCache(reports_ids)
         elif self.type == 'unsafe_reports':
-            RecalculateUnsafeCache(roots=set(r.id for r in self._roots))
+            reports_ids = list(ReportUnsafe.objects.filter(root_id__in=self._root_ids).values_list('id', flat=True))
+            RecalculateUnsafeCache(reports_ids)
         elif self.type == 'unknown_reports':
-            RecalculateUnknownCache(roots=set(r.id for r in self._roots))
+            reports_ids = list(ReportUnknown.objects.filter(root_id__in=self._root_ids).values_list('id', flat=True))
+            RecalculateUnknownCache(reports_ids)
         elif self.type == 'root_cache':
             RecalculateRootCache(self._roots)
         elif self.type == 'coverage':

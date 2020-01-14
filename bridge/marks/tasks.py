@@ -36,7 +36,7 @@ def connect_safe_report(report_id):
         MarkSafeReport(mark_id=m_id, report=report, associated=True)
         for m_id in marks_qs.values_list('id', flat=True)
     ))
-    RecalculateSafeCache(reports=[report.id])
+    RecalculateSafeCache(report.id)
 
 
 @shared_task
@@ -48,7 +48,7 @@ def connect_unsafe_report(report_id):
     MarkUnsafeReport.objects.bulk_create(list(MarkUnsafeReport(
         mark_id=mark.id, report=report, **compare_results[mark.id]
     ) for mark in marks_qs))
-    RecalculateUnsafeCache(reports=[report.id])
+    RecalculateUnsafeCache(report.id)
 
 
 @shared_task
@@ -65,4 +65,4 @@ def connect_unknown_report(report_id):
             continue
         new_markreports.append(MarkUnknownReport(mark_id=mark.id, report=report, problem=problem, associated=True))
     MarkUnknownReport.objects.bulk_create(new_markreports)
-    RecalculateUnknownCache(reports=[report.id])
+    RecalculateUnknownCache(report.id)
