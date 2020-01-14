@@ -115,6 +115,11 @@ class Process:
             else:
                 setattr(inst, att, val)
 
+        # Change declarations and definition keys
+        for collection in (self.declarations, self.definitions):
+            for item in collection:
+                collection[item] = copy.copy(collection[item])
+
         # Copy labels
         inst.labels = {l.name: copy.copy(l) for l in self.labels.values()}
         return inst
