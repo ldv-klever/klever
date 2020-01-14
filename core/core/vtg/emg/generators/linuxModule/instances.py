@@ -793,8 +793,7 @@ def _remove_statics(sa, process):
                                     name not in _values_map[file]):
                     # Prepare dictionary
                     for coll in (_definitions, _declarations):
-                        if file not in coll:
-                            coll[file] = dict()
+                        coll.setdefault(file, dict())
 
                     # Create new artificial variables and functions
                     if function_name:
