@@ -22,12 +22,12 @@ import re
 from django.utils.translation import ugettext_lazy as _
 
 from bridge.vars import ASSOCIATION_TYPE, PROBLEM_DESC_FILE
-from bridge.utils import BridgeException, logger, ArchiveFileContent
+from bridge.utils import BridgeException, logger, ArchiveFileContent, require_lock
 
 from reports.models import ReportUnknown
-from marks.models import MAX_PROBLEM_LEN, MarkUnknown, MarkUnknownHistory, MarkUnknownReport
+from marks.models import MAX_PROBLEM_LEN, MarkUnknownHistory, MarkUnknownReport
 
-from marks.utils import RemoveMarksBase, ConfirmAssociationBase, UnconfirmAssociationBase
+from marks.utils import ConfirmAssociationBase, UnconfirmAssociationBase
 from caches.utils import RecalculateUnknownCache, UpdateUnknownCachesOnMarkChange
 
 
@@ -67,23 +67,41 @@ def perform_unknown_mark_update(user, serializer):
     return cache_upd.save()
 
 
-class RemoveUnknownMarks(RemoveMarksBase):
-    model = MarkUnknown
-    associations_model = MarkUnknownReport
+class RemoveUnknownMark:
+    def __init__(self, mark):
+        self._mark = mark
+
+    @require_lock(MarkUnknownReport)
+    def destroy(self):
+        affected_reports = set(MarkUnknownReport.objects.filter(mark=self._mark).values_list('report_id', flat=True))
+        self._mark.delete()
+
+        # Find reports that have marks associations when all association are disabled. It can be in 2 cases:
+        # 1) All associations are unconfirmed
+        # 2) All confirmed associations were with deleted mark
+        # We need to update 2nd case, so auto-associations are counting again
+        changed_ids = affected_reports - set(MarkUnknownReport.objects.filter(
+            report_id__in=affected_reports, associated=True
+        ).values_list('report_id', flat=True))
+
+        # Update associations
+        MarkUnknownReport.objects.filter(report_id__in=changed_ids)\
+            .exclude(type=ASSOCIATION_TYPE[2][0]).update(associated=True)
+        return affected_reports
 
 
 class ConfirmUnknownMark(ConfirmAssociationBase):
     model = MarkUnknownReport
 
     def recalculate_cache(self, report_id):
-        RecalculateUnknownCache(reports=[report_id])
+        RecalculateUnknownCache(report_id)
 
 
 class UnconfirmUnknownMark(UnconfirmAssociationBase):
     model = MarkUnknownReport
 
     def recalculate_cache(self, report_id):
-        RecalculateUnknownCache(reports=[report_id])
+        RecalculateUnknownCache(report_id)
 
 
 class MatchUnknown:

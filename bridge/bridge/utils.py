@@ -30,6 +30,7 @@ from urllib.parse import quote
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
 from django.core.files import File
+from django.db import connection, transaction
 from django.db.models import FileField
 from django.http import HttpResponseBadRequest, Http404
 from django.template import loader
@@ -47,21 +48,45 @@ BLOCKER = {}
 GROUP_BLOCKER = {}
 CALL_STATISTIC = {}
 TESTS_DIR = 'Tests'
+LOCK_MODES = (
+    'ACCESS SHARE',
+    'ROW SHARE',
+    'ROW EXCLUSIVE',
+    'SHARE UPDATE EXCLUSIVE',
+    'SHARE',
+    'SHARE ROW EXCLUSIVE',
+    'EXCLUSIVE',
+    'ACCESS EXCLUSIVE',
+)
 
 logger = logging.getLogger('bridge')
 
 
-class InfoFilter(object):
+class InfoFilter(logging.Filter):
     def __init__(self, level):
         self.__level = level
+        super(InfoFilter, self).__init__()
 
     def filter(self, log_record):
-        return log_record.levelno == self.__level
+        return log_record.levelno == self.__level and super(InfoFilter, self).filter(log_record)
 
 
 for h in logger.handlers:
     if h.name == 'other':
         h.addFilter(InfoFilter(logging.INFO))
+
+
+def require_lock(model, lock='EXCLUSIVE'):
+    def require_lock_decorator(func):
+        def wrapper(*args, **kwargs):
+            if lock not in LOCK_MODES:
+                raise ValueError('%s is not a PostgreSQL supported lock mode.')
+            with transaction.atomic():
+                cursor = connection.cursor()
+                cursor.execute('LOCK TABLE {} IN {} MODE'.format(getattr(model, '_meta').db_table, lock))
+                return func(*args, **kwargs)
+        return wrapper
+    return require_lock_decorator
 
 
 def exec_time(func):

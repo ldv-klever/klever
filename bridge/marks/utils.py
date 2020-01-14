@@ -241,44 +241,6 @@ class CompareMarkVersions:
                 {'pattern': self.v2.problem_pattern, 'link': self.v2.link}]
 
 
-class RemoveMarksBase:
-    model = None
-    associations_model = None
-
-    def __init__(self, **kwargs):
-        self._qs_kwargs = kwargs
-        self._marks_qs = self.__get_marks_qs()
-        if not self._marks_qs.exists():
-            # Nothing to delete
-            return
-        self.affected_reports = self.__get_affected_reports()
-        self._marks_qs.delete()
-        self.update_associated()
-
-    def __get_marks_qs(self):
-        assert self.model
-        return self.model.objects.filter(**self._qs_kwargs)
-
-    def __get_affected_reports(self):
-        assert self.associations_model
-        qs_filters = dict(('mark__{}'.format(k), v) for k, v in self._qs_kwargs.items())
-        return set(self.associations_model.objects.filter(**qs_filters).values_list('report_id', flat=True))
-
-    @property
-    def without_associations_qs(self):
-        # Find reports that has marks associations when all association are disabled. It can be in 2 cases:
-        # 1) All marks are unconfirmed
-        # 2) All confirmed associations were with deleted marks
-        # We need to update 2nd case, so auto-associations are counting again
-        changed_ids = self.affected_reports - set(self.associations_model.objects.filter(
-            report_id__in=self.affected_reports, associated=True
-        ).values_list('report_id', flat=True))
-        return self.associations_model.objects.filter(report_id__in=changed_ids).exclude(type=ASSOCIATION_TYPE[2][0])
-
-    def update_associated(self):
-        self.without_associations_qs.update(associated=True)
-
-
 class ConfirmAssociationBase:
     model = None
 

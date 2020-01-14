@@ -48,15 +48,14 @@ from marks.serializers import (
     UpdatedPresetUnsafeMarkSerializer
 )
 from marks.SafeUtils import (
-    perform_safe_mark_create, perform_safe_mark_update, RemoveSafeMarks, ConfirmSafeMark, UnconfirmSafeMark
+    perform_safe_mark_create, perform_safe_mark_update, RemoveSafeMark, ConfirmSafeMark, UnconfirmSafeMark
 )
 from marks.UnsafeUtils import (
-    perform_unsafe_mark_create, perform_unsafe_mark_update, RemoveUnsafeMarks,
-    ConfirmUnsafeMark, UnconfirmUnsafeMark
+    perform_unsafe_mark_create, perform_unsafe_mark_update, RemoveUnsafeMark, ConfirmUnsafeMark, UnconfirmUnsafeMark
 )
 from marks.UnknownUtils import (
     perform_unknown_mark_create, perform_unknown_mark_update, CheckUnknownFunction,
-    RemoveUnknownMarks, ConfirmUnknownMark, UnconfirmUnknownMark
+    RemoveUnknownMark, ConfirmUnknownMark, UnconfirmUnknownMark
 )
 from marks.Download import AllMarksGenerator, MarksUploader, UploadAllMarks
 from marks.markversion import MarkVersionFormData
@@ -109,8 +108,8 @@ class MarkSafeViewSet(LoggedCallMixin, ModelViewSet):
     def perform_destroy(self, instance):
         if not MarkAccess(self.request.user, mark=instance).can_delete:
             raise exceptions.PermissionDenied(_("You don't have an access to remove this mark"))
-        res = RemoveSafeMarks(id=instance.id)
-        RecalculateSafeCache(reports=res.affected_reports)
+        reports_ids = RemoveSafeMark(instance).destroy()
+        RecalculateSafeCache(reports_ids)
 
 
 class MarkUnsafeViewSet(LoggedCallMixin, ModelViewSet):
@@ -156,8 +155,8 @@ class MarkUnsafeViewSet(LoggedCallMixin, ModelViewSet):
     def perform_destroy(self, instance):
         if not MarkAccess(self.request.user, mark=instance).can_delete:
             raise exceptions.PermissionDenied(_("You don't have an access to remove this mark"))
-        res = RemoveUnsafeMarks(id=instance.id)
-        RecalculateUnsafeCache(reports=res.affected_reports)
+        reports_ids = RemoveUnsafeMark(instance).destroy()
+        RecalculateUnsafeCache(reports_ids)
 
 
 class MarkUnknownViewSet(LoggedCallMixin, ModelViewSet):
@@ -203,8 +202,8 @@ class MarkUnknownViewSet(LoggedCallMixin, ModelViewSet):
     def perform_destroy(self, instance):
         if not MarkAccess(self.request.user, mark=instance).can_delete:
             raise exceptions.PermissionDenied(_("You don't have an access to remove this mark"))
-        res = RemoveUnknownMarks(id=instance.id)
-        RecalculateUnknownCache(reports=res.affected_reports)
+        reports_ids = RemoveUnknownMark(instance).destroy()
+        RecalculateUnknownCache(reports_ids)
 
 
 class SafeTagViewSet(LoggedCallMixin, ModelViewSet):
@@ -338,8 +337,10 @@ class RemoveSafeMarksView(LoggedCallMixin, APIView):
     permission_classes = (ManagerPermission,)
 
     def delete(self, request):
-        res = RemoveSafeMarks(id__in=json.loads(self.request.POST['ids']))
-        RecalculateSafeCache(reports=res.affected_reports)
+        reports_ids = set()
+        for mark in MarkSafe.objects.filter(id__in=json.loads(self.request.POST['ids'])):
+            reports_ids |= RemoveSafeMark(mark).destroy()
+        RecalculateSafeCache(reports_ids)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -348,8 +349,10 @@ class RemoveUnsafeMarksView(LoggedCallMixin, APIView):
     permission_classes = (ManagerPermission,)
 
     def delete(self, request):
-        res = RemoveUnsafeMarks(id__in=json.loads(self.request.POST['ids']))
-        RecalculateUnsafeCache(reports=res.affected_reports)
+        reports_ids = set()
+        for mark in MarkUnsafe.objects.filter(id__in=json.loads(self.request.POST['ids'])):
+            reports_ids |= RemoveUnsafeMark(mark).destroy()
+        RecalculateUnsafeCache(reports_ids)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -358,8 +361,10 @@ class RemoveUnknownMarksView(LoggedCallMixin, APIView):
     permission_classes = (ManagerPermission,)
 
     def delete(self, request):
-        res = RemoveUnknownMarks(id__in=json.loads(self.request.POST['ids']))
-        RecalculateUnknownCache(reports=res.affected_reports)
+        reports_ids = set()
+        for mark in MarkUnknown.objects.filter(id__in=json.loads(self.request.POST['ids'])):
+            reports_ids |= RemoveUnknownMark(mark).destroy()
+        RecalculateUnknownCache(reports_ids)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
