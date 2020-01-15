@@ -162,6 +162,10 @@ class LoggedCallMixin:
 
         unparallel = self.get_unparallel(request)
 
+        # If request can be executed in parallel and call logs are disabled then just normal view execution
+        if not settings.ENABLE_CALL_LOGS and not unparallel:
+            return getattr(super(), 'dispatch')(request, *args, **kwargs)
+
         locker = ExecLocker(type(self).__name__, unparallel)
         try:
             locker.lock()

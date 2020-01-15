@@ -214,3 +214,5 @@ CELERY_BEAT_SCHEDULE = {
         'args': (60,)  # Clear archives older than 60 minutes
     },
 }
+
+ENABLE_CALL_LOGS = False
