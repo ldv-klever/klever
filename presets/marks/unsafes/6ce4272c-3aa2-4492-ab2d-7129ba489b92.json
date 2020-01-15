@@ -16,6 +16,15 @@
     [
       [
         {
+          "LDV model 'pre_probe'": [
+            {
+              "LDV model 'reset_error_counter'": []
+            }
+          ]
+        }
+      ],
+      [
+        {
           "EMG wrapper": [
             {
               "LDV model 'pci_probe'": [
@@ -29,6 +38,19 @@
                       ]
                     }
                   ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "LDV model 'post_probe'": [
+            {
+              "LDV model 'check_return_value_probe'": [
+                {
+                  "LDV model 'assert'": []
                 }
               ]
             }

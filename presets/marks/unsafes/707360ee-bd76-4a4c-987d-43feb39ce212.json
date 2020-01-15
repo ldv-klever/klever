@@ -16,19 +16,25 @@
     [
       [
         {
-          "EMG wrapper": [
+          "LDV model 'pre_probe'": [
             {
-              "LDV model 'usb_probe'": [
+              "LDV model 'reset_error_counter'": []
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "LDV model 'failed_register_netdev'": []
+        }
+      ],
+      [
+        {
+          "LDV model 'post_probe'": [
+            {
+              "LDV model 'check_return_value_probe'": [
                 {
-                  "Instrumented function 'register_netdev'": [
-                    {
-                      "Register network device and its callbacks.": [
-                        {
-                          "LDV model 'failed_register_netdev'": []
-                        }
-                      ]
-                    }
-                  ]
+                  "LDV model 'assert'": []
                 }
               ]
             }
