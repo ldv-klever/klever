@@ -352,9 +352,11 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
         if pre:
             pre_name = 'pre_call_{}'.format(action_identifiers.__next__())
             pre = process.add_condition(pre_name, [], pre, "Callback {} precondition.".format(call.name))
+            pre.trace_relevant = True
         if post:
             post_name = 'post_call_{}'.format(action_identifiers.__next__())
             post = process.add_condition(post_name, [], post, "Callback {} postcondition.".format(format(call.name)))
+            post.trace_relevant = True
 
         return pre, post
 
