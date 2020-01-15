@@ -278,7 +278,7 @@ class Process:
         if file not in self.declarations:
             self.declarations[file] = sortedcontainers.SortedDict()
 
-        if name not in self.declarations:
+        if name not in self.declarations[file]:
             self.declarations[file][name] = string
 
     def add_definition(self, file, name, strings):
@@ -297,7 +297,7 @@ class Process:
         if file not in self.definitions:
             self.definitions[file] = sortedcontainers.SortedDict()
 
-        if name not in self.definitions:
+        if name not in self.definitions[file]:
             self.definitions[file][name] = strings
 
     def add_label(self, name, declaration, value=None):
