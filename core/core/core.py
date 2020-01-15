@@ -298,9 +298,13 @@ class Reporter(core.components.Component):
         self.session = session
 
     def send_reports(self):
+        issleep = True
         while True:
             # Report batches of reports each 3 seconds. This reduces the number of requests quite considerably.
-            time.sleep(3)
+            if issleep:
+                time.sleep(3)
+            else:
+                issleep = True
 
             reports_and_report_file_archives = []
             is_finish = False
@@ -319,6 +323,8 @@ class Reporter(core.components.Component):
                     # Do not send more than 10 reports at once. Otherwise different strange issues may appear im Core
                     # and Bridge.
                     if len(reports_and_report_file_archives) == 10:
+                        # Do not sleep since there may be pending reports already.
+                        issleep = False
                         break
                 except queue.Empty:
                     break
