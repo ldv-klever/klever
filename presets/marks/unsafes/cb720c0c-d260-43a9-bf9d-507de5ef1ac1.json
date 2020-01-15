@@ -14,21 +14,33 @@
   "description": "",
   "error_trace": [
     [
-      {
-        "ldv_init": [
-          {
-            "ldv_put_disk": [
-              {
-                "ldv_assert_linux_block_genhd__free_before_allocation": []
-              }
-            ]
-          }
-        ]
-      }
+      [
+        {
+          "EMG wrapper": [
+            {
+              "LDV model 'init'": [
+                {
+                  "Instrumented function 'put_disk'": [
+                    {
+                      "LDV model 'put_disk'": [
+                        {
+                          "LDV model 'assert'": []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",
   "is_modifiable": false,
+  "status": null,
   "tags": [],
+  "threshold": 0,
   "verdict": "2"
 }

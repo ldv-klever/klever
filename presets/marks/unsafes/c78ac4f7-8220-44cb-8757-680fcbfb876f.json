@@ -14,26 +14,36 @@
   "description": "",
   "error_trace": [
     [
-      {
-        "ldv_init": []
-      }
+      [
+        {
+          "EMG wrapper": [
+            {
+              "LDV model 'init'": []
+            }
+          ]
+        }
+      ]
     ],
     [
-      {
-        "ldv_control_function": [
-          {
-            "ldv_func": [
-              {
-                "ldv_mutex_lock_37": []
-              }
-            ]
-          }
-        ]
-      }
+      [
+        {
+          "LDV model 'control_function'": [
+            {
+              "LDV model 'func'": [
+                {
+                  "Instrumented function 'mutex_lock'": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",
   "is_modifiable": false,
+  "status": null,
   "tags": [],
+  "threshold": 0,
   "verdict": "2"
 }

@@ -14,42 +14,47 @@
   "description": "",
   "error_trace": [
     [
-      {
-        "ldv_init": [
-          {
-            "ldv_blk_init_queue_19": [
-              {
-                "ldv_request_queue": [
-                  {
-                    "ldv_undef_ptr": []
-                  },
-                  {
-                    "ldv_assert_linux_block_queue__double_allocation": []
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "ldv_blk_alloc_queue_20": [
-              {
-                "ldv_request_queue": [
-                  {
-                    "ldv_undef_ptr": []
-                  },
-                  {
-                    "ldv_assert_linux_block_queue__double_allocation": []
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      }
+      [
+        {
+          "EMG wrapper": [
+            {
+              "LDV model 'init'": [
+                {
+                  "Instrumented function 'blk_init_queue'": [
+                    {
+                      "LDV model 'request_queue'": [
+                        {
+                          "LDV model 'undef_ptr'": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Instrumented function 'blk_alloc_queue'": [
+                    {
+                      "LDV model 'request_queue'": [
+                        {
+                          "LDV model 'undef_ptr'": []
+                        },
+                        {
+                          "LDV model 'assert'": []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",
   "is_modifiable": false,
+  "status": null,
   "tags": [],
+  "threshold": 0,
   "verdict": "2"
 }

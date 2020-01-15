@@ -14,34 +14,48 @@
   "description": "",
   "error_trace": [
     [
-      {
-        "ldv_check_final_state": [
-          {
-            "ldv_assert_linux_net_sock__all_locked_sockets_must_be_released": []
-          }
-        ]
-      }
+      [
+        {
+          "Entry point 'main'": [
+            {
+              "LDV model 'check_final_state'": [
+                {
+                  "LDV model 'assert'": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ],
     [
-      {
-        "ldv_init": [
-          {
-            "lock_sock": [
-              {
-                "ldv_lock_sock_nested_19": [
-                  {
-                    "ldv_past_lock_sock_nested": []
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      }
+      [
+        {
+          "EMG wrapper": [
+            {
+              "LDV model 'init'": [
+                {
+                  "lock_sock": [
+                    {
+                      "Instrumented function 'lock_sock_nested'": [
+                        {
+                          "LDV model 'past_lock_sock_nested'": []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",
   "is_modifiable": false,
+  "status": null,
   "tags": [],
+  "threshold": 0,
   "verdict": "2"
 }

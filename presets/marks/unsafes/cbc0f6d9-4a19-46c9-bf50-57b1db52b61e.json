@@ -14,42 +14,47 @@
   "description": "",
   "error_trace": [
     [
-      {
-        "ldv_init": [
-          {
-            "ldv_usb_gadget_probe_driver_23": [
-              {
-                "ldv_register_usb_gadget": [
-                  {
-                    "ldv_undef_int_nonpositive": []
-                  },
-                  {
-                    "ldv_assert_linux_usb_gadget__double_usb_gadget_registration": []
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "ldv_alloc_chrdev_region_24": [
-              {
-                "ldv_register_chrdev_region": [
-                  {
-                    "ldv_undef_int_nonpositive": []
-                  },
-                  {
-                    "ldv_assert_linux_usb_gadget__chrdev_registration_with_usb_gadget": []
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      }
+      [
+        {
+          "EMG wrapper": [
+            {
+              "LDV model 'init'": [
+                {
+                  "Instrumented function 'usb_gadget_probe_driver'": [
+                    {
+                      "LDV model 'register_usb_gadget'": [
+                        {
+                          "LDV model 'undef_int_nonpositive'": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Instrumented function 'alloc_chrdev_region'": [
+                    {
+                      "LDV model 'register_chrdev_region'": [
+                        {
+                          "LDV model 'undef_int_nonpositive'": []
+                        },
+                        {
+                          "LDV model 'assert'": []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",
   "is_modifiable": false,
+  "status": null,
   "tags": [],
+  "threshold": 0,
   "verdict": "2"
 }

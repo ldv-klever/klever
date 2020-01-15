@@ -14,31 +14,47 @@
   "description": "",
   "error_trace": [
     [
-      {
-        "ldv_initialize": []
-      }
+      [
+        {
+          "Entry point 'main'": [
+            {
+              "LDV model 'initialize'": []
+            },
+            {
+              "LDV model 'check_final_state'": [
+                {
+                  "LDV model 'assert'": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ],
     [
-      {
-        "ldv_check_final_state": [
-          {
-            "ldv_assert_linux_usb_dev__more_initial_at_exit": []
-          }
-        ]
-      }
-    ],
-    [
-      {
-        "ldv_init": [
-          {
-            "ldv_usb_get_dev": []
-          }
-        ]
-      }
+      [
+        {
+          "EMG wrapper": [
+            {
+              "LDV model 'init'": [
+                {
+                  "Instrumented function 'usb_get_dev'": [
+                    {
+                      "LDV model 'usb_get_dev'": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",
   "is_modifiable": false,
+  "status": null,
   "tags": [],
+  "threshold": 0,
   "verdict": "2"
 }

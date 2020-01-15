@@ -14,33 +14,48 @@
   "description": "",
   "error_trace": [
     [
-      {
-        "ldv_check_final_state": [
-          {
-            "ldv_assert_linux_block_request__get_at_exit": []
-          }
-        ]
-      }
+      [
+        {
+          "Entry point 'main'": [
+            {
+              "LDV model 'check_final_state'": [
+                {
+                  "LDV model 'assert'": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ],
     [
-      {
-        "ldv_init": [
-          {
-            "ldv_blk_get_request": [
-              {
-                "ldv_assert_linux_block_request__double_get": []
-              },
-              {
-                "ldv_undef_ptr": []
-              }
-            ]
-          }
-        ]
-      }
+      [
+        {
+          "EMG wrapper": [
+            {
+              "LDV model 'init'": [
+                {
+                  "Instrumented function 'blk_get_request'": [
+                    {
+                      "LDV model 'blk_get_request'": [
+                        {
+                          "LDV model 'undef_ptr'": []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",
   "is_modifiable": false,
+  "status": null,
   "tags": [],
+  "threshold": 0,
   "verdict": "2"
 }

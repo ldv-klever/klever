@@ -14,33 +14,44 @@
   "description": "",
   "error_trace": [
     [
-      {
-        "ldv_check_final_state": [
-          {
-            "ldv_assert_linux_drivers_base_class__registered_at_exit": []
-          }
-        ]
-      }
+      [
+        {
+          "Entry point 'main'": [
+            {
+              "LDV model 'check_final_state'": [
+                {
+                  "LDV model 'assert'": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ],
     [
-      {
-        "ldv_init": [
-          {
-            "ldv_register_class": [
-              {
-                "ldv_undef_int_nonpositive": []
-              },
-              {
-                "ldv_assert_linux_drivers_base_class__double_registration": []
-              }
-            ]
-          }
-        ]
-      }
+      [
+        {
+          "EMG wrapper": [
+            {
+              "LDV model 'init'": [
+                {
+                  "LDV model 'register_class'": [
+                    {
+                      "LDV model 'undef_int_nonpositive'": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",
   "is_modifiable": false,
+  "status": null,
   "tags": [],
+  "threshold": 0,
   "verdict": "2"
 }

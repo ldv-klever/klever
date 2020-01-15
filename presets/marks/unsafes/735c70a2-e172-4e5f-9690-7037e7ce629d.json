@@ -14,24 +14,36 @@
   "description": "",
   "error_trace": [
     [
-      {
-        "ldv_init": [
-          {
-            "ldv_usb_lock_device": []
-          },
-          {
-            "ldv_check_alloc_nonatomic": [
-              {
-                "ldv_assert_linux_alloc_usb_lock__nonatomic": []
-              }
-            ]
-          }
-        ]
-      }
+      [
+        {
+          "EMG wrapper": [
+            {
+              "LDV model 'init'": [
+                {
+                  "LDV model 'usb_lock_device'": []
+                },
+                {
+                  "Instrumented function 'vmalloc'": [
+                    {
+                      "LDV model 'check_alloc_nonatomic'": [
+                        {
+                          "LDV model 'assert'": []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",
   "is_modifiable": false,
+  "status": null,
   "tags": [],
+  "threshold": 0,
   "verdict": "2"
 }

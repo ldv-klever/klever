@@ -2,18 +2,18 @@
   "attrs": [
     {
       "is_compare": true,
+      "name": "Declaration",
+      "value": "ldv_main::int **temp2"
+    },
+    {
+      "is_compare": true,
       "name": "Requirements specification",
       "value": "concurrency safety"
     },
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/linux/concurrency-safety/unsorted/RaceTest7-unsafe.ko"
-    },
-    {
-      "is_compare": true,
-      "name": "Declaration",
-      "value": "int _ldv_true_unsafe"
+      "value": "ext-modules/linux/concurrency-safety/unsorted/lockTest-unsafe.ko"
     }
   ],
   "description": "",
@@ -23,23 +23,19 @@
         {
           "EMG wrapper": [
             {
-              "LDV model 'init'": [
+              "init": [
                 {
                   "LDV model 'main'": [
                     {
-                      "LDV model 'func1'": [
+                      "LDV model 'func'": [
+                        {
+                          "Instrumented function 'mutex_lock'": []
+                        },
                         {
                           "Instrumented function 'mutex_lock'": []
                         },
                         {
                           "Instrumented function 'mutex_unlock'": []
-                        }
-                      ]
-                    },
-                    {
-                      "LDV model 'func2'": [
-                        {
-                          "Instrumented function 'mutex_lock'": []
                         },
                         {
                           "Instrumented function 'mutex_unlock'": []
@@ -59,19 +55,15 @@
         {
           "LDV model 'main'": [
             {
-              "LDV model 'func1'": [
+              "LDV model 'func'": [
+                {
+                  "Instrumented function 'mutex_lock'": []
+                },
                 {
                   "Instrumented function 'mutex_lock'": []
                 },
                 {
                   "Instrumented function 'mutex_unlock'": []
-                }
-              ]
-            },
-            {
-              "LDV model 'func2'": [
-                {
-                  "Instrumented function 'mutex_lock'": []
                 },
                 {
                   "Instrumented function 'mutex_unlock'": []
@@ -84,7 +76,7 @@
     ]
   ],
   "function": "thread_call_forests",
-  "is_modifiable": false,
+  "is_modifiable": true,
   "status": null,
   "tags": [],
   "threshold": 0,

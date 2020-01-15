@@ -2,13 +2,18 @@
   "attrs": [
     {
       "is_compare": true,
+      "name": "Declaration",
+      "value": "int *(?.field)"
+    },
+    {
+      "is_compare": true,
       "name": "Requirements specification",
-      "value": "net:rtnetlink"
+      "value": "concurrency safety"
     },
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/linux/net/rtnetlink/double-unlock.ko"
+      "value": "ext-modules/linux/concurrency-safety/unsorted/RaceTest4-unsafe.ko"
     }
   ],
   "description": "",
@@ -20,13 +25,9 @@
             {
               "LDV model 'init'": [
                 {
-                  "Instrumented function 'rtnl_unlock'": [
+                  "LDV model 'main'": [
                     {
-                      "LDV model 'past_rtnl_unlock'": [
-                        {
-                          "LDV model 'assert'": []
-                        }
-                      ]
+                      "LDV model 'func2'": []
                     }
                   ]
                 }
@@ -35,10 +36,21 @@
           ]
         }
       ]
+    ],
+    [
+      [
+        {
+          "LDV model 'main'": [
+            {
+              "LDV model 'func2'": []
+            }
+          ]
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",
-  "is_modifiable": false,
+  "is_modifiable": true,
   "status": null,
   "tags": [],
   "threshold": 0,

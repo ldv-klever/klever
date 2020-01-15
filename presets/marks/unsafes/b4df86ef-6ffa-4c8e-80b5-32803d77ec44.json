@@ -14,28 +14,40 @@
   "description": "",
   "error_trace": [
     [
-      {
-        "ldv_init": [
-          {
-            "ldv_malloc_unknown_size": [
-              {
-                "ldv_reference_malloc_unknown_size": []
-              }
-            ]
-          },
-          {
-            "ldv_free": [
-              {
-                "ldv_reference_free": []
-              }
-            ]
-          }
-        ]
-      }
+      [
+        {
+          "EMG wrapper": [
+            {
+              "LDV model 'init'": [
+                {
+                  "LDV model 'malloc_unknown_size'": [
+                    {
+                      "LDV model 'reference_malloc_unknown_size'": []
+                    }
+                  ]
+                },
+                {
+                  "Instrumented function 'kfree'": [
+                    {
+                      "LDV model 'free'": [
+                        {
+                          "LDV model 'reference_free'": []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",
   "is_modifiable": false,
+  "status": null,
   "tags": [],
+  "threshold": 0,
   "verdict": "2"
 }

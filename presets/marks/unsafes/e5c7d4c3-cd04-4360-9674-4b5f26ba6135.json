@@ -14,33 +14,40 @@
   "description": "",
   "error_trace": [
     [
-      {
-        "ldv_check_final_state": [
-          {
-            "ldv_assert_linux_kernel_locking_rwlock__read_lock_at_exit": []
-          },
-          {
-            "ldv_assert_linux_kernel_locking_rwlock__write_lock_at_exit": []
-          }
-        ]
-      }
+      [
+        {
+          "Entry point 'main'": [
+            {
+              "LDV model 'check_final_state'": [
+                {
+                  "LDV model 'assert'": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ],
     [
-      {
-        "ldv_init": [
-          {
-            "ldv_write_lock": [
-              {
-                "ldv_assert_linux_kernel_locking_rwlock__double_write_lock": []
-              }
-            ]
-          }
-        ]
-      }
+      [
+        {
+          "EMG wrapper": [
+            {
+              "LDV model 'init'": [
+                {
+                  "LDV model 'write_lock'": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",
   "is_modifiable": false,
+  "status": null,
   "tags": [],
+  "threshold": 0,
   "verdict": "2"
 }

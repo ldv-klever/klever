@@ -14,25 +14,33 @@
   "description": "",
   "error_trace": [
     [
-      {
-        "ldv_init": [
-          {
-            "ldv_usb_gadget_unregister_driver_23": [
-              {
-                "ldv_unregister_usb_gadget": [
-                  {
-                    "ldv_assert_linux_usb_gadget__double_usb_gadget_deregistration": []
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      }
+      [
+        {
+          "EMG wrapper": [
+            {
+              "LDV model 'init'": [
+                {
+                  "Instrumented function 'usb_gadget_unregister_driver'": [
+                    {
+                      "LDV model 'unregister_usb_gadget'": [
+                        {
+                          "LDV model 'assert'": []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",
   "is_modifiable": false,
+  "status": null,
   "tags": [],
+  "threshold": 0,
   "verdict": "2"
 }

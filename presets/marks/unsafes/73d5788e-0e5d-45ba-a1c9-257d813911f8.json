@@ -14,28 +14,44 @@
   "description": "",
   "error_trace": [
     [
-      {
-        "ldv_init": [
-          {
-            "ldv_usb_lock_device_for_reset": []
-          },
-          {
-            "ldv_kmalloc": [
-              {
-                "ldv_check_alloc_flags": [
-                  {
-                    "ldv_assert_linux_alloc_usb_lock__wrong_flags": []
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      }
+      [
+        {
+          "EMG wrapper": [
+            {
+              "LDV model 'init'": [
+                {
+                  "Instrumented function 'usb_lock_device_for_reset'": [
+                    {
+                      "LDV model 'usb_lock_device_for_reset'": []
+                    }
+                  ]
+                },
+                {
+                  "Instrumented function 'kmalloc'": [
+                    {
+                      "LDV model 'kmalloc'": [
+                        {
+                          "LDV model 'check_alloc_flags'": [
+                            {
+                              "LDV model 'assert'": []
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",
   "is_modifiable": false,
+  "status": null,
   "tags": [],
+  "threshold": 0,
   "verdict": "2"
 }
