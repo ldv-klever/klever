@@ -425,6 +425,13 @@ class ErrorTrace:
 
         del target
 
+    def remove_unreffered_files(self, reffered_file_ids):
+        for file_id in range(len(self._files)):
+            if file_id not in reffered_file_ids:
+                # This is not a complete removing. But error traces will not hold absolute paths of files that are not
+                # reffered by witness.
+                self._files[file_id] = ''
+
     @staticmethod
     def next_edge(edge):
         if len(edge['target node']['out']) > 0:
@@ -468,8 +475,9 @@ class ErrorTrace:
         emg_comment = re.compile('/\*\sEMG_ACTION\s(.*)\s\*/')
 
         for file_id, file in self.files:
-            if not os.path.isfile(file):
-                raise FileNotFoundError('File {!r} referred by witness does not exist'.format(file))
+            # Files without names are not reffered by witness.
+            if not file:
+                continue
 
             self._logger.debug('Parse model comments from {!r}'.format(file))
 

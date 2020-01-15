@@ -140,6 +140,7 @@ class ErrorTraceParser:
         edges_num = 0
 
         edges_to_remove = []
+        referred_file_ids = set()
         for edge in graph.findall('graphml:edge', self.WITNESS_NS):
             # Sanity checks.
             if 'source' not in edge.attrib:
@@ -195,6 +196,7 @@ class ErrorTraceParser:
                 # Calculate the number of lines up to start offset. It is key within line map hash.
                 lines_num = len(re.findall(r'\n', self.error_trace.programfile_content[:startoffset])) + 1
                 _edge['file'], _edge['line'] = self.error_trace.programfile_line_map[lines_num]
+                referred_file_ids.add(_edge['file'])
 
                 if control is not None:
                     # Replace conditions to negative ones to consider else branches.
@@ -222,5 +224,7 @@ class ErrorTraceParser:
 
         for edge_to_remove in edges_to_remove:
             self.error_trace.remove_edge_and_target_node(edge_to_remove)
+
+        self.error_trace.remove_unreffered_files(referred_file_ids)
 
         self._logger.debug('Parse {0} edges and {1} sink edges'.format(edges_num, sink_edges_num))

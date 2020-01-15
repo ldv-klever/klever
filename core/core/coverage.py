@@ -28,23 +28,22 @@ coverage_format_version = 1
 
 
 def add_to_coverage(merged_coverage_info, coverage_info):
-    for file_name in coverage_info:
+    for file_name, file_coverage_info in coverage_info.items():
         merged_coverage_info.setdefault(file_name, {
-            'total functions': coverage_info[file_name][0]['total functions'],
+            'total functions': coverage_info[file_name]['total functions'],
             'covered lines': dict(),
             'covered functions': dict(),
             'covered function names': list()
         })
 
-        for coverage in coverage_info[file_name]:
-            for path in ('covered lines', 'covered functions'):
-                for line, value in coverage[path].items():
-                    merged_coverage_info[file_name][path].setdefault(line, 0)
-                    merged_coverage_info[file_name][path][line] += value
-            if coverage.get('covered function names'):
-                for name in coverage['covered function names']:
-                    if name not in merged_coverage_info[file_name]['covered function names']:
-                        merged_coverage_info[file_name]['covered function names'].append(name)
+        for kind in ('covered lines', 'covered functions'):
+            for line, cov_num in file_coverage_info[kind].items():
+                merged_coverage_info[file_name][kind].setdefault(line, 0)
+                merged_coverage_info[file_name][kind][line] += cov_num
+
+        for cov_func_name in file_coverage_info['covered function names']:
+            if cov_func_name not in merged_coverage_info[file_name]['covered function names']:
+                merged_coverage_info[file_name]['covered function names'].append(cov_func_name)
 
 
 def convert_coverage(merged_coverage_info, coverage_dir, pretty, src_files_info=None):
@@ -59,13 +58,11 @@ def convert_coverage(merged_coverage_info, coverage_dir, pretty, src_files_info=
         'data statistics': dict()
     }
 
-    for file_name in list(merged_coverage_info.keys()):
-        raw_file_coverage = merged_coverage_info[file_name]
-
+    for file_name, file_coverage_info in merged_coverage_info.items():
         file_coverage = {
             'format': coverage_format_version,
-            'line coverage': raw_file_coverage['covered lines'],
-            'function coverage': raw_file_coverage['covered functions']
+            'line coverage': file_coverage_info['covered lines'],
+            'function coverage': file_coverage_info['covered functions']
         }
 
         os.makedirs(os.path.join(coverage_dir, os.path.dirname(file_name)), exist_ok=True)
@@ -74,15 +71,15 @@ def convert_coverage(merged_coverage_info, coverage_dir, pretty, src_files_info=
 
         coverage_stats['coverage statistics'][file_name] = [
             # Total number of covered lines of code.
-            len([line_number for line_number, line_coverage in raw_file_coverage['covered lines'].items()
+            len([line_number for line_number, line_coverage in file_coverage_info['covered lines'].items()
                  if line_coverage]),
             # Total number of considered lines of code.
-            len(raw_file_coverage['covered lines']),
+            len(file_coverage_info['covered lines']),
             # Total number of covered functions.
-            len([func_line_number for func_line_number, func_coverage in raw_file_coverage['covered functions'].items()
+            len([func_line_number for func_line_number, func_coverage in file_coverage_info['covered functions'].items()
                  if func_coverage]),
             # Total number of considered functions.
-            len(raw_file_coverage['covered functions'])
+            len(file_coverage_info['covered functions'])
         ]
 
     if src_files_info:
@@ -170,8 +167,8 @@ class JCR(core.components.Component):
                                                    coverage_info['coverage info file']))
 
                         add_to_coverage(total_coverage_infos[sub_job_id][req_spec_id], loaded_coverage_info)
-                        for file in loaded_coverage_info.values():
-                            arcfiles[sub_job_id][req_spec_id][file[0]['file name']] = file[0]['arcname']
+                        for file, file_coverage_info in loaded_coverage_info.items():
+                            arcfiles[sub_job_id][req_spec_id][file_coverage_info['original source file name']] = file
                         del loaded_coverage_info
 
                         counters.setdefault(sub_job_id, dict())
@@ -308,16 +305,15 @@ class JCR(core.components.Component):
 
 
 class LCOV:
-    NEW_FILE_PREFIX = "TN:"
-    EOR_PREFIX = "end_of_record"
     FILENAME_PREFIX = "SF:"
-    LINE_PREFIX = "DA:"
-    FUNCTION_PREFIX = "FNDA:"
     FUNCTION_NAME_PREFIX = "FN:"
-    PARIALLY_ALLOWED_EXT = ('.c', '.i', '.c.aux')
+    FUNCTION_NAME_END_PREFIX = "#FN:"
+    FUNCTION_PREFIX = "FNDA:"
+    LINE_PREFIX = "DA:"
+    EOR_PREFIX = "end_of_record"
 
     def __init__(self, conf, logger, coverage_file, clade, source_dirs, search_dirs, main_work_dir, coverage_details,
-                 coverage_id, coverage_info_dir):
+                 coverage_id, coverage_info_dir, verification_task_files):
         # Public
         self.conf = conf
         self.logger = logger
@@ -328,6 +324,7 @@ class LCOV:
         self.main_work_dir = main_work_dir
         self.coverage_details = coverage_details
         self.coverage_info_dir = coverage_info_dir
+        self.verification_task_files = verification_task_files
         self.arcnames = {}
 
         # Sanity checks
@@ -350,140 +347,138 @@ class LCOV:
             raise
 
     def parse(self):
-        dir_map = (
-            ('source files', self.source_dirs),
-            ('specifications', (
-                os.path.normpath(os.path.join(self.main_work_dir, 'job', 'root', 'specifications')),
-            )),
-            ('generated models', (
-                os.path.normpath(self.main_work_dir),
-            ))
-        )
-
-        ignore_file = False
-
         if not os.path.isfile(self.coverage_file):
             raise Exception('There is no coverage file {0}'.format(self.coverage_file))
 
-        # Get source files that should be excluded.
-        excluded_src_files = set()
-        if self.coverage_details in ('C source files including models', 'Original C source files'):
-            with open(self.coverage_file, encoding='utf-8') as fp:
-                # Build map, that contains dir as key and list of files in the dir as value
-                all_files = {}
-                for line in fp:
-                    line = line.rstrip('\n')
-                    if line.startswith(self.FILENAME_PREFIX):
-                        file_name = line[len(self.FILENAME_PREFIX):]
-                        file_name = os.path.normpath(file_name)
-                        if os.path.isfile(file_name):
-                            path, file = os.path.split(file_name)
-                            # All paths should be absolute, otherwise we cannot match source dirs later.
-                            path = os.path.join(os.path.sep, core.utils.make_relative_path([self.clade.storage_dir],
-                                                                                           path))
-                            all_files.setdefault(path, [])
-                            all_files[path].append(file)
-
-                for path, files in all_files.items():
-                    if self.coverage_details == 'Original C source files' and \
-                            all(os.path.commonpath([s, path]) != s for s in self.source_dirs):
-                        self.logger.debug('Exclude source files from "{0}"'.format(path))
-                        for file in files:
-                            excluded_src_files.add(os.path.join(path, file))
-                        continue
-
-                    for file in files:
-                        if not file.endswith('.c'):
-                            excluded_src_files.add(os.path.join(path, file))
-
-        # Parsing coverage file
+        # Parse coverage file.
         coverage_info = {}
+        line_map = {}
+        func_map = {}
+        func_reverse_map = {}
+
+        def init_file_coverage_info(file):
+            if file not in coverage_info:
+                coverage_info[file] = {
+                    'covered lines': {},
+                    'covered functions': {},
+                    'covered function names': [],
+                    'total functions': len(func_reverse_map[file]) if file in func_reverse_map else 0
+                }
+
         with open(self.coverage_file, encoding='utf-8') as fp:
-            count_covered_functions = None
+            # TODO: verification tasks consisting of several source files are not supported.
+            # Get actual CIL source file name.
+            cil_src_file_name = None
             for line in fp:
                 line = line.rstrip('\n')
+                if line.startswith(self.FILENAME_PREFIX):
+                    cil_src_file_name = line[len(self.FILENAME_PREFIX):]
+                    cil_src_file_name = os.path.basename(os.path.normpath(cil_src_file_name))
+                    cil_src_file_name = self.verification_task_files[cil_src_file_name]
+                    break
 
-                if ignore_file and not line.startswith(self.FILENAME_PREFIX):
-                    continue
-
-                if line.startswith(self.NEW_FILE_PREFIX):
-                    # Clean
-                    file_name = None
-                    covered_lines = {}
-                    function_to_line = {}
-                    covered_functions = {}
-                    count_covered_functions = 0
-                elif line.startswith(self.FILENAME_PREFIX):
-                    # Get file name and determine should we ignore this
-                    real_file_name = line[len(self.FILENAME_PREFIX):]
-                    real_file_name = os.path.normpath(real_file_name)
-                    file_name = os.path.join(os.path.sep,
-                                             core.utils.make_relative_path([self.clade.storage_dir], real_file_name))
-
-                    if not os.path.isfile(real_file_name) or file_name in excluded_src_files:
-                        ignore_file = True
-                        continue
-
-                    for dest, srcs in dir_map:
-                        for src in (s for s in srcs if os.path.commonpath((s, file_name)) == s):
-                            new_file_name = os.path.join(dest, os.path.relpath(file_name, src))
-                            ignore_file = False
-                            break
-                        else:
-                            continue
-                        break
-                    # This "else" corresponds "for"
+            # Build C source files line map.
+            with open(cil_src_file_name) as cil_fp:
+                line_num = 1
+                orig_file = None
+                orig_file_line_num = 0
+                for line in cil_fp:
+                    m = re.match('#line\s+(\d+)\s*(.*)', line)
+                    if m:
+                        orig_file_line_num = int(m.group(1))
+                        if m.group(2):
+                            orig_file = m.group(2)[1:-1]
                     else:
-                        # Check other prefixes
-                        new_file_name = core.utils.make_relative_path(self.search_dirs, file_name)
-                        if new_file_name == file_name:
-                            ignore_file = True
-                            continue
-                        else:
-                            ignore_file = False
-                        new_file_name = os.path.join('specifications', new_file_name)
+                        line_map[line_num] = (orig_file, orig_file_line_num)
+                        orig_file_line_num += 1
+                    line_num += 1
 
-                    self.arcnames[real_file_name] = new_file_name
-                    old_file_name, file_name = real_file_name, new_file_name
-                elif line.startswith(self.LINE_PREFIX):
-                    # Coverage of the specified line
-                    splts = line[len(self.LINE_PREFIX):].split(',')
-                    covered_lines[int(splts[0])] = int(splts[1])
-                elif line.startswith(self.FUNCTION_NAME_PREFIX):
-                    # Mapping of the function name to the line number
+            for line in fp:
+                line = line.rstrip('\n')
+                # Build C functions map.
+                if line.startswith(self.FUNCTION_NAME_PREFIX):
                     splts = line[len(self.FUNCTION_NAME_PREFIX):].split(',')
-                    function_to_line.setdefault(splts[1], [])
-                    function_to_line[splts[1]] = int(splts[0])
+                    cil_src_line = int(splts[0])
+                    func_name = splts[1]
+
+                    orig_file, orig_line = line_map[cil_src_line]
+                    func_map[func_name] = orig_file, orig_line
+                    if orig_file not in func_reverse_map:
+                        func_reverse_map[orig_file] = {}
+                    func_reverse_map[orig_file][orig_line] = func_name
+                elif line.startswith(self.FUNCTION_NAME_END_PREFIX):
+                    pass
+                # Get function coverage.
                 elif line.startswith(self.FUNCTION_PREFIX):
-                    # Coverage of the specified function
                     splts = line[len(self.FUNCTION_PREFIX):].split(',')
-                    if splts[0] == "0":
+                    cov_num = int(splts[0])
+                    func_name = splts[1]
+
+                    orig_file, orig_line = func_map[func_name]
+                    init_file_coverage_info(orig_file)
+                    coverage_info[orig_file]['covered functions'][orig_line] = cov_num
+                    coverage_info[orig_file]['covered function names'].append(func_name)
+                # Get line coverage.
+                elif line.startswith(self.LINE_PREFIX):
+                    splts = line[len(self.LINE_PREFIX):].split(',')
+                    cil_src_line = int(splts[0])
+                    cov_num = int(splts[1])
+
+                    # TODO: Coverage can contain invalid references. Let's deal with this one day!
+                    if cil_src_line not in line_map:
                         continue
-                    covered_functions[function_to_line[splts[1]]] = int(splts[0])
-                    count_covered_functions += 1
+
+                    orig_file, orig_line = line_map[cil_src_line]
+                    init_file_coverage_info(orig_file)
+                    coverage_info[orig_file]['covered lines'][orig_line] = cov_num
+                # Finalize raw code coverage processing.
                 elif line.startswith(self.EOR_PREFIX):
-                    # End coverage for the specific file
+                    break
+                else:
+                    # We should not pass here but who knows.
+                    raise NotImplementedError(line)
 
-                    # Add not covered functions
-                    covered_functions.update({line: 0 for line in set(function_to_line.values())
-                                             .difference(set(covered_functions.keys()))})
+            # Add not covered functions.
+            for orig_file, orig_line in func_map.values():
+                init_file_coverage_info(orig_file)
+                if orig_line not in coverage_info[orig_file]['covered functions']:
+                    coverage_info[orig_file]['covered functions'][orig_line] = 0
 
-                    coverage_info.setdefault(file_name, [])
+            # Shrink source file names.
+            new_coverage_info = {}
+            for orig_file, file_coverage_info in coverage_info.items():
+                # Like in core.vrp.RP#__trim_file_names.
+                storage_file = core.utils.make_relative_path([self.clade.storage_dir], os.path.normpath(orig_file))
+                shrinked_src_file_name = storage_file
+                tmp = core.utils.make_relative_path(self.source_dirs, storage_file, absolutize=True)
 
-                    new_cov = {
-                        'file name': old_file_name,
-                        'arcname': file_name,
-                        'total functions': len(function_to_line),
-                        'covered lines': covered_lines,
-                        'covered functions': covered_functions,
-                        'covered function names': list((name for name, line in function_to_line.items()
-                                                        if covered_functions[line] != 0))
-                    }
+                if tmp != os.path.join(os.path.sep, storage_file):
+                    shrinked_src_file_name = os.path.join('source files', tmp)
+                else:
+                    tmp = core.utils.make_relative_path(self.search_dirs, storage_file, absolutize=True)
+                    if tmp != os.path.join(os.path.sep, storage_file):
+                        if tmp.startswith('specifications'):
+                            shrinked_src_file_name = tmp
+                        else:
+                            shrinked_src_file_name = os.path.join('generated models', tmp)
 
-                    coverage_info[file_name].append(new_cov)
+                file_coverage_info.update({'original source file name': orig_file})
+                new_coverage_info[shrinked_src_file_name] = file_coverage_info
 
-        if not coverage_info:
+            # Filter out unnecessary source files.
+            src_files_to_remove = []
+            if self.coverage_details in ('C source files including models', 'Original C source files'):
+                for file_name, file_coverage_info in new_coverage_info.items():
+                    if not file_name.endswith('.c') or \
+                            (self.coverage_details == 'Original C source files' and
+                             not file_name.startswith('source files')):
+                        src_files_to_remove.append(file_name)
+
+            for src_file_to_remove in src_files_to_remove:
+                del new_coverage_info[src_file_to_remove]
+
+        if not new_coverage_info:
             self.logger.warning(
                 "Resulting code coverage is empty, perhaps, produced code coverage or its parsing is wrong")
 
-        return coverage_info
+        return new_coverage_info

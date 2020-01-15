@@ -74,7 +74,8 @@
       "add options": [
         {"-smg-ldv": ""},
         {"-setprop": "analysis.machineModel=LINUX64"},
-        {"-setprop": "CompositeCPA.cpas=cpa.location.LocationCPA,cpa.callstack.CallstackCPA,cpa.smg.SMGCPA"}
+        {"-setprop": "CompositeCPA.cpas=cpa.location.LocationCPA,cpa.callstack.CallstackCPA,cpa.smg.SMGCPA"},
+        {"-setprop": "parser.readLineDirectives=false"}
       ]
     },
     "CPALockator": {
