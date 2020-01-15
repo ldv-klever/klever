@@ -15,6 +15,8 @@
 # limitations under the License.
 #
 
+import sortedcontainers
+
 from core.vtg.emg.common.c.types import Pointer, Primitive
 from core.vtg.emg.generators.linuxModule.interface import Container, Resource, Callback, FunctionInterface
 
@@ -22,10 +24,10 @@ from core.vtg.emg.generators.linuxModule.interface import Container, Resource, C
 class InterfaceCollection:
 
     def __init__(self):
-        self._interfaces = dict()
-        self._interface_cache = dict()
-        self._containers_cache = dict()
-        self.__deleted_interfaces = dict()
+        self._interfaces = sortedcontainers.SortedDict()
+        self._interface_cache = sortedcontainers.SortedDict()
+        self._containers_cache = sortedcontainers.SortedDict()
+        self.__deleted_interfaces = sortedcontainers.SortedDict()
 
     @property
     def interfaces(self):
@@ -43,7 +45,7 @@ class InterfaceCollection:
 
         :return: List of strings.
         """
-        return list(set([self.get_intf(interface).category for interface in self.interfaces]))
+        return sorted({self.get_intf(interface).category for interface in self.interfaces})
 
     def get_intf(self, identifier):
         """
@@ -165,7 +167,7 @@ class InterfaceCollection:
         :return: List with Container objects.
         """
         if str(declaration) not in self._containers_cache:
-            self._containers_cache[str(declaration)] = {}
+            self._containers_cache[str(declaration)] = sortedcontainers.SortedDict()
 
         if category and category not in self._containers_cache[str(declaration)]:
             cnts = self.__resolve_containers(declaration, category)

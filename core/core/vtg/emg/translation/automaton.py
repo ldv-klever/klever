@@ -48,6 +48,9 @@ class Automaton:
     def __eq__(self, other):
         return type(self) is type(other) and str(self) == str(other)
 
+    def __lt__(self, other):
+        return str(self) < str(other)
+
     @property
     def identifier(self):
         return self._identifier

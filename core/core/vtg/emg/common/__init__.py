@@ -16,6 +16,7 @@
 #
 
 import json
+import sortedcontainers
 
 
 def get_or_die(conf, name, expected_type=None):
@@ -50,6 +51,7 @@ def model_comment(comment_type, text=None, other=None):
         comment = other
     else:
         comment = dict()
+    comment = sortedcontainers.SortedDict(comment)
 
     comment['type'] = comment_type.upper()
     if text:

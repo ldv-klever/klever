@@ -15,6 +15,8 @@
 # limitations under the License.
 #
 
+import sortedcontainers
+
 from core.vtg.emg.common import get_or_die, model_comment
 from core.vtg.emg.common.c.types import import_declaration
 from core.vtg.emg.common.process import Action, Receive, Dispatch, Block, Subprocess, Choice, Concatenation
@@ -50,8 +52,8 @@ class FSATranslator:
         self._conf = conf
         self._source = source
         self._logger = logger
-        self._structures = dict()
-        self._control_functions = dict()
+        self._structures = sortedcontainers.SortedDict()
+        self._control_functions = sortedcontainers.SortedDict()
         self._logger.info("Include extra header files if necessary")
         conf.setdefault('do not skip signals', False)
 
@@ -163,7 +165,7 @@ class FSATranslator:
         code, v_code, conditions, comments = list(), list(), list(), list()
 
         # Determine peers to receive the signal
-        automata_peers = dict()
+        automata_peers = sortedcontainers.SortedDict()
         if len(action.peers) > 0:
             # Do call only if model which can be called will not hang
             extract_relevant_automata(self._event_fsa + self._model_fsa + [self._entry_fsa],

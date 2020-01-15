@@ -16,6 +16,7 @@
 #
 
 import os
+import sortedcontainers
 
 from core.vtg.emg.common import get_or_die
 from core.vtg.utils import find_file_or_dir
@@ -86,7 +87,9 @@ def translate_intermediate_model(logger, conf, avt, source, collection):
     for process in list(collection.models.values()) + list(collection.environment.values()) + [collection.entry]:
         for att in ('declarations', 'definitions'):
             for file in getattr(process, att):
-                additional_code.setdefault(file, {'declarations': dict(), 'definitions': dict()})
+                additional_code.setdefault(file,
+                                           {'declarations': sortedcontainers.SortedDict(),
+                                            'definitions': sortedcontainers.SortedDict()})
                 additional_code[file][att].update(getattr(process, att)[file])
         if process.file == 'environment model':
             process.file = entry_file

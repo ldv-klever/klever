@@ -19,6 +19,7 @@ import re
 import copy
 import graphviz
 import collections
+import sortedcontainers
 
 
 class Access:
@@ -35,6 +36,9 @@ class Access:
 
     def __str__(self):
         return self.expression
+
+    def __lt__(self, other):
+        return str(self) < str(other)
 
 
 class Label:
@@ -68,6 +72,9 @@ class Label:
     def __hash__(self):
         return hash(self._name)
 
+    def __lt__(self, other):
+        return str(self) < str(other)
+
 
 class Process:
     """
@@ -91,19 +98,22 @@ class Process:
 
         self.file = 'environment model'
         self.comment = None
-        self.cfiles = list()
+        self.cfiles = sortedcontainers.SortedSet()
         self.headers = list()
-        self.labels = dict()
         self.actions = Actions()
-        self.declarations = dict()
-        self.definitions = dict()
-        self._accesses = dict()
+        self.labels = sortedcontainers.SortedDict()
+        self.declarations = sortedcontainers.SortedDict()
+        self.definitions = sortedcontainers.SortedDict()
+        self._accesses = sortedcontainers.SortedDict()
 
     def __str__(self):
         return '%s/%s' % (self._category, self._name)
 
     def __hash__(self):
         return hash(str(self))
+
+    def __lt__(self, other):
+        return str(self) < str(other)
 
     def __copy__(self):
         inst = type(self)(self.name, self.category)
@@ -157,7 +167,7 @@ class Process:
                 for statement in action.condition:
                     extract_labels(statement)
 
-        return set(self.labels.values()).difference(used_labels)
+        return sorted(set(self.labels.values()).difference(used_labels))
 
     def accesses(self, accesses=None, exclude=None, no_labels=False):
         """
@@ -173,7 +183,7 @@ class Process:
             exclude = list()
 
         if not accesses:
-            accss = dict()
+            accss = sortedcontainers.SortedDict()
 
             if len(self._accesses) == 0 or len(exclude) > 0 or no_labels:
                 # Collect all accesses across process subprocesses
@@ -266,7 +276,7 @@ class Process:
         :return: None.
         """
         if file not in self.declarations:
-            self.declarations[file] = dict()
+            self.declarations[file] = sortedcontainers.SortedDict()
 
         if name not in self.declarations:
             self.declarations[file][name] = string
@@ -285,7 +295,7 @@ class Process:
             raise ValueError("You have to give file name to add definition of function {!r}".format(name))
 
         if file not in self.definitions:
-            self.definitions[file] = dict()
+            self.definitions[file] = sortedcontainers.SortedDict()
 
         if name not in self.definitions:
             self.definitions[file][name] = strings
@@ -460,7 +470,7 @@ class Actions(collections.UserDict):
             elif isinstance(action, Concatenation):
                 action._actions = collections.deque()
             elif isinstance(action, Choice):
-                action._actions = set()
+                action._actions = sortedcontainers.SortedSet()
 
         # Set new references
         for action in self.data.values():
@@ -479,8 +489,8 @@ class Actions(collections.UserDict):
         if not exclude:
             exclude = ()
 
-        return (x for x in self.data.values() if (not include or any(isinstance(x, t) for t in include)) and
-                (not exclude or all(not isinstance(x, t) for t in exclude)))
+        return sorted([x for x in self.data.values() if (not include or any(isinstance(x, t) for t in include)) and
+                       (not exclude or all(not isinstance(x, t) for t in exclude))])
 
     @property
     def initial_action(self):
@@ -540,6 +550,9 @@ class BaseAction:
 
     def __eq__(self, other):
         return self.name == other.name
+
+    def __lt__(self, other):
+        return str(self) < str(other)
 
     @property
     def my_operator(self):
@@ -740,7 +753,7 @@ class Choice(BaseAction):
 
     def __init__(self, name):
         super(Choice, self).__init__()
-        self._actions = set()
+        self._actions = sortedcontainers.SortedSet()
 
     @property
     def actions(self):
@@ -781,12 +794,13 @@ class ProcessCollection:
 
     def __init__(self):
         self.entry = None
-        self.models = dict()
-        self.environment = dict()
+        self.models = sortedcontainers.SortedDict()
+        self.environment = sortedcontainers.SortedDict()
 
     @property
     def processes(self):
-        return list(self.models.values()) + list(self.environment.values()) + ([self.entry] if self.entry else [])
+        return sorted(list(self.models.values())) + sorted(list(self.environment.values())) + \
+               ([self.entry] if self.entry else [])
 
     @property
     def process_map(self):

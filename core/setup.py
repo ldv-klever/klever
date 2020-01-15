@@ -30,6 +30,6 @@ setup(name='KleverCore',
       package_data={'core.lkbce': ['wrappers/gcc', 'wrappers/ld', 'wrappers/mv']},
       scripts=['bin/klever-core'],
       setup_requires=['setuptools_scm'],
-      requires=['jinja2', 'graphviz', 'ply', 'requests'],
+      requires=['jinja2', 'graphviz', 'ply', 'requests', 'sortedcontainers'],
       classifiers=['TODO: a list of categories for the package'],
       )

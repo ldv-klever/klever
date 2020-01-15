@@ -16,6 +16,7 @@
 #
 
 import copy
+import sortedcontainers
 
 from core.vtg.emg.common import get_or_die
 from core.vtg.emg.common.process import Dispatch, Receive, ProcessCollection
@@ -122,8 +123,8 @@ def __import_kernel_models(logger, conf, interfaces, collection, chosen):
 
 
 def __choose_processes(logger, conf, interfaces, category, chosen, collection):
-    estimations = {str(process): __match_labels(logger, interfaces, process, category)
-                   for process in collection.environment.values()}
+    estimations = sortedcontainers.SortedDict({str(process): __match_labels(logger, interfaces, process, category)
+                                               for process in collection.environment.values()})
 
     logger.info("Choose process to call callbacks from category {!r}".format(category))
     # First random
@@ -279,7 +280,8 @@ def __match_labels(logger, interfaces, process, category):
                     if intfs and isinstance(intfs[-1], Callback):
                         functions.append(intfs[-1])
             elif label.name in label_map["matched labels"] and label.callback:
-                if isinstance(label_map["matched labels"][label.name], set):
+                if isinstance(label_map["matched labels"][label.name], set) or \
+                        isinstance(label_map["matched labels"][label.name], sortedcontainers.SortedSet):
                     functions.extend([interfaces.get_or_restore_intf(name) for name in
                                       label_map["matched labels"][label.name]
                                       if name in interfaces.interfaces or interfaces.is_deleted_intf(name)])

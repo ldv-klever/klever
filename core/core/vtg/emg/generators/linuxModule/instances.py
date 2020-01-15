@@ -18,6 +18,7 @@
 import re
 import json
 import copy
+import sortedcontainers
 
 import core.vtg.emg.common.c as c
 from core.vtg.emg.common import get_or_die, model_comment
@@ -30,7 +31,7 @@ from core.vtg.emg.generators.linuxModule.process import get_common_parameter, Ca
 
 _declarations = {'environment model': list()}
 _definitions = {'environment model': list()}
-_values_map = {}
+_values_map = sortedcontainers.SortedDict()
 
 
 def generate_instances(logger, conf, sa, interfaces, model, instance_maps):
@@ -48,8 +49,8 @@ def generate_instances(logger, conf, sa, interfaces, model, instance_maps):
     for process in callback_processes:
         process.name = process.name + '_%d' % process.instance_number
 
-    model.environment = {str(p): p for p in callback_processes}
-    model.models = {str(p): p for p in model_processes}
+    model.environment = sortedcontainers.SortedDict({str(p): p for p in callback_processes})
+    model.models = sortedcontainers.SortedDict({str(p): p for p in model_processes})
     filename = 'instances.json'
 
     # Save processes
@@ -64,7 +65,7 @@ def _simplify_process(logger, conf, sa, interfaces, process):
     # todo: write docs
     logger.debug("Simplify process {!r}".format(process.name))
     # Create maps
-    label_map = dict()
+    label_map = sortedcontainers.SortedDict()
 
     def get_declaration(l, a):
         decl = l.get_declaration(str(a.interface))
@@ -83,7 +84,7 @@ def _simplify_process(logger, conf, sa, interfaces, process):
         return decl, val
 
     for label in (l for l in list(process.labels.values()) if l.interfaces and len(l.interfaces) > 0):
-        label_map[label.name] = dict()
+        label_map[label.name] = sortedcontainers.SortedDict()
         simpl_access = process.resolve_access(label)
         if len(simpl_access) > 1:
             for number, access in enumerate(simpl_access):
@@ -171,9 +172,9 @@ def _simplify_process(logger, conf, sa, interfaces, process):
             # Collect dublicates
             if access_re.finditer(original_stm):
                 matched = False
-                tmp = {original_stm}
+                tmp = sortedcontainers.SortedSet({original_stm})
                 for match in access_re.finditer(original_stm):
-                    new_tmp = set()
+                    new_tmp = sortedcontainers.SortedSet()
                     expression = match.group(1)
                     accesses = process.resolve_access(expression)
                     for s in tmp:
@@ -540,7 +541,7 @@ def _yield_instances(logger, conf, sa, interfaces, model, instance_maps):
     """
     logger.info("Generate automata for processes with callback calls")
     identifiers = _yeild_identifier()
-    identifiers_map = dict()
+    identifiers_map = sortedcontainers.SortedDict()
 
     def rename_process(inst):
         inst.instance_number = int(identifiers.__next__())
@@ -622,7 +623,7 @@ def _fulfill_label_maps(logger, conf, sa, interfaces, instances, process, instan
     logger.info("Determine number of instances for process {!r}".format(str(process)))
 
     if process.category not in instance_maps:
-        instance_maps[process.category] = dict()
+        instance_maps[process.category] = sortedcontainers.SortedDict()
 
     if process.name in instance_maps[process.category]:
         cached_map = instance_maps[process.category][process.name]
@@ -792,7 +793,7 @@ def _remove_statics(logger, sa, process):
                 if declaration and name not in _values_map.get(file, dict()):
                     # Prepare dictionary
                     for coll in (_definitions, _declarations):
-                        coll.setdefault(file, dict())
+                        coll.setdefault(file, sortedcontainers.SortedDict())
 
                     # Create new artificial variables and functions
                     if function_name:
@@ -827,7 +828,7 @@ def _remove_statics(logger, sa, process):
                     if var or func:
                         new_value = func.name if func else var.name
                         if file not in _values_map:
-                            _values_map[file] = dict()
+                            _values_map[file] = sortedcontainers.SortedDict()
                         _values_map[file][new_value] = implementation.value
                         implementation.declaration = declaration
                         implementation.value = new_value
@@ -903,7 +904,7 @@ def _split_into_instances(sa, interfaces, process, resource_new_insts, simplifie
 
         for _ in enumerate(interface_to_value[final_options_list[0]]):
             new_map = copy.deepcopy(access_map)
-            chosen_values = set()
+            chosen_values = sortedcontainers.SortedSet()
 
             # Set chosen implementations
             for interface_index, identifier in enumerate(final_options_list):
@@ -927,7 +928,7 @@ def _split_into_instances(sa, interfaces, process, resource_new_insts, simplifie
     else:
         # Choose atleast one map
         if not maps:
-            maps = [[access_map, set()]]
+            maps = [[access_map, sortedcontainers.SortedSet()]]
 
     # Then set the other values
     for expression in access_map.keys():
@@ -1000,11 +1001,11 @@ def _split_into_instances(sa, interfaces, process, resource_new_insts, simplifie
         # Set proper given values
         for index, value in enumerate(simplified_map):
             smap = value[0]
-            instance_map = dict()
-            used_values = set()
+            instance_map = sortedcontainers.SortedDict()
+            used_values = sortedcontainers.SortedSet()
 
             for expression in smap.keys():
-                instance_map[expression] = dict()
+                instance_map[expression] = sortedcontainers.SortedDict()
 
                 for interface in smap[expression].keys():
                     if smap[expression][interface]:
@@ -1026,10 +1027,10 @@ def _split_into_instances(sa, interfaces, process, resource_new_insts, simplifie
         # Prepare simplified map with values instead of Implementation objects
         simplified_map = list()
         for smap, cv in maps:
-            instance_desc = [dict(), list(cv)]
+            instance_desc = [sortedcontainers.SortedDict(), list(cv)]
 
             for expression in smap.keys():
-                instance_desc[0][expression] = dict()
+                instance_desc[0][expression] = sortedcontainers.SortedDict()
                 for interface in smap[expression].keys():
                     if smap[expression][interface]:
                         instance_desc[0][expression][interface] = smap[expression][interface].value
@@ -1064,14 +1065,14 @@ def _extract_implementation_dependencies(access_map, accesses):
     is necessary to choose implementations first (see description above). The greatest element is the first.
     """
     # Necessary data to return
-    interface_to_value = {}
-    value_to_implementation = {}
-    interface_to_expression = {}
-    basevalue_to_value = {}
+    interface_to_value = sortedcontainers.SortedDict()
+    value_to_implementation = sortedcontainers.SortedDict()
+    interface_to_expression = sortedcontainers.SortedDict()
+    basevalue_to_value = sortedcontainers.SortedDict()
 
     # Additional data
-    basevalue_to_interface = {}
-    options_interfaces = set()
+    basevalue_to_interface = sortedcontainers.SortedDict()
+    options_interfaces = sortedcontainers.SortedSet()
 
     # Collect dependencies between interfaces, implem,entations and containers
     for access in accesses.keys():
@@ -1087,14 +1088,14 @@ def _extract_implementation_dependencies(access_map, accesses):
                 value_to_implementation[impl.value] = impl
 
                 if impl.value not in interface_to_value[str(inst_access.interface)]:
-                    interface_to_value[str(inst_access.interface)][impl.value] = set()
+                    interface_to_value[str(inst_access.interface)][impl.value] = sortedcontainers.SortedSet()
 
                 if impl.base_value:
                     interface_to_value[str(inst_access.interface)][impl.value].add(impl.base_value)
 
                     if impl.base_value not in basevalue_to_value:
                         basevalue_to_value[impl.base_value] = []
-                        basevalue_to_interface[impl.base_value] = set()
+                        basevalue_to_interface[impl.base_value] = sortedcontainers.SortedSet()
                     basevalue_to_value[impl.base_value].append(impl.value)
                     basevalue_to_interface[impl.base_value].add(str(inst_access.interface))
                 else:
@@ -1106,9 +1107,9 @@ def _extract_implementation_dependencies(access_map, accesses):
     for container_id in [container_id for container_id in list(options_interfaces)
                          if [value for value in interface_to_value[container_id] if value in basevalue_to_value]]:
         # Collect all child values
-        summary_values = set()
-        summary_interfaces = set()
-        original_options = set()
+        summary_values = sortedcontainers.SortedSet()
+        summary_interfaces = sortedcontainers.SortedSet()
+        original_options = sortedcontainers.SortedSet()
 
         for value in [value for value in interface_to_value[container_id] if value in basevalue_to_value]:
             summary_values.update(basevalue_to_value[value])
@@ -1116,9 +1117,9 @@ def _extract_implementation_dependencies(access_map, accesses):
             original_options.add(value)
 
         # Greedy add implementations to fill all child values
-        fulfilled_values = set()
-        fulfilled_interfaces = set()
-        final_set = set()
+        fulfilled_values = sortedcontainers.SortedSet()
+        fulfilled_interfaces = sortedcontainers.SortedSet()
+        final_set = sortedcontainers.SortedSet()
         original_options = sorted(sorted(original_options), key=lambda v: len(basevalue_to_value[v]), reverse=True)
         while len(fulfilled_values) != len(summary_values) or len(fulfilled_interfaces) != len(summary_interfaces):
             value = sorted(set(summary_values - fulfilled_values)).pop()
@@ -1169,7 +1170,7 @@ def _match_array_maps(expression, interface, values, maps, interface_to_value, v
              {'Value string'->[{'Access.expression string'->'Interface string'->
                                'Implementation object/None'}, set{used values strings}]}
     """
-    result_map = dict()
+    result_map = sortedcontainers.SortedDict()
     added = []
 
     for value in values:

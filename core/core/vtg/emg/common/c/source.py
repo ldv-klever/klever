@@ -18,6 +18,7 @@
 import os
 import re
 import ujson
+import sortedcontainers
 from clade import Clade
 
 from core.vtg.emg.common.c import Function, Variable, Macro, import_declaration
@@ -69,7 +70,7 @@ def _import_code_analysis(logger, conf, clade, dependencies, collection):
     if typedef:
         import_typedefs(typedef, dependencies)
 
-    variables = clade.get_variables(collection.cfiles)
+    variables = clade.get_variables(set(collection.cfiles))
     if variables:
         logger.info("Import global variables initializations")
         for path, vals in variables.items():
@@ -102,7 +103,7 @@ def _import_code_analysis(logger, conf, clade, dependencies, collection):
     for scope in (s for s in collection.cfiles if s in cg):
         for func in (f for f in cg[scope] if cg[scope][f].get('calls')):
             for dep in cg[scope][func].get('calls'):
-                dependencies.setdefault(dep, set())
+                dependencies.setdefault(dep, sortedcontainers.SortedSet())
                 dependencies[dep].add(scope)
     fs = clade.get_functions_by_file(set(dependencies.keys()).union(collection.cfiles))
 
@@ -183,9 +184,9 @@ def _import_code_analysis(logger, conf, clade, dependencies, collection):
     if macros_file:
         macros_file = find_file_or_dir(logger, conf['main working directory'], macros_file)
         with open(macros_file, 'r', encoding='utf8') as fp:
-            white_list = ujson.load(fp)
+            white_list = sorted(ujson.load(fp))
         if white_list:
-            macros = clade.get_macros_expansions(collection.cfiles, white_list)
+            macros = clade.get_macros_expansions(sorted(collection.cfiles), white_list)
             for path, macros in macros.items():
                 for macro, desc in macros.items():
                     obj = collection.get_macro(macro)
@@ -197,28 +198,28 @@ def _import_code_analysis(logger, conf, clade, dependencies, collection):
 
 
 def _collect_file_dependencies(clade, abstract_task):
-    collection = dict()
-    c_files = set()
+    collection = sortedcontainers.SortedDict()
+    c_files = sortedcontainers.SortedSet()
 
     def _collect_cc_deps(cfile, deps):
         # Collect for each file CC entry to which it is included
         for file in deps:
             if file not in collection:
-                collection[file] = set()
+                collection[file] = sortedcontainers.SortedSet()
             collection[file].add(cfile)
 
     # Read each CC description and import map of files to in files
     for group in abstract_task['grps']:
         for desc in group['Extra CCs']:
             cc_desc = clade.get_cmd(*desc['CC'])
-            cc_c_files = set(cc_desc['in'])
+            cc_c_files = sortedcontainers.SortedSet(cc_desc['in'])
             deps = clade.get_cmd_deps(*desc['CC'])
             for c_file in cc_c_files:
                 # Now read deps
                 _collect_cc_deps(c_file, deps)
                 c_files.add(c_file)
 
-    return c_files, set(collection.keys()), collection
+    return c_files, sortedcontainers.SortedSet(collection.keys()), collection
 
 
 class Source:
@@ -231,15 +232,16 @@ class Source:
     def __init__(self, cfiles, prefixes, deps):
         self.cfiles = cfiles
         self.prefixes = prefixes
-        self.possble_path_prefixes = set()
         self.deps = deps
-        self.dep_paths = set()
 
-        self._source_functions = dict()
-        self._source_vars = dict()
-        self._macros = dict()
+        self.possble_path_prefixes = sortedcontainers.SortedSet()
+        self.dep_paths = sortedcontainers.SortedSet()
 
-        self.__function_calls_cache = dict()
+        self._source_functions = sortedcontainers.SortedDict()
+        self._source_vars = sortedcontainers.SortedDict()
+        self._macros = sortedcontainers.SortedDict()
+
+        self.__function_calls_cache = sortedcontainers.SortedDict()
 
     @property
     def source_functions(self):
@@ -248,7 +250,7 @@ class Source:
 
         :return: function names list.
         """
-        return list(self._source_functions.keys())
+        return tuple(self._source_functions.keys())
 
     def find_file(self, path):
         """
@@ -277,20 +279,6 @@ class Source:
         else:
             raise FileNotFoundError('There is no file {!r} in the build base or the correct path to source files'
                                     ' is not provided'.format(path))
-
-    def called_in_source_code(self, func):
-        """
-        Provides information about function calls in C source files of the program fragment.
-        :param func: Function object.
-        :return: Dictinary {'C file name': {Set of function caller names}}.
-        """
-        result = dict()
-        for file in (f for f in func.called_at if f in self.cfiles):
-            result[file] = set(func.called_at[file])
-        if not result:
-            return None
-        else:
-            return result
 
     def get_source_function(self, name=None, paths=None, declaration=None):
         """
@@ -349,7 +337,7 @@ class Source:
         :return: None.
         """
         if new_obj.name not in self._source_functions:
-            self._source_functions[new_obj.name] = dict()
+            self._source_functions[new_obj.name] = sortedcontainers.SortedDict()
         self._source_functions[new_obj.name][path] = new_obj
 
     def remove_source_function(self, name):
@@ -368,7 +356,7 @@ class Source:
 
         :return: Variable names list.
         """
-        return list(self._source_vars.keys())
+        return tuple(self._source_vars.keys())
 
     def get_source_variable(self, name, path=None):
         """
@@ -412,7 +400,7 @@ class Source:
         :return: None.
         """
         if new_obj.name not in self._source_vars:
-            self._source_vars[new_obj.name] = dict()
+            self._source_vars[new_obj.name] = sortedcontainers.SortedDict()
         self._source_vars[new_obj.name][path] = new_obj
 
     def remove_source_variable(self, name):
@@ -499,7 +487,9 @@ class Source:
             func_intf.static = False
 
         # Add declarations
-        files = {func_intf.definition_file} if func_intf.definition_file else set()
+        files = sortedcontainers.SortedSet()
+        if func_intf.definition_file:
+            files.add(func_intf.definition_file)
         if fs_desc['declarations']:
             files.update({f for f in fs_desc['declarations'] if f != 'unknown' and f in deps})
         for file in files:

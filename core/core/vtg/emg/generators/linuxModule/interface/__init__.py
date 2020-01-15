@@ -15,6 +15,8 @@
 # limitations under the License.
 #
 
+import sortedcontainers
+
 from core.vtg.emg.common.c import Variable, Declaration
 from core.vtg.emg.common.c.types import Structure, Array, Pointer, Function
 
@@ -33,6 +35,9 @@ class Interface:
 
     def __hash__(self):
         return hash(str(self))
+
+    def __lt__(self, other):
+        return str(self) < str(other)
 
     @property
     def name(self):
@@ -64,6 +69,7 @@ class Interface:
 
 
 class Container(Interface):
+
     def __init__(self, category, identifier):
         super(Container, self).__init__(category, identifier)
 
@@ -84,7 +90,7 @@ class StructureContainer(Container):
 
     def __init__(self, category, identifier):
         super(Container, self).__init__(category, identifier)
-        self.field_interfaces = {}
+        self.field_interfaces = sortedcontainers.SortedDict()
 
     @Interface.declaration.setter
     def declaration(self, new_declaration):

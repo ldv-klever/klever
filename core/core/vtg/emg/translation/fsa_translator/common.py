@@ -15,6 +15,8 @@
 # limitations under the License.
 #
 
+import sortedcontainers
+
 from core.vtg.emg.common.process import Action
 from core.vtg.emg.common.c.types import Pointer, Primitive
 
@@ -38,7 +40,7 @@ def extract_relevant_automata(automata, automata_peers, peers, sb_type=None):
             if automaton not in automata_peers:
                 automata_peers[automaton] = {
                     "automaton": automaton,
-                    "actions": set()
+                    "actions": sortedcontainers.SortedSet()
                 }
             for action in [n for n in automaton.process.actions.filter(include={Action}) if n == peer["action"]]:
                 if not sb_type or isinstance(action, sb_type):
