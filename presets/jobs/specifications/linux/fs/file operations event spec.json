@@ -24,12 +24,14 @@
           },
           "free": {
             "comment": "Free memory of file and inode structures.",
+            "trace relevant": true,
             "statements": [
               "$FREE(%resource%);"
             ]
           },
           "init": {
             "comment": "Allocate memory for file and inode structures.",
+            "trace relevant": true,
             "statements": [
               "%resource% = $ALLOC(%resource%);",
               "%size_cnt% = ldv_undef_int();"
@@ -130,6 +132,7 @@
           "assign": {
             "comment": "Extract a file_operations structure pointer.",
             "condition": [],
+            "trace relevant": true,
             "statements": [
               "%cdev% = $ARG1;",
               "%file_operations% = %cdev%->ops;"
@@ -165,6 +168,7 @@
           "assign": {
             "comment": "Extract a file_operations structure pointer.",
             "condition": [],
+            "trace relevant": true,
             "statements": [
               "%cdev% = $ARG1;",
               "%file_operations% = $ARG2;",
@@ -201,6 +205,7 @@
         "actions": {
           "assign": {
             "comment": "Extract a file_operations structure pointer.",
+            "trace relevant": true,
             "statements": [
               "%dentry% = $ALLOC(%dentry%);",
               "%file_operations% = $ARG5;"
@@ -208,6 +213,7 @@
           },
           "fail": {
             "comment": "Failed to create a file in the debugfs filesystem.",
+            "trace relevant": true,
             "statements": [
               "return ERR_PTR(-ENODEV);"
             ]
@@ -220,6 +226,7 @@
           },
           "success": {
             "comment": "Successfully created a file in the debugfs filesystem.",
+            "trace relevant": true,
             "statements": [
               "return %dentry%;"
             ]
@@ -245,6 +252,7 @@
           "assign": {
             "comment": "Extract a file_operations structure pointer.",
             "condition": [],
+            "trace relevant": true,
             "statements": [
               "%dentry% = $ARG1;",
               "$FREE(%dentry%);"
@@ -276,6 +284,7 @@
           "assign": {
             "comment": "Extract a file_operations structure pointer.",
             "condition": [],
+            "trace relevant": true,
             "statements": [
               "%miscdevice% = $ARG1;",
               "%file_operations% = %miscdevice%->fops;"
@@ -310,6 +319,7 @@
         "actions": {
           "assign": {
             "comment": "Extract a file_operations structure pointer.",
+            "trace relevant": true,
             "statements": [
               "%miscdevice% = $ARG1;",
               "%file_operations% = %miscdevice%->fops;"
@@ -317,6 +327,7 @@
           },
           "fail": {
             "comment": "Fail to register the miscellaneous character driver.",
+            "trace relevant": true,
             "statements": [
               "return ldv_undef_int_negative();"
             ]
@@ -329,6 +340,7 @@
           },
           "success": {
             "comment": "Successfully registered the miscellaneous character driver.",
+            "trace relevant": true,
             "statements": [
               "return 0;"
             ]
@@ -357,12 +369,14 @@
         "actions": {
           "assign": {
             "comment": "Extract a file_operations structure pointer.",
+            "trace relevant": true,
             "statements": [
               "%file_operations% = $ARG3;"
             ]
           },
           "fail": {
             "comment": "Failed to register the cdev.",
+            "trace relevant": true,
             "statements": [
               "return ldv_undef_int_negative();"
             ]
@@ -375,6 +389,7 @@
           },
           "success": {
             "comment": "Successfully registered the cdev.",
+            "trace relevant": true,
             "statements": [
               "return 0;"
             ]

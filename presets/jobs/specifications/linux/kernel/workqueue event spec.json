@@ -6,6 +6,7 @@
         "actions": {
           "assign": {
             "comment": "Register",
+            "trace relevant": true,
             "statements": [
               "%delayed_work% = $ARG1;"
             ]
