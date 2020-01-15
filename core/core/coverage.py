@@ -449,7 +449,9 @@ class LCOV:
             for orig_file, file_coverage_info in coverage_info.items():
                 # Like in core.vrp.RP#__trim_file_names.
                 storage_file = core.utils.make_relative_path([self.clade.storage_dir], os.path.normpath(orig_file))
+                shrinked_src_file_name = storage_file
                 tmp = core.utils.make_relative_path(self.source_dirs, storage_file, absolutize=True)
+
                 if tmp != os.path.join(os.path.sep, storage_file):
                     shrinked_src_file_name = os.path.join('source files', tmp)
                 else:
