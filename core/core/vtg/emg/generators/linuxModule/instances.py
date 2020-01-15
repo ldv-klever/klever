@@ -50,6 +50,7 @@ def generate_instances(logger, conf, sa, interfaces, model, instance_maps):
         process.name = process.name + '_%d' % process.instance_number
 
     model.environment = sortedcontainers.SortedDict({str(p): p for p in callback_processes})
+    # todo: Here we can loose instances of model functions
     model.models = sortedcontainers.SortedDict({str(p): p for p in model_processes})
     filename = 'instances.json'
 
@@ -577,6 +578,9 @@ def _yield_instances(logger, conf, sa, interfaces, model, instance_maps):
     for process in model.models.values():
         logger.info("Generate FSA for functions model process {}".format(process.name))
         processes = _fulfill_label_maps(logger, conf, sa, interfaces, [process], process, instance_maps, instances_left)
+        # todo: at the moment anyway several instances of function models are ignored, it is better to do it there until
+        #       the solution is found
+        processes = processes[:-1]
         for instance in processes:
             rename_process(instance)
             model_fsa.append(instance)
