@@ -18,7 +18,6 @@
 import os
 import json
 import zipfile
-import uuid
 
 from wsgiref.util import FileWrapper
 
@@ -36,14 +35,15 @@ from bridge.ZipGenerator import ZipStream, CHUNK_SIZE
 from jobs.models import Job, RunHistory, JobFile, FileSystem
 from reports.models import (
     ReportRoot, ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent,
-    ReportAttr, CoverageArchive, AttrFile, OriginalSources, AdditionalSources
+    ReportAttr, CoverageArchive, AttrFile, OriginalSources, AdditionalSources, RootCache
 )
 
 from jobs.serializers import UploadedJobArchiveSerializer
 from jobs.DownloadSerializers import (
     DownloadJobSerializer, DownloadJobVersionSerializer,
     DownloadReportAttrSerializer, DownloadReportComponentSerializer,
-    DownloadReportSafeSerializer, DownloadReportUnsafeSerializer, DownloadReportUnknownSerializer
+    DownloadReportSafeSerializer, DownloadReportUnsafeSerializer,
+    DownloadReportUnknownSerializer, RootCacheSerializer
 )
 from jobs.tasks import upload_job_archive, link_uploaded_job_parent
 
@@ -112,7 +112,7 @@ class JobArchiveGenerator:
                 '{}.json'.format(OriginalSources.__name__), self.__get_original_sources(root)
             )
             yield from self.stream.compress_string(
-                '{}.json'.format(ReportRoot.__name__), self.__get_root_data(root)
+                '{}.json'.format(RootCache.__name__), self.__get_root_cache(root)
             )
             yield from self.stream.compress_string(
                 '{}.json'.format(ReportComponent.__name__), self.__get_reports_data(root)
@@ -149,8 +149,8 @@ class JobArchiveGenerator:
         for rh in self.job.run_history.order_by('date'):
             self._arch_files.add((rh.configuration.file.path, rh.configuration.file.name))
 
-    def __get_root_data(self, root):
-        return self.__get_json({'resources': root.resources, 'instances': root.instances})
+    def __get_root_cache(self, root):
+        return self.__get_json(RootCacheSerializer(instance=RootCache.objects.filter(root=root), many=True).data)
 
     def __get_reports_data(self, root):
         reports = []

@@ -16,6 +16,7 @@
 #
 
 import os
+import re
 import time
 from datetime import datetime
 
@@ -45,7 +46,10 @@ class ExecLocker:
     lockfile = os.path.join(settings.BASE_DIR, 'media', '.lock')
 
     def __init__(self, name, groups):
-        self.call_log = CallLogs.objects.create(name=name, enter_time=get_time())
+        self.call_log = {
+            'name': name,
+            'enter_time': get_time()
+        }
         self.names = self.__get_affected_models(groups)
         self.lock_ids = set()
         # wait1 and wait2
@@ -80,19 +84,20 @@ class ExecLocker:
                 pass
 
     def unlock(self, is_failed):
-        self.call_log.execution_delta = get_time() - self.call_log.execution_time
-        self.call_log.is_failed = is_failed
+        self.call_log.update({
+            'execution_delta': get_time() - self.call_log['execution_time'], 'is_failed': is_failed
+        })
 
         if (not is_failed or settings.UNLOCK_FAILED_REQUESTS) and len(self.lock_ids) > 0:
             LockTable.objects.filter(id__in=self.lock_ids).update(locked=False)
-        self.call_log.return_time = get_time()
-        self.call_log.save()
+        self.call_log['return_time'] = get_time()
 
     def save_exec_time(self):
-        self.call_log.execution_time = get_time()
-        self.call_log.wait1 = self.waiting_time[0]
-        self.call_log.wait2 = self.waiting_time[1]
-        self.call_log.save()
+        self.call_log.update({
+            'execution_time': get_time(),
+            'wait1': self.waiting_time[0],
+            'wait2': self.waiting_time[1]
+        })
 
     def __lock_names(self):
         can_lock = True
@@ -144,30 +149,6 @@ class ExecLocker:
         return related_models
 
 
-def unparallel_group(groups):
-    def __inner(f):
-
-        def wait(*args, **kwargs):
-            locker = ExecLocker(f.__name__, groups)
-            locker.lock()
-            try:
-                locker.save_exec_time()
-                res = f(*args, **kwargs)
-            except BridgeException:
-                locker.unlock(False)
-                raise
-            except Exception:
-                locker.unlock(True)
-                raise
-            else:
-                locker.unlock(False)
-            return res
-
-        return wait
-
-    return __inner
-
-
 class LoggedCallMixin:
     unparallel = []
 
@@ -181,8 +162,16 @@ class LoggedCallMixin:
 
         unparallel = self.get_unparallel(request)
 
+        # If request can be executed in parallel and call logs are disabled then just normal view execution
+        if not settings.ENABLE_CALL_LOGS and not unparallel:
+            return getattr(super(), 'dispatch')(request, *args, **kwargs)
+
         locker = ExecLocker(type(self).__name__, unparallel)
-        locker.lock()
+        try:
+            locker.lock()
+        except Exception:
+            CallLogs.objects.create(**locker.call_log)
+            raise
         try:
             locker.save_exec_time()
             response = getattr(super(), 'dispatch')(request, *args, **kwargs)
@@ -194,6 +183,8 @@ class LoggedCallMixin:
             raise
         else:
             locker.unlock(False)
+        finally:
+            CallLogs.objects.create(**locker.call_log)
         return response
 
     def is_not_used(self, *args, **kwargs):
@@ -300,3 +291,113 @@ class ProfileData:
         elif not isinstance(date, float):
             date = None
         return date
+
+
+class DBLogsAnalizer:
+    results_file = 'db-stat.json'
+
+    def __init__(self):
+        self.data = {}
+
+    @property
+    def _log_file(self):
+        file_name = os.path.join('logs', 'db.log')
+        assert os.path.isfile(file_name), 'DB log file does not exist'
+        return file_name
+
+    def analize(self, max_cnt=None):
+        with open(self._log_file, mode='r', encoding='utf-8') as fp:
+            cnt = 0
+            for line in fp:
+                m = re.match(r'^\[.*?\]\s\((.*?)\)\s(.*)$', line)
+                if m:
+                    try:
+                        exec_time = float(m.group(1))
+                    except ValueError:
+                        print(m.group(1))
+                        print(line)
+                        print(m.groups())
+                        raise
+                    query_sql = m.group(2)
+                    if query_sql:
+                        query_sql = self.parse_sql(query_sql)
+                    if not query_sql:
+                        query_sql = 'UPDATE report TREE'
+                    self.__save_data(query_sql, exec_time)
+                    cnt += 1
+                    if max_cnt and cnt > max_cnt:
+                        break
+
+    def __save_data(self, query_sql, exec_time):
+        if query_sql not in self.data:
+            # 0 <= x0 < 0.005 <= x1 < 0.01 <= x2 < 0.05 <= x3 < 0.1 <= x4, total_number, total_execution
+            self.data[query_sql] = [0, 0, 0, 0, 0, 0, 0.000]
+
+        save_index = 4
+        if exec_time < 0.005:
+            save_index = 0
+        elif exec_time < 0.01:
+            save_index = 1
+        elif exec_time < 0.05:
+            save_index = 2
+        elif exec_time < 0.1:
+            save_index = 3
+        self.data[query_sql][save_index] += 1
+        self.data[query_sql][5] += 1
+        self.data[query_sql][6] += exec_time
+
+    def parse_sql(self, value):
+        if value.startswith('SELECT'):
+            m = re.match(r'^SELECT(.*)FROM(.*)WHERE(.*)$', value)
+            if m:
+                return 'SELECT ({}) FROM ({}) WHERE ({})'.format(
+                    self.__parse_fields(m.group(1)),
+                    self.__parse_from(m.group(2)),
+                    self.__parse_where(m.group(3))
+                )
+            m = re.match(r'^SELECT(.*)FROM(.*)$', value)
+            if m:
+                return 'SELECT ({}) FROM ({})'.format(self.__parse_fields(m.group(1)), self.__parse_from(m.group(2)))
+        elif value.startswith('UPDATE'):
+            m = re.match(r'^UPDATE\s"(.*)"\sSET.*WHERE(.*)$', value)
+            if m:
+                return 'UPDATE {} WHERE ({})'.format(m.group(1), self.__parse_where(m.group(2)))
+        elif value.startswith('INSERT'):
+            m = re.match(r'^INSERT\sINTO\s"(.*?)"\s\(.*$', value)
+            if m:
+                return 'INSERT INTO {}'.format(m.group(1))
+        elif value.startswith('DELETE'):
+            m = re.match(r'^DELETE\sFROM\s"(.*)"\sWHERE\s(.*)$', value)
+            if m:
+                return 'DELETE FROM {} WHERE ({})'.format(m.group(1), self.__parse_where(m.group(2)))
+        return value
+
+    def __parse_fields(self, fields_str):
+        fields_list = []
+        for field_name in fields_str.split(', '):
+            if fields_str.startswith('(1)'):
+                fields_list.append('(1)')
+            m = re.search(r'\."(\w+)"', field_name)
+            if m:
+                fields_list.append(m.group(1))
+            else:
+                fields_list.append(field_name.strip())
+        return ', '.join(list(sorted(fields_list)))
+
+    def __parse_where(self, value_str):
+        fields_list = []
+        m = re.match(r'^\s*(.*?)\s*(ORDER.*)?;.*$', value_str)
+        if m:
+            for field_name in m.group(1).split():
+                m = re.match(r'^.*\S+\."(\w+)".*$', field_name)
+                if m:
+                    fields_list.append(m.group(1))
+        return ', '.join(list(sorted(fields_list)))
+
+    def __parse_from(self, value_str):
+        return ', '.join(list(sorted(re.findall(r'\s"(\w+)"\s', value_str))))
+
+    def print_results(self):
+        import json
+        with open(os.path.join('logs', self.results_file), mode='w', encoding='utf-8') as fp:
+            json.dump(self.data, fp, sort_keys=True, indent=2, ensure_ascii=False)

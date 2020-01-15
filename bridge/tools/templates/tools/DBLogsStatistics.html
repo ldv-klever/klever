@@ -1,0 +1,50 @@
+{% extends 'bridge/base.html' %}
+
+{% load i18n %}
+
+{% block title %}DB logs{% endblock %}
+
+{% block body_block %}
+    <button id="reacalculate_btn" class="ui violet small button">Recalculate</button>
+    {% if data %}
+        <table class="ui compact selectable violet table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Executions 0 - 0.005</th>
+                    <th>Executions 0.005 - 0.01</th>
+                    <th>Executions 0.01 - 0.05</th>
+                    <th>Executions 0.05 - 0.1</th>
+                    <th>Executions 0.1+</th>
+                    <th>Total executions</th>
+                    <th>Average execution time</th>
+                    <th>Total execution time</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for stat in data %}
+                    <tr>
+                        <td>{{ stat.name }}</td>
+                        <td>{{ stat.numbers.0 }} ({{ stat.percents.0 }}%)</td>
+                        <td>{{ stat.numbers.1 }} ({{ stat.percents.1 }}%)</td>
+                        <td>{{ stat.numbers.2 }} ({{ stat.percents.2 }}%)</td>
+                        <td>{{ stat.numbers.3 }} ({{ stat.percents.3 }}%)</td>
+                        <td>{{ stat.numbers.4 }} ({{ stat.percents.4 }}%)</td>
+                        <td>{{ stat.numbers.5 }}</td>
+                        <td>{{ stat.average|floatformat:3 }}</td>
+                        <td>{{ stat.total|floatformat:3 }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+    <script>
+        jQuery(function () {
+            $('#reacalculate_btn').click(function () {
+                $.post('{% url "tools:api-db-statistics" %}', {}, function () {
+                    window.location.replace('');
+                });
+            })
+        })
+    </script>
+{% endblock %}

@@ -29,7 +29,7 @@ from bridge.utils import construct_url
 from bridge.tableHead import ComplexHeaderMixin
 
 from jobs.models import Job, JobHistory, UserRole
-from reports.models import ReportRoot, ReportComponent
+from reports.models import ReportRoot, ReportComponent, RootCache
 
 from users.utils import HumanizedValue
 from jobs.utils import SAFES, UNSAFES, TITLES, JobAccess
@@ -273,9 +273,7 @@ class TableTree(ComplexHeaderMixin):
         return True
 
     def __resource_columns(self):
-        components = set()
-        for root in ReportRoot.objects.filter(id__in=self._roots).only('resources'):
-            components |= set(root.resources)
+        components = set(RootCache.objects.filter(root_id__in=self._roots).values_list('component', flat=True))
         resource_columns = []
         for c_name in sorted(list(c for c in components if self.__filter_component(c))):
             column = 'resource:{}'.format(self.slugify(c_name))
@@ -323,7 +321,7 @@ class TableTree(ComplexHeaderMixin):
         if any(x.startswith('tag:unsafe:') for x in self._columns):
             self.__collect_unsafe_tags()
         if any(x.startswith('resource:') for x in self._columns):
-            self.__collect_resourses()
+            self.__collect_resources()
         if 'role' in self._columns:
             self.__collect_roles()
 
@@ -623,16 +621,16 @@ class TableTree(ComplexHeaderMixin):
                 url = construct_url('reports:unsafes', self._core[j_id], tag=tag)
                 self._values_data[j_id][column] = self.__get_cell(num, url=url, number=num)
 
-    def __collect_resourses(self):
-        for root in ReportRoot.objects.filter(id__in=self._roots).only('resources', 'job_id'):
-            for component in root.resources:
-                column = 'resource:{}'.format(self.slugify(component))
-                value = "{} {} {}".format(
-                    HumanizedValue(root.resources[component]['wall_time'], user=self._user).timedelta,
-                    HumanizedValue(root.resources[component]['cpu_time'], user=self._user).timedelta,
-                    HumanizedValue(root.resources[component]['memory'], user=self._user).memory,
-                )
-                self._values_data[root.job_id][column] = self.__get_cell(value)
+    def __collect_resources(self):
+        for cache_obj in RootCache.objects.filter(root_id__in=self._roots).select_related('root'):
+            assert isinstance(cache_obj, RootCache)
+            value = "{} {} {}".format(
+                HumanizedValue(cache_obj.wall_time, user=self._user).timedelta,
+                HumanizedValue(cache_obj.cpu_time, user=self._user).timedelta,
+                HumanizedValue(cache_obj.memory, user=self._user).memory,
+            )
+            column = 'resource:{}'.format(self.slugify(cache_obj.component))
+            self._values_data[cache_obj.root.job_id][column] = self.__get_cell(value)
 
     def __collect_roles(self):
         author_of = set(Job.objects.filter(id__in=self._job_ids, author=self._user).values_list('id', flat=True))

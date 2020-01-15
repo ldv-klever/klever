@@ -69,8 +69,7 @@
                 <button class="ui orange button recalc-button" data-value="safe_reports">{% trans 'Safe reports' %}</button>
                 <button class="ui orange button recalc-button" data-value="unsafe_reports">{% trans 'Unsafe reports' %}</button>
                 <button class="ui orange button recalc-button" data-value="unknown_reports">{% trans 'Unknown reports' %}</button>
-                <button class="ui orange button recalc-button" data-value="resources">{% trans 'Resources' %}</button>
-                <button class="ui orange button recalc-button" data-value="compinst">{% trans 'Components instances' %}</button>
+                <button class="ui orange button recalc-button" data-value="root_cache">{% trans 'Resources and instances' %}</button>
                 <button class="ui orange button recalc-button" data-value="coverage">{% trans 'Coverage cache' %}</button>
                 <button class="ui red button recalc-button" data-value="all">{% trans 'All caches' %}</button>
             </div>
@@ -86,6 +85,7 @@
                 <button class="ui red button api-request-btn" data-url="{% url 'tools:api-clear-tasks' %}" data-method="DELETE">{% trans 'Remove tasks for not solving jobs' %}</button>
                 <a href="{% url 'tools:processing-list' %}" class="ui yellow button">{% trans 'View processing reqeusts' %}</a>
                 <a href="{% url 'tools:call-logs' %}" class="ui yellow button">{% trans 'View function call logs' %}</a>
+                <a href="{% url 'tools:db-statistics' %}" class="ui yellow button">{% trans 'View db logs statistics' %}</a>
             </div>
         </div>
     </div>

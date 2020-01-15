@@ -26,7 +26,7 @@ from bridge.vars import MPTT_FIELDS
 from bridge.serializers import TimeStampField
 
 from jobs.models import Job, RunHistory, JobFile, JobHistory
-from reports.models import ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent, Computer, ReportAttr
+from reports.models import ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent, Computer, ReportAttr, RootCache
 from service.models import Scheduler, Decision
 
 from jobs.serializers import create_job_version, JobFilesField
@@ -174,3 +174,9 @@ class DownloadReportAttrSerializer(serializers.ModelSerializer):
     class Meta:
         model = ReportAttr
         exclude = ('id', 'report', 'data')
+
+
+class RootCacheSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RootCache
+        exclude = ('root',)

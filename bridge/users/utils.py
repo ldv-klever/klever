@@ -69,7 +69,6 @@ JOB_DATA_VIEW = {
     # unknown_component: [iexact|istartswith|icontains, <any text>]
     # unknown_problem: [iexact|istartswith|icontains, <any text>]
     # resource_component: [iexact|istartswith|icontains, <any text>]
-    # compinst: [iexact|istartswith|icontains, <any text>]
     # safe_tag: [iexact|istartswith|icontains, <any text>]
     # unsafe_tag: [iexact|istartswith|icontains, <any text>]
     # attr_stat_filter: [iexact|istartswith|icontains, <any text>]
