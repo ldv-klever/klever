@@ -577,8 +577,7 @@ class RecalculateUnknownCache:
         for cache_obj in ReportUnknownCache.objects.select_for_update().filter(**kwargs):
             self.__reset_cache_obj(cache_obj)
             caches[cache_obj.report_id] = cache_obj
-        for mr in MarkUnknownReport.objects.filter(associated=True, **kwargs).select_related('mark')\
-                .only('type', 'problem', 'report_id'):
+        for mr in MarkUnknownReport.objects.filter(associated=True, **kwargs).only('type', 'problem', 'report_id'):
             self.__update_cache_obj(caches[mr.report_id], mr)
         for cache_obj in caches.values():
             cache_obj.save()
