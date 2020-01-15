@@ -580,7 +580,7 @@ def _yield_instances(logger, conf, sa, interfaces, model, instance_maps):
         processes = _fulfill_label_maps(logger, conf, sa, interfaces, [process], process, instance_maps, instances_left)
         # todo: at the moment anyway several instances of function models are ignored, it is better to do it there until
         #       the solution is found
-        processes = processes[:-1]
+        processes = processes[:1]
         for instance in processes:
             rename_process(instance)
             model_fsa.append(instance)
