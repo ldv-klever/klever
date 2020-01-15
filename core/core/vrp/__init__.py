@@ -570,13 +570,13 @@ class RP(core.components.Component):
         trimmed_file_names = {}
 
         for file_name in file_names:
-            # Caller expects a returned dictionary maps each file name, so, let's fill it anyway.
-            trimmed_file_names[file_name] = file_name
-
             # Remove storage from file names if files were put there.
             storage_file = core.utils.make_relative_path([self.clade.storage_dir], file_name)
+            # Caller expects a returned dictionary maps each file name, so, let's fill it anyway.
+            trimmed_file_names[file_name] = storage_file
             # Try to make paths relative to source paths or standard search directories.
             tmp = core.utils.make_relative_path(self.source_paths, storage_file, absolutize=True)
+
             # Append special directory name "source files" when cutting off source file names.
             if tmp != os.path.join(os.path.sep, storage_file):
                 trimmed_file_names[file_name] = os.path.join('source files', tmp)
