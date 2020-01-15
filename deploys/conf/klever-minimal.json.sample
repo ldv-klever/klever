@@ -53,7 +53,8 @@
       "ply",
       "pygments",
       "requests",
-      "setuptools_scm"
+      "setuptools_scm",
+      "sortedcontainers"
     ],
     "For running Klever Scheduler": [
       "BenchExec==1.18",
