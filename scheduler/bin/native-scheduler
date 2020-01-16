@@ -32,4 +32,3 @@ conf, logger = utils.common_initialization("Klever scheduler")
 scheduler_impl = Scheduler(conf, logger, "scheduler/", native.Native)
 scheduler_impl.launch()
 
-__author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
