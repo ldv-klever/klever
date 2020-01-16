@@ -41,6 +41,9 @@ def devn(cursum, n):
 class Runner:
     """Class provide general scheduler API."""
 
+    accept_jobs = True
+    accept_tag = 'Klever'
+
     def __init__(self, conf, logger, work_dir, server):
         """
         Get configuration and prepare working directory.

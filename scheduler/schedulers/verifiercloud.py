@@ -117,6 +117,8 @@ class VerifierCloud(runners.Runner):
     """
 
     wi = None
+    accept_jobs = False
+    accept_tag = 'VerifierCloud'
 
     def __init__(self, conf, logger, work_dir, server):
         """Do VerifierCloud specific initialization"""

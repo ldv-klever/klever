@@ -17,11 +17,11 @@
 
 import os
 import time
+import pika
+import queue
+import logging
 import traceback
 import threading
-import queue
-import pika
-import logging
 
 import server
 from utils.bridge import BridgeError
@@ -37,9 +37,11 @@ class ListeningThread(threading.Thread):
 
     conf = None
 
-    def __init__(self, local_queue, cnf=None):
+    def __init__(self, local_queue, accept_jobs, accept_tag, cnf=None):
         super(ListeningThread, self).__init__()
         self._is_interrupted = False
+        self.accept_jobs = accept_jobs
+        self.accept_tag = accept_tag
         if cnf:
             self.conf = cnf
         self._queue = local_queue
@@ -55,13 +57,24 @@ class ListeningThread(threading.Thread):
         )
         channel = connection.channel()
         channel.queue_declare(queue=self.conf["name"], durable=True)
-        for method, properties, body in channel.consume(self.conf["name"], auto_ack=True, inactivity_timeout=1):
+        for method, properties, body in channel.consume(self.conf["name"], inactivity_timeout=1):
             if self._is_interrupted:
                 break
-            if not body:
+            if not body or not method:
                 continue
+
             # Just forward to main loop all data. This can be done faster but it will require additional locks and sync
-            self._queue.put(body)
+            data = body.decode('utf-8').split(' ')
+            if len(data) == 4:
+                if (data[0] == 'job' and self.accept_jobs) or (data[0] == 'task' and data[-1] == self.accept_tag):
+                    channel.basic_ack(method.delivery_tag)
+                    self._queue.put(body)
+                else:
+                    channel.basic_nack(method.delivery_tag, requeue=True)
+            else:
+                # Just ignore the message
+                channel.basic_ack(method.delivery_tag)
+                continue
 
 
 class Scheduler:
@@ -125,7 +138,9 @@ class Scheduler:
         if self.__listening_thread and not self.__listening_thread.is_alive():
             self.__listening_thread.stop()
             self.__listening_thread.join()
-        self.__listening_thread = ListeningThread(self.__server_queue, self.conf["Klever jobs and tasks queue"])
+        self.__listening_thread = ListeningThread(self.__server_queue, self.__runner_class.accept_jobs,
+                                                  self.__runner_class.accept_tag,
+                                                  self.conf["Klever jobs and tasks queue"])
         self.__listening_thread.start()
 
         # Before we proceed lets check all existing jobs
@@ -159,7 +174,7 @@ class Scheduler:
 
                 while True:
                     msg = self.__server_queue.get_nowait()
-                    kind, identifier, status = msg.decode('utf-8').split(' ')
+                    kind, identifier, status, _ = msg.decode('utf-8').split(' ')
                     if kind == 'job':
                         self.logger.debug("New status of job {!r} is {!r}".format(identifier, status))
                         sch_status = self.__jobs.get(identifier, dict()).get('status', None)
@@ -506,16 +521,6 @@ class Scheduler:
                 "priority": task_conf['description']["priority"]
             }
 
-            # TODO: VerifierCloud user name and password are specified in task description and
-            # shouldn't be extracted from it here.
-            if self.runner.scheduler_type() == "VerifierCloud":
-                self.__tasks[identifier]["user"] = task_conf['description']["VerifierCloud user name"]
-                self.__tasks[identifier]["password"] = \
-                    task_conf['description']["VerifierCloud user password"]
-            else:
-                self.__tasks[identifier]["user"] = None
-                self.__tasks[identifier]["password"] = None
-
             self.logger.debug("Prepare new task {!r} before launching".format(identifier))
             # Add missing restrictions
             try:
@@ -563,15 +568,18 @@ class Scheduler:
 
     def _check_jobs_status(self):
         """This functions checks complience of server and scheduler statuses."""
-        for identifier, status in self.server.get_all_jobs():
-            status = self._job_status(status)
-            if identifier not in self.__jobs and status == 'PENDING':
-                self.add_new_pending_job(identifier)
-            elif identifier not in self.__jobs and status == 'PROCESSING':
-                self.server.submit_job_error(identifier, 'Scheduler terminated or reset and does not '
-                                                         'track the job {}'.format(identifier))
-            elif identifier not in self.__jobs and status == 'CANCELLING':
-                self.server.cancel_job(identifier)
+        if self.__runner_class.accept_jobs:
+            # todo: At the moment we do not have several scheduilers that can serve jobs but in other case whis should
+            #       be fixed
+            for identifier, status in self.server.get_all_jobs():
+                status = self._job_status(status)
+                if identifier not in self.__jobs and status == 'PENDING':
+                    self.add_new_pending_job(identifier)
+                elif identifier not in self.__jobs and status == 'PROCESSING':
+                    self.server.submit_job_error(identifier, 'Scheduler terminated or reset and does not '
+                                                             'track the job {}'.format(identifier))
+                elif identifier not in self.__jobs and status == 'CANCELLING':
+                    self.server.cancel_job(identifier)
 
     def _job_status(self, status):
         job_map = {
