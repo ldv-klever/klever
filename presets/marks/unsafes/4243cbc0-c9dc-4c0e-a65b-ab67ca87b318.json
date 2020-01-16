@@ -27,30 +27,24 @@
     [
       [
         {
+          "fill_super": [
+            {
+              "LDV model 'invoke_reached'": [
+                {
+                  "LDV model 'assert'": []
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      [
+        {
           "EMG wrapper": [
             {
               "LDV model 'init'": [
                 {
                   "LDV model 'invoke_test'": []
-                },
-                {
-                  "Instrumented function 'get_sb_single'": [
-                    {
-                      "Call fill_super implementation.": [
-                        {
-                          "fill_super": [
-                            {
-                              "LDV model 'invoke_reached'": [
-                                {
-                                  "LDV model 'assert'": []
-                                }
-                              ]
-                            }
-                          ]
-                        }
-                      ]
-                    }
-                  ]
                 }
               ]
             }
