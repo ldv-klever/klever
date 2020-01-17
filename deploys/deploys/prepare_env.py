@@ -18,6 +18,7 @@
 
 import glob
 import os
+import subprocess
 
 from deploys.utils import execute_cmd, get_logger
 
@@ -48,6 +49,16 @@ def prepare_env(logger, deploy_dir):
         logger.info('Prepare CIF environment')
         args.append('/usr/lib')
         execute_cmd(logger, 'ln', '-s', *args)
+
+    logger.info('Try to initialise PostgreSQL')
+    try:
+        execute_cmd(logger, 'postgresql-setup', '--initdb', '--unit', 'postgresql')
+    except FileNotFoundError:
+        pass
+
+    logger.info('Start and enable PostgreSQL service')
+    execute_cmd(logger, 'systemctl', 'start', 'postgresql')
+    execute_cmd(logger, 'systemctl', 'enable', 'postgresql')
 
     logger.info('Create PostgreSQL user')
     execute_cmd(logger, 'psql', '-c', "CREATE USER klever WITH CREATEDB PASSWORD 'klever'", username='postgres')

@@ -19,6 +19,7 @@
 import errno
 import json
 import os
+import shutil
 import sys
 
 from deploys.utils import execute_cmd, get_logger
@@ -76,15 +77,32 @@ def install_deps(logger, deploy_conf, prev_deploy_info, non_interactive, update_
 
     if pckgs_to_install or (pckgs_to_update and update_pckgs):
         logger.info('Update packages list')
-        execute_cmd(logger, 'apt-get', 'update')
+        if shutil.which('apt'):
+            execute_cmd(logger, 'apt', 'update')
+        elif shutil.which('dnf'):
+            execute_cmd(logger, 'dnf', 'update')
+        elif shutil.which('yum'):
+            execute_cmd(logger, 'yum', 'check-update')
+        elif shutil.which('zypper'):
+            execute_cmd(logger, 'zypper', 'ref')
+        else:
+            logger.error('Your Linux distribution is not supported')
+            sys.exit(errno.EINVAL)
 
     if pckgs_to_install:
         logger.info('Install packages:\n  {0}'.format('\n  '.join(pckgs_to_install)))
-        args = ['apt-get', 'install']
-        if non_interactive:
-            args.append('--assume-yes')
-        args.extend(pckgs_to_install)
-        execute_cmd(logger, *args)
+
+        for util in ('apt', 'dnf', 'yum', 'zypper'):
+            if shutil.which(util):
+                args = [util, 'install']
+
+                if non_interactive:
+                    args.append('-y')
+                args.extend(pckgs_to_install)
+                execute_cmd(logger, *args)
+                break
+        else:
+            logger.error('Your Linux distribution is not supported')
 
         # Remember what packages were installed just if everything went well.
         if 'Packages' not in prev_deploy_info:
@@ -94,7 +112,7 @@ def install_deps(logger, deploy_conf, prev_deploy_info, non_interactive, update_
 
     if py_pckgs_to_install:
         logger.info('Install Python3 packages:\n  {0}'.format('\n  '.join(py_pckgs_to_install)))
-        execute_cmd(logger, 'pip3', 'install', *py_pckgs_to_install)
+        execute_cmd(logger, 'python3', '-m', 'pip', 'install', *py_pckgs_to_install)
 
         # Remember what Python3 packages were installed just if everything went well.
         if 'Python3 Packages' not in prev_deploy_info:
@@ -104,15 +122,24 @@ def install_deps(logger, deploy_conf, prev_deploy_info, non_interactive, update_
 
     if pckgs_to_update and update_pckgs:
         logger.info('Update packages:\n  {0}'.format('\n  '.join(pckgs_to_update)))
-        args = ['apt-get', 'upgrade']
-        if non_interactive:
-            args.append('--assume-yes')
-        args.extend(pckgs_to_update)
-        execute_cmd(logger, *args)
+        for util in ('apt', 'dnf', 'yum', 'zypper'):
+            if shutil.which(util):
+                if util in ('apt', 'dnf'):
+                    args = [util, 'upgrade']
+                elif util in ('yum', 'zypper'):
+                    args = [util, 'update']
+
+                if non_interactive:
+                    args.append('-y')
+                args.extend(pckgs_to_install)
+                execute_cmd(logger, *args)
+                break
+        else:
+            raise RuntimeError('Your Linux distribution is not supported')
 
     if py_pckgs_to_update and update_py_pckgs:
         logger.info('Update Python3 packages:\n  {0}'.format('\n  '.join(py_pckgs_to_update)))
-        execute_cmd(logger, 'pip3', 'install', '--upgrade', *py_pckgs_to_update)
+        execute_cmd(logger, 'python3', '-m', 'pip', 'install', '--upgrade', *py_pckgs_to_update)
 
 
 def main():
