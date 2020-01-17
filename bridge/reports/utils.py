@@ -15,6 +15,7 @@
 # limitations under the License.
 #
 
+import json
 import os
 from io import BytesIO
 from urllib.parse import unquote
@@ -1033,13 +1034,15 @@ class ReportData:
     def __init__(self, report):
         self._report = report
         self.data = self._report.data
-        self.type = self.data[0].get('type', 'unknown')
+        self.type = self.data[0]['type'] if len(self.data) and 'type' in self.data[0] else 'unknown'
         self.stats = None
 
         if self.type == 'testing':
             self.__calculate_test_stats()
         elif self.type == 'validation':
             self.__calculate_validation_stats()
+        elif self.type == 'unknown':
+            self.data = json.dumps(self.data, ensure_ascii=True, sort_keys=True, indent=4)
 
     def __calculate_test_stats(self):
         self.stats = {
