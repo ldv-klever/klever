@@ -1041,7 +1041,7 @@ class ReportData:
             self.__calculate_test_stats()
         elif self.type == 'validation':
             self.__calculate_validation_stats()
-        elif self.type == 'unknown':
+        elif self.type == 'unknown' and self.data:
             self.data = json.dumps(self.data, ensure_ascii=True, sort_keys=True, indent=4)
 
     def __calculate_test_stats(self):
