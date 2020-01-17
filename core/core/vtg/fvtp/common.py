@@ -60,8 +60,6 @@ def merge_files(logger, conf, abstract_task_desc):
             # Remove redundant zero initializers of global variables that are specified in original sources (rarely) or
             # added by CIL itself.
             '-shrink-initializers',
-            # TODO: Try to turn this option off since it can disable some optimizations (but without it RP fails).
-            '-print-cil-as-is',
             # Rest options.
             '-keep-logical-operators',
             '-aggressive-merging',
