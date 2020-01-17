@@ -17,11 +17,6 @@
     "process pool": false,
     "controller address": "http://localhost:8500",
     "keep working directory": false,
-    "iteration timeout": {
-      "short": 5,
-      "medium": 10,
-      "long": 20
-    },
     "web-interface address": "https://vcloud.sosy-lab.org/cpachecker/webclient",
     "web client location": "/abs/path/to/scripts/benchmark",
     "ignore BenchExec warnings": [
