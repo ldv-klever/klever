@@ -17,6 +17,7 @@
 
 import glob
 import json
+import sortedcontainers
 
 
 class AbstractGenerator:
@@ -78,7 +79,7 @@ class AbstractGenerator:
             json.dump(specification, fp, indent=2, sort_keys=True)
 
     def _merge_specifications(self, specifications_set, files):
-        merged_specification = dict()
+        merged_specification = sortedcontainers.SortedDict()
         for file in files:
             with open(file, 'r', encoding='utf8') as fp:
                 new_content = json.load(fp)
@@ -87,12 +88,12 @@ class AbstractGenerator:
                 if specifications_set and spec_set == specifications_set:
                     # This is our specification
                     for title in new_content[spec_set]:
-                        merged_specification.setdefault(title, dict())
+                        merged_specification.setdefault(title, sortedcontainers.SortedDict())
                         merged_specification[title].update(new_content[spec_set][title])
                 else:
                     # Find reference ones
                     for title in new_content[spec_set]:
-                        merged_specification.setdefault(title, dict())
+                        merged_specification.setdefault(title, sortedcontainers.SortedDict())
                         for k, v in new_content[spec_set][title].items():
                             # Do not replace already imported process descriptions
                             if v.get('reference') and not merged_specification[title].get(k):

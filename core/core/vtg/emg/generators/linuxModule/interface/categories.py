@@ -15,6 +15,8 @@
 # limitations under the License.
 #
 
+import sortedcontainers
+
 from core.vtg.emg.common.c.types import Declaration, Function, Array, Pointer, Primitive
 from core.vtg.emg.generators.linuxModule.interface import Resource, Callback, StructureContainer, \
     FunctionInterface, ArrayContainer
@@ -47,7 +49,7 @@ def yield_categories(logger, conf, collection, sa):
 def __populate_resources(collection):
     # Iterate over categories
     for category in collection.categories:
-        usage = dict()
+        usage = sortedcontainers.SortedDict()
 
         # Extract callbacks
         for callback in collection.callbacks(category):

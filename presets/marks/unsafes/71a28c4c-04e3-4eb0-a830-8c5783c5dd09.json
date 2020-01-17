@@ -14,31 +14,42 @@
   "description": "",
   "error_trace": [
     [
-      {
-        "ldv_switch_to_interrupt_context": []
-      },
-      {
-        "ldv_handler": [
-          {
-            "ldv_kmalloc": [
-              {
-                "ldv_check_alloc_flags": [
-                  {
-                    "ldv_in_interrupt_context": []
-                  },
-                  {
-                    "ldv_assert_linux_alloc_irq__wrong_flags": []
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      }
+      [
+        {
+          "LDV model 'switch_to_interrupt_context'": []
+        }
+      ],
+      [
+        {
+          "EMG wrapper": [
+            {
+              "LDV model 'handler'": [
+                {
+                  "Instrumented function 'kmalloc'": [
+                    {
+                      "LDV model 'kmalloc'": [
+                        {
+                          "LDV model 'check_alloc_flags'": [
+                            {
+                              "LDV model 'assert'": []
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",
   "is_modifiable": false,
+  "status": null,
   "tags": [],
+  "threshold": 0,
   "verdict": "2"
 }

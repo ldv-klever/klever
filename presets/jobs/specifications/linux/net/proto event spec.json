@@ -5,6 +5,7 @@
         "actions": {
           "alloc": {
             "comment": "Initialize socket structure with proto ops.",
+            "trace relevant": true,
             "statements": [
               "%socket%->ops = %proto_ops%;"
             ]
@@ -43,6 +44,7 @@
           },
           "free": {
             "comment": "Free memory of socket structure.",
+            "trace relevant": true,
             "statements": [
               "$FREE(%socket%);"
             ]
@@ -102,6 +104,7 @@
         "actions": {
           "assign": {
             "comment": "Get PPP encapsulation socket family identifier and socket from arguments.",
+            "trace relevant": true,
             "statements": [
               "%family% = $ARG1;",
               "%ops% = $ARG2;",
@@ -120,6 +123,7 @@
             "condition": [
               "%ret% != 0"
             ],
+            "trace relevant": true,
             "statements": [
               "$FREE(%socket%);",
               "return %ret%;"
@@ -133,6 +137,7 @@
           },
           "fail": {
             "comment": "Failed to add a PPP encapsulation socket protocol handler.",
+            "trace relevant": true,
             "statements": [
               "return ldv_undef_int_negative();"
             ]
@@ -145,6 +150,7 @@
           },
           "success": {
             "comment": "Added a PPP encapsulation socket protocol handler successfully.",
+            "trace relevant": true,
             "statements": [
               "return 0;"
             ]
@@ -184,6 +190,7 @@
         "actions": {
           "assign": {
             "comment": "Get socket from arguments.",
+            "trace relevant": true,
             "statements": [
               "%ops% = $ARG1;",
               "%family% = %ops%->family;",
@@ -202,6 +209,7 @@
             "condition": [
               "%ret% != 0"
             ],
+            "trace relevant": true,
             "statements": [
               "$FREE(%socket%);",
               "return %ret%;"
@@ -215,6 +223,7 @@
           },
           "fail": {
             "comment": "Failed to add a socket protocol handler.",
+            "trace relevant": true,
             "statements": [
               "return ldv_undef_int_negative();"
             ]
@@ -227,6 +236,7 @@
           },
           "success": {
             "comment": "Added a socket protocol handler successfully.",
+            "trace relevant": true,
             "statements": [
               "return 0;"
             ]
@@ -266,6 +276,7 @@
         "actions": {
           "assign": {
             "comment": "Get family identifier from arguments.",
+            "trace relevant": true,
             "statements": [
               "%family% = $ARG1;"
             ]
@@ -293,6 +304,7 @@
         "actions": {
           "assign": {
             "comment": "Get PPP encapsulation socket family identifier from arguments.",
+            "trace relevant": true,
             "statements": [
               "%family% = $ARG1;"
             ]

@@ -16,6 +16,7 @@
 #
 
 import ujson
+import sortedcontainers
 
 from core.vtg.emg.generators.abstract import AbstractGenerator
 from core.vtg.emg.common.process.serialization import CollectionDecoder
@@ -45,7 +46,7 @@ class ScenarioModelgenerator(AbstractGenerator):
         :return: Reports dict
         """
         # Get instance maps if possible
-        instance_maps = dict()
+        instance_maps = sortedcontainers.SortedDict()
         all_instance_maps = specifications.get("instance maps", [])
 
         # Get fragment name
@@ -54,7 +55,7 @@ class ScenarioModelgenerator(AbstractGenerator):
         # Check availability of an instance map for it
         for imap in all_instance_maps.get('instance maps', []):
             if task_name in imap.get('fragments', []):
-                instance_maps = imap.get('instance map', dict())
+                instance_maps = imap.get('instance map', sortedcontainers.SortedDict())
 
         self.logger.info("Import interface categories specification")
         interfaces = InterfaceCollection()
@@ -91,3 +92,35 @@ class ScenarioModelgenerator(AbstractGenerator):
         collection.establish_peers()
 
         return {}
+
+    def _merge_specifications(self, specifications_set, files):
+        merged_specification = sortedcontainers.SortedDict()
+        for file in files:
+            with open(file, 'r', encoding='utf8') as fp:
+                new_content = ujson.load(fp)
+
+            # This preprocessing helps if only a single function in specification is replaced
+            for spec_set in new_content:
+                for kind in new_content[spec_set]:
+                    for item in sorted(list(new_content[spec_set][kind].keys())):
+                        if ', ' in item:
+                            new_content[spec_set][kind].update(
+                                {i: new_content[spec_set][kind][item] for i in item.split(', ')})
+                            del new_content[spec_set][kind][item]
+
+            for spec_set in new_content:
+                if specifications_set and spec_set == specifications_set:
+                    # This is our specification
+                    for title in new_content[spec_set]:
+                        merged_specification.setdefault(title, sortedcontainers.SortedDict())
+                        merged_specification[title].update(new_content[spec_set][title])
+                else:
+                    # Find reference ones
+                    for title in new_content[spec_set]:
+                        merged_specification.setdefault(title, sortedcontainers.SortedDict())
+                        for k, v in new_content[spec_set][title].items():
+                            # Do not replace already imported process descriptions
+                            if v.get('reference') and not merged_specification[title].get(k):
+                                merged_specification[title][k] = v
+
+        return merged_specification

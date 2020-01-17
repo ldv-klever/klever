@@ -14,26 +14,44 @@
   "description": "",
   "error_trace": [
     [
-      {
-        "ldv_check_final_state": [
-          {
-            "ldv_assert_linux_drivers_clk1__more_at_exit": []
-          }
-        ]
-      }
+      [
+        {
+          "Entry point 'main'": [
+            {
+              "LDV model 'check_final_state'": [
+                {
+                  "LDV model 'assert'": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ],
     [
-      {
-        "ldv_init": [
-          {
-            "ldv_clk_enable_clk": []
-          }
-        ]
-      }
+      [
+        {
+          "EMG wrapper": [
+            {
+              "LDV model 'init'": [
+                {
+                  "Instrumented function 'clk_enable'": [
+                    {
+                      "LDV model 'clk_enable_clk'": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",
   "is_modifiable": false,
+  "status": null,
   "tags": [],
+  "threshold": 0,
   "verdict": "2"
 }

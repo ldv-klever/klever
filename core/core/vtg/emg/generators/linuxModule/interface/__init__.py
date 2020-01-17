@@ -15,6 +15,8 @@
 # limitations under the License.
 #
 
+import sortedcontainers
+
 from core.vtg.emg.common.c import Variable, Declaration
 from core.vtg.emg.common.c.types import Structure, Array, Pointer, Function
 
@@ -34,6 +36,9 @@ class Interface:
     def __hash__(self):
         return hash(str(self))
 
+    def __lt__(self, other):
+        return str(self) < str(other)
+
     @property
     def name(self):
         return self._name
@@ -49,7 +54,8 @@ class Interface:
     def add_implementation(self, value, declaration, path, base_container=None, base_value=None, sequence=None):
         new = Implementation(value, declaration, value, path, base_container, base_value, sequence)
         mv = new.adjusted_value(self.declaration)
-        new._declaration = self.declaration
+        if new.declaration != self.declaration:
+            new._declaration = self.declaration
         new.value = mv
         if new.value not in self.implementations:
             self.implementations.append(new)
@@ -63,6 +69,7 @@ class Interface:
 
 
 class Container(Interface):
+
     def __init__(self, category, identifier):
         super(Container, self).__init__(category, identifier)
 
@@ -83,7 +90,7 @@ class StructureContainer(Container):
 
     def __init__(self, category, identifier):
         super(Container, self).__init__(category, identifier)
-        self.field_interfaces = {}
+        self.field_interfaces = sortedcontainers.SortedDict()
 
     @Interface.declaration.setter
     def declaration(self, new_declaration):

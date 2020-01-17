@@ -14,24 +14,40 @@
   "description": "",
   "error_trace": [
     [
-      {
-        "ldv_init": [
-          {
-            "ldv_rcu_read_lock_sched": []
-          },
-          {
-            "ldv_check_for_read_section": [
-              {
-                "ldv_assert_linux_kernel_rcu_update_lock_sched__locked_at_read_section": []
-              }
-            ]
-          }
-        ]
-      }
+      [
+        {
+          "EMG wrapper": [
+            {
+              "LDV model 'init'": [
+                {
+                  "Instrumented function 'rcu_read_lock_sched'": [
+                    {
+                      "LDV model 'rcu_read_lock_sched'": []
+                    }
+                  ]
+                },
+                {
+                  "Instrumented function 'rcu_barrier_sched'": [
+                    {
+                      "LDV model 'check_for_read_section'": [
+                        {
+                          "LDV model 'assert'": []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",
   "is_modifiable": false,
+  "status": null,
   "tags": [],
+  "threshold": 0,
   "verdict": "2"
 }

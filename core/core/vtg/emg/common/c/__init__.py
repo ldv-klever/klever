@@ -16,7 +16,7 @@
 #
 
 import re
-
+import sortedcontainers
 from core.vtg.emg.common.c.types import import_declaration, Declaration
 
 
@@ -31,7 +31,7 @@ class Variable:
 
         self.use = 0
         self.value = None
-        self.declaration_files = set()
+        self.declaration_files = sortedcontainers.SortedSet()
         self.initialization_file = None
 
         if not declaration:
@@ -90,12 +90,13 @@ class Function:
     def __init__(self, name, declaration=None):
         self._name = name
         self._declaration = None
-        self.body = []
-        self.calls = dict()
-        self.called_at = dict()
-        self.declaration_files = set()
-        self.definition_file = None
+
+        self.body = list()
         self.header_files = list()
+        self.definition_file = None
+        self.calls = sortedcontainers.SortedDict()
+        self.called_at = sortedcontainers.SortedDict()
+        self.declaration_files = sortedcontainers.SortedSet()
 
         if not declaration:
             declaration = 'void f(void)'
@@ -175,8 +176,10 @@ class Function:
         :return: List of strings.
         """
         declaration = self._declaration.define_with_args(self._name, typedef='complex_and_params', scope=scope)
-        lines = list('/* EMG_WRAPPER {} */\n'.format(self._name))
-        lines.append(declaration + " {\n")
+        lines = [
+            '/* EMG_WRAPPER {} */\n'.format(self._name),
+            declaration + " {\n"
+        ]
         lines.extend(['\t{}\n'.format(stm) for stm in self.body])
         lines.append("}\n")
         return lines
@@ -187,7 +190,7 @@ class Macro:
 
     def __init__(self, name):
         self.name = name
-        self.parameters = dict()
+        self.parameters = sortedcontainers.SortedDict()
 
     def add_parameters(self, path, parameters):
         """
@@ -197,7 +200,5 @@ class Macro:
         :param parameters: List of parameter strings.
         :return: None.
         """
-        if path not in parameters:
-            self.parameters[path] = [parameters]
-        else:
-            self.parameters[path].append(parameters)
+        self.parameters.setdefault(path, [])
+        self.parameters[path].append(parameters)

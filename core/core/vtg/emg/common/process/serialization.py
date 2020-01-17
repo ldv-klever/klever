@@ -16,6 +16,7 @@
 #
 
 import json
+import sortedcontainers
 
 from core.vtg.emg.common.c.types import import_declaration
 from core.vtg.emg.common.process.parser import parse_process
@@ -45,7 +46,7 @@ class CollectionEncoder(json.JSONEncoder):
     @staticmethod
     def _export_process(process):
         def convert_label(label):
-            d = dict()
+            d = sortedcontainers.SortedDict()
             if label.declaration:
                 d['declaration'] = label.declaration.to_string(label.name, typedef='complex_and_params')
             if label.value:
@@ -54,7 +55,7 @@ class CollectionEncoder(json.JSONEncoder):
             return d
 
         def convert_action(action):
-            d = dict()
+            d = sortedcontainers.SortedDict()
             if action.comment:
                 d['comment'] = action.comment
             if action.condition:
@@ -73,7 +74,7 @@ class CollectionEncoder(json.JSONEncoder):
                         d['peers'].append(str(p['process']))
 
                     # Remove duplicates
-                    d['peers'] = list(set(d['peers']))
+                    d['peers'] = sorted(set(d['peers']))
             elif isinstance(action, Block):
                 if action.statements:
                     d["statements"] = action.statements
@@ -228,7 +229,7 @@ class CollectionDecoder:
             raise KeyError("Each process must have 'process' attribute, but {!r} misses it".format(name))
 
         # Then import subprocesses
-        next_actions = {}
+        next_actions = sortedcontainers.SortedDict()
         for name, desc in dic.get('actions', {}).items():
             subp = desc.get('process')
             if subp:

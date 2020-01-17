@@ -14,37 +14,48 @@
   "description": "",
   "error_trace": [
     [
-      {
-        "ldv_check_final_state": [
-          {
-            "ldv_assert_linux_usb_gadget__usb_gadget_registered_at_exit": []
-          }
-        ]
-      }
+      [
+        {
+          "Entry point 'main'": [
+            {
+              "LDV model 'check_final_state'": [
+                {
+                  "LDV model 'assert'": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ],
     [
-      {
-        "ldv_init": [
-          {
-            "ldv_usb_gadget_probe_driver_23": [
-              {
-                "ldv_register_usb_gadget": [
-                  {
-                    "ldv_undef_int_nonpositive": []
-                  },
-                  {
-                    "ldv_assert_linux_usb_gadget__double_usb_gadget_registration": []
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      }
+      [
+        {
+          "EMG wrapper": [
+            {
+              "LDV model 'init'": [
+                {
+                  "Instrumented function 'usb_gadget_probe_driver'": [
+                    {
+                      "LDV model 'register_usb_gadget'": [
+                        {
+                          "LDV model 'undef_int_nonpositive'": []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",
   "is_modifiable": false,
+  "status": null,
   "tags": [],
+  "threshold": 0,
   "verdict": "2"
 }

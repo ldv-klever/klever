@@ -16,6 +16,7 @@
 #
 
 import re
+import sortedcontainers
 import ply.lex as lex
 import ply.yacc as yacc
 
@@ -173,7 +174,7 @@ def p_declaration_specifiers_list(p):
     values = p[1:]
     unknown_specifier = values[0]
 
-    declaration_specifiers_list = {}
+    declaration_specifiers_list = sortedcontainers.SortedDict()
     if len(values) == 1:
         type_specififier, = values
         specifiers = None

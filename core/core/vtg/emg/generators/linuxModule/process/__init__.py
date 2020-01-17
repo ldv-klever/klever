@@ -16,6 +16,7 @@
 #
 
 import re
+import sortedcontainers
 
 from core.vtg.emg.common.c.types import Array, Structure, Pointer
 from core.vtg.emg.generators.linuxModule.interface import Container
@@ -133,7 +134,7 @@ class ExtendedLabel(Label):
         self.retval = False
         self.pointer = False
         self.parameters = []
-        self._signature_map = {}
+        self._signature_map = sortedcontainers.SortedDict()
 
     @property
     def interfaces(self):
@@ -164,15 +165,15 @@ class ExtendedLabel(Label):
     def __eq__(self, label):
         if len(self.interfaces) > 0 and len(label.interfaces) > 0:
             if len(list(set(self.interfaces) & set(label.interfaces))) > 0:
-                return 'equal'
+                return True
             else:
-                return 'different'
+                return False
         elif len(label.interfaces) > 0 or len(self.interfaces) > 0:
             if (self.container and label.container) or (self.resource and label.resource) or \
                     (self.callback and label.callback):
-                return 'сompatible'
+                return True
             else:
-                return 'different'
+                return False
         else:
             return super(ExtendedLabel, self).__eq__(label)
 
@@ -183,7 +184,7 @@ class ExtendedProcess(Process):
     def __init__(self, name: str, category: str):
         super(ExtendedProcess, self).__init__(name, category)
         self.self_parallelism = True
-        self.allowed_implementations = dict()
+        self.allowed_implementations = sortedcontainers.SortedDict()
         self.instance_number = 0
 
     def __copy__(self):
@@ -238,7 +239,7 @@ class ExtendedProcess(Process):
             if action.condition:
                 for statement in action.condition:
                     extract_labels(statement)
-        return set(self.labels.keys()).difference(used_labels)
+        return sortedcontainers.SortedSet(self.labels.keys()).difference(used_labels)
 
     @property
     def calls(self):
@@ -336,7 +337,7 @@ class ExtendedProcess(Process):
             exclude = list()
 
         if not accesses:
-            accss = dict()
+            accss = sortedcontainers.SortedDict()
 
             if not self._accesses or len(exclude) > 0 or no_labels:
                 # Collect all accesses across process subprocesses

@@ -16,25 +16,9 @@
     [
       [
         {
-          "EMG wrapper": [
+          "LDV model 'failed_register_netdev'": [
             {
-              "LDV model 'init'": [
-                {
-                  "Instrumented function 'register_netdev'": [
-                    {
-                      "Register network device and its callbacks.": [
-                        {
-                          "LDV model 'failed_register_netdev'": [
-                            {
-                              "LDV model 'expected_error'": []
-                            }
-                          ]
-                        }
-                      ]
-                    }
-                  ]
-                }
-              ]
+              "LDV model 'expected_error'": []
             }
           ]
         }

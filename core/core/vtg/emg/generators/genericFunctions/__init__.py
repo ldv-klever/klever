@@ -16,6 +16,7 @@
 #
 
 import re
+import sortedcontainers
 
 from core.vtg.emg.common import get_or_die
 from core.vtg.emg.common.c.types import Pointer
@@ -37,7 +38,7 @@ class ScenarioModelgenerator(AbstractGenerator):
         :param specifications: dictionary with merged specifications.
         :return: Reports dict
         """
-        functions_collection = dict()
+        functions_collection = sortedcontainers.SortedDict()
 
         # Import Specifications
         self.logger.info("Generate an entry process on base of given funcitons list")

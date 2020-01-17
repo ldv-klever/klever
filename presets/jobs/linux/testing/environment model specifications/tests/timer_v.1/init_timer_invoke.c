@@ -31,11 +31,16 @@ void ldv_handler(unsigned long data)
 
 static int __init ldv_init(void)
 {
+	int ret = ldv_undef_int();
 	ldv_invoke_test();
 	ldv_timer.function = ldv_handler;
 	ldv_timer.data = data;
 	init_timer(&ldv_timer);
-	return mod_timer(&ldv_timer, jiffies + msecs_to_jiffies(200));
+	ret = mod_timer(&ldv_timer, jiffies + msecs_to_jiffies(200));
+	if (ret)
+	    return 0;
+	else
+	    return -1;
 }
 
 static void __exit ldv_exit(void)

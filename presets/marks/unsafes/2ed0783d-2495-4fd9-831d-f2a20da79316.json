@@ -14,22 +14,28 @@
   "description": "",
   "error_trace": [
     [
-      {
-        "ldv_func2": [
-          {
-            "ldv_mutex_lock_37": []
-          }
-        ]
-      }
+      [
+        {
+          "LDV model 'func2'": [
+            {
+              "Instrumented function 'mutex_lock'": []
+            }
+          ]
+        }
+      ]
     ],
     [
-      {
-        "ldv_func1": []
-      }
+      [
+        {
+          "LDV model 'func1'": []
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",
   "is_modifiable": false,
+  "status": null,
   "tags": [],
+  "threshold": 0,
   "verdict": "2"
 }

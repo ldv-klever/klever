@@ -19,44 +19,40 @@
   "description": "",
   "error_trace": [
     [
-      {
-        "ldv_init": [
-          {
-            "ldv_main": [
-              {
-                "ldv_func1": []
-              }
-            ]
-          }
-        ]
-      }
+      [
+        {
+          "EMG wrapper": [
+            {
+              "LDV model 'init'": [
+                {
+                  "LDV model 'main'": [
+                    {
+                      "LDV model 'func1'": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ],
     [
-      {
-        "ldv_main": [
-          {
-            "ldv_func1": [
-              {
-                "ldv_mutex_lock_37": []
-              },
-              {
-                "ldv_mutex_unlock_38": []
-              }
-            ]
-          },
-          {
-            "ldv_func2": [
-              {
-                "ldv_mutex_lock_39": []
-              }
-            ]
-          }
-        ]
-      }
+      [
+        {
+          "LDV model 'main'": [
+            {
+              "LDV model 'func1'": []
+            }
+          ]
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",
   "is_modifiable": false,
+  "status": null,
   "tags": [],
+  "threshold": 0,
   "verdict": "2"
 }

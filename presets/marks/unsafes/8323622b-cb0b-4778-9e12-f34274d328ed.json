@@ -14,28 +14,40 @@
   "description": "",
   "error_trace": [
     [
-      {
-        "ldv_init": [
-          {
-            "ldv_idr_init_idp": [
-              {
-                "ldv_assert_linux_lib_idr__double_init": []
-              }
-            ]
-          },
-          {
-            "ldv_idr_init_idp": [
-              {
-                "ldv_assert_linux_lib_idr__double_init": []
-              }
-            ]
-          }
-        ]
-      }
+      [
+        {
+          "EMG wrapper": [
+            {
+              "LDV model 'init'": [
+                {
+                  "Instrumented function 'idr_init'": [
+                    {
+                      "LDV model 'idr_init_idp'": []
+                    }
+                  ]
+                },
+                {
+                  "Instrumented function 'idr_init'": [
+                    {
+                      "LDV model 'idr_init_idp'": [
+                        {
+                          "LDV model 'assert'": []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",
   "is_modifiable": false,
+  "status": null,
   "tags": [],
+  "threshold": 0,
   "verdict": "2"
 }

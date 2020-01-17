@@ -55,15 +55,19 @@ class PFG(core.components.Component):
         self.submit_common_attrs(self.common_attrs)
 
         with open(attr_data[1]) as fp:
-            core.utils.report(self.logger,
-                              'patch',
-                              {
-                                  'identifier': self.id,
-                                  'data': json.load(fp)
-                              },
-                              self.mqs['report files'],
-                              self.vals['report id'],
-                              self.conf['main working directory'])
+            data = json.load(fp)
+
+        data.update({'type': 'PFG'})
+
+        core.utils.report(self.logger,
+                          'patch',
+                          {
+                              'identifier': self.id,
+                              'data': data
+                          },
+                          self.mqs['report files'],
+                          self.vals['report id'],
+                          self.conf['main working directory'])
 
         self.prepare_descriptions_file(fragments_files)
         self.excluded_clean = [self.PF_DIR, self.PF_FILE]

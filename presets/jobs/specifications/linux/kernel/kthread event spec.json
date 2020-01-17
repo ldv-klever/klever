@@ -6,6 +6,7 @@
         "actions": {
           "assign": {
             "comment": "Get the data from arguments.",
+            "trace relevant": true,
             "statements": [
               "%data% = $ARG2;",
               "%threadfn% = $ARG1;"
@@ -20,6 +21,7 @@
           },
           "return": {
             "comment": "Kthread has been created.",
+            "trace relevant": true,
             "statements": [
               "%ptr% = ldv_undef_ptr();",
               "ldv_assume(ldv_is_err(%ptr%));",

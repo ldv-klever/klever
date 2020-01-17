@@ -14,42 +14,47 @@
   "description": "",
   "error_trace": [
     [
-      {
-        "ldv_init": [
-          {
-            "ldv_alloc_disk_19": [
-              {
-                "ldv_alloc_disk": [
-                  {
-                    "ldv_undef_ptr": []
-                  },
-                  {
-                    "ldv_assert_linux_block_genhd__double_allocation": []
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "ldv_alloc_disk_20": [
-              {
-                "ldv_alloc_disk": [
-                  {
-                    "ldv_undef_ptr": []
-                  },
-                  {
-                    "ldv_assert_linux_block_genhd__double_allocation": []
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      }
+      [
+        {
+          "EMG wrapper": [
+            {
+              "LDV model 'init'": [
+                {
+                  "Instrumented function 'alloc_disk'": [
+                    {
+                      "LDV model 'alloc_disk'": [
+                        {
+                          "LDV model 'undef_ptr'": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Instrumented function 'alloc_disk'": [
+                    {
+                      "LDV model 'alloc_disk'": [
+                        {
+                          "LDV model 'undef_ptr'": []
+                        },
+                        {
+                          "LDV model 'assert'": []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",
   "is_modifiable": false,
+  "status": null,
   "tags": [],
+  "threshold": 0,
   "verdict": "2"
 }

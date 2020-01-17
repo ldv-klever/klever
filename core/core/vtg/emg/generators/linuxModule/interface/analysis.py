@@ -15,6 +15,8 @@
 # limitations under the License.
 #
 
+import sortedcontainers
+
 from core.vtg.emg.common.c.types import Structure, Union, Array, Pointer, Function, import_declaration, extract_name, \
     is_not_null_function
 from core.vtg.emg.generators.linuxModule.interface import Callback, StructureContainer, ArrayContainer
@@ -107,7 +109,7 @@ def check_relevant_interface(collection, declaration, category, connector):
         else:
             return False
 
-    children = set()
+    children = sortedcontainers.SortedSet()
     suits = collection.resolve_containers(declaration, category)
     for suit in suits:
         container = collection.get_intf(suit)

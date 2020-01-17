@@ -15,7 +15,8 @@
 # limitations under the License.
 #
 
-from core.vtg.emg.common import get_or_die
+import sortedcontainers
+
 from core.vtg.emg.common.process import Dispatch
 from core.vtg.emg.translation.fsa_translator import FSATranslator
 from core.vtg.emg.common.c import Variable
@@ -27,7 +28,7 @@ from core.vtg.emg.translation.fsa_translator.label_control_function import label
 class LabelTranslator(FSATranslator):
 
     def __init__(self, logger, conf, source, cmodel, entry_fsa, model_fsa, event_fsa):
-        self.__thread_variables = dict()
+        self.__thread_variables = sortedcontainers.SortedDict()
         super(LabelTranslator, self).__init__(logger, conf, source, cmodel, entry_fsa, model_fsa, event_fsa)
 
     def _relevant_checks(self, relevant_automata):

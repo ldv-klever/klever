@@ -14,33 +14,36 @@
   "description": "",
   "error_trace": [
     [
-      {
-        "ldv_func2": [
-          {
-            "ldv_recursive_func": []
-          }
-        ]
-      }
+      [
+        {
+          "LDV model 'func2'": [
+            {
+              "LDV model 'recursive_func'": []
+            }
+          ]
+        }
+      ]
     ],
     [
-      {
-        "ldv_func1": [
-          {
-            "ldv_func2": [
-              {
-                "ldv_recursive_func": []
-              }
-            ]
-          },
-          {
-            "ldv_mutex_lock_37": []
-          }
-        ]
-      }
+      [
+        {
+          "LDV model 'func1'": [
+            {
+              "LDV model 'func2'": [
+                {
+                  "LDV model 'recursive_func'": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",
   "is_modifiable": false,
+  "status": null,
   "tags": [],
+  "threshold": 0,
   "verdict": "2"
 }

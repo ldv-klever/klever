@@ -17,6 +17,7 @@
 
 import os
 import re
+import sortedcontainers
 
 from core.utils import unique_file_name
 from core.vtg.emg.common import get_or_die, model_comment
@@ -119,18 +120,18 @@ class CModel:
         self.entry_file = entry_file
         self.entry_name = entry_point_name
         self.files = files
-        self.types = dict()
+        self.types = sortedcontainers.SortedDict()
         self._logger = logger
         self._conf = conf
         self._workdir = workdir
-        self._variables_declarations = dict()
-        self._variables_initializations = dict()
-        self._function_definitions = dict()
-        self._function_declarations = dict()
-        self._headers = dict()
-        self._before_aspects = dict()
-        self._call_aspects = dict()
-        self.__external_allocated = dict()
+        self._variables_declarations = sortedcontainers.SortedDict()
+        self._variables_initializations = sortedcontainers.SortedDict()
+        self._function_definitions = sortedcontainers.SortedDict()
+        self._function_declarations = sortedcontainers.SortedDict()
+        self._headers = sortedcontainers.SortedDict()
+        self._before_aspects = sortedcontainers.SortedDict()
+        self._call_aspects = sortedcontainers.SortedDict()
+        self.__external_allocated = sortedcontainers.SortedDict()
 
     def add_headers(self, file, headers):
         """
@@ -152,7 +153,7 @@ class CModel:
         if not func.definition_file:
             raise RuntimeError('Always expect file to place function definition')
         definitions = self._function_definitions.setdefault(func.definition_file, {})
-        self._function_definitions.setdefault(self.entry_file, {})
+        self._function_definitions.setdefault(self.entry_file, sortedcontainers.SortedDict())
 
         definitions[func.name] = func.define(scope={func.definition_file})
         self.add_function_declaration(func.definition_file, func, extern=False)
@@ -166,7 +167,7 @@ class CModel:
         :param extern: Add it as an extern function.
         :return: None.
         """
-        declarations = self._function_declarations.setdefault(file, {})
+        declarations = self._function_declarations.setdefault(file, sortedcontainers.SortedDict())
         if not (extern and func.name in declarations):
             declarations[func.name] = func.declare(extern=extern, scope={file})
 
@@ -185,8 +186,8 @@ class CModel:
         elif not file:
             file = self.entry_file
 
-        declarattions = self._variables_declarations.setdefault(file, {})
-        initializations = self._variables_initializations.setdefault(file, {})
+        declarattions = self._variables_declarations.setdefault(file, sortedcontainers.SortedDict())
+        initializations = self._variables_initializations.setdefault(file, sortedcontainers.SortedDict())
 
         if extern:
             declarattions.setdefault(variable.name, variable.declare(extern=extern) + ";\n")
@@ -224,7 +225,7 @@ class CModel:
         new_aspect = Aspect(func.name, func.declaration)
         new_aspect.body = body
 
-        for file in set(func.files_called_at).union(func.declaration_files):
+        for file in sortedcontainers.SortedSet(func.files_called_at).union(func.declaration_files):
             self._call_aspects.setdefault(file, []).append(new_aspect)
 
     def print_source_code(self, additional_lines):

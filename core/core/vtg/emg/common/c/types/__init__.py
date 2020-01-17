@@ -17,12 +17,13 @@
 
 import re
 import copy
+import sortedcontainers
 
 from core.vtg.emg.common.c.types.typeParser import parse_declaration
 
-_type_collection = {}
+_type_collection = sortedcontainers.SortedDict()
+_typedefs = sortedcontainers.SortedDict()
 _noname_identifier = 0
-_typedefs = {}
 
 
 def _new_identifier():
@@ -88,8 +89,7 @@ def import_typedefs(tds, dependencies):
             _typedefs[typename] = [typeast, {filename}]
 
     candidates = [t for t in _type_collection if isinstance(_type_collection[t], Primitive)]
-
-    for dep, decl in ((dep, decl) for dep in tds for decl in tds[dep]):
+    for dep, decl in ((dep, decl) for dep in sorted(tds.keys()) for decl in tds[dep]):
         ast = parse_declaration(decl)
         name = extract_name(decl)
 
@@ -234,7 +234,7 @@ class Declaration:
         return self._str
 
     def __hash__(self):
-        return hash(str(self))
+        return hash(self.to_string(declarator='', qualifiers=True))
 
     def __eq__(self, other):
         if isinstance(other, Declaration):
@@ -249,6 +249,9 @@ class Declaration:
             me = self.str_without_specifiers
             return me == other or str(me) == other
 
+    def __lt__(self, other):
+        return str(self) < str(other)
+
     @property
     def str_without_specifiers(self):
         if not self._str_no_specifiers:
@@ -262,7 +265,7 @@ class Declaration:
 
         :return: Declaration object.
         """
-        pointer_declaration = self.to_string('a', True)
+        pointer_declaration = self.to_string('a', pointer=True, specifiers=True, qualifiers=True)
         return import_declaration(pointer_declaration)
 
     @property
@@ -350,9 +353,10 @@ class Declaration:
         if pointer:
             declarator = _take_pointer(declarator, self)
 
-        if isinstance(typedef, set) or isinstance(typedef, str):
+        if isinstance(typedef, sortedcontainers.SortedSet) or isinstance(typedef, set) or isinstance(typedef, str):
             if self.typedef and (
-                    (isinstance(typedef, set) and self.typedef in typedef) or
+                    ((isinstance(typedef, set) or isinstance(typedef, sortedcontainers.SortedSet)) and
+                     self.typedef in typedef) or
                     (
                         (isinstance(typedef, str) and typedef == 'all') or
                         typedef != 'none' and not self.nameless_type()
@@ -365,7 +369,7 @@ class Declaration:
         else:
             raise TypeError('Expect typedef flag to be set or str instead of {!r}'.format(type(typedef).__name__))
 
-        if qualifiers and self._ast.get('specifiers', dict()).get('qualifiers'):
+        if not isinstance(self, Pointer) and qualifiers and self._ast.get('specifiers', dict()).get('qualifiers'):
             result = ' '.join(self._ast['specifiers']['qualifiers']) + ' ' + result
         if specifiers and self._ast.get('specifiers', dict()).get('specifiers'):
             result = ' '.join(self._ast['specifiers']['specifiers']) + ' ' + result
@@ -472,8 +476,6 @@ class Function(Declaration):
 
         :return: String.
         """
-        global _type_collection
-
         key = _new_identifier()
         return 'func_{}'.format(key)
 
@@ -488,7 +490,7 @@ class Function(Declaration):
 
     def _to_string(self, replacement, typedef='none', scope=None, with_args=False, qualifiers=False):
         def filtered_typedef_param(available):
-            if isinstance(typedef, set):
+            if isinstance(typedef, set) or isinstance(typedef, sortedcontainers.SortedSet):
                 return {available}
             elif available and typedef == 'complex_and_params':
                 return {available}
@@ -541,9 +543,10 @@ class Structure(Declaration):
 
     def __init__(self, ast):
         super(Structure, self).__init__(ast)
-        self.fields = {}
+        self.fields = sortedcontainers.SortedDict()
 
         if 'fields' in self._ast['specifiers']['type specifier']:
+            # Need to preserve order despite parser implementation
             for declaration in sorted([d for d in self._ast['specifiers']['type specifier']['fields']
                                        if d['declarator'][-1]['identifier'] is not None],
                                       key=lambda decl: str(decl['declarator'][-1]['identifier'])):
@@ -571,8 +574,6 @@ class Structure(Declaration):
         if self.name:
             return 'struct_{}'.format(self.name)
         else:
-            global _type_collection
-
             key = _new_identifier()
             return 'struct_noname_{}'.format(key)
 
@@ -618,7 +619,7 @@ class Union(Declaration):
 
     def __init__(self, ast):
         super(Union, self).__init__(ast)
-        self.fields = {}
+        self.fields = sortedcontainers.SortedDict()
 
         if 'fields' in self._ast['specifiers']['type specifier']:
             for declaration in sorted(self._ast['specifiers']['type specifier']['fields'],
@@ -647,8 +648,6 @@ class Union(Declaration):
         if self._ast['specifiers']['type specifier']['name']:
             return 'union_{}'.format(self.name)
         else:
-            global _type_collection
-
             key = _new_identifier()
             return 'union_noname_{}'.format(key)
 
@@ -760,7 +759,7 @@ class Pointer(Declaration):
     def _to_string(self, replacement, typedef='none', scope=None, qualifiers=False):
         replacement = _take_pointer(replacement, self.points)
 
-        return self.points.to_string(replacement, typedef=typedef, scope=scope, specifiers=False, qualifiers=False)
+        return self.points.to_string(replacement, typedef=typedef, scope=scope, specifiers=False, qualifiers=qualifiers)
 
     @property
     def static(self):

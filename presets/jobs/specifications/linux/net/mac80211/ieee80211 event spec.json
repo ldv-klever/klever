@@ -105,6 +105,7 @@
         "actions": {
           "alloc": {
             "comment": "Allocate memory for ieee80211_hw structure.",
+            "trace relevant": true,
             "statements": [
               "%ieee80211_ops% = $ARG2;",
               "%ieee80211_hw% = $ALLOC(%ieee80211_hw%);"
@@ -112,6 +113,7 @@
           },
           "fail": {
             "comment": "Hardware device structure allocation has failed.",
+            "trace relevant": true,
             "statements": [
               "return 0;"
             ]
@@ -123,6 +125,7 @@
           },
           "success": {
             "comment": "Hardware device structure allocation has been successfull.",
+            "trace relevant": true,
             "statements": [
               "return %ieee80211_hw%;"
             ]
@@ -156,6 +159,7 @@
           },
           "free": {
             "comment": "Free memory of ieee80211_hw structure.",
+            "trace relevant": true,
             "statements": [
               "$FREE(%ieee80211_hw%);"
             ]
@@ -297,6 +301,7 @@
         "actions": {
           "alloc": {
             "comment": "Allocate memory for ieee80211_hw structure.",
+            "trace relevant": true,
             "statements": [
               "%ieee80211_ops% = $ARG2;",
               "%ieee80211_hw% = $ALLOC(%ieee80211_hw%);"
@@ -304,6 +309,7 @@
           },
           "fail": {
             "comment": "Hardware device structure allocation has failed.",
+            "trace relevant": true,
             "statements": [
               "return 0;"
             ]
@@ -315,6 +321,7 @@
           },
           "success": {
             "comment": "Hardware device structure allocation has been successfull.",
+            "trace relevant": true,
             "statements": [
               "return %ieee80211_hw%;"
             ]
@@ -354,6 +361,7 @@
           },
           "free": {
             "comment": "Free memory of ieee80211_hw structure.",
+            "trace relevant": true,
             "statements": [
               "$FREE(%ieee80211_hw%);"
             ]

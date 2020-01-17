@@ -14,39 +14,55 @@
   "description": "",
   "error_trace": [
     [
-      {
-        "ldv_pre_probe": [
-          {
-            "ldv_reset_error_counter": []
-          }
-        ]
-      },
-      {
-        "ldv_pci_probe": [
-          {
-            "ldv_emg_usb_register_driver": [
-              {
-                "ldv_failed_usb_register_driver": []
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "ldv_post_probe": [
-          {
-            "ldv_check_return_value_probe": [
-              {
-                "ldv_assert_linux_usb_register__wrong_return_value": []
-              }
-            ]
-          }
-        ]
-      }
+      [
+        {
+          "LDV model 'pre_probe'": [
+            {
+              "LDV model 'reset_error_counter'": []
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "EMG wrapper": [
+            {
+              "LDV model 'pci_probe'": [
+                {
+                  "Instrumented function 'usb_register_driver'": [
+                    {
+                      "Register USB callbacks.": [
+                        {
+                          "LDV model 'failed_usb_register_driver'": []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "LDV model 'post_probe'": [
+            {
+              "LDV model 'check_return_value_probe'": [
+                {
+                  "LDV model 'assert'": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",
   "is_modifiable": false,
+  "status": null,
   "tags": [],
+  "threshold": 0,
   "verdict": "2"
 }

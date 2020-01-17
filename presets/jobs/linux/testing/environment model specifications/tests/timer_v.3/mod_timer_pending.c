@@ -30,14 +30,17 @@ void ldv_handler(struct timer_list *data)
 
 static int __init ldv_init(void)
 {
+	int ret1;
 	int ret = ldv_undef_int();
 	timer_setup(&ldv_timer, ldv_handler, 0);
 	flip_a_coin = ldv_undef_int();
 	if (flip_a_coin) {
 		ldv_register();
-		ret = mod_timer_pending(&ldv_timer, jiffies + msecs_to_jiffies(200));
-		if (ret)
+		ret1 = mod_timer_pending(&ldv_timer, jiffies + msecs_to_jiffies(200));
+		if (!ret1)
 			ldv_deregister();
+		else
+		    return 0;
 	}
 	return ret;
 }
