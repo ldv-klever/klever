@@ -71,39 +71,37 @@
             {% endfor %}
         </tbody>
     </table>
-{% elif type == 'Core:validation' %}
+{% elif type == 'validation' %}
     <h5 class="ui brown header">{% trans 'Validation results' %}</h5>
     <table class="ui compact brown table">
-        {% with validation_stats=data|calculate_validation_stats %}
-            <tr>
-                <td><span style="color: #20d467">{% trans "Found bug before fix and safe after fix" %}</span></td>
-                <td>{{ validation_stats|get_dict_val:"found bug before fix and safe after fix" }} ({% widthratio validation_stats|get_dict_val:"found bug before fix and safe after fix" validation_stats.bugs 100 %}%)</td>
-            </tr>
-            <tr>
-                <td><span style="color: #ff832e">{% trans 'Found bug before fix and non-safe after fix' %}</span></td>
-                <td>{{ validation_stats|get_dict_val:"found bug before fix and non-safe after fix" }} ({% widthratio validation_stats|get_dict_val:"found bug before fix and non-safe after fix" validation_stats.bugs 100 %}%)</td>
-            </tr>
-            <tr>
-                <td><span style="color: #ff832e">{% trans 'Found non-bug before fix and safe after fix' %}</span></td>
-                <td>{{ validation_stats|get_dict_val:"found non-bug before fix and safe after fix" }} ({% widthratio validation_stats|get_dict_val:"found non-bug before fix and safe after fix" validation_stats.bugs 100 %}%)</td>
-            </tr>
-            <tr>
-                <td><span style="color: #ff3463">{% trans 'Found non-bug before fix and non-safe after fix' %}</span></td>
-                <td>{{ validation_stats|get_dict_val:"found non-bug before fix and non-safe after fix" }} ({% widthratio validation_stats|get_dict_val:"found non-bug before fix and non-safe after fix" validation_stats.bugs 100 %}%)</td>
-            </tr>
-            <tr>
-                <td>{% trans 'Total number of bugs' %}</td>
-                <td>{{ validation_stats.bugs }}</td>
-            </tr>
-            <tr>
-                <td><span style="color: #ffb03f">{% trans 'Missed comments' %}</span></td>
-                <td>{{ validation_stats|get_dict_val:"missed comments" }}</td>
-            </tr>
-            <tr>
-                <td><span style="color: #ffb03f">{% trans 'Excessive comments' %}</span></td>
-                <td>{{ validation_stats|get_dict_val:"excessive comments" }}</td>
-            </tr>
-        {% endwith %}
+        <tr>
+            <td><span style="color: #20d467">{% trans "Found bug before fix and safe after fix" %}</span></td>
+            <td>{{ stats|get_dict_val:"found bug before fix and safe after fix" }} ({% widthratio stats|get_dict_val:"found bug before fix and safe after fix" stats.bugs 100 %}%)</td>
+        </tr>
+        <tr>
+            <td><span style="color: #ff832e">{% trans 'Found bug before fix and non-safe after fix' %}</span></td>
+            <td>{{ stats|get_dict_val:"found bug before fix and non-safe after fix" }} ({% widthratio stats|get_dict_val:"found bug before fix and non-safe after fix" stats.bugs 100 %}%)</td>
+        </tr>
+        <tr>
+            <td><span style="color: #ff832e">{% trans 'Found non-bug before fix and safe after fix' %}</span></td>
+            <td>{{ stats|get_dict_val:"found non-bug before fix and safe after fix" }} ({% widthratio stats|get_dict_val:"found non-bug before fix and safe after fix" stats.bugs 100 %}%)</td>
+        </tr>
+        <tr>
+            <td><span style="color: #ff3463">{% trans 'Found non-bug before fix and non-safe after fix' %}</span></td>
+            <td>{{ stats|get_dict_val:"found non-bug before fix and non-safe after fix" }} ({% widthratio stats|get_dict_val:"found non-bug before fix and non-safe after fix" stats.bugs 100 %}%)</td>
+        </tr>
+        <tr>
+            <td>{% trans 'Total number of bugs' %}</td>
+            <td>{{ stats.bugs }}</td>
+        </tr>
+        <tr>
+            <td><span style="color: #ffb03f">{% trans 'Missed comments' %}</span></td>
+            <td>{{ stats|get_dict_val:"missed comments" }}</td>
+        </tr>
+        <tr>
+            <td><span style="color: #ffb03f">{% trans 'Excessive comments' %}</span></td>
+            <td>{{ stats|get_dict_val:"excessive comments" }}</td>
+        </tr>
     </table>
     <table class="ui compact brown table">
         <thead>
@@ -114,11 +112,11 @@
             </tr>
         </thead>
         <tbody>
-            {% for name in data.keys|sort_bugs_list %}
+            {% for validation_result in data|sort_bugs_list %}
                 <tr>
-                    <td>{{ name }}</td>
+                    <td>{{ validation_result.bug }}</td>
                     <td>
-                        {% with result_before_fix=data|get_dict_val:name|get_dict_val:"before fix"  %}
+                        {% with result_before_fix=validation_result|get_dict_val:"before fix"  %}
                             {% if result_before_fix %}
                                 <span style="color: {% if result_before_fix.verdict != 'unsafe' %}#ff3463{% else %}#20d467{% endif %};"{% if result_before_fix.comment %} class="report-data-popup hoverable" data-content="{{ result_before_fix.comment }}" data-variation="very wide"{% endif %}>
                                     {{ result_before_fix.verdict }}{% if result_before_fix.comment %}*{% endif %}
@@ -129,7 +127,7 @@
                         {% endwith %}
                     </td>
                     <td>
-                        {% with result_after_fix=data|get_dict_val:name|get_dict_val:"after fix"  %}
+                        {% with result_after_fix=validation_result|get_dict_val:"after fix"  %}
                             {% if result_after_fix %}
                                 <span style="color: {% if result_after_fix.verdict != 'safe' %}#ff3463{% else %}#20d467{% endif %};"{% if result_after_fix.comment %} class="report-data-popup hoverable" data-content="{{ result_after_fix.comment }}" data-variation="very wide"{% endif %}>
                                     {{ result_after_fix.verdict }}{% if result_after_fix.comment %}*{% endif %}

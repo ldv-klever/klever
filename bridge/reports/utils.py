@@ -1038,6 +1038,8 @@ class ReportData:
 
         if self.type == 'testing':
             self.__calculate_test_stats()
+        elif self.type == 'validation':
+            self.__calculate_validation_stats()
 
     def __calculate_test_stats(self):
         self.stats = {
@@ -1058,6 +1060,64 @@ class ReportData:
                 self.stats["failed tests"] += 1
                 if not test_result.get('comment'):
                     self.stats["missed comments"] += 1
+
+    def __calculate_validation_stats(self):
+        self.stats = {
+            "found bug before fix and safe after fix": 0,
+            "found bug before fix and non-safe after fix": 0,
+            "found non-bug before fix and safe after fix": 0,
+            "found non-bug before fix and non-safe after fix": 0,
+            "missed comments": 0,
+            "excessive comments": 0,
+            "bugs": 0
+        }
+
+        # Merge together validation results before and after bug fixes. They have the same bug identifiers.
+        validation_results = dict()
+        for validation_result in self.data:
+            bug_id = validation_result['bug']
+            if bug_id in validation_results:
+                validation_results[bug_id].update(validation_result)
+            else:
+                validation_results[bug_id] = validation_result
+
+        self.data = validation_results.values()
+
+        for validation_result in self.data:
+            self.stats["bugs"] += 1
+
+            is_found_bug_before_fix = False
+
+            if "before fix" in validation_result:
+                if validation_result["before fix"]["verdict"] == "unsafe":
+                    is_found_bug_before_fix = True
+                    if validation_result["before fix"]["comment"]:
+                        self.stats["excessive comments"] += 1
+                elif 'comment' not in validation_result["before fix"] or not validation_result["before fix"]["comment"]:
+                    self.stats["missed comments"] += 1
+
+            is_found_safe_after_fix = False
+
+            if "after fix" in validation_result:
+                if validation_result["after fix"]["verdict"] == "safe":
+                    is_found_safe_after_fix = True
+                    if validation_result["after fix"]["comment"]:
+                        self.stats["excessive comments"] += 1
+                elif 'comment' not in validation_result["after fix"] or not validation_result["after fix"]["comment"]:
+                    self.stats["missed comments"] += 1
+
+            if is_found_bug_before_fix:
+                if is_found_safe_after_fix:
+                    self.stats["found bug before fix and safe after fix"] += 1
+                else:
+                    self.stats["found bug before fix and non-safe after fix"] += 1
+            else:
+                if is_found_safe_after_fix:
+                    self.stats["found non-bug before fix and safe after fix"] += 1
+                else:
+                    self.stats["found non-bug before fix and non-safe after fix"] += 1
+
+        return self.stats
 
 
 class ComponentLogGenerator(FileWrapper):

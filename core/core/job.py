@@ -285,11 +285,16 @@ class REP(core.components.Component):
                 # For validation jobs we can't refer to sub-job identifier for additional identification of verification
                 # results because of most likely we will consider pairs of sub-jobs before and after corresponding bug
                 # fixes.
-                task_id, verification_result = self.__process_validation_results(verification_result,
-                                                                                 verification_status['data'], id_suffix)
+                bug_id, verification_result = self.__process_validation_results(verification_result,
+                                                                                verification_status['data'], id_suffix)
                 # For validation jobs sub-job identifiers guarantee uniqueness for naming directories since there is
                 # the only verification task for each sub-job.
                 results_dir = os.path.join('results', sub_job_id)
+                data = {
+                    'type': 'validation',
+                    'bug': bug_id
+                }
+                data.update(verification_result)
             else:
                 raise NotImplementedError('Extra results processing {!r} is not supported'
                                           .format(self.conf['extra results processing']))
