@@ -127,8 +127,6 @@ class Klever:
             for filename in filenames:
                 shutil.copy(os.path.join(dirpath, filename), os.path.join('/etc/tmpfiles.d', filename))
 
-        execute_cmd(self.logger, 'systemd-tmpfiles', '--create')
-
         for dirpath, _, filenames in os.walk(os.path.join(os.path.dirname(__file__), os.path.pardir,
                                                           os.path.pardir, 'systemd', 'system')):
             for filename in filenames:
@@ -270,6 +268,7 @@ class KleverProduction(Klever):
 
     def install(self):
         self._pre_install()
+        execute_cmd(self.logger, 'systemd-tmpfiles', '--create')
         self._install_or_update()
         self._post_install_or_update(self._IS_DEV)
 
