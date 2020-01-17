@@ -1041,6 +1041,11 @@ class ReportData:
             self.__calculate_test_stats()
         elif self.type == 'validation':
             self.__calculate_validation_stats()
+        # There is always the only element in a list of PFG data.
+        elif self.type == 'PFG':
+            self.data = self.data[0]
+            # Do not visualize data type. Before this type was already saved explicitly.
+            del self.data['type']
         elif self.type == 'unknown' and self.data:
             self.data = json.dumps(self.data, ensure_ascii=True, sort_keys=True, indent=4)
 
