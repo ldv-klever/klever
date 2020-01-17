@@ -21,7 +21,7 @@ import re
 def generic_simplifications(logger, trace):
     logger.info('Simplify error trace')
     _remove_switch_cases(logger, trace)
-    _merge_func_entry_and_exit(logger, trace)
+    # _merge_func_entry_and_exit(logger, trace)
     # _remove_tmp_vars(logger, trace)
     trace.sanity_checks()
 
