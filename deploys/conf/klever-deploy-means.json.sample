@@ -81,9 +81,9 @@
       "executable path": "consul"
     },
     "VerifierCloud Client": {
-      "version": "trunk:27946",
-      "path": "addons/CPAchecker-1.7-svn 27946-unix/scripts/",
-      "executable path": "scripts/benchmark"
+      "version": "trunk:31140",
+      "path": "addons/CPAchecker-1.8-svn 31140-unix/scripts/",
+      "executable path": "benchmark"
     },
     "Verification Backends": {
       "CPAchecker": {
