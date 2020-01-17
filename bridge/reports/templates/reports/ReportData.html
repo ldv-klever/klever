@@ -19,31 +19,29 @@
 {% load staticfiles %}
 
 {# See reports.utils.ReportData.__get_type() for types #}
-{% if type == 'Core:testing' %}
+{% if type == 'testing' %}
     <h5 class="ui brown header">{% trans 'Testing results' %}</h5>
     <table class="ui compact brown table">
-        {% with test_stats=data|calculate_test_stats %}
-            <tr>
-                <td><span style="color: #20d467">{% trans 'Passed tests' %}</span></td>
-                <td>{{ test_stats|get_dict_val:"passed tests" }} ({% widthratio test_stats|get_dict_val:"passed tests" test_stats.tests 100 %}%)</td>
-            </tr>
-            <tr>
-                <td><span style="color: #ff3463">{% trans 'Failed tests' %}</span></td>
-                <td>{{ test_stats|get_dict_val:"failed tests" }} ({% widthratio test_stats|get_dict_val:"failed tests" test_stats.tests 100 %}%)</td>
-            </tr>
-            <tr>
-                <td>{% trans 'Total number of tests' %}</td>
-                <td>{{ test_stats.tests }}</td>
-            </tr>
-            <tr>
-                <td><span style="color: #ffb03f">{% trans 'Missed comments' %}</span></td>
-                <td>{{ test_stats|get_dict_val:"missed comments" }}</td>
-            </tr>
-            <tr>
-                <td><span style="color: #ffb03f">{% trans 'Excessive comments' %}</span></td>
-                <td>{{ test_stats|get_dict_val:"excessive comments" }}</td>
-            </tr>
-        {% endwith %}
+        <tr>
+            <td><span style="color: #20d467">{% trans 'Passed tests' %}</span></td>
+            <td>{{ stats|get_dict_val:"passed tests" }} ({% widthratio stats|get_dict_val:"passed tests" stats.tests 100 %}%)</td>
+        </tr>
+        <tr>
+            <td><span style="color: #ff3463">{% trans 'Failed tests' %}</span></td>
+            <td>{{ stats|get_dict_val:"failed tests" }} ({% widthratio stats|get_dict_val:"failed tests" stats.tests 100 %}%)</td>
+        </tr>
+        <tr>
+            <td>{% trans 'Total number of tests' %}</td>
+            <td>{{ stats.tests }}</td>
+        </tr>
+        <tr>
+            <td><span style="color: #ffb03f">{% trans 'Missed comments' %}</span></td>
+            <td>{{ stats|get_dict_val:"missed comments" }}</td>
+        </tr>
+        <tr>
+            <td><span style="color: #ffb03f">{% trans 'Excessive comments' %}</span></td>
+            <td>{{ stats|get_dict_val:"excessive comments" }}</td>
+        </tr>
     </table>
     <table class="ui compact brown table">
         <thead>
@@ -53,22 +51,20 @@
             </tr>
         </thead>
         <tbody>
-            {% for name in data.keys|sort_tests_list %}
+            {% for test_result in data|sort_tests_list %}
                 <tr>
-                    <td>{{ name }}</td>
+                    <td>{{ test_result.test }}</td>
                     <td>
-                        {% with result=data|get_dict_val:name  %}
-                            {% with ideal_verdict=result|get_dict_val:"ideal verdict" %}
-                                <span style="color: {% if result.verdict != ideal_verdict %}#ff3463{% else %}#20d467{% endif %};"{% if result.comment %} class="report-data-popup hoverable" data-content="{{ result.comment }}" data-variation="very wide"{% endif %}>
-                                    {% if result.verdict != ideal_verdict %}
-                                        {% trans 'Failed' %}
-                                    {% else %}
-                                        {% trans 'Passed' %}
-                                    {% endif %}
-                                    {% if result.comment %}*{% endif %}
-                                    ({{ ideal_verdict }} &rarr; {{ result.verdict }})
-                                </span>
-                            {% endwith %}
+                        {% with ideal_verdict=test_result|get_dict_val:"ideal verdict" %}
+                            <span style="color: {% if test_result.verdict != ideal_verdict %}#ff3463{% else %}#20d467{% endif %};"{% if test_result.comment %} class="report-data-popup hoverable" data-content="{{ test_result.comment }}" data-variation="very wide"{% endif %}>
+                                {% if test_result.verdict != ideal_verdict %}
+                                    {% trans 'Failed' %}
+                                {% else %}
+                                    {% trans 'Passed' %}
+                                {% endif %}
+                                {% if test_result.comment %}*{% endif %}
+                                ({{ ideal_verdict }} &rarr; {{ test_result.verdict }})
+                            </span>
                         {% endwith %}
                     </td>
                 </tr>

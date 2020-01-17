@@ -71,36 +71,12 @@ def sort_list(l):
 
 @register.filter
 def sort_tests_list(l):
-    return sorted(l, key=lambda test: test.lstrip('1234567890'))
+    return sorted(l, key=lambda test_result: test_result['test'].lstrip('1234567890'))
 
 
 @register.filter
 def sort_bugs_list(l):
     return sorted(l, key=lambda bug: bug[12:].lstrip('~'))
-
-
-@register.filter
-def calculate_test_stats(test_results):
-    test_stats = {
-        "passed tests": 0,
-        "failed tests": 0,
-        "missed comments": 0,
-        "excessive comments": 0,
-        "tests": 0
-    }
-
-    for result in test_results.values():
-        test_stats["tests"] += 1
-        if result["ideal verdict"] == result["verdict"]:
-            test_stats["passed tests"] += 1
-            if result.get('comment'):
-                test_stats["excessive comments"] += 1
-        else:
-            test_stats["failed tests"] += 1
-            if not result.get('comment'):
-                test_stats["missed comments"] += 1
-
-    return test_stats
 
 
 @register.filter

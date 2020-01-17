@@ -1033,22 +1033,31 @@ class ReportData:
     def __init__(self, report):
         self._report = report
         self.data = self._report.data
-        self.type = self.__get_type()
+        self.type = self.data[0].get('type', 'unknown')
+        self.stats = None
 
-    def __get_type(self):
-        component = self._report.component
-        if component == 'Core' and isinstance(self.data, dict) \
-                and all(isinstance(res, dict) for res in self.data.values()):
-            if all(x in res for x in ['ideal verdict', 'verdict'] for res in self.data.values()):
-                return 'Core:testing'
-            elif all(any(x in res for x in ['before fix', 'after fix']) for res in self.data.values()) \
-                    and all(('verdict' in self.data[bug]['before fix'] if 'before fix' in self.data[bug] else True)
-                            or ('verdict' in self.data[bug]['after fix'] if 'after fix' in self.data[bug] else True)
-                            for bug in self.data):
-                return 'Core:validation'
-        elif component == 'PFG' and isinstance(self.data, dict):
-            return 'PFG:lines'
-        return 'Unknown'
+        if self.type == 'testing':
+            self.__calculate_test_stats()
+
+    def __calculate_test_stats(self):
+        self.stats = {
+            "passed tests": 0,
+            "failed tests": 0,
+            "missed comments": 0,
+            "excessive comments": 0,
+            "tests": 0
+        }
+
+        for test_result in self.data:
+            self.stats["tests"] += 1
+            if test_result["ideal verdict"] == test_result["verdict"]:
+                self.stats["passed tests"] += 1
+                if test_result.get('comment'):
+                    self.stats["excessive comments"] += 1
+            else:
+                self.stats["failed tests"] += 1
+                if not test_result.get('comment'):
+                    self.stats["missed comments"] += 1
 
 
 class ComponentLogGenerator(FileWrapper):

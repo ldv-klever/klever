@@ -140,7 +140,7 @@
             <h4 class="header ui violet">{% trans 'Data' %}</h4>
             <div class="ui brown segment">
                 <div style="overflow-x: auto;">
-                    {% include 'reports/ReportData.html' with data=data.data component=report.component.name type=data.type %}
+                    {% include 'reports/ReportData.html' with data=data.data component=report.component.name type=data.type stats=data.stats %}
                 </div>
             </div>
         {% endif %}
