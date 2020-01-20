@@ -71,8 +71,8 @@
       "path": "addons/cif-68538d3.tar.xz"
     },
     "CIL": {
-      "version": "8ded734",
-      "path": "https://forge.ispras.ru/attachments/download/7049/frama-c-cil-8ded734.tar.xz",
+      "version": "918782e",
+      "path": "https://forge.ispras.ru/attachments/download/7245/frama-c-cil-918782e.tar.xz",
       "executable path": "."
     },
     "Consul": {
