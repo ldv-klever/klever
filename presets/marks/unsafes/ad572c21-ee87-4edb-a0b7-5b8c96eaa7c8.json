@@ -20,7 +20,11 @@
             {
               "LDV model 'init'": [
                 {
-                  "LDV model 'main'": []
+                  "LDV model 'main'": [
+                    {
+                      "LDV model 'func'": []
+                    }
+                  ]
                 }
               ]
             }
@@ -31,7 +35,11 @@
     [
       [
         {
-          "LDV model 'main'": []
+          "LDV model 'main'": [
+            {
+              "LDV model 'func'": []
+            }
+          ]
         }
       ]
     ]

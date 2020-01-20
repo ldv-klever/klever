@@ -270,21 +270,31 @@ class REP(core.components.Component):
             if self.conf['extra results processing'] == 'testing':
                 # For testing jobs there can be several verification tasks for each sub-job, so for uniqueness of
                 # tasks and directories add identifier suffix in addition.
-                task_id = os.path.join(sub_job_id, id_suffix)
+                test_id = os.path.join(sub_job_id, id_suffix)
                 self.logger.info('Ideal/obtained verdict for test "{0}" is "{1}"/"{2}"{3}'.format(
-                    task_id, verification_result['ideal verdict'], verification_result['verdict'],
+                    test_id, verification_result['ideal verdict'], verification_result['verdict'],
                     ' ("{0}")'.format(verification_result['comment'])
                     if verification_result['comment'] else ''))
-                results_dir = os.path.join('results', task_id)
+                results_dir = os.path.join('results', test_id)
+                data = {
+                    'type': 'testing',
+                    'test': test_id
+                }
+                data.update(verification_result)
             elif self.conf['extra results processing'] == 'validation':
                 # For validation jobs we can't refer to sub-job identifier for additional identification of verification
                 # results because of most likely we will consider pairs of sub-jobs before and after corresponding bug
                 # fixes.
-                task_id, verification_result = self.__process_validation_results(verification_result,
-                                                                                 verification_status['data'], id_suffix)
+                bug_id, verification_result = self.__process_validation_results(verification_result,
+                                                                                verification_status['data'], id_suffix)
                 # For validation jobs sub-job identifiers guarantee uniqueness for naming directories since there is
                 # the only verification task for each sub-job.
                 results_dir = os.path.join('results', sub_job_id)
+                data = {
+                    'type': 'validation',
+                    'bug': bug_id
+                }
+                data.update(verification_result)
             else:
                 raise NotImplementedError('Extra results processing {!r} is not supported'
                                           .format(self.conf['extra results processing']))
@@ -295,7 +305,7 @@ class REP(core.components.Component):
                               'patch',
                               {
                                   'identifier': self.parent_id,
-                                  'data': {task_id: verification_result}
+                                  'data': data
                               },
                               self.mqs['report files'],
                               self.vals['report id'],
