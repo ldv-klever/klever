@@ -214,7 +214,7 @@ class RSG(core.vtg.plugins.Plugin):
 
             # Always specify either specific model sets model or common one.
             opts = ['-DLDV_SETS_MODEL_' + (model['options']['sets model']
-                                           if isinstance(model, dict) and 'sets model' in model
+                                           if isinstance(model, dict) and 'sets model' in model['options']
                                            else self.conf['common sets model']).upper()]
 
             self.logger.debug('Dump CC full description to file "{0}"'.format(full_desc_file))
