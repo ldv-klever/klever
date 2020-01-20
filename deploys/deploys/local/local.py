@@ -30,7 +30,7 @@ from deploys.install_deps import install_deps
 from deploys.install_klever_bridge import install_klever_bridge_development, install_klever_bridge_production
 from deploys.prepare_env import prepare_env
 from deploys.utils import execute_cmd, install_entity, install_klever_addons, install_klever_build_bases, \
-                          need_verifiercloud_scheduler, stop_services, to_update
+                          need_verifiercloud_scheduler, stop_services, to_update, Cd
 
 
 class Klever:
@@ -177,6 +177,15 @@ class Klever:
                     os.unlink(os.path.join('/etc/init.d', filename))
         if os.path.exists('/etc/default/klever'):
             os.unlink('/etc/default/klever')
+
+        # Remove bridge files
+        bridge_path = os.path.join(self.args.deployment_directory, 'klever/bridge/bridge')
+        for path in ('settings.py', 'db.json', 'rmq.json'):
+            path = os.path.join(bridge_path, path)
+
+            if os.path.exists(path):
+                self.logger.info('Remove "{0}"'.format(path))
+                os.remove(path)
 
         # Removing individual directories and files rather than the whole deployment directory allows to use standard
         # locations like "/", "/usr" or "/usr/local" for deploying Klever.
