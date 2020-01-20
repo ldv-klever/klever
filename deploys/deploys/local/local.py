@@ -205,6 +205,11 @@ class Klever:
                 else:
                     shutil.rmtree(path)
 
+        # Remove deployment directory if it is empty
+        if not os.listdir(self.args.deployment_directory):
+            self.logger.info('Remove "{0}"'.format(self.args.deployment_directory))
+            os.rmdir(self.args.deployment_directory)
+
         try:
             pwd.getpwnam('postgres')
         except KeyError:
