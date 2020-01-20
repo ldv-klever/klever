@@ -175,28 +175,34 @@ class RSG(core.vtg.plugins.Plugin):
             raise RuntimeError('Build base is not OK')
         meta = clade.get_meta()
 
-        # Relative path to source file which CC options to be used is specified in configuration. Clade needs absolute
-        # path. The former is relative to one of source paths.
+        model_compiler_opts = None
+        model_compiler_cwd = None
         if not meta['conf'].get('Compiler.preprocess_cmds', False):
-            empty_cc = None
-
+            # Model compiler input file represents input file which compiler options and CWD should be used for
+            # compiling models. This input file is relative to one of source paths.
+            compiler_cmds = None
             for path in self.conf['working source trees']:
-                opts_file = os.path.join(path, self.conf['opts file'])
                 try:
-                    empty_cc = list(clade.get_compilation_cmds_by_file(opts_file))
+                    compiler_cmds = list(clade.get_compilation_cmds_by_file(
+                        os.path.join(path, self.conf['model compiler input file'])))
                 except KeyError:
                     pass
 
-            if not empty_cc:
-                raise RuntimeError("There is not of cc commands for {!r}".format(self.conf['project']['opts file']))
-            elif len(empty_cc) > 1:
-                self.logger.warning("There are more than one cc command for {!r}".
-                                    format(self.conf['project']['opts file']))
+            if not compiler_cmds:
+                raise RuntimeError("There is no compiler commands for {!r}"
+                                   .format(self.conf['model compiler input file']))
+            elif len(compiler_cmds) > 1:
+                self.logger.warning("There are more than one compiler command for {!r}".
+                                    format(self.conf['model compiler input file']))
 
-            empty_cc = empty_cc.pop()
-            empty_cc['opts'] = clade.get_cmd_opts(empty_cc['id'])
+            model_compiler_opts = clade.get_cmd_opts(compiler_cmds[0]['id'])
+            model_compiler_cwd = compiler_cmds[0]['cwd']
         else:
-            empty_cc = {'opts': [], 'cwd': self.conf['working source trees'][-1]}
+            # No specific compiler options are necessary for models.
+            model_compiler_opts = []
+            if len(self.conf['working source trees']) != 1:
+                raise NotImplementedError('There are several working source trees!')
+            model_compiler_cwd = self.conf['working source trees'][0]
 
         model_grp = {'id': 'models', 'Extra CCs': []}
         for model in sorted(models, key=get_model_c_file):
@@ -214,10 +220,10 @@ class RSG(core.vtg.plugins.Plugin):
             self.logger.debug('Dump CC full description to file "{0}"'.format(full_desc_file))
             with open(full_desc_file, 'w', encoding='utf8') as fp:
                 core.utils.json_dump({
-                    'cwd': empty_cc['cwd'],
-                    'in': [os.path.relpath(model_c_file, os.path.realpath(clade.get_storage_path(empty_cc['cwd'])))],
+                    'cwd': model_compiler_cwd,
+                    'in': [os.path.relpath(model_c_file, os.path.realpath(clade.get_storage_path(model_compiler_cwd)))],
                     'out': [os.path.realpath(out_file)],
-                    'opts': empty_cc['opts'] + opts
+                    'opts': model_compiler_opts + opts
                 }, fp, self.conf['keep intermediate files'])
 
             model_grp['Extra CCs'].append({'CC': os.path.relpath(full_desc_file, self.conf['main working directory'])})
