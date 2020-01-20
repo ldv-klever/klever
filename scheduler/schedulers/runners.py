@@ -41,6 +41,9 @@ def devn(cursum, n):
 class Runner:
     """Class provide general scheduler API."""
 
+    accept_jobs = True
+    accept_tag = 'Klever'
+
     def __init__(self, conf, logger, work_dir, server):
         """
         Get configuration and prepare working directory.
@@ -162,13 +165,14 @@ class Runner:
         """
         try:
             # Do this again before running to maybe reduce limitations.
-            item["future"] = self._solve_task(identifier, item["description"], item["user"], item["password"])
+            item["future"] = self._solve_task(identifier, item["description"], item["description"].get("login"),
+                                              item["description"].get("password"))
             item["status"] = "PROCESSING"
             return True
         except SchedulerException as err:
             item.setdefault("attempts", 0)
             item["attempts"] += 1
-            msg = "Cannot solve task {}: {!r}".format(identifier, err)
+            msg = "Cannot solve task {}: {!r}".format(identifier, str(err))
             self.logger.warning(msg)
 
             if item["attempts"] > 2:

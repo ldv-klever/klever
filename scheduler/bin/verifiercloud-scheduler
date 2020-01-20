@@ -29,11 +29,7 @@ import schedulers.verifiercloud as verifiercloud
 from schedulers import Scheduler
 import utils as utils
 
-if __name__ == "__main__":
-    conf, logger = utils.common_initialization("VerifierCloud scheduler")
-
-    scheduler_impl = Scheduler(conf, logger, conf["common"]["working directory"] + "/scheduler/",
-                               verifiercloud.VerifierCloud)
-    scheduler_impl.launch()
-
-__author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
+conf, logger = utils.common_initialization("VerifierCloud scheduler")
+scheduler_impl = Scheduler(conf, logger, "VerifierCloud scheduler/",
+                           verifiercloud.VerifierCloud)
+scheduler_impl.launch()

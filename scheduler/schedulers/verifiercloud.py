@@ -15,16 +15,19 @@
 # limitations under the License.
 #
 
-import json
-import traceback
 import os
 import re
-import shutil
 import sys
+import yaml
 import glob
 import uuid
-import xml.etree.ElementTree as ET
+import json
+import shutil
+import traceback
+import collections
 from xml.dom import minidom
+import xml.etree.ElementTree as ET
+
 import schedulers as schedulers
 import schedulers.runners as runners
 import utils
@@ -93,10 +96,24 @@ class Run:
         # Some property file should be always specified
         if len(result.findall("propertyfile")) != 1:
             raise ValueError('Expect a single property file given with "propertyfile" tag')
-        self.propertyfile = os.path.join(work_dir, result.findall("propertyfile")[0].text)
+        self.propertyfile = os.path.abspath(os.path.join(work_dir, result.findall("propertyfile")[0].text))
         if len(result.findall('tasks')) != 1 or len(result.findall('tasks')[0].findall('include')) != 1:
             raise ValueError('Expect a single task with a single included file')
-        self.sourcefiles = [os.path.join(work_dir, result.findall('tasks')[0].findall('include')[0].text)]
+
+        # Collect source files
+        source_files = []
+        for item in result.findall('tasks')[0].findall('include'):
+            if item.text.endswith('.yml'):
+                file = os.path.join(work_dir, item.text)
+                with open(file, 'r', encoding="utf8") as stream:
+                    data = yaml.safe_load(stream)
+                    input_files = data.get('input_files')
+                    if input_files:
+                        source_files.append(os.path.abspath(os.path.join(work_dir, input_files)))
+            else:
+                source_files.append(os.path.abspath(os.path.join(work_dir, item.text)))
+
+        self.sourcefiles = source_files
 
     @staticmethod
     def user_pwd(user, password):
@@ -117,12 +134,15 @@ class VerifierCloud(runners.Runner):
     """
 
     wi = None
+    accept_jobs = False
+    accept_tag = 'VerifierCloud'
 
     def __init__(self, conf, logger, work_dir, server):
         """Do VerifierCloud specific initialization"""
         super(VerifierCloud, self).__init__(conf, logger, work_dir, server)
         self.wi = None
         self.__tasks = None
+        self.__credentials_cache = dict()
         self.init()
 
     def init(self):
@@ -205,19 +225,26 @@ class VerifierCloud(runners.Runner):
         # Prepare working directory
         task_work_dir = os.path.join(self.work_dir, "tasks", identifier)
         task_data_dir = os.path.join(task_work_dir, "data")
-        self.logger.debug("Make directory for the task to solve {0}".format(task_data_dir))
+        job_id = description['job id']
+
+        self.logger.debug("Make directory for the task to solve {!r}".format(task_data_dir))
         os.makedirs(task_data_dir.encode("utf8"), exist_ok=True)
 
-        # Pull the task from the Verification gateway
-        archive = os.path.join(task_work_dir, "task.zip")
-        self.logger.debug("Pull from the verification gateway archive {}".format(archive))
-        ret = self.server.pull_task(identifier, archive)
-        if not ret:
-            self.logger.info("Seems that the task data cannot be downloaded because of a respected reason, "
-                             "so we have nothing to do there")
-            os._exit(1)
-        self.logger.debug("Unpack archive {} to {}".format(archive, task_data_dir))
-        shutil.unpack_archive(archive, task_data_dir)
+        # This method can be called several times to adjust resource limitations but we should avoid extra downloads
+        # from the server
+        if identifier not in self.__tasks:
+            archive = os.path.join(task_work_dir, "task.zip")
+            self.logger.debug("Pull from the verification gateway archive {!r}".format(archive))
+            ret = self.server.pull_task(identifier, archive)
+            if not ret:
+                self.logger.info("Seems that the task data cannot be downloaded because of a respected reason, "
+                                 "so we have nothing to do there")
+                os._exit(1)
+            self.logger.debug("Unpack archive {!r} to {!r}".format(archive, task_data_dir))
+            shutil.unpack_archive(archive, task_data_dir)
+
+            # Update description
+            description.update(self.__get_credentials(job_id))
 
         # TODO: Add more exceptions handling to make code more reliable
         with open(os.path.join(os.path.join(self.work_dir, "tasks", identifier), "task.json"), "w",
@@ -225,7 +252,7 @@ class VerifierCloud(runners.Runner):
             json.dump(description, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
         # Prepare command to submit
-        self.logger.debug("Prepare arguments of the task {}".format(identifier))
+        self.logger.debug("Prepare arguments of the task {!r}".format(identifier))
         task_data_dir = os.path.join(self.work_dir, "tasks", identifier, "data")
         try:
             assert description["priority"] in ["LOW", "IDLE"]
@@ -233,7 +260,9 @@ class VerifierCloud(runners.Runner):
         except Exception as err:
             raise schedulers.SchedulerException('Cannot prepare task description on base of given benchmark.xml: {}'.
                                                 format(err))
-        self.__tasks[identifier] = run
+
+        self.__track_task(job_id, run, identifier)
+        return True
 
     def _prepare_job(self, identifier, configuration):
         """
@@ -258,16 +287,19 @@ class VerifierCloud(runners.Runner):
         """
         # Submit command
         self.logger.info("Submit the task {0}".format(identifier))
-        run = self.__tasks[identifier]
-        return self.wi.submit(run=run,
-                              limits=run.limits,
-                              cpu_model=run.cpu_model,
-                              result_files_pattern='output/**',
-                              priority=run.priority,
-                              user_pwd=run.user_pwd(user, password),
-                              svn_branch=run.branch,
-                              svn_revision=run.revision,
-                              meta_information=json.dumps({'Verification tasks produced by Klever': None}))
+        task = self.__tasks[identifier]
+        try:
+            return self.wi.submit(run=task.run,
+                                  limits=task.run.limits,
+                                  cpu_model=task.run.cpu_model,
+                                  result_files_pattern='output/**',
+                                  priority=task.run.priority,
+                                  user_pwd=task.run.user_pwd(user, password),
+                                  svn_branch=task.run.branch,
+                                  svn_revision=task.run.revision,
+                                  meta_information=json.dumps({'Verification tasks produced by Klever': None}))
+        except Exception as err:
+            raise schedulers.SchedulerException(str(err))
 
     def _solve_job(self, identifier, configuration):
         """
@@ -289,7 +321,7 @@ class VerifierCloud(runners.Runner):
         :raise SchedulerException: in case of ERROR status.
         """
         run = self.__tasks[identifier]
-        del self.__tasks[identifier]
+        self.__drop_task(identifier)
 
         task_work_dir = os.path.join(self.work_dir, "tasks", identifier)
         solution_file = os.path.join(task_work_dir, "solution.zip")
@@ -317,7 +349,7 @@ class VerifierCloud(runners.Runner):
         os.makedirs(os.path.join(task_solution_dir, "output", "benchmark.logfiles").encode("utf8"), exist_ok=True)
         shutil.move(os.path.join(task_solution_dir, 'output.log'),
                     os.path.join(task_solution_dir, "output", "benchmark.logfiles",
-                                 "{}.log".format(os.path.basename(run.sourcefiles[0]))))
+                                 "{}.log".format(os.path.basename(run.run.sourcefiles[0]))))
 
         try:
             solution_identifier, solution_description = self.__extract_description(task_solution_dir)
@@ -391,11 +423,23 @@ class VerifierCloud(runners.Runner):
         """
         self.logger.debug("Cancel task {}".format(identifier))
         # todo: Implement proper task cancellation
-        super(VerifierCloud, self).cancel_task(identifier, future)
+        super(VerifierCloud, self)._cancel_task(identifier, future)
         task_work_dir = os.path.join(self.work_dir, "tasks", identifier)
         shutil.rmtree(task_work_dir)
-        if identifier in self.__tasks:
-            del self.__tasks[identifier]
+        self.__drop_task(identifier)
+
+    def __get_credentials(self, job_id):
+        """
+        Get user credentials from either the server or cache.
+
+        :param job_id: Job identifeir.
+        """
+        if job_id in self.__credentials_cache:
+            cred = self.__credentials_cache[job_id]
+        else:
+            cred = self.server.get_user_credentials(job_id)
+            self.__credentials_cache[job_id] = cred
+        return cred
 
     def __extract_description(self, solution_dir):
         """
@@ -431,7 +475,7 @@ class VerifierCloud(runners.Runner):
         general_file = os.path.join(solution_dir, "runInformation.txt")
         self.logger.debug("Import general information from the file {}".format(general_file))
         termination_reason = None
-        number = re.compile("(\d.*\d)")
+        number = re.compile(r'(\d.*\d)')
         if os.path.isfile(general_file):
             with open(general_file, encoding="utf8") as gi:
                 for line in gi:
@@ -442,7 +486,7 @@ class VerifierCloud(runners.Runner):
                         description["comp"]["command"] = value
                     elif key == "exitsignal":
                         description["signal num"] = int(value)
-                    elif key == "exitcode":
+                    elif key == "exitcode" or key == "returnvalue":
                         description["return value"] = int(value)
                     elif key == "walltime":
                         sec = number.match(value).group(1)
@@ -484,10 +528,10 @@ class VerifierCloud(runners.Runner):
                     description["status"] = "false"
                 else:
                     # Check that soft limit has not activated
-                    status_checker = 'grep -F "Verification result: UNKNOWN" -m 1 -c {}'.\
-                        format(os.path.join(solution_dir, "output", "benchmark.logfiles", "*.log"))
-                    number = int(utils.get_output(status_checker))
-                    if number > 0:
+                    failed = self.__check_verifiers_log(
+                        glob.glob(os.path.join(os.path.abspath(os.path.join(solution_dir, 'output',
+                                                                            'benchmark.logfiles', '*.log')))))
+                    if failed:
                         description["status"] = "unknown"
                     else:
                         description["status"] = "true"
@@ -499,7 +543,7 @@ class VerifierCloud(runners.Runner):
         # Import Host information
         host_file = os.path.join(solution_dir, "hostInformation.txt")
         self.logger.debug("Import host information from the file {}".format(host_file))
-        lv_re = re.compile("Linux\s(\d.*)")
+        lv_re = re.compile(r'Linux\s(\d.*)')
         if os.path.isfile(host_file):
             with open(host_file, encoding="utf8") as hi:
                 for line in hi:
@@ -523,6 +567,40 @@ class VerifierCloud(runners.Runner):
             raise FileNotFoundError("There is no solution file {}".format(host_file))
 
         return identifier, description
+
+    def __check_verifiers_log(self, logs):
+        for file in logs:
+            with open(file, 'r', encoding='utf-8') as stream:
+                for line in stream.readlines():
+                    if re.search(r'Verification result: UNKNOWN', line):
+                        return True
+        else:
+            return False
+
+    def __track_task(self, job_id, run, task_id):
+        """
+        Start tracking a new task.
+
+        :param job_id: Job identifier
+        :param run: Run object
+        :param task_id: Task identifier
+        """
+        Task = collections.namedtuple('Task', ('job', 'run'))
+        self.__tasks[task_id] = Task(job_id, run)
+
+    def __drop_task(self, task_id):
+        """
+        Stop tracking task if it is finished, cancelled or failed.
+
+        :param task_id: task identifier.
+        """
+        if task_id in self.__tasks:
+            job_id = self.__tasks[task_id].job
+            del self.__tasks[task_id]
+
+            if not any(t for t in self.__tasks.values() if t.job == job_id):
+                # There is no more tasks with the same job identifier and we can try to drop user credentials
+                del self.__credentials_cache[job_id]
 
     @staticmethod
     def __make_fake_benchexec(description, path):

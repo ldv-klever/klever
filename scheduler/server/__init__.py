@@ -128,6 +128,14 @@ class Server:
                                          },
                                          archive)
 
+    def get_user_credentials(self, identifier):
+        """
+        Get VerifierCloud user credentials from the server by the given job identifier.
+
+        :param identifier: job identifier.
+        """
+        return self.session.json_exchange('service/scheduler-user/{}/'.format(identifier), method='GET')
+
     def register(self, scheduler_type=None):
         """
         Send unique ID to the Verification Gateway with the other properties to enable receiving tasks.

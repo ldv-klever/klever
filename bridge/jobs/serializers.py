@@ -32,6 +32,8 @@ from bridge.utils import logger, file_checksum, RMQConnect, BridgeException
 
 from users.models import User
 from jobs.models import Job, JobHistory, JobFile, FileSystem, UserRole, RunHistory, UploadedJobArchive
+from service.models import Decision
+
 from jobs.utils import get_unique_name, JobAccess, JSTreeConverter
 
 FILE_SEP = '/'
@@ -307,11 +309,13 @@ class JobStatusSerializer(serializers.ModelSerializer):
             pass
 
         if instance.status in {JOB_STATUS[1][0], JOB_STATUS[5][0], JOB_STATUS[6][0]}:
+            sch_type = Decision.objects.filter(job=instance).select_related('scheduler')\
+                .only('scheduler__type').get().scheduler.type
             with RMQConnect() as channel:
                 channel.basic_publish(
                     exchange='', routing_key=settings.RABBIT_MQ_QUEUE,
                     properties=pika.BasicProperties(delivery_mode=2),
-                    body="job {} {}".format(instance.identifier, instance.status)
+                    body="job {} {} {}".format(instance.identifier, instance.status, sch_type)
                 )
         return instance
 

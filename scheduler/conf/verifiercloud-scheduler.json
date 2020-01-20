@@ -1,23 +1,28 @@
 {
   "Klever Bridge": {
     "name": "localhost:8998",
-    "user": "service",
-    "password": "service"
+    "user": "user",
+    "password": "password"
+  },
+  "Klever jobs and tasks queue": {
+    "username": "user",
+    "password": "password",
+    "host": "localhost",
+    "name": "Klever jobs and tasks"
   },
   "scheduler": {
-    "type": "scheduler",
     "production": true,
-    "processes": 30,
+    "type": "scheduler",
+    "processes": 1.0,
     "process pool": false,
     "controller address": "http://localhost:8500",
     "keep working directory": false,
-    "iteration timeout": {
-      "short": 5,
-      "medium": 10,
-      "long": 20
-    },
     "web-interface address": "https://vcloud.sosy-lab.org/cpachecker/webclient",
-    "web client location": "/abs/path/to/scripts/benchmark"
+    "web client location": "/abs/path/to/scripts/benchmark",
+    "ignore BenchExec warnings": [
+      "CPU throttled itself during benchmarking due to overheating",
+      "Cputime measured by wait was"
+    ]
   },
   "common": {
     "working directory": "verifiercloud-scheduler-work-dir",
