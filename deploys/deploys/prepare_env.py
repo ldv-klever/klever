@@ -54,7 +54,30 @@ def prepare_env(logger, deploy_dir):
     try:
         execute_cmd(logger, 'postgresql-setup', '--initdb', '--unit', 'postgresql')
     except FileNotFoundError:
+        # postgresql-setup may not be present in the system
         pass
+    except subprocess.CalledProcessError:
+        # postgresql-setup may fail if it was already executed before
+        pass
+
+    # Search for pg_hba_conf_file in all possible locations
+    for path in ('/etc/postgresql', '/var/lib/pgsql'):
+        try:
+            pg_hba_conf_file = execute_cmd(logger, 'find', path, '-name', 'pg_hba.conf', get_output=True).rstrip()
+        except subprocess.CalledProcessError:
+            continue
+
+        with open(pg_hba_conf_file) as fp:
+            pg_hba_conf = fp.readlines()
+
+        with open(pg_hba_conf_file, 'w') as fp:
+            for line in pg_hba_conf:
+                # change ident to md5
+                if line.split() == ['host', 'all', 'all', '127.0.0.1/32', 'ident']:
+                    line = 'host all all 127.0.0.1/32 md5\n'
+                fp.write(line)
+
+        execute_cmd(logger, 'service', 'postgresql', 'restart')
 
     logger.info('Start and enable PostgreSQL service')
     execute_cmd(logger, 'systemctl', 'start', 'postgresql')
