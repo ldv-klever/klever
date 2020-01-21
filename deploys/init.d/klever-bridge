@@ -28,7 +28,7 @@
 
 DESC="Klever Bridge"
 NAME=klever-bridge
-DAEMON=/usr/local/bin/gunicorn
+DAEMON=/usr/bin/gunicorn
 PIDFILE=/var/run/"$NAME".pid
 SCRIPTNAME=/etc/init.d/"$NAME"
 WORKDIR=/var/www/"$NAME"
