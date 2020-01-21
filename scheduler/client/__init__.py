@@ -241,10 +241,7 @@ def prepare_task_arguments(logger, conf):
     """
 
     # BenchExec arguments
-    if "benchexec location" in conf["client"]:
-        args = [os.path.join(conf["client"]["benchexec location"], 'bin', 'benchexec')]
-    else:
-        args = ['benchexec']
+    args = ['/usr/local/python3-klever/bin/benchexec']
 
     if "CPU cores" in conf["resource limits"] and conf["resource limits"]["CPU cores"]:
         args.extend(["--limitCores", str(conf["resource limits"]["number of CPU cores"])])
@@ -297,10 +294,7 @@ def add_extra_paths(logger, conf):
 
 def prepare_job_arguments(logger, conf):
     # RunExec arguments
-    if "benchexec location" in conf["client"]:
-        args = [os.path.join(conf["client"]["benchexec location"], 'bin', 'runexec')]
-    else:
-        args = ['runexec']
+    args = ['/usr/local/python3-klever/bin/runexec']
 
     if "CPU cores" in conf["resource limits"] and conf["resource limits"]["CPU cores"]:
         args.append("--cores")

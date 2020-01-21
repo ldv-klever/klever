@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/local/python3-klever/bin/python3
 #
 # Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
 # Ivannikov Institute for System Programming of the Russian Academy of Sciences
@@ -834,7 +834,8 @@ class CProgram:
 
         # TODO: switch to Clade Python API.
         return execute_cmd(self.logger,
-                           *((['clade', '-ia', '--cmds', os.path.realpath(os.path.join(self.work_src_tree, 'cmds.txt'))]
+                           *((['/usr/local/python3-klever/bin/clade', '-ia', '--cmds',
+                               os.path.realpath(os.path.join(self.work_src_tree, 'cmds.txt'))]
                               if intercept_build_cmds else []) + ['make', '-j', self.jobs] + opts + list(target)),
                            cwd=self.work_src_tree, env=env, get_output=get_output)
 
