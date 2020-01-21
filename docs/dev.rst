@@ -158,6 +158,13 @@ Installing the Python Interpreter
 
 #. Install Python 3.7 to :file:`/usr/local/python3-klever/`.
 #. For Debian/Ubuntu you can take if from `here <https://forge.ispras.ru/attachments/download/7248/python3-klever.tar.xz>`__.
+#. Install Python packages::
+
+    $ /usr/local/python3-klever/bin/python3 -m pip install --upgrade :term:`$KLEVER_SRC`/requirements.txt
+
+#. To update the given list of Python packages::
+
+    $ /usr/local/python3-klever/bin/python3 -m pip freeze > :term:`$KLEVER_SRC`/requirements.txt
 
 Configuring the Python Interpreter
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
