@@ -82,7 +82,7 @@ def check_deployment_configuration_file(logger, deploy_conf_file):
 
     unspecified_attrs = [attr for attr in (
         'Packages',
-        'Python3 Packages',
+        'Python',
         'Klever',
         'Klever Addons',
         'Klever Build Bases'
