@@ -174,13 +174,18 @@ class Klever:
                         execute_cmd(self.logger, 'chkconfig', filename, 'off')
                     else:
                         execute_cmd(self.logger, 'update-rc.d', filename, 'disable')
-                    os.remove(os.path.join('/etc/init.d', filename))
+
+                    service = os.path.join('/etc/init.d', filename)
+                    self.logger.info('Remove "{0}"'.format(service))
+                    os.remove(service)
 
         self.logger.info('Uninstall systemd services')
         for dirpath, _, filenames in os.walk('/etc/systemd/system'):
             for filename in filenames:
                 if filename.startswith('klever'):
-                    os.remove(os.path.join(dirpath, filename))
+                    service = os.path.join(dirpath, filename)
+                    self.logger.info('Remove "{0}"'.format(service))
+                    os.remove(service)
 
         klever_env_file = '/etc/default/klever'
         if os.path.exists(klever_env_file):
