@@ -174,9 +174,18 @@ class Klever:
                         execute_cmd(self.logger, 'chkconfig', filename, 'off')
                     else:
                         execute_cmd(self.logger, 'update-rc.d', filename, 'disable')
-                    os.unlink(os.path.join('/etc/init.d', filename))
-        if os.path.exists('/etc/default/klever'):
-            os.unlink('/etc/default/klever')
+                    os.remove(os.path.join('/etc/init.d', filename))
+
+        self.logger.info('Uninstall systemd services')
+        for dirpath, _, filenames in os.walk('/etc/systemd/system'):
+            for filename in filenames:
+                if filename.startswith('klever'):
+                    os.remove(os.path.join(dirpath, filename))
+
+        klever_env_file = '/etc/default/klever'
+        if os.path.exists(klever_env_file):
+            self.logger.info('Remove "{0}"'.format(klever_env_file))
+            os.remove(klever_env_file)
 
         # Remove bridge files
         bridge_path = os.path.join(self.args.deployment_directory, 'klever/bridge/bridge')
@@ -206,7 +215,7 @@ class Klever:
                     shutil.rmtree(path)
 
         # Remove deployment directory if it is empty
-        if not os.listdir(self.args.deployment_directory):
+        if os.path.exists(self.args.deployment_directory) and not os.listdir(self.args.deployment_directory):
             self.logger.info('Remove "{0}"'.format(self.args.deployment_directory))
             os.rmdir(self.args.deployment_directory)
 
