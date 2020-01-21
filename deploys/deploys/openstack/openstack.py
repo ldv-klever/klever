@@ -121,12 +121,19 @@ class DeployConfAndScripts:
         self.logger.info('Copy scripts that can be used during {0}'.format(self.action))
         self.ssh.sftp_put(os.path.dirname(os.path.dirname(__file__)), 'deploys')
 
+        self.logger.info('Copy Python requirements file')
+        self.ssh.sftp_put(os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir, os.path.pardir,
+                                       'requirements.txt'), 'requirements.txt')
+
     def __exit__(self, etype, value, traceback):
         self.logger.info('Remove scripts used during {0}'.format(self.action))
         self.ssh.execute_cmd('rm -r deploys')
 
         self.logger.info('Remove deployment configuration file')
         self.ssh.sftp.remove('klever.json')
+
+        self.logger.info('Remove Python requirements file')
+        self.ssh.sftp.remove('requirements.txt')
 
 
 class OSKleverBaseImage(OSEntity):
