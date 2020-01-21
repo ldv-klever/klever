@@ -49,46 +49,43 @@ class Klever:
         self.logger.error('Action "{0}" is not supported for Klever "{1}"'.format(name, self.args.mode))
         sys.exit(errno.ENOSYS)
 
+    def _cmd_fn(self, *args):
+        execute_cmd(self.logger, *args)
+
+    def _install_fn(self, src, dst, allow_symlink=False, ignore=None):
+        if ignore and allow_symlink:
+            self.logger.error('You can not both use symbolic links and ignore some directories')
+            sys.exit(errno.EINVAL)
+
+        self.logger.info('Install "{0}" to "{1}"'.format(src, dst))
+
+        os.makedirs(dst if os.path.isdir(dst) else os.path.dirname(dst), exist_ok=True)
+
+        if allow_symlink and self.args.allow_symbolic_links:
+            execute_cmd(self.logger, 'ln', '-s', src, dst)
+        else:
+            if os.path.isdir(src):
+                shutil.copytree(src, dst, symlinks=True, ignore=lambda source, names: ignore or [])
+            else:
+                shutil.copy(src, dst)
+
     def _dump_cur_deploy_info(self, cur_deploy_info):
         with open(self.prev_deploy_info_file, 'w') as fp:
             json.dump(cur_deploy_info, fp, sort_keys=True, indent=4)
 
     def _pre_install_or_update(self):
-        def cmd_fn(*args):
-            execute_cmd(self.logger, *args)
-
-        def install_fn(src, dst, allow_symlink=False, ignore=None):
-            if ignore and allow_symlink:
-                self.logger.error('You can not both use symbolic links and ignore some directories')
-                sys.exit(errno.EINVAL)
-
-            self.logger.info('Install "{0}" to "{1}"'.format(src, dst))
-
-            os.makedirs(dst if os.path.isdir(dst) else os.path.dirname(dst), exist_ok=True)
-
-            if allow_symlink and self.args.allow_symbolic_links:
-                execute_cmd(self.logger, 'ln', '-s', src, dst)
-            else:
-                if os.path.isdir(src):
-                    shutil.copytree(src, dst, symlinks=True, ignore=lambda source, names: ignore or [])
-                else:
-                    shutil.copy(src, dst)
-
-        def dump_cur_deploy_info(cur_deploy_info):
-            self._dump_cur_deploy_info(cur_deploy_info)
-
         if install_entity(self.logger, 'Klever', os.path.join(self.args.deployment_directory, 'klever'),
-                          self.deploy_conf, self.prev_deploy_info, cmd_fn, install_fn):
-            to_update(self.prev_deploy_info, 'Klever', dump_cur_deploy_info)
+                          self.deploy_conf, self.prev_deploy_info, self._cmd_fn, self._install_fn):
+            to_update(self.prev_deploy_info, 'Klever', self._dump_cur_deploy_info)
 
         install_klever_addons(self.logger, self.args.deployment_directory, self.deploy_conf, self.prev_deploy_info,
-                              cmd_fn, install_fn, dump_cur_deploy_info)
+                              self._cmd_fn, self._install_fn, self._dump_cur_deploy_info)
         install_klever_build_bases(self.logger, os.path.join(self.args.deployment_directory, 'klever'),
-                                   self.deploy_conf, cmd_fn, install_fn)
+                                   self.deploy_conf, self._cmd_fn, self._install_fn)
 
     def _install_or_update_deps(self):
         install_deps(self.logger, self.deploy_conf, self.prev_deploy_info, self.args.non_interactive,
-                     self.args.update_packages, self.args.update_python3_packages)
+                     self.args.update_packages)
         self._dump_cur_deploy_info(self.prev_deploy_info)
 
     def _pre_install(self):
