@@ -92,7 +92,7 @@ def install_deps(logger, deploy_conf, prev_deploy_info, non_interactive, update_
 
     logger.info('Install/update Python3 packages')
     execute_cmd(logger, '/usr/local/python3-klever/bin/python3', '-m', 'pip', 'install', '--upgrade', '-r',
-                os.path.join(os.path.dirname(__file__), os.path.pardir, 'requirements.txt'))
+                os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir, 'requirements.txt'))
 
 
 def main():
