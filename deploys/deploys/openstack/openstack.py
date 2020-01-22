@@ -228,16 +228,6 @@ class OSKleverInstance(OSEntity):
                         base_image=base_image, flavor_name=self.args.flavor) as self.instance:
             with SSH(args=self.args, logger=self.logger, name=self.name,
                      floating_ip=self.instance.floating_ip['floating_ip_address']) as ssh:
-                # TODO: looks like deploys/local/local.py too much.
-                self.logger.info('Install init.d scripts')
-                for dirpath, _, filenames in os.walk(os.path.join(os.path.dirname(__file__), os.path.pardir,
-                                                                  os.path.pardir, 'init.d')):
-                    # TODO: putting files one by one is extremely slow.
-                    for filename in filenames:
-                        ssh.sftp_put(os.path.join(dirpath, filename), os.path.join('/etc/init.d', filename),
-                                     sudo=True, directory=os.path.sep)
-                        ssh.execute_cmd('sudo update-rc.d {0} defaults'.format(filename))
-
                 with tempfile.NamedTemporaryFile('w', encoding='utf8') as fp:
                     # TODO: avoid using "/home/debian" - rename ssh username to instance username and add option to provide instance user home directory.
                     fp.write('KLEVER_DEPLOYMENT_DIRECTORY=/home/debian/klever-inst\n')

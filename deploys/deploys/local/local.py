@@ -103,19 +103,6 @@ class Klever:
         self.logger.info('Create deployment directory')
         os.makedirs(self.args.deployment_directory, exist_ok=True)
 
-        self.logger.info('Install init.d scripts')
-        use_chkconfig = shutil.which('chkconfig')
-        for dirpath, _, filenames in os.walk(os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir,
-                                                          'init.d')):
-            for filename in filenames:
-                shutil.copy(os.path.join(dirpath, filename), os.path.join('/etc/init.d', filename))
-                # update-rc.d is the Debian utility to install and remove System-V style init script links.
-                # Other distributions (such as Red Hat) use chkconfig
-                if use_chkconfig:
-                    execute_cmd(self.logger, 'chkconfig', '--add', filename)
-                else:
-                    execute_cmd(self.logger, 'update-rc.d', filename, 'defaults')
-
         with open('/etc/default/klever', 'w') as fp:
             fp.write('KLEVER_DEPLOYMENT_DIRECTORY="{0}"\n'.format(os.path.realpath(self.args.deployment_directory)))
             fp.write('KLEVER_DATA_DIR="{0}"\n'
@@ -162,22 +149,6 @@ class Klever:
             services.append('klever-verifiercloud-scheduler')
 
         stop_services(self.logger, services, ignore_errors=True)
-
-        self.logger.info('Uninstall init.d scripts')
-        use_chkconfig = shutil.which('chkconfig')
-        for _, _, filenames in os.walk('/etc/init.d'):
-            for filename in filenames:
-                if filename.startswith('klever'):
-                    # update-rc.d is the Debian utility to install and remove System-V style init script links.
-                    # Other distributions (such as Red Hat) use chkconfig
-                    if use_chkconfig:
-                        execute_cmd(self.logger, 'chkconfig', filename, 'off')
-                    else:
-                        execute_cmd(self.logger, 'update-rc.d', filename, 'disable')
-
-                    service = os.path.join('/etc/init.d', filename)
-                    self.logger.info('Remove "{0}"'.format(service))
-                    os.remove(service)
 
         self.logger.info('Uninstall systemd services')
         for dirpath, _, filenames in os.walk('/etc/systemd/system'):
