@@ -20,7 +20,7 @@ import json
 import os
 import shutil
 
-from deploys.utils import Cd, execute_cmd, get_logger, start_services, stop_services
+from deploys.utils import Cd, execute_cmd, get_logger, start_services, stop_services, get_media_user
 
 
 # This function includes common actions for both development and production Klever Bridge.
@@ -96,8 +96,12 @@ def install_klever_bridge_production(logger, deploy_dir, populate_just_productio
     stop_services(logger, services)
 
     logger.info('Copy Klever Bridge configuration file for NGINX')
-    shutil.copy(os.path.join(deploy_dir, 'klever/bridge/conf/debian-nginx'),
-                '/etc/nginx/sites-enabled/klever-bridge')
+    copy_from = os.path.join(deploy_dir, 'klever/bridge/conf/debian-nginx')
+
+    if os.path.exists('/etc/nginx/sites-enabled'):
+        shutil.copy(copy_from, '/etc/nginx/sites-enabled/klever-bridge.conf')
+    else:
+        shutil.copy(copy_from, '/etc/nginx/conf.d/klever-bridge.conf')
 
     logger.info('Update Klever Bridge source/binary code')
     shutil.rmtree('/var/www/klever-bridge', ignore_errors=True)
@@ -122,9 +126,12 @@ def install_klever_bridge_production(logger, deploy_dir, populate_just_productio
         execute_cmd(logger, './manage.py', 'collectstatic', '--noinput')
 
     # Make available data from media, logs and static for its actual user.
-    execute_cmd(logger, 'chown', '-R', 'www-data:www-data', media_real)
-    execute_cmd(logger, 'chown', '-R', 'www-data:www-data', '/var/www/klever-bridge/logs')
-    execute_cmd(logger, 'chown', '-R', 'www-data:www-data', '/var/www/klever-bridge/static')
+    media_user = get_media_user(logger)
+    user_group = '{}:{}'.format(media_user, media_user)
+
+    execute_cmd(logger, 'chown', '-R', user_group, media_real)
+    execute_cmd(logger, 'chown', '-R', user_group, '/var/www/klever-bridge/logs')
+    execute_cmd(logger, 'chown', '-R', user_group, '/var/www/klever-bridge/static')
 
     start_services(logger, services)
 

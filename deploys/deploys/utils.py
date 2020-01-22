@@ -388,3 +388,31 @@ def update_python_path():
     os.environ['PYTHONPATH'] = '{0}{1}'.format(os.path.join(sys.path[0], os.path.pardir),
                                                ':{0}'.format(os.environ['PYTHONPATH'])
                                                if os.environ.get('PYTHONPATH') else '')
+
+
+def get_media_user(logger):
+    user_names = [entry.pw_name for entry in pwd.getpwall()]
+
+    if 'www-data' in user_names:
+        media_user = 'www-data'
+    elif 'apache' in user_names:
+        media_user = 'apache'
+    else:
+        logger.error('Your Linux distribution is not supported')
+        sys.exit(errno.EINVAL)
+
+    return media_user
+
+
+def replace_media_user(path, media_user):
+    # Write correct media user to services
+    if media_user == 'www-data':
+        return
+
+    with open(path) as fp:
+        content = fp.readlines()
+
+    with open(path, 'w') as fp:
+        for line in content:
+            line = line.replace('www-data', media_user)
+            fp.write(line)

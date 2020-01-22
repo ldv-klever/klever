@@ -30,7 +30,8 @@ from deploys.install_deps import install_deps
 from deploys.install_klever_bridge import install_klever_bridge_development, install_klever_bridge_production
 from deploys.prepare_env import prepare_env
 from deploys.utils import execute_cmd, install_entity, install_klever_addons, install_klever_build_bases, \
-                          need_verifiercloud_scheduler, stop_services, to_update, Cd
+                          need_verifiercloud_scheduler, stop_services, to_update, Cd, \
+                          get_media_user, replace_media_user
 
 
 class Klever:
@@ -107,6 +108,9 @@ class Klever:
             fp.write('KLEVER_DEPLOYMENT_DIRECTORY="{0}"\n'.format(os.path.realpath(self.args.deployment_directory)))
             fp.write('KLEVER_DATA_DIR="{0}"\n'
                      .format(os.path.join(os.path.realpath(self.args.deployment_directory), 'klever', 'build bases')))
+            fp.write("KLEVER_WORKERS={}\n".format(os.cpu_count() + 1))
+
+        media_user = get_media_user(self.logger)
 
         self.logger.info('Install systemd configuration files and services')
         execute_cmd(self.logger, 'mkdir', '-p', '/etc/conf.d')
@@ -119,11 +123,13 @@ class Klever:
                                                           os.path.pardir, 'systemd', 'tmpfiles.d')):
             for filename in filenames:
                 shutil.copy(os.path.join(dirpath, filename), os.path.join('/etc/tmpfiles.d', filename))
+                replace_media_user(os.path.join('/etc/tmpfiles.d', filename), media_user)
 
         for dirpath, _, filenames in os.walk(os.path.join(os.path.dirname(__file__), os.path.pardir,
                                                           os.path.pardir, 'systemd', 'system')):
             for filename in filenames:
                 shutil.copy(os.path.join(dirpath, filename), os.path.join('/etc/systemd/system', filename))
+                replace_media_user(os.path.join('/etc/systemd/system', filename), media_user)
 
         self._install_or_update_deps()
         prepare_env(self.logger, self.args.deployment_directory)
@@ -291,10 +297,10 @@ class KleverProduction(Klever):
     def uninstall(self):
         self._pre_uninstall(('nginx', 'klever-bridge', 'klever-celery', 'klever-celerybeat'))
 
-        nginx_klever_bridge_conf_file = '/etc/nginx/sites-enabled/klever-bridge'
-        if os.path.exists(nginx_klever_bridge_conf_file):
-            self.logger.info('Remove Klever Bridge configuration file for NGINX')
-            os.remove(nginx_klever_bridge_conf_file)
+        for nginx_bridge_conf_file in ('/etc/nginx/sites-enabled/klever-bridge', '/etc/nginx/conf.d/klever-bridge'):
+            if os.path.exists(nginx_bridge_conf_file):
+                self.logger.info('Remove Klever Bridge configuration file for NGINX')
+                os.remove(nginx_bridge_conf_file)
 
         klever_bridge_dir = '/var/www/klever-bridge'
         if os.path.exists(klever_bridge_dir):
