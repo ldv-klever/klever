@@ -27,6 +27,9 @@ def prepare_env(logger, deploy_dir):
     logger.info('Create user "klever"')
     execute_cmd(logger, 'useradd', 'klever')
 
+    logger.info('Obtain execute access to {!r} home directory'.format(os.getlogin()))
+    execute_cmd(logger, 'chmod', 'o+x', os.path.join('/', 'home', os.getlogin()))
+
     logger.info('Prepare configurations directory')
     execute_cmd(logger, 'mkdir', os.path.join(deploy_dir, 'klever-conf'))
 
