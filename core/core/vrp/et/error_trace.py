@@ -65,6 +65,10 @@ class ErrorTrace:
             raise KeyError('Entry node has not been set yet')
 
     def highlight(self, src, func_name=None):
+        # Current highlighting format does not support new lines in sources. Besides, error trace visualizer in Bridge
+        # also does not show them well.
+        src = src.replace('\n', ' ')
+        
         highlight = Highlight(self._logger, src)
         highlight.highlight()
 
