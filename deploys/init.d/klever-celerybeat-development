@@ -32,7 +32,7 @@ SCRIPTNAME=/etc/init.d/"$NAME"
 # Read configuration variable file if it is present.
 [ -r /etc/default/klever ] && . /etc/default/klever
 WORKDIR="$KLEVER_DEPLOYMENT_DIRECTORY"/klever/bridge
-DAEMON=/usr/local/bin/celery
+DAEMON=/usr/local/python3-klever/bin/celery
 
 . /lib/lsb/init-functions
 
