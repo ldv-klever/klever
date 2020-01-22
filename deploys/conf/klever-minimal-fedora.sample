@@ -33,7 +33,7 @@
       "flex"
     ]
   },
-  "Python": "https://forge.ispras.ru/attachments/download/7251/python-3.7.6.tar.xz",
+  "Python": "https://forge.ispras.ru/attachments/download/7252/python-fedora-3.7.6.tar.xz",
   "Klever": {
     "version": "master",
     "path": "."
