@@ -5,8 +5,7 @@ After=network.target local-fs.target remote-fs.target
 [Service]
 Type=simple
 EnvironmentFile=/etc/default/klever
-ExecStartPre=/bin/sh -c "cd ${KLEVER_DEPLOYMENT_DIRECTORY}/klever/bridge"
-ExecStart=/usr/local/python3-klever/bin/celery beat -A bridge worker --loglevel=info
+ExecStart=/bin/sh -c "cd ${KLEVER_DEPLOYMENT_DIRECTORY}/klever/bridge && /usr/local/python3-klever/bin/celery -A bridge worker --loglevel=info"
 
 [Install]
 WantedBy=multi-user.target
