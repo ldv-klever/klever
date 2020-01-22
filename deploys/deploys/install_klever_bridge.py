@@ -63,7 +63,7 @@ def _install_klever_bridge(logger):
 def install_klever_bridge_development(logger, deploy_dir):
     logger.info('Install/update development Klever Bridge')
 
-    services = ('klever-bridge-development', 'klever-celeryd-development', 'klever-celerybeat-development')
+    services = ('klever-bridge-development', 'klever-celery-development', 'klever-celerybeat-development')
     stop_services(logger, services)
 
     # Do not overwrite directory "media" from sumbolically linked Git repository. Otherwise it will notice changes.

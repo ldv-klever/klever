@@ -1,0 +1,10 @@
+[Unit]
+Description=Klever cgroup Service
+
+[Service]
+Type=simple
+ExecStart=/bin/sh -c "sleep 10 && chmod -R o+wt /sys/fs/cgroup/cpuset "/sys/fs/cgroup/cpu,cpuacct" /sys/fs/cgroup/memory /sys/fs/cgroup/freezer"
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

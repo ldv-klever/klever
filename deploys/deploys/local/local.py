@@ -156,7 +156,7 @@ class Klever:
 
     def _pre_uninstall(self, mode_services):
         services = list(mode_services)
-        services.extend(('klever-controller', 'klever-native-scheduler'))
+        services.extend(('klever-controller', 'klever-native-scheduler', 'klever-cgroup'))
 
         if need_verifiercloud_scheduler(self.prev_deploy_info):
             services.append('klever-verifiercloud-scheduler')
@@ -289,7 +289,7 @@ class KleverDevelopment(Klever):
     def uninstall(self):
         self._pre_uninstall((
             'klever-bridge-development',
-            'klever-celeryd-development',
+            'klever-celery-development',
             'klever-celerybeat-development'
         ))
 

@@ -63,7 +63,7 @@ def configure_controller_and_schedulers(logger, development, deploy_dir, prev_de
     logger.info('(Re)configure {0} Klever Controller and Klever schedulers'
                 .format('development' if development else 'production'))
 
-    services = ['klever-controller', 'klever-native-scheduler']
+    services = ['klever-controller', 'klever-native-scheduler', 'klever-cgroup']
     if need_verifiercloud_scheduler(prev_deploy_info):
         services.append('klever-verifiercloud-scheduler')
     stop_services(logger, services)

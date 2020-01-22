@@ -1,0 +1,12 @@
+[Unit]
+Description=Klever Controller Service
+After=network.target syslog.target
+
+[Service]
+Type=simple
+User=klever
+EnvironmentFile=/etc/default/klever
+ExecStart=/usr/bin/env python3 ${KLEVER_DEPLOYMENT_DIRECTORY}/klever/scheduler/bin/client-controller ${KLEVER_DEPLOYMENT_DIRECTORY}/klever-conf/controller.json
+
+[Install]
+WantedBy=multi-user.target
