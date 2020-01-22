@@ -12,7 +12,6 @@
     "For building and running Klever Bridge": [
       "gettext",
       "nginx",
-      "gunicorn",
       "postgresql",
       "rabbitmq-server"
     ],
