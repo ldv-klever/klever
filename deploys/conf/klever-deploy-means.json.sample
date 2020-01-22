@@ -32,7 +32,7 @@
       "flex"
     ]
   },
-  "Python": "https://forge.ispras.ru/attachments/download/7248/python3-klever.tar.xz",
+  "Python": "https://forge.ispras.ru/attachments/download/7251/python-3.7.6.tar.xz",
   "Klever": {
     "version": "CURRENT",
     "path": "."
