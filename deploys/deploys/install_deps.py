@@ -103,6 +103,7 @@ def install_deps(logger, deploy_conf, prev_deploy_info, non_interactive, update_
                 break
         else:
             logger.error('Your Linux distribution is not supported')
+            sys.exit(errno.EINVAL)
 
         # Remember what packages were installed just if everything went well.
         if 'Packages' not in prev_deploy_info:
