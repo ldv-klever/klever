@@ -16,8 +16,6 @@
 #
 
 from core.vrp.et.parser import ErrorTraceParser
-from core.vrp.et.tmpvars import generic_simplifications
-
 from core.vrp.et.envmodel import envmodel_simplifications
 
 
@@ -29,8 +27,7 @@ def import_error_trace(logger, witness, verification_task_files):
     # Parse comments from sources
     trace.parse_model_comments()
 
-    # TODO: inline it after all.
-    generic_simplifications(logger, trace)
+    trace.remove_switch_cases()
 
     # Find violation
     trace.find_violation_path()

@@ -212,7 +212,7 @@ class Weaver(core.vtg.plugins.Plugin):
                         core.utils.execute(
                             self.logger,
                             tuple([
-                                    'clade',
+                                    '/usr/local/python3-klever/bin/clade',
                                     '-ia',
                                     '--cmds', os.path.realpath('cmds.txt'),
                                     'aspectator',

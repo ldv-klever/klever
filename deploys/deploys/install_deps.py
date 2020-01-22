@@ -21,11 +21,12 @@ import json
 import os
 import shutil
 import sys
+import tempfile
 
 from deploys.utils import execute_cmd, get_logger
 
 
-def install_deps(logger, deploy_conf, prev_deploy_info, non_interactive, update_pckgs, update_py_pckgs):
+def install_deps(logger, deploy_conf, prev_deploy_info, non_interactive, update_pckgs):
     if non_interactive:
         # Do not require users input.
         os.environ['DEBIAN_FRONTEND'] = 'noninteractive'
@@ -33,14 +34,6 @@ def install_deps(logger, deploy_conf, prev_deploy_info, non_interactive, update_
     # Get packages to be installed/updated.
     pckgs_to_install = []
     pckgs_to_update = []
-    py_pckgs_to_install = []
-    py_pckgs_to_update = []
-
-    def get_pckgs(pckgs):
-        _pckgs = []
-        for val in pckgs.values():
-            _pckgs.extend(val)
-        return _pckgs
 
     # We can skip installation/update of dependencies if nothing is specified, but most likely one prepares
     # deployment configuration file incorrectly.
@@ -48,12 +41,9 @@ def install_deps(logger, deploy_conf, prev_deploy_info, non_interactive, update_
         logger.error('Deployment configuration file does not describe packages to be installed/updated')
         sys.exit(errno.EINVAL)
 
-    if 'Python3 Packages' not in deploy_conf:
-        logger.error('Deployment configuration file does not describe Python3 packages to be installed/updated')
-        sys.exit(errno.EINVAL)
-
-    new_pckgs = get_pckgs(deploy_conf['Packages'])
-    new_py_pckgs = get_pckgs(deploy_conf['Python3 Packages'])
+    new_pckgs = []
+    for pckgs in deploy_conf['Packages'].values():
+        new_pckgs.extend(pckgs)
 
     if 'Packages' in prev_deploy_info:
         for pckg in new_pckgs:
@@ -64,16 +54,6 @@ def install_deps(logger, deploy_conf, prev_deploy_info, non_interactive, update_
     else:
         # All packages should be installed.
         pckgs_to_install = new_pckgs
-
-    if 'Python3 Packages' in prev_deploy_info:
-        for py_pckg in new_py_pckgs:
-            if py_pckg in prev_deploy_info['Python3 Packages']:
-                py_pckgs_to_update.append(py_pckg)
-            else:
-                py_pckgs_to_install.append(py_pckg)
-    else:
-        # All Python3 packages should be installed.
-        py_pckgs_to_install = new_py_pckgs
 
     if pckgs_to_install or (pckgs_to_update and update_pckgs):
         logger.info('Update packages list')
@@ -111,16 +91,6 @@ def install_deps(logger, deploy_conf, prev_deploy_info, non_interactive, update_
 
         prev_deploy_info['Packages'] = sorted(prev_deploy_info['Packages'] + pckgs_to_install)
 
-    if py_pckgs_to_install:
-        logger.info('Install Python3 packages:\n  {0}'.format('\n  '.join(py_pckgs_to_install)))
-        execute_cmd(logger, 'python3', '-m', 'pip', 'install', *py_pckgs_to_install)
-
-        # Remember what Python3 packages were installed just if everything went well.
-        if 'Python3 Packages' not in prev_deploy_info:
-            prev_deploy_info['Python3 Packages'] = []
-
-        prev_deploy_info['Python3 Packages'] = sorted(prev_deploy_info['Python3 Packages'] + py_pckgs_to_install)
-
     if pckgs_to_update and update_pckgs:
         logger.info('Update packages:\n  {0}'.format('\n  '.join(pckgs_to_update)))
         for util in ('apt', 'dnf', 'yum', 'zypper'):
@@ -138,9 +108,19 @@ def install_deps(logger, deploy_conf, prev_deploy_info, non_interactive, update_
         else:
             raise RuntimeError('Your Linux distribution is not supported')
 
-    if py_pckgs_to_update and update_py_pckgs:
-        logger.info('Update Python3 packages:\n  {0}'.format('\n  '.join(py_pckgs_to_update)))
-        execute_cmd(logger, 'python3', '-m', 'pip', 'install', '--upgrade', *py_pckgs_to_update)
+    if 'Python' not in deploy_conf:
+        logger.error('Deployment configuration file does not describe Python')
+        sys.exit(errno.EINVAL)
+
+    if 'Python' not in prev_deploy_info:
+        _, tmp_file = tempfile.mkstemp()
+        execute_cmd(logger, 'wget', '-O', tmp_file, '-q', deploy_conf['Python'])
+        execute_cmd(logger, 'tar', '--warning', 'no-unknown-keyword', '-C', '/', '-xf', tmp_file)
+        prev_deploy_info['Python'] = deploy_conf['Python']
+
+    logger.info('Install/update Python3 packages')
+    execute_cmd(logger, '/usr/local/python3-klever/bin/python3', '-m', 'pip', 'install', '--upgrade', '-r',
+                os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir, 'requirements.txt'))
 
 
 def main():
@@ -151,7 +131,6 @@ def main():
     parser.add_argument('--deployment-directory', default='klever-inst')
     parser.add_argument('--non-interactive', default=False, action='store_true')
     parser.add_argument('--update-packages', default=False, action='store_true')
-    parser.add_argument('--update-python3-packages', default=False, action='store_true')
     args = parser.parse_args()
 
     with open(args.deployment_configuration_file) as fp:
@@ -164,8 +143,7 @@ def main():
     else:
         prev_deploy_info = {}
 
-    install_deps(get_logger(__name__), deploy_conf, prev_deploy_info, args.non_interactive, args.update_packages,
-                 args.update_python3_packages)
+    install_deps(get_logger(__name__), deploy_conf, prev_deploy_info, args.non_interactive, args.update_packages)
 
     with open(prev_deploy_info_file, 'w') as fp:
         json.dump(prev_deploy_info, fp, sort_keys=True, indent=4)

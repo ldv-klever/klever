@@ -542,13 +542,75 @@ class ErrorTrace:
 
         return
 
+    def remove_switch_cases(self):
+        # Get rid of redundant switch cases. Replace:
+        #   assume(x != A)
+        #   assume(x != B)
+        #   ...
+        #   assume(x == Z)
+        # with:
+        #   assume(x == Z)
+        removed_switch_cases_num = 0
+        for edge in self.trace_iterator():
+            # Begin to match pattern just for edges that represent conditions.
+            if 'condition' not in edge:
+                continue
+
+            # Get all continues conditions.
+            cond_edges = []
+            for cond_edge in self.trace_iterator(begin=edge):
+                if 'condition' not in cond_edge:
+                    break
+                cond_edges.append(cond_edge)
+
+            # Do not proceed if there is not continues conditions.
+            if len(cond_edges) == 1:
+                continue
+
+            x = None
+            start_idx = 0
+            cond_edges_to_remove = []
+            for idx, cond_edge in enumerate(cond_edges):
+                m = re.search(r'^(.+) ([=!]=)', cond_edge['source'])
+
+                # Start from scratch if meet unexpected format of condition.
+                if not m:
+                    x = None
+                    continue
+
+                # Do not proceed until first condition matches pattern.
+                if x is None and m.group(2) != '!=':
+                    continue
+
+                # Begin to collect conditions.
+                if x is None:
+                    start_idx = idx
+                    x = m.group(1)
+                    continue
+                # Start from scratch if first expression condition differs.
+                elif x != m.group(1):
+                    x = None
+                    continue
+
+                # Finish to collect conditions. Pattern matches.
+                if x is not None and m.group(2) == '==':
+                    cond_edges_to_remove.extend(cond_edges[start_idx:idx])
+                    x = None
+                    continue
+
+            for cond_edge in reversed(cond_edges_to_remove):
+                self.remove_edge_and_target_node(cond_edge)
+                removed_switch_cases_num += 1
+
+        if removed_switch_cases_num:
+            self._logger.debug('{0} switch cases were removed'.format(removed_switch_cases_num))
+
     def sanity_checks(self):
         # Check:
         # * branching
         # * todo: unexpected function transitions with threads
         # * todo: unexpected file changes
         self._logger.info("Perform sanity checks of the error trace")
-        call_stack = []
         for edge in self.trace_iterator():
             if len(edge['target node']['out']) > 1:
                 raise ValueError('Witness contains branching which is not supported')

@@ -30,7 +30,7 @@
           "name": "RSG",
           "options": {
             "common sets model": "counter",
-            "opts file": "applets/applets.c",
+            "model compiler input file": "applets/applets.c",
             "common models": {
               "verifier/common.c": {},
               "verifier/gcc.c": {},

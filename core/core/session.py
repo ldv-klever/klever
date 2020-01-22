@@ -110,8 +110,8 @@ class Session:
         return resp.json()
 
     def get_task_error(self, task_id):
-        resp = self.__request('service/solution/{}/'.format(task_id), method='GET')
-        return resp.json()['task error']
+        resp = self.__request('service/tasks/{}/?fields=error'.format(task_id), method='GET')
+        return resp.json()['error']
 
     def download_decision(self, task_id):
         self.__download_archive('decision', 'service/solution/{}/download/'.format(task_id),

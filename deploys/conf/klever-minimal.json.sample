@@ -32,35 +32,7 @@
       "flex"
     ]
   },
-  "Python3 Packages": {
-    "For building and running Klever Bridge": [
-      "Django==2.1.7",
-      "celery",
-      "django_celery_results",
-      "djangorestframework",
-      "django-compressor",
-      "django-mptt",
-      "gunicorn",
-      "pika",
-      "psycopg2",
-      "python-slugify",
-      "pytz"
-    ],
-    "For running Klever Core": [
-      "clade==3.2.5",
-      "jinja2",
-      "graphviz",
-      "ply",
-      "pygments",
-      "requests",
-      "setuptools_scm",
-      "sortedcontainers"
-    ],
-    "For running Klever Scheduler": [
-      "BenchExec==1.18",
-      "consulate"
-    ]
-  },
+  "Python": "https://forge.ispras.ru/attachments/download/7251/python-3.7.6.tar.xz",
   "Klever": {
     "version": "master",
     "path": "."
@@ -71,8 +43,8 @@
       "path": "https://forge.ispras.ru/attachments/download/7158/cif-68538d3.tar.xz"
     },
     "CIL": {
-      "version": "8ded734",
-      "path": "https://forge.ispras.ru/attachments/download/7049/frama-c-cil-8ded734.tar.xz",
+      "version": "918782e",
+      "path": "https://forge.ispras.ru/attachments/download/7245/frama-c-cil-918782e.tar.xz",
       "executable path": "."
     },
     "Consul": {
