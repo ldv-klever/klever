@@ -524,8 +524,7 @@ class Job(core.components.Component):
                 json.dump(self.common_components_conf, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
         self.__get_job_or_sub_job_components()
-        self.callbacks = core.components.get_component_callbacks(self.logger, [type(self)] + self.components,
-                                                                 self.common_components_conf)
+        self.callbacks = core.components.get_component_callbacks(self.logger, [type(self)] + self.components)
         self.launch_sub_job_components()
 
         self.clean_dir = True

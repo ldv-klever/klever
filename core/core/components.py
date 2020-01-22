@@ -32,7 +32,6 @@ import core.utils
 
 
 CALLBACK_KINDS = ('before', 'instead', 'after')
-CALLBACK_PROPOGATOR = 'get_subcomponent_callbacks'
 
 # Generate decorators to use them across the project
 for tp in CALLBACK_KINDS:
@@ -55,23 +54,6 @@ for tp in CALLBACK_KINDS:
     new_decorator = None
 
 
-def propogate_callbacks(decorated_function):
-    """
-    Decorates function that propogates subcomponent callbacks. Inserts a specific function that has necessary name
-    to be called at callbacks propogating.
-
-    :param decorated_function: Function object.
-    :return: The same function.
-    """
-    if hasattr(sys.modules[decorated_function.__module__], CALLBACK_PROPOGATOR):
-        raise ValueError('Module {!r} already has callback propogating function {!r}'.
-                         format(decorated_function.__module__, CALLBACK_PROPOGATOR))
-
-    setattr(sys.modules[decorated_function.__module__], CALLBACK_PROPOGATOR, decorated_function)
-
-    return decorated_function
-
-
 def set_component_callbacks(logger, component, callbacks):
     logger.info('Set callbacks for component "{0}"'.format(component.__name__))
 
@@ -87,7 +69,7 @@ def set_component_callbacks(logger, component, callbacks):
         setattr(modl, callback.__name__, callback)
 
 
-def get_component_callbacks(logger, components, components_conf):
+def get_component_callbacks(logger, components):
     logger.info('Get callbacks for components "{0}"'.format([component.__name__ for component in components]))
 
     # At the beginning there is no callbacks of any kind.
@@ -103,18 +85,6 @@ def get_component_callbacks(logger, components, components_conf):
                     if event not in callbacks[kind]:
                         callbacks[kind][event] = []
                     callbacks[kind][event].append((component.__name__, getattr(modl, attr)))
-
-            # This special function implies that component has subcomponents for which callbacks should be get as well
-            # using this function.
-            if attr == CALLBACK_PROPOGATOR:
-                subcomponents_callbacks = getattr(modl, attr)(components_conf, logger)
-
-                # Merge subcomponent callbacks into component ones.
-                for kind in CALLBACK_KINDS:
-                    for event in subcomponents_callbacks[kind]:
-                        if event not in callbacks[kind]:
-                            callbacks[kind][event] = []
-                        callbacks[kind][event].extend(subcomponents_callbacks[kind][event])
 
     return callbacks
 
