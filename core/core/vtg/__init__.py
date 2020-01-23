@@ -53,259 +53,6 @@ def __submit_common_attrs(context):
     context.mqs['VTG common attrs'].put(context.common_attrs)
 
 
-def _extract_template_plugin_descs(logger, tmpl_descs):
-    for tmpl_id, tmpl_desc in tmpl_descs.items():
-        logger.info('Extract options for plugins of template "{0}"'.format(tmpl_id))
-
-        if 'plugins' not in tmpl_desc:
-            raise ValueError('Template "{0}" has not mandatory attribute "plugins"'.format(tmpl_id))
-
-        for idx, plugin_desc in enumerate(tmpl_desc['plugins']):
-            if not isinstance(plugin_desc, dict) or 'name' not in plugin_desc:
-                raise ValueError('Description of template "{0}" plugin "{1}" has incorrect format'.format(tmpl_id, idx))
-
-        logger.debug(
-            'Template "{0}" plugins are "{1}"'.format(tmpl_id,
-                                                      [plugin_desc['name'] for plugin_desc in tmpl_desc['plugins']]))
-
-        # Get options for plugins specified in base template and merge them with the ones extracted above.
-        if 'template' in tmpl_desc:
-            if tmpl_desc['template'] not in tmpl_descs:
-                raise ValueError(
-                    'Template "{0}" of template "{1}" could not be found in specifications base'
-                    .format(tmpl_desc['template'], tmpl_id))
-
-            logger.debug('Template "{0}" template is "{1}"'.format(tmpl_id, tmpl_desc['template']))
-
-            for plugin_desc in tmpl_desc['plugins']:
-                for base_tmpl_plugin_desc in tmpl_descs[tmpl_desc['template']]['plugins']:
-                    if plugin_desc['name'] == base_tmpl_plugin_desc['name']:
-                        if 'options' in base_tmpl_plugin_desc:
-                            if 'options' in plugin_desc:
-                                plugin_desc['options'] = core.utils.merge_confs(base_tmpl_plugin_desc['options'],
-                                                                                plugin_desc['options'])
-                            else:
-                                plugin_desc['options'] = base_tmpl_plugin_desc['options']
-
-
-# TODO: support inheritance of template sequences, i.e. when requirement needs template that is template of another one.
-# This function is invoked to collect plugin callbacks.
-def _extract_req_spec_descs(conf, logger):
-    logger.info('Extract requirement specificaction decriptions')
-
-    if 'specifications base' not in conf:
-        raise KeyError('Nothing will be verified since specifications base is not specified')
-
-    if 'requirement specifications' not in conf:
-        raise KeyError('Nothing will be verified since requirement specifications to be checked are not specified')
-
-    # Read specifications base.
-    with open(conf['specifications base'], encoding='utf8') as fp:
-        raw_req_spec_descs = json.load(fp)
-
-    if 'templates' not in raw_req_spec_descs:
-        raise KeyError('Specifications base has not mandatory attribute "templates"')
-
-    if 'requirement specifications' not in raw_req_spec_descs:
-        raise KeyError('Specifications base has not mandatory attribute "requirement specifications"')
-
-    tmpl_descs = raw_req_spec_descs['templates']
-    _extract_template_plugin_descs(logger, tmpl_descs)
-
-    def exist_tmpl(tmpl_id, cur_req_id):
-        if tmpl_id and tmpl_id not in tmpl_descs:
-            raise KeyError('Template "{0}" for "{1}" is not described'.format(tmpl_id, cur_req_id))
-
-    # Get identifiers, template identifiers and plugin options for all requirement specifications.
-    def get_req_spec_descs(cur_req_spec_descs, cur_req_id, parent_tmpl_id):
-        # Requirement specifications are described as a tree where leaves correspond to individual requirement
-        # specifications while intermediate nodes hold common parts of requirement specification identifiers, optional
-        # template identifiers and optional descriptions.
-        # Handle sub-tree.
-        if isinstance(cur_req_spec_descs, list):
-            res_req_spec_descs = {}
-            for idx, cur_req_spec_desc in enumerate(cur_req_spec_descs):
-                if 'identifier' not in cur_req_spec_desc:
-                    raise KeyError('Identifier is not specified for {0} child of "{1}"'.format(idx, cur_req_id))
-
-                next_req_id = '{0}{1}'.format('{0}:'.format(cur_req_id) if cur_req_id else '',
-                                              cur_req_spec_desc['identifier'])
-
-                # Templates can be specified for requirement specification sub-trees and individual requirement
-                # specifications.
-                if 'template' in cur_req_spec_desc:
-                    cur_tmpl_id = cur_req_spec_desc['template']
-                    exist_tmpl(cur_tmpl_id, next_req_id)
-                else:
-                    cur_tmpl_id = parent_tmpl_id
-
-                # Handle another one sub-tree.
-                if 'children' in cur_req_spec_desc:
-                    res_req_spec_descs.update(get_req_spec_descs(cur_req_spec_desc['children'], next_req_id,
-                                                                 cur_tmpl_id))
-                # Handle tree leaf.
-                else:
-                    # Remove useless attributes.
-                    for attr in ('identifier', 'description', 'template'):
-                        if attr in cur_req_spec_desc:
-                            del cur_req_spec_desc[attr]
-
-                    if not cur_tmpl_id:
-                        raise KeyError('Template is not specified for requirement "{0}"'.format(next_req_id))
-
-                    cur_req_spec_desc['template'] = cur_tmpl_id
-                    res_req_spec_descs[next_req_id] = cur_req_spec_desc
-
-            return res_req_spec_descs
-        # Handle tree root.
-        else:
-            # Template can be specified for all requirement specifications.
-            root_tmpl_id = cur_req_spec_descs.get('template')
-            exist_tmpl(root_tmpl_id, cur_req_id)
-            if 'children' in cur_req_spec_descs:
-                return get_req_spec_descs(cur_req_spec_descs['children'], '', root_tmpl_id)
-            else:
-                raise KeyError('Specifications base does not describe any requirement specifications')
-
-    req_spec_descs = get_req_spec_descs(raw_req_spec_descs['requirement specifications'], '', None)
-
-    # Get requirement specifications to be checked.
-    check_req_spec_ids = set()
-    matched_req_spec_id_patterns = set()
-    for req_spec_id in req_spec_descs:
-        for req_spec_id_pattern in conf['requirement specifications']:
-            if re.search(r'^{0}$'.format(req_spec_id_pattern), req_spec_id):
-                matched_req_spec_id_patterns.add(req_spec_id_pattern)
-                check_req_spec_ids.add(req_spec_id)
-                break
-
-    check_req_spec_ids = sorted(check_req_spec_ids)
-
-    logger.debug('Following requirement specifications will be checked "{0}"'.format(', '.join(check_req_spec_ids)))
-
-    unmatched_req_spec_id_patterns = set(conf['requirement specifications']).difference(matched_req_spec_id_patterns)
-    if unmatched_req_spec_id_patterns:
-        # TODO: make this warning more visible (note).
-        logger.warning('Following requirement specification identifier patters were not matched: "{0}'
-                       .format(', '.join(unmatched_req_spec_id_patterns)))
-
-    # Complete descriptions of requirement specifications to be checked by adding plugin options specific for
-    # requirement specifications to common template ones.
-    check_req_spec_descs = []
-    for check_req_spec_id in check_req_spec_ids:
-        check_req_spec_desc = req_spec_descs[check_req_spec_id]
-        # Copy template plugin descriptions since we will overwrite them while the same template can be used by
-        # different requirement specifications.
-        tmpl_plugin_descs = copy.deepcopy(tmpl_descs[check_req_spec_desc['template']]['plugins'])
-
-        check_req_spec_plugin_descs = []
-        if 'plugins' in check_req_spec_desc:
-            check_req_spec_plugin_descs = check_req_spec_desc['plugins']
-            # Check requirement specification plugin descriptions.
-            for idx, check_req_spec_plugin_desc in enumerate(check_req_spec_plugin_descs):
-                if 'name' not in check_req_spec_plugin_desc or 'options' not in check_req_spec_plugin_desc:
-                    raise KeyError('Invalid description of {0} plugin of requirement specification "{1}"'
-                                   .format(idx, check_req_spec_id))
-
-        matched_req_spec_plugin_names = set()
-        for tmpl_plugin_desc in tmpl_plugin_descs:
-            # Template plugin description can miss specific options.
-            if 'options' not in tmpl_plugin_desc:
-                tmpl_plugin_desc['options'] = {}
-
-            for check_req_spec_plugin_desc in check_req_spec_plugin_descs:
-                if check_req_spec_plugin_desc['name'] == tmpl_plugin_desc['name']:
-                    matched_req_spec_plugin_names.add(check_req_spec_plugin_desc['name'])
-                    tmpl_plugin_desc['options'].update(check_req_spec_plugin_desc['options'])
-
-        unmatched_req_spec_plugin_names = []
-        for check_req_spec_plugin_desc in check_req_spec_plugin_descs:
-            if check_req_spec_plugin_desc['name'] not in matched_req_spec_plugin_names:
-                unmatched_req_spec_plugin_names.append(check_req_spec_plugin_desc['name'])
-
-        if unmatched_req_spec_plugin_names:
-            raise KeyError('Following requirement specification plugins are not described within template: "{0}'
-                           .format(', '.join(unmatched_req_spec_plugin_names)))
-
-        # Add final description of requirements specification to be checked.
-        check_req_spec_descs.append({
-            'identifier': check_req_spec_id,
-            'plugins': tmpl_plugin_descs
-        })
-
-    if conf['keep intermediate files']:
-        logger.debug('Create file "{0}" with descriptions of requirement specifications to be checked'
-                     .format('checked requirement specifications.json'))
-        with open('checked requirement specifications.json', 'w', encoding='utf8') as fp:
-            json.dump(check_req_spec_descs, fp, ensure_ascii=False, sort_keys=True, indent=4)
-
-    return check_req_spec_descs
-
-
-def _classify_req_spec_descs(logger, req_spec_descs):
-    # Determine requirement specification classes.
-    req_spec_classes = {}
-    for req_desc in req_spec_descs:
-        hashes = dict()
-        for plugin in (p for p in req_desc['plugins'] if p['name'] in ['SA', 'EMG']):
-            hashes[plugin['name']] = plugin['options']
-
-        if len(hashes) > 0:
-            opt_cache = hashlib.sha224(str(hashes).encode('UTF8')).hexdigest()
-            if opt_cache in req_spec_classes:
-                req_spec_classes[opt_cache].append(req_desc)
-            else:
-                req_spec_classes[opt_cache] = [req_desc]
-        else:
-            req_spec_classes[req_desc['identifier']] = [req_desc]
-
-    logger.info("Generated {} requirement classes from given descriptions".format(len(req_spec_classes)))
-
-    return req_spec_classes
-
-
-_req_spec_descs = None
-_req_spec_classes = None
-
-
-@core.components.propogate_callbacks
-def collect_plugin_callbacks(conf, logger):
-    logger.info('Get VTG plugin callbacks')
-
-    global _req_spec_descs, _req_spec_classes
-    _req_spec_descs = _extract_req_spec_descs(conf, logger)
-    _req_spec_classes = _classify_req_spec_descs(logger, _req_spec_descs)
-    plugins = []
-
-    # Find appropriate classes for plugins if so.
-    for req_spec_desc in _req_spec_descs:
-        for plugin_desc in req_spec_desc['plugins']:
-            logger.info('Load plugin "{0}"'.format(plugin_desc['name']))
-            try:
-                plugin = getattr(importlib.import_module('.{0}'.format(plugin_desc['name'].lower()), 'core.vtg'),
-                                 plugin_desc['name'])
-                # Remember found class to create its instance during main operation.
-                plugin_desc['plugin'] = plugin
-                if plugin not in plugins:
-                    plugins.append(plugin)
-            except ImportError:
-                raise NotImplementedError('Plugin {0} is not supported'.format(plugin_desc['name']))
-
-    return core.components.get_component_callbacks(logger, plugins, conf)
-
-
-def resolve_req_spec_class(name):
-    global _req_spec_classes
-
-    if len(_req_spec_classes) > 0:
-        rc = [identifier for identifier in _req_spec_classes if name in
-              [r['identifier'] for r in _req_spec_classes[identifier]]][0]
-    else:
-        rc = None
-
-    return rc
-
-
 class VTG(core.components.Component):
 
     def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, id=None, work_dir=None, attrs=None,
@@ -313,10 +60,10 @@ class VTG(core.components.Component):
         super(VTG, self).__init__(conf, logger, parent_id, callbacks, mqs, vals, id, work_dir, attrs,
                                   separate_from_parent, include_child_resources)
         self.model_headers = {}
-        self.req_spec_descs = None
+        self.req_spec_descs = []
+        self.req_spec_classes = {}
 
     def generate_verification_tasks(self):
-        self.req_spec_descs = _req_spec_descs
         core.utils.report(self.logger,
                           'patch',
                           {
@@ -326,6 +73,9 @@ class VTG(core.components.Component):
                           self.mqs['report files'],
                           self.vals['report id'],
                           self.conf['main working directory'])
+
+        self.__extract_req_spec_descs()
+        self.__classify_req_spec_descs()
 
         # Start plugins
         if not self.conf['keep intermediate files']:
@@ -339,6 +89,220 @@ class VTG(core.components.Component):
         self.mqs['pending tasks'].close()
 
     main = generate_verification_tasks
+
+    def __extract_template_plugin_descs(self, tmpl_descs):
+        for tmpl_id, tmpl_desc in tmpl_descs.items():
+            self.logger.info('Extract options for plugins of template "{0}"'.format(tmpl_id))
+
+            if 'plugins' not in tmpl_desc:
+                raise ValueError('Template "{0}" has not mandatory attribute "plugins"'.format(tmpl_id))
+
+            for idx, plugin_desc in enumerate(tmpl_desc['plugins']):
+                if not isinstance(plugin_desc, dict) or 'name' not in plugin_desc:
+                    raise ValueError(
+                        'Description of template "{0}" plugin "{1}" has incorrect format'.format(tmpl_id, idx))
+
+            self.logger.debug(
+                'Template "{0}" plugins are "{1}"'.format(tmpl_id,
+                                                          [plugin_desc['name'] for plugin_desc in
+                                                           tmpl_desc['plugins']]))
+
+            # Get options for plugins specified in base template and merge them with the ones extracted above.
+            if 'template' in tmpl_desc:
+                if tmpl_desc['template'] not in tmpl_descs:
+                    raise ValueError(
+                        'Template "{0}" of template "{1}" could not be found in specifications base'
+                            .format(tmpl_desc['template'], tmpl_id))
+
+                self.logger.debug('Template "{0}" template is "{1}"'.format(tmpl_id, tmpl_desc['template']))
+
+                for plugin_desc in tmpl_desc['plugins']:
+                    for base_tmpl_plugin_desc in tmpl_descs[tmpl_desc['template']]['plugins']:
+                        if plugin_desc['name'] == base_tmpl_plugin_desc['name']:
+                            if 'options' in base_tmpl_plugin_desc:
+                                if 'options' in plugin_desc:
+                                    plugin_desc['options'] = core.utils.merge_confs(base_tmpl_plugin_desc['options'],
+                                                                                    plugin_desc['options'])
+                                else:
+                                    plugin_desc['options'] = base_tmpl_plugin_desc['options']
+
+    # TODO: support inheritance of template sequences, i.e. when requirement needs template that is template of another one.
+    def __extract_req_spec_descs(self):
+        self.logger.info('Extract requirement specificaction decriptions')
+
+        if 'specifications base' not in self.conf:
+            raise KeyError('Nothing will be verified since specifications base is not specified')
+
+        if 'requirement specifications' not in self.conf:
+            raise KeyError('Nothing will be verified since requirement specifications to be checked are not specified')
+
+        # Read specifications base.
+        with open(self.conf['specifications base'], encoding='utf8') as fp:
+            raw_req_spec_descs = json.load(fp)
+
+        if 'templates' not in raw_req_spec_descs:
+            raise KeyError('Specifications base has not mandatory attribute "templates"')
+
+        if 'requirement specifications' not in raw_req_spec_descs:
+            raise KeyError('Specifications base has not mandatory attribute "requirement specifications"')
+
+        tmpl_descs = raw_req_spec_descs['templates']
+        self.__extract_template_plugin_descs(tmpl_descs)
+
+        def exist_tmpl(tmpl_id, cur_req_id):
+            if tmpl_id and tmpl_id not in tmpl_descs:
+                raise KeyError('Template "{0}" for "{1}" is not described'.format(tmpl_id, cur_req_id))
+
+        # Get identifiers, template identifiers and plugin options for all requirement specifications.
+        def get_req_spec_descs(cur_req_spec_descs, cur_req_id, parent_tmpl_id):
+            # Requirement specifications are described as a tree where leaves correspond to individual requirement
+            # specifications while intermediate nodes hold common parts of requirement specification identifiers,
+            # optional template identifiers and optional descriptions.
+            # Handle sub-tree.
+            if isinstance(cur_req_spec_descs, list):
+                res_req_spec_descs = {}
+                for idx, cur_req_spec_desc in enumerate(cur_req_spec_descs):
+                    if 'identifier' not in cur_req_spec_desc:
+                        raise KeyError('Identifier is not specified for {0} child of "{1}"'.format(idx, cur_req_id))
+
+                    next_req_id = '{0}{1}'.format('{0}:'.format(cur_req_id) if cur_req_id else '',
+                                                  cur_req_spec_desc['identifier'])
+
+                    # Templates can be specified for requirement specification sub-trees and individual requirement
+                    # specifications.
+                    if 'template' in cur_req_spec_desc:
+                        cur_tmpl_id = cur_req_spec_desc['template']
+                        exist_tmpl(cur_tmpl_id, next_req_id)
+                    else:
+                        cur_tmpl_id = parent_tmpl_id
+
+                    # Handle another one sub-tree.
+                    if 'children' in cur_req_spec_desc:
+                        res_req_spec_descs.update(get_req_spec_descs(cur_req_spec_desc['children'], next_req_id,
+                                                                     cur_tmpl_id))
+                    # Handle tree leaf.
+                    else:
+                        # Remove useless attributes.
+                        for attr in ('identifier', 'description', 'template'):
+                            if attr in cur_req_spec_desc:
+                                del cur_req_spec_desc[attr]
+
+                        if not cur_tmpl_id:
+                            raise KeyError('Template is not specified for requirement "{0}"'.format(next_req_id))
+
+                        cur_req_spec_desc['template'] = cur_tmpl_id
+                        res_req_spec_descs[next_req_id] = cur_req_spec_desc
+
+                return res_req_spec_descs
+            # Handle tree root.
+            else:
+                # Template can be specified for all requirement specifications.
+                root_tmpl_id = cur_req_spec_descs.get('template')
+                exist_tmpl(root_tmpl_id, cur_req_id)
+                if 'children' in cur_req_spec_descs:
+                    return get_req_spec_descs(cur_req_spec_descs['children'], '', root_tmpl_id)
+                else:
+                    raise KeyError('Specifications base does not describe any requirement specifications')
+
+        req_spec_descs = get_req_spec_descs(raw_req_spec_descs['requirement specifications'], '', None)
+
+        # Get requirement specifications to be checked.
+        check_req_spec_ids = set()
+        matched_req_spec_id_patterns = set()
+        for req_spec_id in req_spec_descs:
+            for req_spec_id_pattern in self.conf['requirement specifications']:
+                if re.search(r'^{0}$'.format(req_spec_id_pattern), req_spec_id):
+                    matched_req_spec_id_patterns.add(req_spec_id_pattern)
+                    check_req_spec_ids.add(req_spec_id)
+                    break
+
+        check_req_spec_ids = sorted(check_req_spec_ids)
+
+        self.logger.debug('Following requirement specifications will be checked "{0}"'
+                          .format(', '.join(check_req_spec_ids)))
+
+        unmatched_req_spec_id_patterns = set(self.conf['requirement specifications']).difference(
+            matched_req_spec_id_patterns)
+        if unmatched_req_spec_id_patterns:
+            # TODO: make this warning more visible (note).
+            self.logger.warning('Following requirement specification identifier patters were not matched: "{0}'
+                                .format(', '.join(unmatched_req_spec_id_patterns)))
+
+        # Complete descriptions of requirement specifications to be checked by adding plugin options specific for
+        # requirement specifications to common template ones.
+        for check_req_spec_id in check_req_spec_ids:
+            check_req_spec_desc = req_spec_descs[check_req_spec_id]
+            # Copy template plugin descriptions since we will overwrite them while the same template can be used by
+            # different requirement specifications.
+            tmpl_plugin_descs = copy.deepcopy(tmpl_descs[check_req_spec_desc['template']]['plugins'])
+
+            check_req_spec_plugin_descs = []
+            if 'plugins' in check_req_spec_desc:
+                check_req_spec_plugin_descs = check_req_spec_desc['plugins']
+                # Check requirement specification plugin descriptions.
+                for idx, check_req_spec_plugin_desc in enumerate(check_req_spec_plugin_descs):
+                    if 'name' not in check_req_spec_plugin_desc or 'options' not in check_req_spec_plugin_desc:
+                        raise KeyError('Invalid description of {0} plugin of requirement specification "{1}"'
+                                       .format(idx, check_req_spec_id))
+
+            matched_req_spec_plugin_names = set()
+            for tmpl_plugin_desc in tmpl_plugin_descs:
+                # Template plugin description can miss specific options.
+                if 'options' not in tmpl_plugin_desc:
+                    tmpl_plugin_desc['options'] = {}
+
+                for check_req_spec_plugin_desc in check_req_spec_plugin_descs:
+                    if check_req_spec_plugin_desc['name'] == tmpl_plugin_desc['name']:
+                        matched_req_spec_plugin_names.add(check_req_spec_plugin_desc['name'])
+                        tmpl_plugin_desc['options'].update(check_req_spec_plugin_desc['options'])
+
+            unmatched_req_spec_plugin_names = []
+            for check_req_spec_plugin_desc in check_req_spec_plugin_descs:
+                if check_req_spec_plugin_desc['name'] not in matched_req_spec_plugin_names:
+                    unmatched_req_spec_plugin_names.append(check_req_spec_plugin_desc['name'])
+
+            if unmatched_req_spec_plugin_names:
+                raise KeyError('Following requirement specification plugins are not described within template: "{0}'
+                               .format(', '.join(unmatched_req_spec_plugin_names)))
+
+            # Add final description of requirements specification to be checked.
+            self.req_spec_descs.append({
+                'identifier': check_req_spec_id,
+                'plugins': tmpl_plugin_descs
+            })
+
+        if self.conf['keep intermediate files']:
+            self.logger.debug('Create file "{0}" with descriptions of requirement specifications to be checked'
+                              .format('checked requirement specifications.json'))
+            with open('checked requirement specifications.json', 'w', encoding='utf8') as fp:
+                json.dump(self.req_spec_descs, fp, ensure_ascii=False, sort_keys=True, indent=4)
+
+    def __classify_req_spec_descs(self):
+        # Determine requirement specification classes.
+        for req_desc in self.req_spec_descs:
+            hashes = dict()
+            for plugin in (p for p in req_desc['plugins'] if p['name'] in ['SA', 'EMG']):
+                hashes[plugin['name']] = plugin['options']
+
+            if len(hashes) > 0:
+                opt_cache = hashlib.sha224(str(hashes).encode('UTF8')).hexdigest()
+                if opt_cache in self.req_spec_classes:
+                    self.req_spec_classes[opt_cache].append(req_desc)
+                else:
+                    self.req_spec_classes[opt_cache] = [req_desc]
+            else:
+                self.req_spec_classes[req_desc['identifier']] = [req_desc]
+
+        self.logger.info("Generated {} requirement classes from given descriptions".format(len(self.req_spec_classes)))
+
+    def __resolve_req_spec_class(self, name):
+        if len(self.req_spec_classes) > 0:
+            rc = [identifier for identifier in self.req_spec_classes if name in
+                  [r['identifier'] for r in self.req_spec_classes[identifier]]][0]
+        else:
+            rc = None
+
+        return rc
 
     def __generate_all_abstract_verification_task_descs(self):
         self.logger.info('Generate all abstract verification task decriptions')
@@ -379,7 +343,7 @@ class VTG(core.components.Component):
                                     ' are not specified'.format(program_fragment_desc['id']))
             else:
                 pf_descriptions[program_fragment_desc['id']] = program_fragment_desc
-                initial[program_fragment_desc['id']] = list(_req_spec_classes.keys())
+                initial[program_fragment_desc['id']] = list(self.req_spec_classes.keys())
 
         processing_status = dict()
         delete_ready = dict()
@@ -387,7 +351,8 @@ class VTG(core.components.Component):
 
         def submit_task(pf, rlcl, rlda, rescheduling=False):
             resource_limitations = balancer.resource_limitations(pf['id'], rlcl, rlda['identifier'])
-            self.mqs['prepare program fragments'].put((pf, rlda, resource_limitations, rescheduling))
+            self.mqs['prepare program fragments'].put((pf, rlda, rlcl, self.req_spec_classes, resource_limitations,
+                                                       rescheduling))
 
         max_tasks = int(self.conf['max solving tasks per sub-job'])
         active_tasks = 0
@@ -402,7 +367,7 @@ class VTG(core.components.Component):
                 self.logger.info(
                     "Pilot verification task for program fragment {!r} and requirements specification {!r} is prepared".
                     format(program_fragment_id, req_spec_id))
-                req_spec_class = resolve_req_spec_class(req_spec_id)
+                req_spec_class = self.__resolve_req_spec_class(req_spec_id)
                 if req_spec_class:
                     if program_fragment_id in processing_status and \
                             req_spec_class in processing_status[program_fragment_id] and \
@@ -432,7 +397,7 @@ class VTG(core.components.Component):
                 program_fragment_id, req_spec_id, status_info = solution
                 self.logger.info("Verification task for program fragment {!r} and requirements specification {!r}"
                                  " is either finished or failed".format(program_fragment_id, req_spec_id))
-                req_spec_class = resolve_req_spec_class(req_spec_id)
+                req_spec_class = self.__resolve_req_spec_class(req_spec_id)
                 if req_spec_class:
                     final = balancer.add_solution(program_fragment_id, req_spec_class, req_spec_id, status_info)
                     if final:
@@ -449,10 +414,10 @@ class VTG(core.components.Component):
                     if active_tasks < max_tasks:
                         req_spec_class = initial[pf].pop()
                         program_fragment_id = pf_descriptions[pf]
-                        req_spec_id = _req_spec_classes[req_spec_class][0]['identifier']
+                        req_spec_id = self.req_spec_classes[req_spec_class][0]['identifier']
                         self.logger.info("Prepare initial verification tasks for program fragement {!r} and"
                                          " requirements specification {!r}".format(pf, req_spec_id))
-                        submit_task(program_fragment_id, req_spec_class, _req_spec_classes[req_spec_class][0])
+                        submit_task(program_fragment_id, req_spec_class, self.req_spec_classes[req_spec_class][0])
 
                         # Set status
                         if pf not in processing_status:
@@ -469,10 +434,11 @@ class VTG(core.components.Component):
             for program_fragment_id in list(processing_status.keys()):
                 for req_spec_class in list(processing_status[program_fragment_id].keys()):
                     # Check readiness for further tasks generation
-                    pilot_task_status = processing_status[program_fragment_id][req_spec_class][_req_spec_classes[
+                    pilot_task_status = processing_status[program_fragment_id][req_spec_class][self.req_spec_classes[
                         req_spec_class][0]['identifier']]
                     if (pilot_task_status is False or pilot_task_status is True) and active_tasks < max_tasks:
-                        for req_spec_desc in [req_spec_desc for req_spec_desc in _req_spec_classes[req_spec_class][1:]
+                        for req_spec_desc in [req_spec_desc
+                                              for req_spec_desc in self.req_spec_classes[req_spec_class][1:]
                                               if req_spec_desc['identifier'] not in
                                                  processing_status[program_fragment_id][req_spec_class]]:
                             if active_tasks < max_tasks:
@@ -487,7 +453,7 @@ class VTG(core.components.Component):
                                 break
 
                     # Check that we should reschedule tasks
-                    for req_spec_desc in (r for r in _req_spec_classes[req_spec_class] if
+                    for req_spec_desc in (r for r in self.req_spec_classes[req_spec_class] if
                                           r['identifier'] in processing_status[program_fragment_id][req_spec_class] and
                                           not processing_status[program_fragment_id][req_spec_class][r['identifier']] and
                                           balancer.is_there(program_fragment_id, req_spec_class, r['identifier'])):
@@ -510,12 +476,12 @@ class VTG(core.components.Component):
 
                     # Number of solved tasks
                     solved = sum((1 if processing_status[program_fragment_id][req_spec_class].get(r['identifier'])
-                                  else 0 for r in _req_spec_classes[req_spec_class]))
+                                  else 0 for r in self.req_spec_classes[req_spec_class]))
                     # Number of requirements which are ready to delete
                     deletable = len([r for r in processing_status[program_fragment_id][req_spec_class]
                                      if program_fragment_id in delete_ready and r in delete_ready[program_fragment_id]])
                     # Total tasks for requirements
-                    total = len(_req_spec_classes[req_spec_class])
+                    total = len(self.req_spec_classes[req_spec_class])
 
                     if solved == total and (self.conf['keep intermediate files'] or
                                             (program_fragment_id in delete_ready and solved == deletable)):
@@ -576,12 +542,12 @@ class VTGWL(core.components.Component):
         req_spec_id = element[1]['identifier']
 
         attrs = None
-        if element[3]:
-            identifier = "{}/{}/{}/VTGW".format(program_fragment_id, req_spec_id, element[3])
-            workdir = os.path.join(program_fragment_id, req_spec_id, str(element[3]))
+        if element[5]:
+            identifier = "{}/{}/{}/VTGW".format(program_fragment_id, req_spec_id, element[5])
+            workdir = os.path.join(program_fragment_id, req_spec_id, str(element[5]))
             attrs = [{
                 "name": "Rescheduling attempt",
-                "value": str(element[3]),
+                "value": str(element[5]),
                 "compare": False,
                 "associate": False
             }]
@@ -592,7 +558,8 @@ class VTGWL(core.components.Component):
         return VTGW(self.conf, self.logger, self.parent_id, self.callbacks, self.mqs,
                     self.vals, identifier, workdir,
                     attrs=attrs, separate_from_parent=True, program_fragment_desc=element[0], req_spec_desc=element[1],
-                    resource_limits=element[2], rerun=element[3])
+                    req_spec_class=element[2], req_spec_classes=element[3], resource_limits=element[4],
+                    rerun=element[5])
 
     main = task_generating_loop
 
@@ -601,13 +568,15 @@ class VTGW(core.components.Component):
 
     def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, id=None, work_dir=None, attrs=None,
                  separate_from_parent=False, include_child_resources=False, program_fragment_desc=None,
-                 req_spec_desc=None, resource_limits=None, rerun=False):
+                 req_spec_desc=None, req_spec_class=None, req_spec_classes=None, resource_limits=None, rerun=False):
         super(VTGW, self).__init__(conf, logger, parent_id, callbacks, mqs, vals, id, work_dir, attrs,
                                    separate_from_parent, include_child_resources)
         self.program_fragment_desc = program_fragment_desc
         self.program_fragment_id = program_fragment_desc['id']
         self.req_spec_desc = req_spec_desc
         self.req_spec_id = req_spec_desc['identifier']
+        self.pilot_req_spec_id = req_spec_classes[req_spec_class][0]['identifier']
+        self.req_spec_classes = req_spec_classes
         self.abstract_task_desc_file = None
         self.override_limits = resource_limits
         self.rerun = rerun
@@ -656,9 +625,7 @@ class VTGW(core.components.Component):
                          format(self.program_fragment_id, self.req_spec_id))
 
         # Prepare pilot workdirs if it will be possible to reuse data
-        req_spec_class = resolve_req_spec_class(self.req_spec_id)
-        pilot_req_spec_id = _req_spec_classes[req_spec_class][0]['identifier']
-        pilot_plugins_work_dir = os.path.join(os.path.pardir, pilot_req_spec_id)
+        pilot_plugins_work_dir = os.path.join(os.path.pardir, self.pilot_req_spec_id)
 
         # Initial abstract verification task looks like corresponding program fragment.
         initial_abstract_task_desc = copy.deepcopy(program_fragment_desc)
@@ -692,13 +659,13 @@ class VTGW(core.components.Component):
                 os.symlink(os.path.relpath(cur_abstract_task_desc_file, os.path.curdir),
                            out_abstract_task_desc_file)
 
-            if self.req_spec_id not in [c[0]['identifier'] for c in _req_spec_classes.values()] and \
+            if self.req_spec_id not in [c[0]['identifier'] for c in self.req_spec_classes.values()] and \
                     plugin_desc['name'] in ['SA', 'EMG']:
                 # Expect that there is a work directory which has all prepared
                 # Make symlinks to the pilot requirement work dir
                 self.logger.info("Instead of running the {!r} plugin for the {!r} requirement lets use already obtained"
                                  " results for the {!r} requirement".format(plugin_desc['name'], self.req_spec_id,
-                                                                            pilot_req_spec_id))
+                                                                            self.pilot_req_spec_id))
                 pilot_plugin_work_dir = os.path.join(pilot_plugins_work_dir, plugin_desc['name'].lower())
                 pilot_abstract_task_desc_file = os.path.join(
                     pilot_plugins_work_dir, '{0} abstract task.json'.format(plugin_desc['name'].lower()))
@@ -731,20 +698,21 @@ class VTGW(core.components.Component):
                     core.utils.json_dump(plugin_conf, fp, self.conf['keep intermediate files'])
 
                 try:
-                    p = plugin_desc['plugin'](plugin_conf, self.logger, self.id, self.callbacks, self.mqs,
-                                              self.vals, plugin_desc['name'],
-                                              plugin_work_dir, separate_from_parent=True,
-                                              include_child_resources=True)
+                    plugin = getattr(importlib.import_module('.{0}'.format(plugin_desc['name'].lower()), 'core.vtg'),
+                                     plugin_desc['name'])
+                    p = plugin(plugin_conf, self.logger, self.id, self.callbacks, self.mqs, self.vals,
+                               plugin_desc['name'], plugin_work_dir, separate_from_parent=True,
+                               include_child_resources=True)
                     p.start()
                     p.join()
                 except core.components.ComponentError:
                     self.plugin_fail_processing()
                     break
 
-                if self.req_spec_id in [c[0]['identifier'] for c in _req_spec_classes.values()] and \
+                if self.req_spec_id in [c[0]['identifier'] for c in self.req_spec_classes.values()] and \
                         plugin_desc['name'] == 'EMG':
                     self.logger.debug("Signal to VTG that cache prepared for requirements specifications {!r} is ready"
-                                      " for further use".format(pilot_req_spec_id))
+                                      " for further use".format(self.pilot_req_spec_id))
                     self.mqs['prepared verification tasks'].put((self.program_fragment_id, self.req_spec_id))
 
             cur_abstract_task_desc_file = out_abstract_task_desc_file

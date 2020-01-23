@@ -213,7 +213,8 @@ class GetETV:
         }
 
     def __parse_source(self, node):
-        src_line = SourceLine(node['source'], highlights=node.get('highlight', []))
+        src_line = SourceLine(node['source'], highlights=node.get('highlight', []), filename='error trace',
+                              line=node['line'])
         source_html = src_line.html_code
 
         # Wrap to assume() conditions
