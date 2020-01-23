@@ -3,6 +3,9 @@ addons
 build bases
 deploys/conf/*.json
 
+# celery
+celerybeat-schedule*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -45,3 +48,9 @@ ENV/
 
 # macOS
 .DS_STORE
+
+# pytest
+.pytest_cache
+
+# VSCode
+.vscode
