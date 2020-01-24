@@ -1,10 +1,10 @@
 # Klever
 addons
 build bases
-deploys/conf/*.json
+klever/deploys/conf/*.json
 
 # celery
-celerybeat-schedule*
+celerybeat*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

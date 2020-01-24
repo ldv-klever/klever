@@ -1,0 +1,11 @@
+[Unit]
+Description=Klever Celery Development Service
+After=network.target local-fs.target remote-fs.target
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/default/klever
+ExecStart=/bin/sh -c "cd ${KLEVER_DEPLOYMENT_DIRECTORY}/klever/bridge && ${KLEVER_PYTHON_BIN_DIR}/celery -A bridge worker --loglevel=info"
+
+[Install]
+WantedBy=multi-user.target

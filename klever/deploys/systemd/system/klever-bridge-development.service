@@ -1,0 +1,12 @@
+[Unit]
+Description=Klever Bridge Development Service
+After=network.target
+Requires=postgresql.service
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/default/klever
+ExecStart=/bin/sh -c "cd ${KLEVER_DEPLOYMENT_DIRECTORY}/klever/bridge && ${KLEVER_PYTHON} ${KLEVER_DEPLOYMENT_DIRECTORY}/klever/bridge/manage.py runserver 0.0.0.0:8998"
+
+[Install]
+WantedBy=multi-user.target

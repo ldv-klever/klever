@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 #
 # Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
 # Ivannikov Institute for System Programming of the Russian Academy of Sciences
@@ -16,12 +15,18 @@
 # limitations under the License.
 #
 
-import os
-import sys
+from klever.core.utils import make_relative_path
+from klever.core.pfg.fragmentation import FragmentationAlgorythm
 
-if __name__ == "__main__":
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "bridge.settings")
 
-    from django.core.management import execute_from_command_line
+class Default(FragmentationAlgorythm):
 
-    execute_from_command_line(sys.argv)
+    def _determine_units(self, program):
+        """
+        Consider all program source files as independent program fragments.
+
+        :param program: Program object.
+        """
+        for file in program.files:
+            name = make_relative_path(self.source_paths, file.name)
+            program.create_fragment(name, {file}, add=True)

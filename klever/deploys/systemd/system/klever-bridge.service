@@ -1,0 +1,15 @@
+[Unit]
+Description=Klever Bridge Service
+After=network.target
+Requires=postgresql.service
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+EnvironmentFile=/etc/default/klever
+WorkingDirectory=/var/www/klever-bridge
+ExecStart=/bin/sh -c "${KLEVER_PYTHON_BIN_DIR}/gunicorn --timeout 86400 --graceful-timeout 86400 --workers ${KLEVER_WORKERS} --bind unix:media/gunicorn.sock bridge.wsgi:application"
+
+[Install]
+WantedBy=multi-user.target
