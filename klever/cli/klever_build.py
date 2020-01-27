@@ -30,10 +30,6 @@ from clade import Clade
 from klever.cli.utils import execute_cmd, get_logger, make_relative_path
 from klever.cli.descs import common_target_program_descs, target_program_descs
 
-
-preset_jobs_dir = os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir, 'bridge', 'jobs', 'presets')
-
-
 class CProgram:
     _CLADE_CONF = dict()
     _CLADE_PRESET = "klever_linux_kernel"

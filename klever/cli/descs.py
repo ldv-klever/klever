@@ -13,6 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+
+preset_jobs_dir = os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir, 'bridge', 'jobs', 'presets')
+
 common_target_program_descs = {
     'Linux': {
         'source code': 'linux-stable',
