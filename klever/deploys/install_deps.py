@@ -118,10 +118,6 @@ def install_deps(logger, deploy_conf, prev_deploy_info, non_interactive, update_
         execute_cmd(logger, 'tar', '--warning', 'no-unknown-keyword', '-C', '/', '-xf', tmp_file)
         prev_deploy_info['Python'] = deploy_conf['Python']
 
-    logger.info('Install/update Python3 packages')
-    execute_cmd(logger, sys.executable, '-m', 'pip', 'install', '--upgrade', '-r',
-                os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir, 'requirements.txt'))
-
 
 def load_deps_conf(logger):
     deps_conf_dir = os.path.join(os.path.dirname(__file__), 'conf')
