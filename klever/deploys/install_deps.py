@@ -108,16 +108,6 @@ def install_deps(logger, deploy_conf, prev_deploy_info, non_interactive, update_
         else:
             raise RuntimeError('Your Linux distribution is not supported')
 
-    if 'Python' not in deploy_conf:
-        logger.error('Deployment configuration file does not describe Python')
-        sys.exit(errno.EINVAL)
-
-    if 'Python' not in prev_deploy_info:
-        _, tmp_file = tempfile.mkstemp()
-        execute_cmd(logger, 'wget', '-O', tmp_file, '-q', deploy_conf['Python'])
-        execute_cmd(logger, 'tar', '--warning', 'no-unknown-keyword', '-C', '/', '-xf', tmp_file)
-        prev_deploy_info['Python'] = deploy_conf['Python']
-
 
 def load_deps_conf(logger):
     deps_conf_dir = os.path.join(os.path.dirname(__file__), 'conf')
