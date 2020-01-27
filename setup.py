@@ -67,7 +67,7 @@ setuptools.setup(
             "klever-deploy-openstack=klever.deploys.openstack:main",
         ]
     },
-    # install_requires=[], TODO: add requirements
+    install_requires=open("requirements.txt", encoding="utf8").read().splitlines(),
     classifiers=[
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: Implementation :: CPython",
