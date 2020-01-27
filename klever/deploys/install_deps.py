@@ -33,6 +33,8 @@ def install_deps(logger, deploy_conf, prev_deploy_info, non_interactive, update_
     pckgs_to_install = []
     pckgs_to_update = []
 
+    deploy_conf.update(load_deps_conf(logger))
+
     # We can skip installation/update of dependencies if nothing is specified, but most likely one prepares
     # deployment configuration file incorrectly.
     if 'Packages' not in deploy_conf:
@@ -59,10 +61,10 @@ def install_deps(logger, deploy_conf, prev_deploy_info, non_interactive, update_
             execute_cmd(logger, 'apt', 'update')
         elif shutil.which('dnf'):
             execute_cmd(logger, 'dnf', 'update')
-        elif shutil.which('yum'):
-            execute_cmd(logger, 'yum', 'check-update')
         elif shutil.which('zypper'):
             execute_cmd(logger, 'zypper', 'ref')
+        elif shutil.which('yum'):
+            execute_cmd(logger, 'yum', 'check-update')
         else:
             logger.error('Your Linux distribution is not supported')
             sys.exit(errno.EINVAL)
@@ -70,7 +72,7 @@ def install_deps(logger, deploy_conf, prev_deploy_info, non_interactive, update_
     if pckgs_to_install:
         logger.info('Install packages:\n  {0}'.format('\n  '.join(pckgs_to_install)))
 
-        for util in ('apt', 'dnf', 'yum', 'zypper'):
+        for util in ('apt', 'dnf', 'zypper', 'yum'):
             if shutil.which(util):
                 args = [util, 'install']
 
@@ -91,7 +93,7 @@ def install_deps(logger, deploy_conf, prev_deploy_info, non_interactive, update_
 
     if pckgs_to_update and update_pckgs:
         logger.info('Update packages:\n  {0}'.format('\n  '.join(pckgs_to_update)))
-        for util in ('apt', 'dnf', 'yum', 'zypper'):
+        for util in ('apt', 'dnf', 'zypper', 'yum'):
             if shutil.which(util):
                 if util in ('apt', 'dnf'):
                     args = [util, 'upgrade']
@@ -119,6 +121,23 @@ def install_deps(logger, deploy_conf, prev_deploy_info, non_interactive, update_
     logger.info('Install/update Python3 packages')
     execute_cmd(logger, sys.executable, '-m', 'pip', 'install', '--upgrade', '-r',
                 os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir, 'requirements.txt'))
+
+
+def load_deps_conf(logger):
+    deps_conf_dir = os.path.join(os.path.dirname(__file__), 'conf')
+
+    if shutil.which('apt'):
+        deps_conf_file = os.path.join(deps_conf_dir, 'debian.json')
+    elif shutil.which('dnf'):
+        deps_conf_file = os.path.join(deps_conf_dir, 'fedora.json')
+    else:
+        logger.error('Your Linux distribution is not supported')
+        sys.exit(errno.EINVAL)
+
+    with open(deps_conf_file) as fp:
+        deps_conf = json.load(fp)
+
+    return deps_conf
 
 
 def main():

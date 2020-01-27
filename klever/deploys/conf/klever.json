@@ -1,41 +1,7 @@
 {
-  "Packages": {
-    "For installing Klever Addons": [
-      "unzip"
-    ],
-    "For building Python packages": [
-      "cmake",
-      "libpq-devel",
-      "python3-devel",
-      "python3-pip"
-    ],
-    "For building and running Klever Bridge": [
-      "gettext",
-      "nginx",
-      "postgresql",
-      "postgresql-server",
-      "rabbitmq-server"
-    ],
-    "For running Klever Core": [
-      "bc",
-      "git",
-      "graphviz"
-    ],
-    "For running CPAchecker 1.6+": ["java-1.8.0-openjdk-headless"],
-    "For building the Linux kernel": [
-      "make",
-      "glibc-devel.i686"
-    ],
-    "For building new versions of the Linux kernel": [
-      "elfutils-libelf-devel",
-      "openssl-devel",
-      "bison",
-      "flex"
-    ]
-  },
-  "Python": "https://forge.ispras.ru/attachments/download/7252/python-fedora-3.7.6.tar.xz",
+  "Python": "https://forge.ispras.ru/attachments/download/7251/python-3.7.6.tar.xz",
   "Klever": {
-    "version": "master",
+    "version": "CURRENT",
     "path": "."
   },
   "Klever Addons": {

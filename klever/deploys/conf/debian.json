@@ -1,0 +1,37 @@
+{
+  "Packages": {
+    "For installing Klever Addons": [
+      "unzip"
+    ],
+    "For building Python packages": [
+      "cmake",
+      "libpq-dev",
+      "python3-dev",
+      "python3-pip"
+    ],
+    "For building and running Klever Bridge": [
+      "gettext",
+      "nginx",
+      "postgresql",
+      "rabbitmq-server"
+    ],
+    "For running Klever Core": [
+      "bc",
+      "git",
+      "graphviz"
+    ],
+    "For running CPAchecker 1.6+": [
+      "openjdk-8-jre-headless"
+    ],
+    "For building the Linux kernel": [
+      "make",
+      "libc6-dev-i386"
+    ],
+    "For building new versions of the Linux kernel": [
+      "libelf-dev",
+      "libssl-dev",
+      "bison",
+      "flex"
+    ]
+  }
+}

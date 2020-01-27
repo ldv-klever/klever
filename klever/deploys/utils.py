@@ -81,7 +81,6 @@ def check_deployment_configuration_file(logger, deploy_conf_file):
             sys.exit(errno.ENOENT)
 
     unspecified_attrs = [attr for attr in (
-        'Packages',
         'Python',
         'Klever',
         'Klever Addons',
