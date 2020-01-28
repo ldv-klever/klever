@@ -222,7 +222,8 @@ class Klever:
             pass
 
     def _post_install_or_update(self, is_dev=False):
-        configure_controller_and_schedulers(self.logger, is_dev, self.args.deployment_directory, self.prev_deploy_info)
+        configure_controller_and_schedulers(self.logger, is_dev, self.args.source_directory,
+                                            self.args.deployment_directory, self.prev_deploy_info)
 
 
 class KleverDevelopment(Klever):
