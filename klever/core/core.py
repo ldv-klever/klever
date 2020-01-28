@@ -51,6 +51,7 @@ class Core(klever.core.components.CallbacksCaller):
         self.uploading_reports_process = None
         self.uploading_reports_process_exitcode = multiprocessing.Value('i', 0)
         self.callbacks = {}
+        self.is_start_report_uploaded = False
 
     def main(self):
         try:
@@ -92,6 +93,7 @@ class Core(klever.core.components.CallbacksCaller):
                               self.mqs['report files'],
                               self.report_id,
                               self.conf['main working directory'])
+            self.is_start_report_uploaded = True
 
             klever.core.job.start_jobs(self, {
                 'report id': self.report_id,
@@ -107,16 +109,19 @@ class Core(klever.core.components.CallbacksCaller):
                             fp.write('\n')
                         traceback.print_exc(file=fp)
 
-                    klever.core.utils.report(self.logger,
-                                      'unknown',
-                                      {
-                                          'identifier': self.ID + '/unknown',
-                                          'parent': self.ID,
-                                          'problem_description': klever.core.utils.ArchiveFiles(['problem desc.txt'])
-                                      },
-                                      self.mqs['report files'],
-                                      self.report_id,
-                                      self.conf['main working directory'])
+                    if self.is_start_report_uploaded:
+                        klever.core.utils.report(
+                            self.logger,
+                            'unknown',
+                            {
+                                'identifier': self.ID + '/unknown',
+                                'parent': self.ID,
+                                'problem_description': klever.core.utils.ArchiveFiles(['problem desc.txt'])
+                            },
+                            self.mqs['report files'],
+                            self.report_id,
+                            self.conf['main working directory']
+                        )
                 except Exception:
                     self.process_exception()
         finally:
