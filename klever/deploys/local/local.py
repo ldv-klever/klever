@@ -96,6 +96,7 @@ class Klever:
         os.makedirs(self.args.deployment_directory, exist_ok=True)
 
         with open('/etc/default/klever', 'w') as fp:
+            fp.write('KLEVER_SOURCE_DIRECTORY="{0}"\n'.format(os.path.realpath(self.args.source_directory)))
             fp.write('KLEVER_DEPLOYMENT_DIRECTORY="{0}"\n'.format(os.path.realpath(self.args.deployment_directory)))
             fp.write('KLEVER_DATA_DIR="{0}"\n'
                      .format(os.path.join(os.path.realpath(self.args.deployment_directory), 'klever', 'build bases')))
