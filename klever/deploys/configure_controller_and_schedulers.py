@@ -127,7 +127,7 @@ def configure_controller_and_schedulers(logger, development, src_dir, deploy_dir
         })
 
         verifiercloud_scheduler_conf['scheduler']['web client location'] =\
-            get_klever_addon_abs_path(prev_deploy_info, 'VerifierCloud Client')
+            get_klever_addon_abs_path(deploy_dir, prev_deploy_info, 'VerifierCloud Client')
 
         with open(os.path.join(deploy_dir, 'klever-conf/verifiercloud-scheduler.json'), 'w') as fp:
             json.dump(verifiercloud_scheduler_conf, fp, sort_keys=True, indent=4)
@@ -137,7 +137,7 @@ def configure_controller_and_schedulers(logger, development, src_dir, deploy_dir
     with open(os.path.join(conf_dir, 'task-client.json')) as fp:
         task_client_conf = json.load(fp)
 
-    configure_task_and_job_configuration_paths(prev_deploy_info, task_client_conf)
+    configure_task_and_job_configuration_paths(deploy_dir, prev_deploy_info, task_client_conf)
     verification_backends = task_client_conf['client']['verification tools'] = {}
     for name, desc in prev_deploy_info['Klever Addons']['Verification Backends'].items():
         if desc['name'] not in verification_backends:
