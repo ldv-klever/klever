@@ -17,21 +17,22 @@
 import json
 import os
 
-from klever.deploys.utils import Cd, get_logger, need_verifiercloud_scheduler, start_services, stop_services
+from klever.deploys.utils import get_logger, need_verifiercloud_scheduler, start_services, stop_services
 
 
-def get_klever_addon_abs_path(prev_deploy_info, name, verification_backend=False):
+def get_klever_addon_abs_path(deploy_dir, prev_deploy_info, name, verification_backend=False):
     klever_addon_desc = prev_deploy_info['Klever Addons']['Verification Backends'][name] \
         if verification_backend is True else prev_deploy_info['Klever Addons'][name]
-    return os.path.abspath(os.path.join('klever-addons', 'verification-backends' if verification_backend else '', name,
-                                        klever_addon_desc.get('executable path', '')))
+    return os.path.abspath(os.path.join(deploy_dir, 'klever-addons',
+                                        'verification-backends' if verification_backend else '',
+                                        name, klever_addon_desc.get('executable path', '')))
 
 
-def configure_task_and_job_configuration_paths(prev_deploy_info, client_config):
+def configure_task_and_job_configuration_paths(deploy_dir, prev_deploy_info, client_config):
     client_config['client']['addon binaries'] = []
     client_config['client']['addon python packages'] = []
     for key in (k for k in prev_deploy_info['Klever Addons'] if k != "Verification Backends"):
-        client_config['client']['addon binaries'].append(get_klever_addon_abs_path(prev_deploy_info, key))
+        client_config['client']['addon binaries'].append(get_klever_addon_abs_path(deploy_dir, prev_deploy_info, key))
     for key, addon_desc in ((k, d) for k, d in prev_deploy_info['Klever Addons'].items()
                             if k != "Verification Backends" and 'python path' in d):
         path = os.path.abspath(os.path.join('klever-addons', key, addon_desc['python path']))
@@ -61,7 +62,7 @@ def configure_controller_and_schedulers(logger, development, src_dir, deploy_dir
         'password': 'service'
     })
 
-    controller_conf['client-controller']['consul'] = get_klever_addon_abs_path(prev_deploy_info, 'Consul')
+    controller_conf['client-controller']['consul'] = get_klever_addon_abs_path(deploy_dir, prev_deploy_info, 'Consul')
 
     with open(os.path.join(deploy_dir, 'klever-conf/controller.json'), 'w') as fp:
         json.dump(controller_conf, fp, sort_keys=True, indent=4)
@@ -102,8 +103,8 @@ def configure_controller_and_schedulers(logger, development, src_dir, deploy_dir
     with open(os.path.join(conf_dir, 'job-client.json')) as fp:
         job_client_conf = json.load(fp)
 
-    configure_task_and_job_configuration_paths(prev_deploy_info, job_client_conf)
-    
+    configure_task_and_job_configuration_paths(deploy_dir, prev_deploy_info, job_client_conf)
+
     with open(os.path.join(deploy_dir, 'klever-conf/native-scheduler-job-client.json'), 'w') as fp:
         json.dump(job_client_conf, fp, sort_keys=True, indent=4)
 
@@ -141,8 +142,8 @@ def configure_controller_and_schedulers(logger, development, src_dir, deploy_dir
     for name, desc in prev_deploy_info['Klever Addons']['Verification Backends'].items():
         if desc['name'] not in verification_backends:
             verification_backends[desc['name']] = {}
-        verification_backends[desc['name']][desc['version']] = get_klever_addon_abs_path(prev_deploy_info, name,
-                                                                                         verification_backend=True)
+        verification_backends[desc['name']][desc['version']] = \
+            get_klever_addon_abs_path(deploy_dir, prev_deploy_info, name, verification_backend=True)
 
     with open(os.path.join(deploy_dir, 'klever-conf/native-scheduler-task-client.json'), 'w') as fp:
         json.dump(task_client_conf, fp, sort_keys=True, indent=4)
