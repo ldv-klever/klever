@@ -6,7 +6,7 @@ Requires=postgresql.service
 [Service]
 Type=simple
 EnvironmentFile=/etc/default/klever
-ExecStart=/bin/sh -c "cd ${KLEVER_SOURCE_DIRECTORY}/klever/bridge && ${KLEVER_PYTHON} manage.py runserver 0.0.0.0:8998"
+ExecStart=/bin/sh -c "cd ${KLEVER_SOURCE_DIRECTORY}/bridge && ${KLEVER_PYTHON} manage.py runserver 0.0.0.0:8998"
 
 [Install]
 WantedBy=multi-user.target
