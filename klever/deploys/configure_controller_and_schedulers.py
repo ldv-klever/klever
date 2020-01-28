@@ -94,14 +94,16 @@ def configure_controller_and_schedulers(logger, development, src_dir, deploy_dir
     if development:
         native_scheduler_conf['scheduler']['keep working directory'] = True
 
-    with open(os.path.join(conf_dir, 'klever-conf/native-scheduler.json'), 'w') as fp:
+    with open(os.path.join(deploy_dir, 'klever-conf/native-scheduler.json'), 'w') as fp:
         json.dump(native_scheduler_conf, fp, sort_keys=True, indent=4)
 
     logger.info('Configure Klever Native Scheduler Job Worker')
+
     with open(os.path.join(conf_dir, 'job-client.json')) as fp:
         job_client_conf = json.load(fp)
-    configure_task_and_job_configuration_paths(prev_deploy_info, job_client_conf)
 
+    configure_task_and_job_configuration_paths(prev_deploy_info, job_client_conf)
+    
     with open(os.path.join(deploy_dir, 'klever-conf/native-scheduler-job-client.json'), 'w') as fp:
         json.dump(job_client_conf, fp, sort_keys=True, indent=4)
 
