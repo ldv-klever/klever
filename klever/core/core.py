@@ -78,21 +78,23 @@ class Core(klever.core.components.CallbacksCaller):
             self.uploading_reports_process.start()
 
             self.get_comp_desc()
-            klever.core.utils.report(self.logger,
-                              'start',
-                              {
-                                  'identifier': self.ID,
-                                  'parent': None,
-                                  'component': type(self).__name__,
-                                  'attrs': [{
-                                      'name': 'Klever Core version',
-                                      'value': self.get_version()
-                                  }],
-                                  'computer': self.comp
-                              },
-                              self.mqs['report files'],
-                              self.report_id,
-                              self.conf['main working directory'])
+            klever.core.utils.report(
+                self.logger,
+                'start',
+                {
+                    'identifier': self.ID,
+                    'parent': None,
+                    'component': type(self).__name__,
+                    'attrs': [{
+                        'name': 'Klever Core version',
+                        'value': self.get_version()
+                    }],
+                    'computer': self.comp
+                },
+                self.mqs['report files'],
+                self.report_id,
+                self.conf['main working directory']
+            )
             self.is_start_report_uploaded = True
 
             klever.core.job.start_jobs(self, {
@@ -138,14 +140,14 @@ class Core(klever.core.components.CallbacksCaller):
                     # Core finish report and finishing uploading all reports won't be included into wall time of Core.
                     child_resources = klever.core.components.all_child_resources()
                     report = {'identifier': self.ID}
-                    report.update(klever.core.components.count_consumed_resources(self.logger, self.start_time,
-                                                                           child_resources=child_resources))
+                    report.update(klever.core.components.count_consumed_resources(
+                        self.logger, self.start_time, child_resources=child_resources))
 
                     if os.path.isfile('log.txt'):
                         report['log'] = klever.core.utils.ArchiveFiles(['log.txt'])
 
                     klever.core.utils.report(self.logger, 'finish', report, self.mqs['report files'], self.report_id,
-                                      self.conf['main working directory'])
+                                             self.conf['main working directory'])
 
                     self.logger.info('Terminate report files message queue')
                     self.mqs['report files'].put(None)
