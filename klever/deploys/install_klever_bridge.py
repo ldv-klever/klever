@@ -49,71 +49,60 @@ def _install_klever_bridge(logger):
     execute_cmd(logger, sys.executable, './manage.py', 'migrate')
 
     logger.info('Populate database')
-    execute_cmd(logger, sys.executable, './manage.py', 'createuser', '--username', 'admin', '--password', 'admin', '--staff',
-                '--superuser')
-    execute_cmd(logger, sys.executable, './manage.py', 'createuser', '--username', 'manager', '--password', 'manager', '--role', '2')
-    execute_cmd(logger, sys.executable, './manage.py', 'createuser', '--username', 'service', '--password', 'service', '--role', '4')
+    execute_cmd(logger, sys.executable, './manage.py', 'createuser',
+                '--username', 'admin', '--password', 'admin',
+                '--staff', '--superuser')
+    execute_cmd(logger, sys.executable, './manage.py', 'createuser',
+                '--username', 'manager', '--password', 'manager',
+                '--role', '2')
+    execute_cmd(logger, sys.executable, './manage.py', 'createuser',
+                '--username', 'service', '--password', 'service',
+                '--role', '4')
     execute_cmd(logger, sys.executable, './manage.py', 'populate', '--all')
 
     logger.info('Check whether preset files of existing verification jobs differ from new ones')
     execute_cmd(logger, sys.executable, './manage.py', 'check-preset')
 
 
-def install_klever_bridge_development(logger, deploy_dir):
+def install_klever_bridge_development(logger, src_dir):
     logger.info('Install/update development Klever Bridge')
 
     services = ('klever-bridge-development', 'klever-celery-development', 'klever-celerybeat-development')
     stop_services(logger, services)
 
-    # Do not overwrite directory "media" from sumbolically linked Git repository. Otherwise it will notice changes.
-    if not os.path.islink(os.path.join(deploy_dir, 'klever')):
-        logger.info('Prepare media directory')
-        media = os.path.join(deploy_dir, 'klever/bridge/media')
-        media_real = os.path.join(os.path.realpath(deploy_dir), 'klever-media')
-
-        if os.path.islink(media):
-            os.remove(media)
-        else:
-            shutil.rmtree(media)
-
-        execute_cmd(logger, 'mkdir', '-p', media_real)
-        execute_cmd(logger, 'ln', '-s', '-T', media_real, media)
-
-    with Cd(os.path.join(deploy_dir, 'klever/bridge')):
-        with open('bridge/settings.py', 'w') as fp:
-            fp.write('from bridge.{0} import *\n'.format('development'))
-
+    with Cd(os.path.join(src_dir, 'klever/bridge')):
         _install_klever_bridge(logger)
 
     start_services(logger, services)
 
 
-def install_klever_bridge_production(logger, deploy_dir, populate_just_production_presets=True):
+def install_klever_bridge_production(logger, src_dir, deploy_dir, populate_just_production_presets=True):
     logger.info('Install/update production Klever Bridge')
 
     services = ('nginx', 'klever-bridge', 'klever-celery', 'klever-celerybeat')
     stop_services(logger, services)
 
     logger.info('Copy Klever Bridge configuration file for NGINX')
-    copy_from = os.path.join(deploy_dir, 'klever/bridge/conf/debian-nginx')
+    copy_from = os.path.join(src_dir, 'klever/bridge/conf/nginx')
 
     if os.path.exists('/etc/nginx/sites-enabled'):
         shutil.copy(copy_from, '/etc/nginx/sites-enabled/klever-bridge.conf')
     else:
         shutil.copy(copy_from, '/etc/nginx/conf.d/klever-bridge.conf')
 
-    logger.info('Update Klever Bridge source/binary code')
+    logger.info('Install/update Klever Bridge source/binary code')
     shutil.rmtree('/var/www/klever-bridge', ignore_errors=True)
-    shutil.copytree(os.path.join(deploy_dir, 'klever/bridge'), '/var/www/klever-bridge')
+    shutil.copytree(os.path.join(src_dir, 'klever/bridge'), '/var/www/klever-bridge/bridge')
+    shutil.copytree(os.path.join(src_dir, 'klever/presets'), '/var/www/klever-bridge/presets')
 
     logger.info('Prepare media directory')
-    media = '/var/www/klever-bridge/media'
+    media = '/var/www/klever-bridge/bridge/media'
     media_real = os.path.join(os.path.realpath(deploy_dir), 'klever-media')
     shutil.rmtree(media)
     execute_cmd(logger, 'mkdir', '-p', media_real)
     execute_cmd(logger, 'ln', '-s', '-T', media_real, media)
 
-    with Cd('/var/www/klever-bridge'):
+    with Cd('/var/www/klever-bridge/bridge'):
         with open('bridge/settings.py', 'w') as fp:
             fp.write('from bridge.{0} import *\n'.format('production'))
             if not populate_just_production_presets:

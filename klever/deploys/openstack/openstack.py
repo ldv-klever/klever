@@ -314,10 +314,6 @@ class OSKleverInstance(OSEntity):
                 self.ssh.execute_cmd('sudo rm klever-inst/klever.json')
                 self.ssh.sftp_put(nested_fp.name, 'klever-inst/klever.json', sudo=True)
 
-        if install_entity(self.logger, 'Klever', 'klever-inst/klever', deploy_conf, prev_deploy_info, self._cmd_fn,
-                          self._install_fn):
-            to_update(prev_deploy_info, 'Klever', dump_cur_deploy_info)
-
         install_klever_addons(self.logger, 'klever-inst', deploy_conf, prev_deploy_info, self._cmd_fn, self._install_fn,
                               dump_cur_deploy_info)
         install_klever_build_bases(self.logger, 'klever-inst/klever', deploy_conf, self._cmd_fn, self._install_fn)

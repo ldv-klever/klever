@@ -81,7 +81,6 @@ def check_deployment_configuration_file(logger, deploy_conf_file):
             sys.exit(errno.ENOENT)
 
     unspecified_attrs = [attr for attr in (
-        'Klever',
         'Klever Addons',
         'Klever Build Bases'
     ) if attr not in deploy_conf]
@@ -114,7 +113,8 @@ def get_password(logger, prompt):
         return sys.stdin.readline().rstrip()
 
 
-def install_entity(logger, name, deploy_dir, deploy_conf, prev_deploy_info, cmd_fn, install_fn):
+def install_entity(logger, name, src_dir, deploy_dir, deploy_conf, prev_deploy_info, cmd_fn, install_fn,
+                   dump_cur_deploy_info_fn):
     if name not in deploy_conf:
         logger.error('"{0}" is not described'.format(name))
         sys.exit(errno.EINVAL)
@@ -136,7 +136,7 @@ def install_entity(logger, name, deploy_dir, deploy_conf, prev_deploy_info, cmd_
     path = desc['path']
     o = urllib.parse.urlparse(path)
     if not o[0]:
-        path = make_canonical_path(path)
+        path = make_canonical_path(src_dir, path)
 
     refs = {}
     try:
@@ -164,7 +164,7 @@ def install_entity(logger, name, deploy_dir, deploy_conf, prev_deploy_info, cmd_
 
     if version == prev_version and version != 'CURRENT':
         logger.info('"{0}" is up to date (version: "{1}")'.format(name, version))
-        return False
+        return
 
     if prev_version:
         logger.info('Update "{0}" from version "{1}" to version "{2}"'.format(name, prev_version, version))
@@ -247,7 +247,7 @@ def install_entity(logger, name, deploy_dir, deploy_conf, prev_deploy_info, cmd_
             if attr in desc:
                 prev_deploy_info[name][attr] = desc[attr]
 
-        return True
+        dump_cur_deploy_info_fn(prev_deploy_info)
     finally:
         if tmp_file:
             os.unlink(tmp_file)
@@ -255,90 +255,76 @@ def install_entity(logger, name, deploy_dir, deploy_conf, prev_deploy_info, cmd_
             shutil.rmtree(tmp_dir)
 
 
-def install_klever_addons(logger, deploy_dir, deploy_conf, prev_deploy_info, cmd_fn, install_fn,
+def install_klever_addons(logger, src_dir, deploy_dir, deploy_conf, prev_deploy_info, cmd_fn, install_fn,
                           dump_cur_deploy_info_fn):
-    is_update_controller_and_schedulers = False
-    is_update_verification_backends = False
+    deploy_addons_conf = deploy_conf['Klever Addons']
 
-    if 'Klever Addons' in deploy_conf:
-        deploy_addons_conf = deploy_conf['Klever Addons']
+    if 'Klever Addons' not in prev_deploy_info:
+        prev_deploy_info['Klever Addons'] = {}
 
-        if 'Klever Addons' not in prev_deploy_info:
-            prev_deploy_info['Klever Addons'] = {}
+    prev_deploy_addons_conf = prev_deploy_info['Klever Addons']
 
-        prev_deploy_addons_conf = prev_deploy_info['Klever Addons']
+    for addon in deploy_addons_conf.keys():
+        if addon == 'Verification Backends':
+            if 'Verification Backends' not in prev_deploy_addons_conf:
+                prev_deploy_addons_conf['Verification Backends'] = {}
 
-        for addon in deploy_addons_conf.keys():
-            if addon == 'Verification Backends':
-                if 'Verification Backends' not in prev_deploy_addons_conf:
-                    prev_deploy_addons_conf['Verification Backends'] = {}
-
-                for verification_backend in deploy_addons_conf['Verification Backends'].keys():
-                    is_update_verification_backends |= \
-                        install_entity(logger, verification_backend,
-                                       os.path.join(deploy_dir, 'klever-addons', 'verification-backends',
-                                                    verification_backend),
-                                       deploy_addons_conf['Verification Backends'],
-                                       prev_deploy_addons_conf['Verification Backends'],
-                                       cmd_fn, install_fn)
-            elif install_entity(logger, addon, os.path.join(deploy_dir, 'klever-addons', addon),
-                                deploy_addons_conf, prev_deploy_addons_conf, cmd_fn, install_fn) \
-                    and addon in ('BenchExec', 'Clade', 'CIF', 'CIL', 'Consul', 'VerifierCloud Client'):
-                is_update_controller_and_schedulers = True
-
-    if is_update_controller_and_schedulers:
-        to_update(prev_deploy_info, 'Controller & Schedulers', dump_cur_deploy_info_fn)
-
-    if is_update_verification_backends:
-        to_update(prev_deploy_info, 'Verification Backends', dump_cur_deploy_info_fn)
+            for verification_backend in deploy_addons_conf['Verification Backends'].keys():
+                install_entity(logger, verification_backend, src_dir,
+                               os.path.join(deploy_dir, 'klever-addons', 'verification-backends', verification_backend),
+                               deploy_addons_conf['Verification Backends'],
+                               prev_deploy_addons_conf['Verification Backends'],
+                               cmd_fn, install_fn, dump_cur_deploy_info_fn)
+        else:
+            install_entity(logger, addon, src_dir, os.path.join(deploy_dir, 'klever-addons', addon), deploy_addons_conf,
+                           prev_deploy_addons_conf, cmd_fn, install_fn, dump_cur_deploy_info_fn)
 
 
-def install_klever_build_bases(logger, deploy_dir, deploy_conf, cmd_fn, install_fn):
+def install_klever_build_bases(logger, src_dir, deploy_dir, deploy_conf, cmd_fn, install_fn):
     # Klever build bases are placed within Klever deployment directory. Do not do that when the latter is symbolic link
     # since this can damage sources. Most likely in this case one will not deploy Klever build bases using configuration
     # anyway but will place them directly within Klever source tree within directory "build bases".
     if os.path.islink(deploy_dir):
         return
 
-    if 'Klever Build Bases' in deploy_conf:
-        for klever_build_base in deploy_conf['Klever Build Bases']:
-            logger.info('Install Klever build base "{0}"'.format(klever_build_base))
+    for klever_build_base in deploy_conf['Klever Build Bases']:
+        logger.info('Install Klever build base "{0}"'.format(klever_build_base))
 
-            # Very simplified deploys.utils.install_entity.
-            tmp_file = None
-            try:
-                o = urllib.parse.urlparse(klever_build_base)
-                if not o[0]:
-                    klever_build_base = make_canonical_path(klever_build_base)
+        # Very simplified deploys.utils.install_entity.
+        tmp_file = None
+        try:
+            o = urllib.parse.urlparse(klever_build_base)
+            if not o[0]:
+                klever_build_base = make_canonical_path(src_dir, klever_build_base)
 
-                instance_klever_build_base = os.path.join(deploy_dir, 'build bases',
-                                                          os.path.basename(klever_build_base))
+            instance_klever_build_base = os.path.join(deploy_dir, 'build bases',
+                                                      os.path.basename(klever_build_base))
 
-                if o[0] in ('http', 'https', 'ftp'):
-                    _, tmp_file = tempfile.mkstemp()
-                    execute_cmd(logger, 'wget', '-O', tmp_file, '-q', klever_build_base)
-                    klever_build_base = tmp_file
-                elif o[0]:
-                    logger.error('Klever build base is provided in unsupported form {!r}'.format(o[0]))
-                    sys.exit(errno.EINVAL)
-                elif not os.path.exists(klever_build_base):
-                    logger.error('Path "{0}" does not exist'.format(klever_build_base))
-                    sys.exit(errno.ENOENT)
+            if o[0] in ('http', 'https', 'ftp'):
+                _, tmp_file = tempfile.mkstemp()
+                execute_cmd(logger, 'wget', '-O', tmp_file, '-q', klever_build_base)
+                klever_build_base = tmp_file
+            elif o[0]:
+                logger.error('Klever build base is provided in unsupported form {!r}'.format(o[0]))
+                sys.exit(errno.EINVAL)
+            elif not os.path.exists(klever_build_base):
+                logger.error('Path "{0}" does not exist'.format(klever_build_base))
+                sys.exit(errno.ENOENT)
 
-                cmd_fn('rm', '-rf', instance_klever_build_base)
-                install_fn(klever_build_base, instance_klever_build_base)
+            cmd_fn('rm', '-rf', instance_klever_build_base)
+            install_fn(klever_build_base, instance_klever_build_base)
 
-                # Always grant to everybody (including user "klever" who does need that) at least read permissions for
-                # deployed Klever build base. Otherwise user "klever" will not be able to access them.
-                cmd_fn('chmod', '-R', '+r', instance_klever_build_base)
-            finally:
-                if tmp_file:
-                    os.unlink(tmp_file)
+            # Always grant to everybody (including user "klever" who does need that) at least read permissions for
+            # deployed Klever build base. Otherwise user "klever" will not be able to access them.
+            cmd_fn('chmod', '-R', '+r', instance_klever_build_base)
+        finally:
+            if tmp_file:
+                os.unlink(tmp_file)
 
 
-def make_canonical_path(path):
+def make_canonical_path(src_dir, path):
     if not os.path.isabs(path):
-        path = os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir, path)
+        path = os.path.join(src_dir, path)
 
     # Avoid paths as symbolic links for all further operations. Some of them deal with symbolic links as we need,
     # but other ones can perform unexpected things.
@@ -371,14 +357,6 @@ def stop_services(logger, services, ignore_errors=False):
                 pass
             else:
                 raise
-
-
-def to_update(prev_deploy_info, entity, dump_cur_deploy_info_fn):
-    if 'To update' not in prev_deploy_info:
-        prev_deploy_info['To update'] = {}
-
-    prev_deploy_info['To update'][entity] = True
-    dump_cur_deploy_info_fn(prev_deploy_info)
 
 
 def get_media_user(logger):

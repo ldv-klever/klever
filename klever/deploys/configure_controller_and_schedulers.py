@@ -38,25 +38,6 @@ def configure_task_and_job_configuration_paths(prev_deploy_info, client_config):
         client_config['client']['addon python packages'].append(path)
 
 
-def configure_native_scheduler_task_worker(logger, deploy_dir, prev_deploy_info):
-    logger.info('Configure Klever Native Scheduler Task Worker')
-
-    with Cd(deploy_dir):
-        with open('klever/klever/scheduler/conf/task-client.json') as fp:
-            task_client_conf = json.load(fp)
-
-        configure_task_and_job_configuration_paths(prev_deploy_info, task_client_conf)
-        verification_backends = task_client_conf['client']['verification tools'] = {}
-        for name, desc in prev_deploy_info['Klever Addons']['Verification Backends'].items():
-            if desc['name'] not in verification_backends:
-                verification_backends[desc['name']] = {}
-            verification_backends[desc['name']][desc['version']] = get_klever_addon_abs_path(prev_deploy_info, name,
-                                                                                             verification_backend=True)
-
-        with open('klever-conf/native-scheduler-task-client.json', 'w') as fp:
-            json.dump(task_client_conf, fp, sort_keys=True, indent=4)
-
-
 def configure_controller_and_schedulers(logger, development, deploy_dir, prev_deploy_info):
     logger.info('(Re)configure {0} Klever Controller and Klever schedulers'
                 .format('development' if development else 'production'))
@@ -150,7 +131,21 @@ def configure_controller_and_schedulers(logger, development, deploy_dir, prev_de
             with open('klever-conf/verifiercloud-scheduler.json', 'w') as fp:
                 json.dump(verifiercloud_scheduler_conf, fp, sort_keys=True, indent=4)
 
-    configure_native_scheduler_task_worker(logger, deploy_dir, prev_deploy_info)
+        logger.info('Configure Klever Native Scheduler Task Worker')
+
+        with open('klever/klever/scheduler/conf/task-client.json') as fp:
+            task_client_conf = json.load(fp)
+
+        configure_task_and_job_configuration_paths(prev_deploy_info, task_client_conf)
+        verification_backends = task_client_conf['client']['verification tools'] = {}
+        for name, desc in prev_deploy_info['Klever Addons']['Verification Backends'].items():
+            if desc['name'] not in verification_backends:
+                verification_backends[desc['name']] = {}
+            verification_backends[desc['name']][desc['version']] = get_klever_addon_abs_path(prev_deploy_info, name,
+                                                                                             verification_backend=True)
+
+        with open('klever-conf/native-scheduler-task-client.json', 'w') as fp:
+            json.dump(task_client_conf, fp, sort_keys=True, indent=4)
 
     start_services(logger, services)
 
@@ -161,17 +156,13 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--development', default=False, action='store_true')
     parser.add_argument('--deployment-directory', default='klever-inst')
-    parser.add_argument('--just-native-scheduler-task-worker', default=False, action='store_true')
     args = parser.parse_args()
 
     with open(os.path.join(args.deployment_directory, 'klever.json')) as fp:
         prev_deploy_info = json.load(fp)
 
-    if args.just_native_scheduler_task_worker:
-        configure_native_scheduler_task_worker(get_logger(__name__), args.deployment_directory, prev_deploy_info)
-    else:
-        configure_controller_and_schedulers(get_logger(__name__), args.development, args.deployment_directory,
-                                            prev_deploy_info)
+    configure_controller_and_schedulers(get_logger(__name__), args.development, args.deployment_directory,
+                                        prev_deploy_info)
 
 
 if __name__ == '__main__':

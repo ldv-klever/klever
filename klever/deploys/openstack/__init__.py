@@ -61,6 +61,8 @@ def main():
                         default=os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir, 'conf',
                                              'klever.json'),
                         help='Path to Klever deployment configuration file (default: "%(default)s").')
+    parser.add_argument('--source-directory', default=os.getcwd(),
+                        help='Path to Klever source directory (default: "%(default)s").')
     parser.add_argument('--update-packages', default=False, action='store_true',
                         help='Update packages for action "update" (default: "%(default)s"). ' +
                              'This option has no effect for other actions.')
