@@ -118,8 +118,8 @@ def install_klever_bridge_production(logger, src_dir, deploy_dir, populate_just_
     user_group = '{}:{}'.format(media_user, media_user)
 
     execute_cmd(logger, 'chown', '-R', user_group, media_real)
-    execute_cmd(logger, 'chown', '-R', user_group, '/var/www/klever-bridge/logs')
-    execute_cmd(logger, 'chown', '-R', user_group, '/var/www/klever-bridge/static')
+    execute_cmd(logger, 'chown', '-R', user_group, '/var/www/klever-bridge/bridge/logs')
+    execute_cmd(logger, 'chown', '-R', user_group, '/var/www/klever-bridge/bridge/static')
 
     start_services(logger, services)
 
