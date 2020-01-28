@@ -70,7 +70,7 @@ def install_klever_bridge_development(logger, src_dir):
     services = ('klever-bridge-development', 'klever-celery-development', 'klever-celerybeat-development')
     stop_services(logger, services)
 
-    with Cd(os.path.join(src_dir, 'klever/bridge')):
+    with Cd(os.path.join(src_dir, 'bridge')):
         _install_klever_bridge(logger)
 
     start_services(logger, services)
@@ -92,8 +92,8 @@ def install_klever_bridge_production(logger, src_dir, deploy_dir, populate_just_
 
     logger.info('Install/update Klever Bridge source/binary code')
     shutil.rmtree('/var/www/klever-bridge', ignore_errors=True)
-    shutil.copytree(os.path.join(src_dir, 'klever/bridge'), '/var/www/klever-bridge/bridge')
-    shutil.copytree(os.path.join(src_dir, 'klever/presets'), '/var/www/klever-bridge/presets')
+    shutil.copytree(os.path.join(src_dir, 'bridge'), '/var/www/klever-bridge/bridge')
+    shutil.copytree(os.path.join(src_dir, 'presets'), '/var/www/klever-bridge/presets')
 
     logger.info('Prepare media directory')
     media = '/var/www/klever-bridge/bridge/media'
