@@ -8,7 +8,7 @@ User=www-data
 Group=www-data
 EnvironmentFile=-/etc/conf.d/klever-celery.conf
 EnvironmentFile=/etc/default/klever
-WorkingDirectory=/var/www/klever-bridge
+WorkingDirectory=/var/www/klever-bridge/bridge
 ExecStart=/bin/sh -c '${KLEVER_PYTHON_BIN_DIR}/celery multi start $CELERYD_NODES \
 	-A $CELERY_APP --pidfile=${CELERYD_PID_FILE} --logfile=${CELERYD_LOG_FILE} \
 	--loglevel="${CELERYD_LOG_LEVEL}" $CELERYD_OPTS'
