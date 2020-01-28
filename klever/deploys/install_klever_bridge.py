@@ -83,7 +83,7 @@ def install_klever_bridge_production(logger, src_dir, deploy_dir, populate_just_
     stop_services(logger, services)
 
     logger.info('Copy Klever Bridge configuration file for NGINX')
-    copy_from = os.path.join(src_dir, 'klever/bridge/conf/nginx')
+    copy_from = os.path.join(src_dir, 'bridge/conf/nginx')
 
     if os.path.exists('/etc/nginx/sites-enabled'):
         shutil.copy(copy_from, '/etc/nginx/sites-enabled/klever-bridge.conf')
