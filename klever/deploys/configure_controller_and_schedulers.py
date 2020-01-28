@@ -88,8 +88,8 @@ def configure_controller_and_schedulers(logger, development, src_dir, deploy_dir
 
     native_scheduler_conf['scheduler'].update({
         'disable CPU cores account': True,
-        'job client configuration': os.path.abspath('klever-conf/native-scheduler-job-client.json'),
-        'task client configuration': os.path.abspath('klever-conf/native-scheduler-task-client.json')
+        'job client configuration': os.path.join(deploy_dir, 'klever-conf/native-scheduler-job-client.json'),
+        'task client configuration': os.path.join(deploy_dir, 'klever-conf/native-scheduler-task-client.json')
     })
 
     if development:
