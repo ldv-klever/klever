@@ -33,27 +33,17 @@ def install_deps(logger, deploy_conf, prev_deploy_info, non_interactive, update_
     pckgs_to_install = []
     pckgs_to_update = []
 
-    deploy_conf.update(load_deps_conf(logger))
-
-    # We can skip installation/update of dependencies if nothing is specified, but most likely one prepares
-    # deployment configuration file incorrectly.
-    if 'Packages' not in deploy_conf:
-        logger.error('Deployment configuration file does not describe packages to be installed/updated')
-        sys.exit(errno.EINVAL)
-
-    new_pckgs = []
-    for pckgs in deploy_conf['Packages'].values():
-        new_pckgs.extend(pckgs)
+    deploy_conf['Packages'] = load_deps_conf(logger).split(' ')
 
     if 'Packages' in prev_deploy_info:
-        for pckg in new_pckgs:
+        for pckg in deploy_conf['Packages']:
             if pckg in prev_deploy_info['Packages']:
                 pckgs_to_update.append(pckg)
             else:
                 pckgs_to_install.append(pckg)
     else:
         # All packages should be installed.
-        pckgs_to_install = new_pckgs
+        pckgs_to_install = deploy_conf['Packages']
 
     if pckgs_to_install or (pckgs_to_update and update_pckgs):
         logger.info('Update packages list')
@@ -113,15 +103,15 @@ def load_deps_conf(logger):
     deps_conf_dir = os.path.join(os.path.dirname(__file__), 'conf')
 
     if shutil.which('apt'):
-        deps_conf_file = os.path.join(deps_conf_dir, 'debian.json')
+        deps_conf_file = os.path.join(deps_conf_dir, 'debian-packages.txt')
     elif shutil.which('dnf'):
-        deps_conf_file = os.path.join(deps_conf_dir, 'fedora.json')
+        deps_conf_file = os.path.join(deps_conf_dir, 'fedora-packages.txt')
     else:
         logger.error('Your Linux distribution is not supported')
         sys.exit(errno.EINVAL)
 
     with open(deps_conf_file) as fp:
-        deps_conf = json.load(fp)
+        deps_conf = fp.read()
 
     return deps_conf
 
