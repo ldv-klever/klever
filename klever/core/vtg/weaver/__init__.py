@@ -149,23 +149,9 @@ class Weaver(klever.core.vtg.plugins.Plugin):
                         filter_func=klever.core.vtg.utils.CIFErrorFilter())
                     self.logger.debug('C file "{0}" was weaved in'.format(infile))
 
-                    # In addition preprocess output files since CIF outputs a bit unpreprocessed files.
-                    preprocessed_c_file = '{}.i'.format(os.path.splitext(outfile)[0])
-                    klever.core.utils.execute(self.logger,
-                                       (
-                                           'aspectator',
-                                           '-E',
-                                           '-x', 'c', outfile,
-                                           '-o', preprocessed_c_file
-                                       ),
-                                       timeout=0.01)
-                    if not self.conf['keep intermediate files']:
-                        os.remove(outfile)
-                    self.logger.debug('Preprocessed weaved C file was put to "{0}"'.format(preprocessed_c_file))
-
                     abs_paths_c_file = '{0}.abs-paths.i'.format(os.path.splitext(outfile)[0])
-                    with open(preprocessed_c_file, encoding='utf8') as fp_in, open(abs_paths_c_file, 'w',
-                                                                                   encoding='utf8') as fp_out:
+                    with open(outfile, encoding='utf8') as fp_in,\
+                            open(abs_paths_c_file, 'w', encoding='utf8') as fp_out:
                         # Print preprocessor header as is.
                         first_line = fp_in.readline()
                         fp_out.write(first_line)
@@ -199,8 +185,7 @@ class Weaver(klever.core.vtg.plugins.Plugin):
                                 fp_out.write(match.group(1) + file + match.group(3))
                             else:
                                 fp_out.write(line)
-                    if not self.conf['keep intermediate files']:
-                        os.remove(preprocessed_c_file)
+
                     self.logger.debug(
                         'Preprocessed weaved C file with absolute paths was put to "{0}"'.format(abs_paths_c_file))
 
