@@ -33,7 +33,7 @@ def package_files(package_directory):
 
 setuptools.setup(
     name="klever",
-    version="3.0",
+    use_scm_version=True,
     author="ISP RAS",
     author_email="ldv-project@linuxtesting.org",
     url="http://forge.ispras.ru/projects/klever",

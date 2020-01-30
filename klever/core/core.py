@@ -20,8 +20,7 @@ import json
 import hashlib
 import multiprocessing
 import os
-import setuptools_scm
-import setuptools_scm.hacks
+import pkg_resources
 import shutil
 import time
 import traceback
@@ -86,8 +85,8 @@ class Core(klever.core.components.CallbacksCaller):
                     'parent': None,
                     'component': type(self).__name__,
                     'attrs': [{
-                        'name': 'Klever Core version',
-                        'value': self.get_version()
+                        'name': 'Klever version',
+                        'value': pkg_resources.get_distribution('klever').version
                     }],
                     'computer': self.comp
                 },
@@ -241,23 +240,6 @@ class Core(klever.core.components.CallbacksCaller):
         os.chdir(self.conf['working directory'])
 
         self.conf['main working directory'] = os.path.abspath(os.path.curdir)
-
-    def get_version(self):
-        """
-        Get version either as a tag in the Git repository of Klever or from the file created when installing Klever.
-        """
-        # Git repository directory may be located in parent directory of parent directory.
-        git_repo_dir = os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir)
-        if os.path.isdir(os.path.join(git_repo_dir, '.git')):
-            self.logger.info('Get version on the basis of the Git repository')
-            version = setuptools_scm.get_version(root=git_repo_dir)
-        else:
-            self.logger.info('Get version on the basis of package information')
-            version = setuptools_scm.get_version(
-                os.path.join(os.path.dirname(__file__), os.path.pardir, 'KleverCore.egg-info'),
-                parse=setuptools_scm.hacks.parse_pkginfo)
-        self.logger.debug('Klever Core version is "{0}"'.format(version))
-        return version
 
     def get_comp_desc(self):
         self.logger.info('Get computer description')

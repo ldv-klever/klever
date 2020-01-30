@@ -214,11 +214,6 @@ def install_entity(logger, name, src_dir, deploy_dir, deploy_conf, prev_deploy_i
                         execute_cmd(logger, 'git', 'clone', '-q', path, tmp_path)
                         execute_cmd(logger, 'git', '-C', tmp_path, 'checkout', '-q', version)
 
-                    # Remember actual Klever Core version since this won't be able after ignoring ".git" below.
-                    if name == 'Klever':
-                        with Cd(os.path.join(tmp_path, 'core')):
-                            execute_cmd(logger, './setup.py', 'egg_info')
-
                     # Directory .git can be quite large so ignore it during installing except one needs it.
                     install_fn(tmp_path, deploy_dir, ignore=None if desc.get('copy .git directory') else ['.git'])
         elif os.path.isfile(path) and (tarfile.is_tarfile(path) or zipfile.is_zipfile(path)):
