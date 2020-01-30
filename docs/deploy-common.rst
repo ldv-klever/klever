@@ -74,7 +74,7 @@ CIF
 ^^^
 
 One can download `CIF <https://forge.ispras.ru/projects/cif/>`__ binaries from
-`here <https://forge.ispras.ru/attachments/download/7268/cif-80df0b8.tar.xz>`__.
+`here <https://forge.ispras.ru/attachments/download/7270/cif-00102f8.tar.xz>`__.
 These binaries are compatible with various Linux distributions since CIF is based on `GCC <https://gcc.gnu.org/>`__
 that has few dependencies.
 Besides, one can clone `CIF Git repository <https://forge.ispras.ru/projects/cif/repository>`__ and build CIF from
