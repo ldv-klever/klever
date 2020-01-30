@@ -85,7 +85,7 @@ class Weaver(klever.core.vtg.plugins.Plugin):
                     else:
                         infile = cc["in"][0]
                     outfile = '{0}.c'.format(klever.core.utils.unique_file_name(os.path.splitext(os.path.basename(
-                        infile))[0], '.abs-paths.i'))
+                        infile))[0], '.c'))
                     self.logger.info('Weave in C file "{0}"'.format(infile))
 
                     # Produce aspect to be weaved in.
@@ -149,47 +149,7 @@ class Weaver(klever.core.vtg.plugins.Plugin):
                         filter_func=klever.core.vtg.utils.CIFErrorFilter())
                     self.logger.debug('C file "{0}" was weaved in'.format(infile))
 
-                    abs_paths_c_file = '{0}.abs-paths.i'.format(os.path.splitext(outfile)[0])
-                    with open(outfile, encoding='utf8') as fp_in,\
-                            open(abs_paths_c_file, 'w', encoding='utf8') as fp_out:
-                        # Print preprocessor header as is.
-                        first_line = fp_in.readline()
-                        fp_out.write(first_line)
-                        for line in fp_in:
-                            fp_out.write(line)
-                            if line == first_line:
-                                break
-
-                        # Replace relative file paths with absolute ones for line directives in other lines.
-                        for line in fp_in:
-                            match = re.match(r'(# \d+ ")(.+)("\n)', line)
-                            if match:
-                                file = match.group(2)
-
-                                # Omit artificial and sometimes invalid reference to built-in stuff.
-                                if file == '<built-in>':
-                                    continue
-
-                                if not os.path.isabs(file):
-                                    # All relative file paths are relative to CC working directory.
-                                    file = os.path.abspath(os.path.join(os.path.realpath(clade.storage_dir) + cc['cwd'],
-                                                                        file))
-                                elif not os.path.isfile(file):
-                                    # Sometimes, e.g. for source files on Windows, their paths are absolute but just on
-                                    # Windows. To make them absolute on Linux we need to prepend them with Clade storage
-                                    # directory.
-                                    file = clade.get_storage_path(file)
-                                    if not os.path.isfile(file):
-                                        raise FileNotFoundError('Can not find file "{0}" eventually'.format(file))
-
-                                fp_out.write(match.group(1) + file + match.group(3))
-                            else:
-                                fp_out.write(line)
-
-                    self.logger.debug(
-                        'Preprocessed weaved C file with absolute paths was put to "{0}"'.format(abs_paths_c_file))
-
-                    extra_c_file = {'C file': os.path.relpath(abs_paths_c_file, self.conf['main working directory'])}
+                    extra_c_file = {'C file': os.path.relpath(outfile, self.conf['main working directory'])}
 
                     # TODO: this can be incorporated into instrumentation above but it will need some Clade changes.
                     # Emulate normal compilation (indeed just parsing thanks to "-fsyntax-only") to get additional
