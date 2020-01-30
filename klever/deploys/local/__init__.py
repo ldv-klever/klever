@@ -45,10 +45,10 @@ def main():
                         help='Update Python3 packages for action "update" (default: "%(default)s"). ' +
                              'This option has no effect for action "install".')
     parser.add_argument('--allow-symbolic-links', default=False, action='store_true',
-                        help='Use symbolic links to directories (Klever addons and programs) rather than copy them' +
+                        help='Use symbolic links to directories (Klever addons and build bases) rather than copy them' +
                              ' (default: "%(default)s"). Please, use this option very carefully to avoid dangling' +
                              ' symbolic links as well as unexpected changes in their targets. Indeed this option is' +
-                             ' intended to update Klever addons and programs silently without using deployment' +
+                             ' intended to update Klever addons and build bases silently without using deployment' +
                              ' scripts.')
     args = parser.parse_args()
 

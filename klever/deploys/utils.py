@@ -276,12 +276,6 @@ def install_klever_addons(logger, src_dir, deploy_dir, deploy_conf, prev_deploy_
 
 
 def install_klever_build_bases(logger, src_dir, deploy_dir, deploy_conf, cmd_fn, install_fn):
-    # Klever build bases are placed within Klever deployment directory. Do not do that when the latter is symbolic link
-    # since this can damage sources. Most likely in this case one will not deploy Klever build bases using configuration
-    # anyway but will place them directly within Klever source tree within directory "build bases".
-    if os.path.islink(deploy_dir):
-        return
-
     for klever_build_base in deploy_conf['Klever Build Bases']:
         logger.info('Install Klever build base "{0}"'.format(klever_build_base))
 
