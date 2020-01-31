@@ -1,7 +1,7 @@
 [Unit]
 Description=Klever Bridge Service
 After=network.target
-Requires=postgresql.service
+Requires=nginx.service postgresql.service rabbitmq-server.service
 
 [Service]
 Type=simple

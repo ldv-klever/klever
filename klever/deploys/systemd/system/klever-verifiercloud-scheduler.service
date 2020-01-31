@@ -1,5 +1,6 @@
 [Unit]
 Description=Klever VerifierCloud Scheduler Service
+Requires=rabbitmq-server.service
 
 [Service]
 Type=idle
