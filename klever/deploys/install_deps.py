@@ -33,7 +33,7 @@ def install_deps(logger, deploy_conf, prev_deploy_info, non_interactive, update_
     pckgs_to_install = []
     pckgs_to_update = []
 
-    deploy_conf['Packages'] = load_deps_conf(logger).split(' ')
+    deploy_conf['Packages'] = load_deps_conf(logger).strip().split(' ')
 
     if 'Packages' in prev_deploy_info:
         for pckg in deploy_conf['Packages']:
