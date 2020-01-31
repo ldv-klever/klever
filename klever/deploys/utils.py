@@ -331,9 +331,10 @@ def need_verifiercloud_scheduler(prev_deploy_info):
 
 
 def start_services(logger, services):
-    logger.info('Start services')
+    logger.info('Start and enable services')
     for service in services:
         execute_cmd(logger, 'service', service, 'start')
+        execute_cmd(logger, 'systemctl', 'enable', service)
 
 
 def stop_services(logger, services, ignore_errors=False):
