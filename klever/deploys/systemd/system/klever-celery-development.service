@@ -6,6 +6,8 @@ After=network.target local-fs.target remote-fs.target
 Type=simple
 EnvironmentFile=/etc/default/klever
 ExecStart=/bin/sh -c "cd ${KLEVER_SOURCE_DIRECTORY}/bridge && ${KLEVER_PYTHON_BIN_DIR}/celery -A bridge worker --loglevel=info"
+Restart=on-failure
+RestartSec=5
 
 [Install]
 WantedBy=multi-user.target
