@@ -24,24 +24,6 @@ from klever.deploys.utils import Cd, execute_cmd, get_logger, start_services, st
 
 # This function includes common actions for both development and production Klever Bridge.
 def _install_klever_bridge(logger):
-    logger.info('Configure Klever Bridge')
-    with open('bridge/db.json', 'w') as fp:
-        json.dump({
-            'ENGINE': 'django.db.backends.postgresql',
-            'HOST': '127.0.0.1',
-            'NAME': 'klever',
-            'USER': 'klever',
-            'PASSWORD': 'klever'
-        }, fp, indent=4)
-
-    with open('bridge/rmq.json', 'w') as fp:
-        json.dump({
-            'username': 'service',
-            'password': 'service',
-            'host': 'localhost',
-            'queue': 'Klever jobs and tasks'
-        }, fp, indent=4)
-
     logger.info('Update translations')
     execute_cmd(logger, sys.executable, './manage.py', 'compilemessages')
 
