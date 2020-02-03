@@ -198,10 +198,11 @@ class Klever:
             os.rmdir(self.args.deployment_directory)
 
         # Remove Klever Bridge NGINX configuration if so.
-        if os.path.exists('/etc/nginx/sites-enabled/klever-bridge.conf'):
-            os.remove('/etc/nginx/sites-enabled/klever-bridge.conf')
-        elif os.path.exists('/etc/nginx/conf.d/klever-bridge.conf'):
-            os.remove('/etc/nginx/conf.d/klever-bridge.conf')
+        for klever_bridge_nginx_conf_file in ('/etc/nginx/sites-enabled/klever-bridge.conf',
+                                              '/etc/nginx/conf.d/klever-bridge.conf'):
+            if os.path.exists(klever_bridge_nginx_conf_file):
+                self.logger.info('Remove "{0}"'.format(klever_bridge_nginx_conf_file))
+                os.remove(klever_bridge_nginx_conf_file)
         stop_services(self.logger, ('nginx',))
         start_services(self.logger, ('nginx',))
 
