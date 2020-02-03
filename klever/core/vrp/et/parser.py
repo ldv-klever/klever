@@ -79,11 +79,14 @@ class ErrorTraceParser:
                     orig_file_line_num = 0
                     for line in fp:
                         self.error_trace.programfile_content += line
-                        m = re.match('#line\s+(\d+)\s*(.*)', line)
+                        m = re.match(r'#line\s+(\d+)\s*(.*)', line)
                         if m:
                             orig_file_line_num = int(m.group(1))
                             if m.group(2):
-                                orig_file_id = self.error_trace.add_file(m.group(2)[1:-1])
+                                file_name = m.group(2)[1:-1]
+                                # Do not treat artificial file references. Let's hope that they will disappear one day.
+                                if not os.path.basename(file_name) == '<built-in>':
+                                    orig_file_id = self.error_trace.add_file(file_name)
                         else:
                             self.error_trace.programfile_line_map[line_num] = (orig_file_id, orig_file_line_num)
                             orig_file_line_num += 1
