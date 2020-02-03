@@ -28,7 +28,7 @@ from klever.deploys.install_deps import install_deps
 from klever.deploys.install_klever_bridge import install_klever_bridge_development, install_klever_bridge_production
 from klever.deploys.prepare_env import prepare_env
 from klever.deploys.utils import execute_cmd, install_klever_addons, install_klever_build_bases, \
-    need_verifiercloud_scheduler, stop_services, get_media_user, replace_media_user
+    need_verifiercloud_scheduler, start_services, stop_services, get_media_user, replace_media_user
 
 
 class Klever:
@@ -196,6 +196,14 @@ class Klever:
         if os.path.exists(self.args.deployment_directory) and not os.listdir(self.args.deployment_directory):
             self.logger.info('Remove "{0}"'.format(self.args.deployment_directory))
             os.rmdir(self.args.deployment_directory)
+
+        # Remove Klever Bridge NGINX configuration if so.
+        if os.path.exists('/etc/nginx/sites-enabled/klever-bridge.conf'):
+            os.remove('/etc/nginx/sites-enabled/klever-bridge.conf')
+        elif os.path.exists('/etc/nginx/conf.d/klever-bridge.conf'):
+            os.remove('/etc/nginx/conf.d/klever-bridge.conf')
+        stop_services(self.logger, ('nginx',))
+        start_services(self.logger, ('nginx',))
 
         try:
             pwd.getpwnam('postgres')
