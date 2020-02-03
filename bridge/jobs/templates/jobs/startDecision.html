@@ -23,6 +23,11 @@
 {% block title %}{% trans 'Start decision of job' %}{% endblock %}
 
 {% block head_block %}
+    <script type="application/javascript">
+    const PAGE_URLS = {
+        get_conf_url: "{% url 'jobs:api-configuration' %}"
+    };
+    </script>
     {% compress js file decision %}
         <script src="{% static 'jobs/js/startjob.js' %}"></script>
     {% endcompress %}
@@ -34,12 +39,19 @@
 
 {% block body_block %}
     <div class="ui grid">
-        <div class="eight wide column">
-            <h2>{% trans 'Start decision of job' %} <a id="job_link" href="{% url 'jobs:job' job.pk %}">{{ job.name }}</a></h2>
+        <div class="six wide column">
+            <h3>{% trans 'Start decision of job' %} <a id="job_link" href="{% url 'jobs:job' job.pk %}">{{ job.name }}</a></h3>
         </div>
-        <div class="two wide column right aligned">
+        <div class="four wide column right aligned">
             <div id="upload_file_conf_form"{% if current_conf != 'file_conf' %} style="display: none;"{% endif %}>
                 <span class="ui violet button btn-file">{% trans 'Browse' %}<input id="file_conf" type="file"></span>
+            </div>
+            <div id="select_lastconf_form"{% if current_conf != 'lastconf' %} style="display: none;"{% endif %}>
+                <select id="lastconf_select" class="ui dropdown">
+                    {% for decision in decisions %}
+                        <option value="{{ decision.id }}">{{ decision.name }}</option>
+                    {% endfor %}
+                </select>
             </div>
         </div>
         <div class="six wide column right aligned">
@@ -48,9 +60,8 @@
                 {% for conf in data.modes %}
                     <option value="{{ conf.0 }}"{% if current_conf == conf.0 %} selected{% endif %}>{{ conf.1 }}</option>
                 {% endfor %}
-                {% if job.status != '0' %}
-                    {# The job has decision already, so it has last run configuration #}
-                    <option value="lastconf">{% trans 'Last run configuration' %}</option>
+                {% if decisions|length %}
+                    <option value="lastconf">{% trans "Other decision's configuration" %}</option>
                 {% endif %}
                 <option value="file_conf">{% trans 'Use configuration from file' %}</option>
             </select>
@@ -58,7 +69,13 @@
     </div>
     <div class="ui horizontal segments">
         <div class="ui violet segment" style="width: 25%;">
-            <h3>{% trans 'Scheduling' %}</h3>
+            <h4>{% trans 'Decision name' %}</h4>
+            <div class="ui fluid input">
+                <input id="decision_name" type="text" placeholder="{% trans 'Name' %}">
+            </div>
+            <div class="ui divider"></div>
+
+            <h4>{% trans 'Scheduling' %}</h4>
             {% if data.job_sch_err %}
                 <h4 class="ui red header">{{ data.job_sch_err }}</h4>
             {% endif %}
@@ -96,7 +113,7 @@
 
         {# Parallelism #}
         <div class="ui violet segment" style="width: 40%;">
-            <h3>{% trans 'Operations parallelism' %}</h3>
+            <h4>{% trans 'Operations parallelism' %}</h4>
             <label for="parallelism_0">{% trans 'Sub-jobs processing' %}</label>
             <br>
             <div class="ui input">
@@ -121,7 +138,7 @@
         </div>
 
         <div class="ui violet segment" style="width: 35%;">
-            <h3>{% trans 'Resource limits for Klever Core' %}</h3>
+            <h4>{% trans 'Resource limits for Klever Core' %}</h4>
             <label for="memory" style="margin-right: 20px;">{% trans 'Memory size' %}, {% trans 'GB' %}</label>
             <div>
                 <div class="ui input">
@@ -246,8 +263,8 @@
             <br><br>
             <p class="bold-text">{% trans 'Job reports' %}</p>
             <div class="switch-toggle switch-3 switch-candy switch-candy-blue">
-                {% for w in data.job_weight %}
-                    <input id="weight_{{ w.0 }}" name="job_weight" type="radio" value="{{ w.0 }}" {% if data.conf.job_weight == w.0 %} checked="checked"{% endif %}>
+                {% for w in data.weight %}
+                    <input id="weight_{{ w.0 }}" name="weight" type="radio" value="{{ w.0 }}" {% if data.conf.weight == w.0 %} checked="checked"{% endif %}>
                     <label for="weight_{{ w.0 }}">{{ w.1 }}</label>
                 {% endfor %}
                 <a></a>

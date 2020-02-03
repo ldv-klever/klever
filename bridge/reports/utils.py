@@ -26,12 +26,12 @@ from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 from django.utils.functional import cached_property
 
-from bridge.vars import UNSAFE_VERDICTS, SAFE_VERDICTS, JOB_WEIGHT, ERROR_TRACE_FILE, SAFE_COLOR, UNSAFE_COLOR
+from bridge.vars import UNSAFE_VERDICTS, SAFE_VERDICTS, DECISION_WEIGHT, ERROR_TRACE_FILE, SAFE_COLOR, UNSAFE_COLOR
 from bridge.tableHead import Header
 from bridge.utils import BridgeException, ArchiveFileContent
 from bridge.ZipGenerator import ZipStream
 
-from reports.models import ReportComponent, ReportAttr, ReportUnsafe, ReportSafe, ReportUnknown, ReportRoot
+from reports.models import ReportComponent, ReportAttr, ReportUnsafe, ReportSafe, ReportUnknown
 
 from users.utils import HumanizedValue, paginate_queryset
 
@@ -130,15 +130,10 @@ class SafesTable:
         self.verdicts = SAFE_VERDICTS
         self.title = self.__get_title(query_params)
         self.parents = None
-        if report.root.job.weight == JOB_WEIGHT[0][0]:
+        if report.decision.weight == DECISION_WEIGHT[0][0]:
             self.parents = get_parents(report, include_self=True)
 
         self.header, self.values = self.__safes_data()
-
-    def __redirect_link(self):
-        if self.view['is_unsaved'] and self.paginator.count == 1:
-            return reverse('reports:safe', args=[self.paginator.object_list.first().pk])
-        return None
 
     def __get_ms(self, value, measure):
         if isinstance(value, str):
@@ -370,7 +365,7 @@ class UnsafesTable:
 
         self.title = self.__get_title(query_params)
         self.parents = None
-        if report.root.job.weight == JOB_WEIGHT[0][0]:
+        if report.decision.weight == DECISION_WEIGHT[0][0]:
             self.parents = get_parents(report, include_self=True)
 
         self.header, self.values = self.__unsafes_data()
@@ -601,7 +596,7 @@ class UnknownsTable:
 
         self.title = self.__get_title(query_params)
         self.parents = None
-        if report.root.job.weight == JOB_WEIGHT[0][0]:
+        if report.decision.weight == DECISION_WEIGHT[0][0]:
             self.parents = get_parents(report, include_self=True)
 
         self.header, self.values = self.__unknowns_data()
@@ -897,11 +892,8 @@ class FilesForCompetitionArchive:
     obj_attr = 'Program fragment'
     requirement_attr = 'Requirements specification'
 
-    def __init__(self, job, filters):
-        try:
-            self.root = ReportRoot.objects.get(job=job)
-        except ReportRoot.DoesNotExist:
-            raise BridgeException(_('The job is not decided'))
+    def __init__(self, decision, filters):
+        self.decision = decision
         self._attrs = self.__get_attrs()
         self._archives = self.__get_archives()
         self._archives_to_upload = []
@@ -927,7 +919,7 @@ class FilesForCompetitionArchive:
 
     def __get_archives(self):
         archives = {}
-        for report in ReportComponent.objects.filter(root=self.root, verification=True)\
+        for report in ReportComponent.objects.filter(decision=self.decision, verification=True)\
                 .exclude(verifier_files='').only('id', 'verifier_files'):
             archives[report.id] = report.verifier_files.path
         return archives
@@ -936,7 +928,7 @@ class FilesForCompetitionArchive:
         # Select attributes for all safes, unsafes and unknowns
         attrs = {}
         for report_id, a_name, a_value in ReportAttr.objects\
-                .filter(report__root=self.root, name__in=[self.obj_attr, self.requirement_attr]) \
+                .filter(report__decision=self.decision, name__in=[self.obj_attr, self.requirement_attr]) \
                 .exclude(report__reportunsafe=None, report__reportsafe=None, report__reportunknown=None) \
                 .values_list('report_id', 'name', 'value'):
             if report_id not in attrs:
@@ -958,7 +950,7 @@ class FilesForCompetitionArchive:
             )
 
     def __get_archives_to_upload(self, filters):
-        common_filters = {'root': self.root, 'parent__reportcomponent__verification': True}
+        common_filters = {'decision': self.decision, 'parent__reportcomponent__verification': True}
         if filters.get('safes'):
             for r_id, p_id in ReportSafe.objects.filter(**common_filters).values_list('id', 'parent_id'):
                 self.__add_archive('s', r_id, p_id)
@@ -985,11 +977,6 @@ def report_attributes_with_parents(report):
     reports_ids = list(report.get_ancestors(include_self=True).values_list('id', flat=True))
     attrs_qs = ReportAttr.objects.filter(report_id__in=reports_ids).order_by('report_id', 'id')
     return list(attrs_qs.values_list('name', 'value'))
-
-
-def remove_verifier_files(job):
-    for report in ReportComponent.objects.filter(root=job.reportroot, verification=True).exclude(verifier_files=''):
-        report.verifier_files.delete()
 
 
 def get_report_data_type(component, data):

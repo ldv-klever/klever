@@ -19,27 +19,29 @@ from rest_framework.permissions import IsAuthenticated
 
 from bridge.utils import USER_ROLES
 
-from jobs.models import Job, JobHistory
+from jobs.models import Job, Decision
 from jobs.utils import JobAccess
 from reports.models import ReportComponent
 
 
-class WriteJobPermission(IsAuthenticated):
+class CreateJobPermission(IsAuthenticated):
     def has_permission(self, request, view):
-        return super().has_permission(request, view) and JobAccess(request.user).can_create
+        return super().has_permission(request, view) and request.user.role not in {USER_ROLES[0][0], USER_ROLES[4][0]}
 
+
+class UpdateJobPermission(IsAuthenticated):
     def has_object_permission(self, request, view, obj):
-        return super().has_object_permission(request, view, obj) and JobAccess(request.user, obj).can_edit
+        return JobAccess(request.user, obj).can_edit
 
 
 class ViewJobPermission(IsAuthenticated):
     def has_object_permission(self, request, view, obj):
         if isinstance(obj, Job):
             job = obj
-        elif isinstance(obj, JobHistory):
+        elif isinstance(obj, Decision):
             job = obj.job
         elif isinstance(obj, ReportComponent):
-            job = obj.root.job
+            job = obj.decision.job
         else:
             return False
         return JobAccess(request.user, job).can_view

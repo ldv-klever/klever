@@ -150,6 +150,33 @@ window.encodeQueryData = function(data) {
     }).join("&");
 };
 
+window.api_send_json = function(url, method, data, on_success, on_error) {
+    $.ajax({
+        url: url, method: method,
+        data: JSON.stringify(data),
+        contentType: "application/json; charset=utf-8",
+        dataType: 'json',
+        crossDomain: false,
+        success: on_success,
+        error: on_error
+    });
+};
+
+window.api_upload_file = function(url, method, data, on_success) {
+    $('#dimmer_of_page').addClass('active');
+    $.ajax({
+        url: url,
+        method: method,
+        data: data,
+        dataType: 'json',
+        contentType: false,
+        processData: false,
+        mimeType: 'multipart/form-data',
+        xhr: function() { return $.ajaxSettings.xhr() },
+        success: on_success
+    });
+};
+
 window.collect_view_data = function(view_type) {
     let data = {};
     $('input[id^="view_data_' + view_type + '__"]').each(function () {
@@ -388,9 +415,7 @@ window.set_actions_for_views = function(view_type) {
 };
 
 window.update_colors = function (table) {
-    if (!table.hasClass('alternate-color')) {
-        return false;
-    }
+    if (!table.hasClass('alternate-color')) return false;
     let is_dark = false;
     table.find('tbody').first().find('tr:visible').each(function () {
         if (is_dark) {
@@ -402,6 +427,7 @@ window.update_colors = function (table) {
             is_dark = true;
         }
     });
+    return true;
 };
 
 window.getFileExtension = function(name) {
@@ -450,6 +476,28 @@ String.prototype.format = String.prototype.f = function(){
 
 };
 
+window.activate_warn_modal = function (warn_modal_id, activator, error_text, on_confirm) {
+    let modal_div = $('#' + warn_modal_id);
+    if (!modal_div.length) return false;
+
+    if (!error_text) error_text = 'Warning!';
+    modal_div.find('.warn-text').text(error_text);
+
+    let confirm_btn = modal_div.find('.modal-confirm'),
+        cancel_btn = modal_div.find('.modal-cancel');
+    modal_div.modal({closable: false, transition: 'fade in', autofocus: false});
+    cancel_btn.click(function () {
+        modal_div.modal('hide')
+    });
+    if (activator) {
+        $(activator).click(function () {
+            modal_div.modal('show')
+        });
+    }
+    if (on_confirm) confirm_btn.click(on_confirm);
+    return modal_div;
+};
+
 $(document).ready(function () {
     $('.browse').popup({
         inline: true,
@@ -463,10 +511,12 @@ $(document).ready(function () {
     });
     $('.ui.checkbox').checkbox();
     $('.ui.accordion').accordion();
-    $('.note-popup').each(function () {
-        let position = $(this).data('position');
-        position ? $(this).popup({position: position}) : $(this).popup();
-    });
+    // $('.note-popup').each(function () {
+    //     let position = $(this).data('position');
+    //     position ? $(this).popup({position: position}) : $(this).popup();
+    // });
+    $('.note-popup').popup();
+
     $('.ui.range').each(function () {
         let range_preview = $('#' + $(this).data('preview')),
             range_input = $('#' + $(this).data('input')),

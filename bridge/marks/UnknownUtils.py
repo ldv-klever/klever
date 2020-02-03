@@ -32,7 +32,7 @@ from caches.utils import RecalculateUnknownCache, UpdateUnknownCachesOnMarkChang
 
 
 def perform_unknown_mark_create(user, report, serializer):
-    mark = serializer.save(job=report.root.job, component=report.component)
+    mark = serializer.save(job=report.decision.job, component=report.component)
     res = ConnectUnknownMark(mark, prime_id=report.id, author=user)
     cache_upd = UpdateUnknownCachesOnMarkChange(mark, res.old_links, res.new_links)
     cache_upd.update_all()

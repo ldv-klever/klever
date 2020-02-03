@@ -22,48 +22,24 @@ from django.utils.translation import ugettext_lazy as _
 
 from rest_framework import exceptions, serializers, fields
 
-from bridge.vars import MPTT_FIELDS
+from bridge.vars import MPTT_FIELDS, PRESET_JOB_TYPE
 from bridge.serializers import TimeStampField
 
-from jobs.models import Job, RunHistory, JobFile, JobHistory
-from reports.models import ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent, Computer, ReportAttr, RootCache
-from service.models import Scheduler, Decision
+from jobs.models import Job, JobFile, FileSystem
+from reports.models import ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent, Computer, ReportAttr, DecisionCache
+from service.models import Decision
 
-from jobs.serializers import create_job_version, JobFilesField
+from jobs.serializers import JobFilesField
 from jobs.utils import get_unique_name
 
-ARCHIVE_FORMAT = 14
-
-
-class RunHistorySerializer(serializers.ModelSerializer):
-    date = TimeStampField()
-    configuration = serializers.SlugRelatedField(slug_field='hash_sum', queryset=JobFile.objects)
-
-    class Meta:
-        model = RunHistory
-        exclude = ('id', 'job', 'operator')
-
-
-class DownloadDecisionSerializer(serializers.ModelSerializer):
-    scheduler = serializers.SlugRelatedField(slug_field='type', queryset=Scheduler.objects)
-    start_date = TimeStampField(allow_null=True)
-    finish_date = TimeStampField(allow_null=True)
-    start_sj = TimeStampField(allow_null=True)
-    finish_sj = TimeStampField(allow_null=True)
-    start_ts = TimeStampField(allow_null=True)
-    finish_ts = TimeStampField(allow_null=True)
-
-    class Meta:
-        model = Decision
-        exclude = ('id', 'job', 'configuration', 'fake')
+ARCHIVE_FORMAT = 15
 
 
 class DownloadJobSerializer(serializers.ModelSerializer):
     identifier = fields.UUIDField()
     name = fields.CharField(max_length=150)
     archive_format = fields.IntegerField(write_only=True)
-    run_history = RunHistorySerializer(many=True)
-    decision = DownloadDecisionSerializer(allow_null=True)
+    files = JobFilesField(source='files.all')
 
     def validate_identifier(self, value):
         if Job.objects.filter(identifier=value).exists():
@@ -88,31 +64,59 @@ class DownloadJobSerializer(serializers.ModelSerializer):
         # Run history and decision must be created outside with configuration file and job instance
         validated_data.pop('run_history')
         validated_data.pop('decision')
+        job_files = validated_data.pop('files')['all']
 
-        return super().create(validated_data)
+        instance = super().create(validated_data)
+        FileSystem.objects.bulk_create(list(FileSystem(job=instance, **fkwargs) for fkwargs in job_files))
+        return instance
 
     def to_representation(self, instance):
         value = super().to_representation(instance)
         value['archive_format'] = ARCHIVE_FORMAT
+
+        if isinstance(instance, Job):
+            preset_info = {}
+            presets_qs = instance.preset.get_ancestors(include_self=True)\
+                .exclude(type=PRESET_JOB_TYPE[0][0]).values_list('identifier', 'type', 'name')
+            for p_identifier, p_type, p_name in presets_qs:
+                if p_type == PRESET_JOB_TYPE[2][0]:
+                    preset_info['name'] = p_name
+                else:
+                    preset_info['identifier'] = str(p_identifier)
+            value['preset_info'] = preset_info
         return value
 
     class Meta:
         model = Job
-        exclude = ('id', 'author', 'creation_date', 'preset_uuid', 'parent', *MPTT_FIELDS)
+        fields = ('identifier', 'name', 'global_role', 'archive_format', 'files')
 
 
-class DownloadJobVersionSerializer(serializers.ModelSerializer):
-    change_date = TimeStampField()
-    files = JobFilesField(source='files.all')
+class DownloadDecisionSerializer(serializers.ModelSerializer):
+    identifier = fields.UUIDField()
+    configuration = serializers.SlugRelatedField(slug_field='hash_sum', queryset=JobFile.objects)
+    scheduler = serializers.SlugRelatedField(slug_field='type', read_only=True)
+    start_date = TimeStampField(allow_null=True)
+    finish_date = TimeStampField(allow_null=True)
+    start_sj = TimeStampField(allow_null=True)
+    finish_sj = TimeStampField(allow_null=True)
+    start_ts = TimeStampField(allow_null=True)
+    finish_ts = TimeStampField(allow_null=True)
 
-    def create(self, validated_data):
-        job = validated_data.pop('job')
-        job_files = validated_data.pop('files')['all']
-        return create_job_version(job, job_files, [], **validated_data)
+    def validate_identifier(self, value):
+        if Decision.objects.filter(identifier=value).exists():
+            return uuid.uuid4()
+        return value
 
     class Meta:
-        model = JobHistory
-        exclude = ('id', 'job', 'change_author')
+        model = Decision
+        exclude = ('job', 'operator')
+
+
+class DecisionCacheSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DecisionCache
+        fields = '__all__'
+        extra_kwargs = {'decision': {'read_only': True}}
 
 
 class DownloadComputerSerializer(serializers.ModelSerializer):
@@ -135,7 +139,8 @@ class DownloadReportComponentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ReportComponent
-        exclude = ('id', 'root', *MPTT_FIELDS)
+        exclude = ('id', *MPTT_FIELDS)
+        extra_kwargs = {'decision': {'read_only': True}}
 
 
 class DownloadReportSafeSerializer(serializers.ModelSerializer):
@@ -143,7 +148,8 @@ class DownloadReportSafeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ReportSafe
-        exclude = ('id', 'root', *MPTT_FIELDS)
+        exclude = ('id', *MPTT_FIELDS)
+        extra_kwargs = {'decision': {'read_only': True}}
 
 
 class DownloadReportUnsafeSerializer(serializers.ModelSerializer):
@@ -151,7 +157,8 @@ class DownloadReportUnsafeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ReportUnsafe
-        exclude = ('id', 'root', 'trace_id', *MPTT_FIELDS)
+        exclude = ('id', 'trace_id', *MPTT_FIELDS)
+        extra_kwargs = {'decision': {'read_only': True}}
 
 
 class DownloadReportUnknownSerializer(serializers.ModelSerializer):
@@ -159,7 +166,8 @@ class DownloadReportUnknownSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ReportUnknown
-        exclude = ('id', 'root', *MPTT_FIELDS)
+        exclude = ('id', *MPTT_FIELDS)
+        extra_kwargs = {'decision': {'read_only': True}}
 
 
 class DownloadReportAttrSerializer(serializers.ModelSerializer):
@@ -174,9 +182,3 @@ class DownloadReportAttrSerializer(serializers.ModelSerializer):
     class Meta:
         model = ReportAttr
         exclude = ('id', 'report', 'data')
-
-
-class RootCacheSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = RootCache
-        exclude = ('root',)

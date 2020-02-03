@@ -24,7 +24,6 @@ from rest_framework import serializers, exceptions
 from bridge.serializers import DynamicFieldsModelSerializer
 
 from users.models import User, DataView, PreferableView
-from jobs.models import JobHistory
 from jobs.utils import JobAccess
 
 
@@ -63,7 +62,7 @@ class JobsChangesSerializer(serializers.ModelSerializer):
         return value
 
     class Meta:
-        model = JobHistory
+        # model = JobHistory
         depth = 1
         fields = ('version', 'change_date', 'comment', 'job.name')
 

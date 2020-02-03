@@ -20,7 +20,7 @@
 {% load staticfiles %}
 {% load compress %}
 
-{% block title %}{% trans 'Job reports comparison' %}{% endblock %}
+{% block title %}{% trans 'Decision reports comparison' %}{% endblock %}
 
 {% block head_block %}
     {% compress css file mark_comparison %}
@@ -32,12 +32,7 @@
 {% endblock %}
 
 {% block body_block %}
-    <div class="ui grid">
-        <div class="ten wide column">
-            <h3>{% trans 'Comparison of reports of jobs' %}: <a href="{% url 'jobs:job' job1.pk %}" class="job-href-1">{{ job1.name }}</a>, <a href="{% url 'jobs:job' job2.pk %}" class="job-href-2">{{ job2.name }}</a></h3>
-        </div>
-        <div class="six wide column right aligned"><a class="ui violet button" href="{% url 'jobs:comparison' job1.pk job2.pk %}">{% trans 'Job files comparison' %}</a></div>
-    </div>
+    <h3>{% trans 'Comparison of reports of decisions' %}: <a href="{% url 'jobs:decision' decision1.pk %}" class="decision-href-1">{{ decision1.name }}</a>, <a href="{% url 'jobs:decision' decision2.pk %}" class="decision-href-2">{{ decision2.name }}</a></h3>
     <div class="ui grid">
         <div class="ten wide column">
             <table class="ui selectable compact teal table">

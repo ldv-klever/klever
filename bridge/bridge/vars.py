@@ -31,7 +31,7 @@ ERRORS = {
     401: _("You don't have an access to one of the selected jobs"),
     404: _('The job was not found'),
     405: _('One of the selected jobs was not found'),
-    406: _("One of the selected jobs wasn't found or wasn't decided"),
+    407: _("You don't have an access to create new job"),
     504: _('The report was not found'),
     505: _("Couldn't visualize the error trace"),
     604: _("The mark was not found"),
@@ -69,8 +69,8 @@ JOB_ROLES = (
     ('4', _('Expert and Operator')),
 )
 
-JOB_STATUS = (
-    ('0', _('Not solved')),
+DECISION_STATUS = (
+    ('0', _('Hidden')),
     ('1', _('Pending')),
     ('2', _('Is solving')),
     ('3', _('Solved')),
@@ -79,10 +79,9 @@ JOB_STATUS = (
     ('6', _('Cancelling')),
     ('7', _('Cancelled')),
     ('8', _('Terminated')),
-    ('9', _('Uploading')),
 )
 
-JOB_WEIGHT = (
+DECISION_WEIGHT = (
     ('0', _('Full-weight')),
     ('1', _('Lightweight'))
 )
@@ -289,7 +288,7 @@ VIEW_TYPES = (
     ('15', 'SafeAndUnknownAssReports'),  # unknown mark associated reports
     ('16', 'AssociationChanges'),  # safe association changes
     ('17', 'AssociationChanges'),  # unsafe association changes
-    ('18', 'AssociationChanges')  # unknown association changes
+    ('18', 'AssociationChanges'),  # unknown association changes
 )
 
 SCHEDULER_STATUS = (
@@ -400,4 +399,8 @@ JOB_UPLOAD_STATUS = (
     ('7', _('Failed')),
 )
 
-TREE_LIST_JSON = 'TreeList.json'
+PRESET_JOB_TYPE = (
+    ('0', _('Directory')),  # Preset directory from preset tree
+    ('1', _('Leaf')),  # Preset tree leaf
+    ('2', _('Custom directory')),  # Created directory for the leaf
+)

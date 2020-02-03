@@ -16,7 +16,6 @@
 #
 
 import os
-import re
 import json
 
 from django.core.files import File
@@ -27,13 +26,13 @@ from django.utils.translation import ugettext_lazy as _
 
 from rest_framework import exceptions
 
-from bridge.vars import REPORT_ARCHIVE, JOB_UPLOAD_STATUS, JOB_STATUS
+from bridge.vars import REPORT_ARCHIVE, JOB_UPLOAD_STATUS, DECISION_STATUS, PRESET_JOB_TYPE
 from bridge.utils import BridgeException, extract_archive
 
-from jobs.models import JOBFILE_DIR, Job, RunHistory, JobHistory
+from jobs.models import JOBFILE_DIR, PresetJob
 from reports.models import (
-    ReportRoot, ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent,
-    ReportAttr, CoverageArchive, AttrFile, OriginalSources, AdditionalSources, RootCache
+    DecisionCache, ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent,
+    ReportAttr, CoverageArchive, AttrFile, OriginalSources, AdditionalSources
 )
 from service.models import Decision
 from caches.models import ReportSafeCache, ReportUnsafeCache, ReportUnknownCache
@@ -43,16 +42,15 @@ from caches.utils import update_cache_atomic
 from reports.coverage import FillCoverageStatistics
 from jobs.serializers import JobFileSerializer
 from jobs.DownloadSerializers import (
-    DownloadJobSerializer, DownloadJobVersionSerializer, DownloadComputerSerializer,
-    DownloadReportAttrSerializer, DownloadReportComponentSerializer, DownloadReportSafeSerializer,
-    DownloadReportUnsafeSerializer, DownloadReportUnknownSerializer, RootCacheSerializer
+    DownloadJobSerializer, DownloadComputerSerializer, DownloadReportAttrSerializer,
+    DownloadReportComponentSerializer, DownloadReportSafeSerializer, DownloadReportUnsafeSerializer,
+    DownloadReportUnknownSerializer, DecisionCacheSerializer, DownloadDecisionSerializer
 )
 
 
 class JobArchiveUploader:
-    def __init__(self, upload_obj, parent_uuid):
+    def __init__(self, upload_obj):
         self._upload_obj = upload_obj
-        self._parent_uuid = parent_uuid
         self.job = None
 
     def __enter__(self):
@@ -87,20 +85,8 @@ class JobArchiveUploader:
         serializer = DownloadJobSerializer(data=serializer_data)
         serializer.is_valid(raise_exception=True)
         self.job = serializer.save(
-            author=self._upload_obj.author,
-            parent=self.__get_parent(self._parent_uuid),
-            status=JOB_STATUS[9][0]
+            author=self._upload_obj.author, preset_id=self.__get_preset_id(serializer_data.get('preset_info'))
         )
-        final_status = serializer.validated_data['status']
-
-        # Upload job's versions
-        self.__upload_job_versions(job_dir.name)
-
-        # Upload job's run history (rh_data is already validated in job serializer)
-        RunHistory.objects.bulk_create(list(
-            RunHistory(job_id=self.job.id, **rh_data)
-            for rh_data in serializer.validated_data['run_history']
-        ))
 
         # Create job decision object if it is not None
         decision_data = serializer.validated_data['decision']
@@ -112,30 +98,43 @@ class JobArchiveUploader:
         self.__change_upload_status(JOB_UPLOAD_STATUS[4][0])
         res = UploadReports(self._upload_obj.author, self.job, job_dir.name)
 
-        # Recalculate cache if job has ReportRoot instance
-        if res.root:
+        if res.decisions:
+            # Recalculate cache if job has decisions
             self.__change_upload_status(JOB_UPLOAD_STATUS[5][0])
-            Recalculation('all', [self.job.id])
-
-        # Set uploaded status
-        self.job.status = final_status
-        self.job.save()
+            Recalculation('all', res.decisions)
 
     def __change_upload_status(self, new_status):
         self._upload_obj.status = new_status
         self._upload_obj.save()
 
-    def __get_parent(self, parent_uuid):
-        if not parent_uuid:
-            return None
+    def __get_preset_id(self, preset_info):
+        if not isinstance(preset_info, dict) or 'identifier' not in preset_info:
+            raise exceptions.ValidationError({'preset': _('Preset info has wrong format')})
         try:
-            return Job.objects.only('id').get(identifier=parent_uuid)
-        except Job.DoesNotExist:
-            raise BridgeException('Job parent was not found')
+            main_preset = PresetJob.objects.get(identifier=preset_info['identifier'], type=PRESET_JOB_TYPE[1][0])
+        except PresetJob.DoesNotExist:
+            raise exceptions.ValidationError({'preset': _('Preset job was not found')})
+        if 'name' not in preset_info:
+            return main_preset.id
+        if not isinstance(preset_info['name'], str) or \
+                len(preset_info['name']) > 150 or len(preset_info['name']) == 0:
+            raise exceptions.ValidationError({'preset': _('Preset info is corrupted')})
+        try:
+            preset_dir = PresetJob.objects.get(name=preset_info['name'])
+            if preset_dir.type != PRESET_JOB_TYPE[2][0]:
+                raise exceptions.ValidationError({'preset': _('Preset info is corrupted')})
+            return preset_dir.id
+        except PresetJob.DoesNotExist:
+            pass
+        preset_dir, created = PresetJob.objects.get_or_create(
+            name=preset_info['name'], type=PRESET_JOB_TYPE[2][0],
+            defaults={'parent_id': main_preset.id, 'check_date': main_preset.check_date}
+        )
+        return preset_dir.id
 
     def __upload_job_files(self, files_dir):
         if not os.path.isdir(files_dir):
-            # If 'JobFiles' doesn't exist then the job doiesn't have files or archive is corrupted.
+            # If 'JobFiles' doesn't exist then the job doesn't have files or archive is corrupted.
             # It'll be checked while files tree is uploading.
             return
         for dir_path, dir_names, file_names in os.walk(files_dir):
@@ -144,27 +143,6 @@ class JobArchiveUploader:
                     serializer = JobFileSerializer(data={'file': File(fp, name=file_name)})
                     serializer.is_valid(raise_exception=True)
                     serializer.save()
-
-    def __upload_job_versions(self, versions_dir):
-        versions_data = []
-        for fname in os.listdir(versions_dir):
-            full_path = os.path.join(versions_dir, fname)
-            if not os.path.isfile(full_path) or not re.match(r'version-\d+\.json', fname):
-                continue
-            with open(full_path, encoding='utf8') as fp:
-                versions_data.append(json.load(fp))
-        if not versions_data:
-            raise ValueError("There are no job's versions in the archive")
-        versions_data.sort(key=lambda x: x['version'])
-
-        serializer = DownloadJobVersionSerializer(data=versions_data, many=True)
-        serializer.is_valid(raise_exception=True)
-        serializer.save(job=self.job, change_author=self._upload_obj.author)
-        try:
-            # Check that last version has correct "version" value
-            JobHistory.objects.get(job=self.job, version=self.job.version)
-        except JobHistory.DoesNotExist:
-            raise exceptions.ValidationError({'versions': _('Uploading job versions has failed')})
 
     def __parse_job_json(self, file_path):
         if not os.path.exists(file_path):
@@ -178,9 +156,12 @@ class UploadReports:
         self.opened_files = []
         self._user = user
         self._jobdir = job_dir
-        self.root = self.__create_root(job)
-        if self.root is None:
+        self._uploaded_decisions = self.__upload_decisions(job)
+
+        if not self._uploaded_decisions:
+            # There are no decisions for the job
             return
+
         self._original_sources = self.__upload_original_sources()
 
         self._additional_sources = {}
@@ -189,24 +170,57 @@ class UploadReports:
         self._computers = {}
         self._chunk = []
         self._attr_files = {}
+        self._final_statuses = {}
         self.__upload_reports()
+        self.__change_decision_statuses()
 
-    def __create_root(self, job):
-        # Create report root
-        cache_data = self.__read_json_file('{}.json'.format(RootCache.__name__))
-        if not cache_data:
+    @cached_property
+    def decisions(self):
+        return list(self._uploaded_decisions.values())
+
+    def __upload_decisions(self, job):
+        uploaded_map = {}
+        decisions_data = self.__read_json_file('{}.json'.format(Decision.__name__))
+        if not decisions_data:
             # The job is without reports
-            return None
-        serializer = RootCacheSerializer(data=cache_data, many=True)
-        serializer.is_valid(raise_exception=True)
+            return
 
-        # Create reportroot
-        root = ReportRoot.objects.create(user=self._user, job=job)
+        # Upload decisions
+        for decision in decisions_data:
+            if 'id' not in decision or not isinstance(decision['id'], int):
+                raise exceptions.ValidationError({'decision': _('Decision data is corrupted')})
+            serializer = DownloadDecisionSerializer(data=decision)
+            serializer.is_valid(raise_exception=True)
+            uploaded_map[decision['id']] = serializer.save(
+                job=job, operator=self._user, status=DECISION_STATUS[0][0]
+            ).id
+            self._final_statuses[uploaded_map[decision['id']]] = serializer.validated_data['status']
 
-        # Fill resources and instances cache
-        RootCache.objects.bulk_create(list(RootCache(root=root, **kwargs) for kwargs in serializer.validated_data))
+        # Upload decision cache
+        cache_data_list = self.__read_json_file('{}.json'.format(DecisionCache.__name__))
+        new_cache_objects = []
+        for dec_cache in cache_data_list:
+            if 'decision' not in dec_cache or not uploaded_map.get(dec_cache['decision']):
+                raise exceptions.ValidationError({'decision': _('Decision data is corrupted')})
+            serializer = DecisionCacheSerializer(data=dec_cache)
+            serializer.is_valid(raise_exception=True)
+            new_cache_objects.append(DecisionCache(
+                decision_id=uploaded_map[dec_cache['decision']], **serializer.validated_data
+            ))
+        DecisionCache.objects.bulk_create(new_cache_objects)
 
-        return root
+        return uploaded_map
+
+    @transaction.atomic
+    def __change_decision_statuses(self):
+        for decision in Decision.objects.filter(id__in=self.decisions).select_for_update():
+            decision.status = self._final_statuses[decision.id]
+            decision.save()
+
+    def __get_decision_id(self, old_id):
+        if not isinstance(old_id, int) or old_id not in self._uploaded_decisions:
+            raise exceptions.ValidationError({'decision': _('The job archive is corrupted')})
+        return self._uploaded_decisions[old_id]
 
     def __upload_original_sources(self):
         original_sources = {}
@@ -242,13 +256,16 @@ class UploadReports:
         if not self._chunk:
             return
         for report_data in self._chunk:
+            decision_id = report_data.pop('new_decision_id')
             save_kwargs = {
-                'root': self.root,
                 'computer': self.__get_computer(report_data.get('computer')),
-                'parent_id': self.saved_reports.get(report_data['parent'])
+                'parent_id': self.saved_reports.get((decision_id, report_data['parent'])),
+                'decision_id': decision_id
             }
             if report_data.get('additional_sources'):
-                save_kwargs['additional_sources'] = self.__get_additional_sources(report_data['additional_sources'])
+                save_kwargs['additional_sources'] = self.__get_additional_sources(
+                    decision_id, report_data['additional_sources']
+                )
             if report_data.get('original_sources'):
                 save_kwargs['original_sources_id'] = self._original_sources[report_data['original_sources']]
             if report_data.get('log'):
@@ -263,7 +280,7 @@ class UploadReports:
             serializer = DownloadReportComponentSerializer(data=report_data)
             serializer.is_valid(raise_exception=True)
             report = serializer.save(**save_kwargs)
-            self.saved_reports[report.identifier] = report.id
+            self.saved_reports[(decision_id, report.identifier)] = report.id
 
             while len(self.opened_files):
                 fp = self.opened_files.pop()
@@ -271,9 +288,9 @@ class UploadReports:
 
         self._chunk = []
 
-    def __get_additional_sources(self, rel_path):
+    def __get_additional_sources(self, decision_id, rel_path):
         if rel_path not in self._additional_sources:
-            add_inst = AdditionalSources(root=self.root)
+            add_inst = AdditionalSources(decision_id=decision_id)
             with open(self.__full_path(rel_path), mode='rb') as fp:
                 add_inst.add_archive(fp, save=True)
             self._additional_sources[rel_path] = add_inst
@@ -282,10 +299,12 @@ class UploadReports:
     def __upload_reports(self):
         # Upload components tree
         for report_data in self.__read_json_file('{}.json'.format(ReportComponent.__name__), required=True):
-            if report_data['parent'] and report_data['parent'] not in self.saved_reports:
+            decision_id = self.__get_decision_id(report_data['decision'])
+            if report_data['parent'] and (decision_id, report_data['parent']) not in self.saved_reports:
                 self.__upload_reports_chunk()
-                if report_data['parent'] not in self.saved_reports:
+                if (decision_id, report_data['parent']) not in self.saved_reports:
                     raise BridgeException(_('Reports data was corrupted'))
+            report_data['new_decision_id'] = decision_id
             self._chunk.append(report_data)
         self.__upload_reports_chunk()
 
@@ -303,13 +322,16 @@ class UploadReports:
             return
         safes_cache = []
         for report_data in safes_data:
-            save_kwargs = {'root': self.root, 'parent_id': self.saved_reports[report_data.pop('parent')]}
+            decision_id = self.__get_decision_id(report_data.get('decision'))
+            save_kwargs = {
+                'decision_id': decision_id, 'parent_id': self.saved_reports[(decision_id, report_data.pop('parent'))]
+            }
             serializer = DownloadReportSafeSerializer(data=report_data)
             serializer.is_valid(raise_exception=True)
             report = serializer.save(**save_kwargs)
-            self.saved_reports[report.identifier] = report.id
+            self.saved_reports[(decision_id, report.identifier)] = report.id
             self._leaves_ids.add(report.id)
-            safes_cache.append(ReportSafeCache(job_id=self.root.job_id, report_id=report.id))
+            safes_cache.append(ReportSafeCache(decision_id=decision_id, report_id=report.id))
         ReportSafeCache.objects.bulk_create(safes_cache)
 
     @transaction.atomic
@@ -320,18 +342,21 @@ class UploadReports:
         unsafes_cache = []
         for report_data in unsafes_data:
             et_fp = None
-            save_kwargs = {'root': self.root, 'parent_id': self.saved_reports[report_data.pop('parent')]}
+            decision_id = self.__get_decision_id(report_data.get('decision'))
+            save_kwargs = {
+                'decision_id': decision_id, 'parent_id': self.saved_reports[(decision_id, report_data.pop('parent'))]
+            }
             if report_data.get('error_trace'):
                 et_fp = open(self.__full_path(report_data['error_trace']), mode='rb')
                 report_data['error_trace'] = File(et_fp, name=REPORT_ARCHIVE['error_trace'])
             serializer = DownloadReportUnsafeSerializer(data=report_data)
             serializer.is_valid(raise_exception=True)
             report = serializer.save(**save_kwargs)
-            self.saved_reports[report.identifier] = report.id
+            self.saved_reports[(decision_id, report.identifier)] = report.id
             self._leaves_ids.add(report.id)
             if et_fp:
                 et_fp.close()
-            unsafes_cache.append(ReportUnsafeCache(job_id=self.root.job_id, report_id=report.id))
+            unsafes_cache.append(ReportUnsafeCache(decision_id=decision_id, report_id=report.id))
         ReportUnsafeCache.objects.bulk_create(unsafes_cache)
 
     @transaction.atomic
@@ -341,47 +366,54 @@ class UploadReports:
             return
         unknowns_cache = []
         for report_data in unknowns_data:
-            save_kwargs = {'root': self.root, 'parent_id': self.saved_reports[report_data.pop('parent')]}
+            decision_id = self.__get_decision_id(report_data.get('decision'))
+            save_kwargs = {
+                'decision_id': decision_id, 'parent_id': self.saved_reports[(decision_id, report_data.pop('parent'))]
+            }
             problem_fp = None
             if report_data.get('problem_description'):
                 problem_fp = open(self.__full_path(report_data['problem_description']), mode='rb')
                 report_data['problem_description'] = File(problem_fp, name=REPORT_ARCHIVE['problem_description'])
             serializer = DownloadReportUnknownSerializer(data=report_data)
             serializer.is_valid(raise_exception=True)
+            save_kwargs['decision_id'] = self.__get_decision_id(report_data.get('decision')),
             report = serializer.save(**save_kwargs)
-            self.saved_reports[report.identifier] = report.id
+            self.saved_reports[(decision_id, report.identifier)] = report.id
             self._leaves_ids.add(report.id)
             if problem_fp:
                 problem_fp.close()
-            unknowns_cache.append(ReportUnknownCache(job_id=self.root.job_id, report_id=report.id))
+            unknowns_cache.append(ReportUnknownCache(decision_id=decision_id, report_id=report.id))
         ReportUnknownCache.objects.bulk_create(unknowns_cache)
 
     def __upload_attrs(self):
         attrs_data = self.__read_json_file('{}.json'.format(ReportAttr.__name__), required=True)
         attrs_cache = {}
         new_attrs = []
-        for r_id in attrs_data:
-            for adata in attrs_data[r_id]:
-                file_id = self.__get_attr_file_id(adata.pop('data_file', None))
-                serializer = DownloadReportAttrSerializer(data=adata)
-                serializer.is_valid(raise_exception=True)
-                validated_data = serializer.validated_data
+        for old_d_id in attrs_data:
+            decision_id = self.__get_decision_id(int(old_d_id))
+            for r_id in attrs_data[old_d_id]:
+                for adata in attrs_data[old_d_id][r_id]:
+                    file_id = self.__get_attr_file_id(adata.pop('data_file', None), decision_id)
+                    serializer = DownloadReportAttrSerializer(data=adata)
+                    serializer.is_valid(raise_exception=True)
+                    validated_data = serializer.validated_data
 
-                report_id = self.saved_reports[r_id]
-                new_attrs.append(ReportAttr(data_id=file_id, report_id=report_id, **validated_data))
-                if report_id in self._leaves_ids:
-                    attrs_cache.setdefault(report_id, {'attrs': {}})
-                    attrs_cache[report_id]['attrs'][validated_data['name']] = validated_data['value']
+                    report_id = self.saved_reports[(decision_id, r_id)]
+                    new_attrs.append(ReportAttr(data_id=file_id, report_id=report_id, **validated_data))
+                    if report_id in self._leaves_ids:
+                        attrs_cache.setdefault(report_id, {'attrs': {}})
+                        attrs_cache[report_id]['attrs'][validated_data['name']] = validated_data['value']
         ReportAttr.objects.bulk_create(new_attrs)
-        update_cache_atomic(ReportSafeCache.objects.filter(report__root=self.root), attrs_cache)
-        update_cache_atomic(ReportUnsafeCache.objects.filter(report__root=self.root), attrs_cache)
-        update_cache_atomic(ReportUnknownCache.objects.filter(report__root=self.root), attrs_cache)
+        decisions_ids = list(self._uploaded_decisions.values())
+        update_cache_atomic(ReportSafeCache.objects.filter(report__decision_id__in=decisions_ids), attrs_cache)
+        update_cache_atomic(ReportUnsafeCache.objects.filter(report__decision_id__in=decisions_ids), attrs_cache)
+        update_cache_atomic(ReportUnknownCache.objects.filter(report__decision_id__in=decisions_ids), attrs_cache)
 
-    def __get_attr_file_id(self, rel_path):
+    def __get_attr_file_id(self, rel_path, decision_id):
         if rel_path is None:
             return None
         if rel_path not in self._attr_files:
-            instance = AttrFile(root=self.root)
+            instance = AttrFile(decision_id=decision_id)
             with open(self.__full_path(rel_path), mode='rb') as fp:
                 instance.file.save(os.path.basename(rel_path), File(fp), save=True)
             self._attr_files[rel_path] = instance.id
@@ -392,8 +424,9 @@ class UploadReports:
         if not coverage_data:
             return
         for coverage in coverage_data:
+            decision_id = self.__get_decision_id(coverage['decision'])
             instance = CoverageArchive(
-                report_id=self.saved_reports[coverage['report']],
+                report_id=self.saved_reports[(decision_id, coverage['report'])],
                 identifier=coverage['identifier'], name=coverage.get('name', '...')
             )
             with open(self.__full_path(coverage['archive']), mode='rb') as fp:

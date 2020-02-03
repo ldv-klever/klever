@@ -1,0 +1,93 @@
+{% extends 'bridge/base.html' %}
+{% comment "License" %}
+% Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
+% Ivannikov Institute for System Programming of the Russian Academy of Sciences
+%
+% Licensed under the Apache License, Version 2.0 (the "License");
+% you may not use this file except in compliance with the License.
+% You may obtain a copy of the License at
+%
+%    http://www.apache.org/licenses/LICENSE-2.0
+%
+% Unless required by applicable law or agreed to in writing, software
+% distributed under the License is distributed on an "AS IS" BASIS,
+% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+% See the License for the specific language governing permissions and
+% limitations under the License.
+{% endcomment %}
+
+{% load i18n %}
+{% load staticfiles %}
+{% load compress %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block head_block %}
+    {# Jstree #}
+    <link rel="stylesheet" href="{% static 'bridge/jstree/themes/default/style.min.css' %}">
+    <script src="{% static 'bridge/jstree/jstree.min.js' %}"></script>
+
+    {% compress js file job-edit-form %}
+        <script src="{% static 'jobs/js/jobFilesView.js' %}"></script>
+        <script src="{% static 'jobs/js/jobRolesEdit.js' %}"></script>
+        <script src="{% static 'jobs/js/jobForm.js' %}"></script>
+    {% endcompress %}
+{% endblock %}
+
+{% block body_block %}
+    <div class="ui grid">
+        <div class="seven wide column">
+            {# Title and preset directory #}
+            <div class="ui violet segment" style="margin-bottom: 0;">
+                <label for="job_name"><strong>{% trans 'Title' %}</strong></label>
+                <div class="ui fluid input field">
+                    <input id="job_name" type="text" value="{{ initial.name }}">
+                </div>
+                <br>
+                <label for="preset_dir"><strong>{% trans 'Preset directory' %}</strong></label><br>
+                <select id="preset_dir" class="ui dropdown">
+                    {% for preset_dir in initial.preset_dirs %}
+                        <option value="{{ preset_dir.id }}"{% if preset_dir.selected %} selected{% endif %} >{{ preset_dir.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            {# Files tree #}
+            {% include 'jobs/filesTree.html' with data=initial.files div_id='filestree_container' %}
+
+            {# Roles #}
+            <div id="user_roles_form" style="margin-top: 10px;margin-bottom: 10px;">{% include 'jobs/userRolesForm.html' %}</div>
+
+            {# Action Buttons #}
+            <br>
+            <button id="save_job_btn" type="submit" class="ui olive button">{% trans 'Save' %}</button>
+            <a href="{{ cancel_url }}" class="ui violet button" style="float: right">{% trans 'Cancel' %}</a>
+        </div>
+        <div class="nine wide column"></div>
+    </div>
+
+    <script type="application/javascript">
+        jQuery(function () {
+            let job_form = new JobForm(),
+                roles_form = new UserRoleForm('user_roles_form');
+
+            job_form.initialize({
+                name: 'job_name',
+                preset: 'preset_dir'
+            }, {
+                name: "{% trans 'Title' %}",
+                preset: "{% trans 'Preset directory' %}"
+            });
+            roles_form.initialize({{ initial.roles|safe }});
+
+            $('#save_job_btn').click(function () {
+                job_form.save("{% url 'jobs:api-update-job' job.id %}", "PUT", {
+                    global_role: roles_form.global_role(),
+                    user_roles: roles_form.get_roles()
+                });
+            });
+
+            $('#preset_dir').dropdown();
+        });
+    </script>
+{% endblock %}

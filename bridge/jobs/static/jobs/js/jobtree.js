@@ -16,29 +16,6 @@
  */
 
 $(document).ready(function () {
-    function fill_all_values() {
-        $('.all-footer-col').each(function () {
-            let column = $(this).data('column'), sum = 0;
-            $('.cell-column-' + column).each(function () {
-                let number = $(this).data('number');
-                if (number) sum += parseInt(number);
-            });
-            $(this).text(sum);
-        });
-    }
-
-    function fill_checked_values() {
-        $('.checked-footer-col').each(function () {
-            let column = $(this).data('column'), sum = 0, has_checked = false;
-            $('.job-checkbox:checked').each(function () {
-                let number = $('.cell-column-' + column + '.cell-row-' + $(this).data('row')).first().data('number');
-                if (number) sum += parseInt(number);
-                has_checked = true;
-            });
-            $(this).text(has_checked ? sum : '-');
-        });
-    }
-
     function compare_reports() {
         let sel_jobs = [];
         $('.job-checkbox:checked').each(function () { sel_jobs.push($(this).data('row')) });
@@ -83,9 +60,7 @@ $(document).ready(function () {
         });
     });
 
-    inittree($('.tree'), 2, 'chevron down violet icon', 'chevron right violet icon');
-    fill_all_values();
-    $('.job-checkbox').change(fill_checked_values);
+    inittree($('.tree'), 2, 'folder open link violet icon', 'folder link violet icon');
 
     $('#cancel_remove_jobs').click(function () {
         $('#remove_jobs_popup').modal('hide')
@@ -95,32 +70,55 @@ $(document).ready(function () {
         event.preventDefault();
 
         $('#jobs_actions_menu').popup('hide');
-        let job_ids = [];
-        $('.job-checkbox:checked').each(function () { job_ids.push($(this).data('row')) });
-        if (!job_ids.length) return err_notify($('#error__no_jobs_to_download').text());
-        let job_ids_json = JSON.stringify(job_ids);
-        $.post(PAGE_URLS.can_download, {jobs: job_ids_json}, function () {
-            window.location.href = PAGE_URLS.download_jobs + '?jobs=' + encodeURIComponent(job_ids_json);
+        let job_ids = [], decision_ids = [];
+        $('.job-checkbox:checked').each(function () { job_ids.push($(this).val()) });
+        $('.decision-checkbox:checked').each(function () { decision_ids.push($(this).val()) });
+        if (!job_ids.length && !decision_ids.length) return err_notify($('#error__no_jobs_to_download').text());
+        let job_ids_json = JSON.stringify(job_ids), decision_ids_json = JSON.stringify(decision_ids);
+        $.post(PAGE_URLS.can_download, {jobs: job_ids_json, decisions: decision_ids_json}, function () {
+            window.location.href = PAGE_URLS.download_jobs + '?jobs=' + encodeURIComponent(job_ids_json) + '&decisions=' + encodeURIComponent(decision_ids_json);
         });
-    });
-
-    $('#download_selected_trees').click(function (event) {
-        event.preventDefault();
-        if ($(this).hasClass('disabled')) return false;
-        $('#jobs_actions_menu').popup('hide');
-        let job_ids = [];
-        $('.job-checkbox:checked').each(function () { job_ids.push($(this).data('row')) });
-        if (!job_ids.length) return err_notify($('#error__no_jobs_to_download').text());
-        window.location.href = PAGE_URLS.download_trees + '?jobs=' + encodeURIComponent(JSON.stringify(job_ids));
     });
 
     $('#compare_reports_btn').click(compare_reports);
     $('#compare_files_btn').click(compare_files);
 
-    let create_job_modal = $('#create_job_modal');
-    create_job_modal.modal({transition: 'fade', autofocus: false, closable: true})
-        .modal('attach events', '#create_job_modal_show');
-    create_job_modal.find('.modal-cancel').click(function () {
-        create_job_modal.modal('hide')
-    })
+    // Create or change preset dir modal
+    let new_preset_modal = $('#new_preset_dir_modal'),
+        new_preset_modal_confirm = new_preset_modal.find('.modal-confirm');
+    new_preset_modal.modal({transition: 'fly up', autofocus: false, closable: false});
+    new_preset_modal.find('.modal-cancel').click(function () {
+        new_preset_modal.modal('hide')
+    });
+    $('.add-preset-dir-link').click(function () {
+        new_preset_modal_confirm.data('url', PAGE_URLS.create_preset_dir);
+        new_preset_modal_confirm.data('method', 'POST');
+        new_preset_modal_confirm.data('parent', $(this).data('parent'));
+        new_preset_modal.find('#new_preset_dir_name').val('');
+        new_preset_modal.modal('show');
+    });
+    $('.change-preset-dir-link').click(function () {
+        let url = $(this).data('url');
+        new_preset_modal_confirm.data('url', url);
+        new_preset_modal_confirm.data('method', 'PATCH');
+        new_preset_modal_confirm.data('parent', null);
+        $.get(url + '?fields=name', {}, function (resp) {
+            new_preset_modal.find('#new_preset_dir_name').val(resp['name']);
+            new_preset_modal.modal('show');
+        });
+    });
+    new_preset_modal_confirm.click(function () {
+        $.ajax({
+            url: $(this).data('url'),
+            method: $(this).data('method'),
+            data: {
+                parent: $(this).data('parent'),
+                name: new_preset_modal.find('#new_preset_dir_name').val()
+            },
+            success: function () {
+                window.location.replace('')
+            }
+        });
+    });
+
 });

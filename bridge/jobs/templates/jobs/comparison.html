@@ -33,7 +33,7 @@
 {% block body_block %}
     <div class="ui grid">
         <div class="ten wide column">
-            <h3>{% trans 'Comparison of files of jobs' %}: <a href="{% url 'jobs:job' job1.id %}" class="job-href-1">{{ job1.name }}</a>, <a href="{% url 'jobs:job' job2.id %}" class="job-href-2">{{ job2.name }}</a></h3>
+            <h3>{% trans 'Comparison of files of jobs' %}: <a href="{% url 'jobs:job' job1.id %}">{{ job1.name }}</a>, <a href="{% url 'jobs:job' job2.id %}">{{ job2.name }}</a></h3>
         </div>
     </div>
     <div class="ui grid">

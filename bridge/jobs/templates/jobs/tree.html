@@ -31,9 +31,6 @@
 {% block body_block %}
     <div class="ui grid">
         <div class="eight wide column">
-            {% if can_create %}
-                <button id="create_job_modal_show" class="ui labeled icon violet mini button"><i class="plus icon"></i>{% trans 'Create new job' %}</button>
-            {% endif %}
             <div class="ui small dropdown">
                 <i class="ui check square outline icon"></i>{% trans 'Selected jobs' %}
                 <i class="dropdown icon"></i>
@@ -41,9 +38,6 @@
                     <div id="compare_reports_btn" class="item"><i class="ui columns icon"></i>{% trans 'Compare reports' %}</div>
                     <div id="compare_files_btn" class="item"><i class="ui columns icon"></i>{% trans 'Compare files' %}</div>
                     <div id="download_selected_jobs" class="item"><i class="ui download icon"></i>{% trans 'Download' %}</div>
-
-                    {# Only managers can upload trees (USER_ROLES[2][0]) #}
-                    <div id="download_selected_trees" class="item{% if user.role != '2' %} disabled{% endif %}"><i class="ui sitemap icon"></i>{% trans 'Download with children' %}</div>
                     <div id="show_remove_jobs_popup" class="item"><i class="ui remove icon"></i>{% trans 'Delete' %}</div>
                 </div>
             </div>
@@ -79,28 +73,29 @@
         </div>
     </div>
 
-    <div id="create_job_modal" class="ui modal">
-        <div class="header">{% trans 'Please select files base for the new job' %}</div>
+    {# New preset directory name modal #}
+    <div id="new_preset_dir_modal" class="ui modal">
+        <div class="header">{% trans 'Please set the unique name for a preset directory' %}</div>
         <div class="content">
-            <div style="max-height: 80vh;overflow: auto;">
-                <div class="ui list">
-                    {% include 'jobs/presets.html' with children=presets_tree %}
-                </div>
+            <div class="ui fluid input">
+                <label for="new_preset_dir_name">&nbsp;</label>
+                <input id="new_preset_dir_name" type="text" placeholder="{% trans 'Name' %}">
             </div>
         </div>
         <div class="actions">
+            <button class="ui green button modal-confirm">{% trans 'Save' %}</button>
             <button class="ui blue button modal-cancel">{% trans 'Cancel' %}</button>
         </div>
     </div>
 
-    <span id="error__no_jobs_to_download" hidden>{% trans 'Please select jobs you want to download' %}</span>
+    <span id="error__no_jobs_to_download" hidden>{% trans 'Please select jobs or/and decisions you want to download' %}</span>
     <span id="error__no_jobs_to_delete" hidden>{% trans 'Please select jobs you want to delete' %}</span>
     <span id="error__no_jobs_to_compare" hidden>{% trans 'Please select exactly two jobs which reports you want to compare' %}</span>
     <script type="application/javascript">
         const PAGE_URLS = {
             can_download: "{% url 'jobs:api-can-download' %}",
             download_jobs: "{% url 'jobs:download-jobs' %}",
-            download_trees: "{% url 'jobs:download-trees' %}"
+            create_preset_dir: "{% url 'jobs:api-preset-job-dir-list' %}"
         };
     </script>
 {% endblock %}

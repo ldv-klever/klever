@@ -39,8 +39,8 @@
 {% block body_block %}
     <div class="ui grid">
         <div class="four wide column">
-            <span class="purple-title">{% trans 'Job' %}: </span>
-            <a href="{% url 'jobs:job' job.id %}">{{ job.name }}</a>
+            <span class="purple-title">{% trans 'Decision' %}: </span>
+            <a href="{% url 'jobs:decision' decision.id %}">{{ decision.name }}</a>
         </div>
         <div class="six wide column">
             {% if parents %}{% include 'reports/parents_breadcrumb.html' with parents=parents %}{% endif %}

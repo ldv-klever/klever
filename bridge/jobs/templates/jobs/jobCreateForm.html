@@ -20,7 +20,7 @@
 {% load staticfiles %}
 {% load compress %}
 
-{% block title %}{% if action == 'copy' %}{% trans 'Job Copying' %}{% elif action == 'create' %}{% trans 'Job Creating' %}{% else %}{% trans 'Job Editing' %}{% endif %}{% endblock %}
+{% block title %}{{ title }}{% endblock %}
 
 {% block head_block %}
     {# Code Mirror stylesheets #}
@@ -49,7 +49,7 @@
     <link rel="stylesheet" href="{% static 'bridge/jstree/themes/default/style.min.css' %}">
     <script src="{% static 'bridge/jstree/jstree.min.js' %}"></script>
 
-    {% compress js file jobform %}
+    {% compress js file job-create-form %}
         <script src="{% static 'jobs/js/jobFilesEdit.js' %}"></script>
         <script src="{% static 'jobs/js/jobRolesEdit.js' %}"></script>
         <script src="{% static 'jobs/js/jobForm.js' %}"></script>
@@ -59,33 +59,19 @@
 {% block body_block %}
     <div class="ui grid">
         <div class="seven wide column">
-
-            {# Versions #}
-            {% if initial.id and initial.version and initial.versions %}
-                {# Show versions only if job id, its current version and list of versions are provided #}
-                <label for="job_version_selector" class="purple-title">{% trans 'Previous versions' %}</label>
-                <select id="job_version_selector" class="ui dropdown fluid">
-                    {% for jv in initial.versions %}
-                        <option value="{% url 'jobs:api-job-version' initial.id jv.version %}"{% if jv.version == initial.version %} selected{% endif %}>{{ jv.title }}</option>
-                    {% endfor %}
-                </select>
-                <br>
-            {% endif %}
-
-            {# Title and parent #}
+            {# Title and preset directory #}
             <div class="ui violet segment" style="margin-bottom: 0;">
                 <label for="job_name"><strong>{% trans 'Title' %}</strong></label>
                 <div class="ui fluid input field">
                     <input id="job_name" type="text" value="{{ initial.name }}">
                 </div>
                 <br>
-                <label for="parent_identifier"><strong>{% trans 'Parent identifier' %}</strong></label>
-                <div class="ui fluid input field">
-                    <input id="parent_identifier" maxlength="36" type="text" value="{{ initial.parent }}">
-                </div>
-                {% if initial.preset_uuid %}
-                    <input id="preset_uuid" type="hidden" value="{{ initial.preset_uuid }}">
-                {% endif %}
+                <label for="preset_dir"><strong>{% trans 'Preset directory' %}</strong></label><br>
+                <select id="preset_dir" class="ui dropdown">
+                    {% for preset_dir in initial.preset_dirs %}
+                        <option value="{{ preset_dir.id }}"{% if preset_dir.selected %} selected{% endif %} >{{ preset_dir.name }}</option>
+                    {% endfor %}
+                </select>
             </div>
 
             {# Files table #}
@@ -93,14 +79,6 @@
 
             {# Roles #}
             <div id="user_roles_form" style="margin-top: 10px;margin-bottom: 10px;">{% include 'jobs/userRolesForm.html' %}</div>
-
-            {# Comment for editing job only #}
-            {% if action == 'edit' %}
-                <label for="job_comment"><strong>{% trans "Change comment" %}</strong></label>
-                <div class="ui input fluid">
-                    <input id="job_comment" type="text" placeholder="{% trans 'Comment' %}">
-                </div>
-            {% endif %}
 
             {# Action Buttons #}
             <br>
@@ -138,14 +116,10 @@
 
             job_form.initialize({
                 name: 'job_name',
-                comment: 'job_comment',
-                parent: 'parent_identifier',
-                preset_uuid: 'preset_uuid'
+                preset: 'preset_dir'
             }, {
                 name: "{% trans 'Title' %}",
-                comment: "{% trans 'Change comment' %}",
-                version: "{% trans 'Latest version' %}",
-                parent: "{% trans 'Parent' %}"
+                preset: "{% trans 'Preset directory' %}"
             });
 
             files_form.set_messages({
@@ -166,30 +140,15 @@
                 'download': "{% trans 'Download' %}"
             });
 
-            function get_version_data(data_url) {
-                $('#dimmer_of_page').addClass('active');
-                $.get(data_url, {}, function (data) {
-                    if (data.error) return err_notify(data.error);
-                    roles_form.initialize(data['roles']);
-                    files_form.initialize(data['files']);
-                    {% if action == 'edit' %}
-                        {# Get version name for editing job only #}
-                        $('#job_name').val(data['name']);
-                    {% endif %}
-                    $('#dimmer_of_page').removeClass('active');
-                });
-            }
-
             function save_job() {
-                job_form.save("{{ initial.save_url }}", "{% if action == 'edit' %}PUT{% else %}POST{% endif %}", {
+                job_form.save("{% url 'jobs:api-create-job' %}", "POST", {
                     global_role: roles_form.global_role(),
                     user_roles: roles_form.get_roles(),
-                    files: files_form.serialize(),
-                    version: {% if initial.version %}{{ initial.version }}{% else %}0{% endif %}
+                    files: files_form.serialize()
                 });
             }
-
-            get_version_data("{{ initial_url }}");
+            roles_form.initialize({{ initial.roles|safe }});
+            files_form.initialize({{ initial.files|safe }});
 
             $('#file_not_commited_modal').modal({transition: 'fade in', autofocus: false, closable: false});
             $('#close_save_job_btn').click(function () { $('#file_not_commited_modal').modal('hide') });
@@ -199,14 +158,7 @@
                 files_form.not_commited() ? $('#file_not_commited_modal').modal('show') : save_job();
             });
 
-            // Update data on change job version if it exists
-            let versions_selector = $('#job_version_selector');
-            if (versions_selector.length) {
-                versions_selector.dropdown();
-                versions_selector.change(function () {
-                    get_version_data(versions_selector.children('option:selected').val());
-                });
-            }
+            $('#preset_dir').dropdown();
         });
     </script>
 {% endblock %}

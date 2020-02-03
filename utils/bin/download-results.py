@@ -20,12 +20,12 @@ from uuid import UUID
 from utils.utils import get_args_parser, Session
 
 parser = get_args_parser('Download JSON file with verification results of verificaiton job.')
-parser.add_argument('job', type=UUID, help='Verification job identifier (uuid).')
+parser.add_argument('decision', type=UUID, help='Verification job decision identifier (uuid).')
 parser.add_argument('-o', '--out', help='JSON file name.', default='results.json')
 args = parser.parse_args()
 
 session = Session(args)
-session.decision_results(args.job, args.out)
+session.decision_results(args.decision, args.out)
 
-print('JSON file with verification results of verificaiton job "{0}" was successfully downloaded to "{1}"'
+print('JSON file with verification results of verificaiton job decision "{0}" was successfully downloaded to "{1}"'
       .format(args.job, args.out))

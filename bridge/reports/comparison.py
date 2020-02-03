@@ -20,16 +20,15 @@ import json
 from collections import OrderedDict
 
 from django.contrib.contenttypes.models import ContentType
-from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Count
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 
-from bridge.vars import COMPARE_VERDICT, JOB_WEIGHT, SAFE_COLOR, UNSAFE_COLOR
+from bridge.vars import COMPARE_VERDICT, SAFE_COLOR, UNSAFE_COLOR, DECISION_WEIGHT
 from bridge.utils import BridgeException
 
 from reports.models import (
-    ReportAttr, CompareJobsInfo, ComparisonObject, ComparisonLink,
+    ReportAttr, CompareDecisionsInfo, ComparisonObject, ComparisonLink,
     ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent
 )
 
@@ -37,12 +36,12 @@ from marks.models import MarkUnsafeReport, MarkSafeReport, MarkUnknownReport
 
 
 class GetComparisonObjects:
-    def __init__(self, root, names):
-        self._root = root
+    def __init__(self, decision, names):
+        self._decision = decision
         self._names = names
 
     def __fill_leaf_objects(self, data, leaf_type):
-        qs = ReportAttr.objects.filter(report__root=self._root, compare=True)\
+        qs = ReportAttr.objects.filter(report__decision=self._decision, compare=True)\
             .exclude(**{'report__report{}'.format(leaf_type): None})
         for attr in qs:
             if attr.report_id not in data:
@@ -67,24 +66,26 @@ class GetComparisonObjects:
 
 
 class FillComparisonCache:
-    def __init__(self, user, root1, root2):
+    def __init__(self, user, decision1, decision2):
         self._user = user
-        self._root1 = root1
-        self._root2 = root2
+        self._decision1 = decision1
+        self._decision2 = decision2
         self._names = self.__get_attr_names()
         self._info = self.__create_info()
         self.__fill_data()
 
     def __get_attr_names(self):
-        names1 = set(ReportAttr.objects.filter(report__root=self._root1, compare=True).values_list('name', flat=True))
-        names2 = set(ReportAttr.objects.filter(report__root=self._root2, compare=True).values_list('name', flat=True))
+        names1 = set(ReportAttr.objects.filter(report__decision=self._decision1, compare=True)
+                     .values_list('name', flat=True))
+        names2 = set(ReportAttr.objects.filter(report__decision=self._decision2, compare=True)
+                     .values_list('name', flat=True))
         if names1 != names2:
             raise BridgeException(_("Jobs with different sets of attributes to compare can't be compared"))
         return list(sorted(names1))
 
     def __create_info(self):
-        return CompareJobsInfo.objects.create(
-            user=self._user, root1=self._root1, root2=self._root2, names=self._names
+        return CompareDecisionsInfo.objects.create(
+            user=self._user, decision1=self._decision1, decision2=self._decision2, names=self._names
         )
 
     def __fill_data(self):
@@ -93,8 +94,8 @@ class FillComparisonCache:
             'unsafe': ContentType.objects.get_for_model(ReportUnsafe),
             'unknown': ContentType.objects.get_for_model(ReportUnknown),
         }
-        data1 = GetComparisonObjects(self._root1, self._names).get_leaf_values()
-        data2 = GetComparisonObjects(self._root2, self._names).get_leaf_values()
+        data1 = GetComparisonObjects(self._decision1, self._names).get_leaf_values()
+        data2 = GetComparisonObjects(self._decision2, self._names).get_leaf_values()
 
         # Calculate total verdicts for each batch of attributes values
         verdicts_data = {}
@@ -154,14 +155,14 @@ class FillComparisonCache:
 
 
 class ComparisonTableData:
-    def __init__(self, user, root1, root2):
+    def __init__(self, user, decision1, decision2):
         try:
-            self.info = CompareJobsInfo.objects.get(user=user, root1=root1, root2=root2)
-        except ObjectDoesNotExist:
+            self.info = CompareDecisionsInfo.objects.get(user=user, decision1=decision1, decision2=decision2)
+        except CompareDecisionsInfo.DoesNotExist:
             raise BridgeException(_('The comparison cache was not found'))
         self.table_rows = self.__get_table_data()
         self.attrs = self.__get_attrs()
-        self.lightweight = (root1.job.weight == root2.job.weight == JOB_WEIGHT[1][0])
+        self.lightweight = (decision1.weight == decision2.weight == DECISION_WEIGHT[1][0])
 
     def __get_table_data(self):
         numbers = {}
@@ -221,7 +222,7 @@ class ComparisonData:
 
     @property
     def lightweight(self):
-        return self.info.root1.job.weight == self.info.root2.job.weight == JOB_WEIGHT[1][0]
+        return self.info.decision1.job.weight == self.info.decision2.job.weight == DECISION_WEIGHT[1][0]
 
     def __get_verdicts(self, verdict):
         m = re.match(r'^(\d)_(\d)$', verdict)
@@ -260,7 +261,7 @@ class ComparisonData:
         tree2 = ComparisonTree()
         for link in ComparisonLink.objects.filter(comparison=self.comparison).order_by('object_id'):
             report = link.content_object
-            if report.root_id == self.info.root1_id:
+            if report.decision_id == self.info.decision1_id:
                 tree1.update_tree(report, self.hide_components)
             else:
                 tree2.update_tree(report, self.hide_components)

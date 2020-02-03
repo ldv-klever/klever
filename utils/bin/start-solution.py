@@ -31,14 +31,10 @@ args = parser.parse_args()
 
 session = Session(args)
 job_uuid = args.job
-if args.copy:
-    job_uuid = session.copy_job(args.job)
-elif args.replacement:
-    session.copy_job_version(args.job)
 
-# Replace files before start
-if args.replacement:
-    session.replace_files(job_uuid, args.replacement)
+# Copy job if we need to change files or set --copy option
+if args.copy or args.replacement:
+    job_uuid = session.copy_job(args.job, args.replacement)
 
 session.start_job_decision(job_uuid, args.rundata)
 

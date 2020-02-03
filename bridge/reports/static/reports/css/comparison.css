@@ -15,26 +15,26 @@
  * limitations under the License.
  */
 
-.job-href-1 {
+.decision-href-1 {
     color: #00aced;
 }
-.job-href-1:visited {
+.decision-href-1:visited {
     color: #00aced;
 }
-.job-href-2 {
+.decision-href-2 {
     color: #733eed;
 }
-.job-href-2:visited {
+.decision-href-2:visited {
     color: #733eed;
 }
 
-.job-th-0 {
+.decision-th-0 {
     background-color: #747eeb;
 }
-.job-th-1 {
+.decision-th-1 {
     background-color: #a8e5ff;
 }
-.job-th-2 {
+.decision-th-2 {
     background-color: #b7a6ff;
     height: 50px;
 }

@@ -16,14 +16,14 @@
 #
 
 from django.core.management.base import BaseCommand
-from jobs.preset import PresetsChecker
+from jobs.preset import PopulatePresets
 
 
 class Command(BaseCommand):
-    help = 'Used to calculate checksums of jobs preset files and store check date if it total checksum has changed.'
+    help = 'Used to populate (update) preset jobs and files and store check date if files were changed.'
     requires_migrations_checks = True
 
     def handle(self, *args, **options):
-        PresetsChecker().calculate_hash_sums()
+        PopulatePresets().populate()
         if options['verbosity'] >= 1:
-            self.stdout.write("Preset files were successfully checked.")
+            self.stdout.write("Preset jobs and files were successfully populated.")

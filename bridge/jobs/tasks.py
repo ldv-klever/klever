@@ -38,27 +38,6 @@ def upload_job_archive(upload_id, parent_uuid):
         uploader.upload()
 
 
-@celery_app.task(bind=True)
-def link_uploaded_job_parent(self, upload_id, parent_upload_id):
-    try:
-        upload_obj = UploadedJobArchive.objects.select_related('job').get(id=upload_id)
-        upload_parent_obj = UploadedJobArchive.objects.get(id=parent_upload_id)
-    except UploadedJobArchive.DoesNotExist:
-        raise BridgeException('Uploaded job archives were not found!')
-    if upload_obj.status == JOB_UPLOAD_STATUS[6][0] \
-            and upload_parent_obj.status == JOB_UPLOAD_STATUS[6][0]\
-            and upload_obj.job and upload_parent_obj.job:
-        upload_obj.job.parent_id = upload_parent_obj.job_id
-        upload_obj.job.save()
-        return
-    elif upload_obj.status == JOB_UPLOAD_STATUS[7][0] or \
-            upload_parent_obj.status == JOB_UPLOAD_STATUS[7][0]:
-        # Job or its parent uploading failed!
-        return
-    # Try each 10 seconds for 2 hours maximum
-    raise self.retry(countdown=10, max_retries=720)
-
-
 @shared_task
 def clear_old_uploads(minutes):
     UploadedJobArchive.objects.exclude(finish_date=None).filter(

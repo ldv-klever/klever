@@ -38,6 +38,32 @@ class BridgeError(IOError):
     pass
 
 
+class RequestFilesProcessor:
+    def __init__(self):
+        self._cnt = 0
+        self._files_map = {}
+        self._files = {}
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        for fp in self._files.values():
+            fp.close()
+
+    def add_file(self, file_name, file_path):
+        file_key = 'file{}'.format(self._cnt)
+        self._files_map[file_name] = file_key
+        self._files[file_key] = open(file_path, mode='rb', buffering=0)
+        self._cnt += 1
+
+    def get_files(self):
+        return list(self._files.items())
+
+    def get_map(self):
+        return self._files_map
+
+
 class Session:
     def __init__(self, args):
         self._args = args
@@ -148,55 +174,20 @@ class Session:
         with open(filename, mode='w', encoding='utf8') as fp:
             json.dump(resp.json(), fp, ensure_ascii=False, sort_keys=True, indent=4)
 
-    def decision_results(self, job_uuid, filename):
+    def decision_results(self, decision_uuid, filename):
         """
         Save job decision results to json file.
-        :param job_uuid: job identifier
+        :param decision_uuid: decision identifier
         :param filename: path where to save the file
         :return: None
         """
-        resp = self.__request('jobs/api/decision-results/{0}/'.format(job_uuid))
+        resp = self.__request('jobs/api/decision-results/{0}/'.format(decision_uuid))
         with open(filename, mode='w', encoding='utf8') as fp:
             json.dump(resp.json(), fp, ensure_ascii=False, sort_keys=True, indent=4)
 
-    def copy_job(self, job_uuid, name=None):
-        """
-        Copy job.
-        :param job_uuid: job identifier
-        :param name: new job name, optional
-        :return: identifier of the new job.
-        """
-        request_data = {'parent': str(job_uuid)}
-        if isinstance(name, str) and len(name) > 0:
-            request_data['name'] = name
-        resp = self.__request('jobs/api/duplicate/', 'POST', data=request_data)
-        return resp.json()['identifier']
-
-    def copy_job_version(self, job_uuid):
-        """
-        Create new job version.
-        :param job_uuid: job identifier
-        :return: None
-        """
-        self.__request('jobs/api/duplicate/{0}/'.format(job_uuid), 'PATCH')
-
-    def create_preset_job(self, preset_uuid):
-        """
-        Create new job on the base of preset files.
-        :param preset_uuid: preset job uuid.
-        :return: job primary key and identifier
-        """
-        resp = self.__request('jobs/api/create-preset/{0}/'.format(preset_uuid), 'POST')
-        resp_json = resp.json()
-        return resp_json['id'], resp_json['identifier']
-
-    def replace_files(self, job_uuid, replacement):
-        """
-        Replace job files.
-        :param job_uuid: job identifier
-        :param replacement: path to json with replacement info or json string with it.
-        :return: None
-        """
+    def __create_job(self, url, replacement):
+        if not replacement:
+            return self.__request(url, method='POST')
         if os.path.exists(replacement):
             with open(replacement, mode='r', encoding='utf8') as fp:
                 new_files = json.load(fp)
@@ -204,13 +195,32 @@ class Session:
             new_files = json.loads(replacement)
         if not isinstance(new_files, dict):
             raise ValueError('Dictionary expected')
-        for f_name, f_path in new_files.items():
-            with open(f_path, mode='rb', buffering=0) as fp:
-                self.__request(
-                    'jobs/api/replace-job-file/', 'PATCH',
-                    data={'name': f_name, 'job': str(job_uuid)},
-                    files=[('file', fp)], stream=True
-                )
+        with RequestFilesProcessor() as fp:
+            for f_name, f_path in new_files.items():
+                fp.add_file(f_name, f_path)
+            return self.__request(url, method='POST', data={'files': fp.get_map()}, files=fp.get_files())
+
+    def copy_job(self, job_uuid, replacement):
+        """
+        Copy job.
+        :param job_uuid: job identifier
+        :param replacement: path to json with replacement info or json string with it.
+        :return: identifier of the new job.
+        """
+        resp = self.__create_job('jobs/api/duplicate/{0}/'.format(job_uuid), replacement)
+        return resp.json()['identifier']
+
+    def create_preset_job(self, preset_uuid, replacement):
+        """
+        Create new job on the base of preset files.
+        :param preset_uuid: preset job uuid.
+        :param replacement: path to json with replacement info or json string with it.
+        :return: job primary key and identifier
+        """
+
+        resp = self.__create_job('jobs/api/create-preset/{0}/'.format(preset_uuid), replacement)
+        resp_json = resp.json()
+        return resp_json['id'], resp_json['identifier']
 
     def start_job_decision(self, job_uuid, data_fp):
         """
@@ -221,9 +231,9 @@ class Session:
         """
         url = 'jobs/api/decide-uuid/{}/'.format(job_uuid)
         if data_fp:
-            self.__request(url, 'POST', data={'mode': 'file_conf'}, files=[('file_conf', data_fp)], stream=True)
+            self.__request(url, 'POST', files=[('file_conf', data_fp)], stream=True)
         else:
-            self.__request(url, 'POST', data={'mode': 'fast'})
+            self.__request(url, 'POST')
 
     def download_all_marks(self, archive):
         """

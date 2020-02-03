@@ -19,22 +19,13 @@ from django.db import models
 from django.db.models.signals import post_delete
 from django.contrib.postgres.fields import JSONField
 
-from bridge.vars import PRIORITY, NODE_STATUS, TASK_STATUS, SCHEDULER_STATUS, SCHEDULER_TYPE
+from bridge.vars import NODE_STATUS, TASK_STATUS
 from bridge.utils import WithFilesMixin, remove_instance_files
 
-from jobs.models import Job, JobFile
+from jobs.models import Scheduler, Decision
 from users.models import User
-from reports.models import ReportRoot
 
 SERVICE_DIR = 'Service'
-
-
-class Scheduler(models.Model):
-    type = models.CharField(max_length=15, choices=SCHEDULER_TYPE, db_index=True)
-    status = models.CharField(max_length=15, choices=SCHEDULER_STATUS, default=SCHEDULER_STATUS[1][0])
-
-    class Meta:
-        db_table = 'scheduler'
 
 
 class VerificationTool(models.Model):
@@ -77,46 +68,6 @@ class Workload(models.Model):
 
     class Meta:
         db_table = 'workload'
-
-
-class Decision(models.Model):
-    job = models.OneToOneField(Job, models.CASCADE)
-    scheduler = models.ForeignKey(Scheduler, models.CASCADE)
-    priority = models.CharField(max_length=6, choices=PRIORITY)
-
-    error = models.TextField(null=True)
-    configuration = models.ForeignKey(JobFile, models.CASCADE)
-    fake = models.BooleanField(default=False)
-
-    start_date = models.DateTimeField(null=True)
-    finish_date = models.DateTimeField(null=True)
-
-    tasks_total = models.PositiveIntegerField(default=0)
-    tasks_pending = models.PositiveIntegerField(default=0)
-    tasks_processing = models.PositiveIntegerField(default=0)
-    tasks_finished = models.PositiveIntegerField(default=0)
-    tasks_error = models.PositiveIntegerField(default=0)
-    tasks_cancelled = models.PositiveIntegerField(default=0)
-    solutions = models.PositiveIntegerField(default=0)
-
-    total_sj = models.PositiveIntegerField(null=True)
-    failed_sj = models.PositiveIntegerField(null=True)
-    solved_sj = models.PositiveIntegerField(null=True)
-    expected_time_sj = models.PositiveIntegerField(null=True)
-    start_sj = models.DateTimeField(null=True)
-    finish_sj = models.DateTimeField(null=True)
-    gag_text_sj = models.CharField(max_length=128, null=True)
-
-    total_ts = models.PositiveIntegerField(null=True)
-    failed_ts = models.PositiveIntegerField(null=True)
-    solved_ts = models.PositiveIntegerField(null=True)
-    expected_time_ts = models.PositiveIntegerField(null=True)
-    start_ts = models.DateTimeField(null=True)
-    finish_ts = models.DateTimeField(null=True)
-    gag_text_ts = models.CharField(max_length=128, null=True)
-
-    class Meta:
-        db_table = 'decision'
 
 
 class Task(WithFilesMixin, models.Model):

@@ -15,8 +15,9 @@
 # limitations under the License.
 #
 
-import os
 import json
+import logging
+import os
 import sys
 
 from datetime import timedelta
@@ -130,6 +131,12 @@ DEF_USER = {
 LOGS_DIR = os.path.join(BASE_DIR, 'logs')
 LOGGING = {
     'version': 1,
+    'filters': {
+        'justInfo': {
+            "()": 'bridge.utils.InfoFilter',
+            'level': logging.INFO
+        }
+    },
     'formatters': {
         'with_separator': {
             'format': '=' * 50 + '\n[%(asctime)s] %(message)s',
@@ -146,10 +153,10 @@ LOGGING = {
             'class': 'logging.StreamHandler',
             'stream': sys.stdout
         },
-        'file': {
+        'uncatched': {
             'level': 'ERROR',
             'class': 'logging.FileHandler',
-            'filename': os.path.join(LOGS_DIR, 'internal-server-error.log'),
+            'filename': os.path.join(LOGS_DIR, 'uncatched-error.log'),
             'formatter': 'with_separator'
         },
         'db-file': {
@@ -168,11 +175,12 @@ LOGGING = {
             'level': 'INFO',
             'class': 'logging.FileHandler',
             'filename': os.path.join(LOGS_DIR, 'info.log'),
-            'formatter': 'simple'
+            'formatter': 'simple',
+            'filters': ['justInfo']
         },
     },
     'loggers': {
-        'django.request': {'handlers': ['console', 'file'], 'level': 'DEBUG', 'propagate': True},
+        'django.request': {'handlers': ['console', 'uncatched'], 'level': 'DEBUG', 'propagate': True},
         'bridge': {'handlers': ['errors', 'console', 'other'], 'level': 'INFO', 'propagate': True},
         # 'django.db': {'handlers': ['db-file'], 'level': 'DEBUG', 'propagate': True},
     }

@@ -14,7 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import io
 import os
 import json
 import uuid
@@ -23,14 +22,13 @@ from django.conf import settings
 from django.core.files import File
 from django.utils.functional import cached_property
 from django.utils.timezone import now
+from django.utils.translation import ugettext as _
 
-from bridge.vars import USER_ROLES, JOB_ROLES
-from bridge.utils import file_checksum
+from bridge.vars import PRESET_JOB_TYPE
 
-from users.models import User
-from jobs.models import Job, JobHistory, PresetStatus
+from jobs.models import PresetJob, PresetFile
 
-from jobs.utils import JSTreeConverter, get_unique_name
+from jobs.utils import JSTreeConverter
 from jobs.serializers import JobFileSerializer
 
 BASE_FILE = 'base.json'
@@ -47,18 +45,104 @@ def get_presets_dir():
     return os.path.abspath(os.path.join(settings.BASE_DIR, 'jobs', presets_path))
 
 
-class PresetFiles:
-    def __init__(self, preset_uuid):
-        self._preset_uuid = str(preset_uuid)
+class PopulatePresets:
+    def __init__(self):
         self._presets_dir = get_presets_dir()
 
-    def __iter__(self):
+    def populate(self):
+        self.__populate_presets(self._presets_data['jobs'])
+
+    @cached_property
+    def _presets_data(self):
+        with open(os.path.join(self._presets_dir, BASE_FILE), mode='r', encoding='utf-8') as fp:
+            return json.load(fp)
+
+    def __populate_presets(self, jobs_list, parent_id=None):
+        for data in jobs_list:
+            if settings.POPULATE_JUST_PRODUCTION_PRESETS and not data.get('production'):
+                continue
+            try:
+                preset_job = PresetJob.objects.get(identifier=data['uuid'])
+            except PresetJob.DoesNotExist:
+                create_kwargs = {'identifier': uuid.UUID(data['uuid']), 'name': data['name'], 'parent_id': parent_id}
+                if 'children' in data:
+                    preset_job = self.__create_preset_dir(**create_kwargs)
+                elif 'directory' in data:
+                    preset_job = self.__create_preset_leaf(data['directory'], **create_kwargs)
+                else:
+                    continue
+            else:
+                if 'children' in data:
+                    self.__update_preset_dir(preset_job, name=data['name'], parent_id=parent_id)
+                elif 'directory' in data:
+                    self.__update_preset_leaf(preset_job, data['directory'], name=data['name'], parent_id=parent_id)
+            if 'children' in data:
+                self.__populate_presets(data['children'], parent_id=preset_job.id)
+
+    def __create_preset_dir(self, **kwargs):
+        return PresetJob.objects.create(check_date=now(), type=PRESET_JOB_TYPE[0][0], **kwargs)
+
+    def __create_preset_leaf(self, files_dir, **kwargs):
+        preset_job = PresetJob.objects.create(check_date=now(), type=PRESET_JOB_TYPE[1][0], **kwargs)
+        new_preset_files = []
+        for file_name, file_obj in self._job_files(files_dir):
+            new_preset_files.append(PresetFile(preset_id=preset_job.id, name=file_name, file_id=file_obj.id))
+        PresetFile.objects.bulk_create(new_preset_files)
+        return preset_job
+
+    def __update_preset_dir(self, preset_job, **kwargs):
+        changed = False
+
+        # Check if any field of the preset job is changed (name or parent)
+        for field, value in kwargs.items():
+            if getattr(preset_job, field) != value:
+                setattr(preset_job, field, value)
+                changed = True
+
+        if changed:
+            preset_job.save()
+
+    def __update_preset_leaf(self, preset_job, files_dir, **kwargs):
+        changed = False
+
+        # Check if any field of the preset job is changed (name or parent)
+        for field, value in kwargs.items():
+            if getattr(preset_job, field) != value:
+                setattr(preset_job, field, value)
+                changed = True
+
+        # Get old preset job files
+        old_files = dict(((pr_f.name, pr_f.file_id), pr_f.id) for pr_f in PresetFile.objects.filter(preset=preset_job))
+
+        files_to_create = []  # Unsaved PresetFile instances
+        new_files = set()  # Tuples (name, JobFile.id)
+
+        # Collect preset job files if its directory is provided (JobFile instances are created)
+        for file_name, file_obj in self._job_files(files_dir):
+            new_files.add((file_name, file_obj.id))
+            if (file_name, file_obj.id) in old_files:
+                continue
+            files_to_create.append(PresetFile(preset_id=preset_job.id, name=file_name, file_id=file_obj.id))
+
+        # Get preset job files that were deleted (or changed)
+        files_to_delete = list(old_files[file_identifier] for file_identifier in set(old_files) - new_files)
+
+        # If there are any changes in preset files, than update check_date and save new files
+        if files_to_delete or files_to_create:
+            changed = True
+            preset_job.check_date = now()
+            if files_to_delete:
+                PresetFile.objects.filter(id__in=files_to_delete).delete()
+            if files_to_create:
+                PresetFile.objects.bulk_create(files_to_create)
+
+        if changed:
+            preset_job.save()
+
+    def _job_files(self, job_directory):
         # Get specific preset files
-        job_directory = self.__find_directory(self._presets_data['jobs'])
-        if not job_directory:
-            raise ValueError('The preset job was not found')
-        yield JOB_FILE, self.__save_file(os.path.join(job_directory, JOB_FILE))
-        yield TASKS_FILE, self.__save_file(os.path.join(job_directory, TASKS_FILE))
+        yield JOB_FILE, self.__save_file(os.path.join(self._presets_dir, job_directory, JOB_FILE))
+        yield TASKS_FILE, self.__save_file(os.path.join(self._presets_dir, job_directory, TASKS_FILE))
 
         # Common presets files
         for name in self._presets_data['common directories and files']:
@@ -74,24 +158,6 @@ class PresetFiles:
             else:
                 raise ValueError('Preset file/dir "{}" was not found'.format(name))
 
-    @cached_property
-    def _presets_data(self):
-        with open(os.path.join(self._presets_dir, BASE_FILE), mode='r', encoding='utf-8') as fp:
-            return json.load(fp)
-
-    def __find_directory(self, jobs_list):
-        for data in jobs_list:
-            if 'uuid' in data and data['uuid'] == self._preset_uuid:
-                directory = os.path.join(self._presets_dir, data['directory'])
-                if not os.path.isdir(directory):
-                    raise ValueError('The preset job directory does not exist')
-                return directory
-            elif 'children' in data:
-                directory = self.__find_directory(data['children'])
-                if directory:
-                    return directory
-        return None
-
     def __save_file(self, file_path):
         if not os.path.isfile(file_path):
             raise ValueError('File was not found: {}'.format(file_path))
@@ -102,143 +168,27 @@ class PresetFiles:
         return instance
 
 
-class PresetsProcessor:
-    def __init__(self, user):
-        self._user = user
-        self._parents = []
-        self._presets_dir = get_presets_dir()
-
-    def get_jobs_tree(self):
-        if settings.POPULATE_JUST_PRODUCTION_PRESETS:
-            return self.__get_production_children(self._presets_data['jobs'])
-        return self._presets_data['jobs']
-
-    def __find_name(self, preset_uuid, jobs_list):
-        for data in jobs_list:
-            if 'uuid' in data and data['uuid'] == preset_uuid:
-                return data['name']
-            elif 'children' in data:
-                self._parents.append({'name': data['name'], 'identifier': data['uuid']})
-                name = self.__find_name(preset_uuid, data['children'])
-                if name:
-                    return name
-                self._parents.pop()
-        return None
-
-    def __get_job_parent(self):
-        # If preset job don't have parents, then new job will not have it
-        if not self._parents:
-            return None
-        # Try to get last the closest parent from DB
-        try:
-            return Job.objects.get(identifier=self._parents[-1]['identifier'])
-        except Job.DoesNotExist:
-            pass
-        # Get or create all parents branch
-        prev_parent = None
-        for parent_data in self._parents:
-            new_job, created = Job.objects.get_or_create(identifier=parent_data['identifier'], defaults={
-                'name': parent_data['name'], 'parent': prev_parent, 'author': self._user
-            })
-            if created:
-                JobHistory.objects.create(
-                    job=new_job, name=new_job.name, version=new_job.version,
-                    change_author=new_job.author, change_date=now()
-                )
-            prev_parent = new_job
-        return prev_parent
-
-    def get_job_name_and_parent(self, preset_uuid):
-        self._parents = []
-        base_name = self.__find_name(str(preset_uuid), self._presets_data['jobs'])
-        if not base_name:
-            raise ValueError('The preset job with identifier "{}" was not found'.format(preset_uuid))
-        return get_unique_name(base_name), self.__get_job_parent()
-
-    @cached_property
-    def _presets_data(self):
-        with open(os.path.join(self._presets_dir, BASE_FILE), mode='r', encoding='utf-8') as fp:
-            return json.load(fp)
-
-    def __get_production_children(self, preset_tree):
-        new_tree = []
-        for job_data in preset_tree:
-            if 'children' in job_data:
-                new_children_list = self.__get_production_children(job_data['children'])
-                if new_children_list:
-                    job_data['children'] = new_children_list
-                    new_tree.append(job_data)
-            elif 'uuid' in job_data and job_data.get('production'):
-                new_tree.append(job_data)
-        return new_tree
-
-    def initial_roles(self):
-        users_qs = User.objects.exclude(role__in=[USER_ROLES[2][0], USER_ROLES[4][0]])
-        available_users = list({'id': u.id, 'name': u.get_full_name()} for u in users_qs)
-        available_users.sort(key=lambda x: x['name'])
-        return {'user_roles': [], 'available_users': available_users, 'global_role': JOB_ROLES[0][0]}
-
-    def get_form_data(self, preset_uuid):
-        preset_files_hashsums = list((name, obj.hash_sum) for name, obj in PresetFiles(preset_uuid))
-        return {
-            'files': JSTreeConverter().make_tree(preset_files_hashsums),
-            'roles': self.initial_roles()
-        }
-
-    def get_file_system_kwargs(self, preset_uuid):
-        return list({'name': name, 'file_id': obj.id} for name, obj in PresetFiles(preset_uuid))
+def get_preset_dir_list(preset_job):
+    available_dirs = []
+    if preset_job.type == PRESET_JOB_TYPE[1][0]:
+        available_dirs.append({'id': preset_job.id, 'name': _('Root'), 'selected': True})
+        preset_qs = PresetJob.objects.filter(parent=preset_job).order_by('name').values_list('id', 'name')
+        available_dirs.extend(list({'id': p_id, 'name': name} for p_id, name in preset_qs))
+    else:
+        available_dirs.append({'id': preset_job.parent_id, 'name': _('Root')})
+        preset_qs = PresetJob.objects.filter(parent_id=preset_job.parent_id).order_by('name').values_list('id', 'name')
+        for p_id, name in preset_qs:
+            available_dirs.append({'id': p_id, 'name': name, 'selected': (p_id == preset_job.id)})
+    return available_dirs
 
 
-class PresetsChecker:
-    def __init__(self):
-        self._presets_dir = get_presets_dir()
-
-    @cached_property
-    def _presets_data(self):
-        with open(os.path.join(self._presets_dir, BASE_FILE), mode='r', encoding='utf-8') as fp:
-            return json.load(fp)
-
-    def __get_check_sum(self, file_path):
-        with open(file_path, mode='rb') as fp:
-            return file_checksum(fp)
-
-    def __files_checksums(self, job_directory):
-        yield self.__get_check_sum(os.path.join(self._presets_dir, job_directory, JOB_FILE))
-        yield self.__get_check_sum(os.path.join(self._presets_dir, job_directory, TASKS_FILE))
-
-        # Common files
-        for name in self._presets_data['common directories and files']:
-            path = os.path.join(self._presets_dir, name)
-            if os.path.isdir(path):
-                for dir_path, dir_names, file_names in os.walk(path):
-                    for file_name in file_names:
-                        yield self.__get_check_sum(os.path.join(dir_path, file_name))
-            elif os.path.isfile(path):
-                yield self.__get_check_sum(path)
-            else:
-                raise ValueError('Preset file/dir "{}" was not found'.format(name))
-
-    def __calculate_for_job(self, job_data):
-        check_sums = []
-        for check_sum in self.__files_checksums(job_data['directory']):
-            check_sums.append(check_sum)
-        fp = io.BytesIO(json.dumps(check_sums, ensure_ascii=False).encode('utf8'))
-        job_hash_sum = file_checksum(fp)[:128]
-        try:
-            preset_obj = PresetStatus.objects.get(identifier=job_data['uuid'])
-            if preset_obj.hash_sum != job_hash_sum:
-                preset_obj.hash_sum = job_hash_sum
-                preset_obj.save()
-        except PresetStatus.DoesNotExist:
-            PresetStatus.objects.create(identifier=uuid.UUID(job_data['uuid']), hash_sum=job_hash_sum)
-
-    def __check_all(self, jobs_list):
-        for data in jobs_list:
-            if 'uuid' in data and 'directory' in data:
-                if not settings.POPULATE_JUST_PRODUCTION_PRESETS or data.get('production'):
-                    self.__calculate_for_job(data)
-            elif 'children' in data:
-                self.__check_all(data['children'])
-
-    def calculate_hash_sums(self):
-        self.__check_all(self._presets_data['jobs'])
+def preset_job_files_tree_json(preset_job):
+    # Get preset files
+    if preset_job.type == PRESET_JOB_TYPE[1][0]:
+        preset_files_qs = PresetFile.objects.filter(preset=preset_job).values_list('name', 'file__hash_sum')
+    else:
+        # Get files from parent for custom preset job
+        preset_files_qs = PresetFile.objects.filter(preset_id=preset_job.parent_id) \
+            .values_list('name', 'file__hash_sum')
+    preset_files_hashsums = list((name, hash_sum) for name, hash_sum in preset_files_qs)
+    return json.dumps(JSTreeConverter().make_tree(preset_files_hashsums), ensure_ascii=False)

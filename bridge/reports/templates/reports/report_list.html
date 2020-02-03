@@ -33,12 +33,12 @@
         <div class="seven wide column">
             <div class="ui grid">
                 <div class="nine wide column">
-                    <span class="purple-title">{% trans 'Job' %}: </span>
-                    <a href="{% url 'jobs:job' report.root.job.pk %}">{{ report.root.job.name }}</a>
+                    <span class="purple-title">{% trans 'Decision' %}: </span>
+                    <a href="{% url 'jobs:decision' report.decision.pk %}">{{ report.decision.name }}</a>
                 </div>
                 <div class="seven wide column">
                     <span class="purple-title">{% trans 'Author' %}: </span>
-                    <a href="{% url 'users:show-profile' report.root.user.id %}">{{ report.root.user.get_full_name }}</a>
+                    <a href="{% url 'users:show-profile' report.decision.operator.id %}">{{ report.decision.operator.get_full_name }}</a>
                 </div>
             </div>
         </div>

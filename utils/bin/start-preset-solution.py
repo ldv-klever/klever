@@ -30,11 +30,7 @@ parser.add_argument('--rundata', type=open,
 args = parser.parse_args()
 
 session = Session(args)
-job_id, job_uuid = session.create_preset_job(args.preset)
-
-# Replace files before start
-if args.replacement:
-    session.replace_files(job_uuid, args.replacement)
+job_id, job_uuid = session.create_preset_job(args.preset, args.replacement)
 
 session.start_job_decision(job_uuid, args.rundata)
 

@@ -34,24 +34,27 @@ from users.models import DataView, PreferableView, User
 DEF_NUMBER_OF_ELEMENTS = 18
 
 JOB_TREE_VIEW = {
-    'columns': ['name', 'role', 'author', 'date', 'status', 'unsafe:total', 'problem:total', 'safe:total'],
-    # order: [up|down, title|start|finish]
+    'columns': ['role', 'author', 'creation_date', 'status', 'unsafe:total', 'problem:total', 'safe:total'],
+    # jobs_order: [up|down, name|creation_date]
+    # decisions_order: [up|down, start_date|finish_date]
     'order': ['down', 'title'],
 
     # FILTERS:
+    # hidden: list with values: 'without_decision', 'confirmed_marks'
     # title: [iexact|istartswith|icontains, <any text>]
-    # change_author: [is|isnot, <id from User model>]
-    # change_date: [gt|lt, <int number>, weeks|days|hours|minutes]
-    # status: <list of identifiers from JOB_STATUS>
+    # author: [is|isnot, <id from User model>]
+    # creation_date: [gt|lt, <int number>, weeks|days|hours|minutes]
+    # status: <list of identifiers from DECISION_STATUS>
     # resource_component: [iexact|istartswith|icontains, <any text>]
     # problem_component: [iexact|istartswith|icontains, <any text>]
     # priority: [le|e|me, <identifier from PRIORITY>]
     # finish_date: [is|older|younger, <month number>, <year>]
 
     # EXAMPLES:
+    # 'hidden': ['without_decision']
     # 'title': ['istartswith', 'Title of the job'],
-    # 'change_author': ['is', '1'],
-    # 'change_date': ['gt', '2', 'weeks'],
+    # 'author': ['is', '1'],
+    # 'creation_date': ['gt', '2', 'weeks'],
     # 'status': ['2', '5', '1'],
     # 'resource_component': ['istartswith', 'D'],
     # 'problem_component': ['iexact', 'BLAST'],
@@ -245,7 +248,7 @@ UNKNOWN_ASS_MARKS_VIEW = {
 
 UNSAFE_MARK_ASS_REPORTS_VIEW = {
     'elements': [DEF_NUMBER_OF_ELEMENTS],
-    'columns': ['job', 'similarity', 'associated', 'ass_type', 'ass_author', 'likes'],
+    'columns': ['decision', 'similarity', 'associated', 'ass_type', 'ass_author', 'likes'],
 
     # FILTERS:
     # similarity: [exact|lt|gt, "<integer>"]
@@ -260,7 +263,7 @@ UNSAFE_MARK_ASS_REPORTS_VIEW = {
 
 SAFE_MARK_ASS_REPORTS_VIEW = {
     'elements': [DEF_NUMBER_OF_ELEMENTS],
-    'columns': ['job', 'associated', 'ass_type', 'ass_author', 'likes'],
+    'columns': ['decision', 'associated', 'ass_type', 'ass_author', 'likes'],
 
     # FILTERS:
     # ass_type: <list of identifiers from ASSOCIATION_TYPE>
@@ -273,7 +276,7 @@ SAFE_MARK_ASS_REPORTS_VIEW = {
 
 UNKNOWN_MARK_ASS_REPORTS_VIEW = {
     'elements': [DEF_NUMBER_OF_ELEMENTS],
-    'columns': ['job', 'associated', 'ass_type', 'ass_author', 'likes'],
+    'columns': ['decision', 'associated', 'ass_type', 'ass_author', 'likes'],
 
     # FILTERS:
     # ass_type: <list of identifiers from ASSOCIATION_TYPE>
@@ -285,30 +288,30 @@ UNKNOWN_MARK_ASS_REPORTS_VIEW = {
 }
 
 SAFE_ASSOCIATION_CHANGES_VIEW = {
-    'columns': ['change_kind', 'sum_verdict', 'tags', 'job'],
+    'columns': ['change_kind', 'sum_verdict', 'tags', 'decision'],
     # FILTERS:
     'hidden': ['unchanged']
     # change_kind: <sublist from ['changed', 'new', 'deleted']>
     # old_verdict: <list of identifiers from SAFE_VERDICTS>
     # new_verdict: <list of identifiers from SAFE_VERDICTS>
-    # job_title: [iexact|istartswith|icontains, <any text>]
+    # decision_title: [iexact|istartswith|icontains, <any text>]
     # attr: [<Attr name>, iexact|istartswith, <Attr value>]
 }
 UNSAFE_ASSOCIATION_CHANGES_VIEW = {
-    'columns': ['change_kind', 'sum_verdict', 'tags', 'job'],
+    'columns': ['change_kind', 'sum_verdict', 'tags', 'decision'],
     # FILTERS:
     'hidden': ['unchanged']
     # change_kind: <sublist from ['changed', 'new', 'deleted']>
     # old_verdict: <list of identifiers from UNSAFE_VERDICTS>
     # new_verdict: <list of identifiers from UNSAFE_VERDICTS>
-    # job_title: [iexact|istartswith|icontains, <any text>]
+    # decision_title: [iexact|istartswith|icontains, <any text>]
     # attr: [<Attr name>, iexact|istartswith, <Attr value>]
 }
 UNKNOWN_ASSOCIATION_CHANGES_VIEW = {
-    'columns': ['change_kind', 'job', 'problems'],
+    'columns': ['change_kind', 'decision', 'problems'],
     # FILTERS:
     # change_kind: <sublist from ['changed', 'new', 'deleted']>
-    # job_title: [iexact|istartswith|icontains, <any text>]
+    # decision_title: [iexact|istartswith|icontains, <any text>]
     # attr: [<Attr name>, iexact|istartswith, <Attr value>]
 }
 
@@ -504,43 +507,11 @@ class UserActionsHistory:
         self.activity = self.get_activity()
 
     def get_activity(self):
-        activity = self.get_jobs_activity()
-        activity.extend(self.get_safe_marks_activity())
+        activity = self.get_safe_marks_activity()
         activity.extend(self.get_unsafe_marks_activity())
         activity.extend(self.get_unknowns_marks_activity())
         activity = sorted(activity, key=lambda x: x['date'], reverse=True)
         return activity[:50]
-
-    def get_jobs_activity(self):
-        from jobs.models import Job, JobHistory
-        from jobs.utils import JobAccess
-
-        jobs_activity = []
-        jobs_ids = set()
-        for act in JobHistory.objects.filter(change_author=self.author)\
-                .select_related('job').order_by('-change_date')[:30]:
-            comment_display = act.comment
-            if len(comment_display) > 50:
-                comment_display = comment_display[:47] + '...'
-            jobs_ids.add(act.job_id)
-            new_act = {
-                'id': act.job_id,
-                'date': act.change_date,
-                'comment': act.comment,
-                'comment_display': comment_display,
-                'action': 'create' if act.version == 1 else 'change',
-                'type': _('Job'),
-                'name': act.job.name
-            }
-            jobs_activity.append(new_act)
-        jobs_with_access = JobAccess(self.user).can_view_jobs(
-            Job.objects.filter(id__in=set(act['id'] for act in jobs_activity))
-        )
-        if jobs_with_access:
-            for i in range(len(jobs_activity)):
-                if jobs_activity[i]['id'] in jobs_with_access:
-                    jobs_activity[i]['href'] = reverse('jobs:job', args=[jobs_activity[i]['id']])
-        return jobs_activity
 
     def get_safe_marks_activity(self):
         from marks.models import MarkSafeHistory

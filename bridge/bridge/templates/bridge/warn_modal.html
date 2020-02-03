@@ -1,0 +1,17 @@
+{% load i18n %}
+
+<div id="{{ warn_modal_id }}" class="ui basic modal">
+    <div class="ui icon header">
+        <i class="warning sign icon"></i>
+        {% trans 'Are you sure' %}?
+    </div>
+    <div class="content">
+        <div class="ui center aligned grid warn-text"></div>
+    </div>
+    <div class="actions">
+        <div class="ui center aligned grid">
+            <button class="ui blue basic inverted button modal-cancel">{% trans 'Cancel' %}</button>
+            <button class="ui red basic inverted button modal-confirm">{% trans 'Confirm' %}</button>
+        </div>
+    </div>
+</div>

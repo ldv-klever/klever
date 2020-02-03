@@ -19,54 +19,74 @@
 
 {% load tz %}
 
-{% if TableData.values|length %}
-    <table class="ui celled compact selectable structured teal table tree alternate-color">
-        <thead>
+{% if TableData.content %}
+    <table class="ui celled compact selectable structured violet table tree alternate-color">
+        <thead style="background: #c0b3e7;">
             {% for column_row in TableData.header %}
                 <tr>
                     {% for coldata in column_row %}
-                        <th style="background: #cafdff" colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.title }}</th>
+                        <th colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.title }}</th>
                     {% endfor %}
                 </tr>
             {% endfor %}
         </thead>
         <tbody>
-            {% for row_data in TableData.values %}
-                <tr class="treegrid-{{ row_data.id }}{% if row_data.parent %} treegrid-parent-{{ row_data.parent }}{% endif %}"
-                    style="{% if row_data.black %}color: silver;{% endif %}{% if row_data.parent %}display:none;{% endif %}">
-                {% for v in row_data.values %}
-                    {% if v.column == 'checkbox' %}
+            {% for preset_data in TableData.content.values %}
+                <tr class="{% if preset_data.instance.type != '2' %}tr-show{% endif %} treegrid-p{{ preset_data.instance.id }}{% if preset_data.instance.parent_id %} treegrid-parent-p{{ preset_data.instance.parent_id }}{% endif %}">
+                    <td class="one wide">&nbsp;</td> {# Checkbox column #}
+                    <td class="collapsing">
+                        <span class="preset-job-name">
+                            {% if preset_data.instance.type != '0' %}
+                                <a href="{% url 'jobs:preset' preset_data.instance.id %}">{{ preset_data.instance.name }}</a>
+                            {% else %}
+                                <span>{{ preset_data.instance.name }}</span>
+                            {% endif %}
+                        </span>
+                        {% if can_create and preset_data.instance.type != '0' %}
+                            <span>
+                                {% if preset_data.instance.type == '1' %}
+                                    <i data-content="{% trans 'Add preset directory' %}" class="ui violet link plus icon add-preset-dir-link note-popup" data-parent="{{ preset_data.instance.id }}"></i>
+                                {% elif preset_data.instance.type == '2' %}
+                                    <span data-tooltip="{% trans 'Change preset directory' %}" data-position="top left"><i class="ui violet link pencil icon change-preset-dir-link note-popup" data-url="{% url 'jobs:api-preset-job-dir-detail' preset_data.instance.id %}"></i></span>
+                                {% endif %}
+                                <a href="{% url 'jobs:from-preset-form' preset_data.instance.id %}"><i data-content="{% trans 'Create new job' %}" class="ui blue link copy icon note-popup"></i></a>
+                            </span>
+                        {% endif %}
+                    </td>  {# Name column #}
+                    {% for ind in TableData.columns_num_range %}<td class="collapsing">&nbsp;</td>{% endfor %}
+                </tr>
+                {% for job_data in preset_data.jobs.values %}
+                    {# If job is under custom directory, it is hidden (PRESET_JOB_TYPE[2][0]) #}
+                    <tr class="treegrid-j{{ job_data.instance.id }} treegrid-parent-p{{ preset_data.instance.id }}" style="{% if preset_data.instance.type == '2' %}display:none;{% endif %}">
                         <td class="one wide">
                             <div class="ui fitted checkbox">
-                                <input class="job-checkbox" type="checkbox" data-row="{{ row_data.id }}" placeholder="">
+                                <input class="job-checkbox" type="checkbox" value="{{ job_data.instance.id }}">
                             </div>
                         </td>
-                    {% else %}
-                        <td class="collapsing cell-column-{{ v.column }} cell-row-{{ row_data.id }}"{% if v.number %} data-number="{{ v.number }}"{% endif %}>
-                            {% if v.html %}{{ v.html|safe }}{% elif v.text %}{{ v.text }}{% endif %}
-                        </td>
-                    {% endif %}
+                        <td class="collapsing"><a href="{% url 'jobs:job' job_data.instance.id %}">{{ job_data.instance.name }}</a></td>
+                        {% for v in job_data.values %}
+                            <td class="collapsing">{% if v.html %}{{ v.html|safe }}{% elif v.text %}{{ v.text }}{% endif %}</td>
+                        {% endfor %}
+                    </tr>
+
+                    {% for decision, values in job_data.decisions %}
+                        {# Decisions are hidden by default #}
+                        <tr class="treegrid-d{{ decision.id }} treegrid-parent-j{{ job_data.instance.id }}" style="display:none;">
+                            <td class="one wide">
+                                <div class="ui fitted checkbox">
+                                    <input class="decision-checkbox" type="checkbox" value="{{ decision.id }}">
+                                </div>
+                            </td>
+                            <td class="collapsing"><a href="{% url 'jobs:decision' decision.id %}">{{ decision.name }}</a></td>
+                            {% for v in values %}
+                                <td class="collapsing">{% if v.html %}{{ v.html|safe }}{% elif v.text %}{{ v.text }}{% endif %}</td>
+                            {% endfor %}
+                        </tr>
+                    {% endfor %}
                 {% endfor %}
-                </tr>
-            {%  endfor %}
+            {% endfor %}
         </tbody>
-    {% if TableData.footer|length %}
-        <thead>
-        <tr style="background: #cafdff;">
-            <th class="right aligned" colspan="{{ TableData.footer_title_length }}" style="background: #cafdff;">{% trans 'All' %}</th>
-            {% for fcol in TableData.footer %}
-                {% if fcol %}<td class="all-footer-col" data-column="{{ fcol }}">-</td>{% else %}<td>-</td>{% endif %}
-            {% endfor %}
-        </tr>
-        <tr style="background: #cafdff">
-            <th class="right aligned" colspan="{{ TableData.footer_title_length }}" style="background: #cafdff;">{% trans 'All for checked' %}</th>
-            {% for fcol in TableData.footer %}
-                {% if fcol %}<td class="checked-footer-col" data-column="{{ fcol }}">-</td>{% else %}<td>-</td>{% endif %}
-            {% endfor %}
-        </tr>
-        </thead>
-    {% endif %}
     </table>
 {% else %}
-    <h1 class="ui violet header">{% trans 'List of jobs is empty, please populate them or change the view' %}</h1>
+    <h3 class="ui red header">{% trans 'Please populate preset jobs' %}</h3>
 {% endif %}

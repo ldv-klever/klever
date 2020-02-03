@@ -33,7 +33,7 @@ from bridge.vars import (
 from bridge.tableHead import Header
 
 from users.models import User
-from jobs.models import Job
+from jobs.models import Decision
 from reports.models import ReportAttr
 from marks.models import (
     MarkSafe, MarkUnsafe, MarkUnknown, MarkSafeAttr, MarkUnsafeAttr, MarkUnknownAttr,
@@ -44,7 +44,7 @@ from marks.models import (
 from caches.models import SafeMarkAssociationChanges, UnsafeMarkAssociationChanges, UnknownMarkAssociationChanges
 
 from users.utils import HumanizedValue, paginate_queryset
-from jobs.utils import JobAccess
+from jobs.utils import decisions_with_view_access
 from marks.utils import MarkAccess
 
 
@@ -59,7 +59,7 @@ MARK_TITLES = {
     'change_date': _('Last change date'),
     'ass_author': _('Association author'),
     'report': _('Report'),
-    'job': _('Job'),
+    'decision': _('Decision'),
     'number': _('#'),
     'num_of_links': _('Number of associated leaf reports'),
     'problem': _("Problem"),
@@ -744,12 +744,12 @@ class MarkAssociationsBase:
         ordering = 'id'
 
         view_columns = set(self.view['columns'])
-        select_only = ['id', 'report__root_id', 'report__root__job__id', 'report__root__job__name']
+        select_only = ['id', 'report__decision_id', 'report__decision__name']
         if self.type == 'unsafe':
             select_only.append('report__trace_id')
         else:
             select_only.append('report__id')
-        select_related = ['report', 'report__root__job']
+        select_related = ['report__decision']
 
         if 'similarity' in view_columns:
             select_only.append('result')
@@ -787,9 +787,10 @@ class MarkAssociationsBase:
         return data
 
     @cached_property
-    def can_view_jobs(self):
-        jobs_qs = Job.objects.filter(id__in=set(mr.report.root.job_id for mr in self.page))
-        return JobAccess(self.user).can_view_jobs(jobs_qs)
+    def can_view_decisions(self):
+        return decisions_with_view_access(
+            self.user, Decision.objects.filter(id__in=set(mr.report.decision_id for mr in self.page))
+        )
 
     def __get_data(self):
         cnt = (self.page.number - 1) * self.paginator.per_page
@@ -806,15 +807,15 @@ class MarkAssociationsBase:
                 href = None
                 if col == 'report':
                     val = cnt
-                    if report.root.job.id in self.can_view_jobs:
+                    if report.decision_id in self.can_view_decisions:
                         if self.type == 'unsafe':
                             href = reverse('reports:unsafe', args=[str(report.trace_id)])
                         else:
                             href = reverse('reports:%s' % self.type, args=[report.id])
-                elif col == 'job':
-                    val = report.root.job.name
-                    if report.root.job.id in self.can_view_jobs:
-                        href = reverse('jobs:job', args=[report.root.job.id])
+                elif col == 'decision':
+                    val = report.decision.name
+                    if report.decision_id in self.can_view_decisions:
+                        href = reverse('jobs:decision', args=[report.decision_id])
                 elif col == 'ass_type':
                     val = mark_report.get_type_display()
                 elif col == 'associated':
@@ -842,13 +843,13 @@ class MarkAssociationsBase:
 
 
 class SafeAssociationsTable(MarkAssociationsBase):
-    columns_list = ['job', 'associated', 'ass_type', 'ass_author', 'likes']
+    columns_list = ['decision', 'associated', 'ass_type', 'ass_author', 'likes']
     likes_model = SafeAssociationLike
     mark_reports_model = MarkSafeReport
 
 
 class UnsafeAssociationsTable(MarkAssociationsBase):
-    columns_list = ['job', 'similarity', 'associated', 'ass_type', 'ass_author', 'likes']
+    columns_list = ['decision', 'similarity', 'associated', 'ass_type', 'ass_author', 'likes']
     likes_model = UnsafeAssociationLike
     mark_reports_model = MarkUnsafeReport
 
@@ -867,7 +868,7 @@ class UnsafeAssociationsTable(MarkAssociationsBase):
 
 
 class UnknownAssociationsTable(MarkAssociationsBase):
-    columns_list = ['job', 'ass_type', 'ass_author', 'likes']
+    columns_list = ['decision', 'ass_type', 'ass_author', 'likes']
     likes_model = UnknownAssociationLike
     mark_reports_model = MarkUnknownReport
 
@@ -950,8 +951,10 @@ class AssChangesBase:
             qs_filters &= Q(verdict_old__in=self.view['verdict_old'])
         if 'verdict_new' in self.view:
             qs_filters &= Q(verdict_new__in=self.view['verdict_new'])
-        if 'job_title' in self.view:
-            qs_filters &= Q(**{'job__name__{}'.format(self.view['job_title'][0]): self.view['job_title'][1]})
+        if 'decision_title' in self.view:
+            qs_filters &= Q(**{
+                'decision__name__{}'.format(self.view['decision_title'][0]): self.view['decision_title'][1]
+            })
         if 'attr' in self.view:
             select_related.extend(['report', 'report__cache'])
             annotations['attr_value'] = RawSQL(
@@ -970,8 +973,8 @@ class AssChangesBase:
         selected_columns = set(self.view['columns'])
         if 'change_kind' in selected_columns:
             select_only.append('kind')
-        if 'job' in selected_columns:
-            select_only.extend(['job__id', 'job__name'])
+        if 'decision' in selected_columns:
+            select_only.extend(['decision__id', 'decision__name'])
         if 'sum_verdict' in selected_columns:
             select_only.extend(['verdict_old', 'verdict_new'])
         if 'tags' in selected_columns:
@@ -1026,9 +1029,9 @@ class AssChangesBase:
                     html = self.__get_sum_verdict(cache_obj)
                 elif col == 'change_kind':
                     html = self.__get_kind_html(cache_obj)
-                elif col == 'job':
-                    val = cache_obj.job.name
-                    href = reverse('jobs:job', args=[cache_obj.job.id])
+                elif col == 'decision':
+                    val = cache_obj.decision.name
+                    href = reverse('jobs:decision', args=[cache_obj.decision.id])
                 elif col == 'tags':
                     html = self.__get_tags_or_problems(cache_obj.tags_old, cache_obj.tags_new)
                 elif col == 'problems':
@@ -1041,18 +1044,18 @@ class AssChangesBase:
 class SafeAssChanges(AssChangesBase):
     model = SafeMarkAssociationChanges
     verdicts = SAFE_VERDICTS
-    supported_columns = ['change_kind', 'job', 'sum_verdict', 'tags']
+    supported_columns = ['change_kind', 'decision', 'sum_verdict', 'tags']
     report_cache_table = 'cache_safe'
 
 
 class UnsafeAssChanges(AssChangesBase):
     model = UnsafeMarkAssociationChanges
     verdicts = UNSAFE_VERDICTS
-    supported_columns = ['change_kind', 'job', 'sum_verdict', 'tags']
+    supported_columns = ['change_kind', 'decision', 'sum_verdict', 'tags']
     report_cache_table = 'cache_unsafe'
 
 
 class UnknownAssChanges(AssChangesBase):
     model = UnknownMarkAssociationChanges
-    supported_columns = ['change_kind', 'job', 'problems']
+    supported_columns = ['change_kind', 'decision', 'problems']
     report_cache_table = 'cache_unknown'

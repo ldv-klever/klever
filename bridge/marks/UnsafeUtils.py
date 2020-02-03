@@ -49,7 +49,7 @@ def perform_unsafe_mark_create(user, report, serializer):
         conv = convert_error_trace(error_trace, convert_func)
         UnsafeConvertionCache.objects.create(unsafe=report, converted=conv)
 
-    mark = serializer.save(job=report.root.job, error_trace=conv)
+    mark = serializer.save(job=report.decision.job, error_trace=conv)
     res = ConnectUnsafeMark(mark, prime_id=report.id, author=user)
     cache_upd = UpdateUnsafeCachesOnMarkChange(mark, res.old_links, res.new_links)
     cache_upd.update_all()

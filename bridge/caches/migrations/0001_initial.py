@@ -41,7 +41,7 @@ class Migration(migrations.Migration):
                 ('3', 'Incompatible marks'), ('4', 'Without marks')
             ], default='4', max_length=1)),
             ('tags', JSONField(default=dict)),
-            ('job', models.ForeignKey(on_delete=models.deletion.CASCADE, related_name='+', to='jobs.Job')),
+            ('decision', models.ForeignKey(on_delete=models.deletion.CASCADE, related_name='+', to='jobs.Decision')),
             ('report', models.OneToOneField(
                 on_delete=models.deletion.CASCADE, related_name='cache', to='reports.ReportSafe'
             )),
@@ -53,7 +53,7 @@ class Migration(migrations.Migration):
             ('marks_total', models.PositiveIntegerField(default=0)),
             ('marks_confirmed', models.PositiveIntegerField(default=0)),
             ('problems', JSONField(default=dict)),
-            ('job', models.ForeignKey(on_delete=models.deletion.CASCADE, related_name='+', to='jobs.Job')),
+            ('decision', models.ForeignKey(on_delete=models.deletion.CASCADE, related_name='+', to='jobs.Decision')),
             ('report', models.OneToOneField(
                 on_delete=models.deletion.CASCADE, related_name='cache', to='reports.ReportUnknown'
             )),
@@ -69,7 +69,7 @@ class Migration(migrations.Migration):
                 ('4', 'Incompatible marks'), ('5', 'Without marks')
             ], default='5', max_length=1)),
             ('tags', JSONField(default=dict)),
-            ('job', models.ForeignKey(on_delete=models.deletion.CASCADE, related_name='+', to='jobs.Job')),
+            ('decision', models.ForeignKey(on_delete=models.deletion.CASCADE, related_name='+', to='jobs.Decision')),
             ('report', models.OneToOneField(
                 on_delete=models.deletion.CASCADE, related_name='cache', to='reports.ReportUnsafe'
             )),
@@ -89,7 +89,7 @@ class Migration(migrations.Migration):
             ], max_length=1)),
             ('tags_old', JSONField()),
             ('tags_new', JSONField()),
-            ('job', models.ForeignKey(on_delete=models.deletion.CASCADE, to='jobs.Job')),
+            ('decision', models.ForeignKey(on_delete=models.deletion.CASCADE, to='jobs.Decision')),
             ('mark', models.ForeignKey(on_delete=models.deletion.CASCADE, to='marks.MarkSafe')),
             ('report', models.ForeignKey(on_delete=models.deletion.CASCADE, to='reports.ReportSafe')),
         ], options={'db_table': 'cache_safe_mark_associations_changes'}),
@@ -100,7 +100,7 @@ class Migration(migrations.Migration):
             ('kind', models.CharField(choices=[('0', 'Changed'), ('1', 'New'), ('2', 'Deleted')], max_length=1)),
             ('problems_old', JSONField(default=dict)),
             ('problems_new', JSONField(default=dict)),
-            ('job', models.ForeignKey(on_delete=models.deletion.CASCADE, to='jobs.Job')),
+            ('decision', models.ForeignKey(on_delete=models.deletion.CASCADE, to='jobs.Decision')),
             ('mark', models.ForeignKey(on_delete=models.deletion.CASCADE, to='marks.MarkUnknown')),
             ('report', models.ForeignKey(on_delete=models.deletion.CASCADE, to='reports.ReportUnknown')),
         ], options={'db_table': 'cache_unknown_mark_associations_changes'}),
@@ -119,7 +119,7 @@ class Migration(migrations.Migration):
             ], max_length=1)),
             ('tags_old', JSONField()),
             ('tags_new', JSONField()),
-            ('job', models.ForeignKey(on_delete=models.deletion.CASCADE, to='jobs.Job')),
+            ('decision', models.ForeignKey(on_delete=models.deletion.CASCADE, to='jobs.Decision')),
             ('mark', models.ForeignKey(on_delete=models.deletion.CASCADE, to='marks.MarkUnsafe')),
             ('report', models.ForeignKey(on_delete=models.deletion.CASCADE, to='reports.ReportUnsafe')),
         ], options={'db_table': 'cache_unsafe_mark_associations_changes'}),

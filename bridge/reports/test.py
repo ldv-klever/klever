@@ -16,6 +16,7 @@
 #
 
 import os
+import re
 import json
 from multiprocessing import Process, Pipe
 import random
@@ -29,13 +30,12 @@ from django.db.models import Q
 from django.test import Client
 from django.urls import reverse
 
-from bridge.vars import SCHEDULER_TYPE, JOB_STATUS, JOB_ROLES
+from bridge.vars import SCHEDULER_TYPE, DECISION_STATUS, JOB_ROLES
 from bridge.utils import KleverTestCase, logger, RMQConnect
 
 from users.models import User
 from jobs.models import Job
-from reports.models import ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent, CompareJobsInfo, CoverageArchive,\
-    ReportAttr
+from reports.models import ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent, CoverageArchive, ReportAttr
 
 
 LINUX_ATTR = {'name': 'Linux kernel', 'value': [
@@ -1617,6 +1617,122 @@ class UploadRawReports:
         finally:
             for fp in archives_fp.values():
                 fp.close()
+
+    def __request(self, url, method='POST', **kwargs):
+        cnt = 0
+        while True:
+            try:
+                resp = self.session.request(method, self.base_url + url, **kwargs)
+            except Exception as e:
+                logger.error(str(e))
+            else:
+                break
+            time.sleep(1)
+            cnt += 1
+            if cnt > 3:
+                raise ResponseError('Connection max tries exceeded')
+
+        if not 200 <= resp.status_code < 300:
+            try:
+                error_str = str(resp.json())
+            except Exception as e:
+                print(e)
+                error_str = resp.content
+            logger.error(error_str)
+            resp.close()
+            raise ResponseError('Unexpected status code returned: {}'.format(resp.status_code))
+        return resp
+
+
+class GetReportsPacks:
+    def __init__(self, filename):
+        self._file = filename
+        self.data = [[]]
+        self._collect_files = False
+
+    def analyze(self):
+        with open(self._file, mode='r', encoding='utf-8') as fp:
+            for line in fp:
+                self.__parse_line(line)
+
+    def __parse_line(self, line):
+        if self._collect_files:
+            m = re.match(r'^.*/(.*?\.zip).*$', line)
+            if m:
+                self.data[-1][-1]['files'].append(m.group(1))
+                return
+            self._collect_files = False
+        m = re.match(r'^.*Send\s"POST"\srequest.*api/upload.*$', line)
+        if m:
+            self.data.append([])
+            return
+        m = re.match(r'^.*Upload\sreport\sfile.*/(\d+\.json)(.*)$', line)
+        if m:
+            self.data[-1].append({'report': m.group(1), 'files': []})
+            if 'archives:' in m.group(2):
+                self._collect_files = True
+
+
+class UploadRawReportsPacks:
+    base_url = 'http://127.0.0.1:8998'
+
+    def __init__(self, job_uuid, reports_log):
+        self._upload_url = '/reports/api/upload/{}/'.format(job_uuid)
+        self._reports_log = os.path.abspath(reports_log)
+        assert os.path.isfile(self._reports_log), 'Reports log not found!'
+        self.session = requests.Session()
+        self.__login()
+        self.__decide_job(job_uuid)
+
+    def __login(self):
+        resp = self.__request('/service/get_token/', data={'username': 'service', 'password': 'service'})
+        self.session.headers.update({'Authorization': 'Token {}'.format(resp.json()['token'])})
+
+    def __decide_job(self, job_uuid):
+        self.__request('/jobs/api/download-files/{}/'.format(job_uuid), method='GET')
+        self.__send_reports()
+        self.__request('/service/job-status/{}/'.format(job_uuid), method='PATCH', data={'status': '3'})
+
+    def __send_reports(self):
+        reports_dir = os.path.join(os.path.dirname(self._reports_log), 'reports')
+        packs = GetReportsPacks(self._reports_log)
+        packs.analyze()
+        total_exec = 0
+        for reports_pack in packs.data:
+            reports = []
+            archives = []
+            report_types = []
+            for report_data in reports_pack:
+                with open(os.path.join(reports_dir, report_data['report']), mode='r', encoding='utf-8') as fp:
+                    report = json.load(fp)
+                    self.__fix_report(report)
+                    report_types.append(report.get('type', 'UNKNOWN'))
+                    reports.append(report)
+                    for arch_name in report_data['files']:
+                        archives.append(os.path.join(reports_dir, arch_name))
+            exec_time = self.__upload_reports(reports, archives)
+            total_exec += exec_time
+            logger.info('{} ({}): {};'.format('+'.join(report_types), len(archives), exec_time))
+            time.sleep(0.01)
+        logger.info('Total exec: {}'.format(total_exec))
+
+    def __fix_report(self, report):
+        if report.get('original_sources'):
+            report['original_sources'] = '936d4726-6d0b-4244-a63e-bb1133706555'
+        report.pop('task', None)
+
+    def __upload_reports(self, reports, archives):
+        archives_fp = {}
+        try:
+            for a_name in archives:
+                archives_fp[os.path.basename(a_name)] = open(a_name, mode='rb')
+            t1 = time.time()
+            self.__request(self._upload_url, data={'reports': json.dumps(reports)}, files=archives_fp)
+            exec_time = time.time() - t1
+        finally:
+            for fp in archives_fp.values():
+                fp.close()
+        return exec_time
 
     def __request(self, url, method='POST', **kwargs):
         cnt = 0

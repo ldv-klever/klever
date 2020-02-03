@@ -25,10 +25,9 @@ from rest_framework import serializers, fields, exceptions
 from bridge.vars import ASSOCIATION_TYPE, SAFE_VERDICTS, UNSAFE_VERDICTS
 from bridge.serializers import TimeStampField
 
-from jobs.models import Job
+from jobs.models import Decision
 from reports.models import (
-    ReportRoot, ReportSafe, ReportUnsafe, ReportUnknown, ReportAttr, ReportComponent, Computer,
-    OriginalSources
+    ReportSafe, ReportUnsafe, ReportUnknown, ReportAttr, ReportComponent, Computer, OriginalSources
 )
 from marks.models import (
     MarkSafeReport, MarkUnsafeReport, MarkUnknownReport, MarkSafeHistory, MarkUnsafeHistory, MarkUnknownHistory
@@ -53,10 +52,10 @@ class VerdictsSerializerRO(serializers.ModelSerializer):
         return data
 
     def get_safes(self, instance):
-        return self.__verdicts_data(ReportSafe.objects.filter(root=instance).select_related('cache'))
+        return self.__verdicts_data(ReportSafe.objects.filter(decision=instance).select_related('cache'))
 
     def get_unsafes(self, instance):
-        return self.__verdicts_data(ReportUnsafe.objects.filter(root=instance).select_related('cache'))
+        return self.__verdicts_data(ReportUnsafe.objects.filter(decision=instance).select_related('cache'))
 
     def get_unknowns(self, instance):
         unknowns_data = {}
@@ -66,7 +65,7 @@ class VerdictsSerializerRO(serializers.ModelSerializer):
             When(markreport_set__type=ASSOCIATION_TYPE[2][0], then=True),
             default=False, output_field=BooleanField()
         )
-        queryset = ReportUnknown.objects.filter(root=instance) \
+        queryset = ReportUnknown.objects.filter(decision=instance) \
             .values('component', 'markreport_set__problem') \
             .annotate(number=Count('id', distinct=True), unconfirmed=unconfirmed_annotation) \
             .values_list('component', 'markreport_set__problem', 'number', 'unconfirmed')
@@ -80,7 +79,7 @@ class VerdictsSerializerRO(serializers.ModelSerializer):
         } for component, problem in sorted(unknowns_data))
 
         # Total unknowns for each component
-        queryset = ReportUnknown.objects.filter(root=instance) \
+        queryset = ReportUnknown.objects.filter(decision=instance) \
             .values('component').annotate(number=Count('id')) \
             .values_list('component', 'number').order_by('component')
         totals_list = list({'component': component, 'problem': 'Total', 'number': number}
@@ -88,34 +87,28 @@ class VerdictsSerializerRO(serializers.ModelSerializer):
         return unknowns_list + totals_list
 
     class Meta:
-        model = ReportRoot
+        model = Decision
         fields = ('safes', 'unsafes', 'unknowns')
 
 
 class DecisionResultsSerializerRO(serializers.ModelSerializer):
-    start_date = TimeStampField(required=False, source='decision.start_date')
-    finish_date = TimeStampField(required=False, source='decision.finish_date')
+    job_name = fields.CharField(source='job.name')
+    decision_name = fields.CharField(source='name')
+    start_date = TimeStampField(required=False)
+    finish_date = TimeStampField(required=False)
     verdicts = serializers.SerializerMethodField()
     safes = fields.SerializerMethodField()
     unsafes = fields.SerializerMethodField()
     unknowns = fields.SerializerMethodField()
 
-    def get_start_date(self, instance):
-        start_date = instance.decision.start_date
-        return start_date.timestamp() if start_date else None
-
-    def get_finish_date(self, instance):
-        finish_date = instance.decision.finish_date
-        return finish_date.timestamp() if finish_date else None
-
     def get_verdicts(self, instance):
-        return VerdictsSerializerRO(instance=instance.reportroot).data
+        return VerdictsSerializerRO(instance=instance).data
 
     @cached_property
     def _attrs(self):
         if not self.instance:
             return {}
-        queryset = ReportAttr.objects.filter(report__root=self.instance.reportroot).exclude(
+        queryset = ReportAttr.objects.filter(report__decision=self.instance).exclude(
             report__reportsafe=None, report__reportunsafe=None, report__reportunknown=None
         ).order_by('name').only('report_id', 'name', 'value')
 
@@ -126,13 +119,12 @@ class DecisionResultsSerializerRO(serializers.ModelSerializer):
         return data
 
     def get_safes(self, instance):
-        reportroot = instance.reportroot
         marks = {}
         marks_ids = []
         reports = {}
 
         # Add reports with marks and their marks
-        for mr in MarkSafeReport.objects.filter(report__root=reportroot).select_related('mark'):
+        for mr in MarkSafeReport.objects.filter(report__decision=instance).select_related('mark'):
             mark_identifier = str(mr.mark.identifier)
             if mr.report_id not in reports:
                 reports[mr.report_id] = {
@@ -156,20 +148,19 @@ class DecisionResultsSerializerRO(serializers.ModelSerializer):
             marks[str(mark_version.mark.identifier)]['description'] = mark_version.description
 
         # Add reports without marks
-        for s_id in ReportSafe.objects.filter(root=reportroot, cache__verdict=SAFE_VERDICTS[4][0]) \
+        for s_id in ReportSafe.objects.filter(decision=instance, cache__verdict=SAFE_VERDICTS[4][0]) \
                 .values_list('id', flat=True):
             reports[s_id] = {'attrs': self._attrs.get(s_id, []), 'marks': []}
 
         return {'marks': marks, 'reports': list(reports[r_id] for r_id in sorted(reports))}
 
     def get_unsafes(self, instance):
-        reportroot = instance.reportroot
         marks = {}
         marks_ids = []
         reports = {}
 
         # Add reports with marks and their marks
-        for mr in MarkUnsafeReport.objects.filter(report__root=reportroot).select_related('mark'):
+        for mr in MarkUnsafeReport.objects.filter(report__decision=instance).select_related('mark'):
             mark_identifier = str(mr.mark.identifier)
             if mr.report_id not in reports:
                 reports[mr.report_id] = {
@@ -194,20 +185,19 @@ class DecisionResultsSerializerRO(serializers.ModelSerializer):
             marks[str(mark_version.mark.identifier)]['description'] = mark_version.description
 
         # Add reports without marks
-        for u_id in ReportUnsafe.objects.filter(root=reportroot, cache__verdict=UNSAFE_VERDICTS[5][0]) \
+        for u_id in ReportUnsafe.objects.filter(decision=instance, cache__verdict=UNSAFE_VERDICTS[5][0]) \
                 .values_list('id', flat=True):
             reports[u_id] = {'attrs': self._attrs.get(u_id, []), 'marks': {}}
 
         return {'marks': marks, 'reports': list(reports[r_id] for r_id in sorted(reports))}
 
     def get_unknowns(self, instance):
-        reportroot = instance.reportroot
         marks = {}
         marks_ids = []
         reports = {}
 
         # Get reports with marks and their marks
-        for mr in MarkUnknownReport.objects.filter(report__root=reportroot).select_related('mark'):
+        for mr in MarkUnknownReport.objects.filter(report__decision=instance).select_related('mark'):
             mark_identifier = str(mr.mark.identifier)
             if mr.report_id in reports:
                 reports[mr.report_id]['marks'].append(mark_identifier)
@@ -231,14 +221,18 @@ class DecisionResultsSerializerRO(serializers.ModelSerializer):
             marks[str(mark_version.mark.identifier)]['description'] = mark_version.description
 
         # Get reports without marks
-        for f_id in ReportUnknown.objects.filter(root=reportroot).exclude(id__in=reports).values_list('id', flat=True):
+        for f_id in ReportUnknown.objects.filter(decision=instance)\
+                .exclude(id__in=reports).values_list('id', flat=True):
             reports[f_id] = {'attrs': self._attrs.get(f_id, []), 'marks': []}
 
         return {'marks': marks, 'reports': list(reports[r_id] for r_id in sorted(reports))}
 
     class Meta:
-        model = Job
-        fields = ('name', 'status', 'start_date', 'finish_date', 'verdicts', 'safes', 'unsafes', 'unknowns')
+        model = Decision
+        fields = (
+            'job_name', 'decision_name', 'status', 'start_date',
+            'finish_date', 'verdicts', 'safes', 'unsafes', 'unknowns'
+        )
 
 
 class ComputerDataField(fields.Field):
@@ -307,18 +301,15 @@ class ReportComponentSerializer(serializers.ModelSerializer):
     parent = serializers.SlugRelatedField(slug_field='identifier', allow_null=True, queryset=ReportComponent.objects)
 
     def create(self, validated_data):
-        # Root, computer, parent must be specified in save() method
-        assert 'root' in validated_data, _('Report root is required')
+        # Decision, computer, parent must be specified in save() method
+        assert 'decision' in validated_data, _('Report decision is required')
         assert 'computer' in validated_data, _('Report computer is required')
         assert 'parent' in validated_data, _('Report parent is required')
-
         return super().create(validated_data)
 
     class Meta:
         model = ReportComponent
-        exclude = ('root', 'computer', 'parent')
-        # parent, identifier, cpu_time, wall_time, memory,
-        # start_date, finish_date, log, verifier_input, data
+        exclude = ('decision', 'computer', 'parent')
 
 
 class ReportAttrSerializer(serializers.ModelSerializer):

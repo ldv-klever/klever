@@ -1,0 +1,31 @@
+{% load i18n %}
+{% load humanize %}
+
+<table class="ui compact violet table">
+    <thead>
+        <tr>
+            <th>{% trans 'Name' %}</th>
+            <th>{% trans 'Start date' %}</th>
+            <th>{% trans 'Finish date' %}</th>
+            <th>{% trans 'Status' %}</th>
+            <th>&nbsp;</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for decision in decisions %}
+            <tr>
+                <td><a href="{% url 'jobs:decision' decision.id %}">{{ decision.name }}</a></td>
+                <td>{% if decision.start_date %}{% if user.data_format == 'hum' %}{{ decision.start_date|naturaltime }}{% else %}{{ decision.start_date }}{% endif %}{% else %}-{% endif %}</td>
+                <td>{% if decision.finish_date %}{% if user.data_format == 'hum' %}{{ decision.finish_date|naturaltime }}{% else %}{{ decision.finish_date }}{% endif %}{% else %}-{% endif %}</td>
+                <td>
+                    {% if decision.error %}
+                        <div class="ui {{ decision.status_color }} label note-popup" data-html="{{ decision.error|safe }}">{{ decision.get_status_display }}</div>
+                    {% else %}
+                        <div class="ui {{ decision.status_color }} label">{{ decision.get_status_display }}</div>
+                    {% endif %}
+                </td>
+                <td><a href="{% url 'jobs:download-decision-conf' decision.pk %}" class="note-popup" data-content="{% trans 'Donwload configuration' %}"><i class="ui download icon"></i></a></td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>

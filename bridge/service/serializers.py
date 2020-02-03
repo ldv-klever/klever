@@ -26,7 +26,7 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers, exceptions, fields
 
 from bridge.utils import logger, RMQConnect
-from bridge.vars import JOB_STATUS, PRIORITY, SCHEDULER_TYPE, SCHEDULER_STATUS, TASK_STATUS
+from bridge.vars import DECISION_STATUS, PRIORITY, SCHEDULER_TYPE, SCHEDULER_STATUS, TASK_STATUS
 from bridge.serializers import TimeStampField, DynamicFieldsModelSerializer
 
 from jobs.models import Job
@@ -34,7 +34,7 @@ from service.models import Task, Solution, Decision, VerificationTool, Scheduler
 from users.models import User, SchedulerUser
 
 from users.utils import HumanizedValue
-from jobs.serializers import change_job_status
+from jobs.serializers import decision_status_changed
 
 
 class VerificationToolSerializer(serializers.ModelSerializer):
@@ -44,12 +44,9 @@ class VerificationToolSerializer(serializers.ModelSerializer):
 
 
 class SchedulerUserSerializer(serializers.ModelSerializer):
+    user = fields.HiddenField(default=serializers.CurrentUserDefault())
+
     def create(self, validated_data):
-        # 'user' should be provided in save() method
-        if 'user' not in validated_data:
-            raise exceptions.ValidationError({'user': 'Required!'})
-        elif not isinstance(validated_data['user'], User):
-            raise exceptions.ValidationError({'user': 'Not a User instance!'})
         try:
             instance = SchedulerUser.objects.get(user=validated_data['user'])
             validated_data.pop('user')
@@ -59,7 +56,7 @@ class SchedulerUserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = SchedulerUser
-        fields = ('login', 'password')
+        fields = ('user', 'login', 'password')
 
 
 class UpdateToolsSerializer(serializers.Serializer):
@@ -86,20 +83,20 @@ class TaskSerializer(DynamicFieldsModelSerializer):
     default_error_messages = {
         'status_change': 'Status change from "{old_status}" to "{new_status}" is not supported!'
     }
-    job = serializers.SlugRelatedField(slug_field='identifier', write_only=True, queryset=Job.objects.all())
+    # Not a job, but decision object!
+    job = serializers.SlugRelatedField(
+        slug_field='identifier', write_only=True,
+        queryset=Decision.objects.select_related('scheduler')
+    )
 
     def validate_job(self, instance):
-        try:
-            decision = Decision.objects.select_related('scheduler').get(job=instance)
-        except Decision.DoesNotExist:
-            raise serializers.ValidationError('The job was not started properly')
-        if instance.status == JOB_STATUS[6][0]:
+        if instance.status == DECISION_STATUS[6][0]:
             raise serializers.ValidationError('The job is cancelling')
-        if instance.status != JOB_STATUS[2][0]:
+        if instance.status != DECISION_STATUS[2][0]:
             raise serializers.ValidationError('The job is not processing')
-        if decision.scheduler.status == SCHEDULER_STATUS[2][0]:
+        if instance.scheduler.status == SCHEDULER_STATUS[2][0]:
             raise exceptions.ValidationError('The tasks scheduler is disconnected')
-        return decision
+        return instance
 
     def validate_archive(self, archive):
         if not zipfile.is_zipfile(archive) or zipfile.ZipFile(archive).testzip():
@@ -186,8 +183,8 @@ class TaskSerializer(DynamicFieldsModelSerializer):
         validated_data['filename'] = validated_data['archive'].name[:256]
         validated_data['decision'] = validated_data.pop('job')
         instance = super().create(validated_data)
-        self.update_decision(validated_data['decision'], instance.status)
-        on_task_change(instance.id, instance.status, validated_data['decision'].scheduler_id)
+        self.update_decision(instance.decision, instance.status)
+        on_task_change(instance.id, instance.status, instance.decision.scheduler.type)
         return instance
 
     def update(self, instance, validated_data):
@@ -195,15 +192,13 @@ class TaskSerializer(DynamicFieldsModelSerializer):
         if 'status' not in validated_data:
             raise exceptions.ValidationError({'status': 'Required'})
 
-        # Only status and error can be changed
-        job = Job.objects.only('status').get(decision=instance.decision)
-        if job.status != JOB_STATUS[2][0]:
+        if instance.decision.status != DECISION_STATUS[2][0]:
             raise serializers.ValidationError({'job': 'Is not processing'})
 
         old_status = instance.status
         instance = super().update(instance, validated_data)
         self.update_decision(instance.decision, instance.status, old_status=old_status)
-        on_task_change(instance.id, instance.status, instance.decision.scheduler_id)
+        on_task_change(instance.id, instance.status, instance.decision.scheduler.type)
         return instance
 
     def to_representation(self, instance):
@@ -228,19 +223,15 @@ class SolutionSerializer(DynamicFieldsModelSerializer):
             raise exceptions.ValidationError('Not a dictionary')
         return desc
 
-    def get_decision(self, task):
-        decision = Decision.objects.select_related('job').only('id', 'job__status').get(id=task.decision_id)
-        if decision.job.status != JOB_STATUS[2][0]:
-            pass
-            # raise exceptions.ValidationError({'job': 'The job is not processing'})
-        return decision
-
     def create(self, validated_data):
         # Set file name
         validated_data['filename'] = validated_data['archive'].name[:256]
 
         # Get and validate decision
-        decision = self.get_decision(validated_data['task'])
+        decision = Decision.objects.only('id', 'status').get(id=validated_data['task'].decision_id)
+        if decision.status != DECISION_STATUS[2][0]:
+            pass
+            # raise exceptions.ValidationError({'job': 'The job is not processing'})
         validated_data['decision'] = decision
 
         # Create the solution and update decision
@@ -259,7 +250,7 @@ class SolutionSerializer(DynamicFieldsModelSerializer):
 
     class Meta:
         model = Solution
-        exclude = ('id', 'decision', 'filename')
+        exclude = ('decision', 'filename')
         extra_kwargs = {'archive': {'write_only': True}}
 
 
@@ -275,7 +266,7 @@ class DecisionSerializer(serializers.ModelSerializer):
     finish_sj = TimeStampField(read_only=True)
     start_date = TimeStampField(read_only=True)
     finish_date = TimeStampField(read_only=True)
-    status = fields.CharField(source='job.status', read_only=True)
+    status = fields.CharField(read_only=True)
 
     def update(self, instance, validated_data):
         assert isinstance(instance, Decision)
@@ -332,14 +323,14 @@ class ProgressSerializerRO(serializers.ModelSerializer):
         return None
 
     def get_total_ts(self, instance):
-        default_value = _('Estimating the number') if instance.job.status == JOB_STATUS[2][0] else None
+        default_value = _('Estimating the number') if instance.status == DECISION_STATUS[2][0] else None
         return instance.total_ts or default_value
 
     def get_total_sj(self, instance):
         if instance.total_sj is None and instance.start_sj is None:
-            # Seems like the job doesn't have subjobs
+            # Seems like the decision doesn't have subjobs
             return None
-        default_value = _('Estimating the number') if instance.job.status == JOB_STATUS[2][0] else None
+        default_value = _('Estimating the number') if instance.status == DECISION_STATUS[2][0] else None
         return instance.total_sj or default_value
 
     def __calculate_progress(self, total, solved, failed):
@@ -357,7 +348,7 @@ class ProgressSerializerRO(serializers.ModelSerializer):
 
     def get_progress_ts(self, instance):
         progress = self.__calculate_progress(instance.total_ts, instance.solved_ts, instance.failed_ts)
-        if instance.job.status == JOB_STATUS[2][0]:
+        if instance.status == DECISION_STATUS[2][0]:
             progress = progress or _('Estimating progress')
         if not progress:
             return None
@@ -366,16 +357,16 @@ class ProgressSerializerRO(serializers.ModelSerializer):
             'start': HumanizedValue(instance.start_ts, user=self._user).date,
             'finish': HumanizedValue(instance.finish_ts, user=self._user).date,
         }
-        if instance.job.status == JOB_STATUS[2][0]:
+        if instance.status == DECISION_STATUS[2][0]:
             value['expected_time'] = self.__get_expected_time(instance.expected_time_ts, instance.gag_text_ts)
         return value
 
     def get_progress_sj(self, instance):
         if instance.total_sj is None and instance.start_sj is None:
-            # Seems like the job doesn't have subjobs
+            # Seems like the decision doesn't have subjobs
             return None
         progress = self.__calculate_progress(instance.total_sj, instance.solved_sj, instance.failed_sj)
-        if instance.job.status == JOB_STATUS[2][0]:
+        if instance.status == DECISION_STATUS[2][0]:
             progress = progress or _('Estimating progress')
         if not progress:
             return None
@@ -384,7 +375,7 @@ class ProgressSerializerRO(serializers.ModelSerializer):
             'start': HumanizedValue(instance.start_sj, user=self._user).date,
             'finish': HumanizedValue(instance.finish_sj, user=self._user).date,
         }
-        if instance.job.status == JOB_STATUS[2][0]:
+        if instance.status == DECISION_STATUS[2][0]:
             value['expected_time'] = self.__get_expected_time(instance.expected_time_sj, instance.gag_text_sj)
         return value
 
@@ -401,7 +392,7 @@ class ProgressSerializerRO(serializers.ModelSerializer):
 
     class Meta:
         model = Decision
-        fields = ('job', 'total_ts', 'total_sj', 'progress_ts', 'progress_sj', 'start_date', 'finish_date')
+        fields = ('id', 'total_ts', 'total_sj', 'progress_ts', 'progress_sj', 'start_date', 'finish_date')
 
 
 class SchedulerSerializer(serializers.ModelSerializer):
@@ -410,7 +401,7 @@ class SchedulerSerializer(serializers.ModelSerializer):
 
     def finish_tasks(self, scheduler: Scheduler):
         decisions_qs = scheduler.decision_set.filter(
-            job__status__in=[JOB_STATUS[1][0], JOB_STATUS[2][0], JOB_STATUS[6][0]]
+            status__in=[DECISION_STATUS[1][0], DECISION_STATUS[2][0], DECISION_STATUS[6][0]]
         )
         if scheduler.type == SCHEDULER_TYPE[0][0]:
             decisions_qs = decisions_qs.select_related('job')
@@ -426,7 +417,8 @@ class SchedulerSerializer(serializers.ModelSerializer):
                     decision.finish_date = now()
                 if not decision.error:
                     decision.error = self.decision_error
-                change_job_status(decision.job, JOB_STATUS[8][0])
+                decision.status = DECISION_STATUS[8][0]
+                decision_status_changed(decision)
             decision.save()
 
     def create(self, validated_data):
@@ -482,11 +474,10 @@ class NodeConfSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-def on_task_change(task_id, task_status, scheduler_id):
-    sch_type = Scheduler.objects.only('type').get(id=scheduler_id).type
+def on_task_change(task_id, task_status, scheduler_type):
     with RMQConnect() as channel:
         channel.basic_publish(
             exchange='', routing_key=settings.RABBIT_MQ_QUEUE,
             properties=pika.BasicProperties(delivery_mode=2),
-            body="task {} {} {}".format(task_id, task_status, sch_type)
+            body="task {} {} {}".format(task_id, task_status, scheduler_type)
         )

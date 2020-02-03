@@ -67,6 +67,18 @@ class User(AbstractUser):
         return super().get_full_name() or self.username
 
     @property
+    def is_manager(self):
+        return self.role == USER_ROLES[2][0]
+
+    @property
+    def is_expert(self):
+        return self.role == USER_ROLES[3][0]
+
+    @property
+    def can_create_jobs(self):
+        return self.role not in {USER_ROLES[0][0], USER_ROLES[4][0]}
+
+    @property
     def default_threshold_percentage(self):
         return round(self.default_threshold * 100)
 

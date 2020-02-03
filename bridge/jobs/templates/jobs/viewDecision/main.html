@@ -1,0 +1,244 @@
+{% extends 'bridge/base.html' %}
+{% comment "License" %}
+% Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
+% Ivannikov Institute for System Programming of the Russian Academy of Sciences
+%
+% Licensed under the Apache License, Version 2.0 (the "License");
+% you may not use this file except in compliance with the License.
+% You may obtain a copy of the License at
+%
+%    http://www.apache.org/licenses/LICENSE-2.0
+%
+% Unless required by applicable law or agreed to in writing, software
+% distributed under the License is distributed on an "AS IS" BASIS,
+% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+% See the License for the specific language governing permissions and
+% limitations under the License.
+{% endcomment %}
+
+{% load i18n %}
+
+{% load static %}
+{% load compress %}
+
+{% block head_block %}
+    <script type="application/javascript">
+        const PAGE_URLS = {
+            get_status: "{% url 'jobs:api-decision-status' object.id %}",
+            get_progress: "{% url 'jobs:progress' object.id %}",
+            decision_results: "{% url 'jobs:decision-results' object.id %}"
+        };
+    </script>
+
+    {% compress js file decision %}
+        <script src="{% static 'jobs/js/decisionPage.js' %}"></script>
+    {% endcompress %}
+{% endblock %}
+
+{% block title %}{% trans 'Decision' %} ({{ object.get_status_display }}){% endblock %}
+
+{% block body_block %}
+    <div class="ui grid">
+        <div class="eight wide column">
+
+            {# Decision menu #}
+            <div class="ui violet inverted menu top attached">
+
+                <div class="ui dropdown item">
+                    <div class="header">{% trans 'Decision' %}</div><i class="dropdown icon"></i>
+                    <div class="menu">
+                        <a href="{% url 'jobs:download' object.job_id %}?decision={{ object.id }}" class="item{% if not access.can_download %} disabled{% endif %}"><i class="download icon"></i> {% trans 'Download job with this decision' %}</a>
+                        <a href="{% url 'jobs:download-decision-conf' object.id %}" class="item"><i class="settings icon"></i> {% trans 'Donwload configuration' %}</a>
+                        <a id="restart_decision_btn" class="item{% if not access.can_restart %} disabled{% endif %}"><i class="redo icon"></i> {% trans 'Restart' %}</a>
+                        <a id="stop_decision_btn" class="item{% if not access.can_stop %} disabled{% endif %}"><i class="stop icon"></i> {% trans 'Stop' %}</a>
+                        <a id="remove_decision_btn" class="item{% if not access.can_delete %} disabled{% endif %}"><i class="trash icon"></i> {% trans 'Delete' %}</a>
+                    </div>
+                </div>
+
+                <div class="ui dropdown item">
+                    <div class="header">{% trans 'Reports' %}</div><i class="dropdown icon"></i>
+                    <div class="menu">
+                        <a id="collapse_reports_btn" class="item{% if not access.can_collapse %} disabled{% endif %}"><i class="adjust icon"></i> {% trans 'Collapse' %}</a>
+                        <a id="dfc_modal_show" class="item{% if not access.can_download_verifier_files %} disabled{% endif %}"><i class="download icon"></i> {% trans 'Download files for competition' %}</a>
+                        <a id="clear_verifier_files_modal_show" class="item{% if not access.can_clear_verifier_files %} disabled{% endif %}"><i class="eraser icon"></i> {% trans 'Clear verifier input files' %}</a>
+                    </div>
+                </div>
+
+                <div class="right menu">
+                    <a id="decision_autoupdate_btn" class="item" data-status="on">{% trans 'Stop page autorefresh' %}</a>
+                </div>
+            </div>
+
+            {# Decision data table #}
+            <table class="ui selectable compact inverted violet table attached">
+                <thead>
+                    <tr>
+                        <th class="center aligned" colspan="2">
+                            <span class="ui olive header">{{ object.name }}{% if object.weight == '1' %} ({{ object.get_weight_display|lower }}){% endif %}</span>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><th class="right aligned">{% trans 'Identifier' %}</th><td>{{ object.identifier }}</td></tr>
+                    <tr><th class="right aligned">{% trans 'Job' %}</th><td><a class="violet-link" href="{% url 'jobs:job' object.job_id %}">{{ object.job.name }}</a></td></tr>
+                    <tr><th class="right aligned">{% trans 'Scheduler' %}</th><td>{{ object.scheduler.get_type_display }}</td></tr>
+                    <tr><th class="right aligned">{% trans 'Priority' %}</th><td>{{ object.get_priority_display }}</td></tr>
+                    {% if object.operator %}
+                        <tr>
+                            <th class="right aligned">{% trans 'Operator' %}</th>
+                            <td><a class="violet-link" href="{% url 'users:show-profile' object.operator.pk %}">{{ object.operator.get_full_name }}</a></td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+            <br>
+
+            {# Decision #}
+            <div id="decision_progress_container">
+                {% include 'jobs/viewDecision/progress.html' with decision=object progress=progress core_link=core_link %}
+            </div>
+
+            <br>
+            {# Other decisions table #}
+            <div>{% include 'jobs/decision-list.html' with decisions=other_decisions %}</div>
+
+            {# Coverage #}
+            {% include 'jobs/viewDecision/coverage.html' with Coverage=Coverage %}
+        </div>
+
+        <div class="eight wide column">
+            {# Data with verification results #}
+            {% include reportdata.view.template with view=reportdata.view %}
+            <br>
+            <div id="decision_results_div">{% include 'jobs/DecisionResults.html' %}</div>
+        </div>
+    </div>
+
+    {# Download files for competition modal #}
+    {% if access.can_download_verifier_files %}
+        <div id="dfc_modal" class="ui small dinamic modal">
+            <div class="ui header">{% trans 'Choose filters' %}</div>
+            <div class="content">
+                <div class="ui grid">
+                    <div class="six wide column">
+                        {% if reportdata.totals and reportdata.totals.unsafes > 0 %}
+                            <div class="ui checkbox">
+                                <label for="dfc_unsafes">{% trans 'Unsafes' %}</label>
+                                <input id="dfc_unsafes" type="checkbox">
+                            </div>
+                            <br>
+                        {% endif %}
+                        {% if reportdata.totals and reportdata.totals.safes > 0 %}
+                            <div class="ui checkbox">
+                                <label for="dfc_safes">{% trans 'Safes' %}</label>
+                                <input id="dfc_safes" type="checkbox">
+                            </div>
+                            <br>
+                        {% endif %}
+                        {% if reportdata.totals and reportdata.totals.unknowns > 0 %}
+                            <div class="ui checkbox">
+                                <label for="dfc_unknowns">{% trans 'Unknowns' %}</label>
+                                <input id="dfc_unknowns" type="checkbox">
+                            </div>
+                            <br>
+                        {% endif %}
+                    </div>
+                    <div id="dfc_problems" class="ten wide column" style="display: none">
+                        {% if reportdata.problems|length %}
+                            <p><small>{% trans "If you don't choose unknowns' problems then all unknowns files will be downloaded" %}</small></p>
+                        {% endif %}
+                        {% for p in reportdata.problems %}
+                            <div class="ui checkbox">
+                                <label for="dfc_p_{{ p.id }}">{{ p.component }}/{{ p.problem }}</label>
+                                <input id="dfc_p_{{ p.id }}" class="dfc-problem" type="checkbox" data-component="{{ p.component }}" data-problem="{{ p.problem }}">
+                            </div>
+                            <br>
+                        {% endfor %}
+                        <div class="ui checkbox">
+                            <label for="dfc_p_null">{% trans 'Without marks' %}</label>
+                            <input id="dfc_p_null" class="dfc-problem" type="checkbox" data-component="null" data-problem="null">
+                        </div>
+                        <br>
+                    </div>
+                    <div class="sixteen wide column right aligned">
+                        <div class="ui buttons">
+                            <button class="ui green button modal-confirm" data-url="{% url 'jobs:svcomp-files' object.id %}">{% trans 'Download' %}</button>
+                            <button class="ui blue button modal-cancel">{% trans 'Cancel' %}</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <span id="error___dfc_notype" hidden>{% trans 'Choose at least one type of reports' %}</span>
+    {% endif %}
+
+    <div hidden>
+        <span id="stop_autorefresh">{% trans 'Stop page autorefresh' %}</span>
+        <span id="start_autorefresh">{% trans 'Start page autorefresh' %}</span>
+        <span id="error__autoupdate_off">{% trans 'Page autoupdate is turned off' %}</span>
+    </div>
+    <input id="current_decision_status" type="hidden" value="{{ object.status }}">
+
+    {% include 'bridge/warn_modal.html' with warn_modal_id='restart_decision_modal' %}
+    {% include 'bridge/warn_modal.html' with warn_modal_id='remove_decision_modal' %}
+    {% include 'bridge/warn_modal.html' with warn_modal_id='collapse_reports_modal' %}
+    {% include 'bridge/warn_modal.html' with warn_modal_id='clear_verifier_files_modal' %}
+    {% include 'bridge/warn_modal.html' with warn_modal_id='stop_decision_modal' %}
+
+    <script type="application/javascript">
+        jQuery(function () {
+            activate_warn_modal('restart_decision_modal', '#restart_decision_btn',
+                "{% trans 'All existing reports and previous decision results of this decision will be deleted' %}!",
+                function () {
+                    $('#dimmer_of_page').addClass('active');
+                    $.post("{% url 'jobs:api-restart-decision' object.id %}", {}, function (resp) {
+                        window.location.replace(resp['url'])
+                    });
+                }
+            );
+            activate_warn_modal('remove_decision_modal', '#remove_decision_btn',
+                "{% trans 'All verification results of this decision will be deleted' %}!",
+                function () {
+                    $('#dimmer_of_page').addClass('active');
+                    $.ajax({
+                        url: "{% url 'jobs:api-remove-decision' object.id %}",
+                        method: 'DELETE',
+                        success: function () {
+                            window.location.replace("{% url 'jobs:job' object.job_id %}");
+                        }
+                    })
+                }
+            );
+            activate_warn_modal('collapse_reports_modal', '#collapse_reports_btn',
+                "{% trans 'There is no reverse of this action' %}!",
+                function () {
+                    $('#dimmer_of_page').addClass('active');
+                    $.post("{% url 'jobs:api-collapse-reports' object.id %}", {}, function () {
+                        window.location.replace('')
+                    })
+                }
+            );
+            activate_warn_modal('clear_verifier_files_modal', '#clear_verifier_files_modal_show',
+                "{% trans 'Files of verification reports will be deleted' %}!",
+                function () {
+                    $('#dimmer_of_page').addClass('active');
+                    $.ajax({
+                        url: "{% url 'reports:clear-verification-files' object.id %}", method: 'DELETE',
+                        success: function () {
+                            window.location.replace('')
+                        }
+                    });
+                }
+            );
+            activate_warn_modal('stop_decision_modal', '#stop_decision_btn',
+                "{% trans 'The decision will be cancelled' %}!",
+                function () {
+                    $('#dimmer_of_page').addClass('active');
+                    $.post("{% url 'jobs:api-cancel-decision' object.id %}", {}, function () {
+                        window.location.replace('')
+                    })
+                }
+            );
+        })
+    </script>
+{% endblock %}

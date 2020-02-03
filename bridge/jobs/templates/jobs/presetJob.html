@@ -1,0 +1,195 @@
+{% extends 'bridge/base.html' %}
+{% comment "License" %}
+% Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
+% Ivannikov Institute for System Programming of the Russian Academy of Sciences
+%
+% Licensed under the Apache License, Version 2.0 (the "License");
+% you may not use this file except in compliance with the License.
+% You may obtain a copy of the License at
+%
+%    http://www.apache.org/licenses/LICENSE-2.0
+%
+% Unless required by applicable law or agreed to in writing, software
+% distributed under the License is distributed on an "AS IS" BASIS,
+% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+% See the License for the specific language governing permissions and
+% limitations under the License.
+{% endcomment %}
+
+{% load i18n %}
+
+{% load humanize %}
+{% load tz %}
+{% load staticfiles %}
+{% load compress %}
+
+{% block head_block %}
+    {# Jstree #}
+    <link rel="stylesheet" href="{% static 'bridge/jstree/themes/default/style.min.css' %}">
+    <script src="{% static 'bridge/jstree/jstree.min.js' %}"></script>
+
+    {% compress js file preset_job %}
+        <script src="{% static 'jobs/js/jobFilesView.js' %}"></script>
+        <script src="{% static 'jobs/js/presetJob.js' %}"></script>
+    {% endcompress %}
+{% endblock %}
+
+{% block title %}{% trans 'Preset job' %}{% endblock %}
+
+{% block body_block %}
+    <div class="ui grid">
+        <div class="eight wide column">
+
+            {# Preset job menu #}
+            <div class="ui violet inverted menu top attached">
+                {% if can_create %}
+                    <a href="{% url 'jobs:from-preset-form' object.id %}" class="item"><i class="copy icon"></i> {% trans 'Create new job' %}</a>
+                {% endif %}
+
+                {# Check PRESET_JOB_TYPE #}
+                {% if object.type == '1' %}
+                    <a id="create_preset_dir_btn" class="item"><i class="plus icon"></i> {% trans 'Add preset directory' %}</a>
+                {% elif object.type == '2' %}
+                    <a id="change_preset_dir_btn" class="item"><i class="pencil icon"></i> {% trans 'Change name' %}</a>
+                    <a id="remove_preset_dir_btn" class="item"><i class="remove icon"></i> {% trans 'Delete' %}</a>
+                {% endif %}
+            </div>
+
+            {# Job data table #}
+            <table class="ui selectable compact inverted violet table attached">
+                <thead>
+                    <tr>
+                        <th class="center aligned" colspan="2">
+                            <span class="ui olive header">{{ object.name }}</span>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><th class="right aligned">{% trans 'Identifier' %}</th><td>{{ object.identifier }}</td></tr>
+                    <tr>
+                        <th class="right aligned">{% trans 'Files check date' %}</th>
+                        <td>{% if user.data_format == 'hum' %}{{ object.check_date|naturaltime }}{% else %}{{ object.check_date }}{% endif %}</td>
+                    </tr>
+                    {% if children %}
+                        <tr>
+                            <th class="right aligned">{% trans 'Children' %}</th>
+                            <td>{% include 'jobs/presetChildrenTree.html' with children=children %}</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+
+            {# Files tree #}
+            {% include 'jobs/filesTree.html' with data=files div_id='filestree_container' %}
+        </div>
+        <div class="eight wide column"></div>
+    </div>
+
+    <div hidden>
+        <span id="jstree_view_label">{% trans 'View' %}</span>
+        <span id="jstree_download_label">{% trans 'Download' %}</span>
+    </div>
+
+    {% if object.type == '1' %}
+        {# Create preset directory name modal #}
+        <div id="create_preset_dir_modal" class="ui modal">
+            <div class="header">{% trans 'Please set the unique name for a preset directory' %}</div>
+            <div class="content">
+                <div class="ui fluid input">
+                    <input type="text" placeholder="{% trans 'Name' %}">
+                </div>
+            </div>
+            <div class="actions">
+                <button class="ui green button modal-confirm" data-parent="{{ object.id }}">{% trans 'Save' %}</button>
+                <button class="ui blue button modal-cancel">{% trans 'Cancel' %}</button>
+            </div>
+        </div>
+    {% elif object.type == '2' %}
+        {# Change preset directory name modal #}
+        <div id="change_preset_dir_modal" class="ui modal">
+            <div class="header">{% trans 'Please set the unique name for a preset directory' %}</div>
+            <div class="content">
+                <div class="ui fluid input">
+                    <input type="text" placeholder="{% trans 'Name' %}" value="{{ object.name }}">
+                </div>
+            </div>
+            <div class="actions">
+                <button class="ui green button modal-confirm" data-url="{% url 'jobs:api-preset-job-dir-detail' object.id %}">{% trans 'Save' %}</button>
+                <button class="ui blue button modal-cancel">{% trans 'Cancel' %}</button>
+            </div>
+        </div>
+
+        {# Remove preset dir #}
+        <div id="remove_preset_dir_modal" class="ui basic modal">
+            <div class="ui icon header">
+                <i class="warning sign icon"></i>
+                {% trans 'Are you sure' %}?
+            </div>
+            <div class="content">
+                <div class="ui center aligned grid">{% trans 'If the preset directory has jobs it will be deleted' %}</div>
+            </div>
+            <div class="actions">
+                <div class="ui center aligned grid">
+                    <button class="ui blue basic inverted button modal-cancel">{% trans 'Cancel' %}</button>
+                    <button class="ui red basic inverted button modal-confirm">{% trans 'Confirm' %}</button>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    <script type="application/javascript">
+        jQuery(function () {
+            {% if object.type == '1' %}
+                // Create preset dir modal
+                let create_preset_modal = $('#create_preset_dir_modal');
+                create_preset_modal.modal({transition: 'fly up', autofocus: false, closable: false})
+                    .modal('attach events', '#create_preset_dir_btn');
+                create_preset_modal.find('.modal-cancel').click(function () {
+                    create_preset_modal.modal('hide')
+                });
+                create_preset_modal.find('.modal-confirm').click(function () {
+                    $.ajax({
+                        url: "{% url 'jobs:api-preset-job-dir-list' %}", method: 'POST',
+                        data: {parent: {{ object.id }}, name: create_preset_modal.find('input').val()},
+                        success: function () {
+                            window.location.replace('')
+                        }
+                    });
+                });
+            {% elif object.type == '2' %}
+                // Create preset dir modal
+                let change_preset_modal = $('#change_preset_dir_modal');
+                change_preset_modal.modal({transition: 'fly up', autofocus: false, closable: false})
+                    .modal('attach events', '#change_preset_dir_btn');
+                change_preset_modal.find('.modal-cancel').click(function () {
+                    change_preset_modal.modal('hide')
+                });
+                change_preset_modal.find('.modal-confirm').click(function () {
+                    $.ajax({
+                        url: "{% url 'jobs:api-preset-job-dir-detail' object.id %}", method: 'PATCH',
+                        data: {name: change_preset_modal.find('input').val()},
+                        success: function () {
+                            window.location.replace('')
+                        }
+                    });
+                });
+
+                // Remove preset dir modal
+                let remove_preset_modal = $('#remove_preset_dir_modal');
+                remove_preset_modal.modal({transition: 'fly up', autofocus: false, closable: false})
+                    .modal('attach events', '#remove_preset_dir_btn');
+                remove_preset_modal.find('.modal-cancel').click(function () {
+                    remove_preset_modal.modal('hide')
+                });
+                remove_preset_modal.find('.modal-confirm').click(function () {
+                    $.ajax({
+                        url: "{% url 'jobs:api-preset-job-dir-detail' object.id %}", method: 'DELETE', data: {},
+                        success: function () {
+                            window.location.replace("{% url 'jobs:tree' %}")
+                        }
+                    });
+                });
+            {% endif %}
+        });
+    </script>
+{% endblock %}

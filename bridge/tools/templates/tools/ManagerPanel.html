@@ -31,9 +31,9 @@
 {% block body_block %}
     <div class="ui grid">
         <div class="eight wide column">
-            <div id="recalc_for_all_jobs_checkbox" class="ui checkbox">
-                <input id="recalc_for_all_jobs" type="checkbox">
-                <label for="recalc_for_all_jobs"><b>{% trans 'Jobs' %}</b><i class="ui help blue icon"></i></label>
+            <div id="recalc_for_all_decisions_checkbox" class="ui checkbox">
+                <input id="recalc_for_all_decisions" type="checkbox">
+                <label for="recalc_for_all_decisions"><b>{% trans 'Decisions' %}</b></label>
             </div>
             <div style="overflow: auto;margin-top: 15px;">
                 <table class="ui compact violet table celled">
@@ -41,18 +41,20 @@
                         <tr>
                             <th>{% trans 'Name' %}</th>
                             <th>{% trans 'Identifier' %}</th>
+                            <th>{% trans 'Job' %}</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for job in jobs %}
+                        {% for decision in decisions %}
                             <tr class="one wide column">
                                 <td>
                                     <div class="ui checkbox">
-                                        <input id="job__{{ job.pk }}" name="job" type="checkbox" value="{{ job.pk }}">
-                                        <label for="job__{{ job.pk }}">{{ job.name }}</label>
+                                        <input id="decision__{{ decision.pk }}" name="decision" type="checkbox" value="{{ decision.pk }}">
+                                        <label for="decision__{{ decision.pk }}">{{ decision.name }}</label>
                                     </div>
                                 </td>
-                                <td>{{ job.identifier }}</td>
+                                <td>{{ decision.identifier }}</td>
+                                <td><a href="{% url 'jobs:job' decision.job_id %}">{{ decision.job.name }}</a></td>
                             </tr>
                         {% endfor %}
                     </tbody>
@@ -69,7 +71,7 @@
                 <button class="ui orange button recalc-button" data-value="safe_reports">{% trans 'Safe reports' %}</button>
                 <button class="ui orange button recalc-button" data-value="unsafe_reports">{% trans 'Unsafe reports' %}</button>
                 <button class="ui orange button recalc-button" data-value="unknown_reports">{% trans 'Unknown reports' %}</button>
-                <button class="ui orange button recalc-button" data-value="root_cache">{% trans 'Resources and instances' %}</button>
+                <button class="ui orange button recalc-button" data-value="decision_cache">{% trans 'Resources and instances' %}</button>
                 <button class="ui orange button recalc-button" data-value="coverage">{% trans 'Coverage cache' %}</button>
                 <button class="ui red button recalc-button" data-value="all">{% trans 'All caches' %}</button>
             </div>
@@ -82,7 +84,7 @@
                 <a href="{% url 'marks:api-download-all' %}" class="ui teal button">{% trans 'Download all marks' %}</a>
                 <button id="upload_all_marks" class="ui teal button">{% trans 'Upload all marks' %}</button>
                 <button class="ui red button api-request-btn" data-url="{% url 'tools:api-clear-system' %}" data-method="POST">{% trans 'Remove unused files and DB rows' %}</button>
-                <button class="ui red button api-request-btn" data-url="{% url 'tools:api-clear-tasks' %}" data-method="DELETE">{% trans 'Remove tasks for not solving jobs' %}</button>
+                <button class="ui red button api-request-btn" data-url="{% url 'tools:api-clear-tasks' %}" data-method="DELETE">{% trans 'Remove tasks for not solving decisions' %}</button>
                 <a href="{% url 'tools:processing-list' %}" class="ui yellow button">{% trans 'View processing reqeusts' %}</a>
                 <a href="{% url 'tools:call-logs' %}" class="ui yellow button">{% trans 'View function call logs' %}</a>
                 <a href="{% url 'tools:db-statistics' %}" class="ui yellow button">{% trans 'View db logs statistics' %}</a>
@@ -102,6 +104,12 @@
                             <label>{% trans 'All' %}</label>
                         </div>
                         <div class="list">
+                            <div class="item">
+                                <div class="ui child checkbox">
+                                    <input type="checkbox" value="preset-jobs">
+                                    <label>{% trans 'Preset jobs' %}</label>
+                                </div>
+                            </div>
                             <div class="item">
                                 <div class="ui child checkbox">
                                     <input type="checkbox" value="schedulers">
@@ -167,7 +175,7 @@
                     <thead>
                         <tr>
                             <th>{% trans 'Identifier' %}</th>
-                            <th>{% trans 'Number of linked jobs' %}</th>
+                            <th>{% trans 'Number of linked decisions' %}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -199,8 +207,8 @@
                         {% for obj in comparison %}
                             <tr>
                                 <td><a href="{% url 'users:show-profile' obj.user_id %}">{{ obj.user.get_full_name }}</a></td>
-                                <td><a href="{% url 'jobs:job' obj.root1.job_id %}">{{ obj.root1.job.name }}</a></td>
-                                <td><a href="{% url 'jobs:job' obj.root2.job_id %}">{{ obj.root2.job.name }}</a></td>
+                                <td><a href="{% url 'jobs:decision' obj.decision1_id %}">{{ obj.decision1.name }}</a></td>
+                                <td><a href="{% url 'jobs:decision' obj.decision2_id %}">{{ obj.decision2.name }}</a></td>
                                 <td><i class="ui red remove link icon remove-comparison-link" data-url="{% url 'tools:api-clear-comparison' obj.pk %}"></i></td>
                             </tr>
                         {% endfor %}
@@ -248,7 +256,6 @@
         </div>
     </div>
 
-    {# Warning modal for job actions #}
     <div id="remove_comparison_modal" class="ui basic modal">
         <div class="ui icon header">
             <i class="warning sign icon"></i>
@@ -267,13 +274,13 @@
 
     <script type="application/javascript">
         jQuery(function () {
-            // Recalculate jobs caches
+            // Recalculate decisions' caches
             $('.recalc-button').click(function () {
-                let data = {'jobs': [], 'type': $(this).data('value')};
-                $('input[name="job"]:checked').each(function () {
-                    data['jobs'].push($(this).val());
+                let data = {'decisions': [], 'type': $(this).data('value')};
+                $('input[name="decision"]:checked').each(function () {
+                    data['decisions'].push($(this).val());
                 });
-                if (!data['jobs'].length) return err_notify("{% trans 'Please select at least one job' %}");
+                if (!data['decisions'].length) return err_notify("{% trans 'Please select at least one decision' %}");
 
                 $('#dimmer_of_page').addClass('active');
                 $.ajax({

@@ -17,12 +17,13 @@
 
 $(document).ready(function () {
     $('.note-popup').popup();
+    $('.normal-dropdown').dropdown();
 
     function collect_data() {
         let data = {
             priority: $('input[name="priority"]:checked').val(),
             scheduler: $('input[name="scheduler"]:checked').val(),
-            job_weight: $('input[name="job_weight"]:checked').val(),
+            weight: $('input[name="weight"]:checked').val(),
             coverage_details: $('input[name="coverage_details"]:checked').val(),
             max_tasks: $('#max_tasks').val(),
             parallelism: [$('#parallelism_0').val(), $('#parallelism_1').val(), $('#parallelism_2').val()],
@@ -39,13 +40,13 @@ $(document).ready(function () {
             data[$(this).attr('id')] = $(this).is(':checked');
         });
 
-        return {mode: 'data', data: JSON.stringify(data)}
+        return {data: JSON.stringify(data), name: $('#decision_name').val().trim()}
     }
 
     function fill_data(resp) {
         $(`input[name="priority"][value="${resp['priority']}"]`).prop('checked', true);
         $(`input[name="scheduler"][value="${resp['scheduler']}"]`).prop('checked', true);
-        $(`input[name="job_weight"][value="${resp['job_weight']}"]`).prop('checked', true);
+        $(`input[name="weight"][value="${resp['weight']}"]`).prop('checked', true);
         $(`input[name="coverage_details"][value="${resp['coverage_details']}"]`).prop('checked', true);
         $('#max_tasks').val(resp['max_tasks']);
         $('#parallelism_0').val(resp['parallelism'][0]);
@@ -65,45 +66,40 @@ $(document).ready(function () {
         });
     }
 
+    let file_form = $('#upload_file_conf_form'),
+        lastconf_form = $('#select_lastconf_form');
     $('#default_configs').dropdown({
         onChange: function () {
-            let conf_name = $('#default_configs').val(),
-                file_form = $('#upload_file_conf_form');
-            if (conf_name === 'file_conf') file_form.show();
+            let conf_name = $('#default_configs').val();
+            if (conf_name === 'file_conf') {
+                lastconf_form.hide();
+                file_form.show();
+            }
+            else if(conf_name === 'lastconf') {
+                file_form.hide();
+                lastconf_form.show();
+            }
             else {
                 file_form.hide();
-                $.post($('#api_conf_url').val(), {name: conf_name, job: $('#job_pk').val()}, fill_data);
+                lastconf_form.hide();
+                $.post($('#api_conf_url').val(), {conf_name: conf_name}, fill_data);
             }
         }
     });
     $('#file_conf').on('fileselect', function () {
-        $('#upload_file_conf_form').submit();
         let data = new FormData();
-        data.append('name', 'file');
-        data.append('file', $(this)[0].files[0]);
-        $.ajax({
-            url: $('#api_conf_url').val(),
-            type: 'POST',
-            data: data,
-            dataType: 'json',
-            contentType: false,
-            processData: false,
-            mimeType: 'multipart/form-data',
-            xhr: function() { return $.ajaxSettings.xhr() },
-            success: fill_data
-        });
+        data.append('file_conf', $(this)[0].files[0]);
+        api_upload_file(PAGE_URLS.get_conf_url, 'POST', data, fill_data);
+    });
+    $('#lastconf_select').dropdown({
+        onChange: function () {
+            $.post($('#api_conf_url').val(), {decision: parseInt($('#lastconf_select').val())}, fill_data);
+        }
     });
 
-    $('.normal-dropdown').dropdown();
-
     $('#start_job_decision').click(function () {
-        $.ajax({
-            url: $(this).data('url'),
-            data: collect_data(),
-            type: 'POST',
-            success: function (resp) {
-                window.location.replace(resp['url']);
-            }
+        $.post($(this).data('url'), collect_data(), function (resp) {
+            window.location.replace(resp['url'])
         });
     });
 

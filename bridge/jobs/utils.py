@@ -17,19 +17,21 @@
 
 import io
 import os
+from collections import OrderedDict
 from datetime import datetime
 
-from django.db.models import F
+from django.db.models import Q
 from django.urls import reverse
 from django.utils.functional import cached_property
 from django.utils.text import format_lazy
 from django.utils.translation import ugettext_lazy as _
 
-from bridge.vars import JOB_STATUS, USER_ROLES, JOB_ROLES, JOB_WEIGHT, SUBJOB_NAME
+from bridge.vars import DECISION_STATUS, USER_ROLES, JOB_ROLES, SUBJOB_NAME, DECISION_WEIGHT
 from bridge.utils import file_get_or_create, BridgeException
 
-from jobs.models import Job, JobHistory, JobFile, FileSystem, UserRole, RunHistory, PresetStatus
-from reports.models import ReportRoot, ReportComponent
+from users.models import User
+from jobs.models import PRESET_JOB_TYPE, Job, JobFile, FileSystem, UserRole, PresetJob
+from reports.models import ReportComponent
 from service.models import Decision
 
 # List of available types of 'safe' column class.
@@ -56,8 +58,9 @@ UNSAFES = [
 # Dictionary of titles of static columns
 TITLES = {
     'name': _('Title'),
-    'author': _('Last change author'),
-    'date': _('Last change date'),
+    'author': _('Author'),
+    # 'date': _('Last change date'),
+    'creation_date': _('Creation date'),
     'status': _('Decision status'),
 
     'safe': _('Safes'),
@@ -136,7 +139,8 @@ def is_readable(filename):
 
 
 def get_unique_name(base_name):
-    names_in_use = set(Job.objects.filter(name__startswith=base_name).values_list('name', flat=True))
+    names_in_use = set(Job.objects.filter(name__startswith=base_name).values_list('name', flat=True)) | \
+                   set(PresetJob.objects.filter(name__startswith=base_name).values_list('name', flat=True))
     cnt = 1
     while True:
         new_name = "{} #{}".format(base_name, cnt)
@@ -145,185 +149,158 @@ def get_unique_name(base_name):
         cnt += 1
 
 
-def is_preset_changed(preset_uuid, creation_date):
-    if not preset_uuid:
-        # Preset is missed for uploaded jobs
-        return False
-    preset_obj = PresetStatus.objects.filter(identifier=preset_uuid).only('check_date').first()
-    if preset_obj:
-        return bool(preset_obj.check_date > creation_date)
-    # Case if preset check was not launched
+def is_preset_changed(job):
+    preset_job = job.preset.get_ancestors(ascending=True, include_self=True)\
+        .filter(type=PRESET_JOB_TYPE[1][0]).only('check_date').first()
+    if preset_job:
+        return bool(preset_job.check_date > job.creation_date)
+    # Something went wrong
     return True
 
 
+def jobs_with_view_access(user: User, queryset):
+    """Filter queryset by view job access"""
+    if user.is_manager or user.is_expert:
+        return set(queryset.values_list('id', flat=True))
+    custom_access_ids = set(UserRole.objects.filter(user=user)
+                            .exclude(role=JOB_ROLES[0][0]).values_list('job_id', flat=True))
+    return set(queryset.filter(
+        Q(author=user) | ~Q(global_role=JOB_ROLES[0][0]) | Q(id__in=custom_access_ids)
+    ).values_list('id', flat=True))
+
+
+def decisions_with_view_access(user: User, queryset):
+    """Filter decisions queryset by view decision access"""
+    if user.is_manager or user.is_expert:
+        return set(queryset.values_list('id', flat=True))
+    custom_access_ids = set(UserRole.objects.filter(user=user)
+                            .exclude(role=JOB_ROLES[0][0]).values_list('job_id', flat=True))
+    return set(queryset.filter(
+        Q(job__author=user) | ~Q(job__global_role=JOB_ROLES[0][0]) | Q(job_id__in=custom_access_ids)
+    ).values_list('id', flat=True))
+
+
+def get_core_link(decision):
+    if decision.weight == DECISION_WEIGHT[1][0]:
+        return None
+    core = ReportComponent.objects.filter(parent=None, decision=decision).only('id').first()
+    if not core:
+        return None
+    return reverse('reports:component', args=[core.id])
+
+
 class JobAccess:
-    def __init__(self, user, job=None):
+    def __init__(self, user, job: Job):
         self.user = user
         self.job = job
-        self._is_author = (self.job is not None and self.job.author == user)
-        self._is_manager = (self.user.role == USER_ROLES[2][0])
-        self._is_expert = (self.user.role == USER_ROLES[3][0])
-        self._is_service = (self.user.role == USER_ROLES[4][0])
-
-    @cached_property
-    def _root(self):
-        if self.job is None:
-            return False
-        return ReportRoot.objects.filter(job=self.job).select_related('user').first()
+        self.is_author = (self.job.author == user)
 
     @cached_property
     def _job_role(self):
         if self.job is None:
             return None
-        last_version = self.job.versions.get(version=self.job.version)
-        last_v_role = last_version.userrole_set.filter(user=self.user).first()
-        return last_v_role.role if last_v_role else last_version.global_role
+        user_role_obj = UserRole.objects.filter(job=self.job, user=self.user).first()
+        return user_role_obj.role if user_role_obj else self.job.global_role
 
     @cached_property
-    def _is_operator(self):
-        return self._root and self._root.user == self.user
-
-    @cached_property
-    def _in_progress(self):
-        assert isinstance(self.job, Job), "Can't check the job access if job is not provided"
-        return not self.job.not_decided and not self.job.is_finished
-
-    def can_view_jobs(self, queryset):
-        """Filter queryset by view job access"""
-
-        all_jobs_qs = queryset.values_list('id', flat=True)
-        if self._is_manager or self._is_expert:
-            return set(all_jobs_qs)
-
-        author_of_qs = queryset.filter(author=self.user).values_list('pk', flat=True)
-        with_custom_qs = UserRole.objects\
-            .filter(user=self.user, job_version__version=F('job_version__job__version'))\
-            .exclude(role=JOB_ROLES[0][0]).values_list('job_version__job_id', flat=True)
-        no_global_qs = JobHistory.objects\
-            .filter(version=F('job__version'), global_role=JOB_ROLES[0][0])\
-            .values_list('job_id', flat=True)
-
-        return set(all_jobs_qs) - (set(no_global_qs) - set(with_custom_qs) - set(author_of_qs))
-
-    def can_download_jobs(self, queryset):
-        """Check if all jobs in queryset can be downloaded"""
-        if any(not job.is_finished and not job.not_decided for job in queryset):
-            return False
-        jobs_ids = self.can_view_jobs(queryset)
-        return len(jobs_ids) == len(queryset)
-
-    @cached_property
-    def can_decide(self):
-        return not self._in_progress and \
-               (self._is_manager or self._is_author or self._job_role in {JOB_ROLES[3][0], JOB_ROLES[4][0]})
-
-    @cached_property
-    def can_decide_last(self):
-        return self.can_decide and RunHistory.objects.filter(job=self.job).exists()
-
-    @cached_property
-    def can_view(self):
-        if self.job is None or self.job.status == JOB_STATUS[9][0]:
-            return False
-        return self._is_manager or self._is_author or self._is_expert or self._job_role != JOB_ROLES[0][0]
-
-    @cached_property
-    def can_create(self):
-        return self.user.role not in {USER_ROLES[0][0], USER_ROLES[4][0]}
-
-    @cached_property
-    def can_edit(self):
-        return not self._in_progress and (self._is_author or self._is_manager)
-
-    @cached_property
-    def can_stop(self):
-        assert isinstance(self.job, Job), "Can't check the job access if job is not provided"
-        return self.job.status in {JOB_STATUS[1][0], JOB_STATUS[2][0]} and (self._is_operator or self._is_manager)
-
-    @cached_property
-    def can_download(self):
-        return not self._in_progress and self.can_view
-
-    @cached_property
-    def can_delete(self):
-        if self.job is None:
-            return False
-        for job in self.job.get_descendants(include_self=True):
-            if not (job.is_finished or job.not_decided) or not self._is_manager and job.author != self.user:
+    def _is_finished(self):
+        for decision in Decision.objects.filter(job=self.job).only('status'):
+            if not decision.is_finished:
+                # The job has unfinished decision
                 return False
         return True
 
     @cached_property
+    def can_decide(self):
+        return self.user.is_manager or self.is_author or self._job_role in {JOB_ROLES[3][0], JOB_ROLES[4][0]}
+
+    @cached_property
+    def can_view(self):
+        return self.user.is_manager or self.is_author or self.user.is_expert or self._job_role != JOB_ROLES[0][0]
+
+    @cached_property
+    def can_edit(self):
+        return self.is_author or self.user.is_manager
+
+    @cached_property
+    def can_download(self):
+        return self.can_view and self._is_finished
+
+    @cached_property
+    def can_delete(self):
+        return (self.user.is_manager or self.is_author) and self._is_finished
+
+
+class DecisionAccess:
+    def __init__(self, user, decision):
+        self.user = user
+        self.decision = decision
+        self.job_access = JobAccess(user, job=decision.job if decision else None)
+
+    @cached_property
+    def can_view(self):
+        # User can't view hidden decisions
+        return self.job_access.can_view and self.decision.status != DECISION_STATUS[0][0]
+
+    @cached_property
+    def can_stop(self):
+        return self.decision.status in {DECISION_STATUS[1][0], DECISION_STATUS[2][0]} and \
+               (self.decision.user == self.user or self.user.is_manager)
+
+    @cached_property
+    def can_restart(self):
+        return self.job_access.can_decide and self.decision.is_finished
+
+    @cached_property
+    def can_download(self):
+        return self.job_access.can_view and self.decision.is_finished
+
+    @cached_property
+    def can_delete(self):
+        # Only job author and manager can remove the finished decision
+        return (self.job_access.is_author or self.user.is_manager) and self.decision.is_finished
+
+    @cached_property
     def can_collapse(self):
-        assert isinstance(self.job, Job), "Can't check the job access if job is not provided"
-        if not self.job.is_finished or self.job.is_lightweight or not (self._is_author or self._is_manager):
+        if not self.decision.is_finished or self.decision.is_lightweight or \
+                not (self.job_access.is_author or self.user.is_manager):
             return False
-        return not ReportComponent.objects.filter(root__job=self.job, component=SUBJOB_NAME).exists()
+        return not ReportComponent.objects.filter(decision=self.decision, component=SUBJOB_NAME).exists()
 
     @cached_property
     def _has_verifier_files(self):
-        if not self._root:
-            return False
-        return ReportComponent.objects.filter(root=self._root, verification=True).exclude(verifier_files='').exists()
+        return ReportComponent.objects.filter(decision=self.decision, verification=True)\
+            .exclude(verifier_files='').exists()
 
     @cached_property
     def can_clear_verifier_files(self):
-        return self.job.is_finished and (self._is_author or self._is_manager) and self._has_verifier_files
+        return self.decision.is_finished and (self.job_access.is_author or self.user.is_manager) and \
+               self._has_verifier_files
 
     @cached_property
     def can_download_verifier_files(self):
-        return self.job.is_finished and self.can_view and self._has_verifier_files
+        return self.decision.is_finished and self.job_access.can_view and self._has_verifier_files
 
 
-class JobDecisionData:
-    def __init__(self, request, job):
+class DecisionProgressData:
+    def __init__(self, request, decision):
         self._request = request
-        self.job = job
-        self._decision = self.__get_decision()
-
-    @cached_property
-    def status_color(self):
-        if self.job.status == JOB_STATUS[0][0]:
-            return 'grey'
-        if self.job.status == JOB_STATUS[1][0]:
-            return 'pink'
-        if self.job.status == JOB_STATUS[2][0]:
-            return 'purple'
-        if self.job.status == JOB_STATUS[3][0]:
-            return 'green'
-        if self.job.status in {JOB_STATUS[4][0], JOB_STATUS[5][0], JOB_STATUS[8][0]}:
-            return 'red'
-        if self.job.status == JOB_STATUS[6][0]:
-            return 'yellow'
-        if self.job.status == JOB_STATUS[7][0]:
-            return 'orange'
-        return 'violet'
+        self._decision = decision
 
     @cached_property
     def progress(self):
         from service.serializers import ProgressSerializerRO
 
-        if not self._decision:
-            return None
         return ProgressSerializerRO(instance=self._decision, context={'request': self._request}).data
 
     @cached_property
     def core_link(self):
-        if self.job.weight == JOB_WEIGHT[1][0]:
+        if self._decision.weight == DECISION_WEIGHT[1][0]:
             return None
-        core = ReportComponent.objects.filter(parent=None, root__job=self.job).only('id').first()
+        core = ReportComponent.objects.filter(parent=None, decision=self._decision).only('id').first()
         if not core:
             return None
         return reverse('reports:component', args=[core.id])
-
-    @cached_property
-    def error(self):
-        if not self._decision:
-            return None
-        return self._decision.error
-
-    def __get_decision(self):
-        return Decision.objects.filter(job=self.job).first()
 
 
 class CompareFileSet:
@@ -339,10 +316,8 @@ class CompareFileSet:
         self.__get_comparison()
 
     def __get_comparison(self):
-        files1 = dict(self.j1.versions.order_by('-version').first()
-                      .files.order_by('name').values_list('name', 'file__hash_sum'))
-        files2 = dict(self.j2.versions.order_by('-version').first()
-                      .files.order_by('name').values_list('name', 'file__hash_sum'))
+        files1 = dict(FileSystem.objects.filter(job=self.j1).order_by('name').values_list('name', 'file__hash_sum'))
+        files2 = dict(FileSystem.objects.filter(job=self.j2).order_by('name').values_list('name', 'file__hash_sum'))
 
         for name, f1_hash in files1.items():
             readable = is_readable(name)
@@ -508,3 +483,43 @@ class JSTreeConverter:
             for child in obj_p['children']:
                 files.extend(self.__get_children_data(child, prefix=(name if obj_p['type'] != 'root' else None)))
         return files
+
+
+def get_roles_form_data(job=None):
+    global_role = JOB_ROLES[0][0]
+
+    users_qs = User.objects.exclude(role__in=[USER_ROLES[2][0], USER_ROLES[4][0]])\
+        .order_by('first_name', 'last_name', 'username')
+    available_users = OrderedDict((u.id, u.get_full_name()) for u in users_qs)
+
+    user_roles = []
+    if job:
+        global_role = job.global_role
+        # Exclude job author
+        available_users.pop(job.author_id, None)
+        for ur in UserRole.objects.filter(job=job):
+            # Either user is manager, author or service of the job if he is not in all_users dict
+            user_name = available_users.pop(ur.user_id, None)
+            if user_name:
+                user_roles.append({'user': ur.user_id, 'name': user_name, 'role': ur.role})
+    return {
+        'user_roles': user_roles, 'global_role': global_role,
+        'available_users': list({'id': u_id, 'name': u_name} for u_id, u_name in available_users.items())
+    }
+
+
+def copy_files_with_replace(request, job_id, files_qs):
+    files_to_replace = {}
+    if request.data.get('files'):
+        for fname, fkey in request.data['files'].items():
+            if fkey in request.FILES:
+                files_to_replace[fname] = request.FILES[fkey]
+
+    new_job_files = []
+    for f_id, f_name in files_qs:
+        fs_kwargs = {'job_id': job_id, 'file_id': f_id, 'name': f_name}
+        if f_name in files_to_replace:
+            new_file = file_get_or_create(files_to_replace[f_name], f_name, JobFile)
+            fs_kwargs['file_id'] = new_file.id
+        new_job_files.append(FileSystem(**fs_kwargs))
+    FileSystem.objects.bulk_create(new_job_files)

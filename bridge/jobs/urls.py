@@ -15,69 +15,68 @@
 # limitations under the License.
 #
 
-from django.urls import path, re_path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
 from jobs import views, api
 
+router = DefaultRouter()
+router.register('api-preset-job-dir', api.PresetJobAPIViewset, 'api-preset-job-dir')
 
 urlpatterns = [
+    path('api/', include(router.urls)),
+
     # Main pages
     path('', views.JobsTree.as_view(), name='tree'),
     path('<int:pk>/', views.JobPage.as_view(), name='job'),
+    path('preset/<int:pk>/', views.PresetJobPage.as_view(), name='preset'),
+    path('decision/<int:pk>/', views.DecisionPage.as_view(), name='decision'),
     path('decision-results/<int:pk>/', views.DecisionResults.as_view(), name='decision-results'),
-    path('api/decision-results/<uuid:identifier>/', api.DecisionResultsView.as_view(), name='api-decision-results'),
-    path('progress/<int:pk>/', views.JobProgress.as_view(), name='progress'),
-    path('api/job-status/', api.JobStatusListView.as_view(), name='api-jobs-statuses'),
-    path('api/job-status/<int:pk>/', api.JobStatusView.as_view(), name='api-job-status'),
+    path('api/decision-results/<uuid:identifier>/', api.DecisionResultsAPIView.as_view(), name='api-decision-results'),
+    path('progress/<int:pk>/', views.DecisionProgress.as_view(), name='progress'),
+    path('api/decision-status/', api.DecisionStatusListView.as_view(), name='api-decisions-statuses'),
+    path('api/decision-status/<int:pk>/', api.DecisionStatusView.as_view(), name='api-decision-status'),
     path('comparison/<int:job1_id>/<int:job2_id>/', views.JobsFilesComparison.as_view(), name='comparison'),
 
     # Main actions with jobs
     path('api/<int:pk>/remove/', api.RemoveJobView.as_view(), name='api-remove-job'),
-    path('api/duplicate/', api.DuplicateJobView.as_view(), name='api-duplicate-job'),
-    path('api/duplicate/<uuid:identifier>/', api.DuplicateJobView.as_view(), name='api-duplicate-version'),
+    path('api/decision/<int:pk>/remove/', api.RemoveDecisionView.as_view(), name='api-remove-decision'),
+    path('api/duplicate/<uuid:identifier>/', api.DuplicateJobView.as_view(), name='api-duplicate-job'),
 
     # Job form
-    re_path(r'^form/(?P<pk>[0-9]+)/(?P<action>edit|copy)/$', views.JobFormPage.as_view(), name='form'),
-    path('form/preset/<uuid:preset_uuid>/', views.PresetFormPage.as_view(), name='preset-form'),
+    path('form/from-preset/<int:pk>/', views.PresetFormPage.as_view(), name='from-preset-form'),
+    path('form/copy/<int:pk>/', views.CopyJobFormPage.as_view(), name='job-copy-form'),
+    path('form/edit/<int:pk>/', views.EditJobFormPage.as_view(), name='job-edit-form'),
     path('api/create/', api.CreateJobView.as_view(), name='api-create-job'),
-    path('api/create-preset/<uuid:preset_uuid>/', api.CreatePresetJobView.as_view(), name='api-create-preset'),
+    path('api/create-preset/<uuid:identifier>/', api.CreatePresetJobView.as_view(), name='api-create-preset'),
     path('api/update/<int:pk>/', api.UpdateJobView.as_view(), name='api-update-job'),
-    path('api/job-version/<int:job_id>/<int:version>/', api.JobVersionView.as_view(), name='api-job-version'),
-    path('api/preset-data/<uuid:preset_uuid>/', api.PresetFormDataView.as_view(), name='api-preset-data'),
 
     # Actions with job files
     path('downloadfile/<slug:hash_sum>/', views.DownloadJobFileView.as_view(), name='download_file'),
     path('api/file/', api.CreateFileView.as_view()),
     path('api/file/<slug:hash_sum>/', api.FileContentView.as_view(), name='file-content'),
-
-    path('get_files_diff/<slug:hashsum1>/<slug:hashsum2>/', api.GetFilesDiffView.as_view(), name='files-diff'),
-    path('api/replace-job-file/', api.ReplaceJobFileView.as_view()),
-    path('svcomp-files/<int:pk>/', views.DownloadFilesForCompetition.as_view(), name='svcomp-files'),
+    path('files-diff/<slug:hashsum1>/<slug:hashsum2>/', api.GetFilesDiffView.as_view(), name='files-diff'),
 
     # Download/upload actions
     path('downloadjob/<int:pk>/', views.DownloadJobView.as_view(), name='download'),
     path('api/downloadjob/<uuid:identifier>/', api.DownloadJobByUUIDView.as_view(), name='api-download'),
     path('downloadjobs/', views.DownloadJobsListView.as_view(), name='download-jobs'),
-    path('downloadtrees/', views.DownloadJobsTreeView.as_view(), name='download-trees'),
     path('api/upload_jobs/', api.UploadJobsAPIView.as_view(), name='api-upload-jobs'),
     path('uploading-status/', views.JobsUploadingStatus.as_view(), name='uploading-status'),
     path('api/uploading-status/', api.UploadStatusAPIView.as_view(), name='api-uploading-status'),
 
-    # Actions with job versions
-    path('api/remove-versions/<int:job_id>/', api.RemoveJobVersions.as_view(), name='api-remove-versions'),
-    path('api/compare-versions/<int:pk>/<int:version1>/<int:version2>/', api.CompareJobVersionsView.as_view()),
-
     # Actions with job solving
     path('prepare-decision/<int:pk>/', views.PrepareDecisionView.as_view(), name='prepare-decision'),
-    path('download-configuration/<int:pk>/', views.DownloadRunConfigurationView.as_view(), name='download-conf'),
+    path('download-configuration/<int:pk>/', views.DownloadConfigurationView.as_view(), name='download-decision-conf'),
     path('api/configuration/', api.GetConfigurationView.as_view(), name='api-configuration'),
     path('api/conf-def-value/', api.StartJobDefValueView.as_view(), name='api-def-start-value'),
-    path('api/decide/<int:job_id>/', api.StartDecisionView.as_view(), name='api-decide'),
-    path('api/decide-uuid/<uuid:job_uuid>/', api.StartDecisionByUUIDView.as_view(), name='api-decide-uuid'),
-    path('api/stop/<int:job_id>/', api.StopDecisionView.as_view(), name='api-cancel-decision'),
-    path('api/download-files/<uuid:identifier>/', api.CoreJobArchiveView.as_view()),
+    path('api/decide/<int:pk>/', api.StartDecisionView.as_view(), name='api-decide'),
+    path('api/decide-uuid/<uuid:identifier>/', api.StartDecisionView.as_view(), name='api-decide-uuid'),
+    path('api/restart-decision/<int:pk>/', api.RestartDecisionView.as_view(), name='api-restart-decision'),
+    path('api/decision/stop/<int:pk>/', api.StopDecisionView.as_view(), name='api-cancel-decision'),
+    path('api/download-files/<uuid:identifier>/', api.CoreDecisionArchiveView.as_view()),
 
     # "Utils"
-    path('api/has-children/<int:pk>/', api.DoJobHasChildrenView.as_view(), name='api-has-children'),
+    path('decision/svcomp-files/<int:pk>/', views.DownloadFilesForCompetition.as_view(), name='svcomp-files'),
     path('api/can-download/', api.CheckDownloadAccessView.as_view(), name='api-can-download'),
     path('api/collapse/<int:pk>/', api.CollapseReportsView.as_view(), name='api-collapse-reports'),
     path('api/coverage/<int:pk>/', api.GetJobCoverageTableView.as_view(), name='api-get-coverage'),

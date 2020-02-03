@@ -22,55 +22,53 @@ from django.template import loader
 from django.urls import reverse
 from django.utils.translation import ugettext as _
 
-from rest_framework.permissions import IsAuthenticated
-
 from rest_framework import exceptions
 from rest_framework.generics import RetrieveAPIView, get_object_or_404, CreateAPIView, DestroyAPIView, GenericAPIView
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.status import HTTP_403_FORBIDDEN
 from rest_framework.views import APIView
 
-from bridge.vars import JOB_STATUS, LOG_FILE
+from bridge.vars import DECISION_STATUS, LOG_FILE
 from bridge.utils import logger, BridgeException, ArchiveFileContent
 from bridge.access import ServicePermission, ViewJobPermission
 from bridge.CustomViews import TemplateAPIRetrieveView
 from tools.profiling import LoggedCallMixin
 
-from jobs.models import Job
-from jobs.utils import JobAccess
-from reports.models import (
-    Report, ReportRoot, ReportComponent, CompareJobsInfo, OriginalSources, CoverageArchive, ReportAttr
-)
+from jobs.models import Decision
+from reports.models import Report, ReportComponent, OriginalSources, CoverageArchive, ReportAttr, CompareDecisionsInfo
+
+from jobs.utils import JobAccess, DecisionAccess
 from reports.comparison import FillComparisonCache, ComparisonData
 from reports.UploadReport import UploadReport, CheckArchiveError
 from reports.serializers import OriginalSourcesSerializer
 from reports.source import GetSource
-from reports.utils import remove_verifier_files
 from reports.coverage import GetCoverageData, ReportCoverageStatistics
 
 
 class FillComparisonView(LoggedCallMixin, APIView):
-    unparallel = ['Job', 'ReportRoot', CompareJobsInfo]
+    unparallel = ['Decision', CompareDecisionsInfo]
     permission_classes = (IsAuthenticated,)
 
-    def post(self, request, job1_id, job2_id):
-        r1 = ReportRoot.objects.filter(job_id=job1_id).first()
-        r2 = ReportRoot.objects.filter(job_id=job2_id).first()
-        if not r1 or not r2:
-            raise exceptions.APIException(_('One of the jobs is not decided yet'))
-        if not JobAccess(self.request.user, job=r1.job).can_view \
-                or not JobAccess(self.request.user, job=r2.job).can_view:
+    def post(self, request, decision1, decision2):
+        try:
+            d1 = Decision.objects.select_related('job').get(id=decision1)
+            d2 = Decision.objects.select_related('job').get(id=decision2)
+        except Decision.DoesNotExist:
+            raise exceptions.APIException(_('One of the decisions was not found'))
+        if not JobAccess(self.request.user, job=d1.job).can_view \
+                or not JobAccess(self.request.user, job=d2.job).can_view:
             raise exceptions.PermissionDenied(_("You don't have an access to one of the selected jobs"))
         try:
-            CompareJobsInfo.objects.get(user=self.request.user, root1=r1, root2=r2)
-        except CompareJobsInfo.DoesNotExist:
-            FillComparisonCache(self.request.user, r1, r2)
-        return Response({'url': reverse('reports:comparison', args=[r1.job_id, r2.job_id])})
+            CompareDecisionsInfo.objects.get(user=self.request.user, decision1=d1, decision2=d2)
+        except CompareDecisionsInfo.DoesNotExist:
+            FillComparisonCache(self.request.user, d1, d2)
+        return Response({'url': reverse('reports:comparison', args=[d1.id, d2.id])})
 
 
 class ReportsComparisonDataView(LoggedCallMixin, RetrieveAPIView):
     permission_classes = (IsAuthenticated,)
-    queryset = CompareJobsInfo.objects.all()
+    queryset = CompareDecisionsInfo.objects.all()
     lookup_url_kwarg = 'info_id'
 
     def retrieve(self, request, *args, **kwargs):
@@ -106,10 +104,10 @@ class UploadOriginalSourcesView(LoggedCallMixin, CreateAPIView):
 class UploadReportView(LoggedCallMixin, APIView):
     permission_classes = (ServicePermission,)
 
-    def post(self, request, job_uuid):
-        job = get_object_or_404(Job, identifier=job_uuid)
-        if job.status != JOB_STATUS[2][0]:
-            raise exceptions.APIException('Reports can be uploaded only for processing jobs')
+    def post(self, request, decision_uuid):
+        decision = get_object_or_404(Decision, identifier=decision_uuid)
+        if decision.status != DECISION_STATUS[2][0]:
+            raise exceptions.APIException('Reports can be uploaded only for processing decisions')
 
         if 'report' in request.POST:
             data = [json.loads(request.POST['report'])]
@@ -118,7 +116,7 @@ class UploadReportView(LoggedCallMixin, APIView):
         else:
             raise exceptions.APIException('Report json data is required')
         try:
-            UploadReport(job, request.FILES).upload_all(data)
+            UploadReport(decision, request.FILES).upload_all(data)
         except CheckArchiveError as e:
             return Response({'ZIP error': str(e)}, status=HTTP_403_FORBIDDEN)
         return Response({})
@@ -144,16 +142,17 @@ class GetSourceCodeView(LoggedCallMixin, TemplateAPIRetrieveView):
 class ClearVerificationFilesView(LoggedCallMixin, DestroyAPIView):
     unparallel = [Report]
     permission_classes = (IsAuthenticated,)
-    queryset = Job.objects.all()
-    lookup_url_kwarg = 'job_id'
+    queryset = Decision.objects.all()
+    lookup_url_kwarg = 'decision_id'
 
     def check_object_permissions(self, request, obj):
         super().check_object_permissions(request, obj)
-        if not JobAccess(request.user, obj).can_clear_verifier_files:
-            self.permission_denied(request, message=_("You can't clear verifier input files of this job"))
+        if not DecisionAccess(request.user, obj).can_clear_verifier_files:
+            self.permission_denied(request, message=_("You can't clear verifier input files of this decision"))
 
     def perform_destroy(self, instance):
-        remove_verifier_files(instance)
+        for report in ReportComponent.objects.filter(decision=instance, verification=True).exclude(verifier_files=''):
+            report.verifier_files.delete()
 
 
 class GetCoverageDataAPIView(LoggedCallMixin, TemplateAPIRetrieveView):
@@ -180,8 +179,8 @@ class GetCoverageDataAPIView(LoggedCallMixin, TemplateAPIRetrieveView):
 
 class GetReportCoverageTableView(LoggedCallMixin, TemplateAPIRetrieveView):
     permission_classes = (ViewJobPermission,)
-    queryset = ReportComponent.objects.select_related('root', 'root__job')
-    template_name = 'jobs/viewJob/coverageTable.html'
+    queryset = ReportComponent.objects.select_related('decision__job')
+    template_name = 'jobs/viewDecision/coverageTable.html'
     lookup_url_kwarg = 'report_id'
 
     def get_context_data(self, instance, **kwargs):
@@ -196,12 +195,12 @@ class AttrDataContentView(LoggedCallMixin, GenericAPIView):
     permission_classes = (IsAuthenticated,)
 
     def get_queryset(self):
-        return ReportAttr.objects.select_related('data', 'report', 'report__root', 'report__root__job')
+        return ReportAttr.objects.select_related('data', 'report__decision__job')
 
     def get(self, request, pk):
         assert pk
         instance = self.get_object()
-        if not JobAccess(self.request.user, instance.report.root.job).can_view:
+        if not JobAccess(self.request.user, instance.report.decision.job).can_view:
             raise exceptions.PermissionDenied(_("You don't have an access to the job"))
         if not instance.data:
             raise BridgeException(_("The attribute doesn't have data"))
@@ -219,7 +218,7 @@ class ComponentLogContentView(LoggedCallMixin, GenericAPIView):
     lookup_url_kwarg = 'report_id'
 
     def get_queryset(self):
-        return ReportComponent.objects.select_related('root', 'root__job')
+        return ReportComponent.objects.select_related('decision__job')
 
     def get(self, request, report_id):
         assert report_id
