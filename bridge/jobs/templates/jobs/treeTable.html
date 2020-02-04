@@ -20,7 +20,7 @@
 {% load tz %}
 
 {% if TableData.content %}
-    <table class="ui celled compact selectable structured violet table tree alternate-color">
+    <table class="ui celled compact structured violet table tree alternate-color">
         <thead style="background: #c0b3e7;">
             {% for column_row in TableData.header %}
                 <tr>
@@ -34,7 +34,7 @@
             {% for preset_data in TableData.content.values %}
                 <tr class="{% if preset_data.instance.type != '2' %}tr-show{% endif %} treegrid-p{{ preset_data.instance.id }}{% if preset_data.instance.parent_id %} treegrid-parent-p{{ preset_data.instance.parent_id }}{% endif %}">
                     <td class="one wide">&nbsp;</td> {# Checkbox column #}
-                    <td class="collapsing">
+                    <td class="collapsing preset-{{ preset_data.instance.type }}-cell">
                         <span class="preset-job-name">
                             {% if preset_data.instance.type != '0' %}
                                 <a href="{% url 'jobs:preset' preset_data.instance.id %}">{{ preset_data.instance.name }}</a>
@@ -63,7 +63,7 @@
                                 <input class="job-checkbox" type="checkbox" value="{{ job_data.instance.id }}">
                             </div>
                         </td>
-                        <td class="collapsing"><a href="{% url 'jobs:job' job_data.instance.id %}">{{ job_data.instance.name }}</a></td>
+                        <td class="collapsing job-cell"><a href="{% url 'jobs:job' job_data.instance.id %}">{{ job_data.instance.name }}</a></td>
                         {% for v in job_data.values %}
                             <td class="collapsing">{% if v.html %}{{ v.html|safe }}{% elif v.text %}{{ v.text }}{% endif %}</td>
                         {% endfor %}
@@ -77,7 +77,7 @@
                                     <input class="decision-checkbox" type="checkbox" value="{{ decision.id }}">
                                 </div>
                             </td>
-                            <td class="collapsing"><a href="{% url 'jobs:decision' decision.id %}">{{ decision.name }}</a></td>
+                            <td class="collapsing decision-cell"><a href="{% url 'jobs:decision' decision.id %}">{{ decision.name }}</a></td>
                             {% for v in values %}
                                 <td class="collapsing">{% if v.html %}{{ v.html|safe }}{% elif v.text %}{{ v.text }}{% endif %}</td>
                             {% endfor %}

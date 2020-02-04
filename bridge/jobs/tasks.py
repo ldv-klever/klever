@@ -20,8 +20,6 @@ from datetime import timedelta
 
 from django.utils.timezone import now
 
-from bridge import celery_app
-from bridge.vars import JOB_UPLOAD_STATUS
 from bridge.utils import BridgeException
 
 from jobs.models import UploadedJobArchive
@@ -29,12 +27,12 @@ from jobs.Upload import JobArchiveUploader
 
 
 @shared_task
-def upload_job_archive(upload_id, parent_uuid):
+def upload_job_archive(upload_id):
     try:
         upload_obj = UploadedJobArchive.objects.get(id=upload_id)
     except UploadedJobArchive.DoesNotExist:
         raise BridgeException('Uploaded job archive with id "{}" was not found'.format(upload_id))
-    with JobArchiveUploader(upload_obj, parent_uuid) as uploader:
+    with JobArchiveUploader(upload_obj) as uploader:
         uploader.upload()
 
 

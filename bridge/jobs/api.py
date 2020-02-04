@@ -345,7 +345,7 @@ class UploadJobsAPIView(LoggedCallMixin, APIView):
 
     def post(self, request):
         for f in request.FILES.getlist('file'):
-            upload_scheduler = UploadJobsScheduler(request.user, f, request.data['parent'])
+            upload_scheduler = UploadJobsScheduler(request.user, f)
             upload_scheduler.upload_all()
         return Response({})
 

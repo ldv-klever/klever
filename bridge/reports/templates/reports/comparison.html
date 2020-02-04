@@ -32,10 +32,10 @@
 {% endblock %}
 
 {% block body_block %}
-    <h3>{% trans 'Comparison of reports of decisions' %}: <a href="{% url 'jobs:decision' decision1.pk %}" class="decision-href-1">{{ decision1.name }}</a>, <a href="{% url 'jobs:decision' decision2.pk %}" class="decision-href-2">{{ decision2.name }}</a></h3>
+    <h3>{% trans 'Comparison of decisions' %}: <a href="{% url 'jobs:decision' decision1.pk %}" class="decision-href-1">{{ decision1.name }}</a>, <a href="{% url 'jobs:decision' decision2.pk %}" class="decision-href-2">{{ decision2.name }}</a></h3>
     <div class="ui grid">
         <div class="ten wide column">
-            <table class="ui selectable compact teal table">
+            <table class="ui compact teal table">
                 {% for tbl_row in data.table_rows %}
                     <tr>
                     {% for tbl_cell in tbl_row %}

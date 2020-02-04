@@ -16,7 +16,8 @@
  */
 
 
-function JobForm() {
+function JobForm(base_job_id) {
+    this.base_job_id = base_job_id;
     this.labels = {};
     this.inputs = {};
     return this;
@@ -43,7 +44,10 @@ JobForm.prototype.save = function (save_url, save_method, extra_data) {
         processData: false, dataType: "json", contentType: "application/json",
         success: function (resp) {
             $('#dimmer_of_page').removeClass('active');
-            resp.error ? err_notify(resp.error) : window.location.replace(resp['url']);
+            if (resp.error) return err_notify(resp.error);
+            let redirect_url = resp['url'];
+            if (instance.base_job_id) redirect_url += `?base_job=${instance.base_job_id}`;
+            window.location.replace(redirect_url);
         },
         error: function (resp) {
             $('#dimmer_of_page').removeClass('active');

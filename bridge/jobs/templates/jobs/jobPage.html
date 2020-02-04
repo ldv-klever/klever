@@ -96,7 +96,7 @@
                                             {% if parent.type != '0' %}
                                                 <a class="violet-link" href="{% url 'jobs:preset' parent.id %}">{{ parent.name }}</a>
                                             {% else %}
-                                                <ins>{{ parent.name }}</ins>
+                                                <span>{{ parent.name }}</span>
                                             {% endif %}
                                         </div>
                                     {% endfor %}
@@ -132,7 +132,9 @@
         <div class="eight wide column">
             {# Decisions list #}
             {% if decisions|length %}
-                <div>{% include 'jobs/decision-list.html' with decisions=decisions %}</div>
+                <div>{% include 'jobs/decision-list.html' with decisions=decisions with_checkbox=True %}</div>
+                <br>
+                <button id="download_decisions_btn" data-url="{% url 'jobs:download' object.id %}?" class="ui violet mini disabled button">{% trans 'Download selected decisions' %}</button>
             {% else %}
                 <h5>{% trans "The job don't have decisions yet" %}</h5>
             {% endif %}

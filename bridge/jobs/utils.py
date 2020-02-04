@@ -245,7 +245,7 @@ class DecisionAccess:
     @cached_property
     def can_stop(self):
         return self.decision.status in {DECISION_STATUS[1][0], DECISION_STATUS[2][0]} and \
-               (self.decision.user == self.user or self.user.is_manager)
+               (self.decision.operator == self.user or self.user.is_manager)
 
     @cached_property
     def can_restart(self):

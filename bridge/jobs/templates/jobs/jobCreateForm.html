@@ -110,7 +110,7 @@
 
     <script type="application/javascript">
         jQuery(function () {
-            let job_form = new JobForm(),
+            let job_form = new JobForm({% if base_job %}{{ base_job.id }}{% endif %}),
                 roles_form = new UserRoleForm('user_roles_form'),
                 files_form = new FilesTree('filestree', 'editor_container');
 

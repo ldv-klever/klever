@@ -31,11 +31,7 @@
 {% endblock %}
 
 {% block body_block %}
-    <div class="ui grid">
-        <div class="ten wide column">
-            <h3>{% trans 'Comparison of files of jobs' %}: <a href="{% url 'jobs:job' job1.id %}">{{ job1.name }}</a>, <a href="{% url 'jobs:job' job2.id %}">{{ job2.name }}</a></h3>
-        </div>
-    </div>
+    <h2>{% trans 'Comparison of files of jobs' %}: <a href="{% url 'jobs:job' job1.id %}">{{ job1.name }}</a> and <a href="{% url 'jobs:job' job2.id %}">{{ job2.name }}</a></h2>
     <div class="ui grid">
         {% if data.same|length > 0 %}
             <div class="five wide column">

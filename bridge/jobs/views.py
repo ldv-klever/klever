@@ -113,6 +113,7 @@ class CopyJobFormPage(LoginRequiredMixin, LoggedCallMixin, DetailView):
         return {
             'title': _('Job Copying'), 'job_roles': JOB_ROLES,
             'cancel_url': reverse('jobs:job', args=[self.object.id]),
+            'base_job': self.object,
             'initial': {
                 'name': get_unique_name(self.object.name),
                 'preset_dirs': get_preset_dir_list(self.object.preset),
@@ -180,7 +181,11 @@ class PrepareDecisionView(LoggedCallMixin, DetailView):
         context['job'] = self.object
         context['current_conf'] = settings.DEF_KLEVER_CORE_MODE
         context['data'] = StartDecisionData(self.request.user)
-        context['decisions'] = Decision.objects.filter(job=self.object).order_by('id').only('id', 'name')
+        if self.request.GET.get('base_job'):
+            context['decisions'] = Decision.objects.filter(job_id=self.request.GET['base_job'])\
+                .order_by('id').only('id', 'name')
+        else:
+            context['decisions'] = Decision.objects.filter(job=self.object).order_by('id').only('id', 'name')
         return context
 
 
@@ -299,11 +304,14 @@ class DownloadJobView(LoginRequiredMixin, LoggedCallMixin, SingleObjectMixin, St
 
     def get_generator(self):
         instance = self.get_object()
-        if not JobAccess(self.request.user, instance).can_download:
-            raise BridgeException(code=400)
         decisions_ids = self.request.GET.getlist('decision')
         if decisions_ids:
+            for decision in Decision.objects.filter(job=instance, id__in=decisions_ids).select_related('job'):
+                if not DecisionAccess(self.request.user, decision).can_download:
+                    raise BridgeException(code=408, back=reverse('jobs:job', args=[instance.id]))
             return JobArchiveGenerator(instance, decisions_ids)
+        if not JobAccess(self.request.user, instance).can_download:
+            raise BridgeException(code=400, back=reverse('jobs:job', args=[instance.id]))
         return JobArchiveGenerator(instance)
 
 

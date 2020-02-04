@@ -551,10 +551,8 @@ $(document).ready(function () {
         upload_jobs_modal_show = $(upload_jobs_modal.data('activator'));
     if (upload_jobs_modal_show.length && !upload_jobs_modal_show.hasClass('disabled')) {
         let upload_jobs_file_input = $('#upload_jobs_file');
-        upload_jobs_modal.modal({transition: 'vertical flip', onShow: function () {
-            let parent_identifier = $('#job_identifier');
-            if (parent_identifier.length) $('#upload_jobs_parent').val(parent_identifier.val());
-        }}).modal('attach events', upload_jobs_modal.data('activator'), 'show');
+        upload_jobs_modal.modal({transition: 'vertical flip'})
+            .modal('attach events', upload_jobs_modal.data('activator'), 'show');
 
         upload_jobs_modal.find('.modal-cancel').click(function () {
             upload_jobs_modal.modal('hide')
@@ -572,7 +570,6 @@ $(document).ready(function () {
                 data = new FormData();
             if (files.length <= 0) return err_notify($('#error__no_file_chosen').text());
             for (let i = 0; i < files.length; i++) data.append('file', files[i]);
-            data.append('parent', $('#upload_jobs_parent').val());
 
             upload_jobs_modal.modal('hide');
             $('#dimmer_of_page').addClass('active');

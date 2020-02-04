@@ -26,20 +26,19 @@
     {% compress js file jobtree %}
         <script src="{% static 'jobs/js/jobtree.js' %}"></script>
     {% endcompress %}
+    {% compress css file tree %}
+        <link href="{% static 'jobs/css/tree.css' %}" rel="stylesheet">
+    {% endcompress %}
 {% endblock %}
 
 {% block body_block %}
     <div class="ui grid">
         <div class="eight wide column">
-            <div class="ui small dropdown">
-                <i class="ui check square outline icon"></i>{% trans 'Selected jobs' %}
-                <i class="dropdown icon"></i>
-                <div class="menu">
-                    <div id="compare_reports_btn" class="item"><i class="ui columns icon"></i>{% trans 'Compare reports' %}</div>
-                    <div id="compare_files_btn" class="item"><i class="ui columns icon"></i>{% trans 'Compare files' %}</div>
-                    <div id="download_selected_jobs" class="item"><i class="ui download icon"></i>{% trans 'Download' %}</div>
-                    <div id="show_remove_jobs_popup" class="item"><i class="ui remove icon"></i>{% trans 'Delete' %}</div>
-                </div>
+            <div class="ui mini buttons">
+                <button id="compare_reports_btn" class="ui violet disabled button">{% trans 'Compare reports' %}</button>
+                <button id="compare_files_btn" class="ui violet disabled button">{% trans 'Compare files' %}</button>
+                <button id="download_selected_jobs" class="ui teal disabled button">{% trans 'Download' %}</button>
+                <button id="show_remove_jobs_popup" class="ui red disabled button">{% trans 'Delete' %}</button>
             </div>
         </div>
         <div class="eight wide column right aligned">
@@ -62,7 +61,7 @@
         </div>
         <div class="content">
             <div class="ui center aligned grid">
-                <p>{% trans 'All versions and all data of the selected jobs will be deleted' %}! {% trans 'If any job has children they will also be deleted' %}!</p>
+                <p>{% trans 'All data of the selected jobs or decisions will be deleted' %}!</p>
             </div>
         </div>
         <div class="actions">
@@ -89,8 +88,9 @@
     </div>
 
     <span id="error__no_jobs_to_download" hidden>{% trans 'Please select jobs or/and decisions you want to download' %}</span>
-    <span id="error__no_jobs_to_delete" hidden>{% trans 'Please select jobs you want to delete' %}</span>
-    <span id="error__no_jobs_to_compare" hidden>{% trans 'Please select exactly two jobs which reports you want to compare' %}</span>
+    <span id="error__no_objs_to_delete" hidden>{% trans 'Please select jobs or decisions you want to delete' %}</span>
+    <span id="error__no_jobs_to_compare" hidden>{% trans 'Please select exactly two jobs which files you want to compare' %}</span>
+    <span id="error__no_decisions_to_compare" hidden>{% trans 'Please select exactly two decisions which reports you want to compare' %}</span>
     <script type="application/javascript">
         const PAGE_URLS = {
             can_download: "{% url 'jobs:api-can-download' %}",

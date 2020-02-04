@@ -69,7 +69,13 @@ window.inittree = function(table, column, expanded, collapsed) {
             }
         }
         old_rows[tt_id] = curr_indent;
-        if (prev_icon) prev_icon.attr('style', prev_indent >= curr_indent ? 'opacity:0;' : 'opacity:100%;');
+        if (prev_icon) {
+            if (prev_indent >= curr_indent) {
+                prev_icon.attr('style', 'opacity:0;');
+                prev_icon.removeClass('link');
+            }
+            else prev_icon.attr('style', 'opacity:100%;');
+        }
         prev_icon = tree_cell.find('i').first();
         prev_indent = curr_indent;
 
@@ -113,5 +119,8 @@ window.inittree = function(table, column, expanded, collapsed) {
             });
         }
     });
-    if (prev_icon) prev_icon.attr('style', 'opacity:0;');
+    if (prev_icon) {
+        prev_icon.attr('style', 'opacity:0;');
+        prev_icon.removeClass('link');
+    }
 };

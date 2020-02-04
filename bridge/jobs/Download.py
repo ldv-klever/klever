@@ -253,19 +253,9 @@ class DecisionConfGenerator(FileWrapper):
 
 
 class UploadJobsScheduler:
-    def __init__(self, user, archive, parent_uuid):
+    def __init__(self, user, archive):
         self._author = user
         self._archive = archive
-        self._parent_uuid = self.__get_parent(parent_uuid)
-
-    def __get_parent(self, parent_uuid):
-        if not parent_uuid:
-            return None
-        try:
-            parent_job = Job.objects.get(identifier=parent_uuid)
-        except Job.DoesNotExist:
-            raise exceptions.APIException(_('The job(s) parent was not found'))
-        return str(parent_job.identifier)
 
     @cached_property
     def _arch_files(self):
@@ -287,7 +277,7 @@ class UploadJobsScheduler:
         serializer = UploadedJobArchiveSerializer(data={'archive': arch_fp})
         serializer.is_valid(raise_exception=True)
         upload_obj = serializer.save(author=self._author)
-        upload_job_archive.delay(upload_obj.id, self._parent_uuid)
+        upload_job_archive.delay(upload_obj.id)
         return upload_obj
 
 

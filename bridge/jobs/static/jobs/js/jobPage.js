@@ -45,4 +45,29 @@ $(document).ready(function () {
             window.location.href = resp['url']
         });
     });
+
+    let download_decisions_btn = $('#download_decisions_btn');
+    $('.decision-checkbox').checkbox({
+        onChange: function () {
+            let has_checked = false;
+            $('.decision-checkbox').each(function () {
+                if ($(this).checkbox('is checked')) has_checked = true;
+            });
+            if (has_checked){
+                if (download_decisions_btn.hasClass('disabled'))
+                    download_decisions_btn.removeClass('disabled');
+            }
+            else {
+                if (!download_decisions_btn.hasClass('disabled'))
+                    download_decisions_btn.addClass('disabled');
+            }
+        }
+    });
+    download_decisions_btn.click(function () {
+        let decision_values = [];
+        $('.decision-checkbox-input:checked').each(function () {
+            decision_values.push(`decision=${$(this).val()}`);
+        });
+        window.location.href = $(this).data('url') + decision_values.join('&');
+    });
 });
