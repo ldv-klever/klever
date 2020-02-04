@@ -193,10 +193,15 @@ class OSKleverBaseImage(OSEntity):
                 self.ssh.execute_cmd('mkdir klever-inst')
                 with DeployConfsAndScripts(self.logger, self.ssh, self.args.deployment_configuration_file,
                                            'creation of Klever base image'):
+                    # Install system packages.
                     self.ssh.execute_cmd('sudo PYTHONPATH=. ./klever/deploys/install_deps.py --non-interactive')
+                    # Install Klever Python.
                     self.ssh.execute_cmd('wget https://forge.ispras.ru/attachments/download/7251/python-3.7.6.tar.xz')
                     self.ssh.execute_cmd('sudo tar -C / -xf python-3.7.6.tar.xz')
                     self.ssh.execute_cmd('rm python-3.7.6.tar.xz')
+                    # Install Klever Python packages.
+                    self.ssh.execute_cmd(
+                        'sudo /usr/local/python3-klever/bin/python3 -m pip install -r requirements.txt')
 
             instance.create_image()
 
