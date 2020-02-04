@@ -58,8 +58,7 @@ def main():
     parser.add_argument('--instances', type=int,
                         help='The number of new Klever experimental instances.')
     parser.add_argument('--deployment-configuration-file',
-                        default=os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir, 'conf',
-                                             'klever.json'),
+                        default=os.path.join(os.path.dirname(__file__), os.path.pardir, 'conf', 'klever.json'),
                         help='Path to Klever deployment configuration file (default: "%(default)s").')
     parser.add_argument('--source-directory', default=os.getcwd(),
                         help='Path to Klever source directory (default: "%(default)s").')

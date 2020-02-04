@@ -34,8 +34,7 @@ import cinderclient.client
 
 from klever.deploys.openstack.instance import OSInstance
 from klever.deploys.openstack.ssh import SSH
-from klever.deploys.utils import get_password, install_entity, install_klever_addons, \
-    install_klever_build_bases, to_update
+from klever.deploys.utils import get_password, install_klever_addons, install_klever_build_bases
 
 
 class OSClients:
@@ -108,7 +107,7 @@ class OSEntity:
         return OSClients(self.logger, sess)
 
 
-class DeployConfAndScripts:
+class DeployConfsAndScripts:
     def __init__(self, logger, ssh, deploy_conf_file, action):
         self.logger = logger
         self.ssh = ssh
@@ -120,7 +119,7 @@ class DeployConfAndScripts:
         self.ssh.sftp_put(self.deploy_conf_file, 'klever.json')
 
         self.logger.info('Copy scripts that can be used during {0}'.format(self.action))
-        self.ssh.sftp_put(os.path.dirname(os.path.dirname(__file__)), 'deploys')
+        self.ssh.sftp_put(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'klever')
 
         self.logger.info('Copy Python requirements file')
         self.ssh.sftp_put(os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir, os.path.pardir,
@@ -128,7 +127,7 @@ class DeployConfAndScripts:
 
     def __exit__(self, etype, value, traceback):
         self.logger.info('Remove scripts used during {0}'.format(self.action))
-        self.ssh.execute_cmd('rm -r deploys')
+        self.ssh.execute_cmd('rm -r klever')
 
         self.logger.info('Remove deployment configuration file')
         self.ssh.sftp.remove('klever.json')
@@ -192,9 +191,12 @@ class OSKleverBaseImage(OSEntity):
                      floating_ip=instance.floating_ip['floating_ip_address']) as self.ssh:
                 self.logger.info('Create deployment directory')
                 self.ssh.execute_cmd('mkdir klever-inst')
-                with DeployConfAndScripts(self.logger, self.ssh, self.args.deployment_configuration_file,
-                                          'creation of Klever base image'):
-                    self.ssh.execute_cmd('sudo PYTHONPATH=. ./deploys/install_deps.py --non-interactive')
+                with DeployConfsAndScripts(self.logger, self.ssh, self.args.deployment_configuration_file,
+                                           'creation of Klever base image'):
+                    self.ssh.execute_cmd('sudo PYTHONPATH=. ./klever/deploys/install_deps.py --non-interactive')
+                    self.ssh.execute_cmd('wget https://forge.ispras.ru/attachments/download/7251/python-3.7.6.tar.xz')
+                    self.ssh.execute_cmd('sudo tar -C / -xf python-3.7.6.tar.xz')
+                    self.ssh.execute_cmd('rm python-3.7.6.tar.xz')
 
             instance.create_image()
 
@@ -287,7 +289,7 @@ class OSKleverInstance(OSEntity):
                                           os.path.join('/etc/systemd/system', filename),
                                           sudo=True, directory=os.path.sep)
 
-                with DeployConfAndScripts(self.logger, self.ssh, self.args.deployment_configuration_file,
+                with DeployConfsAndScripts(self.logger, self.ssh, self.args.deployment_configuration_file,
                                           'creation of Klever instance'):
                     self._install_or_update_deps()
                     self.ssh.execute_cmd('sudo PYTHONPATH=. ./deploys/prepare_env.py')
@@ -391,7 +393,7 @@ class OSKleverInstance(OSEntity):
     def _update(self, instance, is_dev):
         with SSH(args=self.args, logger=self.logger, name=instance.name,
                  floating_ip=self._get_instance_floating_ip(instance)) as self.ssh:
-            with DeployConfAndScripts(self.logger, self.ssh, self.args.deployment_configuration_file,
+            with DeployConfsAndScripts(self.logger, self.ssh, self.args.deployment_configuration_file,
                                       'update of Klever instance'):
                 self._install_or_update_deps()
                 self._create_or_update(is_dev)

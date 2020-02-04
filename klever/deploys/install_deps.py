@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+#
 # Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
 # Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
@@ -19,7 +21,6 @@ import json
 import os
 import shutil
 import sys
-import tempfile
 
 from klever.deploys.utils import execute_cmd, get_logger
 
