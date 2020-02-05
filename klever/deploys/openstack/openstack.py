@@ -261,7 +261,6 @@ class OSKleverInstance(OSEntity):
 
         with OSInstance(logger=self.logger, clients=self.clients, args=self.args, name=self.name,
                         base_image=base_image, flavor_name=self.args.flavor) as self.instance:
-            self.instance.keep_on_exit = True
             with SSH(args=self.args, logger=self.logger, name=self.name,
                      floating_ip=self.instance.floating_ip['floating_ip_address']) as self.ssh:
                 # TODO: looks like deploys/local/local.py too much.
