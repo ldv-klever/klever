@@ -58,14 +58,14 @@ def download_progress():
 
 def download_results():
     parser = get_args_parser('Download JSON file with verification results of verificaiton job.')
-    parser.add_argument('job', type=UUID, help='Verification job identifier (uuid).')
+    parser.add_argument('decision', type=UUID, help='Verification job decision identifier (uuid).')
     parser.add_argument('-o', '--out', help='JSON file name.', default='results.json')
     args = parser.parse_args()
 
     session = Session(args)
-    session.decision_results(args.job, args.out)
+    session.decision_results(args.decision, args.out)
 
-    print('JSON file with verification results of verificaiton job "{0}" was successfully downloaded to "{1}"'
+    print('JSON file with verification results of verificaiton job decision "{0}" was successfully downloaded to "{1}"'
           .format(args.job, args.out))
 
 
@@ -73,18 +73,15 @@ def start_preset_solution():
     parser = get_args_parser('Create and start solution of verification job created on the base of specified preset.')
     parser.add_argument('preset', type=UUID,
                         help='Preset job identifier (uuid). Can be obtained form presets/jobs/base.json')
-    parser.add_argument('--replacement',
-                        help='JSON file name or string with data what files should be replaced before starting solution.')
+    parser.add_argument(
+        '--replacement',
+        help='JSON file name or string with data what files should be replaced before starting solution.')
     parser.add_argument('--rundata', type=open,
                         help='JSON file name. Set it if you would like to start solution with specific settings.')
     args = parser.parse_args()
 
     session = Session(args)
-    _, job_uuid = session.create_preset_job(args.preset)
-
-    # Replace files before start
-    if args.replacement:
-        session.replace_files(job_uuid, args.replacement)
+    _, job_uuid = session.create_preset_job(args.preset, args.replacement)
 
     session.start_job_decision(job_uuid, args.rundata)
 
@@ -96,22 +93,19 @@ def start_solution():
     parser.add_argument('job', type=UUID, help='Verification job identifier (uuid).')
     parser.add_argument('--copy', action='store_true',
                         help='Set it if you would like to copy verification job before starting solution.')
-    parser.add_argument('--replacement',
-                        help='JSON file name or string with data what files should be replaced before starting solution.')
+    parser.add_argument(
+        '--replacement',
+        help='JSON file name or string with data what files should be replaced before starting solution.')
     parser.add_argument('--rundata', type=open,
                         help='JSON file name. Set it if you would like to start solution with specific settings.')
     args = parser.parse_args()
 
     session = Session(args)
     job_uuid = args.job
-    if args.copy:
-        job_uuid = session.copy_job(args.job)
-    elif args.replacement:
-        session.copy_job_version(args.job)
 
-    # Replace files before start
-    if args.replacement:
-        session.replace_files(job_uuid, args.replacement)
+    # Copy job if we need to change files or set --copy option
+    if args.copy or args.replacement:
+        job_uuid = session.copy_job(args.job, args.replacement)
 
     session.start_job_decision(job_uuid, args.rundata)
 
@@ -121,7 +115,8 @@ def start_solution():
 def update_preset_mark():
     parser = get_args_parser('Update preset mark on the base of most relevant associated report and current version.')
     parser.add_argument('mark', type=str, help='Preset mark path.')
-    parser.add_argument('--report', type=int, help='Unsafe report primary key if you want specific error trace for update.')
+    parser.add_argument('--report', type=int,
+                        help='Unsafe report primary key if you want specific error trace for update.')
     args = parser.parse_args()
 
     session = Session(args)
