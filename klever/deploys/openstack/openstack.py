@@ -271,7 +271,7 @@ class OSKleverInstance(OSEntity):
                     fp.write('KLEVER_DATA_DIR="/home/debian/klever-inst/klever/build bases"\n')
                     # TODO: make it depending on the number of CPUs.
                     fp.write("KLEVER_WORKERS=2\n")
-                    fp.write("KLEVER_PYTHON_BIN_DIR=/usr/local/python3-klever/\n")
+                    fp.write("KLEVER_PYTHON_BIN_DIR=/usr/local/python3-klever/bin\n")
                     fp.write("KLEVER_PYTHON=/usr/local/python3-klever/bin/python3\n")
                     fp.flush()
                     self.ssh.sftp_put(fp.name, '/etc/default/klever', sudo=True, directory=os.path.sep)
