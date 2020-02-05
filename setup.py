@@ -15,14 +15,6 @@
 
 import os
 import setuptools
-import setuptools_scm
-
-
-def get_version():
-    try:
-        return setuptools_scm.get_version()
-    except LookupError:
-        return '3.0'
 
 
 def package_files(package_directory):
@@ -41,7 +33,7 @@ def package_files(package_directory):
 
 setuptools.setup(
     name="klever",
-    version=get_version(),
+    use_scm_version={'fallback_version': '3.0'},
     author="ISP RAS",
     author_email="ldv-project@linuxtesting.org",
     url="http://forge.ispras.ru/projects/klever",
