@@ -307,12 +307,13 @@ class OSKleverInstance(OSEntity):
         with open(self.args.deployment_configuration_file) as fp:
             deploy_conf = json.load(fp)
 
-        # TODO: rename everywhere previous deployment information with deployment information since during deployment it is updated step by step.
-        def get_prev_deploy_info():
-            with self.ssh.sftp.file('klever-inst/klever.json') as nested_fp:
-                return json.loads(nested_fp.read().decode('utf8'))
+        # Install/update Klever.
+        self.ssh.execute_cmd(
+            'sudo /usr/local/python3-klever/bin/python3 -m pip install --upgrade klever')
 
-        prev_deploy_info = get_prev_deploy_info()
+        # TODO: rename everywhere previous deployment information with deployment information since during deployment it is updated step by step.
+        with self.ssh.sftp.file('klever-inst/klever.json') as fp:
+            prev_deploy_info = json.loads(fp.read().decode('utf8'))
 
         def dump_cur_deploy_info(cur_deploy_info):
             with tempfile.NamedTemporaryFile('w', encoding='utf8') as nested_fp:
