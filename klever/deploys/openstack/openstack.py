@@ -130,7 +130,7 @@ class CopyDeployConfAndSrcs:
 
     def __exit__(self, etype, value, traceback):
         self.logger.info('Remove sources used during {0}'.format(self.action))
-        # self.ssh.execute_cmd('rm -r klever')
+        self.ssh.execute_cmd('sudo rm -r klever')
 
         self.logger.info('Remove deployment configuration file')
         self.ssh.sftp.remove('klever.json')
