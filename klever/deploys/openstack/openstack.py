@@ -323,7 +323,9 @@ class OSKleverInstance(OSEntity):
                               self._install_fn, dump_cur_deploy_info)
         install_klever_build_bases(self.logger, 'klever', 'klever-inst/klever', deploy_conf, self._cmd_fn,
                                    self._install_fn)
-        self.ssh.execute_cmd('sudo PYTHONPATH=klever klever/klever/deploys/install_klever_bridge.py{0}'
+        # This script requires Klever Python since it executes manage.py commands.
+        self.ssh.execute_cmd('sudo PYTHONPATH=klever /usr/local/python3-klever/bin/python3 '
+                             'klever/klever/deploys/install_klever_bridge.py{0}'
                              .format(' --development' if is_dev else ''))
         self.ssh.execute_cmd('sudo PYTHONPATH=klever klever/klever/deploys/configure_controller_and_schedulers.py{0}'
                              .format(' --development' if is_dev else ''))

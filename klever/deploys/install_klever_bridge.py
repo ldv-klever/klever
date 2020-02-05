@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 #
 # Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
 # Ivannikov Institute for System Programming of the Russian Academy of Sciences
