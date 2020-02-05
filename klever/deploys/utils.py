@@ -113,8 +113,7 @@ def get_password(logger, prompt):
         return sys.stdin.readline().rstrip()
 
 
-def install_entity(logger, name, src_dir, deploy_dir, deploy_conf, prev_deploy_info, cmd_fn, install_fn,
-                   dump_cur_deploy_info_fn):
+def install_entity(logger, name, src_dir, deploy_dir, deploy_conf, prev_deploy_info, cmd_fn, install_fn):
     if name not in deploy_conf:
         logger.error('"{0}" is not described'.format(name))
         sys.exit(errno.EINVAL)
@@ -164,7 +163,7 @@ def install_entity(logger, name, src_dir, deploy_dir, deploy_conf, prev_deploy_i
 
     if version == prev_version and version != 'CURRENT':
         logger.info('"{0}" is up to date (version: "{1}")'.format(name, version))
-        return
+        return False
 
     if prev_version:
         logger.info('Update "{0}" from version "{1}" to version "{2}"'.format(name, prev_version, version))
@@ -242,7 +241,7 @@ def install_entity(logger, name, src_dir, deploy_dir, deploy_conf, prev_deploy_i
             if attr in desc:
                 prev_deploy_info[name][attr] = desc[attr]
 
-        dump_cur_deploy_info_fn(prev_deploy_info)
+        return True
     finally:
         if tmp_file:
             os.unlink(tmp_file)
@@ -265,14 +264,16 @@ def install_klever_addons(logger, src_dir, deploy_dir, deploy_conf, prev_deploy_
                 prev_deploy_addons_conf['Verification Backends'] = {}
 
             for verification_backend in deploy_addons_conf['Verification Backends'].keys():
-                install_entity(logger, verification_backend, src_dir,
-                               os.path.join(deploy_dir, 'klever-addons', 'verification-backends', verification_backend),
-                               deploy_addons_conf['Verification Backends'],
-                               prev_deploy_addons_conf['Verification Backends'],
-                               cmd_fn, install_fn, dump_cur_deploy_info_fn)
-        else:
-            install_entity(logger, addon, src_dir, os.path.join(deploy_dir, 'klever-addons', addon), deploy_addons_conf,
-                           prev_deploy_addons_conf, cmd_fn, install_fn, dump_cur_deploy_info_fn)
+                if install_entity(logger, verification_backend, src_dir,
+                                  os.path.join(deploy_dir, 'klever-addons', 'verification-backends',
+                                               verification_backend),
+                                  deploy_addons_conf['Verification Backends'],
+                                  prev_deploy_addons_conf['Verification Backends'],
+                                  cmd_fn, install_fn):
+                    dump_cur_deploy_info_fn(prev_deploy_info)
+        elif install_entity(logger, addon, src_dir, os.path.join(deploy_dir, 'klever-addons', addon),
+                            deploy_addons_conf, prev_deploy_addons_conf, cmd_fn, install_fn):
+                    dump_cur_deploy_info_fn(prev_deploy_info)
 
 
 def install_klever_build_bases(logger, src_dir, deploy_dir, deploy_conf, cmd_fn, install_fn):
