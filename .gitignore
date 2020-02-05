@@ -1,7 +1,9 @@
 # Klever
 addons
 build bases
-deploys/conf/*.json
+
+# celery
+celerybeat*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -45,3 +47,9 @@ ENV/
 
 # macOS
 .DS_STORE
+
+# pytest
+.pytest_cache
+
+# VSCode
+.vscode

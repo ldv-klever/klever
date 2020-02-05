@@ -14,35 +14,47 @@
   "description": "",
   "error_trace": [
     [
-      {
-        "ldv_initialize": []
-      }
+      [
+        {
+          "Entry point 'main'": [
+            {
+              "LDV model 'initialize'": []
+            },
+            {
+              "LDV model 'check_final_state'": [
+                {
+                  "LDV model 'assert'": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ],
     [
-      {
-        "ldv_check_final_state": [
-          {
-            "ldv_assert_linux_kernel_locking_mutex__one_thread_locked_at_exit": []
-          }
-        ]
-      }
-    ],
-    [
-      {
-        "ldv_init": [
-          {
-            "ldv_mutex_lock_ldv_lock": [
-              {
-                "ldv_assert_linux_kernel_locking_mutex__one_thread_double_lock": []
-              }
-            ]
-          }
-        ]
-      }
+      [
+        {
+          "EMG wrapper": [
+            {
+              "LDV model 'init'": [
+                {
+                  "Instrumented function 'mutex_lock'": [
+                    {
+                      "LDV model 'mutex_lock_ldv_lock'": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",
   "is_modifiable": false,
+  "status": null,
   "tags": [],
+  "threshold": 0,
   "verdict": "2"
 }

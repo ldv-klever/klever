@@ -143,7 +143,7 @@ class ReportComponent(WithFilesMixin, Report):
     start_date = models.DateTimeField(default=now)
     finish_date = models.DateTimeField(null=True)
 
-    data = JSONField(null=True)
+    data = JSONField(null=True, default=list)
     log = models.FileField(upload_to=get_component_path, null=True)
     verifier_files = models.FileField(upload_to=get_component_path, null=True)
 

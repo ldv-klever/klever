@@ -1,0 +1,14 @@
+[Unit]
+Description=Klever Bridge Development Service
+After=network.target
+Requires=postgresql.service rabbitmq-server.service
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/default/klever
+ExecStart=/bin/sh -c "cd ${KLEVER_SOURCE_DIRECTORY}/bridge && ${KLEVER_PYTHON} manage.py check && ${KLEVER_PYTHON} manage.py runserver 0.0.0.0:8998"
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

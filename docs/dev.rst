@@ -140,7 +140,7 @@ Installation
 ^^^^^^^^^^^^
 
 #. Download PyCharm Community from `<https://www.jetbrains.com/pycharm/download/>`_ (below all settings are given for
-   version 2017.1.1, you have to adapt them for your version by yourself).
+   version 2018.8.8, you have to adapt them for your version by yourself).
 #. Follow installation instructions provided at that site.
 
 Setting Project
@@ -153,14 +153,30 @@ At the "Welcome to PyCharm" window:
 #. Specify the absolute path to directory :term:`$KLEVER_SRC`.
 #. :menuselection:`OK`.
 
+Installing the Python Interpreter
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+#. Install Python 3.7 to :file:`/usr/local/python3-klever/`.
+#. For Debian/Ubuntu you can take if from `here <https://forge.ispras.ru/attachments/download/7248/python3-klever.tar.xz>`__.
+#. Install Python packages::
+
+    $ /usr/local/python3-klever/bin/python3 -m pip install --upgrade :term:`$KLEVER_SRC`/requirements.txt
+
+#. To update the given list of Python packages::
+
+    $ /usr/local/python3-klever/bin/python3 -m pip freeze > :term:`$KLEVER_SRC`/requirements.txt
+
 Configuring the Python Interpreter
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-#. :menuselection:`File --> Settings --> Project: Bridge --> Project Interpreter --> Settings --> More..`.
-#. Select Python 3.4 or higher from the list and press :kbd:`Enter`.
-#. Input *Python 3* in field :guilabel:`name`.
+#. :menuselection:`File --> Settings --> Project: Klever --> Project Interpreter --> Settings --> Show all...`.
+#, :menuselection:`Add --> System Interpreter`.
+#. Specify :file:`/usr/local/python3-klever/bin/python3`.
 #. :menuselection:`OK`.
-#. Ditto for *core*, *deploys*, *docs*, *scheduler* and *utils*.
+#. Select the added Python interpreter from the list and press :kbd:`Enter`.
+#. Input *Python 3.7 (klever)* in field :guilabel:`name`.
+#. :menuselection:`OK`.
+#. For the rest projects select *Python 3.7 (klever)* in field :guilabel:`Project Interpreter`.
 
 Setting Run/Debug Configuration
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -189,7 +205,7 @@ Klever Core Run/Debug Configuration
 This run/debug configuration is only useful if you are going to debug Klever Core.
 
 * Extend existing value of environment variable :envvar:`PATH` so that CIF (:file:`cif` or :file:`compiler`),
-  Aspectator (:file:`aspectator`) and CIL (:file:`cilly.asm.exe`) binaries could be found (edit value of field
+  Aspectator (:file:`aspectator`) and CIL (:file:`toplever.opt`) binaries could be found (edit value of field
   :guilabel:`Environment variables`).
 * Specify the absolute path to the working directory in field :guilabel:`Working directory`.
 

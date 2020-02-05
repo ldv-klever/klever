@@ -79,7 +79,7 @@
           "name": "RSG",
           "options": {
             "common sets model": "counter",
-            "opts file": "scripts/mod/empty.c",
+            "model compiler input file": "scripts/mod/empty.c",
             "common models": [
               "linux/drivers/base/dd.c",
               "linux/drivers/spi.c",
@@ -228,10 +228,7 @@
               "entry point": "main",
               "initialize requirements": true,
               "check final state": false,
-              "source analysis": {
-                "callstack deep search": 3,
-                "macros white list": "linux/emg/macros white list.json"
-              },
+              "macros white list": "linux/emg/macros white list.json",
               "generators options": [
                 {
                 "linuxModule": {
@@ -598,10 +595,7 @@
               "entry point": "main",
               "initialize requirements": true,
               "check final state": true,
-              "source analysis": {
-                "callstack deep search": 3,
-                "macros white list": "linux/emg/macros white list.json"
-              },
+              "macros white list": "linux/emg/macros white list.json",
               "generators options": [
                 {
                   "linuxModule": {

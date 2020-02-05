@@ -6,6 +6,7 @@
         "actions": {
           "alloc": {
             "comment": "Allocate memory for an ethernet device.",
+            "trace relevant": true,
             "statements": [
               "%size% = sizeof(struct net_device);",
               "if ($ARG1) {",
@@ -19,12 +20,14 @@
           },
           "fail": {
             "comment": "Memory has not been allocated.",
+            "trace relevant": true,
             "statements": [
               "return 0;"
             ]
           },
           "success": {
             "comment": "Memory has been allocated properly.",
+            "trace relevant": true,
             "statements": [
               "return %netdev%;"
             ]
@@ -50,6 +53,7 @@
         "actions": {
           "alloc": {
             "comment": "Allocate memory for a network device.",
+            "trace relevant": true,
             "statements": [
               "%netdev% = $ALLOC(%netdev%);",
               "%setup% = $ARG3;"
@@ -57,6 +61,7 @@
           },
           "fail": {
             "comment": "Memory has not been allocated.",
+            "trace relevant": true,
             "statements": [
               "return 0;"
             ]
@@ -70,6 +75,7 @@
           },
           "success": {
             "comment": "Memory has been allocated properly.",
+            "trace relevant": true,
             "statements": [
               "return %netdev%;"
             ]
@@ -99,6 +105,7 @@
         "actions": {
           "free": {
             "comment": "Freeing memory of a network device.",
+            "trace relevant": true,
             "statements": [
               "%netdev% = $ARG1;",
               "$FREE(%netdev%);"
@@ -122,12 +129,14 @@
         "actions": {
           "assign": {
             "comment": "Get network device structure.",
+            "trace relevant": true,
             "statements": [
               "%netdev% = $ARG1;"
             ]
           },
           "fail": {
             "comment": "Registration of the network device has failed.",
+            "trace relevant": true,
             "statements": [
               "ldv_failed_register_netdev();",
               "return ldv_undef_int_negative();"
@@ -147,6 +156,7 @@
             "condition": [
               "%ret% != 0"
             ],
+            "trace relevant": true,
             "statements": [
               "ldv_failed_register_netdev();",
               "return ldv_undef_int_negative();"
@@ -166,6 +176,7 @@
           },
           "success": {
             "comment": "Registration of the network device has successfully finished.",
+            "trace relevant": true,
             "statements": [
               "return 0;"
             ]
@@ -192,6 +203,7 @@
         "actions": {
           "assign": {
             "comment": "Get network device structure.",
+            "trace relevant": true,
             "statements": [
               "%netdev% = $ARG1;"
             ]
@@ -232,18 +244,21 @@
         "actions": {
           "alloc": {
             "comment": "Allocate memory for an ethernet device.",
+            "trace relevant": true,
             "statements": [
               "%netdev% = $ALLOC(%netdev%);"
             ]
           },
           "fail": {
             "comment": "Memory has not been allocated.",
+            "trace relevant": true,
             "statements": [
               "return 0;"
             ]
           },
           "success": {
             "comment": "Memory has been allocated properly.",
+            "trace relevant": true,
             "statements": [
               "return %netdev%;"
             ]
@@ -265,6 +280,7 @@
         "actions": {
           "alloc": {
             "comment": "Allocate memory for a network device.",
+            "trace relevant": true,
             "statements": [
               "%netdev% = $ALLOC(%netdev%);",
               "%setup% = $ARG4;"
@@ -272,6 +288,7 @@
           },
           "fail": {
             "comment": "Memory has not been allocated.",
+            "trace relevant": true,
             "statements": [
               "return 0;"
             ]
@@ -284,6 +301,7 @@
           },
           "success": {
             "comment": "Memory has been allocated properly.",
+            "trace relevant": true,
             "statements": [
               "return %netdev%;"
             ]
@@ -312,12 +330,14 @@
         "actions": {
           "assign": {
             "comment": "Get network device structure.",
+            "trace relevant": true,
             "statements": [
               "%netdev% = $ARG1;"
             ]
           },
           "fail": {
             "comment": "Registration of the network device has failed.",
+            "trace relevant": true,
             "statements": [
               "ldv_failed_register_netdev();",
               "return ldv_undef_int_negative();"
@@ -337,6 +357,7 @@
             "condition": [
               "%ret% != 0"
             ],
+            "trace relevant": true,
             "statements": [
               "ldv_failed_register_netdev();",
               "return ldv_undef_int_negative();"
@@ -356,6 +377,7 @@
           },
           "success": {
             "comment": "Registration of the network device has successfully finished.",
+            "trace relevant": true,
             "statements": [
               "return 0;"
             ]
@@ -386,18 +408,21 @@
         "actions": {
           "alloc": {
             "comment": "Allocate memory for an ethernet device.",
+            "trace relevant": true,
             "statements": [
               "%netdev% = $ALLOC(%netdev%);"
             ]
           },
           "fail": {
             "comment": "Memory has not been allocated.",
+            "trace relevant": true,
             "statements": [
               "return 0;"
             ]
           },
           "success": {
             "comment": "Memory has been allocated properly.",
+            "trace relevant": true,
             "statements": [
               "return %netdev%;"
             ]
@@ -419,6 +444,7 @@
         "actions": {
           "alloc": {
             "comment": "Allocate memory for a network device.",
+            "trace relevant": true,
             "statements": [
               "%netdev% = $ALLOC(%netdev%);",
               "%setup% = $ARG4;"
@@ -426,6 +452,7 @@
           },
           "fail": {
             "comment": "Memory has not been allocated.",
+            "trace relevant": true,
             "statements": [
               "return 0;"
             ]
@@ -438,6 +465,7 @@
           },
           "success": {
             "comment": "Memory has been allocated properly.",
+            "trace relevant": true,
             "statements": [
               "return %netdev%;"
             ]
@@ -466,12 +494,14 @@
         "actions": {
           "assign": {
             "comment": "Get network device structure.",
+            "trace relevant": true,
             "statements": [
               "%netdev% = $ARG1;"
             ]
           },
           "fail": {
             "comment": "Registration of the network device has failed.",
+            "trace relevant": true,
             "statements": [
               "ldv_failed_register_netdev();",
               "return ldv_undef_int_negative();"
@@ -491,6 +521,7 @@
             "condition": [
               "%ret% != 0"
             ],
+            "trace relevant": true,
             "statements": [
               "ldv_failed_register_netdev();",
               "return ldv_undef_int_negative();"
@@ -510,6 +541,7 @@
           },
           "success": {
             "comment": "Registration of the network device has successfully finished.",
+            "trace relevant": true,
             "statements": [
               "return 0;"
             ]
@@ -540,18 +572,21 @@
         "actions": {
           "alloc": {
             "comment": "Allocate memory for an ethernet device.",
+            "trace relevant": true,
             "statements": [
               "%netdev% = $ALLOC(%netdev%);"
             ]
           },
           "fail": {
             "comment": "Memory has not been allocated.",
+            "trace relevant": true,
             "statements": [
               "return 0;"
             ]
           },
           "success": {
             "comment": "Memory has been allocated properly.",
+            "trace relevant": true,
             "statements": [
               "return %netdev%;"
             ]
@@ -573,6 +608,7 @@
         "actions": {
           "alloc": {
             "comment": "Allocate memory for a network device.",
+            "trace relevant": true,
             "statements": [
               "%netdev% = $ALLOC(%netdev%);",
               "%setup% = $ARG4;"
@@ -580,6 +616,7 @@
           },
           "fail": {
             "comment": "Memory has not been allocated.",
+            "trace relevant": true,
             "statements": [
               "return 0;"
             ]
@@ -592,6 +629,7 @@
           },
           "success": {
             "comment": "Memory has been allocated properly.",
+            "trace relevant": true,
             "statements": [
               "return %netdev%;"
             ]
@@ -620,12 +658,14 @@
         "actions": {
           "assign": {
             "comment": "Get network device structure.",
+            "trace relevant": true,
             "statements": [
               "%netdev% = $ARG1;"
             ]
           },
           "fail": {
             "comment": "Registration of the network device has failed.",
+            "trace relevant": true,
             "statements": [
               "ldv_failed_register_netdev();",
               "return ldv_undef_int_negative();"
@@ -645,6 +685,7 @@
             "condition": [
               "%ret% != 0"
             ],
+            "trace relevant": true,
             "statements": [
               "ldv_failed_register_netdev();",
               "return ldv_undef_int_negative();"
@@ -664,6 +705,7 @@
           },
           "success": {
             "comment": "Registration of the network device has successfully finished.",
+            "trace relevant": true,
             "statements": [
               "return 0;"
             ]

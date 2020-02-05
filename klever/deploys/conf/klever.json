@@ -1,0 +1,30 @@
+{
+  "Klever Addons": {
+    "CIF": {
+      "version": "c41638b",
+      "path": "https://forge.ispras.ru/attachments/download/7272/cif-c41638b.tar.xz",
+      "executable path": "usr/local/bin"
+    },
+    "CIL": {
+      "version": "918782e",
+      "path": "https://forge.ispras.ru/attachments/download/7245/frama-c-cil-918782e.tar.xz",
+      "executable path": "."
+    },
+    "Consul": {
+      "version": "0.9.2",
+      "path": "https://releases.hashicorp.com/consul/0.9.2/consul_0.9.2_linux_amd64.zip",
+      "executable path": "consul"
+    },
+    "Verification Backends": {
+      "CPAchecker": {
+        "name": "CPAchecker",
+        "version": "trunk:31140",
+        "path": "https://forge.ispras.ru/attachments/download/6427/CPAchecker-1.8-svn 31140-unix.tar.xz",
+        "executable path": "scripts"
+      }
+    }
+  },
+  "Klever Build Bases": [
+    "https://forge.ispras.ru/attachments/download/7126/build-base-linux-3.14.79-x86_64-sample.tar.xz"
+  ]
+}

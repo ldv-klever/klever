@@ -19,12 +19,14 @@
           },
           "free": {
             "comment": "Free memory of auxiliary variables.",
+            "trace relevant": true,
             "statements": [
               "$FREE(%index%);"
             ]
           },
           "init": {
             "comment": "Allocate memory for auxiliary variables.",
+            "trace relevant": true,
             "statements": [
               "%index% = $ALLOC(%index%);"
             ]
@@ -151,6 +153,7 @@
         "actions": {
           "assign": {
             "comment": "Alloc memory for sequential file structure and initialize it.",
+            "trace relevant": true,
             "statements": [
               "%seq_file% = $ALLOC(%seq_file%);",
               "%ops% = $ARG2;",
@@ -194,6 +197,7 @@
         "actions": {
           "assign": {
             "comment": "Free memory of the sequential file structure.",
+            "trace relevant": true,
             "statements": [
               "%seq_file% = %file%->private_data;",
               "$FREE(%seq_file%);"

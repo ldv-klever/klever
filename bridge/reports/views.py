@@ -69,85 +69,12 @@ def sort_list(value):
 
 @register.filter
 def sort_tests_list(value):
-    return sorted(value, key=lambda test: test.lstrip('1234567890'))
+    return sorted(value, key=lambda test_result: test_result['test'].lstrip('1234567890'))
 
 
 @register.filter
 def sort_bugs_list(value):
-    return sorted(value, key=lambda bug: bug[12:].lstrip('~'))
-
-
-@register.filter
-def calculate_test_stats(test_results):
-    test_stats = {
-        "passed tests": 0,
-        "failed tests": 0,
-        "missed comments": 0,
-        "excessive comments": 0,
-        "tests": 0
-    }
-
-    for result in test_results.values():
-        test_stats["tests"] += 1
-        if result["ideal verdict"] == result["verdict"]:
-            test_stats["passed tests"] += 1
-            if result.get('comment'):
-                test_stats["excessive comments"] += 1
-        else:
-            test_stats["failed tests"] += 1
-            if not result.get('comment'):
-                test_stats["missed comments"] += 1
-
-    return test_stats
-
-
-@register.filter
-def calculate_validation_stats(validation_results):
-    validation_stats = {
-        "found bug before fix and safe after fix": 0,
-        "found bug before fix and non-safe after fix": 0,
-        "found non-bug before fix and safe after fix": 0,
-        "found non-bug before fix and non-safe after fix": 0,
-        "missed comments": 0,
-        "excessive comments": 0,
-        "bugs": 0
-    }
-
-    for result in validation_results.values():
-        validation_stats["bugs"] += 1
-
-        is_found_bug_before_fix = False
-
-        if "before fix" in result:
-            if result["before fix"]["verdict"] == "unsafe":
-                is_found_bug_before_fix = True
-                if result["before fix"]["comment"]:
-                    validation_stats["excessive comments"] += 1
-            elif 'comment' not in result["before fix"] or not result["before fix"]["comment"]:
-                validation_stats["missed comments"] += 1
-
-        is_found_safe_after_fix = False
-
-        if "after fix" in result:
-            if result["after fix"]["verdict"] == "safe":
-                is_found_safe_after_fix = True
-                if result["after fix"]["comment"]:
-                    validation_stats["excessive comments"] += 1
-            elif 'comment' not in result["after fix"] or not result["after fix"]["comment"]:
-                validation_stats["missed comments"] += 1
-
-        if is_found_bug_before_fix:
-            if is_found_safe_after_fix:
-                validation_stats["found bug before fix and safe after fix"] += 1
-            else:
-                validation_stats["found bug before fix and non-safe after fix"] += 1
-        else:
-            if is_found_safe_after_fix:
-                validation_stats["found non-bug before fix and safe after fix"] += 1
-            else:
-                validation_stats["found non-bug before fix and non-safe after fix"] += 1
-
-    return validation_stats
+    return sorted(value, key=lambda validation_result: validation_result['bug'][12:].lstrip('~'))
 
 
 class ReportComponentView(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, DetailView):

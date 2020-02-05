@@ -74,7 +74,7 @@ CIF
 ^^^
 
 One can download `CIF <https://forge.ispras.ru/projects/cif/>`__ binaries from
-`here <https://forge.ispras.ru/attachments/download/7158/cif-68538d3.tar.xz>`__.
+`here <https://forge.ispras.ru/attachments/download/7272/cif-c41638b.tar.xz>`__.
 These binaries are compatible with various Linux distributions since CIF is based on `GCC <https://gcc.gnu.org/>`__
 that has few dependencies.
 Besides, one can clone `CIF Git repository <https://forge.ispras.ru/projects/cif/repository>`__ and build CIF from
@@ -86,7 +86,7 @@ Frama-C (CIL)
 ^^^^^^^^^^^^^
 
 You can get `Frama-C (CIL) <https://frama-c.com/>`__ binaries from
-`here <https://forge.ispras.ru/attachments/download/7049/frama-c-cil-8ded734.tar.xz>`__.
+`here <https://forge.ispras.ru/attachments/download/7245/frama-c-cil-918782e.tar.xz>`__.
 As well, you can build it from
 `this source <https://forge.ispras.ru/projects/astraver/repository/framac>`__ (branch :file:`18.0`)
 which has several specific patches relatively to the mainline.

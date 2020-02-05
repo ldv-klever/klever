@@ -31,9 +31,14 @@ void ldv_handler(struct timer_list *data)
 
 static int __init ldv_init(void)
 {
+    int ret;
 	ldv_invoke_test();
 	timer_setup(&ldv_timer, ldv_handler, data);
-	return mod_timer(&ldv_timer, jiffies + msecs_to_jiffies(200));
+	ret = mod_timer(&ldv_timer, jiffies + msecs_to_jiffies(200));
+	if (ret)
+	    return 0;
+	else:
+	    return -1;
 }
 
 static void __exit ldv_exit(void)

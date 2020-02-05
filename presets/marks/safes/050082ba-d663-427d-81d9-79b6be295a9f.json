@@ -2,11 +2,6 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Linux:Version",
-      "value": "v3.12.14-126-gc9381cae8a20"
-    },
-    {
-      "is_compare": true,
       "name": "Requirements specification",
       "value": "drivers:clk1"
     },

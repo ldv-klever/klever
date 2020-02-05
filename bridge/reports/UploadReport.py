@@ -137,10 +137,10 @@ class UploadBaseSerializer(serializers.ModelSerializer):
 
         # Update old report data
         if self.instance and self.instance.data:
-            self.instance.data.update(value)
+            self.instance.data.append(value)
             return self.instance.data
 
-        return value
+        return [value]
 
     def validate_log(self, value):
         # Do not save log for lightweight decisions

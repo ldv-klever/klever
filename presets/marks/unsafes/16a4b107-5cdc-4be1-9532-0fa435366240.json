@@ -14,31 +14,47 @@
   "description": "",
   "error_trace": [
     [
-      {
-        "ldv_init": [
-          {
-            "ldv_module_get": []
-          },
-          {
-            "ldv_module_put": [
-              {
-                "ldv_assert_linux_kernel_module__less_initial_decrement": []
-              }
-            ]
-          },
-          {
-            "ldv_module_put": [
-              {
-                "ldv_assert_linux_kernel_module__less_initial_decrement": []
-              }
-            ]
-          }
-        ]
-      }
+      [
+        {
+          "EMG wrapper": [
+            {
+              "LDV model 'init'": [
+                {
+                  "Instrumented function '__module_get'": [
+                    {
+                      "LDV model 'module_get'": []
+                    }
+                  ]
+                },
+                {
+                  "Instrumented function 'module_put'": [
+                    {
+                      "LDV model 'module_put'": []
+                    }
+                  ]
+                },
+                {
+                  "Instrumented function 'module_put'": [
+                    {
+                      "LDV model 'module_put'": [
+                        {
+                          "LDV model 'assert'": []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",
   "is_modifiable": false,
+  "status": null,
   "tags": [],
+  "threshold": 0,
   "verdict": "2"
 }

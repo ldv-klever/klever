@@ -14,37 +14,53 @@
   "description": "",
   "error_trace": [
     [
-      {
-        "ldv_initialize": []
-      }
+      [
+        {
+          "Entry point 'main'": [
+            {
+              "LDV model 'initialize'": []
+            }
+          ]
+        }
+      ]
     ],
     [
-      {
-        "ldv_init": [
-          {
-            "ldv_invoke_test": []
-          },
-          {
-            "ldv_emg_register_netdev": [
-              {
-                "ldv_open": [
-                  {
-                    "ldv_invoke_reached": [
-                      {
-                        "ldv_assert_linux_emg_test": []
-                      }
-                    ]
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      }
+      [
+        {
+          "EMG wrapper": [
+            {
+              "LDV model 'open'": [
+                {
+                  "LDV model 'invoke_reached'": [
+                    {
+                      "LDV model 'assert'": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "EMG wrapper": [
+            {
+              "LDV model 'init'": [
+                {
+                  "LDV model 'invoke_test'": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",
   "is_modifiable": false,
+  "status": null,
   "tags": [],
+  "threshold": 0,
   "verdict": "2"
 }

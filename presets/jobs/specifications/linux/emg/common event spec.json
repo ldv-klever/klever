@@ -24,12 +24,14 @@
           },
           "free": {
             "comment": "Free memory of common callback parameters.",
+            "trace relevant": true,
             "statements": [
               "$FREE(%resource%);"
             ]
           },
           "init": {
             "comment": "Allocate memory of common callback parameters.",
+            "trace relevant": true,
             "statements": [
               "%resource% = $ALLOC(%resource%);"
             ]
@@ -181,12 +183,14 @@
           },
           "free": {
             "comment": "Free memory for common callback arguments.",
+            "trace relevant": true,
             "statements": [
               "$FREE(%resource%);"
             ]
           },
           "init": {
             "comment": "Alloc memory for common callback arguments.",
+            "trace relevant": true,
             "statements": [
               "%resource% = $ALLOC(%resource%);"
             ]
@@ -351,12 +355,14 @@
           },
           "free": {
             "comment": "Free memory of common callback parameters.",
+            "trace relevant": true,
             "statements": [
               "$FREE(%resource%);"
             ]
           },
           "init": {
             "comment": "Allocate memory of common callback parameters.",
+            "trace relevant": true,
             "statements": [
               "%resource% = $ALLOC(%resource%);"
             ]
