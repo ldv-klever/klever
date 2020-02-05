@@ -53,7 +53,7 @@ from jobs.utils import JobAccess, DecisionAccess, get_unique_name, copy_files_wi
 from reports.serializers import DecisionResultsSerializerRO
 from reports.coverage import DecisionCoverageStatistics
 from reports.UploadReport import collapse_reports
-from service.utils import StartJobDecision, cancel_decision
+from service.utils import StartJobDecision, RestartJobDecision, cancel_decision
 
 
 class PresetJobAPIViewset(LoggedCallMixin, ModelViewSet):
@@ -262,11 +262,8 @@ class RestartDecisionView(LoggedCallMixin, APIView):
         decision = get_object_or_404(Decision.objects.select_related('job', 'configuration'), **kwargs)
         if not DecisionAccess(self.request.user, decision).can_restart:
             raise exceptions.PermissionDenied(_("You don't have an access to restart this decision"))
-        with decision.configuration.file as fp:
-            configuration = GetConfiguration(file_conf=fp).for_json()
-        res = StartJobDecision(request.user, decision.job, configuration, decision.name)
-        decision.delete()
-        return Response({'url': reverse('jobs:decision', args=[res.decision.id])})
+        RestartJobDecision(request.user, decision)
+        return Response({})
 
 
 class CollapseReportsView(LoggedCallMixin, APIView):

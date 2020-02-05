@@ -330,6 +330,8 @@ class TableTree:
                 if not decision.is_lightweight and decision.id in self._core:
                     status_url = reverse('reports:component', args=[self._core[decision.id]])
                 value = cell_value(decision.get_status_display(), url=status_url)
+            elif col == 'identifier':
+                value = cell_value(decision.identifier)
             elif decision.pk in self._values_data and col in self._values_data[decision.pk]:
                 value = self._values_data[decision.pk][col]
             else:
@@ -361,7 +363,7 @@ class TableTree:
 
     @cached_property
     def _job_columns(self):
-        return {'identifier', 'role', 'author', 'creation_date'}
+        return {'role', 'author', 'creation_date'}
 
     @cached_property
     def _decisions_ids(self):
@@ -513,7 +515,7 @@ class TableTree:
             total_safes[d_id] += number
 
         # Add numbers of total safes of the decision
-        for d_id, number in total_safes.values():
+        for d_id, number in total_safes.items():
             safes_url = None
             if number > 0:
                 safes_url = construct_url('reports:safes', self._core[d_id])
@@ -536,7 +538,7 @@ class TableTree:
             total_unsafes[d_id] += number
 
         # Add numbers of total unsafes of the decision
-        for d_id, number in total_unsafes.values():
+        for d_id, number in total_unsafes.items():
             unsafes_url = None
             if number > 0:
                 unsafes_url = construct_url('reports:unsafes', self._core[d_id])
@@ -707,6 +709,7 @@ class TableTree:
                 self._values_data[d_id][column] = cell_value(num, url=url)
 
     def __collect_resources(self):
+        total_resources = {}
         for cache_obj in DecisionCache.objects.filter(decision_id__in=self._decisions_ids).select_related('decision'):
             value = "{} {} {}".format(
                 HumanizedValue(cache_obj.wall_time, user=self.view.user).timedelta,
@@ -715,6 +718,18 @@ class TableTree:
             )
             column = 'resource:{}'.format(self.slugify(cache_obj.component))
             self._values_data[cache_obj.decision_id][column] = cell_value(value)
+            total_resources.setdefault(cache_obj.decision_id, [0, 0, 0])
+            total_resources[cache_obj.decision_id][0] += cache_obj.wall_time
+            total_resources[cache_obj.decision_id][1] += cache_obj.cpu_time
+            total_resources[cache_obj.decision_id][2] = max(total_resources[cache_obj.decision_id][2], cache_obj.memory)
+
+        for d_id in total_resources:
+            value = "{} {} {}".format(
+                HumanizedValue(total_resources[d_id][0], user=self.view.user).timedelta,
+                HumanizedValue(total_resources[d_id][1], user=self.view.user).timedelta,
+                HumanizedValue(total_resources[d_id][2], user=self.view.user).memory,
+            )
+            self._values_data[d_id]['resource:total'] = cell_value(value)
 
     def __collect_decision_data(self):
         prodress_data = ProgressSerializerRO(

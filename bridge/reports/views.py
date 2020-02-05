@@ -159,7 +159,7 @@ class ReportComponentView(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, De
     def get_context_data(self, **kwargs):
         if not JobAccess(self.request.user, self.object.decision.job).can_view:
             raise BridgeException(code=400)
-        if self.object.weight == DECISION_WEIGHT[1][0]:
+        if self.object.decision.weight == DECISION_WEIGHT[1][0]:
             raise BridgeException(_('Reports pages for lightweight decisions are closed'))
 
         context = super().get_context_data(**kwargs)
@@ -218,21 +218,25 @@ class SafesListView(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, DetailVi
     pk_url_kwarg = 'report_id'
     template_name = 'reports/report_list.html'
 
+    def __init__(self, *args, **kwargs):
+        self.object = None
+        super().__init__(*args, **kwargs)
+
     def get_queryset(self):
         return ReportComponent.objects.select_related('decision__operator')
 
     def get(self, request, *args, **kwargs):
-        report = self.get_object()
+        self.object = self.get_object()
 
         # Check job access
-        if not JobAccess(self.request.user, report.decision.job).can_view:
+        if not JobAccess(self.request.user, self.object.decision.job).can_view:
             raise BridgeException(code=400)
 
         # Get safes data
-        safes_data = SafesTable(self.request.user, report, self.get_view(VIEW_TYPES[5]), self.request.GET)
+        safes_data = SafesTable(self.request.user, self.object, self.get_view(VIEW_TYPES[5]), self.request.GET)
 
         # Get context
-        context = self.get_context_data(report=report)
+        context = self.get_context_data(report=self.object)
 
         # Redirect if needed
         if hasattr(safes_data, 'redirect'):
@@ -246,21 +250,25 @@ class UnsafesListView(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, Detail
     pk_url_kwarg = 'report_id'
     template_name = 'reports/report_list.html'
 
+    def __init__(self, *args, **kwargs):
+        self.object = None
+        super().__init__(*args, **kwargs)
+
     def get_queryset(self):
         return ReportComponent.objects.select_related('decision__operator')
 
     def get(self, request, *args, **kwargs):
-        report = self.get_object()
+        self.object = self.get_object()
 
         # Check job access
-        if not JobAccess(self.request.user, report.decision.job).can_view:
+        if not JobAccess(self.request.user, self.object.decision.job).can_view:
             raise BridgeException(code=400)
 
         # Get unsafes data
-        unsafes_data = UnsafesTable(self.request.user, report, self.get_view(VIEW_TYPES[4]), self.request.GET)
+        unsafes_data = UnsafesTable(self.request.user, self.object, self.get_view(VIEW_TYPES[4]), self.request.GET)
 
         # Get context
-        context = self.get_context_data(report=report)
+        context = self.get_context_data(report=self.object)
 
         # Redirect if needed
         if hasattr(unsafes_data, 'redirect'):
@@ -274,21 +282,25 @@ class UnknownsListView(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, Detai
     pk_url_kwarg = 'report_id'
     template_name = 'reports/report_list.html'
 
+    def __init__(self, *args, **kwargs):
+        self.object = None
+        super().__init__(*args, **kwargs)
+
     def get_queryset(self):
         return ReportComponent.objects.select_related('decision__operator')
 
     def get(self, request, *args, **kwargs):
-        report = self.get_object()
+        self.object = self.get_object()
 
         # Check job access
-        if not JobAccess(self.request.user, report.decision.job).can_view:
+        if not JobAccess(self.request.user, self.object.decision.job).can_view:
             raise BridgeException(code=400)
 
         # Get unknowns data
-        unknowns_data = UnknownsTable(self.request.user, report, self.get_view(VIEW_TYPES[6]), self.request.GET)
+        unknowns_data = UnknownsTable(self.request.user, self.object, self.get_view(VIEW_TYPES[6]), self.request.GET)
 
         # Get context
-        context = self.get_context_data(report=report)
+        context = self.get_context_data(report=self.object)
 
         # Redirect if needed
         if hasattr(unknowns_data, 'redirect'):

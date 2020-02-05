@@ -33,9 +33,9 @@ from django.urls import reverse
 from bridge.vars import SCHEDULER_TYPE, DECISION_STATUS, JOB_ROLES
 from bridge.utils import KleverTestCase, logger, RMQConnect
 
-from users.models import User
-from jobs.models import Job
-from reports.models import ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent, CoverageArchive, ReportAttr
+# from users.models import User
+# from jobs.models import Job
+# from reports.models import ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent, CoverageArchive, ReportAttr
 
 
 LINUX_ATTR = {'name': 'Linux kernel', 'value': [
@@ -1065,8 +1065,8 @@ class DecideJobs:
 
     def __start(self):
         conn_producer, conn_consumer = Pipe()
-        rmq_reader = Process(target=self.__read_queue, args=(conn_producer,))
-        msg_processor = Process(target=self.__process_message, args=(conn_consumer,))
+        rmq_reader = Process(target=self.read_queue, args=(conn_producer,))
+        msg_processor = Process(target=self.process_message, args=(conn_consumer,))
 
         rmq_reader.start()
         msg_processor.start()
@@ -1102,7 +1102,7 @@ class DecideJobs:
             return None
         return resp
 
-    def __read_queue(self, conn):
+    def read_queue(self, conn):
         def callback(ch, method, properties, body):
             ch.basic_ack(delivery_tag=method.delivery_tag)
             res = body.decode('utf-8')
@@ -1130,14 +1130,14 @@ class DecideJobs:
     def __cancel_job(self, job_id):
         logger.info('Cancelling the job: {}'.format(job_id))
         try:
-            self.__request('/service/job-status/{}/'.format(job_id), method='PATCH', data={'status': '7'})
+            self.__request('/service/decision-status/{}/'.format(job_id), method='PATCH', data={'status': '7'})
         except Exception as e:
             logger.exception(e)
 
-    def __process_message(self, conn):
+    def process_message(self, conn):
         while True:
             msg = conn.recv()
-            m_type, m_id, m_status = msg.split()
+            m_type, m_id, m_status, m_sch_type = msg.split()
             if m_type != 'job':
                 continue
             if m_status == '1':
@@ -1170,7 +1170,7 @@ class DecideJob:
             self.__decide_job()
         except DecisionError as e:
             self.__request(
-                url='/service/job-status/{}/'.format(self._job_uuid), method='PATCH',
+                url='/service/decision-status/{}/'.format(self._job_uuid), method='PATCH',
                 data={'status': '4', 'error': str(e)}
             )
 
@@ -1442,7 +1442,7 @@ class DecideJob:
 
         self.__upload_progress()
         self.__upload_finish_report(core_id)
-        self.__request(url='/service/job-status/{}/'.format(self._job_uuid), method='PATCH', data={'status': '3'})
+        self.__request(url='/service/decision-status/{}/'.format(self._job_uuid), method='PATCH', data={'status': '3'})
 
     def __upload_subjob(self, subjob, core_id):
         sj = self.__upload_start_report('Subjob', core_id, [{
@@ -1583,7 +1583,7 @@ class UploadRawReports:
     def __decide_job(self, job_uuid):
         self.__request('/jobs/api/download-files/{}/'.format(job_uuid), method='GET')
         self.__send_reports()
-        self.__request('/service/job-status/{}/'.format(job_uuid), method='PATCH', data={'status': '3'})
+        self.__request('/service/decision-status/{}/'.format(job_uuid), method='PATCH', data={'status': '3'})
 
     def __send_reports(self):
         all_archives = list(f for f in os.listdir(self._reports_dir) if f.endswith('.zip'))
@@ -1676,7 +1676,8 @@ class GetReportsPacks:
 class UploadRawReportsPacks:
     base_url = 'http://127.0.0.1:8998'
 
-    def __init__(self, job_uuid, reports_log):
+    def __init__(self, job_uuid, reports_log, original_sources):
+        self.original_sources = original_sources
         self._upload_url = '/reports/api/upload/{}/'.format(job_uuid)
         self._reports_log = os.path.abspath(reports_log)
         assert os.path.isfile(self._reports_log), 'Reports log not found!'
@@ -1691,7 +1692,7 @@ class UploadRawReportsPacks:
     def __decide_job(self, job_uuid):
         self.__request('/jobs/api/download-files/{}/'.format(job_uuid), method='GET')
         self.__send_reports()
-        self.__request('/service/job-status/{}/'.format(job_uuid), method='PATCH', data={'status': '3'})
+        self.__request('/service/decision-status/{}/'.format(job_uuid), method='PATCH', data={'status': '3'})
 
     def __send_reports(self):
         reports_dir = os.path.join(os.path.dirname(self._reports_log), 'reports')
@@ -1718,7 +1719,7 @@ class UploadRawReportsPacks:
 
     def __fix_report(self, report):
         if report.get('original_sources'):
-            report['original_sources'] = '936d4726-6d0b-4244-a63e-bb1133706555'
+            report['original_sources'] = self.original_sources
         report.pop('task', None)
 
     def __upload_reports(self, reports, archives):

@@ -18,6 +18,7 @@
 import json
 from wsgiref.util import FileWrapper
 
+from django.db.models import Q
 from django.utils.timezone import now
 from django.utils.translation import ugettext_lazy as _
 
@@ -26,7 +27,9 @@ from bridge.utils import file_get_or_create, logger, BridgeException
 
 from users.models import SchedulerUser
 from jobs.models import JobFile, FileSystem
-from reports.models import ReportUnknown, ReportComponent
+from reports.models import (
+    ReportUnknown, ReportComponent, Report, AttrFile, AdditionalSources, CompareDecisionsInfo, DecisionCache
+)
 from service.models import Scheduler, Decision, Task, Solution, Node, NodesConfiguration, Workload
 
 from jobs.serializers import decision_status_changed
@@ -35,6 +38,24 @@ from service.serializers import SchedulerUserSerializer
 
 class ServiceError(Exception):
     pass
+
+
+def validate_scheduler(**kwargs):
+    try:
+        scheduler = Scheduler.objects.get(**kwargs)
+    except Scheduler.DoesNotExist:
+        raise BridgeException(_('The task scheduler was not found'))
+    if scheduler.type == SCHEDULER_TYPE[1][0]:
+        if scheduler.status == SCHEDULER_STATUS[2][0]:
+            raise BridgeException(_('The VerifierCloud scheduler is disconnected'))
+    else:
+        try:
+            klever_sch = Scheduler.objects.get(type=SCHEDULER_TYPE[0][0])
+        except Scheduler.DoesNotExist:
+            raise BridgeException(_("Schedulers weren't populated"))
+        if klever_sch.status == SCHEDULER_STATUS[2][0]:
+            raise BridgeException(_('The Klever scheduler is disconnected'))
+    return scheduler
 
 
 class FinishDecision:
@@ -217,25 +238,8 @@ class StartJobDecision:
         self.decision = self.__create_decision()
         decision_status_changed(self.decision)
 
-    def __get_scheduler(self):
-        try:
-            scheduler = Scheduler.objects.get(type=self.configuration['task scheduler'])
-        except Scheduler.DoesNotExist:
-            raise BridgeException(_('The task scheduler was not found'))
-        if scheduler.type == SCHEDULER_TYPE[1][0]:
-            if scheduler.status == SCHEDULER_STATUS[2][0]:
-                raise BridgeException(_('The VerifierCloud scheduler is disconnected'))
-        else:
-            try:
-                klever_sch = Scheduler.objects.get(type=SCHEDULER_TYPE[0][0])
-            except Scheduler.DoesNotExist:
-                raise BridgeException(_("Schedulers weren't populated"))
-            if klever_sch.status == SCHEDULER_STATUS[2][0]:
-                raise BridgeException(_('The Klever scheduler is disconnected'))
-        return scheduler
-
     def __create_decision(self):
-        scheduler = self.__get_scheduler()
+        scheduler = validate_scheduler(type=self.configuration['task scheduler'])
         conf_db = file_get_or_create(
             json.dumps(self.configuration, indent=2, sort_keys=True, ensure_ascii=False),
             'job-{}.json'.format(self._job.identifier), JobFile
@@ -245,6 +249,42 @@ class StartJobDecision:
             weight=self.configuration['weight'], coverage_details=self.configuration['code coverage details'],
             priority=self.configuration['priority'], configuration=conf_db
         )
+
+
+class RestartJobDecision:
+    def __init__(self, user, decision):
+        self.operator = user
+        self.decision = decision
+        self.__clear_related_objects()
+        self.__restart_decision()
+        decision_status_changed(self.decision)
+
+    def __restart_decision(self):
+        validate_scheduler(id=self.decision.scheduler_id)
+        self.decision.operator = self.operator
+        self.decision.status = DECISION_STATUS[1][0]
+        int_fields = (
+            'tasks_total', 'tasks_pending', 'tasks_processing', 'tasks_finished',
+            'tasks_error', 'tasks_cancelled', 'solutions'
+        )
+        null_fields = (
+            'error', 'start_date', 'finish_date', 'total_sj', 'failed_sj', 'solved_sj', 'expected_time_sj',
+            'start_sj', 'finish_sj', 'gag_text_sj', 'total_ts', 'failed_ts', 'solved_ts', 'expected_time_ts',
+            'start_ts', 'finish_ts', 'gag_text_ts'
+        )
+        for field_name in int_fields:
+            setattr(self.decision, field_name, 0)
+        for field_name in null_fields:
+            setattr(self.decision, field_name, None)
+        self.decision.save()
+
+    def __clear_related_objects(self):
+        Report.objects.filter(decision=self.decision).delete()
+        AttrFile.objects.filter(decision=self.decision).delete()
+        AdditionalSources.objects.filter(decision=self.decision).delete()
+        CompareDecisionsInfo.objects.filter(Q(decision1=self.decision) | Q(decision2=self.decision)).delete()
+        DecisionCache.objects.filter(decision=self.decision).delete()
+        Task.objects.filter(decision=self.decision).delete()
 
 
 class TaskArchiveGenerator(FileWrapper):

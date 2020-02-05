@@ -50,13 +50,13 @@ from jobs.utils import JobAccess, DecisionAccess
 
 
 class KleverCoreArchiveGen:
-    def __init__(self, job):
-        self.job = job
-        self.arcname = 'VJ__{}.zip'.format(job.identifier)
+    def __init__(self, decision):
+        self.decision = decision
+        self.arcname = 'VJ__{}.zip'.format(decision.identifier)
         self.stream = ZipStream()
 
     def __iter__(self):
-        for file_inst in FileSystem.objects.filter(job=self.job).select_related('file'):
+        for file_inst in FileSystem.objects.filter(job_id=self.decision.job_id).select_related('file'):
             arch_name = '/'.join(['root', file_inst.name])
             file_src = '/'.join([settings.MEDIA_ROOT, file_inst.file.file.name])
             for data in self.stream.compress_file(file_src, arch_name):

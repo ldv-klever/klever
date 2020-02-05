@@ -32,7 +32,9 @@
                         <div class="ui {{ decision.status_color }} label">{{ decision.get_status_display }}</div>
                     {% endif %}
                 </td>
-                <td><a href="{% url 'jobs:download-decision-conf' decision.pk %}" class="note-popup" data-content="{% trans 'Donwload configuration' %}"><i class="ui download icon"></i></a></td>
+                <td class="note-popup" data-content="{% trans 'Configuration' %}">
+                    <i class="ui settings link blue icon file-content-activator" data-url="{% url 'jobs:file-content' decision.configuration.hash_sum %}" data-download="{% url 'jobs:download-decision-conf' decision.pk %}"></i>
+                </td>
             </tr>
         {% endfor %}
     </tbody>

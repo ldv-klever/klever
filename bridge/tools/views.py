@@ -57,7 +57,7 @@ class ManagerPageView(LoginRequiredMixin, TemplateView):
         if not self.request.user.is_manager:
             raise PermissionDenied("You don't have an access to this page")
         context = super().get_context_data(**kwargs)
-        context['decisions'] = Decision.objects.filter(
+        context['decisions'] = Decision.objects.exclude(
             status__in=[DECISION_STATUS[0][0], DECISION_STATUS[1][0], DECISION_STATUS[2][0], DECISION_STATUS[6][0]]
         ).select_related('job')
         context['original_sources'] = OriginalSources.objects.annotate(

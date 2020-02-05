@@ -53,7 +53,7 @@
                                         <label for="decision__{{ decision.pk }}">{{ decision.name }}</label>
                                     </div>
                                 </td>
-                                <td>{{ decision.identifier }}</td>
+                                <td><a href="{% url 'jobs:decision' decision.id %}">{{ decision.identifier }}</a></td>
                                 <td><a href="{% url 'jobs:job' decision.job_id %}">{{ decision.job.name }}</a></td>
                             </tr>
                         {% endfor %}

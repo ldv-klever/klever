@@ -100,7 +100,9 @@
 
             <br>
             {# Other decisions table #}
-            <div>{% include 'jobs/decision-list.html' with decisions=other_decisions %}</div>
+            {% if other_decisions|length %}
+                <div>{% include 'jobs/decision-list.html' with decisions=other_decisions %}</div>
+            {% endif %}
 
             {# Coverage #}
             {% include 'jobs/viewDecision/coverage.html' with Coverage=Coverage %}
@@ -191,8 +193,8 @@
                 "{% trans 'All existing reports and previous decision results of this decision will be deleted' %}!",
                 function () {
                     $('#dimmer_of_page').addClass('active');
-                    $.post("{% url 'jobs:api-restart-decision' object.id %}", {}, function (resp) {
-                        window.location.replace(resp['url'])
+                    $.post("{% url 'jobs:api-restart-decision' object.id %}", {}, function () {
+                        window.location.replace('')
                     });
                 }
             );

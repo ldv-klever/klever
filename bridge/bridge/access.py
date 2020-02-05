@@ -20,7 +20,7 @@ from rest_framework.permissions import IsAuthenticated
 from bridge.utils import USER_ROLES
 
 from jobs.models import Job, Decision
-from jobs.utils import JobAccess
+from jobs.utils import JobAccess, DecisionAccess
 from reports.models import ReportComponent
 
 
@@ -49,7 +49,11 @@ class ViewJobPermission(IsAuthenticated):
 
 class DestroyJobPermission(IsAuthenticated):
     def has_object_permission(self, request, view, obj):
-        return JobAccess(request.user, obj).can_delete
+        if isinstance(obj, Job):
+            return JobAccess(request.user, obj).can_delete
+        elif isinstance(obj, Decision):
+            return DecisionAccess(request.user, obj).can_delete
+        return True
 
 
 class ServicePermission(IsAuthenticated):

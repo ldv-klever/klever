@@ -168,7 +168,7 @@ class JobPage(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, DetailView):
         context['user_roles'] = UserRole.objects.filter(job=self.object).select_related('user')\
             .order_by('user__first_name', 'user__last_name', 'user__username')
         context['preset_changed'] = is_preset_changed(self.object)
-        context['decisions'] = Decision.objects.filter(job=self.object).order_by('id')
+        context['decisions'] = Decision.objects.filter(job=self.object).select_related('configuration').order_by('id')
         return context
 
 
@@ -276,7 +276,7 @@ class DecisionPage(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, DetailVie
 
         # Other job decisions
         context['other_decisions'] = Decision.objects.filter(job=self.object.job)\
-            .exclude(id=self.object.id).order_by('id')
+            .exclude(id=self.object.id).select_related('configuration').order_by('id')
 
         # Decision progress and core report link
         context['progress'] = ProgressSerializerRO(instance=self.object, context={'request': self.request}).data
