@@ -20,6 +20,7 @@ import json
 import os
 import re
 import shlex
+import shutil
 import sys
 import tempfile
 
@@ -122,12 +123,16 @@ class CopyDeployConfAndSrcs:
         self.logger.info('Copy sources that can be used during {0}'.format(self.action))
         with Cd(self.args.source_directory):
             try:
-                execute_cmd(self.logger, 'git', 'archive', 'HEAD', '-o', 'klever.tar.gz')
-                self.ssh.sftp_put('klever.tar.gz', 'klever/klever.tar.gz')
-                self.ssh.execute_cmd('tar -C klever -xf klever/klever.tar.gz')
+                execute_cmd(self.logger, 'git', 'clone', '.', '__klever')
+                execute_cmd(self.logger, 'tar', '-C', '__klever', '-cf', '__klever.tar.gz', '.')
+                self.ssh.sftp_put('__klever.tar.gz', 'klever/klever.tar.gz')
+                self.ssh.execute_cmd('tar --warning no-unknown-keyword -C klever -xf klever/klever.tar.gz')
+                self.ssh.execute_cmd('rm klever/klever.tar.gz')
             finally:
-                if os.path.exists('klever.tar.gz'):
-                    os.remove('klever.tar.gz')
+                if os.path.exists('__klever'):
+                    shutil.rmtree('__klever')
+                if os.path.exists('__klever.tar.gz'):
+                    os.remove('__klever.tar.gz')
 
     def __exit__(self, etype, value, traceback):
         if self.is_remove_srcs:
