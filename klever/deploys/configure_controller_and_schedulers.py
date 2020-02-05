@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+#
 # Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
 # Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
@@ -158,14 +160,15 @@ def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--development', default=False, action='store_true')
+    parser.add_argument('--source-directory', default='klever')
     parser.add_argument('--deployment-directory', default='klever-inst')
     args = parser.parse_args()
 
     with open(os.path.join(args.deployment_directory, 'klever.json')) as fp:
         prev_deploy_info = json.load(fp)
 
-    configure_controller_and_schedulers(get_logger(__name__), args.development, args.deployment_directory,
-                                        prev_deploy_info)
+    configure_controller_and_schedulers(get_logger(__name__), args.development, args.source_directory,
+                                        args.deployment_directory,prev_deploy_info)
 
 
 if __name__ == '__main__':

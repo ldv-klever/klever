@@ -34,7 +34,7 @@ import cinderclient.client
 
 from klever.deploys.openstack.instance import OSInstance
 from klever.deploys.openstack.ssh import SSH
-from klever.deploys.utils import get_password, install_klever_addons, install_klever_build_bases
+from klever.deploys.utils import Cd, execute_cmd, get_password, install_klever_addons, install_klever_build_bases
 
 
 class OSClients:
@@ -107,33 +107,33 @@ class OSEntity:
         return OSClients(self.logger, sess)
 
 
-class DeployConfsAndScripts:
-    def __init__(self, logger, ssh, deploy_conf_file, action):
+class CopyDeployConfAndSrcs:
+    def __init__(self, args, logger, ssh, action):
+        self.args = args
         self.logger = logger
         self.ssh = ssh
-        self.deploy_conf_file = deploy_conf_file
         self.action = action
 
     def __enter__(self):
         self.logger.info('Copy deployment configuration file')
-        self.ssh.sftp_put(self.deploy_conf_file, 'klever.json')
+        self.ssh.sftp_put(self.args.deployment_configuration_file, 'klever.json')
 
-        self.logger.info('Copy scripts that can be used during {0}'.format(self.action))
-        self.ssh.sftp_put(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'klever')
-
-        self.logger.info('Copy Python requirements file')
-        self.ssh.sftp_put(os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir, os.path.pardir,
-                                       'requirements.txt'), 'requirements.txt')
+        self.logger.info('Copy sources that can be used during {0}'.format(self.action))
+        with Cd(self.args.source_directory):
+            try:
+                execute_cmd(self.logger, 'git', 'archive', 'HEAD', '-o', 'klever.tar.gz')
+                self.ssh.sftp_put('klever.tar.gz', 'klever/klever.tar.gz')
+                self.ssh.execute_cmd('tar -C klever -xf klever/klever.tar.gz')
+            finally:
+                if os.path.exists('klever.tar.gz'):
+                    os.remove('klever.tar.gz')
 
     def __exit__(self, etype, value, traceback):
-        self.logger.info('Remove scripts used during {0}'.format(self.action))
-        self.ssh.execute_cmd('rm -r klever')
+        self.logger.info('Remove sources used during {0}'.format(self.action))
+        # self.ssh.execute_cmd('rm -r klever')
 
         self.logger.info('Remove deployment configuration file')
         self.ssh.sftp.remove('klever.json')
-
-        self.logger.info('Remove Python requirements file')
-        self.ssh.sftp.remove('requirements.txt')
 
 
 class OSKleverBaseImage(OSEntity):
@@ -191,17 +191,17 @@ class OSKleverBaseImage(OSEntity):
                      floating_ip=instance.floating_ip['floating_ip_address']) as self.ssh:
                 self.logger.info('Create deployment directory')
                 self.ssh.execute_cmd('mkdir klever-inst')
-                with DeployConfsAndScripts(self.logger, self.ssh, self.args.deployment_configuration_file,
-                                           'creation of Klever base image'):
+                with CopyDeployConfAndSrcs(self.args, self.logger, self.ssh, 'creation of Klever base image'):
                     # Install system packages.
-                    self.ssh.execute_cmd('sudo PYTHONPATH=. ./klever/deploys/install_deps.py --non-interactive')
+                    self.ssh.execute_cmd(
+                        'sudo PYTHONPATH=klever klever/klever/deploys/install_deps.py --non-interactive')
                     # Install Klever Python.
                     self.ssh.execute_cmd('wget https://forge.ispras.ru/attachments/download/7251/python-3.7.6.tar.xz')
                     self.ssh.execute_cmd('sudo tar -C / -xf python-3.7.6.tar.xz')
                     self.ssh.execute_cmd('rm python-3.7.6.tar.xz')
                     # Install Klever Python packages.
                     self.ssh.execute_cmd(
-                        'sudo /usr/local/python3-klever/bin/python3 -m pip install -r requirements.txt')
+                        'sudo /usr/local/python3-klever/bin/python3 -m pip install -r klever/requirements.txt')
 
             instance.create_image()
 
@@ -237,9 +237,11 @@ class OSKleverInstance(OSEntity):
         self.ssh.sftp_put(src, dst, ignore=ignore)
 
     def _install_or_update_deps(self):
-        self.ssh.execute_cmd('sudo PYTHONPATH=. ./deploys/install_deps.py --non-interactive' +
-                             (' --update-packages' if self.args.update_packages else '') +
-                             (' --update-python3-packages' if self.args.update_python3_packages else ''))
+        self.ssh.execute_cmd('sudo PYTHONPATH=klever klever/klever/deploys/install_deps.py --non-interactive' +
+                             (' --update-packages' if self.args.update_packages else ''))
+        if self.args.update_python3_packages:
+            self.ssh.execute_cmd(
+                'sudo /usr/local/python3-klever/bin/python3 -m pip install --upgrade -r klever/requirements.txt')
 
     def _create(self, is_dev):
         base_image = self._get_base_image(self.args.klever_base_image)
@@ -252,35 +254,32 @@ class OSKleverInstance(OSEntity):
 
         with OSInstance(logger=self.logger, clients=self.clients, args=self.args, name=self.name,
                         base_image=base_image, flavor_name=self.args.flavor) as self.instance:
+            self.instance.keep_on_exit = True
             with SSH(args=self.args, logger=self.logger, name=self.name,
                      floating_ip=self.instance.floating_ip['floating_ip_address']) as self.ssh:
                 # TODO: looks like deploys/local/local.py too much.
-                self.logger.info('Install init.d scripts')
-                for dirpath, _, filenames in os.walk(os.path.join(os.path.dirname(__file__), os.path.pardir,
-                                                                  os.path.pardir, 'init.d')):
-                    # TODO: putting files one by one is extremely slow.
-                    for filename in filenames:
-                        self.ssh.sftp_put(os.path.join(dirpath, filename), os.path.join('/etc/init.d', filename),
-                                          sudo=True, directory=os.path.sep)
-                        self.ssh.execute_cmd('sudo update-rc.d {0} defaults'.format(filename))
-
                 with tempfile.NamedTemporaryFile('w', encoding='utf8') as fp:
                     # TODO: avoid using "/home/debian" - rename ssh username to instance username and add option to provide instance user home directory.
+                    fp.write('KLEVER_SOURCE_DIRECTORY=/home/debian/klever\n')
                     fp.write('KLEVER_DEPLOYMENT_DIRECTORY=/home/debian/klever-inst\n')
                     fp.write('KLEVER_DATA_DIR="/home/debian/klever-inst/klever/build bases"\n')
+                    # TODO: make it depending on the number of CPUs.
+                    fp.write("KLEVER_WORKERS=2\n")
+                    fp.write("KLEVER_PYTHON_BIN_DIR=/usr/local/python3-klever/\n")
+                    fp.write("KLEVER_PYTHON=/usr/local/python3-klever/bin/python3\n")
                     fp.flush()
                     self.ssh.sftp_put(fp.name, '/etc/default/klever', sudo=True, directory=os.path.sep)
 
                 self.logger.info('Install systemd configuration files and services')
                 self.ssh.execute_cmd('sudo mkdir -p /etc/conf.d')
                 for dirpath, _, filenames in os.walk(os.path.join(os.path.dirname(__file__), os.path.pardir,
-                                                                  os.path.pardir, 'systemd', 'conf.d')):
+                                                                  'systemd', 'conf.d')):
                     for filename in filenames:
                         self.ssh.sftp_put(os.path.join(dirpath, filename), os.path.join('/etc/conf.d', filename),
                                           sudo=True, directory=os.path.sep)
 
                 for dirpath, _, filenames in os.walk(os.path.join(os.path.dirname(__file__), os.path.pardir,
-                                                                  os.path.pardir, 'systemd', 'tmpfiles.d')):
+                                                                  'systemd', 'tmpfiles.d')):
                     for filename in filenames:
                         self.ssh.sftp_put(os.path.join(dirpath, filename), os.path.join('/etc/tmpfiles.d', filename),
                                           sudo=True, directory=os.path.sep)
@@ -288,16 +287,15 @@ class OSKleverInstance(OSEntity):
                 self.ssh.execute_cmd('sudo systemd-tmpfiles --create')
 
                 for dirpath, _, filenames in os.walk(os.path.join(os.path.dirname(__file__), os.path.pardir,
-                                                                  os.path.pardir, 'systemd', 'system')):
+                                                                  'systemd', 'system')):
                     for filename in filenames:
                         self.ssh.sftp_put(os.path.join(dirpath, filename),
                                           os.path.join('/etc/systemd/system', filename),
                                           sudo=True, directory=os.path.sep)
 
-                with DeployConfsAndScripts(self.logger, self.ssh, self.args.deployment_configuration_file,
-                                          'creation of Klever instance'):
+                with CopyDeployConfAndSrcs(self.args, self.logger, self.ssh, 'creation of Klever instance'):
                     self._install_or_update_deps()
-                    self.ssh.execute_cmd('sudo PYTHONPATH=. ./deploys/prepare_env.py')
+                    self.ssh.execute_cmd('sudo PYTHONPATH=klever klever/klever/deploys/prepare_env.py')
                     self._create_or_update(is_dev)
 
                 # Preserve instance if everything above went well.
@@ -321,32 +319,14 @@ class OSKleverInstance(OSEntity):
                 self.ssh.execute_cmd('sudo rm klever-inst/klever.json')
                 self.ssh.sftp_put(nested_fp.name, 'klever-inst/klever.json', sudo=True)
 
-        install_klever_addons(self.logger, 'klever-inst', deploy_conf, prev_deploy_info, self._cmd_fn, self._install_fn,
-                              dump_cur_deploy_info)
-        install_klever_build_bases(self.logger, 'klever-inst/klever', deploy_conf, self._cmd_fn, self._install_fn)
-        prev_deploy_info = get_prev_deploy_info()
-
-        # Keeping entities to be updated in previous deployment information allows to properly deal when somethiing
-        # went wrong above. For instance, script can update Klever but then fail when, say, installing programs. After
-        # fixing issues with programs script will skip updating Klever and install them successfully. But also it will
-        # perform actions required after updating Klever that happened at the first iteration since we remember that
-        # Klever should be updated.
-        if 'To update' in prev_deploy_info:
-            if 'Klever' in prev_deploy_info['To update']:
-                self.ssh.execute_cmd('sudo PYTHONPATH=. ./deploys/install_klever_bridge.py{0}'
-                                     .format(' --development' if is_dev else ''))
-
-            if 'Klever' in prev_deploy_info['To update'] or 'Controller & Schedulers' in prev_deploy_info['To update']:
-                self.ssh.execute_cmd('sudo PYTHONPATH=. ./deploys/configure_controller_and_schedulers.py{0}'
-                                     .format(' --development' if is_dev else ''))
-            elif 'Verification Backends' in prev_deploy_info['To update']:
-                self.ssh.execute_cmd('sudo PYTHONPATH=. ./deploys/configure_controller_and_schedulers.py'
-                                     ' --just-native-scheduler-task-worker')
-
-            # Although we can forget to update entities step by step it is simpler and safer to forget about everything
-            # at once. Indeed, there will be very rare failures above.
-            del prev_deploy_info['To update']
-            dump_cur_deploy_info(prev_deploy_info)
+        install_klever_addons(self.logger, 'klever', 'klever-inst', deploy_conf, prev_deploy_info, self._cmd_fn,
+                              self._install_fn, dump_cur_deploy_info)
+        install_klever_build_bases(self.logger, 'klever', 'klever-inst/klever', deploy_conf, self._cmd_fn,
+                                   self._install_fn)
+        self.ssh.execute_cmd('sudo PYTHONPATH=klever klever/klever/deploys/install_klever_bridge.py{0}'
+                             .format(' --development' if is_dev else ''))
+        self.ssh.execute_cmd('sudo PYTHONPATH=klever klever/klever/deploys/configure_controller_and_schedulers.py{0}'
+                             .format(' --development' if is_dev else ''))
 
     def _get_instance(self, instance_name):
         self.logger.info('Get instance matching "{0}"'.format(instance_name))
@@ -398,8 +378,7 @@ class OSKleverInstance(OSEntity):
     def _update(self, instance, is_dev):
         with SSH(args=self.args, logger=self.logger, name=instance.name,
                  floating_ip=self._get_instance_floating_ip(instance)) as self.ssh:
-            with DeployConfsAndScripts(self.logger, self.ssh, self.args.deployment_configuration_file,
-                                      'update of Klever instance'):
+            with CopyDeployConfAndSrcs(self.args, self.logger, self.ssh, 'update of Klever instance'):
                 self._install_or_update_deps()
                 self._create_or_update(is_dev)
 
