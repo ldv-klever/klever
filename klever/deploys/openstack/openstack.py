@@ -108,11 +108,12 @@ class OSEntity:
 
 
 class CopyDeployConfAndSrcs:
-    def __init__(self, args, logger, ssh, action):
+    def __init__(self, args, logger, ssh, action, is_remove_srcs=False):
         self.args = args
         self.logger = logger
         self.ssh = ssh
         self.action = action
+        self.is_remove_srcs = is_remove_srcs
 
     def __enter__(self):
         self.logger.info('Copy deployment configuration file')
@@ -129,8 +130,9 @@ class CopyDeployConfAndSrcs:
                     os.remove('klever.tar.gz')
 
     def __exit__(self, etype, value, traceback):
-        self.logger.info('Remove sources used during {0}'.format(self.action))
-        self.ssh.execute_cmd('sudo rm -r klever')
+        if self.is_remove_srcs:
+            self.logger.info('Remove sources used during {0}'.format(self.action))
+            self.ssh.execute_cmd('sudo rm -r klever')
 
         self.logger.info('Remove deployment configuration file')
         self.ssh.sftp.remove('klever.json')
@@ -191,7 +193,7 @@ class OSKleverBaseImage(OSEntity):
                      floating_ip=instance.floating_ip['floating_ip_address']) as self.ssh:
                 self.logger.info('Create deployment directory')
                 self.ssh.execute_cmd('mkdir klever-inst')
-                with CopyDeployConfAndSrcs(self.args, self.logger, self.ssh, 'creation of Klever base image'):
+                with CopyDeployConfAndSrcs(self.args, self.logger, self.ssh, 'creation of Klever base image', True):
                     # Install system packages.
                     self.ssh.execute_cmd(
                         'sudo PYTHONPATH=klever klever/klever/deploys/install_deps.py --non-interactive')
