@@ -1,7 +1,6 @@
 # Klever
 addons
 build bases
-klever/deploys/conf/*.json
 
 # celery
 celerybeat*
