@@ -46,8 +46,7 @@ def _install_klever_bridge(logger):
     execute_cmd(logger, sys.executable, './manage.py', 'check-preset')
 
 
-def install_klever_bridge_development(logger, src_dir, deploy_dir):
-    del deploy_dir
+def install_klever_bridge_development(logger, src_dir):
     logger.info('Install/update development Klever Bridge')
 
     services = ('klever-bridge-development', 'klever-celery-development', 'klever-celerybeat-development')
@@ -116,8 +115,10 @@ def main():
     parser.add_argument('--deployment-directory', default='klever-inst')
     args = parser.parse_args()
 
-    install_klever_bridge = install_klever_bridge_development if args.development else install_klever_bridge_production
-    install_klever_bridge(get_logger(__name__), args.source_directory, args.deployment_directory)
+    if args.development:
+        install_klever_bridge_development(get_logger(__name__), args.source_directory)
+    else:
+        install_klever_bridge_production(get_logger(__name__), args.source_directory, args.deployment_directory)
 
 
 if __name__ == '__main__':
