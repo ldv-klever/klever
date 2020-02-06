@@ -3,13 +3,9 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/bridge/.idea/Bridge.iml" filepath="$PROJECT_DIR$/bridge/.idea/Bridge.iml" />
-      <module fileurl="file://$PROJECT_DIR$/core/.idea/Core.iml" filepath="$PROJECT_DIR$/core/.idea/Core.iml" />
-      <module fileurl="file://$PROJECT_DIR$/deploys/.idea/Deploys.iml" filepath="$PROJECT_DIR$/deploys/.idea/Deploys.iml" />
       <module fileurl="file://$PROJECT_DIR$/docs/.idea/Docs.iml" filepath="$PROJECT_DIR$/docs/.idea/Docs.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/Klever.iml" filepath="$PROJECT_DIR$/.idea/Klever.iml" />
       <module fileurl="file://$PROJECT_DIR$/presets/.idea/Presets.iml" filepath="$PROJECT_DIR$/presets/.idea/Presets.iml" />
-      <module fileurl="file://$PROJECT_DIR$/scheduler/.idea/Scheduler.iml" filepath="$PROJECT_DIR$/scheduler/.idea/Scheduler.iml" />
-      <module fileurl="file://$PROJECT_DIR$/utils/.idea/Utils.iml" filepath="$PROJECT_DIR$/utils/.idea/Utils.iml" />
     </modules>
   </component>
 </project>
