@@ -148,7 +148,7 @@ class Migration(migrations.Migration):
             ('verification', models.BooleanField(default=False)),
             ('start_date', models.DateTimeField(default=now)),
             ('finish_date', models.DateTimeField(null=True)),
-            ('data', JSONField(null=True)),
+            ('data', JSONField(default=list, null=True)),
             ('log', models.FileField(null=True, upload_to=reports.models.get_component_path)),
             ('verifier_files', models.FileField(null=True, upload_to=reports.models.get_component_path)),
             ('additional_sources', models.ForeignKey(
