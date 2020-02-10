@@ -378,7 +378,8 @@ class CoverageView(LoginRequiredMixin, LoggedCallMixin, DetailView):
         context = super().get_context_data(**kwargs)
         context['coverage_id'] = self.request.GET.get('coverage_id')
         context['SelfAttrsData'] = report_attributes_with_parents(self.object)
-        context['decision'] = Decision.objects.only('id', 'name', 'weight').get(id=self.object.decision_id)
+        context['decision'] = Decision.objects.only('id', 'start_date', 'title', 'weight')\
+            .get(id=self.object.decision_id)
         if context['decision'].weight == DECISION_WEIGHT[0][0]:
             context['parents'] = get_parents(self.object, include_self=True)
         context['statistics'] = GetCoverageStatistics(self.object, context['coverage_id'])

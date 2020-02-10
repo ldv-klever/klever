@@ -44,8 +44,8 @@ from tools.profiling import LoggedCallMixin
 
 from jobs.models import Job, JobFile, FileSystem, UploadedJobArchive, PresetJob, PresetFile, Decision
 from jobs.serializers import (
-    decision_status_changed, PresetJobDirSerializer, JobFileSerializer,
-    CreateJobSerializer, UpdateJobSerializer, DecisionStatusSerializerRO
+    decision_status_changed, PresetJobDirSerializer, JobFileSerializer, CreateJobSerializer,
+    UpdateJobSerializer, DecisionStatusSerializerRO, UpdateDecisionSerializer
 )
 from jobs.configuration import get_configuration_value, GetConfiguration
 from jobs.Download import KleverCoreArchiveGen, UploadJobsScheduler, JobArchiveGenerator, get_jobs_to_download
@@ -217,6 +217,17 @@ class GetFilesDiffView(LoggedCallMixin, APIView):
 class RemoveJobView(LoggedCallMixin, DestroyAPIView):
     permission_classes = (DestroyJobPermission,)
     queryset = Job.objects.all()
+
+
+class RenameDecisionView(LoggedCallMixin, UpdateAPIView):
+    permission_classes = (IsAuthenticated,)
+    serializer_class = UpdateDecisionSerializer
+    queryset = Decision.objects
+
+    def check_object_permissions(self, request, obj):
+        super(RenameDecisionView, self).check_object_permissions(request, obj)
+        if not DecisionAccess(request.user, obj).can_rename:
+            self.permission_denied(request, _("You don't have an access to rename the decision"))
 
 
 class RemoveDecisionView(LoggedCallMixin, DestroyAPIView):

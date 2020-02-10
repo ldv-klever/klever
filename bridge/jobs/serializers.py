@@ -209,3 +209,9 @@ class PresetJobDirSerializer(DynamicFieldsModelSerializer):
     class Meta:
         model = PresetJob
         fields = ('parent', 'name')
+
+
+class UpdateDecisionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Decision
+        fields = ('title',)

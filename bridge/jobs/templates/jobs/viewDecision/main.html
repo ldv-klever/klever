@@ -51,6 +51,7 @@
                         <a href="{% url 'jobs:download-decision-conf' object.id %}" class="item"><i class="settings icon"></i> {% trans 'Donwload configuration' %}</a>
                         <a id="restart_decision_btn" class="item{% if not access.can_restart %} disabled{% endif %}"><i class="redo icon"></i> {% trans 'Restart' %}</a>
                         <a id="stop_decision_btn" class="item{% if not access.can_stop %} disabled{% endif %}"><i class="stop icon"></i> {% trans 'Stop' %}</a>
+                        <a id="rename_decision_btn" class="item{% if not access.can_rename %} disabled{% endif %}"><i class="pencil icon"></i> {% trans 'Change name' %}</a>
                         <a id="remove_decision_btn" class="item{% if not access.can_delete %} disabled{% endif %}"><i class="trash icon"></i> {% trans 'Delete' %}</a>
                     </div>
                 </div>
@@ -172,6 +173,19 @@
             </div>
         </div>
         <span id="error___dfc_notype" hidden>{% trans 'Choose at least one type of reports' %}</span>
+    {% endif %}
+    {% if access.can_rename %}
+        <div id="rename_decision_modal" class="ui small modal">
+            <div class="content">
+                <div class="ui fluid input">
+                    <input id="rename_decision_input" type="text" maxlength="128" value="{{ object.title }}" placeholder="{% trans 'Name' %}">
+                </div>
+            </div>
+            <div class="actions">
+                <button class="ui green button modal-confirm" data-url="{% url 'jobs:api-rename-decision' object.id %}">{% trans 'Rename' %}</button>
+                <button class="ui blue button modal-cancel">{% trans 'Cancel' %}</button>
+            </div>
+        </div>
     {% endif %}
 
     <div hidden>

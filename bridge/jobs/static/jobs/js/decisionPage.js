@@ -46,6 +46,26 @@ $(document).ready(function () {
         });
     }
 
+    // Activate rename decision modal
+    let rename_decision_modal = $('#rename_decision_modal');
+    rename_decision_modal.modal({transition: 'slide down', autofocus: false, closable: false})
+        .modal('attach events', '#rename_decision_btn', 'show');
+    rename_decision_modal.find('.modal-cancel').click(function () {
+        rename_decision_modal.modal('hide')
+    });
+    rename_decision_modal.find('.modal-confirm').click(function () {
+        $.ajax({
+            url: $(this).data('url'),
+            method: 'PATCH',
+            data: {
+                title: $('#rename_decision_input').val()
+            },
+            success: function () {
+                window.location.replace('')
+            }
+        });
+    });
+
     // Activate download for competition modal
     let dfc_modal = $('#dfc_modal'), dfc_problems = $('#dfc_problems');
     dfc_modal.modal({transition: 'slide down', autofocus: false, closable: false});

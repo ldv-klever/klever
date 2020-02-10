@@ -39,6 +39,7 @@ urlpatterns = [
 
     # Main actions with jobs
     path('api/<int:pk>/remove/', api.RemoveJobView.as_view(), name='api-remove-job'),
+    path('api/decision/<int:pk>/rename/', api.RenameDecisionView.as_view(), name='api-rename-decision'),
     path('api/decision/<int:pk>/remove/', api.RemoveDecisionView.as_view(), name='api-remove-decision'),
     path('api/duplicate/<uuid:identifier>/', api.DuplicateJobView.as_view(), name='api-duplicate-job'),
 

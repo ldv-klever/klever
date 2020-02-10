@@ -18,6 +18,7 @@
 import uuid
 from django.db import models
 from django.db.models.signals import post_delete
+from django.utils.timezone import now
 from django.utils.translation import ugettext_lazy as _
 from mptt.models import MPTTModel, TreeForeignKey
 
@@ -129,7 +130,7 @@ class Scheduler(models.Model):
 
 class Decision(models.Model):
     job = models.ForeignKey(Job, models.CASCADE)
-    name = models.CharField(max_length=128)
+    title = models.CharField(max_length=128, blank=True)
     identifier = models.UUIDField(unique=True, db_index=True, default=uuid.uuid4)
     operator = models.ForeignKey(User, models.SET_NULL, null=True, related_name='decisions')
     status = models.CharField(max_length=1, choices=DECISION_STATUS, default=DECISION_STATUS[1][0])
@@ -142,7 +143,7 @@ class Decision(models.Model):
     error = models.TextField(null=True)
     configuration = models.ForeignKey(JobFile, models.CASCADE)
 
-    start_date = models.DateTimeField(null=True)
+    start_date = models.DateTimeField(default=now)
     finish_date = models.DateTimeField(null=True)
 
     tasks_total = models.PositiveIntegerField(default=0)
@@ -195,6 +196,10 @@ class Decision(models.Model):
         if self.status == DECISION_STATUS[7][0]:
             return 'orange'
         return 'violet'
+
+    @property
+    def name(self):
+        return self.title or self.start_date
 
     def __str__(self):
         return self.name

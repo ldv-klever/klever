@@ -261,6 +261,10 @@ class DecisionAccess:
         return (self.job_access.is_author or self.user.is_manager) and self.decision.is_finished
 
     @cached_property
+    def can_rename(self):
+        return self.decision.operator == self.user or self.user.is_manager
+
+    @cached_property
     def can_collapse(self):
         if not self.decision.is_finished or self.decision.is_lightweight or \
                 not (self.job_access.is_author or self.user.is_manager):

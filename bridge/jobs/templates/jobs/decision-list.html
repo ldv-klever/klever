@@ -23,7 +23,7 @@
                     </td>
                 {% endif %}
                 <td><a href="{% url 'jobs:decision' decision.id %}">{{ decision.name }}</a></td>
-                <td>{% if decision.start_date %}{% if user.data_format == 'hum' %}{{ decision.start_date|naturaltime }}{% else %}{{ decision.start_date }}{% endif %}{% else %}-{% endif %}</td>
+                <td>{% if user.data_format == 'hum' %}{{ decision.start_date|naturaltime }}{% else %}{{ decision.start_date }}{% endif %}</td>
                 <td>{% if decision.finish_date %}{% if user.data_format == 'hum' %}{{ decision.finish_date|naturaltime }}{% else %}{{ decision.finish_date }}{% endif %}{% else %}-{% endif %}</td>
                 <td>
                     {% if decision.error %}

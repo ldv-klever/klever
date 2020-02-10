@@ -183,9 +183,10 @@ class PrepareDecisionView(LoggedCallMixin, DetailView):
         context['data'] = StartDecisionData(self.request.user)
         if self.request.GET.get('base_job'):
             context['decisions'] = Decision.objects.filter(job_id=self.request.GET['base_job'])\
-                .order_by('id').only('id', 'name')
+                .order_by('id').only('id', 'start_date', 'title')
         else:
-            context['decisions'] = Decision.objects.filter(job=self.object).order_by('id').only('id', 'name')
+            context['decisions'] = Decision.objects.filter(job=self.object).order_by('id')\
+                .only('id', 'title', 'start_date')
         return context
 
 

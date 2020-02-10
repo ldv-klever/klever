@@ -772,7 +772,7 @@ class TableTree:
                 self._values_data[decision.id][column] = cell_value(value)
 
             self._values_data[decision.id]['priority'] = cell_value(decision.get_priority_display())
-            if decision.start_date is not None and decision.finish_date is not None:
+            if decision.finish_date is not None:
                 solution_wall = HumanizedValue(
                     int((decision.finish_date - decision.start_date).total_seconds() * 1000), user=self.view.user
                 ).timedelta

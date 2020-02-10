@@ -95,7 +95,7 @@ class DownloadDecisionSerializer(serializers.ModelSerializer):
     identifier = fields.UUIDField()
     configuration = serializers.SlugRelatedField(slug_field='hash_sum', queryset=JobFile.objects)
     scheduler = serializers.SlugRelatedField(slug_field='type', read_only=True)
-    start_date = TimeStampField(allow_null=True)
+    start_date = TimeStampField()
     finish_date = TimeStampField(allow_null=True)
     start_sj = TimeStampField(allow_null=True)
     finish_sj = TimeStampField(allow_null=True)

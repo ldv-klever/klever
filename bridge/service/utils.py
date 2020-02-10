@@ -234,7 +234,7 @@ class StartJobDecision:
         self.operator = user
         self._job = job
         self.configuration = configuration
-        self._name = name or 'Decision {}'.format(now())
+        self._name = name or ''
         self.decision = self.__create_decision()
         decision_status_changed(self.decision)
 
@@ -245,7 +245,7 @@ class StartJobDecision:
             'job-{}.json'.format(self._job.identifier), JobFile
         )
         return Decision.objects.create(
-            name=self._name, job=self._job, operator=self.operator, scheduler=scheduler,
+            title=self._name, job=self._job, operator=self.operator, scheduler=scheduler,
             weight=self.configuration['weight'], coverage_details=self.configuration['code coverage details'],
             priority=self.configuration['priority'], configuration=conf_db
         )

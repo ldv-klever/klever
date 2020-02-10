@@ -38,7 +38,7 @@ from reports.models import (
     ReportComponent, ReportSafe, ReportUnsafe, ReportUnknown, ReportAttr, ReportComponentLeaf,
     CoverageArchive, AttrFile, Computer, OriginalSources, AdditionalSources, DecisionCache
 )
-from service.models import Task, Decision
+from service.models import Task
 from service.utils import FinishDecision
 from caches.models import ReportSafeCache, ReportUnsafeCache, ReportUnknownCache
 
@@ -477,16 +477,6 @@ class UploadReport:
             if not zipfile.is_zipfile(arch) or zipfile.ZipFile(arch).testzip():
                 raise CheckArchiveError('The archive "{}" is not a ZIP file'.format(arch.name))
 
-    @transaction.atomic
-    def __start_decision(self):
-        decision = Decision.objects.select_for_update().get(id=self.decision.id)
-        if decision.start_date is not None:
-            raise exceptions.ValidationError(detail={'decision': "The decision already started"})
-        elif decision.finish_date is not None:
-            raise exceptions.ValidationError(detail={'decision': "The decision is not solving already"})
-        decision.start_date = now()
-        decision.save()
-
     def __get_archive(self, arch_name):
         if not arch_name:
             return None
@@ -524,9 +514,6 @@ class UploadReport:
         report = serializer.save()
 
         self.__update_decision_cache(report.component, started=True)
-
-        if report.parent is None:
-            self.__start_decision()
 
     def __create_verification_report(self, data):
         data['attr_data'] = self.__upload_attrs_files(self.__get_archive(data.get('attr_data')))
