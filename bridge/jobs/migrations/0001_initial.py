@@ -17,6 +17,7 @@
 
 from django.conf import settings
 from django.db import migrations, models
+from django.utils.timezone import now
 
 import uuid
 import mptt.fields
@@ -123,7 +124,7 @@ class Migration(migrations.Migration):
             ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
             ('job', models.ForeignKey(on_delete=models.deletion.CASCADE, to='jobs.Job')),
             ('identifier', models.UUIDField(db_index=True, default=uuid.uuid4, unique=True)),
-            ('name', models.CharField(max_length=128)),
+            ('title', models.CharField(blank=True, max_length=128)),
             ('scheduler', models.ForeignKey(on_delete=models.deletion.CASCADE, to='jobs.Scheduler')),
             ('operator', models.ForeignKey(
                 null=True, on_delete=models.deletion.SET_NULL, related_name='decisions', to=settings.AUTH_USER_MODEL
@@ -142,7 +143,7 @@ class Migration(migrations.Migration):
                 ('URGENT', 'Urgent'), ('HIGH', 'High'), ('LOW', 'Low'), ('IDLE', 'Idle')
             ], max_length=6)),
             ('error', models.TextField(null=True)),
-            ('start_date', models.DateTimeField(null=True)),
+            ('start_date', models.DateTimeField(default=now)),
             ('finish_date', models.DateTimeField(null=True)),
             ('tasks_total', models.PositiveIntegerField(default=0)),
             ('tasks_pending', models.PositiveIntegerField(default=0)),
