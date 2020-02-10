@@ -19,7 +19,6 @@ import glob
 import fileinput
 import json
 import os
-import re
 import shutil
 import sys
 
@@ -48,9 +47,8 @@ class Weaver(klever.core.vtg.plugins.Plugin):
 
         # This is required to get compiler (Aspectator) specific stdarg.h since kernel C files are compiled
         # with "-nostdinc" option and system stdarg.h couldn't be used.
-        aspectator_search_dir = '-isystem' + klever.core.utils.execute(self.logger,
-                                                                ('aspectator', '-print-file-name=include'),
-                                                                collect_all_stdout=True)[0]
+        aspectator_search_dir = '-isystem' + klever.core.utils.execute(
+            self.logger, ('aspectator', '-print-file-name=include'), collect_all_stdout=True)[0]
 
         env = dict(os.environ)
         # Print stubs instead of inline Assembler since verifiers do not interpret it and even can fail.
