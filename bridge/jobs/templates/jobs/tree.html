@@ -26,9 +26,6 @@
     {% compress js file jobtree %}
         <script src="{% static 'jobs/js/jobtree.js' %}"></script>
     {% endcompress %}
-    {% compress css file tree %}
-        <link href="{% static 'jobs/css/tree.css' %}" rel="stylesheet">
-    {% endcompress %}
 {% endblock %}
 
 {% block body_block %}
