@@ -212,10 +212,21 @@ MAX_FILE_SIZE = 104857600  # 100MB
 
 # RabbitMQ
 # username, password, host are requried, port can be specified
-with open(os.path.join(BASE_DIR, 'bridge', 'rmq.json'), encoding='utf8') as fp:
-    RABBIT_MQ = json.load(fp)
-RABBIT_MQ.setdefault('port', 5672)
-RABBIT_MQ_QUEUE = RABBIT_MQ.get('queue', 'klever')
+RMQ_SETTINGS_FILE = os.path.join(BASE_DIR, 'bridge', 'rmq.json')
+
+if os.path.isfile(RMQ_SETTINGS_FILE):
+    with open(RMQ_SETTINGS_FILE, encoding='utf8') as fp:
+        RABBIT_MQ = json.load(fp)
+    RABBIT_MQ.setdefault('port', '5672')
+    RABBIT_MQ_QUEUE = RABBIT_MQ.get('queue', 'klever')
+else:
+    RABBIT_MQ = {
+        "username": "service",
+        "password": "service",
+        "host": "localhost",
+        "port": "5672"
+    }
+    RABBIT_MQ_QUEUE = "Klever jobs and tasks"
 
 # Celery, using the same RabbitMQ server
 CELERY_BROKER_URL = 'amqp://{username}:{password}@{host}:{port}'.format(**RABBIT_MQ)
