@@ -370,7 +370,7 @@ class UploadReports:
                 report_data['problem_description'] = File(problem_fp, name=REPORT_ARCHIVE['problem_description'])
             serializer = DownloadReportUnknownSerializer(data=report_data)
             serializer.is_valid(raise_exception=True)
-            save_kwargs['decision_id'] = self.__get_decision_id(report_data.get('decision')),
+            save_kwargs['decision_id'] = self.__get_decision_id(report_data.get('decision'))
             report = serializer.save(**save_kwargs)
             self.saved_reports[(decision_id, report.identifier)] = report.id
             self._leaves_ids.add(report.id)
