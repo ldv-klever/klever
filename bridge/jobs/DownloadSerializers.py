@@ -25,9 +25,8 @@ from rest_framework import exceptions, serializers, fields
 from bridge.vars import MPTT_FIELDS, PRESET_JOB_TYPE
 from bridge.serializers import TimeStampField
 
-from jobs.models import Job, JobFile, FileSystem
+from jobs.models import Job, JobFile, FileSystem, Decision, Scheduler
 from reports.models import ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent, Computer, ReportAttr, DecisionCache
-from service.models import Decision
 
 from jobs.serializers import JobFilesField
 from jobs.utils import get_unique_name
@@ -90,7 +89,7 @@ class DownloadJobSerializer(serializers.ModelSerializer):
 class DownloadDecisionSerializer(serializers.ModelSerializer):
     identifier = fields.UUIDField()
     configuration = serializers.SlugRelatedField(slug_field='hash_sum', queryset=JobFile.objects)
-    scheduler = serializers.SlugRelatedField(slug_field='type', read_only=True)
+    scheduler = serializers.SlugRelatedField(slug_field='type', queryset=Scheduler.objects)
     start_date = TimeStampField()
     finish_date = TimeStampField(allow_null=True)
     start_sj = TimeStampField(allow_null=True)
