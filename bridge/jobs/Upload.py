@@ -88,12 +88,6 @@ class JobArchiveUploader:
             author=self._upload_obj.author, preset_id=self.__get_preset_id(serializer_data.get('preset_info'))
         )
 
-        # Create job decision object if it is not None
-        decision_data = serializer.validated_data['decision']
-        if decision_data and len(serializer.validated_data['run_history']):
-            last_conf = serializer.validated_data['run_history'][-1]['configuration']
-            Decision.objects.create(job=self.job, configuration=last_conf, **decision_data)
-
         # Upload job reports
         self.__change_upload_status(JOB_UPLOAD_STATUS[4][0])
         res = UploadReports(self._upload_obj.author, self.job, job_dir.name)

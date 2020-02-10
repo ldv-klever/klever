@@ -61,11 +61,7 @@ class DownloadJobSerializer(serializers.ModelSerializer):
         return attrs
 
     def create(self, validated_data):
-        # Run history and decision must be created outside with configuration file and job instance
-        validated_data.pop('run_history')
-        validated_data.pop('decision')
         job_files = validated_data.pop('files')['all']
-
         instance = super().create(validated_data)
         FileSystem.objects.bulk_create(list(FileSystem(job=instance, **fkwargs) for fkwargs in job_files))
         return instance
