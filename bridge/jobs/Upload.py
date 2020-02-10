@@ -150,6 +150,7 @@ class UploadReports:
         self.opened_files = []
         self._user = user
         self._jobdir = job_dir
+        self._final_statuses = {}
         self._uploaded_decisions = self.__upload_decisions(job)
 
         if not self._uploaded_decisions:
@@ -164,7 +165,6 @@ class UploadReports:
         self._computers = {}
         self._chunk = []
         self._attr_files = {}
-        self._final_statuses = {}
         self.__upload_reports()
         self.__change_decision_statuses()
 

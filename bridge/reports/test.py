@@ -1674,7 +1674,7 @@ class GetReportsPacks:
 
 
 class UploadRawReportsPacks:
-    base_url = 'http://127.0.0.1:8998'
+    base_url = 'http://127.0.0.1'
 
     def __init__(self, job_uuid, reports_log, original_sources):
         self.original_sources = original_sources
