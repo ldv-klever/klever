@@ -76,9 +76,21 @@ TEMPLATES = [
 WSGI_APPLICATION = 'bridge.wsgi.application'
 
 # In db.json ENGINE should be either "django.db.backends.postgresql_psycopg2"
-DATABASES = {
-    'default': json.load(open(os.path.join(BASE_DIR, 'bridge', 'db.json'), encoding='utf8')),
-}
+DB_SETTINGS_FILE = os.path.join(BASE_DIR, 'bridge', 'db.json')
+if os.path.isfile(DB_SETTINGS_FILE):
+    DATABASES = {
+        'default': json.load(open(DB_SETTINGS_FILE, encoding='utf8')),
+    }
+else:
+    DATABASES = {
+        'default': {
+            "ENGINE": "django.db.backends.postgresql",
+            "HOST": "127.0.0.1",
+            "NAME": "klever",
+            "USER": "klever",
+            "PASSWORD": "klever"
+        }
+    }
 
 LANGUAGE_CODE = 'en-us'
 
