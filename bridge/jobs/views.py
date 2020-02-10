@@ -168,7 +168,8 @@ class JobPage(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, DetailView):
         context['user_roles'] = UserRole.objects.filter(job=self.object).select_related('user')\
             .order_by('user__first_name', 'user__last_name', 'user__username')
         context['preset_changed'] = is_preset_changed(self.object)
-        context['decisions'] = Decision.objects.filter(job=self.object).select_related('configuration').order_by('id')
+        context['decisions'] = Decision.objects.filter(job=self.object).exclude(status=DECISION_STATUS[0][0])\
+            .select_related('configuration').order_by('id')
         return context
 
 
@@ -183,9 +184,11 @@ class PrepareDecisionView(LoggedCallMixin, DetailView):
         context['data'] = StartDecisionData(self.request.user)
         if self.request.GET.get('base_job'):
             context['decisions'] = Decision.objects.filter(job_id=self.request.GET['base_job'])\
+                .exclude(status=DECISION_STATUS[0][0])\
                 .order_by('id').only('id', 'start_date', 'title')
         else:
             context['decisions'] = Decision.objects.filter(job=self.object).order_by('id')\
+                .exclude(status=DECISION_STATUS[0][0])\
                 .only('id', 'title', 'start_date')
         return context
 
@@ -273,11 +276,12 @@ class DecisionPage(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, DetailVie
         # Decision access
         context['access'] = DecisionAccess(self.request.user, self.object)
         if not context['access'].can_view:
-            raise PermissionDenied(ERRORS[400])
+            raise PermissionDenied(_("You don't have an access to this decision"))
 
         # Other job decisions
         context['other_decisions'] = Decision.objects.filter(job=self.object.job)\
-            .exclude(id=self.object.id).select_related('configuration').order_by('id')
+            .exclude(id=self.object.id).exclude(status=DECISION_STATUS[0][0])\
+            .select_related('configuration').order_by('id')
 
         # Decision progress and core report link
         context['progress'] = ProgressSerializerRO(instance=self.object, context={'request': self.request}).data

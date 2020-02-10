@@ -77,6 +77,7 @@ $(document).ready(function () {
             }
             else if(conf_name === 'lastconf') {
                 file_form.hide();
+                $.post($('#api_conf_url').val(), {decision: parseInt($('#lastconf_select').val())}, fill_data);
                 lastconf_form.show();
             }
             else {

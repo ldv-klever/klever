@@ -171,6 +171,7 @@ def jobs_with_view_access(user: User, queryset):
 
 def decisions_with_view_access(user: User, queryset):
     """Filter decisions queryset by view decision access"""
+    queryset = queryset.exclude(status=DECISION_STATUS[0][0])
     if user.is_manager or user.is_expert:
         return set(queryset.values_list('id', flat=True))
     custom_access_ids = set(UserRole.objects.filter(user=user)

@@ -24,7 +24,7 @@ from django.db.models import F, FileField
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 
-from bridge.vars import DECISION_WEIGHT
+from bridge.vars import DECISION_WEIGHT, DECISION_STATUS
 from bridge.utils import BridgeException, logger
 
 from jobs.models import JOBFILE_DIR, JobFile, Decision
@@ -179,7 +179,8 @@ class Recalculation:
         self.__recalc()
 
     def __get_decisions(self, decisions_ids):
-        decisions = Decision.objects.filter(id__in=decisions_ids).select_related('job')
+        decisions = Decision.objects.filter(id__in=decisions_ids)\
+            .exclude(status=DECISION_STATUS[0][0]).select_related('job')
         if len(decisions) < len(decisions_ids):
             raise BridgeException(_('One of the selected decisions was not found'))
         if len(decisions) == 0:
