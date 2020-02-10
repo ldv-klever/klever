@@ -26,7 +26,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from rest_framework import exceptions
 
-from bridge.vars import REPORT_ARCHIVE, JOB_UPLOAD_STATUS, DECISION_STATUS, PRESET_JOB_TYPE
+from bridge.vars import JOB_UPLOAD_STATUS, DECISION_STATUS, PRESET_JOB_TYPE
 from bridge.utils import BridgeException, extract_archive
 
 from jobs.models import JOBFILE_DIR, PresetJob
@@ -147,7 +147,6 @@ class JobArchiveUploader:
 
 class UploadReports:
     def __init__(self, user, job, job_dir):
-        self.opened_files = []
         self._user = user
         self._jobdir = job_dir
         self._final_statuses = {}
@@ -251,34 +250,30 @@ class UploadReports:
             return
         for report_data in self._chunk:
             decision_id = report_data.pop('new_decision_id')
-            save_kwargs = {
-                'computer': self.__get_computer(report_data.get('computer')),
-                'parent_id': self.saved_reports.get((decision_id, report_data['parent'])),
-                'decision_id': decision_id
-            }
+            serializer = DownloadReportComponentSerializer(data=report_data)
+            serializer.is_valid(raise_exception=True)
+
+            report = ReportComponent(
+                computer=self.__get_computer(report_data.get('computer')),
+                parent_id=self.saved_reports.get((decision_id, report_data['parent'])),
+                decision_id=decision_id, **serializer.validated_data
+            )
             if report_data.get('additional_sources'):
-                save_kwargs['additional_sources'] = self.__get_additional_sources(
+                report.additional_sources = self.__get_additional_sources(
                     decision_id, report_data['additional_sources']
                 )
             if report_data.get('original_sources'):
-                save_kwargs['original_sources_id'] = self._original_sources[report_data['original_sources']]
+                report.original_sources_id = self._original_sources[report_data['original_sources']]
             if report_data.get('log'):
-                fp = open(self.__full_path(report_data['log']), mode='rb')
-                report_data['log'] = File(fp, name=REPORT_ARCHIVE['log'])
-                self.opened_files.append(fp)
+                with open(self.__full_path(report_data['log']), mode='rb') as fp:
+                    report.add_log(fp, save=False)
+
             if report_data.get('verifier_files'):
-                fp = open(self.__full_path(report_data['verifier_files']), mode='rb')
-                report_data['verifier_files'] = File(fp, name=REPORT_ARCHIVE['verifier_files'])
-                self.opened_files.append(fp)
+                with open(self.__full_path(report_data['verifier_files']), mode='rb') as fp:
+                    report.add_verifier_files(fp, save=False)
+            report.save()
 
-            serializer = DownloadReportComponentSerializer(data=report_data)
-            serializer.is_valid(raise_exception=True)
-            report = serializer.save(**save_kwargs)
             self.saved_reports[(decision_id, report.identifier)] = report.id
-
-            while len(self.opened_files):
-                fp = self.opened_files.pop()
-                fp.close()
 
         self._chunk = []
 
@@ -335,21 +330,16 @@ class UploadReports:
             return
         unsafes_cache = []
         for report_data in unsafes_data:
-            et_fp = None
             decision_id = self.__get_decision_id(report_data.get('decision'))
-            save_kwargs = {
-                'decision_id': decision_id, 'parent_id': self.saved_reports[(decision_id, report_data.pop('parent'))]
-            }
-            if report_data.get('error_trace'):
-                et_fp = open(self.__full_path(report_data['error_trace']), mode='rb')
-                report_data['error_trace'] = File(et_fp, name=REPORT_ARCHIVE['error_trace'])
+            parent_id = self.saved_reports[(decision_id, report_data.pop('parent'))]
             serializer = DownloadReportUnsafeSerializer(data=report_data)
             serializer.is_valid(raise_exception=True)
-            report = serializer.save(**save_kwargs)
+            report = ReportUnsafe(decision_id=decision_id, parent_id=parent_id, **serializer.validated_data)
+            with open(self.__full_path(report_data['error_trace']), mode='rb') as fp:
+                report.add_trace(fp, save=True)
+
             self.saved_reports[(decision_id, report.identifier)] = report.id
             self._leaves_ids.add(report.id)
-            if et_fp:
-                et_fp.close()
             unsafes_cache.append(ReportUnsafeCache(decision_id=decision_id, report_id=report.id))
         ReportUnsafeCache.objects.bulk_create(unsafes_cache)
 
@@ -361,21 +351,15 @@ class UploadReports:
         unknowns_cache = []
         for report_data in unknowns_data:
             decision_id = self.__get_decision_id(report_data.get('decision'))
-            save_kwargs = {
-                'decision_id': decision_id, 'parent_id': self.saved_reports[(decision_id, report_data.pop('parent'))]
-            }
-            problem_fp = None
-            if report_data.get('problem_description'):
-                problem_fp = open(self.__full_path(report_data['problem_description']), mode='rb')
-                report_data['problem_description'] = File(problem_fp, name=REPORT_ARCHIVE['problem_description'])
+            parent_id = self.saved_reports[(decision_id, report_data.pop('parent'))]
             serializer = DownloadReportUnknownSerializer(data=report_data)
             serializer.is_valid(raise_exception=True)
-            save_kwargs['decision_id'] = self.__get_decision_id(report_data.get('decision'))
-            report = serializer.save(**save_kwargs)
+            report = ReportUnknown(decision_id=decision_id, parent_id=parent_id, **serializer.validated_data)
+            with open(self.__full_path(report_data['problem_description']), mode='rb') as fp:
+                report.add_problem_desc(fp, save=True)
+
             self.saved_reports[(decision_id, report.identifier)] = report.id
             self._leaves_ids.add(report.id)
-            if problem_fp:
-                problem_fp.close()
             unknowns_cache.append(ReportUnknownCache(decision_id=decision_id, report_id=report.id))
         ReportUnknownCache.objects.bulk_create(unknowns_cache)
 

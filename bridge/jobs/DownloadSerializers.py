@@ -135,7 +135,11 @@ class DownloadReportComponentSerializer(serializers.ModelSerializer):
     class Meta:
         model = ReportComponent
         exclude = ('id', *MPTT_FIELDS)
-        extra_kwargs = {'decision': {'read_only': True}}
+        extra_kwargs = {
+            'decision': {'read_only': True},
+            'log': {'read_only': True},
+            'verifier_files': {'read_only': True},
+        }
 
 
 class DownloadReportSafeSerializer(serializers.ModelSerializer):
@@ -153,7 +157,7 @@ class DownloadReportUnsafeSerializer(serializers.ModelSerializer):
     class Meta:
         model = ReportUnsafe
         exclude = ('id', 'trace_id', *MPTT_FIELDS)
-        extra_kwargs = {'decision': {'read_only': True}}
+        extra_kwargs = {'decision': {'read_only': True}, 'error_trace': {'read_only': True}}
 
 
 class DownloadReportUnknownSerializer(serializers.ModelSerializer):
@@ -162,7 +166,7 @@ class DownloadReportUnknownSerializer(serializers.ModelSerializer):
     class Meta:
         model = ReportUnknown
         exclude = ('id', *MPTT_FIELDS)
-        extra_kwargs = {'decision': {'read_only': True}}
+        extra_kwargs = {'decision': {'read_only': True}, 'problem_description': {'read_only': True}}
 
 
 class DownloadReportAttrSerializer(serializers.ModelSerializer):
