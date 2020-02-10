@@ -744,7 +744,7 @@ class MarkAssociationsBase:
         ordering = 'id'
 
         view_columns = set(self.view['columns'])
-        select_only = ['id', 'report__decision_id', 'report__decision__name']
+        select_only = ['id', 'report__decision_id', 'report__decision__title', 'report__decision__start_date']
         if self.type == 'unsafe':
             select_only.append('report__trace_id')
         else:
@@ -953,7 +953,7 @@ class AssChangesBase:
             qs_filters &= Q(verdict_new__in=self.view['verdict_new'])
         if 'decision_title' in self.view:
             qs_filters &= Q(**{
-                'decision__name__{}'.format(self.view['decision_title'][0]): self.view['decision_title'][1]
+                'decision__title__{}'.format(self.view['decision_title'][0]): self.view['decision_title'][1]
             })
         if 'attr' in self.view:
             select_related.extend(['report', 'report__cache'])
@@ -974,7 +974,7 @@ class AssChangesBase:
         if 'change_kind' in selected_columns:
             select_only.append('kind')
         if 'decision' in selected_columns:
-            select_only.extend(['decision__id', 'decision__name'])
+            select_only.extend(['decision__id', 'decision__title', 'decision__start_date'])
         if 'sum_verdict' in selected_columns:
             select_only.extend(['verdict_old', 'verdict_new'])
         if 'tags' in selected_columns:
