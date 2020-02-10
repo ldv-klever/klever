@@ -162,7 +162,7 @@ class RecalculateDecisionCache:
             if report.wall_time:
                 cache_data[(report.decision_id, report.component)]['wall_time'] += report.wall_time
             if report.memory:
-                cache_data[(report.decision_id, report.component)]['memory'] += max(
+                cache_data[(report.decision_id, report.component)]['memory'] = max(
                     cache_data[(report.decision_id, report.component)]['memory'], report.memory
                 )
         DecisionCache.objects.filter(decision_id__in=self._decisions).delete()
