@@ -343,7 +343,7 @@ class TestService(KleverTestCase):
         self.assertEqual(json.loads(res['jobs and tasks status'])['tasks']['error'], [])
         self.assertEqual(json.loads(res['jobs and tasks status'])['tasks']['finished'], [])
 
-        # Donwload solutions for finished tasks
+        # Download solutions for finished tasks
         response = self.core.post('/service/download_solution/', {'task id': task_ids[2]})
         self.assertEqual(response.status_code, 200)
         self.assertNotEqual(response['Content-Type'], 'application/json')
@@ -635,7 +635,7 @@ class TestService(KleverTestCase):
         self.assertEqual(json.loads(res['jobs and tasks status'])['tasks']['error'], [])
         self.assertEqual(json.loads(res['jobs and tasks status'])['tasks']['finished'], [])
 
-        # Donwload solutions for finished tasks
+        # Download solutions for finished tasks
         response = self.core.post('/service/download_solution/', {'task id': task_ids[0]})
         self.assertEqual(response.status_code, 200)
         self.assertNotEqual(response['Content-Type'], 'application/json')

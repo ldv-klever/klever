@@ -48,7 +48,7 @@
                     <div class="header">{% trans 'Decision' %}</div><i class="dropdown icon"></i>
                     <div class="menu">
                         <a href="{% url 'jobs:download' object.job_id %}?decision={{ object.id }}" class="item{% if not access.can_download %} disabled{% endif %}"><i class="download icon"></i> {% trans 'Download job with this decision' %}</a>
-                        <a href="{% url 'jobs:download-decision-conf' object.id %}" class="item"><i class="settings icon"></i> {% trans 'Donwload configuration' %}</a>
+                        <a href="{% url 'jobs:download-decision-conf' object.id %}" class="item"><i class="settings icon"></i> {% trans 'Download configuration' %}</a>
                         <a id="restart_decision_btn" class="item{% if not access.can_restart %} disabled{% endif %}"><i class="redo icon"></i> {% trans 'Restart' %}</a>
                         <a id="stop_decision_btn" class="item{% if not access.can_stop %} disabled{% endif %}"><i class="stop icon"></i> {% trans 'Stop' %}</a>
                         <a id="rename_decision_btn" class="item{% if not access.can_rename %} disabled{% endif %}"><i class="pencil icon"></i> {% trans 'Change name' %}</a>
