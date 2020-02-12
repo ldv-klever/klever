@@ -34,7 +34,7 @@
             {% for preset_data in TableData.content.values %}
                 <tr class="{% if preset_data.instance.type != '2' %}tr-show{% endif %} treegrid-p{{ preset_data.instance.id }}{% if preset_data.instance.parent_id %} treegrid-parent-p{{ preset_data.instance.parent_id }}{% endif %}">
                     <td class="one wide">&nbsp;</td> {# Checkbox column #}
-                    <td class="collapsing{% if preset_data.instance.type != '2' %} bold-text{% endif %}">
+                    <td class="collapsing bold-text">
                         {% if preset_data.instance.type != '0' %}
                             <a href="{% url 'jobs:preset' preset_data.instance.id %}">{{ preset_data.instance.name }}</a>
                         {% else %}
