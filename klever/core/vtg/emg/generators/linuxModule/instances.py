@@ -21,10 +21,10 @@ import copy
 import sortedcontainers
 
 import klever.core.vtg.emg.common.c as c
-from klever.core.vtg.emg.common import get_or_die, model_comment
+from klever.core.vtg.emg.common import get_or_die
 from klever.core.vtg.emg.common.process import Dispatch, Receive, Block
 from klever.core.vtg.emg.common.process.serialization import CollectionEncoder
-from klever.core.vtg.emg.common.c.types import Structure, Primitive, Pointer, Array, Function
+from klever.core.vtg.emg.common.c.types import Structure, Primitive, Pointer, Array, Function, import_declaration
 from klever.core.vtg.emg.generators.linuxModule.interface import Implementation, Resource, Container, Callback
 from klever.core.vtg.emg.generators.linuxModule.process import get_common_parameter, CallRetval, Call, ExtendedAccess, Action
 
@@ -32,6 +32,17 @@ from klever.core.vtg.emg.generators.linuxModule.process import get_common_parame
 _declarations = {'environment model': list()}
 _definitions = {'environment model': list()}
 _values_map = sortedcontainers.SortedDict()
+
+
+def _yeild_identifier():
+    """Return unique identifier."""
+    identifier_counter = 1
+    while True:
+        identifier_counter += 1
+        yield identifier_counter
+
+_f_identifiers = _yeild_identifier()
+_v_identifiers = _yeild_identifier()
 
 
 def generate_instances(logger, conf, sa, interfaces, model, instance_maps):
@@ -261,14 +272,6 @@ def _simplify_process(logger, conf, sa, interfaces, process):
         del process.labels[label]
 
     return
-
-
-def _yeild_identifier():
-    """Return unique identifier."""
-    identifier_counter = 1
-    while True:
-        identifier_counter += 1
-        yield identifier_counter
 
 
 def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, action_identifiers, param_identifiers):
@@ -734,18 +737,17 @@ def __generate_model_comment(process):
 
 def _remove_statics(logger, sa, process):
     # todo: write docstring
-    f_identifiers = _yeild_identifier()
-    v_identifiers = _yeild_identifier()
+
     access_map = process.allowed_implementations
 
-    def resolve_existing(nm, f, collection):
-        if f in collection and nm in collection[f]:
-            return collection[f][nm]
+    def resolve_existing(search_name, search_implementation, collection):
+        if search_implementation in collection and search_name in collection[search_implementation]:
+            return collection[search_implementation][search_name]
         return None
 
     def create_definition(decl, nm, impl, requre_suffix=False):
         if requre_suffix:
-            new_name = "emg_wrapper_{}_{}".format(nm, f_identifiers.__next__())
+            new_name = "emg_wrapper_{}_{}".format(nm, _f_identifiers.__next__())
         else:
             new_name = "emg_wrapper_{}".format(nm)
         f = c.Function(new_name, decl)
@@ -777,12 +779,16 @@ def _remove_statics(logger, sa, process):
             svar = sa.get_source_variable(implementation.value, file)
             function_name = False
             if not svar:
-                candidate = sa.get_source_function(implementation.value, file)
+                candidate = sa.get_source_function(implementation.value, file, declaration=implementation.declaration)
                 if candidate:
                     static = static or candidate.static
                     declaration = candidate.declaration
                     value = candidate.name
                     function_name = candidate.name
+
+                    # This is quite precise match to avoid an exception assign valus through a void* match
+                    if implementation.declaration != declaration:
+                        implementation.declaration = import_declaration("void *")
                 else:
                     # Seems that this is a variable without initialization
                     declaration = implementation.declaration
@@ -811,6 +817,10 @@ def _remove_statics(logger, sa, process):
                             func = create_definition(declaration.to_string('x', specifiers=False), name, implementation,
                                                      requre_suffix=suffix)
                             _definitions[file][name] = func
+                            if not isinstance(declaration, Pointer) and isinstance(implementation.declaration, Pointer):
+                                # Try to use pointer instead of the value
+                                declaration = declaration.take_pointer
+
                     elif not function_name and not isinstance(declaration, Primitive):
                         var = resolve_existing(name, implementation, _declarations)
                         if not var:
@@ -823,7 +833,7 @@ def _remove_statics(logger, sa, process):
                                 value = '& ' + value
 
                             if len(sa.get_source_variables(name)) > 1:
-                                v_name = "emg_alias_{}_{}".format(name, v_identifiers.__next__())
+                                v_name = "emg_alias_{}_{}".format(name, _v_identifiers.__next__())
                             else:
                                 v_name = "emg_alias_{}".format(name)
                             var = c.Variable(v_name, declaration.to_string('x', specifiers=False))
@@ -841,12 +851,12 @@ def _remove_statics(logger, sa, process):
 
                         if var:
                             logger.info('Add declaration of alias variable {!r}'.format(var.name))
-                            process.add_declaration(file, name, var.declare_with_init() + ";\n")
-                            process.add_declaration('environment model', name, var.declare(extern=True) + ";\n")
+                            process.add_declaration(file, var.name, var.declare_with_init() + ";\n")
+                            process.add_declaration('environment model', var.name, var.declare(extern=True) + ";\n")
                         else:
                             logger.info('Add declaration of wrapper function {!r}'.format(func.name))
-                            process.add_definition(file, name, func.define() + ["\n"])
-                            process.add_declaration('environment model', name, func.declare(extern=True)[0])
+                            process.add_definition(file, func.name, func.define() + ["\n"])
+                            process.add_declaration('environment model', func.name, func.declare(extern=True)[0])
                 else:
                     logger.info("Do not generate wrappers for function {!r} as it is already processed".format(name))
 
@@ -1127,7 +1137,8 @@ def _extract_implementation_dependencies(access_map, accesses):
         fulfilled_interfaces = sortedcontainers.SortedSet()
         final_set = sortedcontainers.SortedSet()
         original_options = sorted(sorted(original_options), key=lambda v: len(basevalue_to_value[v]), reverse=True)
-        while len(fulfilled_values) != len(summary_values) or len(fulfilled_interfaces) != len(summary_interfaces):
+        while set(summary_values - fulfilled_values) and \
+                (len(fulfilled_values) != len(summary_values) or len(fulfilled_interfaces) != len(summary_interfaces)):
             value = sorted(set(summary_values - fulfilled_values)).pop()
             chosen_value = None
 
@@ -1143,6 +1154,7 @@ def _extract_implementation_dependencies(access_map, accesses):
                 raise RuntimeError('Inifnite loop due to inability to cover an implementation by a container')
 
         containers_impacts[container_id] = len(final_set)
+
         # Keep values with base values anyway
         final_set.update([value for value in interface_to_value[container_id]
                           if len(interface_to_value[container_id][value]) > 0])
