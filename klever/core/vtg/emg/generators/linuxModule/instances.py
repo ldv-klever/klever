@@ -792,9 +792,12 @@ def _remove_statics(logger, sa, process):
                     value = candidate.name
                     function_name = candidate.name
 
-                    # This is quite precise match to avoid an exception assign valus through a void* match
-                    if implementation.declaration != declaration:
-                        implementation.declaration = import_declaration("void *")
+                    # Sometimes file is not detected so we need to save it anywhere
+                    if not file:
+                        if candidate.definition_file:
+                            file = candidate.definition_file
+                        else:
+                            file = list(candidate.declaration_files).pop() if candidate.declaration_files else None
                 else:
                     # Seems that this is a variable without initialization
                     declaration = implementation.declaration
@@ -804,6 +807,9 @@ def _remove_statics(logger, sa, process):
                 static = static or svar.declaration.static
                 declaration = svar.declaration
                 value = svar.name
+
+                if not file:
+                    file = svar.initialization_file
 
             # Determine name
             if static:
