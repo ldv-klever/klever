@@ -58,126 +58,123 @@ class Weaver(klever.core.vtg.plugins.Plugin):
             self.logger.info('Weave in C files of group "{0}"'.format(grp['id']))
 
             for extra_cc in grp['Extra CCs']:
-                if 'CC' in extra_cc:
-                    # Each CC is either pair (compiler command identifier, compiler command type) or JSON file name
-                    # with compiler command description.
-                    if isinstance(extra_cc['CC'], list):
-                        cc = clade.get_cmd(*extra_cc['CC'], with_opts=True)
-                    else:
-                        with open(os.path.join(self.conf['main working directory'], extra_cc['CC']),
-                                  encoding='utf8') as fp:
-                            cc = json.load(fp)
+                # Each CC is either pair (compiler command identifier, compiler command type) or JSON file name
+                # with compiler command description.
+                if isinstance(extra_cc['CC'], list):
+                    cc = clade.get_cmd(*extra_cc['CC'], with_opts=True)
+                else:
+                    with open(os.path.join(self.conf['main working directory'], extra_cc['CC']),
+                              encoding='utf8') as fp:
+                        cc = json.load(fp)
 
-                        # extra_cc is a cc command that is not from Clade
-                        # Thus paths in it need to be converted to be absolute
-                        # like in other Clade commands
-                        if "cwd" in cc and "in" in cc:
-                            cc["in"] = [os.path.join(cc["cwd"], cc_in) for cc_in in cc["in"]]
+                    # extra_cc is a cc command that is not from Clade
+                    # Thus paths in it need to be converted to be absolute
+                    # like in other Clade commands
+                    if "cwd" in cc and "in" in cc:
+                        cc["in"] = [os.path.join(cc["cwd"], cc_in) for cc_in in cc["in"]]
 
-                        if "cwd" in cc and "out" in cc:
-                            cc["out"] = [os.path.join(cc["cwd"], cc_out) for cc_out in cc["out"]]
+                    if "cwd" in cc and "out" in cc:
+                        cc["out"] = [os.path.join(cc["cwd"], cc_out) for cc_out in cc["out"]]
 
-                    if "in file" in extra_cc:
-                        # This is for CC commands with several input files
-                        infile = extra_cc["in file"]
-                    else:
-                        infile = cc["in"][0]
-                    outfile = '{0}.c'.format(klever.core.utils.unique_file_name(os.path.splitext(os.path.basename(
-                        infile))[0], '.c'))
-                    self.logger.info('Weave in C file "{0}"'.format(infile))
+                if "in file" in extra_cc:
+                    # This is for CC commands with several input files
+                    infile = extra_cc["in file"]
+                else:
+                    infile = cc["in"][0]
+                outfile = '{0}.c'.format(klever.core.utils.unique_file_name(os.path.splitext(os.path.basename(
+                    infile))[0], '.c'))
+                self.logger.info('Weave in C file "{0}"'.format(infile))
 
-                    # Produce aspect to be weaved in.
-                    if 'plugin aspects' in extra_cc:
-                        self.logger.info('Concatenate all aspects of all plugins together')
+                # Produce aspect to be weaved in.
+                if 'plugin aspects' in extra_cc:
+                    self.logger.info('Concatenate all aspects of all plugins together')
 
-                        # Resulting aspect.
-                        aspect = 'aspect'
+                    # Resulting aspect.
+                    aspect = 'aspect'
 
-                        # Get all aspects. Place RSG aspects at beginning since they can instrument entities added by
-                        # aspects of other plugins while corresponding function declarations still need be at beginning
-                        # of file.
-                        aspects = []
-                        for plugin_aspects in extra_cc['plugin aspects']:
-                            if plugin_aspects['plugin'] == 'RSG':
-                                aspects[0:0] = plugin_aspects['aspects']
-                            else:
-                                aspects.extend(plugin_aspects['aspects'])
+                    # Get all aspects. Place RSG aspects at beginning since they can instrument entities added by
+                    # aspects of other plugins while corresponding function declarations still need be at beginning
+                    # of file.
+                    aspects = []
+                    for plugin_aspects in extra_cc['plugin aspects']:
+                        if plugin_aspects['plugin'] == 'RSG':
+                            aspects[0:0] = plugin_aspects['aspects']
+                        else:
+                            aspects.extend(plugin_aspects['aspects'])
 
-                        # Concatenate aspects.
-                        with open(aspect, 'w', encoding='utf8') as fout, fileinput.input(
-                                [os.path.join(self.conf['main working directory'], aspect) for aspect in aspects],
-                                openhook=fileinput.hook_encoded('utf8')) as fin:
-                            for line in fin:
-                                fout.write(line)
-                    else:
-                        # Instrumentation is not required when there is no aspects. But we will still pass source files
-                        # through C-backend to make resulting code to look similarly and thus to avoid different issues
-                        # at merging source files and models together.
-                        aspect = None
+                    # Concatenate aspects.
+                    with open(aspect, 'w', encoding='utf8') as fout, fileinput.input(
+                            [os.path.join(self.conf['main working directory'], aspect) for aspect in aspects],
+                            openhook=fileinput.hook_encoded('utf8')) as fin:
+                        for line in fin:
+                            fout.write(line)
+                else:
+                    # Instrumentation is not required when there is no aspects. But we will still pass source files
+                    # through C-backend to make resulting code to look similarly and thus to avoid different issues
+                    # at merging source files and models together.
+                    aspect = None
 
-                    self.logger.debug('Aspect to be weaved in is "{0}"'.format(aspect))
-                    storage_path = clade.get_storage_path(infile)
-                    if meta['conf'].get('Compiler.preprocess_cmds', False) and \
-                            'klever-core-work-dir' not in storage_path:
-                        storage_path = storage_path.split('.c')[0] + '.i'
+                self.logger.debug('Aspect to be weaved in is "{0}"'.format(aspect))
+                storage_path = clade.get_storage_path(infile)
+                if meta['conf'].get('Compiler.preprocess_cmds', False) and \
+                        'klever-core-work-dir' not in storage_path:
+                    storage_path = storage_path.split('.c')[0] + '.i'
+                klever.core.utils.execute(
+                    self.logger,
+                    tuple([
+                              'cif',
+                              '--in', storage_path,
+                              # Besides header files specific for requirements specifications will be searched for.
+                              '--general-opts',
+                              '-I' + os.path.realpath(os.path.dirname(self.conf['specifications base'])),
+                              '--aspect-preprocessing-opts', ' '.join(self.conf['aspect preprocessing options'])
+                                                             if 'aspect preprocessing options' in self.conf else '',
+                              '--out', os.path.realpath(outfile),
+                              '--back-end', 'src',
+                              '--debug', 'DEBUG'
+                          ] +
+                          (['--keep'] if self.conf['keep intermediate files'] else []) +
+                          (['--aspect', os.path.realpath(aspect)] if aspect else ['--stage', 'C-backend']) +
+                          ['--'] +
+                          klever.core.vtg.utils.prepare_cif_opts(cc['opts'], clade, grp['id'] == 'models') +
+                          [aspectator_search_dir] +
+                          ['-I' + clade.get_storage_path(p) for p in self.conf['working source trees']]
+                          ),
+                    env=env,
+                    cwd=clade.get_storage_path(cc['cwd']),
+                    timeout=0.01,
+                    filter_func=klever.core.vtg.utils.CIFErrorFilter())
+                self.logger.debug('C file "{0}" was weaved in'.format(infile))
+
+                extra_c_file = {'C file': os.path.relpath(outfile, self.conf['main working directory'])}
+
+                # TODO: this can be incorporated into instrumentation above but it will need some Clade changes.
+                # Emulate normal compilation (indeed just parsing thanks to "-fsyntax-only") to get additional
+                # dependencies (model source files) and information on them.
+                if grp['id'] == 'models':
+                    clade_bin = os.path.join(os.path.dirname(sys.executable), "clade")
                     klever.core.utils.execute(
                         self.logger,
                         tuple([
-                                  'cif',
-                                  '--in', storage_path,
-                                  # Besides header files specific for requirements specifications will be searched for.
-                                  '--general-opts',
-                                  '-I' + os.path.realpath(os.path.dirname(self.conf['specifications base'])),
-                                  '--aspect-preprocessing-opts', ' '.join(self.conf['aspect preprocessing options'])
-                                                                 if 'aspect preprocessing options' in self.conf else '',
-                                  '--out', os.path.realpath(outfile),
-                                  '--back-end', 'src',
-                                  '--debug', 'DEBUG'
-                              ] +
-                              (['--keep'] if self.conf['keep intermediate files'] else []) +
-                              (['--aspect', os.path.realpath(aspect)] if aspect else ['--stage', 'C-backend']) +
-                              ['--'] +
-                              klever.core.vtg.utils.prepare_cif_opts(cc['opts'], clade, grp['id'] == 'models') +
-                              [aspectator_search_dir] +
-                              ['-I' + clade.get_storage_path(p) for p in self.conf['working source trees']]
-                              ),
+                                clade_bin,
+                                '-ia',
+                                '--cmds', os.path.realpath('cmds.txt'),
+                                'aspectator',
+                                '-I' + os.path.realpath(os.path.dirname(self.conf['specifications base']))
+                            ] +
+                            klever.core.vtg.utils.prepare_cif_opts(cc['opts'], clade, grp['id'] == 'models') +
+                            [
+                                aspectator_search_dir,
+                                '-fsyntax-only',
+                                clade.get_storage_path(cc['in'][0]),
+                                '-o', os.path.realpath('{0}.o'
+                                                       .format(os.path.splitext(os.path.basename(cc['in'][0]))[0]))
+                            ]
+                        ),
                         env=env,
                         cwd=clade.get_storage_path(cc['cwd']),
                         timeout=0.01,
-                        filter_func=klever.core.vtg.utils.CIFErrorFilter())
-                    self.logger.debug('C file "{0}" was weaved in'.format(infile))
-
-                    extra_c_file = {'C file': os.path.relpath(outfile, self.conf['main working directory'])}
-
-                    # TODO: this can be incorporated into instrumentation above but it will need some Clade changes.
-                    # Emulate normal compilation (indeed just parsing thanks to "-fsyntax-only") to get additional
-                    # dependencies (model source files) and information on them.
-                    if grp['id'] == 'models':
-                        clade_bin = os.path.join(os.path.dirname(sys.executable), "clade")
-                        klever.core.utils.execute(
-                            self.logger,
-                            tuple([
-                                    clade_bin,
-                                    '-ia',
-                                    '--cmds', os.path.realpath('cmds.txt'),
-                                    'aspectator',
-                                    '-I' + os.path.realpath(os.path.dirname(self.conf['specifications base']))
-                                ] +
-                                klever.core.vtg.utils.prepare_cif_opts(cc['opts'], clade, grp['id'] == 'models') +
-                                [
-                                    aspectator_search_dir,
-                                    '-fsyntax-only',
-                                    clade.get_storage_path(cc['in'][0]),
-                                    '-o', os.path.realpath('{0}.o'
-                                                           .format(os.path.splitext(os.path.basename(cc['in'][0]))[0]))
-                                ]
-                            ),
-                            env=env,
-                            cwd=clade.get_storage_path(cc['cwd']),
-                            timeout=0.01,
-                        )
-                else:
-                    extra_c_file = {}
+                    )
 
                 self.abstract_task_desc['extra C files'].append(extra_c_file)
 
