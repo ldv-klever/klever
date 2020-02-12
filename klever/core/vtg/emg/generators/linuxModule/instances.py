@@ -779,7 +779,13 @@ def _remove_statics(logger, sa, process):
             svar = sa.get_source_variable(implementation.value, file)
             function_name = False
             if not svar:
-                candidate = sa.get_source_function(implementation.value, file, declaration=implementation.declaration)
+                search_declaration = None
+                if isinstance(implementation.declaration, Function):
+                    search_declaration = implementation.declaration
+                elif isinstance(implementation.declaration, Pointer) and \
+                        isinstance(implementation.declaration.points, Function):
+                    search_declaration = implementation.declaration.points
+                candidate = sa.get_source_function(implementation.value, file, declaration=search_declaration)
                 if candidate:
                     static = static or candidate.static
                     declaration = candidate.declaration
@@ -846,6 +852,9 @@ def _remove_statics(logger, sa, process):
                         if file not in _values_map:
                             _values_map[file] = sortedcontainers.SortedDict()
                         _values_map[file][new_value] = implementation.value
+                        # This is quite precise match to avoid an exception assign valus through a void* match
+                        if implementation.declaration != declaration and implementation.declaration == "void *":
+                            implementation.declaration = import_declaration("void *")
                         implementation.declaration = declaration
                         implementation.value = new_value
 
