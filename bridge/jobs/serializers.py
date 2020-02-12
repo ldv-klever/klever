@@ -150,8 +150,12 @@ class CreateJobSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         if isinstance(instance, self.Meta.model):
-            return {'url': reverse('jobs:prepare-decision', args=[instance.pk])}
-        return {'url': reverse('jobs:prepare-decision', args=[instance['id']])}
+            return {
+                'job': reverse('jobs:job', args=[instance.pk]),
+                'start': reverse('jobs:prepare-decision', args=[instance.pk]),
+                'faststart': reverse('jobs:api-decide', args=[instance.pk]),
+            }
+        return super(CreateJobSerializer, self).to_representation(instance)
 
     class Meta:
         model = Job
@@ -175,8 +179,10 @@ class UpdateJobSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         if isinstance(instance, self.Meta.model):
-            return {'url': reverse('jobs:job', args=[instance.pk])}
-        return {'url': reverse('jobs:job', args=[instance['id']])}
+            return {
+                'job': reverse('jobs:job', args=[instance.pk])
+            }
+        return super(UpdateJobSerializer, self).to_representation(instance)
 
     class Meta:
         model = Job

@@ -84,7 +84,7 @@
                 job_form.save("{% url 'jobs:api-update-job' job.id %}", "PUT", {
                     global_role: roles_form.global_role(),
                     user_roles: roles_form.get_roles()
-                });
+                }, "job");
             });
 
             $('#preset_dir').dropdown();

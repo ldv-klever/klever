@@ -494,7 +494,10 @@ window.activate_warn_modal = function (warn_modal_id, activator, error_text, on_
             modal_div.modal('show')
         });
     }
-    if (on_confirm) confirm_btn.click(on_confirm);
+    confirm_btn.click(function () {
+        modal_div.modal('hide');
+        if (on_confirm) on_confirm();
+    });
     return modal_div;
 };
 
