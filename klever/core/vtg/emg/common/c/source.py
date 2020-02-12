@@ -293,12 +293,20 @@ class Source:
             # This is for convenience
             paths = [paths]
 
-        functions = self.get_source_functions(name, paths, declaration)
-        if len(functions) == 1:
-            return functions[0]
-        elif len(functions) > 1:
-            raise ValueError("There are several definitions of function {!r} in provided code you must specify "
-                             "scope".format(name))
+        # First try to get the most precise match
+        match = self.get_source_functions(name, paths, declaration)
+        if match and len(match) == 1:
+            # Bingo!
+            return match[0]
+        else:
+            # This is a bit weaker search because comparing declaration can be difficult
+            match = self.get_source_functions(name, paths)
+            if match and len(match) == 1:
+                return match[0]
+            elif match and len(match) > 1:
+                raise ValueError("There are several definitions of function {!r} in provided code you must specify "
+                                 "scope".format(name))
+
         return None
 
     def get_source_functions(self, name=None, paths=None, declaration=None):
@@ -324,7 +332,7 @@ class Source:
 
         for func_name in names:
             for path, func in ((p, f) for p, f in self._source_functions[func_name].items() if not paths or p in paths):
-                if func not in result and (not declaration or (declaration and declaration.compare(func.declaration))):
+                if func not in result and (not declaration or (declaration and declaration == func.declaration)):
                     result.append(func)
         return result
 
