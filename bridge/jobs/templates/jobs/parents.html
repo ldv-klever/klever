@@ -1,0 +1,15 @@
+{% for parent in parents %}
+    <div class="ui bulleted list"><div class="item">
+        {# Fake preset jobs don't have pages (PRESET_JOB_TYPE[0][0]) #}
+        {% if parent.type != '0' %}
+            <a class="violet-link" href="{% url 'jobs:preset' parent.id %}">{{ parent.name }}</a>
+        {% else %}
+            <span>{{ parent.name }}</span>
+        {% endif %}
+{% endfor %}
+{% if parent_job %}
+    <div class="ui bulleted list"><div class="item"><a class="violet-link" href="{% url 'jobs:job' parent_job.id %}">{{ parent_job.name }}</a></div></div>
+{% endif %}
+{% for parent in parents %}
+    </div></div>
+{% endfor %}

@@ -268,7 +268,7 @@ class RestartJobDecision:
             'tasks_error', 'tasks_cancelled', 'solutions'
         )
         null_fields = (
-            'error', 'start_date', 'finish_date', 'total_sj', 'failed_sj', 'solved_sj', 'expected_time_sj',
+            'error', 'finish_date', 'total_sj', 'failed_sj', 'solved_sj', 'expected_time_sj',
             'start_sj', 'finish_sj', 'gag_text_sj', 'total_ts', 'failed_ts', 'solved_ts', 'expected_time_ts',
             'start_ts', 'finish_ts', 'gag_text_ts'
         )
@@ -276,6 +276,7 @@ class RestartJobDecision:
             setattr(self.decision, field_name, 0)
         for field_name in null_fields:
             setattr(self.decision, field_name, None)
+        self.decision.start_date = now()
         self.decision.save()
 
     def __clear_related_objects(self):

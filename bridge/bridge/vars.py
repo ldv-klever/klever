@@ -401,7 +401,7 @@ JOB_UPLOAD_STATUS = (
 )
 
 PRESET_JOB_TYPE = (
-    ('0', _('Directory')),  # Preset directory from preset tree
+    ('0', _('Directory')),  # Job directory from preset tree
     ('1', _('Leaf')),  # Preset tree leaf
     ('2', _('Custom directory')),  # Created directory for the leaf
 )

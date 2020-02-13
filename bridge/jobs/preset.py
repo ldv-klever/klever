@@ -171,11 +171,11 @@ class PopulatePresets:
 def get_preset_dir_list(preset_job):
     available_dirs = []
     if preset_job.type == PRESET_JOB_TYPE[1][0]:
-        available_dirs.append({'id': preset_job.id, 'name': _('Root'), 'selected': True})
+        available_dirs.append({'id': preset_job.id, 'name': preset_job.name, 'selected': True})
         preset_qs = PresetJob.objects.filter(parent=preset_job).order_by('name').values_list('id', 'name')
         available_dirs.extend(list({'id': p_id, 'name': name} for p_id, name in preset_qs))
     else:
-        available_dirs.append({'id': preset_job.parent_id, 'name': _('Root')})
+        available_dirs.append({'id': preset_job.parent_id, 'name': preset_job.name})
         preset_qs = PresetJob.objects.filter(parent_id=preset_job.parent_id).order_by('name').values_list('id', 'name')
         for p_id, name in preset_qs:
             available_dirs.append({'id': p_id, 'name': name, 'selected': (p_id == preset_job.id)})

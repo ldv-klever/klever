@@ -87,21 +87,8 @@
                     </tr>
                     {% if parents %}
                         <tr>
-                            <th class="right aligned">{% trans 'Presets branch' %}</th>
-                            <td>
-                                <div class="ui bulleted list">
-                                    {% for parent in parents %}
-                                        <div class="item">
-                                            {# Fake preset jobs don't have pages (PRESET_JOB_TYPE[0][0]) #}
-                                            {% if parent.type != '0' %}
-                                                <a class="violet-link" href="{% url 'jobs:preset' parent.id %}">{{ parent.name }}</a>
-                                            {% else %}
-                                                <span>{{ parent.name }}</span>
-                                            {% endif %}
-                                        </div>
-                                    {% endfor %}
-                                </div>
-                            </td>
+                            <th class="right aligned">{% trans 'Job parents' %}</th>
+                            <td>{% include 'jobs/parents.html' with parents=parents %}</td>
                         </tr>
                     {% endif %}
                 </tbody>

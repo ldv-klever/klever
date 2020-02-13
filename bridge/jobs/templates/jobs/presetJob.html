@@ -65,11 +65,19 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr><th class="right aligned">{% trans 'Identifier' %}</th><td>{{ object.identifier }}</td></tr>
+                    {% if object.identifier %}
+                        <tr><th class="right aligned">{% trans 'Identifier' %}</th><td>{{ object.identifier }}</td></tr>
+                    {% endif %}
                     <tr>
                         <th class="right aligned">{% trans 'Files check date' %}</th>
                         <td>{% if user.data_format == 'hum' %}{{ object.check_date|naturaltime }}{% else %}{{ object.check_date }}{% endif %}</td>
                     </tr>
+                    {% if parents|length %}
+                        <tr>
+                            <th class="right aligned">{% if object.type == '2' %}{% trans 'Job directory parents' %}{% else %}{% trans 'Preset job parents' %}{% endif %}</th>
+                            <td>{% include 'jobs/parents.html' with parents=parents %}</td>
+                        </tr>
+                    {% endif %}
                     {% if children %}
                         <tr>
                             <th class="right aligned">{% trans 'Children' %}</th>

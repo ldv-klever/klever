@@ -76,6 +76,7 @@ class PresetJobPage(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, DetailVi
         context = super(PresetJobPage, self).get_context_data(**kwargs)
         context.update({
             'can_create': self.request.user.can_create_jobs,
+            'parents': self.object.get_ancestors(),
             'children': PresetChildrenTree(self.object).children,
             'files': preset_job_files_tree_json(self.object)
         })
@@ -289,6 +290,8 @@ class DecisionPage(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, DetailVie
 
         # Decision coverages
         context['Coverage'] = DecisionCoverageStatistics(self.object)
+
+        context['parents'] = self.object.job.preset.get_ancestors(include_self=True)
 
         # Verification results
         context['reportdata'] = ViewJobData(self.request.user, self.get_view(VIEW_TYPES[2]), self.object)

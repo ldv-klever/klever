@@ -66,7 +66,7 @@
                     <input id="job_name" type="text" value="{{ initial.name }}">
                 </div>
                 <br>
-                <label for="preset_dir"><strong>{% trans 'Preset directory' %}</strong></label><br>
+                <label for="preset_dir"><strong>{% trans 'Job directory' %}</strong></label><br>
                 <select id="preset_dir" class="ui dropdown">
                     {% for preset_dir in initial.preset_dirs %}
                         <option value="{{ preset_dir.id }}"{% if preset_dir.selected %} selected{% endif %} >{{ preset_dir.name }}</option>
@@ -124,7 +124,7 @@
                 preset: 'preset_dir'
             }, {
                 name: "{% trans 'Title' %}",
-                preset: "{% trans 'Preset directory' %}"
+                preset: "{% trans 'Job directory' %}"
             });
 
             files_form.set_messages({

@@ -81,7 +81,6 @@
                 </thead>
                 <tbody>
                     <tr><th class="right aligned">{% trans 'Identifier' %}</th><td>{{ object.identifier }}</td></tr>
-                    <tr><th class="right aligned">{% trans 'Job' %}</th><td><a class="violet-link" href="{% url 'jobs:job' object.job_id %}">{{ object.job.name }}</a></td></tr>
                     <tr><th class="right aligned">{% trans 'Scheduler' %}</th><td>{{ object.scheduler.get_type_display }}</td></tr>
                     <tr><th class="right aligned">{% trans 'Priority' %}</th><td>{{ object.get_priority_display }}</td></tr>
                     {% if object.operator %}
@@ -90,6 +89,10 @@
                             <td><a class="violet-link" href="{% url 'users:show-profile' object.operator.pk %}">{{ object.operator.get_full_name }}</a></td>
                         </tr>
                     {% endif %}
+                    <tr>
+                        <th class="right aligned">{% trans 'Decision parents' %}</th>
+                        <td>{% include 'jobs/parents.html' with parents=parents parent_job=object.job %}</td>
+                    </tr>
                 </tbody>
             </table>
             <br>
@@ -102,7 +105,10 @@
             <br>
             {# Other decisions table #}
             {% if other_decisions|length %}
-                <div>{% include 'jobs/decision-list.html' with decisions=other_decisions %}</div>
+                <div class="ui violet segment">
+                    <div class="ui top left attached violet label">{% trans 'Other job decisions' %}</div>
+                    {% include 'jobs/decision-list.html' with decisions=other_decisions %}
+                </div>
             {% endif %}
 
             {# Coverage #}
