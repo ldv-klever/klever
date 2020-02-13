@@ -18,6 +18,14 @@
 $(document).ready(function () {
     $('.ui.dropdown').dropdown();
 
+    function get_selected_decisions() {
+        let selected_ids = [];
+        $(".decision-checkbox-input:checked").each(function () {
+            selected_ids.push(parseInt($(this).val()))
+        });
+        return selected_ids;
+    }
+
     // Remove job modal
     let remove_job_warn_modal = $('#remove_job_warn_modal');
     remove_job_warn_modal.modal({transition: 'fade in', autofocus: false, closable: false});
@@ -46,28 +54,68 @@ $(document).ready(function () {
         });
     });
 
-    let download_decisions_btn = $('#download_decisions_btn');
+    let download_decisions_btn = $('#download_decisions_btn'),
+        remove_decisions_btn = $('#remove_decisions_btn'),
+        compare_decisions_btn = $('#compare_decisions_btn');
+
     $('.decision-checkbox').checkbox({
         onChange: function () {
-            let has_checked = false;
-            $('.decision-checkbox').each(function () {
-                if ($(this).checkbox('is checked')) has_checked = true;
-            });
-            if (has_checked){
-                if (download_decisions_btn.hasClass('disabled'))
-                    download_decisions_btn.removeClass('disabled');
-            }
-            else {
-                if (!download_decisions_btn.hasClass('disabled'))
-                    download_decisions_btn.addClass('disabled');
-            }
+            let sel_decisions = get_selected_decisions();
+            update_action_button(download_decisions_btn, !sel_decisions.length);
+            update_action_button(remove_decisions_btn, !sel_decisions.length);
+            update_action_button(compare_decisions_btn, sel_decisions.length !== 2);
         }
     });
+
+    // Compare decisions' reports
+    compare_decisions_btn.click(function () {
+        let sel_decisions = get_selected_decisions();
+        if (sel_decisions.length !== 2) return err_notify(PAGE_ERRORS.compare_decisions_error);
+
+        $('#dimmer_of_page').addClass('active');
+        $.post(`/reports/api/fill-comparison/${sel_decisions[0]}/${sel_decisions[1]}/`, {}, function (resp) {
+            $('#dimmer_of_page').removeClass('active');
+            window.location.href = resp.url;
+        }, 'json');
+    });
+
+    // Download the job with decisions
     download_decisions_btn.click(function () {
+        let sel_decisions = get_selected_decisions();
+        if (!sel_decisions.length) return err_notify(PAGE_ERRORS.download_decisions_error);
+
         let decision_values = [];
-        $('.decision-checkbox-input:checked').each(function () {
-            decision_values.push(`decision=${$(this).val()}`);
+        $.each(sel_decisions, function (i, value) {
+            decision_values.push(`decision=${value}`);
         });
         window.location.href = $(this).data('url') + decision_values.join('&');
+    });
+
+    // Remove selected decisions
+    let sel_decisions = [], remove_decisions_modal = $('#remove_decisions_warn_modal');
+    remove_decisions_modal.modal({transition: 'fly up', autofocus: false, closable: false});
+    remove_decisions_btn.click(function () {
+        $('#jobs_actions_menu').popup('hide');
+        sel_decisions = get_selected_decisions();
+        if (!sel_decisions.length) return err_notify(PAGE_ERRORS.remove_decisions_error);
+
+        remove_decisions_modal.modal('show');
+    });
+    remove_decisions_modal.find('.modal-confirm').click(function () {
+        remove_decisions_modal.modal('hide');
+        $('#dimmer_of_page').addClass('active');
+        let remove_failed = false;
+        $.each(sel_decisions, function (i, decision_id) {
+            $.ajax({url: `/jobs/api/decision/${decision_id}/remove/`, method: "DELETE", error: function () { remove_failed = true }});
+        });
+
+        // When all delete requests are finished then reload the page
+        $(document).ajaxStop(function () {
+            $('#dimmer_of_page').removeClass('active');
+            if (!remove_failed) window.location.replace('')
+        });
+    });
+    remove_decisions_modal.find('.modal-cancel').click(function () {
+        remove_decisions_modal.modal('hide')
     });
 });

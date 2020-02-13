@@ -32,6 +32,13 @@
         <script src="{% static 'jobs/js/jobFilesView.js' %}"></script>
         <script src="{% static 'jobs/js/jobPage.js' %}"></script>
     {% endcompress %}
+    <script type="application/javascript">
+        const PAGE_ERRORS = {
+            compare_decisions_error: "{% trans 'Please select exactly two decisions which reports you want to compare' %}",
+            download_decisions_error: "{% trans 'Please select decisions you want to download' %}",
+            remove_decisions_error: "{% trans 'Please select decisions you want to remove' %}"
+        };
+    </script>
 {% endblock %}
 
 {% block title %}{% trans 'Job' %}{% endblock %}
@@ -121,15 +128,36 @@
             {% if decisions|length %}
                 <div>{% include 'jobs/decision-list.html' with decisions=decisions with_checkbox=True %}</div>
                 <br>
-                <button id="download_decisions_btn" data-url="{% url 'jobs:download' object.id %}?" class="ui violet mini disabled button">{% trans 'Download selected decisions' %}</button>
+                <div class="ui mini buttons">
+                    <button id="compare_decisions_btn" data-url="{% url 'jobs:download' object.id %}?" class="ui violet disabled button">{% trans 'Compare reports' %}</button>
+                    <button id="download_decisions_btn" data-url="{% url 'jobs:download' object.id %}?" class="ui teal disabled button">{% trans 'Download' %}</button>
+                    <button id="remove_decisions_btn" data-url="{% url 'jobs:download' object.id %}?" class="ui red disabled button">{% trans 'Delete' %}</button>
+                </div>
             {% else %}
                 <h5>{% trans "The job don't have decisions yet" %}</h5>
             {% endif %}
         </div>
     </div>
 
-    {# Warning modal for job actions #}
+    {# Warning modal for job remove #}
     <div id="remove_job_warn_modal" class="ui basic modal">
+        <div class="ui icon header">
+            <i class="warning sign icon"></i>
+            {% trans 'Are you sure' %}?
+        </div>
+        <div class="content">
+            <div class="ui center aligned grid">{% trans 'The action is irreversible' %}</div>
+        </div>
+        <div class="actions">
+            <div class="ui center aligned grid">
+                <button class="ui blue basic inverted button modal-cancel">{% trans 'Cancel' %}</button>
+                <button class="ui red basic inverted button modal-confirm" data-url="{% url 'jobs:api-remove-job' object.id %}">{% trans 'Confirm' %}</button>
+            </div>
+        </div>
+    </div>
+
+    {# Warning modal for decisions remove #}
+    <div id="remove_decisions_warn_modal" class="ui basic modal">
         <div class="ui icon header">
             <i class="warning sign icon"></i>
             {% trans 'Are you sure' %}?

@@ -501,6 +501,15 @@ window.activate_warn_modal = function (warn_modal_id, activator, error_text, on_
     return modal_div;
 };
 
+window.update_action_button = function(btn_obj, disable=false) {
+    if (disable) {
+        if (!btn_obj.hasClass('disabled')) btn_obj.addClass('disabled');
+    }
+    else {
+        if (btn_obj.hasClass('disabled')) btn_obj.removeClass('disabled');
+    }
+};
+
 $(document).ready(function () {
     $('.browse').popup({
         inline: true,

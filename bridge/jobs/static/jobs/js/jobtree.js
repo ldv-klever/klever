@@ -18,19 +18,18 @@
 $(document).ready(function () {
     $('.ui.dropdown').dropdown();
 
+    function get_selected_objs(obj_type) {
+        let selected_ids = [];
+        $(`.${obj_type}-checkbox:checked`).each(function () {
+            selected_ids.push(parseInt($(this).val()))
+        });
+        return selected_ids;
+    }
+
     let compare_reports_btn = $('#compare_reports_btn'),
         compare_files_btn = $('#compare_files_btn'),
         download_selected_jobs = $('#download_selected_jobs'),
         show_remove_jobs_popup = $('#show_remove_jobs_popup');
-
-    function update_action_button(btn_obj, disable=false) {
-        if (disable) {
-            if (!btn_obj.hasClass('disabled')) btn_obj.addClass('disabled');
-        }
-        else {
-            if (btn_obj.hasClass('disabled')) btn_obj.removeClass('disabled');
-        }
-    }
 
     $('.job-checkbox').parent().checkbox({
         onChange: function () {
@@ -50,14 +49,6 @@ $(document).ready(function () {
     });
 
     inittree($('.tree'), 2, 'folder open link violet icon', 'folder link violet icon');
-
-    function get_selected_objs(obj_type) {
-        let selected_ids = [];
-        $(`.${obj_type}-checkbox:checked`).each(function () {
-            selected_ids.push(parseInt($(this).val()))
-        });
-        return selected_ids;
-    }
 
     // Remove selected jobs and decisions
     let selected_jobs = [], selected_decisions = [];
