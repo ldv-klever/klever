@@ -263,10 +263,10 @@ class Weaver(klever.core.vtg.plugins.Plugin):
         )
 
         # Get cross references and everything required for them.
-        # Limit parallel workers in Clade by 1 since at this stage there may be several parallel task generators and we
-        # prefer their parallelism over the Clade one.
+        # Limit parallel workers in Clade by 4 since at this stage there may be several parallel task generators and we
+        # prefer their parallelism over the Clade default one.
         clade_extra = Clade(work_dir=os.path.realpath(outfile + ' clade'), cmds_file=outfile + '.cmds.txt',
-                            conf={'cpu_count': 1})
+                            conf={'cpu_count': 4})
         clade_extra.parse_list(["CrossRef"])
         if not clade_extra.work_dir_ok():
             raise RuntimeError('Build base is not OK')
