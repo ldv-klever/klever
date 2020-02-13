@@ -146,7 +146,7 @@ class Weaver(klever.core.vtg.plugins.Plugin):
                                           aspectator_search_dir)
                 # For non-generated models use results cache in addition.
                 else:
-                    cache_dir = os.path.join(self.conf['main working directory'], 'cache',
+                    cache_dir = os.path.join(self.conf['cache directory'],
                                              klever.core.utils.get_file_checksum(storage_path))
                     with klever.core.utils.LockedOpen(cache_dir + '.tmp', 'w'):
                         if os.path.exists(cache_dir):

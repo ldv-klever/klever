@@ -518,6 +518,10 @@ class Job(klever.core.components.Component):
         self.__get_original_sources_basic_info()
         self.__upload_original_sources()
 
+        # Create directory where files will be cached and remember absolute path to it for components.
+        os.mkdir('cache')
+        self.common_components_conf['cache directory'] = os.path.realpath('cache')
+
         if self.common_components_conf['keep intermediate files']:
             self.logger.debug('Create components configuration file "conf.json"')
             with open('conf.json', 'w', encoding='utf8') as fp:
