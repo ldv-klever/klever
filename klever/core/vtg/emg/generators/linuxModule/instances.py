@@ -859,7 +859,8 @@ def _remove_statics(logger, sa, process):
                             _values_map[file] = sortedcontainers.SortedDict()
                         _values_map[file][new_value] = implementation.value
                         # This is quite precise match to avoid an exception assign valus through a void* match
-                        if implementation.declaration != declaration and implementation.declaration == "void *":
+                        if implementation.declaration != declaration and \
+                                isinstance(implementation.declaration, Pointer):
                             implementation.declaration = import_declaration("void *")
                         implementation.declaration = declaration
                         implementation.value = new_value
