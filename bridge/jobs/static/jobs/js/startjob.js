@@ -90,7 +90,10 @@ $(document).ready(function () {
     $('#file_conf').on('fileselect', function () {
         let data = new FormData();
         data.append('file_conf', $(this)[0].files[0]);
-        api_upload_file(PAGE_URLS.get_conf_url, 'POST', data, fill_data);
+        api_upload_file(PAGE_URLS.get_conf_url, 'POST', data, function (resp) {
+            fill_data(resp);
+            $('#dimmer_of_page').removeClass('active');
+        });
     });
     $('#lastconf_select').dropdown({
         onChange: function () {
