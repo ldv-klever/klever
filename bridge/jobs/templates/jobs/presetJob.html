@@ -42,16 +42,15 @@
 
             {# Preset job menu #}
             <div class="ui violet inverted menu top attached">
-                {% if can_create %}
-                    <a href="{% url 'jobs:from-preset-form' object.id %}" class="item"><i class="copy icon"></i> {% trans 'Create new job' %}</a>
-                {% endif %}
-
                 {# Check PRESET_JOB_TYPE #}
                 {% if object.type == '1' %}
                     <a id="create_preset_dir_btn" class="item"><i class="plus icon"></i> {% trans 'Add preset directory' %}</a>
                 {% elif object.type == '2' %}
                     <a id="change_preset_dir_btn" class="item"><i class="pencil icon"></i> {% trans 'Change name' %}</a>
                     <a id="remove_preset_dir_btn" class="item"><i class="remove icon"></i> {% trans 'Delete' %}</a>
+                {% endif %}
+                {% if can_create %}
+                    <a href="{% url 'jobs:from-preset-form' object.id %}" class="item"><i class="copy icon"></i> {% trans 'Create new job' %}</a>
                 {% endif %}
             </div>
 
