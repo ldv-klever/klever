@@ -51,6 +51,11 @@ def prepare_cif_opts(opts, clade, model_opts=False):
             if match:
                 continue
 
+            # Get rid of redundant options useless from instrumentation point of view.
+            match = re.match('(-ftest-coverage|-fprofile-arcs).*', opt)
+            if match:
+                continue
+
             match = re.match('--param', opt)
             if match:
                 skip_opt_value = True
