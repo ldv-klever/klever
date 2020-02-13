@@ -391,6 +391,11 @@
           }
         },
         "comment": "Invoke USB serial tty layer callbacks.",
+        "headers": [
+          "linux/tty.h",
+          "linux/usb.h",
+          "linux/usb/serial.h"
+        ],
         "labels": {
           "driver": {
             "container": true,

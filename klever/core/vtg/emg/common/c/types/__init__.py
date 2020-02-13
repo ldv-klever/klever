@@ -244,10 +244,17 @@ class Declaration:
                     return True
                 elif self.str_without_specifiers == 'void *' or other.str_without_specifiers == 'void *':
                     return True
+                elif isinstance(self, Pointer):
+                    return self.points == other.points
+                elif isinstance(self, Function):
+                    return self.return_value == other.return_value and \
+                           len(self.parameters) == len(other.parameters) and \
+                           all(x == y for x, y in zip(self.parameters, other.parameters))
             return False
         elif isinstance(other, str):
             me = self.str_without_specifiers
             return me == other or str(me) == other
+        return other.__eq__(self)
 
     def __lt__(self, other):
         return str(self) < str(other)
