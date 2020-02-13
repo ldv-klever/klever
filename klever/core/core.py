@@ -232,6 +232,9 @@ class Core(klever.core.components.CallbacksCaller):
         # Create directory where all reports and report files archives will be actually written to.
         os.mkdir(os.path.join(self.conf['working directory'], 'reports'))
 
+        # Create directory where files will be cached.
+        os.mkdir(os.path.join(self.conf['working directory'], 'cache'))
+
     def change_work_dir(self):
         # Change working directory forever.
         # We can use path for "is solving" file relative to future working directory since exceptions aren't raised when

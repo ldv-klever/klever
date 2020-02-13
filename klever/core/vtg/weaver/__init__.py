@@ -36,6 +36,7 @@ class Weaver(klever.core.vtg.plugins.Plugin):
                  separate_from_parent=False, include_child_resources=False):
         super(Weaver, self).__init__(conf, logger, parent_id, callbacks, mqs, vals, id, work_dir, attrs,
                                      separate_from_parent, include_child_resources)
+        self.search_dirs = klever.core.utils.get_search_dirs(self.conf['main working directory'], abs_paths=True)
 
     def weave(self):
         self.abstract_task_desc.setdefault('extra C files', dict())
@@ -81,8 +82,11 @@ class Weaver(klever.core.vtg.plugins.Plugin):
                     infile = extra_cc["in file"]
                 else:
                     infile = cc["in"][0]
-                outfile = '{0}.c'.format(klever.core.utils.unique_file_name(os.path.splitext(os.path.basename(
+                # Distinguish source files having the same names.
+                outfile_unique = '{0}.c'.format(klever.core.utils.unique_file_name(os.path.splitext(os.path.basename(
                     infile))[0], '.c'))
+                # This is used for storing/getting to/from cache where uniqueness is guaranteed by other means.
+                outfile = '{0}.c'.format(os.path.splitext(os.path.basename(infile))[0])
                 self.logger.info('Weave in C file "{0}"'.format(infile))
 
                 # Produce aspect to be weaved in.
@@ -114,111 +118,57 @@ class Weaver(klever.core.vtg.plugins.Plugin):
                     # at merging source files and models together.
                     aspect = None
 
-                self.logger.debug('Aspect to be weaved in is "{0}"'.format(aspect))
+                if aspect:
+                    self.logger.info('Aspect to be weaved in is "{0}"'.format(aspect))
+                else:
+                    self.logger.info('C file will be passed through C Back-end only')
+
                 storage_path = clade.get_storage_path(infile)
                 if meta['conf'].get('Compiler.preprocess_cmds', False) and \
                         'klever-core-work-dir' not in storage_path:
                     storage_path = storage_path.split('.c')[0] + '.i'
-                klever.core.utils.execute(
-                    self.logger,
-                    tuple([
-                              'cif',
-                              '--in', storage_path,
-                              # Besides header files specific for requirements specifications will be searched for.
-                              '--general-opts',
-                              '-I' + os.path.realpath(os.path.dirname(self.conf['specifications base'])),
-                              '--aspect-preprocessing-opts', ' '.join(self.conf['aspect preprocessing options'])
-                                                             if 'aspect preprocessing options' in self.conf else '',
-                              '--out', os.path.realpath(outfile),
-                              '--back-end', 'src',
-                              '--debug', 'DEBUG'
-                          ] +
-                          (['--keep'] if self.conf['keep intermediate files'] else []) +
-                          (['--aspect', os.path.realpath(aspect)] if aspect else ['--stage', 'C-backend']) +
-                          ['--'] +
-                          klever.core.vtg.utils.prepare_cif_opts(cc['opts'], clade, grp['id'] == 'models') +
-                          [aspectator_search_dir] +
-                          ['-I' + clade.get_storage_path(p) for p in self.conf['working source trees']]
-                          ),
-                    env=env,
-                    cwd=clade.get_storage_path(cc['cwd']),
-                    timeout=0.01,
-                    filter_func=klever.core.vtg.utils.CIFErrorFilter())
-                self.logger.debug('C file "{0}" was weaved in'.format(infile))
 
-                extra_c_file = {'C file': os.path.relpath(outfile, self.conf['main working directory'])}
+                cwd = clade.get_storage_path(cc['cwd'])
 
-                # TODO: this can be incorporated into instrumentation above but it will need some Clade changes.
-                # Emulate normal compilation (indeed just parsing thanks to "-fsyntax-only") to get additional
-                # dependencies (model source files) and information on them.
-                if grp['id'] == 'models':
-                    clade_bin = os.path.join(os.path.dirname(sys.executable), "clade")
-                    klever.core.utils.execute(
-                        self.logger,
-                        tuple([
-                                clade_bin,
-                                '-ia',
-                                '--cmds', os.path.realpath('cmds.txt'),
-                                'aspectator',
-                                '-I' + os.path.realpath(os.path.dirname(self.conf['specifications base']))
-                            ] +
-                            klever.core.vtg.utils.prepare_cif_opts(cc['opts'], clade, grp['id'] == 'models') +
-                            [
-                                aspectator_search_dir,
-                                '-fsyntax-only',
-                                clade.get_storage_path(cc['in'][0]),
-                                '-o', os.path.realpath('{0}.o'
-                                                       .format(os.path.splitext(os.path.basename(cc['in'][0]))[0]))
-                            ]
-                        ),
-                        env=env,
-                        cwd=clade.get_storage_path(cc['cwd']),
-                        timeout=0.01,
-                    )
+                is_model = (grp['id'] == 'models')
 
-                self.abstract_task_desc['extra C files'].append(extra_c_file)
+                # Original sources should be woven in and we do not need to get cross references for them since this
+                # was already done before.
+                if not is_model:
+                    self.__weave(storage_path, cc['opts'], aspect, outfile_unique, clade, env, cwd,
+                                 aspectator_search_dir, is_model)
+                # For generated models we need to weave them in (actually, just pass through C Back-end) and to get
+                # cross references always since most likely they all are different.
+                elif 'generated' in extra_cc:
+                    self.__weave(storage_path, cc['opts'], aspect, outfile_unique, clade, env, cwd,
+                                 aspectator_search_dir, is_model)
+                    self.__get_cross_refs(storage_path, cc['opts'], outfile_unique, clade, env, cwd,
+                                          aspectator_search_dir)
+                # For non-generated models use results cache in addition.
+                else:
+                    cache_dir = os.path.join(self.conf['main working directory'], 'cache',
+                                             klever.core.utils.get_file_checksum(storage_path))
+                    with klever.core.utils.LockedOpen(cache_dir + '.tmp', 'w'):
+                        if os.path.exists(cache_dir):
+                            self.logger.info('Get woven in C file from cache')
+                            self.abstract_task_desc['extra C files'].append(
+                                {'C file': os.path.relpath(os.path.join(cache_dir, os.path.basename(outfile)),
+                                                           self.conf['main working directory'])})
+                            self.logger.info('Get cross references from cache')
+                            self.__merge_additional_srcs(os.path.join(cache_dir, 'additional sources'))
+                        else:
+                            os.makedirs(cache_dir)
+                            self.__weave(storage_path, cc['opts'], aspect, outfile_unique, clade, env, cwd,
+                                         aspectator_search_dir, is_model)
+                            self.logger.info('Store woven in C file to cache')
+                            shutil.copy(outfile_unique, os.path.join(cache_dir, outfile))
+                            self.__get_cross_refs(storage_path, cc['opts'], outfile_unique, clade, env, cwd,
+                                                  aspectator_search_dir)
+                            self.logger.info('Store cross references to cache')
+                            shutil.copytree(outfile_unique + ' additional sources',
+                                            os.path.join(cache_dir, 'additional sources'))
 
-        # Get cross references and everything required for them when all required commands were executed.
-        # Limit parallel workers in Clade by 1 since at this stage there may be several parallel task generators and we
-        # prefer their parallelism over the Clade one.
-        clade_extra = Clade(cmds_file='cmds.txt', conf={'cpu_count': 1})
-        clade_extra.parse_list(["CrossRef"])
-        if not clade_extra.work_dir_ok():
-            raise RuntimeError('Build base is not OK')
-
-        # Like in klever.core.job.Job#__upload_original_sources.
-        search_dirs = klever.core.utils.get_search_dirs(self.conf['main working directory'], abs_paths=True)
-        os.makedirs('additional sources')
-        for root, dirs, files in os.walk(clade_extra.storage_dir):
-            for file in files:
-                file = os.path.join(root, file)
-
-                storage_file = klever.core.utils.make_relative_path([clade_extra.storage_dir], file)
-
-                # Do not treat those source files that were already processed and uploaded as original sources.
-                if os.path.commonpath(
-                        [os.path.join(os.path.sep, storage_file), clade.storage_dir]) == clade.storage_dir:
-                    continue
-
-                new_file = klever.core.utils.make_relative_path(search_dirs, storage_file, absolutize=True)
-
-                # These source files do not belong neither to original sources nor to models, e.g. there are compiler
-                # headers.
-                if os.path.isabs(new_file):
-                    continue
-
-                # We treat all remaining source files which paths do not start with "specifications" as generated
-                # models. This is not correct for all cases, e.g. when users put some files within $KLEVER_DATA_DIR.
-                if not new_file.startswith('specifications'):
-                    new_file = os.path.join('generated models', new_file)
-
-                new_file = os.path.join('additional sources', new_file)
-                os.makedirs(os.path.dirname(new_file), exist_ok=True)
-                shutil.copy(file, new_file)
-
-                cross_refs = CrossRefs(self.conf, self.logger, clade_extra, os.path.join(os.path.sep, storage_file),
-                                       new_file, search_dirs)
-                cross_refs.get_cross_refs()
+                        os.remove(cache_dir + '.tmp')
 
         # For auxiliary files there is no cross references since it is rather hard to get them from Aspectator. But
         # there still highlighting.
@@ -229,7 +179,7 @@ class Weaver(klever.core.vtg.plugins.Plugin):
             os.makedirs(os.path.dirname(new_file), exist_ok=True)
             shutil.copy(aux_file, new_file)
 
-            cross_refs = CrossRefs(self.conf, self.logger, clade_extra, aux_file, new_file, search_dirs)
+            cross_refs = CrossRefs(self.conf, self.logger, clade, aux_file, new_file, self.search_dirs)
             cross_refs.get_cross_refs()
 
         self.abstract_task_desc['additional sources'] = os.path.relpath('additional sources',
@@ -251,12 +201,124 @@ class Weaver(klever.core.vtg.plugins.Plugin):
                         os.makedirs(os.path.dirname(new_file), exist_ok=True)
                         shutil.copy(file, new_file)
 
-        if not self.conf['keep intermediate files']:
-            shutil.rmtree('clade')
-            os.remove('cmds.txt')
-
         # These sections won't be refereed any more.
         del (self.abstract_task_desc['grps'])
         del (self.abstract_task_desc['deps'])
+
+    def __weave(self, storage_path, opts, aspect, outfile, clade, env, cwd, aspectator_search_dir, is_model):
+        klever.core.utils.execute(
+            self.logger,
+            tuple(
+                [
+                    'cif',
+                    '--in', storage_path,
+                    # Besides header files specific for requirements specifications will be searched for.
+                    '--general-opts',
+                    '-I' + os.path.realpath(os.path.dirname(self.conf['specifications base'])),
+                    '--aspect-preprocessing-opts', ' '.join(self.conf['aspect preprocessing options'])
+                    if 'aspect preprocessing options' in self.conf else '',
+                    '--out', os.path.realpath(outfile),
+                    '--back-end', 'src',
+                    '--debug', 'DEBUG'
+                ] +
+                (['--keep'] if self.conf['keep intermediate files'] else []) +
+                (['--aspect', os.path.realpath(aspect)] if aspect else ['--stage', 'C-backend']) +
+                ['--'] +
+                klever.core.vtg.utils.prepare_cif_opts(opts, clade, is_model) +
+                [aspectator_search_dir] +
+                ['-I' + clade.get_storage_path(p) for p in self.conf['working source trees']]
+            ),
+            env=env,
+            cwd=cwd,
+            timeout=0.01,
+            filter_func=klever.core.vtg.utils.CIFErrorFilter())
+
+        self.abstract_task_desc['extra C files'].append(
+            {'C file': os.path.relpath(outfile, self.conf['main working directory'])})
+
+    def __get_cross_refs(self, storage_path, opts, outfile, clade, env, cwd, aspectator_search_dir):
+        # TODO: this can be incorporated into instrumentation above but it will need some Clade changes.
+        # Emulate normal compilation (indeed just parsing thanks to "-fsyntax-only") to get additional
+        # dependencies (model source files) and information on them.
+        klever.core.utils.execute(
+            self.logger,
+            tuple(
+                [
+                    os.path.join(os.path.dirname(sys.executable), "clade"),
+                    '--intercept',
+                    '--cmds', os.path.realpath(outfile + '.cmds.txt'),
+                    'aspectator',
+                    '-I' + os.path.realpath(os.path.dirname(self.conf['specifications base']))
+                ] +
+                klever.core.vtg.utils.prepare_cif_opts(opts, clade, True) +
+                [
+                    aspectator_search_dir,
+                    '-fsyntax-only',
+                    storage_path
+                ]
+            ),
+            env=env,
+            cwd=cwd,
+            timeout=0.01,
+        )
+
+        # Get cross references and everything required for them.
+        # Limit parallel workers in Clade by 1 since at this stage there may be several parallel task generators and we
+        # prefer their parallelism over the Clade one.
+        clade_extra = Clade(work_dir=os.path.realpath(outfile + ' clade'), cmds_file=outfile + '.cmds.txt',
+                            conf={'cpu_count': 1})
+        clade_extra.parse_list(["CrossRef"])
+        if not clade_extra.work_dir_ok():
+            raise RuntimeError('Build base is not OK')
+
+        # Like in klever.core.job.Job#__upload_original_sources.
+        os.makedirs(outfile + ' additional sources')
+        for root, dirs, files in os.walk(clade_extra.storage_dir):
+            for file in files:
+                file = os.path.join(root, file)
+
+                storage_file = klever.core.utils.make_relative_path([clade_extra.storage_dir], file)
+
+                # Do not treat those source files that were already processed and uploaded as original sources.
+                if os.path.commonpath(
+                        [os.path.join(os.path.sep, storage_file), clade.storage_dir]) == clade.storage_dir:
+                    continue
+
+                new_file = klever.core.utils.make_relative_path(self.search_dirs, storage_file, absolutize=True)
+
+                # These source files do not belong neither to original sources nor to models, e.g. there are compiler
+                # headers.
+                if os.path.isabs(new_file):
+                    continue
+
+                # We treat all remaining source files which paths do not start with "specifications" as generated
+                # models. This is not correct for all cases, e.g. when users put some files within $KLEVER_DATA_DIR.
+                if not new_file.startswith('specifications'):
+                    new_file = os.path.join('generated models', new_file)
+
+                new_file = os.path.join(outfile + ' additional sources', new_file)
+                os.makedirs(os.path.dirname(new_file), exist_ok=True)
+                shutil.copy(file, new_file)
+
+                cross_refs = CrossRefs(self.conf, self.logger, clade_extra, os.path.join(os.path.sep, storage_file),
+                                       new_file, self.search_dirs)
+                cross_refs.get_cross_refs()
+
+        self.__merge_additional_srcs(outfile + ' additional sources')
+
+        if not self.conf['keep intermediate files']:
+            shutil.rmtree(outfile + ' clade')
+            os.remove(outfile + '.cmds.txt')
+
+    def __merge_additional_srcs(self, from_dir):
+        to_dir = os.path.realpath('additional sources')
+        with klever.core.utils.Cd(from_dir):
+            for root, dirs, files in os.walk(os.path.curdir):
+                for file in files:
+                    file = os.path.join(root, file)
+                    dest = os.path.join(to_dir, file)
+                    if not os.path.exists(dest):
+                        os.makedirs(os.path.dirname(dest), exist_ok=True)
+                        shutil.copy(file, dest)
 
     main = weave
