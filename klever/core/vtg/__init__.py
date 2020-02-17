@@ -224,9 +224,8 @@ class VTG(klever.core.components.Component):
         unmatched_req_spec_id_patterns = set(self.conf['requirement specifications']).difference(
             matched_req_spec_id_patterns)
         if unmatched_req_spec_id_patterns:
-            # TODO: make this warning more visible (note).
-            self.logger.warning('Following requirement specification identifier patters were not matched: "{0}'
-                                .format(', '.join(unmatched_req_spec_id_patterns)))
+            raise ValueError('Following requirement specification identifier patters were not matched: "{0}"'
+                             .format(', '.join(unmatched_req_spec_id_patterns)))
 
         # Complete descriptions of requirement specifications to be checked by adding plugin options specific for
         # requirement specifications to common template ones.
