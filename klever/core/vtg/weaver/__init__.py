@@ -172,34 +172,46 @@ class Weaver(klever.core.vtg.plugins.Plugin):
 
         # For auxiliary files there is no cross references since it is rather hard to get them from Aspectator. But
         # there still highlighting.
-        for aux_file in glob.glob('*.aux'):
-            new_file = os.path.join('additional sources', 'generated models',
-                                    os.path.relpath(aux_file, self.conf['main working directory']))
+        if self.conf['code coverage details'] == 'All source files':
+            for aux_file in glob.glob('*.aux'):
+                new_file = os.path.join('additional sources', 'generated models',
+                                        os.path.relpath(aux_file, self.conf['main working directory']))
 
-            os.makedirs(os.path.dirname(new_file), exist_ok=True)
-            shutil.copy(aux_file, new_file)
+                os.makedirs(os.path.dirname(new_file), exist_ok=True)
+                shutil.copy(aux_file, new_file)
 
-            cross_refs = CrossRefs(self.conf, self.logger, clade, aux_file, new_file, self.search_dirs)
-            cross_refs.get_cross_refs()
+                cross_refs = CrossRefs(self.conf, self.logger, clade, aux_file, new_file, self.search_dirs)
+                cross_refs.get_cross_refs()
 
         self.abstract_task_desc['additional sources'] = os.path.relpath('additional sources',
                                                                         self.conf['main working directory'])
 
         # Copy additional sources for total code coverage.
-        if self.conf['code coverage details'] == 'All source files':
+        if self.conf['code coverage details'] != 'Original C source files':
             with klever.core.utils.Cd('additional sources'):
                 for root, dirs, files in os.walk(os.path.curdir):
                     for file in files:
-                        file = os.path.join(root, file)
-                        new_file = os.path.join(self.conf['additional sources directory'], file)
-
-                        if os.path.isfile(new_file):
-                            # TODO: this should never happen, otherwise there should be more explicit warning (note).
-                            self.logger.warning('Additional source file "{0}" already exists'.format(file))
+                        # These files are handled below in addition to corresponding source files.
+                        if file.endswith('.json'):
                             continue
 
+                        if self.conf['code coverage details'] == 'C source files including models' \
+                                and not file.endswith('.c'):
+                            continue
+
+                        file = os.path.join(root, file)
+                        new_file = os.path.join(self.conf['additional sources directory'], file)
                         os.makedirs(os.path.dirname(new_file), exist_ok=True)
-                        shutil.copy(file, new_file)
+
+                        with klever.core.utils.LockedOpen(new_file + '.tmp', 'w'):
+                            if os.path.isfile(new_file):
+                                os.remove(new_file + '.tmp')
+                                continue
+
+                            shutil.copy(file, new_file)
+                            shutil.copy(file + '.idx.json', new_file + '.idx.json')
+
+                            os.remove(new_file + '.tmp')
 
         # These sections won't be refereed any more.
         del (self.abstract_task_desc['grps'])
