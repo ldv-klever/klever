@@ -498,10 +498,12 @@ class RP(klever.core.components.Component):
             'wall_time': decision_results['resources']['wall time'],
             'cpu_time': decision_results['resources']['CPU time'],
             'memory': decision_results['resources']['memory size'],
-            'original_sources': self.clade.get_uuid(),
-            'additional_sources': klever.core.utils.ArchiveFiles([os.path.join(self.conf['main working directory'],
-                                                                        self.additional_srcs)])
+            'original_sources': self.clade.get_uuid()
         }
+
+        if self.additional_srcs:
+            report['additional_sources'] = klever.core.utils.ArchiveFiles(
+                [os.path.join(self.conf['main working directory'], self.additional_srcs)])
 
         # Get coverage
         coverage_info_dir = os.path.join('total coverages',
