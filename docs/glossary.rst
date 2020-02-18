@@ -18,7 +18,7 @@ Glossary
 .. glossary::
 
     $KLEVER_SRC
-        A path to a root directory of Klever source tree.
+        A path to a root directory of a Klever source tree.
 
     $KLEVER_DEPLOY_DIR
         A path to a directory where Klever should be deployed. Although this directory can be one of standard ones
