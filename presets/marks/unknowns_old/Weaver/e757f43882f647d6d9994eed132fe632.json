@@ -1,7 +1,0 @@
-{
-  "pattern": "conflicting types for",
-  "problem": "Confl types",
-  "production": true,
-  "link": "http://forge.ispras.ru/issues/7245",
-  "description": "EMG generates a parameter of conflicting type for a callback."
-}

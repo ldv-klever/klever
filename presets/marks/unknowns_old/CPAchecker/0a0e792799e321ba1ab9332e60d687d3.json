@@ -1,9 +1,0 @@
-{
-  "description": "",
-  "is regexp": false,
-  "is_modifiable": false,
-  "pattern": "should not appear at this point",
-  "problem": "BadInitializer ",
-  "status": "0",
-  "production": true
-}

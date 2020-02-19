@@ -1,7 +1,0 @@
-{
-  "pattern": "implicit declaration of function",
-  "problem": "Implicit decl",
-  "production": true,
-  "link": "http://forge.ispras.ru/issues/7244",
-  "description": "EMG declares and operates with variables of types non-visible in the file with an entry point."
-}

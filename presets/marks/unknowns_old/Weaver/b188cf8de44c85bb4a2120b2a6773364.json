@@ -1,7 +1,0 @@
-{
-  "pattern": "too few arguments to function",
-  "problem": "Too few args",
-  "production": true,
-  "link": "http://forge.ispras.ru/issues/7117",
-  "description": "EMG does not check whether a callback declaration corresponds to the container member declaration."
-}

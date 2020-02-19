@@ -1,6 +1,0 @@
-{
-  "pattern": "java.lang.StackOverflowError",
-  "problem": "Stack overflow",
-  "production": true,
-  "link": "https://docs.oracle.com/javase/7/docs/api/java/lang/StackOverflowError.html"
-}
