@@ -3,7 +3,7 @@
     {
       "is_compare": true,
       "name": "Requirements specification",
-      "value": "net:register"
+      "value": "net:core:dev"
     },
     {
       "is_compare": true,

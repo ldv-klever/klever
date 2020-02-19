@@ -3,7 +3,7 @@
     {
       "is_compare": true,
       "name": "Requirements specification",
-      "value": "usb:gadget"
+      "value": "drivers:usb:gadget:udc-core"
     },
     {
       "is_compare": true,

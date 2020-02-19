@@ -3,7 +3,7 @@
     {
       "is_compare": true,
       "name": "Requirements specification",
-      "value": "usb:urb"
+      "value": "drivers:usb:core:urb"
     },
     {
       "is_compare": true,

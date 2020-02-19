@@ -3,7 +3,7 @@
     {
       "is_compare": true,
       "name": "Requirements specification",
-      "value": "block:request"
+      "value": "block:blk-core:request"
     },
     {
       "is_compare": true,

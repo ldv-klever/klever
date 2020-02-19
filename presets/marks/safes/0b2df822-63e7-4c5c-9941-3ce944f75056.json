@@ -3,7 +3,7 @@
     {
       "is_compare": true,
       "name": "Requirements specification",
-      "value": "fs:sysfs"
+      "value": "fs:sysfs:group"
     },
     {
       "is_compare": true,

@@ -3,7 +3,7 @@
     {
       "is_compare": true,
       "name": "Requirements specification",
-      "value": "drivers:base:dma-mapping"
+      "value": "arch:asm:dma-mapping"
     },
     {
       "is_compare": true,

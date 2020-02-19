@@ -3,7 +3,7 @@
     {
       "is_compare": true,
       "name": "Requirements specification",
-      "value": "usb:dev"
+      "value": "drivers:usb:core:usb:dev"
     },
     {
       "is_compare": true,

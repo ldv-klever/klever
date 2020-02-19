@@ -3,7 +3,7 @@
     {
       "is_compare": true,
       "name": "Requirements specification",
-      "value": "lib:find_bit"
+      "value": "lib:find_next_bit"
     },
     {
       "is_compare": true,

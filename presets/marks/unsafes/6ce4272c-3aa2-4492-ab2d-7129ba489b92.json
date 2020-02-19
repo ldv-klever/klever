@@ -3,7 +3,7 @@
     {
       "is_compare": true,
       "name": "Requirements specification",
-      "value": "usb:register"
+      "value": "drivers:usb:core:driver"
     },
     {
       "is_compare": true,
