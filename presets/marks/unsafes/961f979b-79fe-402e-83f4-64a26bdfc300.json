@@ -8,7 +8,7 @@
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/linux/drivers/base/dma-mapping/unchecked.ko"
+      "value": "ext-modules/linux/arch/asm/dma-mapping/unchecked.ko"
     }
   ],
   "description": "",

@@ -8,7 +8,7 @@
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/linux/usb/register/register.ko"
+      "value": "ext-modules/linux/drivers/usb/core/driver/register.ko"
     }
   ],
   "description": "",

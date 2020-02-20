@@ -8,7 +8,7 @@
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/linux/net/sock/safe.ko"
+      "value": "ext-modules/linux/net/core/sock/safe.ko"
     }
   ],
   "description": "",

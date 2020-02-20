@@ -8,7 +8,7 @@
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/linux/usb/gadget/unregister-usb-gadget.ko"
+      "value": "ext-modules/linux/drivers/usb/gadget/udc-core/unregister-usb-gadget.ko"
     }
   ],
   "description": "",

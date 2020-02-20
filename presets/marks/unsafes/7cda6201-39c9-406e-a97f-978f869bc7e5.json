@@ -8,7 +8,7 @@
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/linux/block/request/get-at-exit.ko"
+      "value": "ext-modules/linux/block/blk-core/request/get-at-exit.ko"
     }
   ],
   "description": "",

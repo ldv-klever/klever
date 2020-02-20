@@ -8,7 +8,7 @@
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/linux/usb/dev/more-at-exit.ko"
+      "value": "ext-modules/linux/drivers/usb/core/usb/dev/more-at-exit.ko"
     }
   ],
   "description": "",

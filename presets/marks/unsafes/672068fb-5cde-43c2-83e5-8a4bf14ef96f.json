@@ -8,7 +8,7 @@
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/linux/usb/coherent/less-decrement.ko"
+      "value": "ext-modules/linux/drivers/usb/core/usb/coherent/less-decrement.ko"
     }
   ],
   "description": "",

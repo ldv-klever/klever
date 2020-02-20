@@ -8,7 +8,7 @@
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/linux/net/sock/all-locked-sockets-must-be-released.ko"
+      "value": "ext-modules/linux/net/core/sock/all-locked-sockets-must-be-released.ko"
     }
   ],
   "description": "",

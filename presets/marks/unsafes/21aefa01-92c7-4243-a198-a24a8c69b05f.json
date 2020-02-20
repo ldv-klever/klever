@@ -8,7 +8,7 @@
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/linux/block/queue/more-initial.ko"
+      "value": "ext-modules/linux/block/blk-core/queue/more-initial.ko"
     }
   ],
   "description": "",

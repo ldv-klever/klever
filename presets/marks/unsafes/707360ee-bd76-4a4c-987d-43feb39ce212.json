@@ -8,7 +8,7 @@
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/linux/net/register/netdev.ko"
+      "value": "ext-modules/linux/net/core/register/netdev.ko"
     }
   ],
   "description": "",

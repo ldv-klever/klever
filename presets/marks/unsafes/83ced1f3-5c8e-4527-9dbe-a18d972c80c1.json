@@ -8,7 +8,7 @@
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/linux/net/rtnetlink/ieee80211_unregister_hw.ko"
+      "value": "ext-modules/linux/net/core/rtnetlink/ieee80211_unregister_hw.ko"
     }
   ],
   "description": "",
