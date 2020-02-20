@@ -15,23 +15,10 @@
  * limitations under the License.
  */
 
-#ifndef __VERIFIER_COMMON_H
-#define __VERIFIER_COMMON_H
+#ifndef __LDV_H
+#define __LDV_H
 
-/* https://sv-comp.sosy-lab.org/2017/rules.php */
-void __VERIFIER_error(void);
-void __VERIFIER_assume(int expr);
+/* Function declaration for inline Assembler stubs. */
+extern void ldv_inline_asm(void);
 
-/* If expression is zero ldv_assert() causes program to reach error function
- * call. */
-extern void ldv_assert(int expr);
-
-/* Cause error unconditionally.
- */
-extern void ldv_error(void);
-
-/* Internal alias for __VERIFIER_assume(). Proceed only if expression is
- * nonzero. */
-#define ldv_assume(expr) __VERIFIER_assume(expr)
-
-#endif /* __VERIFIER_COMMON_H */
+#endif /* __LDV_H */

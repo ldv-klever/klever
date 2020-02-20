@@ -81,18 +81,18 @@
             "common sets model": "counter",
             "model compiler input file": "scripts/mod/empty.c",
             "common models": [
+              "linux/arch/asm/atomic.c",
               "linux/drivers/base/dd.c",
               "linux/drivers/spi.c",
-              "linux/mm/slab.c",
               "linux/err.c",
               "linux/kernel/panic.c",
-              "linux/arch/asm/atomic.c",
               "linux/ldv/common.c",
+              "linux/mm/slab.c",
+              "linux/verifier/memory.c",
               "verifier/common.c",
               "verifier/gcc.c",
               "verifier/nondet.c",
-              "verifier/reference memory.c",
-              "linux/verifier/memory.c"
+              "verifier/reference memory.c"
             ]
           }
         },
