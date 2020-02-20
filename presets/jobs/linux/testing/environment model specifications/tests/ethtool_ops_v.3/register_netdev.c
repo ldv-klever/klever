@@ -25,7 +25,7 @@ int flip_a_coin;
 
 int	ldv_get_fecparam(struct net_device * a, struct ethtool_fecparam *b)
 {
-	ldv_invoke_reached();
+	ldv_invoke_callback();
 	return 0;
 }
 
