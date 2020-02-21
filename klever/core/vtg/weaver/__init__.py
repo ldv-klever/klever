@@ -20,7 +20,6 @@ import fileinput
 import json
 import os
 import shutil
-import sys
 
 from clade import Clade
 
@@ -143,7 +142,7 @@ class Weaver(klever.core.vtg.plugins.Plugin):
                     self.__weave(storage_path, cc['opts'], aspect, outfile_unique, clade, env, cwd,
                                  aspectator_search_dir, is_model)
                     if self.conf['code coverage details'] != 'Original C source files':
-                        self.__get_cross_refs(storage_path, cc['opts'], outfile_unique, clade, env, cwd,
+                        self.__get_cross_refs(storage_path, cc['opts'], outfile_unique, clade, cwd,
                                               aspectator_search_dir)
                 # For non-generated models use results cache in addition.
                 else:
@@ -166,7 +165,7 @@ class Weaver(klever.core.vtg.plugins.Plugin):
                             shutil.copy(outfile_unique, os.path.join(cache_dir, outfile))
 
                             if self.conf['code coverage details'] != 'Original C source files':
-                                self.__get_cross_refs(storage_path, cc['opts'], outfile_unique, clade, env, cwd,
+                                self.__get_cross_refs(storage_path, cc['opts'], outfile_unique, clade, cwd,
                                                       aspectator_search_dir)
                                 self.logger.info('Store cross references to cache')
                                 shutil.copytree(outfile_unique + ' additional sources',
@@ -253,38 +252,28 @@ class Weaver(klever.core.vtg.plugins.Plugin):
         self.abstract_task_desc['extra C files'].append(
             {'C file': os.path.relpath(outfile, self.conf['main working directory'])})
 
-    def __get_cross_refs(self, storage_path, opts, outfile, clade, env, cwd, aspectator_search_dir):
-        # TODO: this can be incorporated into instrumentation above but it will need some Clade changes.
-        # Emulate normal compilation (indeed just parsing thanks to "-fsyntax-only") to get additional
-        # dependencies (model source files) and information on them.
-        klever.core.utils.execute(
-            self.logger,
-            tuple(
-                [
-                    os.path.join(os.path.dirname(sys.executable), "clade"),
-                    '--intercept',
-                    '--cmds', os.path.realpath(outfile + '.cmds.txt'),
-                    'aspectator',
-                    '-I' + os.path.realpath(os.path.dirname(self.conf['specifications base']))
-                ] +
-                klever.core.vtg.utils.prepare_cif_opts(opts, clade, True) +
-                [
-                    aspectator_search_dir,
-                    '-fsyntax-only',
-                    storage_path
-                ]
-            ),
-            env=env,
-            cwd=cwd,
-            timeout=0.01,
-        )
-
+    def __get_cross_refs(self, storage_path, opts, outfile, clade, cwd, aspectator_search_dir):
         # Get cross references and everything required for them.
         # Limit parallel workers in Clade by 4 since at this stage there may be several parallel task generators and we
         # prefer their parallelism over the Clade default one.
-        clade_extra = Clade(work_dir=os.path.realpath(outfile + ' clade'), cmds_file=outfile + '.cmds.txt',
-                            conf={'cpu_count': 4})
+        clade_extra = Clade(work_dir=os.path.realpath(outfile + ' clade'), conf={'cpu_count': 4})
+        # TODO: this can be incorporated into instrumentation above but it will need some Clade changes.
+        # Emulate normal compilation (indeed just parsing thanks to "-fsyntax-only") to get additional
+        # dependencies (model source files) and information on them.
+        clade_extra.intercept(
+            [
+                'aspectator',
+                '-I' + os.path.realpath(os.path.dirname(self.conf['specifications base']))
+            ] + klever.core.vtg.utils.prepare_cif_opts(opts, clade, True) +
+            [
+                aspectator_search_dir,
+                '-fsyntax-only',
+                storage_path
+            ],
+            cwd=cwd
+        )
         clade_extra.parse_list(["CrossRef"])
+
         if not clade_extra.work_dir_ok():
             raise RuntimeError('Build base is not OK')
 
