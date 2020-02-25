@@ -47,3 +47,9 @@ A normal sequence of actions for :ref:`local_deploy` is the following:
 In addition, there are several optional command-line arguments which you can find out by running::
 
     $ klever-deploy-local --help
+
+We strongly recommend to configure your file indexing service if you have it enabled so that it will ignore content of
+:term:`$KLEVER_DEPLOY_DIR`.
+Otherwise, it can consume too much computational resources since Klever manipulates files very extensively during its
+operation.
+To do this, please, refer to an appropriate user documentation.
