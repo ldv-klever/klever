@@ -134,7 +134,7 @@ Frama-C (CIL)
 ^^^^^^^^^^^^^
 
 You can get `Frama-C (CIL) <https://frama-c.com/>`__ binaries from
-`here <https://forge.ispras.ru/attachments/download/7245/frama-c-cil-918782e.tar.xz>`__.
+`here <https://forge.ispras.ru/projects/klever/files>`__.
 As well, you can build it from
 `this source <https://forge.ispras.ru/projects/astraver/repository/framac>`__ (branch :file:`18.0`)
 which has several specific patches relatively to the mainline.
@@ -158,10 +158,7 @@ You need at least one tool that will perform actual verification of your softwar
 These tools are referred to as :ref:`verification_backends`.
 As verification backends Klever supports `CPAchecker <https://cpachecker.sosy-lab.org/>`__ well.
 Some other verification backends are supported experimentally and currently we do not recommend to use them.
-You can download binaries of CPAchecker suitable for checking most of requirements from
-`here <https://forge.ispras.ru/attachments/download/6427/CPAchecker-1.8-svn 31140-unix.tar.xz>`__.
-For finding data races additionally download binaries of another custom version of CPAchecker from
-`here <https://forge.ispras.ru/attachments/download/7146/CPAchecker-1.8-svn 32435-unix.tar.xz>`__.
+You can download binaries of CPAchecker from `here <https://forge.ispras.ru/projects/klever/files>`__.
 In addition, you can clone `CPAchecker Git or Subversion repository <https://cpachecker.sosy-lab.org/download.php>`__
 and build other versions of CPAchecker from source referring corresponding instructions.
 
