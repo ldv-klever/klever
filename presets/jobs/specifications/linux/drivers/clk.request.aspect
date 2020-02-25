@@ -15,14 +15,18 @@
  * limitations under the License.
  */
 
-before: file ("$this")
+info: call(static inline void clk_disable_unprepare(struct clk *clk))
 {
-struct clk;
-
-// for arg_sign in clk2_arg_signs
-extern void ldv_clk_disable{{ arg_sign.id }}(struct clk *clk);
-extern int ldv_clk_enable{{ arg_sign.id }}(void);
-// endfor
+	$fprintf<$env<LDV_ARG_SIGNS_FILE>,"%s\n",$arg_sign1>
 }
 
-@include <linux/drivers/clk.aspect.tmpl>
+info: call(static inline int clk_prepare_enable(struct clk *clk)) ||
+      call(int clk_enable(struct clk *clk))
+{
+	$fprintf<$env<LDV_ARG_SIGNS_FILE>,"%s\n",$arg_sign1>
+}
+
+info: call(void clk_disable(struct clk *clk))
+{
+	$fprintf<$env<LDV_ARG_SIGNS_FILE>,"%s\n",$arg_sign1>
+}
