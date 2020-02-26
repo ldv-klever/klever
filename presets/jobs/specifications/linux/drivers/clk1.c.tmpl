@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 
+#include <linux/ldv/err.h>
 #include <verifier/common.h>
 #include <verifier/nondet.h>
 #include <verifier/memory.h>
@@ -24,7 +25,12 @@ struct clk;
 struct clk *ldv_clk_get(void)
 {
 	struct clk *clk;
-	clk = ldv_reference_xmalloc_unknown_size(0);
+
+	if (ldv_undef_int())
+		clk = ldv_malloc_unknown_size();
+	else
+		ldv_assume(ldv_is_err(clk));
+
 	return clk;
 }
 
