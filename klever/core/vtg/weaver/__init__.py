@@ -314,7 +314,6 @@ class Weaver(klever.core.vtg.plugins.Plugin):
 
         if not self.conf['keep intermediate files']:
             shutil.rmtree(outfile + ' clade')
-            os.remove(outfile + '.cmds.txt')
 
     def __merge_additional_srcs(self, from_dir):
         to_dir = os.path.realpath('additional sources')
