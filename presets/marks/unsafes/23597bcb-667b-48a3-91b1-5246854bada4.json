@@ -8,7 +8,7 @@
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/linux/drivers/clk1/unsafe.ko"
+      "value": "ext-modules/linux/drivers/clk1/prepared-at-exit.ko"
     }
   ],
   "description": "",
@@ -35,9 +35,9 @@
             {
               "LDV model 'init'": [
                 {
-                  "Instrumented function 'clk_enable'": [
+                  "Instrumented function 'clk_prepare'": [
                     {
-                      "LDV model 'clk_enable_clk'": []
+                      "LDV model 'clk_prepare_clk'": []
                     }
                   ]
                 }
@@ -49,7 +49,7 @@
     ]
   ],
   "function": "thread_call_forests",
-  "is_modifiable": false,
+  "is_modifiable": true,
   "status": null,
   "tags": [],
   "threshold": 0,

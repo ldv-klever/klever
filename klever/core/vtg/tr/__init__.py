@@ -51,6 +51,9 @@ class TR(klever.core.vtg.plugins.Plugin):
                 # Remove excessive whitespaces. Users needn't know that they see on rendered templates.
                 trim_blocks=True,
                 lstrip_blocks=True,
+                # Keep new line at the EOF. This is required, for instance, for aspect templates since they are
+                # concatenated with other aspects after rendering.
+                keep_trailing_newline=True,
                 # Raise exception if some template value is undefined. This can happens if template or/and template
                 # context is incorrect.
                 undefined=jinja2.StrictUndefined
