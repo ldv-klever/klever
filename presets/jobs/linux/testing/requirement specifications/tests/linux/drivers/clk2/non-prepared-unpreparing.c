@@ -27,7 +27,9 @@ static int __init ldv_init(void)
 	struct clk *clk;
 
 	clk = clk_get(dev, id);
-	ldv_assume(!clk_enable(clk));
+	ldv_assume(IS_ERR(clk) == 0);
+	clk_unprepare(clk);
+	clk_put(clk);
 
 	return 0;
 }

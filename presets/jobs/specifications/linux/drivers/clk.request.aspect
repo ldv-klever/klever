@@ -15,19 +15,12 @@
  * limitations under the License.
  */
 
-before: file ("$this")
+info: call(int clk_prepare(struct clk *clk)) ||
+      call(void clk_unprepare(struct clk *clk)) ||
+      call(int clk_enable(struct clk *clk)) ||
+      call(void clk_disable(struct clk *clk)) ||
+      call(static inline int clk_prepare_enable(struct clk *clk)) ||
+      call(static inline void clk_disable_unprepare(struct clk *clk))
 {
-struct clk;
-
-extern struct clk *ldv_clk_get(void);
-
-// for arg_sign in clk2_arg_signs
-extern int ldv_clk_prepare{{ arg_sign.id }}(void);
-extern void ldv_clk_unprepare{{ arg_sign.id }}(void);
-extern int ldv_clk_enable{{ arg_sign.id }}(void);
-extern void ldv_clk_disable{{ arg_sign.id }}(void);
-extern int ldv_clk_prepare_enable{{ arg_sign.id }}(void);
-// endfor
+	$fprintf<$env<LDV_ARG_SIGNS_FILE>,"%s\n",$arg_sign1>
 }
-
-@include <linux/drivers/clk.aspect.tmpl>

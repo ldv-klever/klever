@@ -17,6 +17,7 @@
 
 #include <linux/module.h>
 #include <linux/clk.h>
+#include <verifier/common.h>
 #include <verifier/nondet.h>
 
 static int __init ldv_init(void)
@@ -25,8 +26,10 @@ static int __init ldv_init(void)
 	const char *id = ldv_undef_ptr();
 	struct clk *clk;
 
-	clk = clk_get(dev, id);
-	clk_disable(clk);
+	clk = devm_clk_get(dev, id);
+	ldv_assume(IS_ERR(clk) == 0);
+	clk_disable_unprepare(clk);
+	devm_clk_put(dev, clk);
 
 	return 0;
 }
