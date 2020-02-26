@@ -17,54 +17,19 @@
 
 #include <linux/module.h>
 #include <linux/clk.h>
+#include <verifier/common.h>
 #include <verifier/nondet.h>
 
 static int __init ldv_init(void)
 {
-	struct device *dev1 = ldv_undef_ptr(), *dev2 = ldv_undef_ptr();
-	const char *id1 = ldv_undef_ptr(), *id2 = ldv_undef_ptr();
-	struct clk *clk1, *clk2;
+	struct device *dev = ldv_undef_ptr();
+	const char *id = ldv_undef_ptr();
+	struct clk *clk;
 
-	clk1 = clk_get(dev1, id1);
-	clk2 = devm_clk_get(dev2, id2);
-
-	if (!IS_ERR(clk1))
-	{
-		if (!clk_enable(clk1))
-			clk_disable(clk1);
-
-		if (!clk_prepare(clk1))
-			clk_unprepare(clk1);
-
-		if (!clk_prepare_enable(clk1))
-			clk_disable_unprepare(clk1);
-	}
-
-	if (!IS_ERR(clk2))
-	{
-		if (!clk_enable(clk2))
-			clk_disable(clk2);
-
-		if (!clk_prepare(clk2))
-			clk_unprepare(clk2);
-
-		if (!clk_prepare_enable(clk2))
-			clk_disable_unprepare(clk2);
-	}
-
-	if (!IS_ERR(clk1) && !IS_ERR(clk2))
-		if (!clk_enable(clk1)) {
-			if (!clk_enable(clk2))
-				clk_disable(clk2);
-
-			clk_disable(clk1);
-		}
-
-	if (!IS_ERR(clk1))
-		clk_put(clk1);
-
-	if (!IS_ERR(clk2))
-		clk_put(clk2);
+	clk = devm_clk_get(dev, id);
+	ldv_assume(IS_ERR(clk) == 0);
+	ldv_assume(!clk_prepare_enable(clk));
+	devm_clk_put(dev, clk);
 
 	return 0;
 }

@@ -19,9 +19,14 @@ before: file ("$this")
 {
 struct clk;
 
+extern struct clk *ldv_clk_get(void);
+
 // for arg_sign in clk2_arg_signs
-extern void ldv_clk_disable{{ arg_sign.id }}(struct clk *clk);
+extern int ldv_clk_prepare{{ arg_sign.id }}(void);
+extern void ldv_clk_unprepare{{ arg_sign.id }}(void);
 extern int ldv_clk_enable{{ arg_sign.id }}(void);
+extern void ldv_clk_disable{{ arg_sign.id }}(void);
+extern int ldv_clk_prepare_enable{{ arg_sign.id }}(void);
 // endfor
 }
 

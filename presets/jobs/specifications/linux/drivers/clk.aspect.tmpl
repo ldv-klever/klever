@@ -15,18 +15,43 @@
  * limitations under the License.
  */
 
-around: call(static inline void clk_disable_unprepare(struct clk *clk))
+around: call(int clk_prepare(struct clk *clk))
 {
-	ldv_clk_disable_$arg_sign1(clk);
+	return ldv_clk_prepare_$arg_sign1();
 }
 
-around: call(static inline int clk_prepare_enable(struct clk *clk)) ||
-        call(int clk_enable(struct clk *clk))
+around: call(void clk_unprepare(struct clk *clk))
+{
+	ldv_clk_unprepare_$arg_sign1();
+}
+
+around: call(int clk_enable(struct clk *clk))
 {
 	return ldv_clk_enable_$arg_sign1();
 }
 
 around: call(void clk_disable(struct clk *clk))
 {
-	ldv_clk_disable_$arg_sign1(clk);
+	ldv_clk_disable_$arg_sign1();
+}
+
+around: call(static inline int clk_prepare_enable(struct clk *clk))
+{
+	return ldv_clk_prepare_enable_$arg_sign1();
+}
+
+around: call(static inline void clk_disable_unprepare(struct clk *clk))
+{
+	ldv_clk_disable_$arg_sign1();
+	ldv_clk_unprepare_$arg_sign1();
+}
+
+around: call(struct clk *clk_get(struct device *dev, const char *con_id))
+{
+	return ldv_clk_get();
+}
+
+around: call(struct clk *devm_clk_get(struct device *dev, const char *id))
+{
+	return ldv_clk_get();
 }
