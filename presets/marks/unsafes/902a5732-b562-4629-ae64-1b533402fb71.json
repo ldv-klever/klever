@@ -25,6 +25,20 @@
             {
               "s3c_hsotg_probe": [
                 {
+                  "Instrumented function 'clk_prepare_enable'": [
+                    {
+                      "LDV model 'clk_prepare_enable_clk_of_s3c_hsotg'": [
+                        {
+                          "LDV model 'clk_prepare_clk_of_s3c_hsotg'": []
+                        },
+                        {
+                          "LDV model 'clk_unprepare_clk_of_s3c_hsotg'": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
                   "Instrumented function 'clk_disable_unprepare'": [
                     {
                       "LDV model 'clk_disable_clk_of_s3c_hsotg'": [

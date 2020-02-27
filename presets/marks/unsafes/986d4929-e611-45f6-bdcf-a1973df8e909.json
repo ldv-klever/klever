@@ -37,14 +37,52 @@
                 {
                   "Instrumented function 'clk_prepare_enable'": [
                     {
-                      "LDV model 'clk_enable_clk_per_of_spi_imx_data'": []
+                      "LDV model 'clk_prepare_enable_clk_per_of_spi_imx_data'": [
+                        {
+                          "LDV model 'clk_prepare_clk_per_of_spi_imx_data'": []
+                        },
+                        {
+                          "LDV model 'clk_enable_clk_per_of_spi_imx_data'": []
+                        }
+                      ]
                     }
                   ]
                 },
                 {
                   "Instrumented function 'clk_prepare_enable'": [
                     {
-                      "LDV model 'clk_enable_clk_ipg_of_spi_imx_data'": []
+                      "LDV model 'clk_prepare_enable_clk_ipg_of_spi_imx_data'": [
+                        {
+                          "LDV model 'clk_prepare_clk_ipg_of_spi_imx_data'": []
+                        },
+                        {
+                          "LDV model 'clk_enable_clk_ipg_of_spi_imx_data'": []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "EMG wrapper": [
+            {
+              "spi_imx_remove": [
+                {
+                  "Instrumented function 'clk_unprepare'": [
+                    {
+                      "LDV model 'clk_unprepare_clk_ipg_of_spi_imx_data'": []
+                    }
+                  ]
+                },
+                {
+                  "Instrumented function 'clk_unprepare'": [
+                    {
+                      "LDV model 'clk_unprepare_clk_per_of_spi_imx_data'": []
                     }
                   ]
                 }
