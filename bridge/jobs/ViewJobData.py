@@ -26,10 +26,10 @@ from bridge.vars import ASSOCIATION_TYPE, SafeVerdicts, UnsafeVerdicts, DECISION
 
 from reports.models import ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent, Report, DecisionCache
 from marks.models import MarkUnknownReport, SafeTag, UnsafeTag
+from caches.models import ReportSafeCache, ReportUnsafeCache
 
 from users.utils import HumanizedValue
 from jobs.utils import TITLES
-from caches.models import ReportSafeCache, ReportUnsafeCache
 
 
 def get_leaves_totals(**qs_kwargs):

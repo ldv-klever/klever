@@ -30,12 +30,8 @@ from django.db.models import Q
 from django.test import Client
 from django.urls import reverse
 
-from bridge.vars import SCHEDULER_TYPE, DECISION_STATUS, JOB_ROLES
+from bridge.vars import SCHEDULER_TYPE, JOB_ROLES
 from bridge.utils import KleverTestCase, logger, RMQConnect
-
-# from users.models import User
-# from jobs.models import Job
-# from reports.models import ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent, CoverageArchive, ReportAttr
 
 
 LINUX_ATTR = {'name': 'Linux kernel', 'value': [

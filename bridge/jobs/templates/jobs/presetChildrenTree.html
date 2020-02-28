@@ -1,7 +1,11 @@
 <div class="ui bulleted list">
     {% for child in children %}
         <div class="item">
-            <a class="violet-link" href="{{ child.url }}">{{ child.name }}</a>
+            {% if child.url %}
+                <a class="violet-link" href="{{ child.url }}">{{ child.name }}</a>
+            {% else %}
+                <span>{{ child.name }}</span>
+            {% endif %}
             {% if child.children %}
                 {% include 'jobs/presetChildrenTree.html' with children=child.children %}
             {% endif %}

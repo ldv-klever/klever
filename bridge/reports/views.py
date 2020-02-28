@@ -17,15 +17,14 @@
 
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import HttpResponseRedirect
-from django.utils.translation import ugettext as _
 from django.template.defaulttags import register
+from django.utils.translation import ugettext as _
 from django.views.generic.base import TemplateView
 from django.views.generic.detail import SingleObjectMixin, DetailView
 
 from bridge.vars import VIEW_TYPES, ERROR_TRACE_FILE, PROBLEM_DESC_FILE, DECISION_WEIGHT
 from bridge.utils import logger, ArchiveFileContent, BridgeException, BridgeErrorResponse
 from bridge.CustomViews import DataViewMixin, StreamingResponseView
-
 from tools.profiling import LoggedCallMixin
 
 from jobs.models import Decision
@@ -34,16 +33,16 @@ from reports.models import ReportComponent, ReportSafe, ReportUnknown, ReportUns
 from jobs.utils import JobAccess
 from jobs.ViewJobData import ViewReportData
 
-from reports.utils import (
-    report_resources, get_parents, report_attributes_with_parents,
-    ReportStatus, ReportData, ReportAttrsTable, ReportChildrenTable, SafesTable, UnsafesTable, UnknownsTable,
-    ComponentLogGenerator, AttrDataGenerator, VerifierFilesGenerator, ErrorTraceFileGenerator
-)
-from reports.etv import GetETV
 from reports.comparison import ComparisonTableData
 from reports.coverage import (
     GetCoverageStatistics, LeafCoverageStatistics, CoverageGenerator,
     ReportCoverageStatistics, VerificationCoverageStatistics
+)
+from reports.etv import GetETV
+from reports.utils import (
+    report_resources, get_parents, report_attributes_with_parents,
+    ReportStatus, ReportData, ReportAttrsTable, ReportChildrenTable, SafesTable, UnsafesTable, UnknownsTable,
+    ComponentLogGenerator, AttrDataGenerator, VerifierFilesGenerator, ErrorTraceFileGenerator
 )
 
 from marks.tables import SafeReportMarksTable, UnsafeReportMarksTable, UnknownReportMarksTable

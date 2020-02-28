@@ -33,7 +33,7 @@ class Migration(migrations.Migration):
         migrations.CreateModel(name='JobFile', fields=[
             ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
             ('hash_sum', models.CharField(db_index=True, max_length=255, unique=True)),
-            ('file', models.FileField(upload_to='Job')),
+            ('file', models.FileField(upload_to='JobFile')),
         ], options={'db_table': 'job_file'}, bases=(bridge.utils.WithFilesMixin, models.Model)),
 
         migrations.CreateModel(name='PresetJob', fields=[
@@ -76,13 +76,6 @@ class Migration(migrations.Migration):
                 ('3', 'Observer and Operator'), ('4', 'Expert and Operator')
             ], default='0', max_length=1)),
         ], options={'db_table': 'job'}),
-
-        migrations.CreateModel(name='FileSystem', fields=[
-            ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-            ('name', models.CharField(max_length=1024)),
-            ('file', models.ForeignKey(on_delete=models.deletion.PROTECT, to='jobs.JobFile')),
-            ('job', models.ForeignKey(on_delete=models.deletion.CASCADE, related_name='files', to='jobs.Job')),
-        ], options={'db_table': 'file_system'}),
 
         migrations.CreateModel(name='UserRole', fields=[
             ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
@@ -136,9 +129,6 @@ class Migration(migrations.Migration):
             ('weight', models.CharField(choices=[
                 ('0', 'Full-weight'), ('1', 'Lightweight')
             ], default='0', max_length=1)),
-            ('coverage_details', models.CharField(choices=[
-                ('0', 'Original C source files'), ('1', 'C source files including models'), ('2', 'All source files')
-            ], default='0', max_length=1)),
             ('priority', models.CharField(choices=[
                 ('URGENT', 'Urgent'), ('HIGH', 'High'), ('LOW', 'Low'), ('IDLE', 'Idle')
             ], max_length=6)),
@@ -168,5 +158,14 @@ class Migration(migrations.Migration):
             ('gag_text_ts', models.CharField(max_length=128, null=True)),
             ('configuration', models.ForeignKey(on_delete=models.deletion.CASCADE, to='jobs.JobFile')),
         ], options={'db_table': 'decision'}),
+
+        migrations.CreateModel(name='FileSystem', fields=[
+            ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+            ('name', models.CharField(max_length=1024)),
+            ('file', models.ForeignKey(on_delete=models.deletion.PROTECT, to='jobs.JobFile')),
+            ('decision', models.ForeignKey(
+                on_delete=models.deletion.CASCADE, related_name='files', to='jobs.Decision'
+            )),
+        ], options={'db_table': 'file_system'}),
 
     ]

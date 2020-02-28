@@ -15,15 +15,15 @@
 # limitations under the License.
 #
 
+from django.contrib.postgres.fields import JSONField
 from django.db import models
 from django.db.models.signals import post_delete
-from django.contrib.postgres.fields import JSONField
 
 from bridge.vars import NODE_STATUS, TASK_STATUS
 from bridge.utils import WithFilesMixin, remove_instance_files
 
-from jobs.models import Scheduler, Decision
 from users.models import User
+from jobs.models import Scheduler, Decision
 
 SERVICE_DIR = 'Service'
 

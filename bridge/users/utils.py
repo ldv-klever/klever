@@ -37,7 +37,8 @@ JOB_TREE_VIEW = {
     'columns': ['role', 'author', 'creation_date', 'status', 'unsafe:total', 'problem:total', 'safe:total'],
     # jobs_order: [up|down, name|creation_date]
     # decisions_order: [up|down, start_date|finish_date]
-    'order': ['down', 'title'],
+    'jobs_order': ['down', 'name'],
+    'decisions_order': ['up', 'start_date'],
 
     # FILTERS:
     # hidden: list with values: 'without_decision', 'confirmed_marks'

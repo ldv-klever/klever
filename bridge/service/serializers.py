@@ -25,16 +25,25 @@ from django.utils.translation import ugettext_lazy as _
 
 from rest_framework import serializers, exceptions, fields
 
-from bridge.utils import logger, RMQConnect
 from bridge.vars import DECISION_STATUS, PRIORITY, SCHEDULER_TYPE, SCHEDULER_STATUS, TASK_STATUS
+from bridge.utils import logger, RMQConnect
 from bridge.serializers import TimeStampField, DynamicFieldsModelSerializer
 
-from jobs.models import Job
-from service.models import Task, Solution, Decision, VerificationTool, Scheduler, NodesConfiguration, Node, Workload
-from users.models import User, SchedulerUser
+from users.models import SchedulerUser
+from jobs.models import Scheduler, Decision
+from service.models import Task, Solution, VerificationTool, NodesConfiguration, Node, Workload
 
 from users.utils import HumanizedValue
 from jobs.serializers import decision_status_changed
+
+
+def on_task_change(task_id, task_status, scheduler_type):
+    with RMQConnect() as channel:
+        channel.basic_publish(
+            exchange='', routing_key=settings.RABBIT_MQ_QUEUE,
+            properties=pika.BasicProperties(delivery_mode=2),
+            body="task {} {} {}".format(task_id, task_status, scheduler_type)
+        )
 
 
 class VerificationToolSerializer(serializers.ModelSerializer):
@@ -472,12 +481,3 @@ class NodeConfSerializer(serializers.ModelSerializer):
     class Meta:
         model = NodesConfiguration
         fields = '__all__'
-
-
-def on_task_change(task_id, task_status, scheduler_type):
-    with RMQConnect() as channel:
-        channel.basic_publish(
-            exchange='', routing_key=settings.RABBIT_MQ_QUEUE,
-            properties=pika.BasicProperties(delivery_mode=2),
-            body="task {} {} {}".format(task_id, task_status, scheduler_type)
-        )

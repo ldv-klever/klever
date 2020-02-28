@@ -24,14 +24,12 @@ from django.db.models import Q
 from django.test import Client
 from django.urls import reverse
 
-from bridge.vars import JOB_STATUS, SCHEDULER_TYPE, SCHEDULER_STATUS, PRIORITY, NODE_STATUS
+from bridge.vars import SCHEDULER_TYPE, SCHEDULER_STATUS, PRIORITY, NODE_STATUS
 from bridge.utils import KleverTestCase
-# from bridge.populate import populate_users
 
 from users.models import User, SchedulerUser
-from jobs.models import Job
-from service.models import Scheduler, Decision, Task, Solution, VerificationTool, Node, NodesConfiguration,\
-    Workload
+from jobs.models import Job, Scheduler
+from service.models import Task, Solution, VerificationTool, Node, NodesConfiguration, Workload
 
 from reports.test import COMPUTER
 

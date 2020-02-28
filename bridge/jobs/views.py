@@ -21,36 +21,36 @@ from urllib.parse import unquote
 from django.conf import settings
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
+from django.http import Http404, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.utils.translation import ugettext as _
-from django.views.generic.base import TemplateView
+from django.views.generic.base import TemplateView, View
 from django.views.generic.detail import SingleObjectMixin, DetailView
 from django.views.generic.list import ListView
 
-
-from tools.profiling import LoggedCallMixin
-from bridge.vars import VIEW_TYPES, DECISION_STATUS, PRIORITY, DECISION_WEIGHT, JOB_ROLES, ERRORS
+from bridge.vars import VIEW_TYPES, DECISION_STATUS, PRIORITY, DECISION_WEIGHT, JOB_ROLES, ERRORS, PRESET_JOB_TYPE
 from bridge.utils import BridgeException
 from bridge.CustomViews import DataViewMixin, StreamingResponseView
+from tools.profiling import LoggedCallMixin
 
 from users.models import User
+from jobs.models import Job, JobFile, UploadedJobArchive, PresetJob, FileSystem, UserRole
 from service.models import Decision
-from reports.utils import FilesForCompetitionArchive
-from reports.coverage import DecisionCoverageStatistics
 
-from jobs.models import PRESET_JOB_TYPE, Job, JobFile, UploadedJobArchive, PresetJob, FileSystem, UserRole
-from jobs.utils import (
-    months_choices, years_choices, is_preset_changed, get_unique_name, get_roles_form_data,
-    JobAccess, DecisionAccess, CompareFileSet, JSTreeConverter, get_core_link
-)
 from jobs.configuration import StartDecisionData
-from jobs.ViewJobData import ViewJobData
-from jobs.JobTableProperties import JobsTreeTable, PresetChildrenTree
 from jobs.Download import (
-    JobFileGenerator, DecisionConfGenerator, JobArchiveGenerator, JobsArchivesGen, get_jobs_to_download
+    get_jobs_to_download, JobFileGenerator, DecisionConfGenerator, JobArchiveGenerator, JobsArchivesGen
 )
+from jobs.JobTableProperties import JobsTreeTable, PresetChildrenTree
 from jobs.preset import get_preset_dir_list, preset_job_files_tree_json
+from jobs.utils import (
+    months_choices, years_choices, is_preset_changed, get_unique_name, get_roles_form_data, get_core_link,
+    JobAccess, DecisionAccess, CompareFileSet, JSTreeConverter
+)
+from jobs.ViewJobData import ViewJobData
+from reports.coverage import DecisionCoverageStatistics
+from reports.utils import FilesForCompetitionArchive
 from service.serializers import ProgressSerializerRO
 
 
@@ -74,6 +74,8 @@ class PresetJobPage(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, DetailVi
 
     def get_context_data(self, **kwargs):
         context = super(PresetJobPage, self).get_context_data(**kwargs)
+        if self.object.type != PRESET_JOB_TYPE[1][0]:
+            raise Http404
         context.update({
             'can_create': self.request.user.can_create_jobs,
             'parents': self.object.get_ancestors(),
@@ -83,65 +85,41 @@ class PresetJobPage(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, DetailVi
         return context
 
 
-class PresetFormPage(LoginRequiredMixin, LoggedCallMixin, TemplateView):
-    template_name = 'jobs/jobCreateForm.html'
+class CreateJobFormPage(LoginRequiredMixin, LoggedCallMixin, TemplateView):
+    template_name = 'jobs/jobForm.html'
 
     def get_context_data(self, **kwargs):
         if not self.request.user.can_create_jobs:
             raise BridgeException(code=407)
-        preset_job = get_object_or_404(PresetJob.objects.exclude(type=PRESET_JOB_TYPE[0][0]), pk=self.kwargs['pk'])
+        preset_job = get_object_or_404(
+            PresetJob.objects.exclude(type=PRESET_JOB_TYPE[0][0]), pk=self.kwargs['preset_id']
+        )
         return {
             'title': _('Job Creating'), 'job_roles': JOB_ROLES, 'cancel_url': reverse('jobs:tree'),
+            'confirm': {'title': _('Create'), 'url': reverse('jobs:api-create-job'), 'method': 'POST'},
             'initial': {
                 'name': get_unique_name(preset_job.name),
                 'preset_dirs': get_preset_dir_list(preset_job),
-                'files': preset_job_files_tree_json(preset_job),
                 'roles': json.dumps(get_roles_form_data(), ensure_ascii=False),
-            }
-        }
-
-
-class CopyJobFormPage(LoginRequiredMixin, LoggedCallMixin, DetailView):
-    model = Job
-    template_name = 'jobs/jobCreateForm.html'
-
-    def get_context_data(self, **kwargs):
-        if not self.request.user.can_create_jobs:
-            raise BridgeException(code=407)
-        if not JobAccess(self.request.user, self.object).can_view:
-            raise BridgeException(code=400)
-
-        return {
-            'title': _('Job Copying'), 'job_roles': JOB_ROLES,
-            'cancel_url': reverse('jobs:job', args=[self.object.id]),
-            'base_job': self.object,
-            'initial': {
-                'name': get_unique_name(self.object.name),
-                'preset_dirs': get_preset_dir_list(self.object.preset),
-                'files': json.dumps(JSTreeConverter().make_tree(
-                    list(FileSystem.objects.filter(job=self.object).values_list('name', 'file__hash_sum'))
-                ), ensure_ascii=False),
-                'roles': json.dumps(get_roles_form_data(self.object), ensure_ascii=False),
             }
         }
 
 
 class EditJobFormPage(LoginRequiredMixin, LoggedCallMixin, DetailView):
     model = Job
-    template_name = 'jobs/jobEditForm.html'
+    template_name = 'jobs/jobForm.html'
 
     def get_context_data(self, **kwargs):
         if not JobAccess(self.request.user, self.object).can_edit:
             raise BridgeException(code=400)
         return {
-            'job': self.object, 'title': _('Job Editing'), 'job_roles': JOB_ROLES,
-            'cancel_url': reverse('jobs:job', args=[self.object.id]),
+            'title': _('Job Editing'), 'job_roles': JOB_ROLES, 'cancel_url': reverse('jobs:job', args=[self.object.id]),
+            'confirm': {
+                'title': _('Save'), 'url': reverse('jobs:api-update-job', args=[self.object.id]), 'method': 'PUT'
+            },
             'initial': {
                 'name': self.object.name,
                 'preset_dirs': get_preset_dir_list(self.object.preset),
-                'files': json.dumps(JSTreeConverter().make_tree(
-                    list(FileSystem.objects.filter(job=self.object).values_list('name', 'file__hash_sum'))
-                ), ensure_ascii=False),
                 'roles': json.dumps(get_roles_form_data(self.object), ensure_ascii=False),
             }
         }
@@ -163,49 +141,126 @@ class JobPage(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, DetailView):
         if not context['job_access'].can_view:
             raise PermissionDenied(ERRORS[400])
         context['parents'] = self.object.preset.get_ancestors(include_self=True).only('id', 'name', 'type')
-        context['files'] = json.dumps(JSTreeConverter().make_tree(
-            list(FileSystem.objects.filter(job=self.object).values_list('name', 'file__hash_sum'))
-        ), ensure_ascii=False)
         context['user_roles'] = UserRole.objects.filter(job=self.object).select_related('user')\
             .order_by('user__first_name', 'user__last_name', 'user__username')
         context['preset_changed'] = is_preset_changed(self.object)
         context['decisions'] = Decision.objects.filter(job=self.object).exclude(status=DECISION_STATUS[0][0])\
-            .select_related('configuration').order_by('id')
+            .select_related('configuration').order_by('-start_date')
         return context
 
 
-class PrepareDecisionView(LoggedCallMixin, DetailView):
-    template_name = 'jobs/startDecision.html'
+class DecisionFormPage(LoginRequiredMixin, LoggedCallMixin, DetailView):
+    template_name = 'jobs/decisionCreateForm.html'
     model = Job
+    pk_url_kwarg = 'job_id'
+
+    def get_context_data(self, **kwargs):
+        if not JobAccess(self.request.user, self.object).can_decide:
+            raise BridgeException(_("You don't have an access to create job version"))
+        context = super(DecisionFormPage, self).get_context_data(**kwargs)
+        preset_job = self.object.preset.get_ancestors(include_self=True).filter(type=PRESET_JOB_TYPE[1][0]).first()
+        other_decisions = Decision.objects.filter(job=self.object).order_by('id')\
+            .exclude(status=DECISION_STATUS[0][0]).only('id', 'title', 'start_date')
+        context.update({
+            'job': self.object,
+            'cancel_url': reverse('jobs:job', args=[self.object.id]),
+            'files_data': preset_job_files_tree_json(preset_job),
+            'current_conf': settings.DEF_KLEVER_CORE_MODE,
+            'start_data': StartDecisionData(self.request.user),
+            'other_decisions': other_decisions
+        })
+        return context
+
+
+class DecisionCopyFormPage(LoginRequiredMixin, LoggedCallMixin, DetailView):
+    template_name = 'jobs/decisionCreateForm.html'
+
+    def get_queryset(self):
+        return Decision.objects.select_related('job')
+
+    def get_context_data(self, **kwargs):
+        if not JobAccess(self.request.user, self.object.job).can_decide:
+            raise BridgeException(_("You don't have an access to create job version"))
+        context = super(DecisionCopyFormPage, self).get_context_data(**kwargs)
+        decision_files = json.dumps(JSTreeConverter().make_tree(
+            list(FileSystem.objects.filter(decision=self.object).values_list('name', 'file__hash_sum'))
+        ), ensure_ascii=False)
+
+        other_decisions = Decision.objects.filter(job=self.object.job).order_by('id')\
+            .exclude(status=DECISION_STATUS[0][0]).only('id', 'title', 'start_date')
+        context.update({
+            'job': self.object.job,
+            'base_decision': self.object,
+            'cancel_url': reverse('jobs:decision', args=[self.object.id]),
+            'files_data': decision_files,
+            'start_data': StartDecisionData(self.request.user, base_decision=self.object),
+            'other_decisions': other_decisions
+        })
+        return context
+
+
+class DecisionPage(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, DetailView):
+    model = Decision
+    template_name = 'jobs/viewDecision/main.html'
+
+    def get_queryset(self):
+        queryset = super(DecisionPage, self).get_queryset()
+        return queryset.select_related('job', 'job__author', 'operator', 'scheduler')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['job'] = self.object
-        context['current_conf'] = settings.DEF_KLEVER_CORE_MODE
-        context['data'] = StartDecisionData(self.request.user)
-        if self.request.GET.get('base_job'):
-            context['decisions'] = Decision.objects.filter(job_id=self.request.GET['base_job'])\
-                .exclude(status=DECISION_STATUS[0][0])\
-                .order_by('id').only('id', 'start_date', 'title')
-        else:
-            context['decisions'] = Decision.objects.filter(job=self.object).order_by('id')\
-                .exclude(status=DECISION_STATUS[0][0])\
-                .only('id', 'title', 'start_date')
+
+        # Decision access
+        context['access'] = DecisionAccess(self.request.user, self.object)
+        if not context['access'].can_view:
+            raise PermissionDenied(_("You don't have an access to this decision"))
+
+        # Decision files
+        context['files'] = json.dumps(JSTreeConverter().make_tree(
+            list(FileSystem.objects.filter(decision=self.object).values_list('name', 'file__hash_sum'))
+        ), ensure_ascii=False)
+
+        # Other job decisions
+        context['other_decisions'] = Decision.objects.filter(job=self.object.job)\
+            .exclude(id=self.object.id).exclude(status=DECISION_STATUS[0][0])\
+            .select_related('configuration').order_by('-start_date')
+
+        # Decision progress and core report link
+        context['progress'] = ProgressSerializerRO(instance=self.object, context={'request': self.request}).data
+        context['core_link'] = get_core_link(self.object)
+
+        # Decision coverages
+        context['Coverage'] = DecisionCoverageStatistics(self.object)
+
+        context['parents'] = self.object.job.preset.get_ancestors(include_self=True)
+
+        # Verification results
+        context['reportdata'] = ViewJobData(self.request.user, self.get_view(VIEW_TYPES[2]), self.object)
+
         return context
 
 
-class JobsFilesComparison(LoginRequiredMixin, LoggedCallMixin, TemplateView):
+class LatestDecisionPage(View):
+    def get(self, request, job_id):
+        decision = Decision.objects.filter(job_id=job_id).order_by('-start_date').only('id').first()
+        if not decision:
+            raise Http404
+        return HttpResponseRedirect(reverse('jobs:decision', args=[decision.id]))
+
+
+class DecisionsFilesComparison(LoginRequiredMixin, LoggedCallMixin, TemplateView):
     template_name = 'jobs/comparison.html'
 
     def get_context_data(self, **kwargs):
         try:
-            job1 = Job.objects.get(id=self.kwargs['job1_id'])
-            job2 = Job.objects.get(id=self.kwargs['job2_id'])
+            decision1 = Decision.objects.select_related('job').get(id=self.kwargs['decision1_id'])
+            decision2 = Decision.objects.select_related('job').get(id=self.kwargs['decision2_id'])
         except Job.DoesNotExist:
             raise BridgeException(code=405)
-        if not JobAccess(self.request.user, job1).can_view or not JobAccess(self.request.user, job2).can_view:
+        if not DecisionAccess(self.request.user, decision1).can_view or \
+                not DecisionAccess(self.request.user, decision2).can_view:
             raise BridgeException(code=401)
-        return {'job1': job1, 'job2': job2, 'data': CompareFileSet(job1, job2).data}
+        return {'decision1': decision1, 'decision2': decision2, 'data': CompareFileSet(decision1, decision2).data}
 
 
 class DownloadJobFileView(LoginRequiredMixin, LoggedCallMixin, SingleObjectMixin, StreamingResponseView):
@@ -260,42 +315,6 @@ class DecisionProgress(LoginRequiredMixin, LoggedCallMixin, DetailView):
         context['decision'] = self.object
         context['progress'] = ProgressSerializerRO(instance=self.object, context={'request': self.request}).data
         context['core_link'] = get_core_link(self.object)
-        return context
-
-
-class DecisionPage(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, DetailView):
-    model = Decision
-    template_name = 'jobs/viewDecision/main.html'
-
-    def get_queryset(self):
-        queryset = super(DecisionPage, self).get_queryset()
-        return queryset.select_related('job', 'job__author', 'operator', 'scheduler')
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-
-        # Decision access
-        context['access'] = DecisionAccess(self.request.user, self.object)
-        if not context['access'].can_view:
-            raise PermissionDenied(_("You don't have an access to this decision"))
-
-        # Other job decisions
-        context['other_decisions'] = Decision.objects.filter(job=self.object.job)\
-            .exclude(id=self.object.id).exclude(status=DECISION_STATUS[0][0])\
-            .select_related('configuration').order_by('id')
-
-        # Decision progress and core report link
-        context['progress'] = ProgressSerializerRO(instance=self.object, context={'request': self.request}).data
-        context['core_link'] = get_core_link(self.object)
-
-        # Decision coverages
-        context['Coverage'] = DecisionCoverageStatistics(self.object)
-
-        context['parents'] = self.object.job.preset.get_ancestors(include_self=True)
-
-        # Verification results
-        context['reportdata'] = ViewJobData(self.request.user, self.get_view(VIEW_TYPES[2]), self.object)
-
         return context
 
 

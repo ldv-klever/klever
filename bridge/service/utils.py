@@ -22,40 +22,35 @@ from django.db.models import Q
 from django.utils.timezone import now
 from django.utils.translation import ugettext_lazy as _
 
-from bridge.vars import DECISION_STATUS, SCHEDULER_STATUS, SCHEDULER_TYPE, TASK_STATUS
-from bridge.utils import file_get_or_create, logger, BridgeException
+from bridge.vars import DECISION_STATUS, SCHEDULER_TYPE, TASK_STATUS
+from bridge.utils import logger, BridgeException
 
 from users.models import SchedulerUser
-from jobs.models import JobFile, FileSystem
+from jobs.models import FileSystem
 from reports.models import (
     ReportUnknown, ReportComponent, Report, AttrFile, AdditionalSources, CompareDecisionsInfo, DecisionCache
 )
-from service.models import Scheduler, Decision, Task, Solution, Node, NodesConfiguration, Workload
+from service.models import Task, Solution, Node, NodesConfiguration, Workload
 
 from jobs.serializers import decision_status_changed
+from jobs.utils import validate_scheduler
 from service.serializers import SchedulerUserSerializer
+
+
+def cancel_decision(decision):
+    if decision.status not in {DECISION_STATUS[1][0], DECISION_STATUS[2][0]}:
+        raise BridgeException(_("Only pending and processing decisions can be stopped"))
+    decision.tasks_processing = decision.tasks_pending = 0
+    decision.tasks_cancelled += decision.tasks.filter(
+        status__in=[TASK_STATUS[0][0], TASK_STATUS[1][0]]
+    ).count()
+    decision.finish_date = now()
+    decision.status = DECISION_STATUS[6][0]
+    decision.save()
 
 
 class ServiceError(Exception):
     pass
-
-
-def validate_scheduler(**kwargs):
-    try:
-        scheduler = Scheduler.objects.get(**kwargs)
-    except Scheduler.DoesNotExist:
-        raise BridgeException(_('The task scheduler was not found'))
-    if scheduler.type == SCHEDULER_TYPE[1][0]:
-        if scheduler.status == SCHEDULER_STATUS[2][0]:
-            raise BridgeException(_('The VerifierCloud scheduler is disconnected'))
-    else:
-        try:
-            klever_sch = Scheduler.objects.get(type=SCHEDULER_TYPE[0][0])
-        except Scheduler.DoesNotExist:
-            raise BridgeException(_("Schedulers weren't populated"))
-        if klever_sch.status == SCHEDULER_STATUS[2][0]:
-            raise BridgeException(_('The Klever scheduler is disconnected'))
-    return scheduler
 
 
 class FinishDecision:
@@ -165,16 +160,66 @@ class FinishDecision:
                 raise ServiceError("Subjobs solving progress is not finished")
 
 
-def cancel_decision(decision):
-    if decision.status not in {DECISION_STATUS[1][0], DECISION_STATUS[2][0]}:
-        raise BridgeException(_("Only pending and processing decisions can be stopped"))
-    decision.tasks_processing = decision.tasks_pending = 0
-    decision.tasks_cancelled += decision.tasks.filter(
-        status__in=[TASK_STATUS[0][0], TASK_STATUS[1][0]]
-    ).count()
-    decision.finish_date = now()
-    decision.status = DECISION_STATUS[6][0]
-    decision.save()
+class RestartJobDecision:
+    def __init__(self, user, decision):
+        self.operator = user
+        self.decision = decision
+        self.__clear_related_objects()
+        self.__restart_decision()
+        decision_status_changed(self.decision)
+
+    def __restart_decision(self):
+        validate_scheduler(id=self.decision.scheduler_id)
+        self.decision.operator = self.operator
+        self.decision.status = DECISION_STATUS[1][0]
+        self.decision.start_date = now()
+        int_fields = (
+            'tasks_total', 'tasks_pending', 'tasks_processing', 'tasks_finished',
+            'tasks_error', 'tasks_cancelled', 'solutions'
+        )
+        null_fields = (
+            'error', 'finish_date', 'total_sj', 'failed_sj', 'solved_sj', 'expected_time_sj',
+            'start_sj', 'finish_sj', 'gag_text_sj', 'total_ts', 'failed_ts', 'solved_ts', 'expected_time_ts',
+            'start_ts', 'finish_ts', 'gag_text_ts'
+        )
+        for field_name in int_fields:
+            setattr(self.decision, field_name, 0)
+        for field_name in null_fields:
+            setattr(self.decision, field_name, None)
+        self.decision.save()
+
+    def __clear_related_objects(self):
+        Report.objects.filter(decision=self.decision).delete()
+        AttrFile.objects.filter(decision=self.decision).delete()
+        AdditionalSources.objects.filter(decision=self.decision).delete()
+        CompareDecisionsInfo.objects.filter(Q(decision1=self.decision) | Q(decision2=self.decision)).delete()
+        DecisionCache.objects.filter(decision=self.decision).delete()
+        Task.objects.filter(decision=self.decision).delete()
+
+
+class ReadDecisionConfiguration:
+    tasks_file = 'tasks.json'
+
+    def __init__(self, decision):
+        self.decision = decision
+        self.data = {}
+        self.__read_conf()
+        self.__read_tasks()
+
+    def __read_conf(self):
+        with self.decision.configuration.file as fp:
+            self.data['configuration'] = json.loads(fp.read().decode('utf8'))
+        if self.decision.scheduler.type == SCHEDULER_TYPE[1][0]:
+            sch_user = SchedulerUser.objects.filter(user__decisions=self.decision).first()
+            self.data['user'] = SchedulerUserSerializer(instance=sch_user).data if sch_user else None
+
+    def __read_tasks(self):
+        fs_obj = FileSystem.objects.filter(
+            job_id=self.decision.job_id, name=self.tasks_file
+        ).select_related('file').first()
+        if fs_obj:
+            with fs_obj.file.file as fp:
+                self.data['tasks'] = json.loads(fp.read().decode('utf8'))
 
 
 class NodesData:
@@ -229,65 +274,6 @@ class NodesData:
             self.configs.append(conf_data)
 
 
-class StartJobDecision:
-    def __init__(self, user, job, configuration, name):
-        self.operator = user
-        self._job = job
-        self.configuration = configuration
-        self._name = name or ''
-        self.decision = self.__create_decision()
-        decision_status_changed(self.decision)
-
-    def __create_decision(self):
-        scheduler = validate_scheduler(type=self.configuration['task scheduler'])
-        conf_db = file_get_or_create(
-            json.dumps(self.configuration, indent=2, sort_keys=True, ensure_ascii=False),
-            'job-{}.json'.format(self._job.identifier), JobFile
-        )
-        return Decision.objects.create(
-            title=self._name, job=self._job, operator=self.operator, scheduler=scheduler,
-            weight=self.configuration['weight'], coverage_details=self.configuration['code coverage details'],
-            priority=self.configuration['priority'], configuration=conf_db
-        )
-
-
-class RestartJobDecision:
-    def __init__(self, user, decision):
-        self.operator = user
-        self.decision = decision
-        self.__clear_related_objects()
-        self.__restart_decision()
-        decision_status_changed(self.decision)
-
-    def __restart_decision(self):
-        validate_scheduler(id=self.decision.scheduler_id)
-        self.decision.operator = self.operator
-        self.decision.status = DECISION_STATUS[1][0]
-        int_fields = (
-            'tasks_total', 'tasks_pending', 'tasks_processing', 'tasks_finished',
-            'tasks_error', 'tasks_cancelled', 'solutions'
-        )
-        null_fields = (
-            'error', 'finish_date', 'total_sj', 'failed_sj', 'solved_sj', 'expected_time_sj',
-            'start_sj', 'finish_sj', 'gag_text_sj', 'total_ts', 'failed_ts', 'solved_ts', 'expected_time_ts',
-            'start_ts', 'finish_ts', 'gag_text_ts'
-        )
-        for field_name in int_fields:
-            setattr(self.decision, field_name, 0)
-        for field_name in null_fields:
-            setattr(self.decision, field_name, None)
-        self.decision.start_date = now()
-        self.decision.save()
-
-    def __clear_related_objects(self):
-        Report.objects.filter(decision=self.decision).delete()
-        AttrFile.objects.filter(decision=self.decision).delete()
-        AdditionalSources.objects.filter(decision=self.decision).delete()
-        CompareDecisionsInfo.objects.filter(Q(decision1=self.decision) | Q(decision2=self.decision)).delete()
-        DecisionCache.objects.filter(decision=self.decision).delete()
-        Task.objects.filter(decision=self.decision).delete()
-
-
 class TaskArchiveGenerator(FileWrapper):
     def __init__(self, task: Task):
         self._task = task
@@ -302,28 +288,3 @@ class SolutionArchiveGenerator(FileWrapper):
         self.size = len(self._solution.archive)
         self.name = self._solution.filename
         super().__init__(self._solution.archive, 8192)
-
-
-class ReadDecisionConfiguration:
-    tasks_file = 'tasks.json'
-
-    def __init__(self, decision):
-        self.decision = decision
-        self.data = {}
-        self.__read_conf()
-        self.__read_tasks()
-
-    def __read_conf(self):
-        with self.decision.configuration.file as fp:
-            self.data['configuration'] = json.loads(fp.read().decode('utf8'))
-        if self.decision.scheduler.type == SCHEDULER_TYPE[1][0]:
-            sch_user = SchedulerUser.objects.filter(user__decisions=self.decision).first()
-            self.data['user'] = SchedulerUserSerializer(instance=sch_user).data if sch_user else None
-
-    def __read_tasks(self):
-        fs_obj = FileSystem.objects.filter(
-            job_id=self.decision.job_id, name=self.tasks_file
-        ).select_related('file').first()
-        if fs_obj:
-            with fs_obj.file.file as fp:
-                self.data['tasks'] = json.loads(fp.read().decode('utf8'))

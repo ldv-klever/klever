@@ -1,6 +1,0 @@
-{
-  "pattern": "Killing process \\d+ due to wall time timeout",
-  "problem": "WallTimeout",
-  "production": true,
-  "is regexp": true
-}

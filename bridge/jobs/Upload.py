@@ -37,15 +37,15 @@ from reports.models import (
 from service.models import Decision
 from caches.models import ReportSafeCache, ReportUnsafeCache, ReportUnknownCache
 
-from tools.utils import Recalculation
 from caches.utils import update_cache_atomic
-from reports.coverage import FillCoverageStatistics
-from jobs.serializers import JobFileSerializer
 from jobs.DownloadSerializers import (
     DownloadJobSerializer, DownloadComputerSerializer, DownloadReportAttrSerializer,
     DownloadReportComponentSerializer, DownloadReportSafeSerializer, DownloadReportUnsafeSerializer,
     DownloadReportUnknownSerializer, DecisionCacheSerializer, DownloadDecisionSerializer
 )
+from jobs.serializers import JobFileSerializer
+from reports.coverage import FillCoverageStatistics
+from tools.utils import Recalculation
 
 
 class JobArchiveUploader:
@@ -128,8 +128,8 @@ class JobArchiveUploader:
 
     def __upload_job_files(self, files_dir):
         if not os.path.isdir(files_dir):
-            # If 'JobFiles' doesn't exist then the job doesn't have files or archive is corrupted.
-            # It'll be checked while files tree is uploading.
+            # If 'JobFiles' doesn't exist then the job doesn't have decisions or archive is corrupted.
+            # It'll be checked while files tree is uploading on decisions creation.
             return
         for dir_path, dir_names, file_names in os.walk(files_dir):
             for file_name in file_names:

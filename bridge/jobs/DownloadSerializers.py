@@ -28,17 +28,16 @@ from bridge.serializers import TimeStampField
 from jobs.models import Job, JobFile, FileSystem, Decision, Scheduler
 from reports.models import ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent, Computer, ReportAttr, DecisionCache
 
-from jobs.serializers import JobFilesField
+from jobs.serializers import DecisionFilesField
 from jobs.utils import get_unique_name
 
-ARCHIVE_FORMAT = 15
+ARCHIVE_FORMAT = 16
 
 
 class DownloadJobSerializer(serializers.ModelSerializer):
     identifier = fields.UUIDField()
     name = fields.CharField(max_length=150)
     archive_format = fields.IntegerField(write_only=True)
-    files = JobFilesField(source='files.all')
 
     def validate_identifier(self, value):
         if Job.objects.filter(identifier=value).exists():
@@ -59,12 +58,6 @@ class DownloadJobSerializer(serializers.ModelSerializer):
         attrs.pop('archive_format')
         return attrs
 
-    def create(self, validated_data):
-        job_files = validated_data.pop('files')['all']
-        instance = super().create(validated_data)
-        FileSystem.objects.bulk_create(list(FileSystem(job=instance, **fkwargs) for fkwargs in job_files))
-        return instance
-
     def to_representation(self, instance):
         value = super().to_representation(instance)
         value['archive_format'] = ARCHIVE_FORMAT
@@ -83,7 +76,7 @@ class DownloadJobSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Job
-        fields = ('identifier', 'name', 'global_role', 'archive_format', 'files')
+        fields = ('identifier', 'name', 'global_role', 'archive_format')
 
 
 class DownloadDecisionSerializer(serializers.ModelSerializer):
@@ -96,11 +89,18 @@ class DownloadDecisionSerializer(serializers.ModelSerializer):
     finish_sj = TimeStampField(allow_null=True)
     start_ts = TimeStampField(allow_null=True)
     finish_ts = TimeStampField(allow_null=True)
+    files = DecisionFilesField(source='files.all')
 
     def validate_identifier(self, value):
         if Decision.objects.filter(identifier=value).exists():
             return uuid.uuid4()
         return value
+
+    def create(self, validated_data):
+        decision_files = validated_data.pop('files')['all']
+        instance = super(DownloadDecisionSerializer, self).create(validated_data)
+        FileSystem.objects.bulk_create(list(FileSystem(decision=instance, **fkwargs) for fkwargs in decision_files))
+        return instance
 
     class Meta:
         model = Decision

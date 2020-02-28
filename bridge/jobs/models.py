@@ -24,13 +24,13 @@ from mptt.models import MPTTModel, TreeForeignKey
 
 from bridge.vars import (
     JOB_ROLES, JOB_UPLOAD_STATUS, PRESET_JOB_TYPE, DECISION_STATUS, DECISION_WEIGHT,
-    COVERAGE_DETAILS, PRIORITY, SCHEDULER_STATUS, SCHEDULER_TYPE
+    PRIORITY, SCHEDULER_STATUS, SCHEDULER_TYPE
 )
 from bridge.utils import WithFilesMixin, remove_instance_files
 
 from users.models import User
 
-JOBFILE_DIR = 'Job'
+JOBFILE_DIR = 'JobFile'
 UPLOAD_DIR = 'UploadedJobs'
 
 
@@ -99,18 +99,6 @@ class UploadedJobArchive(models.Model):
         db_table = 'job_uploaded_archives'
 
 
-class FileSystem(models.Model):
-    job = models.ForeignKey(Job, models.CASCADE, related_name='files')
-    name = models.CharField(max_length=1024)
-    file = models.ForeignKey(JobFile, models.PROTECT)
-
-    def __str__(self):
-        return self.name
-
-    class Meta:
-        db_table = 'file_system'
-
-
 class UserRole(models.Model):
     job = models.ForeignKey(Job, models.CASCADE)
     user = models.ForeignKey(User, models.CASCADE)
@@ -135,7 +123,6 @@ class Decision(models.Model):
     operator = models.ForeignKey(User, models.SET_NULL, null=True, related_name='decisions')
     status = models.CharField(max_length=1, choices=DECISION_STATUS, default=DECISION_STATUS[1][0])
     weight = models.CharField(max_length=1, choices=DECISION_WEIGHT, default=DECISION_WEIGHT[0][0])
-    coverage_details = models.CharField(max_length=1, choices=COVERAGE_DETAILS, default=COVERAGE_DETAILS[0][0])
 
     scheduler = models.ForeignKey(Scheduler, models.CASCADE)
     priority = models.CharField(max_length=6, choices=PRIORITY)
@@ -206,6 +193,18 @@ class Decision(models.Model):
 
     class Meta:
         db_table = 'decision'
+
+
+class FileSystem(models.Model):
+    decision = models.ForeignKey(Decision, models.CASCADE, related_name='files')
+    name = models.CharField(max_length=1024)
+    file = models.ForeignKey(JobFile, models.PROTECT)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        db_table = 'file_system'
 
 
 post_delete.connect(remove_instance_files, sender=JobFile)

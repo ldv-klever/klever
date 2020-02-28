@@ -28,13 +28,14 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers, exceptions, fields
 
 from bridge.vars import DECISION_STATUS
-from bridge.utils import logger, file_checksum, RMQConnect, BridgeException
+from bridge.utils import logger, file_checksum, file_get_or_create, RMQConnect, BridgeException
 from bridge.serializers import DynamicFieldsModelSerializer
 
-from jobs.models import PRESET_JOB_TYPE, Job, JobFile, FileSystem, UserRole, UploadedJobArchive, PresetJob
+from jobs.models import PRESET_JOB_TYPE, Job, JobFile, FileSystem, UserRole, UploadedJobArchive, PresetJob, PresetFile
 from service.models import Decision
 
-from jobs.utils import JSTreeConverter
+from jobs.configuration import GetConfiguration
+from jobs.utils import JSTreeConverter, validate_scheduler, copy_files_with_replace
 
 FILE_SEP = '/'
 ARCHIVE_FORMAT = 13
@@ -49,7 +50,38 @@ def decision_status_changed(decision):
             )
 
 
-class JobFilesField(fields.Field):
+def create_default_decision(request, job, configuration):
+    """
+    Creates decision with provided configuration and files copied from preset job.
+    If 'files' are provided in request.data then those files will be replaced.
+    :param request:
+    :param job:
+    :param configuration:
+    :return:
+    """
+    # Get scheduler
+    scheduler = validate_scheduler(type=configuration['task scheduler'])
+
+    # Save configuration
+    conf_db = file_get_or_create(
+        json.dumps(configuration, indent=2, sort_keys=True, ensure_ascii=False), 'configuration.json', JobFile
+    )
+
+    # Create decision
+    decision = Decision.objects.create(
+        title='', job=job, operator=request.user, scheduler=scheduler, configuration=conf_db,
+        weight=configuration['weight'], priority=configuration['priority']
+    )
+
+    # Copy files for decision from preset job
+    preset_job = job.preset.get_ancestors(include_self=True).filter(type=PRESET_JOB_TYPE[1][0]).first()
+    preset_files_qs = PresetFile.objects.filter(preset=preset_job).values_list('file_id', 'name')
+    copy_files_with_replace(request, decision.id, preset_files_qs)
+
+    return decision
+
+
+class DecisionFilesField(fields.Field):
     initial = []
 
     default_error_messages = {
@@ -70,8 +102,8 @@ class JobFilesField(fields.Field):
     def to_representation(self, value):
         # Get list of files [(<id>, <hash_sum>)]
         queryset = FileSystem.objects.all()
-        if isinstance(value, Job):
-            queryset = queryset.filter(job=value)
+        if isinstance(value, Decision):
+            queryset = queryset.filter(decision=value)
         elif isinstance(value, QuerySet):
             queryset = value
         else:
@@ -132,16 +164,11 @@ class UserRoleSerializer(serializers.ModelSerializer):
 
 class CreateJobSerializer(serializers.ModelSerializer):
     author = fields.HiddenField(default=serializers.CurrentUserDefault())
-    files = JobFilesField()
     user_roles = UserRoleSerializer(many=True, default=[])
 
     def create(self, validated_data):
-        job_files = validated_data.pop('files')
         user_roles = validated_data.pop('user_roles')
         instance = super().create(validated_data)
-
-        # Save job files and user roles
-        FileSystem.objects.bulk_create(list(FileSystem(job=instance, **fkwargs) for fkwargs in job_files))
         UserRole.objects.bulk_create(list(UserRole(job=instance, **rkwargs) for rkwargs in user_roles))
         return instance
 
@@ -150,16 +177,12 @@ class CreateJobSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         if isinstance(instance, self.Meta.model):
-            return {
-                'job': reverse('jobs:job', args=[instance.pk]),
-                'start': reverse('jobs:prepare-decision', args=[instance.pk]),
-                'faststart': reverse('jobs:api-decide', args=[instance.pk]),
-            }
+            return {'url': reverse('jobs:decision-create', args=[instance.pk])}
         return super(CreateJobSerializer, self).to_representation(instance)
 
     class Meta:
         model = Job
-        fields = ('preset', 'name', 'global_role', 'author', 'files', 'user_roles')
+        fields = ('preset', 'name', 'global_role', 'user_roles', 'author')
 
 
 class UpdateJobSerializer(serializers.ModelSerializer):
@@ -179,14 +202,68 @@ class UpdateJobSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         if isinstance(instance, self.Meta.model):
-            return {
-                'job': reverse('jobs:job', args=[instance.pk])
-            }
+            return {'url': reverse('jobs:job', args=[instance.pk])}
         return super(UpdateJobSerializer, self).to_representation(instance)
 
     class Meta:
         model = Job
         fields = ('preset', 'name', 'global_role', 'user_roles')
+
+
+class CreateDecisionSerializer(serializers.ModelSerializer):
+    operator = fields.HiddenField(default=serializers.CurrentUserDefault())
+    files = DecisionFilesField()
+    configuration = fields.CharField(required=False)
+
+    def __validate_configuration(self, conf_str):
+        if not conf_str:
+            return GetConfiguration().for_json()
+        return GetConfiguration(user_conf=json.loads(conf_str)).for_json()
+
+    def validate(self, attrs):
+        # Get configuration
+        try:
+            configuration = self.__validate_configuration(attrs.pop('configuration', None))
+        except Exception as e:
+            logger.exception(e)
+            raise exceptions.ValidationError({'configuration': _('The configuration has wrong format')})
+        attrs['priority'] = configuration['priority']
+        attrs['weight'] = configuration['weight']
+
+        # Validate task scheduler
+        try:
+            attrs['scheduler'] = validate_scheduler(type=configuration['task scheduler'])
+        except BridgeException as e:
+            raise exceptions.ValidationError({'scheduler': str(e)})
+
+        # Save configuration file
+        conf_db = file_get_or_create(
+            json.dumps(configuration, indent=2, sort_keys=True, ensure_ascii=False), 'configuration.json', JobFile
+        )
+        attrs['configuration_id'] = conf_db.id
+
+        return attrs
+
+    def create(self, validated_data):
+        assert 'job_id' in validated_data, 'Wrong serializer usage'
+
+        job_files = validated_data.pop('files')
+        instance = super().create(validated_data)
+        FileSystem.objects.bulk_create(list(FileSystem(decision=instance, **fkwargs) for fkwargs in job_files))
+        decision_status_changed(instance)
+        return instance
+
+    def update(self, instance, validated_data):
+        raise RuntimeError('Update method is not supported for this serializer')
+
+    def to_representation(self, instance):
+        if isinstance(instance, self.Meta.model):
+            return {'url': reverse('jobs:decision', args=[instance.pk])}
+        return super(CreateDecisionSerializer, self).to_representation(instance)
+
+    class Meta:
+        model = Decision
+        fields = ('title', 'operator', 'files', 'configuration')
 
 
 class DecisionStatusSerializerRO(serializers.ModelSerializer):

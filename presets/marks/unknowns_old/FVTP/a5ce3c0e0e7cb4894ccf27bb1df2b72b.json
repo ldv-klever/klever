@@ -1,5 +1,0 @@
-{
-  "pattern": "FileNotFoundError: [Errno 2] No such file or directory: 'cilly.asm.exe'",
-  "problem": "Missed CIL",
-  "production": true
-}

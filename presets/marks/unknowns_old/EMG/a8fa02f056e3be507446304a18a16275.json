@@ -1,8 +1,0 @@
-{
-  "pattern": "Cannot parse signature|Unknown text|File \".*/core/avtg/emg/module_categories.py\", line \\d+, in __import_entities",
-  "problem": "Decl parser",
-  "production": true,
-  "is regexp": true,
-  "link": "http://forge.ispras.ru/issues/7111",
-  "description": "EMG cannot parse a declaration expression."
-}

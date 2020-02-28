@@ -21,18 +21,20 @@ from io import BytesIO
 from urllib.parse import unquote
 from wsgiref.util import FileWrapper
 
-from django.db.models import Max, Case, When, F, CharField, Value
+from django.db.models import Max, Case, When, F, Q, CharField, Value
 from django.db.models.expressions import RawSQL
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 from django.utils.functional import cached_property
 
-from bridge.vars import UNSAFE_VERDICTS, SAFE_VERDICTS, DECISION_WEIGHT, ERROR_TRACE_FILE, SAFE_COLOR, UNSAFE_COLOR
+from bridge.vars import (
+    UNSAFE_VERDICTS, SAFE_VERDICTS, DECISION_WEIGHT, ERROR_TRACE_FILE, SAFE_COLOR, UNSAFE_COLOR, SUBJOB_NAME
+)
 from bridge.tableHead import Header
 from bridge.utils import BridgeException, ArchiveFileContent
 from bridge.ZipGenerator import ZipStream
 
-from reports.models import ReportComponent, ReportAttr, ReportUnsafe, ReportSafe, ReportUnknown
+from reports.models import ReportComponent, ReportAttr, ReportUnsafe, ReportSafe, ReportUnknown, CoverageArchive
 
 from users.utils import HumanizedValue, paginate_queryset
 
@@ -97,6 +99,58 @@ def report_resources(user, report):
             'memory': HumanizedValue(report.memory, user=user).memory
         }
     return None
+
+
+def collapse_reports(decision):
+    if decision.weight == DECISION_WEIGHT[1][0]:
+        # The decision is already lightweight
+        return
+
+    if ReportComponent.objects.filter(decision=decision, component=SUBJOB_NAME).exists():
+        return
+    core = ReportComponent.objects.get(decision=decision, parent=None)
+    ReportComponent.objects.filter(decision=decision, verification=True).update(parent=core)
+    ReportUnknown.objects.filter(decision=decision, parent__reportcomponent__verification=False).update(parent=core)
+
+    # Non-verification reports except Core
+    reports_qs = ReportComponent.objects.filter(decision=decision).exclude(Q(verification=True) | Q(parent=None))
+
+    # Update core original and additional sources
+    report_with_original = reports_qs.exclude(original_sources=None).first()
+    if report_with_original:
+        core.original_sources = report_with_original.original_sources
+    report_with_additional = reports_qs.exclude(additional_sources=None).first()
+    if report_with_additional:
+        core.additional_sources = report_with_additional.additional_sources
+    core.save()
+
+    # Move coverage to core
+    CoverageArchive.objects.filter(report__decision=decision, report__verification=False).update(report=core)
+
+    # Remove all non-verification reports except Core
+    reports_qs.delete()
+
+    # Update decision weight
+    decision.weight = DECISION_WEIGHT[1][0]
+    decision.save()
+
+
+def report_attributes_with_parents(report):
+    reports_ids = list(report.get_ancestors(include_self=True).values_list('id', flat=True))
+    attrs_qs = ReportAttr.objects.filter(report_id__in=reports_ids).order_by('report_id', 'id')
+    return list(attrs_qs.values_list('name', 'value'))
+
+
+def get_report_data_type(component, data):
+    if component == 'Core' and isinstance(data, dict) and all(isinstance(res, dict) for res in data.values()):
+        if all(x in res for x in ['ideal verdict', 'verdict'] for res in data.values()):
+            return 'Core:testing'
+        elif all(x in res for x in ['before fix', 'after fix'] for res in data.values()) \
+                and all('verdict' in data[mod]['before fix'] and 'verdict' in data[mod]['after fix'] for mod in data):
+            return 'Core:validation'
+    elif component == 'PFG' and isinstance(data, dict):
+        return 'PRG:lines'
+    return 'Unknown'
 
 
 class ReportAttrsTable:
@@ -972,24 +1026,6 @@ class FilesForCompetitionArchive:
         elif filters.get('unknowns'):
             for r_id, p_id in ReportUnknown.objects.filter(**common_filters).values_list('id', 'parent_id'):
                 self.__add_archive('f', r_id, p_id)
-
-
-def report_attributes_with_parents(report):
-    reports_ids = list(report.get_ancestors(include_self=True).values_list('id', flat=True))
-    attrs_qs = ReportAttr.objects.filter(report_id__in=reports_ids).order_by('report_id', 'id')
-    return list(attrs_qs.values_list('name', 'value'))
-
-
-def get_report_data_type(component, data):
-    if component == 'Core' and isinstance(data, dict) and all(isinstance(res, dict) for res in data.values()):
-        if all(x in res for x in ['ideal verdict', 'verdict'] for res in data.values()):
-            return 'Core:testing'
-        elif all(x in res for x in ['before fix', 'after fix'] for res in data.values()) \
-                and all('verdict' in data[mod]['before fix'] and 'verdict' in data[mod]['after fix'] for mod in data):
-            return 'Core:validation'
-    elif component == 'PFG' and isinstance(data, dict):
-        return 'PRG:lines'
-    return 'Unknown'
 
 
 class ReportStatus:

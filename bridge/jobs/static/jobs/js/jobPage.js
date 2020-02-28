@@ -56,6 +56,7 @@ $(document).ready(function () {
 
     let download_decisions_btn = $('#download_decisions_btn'),
         remove_decisions_btn = $('#remove_decisions_btn'),
+        compare_files_btn = $('#compare_files_btn'),
         compare_decisions_btn = $('#compare_decisions_btn');
 
     $('.decision-checkbox').checkbox({
@@ -63,14 +64,22 @@ $(document).ready(function () {
             let sel_decisions = get_selected_decisions();
             update_action_button(download_decisions_btn, !sel_decisions.length);
             update_action_button(remove_decisions_btn, !sel_decisions.length);
+            update_action_button(compare_files_btn, sel_decisions.length !== 2);
             update_action_button(compare_decisions_btn, sel_decisions.length !== 2);
         }
+    });
+
+    // Compare decisions' files
+    compare_files_btn.click(function () {
+        let sel_decisions = get_selected_decisions();
+        if (sel_decisions.length !== 2) return err_notify(LOCAL_PAGE_ERRORS.compare_decisions_error);
+        window.location.href = '/jobs/comparison/' + sel_decisions[0] + '/' + sel_decisions[1] + '/';
     });
 
     // Compare decisions' reports
     compare_decisions_btn.click(function () {
         let sel_decisions = get_selected_decisions();
-        if (sel_decisions.length !== 2) return err_notify(PAGE_ERRORS.compare_decisions_error);
+        if (sel_decisions.length !== 2) return err_notify(LOCAL_PAGE_ERRORS.compare_decisions_error);
 
         $('#dimmer_of_page').addClass('active');
         $.post(`/reports/api/fill-comparison/${sel_decisions[0]}/${sel_decisions[1]}/`, {}, function (resp) {
@@ -82,7 +91,7 @@ $(document).ready(function () {
     // Download the job with decisions
     download_decisions_btn.click(function () {
         let sel_decisions = get_selected_decisions();
-        if (!sel_decisions.length) return err_notify(PAGE_ERRORS.download_decisions_error);
+        if (!sel_decisions.length) return err_notify(LOCAL_PAGE_ERRORS.download_decisions_error);
 
         let decision_values = [];
         $.each(sel_decisions, function (i, value) {
@@ -97,7 +106,7 @@ $(document).ready(function () {
     remove_decisions_btn.click(function () {
         $('#jobs_actions_menu').popup('hide');
         sel_decisions = get_selected_decisions();
-        if (!sel_decisions.length) return err_notify(PAGE_ERRORS.remove_decisions_error);
+        if (!sel_decisions.length) return err_notify(LOCAL_PAGE_ERRORS.remove_decisions_error);
 
         remove_decisions_modal.modal('show');
     });

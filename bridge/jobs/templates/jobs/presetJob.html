@@ -20,7 +20,7 @@
 
 {% load humanize %}
 {% load tz %}
-{% load staticfiles %}
+{% load static %}
 {% load compress %}
 
 {% block head_block %}
@@ -28,9 +28,8 @@
     <link rel="stylesheet" href="{% static 'bridge/jstree/themes/default/style.min.css' %}">
     <script src="{% static 'bridge/jstree/jstree.min.js' %}"></script>
 
-    {% compress js file preset_job %}
+    {% compress js file view-files %}
         <script src="{% static 'jobs/js/jobFilesView.js' %}"></script>
-        <script src="{% static 'jobs/js/presetJob.js' %}"></script>
     {% endcompress %}
 {% endblock %}
 
@@ -45,12 +44,9 @@
                 {# Check PRESET_JOB_TYPE #}
                 {% if object.type == '1' %}
                     <a id="create_preset_dir_btn" class="item"><i class="plus icon"></i> {% trans 'Add preset directory' %}</a>
-                {% elif object.type == '2' %}
-                    <a id="change_preset_dir_btn" class="item"><i class="pencil icon"></i> {% trans 'Change name' %}</a>
-                    <a id="remove_preset_dir_btn" class="item"><i class="remove icon"></i> {% trans 'Delete' %}</a>
                 {% endif %}
                 {% if can_create %}
-                    <a href="{% url 'jobs:from-preset-form' object.id %}" class="item"><i class="copy icon"></i> {% trans 'Create new job' %}</a>
+                    <a href="{% url 'jobs:job-create-form' object.id %}" class="item"><i class="copy icon"></i> {% trans 'Create new job' %}</a>
                 {% endif %}
             </div>
 

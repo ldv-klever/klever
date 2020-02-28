@@ -28,25 +28,62 @@ from django.urls import reverse
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 
-from rest_framework import exceptions
-
 from bridge.utils import extract_archive, BridgeException
 from bridge.ZipGenerator import ZipStream, CHUNK_SIZE
 
 from jobs.models import Job, JobFile, FileSystem, Decision
 from reports.models import (
-    ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent,
-    ReportAttr, CoverageArchive, OriginalSources, AdditionalSources, DecisionCache
+    ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent, ReportAttr,
+    CoverageArchive, OriginalSources, AdditionalSources, DecisionCache
 )
 
 from jobs.serializers import UploadedJobArchiveSerializer
+from jobs.tasks import upload_job_archive
+from jobs.utils import JobAccess, DecisionAccess
+
 from jobs.DownloadSerializers import (
     DownloadJobSerializer, DownloadReportAttrSerializer, DownloadReportComponentSerializer,
     DownloadReportSafeSerializer, DownloadReportUnsafeSerializer, DownloadReportUnknownSerializer,
     DecisionCacheSerializer, DownloadDecisionSerializer
 )
-from jobs.tasks import upload_job_archive
-from jobs.utils import JobAccess, DecisionAccess
+
+
+def get_jobs_to_download(user, job_ids, decision_ids):
+    jobs_qs_filter = Q()
+    if job_ids:
+        jobs_qs_filter |= Q(id__in=job_ids)
+    if decision_ids:
+        jobs_qs_filter |= Q(decision__id__in=decision_ids)
+    if not jobs_qs_filter:
+        raise BridgeException(_("Please select jobs or/and decisions you want to download"), back=reverse('jobs:tree'))
+
+    # Collect selected jobs
+    jobs_to_download = {}
+    for job in Job.objects.filter(jobs_qs_filter):
+        jobs_to_download[job.id] = {'instance': job, 'decisions': []}
+
+    if not jobs_to_download:
+        raise BridgeException(_("Jobs were not found"), back=reverse('jobs:tree'))
+
+    # Collect selected decisions
+    for decision in Decision.objects.filter(pk__in=decision_ids).select_related('job'):
+        if decision.job_id not in jobs_to_download:
+            # Unexpected behavior
+            continue
+        jobs_to_download[decision.job_id]['decisions'].append(decision.id)
+        if not DecisionAccess(user, decision).can_download:
+            raise BridgeException(
+                _("You don't have an access to one of the selected decisions"), back=reverse('jobs:tree')
+            )
+
+    # Check access to jobs without any selected decision (all decisions will be downloaded)
+    for job_id in jobs_to_download:
+        if not jobs_to_download[job_id]['decisions']:
+            if not JobAccess(user, jobs_to_download[job_id]['instance']).can_download:
+                raise BridgeException(
+                    _("You don't have an access to one of the selected jobs"), back=reverse('jobs:tree')
+                )
+    return jobs_to_download
 
 
 class KleverCoreArchiveGen:
@@ -56,7 +93,7 @@ class KleverCoreArchiveGen:
         self.stream = ZipStream()
 
     def __iter__(self):
-        for file_inst in FileSystem.objects.filter(job_id=self.decision.job_id).select_related('file'):
+        for file_inst in FileSystem.objects.filter(decision=self.decision).select_related('file'):
             arch_name = '/'.join(['root', file_inst.name])
             file_src = '/'.join([settings.MEDIA_ROOT, file_inst.file.file.name])
             for data in self.stream.compress_file(file_src, arch_name):
@@ -103,7 +140,7 @@ class JobArchiveGenerator:
 
     def __add_job_files(self):
         job_files = {}
-        for fs in FileSystem.objects.filter(job=self.job).select_related('file'):
+        for fs in FileSystem.objects.filter(decision__job=self.job).select_related('file'):
             job_files[fs.file.hash_sum] = (fs.file.file.path, fs.file.file.name)
         for f_path, arcname in job_files.values():
             self._arch_files.add((f_path, arcname))
@@ -279,41 +316,3 @@ class UploadJobsScheduler:
         upload_obj = serializer.save(author=self._author)
         upload_job_archive.delay(upload_obj.id)
         return upload_obj
-
-
-def get_jobs_to_download(user, job_ids, decision_ids):
-    jobs_qs_filter = Q()
-    if job_ids:
-        jobs_qs_filter |= Q(id__in=job_ids)
-    if decision_ids:
-        jobs_qs_filter |= Q(decision__id__in=decision_ids)
-    if not jobs_qs_filter:
-        raise BridgeException(_("Please select jobs or/and decisions you want to download"), back=reverse('jobs:tree'))
-
-    # Collect selected jobs
-    jobs_to_download = {}
-    for job in Job.objects.filter(jobs_qs_filter):
-        jobs_to_download[job.id] = {'instance': job, 'decisions': []}
-
-    if not jobs_to_download:
-        raise BridgeException(_("Jobs were not found"), back=reverse('jobs:tree'))
-
-    # Collect selected decisions
-    for decision in Decision.objects.filter(pk__in=decision_ids).select_related('job'):
-        if decision.job_id not in jobs_to_download:
-            # Unexpected behavior
-            continue
-        jobs_to_download[decision.job_id]['decisions'].append(decision.id)
-        if not DecisionAccess(user, decision).can_download:
-            raise BridgeException(
-                _("You don't have an access to one of the selected decisions"), back=reverse('jobs:tree')
-            )
-
-    # Check access to jobs without any selected decision (all decisions will be downloaded)
-    for job_id in jobs_to_download:
-        if not jobs_to_download[job_id]['decisions']:
-            if not JobAccess(user, jobs_to_download[job_id]['instance']).can_download:
-                raise BridgeException(
-                    _("You don't have an access to one of the selected jobs"), back=reverse('jobs:tree')
-                )
-    return jobs_to_download

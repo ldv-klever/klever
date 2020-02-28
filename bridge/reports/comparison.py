@@ -31,7 +31,6 @@ from reports.models import (
     ReportAttr, CompareDecisionsInfo, ComparisonObject, ComparisonLink,
     ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent
 )
-
 from marks.models import MarkUnsafeReport, MarkSafeReport, MarkUnknownReport
 
 

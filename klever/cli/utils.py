@@ -139,6 +139,16 @@ class Session:
         resp.close()
         return archive
 
+    def __parse_replacement(self, replacement):
+        if os.path.exists(replacement):
+            with open(replacement, mode='r', encoding='utf8') as fp:
+                new_files = json.load(fp)
+        else:
+            new_files = json.loads(replacement)
+        if not isinstance(new_files, dict):
+            raise ValueError('Dictionary expected')
+        return new_files
+
     def download_job(self, job_uuid, archive):
         """
         Download job archive.
@@ -148,92 +158,75 @@ class Session:
         """
         return self.__download_archive('jobs/api/downloadjob/{0}/'.format(job_uuid), archive)
 
-    def upload_job(self, parent_uuid, archive):
+    def upload_job(self, archive):
         """
         Upload job archive.
-        :param parent_uuid: an identifier of the parent job
         :param archive: path to archive
         :return: None
         """
-        request_data = {}
-        if parent_uuid:
-            request_data['parent'] = str(parent_uuid)
         self.__request(
-            'jobs/api/upload_jobs/', 'POST', data=request_data,
-            files=[('file', open(archive, 'rb', buffering=0))], stream=True
+            'jobs/api/upload_jobs/', 'POST', files=[('file', open(archive, 'rb', buffering=0))], stream=True
         )
 
-    def job_progress(self, job_uuid, filename):
+    def decision_progress(self, identifier, filename):
         """
-        Save job progress to json file.
-        :param job_uuid: job identifier.
+        Save decision progress to json file.
+        :param identifier: decision identifier (uuid).
         :param filename: path where to save the file.
         :return: None
         """
-        resp = self.__request('service/progress/{}/'.format(job_uuid))
+        resp = self.__request('service/progress/{}/'.format(identifier))
         with open(filename, mode='w', encoding='utf8') as fp:
             json.dump(resp.json(), fp, ensure_ascii=False, sort_keys=True, indent=4)
 
-    def decision_results(self, decision_uuid, filename):
+    def decision_results(self, identifier, filename):
         """
         Save job decision results to json file.
-        :param decision_uuid: decision identifier
-        :param filename: path where to save the file
+        :param identifier: decision identifier (uuid).
+        :param filename: path where to save the file.
         :return: None
         """
-        resp = self.__request('jobs/api/decision-results/{0}/'.format(decision_uuid))
+        resp = self.__request('jobs/api/decision-results/{0}/'.format(identifier))
         with open(filename, mode='w', encoding='utf8') as fp:
             json.dump(resp.json(), fp, ensure_ascii=False, sort_keys=True, indent=4)
 
-    def __create_job(self, url, replacement):
-        if not replacement:
-            return self.__request(url, method='POST')
-        if os.path.exists(replacement):
-            with open(replacement, mode='r', encoding='utf8') as fp:
-                new_files = json.load(fp)
-        else:
-            new_files = json.loads(replacement)
-        if not isinstance(new_files, dict):
-            raise ValueError('Dictionary expected')
-        with RequestFilesProcessor() as fp:
-            for f_name, f_path in new_files.items():
-                fp.add_file(f_name, f_path)
-            return self.__request(url, method='POST', data={'files': fp.get_map()}, files=fp.get_files())
-
-    def copy_job(self, job_uuid, replacement):
-        """
-        Copy job.
-        :param job_uuid: job identifier
-        :param replacement: path to json with replacement info or json string with it.
-        :return: identifier of the new job.
-        """
-        resp = self.__create_job('jobs/api/duplicate/{0}/'.format(job_uuid), replacement)
-        return resp.json()['identifier']
-
-    def create_preset_job(self, preset_uuid, replacement):
+    def create_job(self, preset_uuid):
         """
         Create new job on the base of preset files.
         :param preset_uuid: preset job uuid.
-        :param replacement: path to json with replacement info or json string with it.
         :return: job primary key and identifier
         """
-
-        resp = self.__create_job('jobs/api/create-preset/{0}/'.format(preset_uuid), replacement)
+        resp = self.__request('jobs/api/create-default-job/{0}/'.format(preset_uuid), method='POST')
         resp_json = resp.json()
         return resp_json['id'], resp_json['identifier']
 
-    def start_job_decision(self, job_uuid, data_fp):
+    def start_job_decision(self, job_uuid, data_fp, replacement):
         """
         Start job decision.
         :param job_uuid: job identifier.
         :param data_fp: configuration file instance, optional (provide None)
-        :return: None
+        :param replacement: path to json with replacement info or json string with it, optional (provide None).
+        :return: decision primary key and identifier
         """
-        url = 'jobs/api/decide-uuid/{}/'.format(job_uuid)
-        if data_fp:
-            self.__request(url, 'POST', files=[('file_conf', data_fp)], stream=True)
-        else:
-            self.__request(url, 'POST')
+        with RequestFilesProcessor() as rfp:
+            request_kwargs = {'method': 'POST'}
+
+            if data_fp:
+                request_kwargs['stream'] = True
+                request_kwargs['files'] = [('file_conf', data_fp)]
+
+            if replacement:
+                new_files = self.__parse_replacement(replacement)
+                for f_name, f_path in new_files.items():
+                    rfp.add_file(f_name, f_path)
+                request_kwargs.setdefault('files', [])
+                request_kwargs['files'].extend(rfp.get_files())
+                request_kwargs['data'] = {'files': rfp.get_map()}
+
+            resp = self.__request('jobs/api/decide-uuid/{}/'.format(job_uuid), **request_kwargs)
+
+        resp_json = resp.json()
+        return resp_json['id'], resp_json['identifier']
 
     def download_all_marks(self, archive):
         """

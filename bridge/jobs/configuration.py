@@ -27,7 +27,7 @@ from bridge.vars import PRIORITY, SCHEDULER_TYPE, DECISION_WEIGHT, COVERAGE_DETA
 from bridge.utils import logger, BridgeException
 
 from users.models import SchedulerUser
-from service.models import Scheduler
+from jobs.models import Scheduler
 
 # Each Klever Core mode represents sets of values for following sets of attributes:
 #   priority - see bridge.vars.PRIORITY for available values (job priority),
@@ -145,6 +145,26 @@ KLEVER_CORE_DEF_MODES = [
 ]
 
 
+def get_configuration_value(name, value):
+    if name == 'parallelism':
+        for p_id, __, p_val in PARALLELISM_PACKS:
+            if p_id == value:
+                return {
+                    'parallelism_0': p_val[0],
+                    'parallelism_1': p_val[1],
+                    'parallelism_2': p_val[2]
+                }
+    elif name == 'def_console_formatter':
+        for f_id, __, f_val in DEFAULT_FORMATTER:
+            if f_id == value:
+                return {'console_formatter': f_val}
+    elif name == 'def_file_formatter':
+        for f_id, __, f_val in DEFAULT_FORMATTER:
+            if f_id == value:
+                return {'file_formatter': f_val}
+    return {}
+
+
 class ConfigurationSerializer(serializers.Serializer):
     priority = fields.ChoiceField(PRIORITY)
     scheduler = fields.ChoiceField(SCHEDULER_TYPE)
@@ -171,37 +191,23 @@ class ConfigurationSerializer(serializers.Serializer):
     total_coverage = fields.BooleanField()
     coverage_details = fields.ChoiceField(COVERAGE_DETAILS)
 
+    def create(self, validated_data):
+        raise NotImplementedError
 
-def get_configuration_value(name, value):
-    if name == 'parallelism':
-        for p_id, __, p_val in PARALLELISM_PACKS:
-            if p_id == value:
-                return {
-                    'parallelism_0': p_val[0],
-                    'parallelism_1': p_val[1],
-                    'parallelism_2': p_val[2]
-                }
-    elif name == 'def_console_formatter':
-        for f_id, __, f_val in DEFAULT_FORMATTER:
-            if f_id == value:
-                return {'console_formatter': f_val}
-    elif name == 'def_file_formatter':
-        for f_id, __, f_val in DEFAULT_FORMATTER:
-            if f_id == value:
-                return {'file_formatter': f_val}
-    return {}
+    def update(self, instance, validated_data):
+        raise NotImplementedError
 
 
 class GetConfiguration:
-    def __init__(self, conf_name=None, file_conf=None, user_conf=None, last_run=None):
+    def __init__(self, conf_name=None, file_conf=None, user_conf=None, base_decision=None):
         if conf_name is not None:
             self.configuration = self.__get_default_conf_args(conf_name)
         elif user_conf is not None:
             self.configuration = self.__validate_conf(user_conf)
         elif file_conf is not None:
             self.configuration = self.__json_to_conf(file_conf)
-        elif last_run is not None:
-            with last_run.configuration.file as fp:
+        elif base_decision is not None:
+            with base_decision.configuration.file as fp:
                 self.configuration = self.__json_to_conf(fp)
         else:
             self.configuration = self.__get_default_conf_args(settings.DEF_KLEVER_CORE_MODE)
@@ -226,9 +232,9 @@ class GetConfiguration:
         for f in filedata['logging']['formatters']:
             formatters[f['name']] = f['value']
         loggers = {}
-        for l in filedata['logging']['loggers']:
-            if l['name'] == 'default':
-                for l_h in l['handlers']:
+        for conf_l in filedata['logging']['loggers']:
+            if conf_l['name'] == 'default':
+                for l_h in conf_l['handlers']:
                     loggers[l_h['name']] = {'formatter': formatters[l_h['formatter']], 'level': l_h['level']}
 
         configuration = {

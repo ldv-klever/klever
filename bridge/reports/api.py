@@ -23,7 +23,7 @@ from django.urls import reverse
 from django.utils.translation import ugettext as _
 
 from rest_framework import exceptions
-from rest_framework.generics import RetrieveAPIView, get_object_or_404, CreateAPIView, DestroyAPIView, GenericAPIView
+from rest_framework.generics import get_object_or_404, RetrieveAPIView, CreateAPIView, DestroyAPIView, GenericAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.status import HTTP_403_FORBIDDEN
@@ -40,10 +40,10 @@ from reports.models import Report, ReportComponent, OriginalSources, CoverageArc
 
 from jobs.utils import JobAccess, DecisionAccess
 from reports.comparison import FillComparisonCache, ComparisonData
-from reports.UploadReport import UploadReport, CheckArchiveError
+from reports.coverage import GetCoverageData, ReportCoverageStatistics
 from reports.serializers import OriginalSourcesSerializer
 from reports.source import GetSource
-from reports.coverage import GetCoverageData, ReportCoverageStatistics
+from reports.UploadReport import UploadReport, CheckArchiveError
 
 
 class FillComparisonView(LoggedCallMixin, APIView):

@@ -26,11 +26,13 @@ from django.utils.functional import cached_property
 from django.utils.text import format_lazy
 from django.utils.translation import ugettext_lazy as _
 
-from bridge.vars import DECISION_STATUS, USER_ROLES, JOB_ROLES, SUBJOB_NAME, DECISION_WEIGHT
+from bridge.vars import (
+    DECISION_STATUS, USER_ROLES, JOB_ROLES, SUBJOB_NAME, DECISION_WEIGHT, SCHEDULER_TYPE, SCHEDULER_STATUS
+)
 from bridge.utils import file_get_or_create, BridgeException
 
 from users.models import User
-from jobs.models import PRESET_JOB_TYPE, Job, JobFile, FileSystem, UserRole, PresetJob
+from jobs.models import PRESET_JOB_TYPE, Job, JobFile, FileSystem, UserRole, PresetJob, Scheduler
 from reports.models import ReportComponent
 from service.models import Decision
 
@@ -190,6 +192,64 @@ def get_core_link(decision):
     return reverse('reports:component', args=[core.id])
 
 
+def get_roles_form_data(job=None):
+    global_role = JOB_ROLES[0][0]
+
+    users_qs = User.objects.exclude(role__in=[USER_ROLES[2][0], USER_ROLES[4][0]])\
+        .order_by('first_name', 'last_name', 'username')
+    available_users = OrderedDict((u.id, u.get_full_name()) for u in users_qs)
+
+    user_roles = []
+    if job:
+        global_role = job.global_role
+        # Exclude job author
+        available_users.pop(job.author_id, None)
+        for ur in UserRole.objects.filter(job=job):
+            # Either user is manager, author or service of the job if he is not in all_users dict
+            user_name = available_users.pop(ur.user_id, None)
+            if user_name:
+                user_roles.append({'user': ur.user_id, 'name': user_name, 'role': ur.role})
+    return {
+        'user_roles': user_roles, 'global_role': global_role,
+        'available_users': list({'id': u_id, 'name': u_name} for u_id, u_name in available_users.items())
+    }
+
+
+def copy_files_with_replace(request, decision_id, files_qs):
+    files_to_replace = {}
+    if request.data.get('files'):
+        for fname, fkey in request.data['files'].items():
+            if fkey in request.FILES:
+                files_to_replace[fname] = request.FILES[fkey]
+
+    new_job_files = []
+    for f_id, f_name in files_qs:
+        fs_kwargs = {'decision_id': decision_id, 'file_id': f_id, 'name': f_name}
+        if f_name in files_to_replace:
+            new_file = file_get_or_create(files_to_replace[f_name], f_name, JobFile)
+            fs_kwargs['file_id'] = new_file.id
+        new_job_files.append(FileSystem(**fs_kwargs))
+    FileSystem.objects.bulk_create(new_job_files)
+
+
+def validate_scheduler(**kwargs):
+    try:
+        scheduler = Scheduler.objects.get(**kwargs)
+    except Scheduler.DoesNotExist:
+        raise BridgeException(_('The task scheduler was not found'))
+    if scheduler.type == SCHEDULER_TYPE[1][0]:
+        if scheduler.status == SCHEDULER_STATUS[2][0]:
+            raise BridgeException(_('The VerifierCloud scheduler is disconnected'))
+    else:
+        try:
+            klever_sch = Scheduler.objects.get(type=SCHEDULER_TYPE[0][0])
+        except Scheduler.DoesNotExist:
+            raise BridgeException(_("Schedulers weren't populated"))
+        if klever_sch.status == SCHEDULER_STATUS[2][0]:
+            raise BridgeException(_('The Klever scheduler is disconnected'))
+    return scheduler
+
+
 class JobAccess:
     def __init__(self, user, job: Job):
         self.user = user
@@ -309,9 +369,9 @@ class DecisionProgressData:
 
 
 class CompareFileSet:
-    def __init__(self, job1, job2):
-        self.j1 = job1
-        self.j2 = job2
+    def __init__(self, decision1, decision2):
+        self.d1 = decision1
+        self.d2 = decision2
         self.data = {
             'same': [],
             'diff': [],
@@ -321,8 +381,10 @@ class CompareFileSet:
         self.__get_comparison()
 
     def __get_comparison(self):
-        files1 = dict(FileSystem.objects.filter(job=self.j1).order_by('name').values_list('name', 'file__hash_sum'))
-        files2 = dict(FileSystem.objects.filter(job=self.j2).order_by('name').values_list('name', 'file__hash_sum'))
+        files1 = dict(FileSystem.objects.filter(decision=self.d1)
+                      .order_by('name').values_list('name', 'file__hash_sum'))
+        files2 = dict(FileSystem.objects.filter(decision=self.d2)
+                      .order_by('name').values_list('name', 'file__hash_sum'))
 
         for name, f1_hash in files1.items():
             readable = is_readable(name)
@@ -488,43 +550,3 @@ class JSTreeConverter:
             for child in obj_p['children']:
                 files.extend(self.__get_children_data(child, prefix=(name if obj_p['type'] != 'root' else None)))
         return files
-
-
-def get_roles_form_data(job=None):
-    global_role = JOB_ROLES[0][0]
-
-    users_qs = User.objects.exclude(role__in=[USER_ROLES[2][0], USER_ROLES[4][0]])\
-        .order_by('first_name', 'last_name', 'username')
-    available_users = OrderedDict((u.id, u.get_full_name()) for u in users_qs)
-
-    user_roles = []
-    if job:
-        global_role = job.global_role
-        # Exclude job author
-        available_users.pop(job.author_id, None)
-        for ur in UserRole.objects.filter(job=job):
-            # Either user is manager, author or service of the job if he is not in all_users dict
-            user_name = available_users.pop(ur.user_id, None)
-            if user_name:
-                user_roles.append({'user': ur.user_id, 'name': user_name, 'role': ur.role})
-    return {
-        'user_roles': user_roles, 'global_role': global_role,
-        'available_users': list({'id': u_id, 'name': u_name} for u_id, u_name in available_users.items())
-    }
-
-
-def copy_files_with_replace(request, job_id, files_qs):
-    files_to_replace = {}
-    if request.data.get('files'):
-        for fname, fkey in request.data['files'].items():
-            if fkey in request.FILES:
-                files_to_replace[fname] = request.FILES[fkey]
-
-    new_job_files = []
-    for f_id, f_name in files_qs:
-        fs_kwargs = {'job_id': job_id, 'file_id': f_id, 'name': f_name}
-        if f_name in files_to_replace:
-            new_file = file_get_or_create(files_to_replace[f_name], f_name, JobFile)
-            fs_kwargs['file_id'] = new_file.id
-        new_job_files.append(FileSystem(**fs_kwargs))
-    FileSystem.objects.bulk_create(new_job_files)

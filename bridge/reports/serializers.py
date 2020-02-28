@@ -93,7 +93,7 @@ class VerdictsSerializerRO(serializers.ModelSerializer):
 
 class DecisionResultsSerializerRO(serializers.ModelSerializer):
     job_name = fields.CharField(source='job.name')
-    decision_name = fields.CharField(source='name')
+    decision_name = fields.CharField(source='title')
     start_date = TimeStampField(required=False)
     finish_date = TimeStampField(required=False)
     verdicts = serializers.SerializerMethodField()

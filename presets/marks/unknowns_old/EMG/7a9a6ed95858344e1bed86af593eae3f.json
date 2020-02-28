@@ -1,7 +1,0 @@
-{
-  "pattern": "Cannot find a suitable label for return value of action",
-  "problem": "No ret label",
-  "production": true,
-  "link": "http://forge.ispras.ru/issues/7247",
-  "description": "EMG cannot generate label of suitable type to save callback return value."
-}

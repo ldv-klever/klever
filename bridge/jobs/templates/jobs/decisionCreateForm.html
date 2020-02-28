@@ -1,0 +1,224 @@
+{% extends 'bridge/base.html' %}
+{% comment "License" %}
+% Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
+% Ivannikov Institute for System Programming of the Russian Academy of Sciences
+%
+% Licensed under the Apache License, Version 2.0 (the "License");
+% you may not use this file except in compliance with the License.
+% You may obtain a copy of the License at
+%
+%    http://www.apache.org/licenses/LICENSE-2.0
+%
+% Unless required by applicable law or agreed to in writing, software
+% distributed under the License is distributed on an "AS IS" BASIS,
+% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+% See the License for the specific language governing permissions and
+% limitations under the License.
+{% endcomment %}
+
+{% load i18n %}
+{% load static %}
+{% load compress %}
+
+{% block title %}{% trans 'Job version creating' %}{% endblock %}
+
+{% block head_block %}
+    {# Code Mirror stylesheets #}
+    {% compress css file codemirror %}
+        <link rel="stylesheet" href="{% static 'bridge/codemirror/lib/codemirror.css' %}">
+        <link rel="stylesheet" href="{% static 'bridge/codemirror/theme/midnight.css' %}">
+        <link rel="stylesheet" href="{% static 'bridge/codemirror/addon/dialog/dialog.css' %}">
+        <link rel="stylesheet" href="{% static 'bridge/codemirror/addon/search/matchesonscrollbar.css' %}">
+    {% endcompress %}
+
+    {# Code Mirror js libraries #}
+    {% compress js file codemirror %}
+        <script src="{% static 'bridge/codemirror/lib/codemirror.js' %}"></script>
+        <script src="{% static 'bridge/codemirror/mode/javascript.js' %}"></script>
+        <script src="{% static 'bridge/codemirror/mode/clike.js' %}"></script>
+        <script src="{% static 'bridge/codemirror/mode/xml.js' %}"></script>
+        <script src="{% static 'bridge/codemirror/mode/python.js' %}"></script>
+        <script src="{% static 'bridge/codemirror/addon/dialog/dialog.js' %}"></script>
+        <script src="{% static 'bridge/codemirror/addon/search/searchcursor.js' %}"></script>
+        <script src="{% static 'bridge/codemirror/addon/scroll/annotatescrollbar.js' %}"></script>
+        <script src="{% static 'bridge/codemirror/addon/search/matchesonscrollbar.js' %}"></script>
+        <script src="{% static 'bridge/codemirror/addon/search/search.js' %}"></script>
+    {% endcompress %}
+
+    {# Jstree #}
+    <link rel="stylesheet" href="{% static 'bridge/jstree/themes/default/style.min.css' %}">
+    <script src="{% static 'bridge/jstree/jstree.min.js' %}"></script>
+
+    {% compress js file create-decision %}
+        <script src="{% static 'jobs/js/decisionFilesEdit.js' %}"></script>
+        <script src="{% static 'jobs/js/startDecision.js' %}"></script>
+    {% endcompress %}
+
+    {% compress css file create-decision %}
+        <link href="{% static 'jobs/css/start-job.css' %}" rel="stylesheet">
+        <link href="{% static 'jobs/css/multi-state-slider.css' %}" rel="stylesheet">
+    {% endcompress %}
+{% endblock %}
+
+{% block body_block %}
+    <div id="create_decision_form">
+        <div class="ui grid">
+            <div class="seven wide column">
+                {# Decision title #}
+                <div class="ui violet segment" style="margin-bottom: 0;">
+                    <label for="decision_title"><strong>{% trans 'Job version name' %}</strong></label>
+                    <div class="ui fluid input field">
+                        <input id="decision_title" type="text"{% if object %} value="{{ object.title }}"{% endif %} >
+                    </div>
+                </div>
+
+                {# Files table #}
+                <div id="filestree">{% include 'jobs/fileTreeEdit.html' %}</div>
+
+                {# Action Buttons #}
+                <br>
+                <div class="ui fluid small vertical buttons">
+                    <button id="start_default_decision" class="ui green button">{% trans 'Create and start decision with default configuration' %}</button>
+                    <button id="prepare_custom_decision" class="ui green button">{% trans 'Create and start decision with custom configuration' %}</button>
+                    <a href="{{ cancel_url }}" class="ui blue button" style="float: right">{% trans 'Cancel' %}</a>
+                </div>
+            </div>
+            <div id="editor_container" class="nine wide column">
+                {# File editor #}
+                {% include 'jobs/fileEditor.html' %}
+            </div>
+        </div>
+    </div>
+    <div id="start_decision_form" style="display: none;">
+        {% if base_decision %}
+            {% include 'jobs/startDecision.html' with data=start_data decisions=other_decisions base_decision=base_decision %}
+        {% else %}
+            {% include 'jobs/startDecision.html' with data=start_data current_conf=current_conf decisions=other_decisions %}
+        {% endif %}
+        <div style="float: right;margin-bottom: 50px;">
+            <button id="start_custom_decision" class="ui violet button" data-url="">{% trans 'Start' %}</button>
+        </div>
+    </div>
+
+    {# Warning modal for saving decision without commiting file changes #}
+    <div id="file_not_commited_modal" class="ui basic modal">
+        <div class="ui icon header">
+            <i class="warning sign icon"></i>
+            {% trans 'Are you sure' %}?
+        </div>
+        <div class="content">
+            <div class="ui center aligned grid"><p>{% trans 'The file you changed is not saved' %} (Ctrl+S)</p></div>
+        </div>
+        <div class="actions">
+            <div class="ui center aligned grid">
+                <button class="ui blue basic inverted button modal-cancel">{% trans 'Cancel version creation' %}</button>
+                <button class="ui red basic inverted button modal-confirm">{% trans 'Create the version anyway' %}</button>
+            </div>
+        </div>
+    </div>
+    <span id="verifiercloud_cred_saved" hidden>{% trans 'VerifierCloud credentials were successfully saved (you can change them in your settings)' %}</span>
+
+    <script type="application/javascript">
+        jQuery(function () {
+            let files_form = new FilesTree('filestree', 'editor_container'),
+                start_form = new StartDecision("{% url 'jobs:api-configuration' %}", "{% url 'jobs:api-def-start-value' %}"),
+                next_step = null;
+
+            files_form.set_messages({
+                not_ascii: "{% trans 'Names with non-ASCII characters must be less than 30 characters' %}",
+                title_required: "{% trans 'Title is required' %}",
+                file_commited: "{% trans 'The file was commited' %}",
+                file_not_commited: "{% trans 'The file was not commited' %}",
+                file_required: "{% trans 'Please choose the file' %}"
+            });
+            files_form.set_labels({
+                'new': "{% trans 'New' %}",
+                'folder': "{% trans 'Folder' %}",
+                'file': "{% trans 'File' %}",
+                'upload': "{% trans 'Upload' %}",
+                'rename': "{% trans 'Rename' %} (F2)",
+                'delete': "{% trans 'Delete' %}",
+                'replace': "{% trans 'Replace' %}",
+                'download': "{% trans 'Download' %}"
+            });
+            start_form.initialize();
+
+            function start_default_decision() {
+                $('#dimmer_of_page').addClass('active');
+                $.post("{% url 'jobs:api-create-decision' job.id %}", {
+                    title: $('#decision_title').val().trim(),
+                    files: files_form.serialize()
+                }, function (resp) {
+                    window.location.replace(resp['url'])
+                });
+            }
+
+            function back_to_create_decision() {
+                $('#start_decision_form').hide();
+                $('#create_decision_form').show();
+            }
+            function proceed_to_start_decision() {
+                let state_url = get_url_with_get_parameters(window.location.href, {'state': 'start'});
+                history.pushState(['start'], 'Start decision', state_url);
+                $('#create_decision_form').hide();
+                $('#start_decision_form').show();
+                {% if start_data.need_auth and start_data.conf.scheduler == 'VerifierCloud' %}
+                    $('#scheduler_user_modal').modal('show');
+                {% endif %}
+            }
+
+            files_form.initialize({{ files_data|safe }});
+
+            // If file was not commited, show warning
+            let file_not_commited_modal = $('#file_not_commited_modal');
+            file_not_commited_modal.modal({transition: 'fade in', autofocus: false, closable: false});
+            file_not_commited_modal.find('.modal-cancel').click(function () {
+                file_not_commited_modal.modal('hide')
+            });
+            file_not_commited_modal.find('.modal-confirm').click(function () {
+                if (next_step === 'default') start_default_decision();
+                else proceed_to_start_decision();
+            });
+
+            $('#start_default_decision').click(function () {
+                if (files_form.not_commited()) {
+                    next_step = 'default';
+                    $('#file_not_commited_modal').modal('show')
+                }
+                else start_default_decision();
+            });
+
+            $('#prepare_custom_decision').click(function () {
+                if (files_form.not_commited()) {
+                    next_step = 'custom';
+                    $('#file_not_commited_modal').modal('show')
+                }
+                else proceed_to_start_decision();
+            });
+
+            $('#preset_dir').dropdown();
+
+            // Start decision with custom parameters
+            $('#start_custom_decision').click(function () {
+                $('#dimmer_of_page').addClass('active');
+                $.post("{% url 'jobs:api-create-decision' job.id %}", {
+                    title: $('#decision_title').val().trim(),
+                    files: files_form.serialize(),
+                    configuration: start_form.serialize()
+                }, function (resp) {
+                    window.location.replace(resp['url'])
+                });
+            });
+
+            {% if start_data.need_auth %}
+                start_form.initialize_sch_user_modal("{% url 'service:api-scheduler-user' %}");
+            {% endif %}
+
+            window.addEventListener('popstate', function(e) {
+                e.state && e.state[0] === 'files' ? back_to_create_decision() : history.back();
+            });
+
+            getUrlParameter('state') ? history.back() : history.replaceState(['files'], 'Files state');
+        });
+    </script>
+{% endblock %}

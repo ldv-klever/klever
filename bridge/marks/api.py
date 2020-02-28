@@ -22,8 +22,8 @@ from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 
 from rest_framework import status, exceptions
-from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
 from rest_framework.generics import get_object_or_404, DestroyAPIView, RetrieveAPIView
+from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -41,12 +41,16 @@ from marks.models import (
     MarkUnknownReport, SafeAssociationLike, UnsafeAssociationLike, UnknownAssociationLike,
     MarkSafeHistory, MarkUnsafeHistory, MarkUnknownHistory
 )
-from marks.utils import MarkAccess
-from marks.tags import TagAccess, ChangeTagsAccess, UploadTags
+
+from marks.Download import AllMarksGenerator, MarksUploader, UploadAllMarks
+from marks.markversion import MarkVersionFormData
 from marks.serializers import (
-    SafeMarkSerializer, UnsafeMarkSerializer, UnknownMarkSerializer, SafeTagSerializer, UnsafeTagSerializer,
-    UpdatedPresetUnsafeMarkSerializer
+    SafeMarkSerializer, UnsafeMarkSerializer, UnknownMarkSerializer,
+    SafeTagSerializer, UnsafeTagSerializer, UpdatedPresetUnsafeMarkSerializer
 )
+from marks.tags import TagAccess, ChangeTagsAccess, UploadTags
+from marks.utils import MarkAccess
+
 from marks.SafeUtils import (
     perform_safe_mark_create, perform_safe_mark_update, RemoveSafeMark, ConfirmSafeMark, UnconfirmSafeMark
 )
@@ -57,8 +61,6 @@ from marks.UnknownUtils import (
     perform_unknown_mark_create, perform_unknown_mark_update, CheckUnknownFunction,
     RemoveUnknownMark, ConfirmUnknownMark, UnconfirmUnknownMark
 )
-from marks.Download import AllMarksGenerator, MarksUploader, UploadAllMarks
-from marks.markversion import MarkVersionFormData
 
 from caches.utils import (
     UpdateSafeMarksTags, UpdateUnsafeMarksTags, RecalculateSafeCache, RecalculateUnsafeCache, RecalculateUnknownCache

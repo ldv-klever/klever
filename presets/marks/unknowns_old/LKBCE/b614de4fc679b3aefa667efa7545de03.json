@@ -1,5 +1,0 @@
-{
-  "pattern": "core.utils.CommandError: \"make\" failed",
-  "problem": "Build failure",
-  "production": true
-}

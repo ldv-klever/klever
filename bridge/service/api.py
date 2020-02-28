@@ -30,14 +30,15 @@ from bridge.CustomViews import StreamingResponseAPIView
 from tools.profiling import LoggedCallMixin
 
 from users.models import SchedulerUser
-from service.models import Decision, Task, Solution, VerificationTool, Scheduler, NodesConfiguration
+from jobs.models import Decision, Scheduler
+from service.models import Task, Solution, VerificationTool, NodesConfiguration
 
 from jobs.serializers import decision_status_changed
-from service.utils import FinishDecision, TaskArchiveGenerator, SolutionArchiveGenerator, ReadDecisionConfiguration
 from service.serializers import (
     TaskSerializer, SolutionSerializer, SchedulerUserSerializer, DecisionSerializer,
     UpdateToolsSerializer, SchedulerSerializer, NodeConfSerializer
 )
+from service.utils import FinishDecision, TaskArchiveGenerator, SolutionArchiveGenerator, ReadDecisionConfiguration
 
 
 class TaskAPIViewset(LoggedCallMixin, ModelViewSet):

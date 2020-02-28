@@ -15,22 +15,8 @@
 # limitations under the License.
 #
 
-from celery import shared_task
-
-from bridge.utils import BridgeException
-
-from reports.models import CoverageArchive
-from reports.coverage import FillCoverageStatistics
+from django.apps import AppConfig
 
 
-@shared_task
-def fill_coverage_statistics(carch_id):
-    carch = CoverageArchive.objects.get(id=carch_id)
-    try:
-        res = FillCoverageStatistics(carch)
-    except Exception as e:
-        carch.delete()
-        raise BridgeException('Error while parsing coverage statistics: {}'.format(e))
-    carch.total = res.total_coverage
-    carch.has_extra = res.has_extra
-    carch.save()
+class CachesConfig(AppConfig):
+    name = 'service'

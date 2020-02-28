@@ -22,12 +22,12 @@ from slugify import slugify
 from django.db.models import Q, Case, When, Count
 from django.urls import reverse
 from django.utils.functional import cached_property
-from django.utils.translation import ugettext_lazy as _
 from django.utils.timezone import now
+from django.utils.translation import ugettext_lazy as _
 
 from mptt.utils import tree_item_iterator
 
-from bridge.vars import PRIORITY, SafeVerdicts, UnsafeVerdicts, JOB_ROLES, DECISION_STATUS, PRESET_JOB_TYPE
+from bridge.vars import PRIORITY, SafeVerdicts, UnsafeVerdicts, JOB_ROLES, DECISION_STATUS
 from bridge.utils import construct_url
 from bridge.tableHead import ComplexHeaderMixin
 
@@ -261,9 +261,7 @@ class PresetChildrenTree:
         self.children = self.__get_jobs_tree()
 
     def __get_jobs_queryset(self):
-        qs_filter = Q(preset_id=self._preset_job.id)
-        if self._preset_job.type == PRESET_JOB_TYPE[1][0]:
-            qs_filter |= Q(preset__parent_id=self._preset_job.id)
+        qs_filter = Q(preset_id=self._preset_job.id) | Q(preset__parent_id=self._preset_job.id)
         return Job.objects.filter(qs_filter).order_by('name').only('id', 'name', 'preset_id')
 
     def __get_job_value(self, job):
@@ -275,22 +273,18 @@ class PresetChildrenTree:
             if job.preset_id != preset.id:
                 continue
             jobs_list.append(self.__get_job_value(job))
-        return {'name': preset.name, 'url': reverse('jobs:preset', args=[preset.id]), 'children': jobs_list}
+        return {'name': preset.name, 'children': jobs_list}
 
     def __get_jobs_tree(self):
         jobs_tree = []
-        if self._preset_job.type == PRESET_JOB_TYPE[1][0]:
-            # Collect jobs without custom preset directory first
-            for job in self._jobs_qs:
-                if job.preset_id == self._preset_job.id:
-                    jobs_tree.append(self.__get_job_value(job))
-
-            # Collect jobs of custom preset directories
-            for preset in PresetJob.objects.filter(parent=self._preset_job).order_by('name').only('id', 'name'):
-                jobs_tree.append(self.__get_preset_value(preset))
-        else:
-            for job in self._jobs_qs:
+        # Collect jobs without custom preset directory first
+        for job in self._jobs_qs:
+            if job.preset_id == self._preset_job.id:
                 jobs_tree.append(self.__get_job_value(job))
+
+        # Collect jobs of custom preset directories
+        for preset in PresetJob.objects.filter(parent=self._preset_job).order_by('name').only('id', 'name'):
+            jobs_tree.append(self.__get_preset_value(preset))
         return jobs_tree
 
 

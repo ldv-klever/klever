@@ -20,21 +20,16 @@
 
 {% load humanize %}
 {% load tz %}
-{% load staticfiles %}
+{% load static %}
 {% load compress %}
 
 {% block head_block %}
-    {# Jstree #}
-    <link rel="stylesheet" href="{% static 'bridge/jstree/themes/default/style.min.css' %}">
-    <script src="{% static 'bridge/jstree/jstree.min.js' %}"></script>
-
     {% compress js file job %}
-        <script src="{% static 'jobs/js/jobFilesView.js' %}"></script>
         <script src="{% static 'jobs/js/jobPage.js' %}"></script>
     {% endcompress %}
     <script type="application/javascript">
-        const PAGE_ERRORS = {
-            compare_decisions_error: "{% trans 'Please select exactly two decisions which reports you want to compare' %}",
+        const LOCAL_PAGE_ERRORS = {
+            compare_decisions_error: "{% trans 'Please select exactly two decisions you want to compare' %}",
             download_decisions_error: "{% trans 'Please select decisions you want to download' %}",
             remove_decisions_error: "{% trans 'Please select decisions you want to remove' %}"
         };
@@ -55,16 +50,15 @@
                     <div class="menu">
                         <a href="{% url 'jobs:download' object.id %}" class="item{% if not job_access.can_download %} disabled{% endif %}"><i class="download icon"></i> {% trans 'Download' %}</a>
                         <a href="{% url 'jobs:job-edit-form' object.id %}" class="item{% if not job_access.can_edit %} disabled{% endif %}"><i class="edit icon"></i> {% trans 'Edit' %}</a>
+                        <a href="{% url 'jobs:decision-create' job.id %}" class="item"><i class="play icon"></i> {% trans 'Create new version' %}</a>
                         <a id="remove_job_btn" class="item{% if not job_access.can_delete %} disabled{% endif %}"><i class="trash icon"></i> {% trans 'Delete' %}</a>
-                        <a href="{% url 'jobs:job-copy-form' object.id %}" class="item{% if not user.can_create_jobs %} disabled{% endif %}"><i class="copy icon"></i>{% trans 'Copy' %}</a>
                     </div>
                 </div>
                 {% if job_access.can_decide %}
                     <div class="ui dropdown item">
                         <div class="header">{% trans 'Decision' %}</div><i class="dropdown icon"></i>
                         <div class="menu">
-                            <a href="{% url 'jobs:prepare-decision' job.id %}" class="item"><i class="play icon"></i> {% trans 'Start' %}</a>
-                            <a id="fast_decide_job_btn" data-url="{% url 'jobs:api-decide' job.id %}" class="item"><i class="forward icon"></i> {% trans 'Start with default values' %}</a>
+                            <a id="fast_decide_job_btn" data-url="{% url 'jobs:api-decide' job.id %}" class="item"><i class="forward icon"></i> {% trans 'Start with preset files and default values' %}</a>
                         </div>
                     </div>
                 {% endif %}
@@ -100,9 +94,6 @@
                     {% endif %}
                 </tbody>
             </table>
-
-            {# Files tree #}
-            {% include 'jobs/filesTree.html' with data=files div_id='filestree_container' %}
             <br>
 
             {# User roles #}
@@ -126,12 +117,16 @@
         <div class="eight wide column">
             {# Decisions list #}
             {% if decisions|length %}
-                <div>{% include 'jobs/decision-list.html' with decisions=decisions with_checkbox=True %}</div>
-                <br>
-                <div class="ui mini buttons">
-                    <button id="compare_decisions_btn" data-url="{% url 'jobs:download' object.id %}?" class="ui violet disabled button">{% trans 'Compare reports' %}</button>
-                    <button id="download_decisions_btn" data-url="{% url 'jobs:download' object.id %}?" class="ui teal disabled button">{% trans 'Download' %}</button>
-                    <button id="remove_decisions_btn" data-url="{% url 'jobs:download' object.id %}?" class="ui red disabled button">{% trans 'Delete' %}</button>
+                <div class="ui violet segment">
+                    <div class="ui top left attached violet label">{% trans 'Job versions' %}</div>
+                    {% include 'jobs/decision-list.html' with decisions=decisions with_checkbox=True %}
+                    <br>
+                    <div class="ui mini buttons">
+                        <button id="compare_decisions_btn" data-url="{% url 'jobs:download' object.id %}?" class="ui violet disabled button">{% trans 'Compare reports' %}</button>
+                        <button id="compare_files_btn" class="ui violet disabled button">{% trans 'Compare files' %}</button>
+                        <button id="download_decisions_btn" data-url="{% url 'jobs:download' object.id %}?" class="ui teal disabled button">{% trans 'Download' %}</button>
+                        <button id="remove_decisions_btn" data-url="{% url 'jobs:download' object.id %}?" class="ui red disabled button">{% trans 'Delete' %}</button>
+                    </div>
                 </div>
             {% else %}
                 <h5>{% trans "The job don't have decisions yet" %}</h5>

@@ -33,9 +33,17 @@
         <tbody>
             {% for preset_data in TableData.content.values %}
                 <tr class="{% if preset_data.instance.type != '2' %}tr-show{% endif %} treegrid-p{{ preset_data.instance.id }}{% if preset_data.instance.parent_id %} treegrid-parent-p{{ preset_data.instance.parent_id }}{% endif %}">
-                    <td class="one wide">&nbsp;</td> {# Checkbox column #}
+                    <td class="one wide right aligned">
+                        {% if preset_data.instance.type == '2' %}
+                            <div class="ui fitted checkbox">
+                                <input class="presetdir-checkbox" type="checkbox" value="{{ preset_data.instance.id }}">
+                            </div>
+                        {% else %}
+                            &nbsp;
+                        {% endif %}
+                    </td> {# Checkbox column #}
                     <td class="collapsing bold-text">
-                        {% if preset_data.instance.type != '0' %}
+                        {% if preset_data.instance.type == '1' %}
                             <a href="{% url 'jobs:preset' preset_data.instance.id %}">{{ preset_data.instance.name }}</a>
                         {% else %}
                             <span>{{ preset_data.instance.name }}</span>
@@ -43,11 +51,12 @@
                         {% if can_create and preset_data.instance.type != '0' %}
                             <span>
                                 {% if preset_data.instance.type == '1' %}
-                                    <i data-content="{% trans 'Add preset directory' %}" class="ui violet link plus icon add-preset-dir-link note-popup" data-parent="{{ preset_data.instance.id }}"></i>
+                                    <i data-content="{% trans 'Add jobs directory' %}" class="ui violet link plus icon add-preset-dir-link note-popup" data-parent="{{ preset_data.instance.id }}"></i>
                                 {% elif preset_data.instance.type == '2' %}
-                                    <span data-tooltip="{% trans 'Change preset directory' %}" data-position="top left"><i class="ui violet link pencil icon change-preset-dir-link note-popup" data-url="{% url 'jobs:api-preset-job-dir-detail' preset_data.instance.id %}"></i></span>
+                                    <span data-tooltip="{% trans 'Rename jobs directory' %}" data-position="top left"><i class="ui violet link pencil icon change-preset-dir-link note-popup" data-url="{% url 'jobs:api-preset-job-dir-detail' preset_data.instance.id %}"></i></span>
+                                    <span data-tooltip="{% trans 'Remove jobs directory' %}" data-position="top left"><i class="ui red link remove icon remove-preset-dir-link note-popup" data-url="{% url 'jobs:api-preset-job-dir-detail' preset_data.instance.id %}"></i></span>
                                 {% endif %}
-                                <a href="{% url 'jobs:from-preset-form' preset_data.instance.id %}"><i data-content="{% trans 'Create new job' %}" class="ui blue link copy icon note-popup"></i></a>
+                                <a href="{% url 'jobs:job-create-form' preset_data.instance.id %}"><i data-content="{% trans 'Create new job' %}" class="ui blue link copy icon note-popup"></i></a>
                             </span>
                         {% endif %}
                     </td>  {# Name column #}
@@ -56,12 +65,19 @@
                 {% for job_data in preset_data.jobs.values %}
                     {# If job is under custom directory, it is hidden (PRESET_JOB_TYPE[2][0]) #}
                     <tr class="treegrid-j{{ job_data.instance.id }} treegrid-parent-p{{ preset_data.instance.id }}" style="{% if preset_data.instance.type == '2' %}display:none;{% endif %}">
-                        <td class="one wide">
+                        <td class="one wide right aligned">
                             <div class="ui fitted checkbox">
                                 <input class="job-checkbox" type="checkbox" value="{{ job_data.instance.id }}">
                             </div>
                         </td>
-                        <td class="collapsing"><a href="{% url 'jobs:job' job_data.instance.id %}">{{ job_data.instance.name }}</a></td>
+                        <td class="collapsing">
+                            <a href="{% url 'jobs:job' job_data.instance.id %}">{{ job_data.instance.name }}</a>
+                            <span>
+                                {% if job_data.decisions|length %}
+                                    <a href="{% url 'jobs:decision-latest' job_data.instance.id %}"><i data-content="{% trans 'Latest version' %}" class="ui blue link paper plane icon note-popup"></i></a>
+                                {% endif %}
+                            </span>
+                        </td>
                         {% for v in job_data.values %}
                             <td class="collapsing">{% if v.html %}{{ v.html|safe }}{% elif v.text %}{{ v.text }}{% endif %}</td>
                         {% endfor %}
@@ -70,7 +86,7 @@
                     {% for decision, values in job_data.decisions %}
                         {# Decisions are hidden by default #}
                         <tr class="treegrid-d{{ decision.id }} treegrid-parent-j{{ job_data.instance.id }}" style="display:none;">
-                            <td class="one wide">
+                            <td class="one wide right aligned">
                                 <div class="ui fitted checkbox">
                                     <input class="decision-checkbox" type="checkbox" value="{{ decision.id }}">
                                 </div>

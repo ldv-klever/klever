@@ -29,27 +29,30 @@ urlpatterns = [
     path('', views.JobsTree.as_view(), name='tree'),
     path('<int:pk>/', views.JobPage.as_view(), name='job'),
     path('preset/<int:pk>/', views.PresetJobPage.as_view(), name='preset'),
+    path('decision/latest/<int:job_id>/', views.LatestDecisionPage.as_view(), name='decision-latest'),
     path('decision/<int:pk>/', views.DecisionPage.as_view(), name='decision'),
+    path('decision-create/<int:job_id>/', views.DecisionFormPage.as_view(), name='decision-create'),
+    path('decision-copy/<int:pk>/', views.DecisionCopyFormPage.as_view(), name='decision-copy'),
+
     path('decision-results/<int:pk>/', views.DecisionResults.as_view(), name='decision-results'),
     path('api/decision-results/<uuid:identifier>/', api.DecisionResultsAPIView.as_view(), name='api-decision-results'),
     path('progress/<int:pk>/', views.DecisionProgress.as_view(), name='progress'),
     path('api/decision-status/', api.DecisionStatusListView.as_view(), name='api-decisions-statuses'),
     path('api/decision-status/<int:pk>/', api.DecisionStatusView.as_view(), name='api-decision-status'),
-    path('comparison/<int:job1_id>/<int:job2_id>/', views.JobsFilesComparison.as_view(), name='comparison'),
+    path('comparison/<int:decision1_id>/<int:decision2_id>/', views.DecisionsFilesComparison.as_view()),
 
     # Main actions with jobs
     path('api/<int:pk>/remove/', api.RemoveJobView.as_view(), name='api-remove-job'),
+    path('api/<int:job_id>/create-decision/', api.CreateDecisionView.as_view(), name='api-create-decision'),
     path('api/decision/<int:pk>/rename/', api.RenameDecisionView.as_view(), name='api-rename-decision'),
     path('api/decision/<int:pk>/remove/', api.RemoveDecisionView.as_view(), name='api-remove-decision'),
-    path('api/duplicate/<uuid:identifier>/', api.DuplicateJobView.as_view(), name='api-duplicate-job'),
 
     # Job form
-    path('form/from-preset/<int:pk>/', views.PresetFormPage.as_view(), name='from-preset-form'),
-    path('form/copy/<int:pk>/', views.CopyJobFormPage.as_view(), name='job-copy-form'),
+    path('form/create/<int:preset_id>/', views.CreateJobFormPage.as_view(), name='job-create-form'),
     path('form/edit/<int:pk>/', views.EditJobFormPage.as_view(), name='job-edit-form'),
     path('api/create/', api.CreateJobView.as_view(), name='api-create-job'),
-    path('api/create-preset/<uuid:identifier>/', api.CreatePresetJobView.as_view(), name='api-create-preset'),
     path('api/update/<int:pk>/', api.UpdateJobView.as_view(), name='api-update-job'),
+    path('api/create-default-job/<uuid:identifier>/', api.CreateDefaultJobView.as_view()),
 
     # Actions with job files
     path('downloadfile/<slug:hash_sum>/', views.DownloadJobFileView.as_view(), name='download_file'),
@@ -66,12 +69,13 @@ urlpatterns = [
     path('api/uploading-status/', api.UploadStatusAPIView.as_view(), name='api-uploading-status'),
 
     # Actions with job solving
-    path('prepare-decision/<int:pk>/', views.PrepareDecisionView.as_view(), name='prepare-decision'),
     path('download-configuration/<int:pk>/', views.DownloadConfigurationView.as_view(), name='download-decision-conf'),
     path('api/configuration/', api.GetConfigurationView.as_view(), name='api-configuration'),
     path('api/conf-def-value/', api.StartJobDefValueView.as_view(), name='api-def-start-value'),
-    path('api/decide/<int:pk>/', api.StartDecisionView.as_view(), name='api-decide'),
-    path('api/decide-uuid/<uuid:identifier>/', api.StartDecisionView.as_view(), name='api-decide-uuid'),
+
+    path('api/decide/<int:pk>/', api.StartDefaultDecisionView.as_view(), name='api-decide'),
+    path('api/decide-uuid/<uuid:identifier>/', api.StartDefaultDecisionView.as_view(), name='api-decide-uuid'),
+
     path('api/restart-decision/<int:pk>/', api.RestartDecisionView.as_view(), name='api-restart-decision'),
     path('api/decision/stop/<int:pk>/', api.StopDecisionView.as_view(), name='api-cancel-decision'),
     path('api/download-files/<uuid:identifier>/', api.CoreDecisionArchiveView.as_view()),

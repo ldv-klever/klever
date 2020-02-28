@@ -22,6 +22,10 @@
 {% load compress %}
 
 {% block head_block %}
+    {# Jstree #}
+    <link rel="stylesheet" href="{% static 'bridge/jstree/themes/default/style.min.css' %}">
+    <script src="{% static 'bridge/jstree/jstree.min.js' %}"></script>
+
     <script type="application/javascript">
         const PAGE_URLS = {
             get_status: "{% url 'jobs:api-decision-status' object.id %}",
@@ -31,11 +35,12 @@
     </script>
 
     {% compress js file decision %}
+        <script src="{% static 'jobs/js/jobFilesView.js' %}"></script>
         <script src="{% static 'jobs/js/decisionPage.js' %}"></script>
     {% endcompress %}
 {% endblock %}
 
-{% block title %}{% trans 'Decision' %} ({{ object.get_status_display }}){% endblock %}
+{% block title %}{% trans 'Job version' %} ({{ object.get_status_display }}){% endblock %}
 
 {% block body_block %}
     <div class="ui grid">
@@ -45,14 +50,21 @@
             <div class="ui violet inverted menu top attached">
 
                 <div class="ui dropdown item">
+                    <div class="header">{% trans 'Job version' %}</div><i class="dropdown icon"></i>
+                    <div class="menu">
+                        <a href="{% url 'jobs:download' object.job_id %}?decision={{ object.id }}" class="item{% if not access.can_download %} disabled{% endif %}"><i class="download icon"></i> {% trans 'Download' %}</a>
+                        <a href="{% url 'jobs:decision-copy' object.id %}" class="item"><i class="copy icon"></i> {% trans 'Copy' %}</a>
+                        <a id="rename_decision_btn" class="item{% if not access.can_rename %} disabled{% endif %}"><i class="pencil icon"></i> {% trans 'Change name' %}</a>
+                        <a id="remove_decision_btn" class="item{% if not access.can_delete %} disabled{% endif %}"><i class="trash icon"></i> {% trans 'Delete' %}</a>
+                    </div>
+                </div>
+
+                <div class="ui dropdown item">
                     <div class="header">{% trans 'Decision' %}</div><i class="dropdown icon"></i>
                     <div class="menu">
-                        <a href="{% url 'jobs:download' object.job_id %}?decision={{ object.id }}" class="item{% if not access.can_download %} disabled{% endif %}"><i class="download icon"></i> {% trans 'Download job with this decision' %}</a>
                         <a href="{% url 'jobs:download-decision-conf' object.id %}" class="item"><i class="settings icon"></i> {% trans 'Download configuration' %}</a>
                         <a id="restart_decision_btn" class="item{% if not access.can_restart %} disabled{% endif %}"><i class="redo icon"></i> {% trans 'Restart' %}</a>
                         <a id="stop_decision_btn" class="item{% if not access.can_stop %} disabled{% endif %}"><i class="stop icon"></i> {% trans 'Stop' %}</a>
-                        <a id="rename_decision_btn" class="item{% if not access.can_rename %} disabled{% endif %}"><i class="pencil icon"></i> {% trans 'Change name' %}</a>
-                        <a id="remove_decision_btn" class="item{% if not access.can_delete %} disabled{% endif %}"><i class="trash icon"></i> {% trans 'Delete' %}</a>
                     </div>
                 </div>
 
@@ -95,6 +107,8 @@
                     </tr>
                 </tbody>
             </table>
+            {# Files tree #}
+            {% include 'jobs/filesTree.html' with data=files div_id='filestree_container' %}
             <br>
 
             {# Decision #}
@@ -106,7 +120,7 @@
             {# Other decisions table #}
             {% if other_decisions|length %}
                 <div class="ui violet segment">
-                    <div class="ui top left attached violet label">{% trans 'Other job decisions' %}</div>
+                    <div class="ui top left attached violet label">{% trans 'Other job versions' %}</div>
                     {% include 'jobs/decision-list.html' with decisions=other_decisions %}
                 </div>
             {% endif %}

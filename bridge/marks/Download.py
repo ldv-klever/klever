@@ -30,17 +30,16 @@ from bridge.vars import MARK_SOURCE, SAFE_VERDICTS, UNSAFE_VERDICTS
 from bridge.utils import logger, BridgeException
 from bridge.ZipGenerator import ZipStream, CHUNK_SIZE
 
-from caches.models import ReportSafeCache, ReportUnsafeCache, ReportUnknownCache
 from marks.models import (
-    MarkSafe, MarkUnsafe, MarkUnknown, SafeTag, UnsafeTag,
-    MarkSafeAttr, MarkUnsafeAttr, MarkUnknownAttr, MarkSafeTag, MarkUnsafeTag
+    MarkSafe, MarkUnsafe, MarkUnknown, SafeTag, UnsafeTag, MarkSafeTag, MarkUnsafeTag,
+    MarkSafeAttr, MarkUnsafeAttr, MarkUnknownAttr
 )
-from marks.serializers import SafeMarkSerializer, UnsafeMarkSerializer, UnknownMarkSerializer
+from caches.models import ReportSafeCache, ReportUnsafeCache, ReportUnknownCache
 
+from marks.serializers import SafeMarkSerializer, UnsafeMarkSerializer, UnknownMarkSerializer
 from marks.SafeUtils import ConnectSafeMark
 from marks.UnsafeUtils import ConnectUnsafeMark
 from marks.UnknownUtils import ConnectUnknownMark
-
 from caches.utils import UpdateCachesOnMarkPopulate
 
 

@@ -29,8 +29,8 @@ from rest_framework import exceptions, fields, serializers
 from rest_framework.settings import api_settings
 
 from bridge.vars import (
-    ERROR_TRACE_FILE, REPORT_ARCHIVE, DECISION_WEIGHT, DECISION_STATUS,
-    SUBJOB_NAME, NAME_ATTR, UNKNOWN_ATTRS_NOT_ASSOCIATE, MPTT_FIELDS
+    ERROR_TRACE_FILE, REPORT_ARCHIVE, DECISION_STATUS, SUBJOB_NAME,
+    NAME_ATTR, UNKNOWN_ATTRS_NOT_ASSOCIATE, MPTT_FIELDS
 )
 from bridge.utils import logger, extract_archive, CheckArchiveError
 
@@ -39,13 +39,12 @@ from reports.models import (
     CoverageArchive, AttrFile, Computer, OriginalSources, AdditionalSources, DecisionCache
 )
 from service.models import Task
-from service.utils import FinishDecision
 from caches.models import ReportSafeCache, ReportUnsafeCache, ReportUnknownCache
-
-from marks.tasks import connect_safe_report, connect_unsafe_report, connect_unknown_report
 
 from reports.serializers import ReportAttrSerializer, ComputerSerializer
 from reports.tasks import fill_coverage_statistics
+from marks.tasks import connect_safe_report, connect_unsafe_report, connect_unknown_report
+from service.utils import FinishDecision
 
 
 class ReportParentField(serializers.SlugRelatedField):
@@ -749,37 +748,3 @@ class UploadReport:
                     newfile.file.save(os.path.basename(rel_path), File(fp), save=True)
                 db_files[rel_path] = newfile.pk
         return db_files
-
-
-def collapse_reports(decision):
-    if decision.weight == DECISION_WEIGHT[1][0]:
-        # The decision is already lightweight
-        return
-
-    if ReportComponent.objects.filter(decision=decision, component=SUBJOB_NAME).exists():
-        return
-    core = ReportComponent.objects.get(decision=decision, parent=None)
-    ReportComponent.objects.filter(decision=decision, verification=True).update(parent=core)
-    ReportUnknown.objects.filter(decision=decision, parent__reportcomponent__verification=False).update(parent=core)
-
-    # Non-verification reports except Core
-    reports_qs = ReportComponent.objects.filter(decision=decision).exclude(Q(verification=True) | Q(parent=None))
-
-    # Update core original and additional sources
-    report_with_original = reports_qs.exclude(original_sources=None).first()
-    if report_with_original:
-        core.original_sources = report_with_original.original_sources
-    report_with_additional = reports_qs.exclude(additional_sources=None).first()
-    if report_with_additional:
-        core.additional_sources = report_with_additional.additional_sources
-    core.save()
-
-    # Move coverage to core
-    CoverageArchive.objects.filter(report__decision=decision, report__verification=False).update(report=core)
-
-    # Remove all non-verification reports except Core
-    reports_qs.delete()
-
-    # Update decision weight
-    decision.weight = DECISION_WEIGHT[1][0]
-    decision.save()

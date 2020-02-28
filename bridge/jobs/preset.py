@@ -22,14 +22,13 @@ from django.conf import settings
 from django.core.files import File
 from django.utils.functional import cached_property
 from django.utils.timezone import now
-from django.utils.translation import ugettext as _
 
 from bridge.vars import PRESET_JOB_TYPE
 
 from jobs.models import PresetJob, PresetFile
 
-from jobs.utils import JSTreeConverter
 from jobs.serializers import JobFileSerializer
+from jobs.utils import JSTreeConverter
 
 BASE_FILE = 'base.json'
 TASKS_FILE = 'tasks.json'
@@ -43,6 +42,32 @@ def get_presets_dir():
     with open(presets, mode='r', encoding='utf-8') as fp:
         presets_path = fp.read()
     return os.path.abspath(os.path.join(settings.BASE_DIR, 'jobs', presets_path))
+
+
+def get_preset_dir_list(preset_job):
+    available_dirs = []
+    if preset_job.type == PRESET_JOB_TYPE[1][0]:
+        available_dirs.append({'id': preset_job.id, 'name': preset_job.name, 'selected': True})
+        preset_qs = PresetJob.objects.filter(parent=preset_job).order_by('name').values_list('id', 'name')
+        available_dirs.extend(list({'id': p_id, 'name': name} for p_id, name in preset_qs))
+    else:
+        available_dirs.append({'id': preset_job.parent_id, 'name': preset_job.parent.name})
+        preset_qs = PresetJob.objects.filter(parent_id=preset_job.parent_id).order_by('name').values_list('id', 'name')
+        for p_id, name in preset_qs:
+            available_dirs.append({'id': p_id, 'name': name, 'selected': (p_id == preset_job.id)})
+    return available_dirs
+
+
+def preset_job_files_tree_json(preset_job):
+    # Get preset files
+    if preset_job.type == PRESET_JOB_TYPE[1][0]:
+        preset_files_qs = PresetFile.objects.filter(preset=preset_job).values_list('name', 'file__hash_sum')
+    else:
+        # Get files from parent for custom preset job
+        preset_files_qs = PresetFile.objects.filter(preset_id=preset_job.parent_id) \
+            .values_list('name', 'file__hash_sum')
+    preset_files_hashsums = list((name, hash_sum) for name, hash_sum in preset_files_qs)
+    return json.dumps(JSTreeConverter().make_tree(preset_files_hashsums), ensure_ascii=False)
 
 
 class PopulatePresets:
@@ -166,29 +191,3 @@ class PopulatePresets:
             serializer.is_valid(raise_exception=True)
             instance = serializer.save()
         return instance
-
-
-def get_preset_dir_list(preset_job):
-    available_dirs = []
-    if preset_job.type == PRESET_JOB_TYPE[1][0]:
-        available_dirs.append({'id': preset_job.id, 'name': preset_job.name, 'selected': True})
-        preset_qs = PresetJob.objects.filter(parent=preset_job).order_by('name').values_list('id', 'name')
-        available_dirs.extend(list({'id': p_id, 'name': name} for p_id, name in preset_qs))
-    else:
-        available_dirs.append({'id': preset_job.parent_id, 'name': preset_job.name})
-        preset_qs = PresetJob.objects.filter(parent_id=preset_job.parent_id).order_by('name').values_list('id', 'name')
-        for p_id, name in preset_qs:
-            available_dirs.append({'id': p_id, 'name': name, 'selected': (p_id == preset_job.id)})
-    return available_dirs
-
-
-def preset_job_files_tree_json(preset_job):
-    # Get preset files
-    if preset_job.type == PRESET_JOB_TYPE[1][0]:
-        preset_files_qs = PresetFile.objects.filter(preset=preset_job).values_list('name', 'file__hash_sum')
-    else:
-        # Get files from parent for custom preset job
-        preset_files_qs = PresetFile.objects.filter(preset_id=preset_job.parent_id) \
-            .values_list('name', 'file__hash_sum')
-    preset_files_hashsums = list((name, hash_sum) for name, hash_sum in preset_files_qs)
-    return json.dumps(JSTreeConverter().make_tree(preset_files_hashsums), ensure_ascii=False)

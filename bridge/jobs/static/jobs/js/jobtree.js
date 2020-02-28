@@ -29,40 +29,54 @@ $(document).ready(function () {
     let compare_reports_btn = $('#compare_reports_btn'),
         compare_files_btn = $('#compare_files_btn'),
         download_selected_jobs = $('#download_selected_jobs'),
-        show_remove_jobs_popup = $('#show_remove_jobs_popup');
+        show_remove_selected_modal = $('#show_remove_selected_modal');
 
     $('.job-checkbox').parent().checkbox({
         onChange: function () {
-            let sel_jobs = get_selected_objs('job'), sel_decisions = get_selected_objs('decision');
-            update_action_button(compare_files_btn, sel_jobs.length !== 2);
+            let sel_jobs = get_selected_objs('job'),
+                sel_decisions = get_selected_objs('decision'),
+                sel_dirs = get_selected_objs('presetdir');
             update_action_button(download_selected_jobs, !sel_jobs.length && !sel_decisions.length);
-            update_action_button(show_remove_jobs_popup, !sel_jobs.length && !sel_decisions.length);
+            update_action_button(show_remove_selected_modal, !sel_jobs.length && !sel_decisions.length && !sel_dirs.length);
         }
     });
     $('.decision-checkbox').parent().checkbox({
         onChange: function () {
-            let sel_jobs = get_selected_objs('job'), sel_decisions = get_selected_objs('decision');
+            let sel_jobs = get_selected_objs('job'),
+                sel_decisions = get_selected_objs('decision'),
+                sel_dirs = get_selected_objs('presetdir');
+            update_action_button(compare_files_btn, sel_decisions.length !== 2);
             update_action_button(compare_reports_btn, sel_decisions.length !== 2);
             update_action_button(download_selected_jobs, !sel_jobs.length && !sel_decisions.length);
-            update_action_button(show_remove_jobs_popup, !sel_jobs.length && !sel_decisions.length);
+            update_action_button(show_remove_selected_modal, !sel_jobs.length && !sel_decisions.length && !sel_dirs.length);
+        }
+    });
+    $('.presetdir-checkbox').parent().checkbox({
+        onChange: function () {
+            let sel_jobs = get_selected_objs('job'),
+                sel_decisions = get_selected_objs('decision'),
+                sel_dirs = get_selected_objs('presetdir');
+            update_action_button(show_remove_selected_modal, !sel_jobs.length && !sel_decisions.length && !sel_dirs.length);
         }
     });
 
     inittree($('.tree'), 2, 'folder open link violet icon', 'folder link violet icon');
 
-    // Remove selected jobs and decisions
-    let selected_jobs = [], selected_decisions = [];
-    $('#remove_jobs_popup').modal({transition: 'fly up', autofocus: false, closable: false});
-    show_remove_jobs_popup.click(function () {
+    // Remove selected preset dirs, jobs and decisions
+    let remove_selected_modal = $('#remove_selected_modal'),
+        selected_jobs = [], selected_decisions = [], selected_presetdirs = [];
+    remove_selected_modal.modal({transition: 'fly up', autofocus: false, closable: false});
+    show_remove_selected_modal.click(function () {
         $('#jobs_actions_menu').popup('hide');
         selected_jobs = get_selected_objs('job');
         selected_decisions = get_selected_objs('decision');
-        if (!selected_jobs.length && !selected_decisions.length) return err_notify($('#error__no_objs_to_delete').text());
+        selected_presetdirs = get_selected_objs('presetdir');
+        if (!selected_jobs.length && !selected_decisions.length && !selected_presetdirs.length) return err_notify($('#error__no_objs_to_delete').text());
 
-        $('#remove_jobs_popup').modal('show');
+        remove_selected_modal.modal('show');
     });
-    $('#delete_jobs_btn').click(function () {
-        $('#remove_jobs_popup').modal('hide');
+    remove_selected_modal.find('.modal-confirm').click(function () {
+        remove_selected_modal.modal('hide');
         $('#dimmer_of_page').addClass('active');
         let remove_failed = false;
 
@@ -75,14 +89,18 @@ $(document).ready(function () {
             $.ajax({url: `/jobs/api/${job_id}/remove/`, method: "DELETE", error: function () { remove_failed = true }});
         });
 
+        $.each(selected_presetdirs, function (i, pdir_id) {
+            $.ajax({url: `/jobs/api/api-preset-job-dir/${pdir_id}/`, method: "DELETE", error: function () { remove_failed = true }});
+        });
+
         // When all delete requests are finished then reload the page
         $(document).ajaxStop(function () {
             $('#dimmer_of_page').removeClass('active');
             if (!remove_failed) window.location.replace('')
         });
     });
-    $('#cancel_remove_jobs').click(function () {
-        $('#remove_jobs_popup').modal('hide')
+    remove_selected_modal.find('.modal-cancel').click(function () {
+        remove_selected_modal.modal('hide')
     });
 
     // Download selected jobs and/or decisions
@@ -111,11 +129,11 @@ $(document).ready(function () {
         }, 'json');
     });
 
-    // Compare jobs' files
+    // Compare decisions' files
     compare_files_btn.click(function () {
-        let sel_jobs = get_selected_objs('job');
-        if (sel_jobs.length !== 2) return err_notify($('#error__no_jobs_to_compare').text());
-        window.location.href = '/jobs/comparison/' + sel_jobs[0] + '/' + sel_jobs[1] + '/';
+        let sel_decisions = get_selected_objs('decision');
+        if (sel_decisions.length !== 2) return err_notify($('#error__no_decisions_to_compare').text());
+        window.location.href = '/jobs/comparison/' + sel_decisions[0] + '/' + sel_decisions[1] + '/';
     });
 
     // Create or change preset dir modal
@@ -155,5 +173,25 @@ $(document).ready(function () {
             }
         });
     });
+
+    // Remove preset directory
+    let remove_presetdir_modal = $('#remove_presetdir_modal');
+    remove_presetdir_modal.modal({transition: 'fly up', autofocus: false, closable: false});
+    $('.remove-preset-dir-link').click(function () {
+        remove_presetdir_modal.find('.modal-confirm').data('url', $(this).data('url'));
+        remove_presetdir_modal.modal('show');
+    });
+    remove_presetdir_modal.find('.modal-cancel').click(function () {
+        remove_presetdir_modal.modal('hide');
+    });
+    remove_presetdir_modal.find('.modal-confirm').click(function () {
+        $.ajax({
+            url: $(this).data('url'),
+            method: "DELETE",
+            success: function() {
+                window.location.replace('')
+            }
+        });
+    })
 
 });

@@ -16,8 +16,7 @@
  */
 
 
-function JobForm(base_job_id) {
-    this.base_job_id = base_job_id;
+function JobForm() {
     this.labels = {};
     this.inputs = {};
     return this;
@@ -35,7 +34,7 @@ JobForm.prototype.serialize = function() {
     return data;
 };
 
-JobForm.prototype.save = function (save_url, save_method, extra_data, next_url_name='job') {
+JobForm.prototype.save = function (save_url, save_method, extra_data) {
     let instance = this, data = this.serialize();
     if (extra_data) $.each(extra_data, function (key, value) { data[key] = value });
     $('#dimmer_of_page').addClass('active');
@@ -44,21 +43,7 @@ JobForm.prototype.save = function (save_url, save_method, extra_data, next_url_n
         url: save_url, type: save_method, data: JSON.stringify(data),
         processData: false, dataType: "json", contentType: "application/json",
         success: function (resp) {
-            let redirect_url = resp[next_url_name];
-            if (next_url_name === 'start') {
-                if (instance.base_job_id) redirect_url += `?base_job=${instance.base_job_id}`;
-                window.location.replace(redirect_url);
-            }
-            else if (next_url_name === 'faststart') {
-                $.post(redirect_url, {}, function (resp) {
-                    window.location.replace(resp['url']);
-                }).fail(function () {
-                    window.location.replace(resp['job']);
-                });
-            }
-            else {
-                window.location.replace(redirect_url);
-            }
+            window.location.replace(resp['url']);
         },
         error: function (resp) {
             $('#dimmer_of_page').removeClass('active');

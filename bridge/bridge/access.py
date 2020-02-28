@@ -20,8 +20,9 @@ from rest_framework.permissions import IsAuthenticated
 from bridge.utils import USER_ROLES
 
 from jobs.models import Job, Decision
-from jobs.utils import JobAccess, DecisionAccess
 from reports.models import ReportComponent
+
+from jobs.utils import JobAccess, DecisionAccess
 
 
 class CreateJobPermission(IsAuthenticated):

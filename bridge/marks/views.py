@@ -32,19 +32,19 @@ from tools.profiling import LoggedCallMixin
 from reports.models import ReportSafe, ReportUnsafe, ReportUnknown
 from marks.models import MarkSafe, MarkUnsafe, MarkUnknown, MarkSafeHistory, MarkUnsafeHistory, MarkUnknownHistory
 
-from marks.utils import MarkAccess, CompareMarkVersions
-from marks.tags import AllTagsTree, DownloadTags, MarkTagsTree, SelectedTagsTree
 from marks.Download import (
     SafeMarkGenerator, UnsafeMarkGenerator, UnknownMarkGenerator,
     SafePresetFile, UnsafePresetFile, UnknownPresetFile
 )
+from marks.markversion import MarkVersionFormData
+from marks.serializers import SMVlistSerializerRO, UMVlistSerializerRO, FMVlistSerializerRO
 from marks.tables import (
     SafeMarksTable, UnsafeMarksTable, UnknownMarksTable,
     SafeAssociationsTable, UnsafeAssociationsTable, UnknownAssociationsTable,
     SafeAssChanges, UnsafeAssChanges, UnknownAssChanges
 )
-from marks.serializers import SMVlistSerializerRO, UMVlistSerializerRO, FMVlistSerializerRO
-from marks.markversion import MarkVersionFormData
+from marks.tags import AllTagsTree, DownloadTags, MarkTagsTree, SelectedTagsTree
+from marks.utils import MarkAccess, CompareMarkVersions
 
 
 @register.filter

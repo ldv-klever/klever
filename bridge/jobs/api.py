@@ -28,7 +28,7 @@ from django.utils.translation import ugettext as _
 from rest_framework import exceptions
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.generics import (
-    get_object_or_404, GenericAPIView, RetrieveAPIView, ListAPIView, CreateAPIView, UpdateAPIView, DestroyAPIView
+    get_object_or_404, RetrieveAPIView, ListAPIView, CreateAPIView, UpdateAPIView, DestroyAPIView
 )
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -42,18 +42,19 @@ from bridge.vars import PRESET_JOB_TYPE, DECISION_STATUS
 from bridge.CustomViews import TemplateAPIRetrieveView, TemplateAPIListView, StreamingResponseAPIView
 from tools.profiling import LoggedCallMixin
 
-from jobs.models import Job, JobFile, FileSystem, UploadedJobArchive, PresetJob, PresetFile, Decision
+from jobs.models import Job, JobFile, UploadedJobArchive, PresetJob, Decision
 from jobs.serializers import (
-    decision_status_changed, PresetJobDirSerializer, JobFileSerializer, CreateJobSerializer,
-    UpdateJobSerializer, DecisionStatusSerializerRO, UpdateDecisionSerializer
+    decision_status_changed, create_default_decision,
+    PresetJobDirSerializer, JobFileSerializer, CreateJobSerializer, UpdateJobSerializer,
+    DecisionStatusSerializerRO, CreateDecisionSerializer, UpdateDecisionSerializer
 )
 from jobs.configuration import get_configuration_value, GetConfiguration
 from jobs.Download import KleverCoreArchiveGen, UploadJobsScheduler, JobArchiveGenerator, get_jobs_to_download
-from jobs.utils import JobAccess, DecisionAccess, get_unique_name, copy_files_with_replace
-from reports.serializers import DecisionResultsSerializerRO
+from jobs.utils import get_unique_name, JobAccess, DecisionAccess
 from reports.coverage import DecisionCoverageStatistics
-from reports.UploadReport import collapse_reports
-from service.utils import StartJobDecision, RestartJobDecision, cancel_decision
+from reports.serializers import DecisionResultsSerializerRO
+from reports.utils import collapse_reports
+from service.utils import cancel_decision, RestartJobDecision
 
 
 class PresetJobAPIViewset(LoggedCallMixin, ModelViewSet):
@@ -87,6 +88,33 @@ class UpdateJobView(LoggedCallMixin, UpdateAPIView):
     permission_classes = (UpdateJobPermission,)
 
 
+class CreateDecisionView(LoggedCallMixin, CreateAPIView):
+    unparallel = [Decision]
+    queryset = Decision.objects.all()
+    serializer_class = CreateDecisionSerializer
+    permission_classes = (IsAuthenticated,)
+
+    def create(self, request, *args, **kwargs):
+        job = get_object_or_404(Job, pk=self.kwargs['job_id'])
+        if not JobAccess(request.user, job).can_decide:
+            raise exceptions.PermissionDenied(_("You don't have an access to decide the job"))
+        return super(CreateDecisionView, self).create(request, *args, **kwargs)
+
+    def perform_create(self, serializer):
+        serializer.save(job_id=self.kwargs['job_id'])
+
+
+class RenameDecisionView(LoggedCallMixin, UpdateAPIView):
+    permission_classes = (IsAuthenticated,)
+    serializer_class = UpdateDecisionSerializer
+    queryset = Decision.objects
+
+    def check_object_permissions(self, request, obj):
+        super(RenameDecisionView, self).check_object_permissions(request, obj)
+        if not DecisionAccess(request.user, obj).can_rename:
+            self.permission_denied(request, _("You don't have an access to rename the decision"))
+
+
 class GetConfigurationView(LoggedCallMixin, APIView):
     permission_classes = (IsAuthenticated,)
 
@@ -110,7 +138,7 @@ class StartJobDefValueView(LoggedCallMixin, APIView):
         return Response(get_configuration_value(request.data['name'], request.data['value']))
 
 
-class StartDecisionView(LoggedCallMixin, APIView):
+class StartDefaultDecisionView(LoggedCallMixin, APIView):
     permission_classes = (IsAuthenticated,)
 
     def get_job(self, **kwargs):
@@ -122,14 +150,17 @@ class StartDecisionView(LoggedCallMixin, APIView):
     def get_configuration(self):
         if 'file_conf' in self.request.FILES:
             return GetConfiguration(file_conf=self.request.FILES['file_conf']).for_json()
-        elif 'data' in self.request.data:
-            return GetConfiguration(user_conf=json.loads(self.request.data['data'])).for_json()
         return GetConfiguration().for_json()
 
     def post(self, request, **kwargs):
         job = self.get_job(**kwargs)
-        res = StartJobDecision(request.user, job, self.get_configuration(), self.request.data.get('name'))
-        return Response({'url': reverse('jobs:decision', args=[res.decision.id])})
+        configuration = self.get_configuration()
+        decision = create_default_decision(request, job, configuration)
+        decision_status_changed(decision)
+        return Response({
+            'id': decision.id, 'identifier': str(decision.identifier),
+            'url': reverse('jobs:decision', args=[decision.id])
+        })
 
 
 class DecisionStatusListView(ListAPIView):
@@ -144,39 +175,29 @@ class DecisionStatusView(RetrieveAPIView):
     permission_classes = (IsAuthenticated,)
 
 
-class CreatePresetJobView(LoggedCallMixin, CreateAPIView):
-    permission_classes = (CreateJobPermission,)
-    queryset = PresetJob.objects
-    lookup_field = 'identifier'
+class DecisionResultsAPIView(LoggedCallMixin, RetrieveAPIView):
+    serializer_class = DecisionResultsSerializerRO
+    permission_classes = (ViewJobPermission,)
+    queryset = Decision.objects.all()
     lookup_url_kwarg = 'identifier'
+    lookup_field = 'identifier'
+
+    def get_object(self):
+        obj = super().get_object()
+        if not obj.is_finished:
+            # Not finished decisions can be without results
+            raise exceptions.ValidationError(detail='The decision is not finished yet')
+        return obj
+
+
+class CreateDefaultJobView(LoggedCallMixin, CreateAPIView):
+    permission_classes = (CreateJobPermission,)
+    queryset = PresetJob.objects.exclude(type=PRESET_JOB_TYPE[0][0])
+    lookup_field = 'identifier'
 
     def create(self, request, *args, **kwargs):
         preset_job = self.get_object()
         job = Job.objects.create(preset=preset_job, author=request.user, name=get_unique_name(preset_job.name))
-
-        # Copy files from preset job
-        preset_files_qs = PresetFile.objects.filter(preset=preset_job).values_list('file_id', 'name')
-        copy_files_with_replace(request, job.id, preset_files_qs)
-
-        return Response({'id': job.id, 'identifier': str(job.identifier)})
-
-
-class DuplicateJobView(LoggedCallMixin, GenericAPIView):
-    permission_classes = (CreateJobPermission, ViewJobPermission)
-    queryset = Job.objects
-    lookup_field = 'identifier'
-    lookup_url_kwarg = 'identifier'
-
-    def post(self, request, *args, **kwargs):
-        base_job = self.get_object()
-
-        # Create new job
-        job = Job.objects.create(preset_id=base_job.preset_id, author=request.user, name=get_unique_name(base_job.name))
-
-        # Copy files from base job
-        base_files_qs = FileSystem.objects.filter(job=base_job).values_list('file_id', 'name')
-        copy_files_with_replace(request, job.id, base_files_qs)
-
         return Response({'id': job.id, 'identifier': str(job.identifier)})
 
 
@@ -219,17 +240,6 @@ class RemoveJobView(LoggedCallMixin, DestroyAPIView):
     queryset = Job.objects.all()
 
 
-class RenameDecisionView(LoggedCallMixin, UpdateAPIView):
-    permission_classes = (IsAuthenticated,)
-    serializer_class = UpdateDecisionSerializer
-    queryset = Decision.objects
-
-    def check_object_permissions(self, request, obj):
-        super(RenameDecisionView, self).check_object_permissions(request, obj)
-        if not DecisionAccess(request.user, obj).can_rename:
-            self.permission_denied(request, _("You don't have an access to rename the decision"))
-
-
 class RemoveDecisionView(LoggedCallMixin, DestroyAPIView):
     permission_classes = (DestroyJobPermission,)
     queryset = Decision.objects.all()
@@ -238,16 +248,6 @@ class RemoveDecisionView(LoggedCallMixin, DestroyAPIView):
         if not DecisionAccess(self.request.user, instance).can_delete:
             self.permission_denied(self.request, message=_("You can't remove this decision"))
         super().perform_destroy(instance)
-
-
-class CheckDownloadAccessView(LoggedCallMixin, APIView):
-    def post(self, request):
-        get_jobs_to_download(
-            self.request.user,
-            json.loads(request.data.get('jobs', '[]')),
-            json.loads(request.data.get('decisions', '[]'))
-        )
-        return Response({})
 
 
 class StopDecisionView(LoggedCallMixin, APIView):
@@ -288,15 +288,6 @@ class CollapseReportsView(LoggedCallMixin, APIView):
         return Response({})
 
 
-class UploadStatusAPIView(LoggedCallMixin, TemplateAPIListView):
-    permission_classes = (IsAuthenticated,)
-    authentication_classes = (SessionAuthentication,)
-    template_name = 'jobs/UploadStatusTableBody.html'
-
-    def get_queryset(self):
-        return UploadedJobArchive.objects.filter(author=self.request.user).select_related('job').order_by('-start_date')
-
-
 class CoreDecisionArchiveView(LoggedCallMixin, RetrieveAPIView):
     permission_classes = (ServicePermission,)
     queryset = Decision.objects.all()
@@ -324,19 +315,14 @@ class CoreDecisionArchiveView(LoggedCallMixin, RetrieveAPIView):
         return response
 
 
-class DecisionResultsAPIView(LoggedCallMixin, RetrieveAPIView):
-    serializer_class = DecisionResultsSerializerRO
-    permission_classes = (ViewJobPermission,)
-    queryset = Decision.objects.all()
-    lookup_url_kwarg = 'identifier'
-    lookup_field = 'identifier'
-
-    def get_object(self):
-        obj = super().get_object()
-        if not obj.is_finished:
-            # Not finished decisions can be without results
-            raise exceptions.ValidationError(detail='The decision is not finished yet')
-        return obj
+class CheckDownloadAccessView(LoggedCallMixin, APIView):
+    def post(self, request):
+        get_jobs_to_download(
+            self.request.user,
+            json.loads(request.data.get('jobs', '[]')),
+            json.loads(request.data.get('decisions', '[]'))
+        )
+        return Response({})
 
 
 class DownloadJobByUUIDView(LoggedCallMixin, StreamingResponseAPIView):
@@ -345,6 +331,15 @@ class DownloadJobByUUIDView(LoggedCallMixin, StreamingResponseAPIView):
     def get_generator(self):
         job = get_object_or_404(Job, identifier=self.kwargs['identifier'])
         return JobArchiveGenerator(job)
+
+
+class UploadStatusAPIView(LoggedCallMixin, TemplateAPIListView):
+    permission_classes = (IsAuthenticated,)
+    authentication_classes = (SessionAuthentication,)
+    template_name = 'jobs/UploadStatusTableBody.html'
+
+    def get_queryset(self):
+        return UploadedJobArchive.objects.filter(author=self.request.user).select_related('job').order_by('-start_date')
 
 
 class UploadJobsAPIView(LoggedCallMixin, APIView):
