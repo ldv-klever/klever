@@ -3,12 +3,12 @@
     {
       "is_compare": true,
       "name": "Requirements specification",
-      "value": "drivers:base:dma-mapping"
+      "value": "arch:asm:dma-mapping"
     },
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/linux/drivers/base/dma-mapping/check-before-map.ko"
+      "value": "ext-modules/linux/arch/asm/dma-mapping/check-before-map.ko"
     }
   ],
   "description": "",

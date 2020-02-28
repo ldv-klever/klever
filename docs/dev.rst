@@ -123,6 +123,13 @@ This branch will start from a commit corresponding to the given release.
 It can contain just bug fixes relevant to an existing functionality and not to a new one which is supported within a
 corresponding merge window.
 
+Updating list of required Python packages
+-----------------------------------------
+
+To update the current list of required Python packages you should run the following command within :term:`$KLEVER_SRC`::
+
+    $ python -m pip freeze > requirements.txt
+
 .. _dev_deploy:
 
 Deployment for Development Purposes
@@ -153,25 +160,11 @@ At the "Welcome to PyCharm" window:
 #. Specify the absolute path to directory :term:`$KLEVER_SRC`.
 #. :menuselection:`OK`.
 
-Installing the Python Interpreter
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-#. Install Python 3.7 to :file:`/usr/local/python3-klever/`.
-#. For Debian/Ubuntu you can take if from `here <https://forge.ispras.ru/attachments/download/7248/python3-klever.tar.xz>`__.
-#. Install Python packages::
-
-    $ /usr/local/python3-klever/bin/python3 -m pip install --upgrade :term:`$KLEVER_SRC`/requirements.txt
-
-#. To update the given list of Python packages::
-
-    $ /usr/local/python3-klever/bin/python3 -m pip freeze > :term:`$KLEVER_SRC`/requirements.txt
-
 Configuring the Python Interpreter
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 #. :menuselection:`File --> Settings --> Project: Klever --> Project Interpreter --> Settings --> Show all...`.
-#, :menuselection:`Add --> System Interpreter`.
-#. Specify :file:`/usr/local/python3-klever/bin/python3`.
+#. Select the Python interpreter from the Klever Python virtual environment.
 #. :menuselection:`OK`.
 #. Select the added Python interpreter from the list and press :kbd:`Enter`.
 #. Input *Python 3.7 (klever)* in field :guilabel:`name`.

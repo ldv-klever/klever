@@ -3,12 +3,17 @@
     {
       "is_compare": true,
       "name": "Requirements specification",
-      "value": "drivers:clk1"
+      "value": "test:environment model specifications with function pointer analysis"
     },
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/linux/drivers/clk1/unsafe.ko"
+      "value": "ext-modules/workqueue_v.1/flush_work_invoke.ko"
+    },
+    {
+      "is_compare": true,
+      "name": "Project:Version",
+      "value": "v5.5"
     }
   ],
   "description": "",
@@ -18,11 +23,7 @@
         {
           "Entry point 'main'": [
             {
-              "LDV model 'check_final_state'": [
-                {
-                  "LDV model 'assert'": []
-                }
-              ]
+              "LDV model 'initialize'": []
             }
           ]
         }
@@ -31,15 +32,24 @@
     [
       [
         {
+          "LDV model 'handler'": [
+            {
+              "LDV model 'invoke_reached'": [
+                {
+                  "LDV model 'assert'": []
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      [
+        {
           "EMG wrapper": [
             {
               "LDV model 'init'": [
                 {
-                  "Instrumented function 'clk_enable'": [
-                    {
-                      "LDV model 'clk_enable_clk'": []
-                    }
-                  ]
+                  "LDV model 'invoke_test'": []
                 }
               ]
             }
@@ -49,7 +59,7 @@
     ]
   ],
   "function": "thread_call_forests",
-  "is_modifiable": false,
+  "is_modifiable": true,
   "status": null,
   "tags": [],
   "threshold": 0,

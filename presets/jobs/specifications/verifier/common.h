@@ -34,7 +34,4 @@ extern void ldv_error(void);
  * nonzero. */
 #define ldv_assume(expr) __VERIFIER_assume(expr)
 
-/* Function declaration for inline Assembler stubs. */
-extern void ldv_inline_asm(void);
-
 #endif /* __VERIFIER_COMMON_H */

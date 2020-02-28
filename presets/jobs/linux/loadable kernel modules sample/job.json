@@ -7,7 +7,7 @@
     "drivers/uwb/hwa-rc.ko"
   ],
   "requirement specifications": [
-    "arch:io",
+    "arch:mm:ioremap",
     "drivers:clk1",
     "kernel:locking:mutex",
     "memory safety"

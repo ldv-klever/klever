@@ -3,12 +3,12 @@
     {
       "is_compare": true,
       "name": "Requirements specification",
-      "value": "block:queue"
+      "value": "block:blk-core:queue"
     },
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/linux/block/queue/safe.ko"
+      "value": "ext-modules/linux/block/blk-core/queue/safe.ko"
     }
   ],
   "description": "",

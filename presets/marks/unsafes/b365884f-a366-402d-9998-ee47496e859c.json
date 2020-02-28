@@ -3,12 +3,12 @@
     {
       "is_compare": true,
       "name": "Requirements specification",
-      "value": "fs:sysfs"
+      "value": "fs:sysfs:group"
     },
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/linux/fs/sysfs/less-initial.ko"
+      "value": "ext-modules/linux/fs/sysfs/group/less-initial.ko"
     }
   ],
   "description": "",

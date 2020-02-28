@@ -3,12 +3,12 @@
     {
       "is_compare": true,
       "name": "Requirements specification",
-      "value": "arch:io"
+      "value": "arch:mm:ioremap"
     },
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/linux/arch/io/less-initial.ko"
+      "value": "ext-modules/linux/arch/mm/ioremap/less-initial.ko"
     }
   ],
   "description": "",

@@ -16,17 +16,20 @@
  */
 
 #include <linux/module.h>
-#include <asm-generic/bitops/find.h>
+#include <linux/clk.h>
 #include <verifier/common.h>
 #include <verifier/nondet.h>
 
 static int __init ldv_init(void)
 {
-	const unsigned long *addr = ldv_undef_ptr();
-	unsigned long size = ldv_undef_ulong(), offset = ldv_undef_ulong();
+	struct device *dev = ldv_undef_ptr();
+	const char *id = ldv_undef_ptr();
+	struct clk *clk;
 
-	ldv_assume(size < offset);
-	find_next_zero_bit(addr, size, offset);
+	clk = devm_clk_get(dev, id);
+	ldv_assume(IS_ERR(clk) == 0);
+	clk_disable_unprepare(clk);
+	devm_clk_put(dev, clk);
 
 	return 0;
 }

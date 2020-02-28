@@ -37,7 +37,14 @@
                 {
                   "Instrumented function 'clk_prepare_enable'": [
                     {
-                      "LDV model 'clk_enable_clk_of_mxs_lradc'": []
+                      "LDV model 'clk_prepare_enable_clk_of_mxs_lradc'": [
+                        {
+                          "LDV model 'clk_prepare_clk_of_mxs_lradc'": []
+                        },
+                        {
+                          "LDV model 'clk_enable_clk_of_mxs_lradc'": []
+                        }
+                      ]
                     }
                   ]
                 }

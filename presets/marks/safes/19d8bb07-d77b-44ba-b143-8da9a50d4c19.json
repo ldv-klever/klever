@@ -3,12 +3,12 @@
     {
       "is_compare": true,
       "name": "Requirements specification",
-      "value": "block:request"
+      "value": "block:blk-core:request"
     },
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/linux/block/request/safe.ko"
+      "value": "ext-modules/linux/block/blk-core/request/safe.ko"
     }
   ],
   "description": "",

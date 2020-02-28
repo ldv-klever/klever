@@ -18,7 +18,6 @@
 import requests
 import time
 import zipfile
-import re
 
 
 class UnexpectedStatusCode(IOError):

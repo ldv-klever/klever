@@ -81,18 +81,18 @@
             "common sets model": "counter",
             "model compiler input file": "scripts/mod/empty.c",
             "common models": [
+              "linux/arch/asm/atomic.c",
               "linux/drivers/base/dd.c",
               "linux/drivers/spi.c",
-              "linux/mm/slab.c",
               "linux/err.c",
               "linux/kernel/panic.c",
-              "linux/arch/atomic.c",
               "linux/ldv/common.c",
+              "linux/mm/slab.c",
+              "linux/verifier/memory.c",
               "verifier/common.c",
               "verifier/gcc.c",
               "verifier/nondet.c",
-              "verifier/reference memory.c",
-              "linux/verifier/memory.c"
+              "verifier/reference memory.c"
             ]
           }
         },
@@ -180,40 +180,63 @@
       },
       {
         "identifier": "arch",
-        "children": [{
-          "identifier": "io",
-          "description": "...",
-          "plugins": [{
-              "name": "RSG",
-              "options": {"models": ["linux/arch/io.c"]}
-          }]
-        }]
+        "children": [
+          {
+            "identifier": "asm",
+            "children": [
+              {
+                "identifier": "dma-mapping",
+                "description": "...",
+                "plugins": [{
+                  "name": "RSG",
+                  "options": {"models": ["linux/arch/asm/dma-mapping.c"]}
+                }]
+              }
+            ]
+          },
+          {
+            "identifier": "mm",
+            "children": [{
+              "identifier": "ioremap",
+              "description": "...",
+              "plugins": [{
+                "name": "RSG",
+                "options": {"models": ["linux/arch/mm/ioremap.c"]}
+              }]
+            }]
+          }
+        ]
       },
       {
         "identifier": "block",
         "children": [
+          {
+            "identifier": "blk-core",
+            "children": [
+              {
+                "identifier": "queue",
+                "description": "...",
+                "plugins": [{
+                  "name": "RSG",
+                  "options": {"models": ["linux/block/blk-core/queue.c"]}
+                }]
+              },
+              {
+                "identifier": "request",
+                "description": "...",
+                "plugins": [{
+                  "name": "RSG",
+                  "options": {"models": ["linux/block/blk-core/request.c"]}
+                }]
+              }
+            ]
+          },
           {
             "identifier": "genhd",
             "description": "...",
             "plugins": [{
               "name": "RSG",
               "options": {"models": ["linux/block/genhd.c"]}
-            }]
-          },
-          {
-            "identifier": "queue",
-            "description": "...",
-            "plugins": [{
-              "name": "RSG",
-              "options": {"models": ["linux/block/queue.c"]}
-            }]
-          },
-          {
-            "identifier": "request",
-            "description": "...",
-            "plugins": [{
-              "name": "RSG",
-              "options": {"models": ["linux/block/request.c"]}
             }]
           }
         ]
@@ -231,26 +254,26 @@
               "macros white list": "linux/emg/macros white list.json",
               "generators options": [
                 {
-                "linuxModule": {
-                  "callback comment": "Invoke callback {0} from {1}.",
-                  "action comments": {
-                    "dispatch": {
-                      "register": "Register {} callbacks.",
-                      "instance_register": "Register {} callbacks.",
-                      "deregister": "Deregister {} callbacks.",
-                      "instance_deregister": "Deregister {} callbacks.",
-                      "irq_register": "Register {} interrupt handler.",
-                      "irq_deregister": "Deregister {} interrupt handler."
-                    },
-                    "receive": {
-                      "register": "Begin {} callbacks invocations scenario.",
-                      "instance_register": "Begin {} callbacks invocations scenario.",
-                      "deregister": "Finish {} callbacks invocations scenario.",
-                      "instance_deregister": "Finish {} callbacks invocations scenario."
+                  "linuxModule": {
+                    "callback comment": "Invoke callback {0} from {1}.",
+                    "action comments": {
+                      "dispatch": {
+                        "register": "Register {} callbacks.",
+                        "instance_register": "Register {} callbacks.",
+                        "deregister": "Deregister {} callbacks.",
+                        "instance_deregister": "Deregister {} callbacks.",
+                        "irq_register": "Register {} interrupt handler.",
+                        "irq_deregister": "Deregister {} interrupt handler."
+                      },
+                      "receive": {
+                        "register": "Begin {} callbacks invocations scenario.",
+                        "instance_register": "Begin {} callbacks invocations scenario.",
+                        "deregister": "Finish {} callbacks invocations scenario.",
+                        "instance_deregister": "Finish {} callbacks invocations scenario."
+                      }
                     }
                   }
-                }
-              },
+                },
                 {
                   "linuxInsmod": {
                     "init": "module_init",
@@ -327,21 +350,69 @@
         "children": [
           {
             "identifier": "base",
+            "children": [{
+              "identifier": "class",
+              "description": "...",
+              "plugins": [{
+                "name": "RSG",
+                "options": {"models": ["linux/drivers/base/class.c"]}
+              }]
+            }]
+          },
+          {
+            "identifier": "usb",
             "children": [
               {
-                "identifier": "class",
-                "description": "...",
-                "plugins": [{
-                  "name": "RSG",
-                  "options": {"models": ["linux/drivers/base/class.c"]}
-                }]
+                "identifier": "core",
+                "children": [
+                  {
+                    "identifier": "usb",
+                    "children": [
+                      {
+                        "identifier": "coherent",
+                        "description": "...",
+                        "plugins": [{
+                          "name": "RSG",
+                          "options": {"models": ["linux/drivers/usb/core/usb/coherent.c"]}
+                        }]
+                      },
+                      {
+                        "identifier": "dev",
+                        "description": "...",
+                        "plugins": [{
+                          "name": "RSG",
+                          "options": {"models": ["linux/drivers/usb/core/usb/dev.c"]}
+                        }]
+                      }
+                    ]
+                  },
+                  {
+                    "identifier": "driver",
+                    "description": "Error handling for usb register in probe()",
+                    "plugins": [{
+                      "name": "RSG",
+                      "options": {"models": ["linux/drivers/usb/core/driver.c"]}
+                    }]
+                  },
+                  {
+                    "identifier": "urb",
+                    "description": "...",
+                    "plugins": [{
+                      "name": "RSG",
+                      "options": {"models": ["linux/drivers/usb/core/urb.c"]}
+                    }]
+                  }
+                ]
               },
               {
-                "identifier": "dma-mapping",
-                "description": "...",
-                "plugins": [{
-                  "name": "RSG",
-                  "options": {"models": ["linux/drivers/base/dma-mapping.c"]}
+                "identifier": "gadget",
+                "children": [{
+                  "identifier": "udc-core",
+                  "description": "...",
+                  "plugins": [{
+                    "name": "RSG",
+                    "options": {"models": ["linux/drivers/usb/gadget/udc-core.c"]}
+                  }]
                 }]
               }
             ]
@@ -400,10 +471,13 @@
         "identifier": "fs",
         "children": [{
           "identifier": "sysfs",
-          "description": "...",
-          "plugins": [{
-            "name": "RSG",
-            "options": {"models": ["linux/fs/sysfs.c"]}
+          "children": [{
+            "identifier": "group",
+            "description": "...",
+            "plugins": [{
+              "name": "RSG",
+              "options": {"models": ["linux/fs/sysfs/group.c"]}
+            }]
           }]
         }]
       },
@@ -554,11 +628,11 @@
         "identifier": "lib",
         "children": [
           {
-            "identifier": "find_bit",
+            "identifier": "find_next_bit",
             "description": "...",
             "plugins": [{
               "name": "RSG",
-              "options": {"models": ["linux/lib/find_bit.c"]}
+              "options": {"models": ["linux/lib/find_next_bit.c"]}
             }]
           },
           {
@@ -684,28 +758,33 @@
         "identifier": "net",
         "children": [
           {
-            "identifier": "register",
-            "description": "Error handling for netdev in probe()",
-            "plugins": [{
-              "name": "RSG",
-              "options": {"models": ["linux/net/register.c"]}
-            }]
-          },
-          {
-            "identifier": "rtnetlink",
-            "description": "...",
-            "plugins": [{
-              "name": "RSG",
-              "options": {"models": ["linux/net/rtnetlink.c"]}
-            }]
-          },
-          {
-            "identifier": "sock",
-            "description": "...",
-            "plugins": [{
-              "name": "RSG",
-              "options": {"models": ["linux/net/sock.c"]}
-            }]
+            "identifier": "core",
+            "children": [
+              {
+                "identifier": "dev",
+                "description": "Error handling for netdev in probe()",
+                "plugins": [{
+                  "name": "RSG",
+                  "options": {"models": ["linux/net/core/dev.c"]}
+                }]
+              },
+              {
+                "identifier": "rtnetlink",
+                "description": "...",
+                "plugins": [{
+                  "name": "RSG",
+                  "options": {"models": ["linux/net/core/rtnetlink.c"]}
+                }]
+              },
+              {
+                "identifier": "sock",
+                "description": "...",
+                "plugins": [{
+                  "name": "RSG",
+                  "options": {"models": ["linux/net/core/sock.c"]}
+                }]
+              }
+            ]
           }
         ]
       },
@@ -781,51 +860,6 @@
                 "name": "RSG",
                 "options": {"models": ["linux/mmc/sdio_func.c"]}
               }]
-            }]
-          }
-        ]
-      },
-      {
-        "identifier": "usb",
-        "children": [
-          {
-            "identifier": "coherent",
-            "description": "...",
-            "plugins": [{
-              "name": "RSG",
-              "options": {"models": ["linux/usb/coherent.c"]}
-            }]
-          },
-          {
-            "identifier": "dev",
-            "description": "...",
-            "plugins": [{
-              "name": "RSG",
-              "options": {"models": ["linux/usb/dev.c"]}
-            }]
-          },
-          {
-            "identifier": "gadget",
-            "description": "...",
-            "plugins": [{
-              "name": "RSG",
-              "options": {"models": ["linux/usb/gadget.c"]}
-            }]
-          },
-          {
-            "identifier": "register",
-            "description": "Error handling for usb register in probe()",
-            "plugins": [{
-              "name": "RSG",
-              "options": {"models": ["linux/usb/register.c"]}
-            }]
-          },
-          {
-            "identifier": "urb",
-            "description": "...",
-            "plugins": [{
-              "name": "RSG",
-              "options": {"models": ["linux/usb/urb.c"]}
             }]
           }
         ]

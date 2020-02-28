@@ -3,12 +3,12 @@
     {
       "is_compare": true,
       "name": "Requirements specification",
-      "value": "net:rtnetlink"
+      "value": "net:core:rtnetlink"
     },
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/linux/net/rtnetlink/double-unlock.ko"
+      "value": "ext-modules/linux/net/core/rtnetlink/double-unlock.ko"
     }
   ],
   "description": "",

@@ -1,0 +1,57 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "drivers:clk1"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/linux/drivers/clk1/enabled-at-exit.ko"
+    }
+  ],
+  "description": "",
+  "error_trace": [
+    [
+      [
+        {
+          "Entry point 'main'": [
+            {
+              "LDV model 'check_final_state'": [
+                {
+                  "LDV model 'assert'": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    ],
+    [
+      [
+        {
+          "EMG wrapper": [
+            {
+              "LDV model 'init'": [
+                {
+                  "Instrumented function 'clk_enable'": [
+                    {
+                      "LDV model 'clk_enable_clk'": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": true,
+  "status": null,
+  "tags": [],
+  "threshold": 0,
+  "verdict": "2"
+}

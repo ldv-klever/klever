@@ -46,8 +46,14 @@ def prepare_cif_opts(opts, clade, model_opts=False):
                 continue
 
             # Get rid of options unsupported by Aspectator.
-            match = re.match('(-Werror=date-time|-mpreferred-stack-boundary|-fsanitize-coverage|--param=|.*?-MD).*'
-                             , opt)
+            match = re.match(
+                '(-Werror=date-time|-fcf-protection=none|-fmacro-prefix-map=./=|-mpreferred-stack-boundary|-fsanitize-coverage|-flive-patching=inline-clone|--param=|.*?-MD).*'
+                , opt)
+            if match:
+                continue
+
+            # Get rid of redundant options useless from instrumentation point of view.
+            match = re.match('(-ftest-coverage|-fprofile-arcs).*', opt)
             if match:
                 continue
 

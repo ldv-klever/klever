@@ -85,7 +85,7 @@
                 <button id="upload_all_marks" class="ui teal button">{% trans 'Upload all marks' %}</button>
                 <button class="ui red button api-request-btn" data-url="{% url 'tools:api-clear-system' %}" data-method="POST">{% trans 'Remove unused files and DB rows' %}</button>
                 <button class="ui red button api-request-btn" data-url="{% url 'tools:api-clear-tasks' %}" data-method="DELETE">{% trans 'Remove tasks for not solving decisions' %}</button>
-                <a href="{% url 'tools:processing-list' %}" class="ui yellow button">{% trans 'View processing reqeusts' %}</a>
+                <a href="{% url 'tools:processing-list' %}" class="ui yellow button">{% trans 'View processing requests' %}</a>
                 <a href="{% url 'tools:call-logs' %}" class="ui yellow button">{% trans 'View function call logs' %}</a>
                 <a href="{% url 'tools:db-statistics' %}" class="ui yellow button">{% trans 'View db logs statistics' %}</a>
             </div>

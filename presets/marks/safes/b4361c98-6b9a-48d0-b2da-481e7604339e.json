@@ -3,12 +3,12 @@
     {
       "is_compare": true,
       "name": "Requirements specification",
-      "value": "usb:register"
+      "value": "drivers:usb:core:driver"
     },
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/linux/usb/register/safe.ko"
+      "value": "ext-modules/linux/drivers/usb/core/driver/safe.ko"
     }
   ],
   "description": "",

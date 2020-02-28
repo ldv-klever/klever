@@ -3,12 +3,12 @@
     {
       "is_compare": true,
       "name": "Requirements specification",
-      "value": "usb:gadget"
+      "value": "drivers:usb:gadget:udc-core"
     },
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/linux/usb/gadget/chrdev-with-usb-gadget.ko"
+      "value": "ext-modules/linux/drivers/usb/gadget/udc-core/chrdev-with-usb-gadget.ko"
     }
   ],
   "description": "",

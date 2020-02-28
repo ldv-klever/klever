@@ -3,12 +3,12 @@
     {
       "is_compare": true,
       "name": "Requirements specification",
-      "value": "usb:urb"
+      "value": "drivers:usb:core:urb"
     },
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/linux/usb/urb/more-at-exit.ko"
+      "value": "ext-modules/linux/drivers/usb/core/urb/more-at-exit.ko"
     }
   ],
   "description": "",

@@ -3,12 +3,12 @@
     {
       "is_compare": true,
       "name": "Requirements specification",
-      "value": "net:sock"
+      "value": "net:core:sock"
     },
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/linux/net/sock/double-release-2.ko"
+      "value": "ext-modules/linux/net/core/sock/double-release-2.ko"
     }
   ],
   "description": "",

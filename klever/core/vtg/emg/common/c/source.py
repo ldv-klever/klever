@@ -100,11 +100,11 @@ def _import_code_analysis(logger, conf, clade, dependencies, collection):
     # todo: maybe this should be fixed in Clade
     # As we will not get definitions for library functions if there are in compiled parts we should add all scopes
     # that are given for all function called from outside of the code we analyze
-    for scope in (s for s in collection.cfiles if s in cg):
-        for func in (f for f in cg[scope] if cg[scope][f].get('calls')):
-            for dep in cg[scope][func].get('calls'):
-                dependencies.setdefault(dep, sortedcontainers.SortedSet())
-                dependencies[dep].add(scope)
+    # for scope in (s for s in collection.cfiles if s in cg):
+    #     for func in (f for f in cg[scope] if cg[scope][f].get('calls')):
+    #         for dep in cg[scope][func].get('calls'):
+    #             dependencies.setdefault(dep, sortedcontainers.SortedSet())
+    #             dependencies[dep].add(scope)
     fs = clade.get_functions_by_file(set(dependencies.keys()).union(collection.cfiles))
 
     # Add called functions
@@ -293,12 +293,20 @@ class Source:
             # This is for convenience
             paths = [paths]
 
-        functions = self.get_source_functions(name, paths, declaration)
-        if len(functions) == 1:
-            return functions[0]
-        elif len(functions) > 1:
-            raise ValueError("There are several definitions of function {!r} in provided code you must specify "
-                             "scope".format(name))
+        # First try to get the most precise match
+        match = self.get_source_functions(name, paths, declaration)
+        if match and len(match) == 1:
+            # Bingo!
+            return match[0]
+        else:
+            # This is a bit weaker search because comparing declaration can be difficult
+            match = self.get_source_functions(name, paths)
+            if match and len(match) == 1:
+                return match[0]
+            elif match and len(match) > 1:
+                raise ValueError("There are several definitions of function {!r} in provided code you must specify "
+                                 "scope".format(name))
+
         return None
 
     def get_source_functions(self, name=None, paths=None, declaration=None):
@@ -306,7 +314,7 @@ class Source:
         Provides all functions found by a given name from the collection.
 
         :param name: Function name.
-        :param path: possible paths with definitions or declarations.
+        :param paths: possible paths with definitions or declarations.
         :param declaration: Declaration object representing the function of interest.
         :return: List with Function objects.
         """
@@ -324,7 +332,7 @@ class Source:
 
         for func_name in names:
             for path, func in ((p, f) for p, f in self._source_functions[func_name].items() if not paths or p in paths):
-                if func not in result and (not declaration or (declaration and declaration.compare(func.declaration))):
+                if func not in result and (not declaration or (declaration and declaration == func.declaration)):
                     result.append(func)
         return result
 

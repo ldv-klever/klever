@@ -168,7 +168,7 @@ class Implementation(Variable):
             self._declaration = declaration
         else:
             raise RuntimeError('Cannot change declaration {!r} by {!r} for {!r} implementation'.
-                               format(str(self.declaration), str(declaration), str(self)))
+                               format(str(self.declaration), str(declaration), str(self.name)))
 
     def adjusted_value(self, declaration):
         if self._declaration == declaration:

@@ -15,21 +15,10 @@
  * limitations under the License.
  */
 
-#include <linux/module.h>
-#include <asm-generic/bitops/find.h>
-#include <verifier/common.h>
-#include <verifier/nondet.h>
+#ifndef __LDV_H
+#define __LDV_H
 
-static int __init ldv_init(void)
-{
-	unsigned long size = ldv_undef_ulong(), offset = ldv_undef_ulong();
-	const unsigned long *addr = ldv_undef_ptr();
+/* Function declaration for inline Assembler stubs. */
+extern void ldv_inline_asm(void);
 
-	ldv_assume(size >= offset);
-	find_next_zero_bit(addr, size, offset);
-	find_next_bit(addr, size, offset);
-
-	return 0;
-}
-
-module_init(ldv_init);
+#endif /* __LDV_H */

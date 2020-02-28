@@ -17,6 +17,7 @@
 
 import fcntl
 import json
+import hashlib
 import logging
 import os
 import re
@@ -725,3 +726,13 @@ def save_program_fragment_description(program_fragment_desc, file_name):
     with open(file_name, 'w', encoding='utf8') as fp:
         fp.writelines(['Lines of code: {}\n'.format(program_fragment_desc['size']), 'Files:\n'])
         fp.writelines('\n'.join(sorted(f for grp in program_fragment_desc['grps'] for f in grp['files'])))
+
+
+def get_file_checksum(file_name):
+    hash_sha256 = hashlib.sha256()
+
+    with open(file_name, 'rb') as fp:
+        for chunk in iter(lambda: fp.read(4096), b""):
+            hash_sha256.update(chunk)
+
+    return hash_sha256.hexdigest()

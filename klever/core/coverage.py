@@ -211,29 +211,33 @@ class JCR(klever.core.components.Component):
                     # But otherwise we need to pass it everywhere like "sub-job identifier".
                     report_id = os.path.join(os.path.sep, sub_job_id)
 
-                    if self.conf['code coverage details'] == 'All source files':
-                        klever.core.utils.report(self.logger,
-                                          'patch',
-                                          {
-                                              'identifier': report_id,
-                                              'additional_sources': klever.core.utils.ArchiveFiles(
-                                                  [os.path.join(sub_job_dir, 'additional sources')]),
-                                          },
-                                          self.mqs['report files'],
-                                          self.vals['report id'],
-                                          self.conf['main working directory'],
-                                          os.path.join('total coverages', sub_job_id))
+                    if self.conf['code coverage details'] != 'Original C source files':
+                        klever.core.utils.report(
+                            self.logger,
+                            'patch',
+                            {
+                                'identifier': report_id,
+                                'additional_sources': klever.core.utils.ArchiveFiles(
+                                    [os.path.join(sub_job_dir, 'additional sources')]),
+                            },
+                            self.mqs['report files'],
+                            self.vals['report id'],
+                            self.conf['main working directory'],
+                            os.path.join('total coverages', sub_job_id)
+                        )
 
-                    klever.core.utils.report(self.logger,
-                                      'coverage',
-                                      {
-                                          'identifier': report_id,
-                                          'coverage': total_coverages,
-                                      },
-                                      self.mqs['report files'],
-                                      self.vals['report id'],
-                                      self.conf['main working directory'],
-                                      os.path.join('total coverages', sub_job_id))
+                    klever.core.utils.report(
+                        self.logger,
+                        'coverage',
+                        {
+                            'identifier': report_id,
+                            'coverage': total_coverages,
+                        },
+                        self.mqs['report files'],
+                        self.vals['report id'],
+                        self.conf['main working directory'],
+                        os.path.join('total coverages', sub_job_id)
+                    )
 
                     del total_coverage_infos[sub_job_id]
 

@@ -16,19 +16,46 @@
  */
 
 #include <linux/module.h>
-#include <linux/clk.h>
+#include <linux/device.h>
+#include <linux/rtc.h>
+#include <linux/emg/test_model.h>
 #include <verifier/nondet.h>
 
-static int __init ldv_init(void)
+int flip_a_coin;
+struct rtc_device rtc;
+
+static int ldv_read_time(struct device *dev, struct rtc_time *tm)
 {
-	struct device *dev = ldv_undef_ptr();
-	const char *id = ldv_undef_ptr();
-	struct clk *clk;
-
-	clk = clk_get(dev, id);
-	clk_disable(clk);
-
+	ldv_invoke_callback();
 	return 0;
 }
 
+static const struct rtc_class_ops ldv_ops = {
+	.read_time = ldv_read_time,
+};
+
+static int __init ldv_init(void)
+{
+	int ret;
+	flip_a_coin = ldv_undef_int();
+	if (flip_a_coin) {
+		ldv_register();
+		rtc.ops = & ldv_ops;
+		ret = rtc_register_device(& rtc);
+		if (ret) {
+			ldv_deregister();
+			return ret;
+		}
+	}
+	return 0;
+}
+
+static void __exit ldv_exit(void)
+{
+	if (flip_a_coin) {
+		ldv_deregister();
+	}
+}
+
 module_init(ldv_init);
+module_exit(ldv_exit);

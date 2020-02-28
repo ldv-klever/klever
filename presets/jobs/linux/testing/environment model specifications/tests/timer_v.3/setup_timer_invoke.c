@@ -37,7 +37,7 @@ static int __init ldv_init(void)
 	ret = mod_timer(&ldv_timer, jiffies + msecs_to_jiffies(200));
 	if (ret)
 	    return 0;
-	else:
+	else
 	    return -1;
 }
 

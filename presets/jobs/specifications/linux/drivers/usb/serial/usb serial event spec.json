@@ -391,6 +391,11 @@
           }
         },
         "comment": "Invoke USB serial tty layer callbacks.",
+        "headers": [
+          "linux/tty.h",
+          "linux/usb.h",
+          "linux/usb/serial.h"
+        ],
         "labels": {
           "driver": {
             "container": true,
@@ -662,12 +667,6 @@
     "functions models": {
       "usb_serial_deregister_drivers": {
         "actions": {
-          "assign": {
-            "comment": "Get callbacks to deregister provided within 'usb_serial_driver' argument.",
-            "statements": [
-              "%usb_device_id% = $ARG1;"
-            ]
-          },
           "call": {
             "comment": "Call the function itself",
             "statements": [
@@ -695,7 +694,7 @@
             "resource": true
           }
         },
-        "process": "<assign>.[@deregister].<call>",
+        "process": "[@deregister].<call>",
         "reference": true
       },
       "usb_serial_register_drivers": {

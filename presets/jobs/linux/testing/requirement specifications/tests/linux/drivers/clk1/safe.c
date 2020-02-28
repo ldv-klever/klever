@@ -26,14 +26,45 @@ static int __init ldv_init(void)
 	struct clk *clk1, *clk2;
 
 	clk1 = clk_get(dev1, id1);
-	clk2 = clk_get(dev2, id2);
+	clk2 = devm_clk_get(dev2, id2);
 
-	if (!clk_enable(clk1)) {
+	if (!IS_ERR(clk1))
+	{
+		if (!clk_enable(clk1))
+			clk_disable(clk1);
+
+		if (!clk_prepare(clk1))
+			clk_unprepare(clk1);
+
+		if (!clk_prepare_enable(clk1))
+			clk_disable_unprepare(clk1);
+	}
+
+	if (!IS_ERR(clk2))
+	{
 		if (!clk_enable(clk2))
 			clk_disable(clk2);
 
-		clk_disable(clk1);
+		if (!clk_prepare(clk2))
+			clk_unprepare(clk2);
+
+		if (!clk_prepare_enable(clk2))
+			clk_disable_unprepare(clk2);
 	}
+
+	if (!IS_ERR(clk1) && !IS_ERR(clk2))
+		if (!clk_enable(clk1)) {
+			if (!clk_enable(clk2))
+				clk_disable(clk2);
+
+			clk_disable(clk1);
+		}
+
+	if (!IS_ERR(clk1))
+		clk_put(clk1);
+
+	if (!IS_ERR(clk2))
+		clk_put(clk2);
 
 	return 0;
 }

@@ -15,9 +15,7 @@
 # limitations under the License.
 #
 
-import json
 import os
-import re
 from clade import Clade
 
 import klever.core.utils
@@ -61,9 +59,13 @@ class RSG(klever.core.vtg.plugins.Plugin):
 
         models = []
         if 'environment model' in self.abstract_task_desc:
-            models.append(os.path.relpath(os.path.join(self.conf['main working directory'],
-                                                       self.abstract_task_desc['environment model']),
-                                          os.path.curdir))
+            models.append({
+                'model': os.path.relpath(os.path.join(self.conf['main working directory'],
+                                                      self.abstract_task_desc['environment model']),
+                                         os.path.curdir),
+                'options': {},
+                'generated': True
+            })
 
         if 'extra C files' in self.abstract_task_desc:
             self.abstract_task_desc['extra C files'] = []
@@ -101,19 +103,23 @@ class RSG(klever.core.vtg.plugins.Plugin):
                                 # Specify model options for generated models that can not have model options themselves.
                                 models.append({
                                     'model': generated_model_c_file,
-                                    'options': model['options']
+                                    'options': model['options'],
+                                    'generated': True
                                 })
                             else:
-                                models.append(generated_model_c_file)
+                                models.append({
+                                    'model': generated_model_c_file,
+                                    'options': {},
+                                    'generated': True
+                                })
                             is_generated_model_c_file_found = True
 
                     if not is_generated_model_c_file_found:
                         raise KeyError('Model C file "{0}" was not generated'.format(model_c_file[1:]))
                 # Handle non-generated models.
                 else:
-                    model_c_file_realpath = klever.core.vtg.utils.find_file_or_dir(self.logger,
-                                                                            self.conf['main working directory'],
-                                                                            model_c_file)
+                    model_c_file_realpath = klever.core.vtg.utils.find_file_or_dir(
+                        self.logger, self.conf['main working directory'], model_c_file)
                     self.logger.debug('Get model with C file "{0}"'.format(model_c_file_realpath))
 
                     if isinstance(model, dict):
@@ -127,9 +133,8 @@ class RSG(klever.core.vtg.plugins.Plugin):
         # Like for models above except for common models are always C files without any model settings.
         if 'common models' in self.conf:
             for common_model_c_file in self.conf['common models']:
-                common_model_c_file_realpath = klever.core.vtg.utils.find_file_or_dir(self.logger,
-                                                                               self.conf['main working directory'],
-                                                                               common_model_c_file)
+                common_model_c_file_realpath = klever.core.vtg.utils.find_file_or_dir(
+                    self.logger, self.conf['main working directory'], common_model_c_file)
                 self.logger.debug('Get common model with C file "{0}"'.format(common_model_c_file_realpath))
                 models.append(common_model_c_file_realpath)
 
@@ -175,8 +180,6 @@ class RSG(klever.core.vtg.plugins.Plugin):
             raise RuntimeError('Build base is not OK')
         meta = clade.get_meta()
 
-        model_compiler_opts = None
-        model_compiler_cwd = None
         if not meta['conf'].get('Compiler.preprocess_cmds', False):
             # Model compiler input file represents input file which compiler options and CWD should be used for
             # compiling models. This input file is relative to one of source paths.
@@ -226,7 +229,10 @@ class RSG(klever.core.vtg.plugins.Plugin):
                     'opts': model_compiler_opts + opts
                 }, fp, self.conf['keep intermediate files'])
 
-            model_grp['Extra CCs'].append({'CC': os.path.relpath(full_desc_file, self.conf['main working directory'])})
+            extra_cc = {'CC': os.path.relpath(full_desc_file, self.conf['main working directory'])}
+            if 'generated' in model:
+                extra_cc['generated'] = True
+            model_grp['Extra CCs'].append(extra_cc)
 
         self.abstract_task_desc['grps'].append(model_grp)
         for dep in self.abstract_task_desc['deps'].values():

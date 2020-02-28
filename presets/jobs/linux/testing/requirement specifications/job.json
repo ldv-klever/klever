@@ -83,20 +83,24 @@
       "requirement specifications": ["alloc:usb lock"]
     },
     {
-      "targets": ["ext-modules/linux/arch/io"],
-      "requirement specifications": ["arch:io"]
+      "targets": ["ext-modules/linux/arch/asm/dma-mapping"],
+      "requirement specifications": ["arch:asm:dma-mapping"]
+    },
+    {
+      "targets": ["ext-modules/linux/arch/mm/ioremap"],
+      "requirement specifications": ["arch:mm:ioremap"]
+    },
+    {
+      "targets": ["ext-modules/linux/block/blk-core/queue"],
+      "requirement specifications": ["block:blk-core:queue"]
+    },
+    {
+      "targets": ["ext-modules/linux/block/blk-core/request"],
+      "requirement specifications": ["block:blk-core:request"]
     },
     {
       "targets": ["ext-modules/linux/block/genhd"],
       "requirement specifications": ["block:genhd"]
-    },
-    {
-      "targets": ["ext-modules/linux/block/queue"],
-      "requirement specifications": ["block:queue"]
-    },
-    {
-      "targets": ["ext-modules/linux/block/request"],
-      "requirement specifications": ["block:request"]
     },
     {
       "targets": ["ext-modules/linux/concurrency-safety/lock-reduce"],
@@ -115,8 +119,24 @@
       "requirement specifications": ["drivers:base:class"]
     },
     {
-      "targets": ["ext-modules/linux/drivers/base/dma-mapping"],
-      "requirement specifications": ["drivers:base:dma-mapping"]
+      "targets": ["ext-modules/linux/drivers/usb/core/driver"],
+      "requirement specifications": ["drivers:usb:core:driver"]
+    },
+    {
+      "targets": ["ext-modules/linux/drivers/usb/core/urb"],
+      "requirement specifications": ["drivers:usb:core:urb"]
+    },
+    {
+      "targets": ["ext-modules/linux/drivers/usb/core/usb/coherent"],
+      "requirement specifications": ["drivers:usb:core:usb:coherent"]
+    },
+    {
+      "targets": ["ext-modules/linux/drivers/usb/core/usb/dev"],
+      "requirement specifications": ["drivers:usb:core:usb:dev"]
+    },
+    {
+      "targets": ["ext-modules/linux/drivers/usb/gadget/udc-core"],
+      "requirement specifications": ["drivers:usb:gadget:udc-core"]
     },
     {
       "targets": ["ext-modules/linux/drivers/clk1"],
@@ -138,8 +158,8 @@
       ]
     },
     {
-      "targets": ["ext-modules/linux/fs/sysfs"],
-      "requirement specifications": ["fs:sysfs"]
+      "targets": ["ext-modules/linux/fs/sysfs/group"],
+      "requirement specifications": ["fs:sysfs:group"]
     },
     {
       "targets": ["ext-modules/linux/kernel/locking/mutex"],
@@ -183,8 +203,8 @@
       "requirement specifications": ["kernel:sched:completion"]
     },
     {
-      "targets": ["ext-modules/linux/lib/find_bit"],
-      "requirement specifications": ["lib:find_bit"]
+      "targets": ["ext-modules/linux/lib/find_next_bit"],
+      "requirement specifications": ["lib:find_next_bit"]
     },
     {
       "targets": ["ext-modules/linux/lib/idr"],
@@ -195,36 +215,16 @@
       "requirement specifications": ["memory safety"]
     },
     {
-      "targets": ["ext-modules/linux/net/register"],
-      "requirement specifications": ["net:register"]
+      "targets": ["ext-modules/linux/net/core/dev"],
+      "requirement specifications": ["net:core:dev"]
     },
     {
-      "targets": ["ext-modules/linux/net/rtnetlink"],
-      "requirement specifications": ["net:rtnetlink"]
+      "targets": ["ext-modules/linux/net/core/rtnetlink"],
+      "requirement specifications": ["net:core:rtnetlink"]
     },
     {
-      "targets": ["ext-modules/linux/net/sock"],
-      "requirement specifications": ["net:sock"]
-    },
-    {
-      "targets": ["ext-modules/linux/usb/coherent"],
-      "requirement specifications": ["usb:coherent"]
-    },
-    {
-      "targets": ["ext-modules/linux/usb/dev"],
-      "requirement specifications": ["usb:dev"]
-    },
-    {
-      "targets": ["ext-modules/linux/usb/gadget"],
-      "requirement specifications": ["usb:gadget"]
-    },
-    {
-      "targets": ["ext-modules/linux/usb/register"],
-      "requirement specifications": ["usb:register"]
-    },
-    {
-      "targets": ["ext-modules/linux/usb/urb"],
-      "requirement specifications": ["usb:urb"]
+      "targets": ["ext-modules/linux/net/core/sock"],
+      "requirement specifications": ["net:core:sock"]
     }
   ],
   "sub-jobs staging": [

@@ -3,12 +3,12 @@
     {
       "is_compare": true,
       "name": "Requirements specification",
-      "value": "net:register"
+      "value": "net:core:dev"
     },
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/linux/net/register/netdev.ko"
+      "value": "ext-modules/linux/net/core/dev/netdev.ko"
     }
   ],
   "description": "",

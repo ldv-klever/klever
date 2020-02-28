@@ -3,7 +3,7 @@
     {
       "is_compare": true,
       "name": "Requirements specification",
-      "value": "arch:io"
+      "value": "arch:mm:ioremap"
     },
     {
       "is_compare": true,

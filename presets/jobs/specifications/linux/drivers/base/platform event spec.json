@@ -438,6 +438,210 @@
       }
     }
   },
+  "5.5": {
+    "environment processes": {
+      "platform_instance": {
+        "actions": {
+          "after_release": {
+            "comment": "Platform device is released now.",
+            "statements": [
+              "%probed% = 1;"
+            ]
+          },
+          "call": {
+            "comment": "Driver is probed. Call power management callbacks or release the device.",
+            "process": "([callback] | [pm_register].[pm_deregister]).{call} | [release].<after_release>.{main}"
+          },
+          "callback": {
+            "callback": "%callback%",
+            "parameters": [
+              "%resource%"
+            ]
+          },
+          "deregister": {
+            "condition": [
+              "%container% == $ARG1"
+            ],
+            "parameters": [
+              "%container%"
+            ]
+          },
+          "free": {
+            "comment": "Free memory for 'platform_device' structure.",
+            "statements": [
+              "$FREE(%resource%);"
+            ]
+          },
+          "init": {
+            "comment": "Alloc memory for 'platform_device' structure.",
+            "statements": [
+              "%resource% = $ALLOC(%resource%);"
+            ]
+          },
+          "main": {
+            "comment": "Check that device is truely in the system and begin callback invocations.",
+            "process": "[probe].(<positive_probe>.{call} | <negative_probe>.{main}) | <free>.(deregister)"
+          },
+          "negative_probe": {
+            "comment": "Failed to probe the device.",
+            "condition": [
+              "%probed% != 0"
+            ]
+          },
+          "pm_deregister": {
+            "comment": "Finish the power management scenario.",
+            "parameters": []
+          },
+          "pm_register": {
+            "comment": "Proceed to a power management scenario.",
+            "parameters": []
+          },
+          "positive_probe": {
+            "comment": "Platform device is probed successfully now.",
+            "condition": [
+              "%probed% == 0"
+            ]
+          },
+          "probe": {
+            "callback": "%container.probe%",
+            "callback return value": "%probed%",
+            "comment": "Check that the device in the system and do driver initializations.",
+            "parameters": [
+              "%resource%"
+            ],
+            "post-call": [
+              "%probed% = ldv_post_probe(%probed%);"
+            ],
+            "pre-call": [
+              "ldv_pre_probe();"
+            ]
+          },
+          "register": {
+            "comment": "Register a driver callbacks for platform-level device.",
+            "parameters": [
+              "%container%"
+            ]
+          },
+          "release": {
+            "callback": "%container.release%",
+            "comment": "Remove device from the system.",
+            "parameters": [
+              "%resource%"
+            ]
+          }
+        },
+        "comment": "Invoke platfrom callbacks.",
+        "labels": {
+          "callback": {
+            "callback": true
+          },
+          "container": {
+            "container": true,
+            "interface": [
+              "platform.platform_driver"
+            ]
+          },
+          "probed": {
+            "declaration": "int a",
+            "value": "1"
+          },
+          "resource": {
+            "resource": true
+          }
+        },
+        "process": "(!register).<init>.{main}"
+      }
+    },
+    "functions models": {
+      "__platform_driver_probe": {
+        "actions": {
+          "assign": {
+            "comment": "Get 'platform_driver' and 'probe' arguments.",
+            "statements": [
+              "%platform_driver% = $ARG1;",
+              "%probe% = $ARG2;",
+              "%platform_driver.probe%=%probe%;"
+            ]
+          },
+          "fail": {
+            "comment": "Failed to register a driver for non-hotpluggable platform-level device.",
+            "statements": [
+              "return ldv_undef_int_negative();"
+            ]
+          },
+          "register": {
+            "comment": "Register 'platform_driver' callbacks and 'probe' routine.",
+            "parameters": [
+              "%platform_driver%"
+            ]
+          },
+          "success": {
+            "comment": "Successfully registered a driver for non-hotpluggable platform-level device.",
+            "statements": [
+              "return 0;"
+            ]
+          }
+        },
+        "comment": "Register a driver for non-hotpluggable platform-level device.",
+        "labels": {
+          "platform_driver": {
+            "container": true,
+            "interface": [
+              "platform.platform_driver"
+            ],
+            "parameter": true
+          },
+          "probe": {
+            "callback": true,
+            "interface": [
+              "platform.probe"
+            ],
+            "parameter": true
+          }
+        },
+        "process": "<assign>.[register].<success> | <fail>"
+      },
+      "__platform_driver_register": {
+        "actions": {
+          "assign": {
+            "comment": "Get platform_driver structure argument.",
+            "statements": [
+              "%platform_driver% = $ARG1;"
+            ]
+          },
+          "fail": {
+            "comment": "Fail to register a driver for platform-level device.",
+            "statements": [
+              "return ldv_undef_int_negative();"
+            ]
+          },
+          "register": {
+            "comment": "Register platform_driver callbacks.",
+            "parameters": [
+              "%platform_driver%"
+            ]
+          },
+          "success": {
+            "comment": "Successfully registered a driver for platform-level device.",
+            "statements": [
+              "return 0;"
+            ]
+          }
+        },
+        "comment": "Register a driver for platform-level device.",
+        "labels": {
+          "platform_driver": {
+            "container": true,
+            "interface": [
+              "platform.platform_driver"
+            ],
+            "parameter": true
+          }
+        },
+        "process": "<assign>.[register].<success> | <fail>"
+      }
+    }
+  },
   "4.17": {
     "environment processes": {
       "platform_instance": {
