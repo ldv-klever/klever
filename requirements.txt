@@ -9,7 +9,7 @@ bcrypt==3.1.6
 BenchExec==1.18
 billiard==3.6.1.0
 cchardet==2.1.4
-celery==4.3.0
+celery==4.4.0
 certifi==2018.11.29
 cffi==1.12.2
 chardet==3.0.4

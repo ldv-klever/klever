@@ -75,6 +75,7 @@
                             <span>
                                 {% if job_data.decisions|length %}
                                     <a href="{% url 'jobs:decision-latest' job_data.instance.id %}"><i data-content="{% trans 'Latest version' %}" class="ui blue link paper plane icon note-popup"></i></a>
+                                    <a href="{% url 'jobs:download' job_data.instance.id %}"><i data-content="{% trans 'Download' %}" class="ui blue link download icon note-popup"></i></a>
                                 {% endif %}
                             </span>
                         </td>
