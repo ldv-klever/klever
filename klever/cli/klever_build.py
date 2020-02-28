@@ -30,6 +30,7 @@ from clade import Clade
 from klever.cli.utils import execute_cmd, get_logger, make_relative_path
 from klever.cli.descs import common_target_program_descs, target_program_descs
 
+
 class CProgram:
     _CLADE_CONF = dict()
     _CLADE_PRESET = "klever_linux_kernel"
