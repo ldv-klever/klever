@@ -215,7 +215,7 @@ class ReadDecisionConfiguration:
 
     def __read_tasks(self):
         fs_obj = FileSystem.objects.filter(
-            job_id=self.decision.job_id, name=self.tasks_file
+            decision_id=self.decision.id, name=self.tasks_file
         ).select_related('file').first()
         if fs_obj:
             with fs_obj.file.file as fp:
