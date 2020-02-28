@@ -1563,23 +1563,24 @@ class DecideJob:
 
 class UploadRawReports:
     base_url = 'http://127.0.0.1:8998'
+    orig_sources_uuid = "936d4726-6d0b-4244-a63e-bb1133706555"
 
-    def __init__(self, job_uuid, reports_dir):
-        self._upload_url = '/reports/api/upload/{}/'.format(job_uuid)
+    def __init__(self, decision_uuid, reports_dir):
+        self._upload_url = '/reports/api/upload/{}/'.format(decision_uuid)
         self._reports_dir = os.path.abspath(reports_dir)
         assert os.path.isdir(self._reports_dir), 'Reports directory not found!'
         self.session = requests.Session()
         self.__login()
-        self.__decide_job(job_uuid)
+        self.__decide_job(decision_uuid)
 
     def __login(self):
         resp = self.__request('/service/get_token/', data={'username': 'service', 'password': 'service'})
         self.session.headers.update({'Authorization': 'Token {}'.format(resp.json()['token'])})
 
-    def __decide_job(self, job_uuid):
-        self.__request('/jobs/api/download-files/{}/'.format(job_uuid), method='GET')
+    def __decide_job(self, decision_uuid):
+        self.__request('/jobs/api/download-files/{}/'.format(decision_uuid), method='GET')
         self.__send_reports()
-        self.__request('/service/decision-status/{}/'.format(job_uuid), method='PATCH', data={'status': '3'})
+        self.__request('/service/decision-status/{}/'.format(decision_uuid), method='PATCH', data={'status': '3'})
 
     def __send_reports(self):
         all_archives = list(f for f in os.listdir(self._reports_dir) if f.endswith('.zip'))
@@ -1601,7 +1602,7 @@ class UploadRawReports:
 
     def __upload_report(self, report, archives):
         if report.get('original_sources'):
-            report['original_sources'] = '936d4726-6d0b-4244-a63e-bb1133706555'
+            report['original_sources'] = self.orig_sources_uuid
         report.pop('task', None)
 
         logger.info('{}: {}; '.format(report.get('type'), report.get('identifier')) + str(archives))
@@ -1755,3 +1756,22 @@ class UploadRawReportsPacks:
             resp.close()
             raise ResponseError('Unexpected status code returned: {}'.format(resp.status_code))
         return resp
+
+
+def upload_sources(port=None):
+    base_url = "http://127.0.0.1"
+    if port:
+        base_url += ':{}'.format(port)
+
+    session = requests.Session()
+    resp = session.post('{}/service/get_token/'.format(base_url), data={'username': 'service', 'password': 'service'})
+    session.headers.update({'Authorization': 'Token {}'.format(resp.json()['token'])})
+    with open('reports/test_files/linux.zip', mode='rb') as fp:
+        resp = session.post(
+            '{}/reports/api/upload-sources/'.format(base_url),
+            data={'identifier': '936d4726-6d0b-4244-a63e-bb1133706555'}, files=[('archive', fp)]
+        )
+        print(resp.json())
+
+# UploadRawReportsPacks('6b2ab3c7-1367-4cb2-8841-fff0fc2f6f85', 'S:/Work/temp/logs/log.txt',
+# '6b2ab3c7-1367-4cb2-8841-fff0fc2f6f85')
