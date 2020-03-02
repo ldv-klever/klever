@@ -43,7 +43,7 @@ jsonpatch==1.23
 jsonpointer==2.0
 jsonschema==2.6.0
 keystoneauth1==3.13.1
-kombu==4.6.6
+kombu==4.6.7
 MarkupSafe==1.1.0
 monotonic==1.5
 more-itertools==6.0.0
