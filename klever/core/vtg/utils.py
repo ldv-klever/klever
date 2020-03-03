@@ -25,9 +25,9 @@ import klever.core.utils
 # discover them by addinig that directory as prefix.
 def find_file_or_dir(logger, main_work_dir, file_or_dir):
     try:
-        return klever.core.utils.find_file_or_dir(logger, main_work_dir, file_or_dir)
-    except FileNotFoundError:
         return klever.core.utils.find_file_or_dir(logger, main_work_dir, os.path.join('specifications', file_or_dir))
+    except FileNotFoundError:
+        return klever.core.utils.find_file_or_dir(logger, main_work_dir, file_or_dir)
 
 
 def prepare_cif_opts(opts, clade, model_opts=False):
