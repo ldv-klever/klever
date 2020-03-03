@@ -39,6 +39,7 @@ from bridge.access import (
     ViewJobPermission, DestroyJobPermission, ServicePermission, CreateJobPermission, UpdateJobPermission
 )
 from bridge.vars import PRESET_JOB_TYPE, DECISION_STATUS
+from bridge.utils import logger
 from bridge.CustomViews import TemplateAPIRetrieveView, TemplateAPIListView, StreamingResponseAPIView
 from tools.profiling import LoggedCallMixin
 
@@ -130,7 +131,11 @@ class GetConfigurationView(LoggedCallMixin, APIView):
             conf_kwargs = {'file_conf': decision.configuration.file}
         elif 'conf_name' in self.request.data:
             conf_kwargs = {'conf_name': request.data['conf_name']}
-        return Response(GetConfiguration(**conf_kwargs).configuration)
+        try:
+            return Response(GetConfiguration(**conf_kwargs).configuration)
+        except Exception as e:
+            logger.exception(e)
+            raise exceptions.APIException(_('Wrong configuration format'))
 
 
 class StartJobDefValueView(LoggedCallMixin, APIView):
