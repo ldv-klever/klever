@@ -64,7 +64,7 @@ class Migration(migrations.Migration):
         migrations.CreateModel(name='Job', fields=[
             ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
             ('identifier', models.UUIDField(db_index=True, default=uuid.uuid4, unique=True)),
-            ('name', models.CharField(db_index=True, max_length=150, unique=True)),
+            ('name', models.CharField(db_index=True, max_length=150)),
             ('author', models.ForeignKey(
                 blank=True, null=True, on_delete=models.deletion.SET_NULL,
                 related_name='+', to=settings.AUTH_USER_MODEL
