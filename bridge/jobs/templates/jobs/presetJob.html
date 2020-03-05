@@ -96,7 +96,7 @@
     {% if object.type == '1' %}
         {# Create preset directory name modal #}
         <div id="create_preset_dir_modal" class="ui modal">
-            <div class="header">{% trans 'Please set the unique name for a preset directory' %}</div>
+            <div class="header">{% trans 'Please, set the unique name for the new jobs directory' %}</div>
             <div class="content">
                 <div class="ui fluid input">
                     <input type="text" placeholder="{% trans 'Name' %}">
@@ -110,7 +110,7 @@
     {% elif object.type == '2' %}
         {# Change preset directory name modal #}
         <div id="change_preset_dir_modal" class="ui modal">
-            <div class="header">{% trans 'Please set the unique name for a preset directory' %}</div>
+            <div class="header">{% trans 'Please, set the unique name for the new jobs directory' %}</div>
             <div class="content">
                 <div class="ui fluid input">
                     <input type="text" placeholder="{% trans 'Name' %}" value="{{ object.name }}">
