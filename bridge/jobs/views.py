@@ -45,8 +45,8 @@ from jobs.Download import (
 from jobs.JobTableProperties import JobsTreeTable, PresetChildrenTree
 from jobs.preset import get_preset_dir_list, preset_job_files_tree_json
 from jobs.utils import (
-    months_choices, years_choices, is_preset_changed, get_unique_name, get_roles_form_data, get_core_link,
-    JobAccess, DecisionAccess, CompareFileSet, JSTreeConverter
+    months_choices, years_choices, is_preset_changed, get_roles_form_data, get_core_link,
+    get_unique_job_name, get_unique_decision_name, JobAccess, DecisionAccess, CompareFileSet, JSTreeConverter
 )
 from jobs.ViewJobData import ViewJobData
 from reports.coverage import DecisionCoverageStatistics
@@ -98,7 +98,7 @@ class CreateJobFormPage(LoginRequiredMixin, LoggedCallMixin, TemplateView):
             'title': _('Job Creating'), 'job_roles': JOB_ROLES, 'cancel_url': reverse('jobs:tree'),
             'confirm': {'title': _('Create'), 'url': reverse('jobs:api-create-job'), 'method': 'POST'},
             'initial': {
-                'name': get_unique_name(preset_job.name),
+                'name': get_unique_job_name(preset_job),
                 'preset_dirs': get_preset_dir_list(preset_job),
                 'roles': json.dumps(get_roles_form_data(), ensure_ascii=False),
             }
@@ -163,6 +163,7 @@ class DecisionFormPage(LoginRequiredMixin, LoggedCallMixin, DetailView):
             .exclude(status=DECISION_STATUS[0][0]).only('id', 'title', 'start_date')
         context.update({
             'job': self.object,
+            'unique_name': get_unique_decision_name(self.object),
             'cancel_url': reverse('jobs:job', args=[self.object.id]),
             'files_data': preset_job_files_tree_json(preset_job),
             'current_conf': settings.DEF_KLEVER_CORE_MODE,
@@ -190,6 +191,7 @@ class DecisionCopyFormPage(LoginRequiredMixin, LoggedCallMixin, DetailView):
             .exclude(status=DECISION_STATUS[0][0]).only('id', 'title', 'start_date')
         context.update({
             'job': self.object.job,
+            'unique_name': get_unique_decision_name(self.object.job),
             'base_decision': self.object,
             'cancel_url': reverse('jobs:decision', args=[self.object.id]),
             'files_data': decision_files,

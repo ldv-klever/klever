@@ -68,7 +68,7 @@
                 <div class="ui violet segment" style="margin-bottom: 0;">
                     <label for="decision_title"><strong>{% trans 'Job version name' %}</strong></label>
                     <div class="ui fluid input field">
-                        <input id="decision_title" type="text"{% if object %} value="{{ object.title }}"{% endif %} >
+                        <input id="decision_title" type="text"{% if unique_name %} value="{{ unique_name }}"{% endif %} >
                     </div>
                 </div>
 

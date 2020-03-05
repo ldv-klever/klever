@@ -51,7 +51,7 @@ from jobs.serializers import (
 )
 from jobs.configuration import get_configuration_value, GetConfiguration
 from jobs.Download import KleverCoreArchiveGen, UploadJobsScheduler, JobArchiveGenerator, get_jobs_to_download
-from jobs.utils import get_unique_name, JobAccess, DecisionAccess
+from jobs.utils import get_unique_job_name, JobAccess, DecisionAccess
 from reports.coverage import DecisionCoverageStatistics
 from reports.serializers import DecisionResultsSerializerRO
 from reports.utils import collapse_reports
@@ -215,7 +215,7 @@ class CreateDefaultJobView(LoggedCallMixin, CreateAPIView):
 
     def create(self, request, *args, **kwargs):
         preset_job = self.get_object()
-        job = Job.objects.create(preset=preset_job, author=request.user, name=get_unique_name(preset_job.name))
+        job = Job.objects.create(preset=preset_job, author=request.user, name=get_unique_job_name(preset_job))
         return Response({'id': job.id, 'identifier': str(job.identifier)})
 
 

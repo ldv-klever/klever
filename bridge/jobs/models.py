@@ -73,7 +73,7 @@ class PresetFile(models.Model):
 class Job(models.Model):
     preset = models.ForeignKey(PresetJob, models.CASCADE)
     identifier = models.UUIDField(unique=True, db_index=True, default=uuid.uuid4)
-    name = models.CharField(max_length=150, unique=True, db_index=True)
+    name = models.CharField(max_length=150, db_index=True)
     global_role = models.CharField(max_length=1, choices=JOB_ROLES, default=JOB_ROLES[0][0])
 
     creation_date = models.DateTimeField(auto_now_add=True)

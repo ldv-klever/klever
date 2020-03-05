@@ -17,6 +17,7 @@
 
 import io
 import os
+import re
 from collections import OrderedDict
 from datetime import datetime
 
@@ -140,15 +141,24 @@ def is_readable(filename):
     return len(ext) > 0 and ext[1:] in {'txt', 'json', 'xml', 'c', 'aspect', 'i', 'h', 'tmpl'}
 
 
-def get_unique_name(base_name):
-    names_in_use = set(Job.objects.filter(name__startswith=base_name).values_list('name', flat=True)) | \
-                   set(PresetJob.objects.filter(name__startswith=base_name).values_list('name', flat=True))
-    cnt = 1
-    while True:
-        new_name = "{} #{}".format(base_name, cnt)
-        if new_name not in names_in_use:
-            return new_name
-        cnt += 1
+def get_unique_job_name(preset_job: PresetJob):
+    names_in_use = Job.objects.filter(preset=preset_job).values_list('name', flat=True)
+    numbers = list(int(num) for j_name in names_in_use for num in re.findall(r'#(\d+)', j_name))
+    if numbers:
+        new_num = max(numbers) + 1
+    else:
+        new_num = 1
+    return '#{}'.format(new_num)
+
+
+def get_unique_decision_name(job: Job):
+    names_in_use = Decision.objects.filter(job=job).values_list('title', flat=True)
+    numbers = list(int(num) for j_name in names_in_use for num in re.findall(r'#(\d+)', j_name))
+    if numbers:
+        new_num = max(numbers) + 1
+    else:
+        new_num = 1
+    return '#{}'.format(new_num)
 
 
 def is_preset_changed(job):

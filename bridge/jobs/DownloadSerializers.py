@@ -29,7 +29,6 @@ from jobs.models import Job, JobFile, FileSystem, Decision, Scheduler
 from reports.models import ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent, Computer, ReportAttr, DecisionCache
 
 from jobs.serializers import DecisionFilesField
-from jobs.utils import get_unique_name
 
 ARCHIVE_FORMAT = 16
 
@@ -42,11 +41,6 @@ class DownloadJobSerializer(serializers.ModelSerializer):
     def validate_identifier(self, value):
         if Job.objects.filter(identifier=value).exists():
             return uuid.uuid4()
-        return value
-
-    def validate_name(self, value):
-        if Job.objects.filter(name=value).exists():
-            return get_unique_name(value)
         return value
 
     def validate_archive_format(self, value):
