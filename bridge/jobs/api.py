@@ -47,7 +47,7 @@ from jobs.models import Job, JobFile, UploadedJobArchive, PresetJob, Decision
 from jobs.serializers import (
     decision_status_changed, create_default_decision,
     PresetJobDirSerializer, JobFileSerializer, CreateJobSerializer, UpdateJobSerializer,
-    DecisionStatusSerializerRO, CreateDecisionSerializer, UpdateDecisionSerializer
+    DecisionStatusSerializerRO, CreateDecisionSerializer, UpdateDecisionSerializer, RestartDecisionSerializer
 )
 from jobs.configuration import get_configuration_value, GetConfiguration
 from jobs.Download import KleverCoreArchiveGen, UploadJobsScheduler, JobArchiveGenerator, get_jobs_to_download
@@ -55,7 +55,7 @@ from jobs.utils import get_unique_name, JobAccess, DecisionAccess
 from reports.coverage import DecisionCoverageStatistics
 from reports.serializers import DecisionResultsSerializerRO
 from reports.utils import collapse_reports
-from service.utils import cancel_decision, RestartJobDecision
+from service.utils import cancel_decision
 
 
 class PresetJobAPIViewset(LoggedCallMixin, ModelViewSet):
@@ -114,6 +114,19 @@ class RenameDecisionView(LoggedCallMixin, UpdateAPIView):
         super(RenameDecisionView, self).check_object_permissions(request, obj)
         if not DecisionAccess(request.user, obj).can_rename:
             self.permission_denied(request, _("You don't have an access to rename the decision"))
+
+
+class RestartDecisionView(LoggedCallMixin, UpdateAPIView):
+    permission_classes = (IsAuthenticated,)
+    serializer_class = RestartDecisionSerializer
+
+    def get_queryset(self):
+        return Decision.objects.select_related('job', 'configuration')
+
+    def check_object_permissions(self, request, obj):
+        super().check_object_permissions(request, obj)
+        if not DecisionAccess(request.user, obj).can_restart:
+            self.permission_denied(request, _("You don't have an access to restart the decision"))
 
 
 class GetConfigurationView(LoggedCallMixin, APIView):
@@ -268,17 +281,6 @@ class StopDecisionView(LoggedCallMixin, APIView):
         # If there are a lot of tasks that are not still deleted it could be too long
         # as there is request to DB for each task here (pre_delete signal)
         decision.tasks.all().delete()
-        return Response({})
-
-
-class RestartDecisionView(LoggedCallMixin, APIView):
-    permission_classes = (IsAuthenticated,)
-
-    def post(self, request, **kwargs):
-        decision = get_object_or_404(Decision.objects.select_related('job', 'configuration'), **kwargs)
-        if not DecisionAccess(self.request.user, decision).can_restart:
-            raise exceptions.PermissionDenied(_("You don't have an access to restart this decision"))
-        RestartJobDecision(request.user, decision)
         return Response({})
 
 

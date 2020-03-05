@@ -227,9 +227,7 @@
                 "{% trans 'All existing reports and previous decision results of this decision will be deleted' %}!",
                 function () {
                     $('#dimmer_of_page').addClass('active');
-                    $.post("{% url 'jobs:api-restart-decision' object.id %}", {}, function () {
-                        window.location.replace('')
-                    });
+                    window.location.href = "{% url 'jobs:decision-restart' object.id %}";
                 }
             );
             activate_warn_modal('remove_decision_modal', '#remove_decision_btn',

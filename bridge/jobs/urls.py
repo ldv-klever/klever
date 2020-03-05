@@ -33,6 +33,7 @@ urlpatterns = [
     path('decision/<int:pk>/', views.DecisionPage.as_view(), name='decision'),
     path('decision-create/<int:job_id>/', views.DecisionFormPage.as_view(), name='decision-create'),
     path('decision-copy/<int:pk>/', views.DecisionCopyFormPage.as_view(), name='decision-copy'),
+    path('decision-restart/<int:pk>/', views.DecisionRestartPage.as_view(), name='decision-restart'),
 
     path('decision-results/<int:pk>/', views.DecisionResults.as_view(), name='decision-results'),
     path('api/decision-results/<uuid:identifier>/', api.DecisionResultsAPIView.as_view(), name='api-decision-results'),

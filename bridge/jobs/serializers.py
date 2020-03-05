@@ -20,9 +20,11 @@ import os
 import pika
 
 from django.conf import settings
+from django.db.models import Q
 from django.db.models.query import QuerySet
 from django.template.defaultfilters import filesizeformat
 from django.urls import reverse
+from django.utils.timezone import now
 from django.utils.translation import ugettext_lazy as _
 
 from rest_framework import serializers, exceptions, fields
@@ -31,8 +33,11 @@ from bridge.vars import DECISION_STATUS
 from bridge.utils import logger, file_checksum, file_get_or_create, RMQConnect, BridgeException
 from bridge.serializers import DynamicFieldsModelSerializer
 
-from jobs.models import PRESET_JOB_TYPE, Job, JobFile, FileSystem, UserRole, UploadedJobArchive, PresetJob, PresetFile
-from service.models import Decision
+from jobs.models import (
+    PRESET_JOB_TYPE, Job, Decision, JobFile, FileSystem, UserRole, UploadedJobArchive, PresetJob, PresetFile
+)
+from reports.models import Report, AttrFile, AdditionalSources, CompareDecisionsInfo, DecisionCache
+from service.models import Task
 
 from jobs.configuration import GetConfiguration
 from jobs.utils import JSTreeConverter, validate_scheduler, copy_files_with_replace
@@ -79,6 +84,37 @@ def create_default_decision(request, job, configuration):
     copy_files_with_replace(request, decision.id, preset_files_qs)
 
     return decision
+
+
+def validate_configuration(conf_str):
+    validated_data = {}
+
+    # Get configuration
+    if conf_str:
+        try:
+            configuration = GetConfiguration(user_conf=json.loads(conf_str)).for_json()
+        except Exception as e:
+            logger.exception(e)
+            raise exceptions.ValidationError({'configuration': _('The configuration has wrong format')})
+    else:
+        configuration = GetConfiguration().for_json()
+
+    validated_data['priority'] = configuration['priority']
+    validated_data['weight'] = configuration['weight']
+
+    # Validate task scheduler
+    try:
+        validated_data['scheduler'] = validate_scheduler(type=configuration['task scheduler'])
+    except BridgeException as e:
+        raise exceptions.ValidationError({'scheduler': str(e)})
+
+    # Save configuration file
+    conf_db = file_get_or_create(
+        json.dumps(configuration, indent=2, sort_keys=True, ensure_ascii=False), 'configuration.json', JobFile
+    )
+    validated_data['configuration_id'] = conf_db.id
+
+    return validated_data
 
 
 class DecisionFilesField(fields.Field):
@@ -215,33 +251,9 @@ class CreateDecisionSerializer(serializers.ModelSerializer):
     files = DecisionFilesField()
     configuration = fields.CharField(required=False)
 
-    def __validate_configuration(self, conf_str):
-        if not conf_str:
-            return GetConfiguration().for_json()
-        return GetConfiguration(user_conf=json.loads(conf_str)).for_json()
-
     def validate(self, attrs):
-        # Get configuration
-        try:
-            configuration = self.__validate_configuration(attrs.pop('configuration', None))
-        except Exception as e:
-            logger.exception(e)
-            raise exceptions.ValidationError({'configuration': _('The configuration has wrong format')})
-        attrs['priority'] = configuration['priority']
-        attrs['weight'] = configuration['weight']
-
-        # Validate task scheduler
-        try:
-            attrs['scheduler'] = validate_scheduler(type=configuration['task scheduler'])
-        except BridgeException as e:
-            raise exceptions.ValidationError({'scheduler': str(e)})
-
-        # Save configuration file
-        conf_db = file_get_or_create(
-            json.dumps(configuration, indent=2, sort_keys=True, ensure_ascii=False), 'configuration.json', JobFile
-        )
-        attrs['configuration_id'] = conf_db.id
-
+        conf_data = validate_configuration(attrs.pop('configuration', None))
+        attrs.update(conf_data)
         return attrs
 
     def create(self, validated_data):
@@ -264,6 +276,58 @@ class CreateDecisionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Decision
         fields = ('title', 'operator', 'files', 'configuration')
+
+
+class RestartDecisionSerializer(serializers.ModelSerializer):
+    operator = fields.HiddenField(default=serializers.CurrentUserDefault())
+    configuration = fields.CharField()
+
+    def __clear_related_objects(self, instance):
+        Report.objects.filter(decision=instance).delete()
+        AttrFile.objects.filter(decision=instance).delete()
+        AdditionalSources.objects.filter(decision=instance).delete()
+        CompareDecisionsInfo.objects.filter(Q(decision1=instance) | Q(decision2=instance)).delete()
+        DecisionCache.objects.filter(decision=instance).delete()
+        Task.objects.filter(decision=instance).delete()
+
+    def validate(self, attrs):
+        conf_data = validate_configuration(attrs.pop('configuration'))
+        attrs.update(conf_data)
+
+        attrs['status'] = DECISION_STATUS[1][0]
+        attrs['start_date'] = now()
+
+        int_fields = (
+            'tasks_total', 'tasks_pending', 'tasks_processing', 'tasks_finished',
+            'tasks_error', 'tasks_cancelled', 'solutions'
+        )
+        null_fields = (
+            'error', 'finish_date', 'total_sj', 'failed_sj', 'solved_sj', 'expected_time_sj',
+            'start_sj', 'finish_sj', 'gag_text_sj', 'total_ts', 'failed_ts', 'solved_ts', 'expected_time_ts',
+            'start_ts', 'finish_ts', 'gag_text_ts'
+        )
+        for field_name in int_fields:
+            attrs[field_name] = 0
+        for field_name in null_fields:
+            attrs[field_name] = None
+
+        return attrs
+
+    def create(self, validated_data):
+        raise NotImplementedError('Create method is not supported for this serializer')
+
+    def update(self, instance, validated_data):
+        self.__clear_related_objects(instance)
+        instance = super(RestartDecisionSerializer, self).update(instance, validated_data)
+        decision_status_changed(instance)
+        return instance
+
+    def to_representation(self, instance):
+        return {'url': reverse('jobs:decision', args=[instance.pk])}
+
+    class Meta:
+        model = Decision
+        fields = ('operator', 'configuration')
 
 
 class DecisionStatusSerializerRO(serializers.ModelSerializer):

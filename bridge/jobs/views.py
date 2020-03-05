@@ -199,6 +199,25 @@ class DecisionCopyFormPage(LoginRequiredMixin, LoggedCallMixin, DetailView):
         return context
 
 
+class DecisionRestartPage(LoginRequiredMixin, LoggedCallMixin, DetailView):
+    template_name = 'jobs/restartDecision.html'
+
+    def get_queryset(self):
+        return Decision.objects.select_related('job')
+
+    def get_context_data(self, **kwargs):
+        if not DecisionAccess(self.request.user, self.object).can_restart:
+            raise BridgeException(_("You don't have an access to restart this decision"))
+        context = super(DecisionRestartPage, self).get_context_data(**kwargs)
+        other_decisions = Decision.objects.filter(job=self.object.job).order_by('id') \
+            .exclude(status=DECISION_STATUS[0][0]).only('id', 'title', 'start_date')
+        context.update({
+            'start_data': StartDecisionData(self.request.user, base_decision=self.object),
+            'other_decisions': other_decisions
+        })
+        return context
+
+
 class DecisionPage(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, DetailView):
     model = Decision
     template_name = 'jobs/viewDecision/main.html'
