@@ -16,7 +16,10 @@
 #
 
 import json
+import os
+import zipfile
 
+from django.core.files import File
 from django.db.models import F
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
@@ -452,7 +455,15 @@ class UploadMarksView(LoggedCallMixin, APIView):
         marks_links = []
         marks_uploader = MarksUploader(request.user)
         for f in self.request.FILES.getlist('file'):
-            marks_links.append(marks_uploader.upload_mark(f)[1])
+            with zipfile.ZipFile(f, 'r') as zfp:
+                if all(file_name.endswith('.zip') for file_name in zfp.namelist()):
+                    marks_dir = extract_archive(f)
+                    for arch_name in os.listdir(marks_dir.name):
+                        with open(os.path.join(marks_dir.name, arch_name), mode='rb') as fp:
+                            marks_links.append(marks_uploader.upload_mark(File(fp, name=arch_name))[1])
+                    pass
+                else:
+                    marks_links.append(marks_uploader.upload_mark(f)[1])
 
         if len(marks_links) == 1:
             return Response({'url': marks_links[0]})

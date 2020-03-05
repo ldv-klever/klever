@@ -164,6 +164,36 @@ class UnknownMarkGenerator(MarkGeneratorBase):
         return data
 
 
+class SeveralMarksGenerator:
+    def __init__(self, marks):
+        self.marks = marks
+        self.stream = ZipStream()
+        self.name = 'KleverMarks.zip'
+
+    def generate_mark(self, markgen):
+        buf = b''
+        for data in self.stream.compress_stream(markgen.name, markgen):
+            buf += data
+            if len(buf) > CHUNK_SIZE:
+                yield buf
+                buf = b''
+        if len(buf) > 0:
+            yield buf
+
+    def __iter__(self):
+        for mark in self.marks:
+            if isinstance(mark, MarkSafe):
+                markgen = SafeMarkGenerator(mark)
+            elif isinstance(mark, MarkUnsafe):
+                markgen = UnsafeMarkGenerator(mark)
+            elif isinstance(mark, MarkUnknown):
+                markgen = UnknownMarkGenerator(mark)
+            else:
+                continue
+            yield from self.generate_mark(markgen)
+        yield self.stream.close_stream()
+
+
 class PresetMarkFile(FileWrapper):
     attrs_model = None
 

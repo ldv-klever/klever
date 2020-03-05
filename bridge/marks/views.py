@@ -15,6 +15,9 @@
 # limitations under the License.
 #
 
+import json
+from urllib.parse import unquote
+
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import F
 from django.template.defaulttags import register
@@ -33,7 +36,7 @@ from reports.models import ReportSafe, ReportUnsafe, ReportUnknown
 from marks.models import MarkSafe, MarkUnsafe, MarkUnknown, MarkSafeHistory, MarkUnsafeHistory, MarkUnknownHistory
 
 from marks.Download import (
-    SafeMarkGenerator, UnsafeMarkGenerator, UnknownMarkGenerator,
+    SafeMarkGenerator, UnsafeMarkGenerator, UnknownMarkGenerator, SeveralMarksGenerator,
     SafePresetFile, UnsafePresetFile, UnknownPresetFile
 )
 from marks.markversion import MarkVersionFormData
@@ -360,3 +363,16 @@ class PresetUnknownMarkView(LoginRequiredMixin, LoggedCallMixin, SingleObjectMix
 
     def get_generator(self):
         return UnknownPresetFile(self.get_object())
+
+
+class DownloadSeveralMarksView(LoginRequiredMixin, LoggedCallMixin, StreamingResponseView):
+    def get_generator(self):
+        marks = []
+        marks_data = json.loads(unquote(self.request.GET['marks']))
+        if marks_data.get('safe'):
+            marks.extend(list(MarkSafe.objects.filter(id__in=marks_data['safe'])))
+        if marks_data.get('unsafe'):
+            marks.extend(list(MarkUnsafe.objects.filter(id__in=marks_data['unsafe'])))
+        if marks_data.get('unknown'):
+            marks.extend(list(MarkUnknown.objects.filter(id__in=marks_data['unknown'])))
+        return SeveralMarksGenerator(marks)
