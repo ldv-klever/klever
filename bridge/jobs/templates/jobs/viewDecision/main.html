@@ -87,7 +87,7 @@
                 <thead>
                     <tr>
                         <th class="center aligned" colspan="2">
-                            <span class="ui olive header">{{ object.name }}{% if object.weight == '1' %} ({{ object.get_weight_display|lower }}){% endif %}</span>
+                            <span class="ui olive header">{{ object.name }}{% if object.weight == '1' %} - {{ object.get_weight_display|lower }}{% endif %}</span>
                         </th>
                     </tr>
                 </thead>
