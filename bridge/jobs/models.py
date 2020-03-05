@@ -18,6 +18,7 @@
 import uuid
 from django.db import models
 from django.db.models.signals import post_delete
+from django.template import Template, Context
 from django.utils.timezone import now
 from django.utils.translation import ugettext_lazy as _
 from mptt.models import MPTTModel, TreeForeignKey
@@ -186,7 +187,9 @@ class Decision(models.Model):
 
     @property
     def name(self):
-        return self.title or self.start_date
+        return Template("{{ date }}{% if title %} ({{ title }}){% endif %}").render(Context({
+            'date': self.start_date, 'title': self.title
+        }))
 
     def __str__(self):
         return self.name
