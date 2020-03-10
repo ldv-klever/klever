@@ -53,12 +53,14 @@ class PresetJob(MPTTModel):
     type = models.CharField(max_length=1, choices=PRESET_JOB_TYPE)
     check_date = models.DateTimeField()
 
+    creation_date = models.DateTimeField(auto_now_add=True)
+
     class Meta:
         db_table = 'job_preset'
         verbose_name = _('Preset job')
 
     class MPTTMeta:
-        order_insertion_by = ['name']
+        order_insertion_by = ['creation_date']
 
 
 class PresetFile(models.Model):
