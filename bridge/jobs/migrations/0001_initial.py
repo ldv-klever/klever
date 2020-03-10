@@ -52,6 +52,7 @@ class Migration(migrations.Migration):
                 blank=True, null=True, on_delete=models.deletion.CASCADE,
                 related_name='children', to='jobs.PresetJob'
             )),
+            ('creation_date', models.DateTimeField(auto_now_add=True)),
         ], options={'db_table': 'job_preset', 'verbose_name': 'Preset job'}),
 
         migrations.CreateModel(name='PresetFile', fields=[
