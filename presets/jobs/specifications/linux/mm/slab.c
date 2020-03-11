@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 
+#include <linux/types.h>
 #include <linux/ldv/slab.h>
 #include <verifier/memory.h>
 
