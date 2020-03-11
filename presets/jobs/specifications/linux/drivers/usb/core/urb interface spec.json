@@ -1,40 +1,45 @@
 {
-  "Linux 3.14 (base)": {
-    "functions models": {
-      "usb_unlink_urb": {
-        "declaration": "int usb_unlink_urb(*%urb.urb%);",
-        "header":"linux/usb.h"
-      },
-      "usb_kill_urb": {
-        "declaration": "void usb_kill_urb(*%urb.urb%);",
-        "header":"linux/usb.h"
-      },
-      "usb_poison_urb": {
-        "declaration": "void usb_poison_urb(*%urb.urb%);",
-        "header":"linux/usb.h"
-      },
-      "usb_submit_urb": {
-        "declaration": "int usb_submit_urb(*%urb.urb%, gfp_t mem_flags);",
-        "header":"linux/usb.h"
-      }
-    },
+  "3.14": {
     "categories": {
       "urb": {
-        "containers": {
-          "urb": {
-            "declaration": "struct urb urb",
-            "header": "linux/usb.h",
-            "fields": {
-              "complete": "%urb.complete%"
-            }
-          }
-        },
         "callbacks": {
           "complete": {
             "declaration": "void (*complete)(struct urb *)",
             "interrupt context": false
           }
-        }
+        },
+        "containers": {
+          "urb": {
+            "declaration": "struct urb urb",
+            "fields": {
+              "complete": "%urb.complete%"
+            },
+            "header": "linux/usb.h"
+          }
+        },
+        "reference": true
+      }
+    },
+    "functions models": {
+      "usb_kill_urb": {
+        "declaration": "void usb_kill_urb(*%urb.urb%);",
+        "header": "linux/usb.h",
+        "reference": true
+      },
+      "usb_poison_urb": {
+        "declaration": "void usb_poison_urb(*%urb.urb%);",
+        "header": "linux/usb.h",
+        "reference": true
+      },
+      "usb_submit_urb": {
+        "declaration": "int usb_submit_urb(*%urb.urb%, gfp_t mem_flags);",
+        "header": "linux/usb.h",
+        "reference": true
+      },
+      "usb_unlink_urb": {
+        "declaration": "int usb_unlink_urb(*%urb.urb%);",
+        "header": "linux/usb.h",
+        "reference": true
       }
     }
   }

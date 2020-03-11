@@ -2,17 +2,17 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:net:sock"
+      "name": "Requirements specification",
+      "value": "net:core:sock"
     },
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/linux/net/sock/safe.ko"
+      "value": "ext-modules/linux/net/core/sock/safe.ko"
     }
   ],
   "description": "",
-  "is_modifiable": true,
+  "is_modifiable": false,
   "tags": [],
   "verdict": "0"
 }

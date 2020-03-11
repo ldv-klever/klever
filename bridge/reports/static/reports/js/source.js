@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+ * Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
  * Ivannikov Institute for System Programming of the Russian Academy of Sciences
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,10 +15,9 @@
  * limitations under the License.
  */
 
-function SourceProcessor(container, title_container, back_btn, history_container, data_container, legend_container) {
+function SourceProcessor(container, title_container, history_container, data_container, legend_container) {
     this.container = $(container);
     this.title_container = $(title_container);
-    this.back_btn = $(back_btn);
     this.history = $(history_container);
     this.data_container = $(data_container);
     this.legend_container = $(legend_container);
@@ -28,7 +27,8 @@ function SourceProcessor(container, title_container, back_btn, history_container
     this.url = null;
     this.cov_data_url = null;
     this.errors = {
-        line_not_found: 'Line not found'
+        line_not_found: 'Line not found',
+        coverage_not_found: 'You can try another code coverage type to get code coverage for a given source file'
     };
     this.selected_line = null;
     return this;
@@ -37,15 +37,15 @@ function SourceProcessor(container, title_container, back_btn, history_container
 SourceProcessor.prototype.initialize = function(ref_click_callback, source_url) {
     let instance = this;
 
+    if (PAGE_ERRORS && PAGE_ERRORS.line_not_found) instance.errors.line_not_found = PAGE_ERRORS.line_not_found;
+    if (PAGE_ERRORS && PAGE_ERRORS.coverage_not_found) instance.errors.coverage_not_found = PAGE_ERRORS.coverage_not_found;
+
     instance.ref_click_callback = ref_click_callback;
     instance.url = source_url;
-    instance.back_btn.click(function () {
-        if (instance.history.children().length > 1) {
-            let last_child = instance.history.children().last(), prev_child = last_child.prev();
-            instance.get_source(prev_child.data('line'), prev_child.data('file'), false);
-            last_child.remove();
-        }
-        if (instance.history.children().length < 2) instance.back_btn.addClass('disabled');
+
+    window.addEventListener('popstate', function(e) {
+        let new_state = e.state;
+        new_state ? instance.get_source(new_state[1], new_state[0], false) : history.back();
     });
 
     let source_container = this.container,
@@ -92,6 +92,7 @@ SourceProcessor.prototype.refresh = function() {
 
     let cov_data_url = this.container.find('#coverage_data_url');
     instance.cov_data_url = cov_data_url.length ? cov_data_url.val() : null;
+    if (!instance.cov_data_url) warn_notify(instance.errors.coverage_not_found);
 
     this.container.find('.SrcRefToLink').click(function () {
         if (instance.ref_click_callback) instance.ref_click_callback();
@@ -191,10 +192,13 @@ SourceProcessor.prototype.select_line = function(line) {
 
 SourceProcessor.prototype.get_source = function(line, filename, save_history=true) {
     let instance = this;
-    if (save_history) {
-        instance.history.append($('<span>').data('file', filename).data('line', line));
-        if (instance.history.children().length > 1 && instance.back_btn.hasClass('disabled')) instance.back_btn.removeClass('disabled');
+    if (save_history){
+        let state_url = get_url_with_get_parameters(window.location.href, {
+            'source': encodeURIComponent(filename), 'sourceline': line
+        });
+        history.pushState([filename, line], null, state_url);
     }
+
     if (filename === this.title_container.text()) instance.select_line(line);
     else {
         $.ajax({

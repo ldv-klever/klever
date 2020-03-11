@@ -2,8 +2,8 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:alloc:irq"
+      "name": "Requirements specification",
+      "value": "alloc:irq"
     },
     {
       "is_compare": true,
@@ -14,71 +14,38 @@
   "description": "",
   "error_trace": [
     [
-      {
-        "kobil_port_probe": [
-          {
-            "ldv_kmalloc": [
-              {
-                "ldv_check_alloc_flags": [
-                  {
-                    "ldv_in_interrupt_context": []
-                  },
-                  {
-                    "ldv_assert_linux_alloc_irq__wrong_flags": []
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      }
-    ],
-    [
-      {
-        "kobil_open": [
-          {
-            "ldv_kzalloc": [
-              {
-                "ldv_check_alloc_flags": [
-                  {
-                    "ldv_in_interrupt_context": []
-                  },
-                  {
-                    "ldv_assert_linux_alloc_irq__wrong_flags": []
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      }
-    ],
-    [
-      {
-        "ldv_switch_to_interrupt_context": []
-      },
-      {
-        "kobil_write": [
-          {
-            "ldv_usb_submit_urb_34": [
-              {
-                "ldv_check_alloc_flags": [
-                  {
-                    "ldv_in_interrupt_context": []
-                  },
-                  {
-                    "ldv_assert_linux_alloc_irq__wrong_flags": []
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      }
+      [
+        {
+          "LDV model 'switch_to_interrupt_context'": []
+        }
+      ],
+      [
+        {
+          "EMG wrapper": [
+            {
+              "kobil_write": [
+                {
+                  "Instrumented function 'usb_submit_urb'": [
+                    {
+                      "LDV model 'check_alloc_flags'": [
+                        {
+                          "LDV model 'assert'": []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",
-  "is_modifiable": true,
+  "is_modifiable": false,
+  "status": null,
   "tags": [],
+  "threshold": 0,
   "verdict": "2"
 }

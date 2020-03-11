@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
 # Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,6 +15,7 @@
 # limitations under the License.
 #
 
+import io
 import os
 from datetime import datetime
 
@@ -25,8 +26,9 @@ from django.utils.text import format_lazy
 from django.utils.translation import ugettext_lazy as _
 
 from bridge.vars import JOB_STATUS, USER_ROLES, JOB_ROLES, JOB_WEIGHT, SUBJOB_NAME
+from bridge.utils import file_get_or_create, BridgeException
 
-from jobs.models import JobHistory, FileSystem, UserRole, RunHistory
+from jobs.models import Job, JobHistory, JobFile, FileSystem, UserRole, RunHistory, PresetStatus
 from reports.models import ReportRoot, ReportComponent
 from service.models import Decision
 
@@ -84,7 +86,6 @@ TITLES = {
     'tag:safe': _('Safes'),
     'tag:unsafe': _('Unsafes'),
     'identifier': _('Identifier'),
-    'format': _('Format'),
     'version': _('Version'),
     'parent_id': format_lazy('{0}/{1}', _('Parent'), _('Identifier')),
     'role': _('Your role'),
@@ -134,6 +135,27 @@ def is_readable(filename):
     return len(ext) > 0 and ext[1:] in {'txt', 'json', 'xml', 'c', 'aspect', 'i', 'h', 'tmpl'}
 
 
+def get_unique_name(base_name):
+    names_in_use = set(Job.objects.filter(name__startswith=base_name).values_list('name', flat=True))
+    cnt = 1
+    while True:
+        new_name = "{} #{}".format(base_name, cnt)
+        if new_name not in names_in_use:
+            return new_name
+        cnt += 1
+
+
+def is_preset_changed(preset_uuid, creation_date):
+    if not preset_uuid:
+        # Preset is missed for uploaded jobs
+        return False
+    preset_obj = PresetStatus.objects.filter(identifier=preset_uuid).only('check_date').first()
+    if preset_obj:
+        return bool(preset_obj.check_date > creation_date)
+    # Case if preset check was not launched
+    return True
+
+
 class JobAccess:
     def __init__(self, user, job=None):
         self.user = user
@@ -162,8 +184,9 @@ class JobAccess:
         return self._root and self._root.user == self.user
 
     @cached_property
-    def _is_finished(self):
-        return self.job is not None and self.job.status not in {JOB_STATUS[1][0], JOB_STATUS[2][0], JOB_STATUS[6][0]}
+    def _in_progress(self):
+        assert isinstance(self.job, Job), "Can't check the job access if job is not provided"
+        return not self.job.not_decided and not self.job.is_finished
 
     def can_view_jobs(self, queryset):
         """Filter queryset by view job access"""
@@ -184,16 +207,15 @@ class JobAccess:
 
     def can_download_jobs(self, queryset):
         """Check if all jobs in queryset can be downloaded"""
-        unfinished_statues = {JOB_STATUS[1][0], JOB_STATUS[2][0], JOB_STATUS[6][0]}
-        if any(job.status in unfinished_statues for job in queryset):
+        if any(not job.is_finished and not job.not_decided for job in queryset):
             return False
         jobs_ids = self.can_view_jobs(queryset)
         return len(jobs_ids) == len(queryset)
 
     @cached_property
     def can_decide(self):
-        return self._is_finished and (self._is_manager or self._is_author or
-                                      self._job_role in {JOB_ROLES[3][0], JOB_ROLES[4][0]})
+        return not self._in_progress and \
+               (self._is_manager or self._is_author or self._job_role in {JOB_ROLES[3][0], JOB_ROLES[4][0]})
 
     @cached_property
     def can_decide_last(self):
@@ -201,7 +223,7 @@ class JobAccess:
 
     @cached_property
     def can_view(self):
-        if self.job is None:
+        if self.job is None or self.job.status == JOB_STATUS[9][0]:
             return False
         return self._is_manager or self._is_author or self._is_expert or self._job_role != JOB_ROLES[0][0]
 
@@ -211,48 +233,46 @@ class JobAccess:
 
     @cached_property
     def can_edit(self):
-        return self._is_finished and (self._is_author or self._is_manager)
+        return not self._in_progress and (self._is_author or self._is_manager)
 
     @cached_property
     def can_stop(self):
-        return self.job is not None and self.job.status in {JOB_STATUS[1][0], JOB_STATUS[2][0]} \
-               and (self._is_operator or self._is_manager)
+        assert isinstance(self.job, Job), "Can't check the job access if job is not provided"
+        return self.job.status in {JOB_STATUS[1][0], JOB_STATUS[2][0]} and (self._is_operator or self._is_manager)
 
     @cached_property
     def can_download(self):
-        return self._is_finished and self.can_view
+        return not self._in_progress and self.can_view
 
     @cached_property
     def can_delete(self):
         if self.job is None:
             return False
         for job in self.job.get_descendants(include_self=True):
-            is_finished = job.status not in {JOB_STATUS[1][0], JOB_STATUS[2][0], JOB_STATUS[6][0]}
-            if not is_finished or not self._is_manager and job.author != self.user:
+            if not (job.is_finished or job.not_decided) or not self._is_manager and job.author != self.user:
                 return False
         return True
 
     @cached_property
     def can_collapse(self):
-        if not self._is_finished or not (self._is_author or self._is_manager):
-            return False
-        if self.job.weight != JOB_WEIGHT[0][0]:
+        assert isinstance(self.job, Job), "Can't check the job access if job is not provided"
+        if not self.job.is_finished or self.job.is_lightweight or not (self._is_author or self._is_manager):
             return False
         return not ReportComponent.objects.filter(root__job=self.job, component=SUBJOB_NAME).exists()
 
     @cached_property
-    def _has_verifier_input(self):
+    def _has_verifier_files(self):
         if not self._root:
             return False
-        return ReportComponent.objects.filter(root=self._root, verification=True).exclude(verifier_input='').exists()
+        return ReportComponent.objects.filter(root=self._root, verification=True).exclude(verifier_files='').exists()
 
     @cached_property
-    def can_clear_verifications(self):
-        return self._is_finished and (self._is_author or self._is_manager) and self._has_verifier_input
+    def can_clear_verifier_files(self):
+        return self.job.is_finished and (self._is_author or self._is_manager) and self._has_verifier_files
 
     @cached_property
-    def can_download_verifier_input(self):
-        return self._is_finished and self._has_verifier_input
+    def can_download_verifier_files(self):
+        return self.job.is_finished and self.can_view and self._has_verifier_files
 
 
 class JobDecisionData:
@@ -402,3 +422,89 @@ class CompareJobVersions:
         for fp2 in list(files2):
             changed_paths.append([None, files2[fp2]['hashsum'], None, fp2])
         return changed_paths, changed_files
+
+
+class JSTreeConverter:
+    file_sep = '/'
+
+    def make_tree(self, files_list):
+        """
+        Creates tree of files from list for jstree visualization.
+        :param files_list: list of pairs (<file path>, <file hash sum>)
+        :return: tree of files
+        """
+        # Create tree
+        files_tree = [{'type': 'root', 'text': 'Files', 'children': []}]
+        for name, hash_sum in files_list:
+            path = name.split(self.file_sep)
+            obj_p = files_tree[0]['children']
+            for dir_name in path[:-1]:
+                for child in obj_p:
+                    if isinstance(child, dict) and child['type'] == 'folder' and child['text'] == dir_name:
+                        obj_p = child['children']
+                        break
+                else:
+                    # Directory
+                    new_p = []
+                    obj_p.append({'text': dir_name, 'type': 'folder', 'children': new_p})
+                    obj_p = new_p
+            # File
+            obj_p.append({'text': path[-1], 'type': 'file', 'data': {'hashsum': hash_sum}})
+
+        # Sort files and folders by name and put folders before files
+        self.__sort_children(files_tree[0])
+
+        return files_tree
+
+    def parse_tree(self, tree_data):
+        """
+        Converts tree of files to list of kwargs for saving FileSystem object
+        :param tree_data: jstree object
+        :return: list of objects {"file_id": <JobFile object id>, "name": <file path in job files tree>}
+        """
+        assert isinstance(tree_data, list) and len(tree_data) == 1
+        files_list = self.__get_children_data(tree_data[0])
+
+        # Get files ids and check that there is a file for each provided hash_sum
+        hash_sums = set(fdata['hash_sum'] for fdata in files_list if 'hash_sum' in fdata)
+        db_files = dict(JobFile.objects.filter(hash_sum__in=hash_sums).values_list('hash_sum', 'id'))
+        if hash_sums - set(db_files):
+            raise BridgeException(_('There are not uploaded files'))
+
+        # Set file for each file data instead of hash_sum
+        for file_data in files_list:
+            if 'hash_sum' in file_data:
+                file_data['file_id'] = db_files[file_data['hash_sum']]
+                file_data.pop('hash_sum')
+            else:
+                file_data['file_id'] = self._empty_file
+
+        return files_list
+
+    @cached_property
+    def _empty_file(self):
+        db_file = file_get_or_create(io.BytesIO(), 'empty', JobFile, False)
+        return db_file.id
+
+    def __sort_children(self, obj):
+        if not obj.get('children'):
+            return
+        obj['children'].sort(key=lambda x: (x['type'] is 'file', x['text']))
+        for child in obj['children']:
+            self.__sort_children(child)
+
+    def __get_children_data(self, obj_p, prefix=None):
+        assert isinstance(obj_p, dict)
+        if not obj_p['text']:
+            raise BridgeException(_("The file/folder name can't be empty"))
+        files = []
+        name = ((prefix + self.file_sep) if prefix else '') + obj_p['text']
+        if obj_p['type'] == 'file':
+            file_data = {'name': name}
+            if 'data' in obj_p and 'hashsum' in obj_p['data']:
+                file_data['hash_sum'] = obj_p['data']['hashsum']
+            files.append(file_data)
+        elif 'children' in obj_p:
+            for child in obj_p['children']:
+                files.extend(self.__get_children_data(child, prefix=(name if obj_p['type'] != 'root' else None)))
+        return files

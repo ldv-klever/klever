@@ -2,33 +2,45 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:block:queue"
+      "name": "Requirements specification",
+      "value": "block:blk-core:queue"
     },
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/linux/block/queue/use-before-alloc.ko"
+      "value": "ext-modules/linux/block/blk-core/queue/use-before-alloc.ko"
     }
   ],
   "description": "",
   "error_trace": [
     [
-      {
-        "ldv_init": [
-          {
-            "ldv_blk_cleanup_queue": [
-              {
-                "ldv_assert_linux_block_queue__use_before_allocation": []
-              }
-            ]
-          }
-        ]
-      }
+      [
+        {
+          "EMG wrapper": [
+            {
+              "LDV model 'init'": [
+                {
+                  "Instrumented function 'blk_cleanup_queue'": [
+                    {
+                      "LDV model 'blk_cleanup_queue'": [
+                        {
+                          "LDV model 'assert'": []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",
-  "is_modifiable": true,
+  "is_modifiable": false,
+  "status": null,
   "tags": [],
+  "threshold": 0,
   "verdict": "2"
 }

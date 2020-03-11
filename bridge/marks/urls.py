@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
 # Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -51,6 +51,9 @@ urlpatterns = [
     path('unsafe/association-changes/<uuid:cache_id>/', views.UnsafeAssChangesView.as_view(),
          name='unsafe-ass-changes'),
     path('api/remove-unsafe-marks/', api.RemoveUnsafeMarksView.as_view(), name='api-remove-marks-unsafe'),
+
+    path('api/get-updated-preset/<uuid:identifier>/', api.GetUpdatedPresetView.as_view(),
+         name='api-updated-unsafe-preset'),
 
     # Unknown marks
     path('unknown/', views.UnknownMarksListView.as_view(), name='unknown-list'),

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+ * Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
  * Ivannikov Institute for System Programming of the Russian Academy of Sciences
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -71,8 +71,13 @@ CoverageProcessor.prototype.open_stat_table = function() {
 };
 
 CoverageProcessor.prototype.open_first_file = function() {
-    // Open first found file
-    this.stat_table.find('.tree-file-link:visible').first().click();
+    // Open file from url or first found file in coverage table
+    let file_name = getUrlParameter('source'), file_line = getUrlParameter('sourceline');
+    if (file_name) {
+        this.source_processor.get_source(file_line, file_name, false);
+        history.replaceState([file_name, file_line], null, window.location.href);
+    }
+    else this.stat_table.find('.tree-file-link:visible').first().click();
 };
 
 CoverageProcessor.prototype.initialize_actions = function() {

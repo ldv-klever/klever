@@ -2,8 +2,8 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:memory safety"
+      "name": "Requirements specification",
+      "value": "memory safety"
     },
     {
       "is_compare": true,
@@ -14,48 +14,56 @@
   "description": "",
   "error_trace": [
     [
-      {
-        "ldv_init": [
-          {
-            "leak": [
-              {
-                "kmalloc": [
-                  {
-                    "ldv_kmalloc": [
-                      {
-                        "ldv_malloc": [
-                          {
-                            "ldv_reference_malloc": []
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                ]
-              },
-              {
-                "kmalloc": [
-                  {
-                    "ldv_kmalloc": [
-                      {
-                        "ldv_malloc": [
-                          {
-                            "ldv_reference_malloc": []
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      }
+      [
+        {
+          "EMG wrapper": [
+            {
+              "LDV model 'init'": [
+                {
+                  "leak": [
+                    {
+                      "Instrumented function 'kmalloc'": [
+                        {
+                          "LDV model 'kmalloc'": [
+                            {
+                              "LDV model 'malloc'": [
+                                {
+                                  "LDV model 'reference_malloc'": []
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "Instrumented function 'kmalloc'": [
+                        {
+                          "LDV model 'kmalloc'": [
+                            {
+                              "LDV model 'malloc'": [
+                                {
+                                  "LDV model 'reference_malloc'": []
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",
-  "is_modifiable": true,
+  "is_modifiable": false,
+  "status": null,
   "tags": [],
+  "threshold": 0,
   "verdict": "2"
 }

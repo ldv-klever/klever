@@ -4,5 +4,6 @@
   "is_regexp": false,
   "link": "http://forge.ispras.ru/issues/7110",
   "problem_pattern": "TooManyInsts",
-  "production": true
+  "production": true,
+  "is_modifiable": false
 }

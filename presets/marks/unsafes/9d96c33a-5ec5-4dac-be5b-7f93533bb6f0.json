@@ -2,33 +2,45 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:arch:io"
+      "name": "Requirements specification",
+      "value": "arch:mm:ioremap"
     },
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/linux/arch/io/less-initial.ko"
+      "value": "ext-modules/linux/arch/mm/ioremap/less-initial.ko"
     }
   ],
   "description": "",
   "error_trace": [
     [
-      {
-        "ldv_init": [
-          {
-            "ldv_io_mem_unmap": [
-              {
-                "ldv_assert_linux_arch_io__less_initial_decrement": []
-              }
-            ]
-          }
-        ]
-      }
+      [
+        {
+          "EMG wrapper": [
+            {
+              "LDV model 'init'": [
+                {
+                  "Instrumented function 'iounmap'": [
+                    {
+                      "LDV model 'io_mem_unmap'": [
+                        {
+                          "LDV model 'assert'": []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",
-  "is_modifiable": true,
+  "is_modifiable": false,
+  "status": null,
   "tags": [],
+  "threshold": 0,
   "verdict": "2"
 }

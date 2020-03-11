@@ -1,0 +1,67 @@
+{
+  "jobs": [
+    {
+      "uuid": "5ba02606-8bd8-4bc0-a72d-d1ddded47f79",
+      "name": "BusyBox",
+      "directory": "busybox"
+    },
+    {
+      "name": "Linux",
+      "uuid": "027012dc-c23b-45d8-bc5d-e31ab8a62c42",
+      "children": [
+        {
+          "uuid": "c1529fbf-a7db-4507-829e-55f846044309",
+          "name": "Loadable kernel modules sample",
+          "directory": "linux/loadable kernel modules sample",
+          "production": true
+        },
+        {
+          "uuid": "38c96aee-77e8-4964-8d76-564173226c3a",
+          "name": "Kernel subsystems sample",
+          "directory": "linux/kernel subsystems sample"
+        },
+        {
+          "name": "Testing",
+          "uuid": "3a17feb4-84b3-4f44-b01e-43717a58ce5d",
+          "children": [
+            {
+              "uuid": "6ca7df9c-c480-46ce-8a51-2282b12cce35",
+              "name": "Common models",
+              "directory": "linux/testing/common models"
+            },
+            {
+              "uuid": "b5599f0d-123c-43f7-aaaa-449b8b760f93",
+              "name": "Decomposition strategies",
+              "directory": "linux/testing/decomposition strategies"
+            },
+            {
+              "uuid": "3d1158e6-cfec-4863-b4a6-366a6cb20478",
+              "name": "Environment model specifications",
+              "directory": "linux/testing/environment model specifications"
+            },
+            {
+              "uuid": "eafba0a0-dd6a-46aa-9af9-47a03a7360d5",
+              "name": "Requirement specifications",
+              "directory": "linux/testing/requirement specifications"
+            }
+          ]
+        },
+        {
+          "uuid": "88151938-64da-4809-8562-6cf736fbaec2",
+          "name": "Validation",
+          "directory": "linux/validation"
+        }
+      ]
+    },
+    {
+      "uuid": "62439b5a-9039-4ef8-9bfe-fbf50a4a2112",
+      "name": "Testing verifiers",
+      "directory": "testing verifiers"
+    }
+  ],
+  "common directories and files": [
+    "fragmentation sets",
+    "specifications",
+    "verifier profiles.json"
+  ]
+}

@@ -1,5 +1,5 @@
 {% comment "License" %}
-% Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+% Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
 % Ivannikov Institute for System Programming of the Russian Academy of Sciences
 %
 % Licensed under the Apache License, Version 2.0 (the "License");
@@ -45,8 +45,9 @@
 
 {# Template #}
 <div id="template__user_role" hidden>
-    <div class="six wide column right aligned">
+    <div class="eight wide column right aligned">
         <strong><label for="user_role_select__"></label></strong>
+        <i id="user_role_remove__" class="ui red link remove icon"></i>
     </div>
     <div class="eight wide column">
         <select id="user_role_select__">
@@ -54,8 +55,5 @@
                 <option value="{{ jr.0 }}">{{ jr.1 }}</option>
             {% endfor %}
         </select>
-    </div>
-    <div class="two wide column">
-        <button id="user_role_remove__" class="ui icon red basic button"><i class="remove icon"></i></button>
     </div>
 </div>

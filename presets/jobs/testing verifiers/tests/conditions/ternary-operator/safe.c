@@ -16,11 +16,11 @@
  */
 
 #include <linux/module.h>
-#include <verifier/common.h>
+#include <ldv/test.h>
 
 static int __init ldv_init(void)
 {
-	1 ? 0 ? ldv_error() : 1 : 1;
+	1 ? 0 ? ldv_unexpected_error() : 1 : 1;
 	return 0;
 }
 

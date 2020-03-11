@@ -1,0 +1,206 @@
+/*
+ * Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
+ * Ivannikov Institute for System Programming of the Russian Academy of Sciences
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * ee the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+body {
+    padding: 55px 5px 20px 5px;
+    background-color: #f0efff;
+}
+
+.purple-title {
+    color: #6416ad;
+    font-weight: bold;
+    font-size: 1.1em;
+}
+
+.purple-subtitle {
+    color: #6416ad;
+    font-style: italic;
+}
+
+.panel-collapse {
+    padding: 10px;
+}
+
+.linecontent {
+    white-space: pre;
+    font-family: monospace;
+}
+
+.filecontent {
+    white-space: pre;
+    font-family: monospace;
+    overflow: auto;
+}
+
+.btn-file {
+    position: relative;
+    overflow: hidden;
+}
+.btn-file input[type=file] {
+    position: absolute;
+    top: 0;
+    right: 0;
+    min-width: 100%;
+    min-height: 100%;
+    font-size: 20px;
+    filter: alpha(opacity=0);
+    opacity: 0;
+    outline: none;
+    background: white;
+    cursor: inherit;
+    display: block;
+}
+
+.underline {
+    text-decoration: underline;
+}
+
+.italic {
+    font-style: italic;
+}
+
+.violet-link:link {
+    color: #fff16c;
+}
+
+.violet-link:visited {
+    color: #fff16c;
+}
+
+.fake-link:hover {
+    color: #ffbbfa;
+}
+
+.fake-link:link {
+    color: #c231b9;
+}
+
+.fake-link:visited {
+    color: #c231b9;
+}
+
+.violet-link:hover {
+    color: #87ffbf;
+}
+
+.klever-active {
+    background: #dcfbfe;
+}
+
+.bold-text {
+    font-weight: bold;
+}
+
+.tag-description-popup {
+    color: #4b09b5;
+    cursor: pointer;
+}
+
+.small-text {
+    float: right;
+    color: #9d7ac9;
+    font-size: 0.9em;
+    font-style: italic;
+}
+
+.error-comment {
+    color: #9f3a38;
+    font-size: 0.9em;
+    font-style: italic;
+}
+
+.pre-space {
+    white-space: pre;
+}
+
+.user-unselectable {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
+}
+
+.ui.buttons > .button {
+    justify-content: center;
+}
+
+.errorlist {
+    color: #ff414c;
+}
+
+.tag-popup {
+    min-width:260px!important;
+}
+
+.mark-status-0 {
+    color: #e81919!important;
+}
+.mark-status-1 {
+    color: #FF8533!important;
+}
+.mark-status-2 {
+    color: #FF8533!important;
+}
+.mark-status-3 {
+    color: #00c600!important;
+}
+
+.safe-verdict-0 {
+    color: #cb58ec!important;
+}
+.safe-verdict-1 {
+    color: #FF8533!important;
+}
+.safe-verdict-2 {
+    color: #e81919!important;
+}
+.safe-verdict-3 {
+    color: #D11919!important;
+}
+.safe-verdict-4 {
+    color: #000000!important;
+}
+
+.unsafe-verdict-0 {
+    color: #cb58ec!important;
+}
+.unsafe-verdict-1 {
+    color: #e81919!important;
+}
+.unsafe-verdict-2 {
+    color: #e81919!important;
+}
+.unsafe-verdict-3 {
+    color: #FF8533!important;
+}
+.unsafe-verdict-4 {
+    color: #D11919!important;
+}
+.unsafe-verdict-5 {
+    color: #000000!important;
+}
+
+input[type=checkbox] {
+    margin-right: 3px;
+}
+
+.tableScroll {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: auto;
+    max-height: 85vh;
+}

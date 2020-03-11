@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
 # Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -43,7 +43,7 @@ class Migration(migrations.Migration):
             ('priority', models.CharField(choices=[
                 ('URGENT', 'Urgent'), ('HIGH', 'High'), ('LOW', 'Low'), ('IDLE', 'Idle')
             ], max_length=6)),
-            ('error', models.CharField(max_length=1024, null=True)),
+            ('error', models.TextField(null=True)),
             ('fake', models.BooleanField(default=False)),
             ('start_date', models.DateTimeField(null=True)),
             ('finish_date', models.DateTimeField(null=True)),
@@ -99,7 +99,7 @@ class Migration(migrations.Migration):
             ], default='PENDING', max_length=10)),
             ('error', models.CharField(max_length=1024, null=True)),
             ('filename', models.CharField(max_length=256)),
-            ('file', models.FileField(upload_to='Service')),
+            ('archive', models.FileField(upload_to='Service')),
             ('description', jsonb.JSONField()),
             ('decision', models.ForeignKey(
                 on_delete=models.deletion.CASCADE, related_name='tasks', to='service.Decision'
@@ -115,7 +115,7 @@ class Migration(migrations.Migration):
                 on_delete=models.deletion.CASCADE, related_name='solution', to='service.Task'
             )),
             ('filename', models.CharField(max_length=256)),
-            ('file', models.FileField(upload_to='Service')),
+            ('archive', models.FileField(upload_to='Service')),
             ('description', jsonb.JSONField()),
         ], options={'db_table': 'solution'}, bases=(bridge.utils.WithFilesMixin, models.Model)),
 

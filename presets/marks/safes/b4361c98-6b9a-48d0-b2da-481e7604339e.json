@@ -2,17 +2,17 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:usb:register"
+      "name": "Requirements specification",
+      "value": "drivers:usb:core:driver"
     },
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/linux/usb/register/safe.ko"
+      "value": "ext-modules/linux/drivers/usb/core/driver/safe.ko"
     }
   ],
   "description": "",
-  "is_modifiable": true,
+  "is_modifiable": false,
   "tags": [],
   "verdict": "0"
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+ * Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
  * Ivannikov Institute for System Programming of the Russian Academy of Sciences
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -42,5 +42,29 @@ $(document).ready(function () {
             success: function () { window.location.replace('') }
         })
     });
-    $('.like-popup').popup({hoverable: true, position: 'top right'});
+
+    $('.like-popup').each(function () {
+        let popup_id = $(this).data('popupid');
+        if (!popup_id) return;
+        $(this).popup({
+            hoverable: true,
+            popup: popup_id,
+            position: 'top left',
+            lastResort: 'bottom left',
+            target: $(this).parent().find('button').last(),
+            offset: -30,
+            delay: {show: 100, hide: 300}
+        });
+    });
+    $('.dislike-popup').each(function () {
+        let popup_id = $(this).data('popupid');
+        if (!popup_id) return;
+        $(this).popup({
+            hoverable: true,
+            popup: popup_id,
+            position: 'top left',
+            lastResort: 'bottom left',
+            delay: {show: 100, hide: 300}
+        });
+    });
 });

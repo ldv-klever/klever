@@ -1,6 +1,6 @@
 {% extends 'bridge/base.html' %}
 {% comment "License" %}
-% Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+% Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
 % Ivannikov Institute for System Programming of the Russian Academy of Sciences
 %
 % Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,16 +19,21 @@
 {% load i18n %}
 
 {% load staticfiles %}
+{% load compress %}
 
 {% block title %}{% trans 'Coverage' %}{% endblock %}
 
 {% block head_block %}
-    <script type="text/javascript" src="{% static 'reports/js/source.js' %}"></script>
-    <script type="text/javascript" src="{% static 'reports/js/coverage.js' %}"></script>
-    <script type="text/javascript" src="{% static 'reports/js/leaf-coverage.js' %}"></script>
+    {% compress js file coverage %}
+        <script type="text/javascript" src="{% static 'reports/js/source.js' %}"></script>
+        <script type="text/javascript" src="{% static 'reports/js/coverage.js' %}"></script>
+        <script type="text/javascript" src="{% static 'reports/js/leaf-coverage.js' %}"></script>
+    {% endcompress %}
 
-    <link href="{% static 'reports/css/source.css' %}" rel="stylesheet">
-    <link href="{% static 'reports/css/coverage.css' %}" rel="stylesheet">
+    {% compress css file coverage %}
+        <link href="{% static 'reports/css/source.css' %}" rel="stylesheet">
+        <link href="{% static 'reports/css/coverage.css' %}" rel="stylesheet">
+    {% endcompress %}
 {% endblock %}
 
 {% block body_block %}
@@ -45,7 +50,6 @@
                 <a class="ui icon mini basic button" href="{% url 'reports:coverage-download' statistics.coverage.id %}" style="float:left;">{% trans 'Download coverage' %}</a>
             {% endif %}
             <div class="ui mini icon buttons">
-                <button id="src_back_btn" class="ui violet disabled icon button note-popup" data-content="{% trans 'Previous source' %}"><i class="ui arrow left icon"></i></button>
                 <button id="prev_cov_btn" class="ui green button note-popup" data-content="{% trans 'Previous covered function' %}"><i class="step backward icon"></i></button>
                 <button id="next_cov_btn" class="ui green button note-popup" data-content="{% trans 'Next covered function' %}"><i class="step forward icon"></i></button>
                 <button id="prev_uncov_btn" class="ui red button note-popup" data-content="{% trans 'Previous uncovered function' %}"><i class="step backward icon"></i></button>
@@ -112,7 +116,6 @@
         <input id="coverage_id" value="{{ coverage_id }}" type="hidden">
     {% endif %}
     <input id="source_url" type="hidden" value="{% url 'reports:api-get-source' object.id %}{% if coverage_id %}?coverage_id={{ coverage_id }}{% endif %}">
-    <span id="error__line_not_found" hidden>{% trans 'Could not find the specified line' %}</span>
     <script type="application/javascript">
         jQuery(function () {
             $('.parent-popup').popup({inline:true});

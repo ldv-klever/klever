@@ -1,6 +1,6 @@
-{% extends 'jobs/base.html' %}
+{% extends 'bridge/base.html' %}
 {% comment "License" %}
-% Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+% Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
 % Ivannikov Institute for System Programming of the Russian Academy of Sciences
 %
 % Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,13 +18,18 @@
 
 {% load i18n %}
 {% load staticfiles %}
+{% load compress %}
 
 {% block title %}{% trans 'Start decision of job' %}{% endblock %}
 
-{% block jobs_head_block %}
-    <script src="{% static 'jobs/js/startjob.js' %}"></script>
-    <link href="{% static 'jobs/css/start-job.css' %}" rel="stylesheet">
-    <link href="{% static 'jobs/css/multi-state-slider.css' %}" rel="stylesheet">
+{% block head_block %}
+    {% compress js file decision %}
+        <script src="{% static 'jobs/js/startjob.js' %}"></script>
+    {% endcompress %}
+    {% compress css file decision %}
+        <link href="{% static 'jobs/css/start-job.css' %}" rel="stylesheet">
+        <link href="{% static 'jobs/css/multi-state-slider.css' %}" rel="stylesheet">
+    {% endcompress %}
 {% endblock %}
 
 {% block body_block %}
@@ -206,8 +211,8 @@
             </div>
             <br><br>
             <div class="ui toggle checkbox">
-                <input id="upload_verifiers_files" class="boolean-value" type="checkbox" {% if data.conf.upload_verifiers_files %} checked{% endif %}>
-                <label for="upload_verifiers_files">{% trans 'Upload input files of static verifiers' %}</label>
+                <input id="upload_verifier_files" class="boolean-value" type="checkbox" {% if data.conf.upload_verifier_files %} checked{% endif %}>
+                <label for="upload_verifier_files">{% trans 'Upload verifier input files' %}</label>
             </div>
             <br><br>
             <div class="ui toggle checkbox">
@@ -230,6 +235,16 @@
                 <label for="total_coverage">{% trans 'Collect total code coverage' %}</label>
             </div>
             <br><br>
+            <p class="bold-text">{% trans 'Code coverage details' %}</p>
+            <div class="switch-toggle switch-3 switch-candy switch-candy-blue">
+                {% for x in data.coverage_details %}
+                    <input id="coverage_details_{{ x.0 }}" name="coverage_details" type="radio" value="{{ x.0 }}" {% if data.conf.coverage_details == x.0 %} checked="checked"{% endif %}>
+                    <label for="coverage_details_{{ x.0 }}">{{ x.1 }}</label>
+                {% endfor %}
+                <a></a>
+            </div>
+            <br><br>
+            <p class="bold-text">{% trans 'Job reports' %}</p>
             <div class="switch-toggle switch-3 switch-candy switch-candy-blue">
                 {% for w in data.job_weight %}
                     <input id="weight_{{ w.0 }}" name="job_weight" type="radio" value="{{ w.0 }}" {% if data.conf.job_weight == w.0 %} checked="checked"{% endif %}>

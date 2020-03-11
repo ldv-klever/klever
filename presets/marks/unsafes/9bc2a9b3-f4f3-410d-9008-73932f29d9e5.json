@@ -2,37 +2,45 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:usb:gadget"
+      "name": "Requirements specification",
+      "value": "drivers:usb:gadget:udc-core"
     },
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/linux/usb/gadget/unregister-usb-gadget.ko"
+      "value": "ext-modules/linux/drivers/usb/gadget/udc-core/unregister-usb-gadget.ko"
     }
   ],
   "description": "",
   "error_trace": [
     [
-      {
-        "ldv_init": [
-          {
-            "ldv_usb_gadget_unregister_driver_23": [
-              {
-                "ldv_unregister_usb_gadget": [
-                  {
-                    "ldv_assert_linux_usb_gadget__double_usb_gadget_deregistration": []
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      }
+      [
+        {
+          "EMG wrapper": [
+            {
+              "LDV model 'init'": [
+                {
+                  "Instrumented function 'usb_gadget_unregister_driver'": [
+                    {
+                      "LDV model 'unregister_usb_gadget'": [
+                        {
+                          "LDV model 'assert'": []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",
-  "is_modifiable": true,
+  "is_modifiable": false,
+  "status": null,
   "tags": [],
+  "threshold": 0,
   "verdict": "2"
 }

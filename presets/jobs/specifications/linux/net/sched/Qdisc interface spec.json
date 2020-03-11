@@ -1,23 +1,7 @@
 {
-  "Linux 3.14 (base)": {
-    "functions models": {},
+  "3.14": {
     "categories": {
       "Qdisc": {
-        "containers": {
-          "Qdisc_ops": {
-            "declaration": "struct Qdisc_ops ops",
-            "header": "net/sch_generic.h",
-            "fields": {
-              "init": "%Qdisc.probe%",
-              "destroy": "%Qdisc.release%"
-            }
-          }
-        },
-        "resources": {
-          "Qdisc": {
-            "declaration": "struct Qdisc *disc"
-          }
-        },
         "callbacks": {
           "probe": {
             "declaration": "int (*probe)(%Qdisc.Qdisc%, struct nlattr *arg)"
@@ -25,8 +9,25 @@
           "release": {
             "declaration": "void (*release)(%Qdisc.Qdisc%)"
           }
+        },
+        "containers": {
+          "Qdisc_ops": {
+            "declaration": "struct Qdisc_ops ops",
+            "fields": {
+              "destroy": "%Qdisc.release%",
+              "init": "%Qdisc.probe%"
+            },
+            "header": "net/sch_generic.h"
+          }
+        },
+        "reference": true,
+        "resources": {
+          "Qdisc": {
+            "declaration": "struct Qdisc *disc"
+          }
         }
       }
-    }
+    },
+    "functions models": {}
   }
 }

@@ -28,23 +28,20 @@ enum
 
 static int ldv_completion{{ arg_sign.id }} = LDV_NOT_DECLARED;
 
-/* MODEL_FUNC Initialize completion */
 void ldv_init_completion{{ arg_sign.id }}(void)
 {
-	/* NOTE init {{ arg_sign.text }}. */
+	/* NOTE Initialize completion {{ arg_sign.text }}. */
 	ldv_completion{{ arg_sign.id }} = LDV_DECLARED;
 }
 
-/* MODEL_FUNC Check if completion was not initialized and initialize completion */
 void ldv_init_completion_macro{{ arg_sign.id }}(void)
 {
 	/* ASSERT Check if {{ arg_sign.text }} is declared.*/
 	ldv_assert(ldv_completion{{ arg_sign.id }} != LDV_NOT_DECLARED);
-	/* NOTE init {{ arg_sign.text }}. */
+	/* NOTE Initialize completion { arg_sign.text }}. */
 	ldv_completion{{ arg_sign.id }} = LDV_DECLARED;
 }
 
-/* MODEL_FUNC Check if completion was initialized and wait for it */
 void ldv_wait_for_completion{{ arg_sign.id }}(void)
 {
 	/* ASSERT Check if there was declaration for {{ arg_sign.text }}.*/

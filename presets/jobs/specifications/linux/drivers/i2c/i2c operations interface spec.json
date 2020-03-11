@@ -1,36 +1,39 @@
 {
-  "Linux 3.14 (base)": {
-    "functions models": {
-      "i2c_register_driver": {
-        "declaration": "int i2c_register_driver(struct module *owner, *%i2c.i2c_driver%)",
-        "header": "linux/i2c.h"
-      },
-      "i2c_del_driver": {
-        "declaration": "void i2c_del_driver(*%i2c.i2c_driver%)",
-        "header": "linux/i2c.h"
-      }
-    },
+  "3.14": {
     "categories": {
       "i2c": {
-        "containers": {
-          "i2c_driver": {
-            "declaration": "struct i2c_driver driver",
-            "header": "linux/i2c.h",
-            "fields": {
-              "remove": "%i2c.release%"
-            }
-          }
-        },
-        "resources": {
-          "client": {
-            "declaration": "struct i2c_client *client"
-          }
-        },
         "callbacks": {
           "release": {
             "declaration": "int (*release)(%i2c.client%)"
           }
+        },
+        "containers": {
+          "i2c_driver": {
+            "declaration": "struct i2c_driver driver",
+            "fields": {
+              "remove": "%i2c.release%"
+            },
+            "header": "linux/i2c.h"
+          }
+        },
+        "reference": true,
+        "resources": {
+          "client": {
+            "declaration": "struct i2c_client *client"
+          }
         }
+      }
+    },
+    "functions models": {
+      "i2c_del_driver": {
+        "declaration": "void i2c_del_driver(*%i2c.i2c_driver%)",
+        "header": "linux/i2c.h",
+        "reference": true
+      },
+      "i2c_register_driver": {
+        "declaration": "int i2c_register_driver(struct module *owner, *%i2c.i2c_driver%)",
+        "header": "linux/i2c.h",
+        "reference": true
       }
     }
   }

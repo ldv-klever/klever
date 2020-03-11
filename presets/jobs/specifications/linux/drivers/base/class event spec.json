@@ -1,23 +1,13 @@
 {
-  "Linux 3.14 (base)": {
+  "3.14": {
+    "environment processes": {},
     "functions models": {
       "class_interface_register": {
-        "comment": "Register a class interface.",
-        "labels": {
-          "class": {
-            "container": true,
-            "parameter": true,
-            "interface": [
-              "class.class"
-            ]
-          }
-        },
-        "process": "<assign>.[register].<success> | <fail>",
         "actions": {
-          "register": {
-            "comment": "Register the class interface.",
-            "parameters": [
-              "%class%"
+          "assign": {
+            "comment": "Get class argument.",
+            "statements": [
+              "%class% = $ARG1;"
             ]
           },
           "fail": {
@@ -26,10 +16,10 @@
               "return ldv_undef_int_negative();"
             ]
           },
-          "assign": {
-            "comment": "Get class argument.",
-            "statements": [
-              "%class% = $ARG1;"
+          "register": {
+            "comment": "Register the class interface.",
+            "parameters": [
+              "%class%"
             ]
           },
           "success": {
@@ -38,36 +28,48 @@
               "return 0;"
             ]
           }
-        }
-      },
-      "class_interface_unregister": {
-        "comment": "Unregister a class interface.",
+        },
+        "comment": "Register a class interface.",
         "labels": {
           "class": {
             "container": true,
-            "parameter": true,
             "interface": [
               "class.class"
-            ]
+            ],
+            "parameter": true
           }
         },
-        "process": "<assign>.[deregister]",
+        "process": "<assign>.[register].<success> | <fail>",
+        "reference": true
+      },
+      "class_interface_unregister": {
         "actions": {
-          "deregister": {
-            "comment": "Deregister a class interface.",
-            "parameters": [
-              "%class%"
-            ]
-          },
           "assign": {
             "comment": "Get class argument.",
             "statements": [
               "%class% = $ARG1;"
             ]
+          },
+          "deregister": {
+            "comment": "Deregister a class interface.",
+            "parameters": [
+              "%class%"
+            ]
           }
-        }
+        },
+        "comment": "Unregister a class interface.",
+        "labels": {
+          "class": {
+            "container": true,
+            "interface": [
+              "class.class"
+            ],
+            "parameter": true
+          }
+        },
+        "process": "<assign>.[deregister]",
+        "reference": true
       }
-    },
-    "environment processes": {}
+    }
   }
 }

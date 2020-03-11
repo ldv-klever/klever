@@ -16,8 +16,7 @@
  */
 
 #include <linux/module.h>
-#include <verifier/common.h>
-#include <verifier/map.h>
+#include <ldv/test.h>
 
 static int __init ldv_init(void)
 {
@@ -30,7 +29,7 @@ static int __init ldv_init(void)
 	ldv_map_put(map, key2, value2);
 	if (ldv_map_get(map, key1) == value1 &&
 	    ldv_map_get(map, key2) == value2)
-		ldv_error();
+		ldv_expected_error();
 
 	return 0;
 }

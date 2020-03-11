@@ -1,364 +1,20 @@
 {
-  "Linux 3.14 (base)": {
-    "functions models": {
-      "request_threaded_irq": {
-        "comment": "Allocate an interrupt line for a managed device.",
-        "labels": {
-          "thread": {
-            "callback": true,
-            "interface": [
-              "interrupt.thread"
-            ],
-            "parameter": true
-          },
-          "callback": {
-            "callback": true,
-            "interface": [
-              "interrupt.handler"
-            ],
-            "parameter": true
-          },
-          "line": {
-            "resource": true,
-            "interface": [
-              "interrupt.line"
-            ],
-            "parameter": true
-          },
-          "data": {
-            "resource": true,
-            "interface": [
-              "interrupt.data"
-            ],
-            "parameter": true
-          }
-        },
-        "process": "<assign>.[irq_register].<success> | <fail>",
-        "actions": {
-          "irq_register": {
-            "comment": "Register interrupt callback (callbacks).",
-            "parameters": [
-              "%line%",
-              "%callback%",
-              "%thread%",
-              "%data%"
-            ]
-          },
-          "fail": {
-            "comment": "Failed to allocate an interrupt line for a managed device.",
-            "statements": [
-              "return ldv_undef_int_negative();"
-            ]
-          },
-          "assign": {
-            "comment": "Get line, callbacks and data arguments.",
-            "statements": [
-              "%line% = $ARG1;",
-              "%callback% = $ARG2;",
-              "%thread% = $ARG3;",
-              "%data% = $ARG6;"
-            ]
-          },
-          "success": {
-            "comment": "Successfully allocated an interrupt line for a managed device.",
-            "statements": [
-              "return 0;"
-            ]
-          }
-        }
-      },
-      "devm_request_threaded_irq": {
-        "comment": "Allocate an interrupt line for a managed device.",
-        "labels": {
-          "thread": {
-            "callback": true,
-            "interface": [
-              "interrupt.thread"
-            ],
-            "parameter": true
-          },
-          "callback": {
-            "callback": true,
-            "interface": [
-              "interrupt.handler"
-            ],
-            "parameter": true
-          },
-          "line": {
-            "resource": true,
-            "interface": [
-              "interrupt.line"
-            ],
-            "parameter": true
-          },
-          "data": {
-            "resource": true,
-            "interface": [
-              "interrupt.data"
-            ],
-            "parameter": true
-          }
-        },
-        "process": "<assign>.[irq_register].<success> | <fail>",
-        "actions": {
-          "irq_register": {
-            "comment": "Register interrupt callback (callbacks).",
-            "parameters": [
-              "%line%",
-              "%callback%",
-              "%thread%",
-              "%data%"
-            ]
-          },
-          "fail": {
-            "comment": "Failed to allocate an interrupt line for a managed device.",
-            "statements": [
-              "return ldv_undef_int_negative();"
-            ]
-          },
-          "assign": {
-            "comment": "Get line, callbacks and data arguments.",
-            "statements": [
-              "%line% = $ARG2;",
-              "%callback% = $ARG3;",
-              "%thread% = $ARG4;",
-              "%data% = $ARG7;"
-            ]
-          },
-          "success": {
-            "comment": "Successfully allocated an interrupt line for a managed device.",
-            "statements": [
-              "return 0;"
-            ]
-          }
-        }
-      },
-      "request_irq, request_any_context_irq": {
-        "comment": "Allocate an interrupt line for a managed device.",
-        "labels": {
-          "thread": {
-            "callback": true,
-            "interface": [
-              "interrupt.thread"
-            ]
-          },
-          "callback": {
-            "callback": true,
-            "interface": [
-              "interrupt.handler"
-            ],
-            "parameter": true
-          },
-          "line": {
-            "resource": true,
-            "interface": [
-              "interrupt.line"
-            ],
-            "parameter": true
-          },
-          "data": {
-            "resource": true,
-            "interface": [
-              "interrupt.data"
-            ],
-            "parameter": true
-          }
-        },
-        "process": "<assign>.[irq_register].<success> | <fail>",
-        "actions": {
-          "irq_register": {
-            "comment": "Register interrupt callback (callbacks).",
-            "parameters": [
-              "%line%",
-              "%callback%",
-              "%thread%",
-              "%data%"
-            ]
-          },
-          "fail": {
-            "comment": "Failed to allocate an interrupt line for a managed device.",
-            "statements": [
-              "return ldv_undef_int_negative();"
-            ]
-          },
-          "assign": {
-            "comment": "Get line, callbacks and data arguments.",
-            "statements": [
-              "%line% = $ARG1;",
-              "%callback% = $ARG2;",
-              "%thread% = 0;",
-              "%data% = $ARG5;"
-            ]
-          },
-          "success": {
-            "comment": "Successfully allocated an interrupt line for a managed device.",
-            "statements": [
-              "return 0;"
-            ]
-          }
-        }
-      },
-      "request_percpu_irq": {
-        "comment": "Allocate an interrupt line for a managed device.",
-        "labels": {
-          "thread": {
-            "callback": true,
-            "interface": [
-              "interrupt.thread"
-            ]
-          },
-          "callback": {
-            "callback": true,
-            "interface": [
-              "interrupt.handler"
-            ],
-            "parameter": true
-          },
-          "line": {
-            "resource": true,
-            "interface": [
-              "interrupt.line"
-            ],
-            "parameter": true
-          },
-          "data": {
-            "resource": true,
-            "interface": [
-              "interrupt.data"
-            ],
-            "parameter": true
-          }
-        },
-        "process": "<assign>.[irq_register].<success> | <fail>",
-        "actions": {
-          "irq_register": {
-            "comment": "Register interrupt callback (callbacks).",
-            "parameters": [
-              "%line%",
-              "%callback%",
-              "%thread%",
-              "%data%"
-            ]
-          },
-          "fail": {
-            "comment": "Failed to allocate an interrupt line for a managed device.",
-            "statements": [
-              "return ldv_undef_int_negative();"
-            ]
-          },
-          "assign": {
-            "comment": "Get line, callbacks and data arguments.",
-            "statements": [
-              "%line% = $ARG1;",
-              "%callback% = $ARG2;",
-              "%thread% = 0;",
-              "%data% = $ARG4;"
-            ]
-          },
-          "success": {
-            "comment": "Successfully allocated an interrupt line for a managed device.",
-            "statements": [
-              "return 0;"
-            ]
-          }
-        }
-      },
-      "free_irq, devm_free_irq": {
-        "comment": "Free an interrupt.",
-        "labels": {
-          "line": {
-            "resource": true,
-            "interface": [
-              "interrupt.line"
-            ],
-            "parameter": true
-          }
-        },
-        "process": "<assign>.[irq_deregister]",
-        "actions": {
-          "irq_deregister": {
-            "comment": "The interrupt line is freed.",
-            "parameters": [
-              "%line%"
-            ]
-          },
-          "assign": {
-            "comment": "Get an interrupt line argument.",
-            "statements": [
-              "%line% = $ARG1;"
-            ]
-          }
-        }
-      },
-      "free_percpu_irq": {
-        "comment": "Free an interrupt.",
-        "labels": {
-          "line": {
-            "resource": true,
-            "interface": [
-              "interrupt.line"
-            ],
-            "parameter": true
-          }
-        },
-        "process": "<assign>.[irq_deregister]",
-        "actions": {
-          "irq_deregister": {
-            "comment": "The interrupt line is freed.",
-            "parameters": [
-              "%line%"
-            ]
-          },
-          "assign": {
-            "comment": "Get an interrupt line argument.",
-            "statements": [
-              "%line% = $ARG2;"
-            ]
-          }
-        }
-      }
-    },
+  "3.14": {
     "environment processes": {
       "interrupt_scenario": {
-        "comment": "Handle an interrupt.",
-        "headers": ["linux/interrupt.h"],
-        "labels": {
-          "thread": {
-            "callback": true,
-            "interface": [
-              "interrupt.thread"
-            ]
-          },
-          "callback": {
-            "callback": true,
-            "interface": [
-              "interrupt.handler"
-            ]
-          },
-          "line": {
-            "resource": true,
-            "interface": [
-              "interrupt.line"
-            ]
-          },
-          "data": {
-            "resource": true,
-            "interface": [
-              "interrupt.data"
-            ]
-          },
-          "ret_val": {
-            "declaration": "irqreturn_t a"
-          }
-        },
-        "process": "(!irq_register).[handler].(<need_thread>.[thread] | <handled>).(irq_deregister)",
         "actions": {
-          "irq_register": {
-            "comment": "An interrupt is registered.",
+          "handled": {
+            "comment": "An interrupt has been handled.",
+            "condition": [
+              "%ret_val% != IRQ_WAKE_THREAD"
+            ]
+          },
+          "handler": {
+            "callback": "%callback%",
+            "callback return value": "%ret_val%",
+            "comment": "An interrupt happens, execute the bottom half function to handle it.",
             "parameters": [
               "%line%",
-              "%callback%",
-              "%thread%",
               "%data%"
             ]
           },
@@ -371,20 +27,12 @@
               "%line%"
             ]
           },
-          "handler": {
-            "comment": "An interrupt happens, execute the bottom half function to handle it.",
-            "callback": "%callback%",
+          "irq_register": {
+            "comment": "An interrupt is registered.",
             "parameters": [
               "%line%",
-              "%data%"
-            ],
-            "callback return value": "%ret_val%"
-          },
-          "thread": {
-            "comment": "Proceed with the interrupt handling, execute the top half function.",
-            "callback": "%thread%",
-            "parameters": [
-              "%line%",
+              "%callback%",
+              "%thread%",
               "%data%"
             ]
           },
@@ -394,13 +42,374 @@
               "%ret_val% == IRQ_WAKE_THREAD"
             ]
           },
-          "handled": {
-            "comment": "An interrupt has been handled.",
-            "condition": [
-              "%ret_val% != IRQ_WAKE_THREAD"
+          "thread": {
+            "callback": "%thread%",
+            "comment": "Proceed with the interrupt handling, execute the top half function.",
+            "parameters": [
+              "%line%",
+              "%data%"
             ]
           }
-        }
+        },
+        "comment": "Handle an interrupt.",
+        "headers": [
+          "linux/interrupt.h"
+        ],
+        "labels": {
+          "callback": {
+            "callback": true,
+            "interface": [
+              "interrupt.handler"
+            ]
+          },
+          "data": {
+            "interface": [
+              "interrupt.data"
+            ],
+            "resource": true
+          },
+          "line": {
+            "interface": [
+              "interrupt.line"
+            ],
+            "resource": true
+          },
+          "ret_val": {
+            "declaration": "irqreturn_t a"
+          },
+          "thread": {
+            "callback": true,
+            "interface": [
+              "interrupt.thread"
+            ]
+          }
+        },
+        "process": "(!irq_register).[handler].(<need_thread>.[thread] | <handled>).(irq_deregister)",
+        "reference": true
+      }
+    },
+    "functions models": {
+      "devm_request_threaded_irq": {
+        "actions": {
+          "assign": {
+            "comment": "Get line, callbacks and data arguments.",
+            "statements": [
+              "%line% = $ARG2;",
+              "%callback% = $ARG3;",
+              "%thread% = $ARG4;",
+              "%data% = $ARG7;"
+            ]
+          },
+          "fail": {
+            "comment": "Failed to allocate an interrupt line for a managed device.",
+            "statements": [
+              "return ldv_undef_int_negative();"
+            ]
+          },
+          "irq_register": {
+            "comment": "Register interrupt callback (callbacks).",
+            "parameters": [
+              "%line%",
+              "%callback%",
+              "%thread%",
+              "%data%"
+            ]
+          },
+          "success": {
+            "comment": "Successfully allocated an interrupt line for a managed device.",
+            "statements": [
+              "return 0;"
+            ]
+          }
+        },
+        "comment": "Allocate an interrupt line for a managed device.",
+        "labels": {
+          "callback": {
+            "callback": true,
+            "interface": [
+              "interrupt.handler"
+            ],
+            "parameter": true
+          },
+          "data": {
+            "interface": [
+              "interrupt.data"
+            ],
+            "parameter": true,
+            "resource": true
+          },
+          "line": {
+            "interface": [
+              "interrupt.line"
+            ],
+            "parameter": true,
+            "resource": true
+          },
+          "thread": {
+            "callback": true,
+            "interface": [
+              "interrupt.thread"
+            ],
+            "parameter": true
+          }
+        },
+        "process": "<assign>.[irq_register].<success> | <fail>",
+        "reference": true
+      },
+      "free_irq, devm_free_irq": {
+        "actions": {
+          "assign": {
+            "comment": "Get an interrupt line argument.",
+            "statements": [
+              "%line% = $ARG1;"
+            ]
+          },
+          "irq_deregister": {
+            "comment": "The interrupt line is freed.",
+            "parameters": [
+              "%line%"
+            ]
+          }
+        },
+        "comment": "Free an interrupt.",
+        "labels": {
+          "line": {
+            "interface": [
+              "interrupt.line"
+            ],
+            "parameter": true,
+            "resource": true
+          }
+        },
+        "process": "<assign>.[irq_deregister]",
+        "reference": true
+      },
+      "free_percpu_irq": {
+        "actions": {
+          "assign": {
+            "comment": "Get an interrupt line argument.",
+            "statements": [
+              "%line% = $ARG2;"
+            ]
+          },
+          "irq_deregister": {
+            "comment": "The interrupt line is freed.",
+            "parameters": [
+              "%line%"
+            ]
+          }
+        },
+        "comment": "Free an interrupt.",
+        "labels": {
+          "line": {
+            "interface": [
+              "interrupt.line"
+            ],
+            "parameter": true,
+            "resource": true
+          }
+        },
+        "process": "<assign>.[irq_deregister]",
+        "reference": true
+      },
+      "request_irq, request_any_context_irq": {
+        "actions": {
+          "assign": {
+            "comment": "Get line, callbacks and data arguments.",
+            "statements": [
+              "%line% = $ARG1;",
+              "%callback% = $ARG2;",
+              "%thread% = 0;",
+              "%data% = $ARG5;"
+            ]
+          },
+          "fail": {
+            "comment": "Failed to allocate an interrupt line for a managed device.",
+            "statements": [
+              "return ldv_undef_int_negative();"
+            ]
+          },
+          "irq_register": {
+            "comment": "Register interrupt callback (callbacks).",
+            "parameters": [
+              "%line%",
+              "%callback%",
+              "%thread%",
+              "%data%"
+            ]
+          },
+          "success": {
+            "comment": "Successfully allocated an interrupt line for a managed device.",
+            "statements": [
+              "return 0;"
+            ]
+          }
+        },
+        "comment": "Allocate an interrupt line for a managed device.",
+        "labels": {
+          "callback": {
+            "callback": true,
+            "interface": [
+              "interrupt.handler"
+            ],
+            "parameter": true
+          },
+          "data": {
+            "interface": [
+              "interrupt.data"
+            ],
+            "parameter": true,
+            "resource": true
+          },
+          "line": {
+            "interface": [
+              "interrupt.line"
+            ],
+            "parameter": true,
+            "resource": true
+          },
+          "thread": {
+            "callback": true,
+            "interface": [
+              "interrupt.thread"
+            ]
+          }
+        },
+        "process": "<assign>.[irq_register].<success> | <fail>",
+        "reference": true
+      },
+      "request_percpu_irq": {
+        "actions": {
+          "assign": {
+            "comment": "Get line, callbacks and data arguments.",
+            "statements": [
+              "%line% = $ARG1;",
+              "%callback% = $ARG2;",
+              "%thread% = 0;",
+              "%data% = $ARG4;"
+            ]
+          },
+          "fail": {
+            "comment": "Failed to allocate an interrupt line for a managed device.",
+            "statements": [
+              "return ldv_undef_int_negative();"
+            ]
+          },
+          "irq_register": {
+            "comment": "Register interrupt callback (callbacks).",
+            "parameters": [
+              "%line%",
+              "%callback%",
+              "%thread%",
+              "%data%"
+            ]
+          },
+          "success": {
+            "comment": "Successfully allocated an interrupt line for a managed device.",
+            "statements": [
+              "return 0;"
+            ]
+          }
+        },
+        "comment": "Allocate an interrupt line for a managed device.",
+        "labels": {
+          "callback": {
+            "callback": true,
+            "interface": [
+              "interrupt.handler"
+            ],
+            "parameter": true
+          },
+          "data": {
+            "interface": [
+              "interrupt.data"
+            ],
+            "parameter": true,
+            "resource": true
+          },
+          "line": {
+            "interface": [
+              "interrupt.line"
+            ],
+            "parameter": true,
+            "resource": true
+          },
+          "thread": {
+            "callback": true,
+            "interface": [
+              "interrupt.thread"
+            ]
+          }
+        },
+        "process": "<assign>.[irq_register].<success> | <fail>",
+        "reference": true
+      },
+      "request_threaded_irq": {
+        "actions": {
+          "assign": {
+            "comment": "Get line, callbacks and data arguments.",
+            "statements": [
+              "%line% = $ARG1;",
+              "%callback% = $ARG2;",
+              "%thread% = $ARG3;",
+              "%data% = $ARG6;"
+            ]
+          },
+          "fail": {
+            "comment": "Failed to allocate an interrupt line for a managed device.",
+            "statements": [
+              "return ldv_undef_int_negative();"
+            ]
+          },
+          "irq_register": {
+            "comment": "Register interrupt callback (callbacks).",
+            "parameters": [
+              "%line%",
+              "%callback%",
+              "%thread%",
+              "%data%"
+            ]
+          },
+          "success": {
+            "comment": "Successfully allocated an interrupt line for a managed device.",
+            "statements": [
+              "return 0;"
+            ]
+          }
+        },
+        "comment": "Allocate an interrupt line for a managed device.",
+        "labels": {
+          "callback": {
+            "callback": true,
+            "interface": [
+              "interrupt.handler"
+            ],
+            "parameter": true
+          },
+          "data": {
+            "interface": [
+              "interrupt.data"
+            ],
+            "parameter": true,
+            "resource": true
+          },
+          "line": {
+            "interface": [
+              "interrupt.line"
+            ],
+            "parameter": true,
+            "resource": true
+          },
+          "thread": {
+            "callback": true,
+            "interface": [
+              "interrupt.thread"
+            ],
+            "parameter": true
+          }
+        },
+        "process": "<assign>.[irq_register].<success> | <fail>",
+        "reference": true
       }
     }
   }

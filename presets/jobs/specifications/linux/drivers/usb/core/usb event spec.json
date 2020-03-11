@@ -1,41 +1,182 @@
 {
-  "Linux 3.14 (base)": {
-    "functions models": {
-      "usb_reset_device": {
-        "comment": "Reset USB device.",
-        "labels": {},
-        "process": "[@usb_reset].<success>",
+  "3.14": {
+    "environment processes": {
+      "usb_scenario": {
         "actions": {
-          "usb_reset": {
-            "comment": "Trigger reset of the USB device.",
-            "parameters": []
-          },
-          "success": {
-            "comment": "Proceed to reset.",
+          "alloc_interface": {
+            "comment": "Allocate memory and initialize new USB interface.",
             "statements": [
-              "return 0;"
+              "%resource% = $ALLOC(%resource%);",
+              "%usb_device% = $ALLOC(%usb_device%);",
+              "%resource%->dev.parent = & %usb_device%->dev;"
             ]
+          },
+          "callback": {
+            "callback": "%callback%",
+            "parameters": [
+              "%resource%"
+            ]
+          },
+          "deregister": {
+            "condition": [
+              "%container% == $ARG1"
+            ],
+            "parameters": [
+              "%container%"
+            ]
+          },
+          "failed_probe": {
+            "comment": "Association of driver-specific data with the USB interface has been failed.",
+            "condition": [
+              "%probe_retval% != 0"
+            ]
+          },
+          "free_interface": {
+            "comment": "Free allocated memory for USB interface.",
+            "statements": [
+              "$FREE(%resource%);",
+              "$FREE(%usb_device%);"
+            ]
+          },
+          "manage_interface": {
+            "comment": "Manage particular interface on a device.",
+            "process": "[probe].(<probe_success>.((usb_reset).[pre].[post] | [suspend].([resume] | [reset_resume]) | [callback] | <skip>).[release] | <failed_probe>).{manage_interface} | <free_interface>.(deregister)"
+          },
+          "post": {
+            "callback": "%container.post%",
+            "comment": "Initialize device after reset.",
+            "parameters": [
+              "%resource%"
+            ]
+          },
+          "pre": {
+            "callback": "%container.pre%",
+            "comment": "Prepare for resetting device.",
+            "parameters": [
+              "%resource%"
+            ]
+          },
+          "probe": {
+            "callback": "%container.probe%",
+            "callback return value": "%probe_retval%",
+            "comment": "Associate driver-specific data with the USB interface.",
+            "parameters": [
+              "%resource%"
+            ],
+            "post-call": [
+              "%probe_retval% = ldv_post_probe(%probe_retval%);"
+            ],
+            "pre-call": [
+              "ldv_pre_probe();"
+            ]
+          },
+          "probe_success": {
+            "comment": "Check that interface has been probed successfully.",
+            "condition": [
+              "%probe_retval% == 0"
+            ]
+          },
+          "register": {
+            "comment": "Begin USB callbacks invocation scenario.",
+            "parameters": [
+              "%container%"
+            ]
+          },
+          "release": {
+            "callback": "%container.release%",
+            "comment": "USB interface is no more accessible.",
+            "parameters": [
+              "%resource%"
+            ]
+          },
+          "reset_resume": {
+            "callback": "%container.reset_resume%",
+            "comment": "Device is about to be resumed.",
+            "parameters": [
+              "%resource%"
+            ]
+          },
+          "resume": {
+            "callback": "%container.resume%",
+            "comment": "Device is about to be resumed.",
+            "parameters": [
+              "%resource%"
+            ]
+          },
+          "skip": {
+            "comment": "Do not suspend or reset device."
+          },
+          "suspend": {
+            "callback": "%container.suspend%",
+            "comment": "Device is about to be suspended.",
+            "parameters": [
+              "%resource%"
+            ]
+          },
+          "usb_reset": {
+            "comment": "Reset USB device."
           }
-        }
-      },
-      "usb_register_driver, usb_register": {
-        "comment": "Register USB callbacks.",
+        },
+        "comment": "Invoke usb callbacks.",
         "labels": {
-          "usb_driver": {
+          "callback": {
+            "callback": true
+          },
+          "container": {
             "container": true,
-            "parameter": true,
             "interface": [
               "usb.usb_driver"
             ]
+          },
+          "probe_retval": {
+            "declaration": "int a",
+            "value": "ldv_undef_int()"
+          },
+          "resource": {
+            "interface": [
+              "usb.usb_interface"
+            ]
+          },
+          "usb_device": {
+            "interface": [
+              "usb.usb_device"
+            ]
           }
         },
-        "process": "<assign>.[register].<success> | <fail>",
+        "process": "(!register).(<alloc_interface>.{manage_interface})",
+        "reference": true
+      }
+    },
+    "functions models": {
+      "usb_deregister": {
         "actions": {
-          "register": {
+          "assign": {
+            "comment": "Get callbacks to deregister provided within 'usb_driver' argument.",
+            "statements": [
+              "%usb_driver% = $ARG1;"
+            ]
+          },
+          "deregister": {
             "parameters": [
               "%usb_driver%"
             ]
-          },
+          }
+        },
+        "comment": "Deregister USB callbacks.",
+        "labels": {
+          "usb_driver": {
+            "container": true,
+            "interface": [
+              "usb.usb_driver"
+            ],
+            "parameter": true
+          }
+        },
+        "process": "<assign>.[deregister]",
+        "reference": true
+      },
+      "usb_register_driver, usb_register": {
+        "actions": {
           "assign": {
             "comment": "Get callbacks to register provided within 'usb_driver' argument.",
             "statements": [
@@ -49,185 +190,48 @@
               "return ldv_undef_int_negative();"
             ]
           },
+          "register": {
+            "parameters": [
+              "%usb_driver%"
+            ]
+          },
           "success": {
             "comment": "Registration of usb_driver callbacks has been finished successfully.",
             "statements": [
               "return 0;"
             ]
           }
-        }
-      },
-      "usb_deregister": {
-        "comment": "Deregister USB callbacks.",
+        },
+        "comment": "Register USB callbacks.",
         "labels": {
           "usb_driver": {
             "container": true,
-            "parameter": true,
             "interface": [
               "usb.usb_driver"
-            ]
+            ],
+            "parameter": true
           }
         },
-        "process": "<assign>.[deregister]",
+        "process": "<assign>.[register].<success> | <fail>",
+        "reference": true
+      },
+      "usb_reset_device": {
         "actions": {
-          "deregister": {
-            "parameters": [
-              "%usb_driver%"
-            ]
-          },
-          "assign": {
-            "comment": "Get callbacks to deregister provided within 'usb_driver' argument.",
+          "success": {
+            "comment": "Proceed to reset.",
             "statements": [
-              "%usb_driver% = $ARG1;"
-            ]
-          }
-        }
-      }
-    },
-    "environment processes": {
-      "usb_scenario": {
-        "comment": "Invoke usb callbacks.",
-        "labels": {
-          "container": {
-            "container": true,
-            "interface": [
-              "usb.usb_driver"
-            ]
-          },
-          "resource": {
-            "interface": [
-              "usb.usb_interface"
-            ]
-          },
-          "usb_device": {
-            "interface": [
-              "usb.usb_device"
-            ]
-          },
-          "probe_retval": {
-            "declaration": "int a",
-            "value": "ldv_undef_int()"
-          },
-          "callback": {
-            "callback": true
-          }
-        },
-        "process": "(!register).(<alloc_interface>.{manage_interface} | (deregister))",
-        "actions": {
-          "manage_interface": {
-            "comment": "Manage particular interface on a device.",
-            "process": "[probe].(<probe_success>.((usb_reset).[pre].[post] | [suspend].([resume] | [reset_resume]) | [callback] | <skip>).[release] | <failed_probe>).{manage_interface} | <free_interface>.(deregister)"
-          },
-          "register": {
-            "comment": "Begin USB callbacks invocation scenario.",
-            "parameters": [
-              "%container%"
-            ]
-          },
-          "deregister": {
-            "condition": [
-              "%container% == $ARG1"
-            ],
-            "parameters": [
-              "%container%"
-            ]
-          },
-          "alloc_interface": {
-            "comment": "Allocate memory and initialize new USB interface.",
-            "statements": [
-              "%resource% = $ALLOC(%resource%);",
-              "%usb_device% = $ALLOC(%usb_device%);",
-              "%resource%->dev.parent = & %usb_device%->dev;"
-            ]
-          },
-          "free_interface": {
-            "comment": "Free allocated memory for USB interface.",
-            "statements": [
-              "$FREE(%resource%);",
-              "$FREE(%usb_device%);"
-            ]
-          },
-          "callback": {
-            "callback": "%callback%",
-            "parameters": [
-              "%resource%"
-            ]
-          },
-          "probe": {
-            "comment": "Associate driver-specific data with the USB interface.",
-            "callback": "%container.probe%",
-            "parameters": [
-              "%resource%"
-            ],
-            "pre-call": [
-              "ldv_pre_probe();"
-            ],
-            "callback return value": "%probe_retval%",
-            "post-call": [
-              "%probe_retval% = ldv_post_probe(%probe_retval%);"
-            ]
-          },
-          "release": {
-            "comment": "USB interface is no more accessible.",
-            "callback": "%container.release%",
-            "parameters": [
-              "%resource%"
-            ]
-          },
-          "suspend": {
-            "comment": "Device is about to be suspended.",
-            "callback": "%container.suspend%",
-            "parameters": [
-              "%resource%"
-            ]
-          },
-          "resume": {
-            "comment": "Device is about to be resumed.",
-            "callback": "%container.resume%",
-            "parameters": [
-              "%resource%"
-            ]
-          },
-          "reset_resume": {
-            "comment": "Device is about to be resumed.",
-            "callback": "%container.reset_resume%",
-            "parameters": [
-              "%resource%"
-            ]
-          },
-          "pre": {
-            "comment": "Prepare for resetting device.",
-            "callback": "%container.pre%",
-            "parameters": [
-              "%resource%"
-            ]
-          },
-          "post": {
-            "comment": "Initialize device after reset.",
-            "callback": "%container.post%",
-            "parameters": [
-              "%resource%"
+              "return 0;"
             ]
           },
           "usb_reset": {
-            "comment": "Reset USB device."
-          },
-          "probe_success": {
-            "comment": "Check that interface has been probed successfully.",
-            "condition": [
-              "%probe_retval% == 0"
-            ]
-          },
-          "failed_probe": {
-            "comment": "Association of driver-specific data with the USB interface has been failed.",
-            "condition": [
-              "%probe_retval% != 0"
-            ]
-          },
-          "skip": {
-            "comment": "Do not suspend or reset device."
+            "comment": "Trigger reset of the USB device.",
+            "parameters": []
           }
-        }
+        },
+        "comment": "Reset USB device.",
+        "labels": {},
+        "process": "[@usb_reset].<success>",
+        "reference": true
       }
     }
   }

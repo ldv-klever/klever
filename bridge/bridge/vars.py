@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
 # Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,7 +18,6 @@
 from django.utils.translation import ugettext_lazy as _, pgettext_lazy as __
 from django.utils.functional import cached_property
 
-FORMAT = 1
 ETV_FORMAT = 1
 
 DATAFORMAT = (
@@ -79,12 +78,19 @@ JOB_STATUS = (
     ('5', _('Corrupted')),
     ('6', _('Cancelling')),
     ('7', _('Cancelled')),
-    ('8', _('Terminated'))
+    ('8', _('Terminated')),
+    ('9', _('Uploading')),
 )
 
 JOB_WEIGHT = (
     ('0', _('Full-weight')),
     ('1', _('Lightweight'))
+)
+
+COVERAGE_DETAILS = (
+    ('0', _('Original C source files')),
+    ('1', _('C source files including models')),
+    ('2', _('All source files'))
 )
 
 MARK_SOURCE = (
@@ -322,7 +328,7 @@ TASK_STATUS = (
 REPORT_ARCHIVE = {
     'log': 'Log.zip',
     'coverage': 'Coverage.zip',
-    'verifier_input': 'VerifierInput.zip',
+    'verifier_files': 'VerifierFiles.zip',
     'error_trace': 'ErrorTrace.zip',
     'original_sources': 'OriginalSources.zip',
     'additional_sources': 'AdditionalSources.zip',
@@ -353,9 +359,9 @@ NAME_ATTR = 'Sub-job identifier'
 UNKNOWN_ATTRS_NOT_ASSOCIATE = {'Verification object', 'Program fragment'}
 
 COMPARE_FUNCTIONS = {
-    'callback_call_forests': {
-        'desc': 'Jaccard index of "callback_call_forests" convertion.',
-        'convert': 'callback_call_forests'
+    'relevant_call_forests': {
+        'desc': 'Jaccard index of "relevant_call_forests" convertion.',
+        'convert': 'relevant_call_forests'
     },
     'thread_call_forests': {
         'desc': 'Jaccard index of "thread_call_forests" convertion.',
@@ -366,19 +372,32 @@ COMPARE_FUNCTIONS = {
 DEFAULT_COMPARE = 'thread_call_forests'
 
 CONVERT_FUNCTIONS = {
-    'callback_call_forests': """
+    'relevant_call_forests': """
 This function is extracting the error trace call stack forests.
-The forest is a couple of call trees under callback action.
+The forest is a couple of call trees under relevant action.
 Call tree is tree of function names in their execution order.
 All its leaves are names of functions which calls or statements
 are marked with the "note" or "warn" attribute. Returns list of forests.
     """,
     'thread_call_forests': """
 This function extracts error trace call forests. Each call forest is one or more call trees in the same thread.
-A call tree is a tree of names of functions in their execution order. Each call tree root is either a callback action
-if it exists in a corresponding call stack or a thread function. All call tree leaves are names of functions
-which calls or statements are marked with the “note” or “warn” attribute. If there are several such functions in
-a call stack then the latests functions are chosen. The function returns a list of forests. A forests order corresponds
+A call tree is a tree of names of functions in their execution order. Some call trees can be grouped by
+relevant action into list. Each call tree root is either a relevant action if it exists in a corresponding call stack
+or a thread function. All call tree leaves are names of functions which calls or statements are marked
+with the “note” or “warn” attribute. The function returns a list of forests. A forests order corresponds
 to an execution order of first statements of forest threads.
     """
 }
+
+JOB_UPLOAD_STATUS = (
+    ('0', _('Pending')),
+    ('1', _('Extracting archive files')),
+    ('2', _('Uploading files')),
+    ('3', _('Uploading job with versions')),
+    ('4', _('Uploading reports')),
+    ('5', _('Associating marks and cache recalculation')),
+    ('6', _('Finished')),
+    ('7', _('Failed')),
+)
+
+TREE_LIST_JSON = 'TreeList.json'

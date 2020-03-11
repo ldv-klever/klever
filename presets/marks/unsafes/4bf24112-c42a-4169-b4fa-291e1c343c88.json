@@ -2,8 +2,8 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:alloc:irq"
+      "name": "Requirements specification",
+      "value": "alloc:irq"
     },
     {
       "is_compare": true,
@@ -14,24 +14,38 @@
   "description": "",
   "error_trace": [
     [
-      {
-        "ldv_switch_to_interrupt_context": []
-      },
-      {
-        "ldv_handler": [
-          {
-            "ldv_check_alloc_nonatomic": [
-              {
-                "ldv_assert_linux_alloc_irq__nonatomic": []
-              }
-            ]
-          }
-        ]
-      }
+      [
+        {
+          "LDV model 'switch_to_interrupt_context'": []
+        }
+      ],
+      [
+        {
+          "EMG wrapper": [
+            {
+              "LDV model 'handler'": [
+                {
+                  "Instrumented function 'vmalloc'": [
+                    {
+                      "LDV model 'check_alloc_nonatomic'": [
+                        {
+                          "LDV model 'assert'": []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",
-  "is_modifiable": true,
+  "is_modifiable": false,
+  "status": null,
   "tags": [],
+  "threshold": 0,
   "verdict": "2"
 }

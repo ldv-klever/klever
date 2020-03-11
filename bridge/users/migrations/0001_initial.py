@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
 # Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -99,6 +99,10 @@ class Migration(migrations.Migration):
                 blank=True, help_text='Specific permissions for this user.', related_name='user_set',
                 related_query_name='user', to='auth.Permission', verbose_name='user permissions'
             )),
+            ('default_threshold', models.FloatField(
+                default=0, verbose_name='Default unsafe marks threshold',
+                help_text='This setting sets default unsafe marks threshold on its creation'
+             )),
         ], options={
             'verbose_name': 'user',
             'verbose_name_plural': 'users',

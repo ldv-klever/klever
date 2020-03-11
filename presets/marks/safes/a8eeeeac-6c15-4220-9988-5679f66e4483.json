@@ -2,8 +2,8 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:kernel:locking:mutex"
+      "name": "Requirements specification",
+      "value": "kernel:locking:mutex"
     },
     {
       "is_compare": true,
@@ -12,7 +12,7 @@
     }
   ],
   "description": "It is necessary to specify i2c_algorithm interface. Note, that registration in the case is implemented using a registration function but it requires some pointer analysis to track.",
-  "is_modifiable": true,
+  "is_modifiable": false,
   "tags": [
     "EMG",
     "EnvSpec"

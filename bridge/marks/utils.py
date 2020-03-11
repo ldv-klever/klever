@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
 # Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -241,74 +241,41 @@ class CompareMarkVersions:
                 {'pattern': self.v2.problem_pattern, 'link': self.v2.link}]
 
 
-class RemoveMarksBase:
-    model = None
-    associations_model = None
-
-    def __init__(self, **kwargs):
-        self._qs_kwargs = kwargs
-        self._marks_qs = self.__get_marks_qs()
-        if not self._marks_qs.exists():
-            # Nothing to delete
-            return
-        self.affected_reports = self.__get_affected_reports()
-        self._marks_qs.delete()
-        self.update_associated()
-
-    def __get_marks_qs(self):
-        assert self.model
-        return self.model.objects.filter(**self._qs_kwargs)
-
-    def __get_affected_reports(self):
-        assert self.associations_model
-        qs_filters = dict(('mark__{}'.format(k), v) for k, v in self._qs_kwargs.items())
-        return set(self.associations_model.objects.filter(**qs_filters).values_list('report_id', flat=True))
-
-    @property
-    def without_associations_qs(self):
-        # Find reports that has marks associations when all association are disabled. It can be in 2 cases:
-        # 1) All marks are unconfirmed
-        # 2) All confirmed associations were with deleted marks
-        # We need to update 2nd case, so auto-associations are counting again
-        changed_ids = self.affected_reports - set(self.associations_model.objects.filter(
-            report_id__in=self.affected_reports, associated=True
-        ).values_list('report_id', flat=True))
-        return self.associations_model.objects.filter(report_id__in=changed_ids).exclude(type=ASSOCIATION_TYPE[2][0])
-
-    def update_associated(self):
-        self.without_associations_qs.update(associated=True)
-
-
 class ConfirmAssociationBase:
     model = None
 
     def __init__(self, author, association_obj):
         assert self.model
         self._author = author
-        self._object = association_obj
+        self.association = association_obj
         self.__confirm()
 
     def recalculate_cache(self, report_id):
         raise NotImplementedError('Please implement the method!')
 
+    def can_confirm_validation(self):
+        pass
+
     def __confirm(self):
+        self.can_confirm_validation()
+
         # Already confirmed
-        if self._object.type == ASSOCIATION_TYPE[1][0]:
+        if self.association.type == ASSOCIATION_TYPE[1][0]:
             return
 
         # Update association
-        self._object.author = self._author
-        self._object.type = ASSOCIATION_TYPE[1][0]
-        self._object.associated = True
-        self._object.save()
+        self.association.author = self._author
+        self.association.type = ASSOCIATION_TYPE[1][0]
+        self.association.associated = True
+        self.association.save()
 
         # Do not count automatic associations as there is already confirmed one
         self.model.objects.filter(
-            report_id=self._object.report_id, associated=True, type=ASSOCIATION_TYPE[0][0]
+            report_id=self.association.report_id, associated=True, type=ASSOCIATION_TYPE[0][0]
         ).update(associated=False)
 
         # Recalculate verdicts and numbers of associations
-        self.recalculate_cache(self._object.report_id)
+        self.recalculate_cache(self.association.report_id)
 
 
 class UnconfirmAssociationBase:

@@ -1,5 +1,5 @@
 {
-  "Linux 3.14 (base)": {
+  "3.14": {
     "functions models": {
       "tty_register_ldisc": {
         "declaration": "int tty_register_ldisc(int disc, *%tty_ldisc.ops%)",

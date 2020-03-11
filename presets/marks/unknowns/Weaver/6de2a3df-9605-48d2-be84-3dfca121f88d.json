@@ -2,7 +2,7 @@
   "attrs": [],
   "description": "",
   "function": "tree node 'fix_trunc_expr' isn't supported",
-  "is_modifiable": true,
+  "is_modifiable": false,
   "is_regexp": false,
   "problem_pattern": "Unsup fix_trunc_expr",
   "production": true

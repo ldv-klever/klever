@@ -2,17 +2,17 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:block:request"
+      "name": "Requirements specification",
+      "value": "block:blk-core:request"
     },
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/linux/block/request/safe.ko"
+      "value": "ext-modules/linux/block/blk-core/request/safe.ko"
     }
   ],
   "description": "",
-  "is_modifiable": true,
+  "is_modifiable": false,
   "tags": [],
   "verdict": "0"
 }

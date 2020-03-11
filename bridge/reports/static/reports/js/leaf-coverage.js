@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+ * Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
  * Ivannikov Institute for System Programming of the Russian Academy of Sciences
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,11 +18,10 @@
 $(document).ready(function () {
     let source_processor = new SourceProcessor(
         '#CoverageSourceCode', '#CoverageSourceTitle',
-        '#src_back_btn', '#sources_history',
-        '#CoverageDataContent', '#CoverageLegend'
+        '#sources_history', '#CoverageDataContent',
+        '#CoverageLegend'
     );
     source_processor.initialize(null, $('#source_url').val());
-    source_processor.errors.line_not_found = $('#error__line_not_found').text();
 
     let coverage_processor = new CoverageProcessor(
         source_processor, '#CoverageDataContent', '#CoverageStatisticsTable'

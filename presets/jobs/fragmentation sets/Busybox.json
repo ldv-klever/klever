@@ -1,0 +1,23 @@
+{
+  "tactics": {
+    "applets": {
+      "reference": true,
+      "include dependencies from libbb to applets fragments": true
+    }
+  },
+  "fragmentation sets": {
+    "1.28.3": {
+      "reference": true,
+      "exclude from all fragments": [
+        "libbb/getopt32.c",
+        "libbb/appletlib.c",
+        "libbb/verror_msg.c",
+        "libbb/perror_msg.c"
+      ],
+      "add to all fragments": [
+        "libbb/wfopen.c",
+        "libbb/wfopen_input.c"
+      ]
+    }
+  }
+}

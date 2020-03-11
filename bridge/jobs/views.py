@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
 # Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,10 +26,11 @@ from django.urls import reverse
 from django.utils.translation import ugettext as _
 from django.views.generic.base import TemplateView
 from django.views.generic.detail import SingleObjectMixin, DetailView
+from django.views.generic.list import ListView
 
 
 from tools.profiling import LoggedCallMixin
-from bridge.vars import VIEW_TYPES, JOB_STATUS, PRIORITY, JOB_WEIGHT, USER_ROLES, JOB_ROLES, ERRORS
+from bridge.vars import VIEW_TYPES, JOB_STATUS, PRIORITY, JOB_WEIGHT, JOB_ROLES, ERRORS
 from bridge.utils import BridgeException
 from bridge.CustomViews import DataViewMixin, StreamingResponseView
 
@@ -37,13 +38,14 @@ from users.models import User
 from reports.utils import FilesForCompetitionArchive
 from reports.coverage import JobCoverageStatistics
 
-from jobs.models import Job, RunHistory, JobFile
+from jobs.models import Job, RunHistory, JobFile, UploadedJobArchive
 from jobs.serializers import JobFormSerializerRO, get_view_job_data
-from jobs.utils import months_choices, years_choices, JobDecisionData, JobAccess, CompareFileSet
+from jobs.utils import months_choices, years_choices, is_preset_changed, JobDecisionData, JobAccess, CompareFileSet
 from jobs.configuration import StartDecisionData
 from jobs.ViewJobData import ViewJobData
 from jobs.JobTableProperties import TableTree
 from jobs.Download import JobFileGenerator, JobConfGenerator, JobArchiveGenerator, JobsArchivesGen, JobsTreesGen
+from jobs.preset import PresetsProcessor
 
 
 class JobsTree(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, TemplateView):
@@ -54,7 +56,9 @@ class JobsTree(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, TemplateView)
             'users': User.objects.all(),
             'statuses': JOB_STATUS, 'weights': JOB_WEIGHT, 'priorities': list(reversed(PRIORITY)),
             'months': months_choices(), 'years': years_choices(),
-            'TableData': TableTree(self.request.user, self.get_view(VIEW_TYPES[1]))
+            'TableData': TableTree(self.request.user, self.get_view(VIEW_TYPES[1])),
+            'presets_tree': PresetsProcessor(self.request.user).get_jobs_tree(),
+            'can_create': JobAccess(self.request.user).can_create
         }
 
 
@@ -85,6 +89,7 @@ class JobPage(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, DetailView):
 
         # Job coverages
         context['Coverage'] = JobCoverageStatistics(self.object)
+        context['preset_changed'] = is_preset_changed(self.object.preset_uuid, self.object.creation_date)
 
         return context
 
@@ -126,10 +131,30 @@ class JobFormPage(LoginRequiredMixin, LoggedCallMixin, DetailView):
     def get_context_data(self, **kwargs):
         if not JobAccess(self.request.user, self.object).can_view:
             raise BridgeException(code=400)
-        context = super().get_context_data(**kwargs)
-        context.update(JobFormSerializerRO(instance=self.object).data)
-        context.update({'action': self.kwargs['action'], 'job_roles': JOB_ROLES})
-        return context
+        return {
+            'initial': JobFormSerializerRO(self.kwargs['action'], instance=self.object).data,
+            'action': self.kwargs['action'], 'job_roles': JOB_ROLES,
+            'cancel_url': reverse('jobs:job', args=[self.object.id]),
+            'initial_url': reverse('jobs:api-job-version', args=[self.object.id, self.object.version])
+        }
+
+
+class PresetFormPage(LoginRequiredMixin, LoggedCallMixin, TemplateView):
+    template_name = 'jobs/jobForm.html'
+
+    def get_context_data(self, **kwargs):
+        if not JobAccess(self.request.user).can_create:
+            raise BridgeException(_("You don't have an access to create new job"))
+        name, parent = PresetsProcessor(self.request.user).get_job_name_and_parent(self.kwargs['preset_uuid'])
+        return {
+            'initial': {
+                'name': name, 'parent': str(parent.identifier) if parent else '',
+                'save_url': reverse('jobs:api-create-job'),
+                'preset_uuid': self.kwargs['preset_uuid']
+            },
+            'action': 'create', 'job_roles': JOB_ROLES, 'cancel_url': reverse('jobs:tree'),
+            'initial_url': reverse('jobs:api-preset-data', args=[self.kwargs['preset_uuid']])
+        }
 
 
 class DownloadJobFileView(LoginRequiredMixin, LoggedCallMixin, SingleObjectMixin, StreamingResponseView):
@@ -149,7 +174,7 @@ class DownloadFilesForCompetition(LoginRequiredMixin, LoggedCallMixin, SingleObj
 
     def get_generator(self):
         instance = self.get_object()
-        if not JobAccess(self.request.user, instance).can_download_verifier_input:
+        if not JobAccess(self.request.user, instance).can_download_verifier_files:
             raise BridgeException(code=400)
         if 'filters' not in self.request.GET:
             raise BridgeException()
@@ -176,9 +201,10 @@ class DownloadJobsListView(LoginRequiredMixin, LoggedCallMixin, StreamingRespons
 
 class DownloadJobsTreeView(LoginRequiredMixin, LoggedCallMixin, StreamingResponseView):
     def get_generator(self):
-        if self.request.user.role != USER_ROLES[2][0]:
-            raise BridgeException(_("Only managers can download jobs trees"), back=reverse('jobs:tree'))
-        return JobsTreesGen(json.loads(unquote(self.request.GET['jobs'])))
+        jobs_gen = JobsTreesGen(json.loads(unquote(self.request.GET['jobs'])))
+        if not JobAccess(self.request.user).can_download_jobs(jobs_gen.jobs_queryset):
+            raise BridgeException(_("You don't have an access to one of the jobs in a tree"), back=reverse('jobs:tree'))
+        return jobs_gen
 
 
 class PrepareDecisionView(LoggedCallMixin, DetailView):
@@ -201,3 +227,10 @@ class DownloadRunConfigurationView(LoginRequiredMixin, LoggedCallMixin, SingleOb
         if not JobAccess(self.request.user, instance.job).can_view:
             raise BridgeException(code=400)
         return JobConfGenerator(instance)
+
+
+class JobsUploadingStatus(LoginRequiredMixin, LoggedCallMixin, ListView):
+    template_name = 'jobs/UploadingStatus.html'
+
+    def get_queryset(self):
+        return UploadedJobArchive.objects.filter(author=self.request.user).select_related('job').order_by('-start_date')

@@ -16,8 +16,7 @@
  */
 
 #include <linux/module.h>
-#include <verifier/common.h>
-#include <verifier/nondet.h>
+#include <ldv/test.h>
 
 static int __init ldv_init(void)
 {
@@ -32,7 +31,7 @@ static int __init ldv_init(void)
 	    ldv_undef_int() == 5 &&
 	    ldv_undef_int() == 10 &&
 	    ldv_undef_int() == INT_MAX)
-	    ldv_error();
+	    ldv_expected_error();
 
 	return 0;
 }

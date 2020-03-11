@@ -30,7 +30,6 @@ enum {
 
 static int ldv_disk_state = LDV_NO_DISK;
 
-/* MODEL_FUNC Allocate gendisk. */
 struct gendisk *ldv_alloc_disk(void)
 {
 	/* ASSERT Gendisk should not be allocated twice. */
@@ -48,36 +47,32 @@ struct gendisk *ldv_alloc_disk(void)
 	return res;
 }
 
-/* MODEL_FUNC Add gendisk. */
 void ldv_add_disk(void)
 {
-	/* ASSERT Gendisk should be allocated . */
+	/* ASSERT Gendisk should be allocated. */
 	ldv_assert(ldv_disk_state == LDV_ALLOCATED_DISK);
 	/* NOTE Add gendisk. */
 	ldv_disk_state = LDV_ADDED_DISK;
 }
 
-/* MODEL_FUNC Delete gendisk. */
 void ldv_del_gendisk(void)
 {
-	/* ASSERT Gendisk should be allocated . */
+	/* ASSERT Gendisk should be allocated. */
 	ldv_assert(ldv_disk_state == LDV_ADDED_DISK);
 	/* NOTE Add gendisk. */
 	ldv_disk_state = LDV_ALLOCATED_DISK;
 }
 
-/* MODEL_FUNC Free gendisk. */
 void ldv_put_disk(struct gendisk *disk)
 {
 	if (disk) {
-		/* ASSERT Gendisk should be allocated . */
+		/* ASSERT Gendisk should be allocated. */
 		ldv_assert(ldv_disk_state >= LDV_ALLOCATED_DISK);
 		/* NOTE Add gendisk. */
 		ldv_disk_state = LDV_NO_DISK;
 	}
 }
 
-/* MODEL_FUNC Check that all sysfs groups are not incremented at the end */
 void ldv_check_final_state( void )
 {
 	/* ASSERT Sysfs groups must be freed at the end. */

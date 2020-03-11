@@ -1,6 +1,6 @@
 {% extends 'bridge/base.html' %}
 {% comment "License" %}
-% Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+% Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
 % Ivannikov Institute for System Programming of the Russian Academy of Sciences
 %
 % Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,15 +18,21 @@
 
 {% load i18n %}
 {% load staticfiles %}
+{% load compress %}
 
 {% block title %}{% trans 'Error Trace Fullscreen' %}{% endblock %}
 
 {% block head_block %}
-    <script type="text/javascript" src="{% static 'reports/js/source.js' %}"></script>
-    <script type="text/javascript" src="{% static 'reports/js/ETV.js' %}"></script>
-    <script type="text/javascript" src="{% static 'reports/js/ETV-windows.js' %}"></script>
-    <link href="{% static 'reports/css/source.css' %}" rel="stylesheet">
-    <link href="{% static 'reports/css/ETV.css' %}" rel="stylesheet">
+    {% compress js file etvfull %}
+        <script type="text/javascript" src="{% static 'reports/js/source.js' %}"></script>
+        <script type="text/javascript" src="{% static 'reports/js/ETV.js' %}"></script>
+        <script type="text/javascript" src="{% static 'reports/js/ETV-windows.js' %}"></script>
+    {% endcompress %}
+
+    {% compress css file etvfull %}
+        <link href="{% static 'reports/css/source.css' %}" rel="stylesheet">
+        <link href="{% static 'reports/css/ETV.css' %}" rel="stylesheet">
+    {% endcompress %}
 {% endblock %}
 
 {% block body_block %}

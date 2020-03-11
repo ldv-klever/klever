@@ -1,6 +1,6 @@
 {% extends 'bridge/base.html' %}
 {% comment "License" %}
-% Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+% Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
 % Ivannikov Institute for System Programming of the Russian Academy of Sciences
 %
 % Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,12 +18,17 @@
 
 {% load i18n %}
 {% load staticfiles %}
+{% load compress %}
 
 {% block title %}{% trans 'Job reports comparison' %}{% endblock %}
 
 {% block head_block %}
-    <link href="{% static 'reports/css/comparison.css' %}" rel="stylesheet">
-    <script src="{% static 'reports/js/comparison.js' %}"></script>
+    {% compress css file mark_comparison %}
+        <link href="{% static 'reports/css/comparison.css' %}" rel="stylesheet">
+    {% endcompress %}
+    {% compress js file mark_comparison %}
+        <script src="{% static 'reports/js/comparison.js' %}"></script>
+    {% endcompress %}
 {% endblock %}
 
 {% block body_block %}

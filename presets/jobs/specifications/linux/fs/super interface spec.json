@@ -1,5 +1,5 @@
 {
-  "Linux 2.6.33": {
+  "2.6.33": {
     "functions models": {
       "register_filesystem": {
         "declaration": "int register_filesystem(*%super.file_system_type%)",

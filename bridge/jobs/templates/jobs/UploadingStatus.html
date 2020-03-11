@@ -1,0 +1,53 @@
+{% extends 'bridge/base.html' %}
+{% comment "License" %}
+% Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+% Ivannikov Institute for System Programming of the Russian Academy of Sciences
+%
+% Licensed under the Apache License, Version 2.0 (the "License");
+% you may not use this file except in compliance with the License.
+% You may obtain a copy of the License at
+%
+%    http://www.apache.org/licenses/LICENSE-2.0
+%
+% Unless required by applicable law or agreed to in writing, software
+% distributed under the License is distributed on an "AS IS" BASIS,
+% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+% See the License for the specific language governing permissions and
+% limitations under the License.
+{% endcomment %}
+
+{% load i18n %}
+
+{% block title %}{% trans 'Jobs uploading status' %}{% endblock %}
+
+{% block body_block %}
+    <div style="max-width: 90%;overflow: auto;">
+        <table class="ui compact violet table">
+            <thead>
+                <tr>
+                    <th>{% trans 'Archive name' %}</th>
+                    <th>{% trans 'Status' %}</th>
+                    <th>{% trans 'Start date' %}</th>
+                    <th>{% trans 'Finish date' %}</th>
+                    <th>{% trans 'Uploaded job' %}</th>
+                    <th>{% trans 'Error' %}</th>
+                </tr>
+            </thead>
+            <tbody id="uploading_status_table_body">
+                {% include 'jobs/UploadStatusTableBody.html' with object_list=object_list %}
+            </tbody>
+        </table>
+    </div>
+    <script type="application/javascript">
+        jQuery(function () {
+            let interval = setInterval(function () {
+                if ($.active > 0) return false;
+                $.get("{% url 'jobs:api-uploading-status' %}", {}, function (resp) {
+                    $('#uploading_status_table_body').html(resp)
+                }).fail(function () {
+                    clearInterval(interval);
+                });
+            }, 3000);
+        })
+    </script>
+{% endblock %}

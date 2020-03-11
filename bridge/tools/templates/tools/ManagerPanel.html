@@ -1,6 +1,6 @@
 {% extends 'bridge/base.html' %}
 {% comment "License" %}
-% Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+% Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
 % Ivannikov Institute for System Programming of the Russian Academy of Sciences
 %
 % Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,11 +18,14 @@
 
 {% load i18n %}
 {% load staticfiles %}
+{% load compress %}
 
 {% block title %}{% trans 'Manager Tools' %}{% endblock %}
 
 {% block head_block %}
-    <script src="{% static 'tools/js/manager.js' %}"></script>
+    {% compress js file manager %}
+        <script src="{% static 'tools/js/manager.js' %}"></script>
+    {% endcompress %}
 {% endblock %}
 
 {% block body_block %}
@@ -66,8 +69,7 @@
                 <button class="ui orange button recalc-button" data-value="safe_reports">{% trans 'Safe reports' %}</button>
                 <button class="ui orange button recalc-button" data-value="unsafe_reports">{% trans 'Unsafe reports' %}</button>
                 <button class="ui orange button recalc-button" data-value="unknown_reports">{% trans 'Unknown reports' %}</button>
-                <button class="ui orange button recalc-button" data-value="resources">{% trans 'Resources' %}</button>
-                <button class="ui orange button recalc-button" data-value="compinst">{% trans 'Components instances' %}</button>
+                <button class="ui orange button recalc-button" data-value="root_cache">{% trans 'Resources and instances' %}</button>
                 <button class="ui orange button recalc-button" data-value="coverage">{% trans 'Coverage cache' %}</button>
                 <button class="ui red button recalc-button" data-value="all">{% trans 'All caches' %}</button>
             </div>
@@ -81,9 +83,9 @@
                 <button id="upload_all_marks" class="ui teal button">{% trans 'Upload all marks' %}</button>
                 <button class="ui red button api-request-btn" data-url="{% url 'tools:api-clear-system' %}" data-method="POST">{% trans 'Remove unused files and DB rows' %}</button>
                 <button class="ui red button api-request-btn" data-url="{% url 'tools:api-clear-tasks' %}" data-method="DELETE">{% trans 'Remove tasks for not solving jobs' %}</button>
-                <a href="{% url 'tools:processing-list' %}" class="ui yellow button">{% trans 'View processing reqeusts' %}</a>
+                <a href="{% url 'tools:processing-list' %}" class="ui yellow button">{% trans 'View processing requests' %}</a>
                 <a href="{% url 'tools:call-logs' %}" class="ui yellow button">{% trans 'View function call logs' %}</a>
-                <button class="ui yellow button api-request-btn" data-url="{% url 'tools:api-clear-logs' %}" data-method="DELETE">{% trans 'Remove call log that is older than 30 days' %}</button>
+                <a href="{% url 'tools:db-statistics' %}" class="ui yellow button">{% trans 'View db logs statistics' %}</a>
             </div>
         </div>
     </div>
@@ -104,12 +106,6 @@
                                 <div class="ui child checkbox">
                                     <input type="checkbox" value="schedulers">
                                     <label>{% trans 'Schedulers' %}</label>
-                                </div>
-                            </div>
-                            <div class="item">
-                                <div class="ui child checkbox">
-                                    <input type="checkbox" value="jobs">
-                                    <label>{% trans 'Jobs' %}</label>
                                 </div>
                             </div>
                             <div class="item">

@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
 # Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -64,7 +64,6 @@ class Migration(migrations.Migration):
             ('attrs', JSONField(default=dict)),
             ('marks_total', models.PositiveIntegerField(default=0)),
             ('marks_confirmed', models.PositiveIntegerField(default=0)),
-            ('total_similarity', models.FloatField(default=0)),
             ('verdict', models.CharField(choices=[
                 ('0', 'Unknown'), ('1', 'Bug'), ('2', 'Target bug'), ('3', 'False positive'),
                 ('4', 'Incompatible marks'), ('5', 'Without marks')
@@ -120,8 +119,6 @@ class Migration(migrations.Migration):
             ], max_length=1)),
             ('tags_old', JSONField()),
             ('tags_new', JSONField()),
-            ('total_similarity_old', models.FloatField()),
-            ('total_similarity_new', models.FloatField()),
             ('job', models.ForeignKey(on_delete=models.deletion.CASCADE, to='jobs.Job')),
             ('mark', models.ForeignKey(on_delete=models.deletion.CASCADE, to='marks.MarkUnsafe')),
             ('report', models.ForeignKey(on_delete=models.deletion.CASCADE, to='reports.ReportUnsafe')),

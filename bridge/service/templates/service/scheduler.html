@@ -1,6 +1,6 @@
 {% extends 'bridge/base.html' %}
 {% comment "License" %}
-% Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+% Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
 % Ivannikov Institute for System Programming of the Russian Academy of Sciences
 %
 % Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,12 +18,18 @@
 
 {% load i18n %}
 {% load staticfiles %}
+{% load compress %}
 
 {% block title %}{% trans 'Schedulers' %}{% endblock %}
 
 {% block head_block %}
-    <script src="{% static 'service/js/service.js' %}"></script>
-    <link href="{% static 'service/css/service.css' %}" rel="stylesheet">
+    {% compress js file service %}
+        <script src="{% static 'service/js/service.js' %}"></script>
+    {% endcompress %}
+
+    {% compress css file service %}
+        <link href="{% static 'service/css/service.css' %}" rel="stylesheet">
+    {% endcompress %}
 {% endblock %}
 
 {% block body_block %}

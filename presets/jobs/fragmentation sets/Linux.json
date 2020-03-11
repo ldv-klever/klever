@@ -1,0 +1,38 @@
+{
+  "tactics": {
+    "separate modules": {
+      "reference": true,
+      "kernel": false,
+      "ignore dependencies": true
+    },
+    "modules groups": {
+      "kernel": false
+    },
+    "subsystems": {
+      "kernel": true
+    },
+    "subsystems with modules": {
+      "kernel": true,
+      "add modules by coverage": true
+    }
+  },
+  "fragmentation sets": {
+    "3.14": {
+      "reference": true,
+      "fragments": {
+        "drivers/usb/serial/usbserial.ko": [
+          "drivers/usb/serial/usb_debug.ko",
+          "drivers/usb/serial/usbserial.ko"
+        ],
+        "drivers/usb/serial/ch341.ko": [
+          "drivers/usb/serial/ch341.ko",
+          "drivers/usb/serial/generic.c"
+        ],
+        "drivers/usb/serial/usb_wwan.ko": [
+          "drivers/usb/serial/usb_wwan.ko",
+          "drivers/usb/serial/option.ko"
+        ]
+      }
+    }
+  }
+}

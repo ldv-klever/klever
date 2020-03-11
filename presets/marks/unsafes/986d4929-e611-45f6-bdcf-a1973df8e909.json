@@ -2,8 +2,8 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:drivers:clk1"
+      "name": "Requirements specification",
+      "value": "drivers:clk1"
     },
     {
       "is_compare": true,
@@ -14,32 +14,89 @@
   "description": "",
   "error_trace": [
     [
-      {
-        "ldv_check_final_state": [
-          {
-            "ldv_assert_linux_drivers_clk1__more_at_exit": []
-          },
-          {
-            "ldv_assert_linux_drivers_clk1__more_at_exit": []
-          }
-        ]
-      }
+      [
+        {
+          "Entry point 'main'": [
+            {
+              "LDV model 'check_final_state'": [
+                {
+                  "LDV model 'assert'": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ],
     [
-      {
-        "spi_imx_probe": [
-          {
-            "ldv_clk_enable_clk_per_of_spi_imx_data": []
-          },
-          {
-            "ldv_clk_enable_clk_ipg_of_spi_imx_data": []
-          }
-        ]
-      }
+      [
+        {
+          "EMG wrapper": [
+            {
+              "spi_imx_probe": [
+                {
+                  "Instrumented function 'clk_prepare_enable'": [
+                    {
+                      "LDV model 'clk_prepare_enable_clk_per_of_spi_imx_data'": [
+                        {
+                          "LDV model 'clk_prepare_clk_per_of_spi_imx_data'": []
+                        },
+                        {
+                          "LDV model 'clk_enable_clk_per_of_spi_imx_data'": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Instrumented function 'clk_prepare_enable'": [
+                    {
+                      "LDV model 'clk_prepare_enable_clk_ipg_of_spi_imx_data'": [
+                        {
+                          "LDV model 'clk_prepare_clk_ipg_of_spi_imx_data'": []
+                        },
+                        {
+                          "LDV model 'clk_enable_clk_ipg_of_spi_imx_data'": []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "EMG wrapper": [
+            {
+              "spi_imx_remove": [
+                {
+                  "Instrumented function 'clk_unprepare'": [
+                    {
+                      "LDV model 'clk_unprepare_clk_ipg_of_spi_imx_data'": []
+                    }
+                  ]
+                },
+                {
+                  "Instrumented function 'clk_unprepare'": [
+                    {
+                      "LDV model 'clk_unprepare_clk_per_of_spi_imx_data'": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",
   "is_modifiable": false,
+  "status": null,
   "tags": [],
+  "threshold": 0,
   "verdict": "2"
 }

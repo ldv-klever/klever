@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
 # Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,6 +19,9 @@ import os
 import json
 import sys
 
+from datetime import timedelta
+from celery.schedules import crontab
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 AUTH_USER_MODEL = 'users.User'
@@ -35,7 +38,7 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'rest_framework', 'rest_framework.authtoken', 'mptt',
+    'rest_framework', 'rest_framework.authtoken', 'mptt', 'compressor', 'django_celery_results',
     'bridge', 'jobs', 'marks', 'reports', 'service', 'tools', 'users', 'caches'
 )
 
@@ -56,7 +59,6 @@ ROOT_URLCONF = 'bridge.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -72,7 +74,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'bridge.wsgi.application'
 
-# In db.json ENGINE should be either "django.db.backends.postgresql_psycopg2" or "django.db.backends.mysql"
+# In db.json ENGINE should be either "django.db.backends.postgresql_psycopg2"
 DATABASES = {
     'default': json.load(open(os.path.join(BASE_DIR, 'bridge', 'db.json'), encoding='utf8')),
 }
@@ -81,6 +83,7 @@ LANGUAGE_CODE = 'en-us'
 
 LANGUAGES = (
     ('ru', 'Русский'),
+    ('en-us', 'English'),
 )
 LOCALE_PATHS = (
     os.path.join(BASE_DIR, 'locale'),
@@ -96,8 +99,17 @@ USE_L10N = True
 USE_TZ = True
 
 STATIC_URL = '/static/'
-
-MEDIA_URL = '/media/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+STATICFILES_FINDERS = (
+    'django.contrib.staticfiles.finders.FileSystemFinder',
+    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+    'compressor.finders.CompressorFinder',
+)
+COMPRESS_ENABLED = True
+COMPRESS_FILTERS = {
+    'css': ['compressor.filters.cssmin.rCSSMinFilter'],
+    'js': ['compressor.filters.jsmin.JSMinFilter']
+}
 
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
@@ -115,6 +127,7 @@ DEF_USER = {
     'coverage_data': False
 }
 
+LOGS_DIR = os.path.join(BASE_DIR, 'logs')
 LOGGING = {
     'version': 1,
     'formatters': {
@@ -136,25 +149,25 @@ LOGGING = {
         'file': {
             'level': 'ERROR',
             'class': 'logging.FileHandler',
-            'filename': os.path.join(MEDIA_ROOT, 'internal-server-error.log'),
+            'filename': os.path.join(LOGS_DIR, 'internal-server-error.log'),
             'formatter': 'with_separator'
         },
         'db-file': {
             'level': 'DEBUG',
             'class': 'logging.FileHandler',
-            'filename': os.path.join(MEDIA_ROOT, 'db.log'),
+            'filename': os.path.join(LOGS_DIR, 'db.log'),
             'formatter': 'simple'
         },
         'errors': {
             'level': 'ERROR',
             'class': 'logging.FileHandler',
-            'filename': os.path.join(MEDIA_ROOT, 'error.log'),
+            'filename': os.path.join(LOGS_DIR, 'error.log'),
             'formatter': 'with_separator'
         },
         'other': {
             'level': 'INFO',
             'class': 'logging.FileHandler',
-            'filename': os.path.join(MEDIA_ROOT, 'info.log'),
+            'filename': os.path.join(LOGS_DIR, 'info.log'),
             'formatter': 'simple'
         },
     },
@@ -170,8 +183,6 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.TokenAuthentication',
         'rest_framework.authentication.SessionAuthentication',
     ),
-    # 'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    # 'PAGE_SIZE': 50,
     'NON_FIELD_ERRORS_KEY': 'general',
     'UPLOADED_FILES_USE_URL': False,
     'EXCEPTION_HANDLER': 'bridge.serializers.bridge_exception_handler'
@@ -179,6 +190,29 @@ REST_FRAMEWORK = {
 
 MAX_FILE_SIZE = 104857600  # 100MB
 
-# username, password, host, name are requried
+# RabbitMQ
+# username, password, host are requried, port can be specified
 with open(os.path.join(BASE_DIR, 'bridge', 'rmq.json'), encoding='utf8') as fp:
     RABBIT_MQ = json.load(fp)
+RABBIT_MQ.setdefault('port', 5672)
+RABBIT_MQ_QUEUE = RABBIT_MQ.get('queue', 'klever')
+
+# Celery, using the same RabbitMQ server
+CELERY_BROKER_URL = 'amqp://{username}:{password}@{host}:{port}'.format(**RABBIT_MQ)
+CELERY_RESULT_BACKEND = 'django-db'
+CELERY_TIMEZONE = 'Europe/Moscow'
+
+CELERY_BEAT_SCHEDULE = {
+    'remove-call-logs-every-month': {
+        'task': 'tools.tasks.clear_call_logs',
+        'schedule': crontab(0, 0, day_of_month='1'),
+        'args': (30,)  # 30 days
+    },
+    'remove-old-job-archives': {
+        'task': 'jobs.tasks.clear_old_uploads',
+        'schedule': timedelta(hours=1),
+        'args': (60,)  # Clear archives older than 60 minutes
+    },
+}
+
+ENABLE_CALL_LOGS = False

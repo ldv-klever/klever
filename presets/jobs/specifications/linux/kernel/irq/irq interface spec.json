@@ -1,50 +1,7 @@
 {
-  "Linux 3.14 (base)": {
-    "functions models": {
-      "request_threaded_irq": {
-        "declaration": "int request_threaded_irq(%interrupt.line%, %interrupt.handler%, %interrupt.thread%, unsigned long flags, const char *name, %interrupt.data%)",
-        "header": "linux/interrupt.h"
-      },
-      "request_irq": {
-        "declaration": "int request_irq(%interrupt.line%, %interrupt.handler%, unsigned long flags, const char *name, %interrupt.data%)",
-        "header": "linux/interrupt.h"
-      },
-      "request_any_context_irq": {
-        "declaration": "int request_any_context_irq(%interrupt.line%, %interrupt.handler%, unsigned long flags, const char *name, %interrupt.data%)",
-        "header": "linux/interrupt.h"
-      },
-      "devm_request_threaded_irq": {
-        "declaration": "int devm_request_threaded_irq(struct device *dev, %interrupt.line%, %interrupt.handler%, %interrupt.thread%, unsigned long irqflags, const char *devname, %interrupt.data%)",
-        "header": "linux/interrupt.h"
-      },
-      "request_percpu_irq": {
-        "declaration": "int request_percpu_irq(%interrupt.line%, %interrupt.handler%, const char *devname, %interrupt.data%)",
-        "header": "linux/interrupt.h"
-      },
-      "free_irq": {
-        "declaration": "void free_irq(%interrupt.line%, %interrupt.data%)",
-        "header": "linux/interrupt.h"
-      },
-      "devm_free_irq": {
-        "declaration": "void devm_free_irq(struct device *dev, %interrupt.line%, %interrupt.data%)",
-        "header": "linux/interrupt.h"
-      },
-      "free_percpu_irq": {
-        "declaration": "void free_percpu_irq(%interrupt.line%, %interrupt.data%)",
-        "header": "linux/interrupt.h"
-      }
-    },
+  "3.14": {
     "categories": {
       "interrupt": {
-        "containers": {},
-        "resources": {
-          "line": {
-            "declaration": "int line"
-          },
-          "data": {
-            "declaration": "void *data"
-          }
-        },
         "callbacks": {
           "handler": {
             "declaration": "irqreturn_t (*handler)(%interrupt.line%, %interrupt.data%)",
@@ -53,7 +10,59 @@
           "thread": {
             "declaration": "irqreturn_t (*thread)(%interrupt.line%, %interrupt.data%)"
           }
+        },
+        "containers": {},
+        "reference": true,
+        "resources": {
+          "data": {
+            "declaration": "void *data"
+          },
+          "line": {
+            "declaration": "int line"
+          }
         }
+      }
+    },
+    "functions models": {
+      "devm_free_irq": {
+        "declaration": "void devm_free_irq(struct device *dev, %interrupt.line%, %interrupt.data%)",
+        "header": "linux/interrupt.h",
+        "reference": true
+      },
+      "devm_request_threaded_irq": {
+        "declaration": "int devm_request_threaded_irq(struct device *dev, %interrupt.line%, %interrupt.handler%, %interrupt.thread%, unsigned long irqflags, const char *devname, %interrupt.data%)",
+        "header": "linux/interrupt.h",
+        "reference": true
+      },
+      "free_irq": {
+        "declaration": "void free_irq(%interrupt.line%, %interrupt.data%)",
+        "header": "linux/interrupt.h",
+        "reference": true
+      },
+      "free_percpu_irq": {
+        "declaration": "void free_percpu_irq(%interrupt.line%, %interrupt.data%)",
+        "header": "linux/interrupt.h",
+        "reference": true
+      },
+      "request_any_context_irq": {
+        "declaration": "int request_any_context_irq(%interrupt.line%, %interrupt.handler%, unsigned long flags, const char *name, %interrupt.data%)",
+        "header": "linux/interrupt.h",
+        "reference": true
+      },
+      "request_irq": {
+        "declaration": "int request_irq(%interrupt.line%, %interrupt.handler%, unsigned long flags, const char *name, %interrupt.data%)",
+        "header": "linux/interrupt.h",
+        "reference": true
+      },
+      "request_percpu_irq": {
+        "declaration": "int request_percpu_irq(%interrupt.line%, %interrupt.handler%, const char *devname, %interrupt.data%)",
+        "header": "linux/interrupt.h",
+        "reference": true
+      },
+      "request_threaded_irq": {
+        "declaration": "int request_threaded_irq(%interrupt.line%, %interrupt.handler%, %interrupt.thread%, unsigned long flags, const char *name, %interrupt.data%)",
+        "header": "linux/interrupt.h",
+        "reference": true
       }
     }
   }

@@ -2,46 +2,56 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:net:rtnetlink"
+      "name": "Requirements specification",
+      "value": "net:core:rtnetlink"
     },
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/linux/net/rtnetlink/lock-on-exit.ko"
+      "value": "ext-modules/linux/net/core/rtnetlink/lock-on-exit.ko"
     }
   ],
   "description": "",
   "error_trace": [
     [
-      {
-        "ldv_check_final_state": [
-          {
-            "ldv_assert_linux_net_rtnetlink__lock_on_exit": []
-          }
-        ]
-      }
+      [
+        {
+          "Entry point 'main'": [
+            {
+              "LDV model 'check_final_state'": [
+                {
+                  "LDV model 'assert'": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ],
     [
-      {
-        "ldv_init": [
-          {
-            "ldv_rtnl_lock_19": [
-              {
-                "ldv_past_rtnl_lock": [
-                  {
-                    "ldv_assert_linux_net_rtnetlink__double_lock": []
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      }
+      [
+        {
+          "EMG wrapper": [
+            {
+              "LDV model 'init'": [
+                {
+                  "Instrumented function 'rtnl_lock'": [
+                    {
+                      "LDV model 'past_rtnl_lock'": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",
-  "is_modifiable": true,
+  "is_modifiable": false,
+  "status": null,
   "tags": [],
+  "threshold": 0,
   "verdict": "2"
 }

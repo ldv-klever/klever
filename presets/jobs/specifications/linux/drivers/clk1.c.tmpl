@@ -15,39 +15,97 @@
  * limitations under the License.
  */
 
+#include <linux/ldv/err.h>
 #include <verifier/common.h>
 #include <verifier/nondet.h>
+#include <verifier/memory.h>
 
 struct clk;
 
-// for arg_sign in clk1_arg_signs
-/* NOTE Initialize counter to zero */
-int ldv_counter{{ arg_sign.id }} = 0;
-
-/* MODEL_FUNC Release */
-void ldv_clk_disable{{ arg_sign.id }}(struct clk *clk)
+struct clk *ldv_clk_get(void)
 {
-    /* NOTE Increase counter */
-    ldv_counter{{ arg_sign.id }} = 0;
+	struct clk *clk;
+
+	if (ldv_undef_int())
+		clk = ldv_malloc_unknown_size();
+	else
+		ldv_assume(ldv_is_err(clk));
+
+	return clk;
 }
 
-/* MODEL_FUNC Reset counter */
+// for arg_sign in clk1_arg_signs
+/* NOTE Initialize prepare counter to zero */
+int ldv_prepare_count{{ arg_sign.id }} = 0;
+/* NOTE Initialize enable counter to zero */
+int ldv_enable_count{{ arg_sign.id }} = 0;
+
+int ldv_clk_prepare{{ arg_sign.id }}(void)
+{
+	int retval = ldv_undef_int_nonpositive();
+
+	if (!retval) {
+		/* NOTE Increase prepare counter */
+		ldv_prepare_count{{ arg_sign.id }}++;
+		ldv_assume(ldv_prepare_count{{ arg_sign.id }} < 3);
+	}
+
+	return retval;
+}
+
+void ldv_clk_unprepare{{ arg_sign.id }}(void)
+{
+	/* NOTE Decrease prepare counter */
+	ldv_prepare_count{{ arg_sign.id }}--;
+	ldv_assume(ldv_prepare_count{{ arg_sign.id }} >= 0);
+}
+
 int ldv_clk_enable{{ arg_sign.id }}(void)
 {
-	int retval = ldv_undef_int();
+	int retval = ldv_undef_int_nonpositive();
+
 	if (!retval) {
-		/* NOTE Increase counter */
-		ldv_counter{{ arg_sign.id }} = 1;
+		/* NOTE Increase enable counter */
+		ldv_enable_count{{ arg_sign.id }}++;
+		ldv_assume(ldv_enable_count{{ arg_sign.id }} < 3);
 	}
+
 	return retval;
+}
+
+void ldv_clk_disable{{ arg_sign.id }}(void)
+{
+	/* NOTE Decrease enable counter */
+	ldv_enable_count{{ arg_sign.id }}--;
+	ldv_assume(ldv_enable_count{{ arg_sign.id }} >= 0);
+}
+
+int ldv_clk_prepare_enable{{ arg_sign.id }}(void)
+{
+	int ret;
+
+	ret = ldv_clk_prepare{{ arg_sign.id }}();
+
+	if (ret)
+		return ret;
+
+	ret = ldv_clk_enable{{ arg_sign.id }}();
+
+	if (ret) {
+		ldv_clk_unprepare{{ arg_sign.id }}();
+		return ret;
+	}
+
+	return 0;
 }
 // endfor
 
-/* MODEL_FUNC Check that all clk are freed at the end */
 void ldv_check_final_state(void)
 {
 	// for arg_sign in clk1_arg_signs
-	/* ASSERT All clk should be released before finishing operation */
-	ldv_assert(ldv_counter{{ arg_sign.id }} == 0);
+	/* ASSERT Clk{{ arg_sign.text }} should be disabled before finishing operation */
+	ldv_assert(ldv_enable_count{{ arg_sign.id }} == 0);
+	/* ASSERT Clk{{ arg_sign.text }} should be unprepared before finishing operation */
+	ldv_assert(ldv_prepare_count{{ arg_sign.id }} == 0);
 	// endfor
 }

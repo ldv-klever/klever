@@ -1,5 +1,5 @@
 {% comment "License" %}
-% Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+% Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
 % Ivannikov Institute for System Programming of the Russian Academy of Sciences
 %
 % Licensed under the Apache License, Version 2.0 (the "License");
@@ -117,28 +117,6 @@
             <div class="field">
                 <label for="view_{{ view.type }}__job_title_value"></label>
                 <input id="view_{{ view.type }}__job_title_value" type="text"{% if 'job_title' in view %} value="{{ view.job_title.1 }}"{% endif %} style="min-width: 300px;">
-            </div>
-        </div>
-        <div class="ui divider"></div>
-
-        {# Format #}
-        <input id="view_data_{{ view.type }}__format" value="list_if_format" data-list="format_type__format_value" type="hidden">
-        <div class="ui checkbox">
-            <input type="checkbox" id="view_condition_{{ view.type }}__format"{% if 'format' in view %} checked{% endif %}>
-            <label for="view_condition_{{ view.type }}__format">{% trans 'Format' %}</label>
-        </div>
-        <br><br>
-        <div class="inline fields">
-            <div class="field">
-                <label for="view_{{ view.type }}__format_type"></label>
-                <select id="view_{{ view.type }}__format_type" class="ui dropdown">
-                    <option value="is"{% if 'format' in view and view.format.0 == 'is' %} selected{% endif %}>{% trans 'is' %}</option>
-                    <option value="isnot"{% if 'format' in view and view.format.0 == 'isnot' %} selected{% endif %}>{% trans 'is not' %}</option>
-                </select>
-            </div>
-            <div class="field">
-                <label for="view_{{ view.type }}__format_value">&nbsp;</label>
-                <input id="view_{{ view.type }}__format_value" type="text"{% if 'format' in view %} value="{{ view.format.1 }}" {% endif %}>
             </div>
         </div>
         <div class="ui divider"></div>

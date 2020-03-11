@@ -16,9 +16,7 @@
  */
 
 #include <linux/module.h>
-#include <verifier/common.h>
-#include <verifier/nondet.h>
-#include <verifier/thread.h>
+#include <ldv/test.h>
 
 static void *ldv_func1(void *arg)
 {

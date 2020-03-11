@@ -2,17 +2,17 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:arch:io"
+      "name": "Requirements specification",
+      "value": "arch:mm:ioremap"
     },
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/linux/arch/io/safe.ko"
+      "value": "ext-modules/linux/arch/mm/ioremap/safe.ko"
     }
   ],
   "description": "",
-  "is_modifiable": true,
+  "is_modifiable": false,
   "tags": [],
   "verdict": "0"
 }

@@ -1,30 +1,88 @@
 {
-  "Linux 3.14 (base)": {
-    "functions models": {
-      "parport_register_port": {
-        "comment": "Register a parallel port.",
-        "labels": {
-          "parport": {
-            "parameter": true,
-            "interface": [
-              "parport.parport"
+  "3.14": {
+    "environment processes": {
+      "parport_scenario": {
+        "actions": {
+          "callback": {
+            "callback": "%callback%",
+            "parameters": [
+              "%parport%"
             ]
           },
-          "parport_operations": {
-            "container": true,
-            "parameter": true,
-            "interface": [
-              "parport.parport_operations"
+          "callbacks": {
+            "comment": "Manage particular interface on a device.",
+            "process": "([save_state].[restore_state] | [enable_irq].[disable_irq] | [callback]).{callbacks} | (deregister)"
+          },
+          "deregister": {
+            "condition": [
+              "%parport% == $ARG1"
+            ],
+            "parameters": [
+              "%parport%"
+            ]
+          },
+          "disable_irq": {
+            "callback": "%parport_operations.disable_irq%",
+            "parameters": [
+              "%parport%"
+            ]
+          },
+          "enable_irq": {
+            "callback": "%parport_operations.enable_irq%",
+            "parameters": [
+              "%parport%"
+            ]
+          },
+          "init_state": {
+            "callback": "%parport_operations.init_state%",
+            "parameters": []
+          },
+          "register": {
+            "parameters": [
+              "%parport_operations%",
+              "%parport%"
+            ]
+          },
+          "restore_state": {
+            "callback": "%parport_operations.restore_state%",
+            "parameters": [
+              "%parport%"
+            ]
+          },
+          "save_state": {
+            "callback": "%parport_operations.save_state%",
+            "parameters": [
+              "%parport%"
             ]
           }
         },
-        "process": "<assign>.[register].<success> | <fail>",
-        "actions": {
-          "register": {
-            "parameters": [
-              "%parport_operations%", "%parport%"
-            ]
+        "comment": "Invoke parallel port callbacks.",
+        "labels": {
+          "callback": {
+            "callback": true
           },
+          "parport": {
+            "interface": [
+              "parport.parport"
+            ],
+            "parameter": true,
+            "resource": true
+          },
+          "parport_operations": {
+            "container": true,
+            "interface": [
+              "parport.parport_operations"
+            ],
+            "parameter": true
+          }
+        },
+        "process": "(!register).[init_state].{callbacks}",
+        "reference": true
+      }
+    },
+    "functions models": {
+      "parport_register_port": {
+        "actions": {
           "assign": {
             "comment": "Get callbacks.",
             "statements": [
@@ -38,116 +96,63 @@
               "return 0;"
             ]
           },
+          "register": {
+            "parameters": [
+              "%parport_operations%",
+              "%parport%"
+            ]
+          },
           "success": {
             "comment": "Registration successfull.",
             "statements": [
               "return %parport%;"
             ]
           }
-        }
-      },
-      "parport_remove_port": {
-        "comment": "Deregister a parallel port.",
+        },
+        "comment": "Register a parallel port.",
         "labels": {
           "parport": {
-            "parameter": true,
             "interface": [
               "parport.parport"
-            ]
+            ],
+            "parameter": true
+          },
+          "parport_operations": {
+            "container": true,
+            "interface": [
+              "parport.parport_operations"
+            ],
+            "parameter": true
           }
         },
-        "process": "<assign>.[deregister]",
+        "process": "<assign>.[register].<success> | <fail>",
+        "reference": true
+      },
+      "parport_remove_port": {
         "actions": {
-          "deregister": {
-            "parameters": [
-              "%parport%"
-            ]
-          },
           "assign": {
             "comment": "Get port.",
             "statements": [
               "%parport% = $ARG1;"
             ]
-          }
-        }
-      }
-    },
-    "environment processes": {
-      "parport_scenario": {
-        "comment": "Invoke parallel port callbacks.",
-        "labels": {
-          "parport": {
-            "parameter": true,
-            "resource": true,
-            "interface": [
-              "parport.parport"
-            ]
-          },
-          "parport_operations": {
-            "container": true,
-            "parameter": true,
-            "interface": [
-              "parport.parport_operations"
-            ]
-          },
-          "callback": {
-            "callback": true
-          }
-        },
-        "process": "(!register).([init_state].{callbacks} | (deregister))",
-        "actions": {
-          "callbacks": {
-            "comment": "Manage particular interface on a device.",
-            "process": "([save_state].[restore_state] | [enable_irq].[disable_irq] | [callback]).{callbacks} | (deregister)"
-          },
-          "register": {
-            "parameters": [
-              "%parport_operations%", "%parport%"
-            ]
           },
           "deregister": {
-            "condition": [
-              "%parport% == $ARG1"
-            ],
-            "parameters": [
-              "%parport%"
-            ]
-          },
-          "callback": {
-            "callback": "%callback%",
-            "parameters": [
-              "%parport%"
-            ]
-          },
-          "init_state": {
-            "callback": "%parport_operations.init_state%",
-            "parameters": []
-          },
-          "save_state": {
-            "callback": "%parport_operations.save_state%",
-            "parameters": [
-              "%parport%"
-            ]
-          },
-          "restore_state": {
-            "callback": "%parport_operations.restore_state%",
-            "parameters": [
-              "%parport%"
-            ]
-          },
-          "enable_irq": {
-            "callback": "%parport_operations.enable_irq%",
-            "parameters": [
-              "%parport%"
-            ]
-          },
-          "disable_irq": {
-            "callback": "%parport_operations.disable_irq%",
             "parameters": [
               "%parport%"
             ]
           }
-        }
+        },
+        "comment": "Deregister a parallel port.",
+        "labels": {
+          "parport": {
+            "interface": [
+              "parport.parport"
+            ],
+            "parameter": true
+          }
+        },
+        "process": "<assign>.[deregister]",
+        "reference": true
       }
     }
   }

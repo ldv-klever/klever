@@ -1,11 +1,55 @@
-__pycache__/
-build/
-dist/
-*.egg-info/
-venv/
-.idea/workspace.xml
-*/.idea/workspace.xml
+# Klever
 addons
 build bases
-deploys/conf/*.json
 
+# celery
+celerybeat*
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+Pipfile*
+
+# virtualenv
+.venv
+venv/
+ENV/
+
+# dotenv
+.env
+
+# PyCharm
+.idea/workspace.xml
+*/.idea/workspace.xml
+
+# mypy
+.mypy_cache/
+
+# macOS
+.DS_STORE
+
+# pytest
+.pytest_cache
+
+# VSCode
+.vscode

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+ * Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
  * Ivannikov Institute for System Programming of the Russian Academy of Sciences
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,12 +28,11 @@ $(document).ready(function () {
 
     let source_processor = new SourceProcessor(
         '#ETV_source_code', '#ETVSourceTitle',
-        '#src_back_btn', '#sources_history',
-        '#ETV_data', '#CoverageLegend'
+        '#sources_history', '#ETV_data',
+        '#CoverageLegend'
     );
     if (!etv_window.length) return false;
     source_processor.initialize(unselect_etv_line, $('#source_url').val());
-    source_processor.errors.line_not_found = $('#error__line_not_found').text();
 
     $('.ETV_GlobalExpander').click(function (event) {
         event.preventDefault();
@@ -190,7 +189,7 @@ $(document).ready(function () {
         }
     });
 
-    $('.ETV_Action,.ETV_CallbackAction').click(function () {
+    $('.ETV_Action,.ETV_RelevantAction').click(function () {
         let node = $(this).parent().parent();
 
         // If action can be collapsed/expanded, do it
@@ -228,16 +227,24 @@ $(document).ready(function () {
         $(this).find('.ETV_LN').css('left', $(this).scrollLeft());
     });
 
-    etv_window.children().each(function () {
-        if ($(this).is(':visible')) {
-            let line_link = $(this).find('.ETV_LINE');
-            if (line_link.length) {
-                etv_window.scrollTop(etv_window.scrollTop() + $(this).position().top - etv_window.height() * 3/10);
-                line_link.click();
-                return false;
+    // Click error trace first found line
+    let file_name = getUrlParameter('source'), file_line = getUrlParameter('sourceline');
+    if (file_name) {
+        source_processor.get_source(file_line, file_name);
+        history.replaceState([file_name, file_line], null, window.location.href);
+    }
+    else {
+        etv_window.children().each(function () {
+            if ($(this).is(':visible')) {
+                let line_link = $(this).find('.ETV_LINE');
+                if (line_link.length) {
+                    etv_window.scrollTop(etv_window.scrollTop() + $(this).position().top - etv_window.height() * 3/10);
+                    line_link.click();
+                    return false;
+                }
             }
-        }
-    });
+        });
+    }
 
     // Initialize coverage
     new CoverageProcessor(source_processor, '#CoverageDataContent', '#CoverageStatisticsTable', unselect_etv_line);

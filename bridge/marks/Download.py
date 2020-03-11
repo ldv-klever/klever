@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
 # Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,21 +26,22 @@ from django.utils.functional import cached_property
 from django.utils.timezone import now
 from django.utils.translation import ugettext_lazy as _
 
-from bridge.vars import MARK_SOURCE
+from bridge.vars import MARK_SOURCE, SAFE_VERDICTS, UNSAFE_VERDICTS
 from bridge.utils import logger, BridgeException
 from bridge.ZipGenerator import ZipStream, CHUNK_SIZE
 
+from caches.models import ReportSafeCache, ReportUnsafeCache, ReportUnknownCache
 from marks.models import (
     MarkSafe, MarkUnsafe, MarkUnknown, SafeTag, UnsafeTag,
     MarkSafeAttr, MarkUnsafeAttr, MarkUnknownAttr, MarkSafeTag, MarkUnsafeTag
 )
 from marks.serializers import SafeMarkSerializer, UnsafeMarkSerializer, UnknownMarkSerializer
 
-from marks.SafeUtils import ConnectSafeMark, RemoveSafeMarks
-from marks.UnsafeUtils import ConnectUnsafeMark, RemoveUnsafeMarks
-from marks.UnknownUtils import ConnectUnknownMark, RemoveUnknownMarks
+from marks.SafeUtils import ConnectSafeMark
+from marks.UnsafeUtils import ConnectUnsafeMark
+from marks.UnknownUtils import ConnectUnknownMark
 
-from caches.utils import UpdateCachesOnMarkPopulate, RecalculateSafeCache, RecalculateUnsafeCache
+from caches.utils import UpdateCachesOnMarkPopulate
 
 
 class MarkGeneratorBase:
@@ -56,7 +57,7 @@ class MarkGeneratorBase:
 
     def common_data(self):
         return {
-            'type': self.type, 'format': self.mark.format,
+            'type': self.type,
             'identifier': str(self.mark.identifier),
             'is_modifiable': self.mark.is_modifiable
         }
@@ -281,9 +282,9 @@ class MarksUploader:
         for version_number in sorted(versions_data):
             mark_version = versions_data[version_number]
             if mark is None:
-                # Get identifier, format and is_modifiable from mark_data
+                # Get identifier and is_modifiable from mark_data
                 mark_version.update(mark_data)
-                serializer_fields = ('identifier', 'format', 'is_modifiable', 'verdict', 'mark_version')
+                serializer_fields = ('identifier', 'is_modifiable', 'verdict', 'mark_version')
                 save_kwargs = {'source': MARK_SOURCE[2][0], 'author': self._user}
             else:
                 serializer_fields = ('verdict', 'mark_version')
@@ -308,9 +309,9 @@ class MarksUploader:
         for version_number in sorted(versions_data):
             mark_version = versions_data[version_number]
             if mark is None:
-                # Get identifier, format and is_modifiable from mark_data
+                # Get identifier and is_modifiable from mark_data
                 mark_version.update(mark_data)
-                serializer_fields = ('identifier', 'format', 'is_modifiable', 'verdict', 'mark_version', 'function')
+                serializer_fields = ('identifier', 'is_modifiable', 'verdict', 'mark_version', 'function')
                 save_kwargs = {'source': MARK_SOURCE[2][0], 'author': self._user}
             else:
                 serializer_fields = ('verdict', 'mark_version', 'function')
@@ -332,10 +333,10 @@ class MarksUploader:
         for version_number in sorted(versions_data):
             mark_version = versions_data[version_number]
             if mark is None:
-                # Get identifier, format, component and is_modifiable from mark_data
+                # Get identifier, component and is_modifiable from mark_data
                 mark_version.update(mark_data)
                 serializer_fields = (
-                    'identifier', 'component', 'format', 'is_modifiable', 'mark_version',
+                    'identifier', 'component', 'is_modifiable', 'mark_version',
                     'function', 'is_regexp', 'problem_pattern', 'link'
                 )
                 save_kwargs = {'source': MARK_SOURCE[2][0], 'author': self._user}
@@ -389,12 +390,12 @@ class UploadAllMarks:
         self.numbers = self.__upload_all(marks_dir)
 
     def __clear_old_marks(self):
-        RemoveSafeMarks()
-        RemoveUnsafeMarks()
-        RemoveUnknownMarks()
-        RecalculateSafeCache()
-        RecalculateUnsafeCache()
-        RecalculateUnsafeCache()
+        MarkSafe.objects.all().delete()
+        MarkUnsafe.objects.all().delete()
+        MarkUnknown.objects.all().delete()
+        ReportSafeCache.objects.update(marks_total=0, marks_confirmed=0, verdict=SAFE_VERDICTS[4][0], tags={})
+        ReportUnsafeCache.objects.update(marks_total=0, marks_confirmed=0, verdict=UNSAFE_VERDICTS[5][0], tags={})
+        ReportUnknownCache.objects.update(marks_total=0, marks_confirmed=0, problems={})
 
     def __upload_all(self, marks_dir):
         upload_result = {'safe': 0, 'unsafe': 0, 'unknown': 0, 'fail': 0}

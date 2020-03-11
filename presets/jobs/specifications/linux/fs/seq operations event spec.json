@@ -1,133 +1,8 @@
 {
-  "Linux 3.14 (base)": {
-    "functions models": {
-      "seq_open, seq_open_private": {
-        "comment": "Initialize sequential file.",
-        "labels": {
-          "file": {
-            "parameter": true,
-            "resource": true,
-            "interface": [
-              "seq_operations.file"
-            ]
-          },
-          "ops": {
-            "container": true,
-            "parameter": true,
-            "interface": [
-              "seq_operations.seq_operations"
-            ]
-          },
-          "seq_file": {
-            "resource": true,
-            "interface": [
-              "seq_operations.seq_file"
-            ]
-          }
-        },
-        "process": "<assign>.[register]",
-        "actions": {
-          "register": {
-            "parameters": [
-              "%seq_file%",
-              "%ops%"
-            ]
-          },
-          "assign": {
-            "comment": "Alloc memory for sequential file structure and initialize it.",
-            "statements": [
-              "%seq_file% = $ALLOC(%seq_file%);",
-              "%ops% = $ARG2;",
-              "%file%->private_data = %seq_file%;"
-            ]
-          }
-        }
-      },
-      "seq_release, seq_release_private": {
-        "comment": "Free the structures associated with sequential file.",
-        "labels": {
-          "file": {
-            "parameter": true,
-            "resource": true,
-            "interface": [
-              "seq_operations.file"
-            ]
-          },
-          "seq_file": {
-            "resource": true,
-            "interface": [
-              "seq_operations.seq_file"
-            ]
-          }
-        },
-        "process": "<assign>.[deregister]",
-        "actions": {
-          "deregister": {
-            "parameters": [
-              "%seq_file%"
-            ]
-          },
-          "assign": {
-            "comment": "Free memory of the sequential file structure.",
-            "statements": [
-              "%seq_file% = %file%->private_data;",
-              "$FREE(%seq_file%);"
-            ]
-          }
-        }
-      }
-    },
+  "3.14": {
     "environment processes": {
       "traverse_kernel_items_scenario": {
-        "comment": "Write /proc file.",
-        "labels": {
-          "ops": {
-            "container": true,
-            "interface": [
-              "seq_operations.seq_operations"
-            ]
-          },
-          "seq_file": {
-            "resource": true,
-            "interface": [
-              "seq_operations.seq_file"
-            ]
-          },
-          "ret": {
-            "declaration": "void *a",
-            "value": "ldv_undef_ptr()"
-          },
-          "show_ret": {
-            "declaration": "int a",
-            "value": "ldv_undef_int()"
-          },
-          "index": {
-            "declaration": "loff_t *a",
-            "pointer": true
-          }
-        },
-        "process": "(!register).<init>.{outer_loop}",
         "actions": {
-          "outer_loop": {
-            "comment": "Traverse sequence or do nothing.",
-            "process": "[start].{inner_loop} | <free>.(deregister)"
-          },
-          "inner_loop": {
-            "comment": "New iteration of sequence traversing.",
-            "process": "<success>.[show].(<success_show>.[next].{inner_loop} | [stop].{outer_loop}) | <fail>.[stop].{outer_loop}"
-          },
-          "init": {
-            "comment": "Allocate memory for auxiliary variables.",
-            "statements": [
-              "%index% = $ALLOC(%index%);"
-            ]
-          },
-          "free": {
-            "comment": "Free memory of auxiliary variables.",
-            "statements": [
-              "$FREE(%index%);"
-            ]
-          },
           "deregister": {
             "condition": [
               "%seq_file% == $ARG1"
@@ -136,10 +11,97 @@
               "%seq_file%"
             ]
           },
+          "fail": {
+            "comment": "Failed to proceed with traversing.",
+            "condition": [
+              "ldv_is_err_or_null(%ret%)"
+            ]
+          },
+          "free": {
+            "comment": "Free memory of auxiliary variables.",
+            "trace relevant": true,
+            "statements": [
+              "$FREE(%index%);"
+            ]
+          },
+          "init": {
+            "comment": "Allocate memory for auxiliary variables.",
+            "trace relevant": true,
+            "statements": [
+              "%index% = $ALLOC(%index%);"
+            ]
+          },
+          "inner_loop": {
+            "comment": "New iteration of sequence traversing.",
+            "process": "<success>.[show].(<success_show>.[next].{inner_loop} | [stop1].{outer_loop}) | <fail>.[stop2].{outer_loop}"
+          },
+          "next": {
+            "callback": "%ops.next%",
+            "callback return value": "%ret%",
+            "comment": "Advance to the new item.",
+            "parameters": [
+              "%seq_file%",
+              "%ret%",
+              "%index%"
+            ]
+          },
+          "outer_loop": {
+            "comment": "Traverse sequence or do nothing.",
+            "process": "[start].{inner_loop} | <free>.(deregister)"
+          },
           "register": {
             "parameters": [
               "%seq_file%",
               "%ops%"
+            ]
+          },
+          "show": {
+            "callback": "%ops.show%",
+            "callback return value": "%show_ret%",
+            "comment": "Show current item: put data into the seq_file output buffer.",
+            "parameters": [
+              "%seq_file%",
+              "%ret%"
+            ]
+          },
+          "start": {
+            "callback": "%ops.start%",
+            "callback return value": "%ret%",
+            "comment": "Initialize data for walking through a list of kernel items.",
+            "parameters": [
+              "%seq_file%",
+              "%index%"
+            ],
+            "pre-call": [
+              "*%index% = 0;"
+            ]
+          },
+          "stop1": {
+            "callback": "%ops.stop%",
+            "comment": "End of the sequence is reached, do necessary cleanup.",
+            "parameters": [
+              "%seq_file%",
+              "%ret%"
+            ],
+            "post-call": [
+              "%seq_file%->index = *%index%;"
+            ],
+            "pre-call": [
+              "%seq_file%->index = *%index%;"
+            ]
+          },
+          "stop2": {
+            "callback": "%ops.stop%",
+            "comment": "End of the sequence is reached, do necessary cleanup.",
+            "parameters": [
+              "%seq_file%",
+              "%ret%"
+            ],
+            "post-call": [
+              "%seq_file%->index = *%index%;"
+            ],
+            "pre-call": [
+              "%seq_file%->index = *%index%;"
             ]
           },
           "success": {
@@ -148,59 +110,123 @@
               "!ldv_is_err_or_null(%ret%)"
             ]
           },
-          "fail": {
-            "comment": "Failed to proceed with traversing.",
-            "condition": [
-              "ldv_is_err_or_null(%ret%)"
-            ]
-          },
           "success_show": {
             "comment": "Current item has been shown successfully.",
             "condition": [
               "%show_ret% >= 0"
             ]
-          },
-          "start": {
-            "comment": "Initialize data for walking through a list of kernel items.",
-            "callback": "%ops.start%",
-            "parameters": [
-              "%seq_file%", "%index%"
-            ],
-            "callback return value": "%ret%",
-            "pre-call": [
-              "*%index% = 0;"
-            ]
-          },
-          "stop": {
-            "comment": "End of the sequence is reached, do necessary cleanup.",
-            "callback": "%ops.stop%",
-            "pre-call": [
-              "%seq_file%->index = *%index%;"
-            ],
-            "post-call": [
-              "%seq_file%->index = *%index%;"
-            ],
-            "parameters": [
-              "%seq_file%", "%ret%"
-            ]
-          },
-          "show": {
-            "comment": "Show current item: put data into the seq_file output buffer.",
-            "callback": "%ops.show%",
-            "parameters": [
-              "%seq_file%", "%ret%"
-            ],
-            "callback return value": "%show_ret%"
-          },
-          "next": {
-            "comment": "Advance to the new item.",
-            "callback": "%ops.next%",
-            "parameters": [
-              "%seq_file%", "%ret%", "%index%"
-            ],
-            "callback return value": "%ret%"
           }
-        }
+        },
+        "comment": "Write /proc file.",
+        "labels": {
+          "index": {
+            "declaration": "loff_t *a",
+            "pointer": true
+          },
+          "ops": {
+            "container": true,
+            "interface": [
+              "seq_operations.seq_operations"
+            ]
+          },
+          "ret": {
+            "declaration": "void *a",
+            "value": "ldv_undef_ptr()"
+          },
+          "seq_file": {
+            "interface": [
+              "seq_operations.seq_file"
+            ],
+            "resource": true
+          },
+          "show_ret": {
+            "declaration": "int a",
+            "value": "ldv_undef_int()"
+          }
+        },
+        "process": "(!register).<init>.{outer_loop}",
+        "reference": true
+      }
+    },
+    "functions models": {
+      "seq_open, seq_open_private": {
+        "actions": {
+          "assign": {
+            "comment": "Alloc memory for sequential file structure and initialize it.",
+            "trace relevant": true,
+            "statements": [
+              "%seq_file% = $ALLOC(%seq_file%);",
+              "%ops% = $ARG2;",
+              "%file%->private_data = %seq_file%;"
+            ]
+          },
+          "register": {
+            "parameters": [
+              "%seq_file%",
+              "%ops%"
+            ]
+          }
+        },
+        "comment": "Initialize sequential file.",
+        "labels": {
+          "file": {
+            "interface": [
+              "seq_operations.file"
+            ],
+            "parameter": true,
+            "resource": true
+          },
+          "ops": {
+            "container": true,
+            "interface": [
+              "seq_operations.seq_operations"
+            ],
+            "parameter": true
+          },
+          "seq_file": {
+            "interface": [
+              "seq_operations.seq_file"
+            ],
+            "resource": true
+          }
+        },
+        "process": "<assign>.[register]",
+        "reference": true
+      },
+      "seq_release, seq_release_private": {
+        "actions": {
+          "assign": {
+            "comment": "Free memory of the sequential file structure.",
+            "trace relevant": true,
+            "statements": [
+              "%seq_file% = %file%->private_data;",
+              "$FREE(%seq_file%);"
+            ]
+          },
+          "deregister": {
+            "parameters": [
+              "%seq_file%"
+            ]
+          }
+        },
+        "comment": "Free the structures associated with sequential file.",
+        "labels": {
+          "file": {
+            "interface": [
+              "seq_operations.file"
+            ],
+            "parameter": true,
+            "resource": true
+          },
+          "seq_file": {
+            "interface": [
+              "seq_operations.seq_file"
+            ],
+            "resource": true
+          }
+        },
+        "process": "<assign>.[deregister]",
+        "reference": true
       }
     }
   }

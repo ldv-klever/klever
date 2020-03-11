@@ -1,50 +1,53 @@
 {
-  "Linux 3.14 (base)": {
-    "functions models": {
-      "hid_add_device": {
-        "declaration": "int hid_add_device(*%hid.hid_device%)",
-        "header": "linux/hid.h"
-      },
-      "hid_destroy_device": {
-        "declaration": "void hid_destroy_device(*%hid.hid_device%)",
-        "header": "linux/hid.h"
-      }
-    },
+  "3.14": {
     "categories": {
       "hid": {
-        "containers": {
-          "hid_device": {
-            "header": "linux/hid.h",
-            "declaration": "struct hid_device a",
-            "fields": {
-              "ll_driver": "*%hid.ll_driver%"
-            }
-          },
-          "ll_driver": {
-            "header": "linux/hid.h",
-            "declaration": "struct hid_ll_driver a",
-            "fields": {
-              "start": "%hid.start%",
-              "stop": "%hid.stop%",
-              "open": "%hid.open%",
-              "close": "%hid.close%"
-            }
-          }
-        },
         "callbacks": {
+          "close": {
+            "declaration": "void (*close)(*%hid.hid_device%)"
+          },
+          "open": {
+            "declaration": "int (*open)(*%hid.hid_device%)"
+          },
           "start": {
             "declaration": "int (*start)(*%hid.hid_device%)"
           },
           "stop": {
             "declaration": "void (*stop)(*%hid.hid_device%)"
-          },
-          "open": {
-            "declaration": "int (*open)(*%hid.hid_device%)"
-          },
-          "close": {
-            "declaration": "void (*close)(*%hid.hid_device%)"
           }
-        }
+        },
+        "containers": {
+          "hid_device": {
+            "declaration": "struct hid_device a",
+            "fields": {
+              "ll_driver": "*%hid.ll_driver%"
+            },
+            "header": "linux/hid.h"
+          },
+          "ll_driver": {
+            "declaration": "struct hid_ll_driver a",
+            "fields": {
+              "close": "%hid.close%",
+              "open": "%hid.open%",
+              "start": "%hid.start%",
+              "stop": "%hid.stop%"
+            },
+            "header": "linux/hid.h"
+          }
+        },
+        "reference": true
+      }
+    },
+    "functions models": {
+      "hid_add_device": {
+        "declaration": "int hid_add_device(*%hid.hid_device%)",
+        "header": "linux/hid.h",
+        "reference": true
+      },
+      "hid_destroy_device": {
+        "declaration": "void hid_destroy_device(*%hid.hid_device%)",
+        "header": "linux/hid.h",
+        "reference": true
       }
     }
   }

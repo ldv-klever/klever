@@ -16,8 +16,7 @@
  */
 
 #include <linux/module.h>
-#include <verifier/common.h>
-#include <verifier/nondet.h>
+#include <ldv/test.h>
 #include "unions.h"
 
 static int __init ldv_init(void)
@@ -26,22 +25,22 @@ static int __init ldv_init(void)
 	union ldv_union10 var2 = {{{{{{{{{{var1}}}}}}}}}}, *var3 = &var2;
 
 	if (var2.field.field.field.field.field.field.field.field.field.field1 != var1)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (var2.field.field.field.field.field.field.field.field.field.field2 != var1)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (var2.field.field.field.field.field.field.field.field.field.field3 != var1)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (var3->field.field.field.field.field.field.field.field.field.field1 != var1)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (var3->field.field.field.field.field.field.field.field.field.field2 != var1)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (var3->field.field.field.field.field.field.field.field.field.field3 != var1)
-		ldv_error();
+		ldv_unexpected_error();
 
 	return 0;
 }

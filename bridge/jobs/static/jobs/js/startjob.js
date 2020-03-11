@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+ * Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
  * Ivannikov Institute for System Programming of the Russian Academy of Sciences
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,6 +23,7 @@ $(document).ready(function () {
             priority: $('input[name="priority"]:checked').val(),
             scheduler: $('input[name="scheduler"]:checked').val(),
             job_weight: $('input[name="job_weight"]:checked').val(),
+            coverage_details: $('input[name="coverage_details"]:checked').val(),
             max_tasks: $('#max_tasks').val(),
             parallelism: [$('#parallelism_0').val(), $('#parallelism_1').val(), $('#parallelism_2').val()],
             memory: $('#memory').val().replace(/,/, '.'),
@@ -32,7 +33,7 @@ $(document).ready(function () {
             console_level: $('#console_level').val(),
             file_level: $('#file_level').val(),
             console_formatter: $('#console_formatter').val(),
-            file_formatter: $('#file_formatter').val(),
+            file_formatter: $('#file_formatter').val()
         };
         $('.boolean-value').each(function () {
             data[$(this).attr('id')] = $(this).is(':checked');
@@ -45,6 +46,7 @@ $(document).ready(function () {
         $(`input[name="priority"][value="${resp['priority']}"]`).prop('checked', true);
         $(`input[name="scheduler"][value="${resp['scheduler']}"]`).prop('checked', true);
         $(`input[name="job_weight"][value="${resp['job_weight']}"]`).prop('checked', true);
+        $(`input[name="coverage_details"][value="${resp['coverage_details']}"]`).prop('checked', true);
         $('#max_tasks').val(resp['max_tasks']);
         $('#parallelism_0').val(resp['parallelism'][0]);
         $('#parallelism_1').val(resp['parallelism'][1]);

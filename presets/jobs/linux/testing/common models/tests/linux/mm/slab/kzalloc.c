@@ -18,8 +18,7 @@
 #include <linux/module.h>
 #include <linux/slab.h>
 #include <linux/ldv/slab.h>
-#include <verifier/common.h>
-#include <verifier/nondet.h>
+#include <ldv/test.h>
 
 gfp_t ldv_flags;
 bool ldv_is_flags_equal = false;
@@ -42,7 +41,7 @@ static int __init ldv_init(void)
 
 	ldv_flags = ldv_undef_uint();
 	if (kzalloc(size, ldv_flags) == ldv_res && ldv_is_flags_equal)
-		ldv_error();
+		ldv_expected_error();
 
 	return 0;
 }

@@ -1,28 +1,31 @@
 {
-  "Linux 3.14 (base)": {
-    "functions models": {
-      "kthread_create_on_node": {
-        "declaration": "struct task_struct *kthread_create_on_node(%kthread.threadfn%, %kthread.data%, int node, const char namefmt[], ...);",
-        "header":"linux/kthread.h"
-      },
-      "kthread_create": {
-        "declaration": "struct task_struct *kthread_create(%kthread.threadfn%, %kthread.data%, const char namefmt[], ...);",
-        "header":"linux/kthread.h"
-      }
-    },
+  "3.14": {
     "categories": {
       "kthread": {
-        "resources": {
-          "data": {
-            "declaration": "void *data"
-          }
-        },
         "callbacks": {
           "threadfn": {
             "declaration": "int (*threadfn)(%kthread.data%)",
             "interrupt context": false
           }
+        },
+        "reference": true,
+        "resources": {
+          "data": {
+            "declaration": "void *data"
+          }
         }
+      }
+    },
+    "functions models": {
+      "kthread_create": {
+        "declaration": "struct task_struct *kthread_create(%kthread.threadfn%, %kthread.data%, const char namefmt[], ...);",
+        "header": "linux/kthread.h",
+        "reference": true
+      },
+      "kthread_create_on_node": {
+        "declaration": "struct task_struct *kthread_create_on_node(%kthread.threadfn%, %kthread.data%, int node, const char namefmt[], ...);",
+        "header": "linux/kthread.h",
+        "reference": true
       }
     }
   }

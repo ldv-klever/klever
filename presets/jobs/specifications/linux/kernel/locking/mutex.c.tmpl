@@ -27,7 +27,6 @@ struct mutex;
 // for arg_sign in mutex_arg_signs
 ldv_set LDV_MUTEXES{{ arg_sign.id }};
 
-/* MODEL_FUNC Check that mutex{{ arg_sign.text }} was not locked and lock it */
 void ldv_mutex_lock{{ arg_sign.id }}(struct mutex *lock)
 {
 	/* ASSERT Mutex{{ arg_sign.text }} must be unlocked */
@@ -36,7 +35,6 @@ void ldv_mutex_lock{{ arg_sign.id }}(struct mutex *lock)
 	ldv_set_add(LDV_MUTEXES{{ arg_sign.id }}, lock);
 }
 
-/* MODEL_FUNC Check that mutex{{ arg_sign.text }} was not locked and nondeterministically lock it */
 int ldv_mutex_lock_interruptible_or_killable{{ arg_sign.id }}(struct mutex *lock)
 {
 	/* ASSERT Mutex{{ arg_sign.text }} must be unlocked */
@@ -54,7 +52,6 @@ int ldv_mutex_lock_interruptible_or_killable{{ arg_sign.id }}(struct mutex *lock
 	}
 }
 
-/* MODEL_FUNC Say whether mutex{{ arg_sign.text }} was locked in this or another thread  */
 int ldv_mutex_is_locked{{ arg_sign.id }}(struct mutex *lock)
 {
 	/* NOTE Whether mutex{{ arg_sign.text }} was locked in this thread */
@@ -73,7 +70,6 @@ int ldv_mutex_is_locked{{ arg_sign.id }}(struct mutex *lock)
 	}
 }
 
-/* MODEL_FUNC Lock mutex{{ arg_sign.text }} if it was not locked before */
 int ldv_mutex_trylock{{ arg_sign.id }}(struct mutex *lock)
 {
 	/* ASSERT Mutex{{ arg_sign.text }} must be unlocked */
@@ -92,7 +88,6 @@ int ldv_mutex_trylock{{ arg_sign.id }}(struct mutex *lock)
 	}
 }
 
-/* MODEL_FUNC Decrease counter by one and if it becomes zero check that mutex{{ arg_sign.text }} was not locked and lock it */
 int ldv_atomic_dec_and_mutex_lock{{ arg_sign.id }}(atomic_t *cnt, struct mutex *lock)
 {
 	/* NOTE Decrease counter by one */
@@ -110,7 +105,6 @@ int ldv_atomic_dec_and_mutex_lock{{ arg_sign.id }}(atomic_t *cnt, struct mutex *
 	}
 }
 
-/* MODEL_FUNC Check that mutex{{ arg_sign.text }} was locked and unlock it */
 void ldv_mutex_unlock{{ arg_sign.id }}(struct mutex *lock)
 {
 	/* ASSERT Mutex{{ arg_sign.text }} must be locked */
@@ -120,7 +114,6 @@ void ldv_mutex_unlock{{ arg_sign.id }}(struct mutex *lock)
 }
 // endfor
 
-/* MODEL_FUNC Make all mutexes unlocked at the beginning */
 void ldv_initialize(void)
 {
 	// for arg_sign in mutex_arg_signs
@@ -129,7 +122,6 @@ void ldv_initialize(void)
 	// endfor
 }
 
-/* MODEL_FUNC Check that all mutexes are unlocked at the end */
 void ldv_check_final_state(void)
 {
 	// for arg_sign in mutex_arg_signs

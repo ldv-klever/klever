@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
 # Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -111,10 +111,10 @@ class Migration(migrations.Migration):
             ('cpu_time', models.BigIntegerField(null=True)),
             ('wall_time', models.BigIntegerField(null=True)),
             ('memory', models.BigIntegerField(null=True)),
-            ('lft', models.PositiveIntegerField(db_index=True, editable=False)),
-            ('rght', models.PositiveIntegerField(db_index=True, editable=False)),
+            ('lft', models.PositiveIntegerField(editable=False)),
+            ('rght', models.PositiveIntegerField(editable=False)),
             ('tree_id', models.PositiveIntegerField(db_index=True, editable=False)),
-            ('level', models.PositiveIntegerField(db_index=True, editable=False)),
+            ('level', models.PositiveIntegerField(editable=False)),
             ('root', models.ForeignKey(on_delete=models.deletion.CASCADE, to='reports.ReportRoot')),
         ], options={'db_table': 'report'}),
 
@@ -157,6 +157,8 @@ class Migration(migrations.Migration):
                 on_delete=models.deletion.CASCADE, related_name='coverages', to='reports.ReportComponent'
             )),
             ('total', JSONField(null=True)),
+            ('name', models.CharField(default='-', max_length=128)),
+            ('has_extra', models.BooleanField(default=False)),
         ], options={'db_table': 'report_coverage_archive'}, bases=(bridge.utils.WithFilesMixin, models.Model)),
 
         migrations.CreateModel(name='ReportComponentLeaf', fields=[
@@ -173,7 +175,6 @@ class Migration(migrations.Migration):
                 auto_created=True, on_delete=models.deletion.CASCADE, parent_link=True,
                 primary_key=True, serialize=False, to='reports.Report'
             )),
-            ('proof', models.FileField(null=True, upload_to='Safes/%Y/%m')),
         ], options={'db_table': 'report_safe'}, bases=(bridge.utils.WithFilesMixin, 'reports.report')),
 
         migrations.CreateModel(name='ReportUnknown', fields=[
@@ -193,6 +194,32 @@ class Migration(migrations.Migration):
             ('trace_id', models.UUIDField(db_index=True, default=uuid.uuid4, unique=True)),
             ('error_trace', models.FileField(upload_to='Unsafes/%Y/%m')),
         ], options={'db_table': 'report_unsafe'}, bases=(bridge.utils.WithFilesMixin, 'reports.report')),
+
+        migrations.CreateModel(name='CoverageDataStatistics', fields=[
+            ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+            ('name', models.CharField(max_length=255)),
+            ('data', JSONField()),
+            ('coverage', models.ForeignKey(on_delete=models.deletion.CASCADE, to='reports.CoverageArchive')),
+        ], options={'db_table': 'report_coverage_data_statistics'}),
+
+        migrations.CreateModel(name='CoverageStatistics', fields=[
+            ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+            ('identifier', models.PositiveIntegerField()),
+            ('parent', models.PositiveIntegerField(null=True)),
+            ('is_leaf', models.BooleanField()),
+            ('name', models.CharField(max_length=128)),
+            ('path', models.TextField(null=True)),
+            ('lines_covered', models.PositiveIntegerField(default=0)),
+            ('lines_total', models.PositiveIntegerField(default=0)),
+            ('funcs_covered', models.PositiveIntegerField(default=0)),
+            ('funcs_total', models.PositiveIntegerField(default=0)),
+            ('depth', models.PositiveIntegerField(default=0)),
+            ('coverage', models.ForeignKey(on_delete=models.deletion.CASCADE, to='reports.CoverageArchive')),
+            ('funcs_covered_extra', models.PositiveIntegerField(default=0)),
+            ('funcs_total_extra', models.PositiveIntegerField(default=0)),
+            ('lines_covered_extra', models.PositiveIntegerField(default=0)),
+            ('lines_total_extra', models.PositiveIntegerField(default=0)),
+        ], options={'db_table': 'report_coverage_statistics'}),
 
         migrations.AddField(model_name='report', name='parent', field=mptt.fields.TreeForeignKey(
             null=True, on_delete=models.deletion.CASCADE, related_name='children', to='reports.Report')

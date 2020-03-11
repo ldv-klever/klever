@@ -2,13 +2,13 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Linux:Version",
+      "name": "Project:Version",
       "value": "v3.5-6984-ge4c7f259c5be"
     },
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:alloc:spinlock"
+      "name": "Requirements specification",
+      "value": "alloc:spinlock"
     },
     {
       "is_compare": true,
@@ -19,402 +19,297 @@
   "description": "Non-target bug.",
   "error_trace": [
     [
-      {
-        "kaweth_probe": [
-          {
-            "kaweth_read_configuration": [
-              {
-                "kaweth_control": [
-                  {
-                    "ldv_kmalloc": [
-                      {
-                        "ldv_check_alloc_flags": []
-                      }
-                    ]
-                  },
-                  {
-                    "kaweth_internal_control_msg": [
-                      {
-                        "ldv_usb_alloc_urb_106": [
-                          {
-                            "ldv_check_alloc_flags": []
-                          }
-                        ]
-                      },
-                      {
-                        "usb_start_wait_urb": [
-                          {
-                            "ldv_usb_submit_urb_104": [
-                              {
-                                "ldv_check_alloc_flags": [
-                                  {
-                                    "ldv_exclusive_spin_is_locked": []
-                                  },
-                                  {
-                                    "ldv_assert_linux_alloc_spinlock__wrong_flags": []
-                                  }
-                                ]
-                              }
-                            ]
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "kaweth_set_urb_size": [
-              {
-                "kaweth_control": [
-                  {
-                    "ldv_kmalloc": [
-                      {
-                        "ldv_check_alloc_flags": []
-                      }
-                    ]
-                  },
-                  {
-                    "kaweth_internal_control_msg": [
-                      {
-                        "ldv_usb_alloc_urb_106": [
-                          {
-                            "ldv_check_alloc_flags": []
-                          }
-                        ]
-                      },
-                      {
-                        "usb_start_wait_urb": [
-                          {
-                            "ldv_usb_submit_urb_104": [
-                              {
-                                "ldv_check_alloc_flags": [
-                                  {
-                                    "ldv_exclusive_spin_is_locked": []
-                                  },
-                                  {
-                                    "ldv_assert_linux_alloc_spinlock__wrong_flags": []
-                                  }
-                                ]
-                              }
-                            ]
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "kaweth_set_sofs_wait": [
-              {
-                "kaweth_control": [
-                  {
-                    "ldv_kmalloc": [
-                      {
-                        "ldv_check_alloc_flags": []
-                      }
-                    ]
-                  },
-                  {
-                    "kaweth_internal_control_msg": [
-                      {
-                        "ldv_usb_alloc_urb_106": [
-                          {
-                            "ldv_check_alloc_flags": []
-                          }
-                        ]
-                      },
-                      {
-                        "usb_start_wait_urb": [
-                          {
-                            "ldv_usb_submit_urb_104": [
-                              {
-                                "ldv_check_alloc_flags": [
-                                  {
-                                    "ldv_exclusive_spin_is_locked": []
-                                  },
-                                  {
-                                    "ldv_assert_linux_alloc_spinlock__wrong_flags": []
-                                  }
-                                ]
-                              }
-                            ]
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "kaweth_set_receive_filter": [
-              {
-                "kaweth_control": [
-                  {
-                    "ldv_kmalloc": [
-                      {
-                        "ldv_check_alloc_flags": []
-                      }
-                    ]
-                  },
-                  {
-                    "kaweth_internal_control_msg": [
-                      {
-                        "ldv_usb_alloc_urb_106": [
-                          {
-                            "ldv_check_alloc_flags": []
-                          }
-                        ]
-                      },
-                      {
-                        "usb_start_wait_urb": [
-                          {
-                            "ldv_usb_submit_urb_104": [
-                              {
-                                "ldv_check_alloc_flags": [
-                                  {
-                                    "ldv_exclusive_spin_is_locked": []
-                                  },
-                                  {
-                                    "ldv_assert_linux_alloc_spinlock__wrong_flags": []
-                                  }
-                                ]
-                              }
-                            ]
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "ldv_usb_alloc_urb_95": [
-              {
-                "ldv_check_alloc_flags": [
-                  {
-                    "ldv_exclusive_spin_is_locked": []
-                  },
-                  {
-                    "ldv_assert_linux_alloc_spinlock__wrong_flags": []
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "ldv_usb_alloc_urb_96": [
-              {
-                "ldv_check_alloc_flags": [
-                  {
-                    "ldv_exclusive_spin_is_locked": []
-                  },
-                  {
-                    "ldv_assert_linux_alloc_spinlock__wrong_flags": []
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "ldv_usb_alloc_urb_97": [
-              {
-                "ldv_check_alloc_flags": [
-                  {
-                    "ldv_exclusive_spin_is_locked": []
-                  },
-                  {
-                    "ldv_assert_linux_alloc_spinlock__wrong_flags": []
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "ldv_usb_alloc_coherent_98": [
-              {
-                "ldv_check_alloc_flags": [
-                  {
-                    "ldv_exclusive_spin_is_locked": []
-                  },
-                  {
-                    "ldv_assert_linux_alloc_spinlock__wrong_flags": []
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "ldv_usb_alloc_coherent_99": [
-              {
-                "ldv_check_alloc_flags": [
-                  {
-                    "ldv_exclusive_spin_is_locked": []
-                  },
-                  {
-                    "ldv_assert_linux_alloc_spinlock__wrong_flags": []
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "ldv_emg_register_netdev": [
-              {
-                "kaweth_open": [
-                  {
-                    "kaweth_resubmit_rx_urb": [
-                      {
-                        "ldv_usb_submit_urb_70": [
-                          {
-                            "ldv_check_alloc_flags": [
-                              {
-                                "ldv_exclusive_spin_is_locked": []
-                              },
-                              {
-                                "ldv_assert_linux_alloc_spinlock__wrong_flags": []
-                              }
-                            ]
-                          }
-                        ]
-                      }
-                    ]
-                  },
-                  {
-                    "ldv_usb_submit_urb_75": [
-                      {
-                        "ldv_check_alloc_flags": [
-                          {
-                            "ldv_exclusive_spin_is_locked": []
-                          },
-                          {
-                            "ldv_assert_linux_alloc_spinlock__wrong_flags": []
-                          }
-                        ]
-                      }
-                    ]
-                  },
-                  {
-                    "kaweth_async_set_rx_mode": [
-                      {
-                        "kaweth_control": [
-                          {
-                            "ldv_kmalloc": [
-                              {
-                                "ldv_check_alloc_flags": []
-                              }
-                            ]
-                          },
-                          {
-                            "kaweth_internal_control_msg": [
-                              {
-                                "ldv_usb_alloc_urb_106": [
-                                  {
-                                    "ldv_check_alloc_flags": []
-                                  }
-                                ]
-                              },
-                              {
-                                "usb_start_wait_urb": [
-                                  {
-                                    "ldv_usb_submit_urb_104": [
-                                      {
-                                        "ldv_check_alloc_flags": [
-                                          {
-                                            "ldv_exclusive_spin_is_locked": []
-                                          },
-                                          {
-                                            "ldv_assert_linux_alloc_spinlock__wrong_flags": []
-                                          }
-                                        ]
-                                      }
-                                    ]
-                                  }
-                                ]
-                              }
-                            ]
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      }
+      [
+        {
+          "EMG wrapper": [
+            {
+              "kaweth_open": [
+                {
+                  "kaweth_resubmit_rx_urb": [
+                    {
+                      "Instrumented function 'usb_submit_urb'": [
+                        {
+                          "LDV model 'check_alloc_flags'": [
+                            {
+                              "LDV model 'exclusive_spin_is_locked'": []
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Instrumented function 'usb_submit_urb'": [
+                    {
+                      "LDV model 'check_alloc_flags'": [
+                        {
+                          "LDV model 'exclusive_spin_is_locked'": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "kaweth_async_set_rx_mode": [
+                    {
+                      "kaweth_control": [
+                        {
+                          "kaweth_internal_control_msg": [
+                            {
+                              "usb_start_wait_urb": [
+                                {
+                                  "Instrumented function 'usb_submit_urb'": [
+                                    {
+                                      "LDV model 'check_alloc_flags'": [
+                                        {
+                                          "LDV model 'exclusive_spin_is_locked'": []
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "EMG wrapper": [
+            {
+              "kaweth_probe": [
+                {
+                  "kaweth_read_configuration": [
+                    {
+                      "kaweth_control": [
+                        {
+                          "kaweth_internal_control_msg": [
+                            {
+                              "usb_start_wait_urb": [
+                                {
+                                  "Instrumented function 'usb_submit_urb'": [
+                                    {
+                                      "LDV model 'check_alloc_flags'": [
+                                        {
+                                          "LDV model 'exclusive_spin_is_locked'": []
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "kaweth_set_urb_size": [
+                    {
+                      "kaweth_control": [
+                        {
+                          "kaweth_internal_control_msg": [
+                            {
+                              "usb_start_wait_urb": [
+                                {
+                                  "Instrumented function 'usb_submit_urb'": [
+                                    {
+                                      "LDV model 'check_alloc_flags'": [
+                                        {
+                                          "LDV model 'exclusive_spin_is_locked'": []
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "kaweth_set_sofs_wait": [
+                    {
+                      "kaweth_control": [
+                        {
+                          "kaweth_internal_control_msg": [
+                            {
+                              "usb_start_wait_urb": [
+                                {
+                                  "Instrumented function 'usb_submit_urb'": [
+                                    {
+                                      "LDV model 'check_alloc_flags'": [
+                                        {
+                                          "LDV model 'exclusive_spin_is_locked'": []
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "kaweth_set_receive_filter": [
+                    {
+                      "kaweth_control": [
+                        {
+                          "kaweth_internal_control_msg": [
+                            {
+                              "usb_start_wait_urb": [
+                                {
+                                  "Instrumented function 'usb_submit_urb'": [
+                                    {
+                                      "LDV model 'check_alloc_flags'": [
+                                        {
+                                          "LDV model 'exclusive_spin_is_locked'": []
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Instrumented function 'usb_alloc_urb'": [
+                    {
+                      "LDV model 'check_alloc_flags'": [
+                        {
+                          "LDV model 'exclusive_spin_is_locked'": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Instrumented function 'usb_alloc_urb'": [
+                    {
+                      "LDV model 'check_alloc_flags'": [
+                        {
+                          "LDV model 'exclusive_spin_is_locked'": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Instrumented function 'usb_alloc_urb'": [
+                    {
+                      "LDV model 'check_alloc_flags'": [
+                        {
+                          "LDV model 'exclusive_spin_is_locked'": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Instrumented function 'usb_alloc_coherent'": [
+                    {
+                      "LDV model 'check_alloc_flags'": [
+                        {
+                          "LDV model 'exclusive_spin_is_locked'": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Instrumented function 'usb_alloc_coherent'": [
+                    {
+                      "LDV model 'check_alloc_flags'": [
+                        {
+                          "LDV model 'exclusive_spin_is_locked'": []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ],
     [
-      {
-        "kaweth_start_xmit": [
-          {
-            "ldv_spin_lock_irq_82": [
-              {
-                "ldv_spin_lock_device_lock_of_kaweth_device": []
-              }
-            ]
-          },
-          {
-            "kaweth_async_set_rx_mode": [
-              {
-                "kaweth_control": [
-                  {
-                    "ldv_kmalloc": [
-                      {
-                        "ldv_check_alloc_flags": []
-                      }
-                    ]
-                  },
-                  {
-                    "kaweth_internal_control_msg": [
-                      {
-                        "ldv_usb_alloc_urb_106": [
-                          {
-                            "ldv_check_alloc_flags": []
-                          }
-                        ]
-                      },
-                      {
-                        "usb_start_wait_urb": [
-                          {
-                            "ldv_usb_submit_urb_104": [
-                              {
-                                "ldv_check_alloc_flags": [
-                                  {
-                                    "ldv_exclusive_spin_is_locked": []
-                                  },
-                                  {
-                                    "ldv_assert_linux_alloc_spinlock__wrong_flags": []
-                                  }
-                                ]
-                              }
-                            ]
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      }
+      [
+        {
+          "EMG wrapper": [
+            {
+              "kaweth_start_xmit": [
+                {
+                  "Instrumented function 'spin_lock_irq'": [
+                    {
+                      "LDV model 'spin_lock_device_lock_of_kaweth_device'": []
+                    }
+                  ]
+                },
+                {
+                  "kaweth_async_set_rx_mode": [
+                    {
+                      "kaweth_control": [
+                        {
+                          "kaweth_internal_control_msg": [
+                            {
+                              "usb_start_wait_urb": [
+                                {
+                                  "Instrumented function 'usb_submit_urb'": [
+                                    {
+                                      "LDV model 'check_alloc_flags'": [
+                                        {
+                                          "LDV model 'exclusive_spin_is_locked'": []
+                                        },
+                                        {
+                                          "LDV model 'assert'": []
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",
-  "is_modifiable": true,
+  "is_modifiable": false,
   "status": "2",
   "tags": [],
+  "threshold": 0,
   "verdict": "1"
 }

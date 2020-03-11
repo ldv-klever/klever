@@ -1,48 +1,51 @@
 {
-  "Linux 3.14 (base)": {
-  	"functions models": {
-  		"kthread_create_on_node, kthread_create": {
-  			"comment": "Create a kthread.",
-	        "labels": {
-	          "data": {
-	            "parameter": true,
-	            "interface": "kthread.data"
-	          },
-	          "threadfn": {
-	          	"parameter": true,
-	          	"interface": "kthread.threadfn"
-	          },
-	          "ptr": {
-	          	"declaration": "void *ptr"
-	          }
-	        },
-	        "process": "<assign>.[callback].<return>",
-	        "actions": {
-	          "callback": {
-	            "comment": "Call the kthread callback.",
-	            "callback": "%threadfn%",
-	            "parameters": [
-	              "%data%"
-	            ]
-	          },
-	          "assign": {
-	            "comment": "Get the data from arguments.",
-	            "statements": [
-	              "%data% = $ARG2;",
-	              "%threadfn% = $ARG1;"
-	            ]
-	          },
-	          "return": {
-	            "comment": "Kthread has been created.",
-	            "statements": [
-	              "%ptr% = ldv_undef_ptr();",
-	              "ldv_assume(ldv_is_err(%ptr%));",
-	              "return %ptr%;"
-	            ]
-	          }
-	        }
-  		}
-  	},
-  	"environment processes": {}
+  "3.14": {
+    "environment processes": {},
+    "functions models": {
+      "kthread_create_on_node, kthread_create": {
+        "actions": {
+          "assign": {
+            "comment": "Get the data from arguments.",
+            "trace relevant": true,
+            "statements": [
+              "%data% = $ARG2;",
+              "%threadfn% = $ARG1;"
+            ]
+          },
+          "callback": {
+            "callback": "%threadfn%",
+            "comment": "Call the kthread callback.",
+            "parameters": [
+              "%data%"
+            ]
+          },
+          "return": {
+            "comment": "Kthread has been created.",
+            "trace relevant": true,
+            "statements": [
+              "%ptr% = ldv_undef_ptr();",
+              "ldv_assume(ldv_is_err(%ptr%));",
+              "return %ptr%;"
+            ]
+          }
+        },
+        "comment": "Create a kthread.",
+        "labels": {
+          "data": {
+            "interface": "kthread.data",
+            "parameter": true
+          },
+          "ptr": {
+            "declaration": "void *ptr"
+          },
+          "threadfn": {
+            "interface": "kthread.threadfn",
+            "parameter": true
+          }
+        },
+        "process": "<assign>.[callback].<return>",
+        "reference": true
+      }
+    }
   }
 }

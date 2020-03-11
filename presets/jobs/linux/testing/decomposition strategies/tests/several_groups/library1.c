@@ -16,10 +16,10 @@
  */
 
 #include <linux/module.h>
-#include <verifier/common.h>
+#include <ldv/test.h>
 
 void several_groups_export_with_error(void)
 {
-	ldv_error();
+	ldv_expected_error();
 }
 EXPORT_SYMBOL(several_groups_export_with_error);

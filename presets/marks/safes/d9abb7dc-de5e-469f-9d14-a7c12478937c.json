@@ -2,8 +2,8 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:alloc:irq"
+      "name": "Requirements specification",
+      "value": "alloc:irq"
     },
     {
       "is_compare": true,
@@ -12,7 +12,7 @@
     }
   ],
   "description": "Seems that all is correct.",
-  "is_modifiable": true,
+  "is_modifiable": false,
   "tags": [],
   "verdict": "0"
 }

@@ -2,8 +2,8 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:alloc:spinlock"
+      "name": "Requirements specification",
+      "value": "alloc:spinlock"
     },
     {
       "is_compare": true,
@@ -14,31 +14,43 @@
   "description": "",
   "error_trace": [
     [
-      {
-        "ldv_init": [
-          {
-            "ldv_spin_lock_45": [
-              {
-                "ldv_spin_lock_ldv_lock": []
-              }
-            ]
-          },
-          {
-            "ldv_check_alloc_nonatomic": [
-              {
-                "ldv_exclusive_spin_is_locked": []
-              },
-              {
-                "ldv_assert_linux_alloc_spinlock__nonatomic": []
-              }
-            ]
-          }
-        ]
-      }
+      [
+        {
+          "EMG wrapper": [
+            {
+              "LDV model 'init'": [
+                {
+                  "Instrumented function 'spin_lock'": [
+                    {
+                      "LDV model 'spin_lock_ldv_lock'": []
+                    }
+                  ]
+                },
+                {
+                  "Instrumented function 'vmalloc'": [
+                    {
+                      "LDV model 'check_alloc_nonatomic'": [
+                        {
+                          "LDV model 'exclusive_spin_is_locked'": []
+                        },
+                        {
+                          "LDV model 'assert'": []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",
-  "is_modifiable": true,
+  "is_modifiable": false,
+  "status": null,
   "tags": [],
+  "threshold": 0,
   "verdict": "2"
 }

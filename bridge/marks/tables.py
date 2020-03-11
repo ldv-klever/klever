@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
 # Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -60,7 +60,6 @@ MARK_TITLES = {
     'ass_author': _('Association author'),
     'report': _('Report'),
     'job': _('Job'),
-    'format': _('Format'),
     'number': _('#'),
     'num_of_links': _('Number of associated leaf reports'),
     'problem': _("Problem"),
@@ -144,7 +143,8 @@ class ReportMarksTableBase:
             columns.append('buttons')
         return columns
 
-    def __get_likes_data(self):
+    @cached_property
+    def likes_data(self):
         assert self.likes_model is not None, 'Wrong usage'
         queryset = self.likes_model.objects.filter(association__report=self.report).select_related('author').order_by(
             'author__username', 'author__first_name', 'author__last_name'
@@ -164,7 +164,7 @@ class ReportMarksTableBase:
             else:
                 likes.setdefault(ass_like.association_id, [])
                 likes[ass_like.association_id].append(author_data)
-        return likes, dislikes
+        return {'likes': likes, 'dislikes': dislikes}
 
     @cached_property
     def queryset(self):
@@ -235,10 +235,19 @@ class ReportMarksTableBase:
                 users_ids.add(mark_data['ass_author'])
         return dict((usr.id, usr) for usr in User.objects.filter(id__in=users_ids))
 
+    @cached_property
+    def likes_popups(self):
+        likes_data_list = []
+        for ass_id in self.likes_data['likes']:
+            if self.likes_data['likes'][ass_id]:
+                likes_data_list.append({'id': ass_id, 'authors': self.likes_data['likes'][ass_id]})
+        for ass_id in self.likes_data['dislikes']:
+            if self.likes_data['dislikes'][ass_id]:
+                likes_data_list.append({'id': ass_id, 'authors': self.likes_data['dislikes'][ass_id]})
+        return likes_data_list
+
     def __get_values(self):
         value_data = []
-
-        likes, dislikes = self.__get_likes_data()
         source_dict = dict(MARK_SOURCE)
         ass_type_dict = dict(self.ass_types)
 
@@ -306,9 +315,9 @@ class ReportMarksTableBase:
                         val = mark_data['description']
                 elif col == 'likes':
                     val = {
-                        'id': mark_data['id'],
-                        'likes': likes.get(mark_data['ass_id'], []),
-                        'dislikes': dislikes.get(mark_data['ass_id'], []),
+                        'id': mark_data['ass_id'],
+                        'likes_num': len(self.likes_data['likes'].get(mark_data['ass_id'], [])),
+                        'dislikes_num': len(self.likes_data['dislikes'].get(mark_data['ass_id'], [])),
                         'like_url': reverse('marks:api-like-{}'.format(self.report_type), args=[mark_data['ass_id']])
                     }
                 elif col == 'buttons':
@@ -478,8 +487,6 @@ class MarksTableBase:
         select_related = ['mark']
         if 'identifier' in view_columns:
             select_only.append('mark__identifier')
-        if 'format' in view_columns:
-            select_only.append('mark__format')
         if 'source' in view_columns:
             select_only.append('mark__source')
         if 'change_date' in view_columns:
@@ -575,8 +582,6 @@ class MarksTableBase:
                         val = HumanizedValue.get_templated_text('{% load humanize %}{{ date|naturaltime }}', date=val)
                 elif col == 'source':
                     val = mark_version.mark.get_source_display()
-                elif col == 'format':
-                    val = mark_version.mark.format
                 elif col == 'identifier':
                     val = str(mark_version.mark.identifier)
                 else:
@@ -593,7 +598,7 @@ class SafeMarksTable(MarksTableBase):
     mark_table = 'mark_safe'
     columns_list = [
         'num_of_links', 'verdict', 'tags', 'author',
-        'change_date', 'format', 'source', 'identifier'
+        'change_date', 'source', 'identifier'
     ]
     attrs_model = MarkSafeAttr
     versions_model = MarkSafeHistory
@@ -618,7 +623,7 @@ class UnsafeMarksTable(MarksTableBase):
     mark_table = 'mark_unsafe'
     columns_list = [
         'num_of_links', 'verdict', 'tags', 'status',
-        'author', 'change_date', 'format', 'source', 'identifier'
+        'author', 'change_date', 'source', 'identifier'
     ]
     attrs_model = MarkUnsafeAttr
     versions_model = MarkUnsafeHistory
@@ -659,7 +664,7 @@ class UnknownMarksTable(MarksTableBase):
     mark_table = 'mark_unknown'
     columns_list = [
         'num_of_links', 'component', 'problem_pattern', 'author',
-        'change_date', 'format', 'source', 'identifier'
+        'change_date', 'source', 'identifier'
     ]
     attrs_model = MarkUnknownAttr
     versions_model = MarkUnknownHistory
@@ -947,12 +952,6 @@ class AssChangesBase:
             qs_filters &= Q(verdict_new__in=self.view['verdict_new'])
         if 'job_title' in self.view:
             qs_filters &= Q(**{'job__name__{}'.format(self.view['job_title'][0]): self.view['job_title'][1]})
-        if 'format' in self.view:
-            format_filter = Q(job__format=self.view['format'][1])
-            if self.view['format'][0] == 'is':
-                qs_filters &= format_filter
-            else:
-                qs_filters &= ~format_filter
         if 'attr' in self.view:
             select_related.extend(['report', 'report__cache'])
             annotations['attr_value'] = RawSQL(
@@ -973,8 +972,6 @@ class AssChangesBase:
             select_only.append('kind')
         if 'job' in selected_columns:
             select_only.extend(['job__id', 'job__name'])
-        if 'format' in selected_columns:
-            select_only.extend(['job__format'])
         if 'sum_verdict' in selected_columns:
             select_only.extend(['verdict_old', 'verdict_new'])
         if 'tags' in selected_columns:
@@ -1032,8 +1029,6 @@ class AssChangesBase:
                 elif col == 'job':
                     val = cache_obj.job.name
                     href = reverse('jobs:job', args=[cache_obj.job.id])
-                elif col == 'format':
-                    val = cache_obj.job.format
                 elif col == 'tags':
                     html = self.__get_tags_or_problems(cache_obj.tags_old, cache_obj.tags_new)
                 elif col == 'problems':
@@ -1046,18 +1041,18 @@ class AssChangesBase:
 class SafeAssChanges(AssChangesBase):
     model = SafeMarkAssociationChanges
     verdicts = SAFE_VERDICTS
-    supported_columns = ['change_kind', 'job', 'format', 'sum_verdict', 'tags']
+    supported_columns = ['change_kind', 'job', 'sum_verdict', 'tags']
     report_cache_table = 'cache_safe'
 
 
 class UnsafeAssChanges(AssChangesBase):
     model = UnsafeMarkAssociationChanges
     verdicts = UNSAFE_VERDICTS
-    supported_columns = ['change_kind', 'job', 'format', 'sum_verdict', 'tags']
+    supported_columns = ['change_kind', 'job', 'sum_verdict', 'tags']
     report_cache_table = 'cache_unsafe'
 
 
 class UnknownAssChanges(AssChangesBase):
     model = UnknownMarkAssociationChanges
-    supported_columns = ['change_kind', 'job', 'format', 'problems']
+    supported_columns = ['change_kind', 'job', 'problems']
     report_cache_table = 'cache_unknown'

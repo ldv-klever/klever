@@ -1,10 +1,10 @@
 {
-  "Class": "Verification of userspace programs",
+  "project": "BusyBox",
   "build base": "busybox",
-  "program": "Busybox",
-  "version": "1.28.3",
-  "fragmentation set": "Applets",
-  "specifications set": "Linux 3.14 (base)",
-  "requirements": ["busybox:empty", "busybox:open", "busybox:memory safety"],
-  "add targets": ["**"]
+  "targets": ["**"],
+  "requirement specifications": [
+    "empty",
+    "open",
+    "memory safety"
+  ]
 }

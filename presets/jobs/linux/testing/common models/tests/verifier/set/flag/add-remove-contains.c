@@ -16,7 +16,7 @@
  */
 
 #include <linux/module.h>
-#include <verifier/common.h>
+#include <ldv/test.h>
 #include "sets-model.h"
 
 static int __init ldv_init(void)
@@ -28,7 +28,7 @@ static int __init ldv_init(void)
 	ldv_set_add(set, element);
 	ldv_set_remove(set, element);
 	if (!ldv_set_contains(set, element))
-		ldv_error();
+		ldv_expected_error();
 
 	return 0;
 }

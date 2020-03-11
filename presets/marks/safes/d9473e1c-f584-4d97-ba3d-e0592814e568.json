@@ -2,8 +2,8 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:concurrency safety"
+      "name": "Requirements specification",
+      "value": "concurrency safety"
     },
     {
       "is_compare": true,
@@ -12,7 +12,7 @@
     }
   ],
   "description": "",
-  "is_modifiable": true,
+  "is_modifiable": false,
   "tags": [],
   "verdict": "0"
 }

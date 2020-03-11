@@ -1,6 +1,0 @@
-{
-  "pattern": "tree node 'asm_expr' isn't supported",
-  "problem": "Unsup AsmExpr",
-  "production": true,
-  "link": "https://forge.ispras.ru/issues/7143"
-}

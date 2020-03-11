@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+ * Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
  * Ivannikov Institute for System Programming of the Russian Academy of Sciences
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -179,13 +179,13 @@
     background-color: #fffcf5;
 }
 
-.ETV_CallbackAction {
+.ETV_RelevantAction {
     font-style: italic;
     font-weight: bold;
     color: #9e4b2e;
     cursor: pointer;
 }
-.ETV_CallbackAction:hover {
+.ETV_RelevantAction:hover {
     color: #dd5e3f;
 }
 

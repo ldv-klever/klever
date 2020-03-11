@@ -2,8 +2,8 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:concurrency safety"
+      "name": "Requirements specification",
+      "value": "concurrency safety"
     },
     {
       "is_compare": true,
@@ -14,26 +14,36 @@
   "description": "",
   "error_trace": [
     [
-      {
-        "ldv_init": [
-          {
-            "ldv_mutex_lock_37": []
-          }
-        ]
-      }
+      [
+        {
+          "EMG wrapper": [
+            {
+              "LDV model 'init'": [
+                {
+                  "Instrumented function 'mutex_lock'": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ],
     [
-      {
-        "ldv_func2": [
-          {
-            "ldv_func1": []
-          }
-        ]
-      }
+      [
+        {
+          "LDV model 'func2'": [
+            {
+              "LDV model 'func1'": []
+            }
+          ]
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",
   "is_modifiable": false,
+  "status": null,
   "tags": [],
+  "threshold": 0,
   "verdict": "2"
 }

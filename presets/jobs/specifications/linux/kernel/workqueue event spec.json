@@ -1,184 +1,49 @@
 {
-  "Linux 2.6.33": {
+  "2.6.33": {
+    "environment processes": {},
     "functions models": {
-      "queue_work": {
-        "comment": "Queue work on a workqueue.",
-        "labels": {
-          "work_struct": {
-            "container": true,
-            "parameter": true,
-            "interface": [
-              "workqueue.work_struct"
-            ]
-          }
-        },
-        "process": "<assign>.[callback].<success> | <fail>",
+      "flush_delayed_work": {
         "actions": {
-          "callback": {
-            "comment": "Call the work callback.",
-            "callback": "%work_struct.func%",
-            "parameters": [
-              "%work_struct%"
-            ]
-          },
-          "assign": {
-            "comment": "Get the work structure from arguments.",
-            "statements": [
-              "%work_struct% = $ARG2;"
-            ]
-          },
-          "success": {
-            "comment": "Successfully queued the work on a workqueue.",
-            "statements": [
-              "return true;"
-            ]
-          },
-          "fail": {
-            "comment": "Failed to queue the work on a workqueue.",
-            "statements": [
-              "return false;"
-            ]
-          }
-        }
-      },
-      "queue_work_on": {
-        "comment": "Queue work on a workqueue.",
-        "labels": {
-          "work_struct": {
-            "container": true,
-            "parameter": true,
-            "interface": [
-              "workqueue.work_struct"
-            ]
-          }
-        },
-        "process": "<assign>.[callback].<success> | <fail>",
-        "actions": {
-          "callback": {
-            "comment": "Call the work callback.",
-            "callback": "%work_struct.func%",
-            "parameters": [
-              "%work_struct%"
-            ]
-          },
-          "assign": {
-            "comment": "Get the work structure from arguments.",
-            "statements": [
-              "%work_struct% = $ARG3;"
-            ]
-          },
-          "success": {
-            "comment": "Successfully queued the work on a workqueue.",
-            "statements": [
-              "return true;"
-            ]
-          },
-          "fail": {
-            "comment": "Failed to queue the work on a workqueue.",
-            "statements": [
-              "return false;"
-            ]
-          }
-        }
-      },
-      "flush_work, schedule_work": {
-        "comment": "Flush work.",
-        "labels": {
-          "work_struct": {
-            "container": true,
-            "parameter": true,
-            "interface": [
-              "workqueue.work_struct"
-            ]
-          }
-        },
-        "process": "<assign>.[callback].<success> | <fail>",
-        "actions": {
-          "callback": {
-            "comment": "Call the work callback.",
-            "callback": "%work_struct.func%",
-            "parameters": [
-              "%work_struct%"
-            ]
-          },
           "assign": {
             "comment": "Register",
+            "trace relevant": true,
             "statements": [
-              "%work_struct% = $ARG1;"
+              "%delayed_work% = $ARG1;"
             ]
           },
-          "success": {
-            "comment": "Successfully flushed the work.",
-            "statements": [
-              "return true;"
-            ]
-          },
-          "fail": {
-            "comment": "Failed to flush the work.",
-            "statements": [
-              "return false;"
+          "callback": {
+            "callback": "%delayed_work.work_struct.func%",
+            "comment": "Call the work callback.",
+            "parameters": [
+              "%delayed_work%"
             ]
           }
-        }
-      },
-      "flush_delayed_work": {
+        },
         "comment": "Flush work.",
         "labels": {
           "delayed_work": {
             "container": true,
-            "parameter": true,
             "interface": [
               "workqueue.delayed_work"
-            ]
+            ],
+            "parameter": true
           }
         },
-        "process": "<assign>.[callback]",
-        "actions": {
-          "callback": {
-            "comment": "Call the work callback.",
-            "callback": "%delayed_work.work_struct.func%",
-            "parameters": [
-              "%delayed_work%"
-            ]
-          },
-          "assign": {
-            "comment": "Register",
-            "statements": [
-              "%delayed_work% = $ARG1;"
-            ]
-          }
-        }
+        "process": "<assign>.[callback]"
       },
       "schedule_delayed_work": {
-        "comment": "Flush work.",
-        "labels": {
-          "delayed_work": {
-            "container": true,
-            "parameter": true,
-            "interface": [
-              "workqueue.delayed_work"
-            ]
-          }
-        },
-        "process": "<assign>.[callback].<success> | <fail>",
         "actions": {
-          "callback": {
-            "comment": "Call the work callback.",
-            "callback": "%delayed_work.work_struct.func%",
-            "parameters": [
-              "%delayed_work%"
-            ]
-          },
           "assign": {
             "comment": "Register",
             "statements": [
               "%delayed_work% = $ARG1;"
             ]
           },
-          "success": {
-            "comment": "Successfully flushed the work.",
-            "statements": [
-              "return true;"
+          "callback": {
+            "callback": "%delayed_work.work_struct.func%",
+            "comment": "Call the work callback.",
+            "parameters": [
+              "%delayed_work%"
             ]
           },
           "fail": {
@@ -186,204 +51,44 @@
             "statements": [
               "return false;"
             ]
-          }
-        }
-      },
-      "queue_delayed_work, schedule_delayed_work_on": {
-        "comment": "Queue delayed work on.",
-        "labels": {
-          "delayed_work": {
-            "container": true,
-            "parameter": true,
-            "interface": [
-              "workqueue.delayed_work"
-            ]
-          }
-        },
-        "process": "<assign>.[callback].<success> | <fail>",
-        "actions": {
-          "callback": {
-            "comment": "Call the work callback.",
-            "callback": "%delayed_work.work_struct.func%",
-            "parameters": [
-              "%delayed_work%"
-            ]
-          },
-          "assign": {
-            "comment": "Get the work structure from arguments.",
-            "statements": [
-              "%delayed_work% = $ARG2;"
-            ]
           },
           "success": {
-            "comment": "Queueing the delayed work has finished successfully.",
+            "comment": "Successfully flushed the work.",
             "statements": [
               "return true;"
             ]
-          },
-          "fail": {
-            "comment": "Queueing the delayed work has failed.",
-            "statements": [
-              "return false;"
-            ]
-          }
-        }
-      },
-      "queue_delayed_work_on": {
-        "comment": "Queue delayed work on.",
-        "labels": {
-          "delayed_work": {
-            "container": true,
-            "parameter": true,
-            "interface": [
-              "workqueue.delayed_work"
-            ]
           }
         },
-        "process": "<assign>.[callback].<success> | <fail>",
-        "actions": {
-          "callback": {
-            "comment": "Call the work callback.",
-            "callback": "%delayed_work.work_struct.func%",
-            "parameters": [
-              "%delayed_work%"
-            ]
-          },
-          "assign": {
-            "comment": "Get the work structure from arguments.",
-            "statements": [
-              "%delayed_work% = $ARG3;"
-            ]
-          },
-          "success": {
-            "comment": "Queueing the delayed work has finished successfully.",
-            "statements": [
-              "return true;"
-            ]
-          },
-          "fail": {
-            "comment": "Queueing the delayed work has failed.",
-            "statements": [
-              "return false;"
-            ]
-          }
-        }
-      }
-    },
-    "environment processes": {}
-  },
-  "Linux 3.14 (base)": {
-    "functions models": {
-      "queue_work": {
-        "comment": "Queue work on a workqueue.",
-        "labels": {
-          "work_struct": {
-            "container": true,
-            "parameter": true,
-            "interface": [
-              "workqueue.work_struct"
-            ]
-          }
-        },
-        "process": "<assign>.[callback].<success> | <fail>",
-        "actions": {
-          "callback": {
-            "comment": "Call the work callback.",
-            "callback": "%work_struct.func%",
-            "parameters": [
-              "%work_struct%"
-            ]
-          },
-          "assign": {
-            "comment": "Get the work structure from arguments.",
-            "statements": [
-              "%work_struct% = $ARG2;"
-            ]
-          },
-          "success": {
-            "comment": "Successfully queued the work on a workqueue.",
-            "statements": [
-              "return true;"
-            ]
-          },
-          "fail": {
-            "comment": "Failed to queue the work on a workqueue.",
-            "statements": [
-              "return false;"
-            ]
-          }
-        }
-      },
-      "queue_work_on": {
-        "comment": "Queue work on a workqueue.",
-        "labels": {
-          "work_struct": {
-            "container": true,
-            "parameter": true,
-            "interface": [
-              "workqueue.work_struct"
-            ]
-          }
-        },
-        "process": "<assign>.[callback].<success> | <fail>",
-        "actions": {
-          "callback": {
-            "comment": "Call the work callback.",
-            "callback": "%work_struct.func%",
-            "parameters": [
-              "%work_struct%"
-            ]
-          },
-          "assign": {
-            "comment": "Get the work structure from arguments.",
-            "statements": [
-              "%work_struct% = $ARG3;"
-            ]
-          },
-          "success": {
-            "comment": "Successfully queued the work on a workqueue.",
-            "statements": [
-              "return true;"
-            ]
-          },
-          "fail": {
-            "comment": "Failed to queue the work on a workqueue.",
-            "statements": [
-              "return false;"
-            ]
-          }
-        }
-      },
-      "flush_work, schedule_work": {
         "comment": "Flush work.",
         "labels": {
-          "work_struct": {
+          "delayed_work": {
             "container": true,
-            "parameter": true,
             "interface": [
-              "workqueue.work_struct"
-            ]
+              "workqueue.delayed_work"
+            ],
+            "parameter": true
           }
         },
-        "process": "<assign>.[callback].<success> | <fail>",
+        "process": "<assign>.[callback].<success> | <fail>"
+      }
+    }
+  },
+  "3.14": {
+    "environment processes": {},
+    "functions models": {
+      "flush_work, schedule_work": {
         "actions": {
-          "callback": {
-            "comment": "Call the work callback.",
-            "callback": "%work_struct.func%",
-            "parameters": [
-              "%work_struct%"
-            ]
-          },
           "assign": {
             "comment": "Register",
             "statements": [
               "%work_struct% = $ARG1;"
             ]
           },
-          "success": {
-            "comment": "Successfully flushed the work.",
-            "statements": [
-              "return true;"
+          "callback": {
+            "callback": "%work_struct.func%",
+            "comment": "Call the work callback.",
+            "parameters": [
+              "%work_struct%"
             ]
           },
           "fail": {
@@ -391,79 +96,40 @@
             "statements": [
               "return false;"
             ]
+          },
+          "success": {
+            "comment": "Successfully flushed the work.",
+            "statements": [
+              "return true;"
+            ]
           }
-        }
-      },
-      "schedule_delayed_work, flush_delayed_work": {
+        },
         "comment": "Flush work.",
         "labels": {
-          "delayed_work": {
+          "work_struct": {
             "container": true,
-            "parameter": true,
             "interface": [
-              "workqueue.delayed_work"
-            ]
+              "workqueue.work_struct"
+            ],
+            "parameter": true
           }
         },
         "process": "<assign>.[callback].<success> | <fail>",
-        "actions": {
-          "callback": {
-            "comment": "Call the work callback.",
-            "callback": "%delayed_work.work_struct.func%",
-            "parameters": [
-              "%delayed_work%"
-            ]
-          },
-          "assign": {
-            "comment": "Register",
-            "statements": [
-              "%delayed_work% = $ARG1;"
-            ]
-          },
-          "success": {
-            "comment": "Successfully flushed the work.",
-            "statements": [
-              "return true;"
-            ]
-          },
-          "fail": {
-            "comment": "Failed to flush the work.",
-            "statements": [
-              "return false;"
-            ]
-          }
-        }
+        "reference": true
       },
       "queue_delayed_work, schedule_delayed_work_on": {
-        "comment": "Queue delayed work on.",
-        "labels": {
-          "delayed_work": {
-            "container": true,
-            "parameter": true,
-            "interface": [
-              "workqueue.delayed_work"
-            ]
-          }
-        },
-        "process": "<assign>.[callback].<success> | <fail>",
         "actions": {
-          "callback": {
-            "comment": "Call the work callback.",
-            "callback": "%delayed_work.work_struct.func%",
-            "parameters": [
-              "%delayed_work%"
-            ]
-          },
           "assign": {
             "comment": "Get the work structure from arguments.",
             "statements": [
               "%delayed_work% = $ARG2;"
             ]
           },
-          "success": {
-            "comment": "Queueing the delayed work has finished successfully.",
-            "statements": [
-              "return true;"
+          "callback": {
+            "callback": "%delayed_work.work_struct.func%",
+            "comment": "Call the work callback.",
+            "parameters": [
+              "%delayed_work%"
             ]
           },
           "fail": {
@@ -471,39 +137,40 @@
             "statements": [
               "return false;"
             ]
+          },
+          "success": {
+            "comment": "Queueing the delayed work has finished successfully.",
+            "statements": [
+              "return true;"
+            ]
           }
-        }
-      },
-      "queue_delayed_work_on": {
+        },
         "comment": "Queue delayed work on.",
         "labels": {
           "delayed_work": {
             "container": true,
-            "parameter": true,
             "interface": [
               "workqueue.delayed_work"
-            ]
+            ],
+            "parameter": true
           }
         },
         "process": "<assign>.[callback].<success> | <fail>",
+        "reference": true
+      },
+      "queue_delayed_work_on": {
         "actions": {
-          "callback": {
-            "comment": "Call the work callback.",
-            "callback": "%delayed_work.work_struct.func%",
-            "parameters": [
-              "%delayed_work%"
-            ]
-          },
           "assign": {
             "comment": "Get the work structure from arguments.",
             "statements": [
               "%delayed_work% = $ARG3;"
             ]
           },
-          "success": {
-            "comment": "Queueing the delayed work has finished successfully.",
-            "statements": [
-              "return true;"
+          "callback": {
+            "callback": "%delayed_work.work_struct.func%",
+            "comment": "Call the work callback.",
+            "parameters": [
+              "%delayed_work%"
             ]
           },
           "fail": {
@@ -511,10 +178,150 @@
             "statements": [
               "return false;"
             ]
+          },
+          "success": {
+            "comment": "Queueing the delayed work has finished successfully.",
+            "statements": [
+              "return true;"
+            ]
           }
-        }
+        },
+        "comment": "Queue delayed work on.",
+        "labels": {
+          "delayed_work": {
+            "container": true,
+            "interface": [
+              "workqueue.delayed_work"
+            ],
+            "parameter": true
+          }
+        },
+        "process": "<assign>.[callback].<success> | <fail>",
+        "reference": true
+      },
+      "queue_work": {
+        "actions": {
+          "assign": {
+            "comment": "Get the work structure from arguments.",
+            "statements": [
+              "%work_struct% = $ARG2;"
+            ]
+          },
+          "callback": {
+            "callback": "%work_struct.func%",
+            "comment": "Call the work callback.",
+            "parameters": [
+              "%work_struct%"
+            ]
+          },
+          "fail": {
+            "comment": "Failed to queue the work on a workqueue.",
+            "statements": [
+              "return false;"
+            ]
+          },
+          "success": {
+            "comment": "Successfully queued the work on a workqueue.",
+            "statements": [
+              "return true;"
+            ]
+          }
+        },
+        "comment": "Queue work on a workqueue.",
+        "labels": {
+          "work_struct": {
+            "container": true,
+            "interface": [
+              "workqueue.work_struct"
+            ],
+            "parameter": true
+          }
+        },
+        "process": "<assign>.[callback].<success> | <fail>",
+        "reference": true
+      },
+      "queue_work_on": {
+        "actions": {
+          "assign": {
+            "comment": "Get the work structure from arguments.",
+            "statements": [
+              "%work_struct% = $ARG3;"
+            ]
+          },
+          "callback": {
+            "callback": "%work_struct.func%",
+            "comment": "Call the work callback.",
+            "parameters": [
+              "%work_struct%"
+            ]
+          },
+          "fail": {
+            "comment": "Failed to queue the work on a workqueue.",
+            "statements": [
+              "return false;"
+            ]
+          },
+          "success": {
+            "comment": "Successfully queued the work on a workqueue.",
+            "statements": [
+              "return true;"
+            ]
+          }
+        },
+        "comment": "Queue work on a workqueue.",
+        "labels": {
+          "work_struct": {
+            "container": true,
+            "interface": [
+              "workqueue.work_struct"
+            ],
+            "parameter": true
+          }
+        },
+        "process": "<assign>.[callback].<success> | <fail>",
+        "reference": true
+      },
+      "schedule_delayed_work, flush_delayed_work": {
+        "actions": {
+          "assign": {
+            "comment": "Register",
+            "statements": [
+              "%delayed_work% = $ARG1;"
+            ]
+          },
+          "callback": {
+            "callback": "%delayed_work.work_struct.func%",
+            "comment": "Call the work callback.",
+            "parameters": [
+              "%delayed_work%"
+            ]
+          },
+          "fail": {
+            "comment": "Failed to flush the work.",
+            "statements": [
+              "return false;"
+            ]
+          },
+          "success": {
+            "comment": "Successfully flushed the work.",
+            "statements": [
+              "return true;"
+            ]
+          }
+        },
+        "comment": "Flush work.",
+        "labels": {
+          "delayed_work": {
+            "container": true,
+            "interface": [
+              "workqueue.delayed_work"
+            ],
+            "parameter": true
+          }
+        },
+        "process": "<assign>.[callback].<success> | <fail>",
+        "reference": true
       }
-    },
-    "environment processes": {}
+    }
   }
 }

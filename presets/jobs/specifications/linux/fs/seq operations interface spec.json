@@ -1,42 +1,35 @@
 {
-  "Linux 3.14 (base)": {
-    "functions models": {
-      "seq_open_private": {
-        "declaration": "int seq_open_private(%seq_operations.file%, *%seq_operations.seq_operations%, int)",
-        "header": "linux/seq_file.h"
-      },
-      "seq_release_private": {
-        "declaration": "int seq_release_private(struct inode *, %seq_operations.file%)",
-        "header": "linux/seq_file.h"
-      },
-      "seq_open": {
-        "declaration": "int seq_open(%seq_operations.file%, *%seq_operations.seq_operations%)",
-        "header": "linux/seq_file.h"
-      },
-      "seq_release": {
-        "declaration": "int seq_release(struct inode *, %seq_operations.file%)",
-        "header": "linux/seq_file.h"
-      }
-    },
+  "3.14": {
     "categories": {
       "seq_operations": {
+        "callbacks": {
+          "next": {
+            "declaration": "void * (*next)(%seq_operations.seq_file%, void *, %seq_operations.index%)"
+          },
+          "show": {
+            "declaration": "int (*show)(%seq_operations.seq_file%, void *)"
+          },
+          "start": {
+            "declaration": "void * (*start)(%seq_operations.seq_file%, %seq_operations.index%)"
+          },
+          "stop": {
+            "declaration": "void (*stop)(%seq_operations.seq_file%, void *)"
+          }
+        },
         "containers": {
           "seq_operations": {
             "declaration": "struct seq_operations ops",
-            "header": "linux/seq_file.h",
             "fields": {
-              "start": "%seq_operations.start%",
-              "stop": "%seq_operations.stop%",
               "next": "%seq_operations.next%",
-              "show": "%seq_operations.show%"
-            }
+              "show": "%seq_operations.show%",
+              "start": "%seq_operations.start%",
+              "stop": "%seq_operations.stop%"
+            },
+            "header": "linux/seq_file.h"
           }
         },
+        "reference": true,
         "resources": {
-          "seq_file": {
-            "declaration": "struct seq_file *file",
-            "header": "linux/seq_file.h"
-          },
           "file": {
             "declaration": "struct file *file",
             "header": "linux/fs.h"
@@ -44,22 +37,34 @@
           "index": {
             "declaration": "loff_t *a",
             "header": "linux/fs.h"
-          }
-        },
-        "callbacks": {
-          "start": {
-            "declaration": "void * (*start)(%seq_operations.seq_file%, %seq_operations.index%)"
           },
-          "stop": {
-            "declaration": "void (*stop)(%seq_operations.seq_file%, void *)"
-          },
-          "next": {
-            "declaration": "void * (*next)(%seq_operations.seq_file%, void *, %seq_operations.index%)"
-          },
-          "show": {
-            "declaration": "int (*show)(%seq_operations.seq_file%, void *)"
+          "seq_file": {
+            "declaration": "struct seq_file *file",
+            "header": "linux/seq_file.h"
           }
         }
+      }
+    },
+    "functions models": {
+      "seq_open": {
+        "declaration": "int seq_open(%seq_operations.file%, *%seq_operations.seq_operations%)",
+        "header": "linux/seq_file.h",
+        "reference": true
+      },
+      "seq_open_private": {
+        "declaration": "int seq_open_private(%seq_operations.file%, *%seq_operations.seq_operations%, int)",
+        "header": "linux/seq_file.h",
+        "reference": true
+      },
+      "seq_release": {
+        "declaration": "int seq_release(struct inode *, %seq_operations.file%)",
+        "header": "linux/seq_file.h",
+        "reference": true
+      },
+      "seq_release_private": {
+        "declaration": "int seq_release_private(struct inode *, %seq_operations.file%)",
+        "header": "linux/seq_file.h",
+        "reference": true
       }
     }
   }

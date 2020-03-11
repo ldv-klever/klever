@@ -16,7 +16,7 @@
  */
 
 #include <linux/module.h>
-#include <verifier/common.h>
+#include <ldv/test.h>
 #include "lists.h"
 
 static int __init ldv_init(void)
@@ -29,7 +29,7 @@ static int __init ldv_init(void)
 	    ldv_list_get_last(var2) == var2 &&
 	    ldv_list_get_prev(var2, var2) == var2 &&
 	    *(int *)ldv_list_get_data(var2) == 1)
-		ldv_error();
+		ldv_expected_error();
 
 	return 0;
 }

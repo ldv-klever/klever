@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
 # Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,6 +18,7 @@
 import re
 import json
 
+from django.db.models import F
 from django.utils.translation import ugettext_lazy as _
 
 from rest_framework import fields, serializers, exceptions
@@ -29,9 +30,9 @@ from bridge.serializers import DynamicFieldsModelSerializer
 from marks.models import (
     MAX_TAG_LEN, SafeTag, MarkSafe, MarkSafeHistory, MarkSafeAttr, MarkSafeTag,
     UnsafeTag, MarkUnsafe, MarkUnsafeHistory, MarkUnsafeAttr, MarkUnsafeTag,
-    ConvertedTrace, MarkUnknown, MarkUnknownHistory, MarkUnknownAttr
+    ConvertedTrace, MarkUnknown, MarkUnknownHistory, MarkUnknownAttr, MarkUnsafeReport, UnsafeConvertionCache
 )
-from marks.UnsafeUtils import save_converted_trace
+from marks.UnsafeUtils import save_converted_trace, convert_error_trace
 
 
 def create_mark_version(mark, cache=True, **kwargs):
@@ -220,9 +221,6 @@ class SafeMarkSerializer(DynamicFieldsModelSerializer):
 
         version_data = validated_data.pop('mark_version')
 
-        if validated_data.get('job'):
-            validated_data['format'] = validated_data['job'].format
-
         # Get user from context (on GUI creation)
         if 'request' in self.context:
             validated_data['author'] = self.context['request'].user
@@ -251,7 +249,7 @@ class SafeMarkSerializer(DynamicFieldsModelSerializer):
 
     class Meta:
         model = MarkSafe
-        fields = ('identifier', 'format', 'is_modifiable', 'verdict', 'mark_version')
+        fields = ('identifier', 'is_modifiable', 'verdict', 'mark_version')
 
 
 class UnsafeMarkVersionSerializer(WithTagsMixin, serializers.ModelSerializer):
@@ -270,8 +268,6 @@ class UnsafeMarkVersionSerializer(WithTagsMixin, serializers.ModelSerializer):
         convert_func = COMPARE_FUNCTIONS[compare_func]['convert']
         assert convert_func in CONVERT_FUNCTIONS
         forests = json.loads(err_trace_str)
-        # TODO: is it enough? Or we need deeper check of forests format?
-        assert isinstance(forests, list)
         return save_converted_trace(forests, convert_func)
 
     def validate(self, attrs):
@@ -347,9 +343,6 @@ class UnsafeMarkSerializer(DynamicFieldsModelSerializer):
         else:
             raise exceptions.ValidationError(detail={'error_trace': 'Required'})
 
-        if validated_data.get('job'):
-            validated_data['format'] = validated_data['job'].format
-
         # Get user from context (on GUI creation)
         if 'request' in self.context:
             validated_data['author'] = self.context['request'].user
@@ -383,7 +376,7 @@ class UnsafeMarkSerializer(DynamicFieldsModelSerializer):
     class Meta:
         model = MarkUnsafe
         fields = (
-            'identifier', 'format', 'is_modifiable', 'verdict',
+            'id', 'identifier', 'is_modifiable', 'verdict',
             'status', 'mark_version', 'function', 'threshold'
         )
 
@@ -444,9 +437,6 @@ class UnknownMarkSerializer(DynamicFieldsModelSerializer):
         # Can be raised only on wrong serializer usage on GUI creation
         assert 'component' in validated_data, 'Component is requred'
 
-        if validated_data.get('job'):
-            validated_data['format'] = validated_data['job'].format
-
         # Get user from context (on GUI creation)
         if 'request' in self.context:
             validated_data['author'] = self.context['request'].user
@@ -476,7 +466,7 @@ class UnknownMarkSerializer(DynamicFieldsModelSerializer):
     class Meta:
         model = MarkUnknown
         fields = (
-            'id', 'identifier', 'component', 'format',
+            'id', 'identifier', 'component',
             'is_modifiable', 'mark_version',
             'function', 'is_regexp', 'problem_pattern', 'link'
         )
@@ -522,3 +512,63 @@ class FMVlistSerializerRO(MVSerializerBase):
     class Meta:
         model = MarkUnknownHistory
         fields = ('version', 'title')
+
+
+class UpdatedPresetUnsafeMarkSerializer(serializers.ModelSerializer):
+    attrs = serializers.SerializerMethodField()
+    threshold = serializers.SerializerMethodField()
+    tags = serializers.SerializerMethodField()
+    error_trace = serializers.SerializerMethodField()
+    description = serializers.SerializerMethodField()
+
+    def get_attrs(self, instance):
+        return list(MarkUnsafeAttr.objects.filter(
+            is_compare=True, mark_version__mark=instance,
+            mark_version__version=F('mark_version__mark__version')
+        ).order_by('id').values('name', 'value', 'is_compare'))
+
+    def get_threshold(self, instance):
+        return instance.threshold_percentage
+
+    def get_tags(self, instance):
+        return list(MarkUnsafeTag.objects.filter(
+            mark_version__mark=instance,
+            mark_version__version=F('mark_version__mark__version')
+        ).values_list('tag__name', flat=True))
+
+    def get_error_trace(self, instance):
+        report_id = self.context['request'].query_params.get('report')
+
+        # Get the most relevant mark association
+        if report_id:
+            mark_report = MarkUnsafeReport.objects.filter(mark=instance, report_id=report_id).first()
+        else:
+            mark_report = MarkUnsafeReport.objects.filter(mark=instance).order_by('-result').first()
+        if not mark_report:
+            raise exceptions.APIException("The mark don't have any associations")
+
+        # Trying to get converted report's error trace
+        converted = ConvertedTrace.objects.filter(
+            unsafeconvertioncache__unsafe=mark_report.report, function=instance.function
+        ).first()
+
+        if not converted:
+            # If not found convert error trace and save the convertion cache
+            with open(mark_report.report.error_trace.path, mode='r', encoding='utf-8') as fp:
+                error_trace = json.load(fp)
+            converted = convert_error_trace(error_trace, instance.function)
+            UnsafeConvertionCache.objects.create(unsafe_id=mark_report.report_id, converted_id=converted.id)
+
+        with open(converted.file.path, mode='r', encoding='utf-8') as fp:
+            # Return converted error trace
+            return json.load(fp)
+
+    def get_description(self, instance):
+        last_version = MarkUnsafeHistory.objects.only('description').get(mark=instance, mark__version=F('version'))
+        return last_version.description
+
+    class Meta:
+        model = MarkUnsafe
+        fields = (
+            'is_modifiable', 'description', 'attrs', 'verdict', 'status', 'function', 'threshold', 'tags', 'error_trace'
+        )

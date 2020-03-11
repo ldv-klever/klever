@@ -1,33 +1,7 @@
 {
-  "Linux 3.14 (base)": {
-    "functions models": {
-      "class_interface_register": {
-        "declaration": "int class_interface_register(*%class.class%)",
-        "header": "linux/device.h"
-      },
-      "class_interface_unregister": {
-        "declaration": "void class_interface_unregister(*%class.class%)",
-        "header": "linux/device.h"
-      }
-    },
+  "3.14": {
     "categories": {
       "class": {
-        "containers": {
-          "class": {
-            "declaration": "struct class_interface a",
-            "header": "linux/device.h",
-            "fields": {
-              "add_dev": "%class.probe%",
-              "remove_dev": "%class.release%"
-            }
-          }
-        },
-        "resources": {
-          "device": {
-            "declaration": "struct device *a",
-            "header": "linux/platform_device.h"
-          }
-        },
         "callbacks": {
           "probe": {
             "declaration": "int (*add_dev) (%class.device%, *%class.class%)"
@@ -35,7 +9,36 @@
           "release": {
             "declaration": "void (*remove_dev) (%class.device%, *%class.class%)"
           }
+        },
+        "containers": {
+          "class": {
+            "declaration": "struct class_interface a",
+            "fields": {
+              "add_dev": "%class.probe%",
+              "remove_dev": "%class.release%"
+            },
+            "header": "linux/device.h"
+          }
+        },
+        "reference": true,
+        "resources": {
+          "device": {
+            "declaration": "struct device *a",
+            "header": "linux/platform_device.h"
+          }
         }
+      }
+    },
+    "functions models": {
+      "class_interface_register": {
+        "declaration": "int class_interface_register(*%class.class%)",
+        "header": "linux/device.h",
+        "reference": true
+      },
+      "class_interface_unregister": {
+        "declaration": "void class_interface_unregister(*%class.class%)",
+        "header": "linux/device.h",
+        "reference": true
       }
     }
   }

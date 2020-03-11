@@ -1,23 +1,7 @@
 {
-  "Linux 3.14 (base)": {
-    "functions models": {},
+  "3.14": {
     "categories": {
       "v4l2_file_operations": {
-        "containers": {
-          "v4l2_file_operations": {
-            "declaration": "struct v4l2_file_operations ops",
-            "header": "media/v4l2-dev.h",
-            "fields": {
-              "release": "%v4l2_file_operations.release%",
-              "open": "%v4l2_file_operations.probe%"
-            }
-          }
-        },
-        "resources": {
-          "file": {
-            "declaration": "struct file *file"
-          }
-        },
         "callbacks": {
           "probe": {
             "declaration": "int (*probe) (%v4l2_file_operations.file%)"
@@ -25,8 +9,25 @@
           "release": {
             "declaration": "int (*release) (%v4l2_file_operations.file%)"
           }
+        },
+        "containers": {
+          "v4l2_file_operations": {
+            "declaration": "struct v4l2_file_operations ops",
+            "fields": {
+              "open": "%v4l2_file_operations.probe%",
+              "release": "%v4l2_file_operations.release%"
+            },
+            "header": "media/v4l2-dev.h"
+          }
+        },
+        "reference": true,
+        "resources": {
+          "file": {
+            "declaration": "struct file *file"
+          }
         }
       }
-    }
+    },
+    "functions models": {}
   }
 }

@@ -22,32 +22,28 @@
 /* NOTE Indicates the level of rcu_lock nesting */
 int ldv_rcu_nested_bh = 0;
 
-/* MODEL_FUNC Entry in rcu_read_lock/unlock section */
 void ldv_rcu_read_lock_bh(void)
 {
-	/* NOTE Increments the level of rcu_read_lock nesting */
+	/* NOTE Entry in rcu_read_lock/unlock section */
 	ldv_rcu_nested_bh++;
 }
 
-/* MODEL_FUNC Exit from rcu_read_lock/unlock section */
 void ldv_rcu_read_unlock_bh(void)
 {
-	/* ASSERT checks the count of opened rcu_lock sections */
+	/* ASSERT Check the count of opened rcu_lock sections */
 	ldv_assert(ldv_rcu_nested_bh > 0);
-	/* NOTE Decrements the level of rcu_lock nesting */
+	/* NOTE Exit from rcu_read_lock/unlock section */
 	ldv_rcu_nested_bh--;
 }
 
-/* MODEL_FUNC Checks that all rcu_lock sections are closed at read sections */
 void ldv_check_for_read_section( void )
 {
-	/* ASSERT checks the count of opened rcu_lock sections */
+	/* ASSERT All rcu_lock sections should be closed at read sections */
 	ldv_assert(ldv_rcu_nested_bh == 0);
 }
 
-/* MODEL_FUNC Checks that all rcu_lock sections are closed at exit */
 void ldv_check_final_state( void )
 {
-	/* ASSERT checks the count of opened rcu_lock sections */
+	/* ASSERT All rcu_lock sections should be closed at exit */
 	ldv_assert(ldv_rcu_nested_bh == 0);
 }

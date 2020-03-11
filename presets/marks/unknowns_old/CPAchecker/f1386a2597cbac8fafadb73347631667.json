@@ -1,5 +1,0 @@
-{
-  "pattern": "Exception in thread \"main\" java.lang.IllegalArgumentException",
-  "problem": "IllegalArg Except",
-  "production": true
-}

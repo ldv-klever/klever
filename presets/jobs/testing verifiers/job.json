@@ -1,21 +1,13 @@
 {
-  "Class": "Verification of Linux kernel modules",
+  "project": "Linux",
   "build base": "testing/606cdb",
-  "program": "Linux",
-  "version": "3.14",
-  "fragmentation set": "Modules",
-  "specifications set": "Linux 3.14 (base)",
-  "requirements": ["linux:test:common"],
-  "add targets": ["**"],
-  "extra CIF opts": [
-    "-D__GNUC__=4",
-    "-D__GNUC_MINOR__=6"
-  ],
+  "requirement specifications": ["test:common"],
+  "targets": ["**"],
   "ideal verdicts": [
     {"ideal verdict": "safe"},
     {
       "ideal verdict": "unsafe",
-      "program fragment": [
+      "program fragments": [
         "ext-modules/arrays/one-element/unsafe.ko",
         "ext-modules/arrays/ten-elements/unsafe.ko",
         "ext-modules/arrays/two-dimensional/unsafe.ko",
@@ -112,5 +104,6 @@
         "ext-modules/variables/right-shift-assignment/unsafe.ko"
       ]
     }
-  ]
+  ],
+  "extra results processing": "testing"
 }

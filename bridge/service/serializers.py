@@ -1,3 +1,20 @@
+#
+# Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import pika
 import zipfile
 
@@ -170,7 +187,7 @@ class TaskSerializer(DynamicFieldsModelSerializer):
         validated_data['decision'] = validated_data.pop('job')
         instance = super().create(validated_data)
         self.update_decision(validated_data['decision'], instance.status)
-        on_task_change(instance.id, instance.status)
+        on_task_change(instance.id, instance.status, validated_data['decision'].scheduler_id)
         return instance
 
     def update(self, instance, validated_data):
@@ -186,7 +203,7 @@ class TaskSerializer(DynamicFieldsModelSerializer):
         old_status = instance.status
         instance = super().update(instance, validated_data)
         self.update_decision(instance.decision, instance.status, old_status=old_status)
-        on_task_change(instance.id, instance.status)
+        on_task_change(instance.id, instance.status, instance.decision.scheduler_id)
         return instance
 
     def to_representation(self, instance):
@@ -465,10 +482,11 @@ class NodeConfSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-def on_task_change(task_id, task_status):
+def on_task_change(task_id, task_status, scheduler_id):
+    sch_type = Scheduler.objects.only('type').get(id=scheduler_id).type
     with RMQConnect() as channel:
         channel.basic_publish(
-            exchange='', routing_key=settings.RABBIT_MQ['name'],
+            exchange='', routing_key=settings.RABBIT_MQ_QUEUE,
             properties=pika.BasicProperties(delivery_mode=2),
-            body="task {} {}".format(task_id, task_status)
+            body="task {} {} {}".format(task_id, task_status, sch_type)
         )

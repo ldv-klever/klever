@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
 # Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,11 +18,12 @@
 import copy
 
 from bridge.vars import ASSOCIATION_TYPE
+from bridge.utils import require_lock
 
 from reports.models import ReportSafe
-from marks.models import MarkSafe, MarkSafeHistory, MarkSafeReport
+from marks.models import MarkSafeHistory, MarkSafeReport
 
-from marks.utils import RemoveMarksBase, ConfirmAssociationBase, UnconfirmAssociationBase
+from marks.utils import ConfirmAssociationBase, UnconfirmAssociationBase
 from caches.utils import UpdateSafeCachesOnMarkChange, RecalculateSafeCache
 
 
@@ -67,23 +68,41 @@ def perform_safe_mark_update(user, serializer):
     return cache_upd.save()
 
 
-class RemoveSafeMarks(RemoveMarksBase):
-    model = MarkSafe
-    associations_model = MarkSafeReport
+class RemoveSafeMark:
+    def __init__(self, mark):
+        self._mark = mark
+
+    @require_lock(MarkSafeReport)
+    def destroy(self):
+        affected_reports = set(MarkSafeReport.objects.filter(mark=self._mark).values_list('report_id', flat=True))
+        self._mark.delete()
+
+        # Find reports that have marks associations when all association are disabled. It can be in 2 cases:
+        # 1) All associations are unconfirmed
+        # 2) All confirmed associations were with deleted mark
+        # We need to update 2nd case, so auto-associations are counting again
+        changed_ids = affected_reports - set(MarkSafeReport.objects.filter(
+            report_id__in=affected_reports, associated=True
+        ).values_list('report_id', flat=True))
+
+        # Update associations
+        MarkSafeReport.objects.select_related('mark').select_for_update() \
+            .filter(report_id__in=changed_ids).exclude(type=ASSOCIATION_TYPE[2][0]).update(associated=True)
+        return affected_reports
 
 
 class ConfirmSafeMark(ConfirmAssociationBase):
     model = MarkSafeReport
 
     def recalculate_cache(self, report_id):
-        RecalculateSafeCache(reports=[report_id])
+        RecalculateSafeCache(report_id)
 
 
 class UnconfirmSafeMark(UnconfirmAssociationBase):
     model = MarkSafeReport
 
     def recalculate_cache(self, report_id):
-        RecalculateSafeCache(reports=[report_id])
+        RecalculateSafeCache(report_id)
 
 
 class ConnectSafeMark:
@@ -125,18 +144,3 @@ class ConnectSafeMark:
                 report_id=prime_id, associated=True, type=ASSOCIATION_TYPE[0][0]
             ).update(associated=False)
         return new_links
-
-
-# Used only after report is created, so there are never old associations
-class ConnectSafeReport:
-    def __init__(self, safe):
-        self._report = safe
-        self.__connect()
-
-    def __connect(self):
-        marks_qs = MarkSafe.objects.filter(cache_attrs__contained_by=self._report.cache.attrs)
-        MarkSafeReport.objects.bulk_create(list(
-            MarkSafeReport(mark_id=m_id, report=self._report, associated=True)
-            for m_id in marks_qs.values_list('id', flat=True)
-        ))
-        RecalculateSafeCache(reports=[self._report.id])

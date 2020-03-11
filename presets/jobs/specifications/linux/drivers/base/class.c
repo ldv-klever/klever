@@ -32,7 +32,6 @@ enum
 /* NOTE Usb gadget class is not registered at the beginning */
 int ldv_usb_gadget_class = LDV_CLASS_ZERO_STATE;
 
-/* MODEL_FUNC Check that class was not registered. Then create and register class for it */
 void *ldv_create_class(void)
 {
 	void *is_got;
@@ -56,7 +55,6 @@ void *ldv_create_class(void)
 	return is_got;
 }
 
-/* MODEL_FUNC Check that class was not registered and register class for it */
 int ldv_register_class(void)
 {
 	int is_reg;
@@ -77,7 +75,6 @@ int ldv_register_class(void)
 	return is_reg;
 }
 
-/* MODEL_FUNC Check that class was registered and unregister it */
 void ldv_unregister_class(void)
 {
 	/* ASSERT Check that usb gadget class is registered */
@@ -93,7 +90,6 @@ void ldv_destroy_class(struct class *cls)
     ldv_unregister_class();
 }
 
-/* MODEL_FUNC Check that usb gadget is fully unregistered at the end */
 void ldv_check_final_state(void)
 {
 	/* ASSERT Usb gadget class should be unregistered at the end */

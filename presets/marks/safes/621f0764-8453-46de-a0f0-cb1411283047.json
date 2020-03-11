@@ -2,17 +2,17 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:usb:dev"
+      "name": "Requirements specification",
+      "value": "drivers:usb:core:usb:dev"
     },
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/linux/usb/dev/safe.ko"
+      "value": "ext-modules/linux/drivers/usb/core/usb/dev/safe.ko"
     }
   ],
   "description": "",
-  "is_modifiable": true,
+  "is_modifiable": false,
   "tags": [],
   "verdict": "0"
 }

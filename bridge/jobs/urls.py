@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
 # Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,6 +24,7 @@ urlpatterns = [
     path('', views.JobsTree.as_view(), name='tree'),
     path('<int:pk>/', views.JobPage.as_view(), name='job'),
     path('decision-results/<int:pk>/', views.DecisionResults.as_view(), name='decision-results'),
+    path('api/decision-results/<uuid:identifier>/', api.DecisionResultsView.as_view(), name='api-decision-results'),
     path('progress/<int:pk>/', views.JobProgress.as_view(), name='progress'),
     path('api/job-status/', api.JobStatusListView.as_view(), name='api-jobs-statuses'),
     path('api/job-status/<int:pk>/', api.JobStatusView.as_view(), name='api-job-status'),
@@ -32,14 +33,16 @@ urlpatterns = [
     # Main actions with jobs
     path('api/<int:pk>/remove/', api.RemoveJobView.as_view(), name='api-remove-job'),
     path('api/duplicate/', api.DuplicateJobView.as_view(), name='api-duplicate-job'),
-    path('api/duplicate/<int:pk>/', api.DuplicateJobView.as_view(), name='api-duplicate-version'),
-
-    path('api/decision-results/<int:pk>/', api.DecisionResultsView.as_view(), name='api-decision-results'),
+    path('api/duplicate/<uuid:identifier>/', api.DuplicateJobView.as_view(), name='api-duplicate-version'),
 
     # Job form
     re_path(r'^form/(?P<pk>[0-9]+)/(?P<action>edit|copy)/$', views.JobFormPage.as_view(), name='form'),
-    path('api/save-job/<int:pk>/', api.SaveJobView.as_view(), name='api-save-job'),
+    path('form/preset/<uuid:preset_uuid>/', views.PresetFormPage.as_view(), name='preset-form'),
+    path('api/create/', api.CreateJobView.as_view(), name='api-create-job'),
+    path('api/create-preset/<uuid:preset_uuid>/', api.CreatePresetJobView.as_view(), name='api-create-preset'),
+    path('api/update/<int:pk>/', api.UpdateJobView.as_view(), name='api-update-job'),
     path('api/job-version/<int:job_id>/<int:version>/', api.JobVersionView.as_view(), name='api-job-version'),
+    path('api/preset-data/<uuid:preset_uuid>/', api.PresetFormDataView.as_view(), name='api-preset-data'),
 
     # Actions with job files
     path('downloadfile/<slug:hash_sum>/', views.DownloadJobFileView.as_view(), name='download_file'),
@@ -52,10 +55,12 @@ urlpatterns = [
 
     # Download/upload actions
     path('downloadjob/<int:pk>/', views.DownloadJobView.as_view(), name='download'),
+    path('api/downloadjob/<uuid:identifier>/', api.DownloadJobByUUIDView.as_view(), name='api-download'),
     path('downloadjobs/', views.DownloadJobsListView.as_view(), name='download-jobs'),
     path('downloadtrees/', views.DownloadJobsTreeView.as_view(), name='download-trees'),
     path('api/upload_jobs/', api.UploadJobsAPIView.as_view(), name='api-upload-jobs'),
-    path('api/upload_jobs_tree/', api.UploadJobsTreeAPIView.as_view(), name='api-upload-tree'),
+    path('uploading-status/', views.JobsUploadingStatus.as_view(), name='uploading-status'),
+    path('api/uploading-status/', api.UploadStatusAPIView.as_view(), name='api-uploading-status'),
 
     # Actions with job versions
     path('api/remove-versions/<int:job_id>/', api.RemoveJobVersions.as_view(), name='api-remove-versions'),
@@ -67,11 +72,11 @@ urlpatterns = [
     path('api/configuration/', api.GetConfigurationView.as_view(), name='api-configuration'),
     path('api/conf-def-value/', api.StartJobDefValueView.as_view(), name='api-def-start-value'),
     path('api/decide/<int:job_id>/', api.StartDecisionView.as_view(), name='api-decide'),
+    path('api/decide-uuid/<uuid:job_uuid>/', api.StartDecisionByUUIDView.as_view(), name='api-decide-uuid'),
     path('api/stop/<int:job_id>/', api.StopDecisionView.as_view(), name='api-cancel-decision'),
     path('api/download-files/<uuid:identifier>/', api.CoreJobArchiveView.as_view()),
 
     # "Utils"
-    path('get_job_field/', api.GetJobFieldView.as_view()),
     path('api/has-children/<int:pk>/', api.DoJobHasChildrenView.as_view(), name='api-has-children'),
     path('api/can-download/', api.CheckDownloadAccessView.as_view(), name='api-can-download'),
     path('api/collapse/<int:pk>/', api.CollapseReportsView.as_view(), name='api-collapse-reports'),

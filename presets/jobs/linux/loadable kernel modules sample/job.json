@@ -1,0 +1,15 @@
+{
+  "project": "Linux",
+  "build base": "build-base-linux-3.14.79-x86_64-sample.tar.xz",
+  "targets": [
+    "drivers/ata/pata_arasan_cf.ko",
+    "drivers/idle/i7300_idle.ko",
+    "drivers/uwb/hwa-rc.ko"
+  ],
+  "requirement specifications": [
+    "arch:mm:ioremap",
+    "drivers:clk1",
+    "kernel:locking:mutex",
+    "memory safety"
+  ]
+}

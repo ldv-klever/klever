@@ -1,0 +1,13 @@
+[Unit]
+Description=Klever Celery Beat Development Service
+After=network.target local-fs.target remote-fs.target
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/default/klever
+ExecStart=/bin/sh -c "cd ${KLEVER_SOURCE_DIRECTORY}/bridge && ${KLEVER_PYTHON_BIN_DIR}/celery beat -A bridge --loglevel=info"
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

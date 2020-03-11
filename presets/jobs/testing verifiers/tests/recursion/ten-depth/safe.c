@@ -16,43 +16,43 @@
  */
 
 #include <linux/module.h>
-#include <verifier/common.h>
+#include <ldv/test.h>
 #include "fibonacci.h"
 
 static int __init ldv_init(void)
 {
 	if (ldv_fibonacci(0) != 0)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (ldv_fibonacci(1) != 1)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (ldv_fibonacci(2) != 1)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (ldv_fibonacci(3) != 2)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (ldv_fibonacci(4) != 3)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (ldv_fibonacci(5) != 5)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (ldv_fibonacci(6) != 8)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (ldv_fibonacci(7) != 13)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (ldv_fibonacci(8) != 21)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (ldv_fibonacci(9) != 34)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (ldv_fibonacci(10) != 55)
-		ldv_error();
+		ldv_unexpected_error();
 
 	return 0;
 }

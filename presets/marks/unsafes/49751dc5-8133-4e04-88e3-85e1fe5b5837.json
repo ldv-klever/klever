@@ -2,8 +2,8 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:drivers:clk1"
+      "name": "Requirements specification",
+      "value": "drivers:clk1"
     },
     {
       "is_compare": true,
@@ -14,29 +14,51 @@
   "description": "All is right.",
   "error_trace": [
     [
-      {
-        "ldv_check_final_state": [
-          {
-            "ldv_assert_linux_drivers_clk1__more_at_exit": []
-          },
-          {
-            "ldv_assert_linux_drivers_clk1__more_at_exit": []
-          }
-        ]
-      }
+      [
+        {
+          "Entry point 'main'": [
+            {
+              "LDV model 'check_final_state'": [
+                {
+                  "LDV model 'assert'": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ],
     [
-      {
-        "mxs_lradc_probe": [
-          {
-            "ldv_clk_enable_clk_of_mxs_lradc": []
-          }
-        ]
-      }
+      [
+        {
+          "EMG wrapper": [
+            {
+              "mxs_lradc_probe": [
+                {
+                  "Instrumented function 'clk_prepare_enable'": [
+                    {
+                      "LDV model 'clk_prepare_enable_clk_of_mxs_lradc'": [
+                        {
+                          "LDV model 'clk_prepare_clk_of_mxs_lradc'": []
+                        },
+                        {
+                          "LDV model 'clk_enable_clk_of_mxs_lradc'": []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",
-  "is_modifiable": true,
+  "is_modifiable": false,
+  "status": null,
   "tags": [],
+  "threshold": 0,
   "verdict": "2"
 }

@@ -2,8 +2,8 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:test:common"
+      "name": "Requirements specification",
+      "value": "test:common"
     },
     {
       "is_compare": true,
@@ -14,25 +14,35 @@
   "description": "",
   "error_trace": [
     [
-      {
-        "ldv_init": [
-          {
-            "ldv_emg_usb_register_driver": [
-              {
-                "ldv_failed_usb_register_driver": [
-                  {
-                    "ldv_error": []
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      }
+      [
+        {
+          "EMG wrapper": [
+            {
+              "LDV model 'init'": [
+                {
+                  "Instrumented function 'usb_register_driver'": [
+                    {
+                      "Register USB callbacks.": [
+                        {
+                          "LDV model 'failed_usb_register_driver'": [
+                            {
+                              "LDV model 'expected_error'": []
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",
-  "is_modifiable": true,
+  "is_modifiable": false,
   "tags": [],
   "verdict": "2"
 }

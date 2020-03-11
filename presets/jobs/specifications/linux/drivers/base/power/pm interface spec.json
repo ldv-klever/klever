@@ -1,37 +1,83 @@
 {
-  "Linux 3.14 (base)": {
-    "functions models": {},
+  "2.6.33": {
     "categories": {
       "pm": {
+        "callbacks": {
+          "complete": {
+            "declaration": "void (*complete)(%pm.device%)"
+          },
+          "freeze": {
+            "declaration": "int (*freeze)(%pm.device%)"
+          },
+          "freeze_noirq": {
+            "declaration": "int (*freeze_noirq)(%pm.device%)"
+          },
+          "poweroff": {
+            "declaration": "int (*poweroff)(%pm.device%)"
+          },
+          "poweroff_noirq": {
+            "declaration": "int (*poweroff_noirq)(%pm.device%)"
+          },
+          "prepare": {
+            "declaration": "int (*prepare)(%pm.device%)"
+          },
+          "restore": {
+            "declaration": "int (*restore)(%pm.device%)"
+          },
+          "restore_noirq": {
+            "declaration": "int (*restore_noirq)(%pm.device%)"
+          },
+          "resume": {
+            "declaration": "int (*resume)(%pm.device%)"
+          },
+          "resume_noirq": {
+            "declaration": "int (*resume_noirq)(%pm.device%)"
+          },
+          "runtime_idle": {
+            "declaration": "int (*runtime_idle)(%pm.device%)"
+          },
+          "runtime_resume": {
+            "declaration": "int (*runtime_resume)(%pm.device%)"
+          },
+          "runtime_suspend": {
+            "declaration": "int (*runtime_suspend)(%pm.device%)"
+          },
+          "suspend": {
+            "declaration": "int (*suspend)(%pm.device%)"
+          },
+          "suspend_noirq": {
+            "declaration": "int (*suspend_noirq)(%pm.device%)"
+          },
+          "thaw": {
+            "declaration": "int (*thaw)(%pm.device%)"
+          },
+          "thaw_noirq": {
+            "declaration": "int (*thaw_noirq)(%pm.device%)"
+          }
+        },
         "containers": {
           "dev_pm_ops": {
             "declaration": "struct dev_pm_ops",
-            "header": "linux/pm.h",
             "fields": {
-              "prepare": "%pm.prepare%",
               "complete": "%pm.complete%",
-              "suspend": "%pm.suspend%",
-              "resume": "%pm.resume%",
               "freeze": "%pm.freeze%",
-              "thaw": "%pm.thaw%",
-              "poweroff": "%pm.poweroff%",
-              "restore": "%pm.restore%",
-              "suspend_late": "%pm.suspend_late%",
-              "resume_early": "%pm.resume_early%",
-              "freeze_late": "%pm.freeze_late%",
-              "thaw_early": "%pm.thaw_early%",
-              "poweroff_late": "%pm.poweroff_late%",
-              "restore_early": "%pm.restore_early%",
-              "suspend_noirq": "%pm.suspend_noirq%",
-              "resume_noirq": "%pm.resume_noirq%",
               "freeze_noirq": "%pm.freeze_noirq%",
-              "thaw_noirq": "%pm.thaw_noirq%",
+              "poweroff": "%pm.poweroff%",
               "poweroff_noirq": "%pm.poweroff_noirq%",
+              "prepare": "%pm.prepare%",
+              "restore": "%pm.restore%",
               "restore_noirq": "%pm.restore_noirq%",
-              "runtime_suspend": "%pm.runtime_suspend%",
+              "resume": "%pm.resume%",
+              "resume_noirq": "%pm.resume_noirq%",
+              "runtime_idle": "%pm.runtime_idle%",
               "runtime_resume": "%pm.runtime_resume%",
-              "runtime_idle": "%pm.runtime_idle%"
-            }
+              "runtime_suspend": "%pm.runtime_suspend%",
+              "suspend": "%pm.suspend%",
+              "suspend_noirq": "%pm.suspend_noirq%",
+              "thaw": "%pm.thaw%",
+              "thaw_noirq": "%pm.thaw_noirq%"
+            },
+            "header": "linux/pm.h"
           }
         },
         "resources": {
@@ -39,170 +85,125 @@
             "declaration": "struct device *dev",
             "implemented in kernel": true
           }
-        },
+        }
+      }
+    },
+    "functions models": {}
+  },
+  "3.14": {
+    "categories": {
+      "pm": {
         "callbacks": {
-          "prepare": {
-            "declaration": "int (*prepare)(%pm.device%)"
-          },
           "complete": {
             "declaration": "void (*complete)(%pm.device%)"
           },
-          "suspend": {
-            "declaration": "int (*suspend)(%pm.device%)"
-          },
-          "resume": {
-            "declaration": "int (*resume)(%pm.device%)"
-          },
           "freeze": {
             "declaration": "int (*freeze)(%pm.device%)"
-          },
-          "thaw": {
-            "declaration": "int (*thaw)(%pm.device%)"
-          },
-          "poweroff": {
-            "declaration": "int (*poweroff)(%pm.device%)"
-          },
-          "restore": {
-            "declaration": "int (*restore)(%pm.device%)"
-          },
-          "suspend_late": {
-            "declaration": "int (*suspend_late)(%pm.device%)"
-          },
-          "resume_early": {
-            "declaration": "int (*resume_early)(%pm.device%)"
           },
           "freeze_late": {
             "declaration": "int (*freeze_late)(%pm.device%)"
           },
-          "thaw_early": {
-            "declaration": "int (*thaw_early)(%pm.device%)"
+          "freeze_noirq": {
+            "declaration": "int (*freeze_noirq)(%pm.device%)"
+          },
+          "poweroff": {
+            "declaration": "int (*poweroff)(%pm.device%)"
           },
           "poweroff_late": {
             "declaration": "int (*poweroff_late)(%pm.device%)"
           },
-          "restore_early": {
-            "declaration": "int (*restore_early)(%pm.device%)"
-          },
-          "suspend_noirq": {
-            "declaration": "int (*suspend_noirq)(%pm.device%)"
-          },
-          "resume_noirq": {
-            "declaration": "int (*resume_noirq)(%pm.device%)"
-          },
-          "freeze_noirq": {
-            "declaration": "int (*freeze_noirq)(%pm.device%)"
-          },
-          "thaw_noirq": {
-            "declaration": "int (*thaw_noirq)(%pm.device%)"
-          },
           "poweroff_noirq": {
             "declaration": "int (*poweroff_noirq)(%pm.device%)"
+          },
+          "prepare": {
+            "declaration": "int (*prepare)(%pm.device%)"
+          },
+          "restore": {
+            "declaration": "int (*restore)(%pm.device%)"
+          },
+          "restore_early": {
+            "declaration": "int (*restore_early)(%pm.device%)"
           },
           "restore_noirq": {
             "declaration": "int (*restore_noirq)(%pm.device%)"
           },
-          "runtime_suspend": {
-            "declaration": "int (*runtime_suspend)(%pm.device%)"
+          "resume": {
+            "declaration": "int (*resume)(%pm.device%)"
+          },
+          "resume_early": {
+            "declaration": "int (*resume_early)(%pm.device%)"
+          },
+          "resume_noirq": {
+            "declaration": "int (*resume_noirq)(%pm.device%)"
+          },
+          "runtime_idle": {
+            "declaration": "int (*runtime_idle)(%pm.device%)"
           },
           "runtime_resume": {
             "declaration": "int (*runtime_resume)(%pm.device%)"
           },
-          "runtime_idle": {
-            "declaration": "int (*runtime_idle)(%pm.device%)"
+          "runtime_suspend": {
+            "declaration": "int (*runtime_suspend)(%pm.device%)"
+          },
+          "suspend": {
+            "declaration": "int (*suspend)(%pm.device%)"
+          },
+          "suspend_late": {
+            "declaration": "int (*suspend_late)(%pm.device%)"
+          },
+          "suspend_noirq": {
+            "declaration": "int (*suspend_noirq)(%pm.device%)"
+          },
+          "thaw": {
+            "declaration": "int (*thaw)(%pm.device%)"
+          },
+          "thaw_early": {
+            "declaration": "int (*thaw_early)(%pm.device%)"
+          },
+          "thaw_noirq": {
+            "declaration": "int (*thaw_noirq)(%pm.device%)"
           }
-        }
-      }
-    }
-  },
-  "Linux 2.6.33": {
-    "functions models": {},
-    "categories": {
-      "pm": {
+        },
         "containers": {
           "dev_pm_ops": {
             "declaration": "struct dev_pm_ops",
-            "header": "linux/pm.h",
             "fields": {
-              "prepare": "%pm.prepare%",
               "complete": "%pm.complete%",
-              "suspend": "%pm.suspend%",
-              "resume": "%pm.resume%",
               "freeze": "%pm.freeze%",
-              "thaw": "%pm.thaw%",
-              "poweroff": "%pm.poweroff%",
-              "restore": "%pm.restore%",
-              "suspend_noirq": "%pm.suspend_noirq%",
-              "resume_noirq": "%pm.resume_noirq%",
+              "freeze_late": "%pm.freeze_late%",
               "freeze_noirq": "%pm.freeze_noirq%",
-              "thaw_noirq": "%pm.thaw_noirq%",
+              "poweroff": "%pm.poweroff%",
+              "poweroff_late": "%pm.poweroff_late%",
               "poweroff_noirq": "%pm.poweroff_noirq%",
+              "prepare": "%pm.prepare%",
+              "restore": "%pm.restore%",
+              "restore_early": "%pm.restore_early%",
               "restore_noirq": "%pm.restore_noirq%",
-              "runtime_suspend": "%pm.runtime_suspend%",
+              "resume": "%pm.resume%",
+              "resume_early": "%pm.resume_early%",
+              "resume_noirq": "%pm.resume_noirq%",
+              "runtime_idle": "%pm.runtime_idle%",
               "runtime_resume": "%pm.runtime_resume%",
-              "runtime_idle": "%pm.runtime_idle%"
-            }
+              "runtime_suspend": "%pm.runtime_suspend%",
+              "suspend": "%pm.suspend%",
+              "suspend_late": "%pm.suspend_late%",
+              "suspend_noirq": "%pm.suspend_noirq%",
+              "thaw": "%pm.thaw%",
+              "thaw_early": "%pm.thaw_early%",
+              "thaw_noirq": "%pm.thaw_noirq%"
+            },
+            "header": "linux/pm.h"
           }
         },
+        "reference": true,
         "resources": {
           "device": {
             "declaration": "struct device *dev",
             "implemented in kernel": true
           }
-        },
-        "callbacks": {
-          "prepare": {
-            "declaration": "int (*prepare)(%pm.device%)"
-          },
-          "complete": {
-            "declaration": "void (*complete)(%pm.device%)"
-          },
-          "suspend": {
-            "declaration": "int (*suspend)(%pm.device%)"
-          },
-          "resume": {
-            "declaration": "int (*resume)(%pm.device%)"
-          },
-          "freeze": {
-            "declaration": "int (*freeze)(%pm.device%)"
-          },
-          "thaw": {
-            "declaration": "int (*thaw)(%pm.device%)"
-          },
-          "poweroff": {
-            "declaration": "int (*poweroff)(%pm.device%)"
-          },
-          "restore": {
-            "declaration": "int (*restore)(%pm.device%)"
-          },
-          "suspend_noirq": {
-            "declaration": "int (*suspend_noirq)(%pm.device%)"
-          },
-          "resume_noirq": {
-            "declaration": "int (*resume_noirq)(%pm.device%)"
-          },
-          "freeze_noirq": {
-            "declaration": "int (*freeze_noirq)(%pm.device%)"
-          },
-          "thaw_noirq": {
-            "declaration": "int (*thaw_noirq)(%pm.device%)"
-          },
-          "poweroff_noirq": {
-            "declaration": "int (*poweroff_noirq)(%pm.device%)"
-          },
-          "restore_noirq": {
-            "declaration": "int (*restore_noirq)(%pm.device%)"
-          },
-          "runtime_suspend": {
-            "declaration": "int (*runtime_suspend)(%pm.device%)"
-          },
-          "runtime_resume": {
-            "declaration": "int (*runtime_resume)(%pm.device%)"
-          },
-          "runtime_idle": {
-            "declaration": "int (*runtime_idle)(%pm.device%)"
-          }
         }
       }
-    }
+    },
+    "functions models": {}
   }
 }

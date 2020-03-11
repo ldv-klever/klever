@@ -16,11 +16,11 @@
  */
 
 #include <linux/module.h>
-#include <verifier/common.h>
+#include <ldv/test.h>
 
 int multimodule_error_export_with_error(void)
 {
-	ldv_error();
+	ldv_expected_error();
 	return 0;
 }
 EXPORT_SYMBOL(multimodule_error_export_with_error);

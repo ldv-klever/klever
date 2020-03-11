@@ -1,48 +1,51 @@
 {
-  "Linux 3.14 (base)": {
-    "functions models": {
-      "tty_port_register_device": {
-        "declaration": "struct device *tty_port_register_device(*%tty_port.tty_port%, struct tty_driver *driver, unsigned index, struct device *device)",
-        "header": "linux/tty.h"
-      },
-      "tty_port_unregister_device": {
-        "declaration": "void tty_port_unregister_device(*%tty_port.tty_port%, struct tty_driver *driver, unsigned index)",
-        "header": "linux/tty.h"
-      }
-    },
+  "3.14": {
     "categories": {
       "tty_port": {
-        "containers": {
-          "tty_port_operations": {
-            "declaration": "struct tty_port_operations ops",
-            "header": "linux/tty.h",
-            "fields": {
-              "shutdown": "%tty_port.port_shutdown%",
-              "activate": "%tty_port.port_activate%"
-            }
-          },
-          "tty_port": {
-            "declaration": "struct tty_port port",
-            "header": "linux/tty.h",
-            "fields": {
-              "ops": "*%tty_port.tty_port_operations%"
-            }
-          }
-        },
         "callbacks": {
-          "port_shutdown": {
-            "declaration": "void (*port_shutdown)(*%tty_port.tty_port%)"
-          },
           "port_activate": {
             "declaration": "int (*port_activate)(*%tty_port.tty_port%, %tty_port.tty_struct%)"
+          },
+          "port_shutdown": {
+            "declaration": "void (*port_shutdown)(*%tty_port.tty_port%)"
           }
         },
+        "containers": {
+          "tty_port": {
+            "declaration": "struct tty_port port",
+            "fields": {
+              "ops": "*%tty_port.tty_port_operations%"
+            },
+            "header": "linux/tty.h"
+          },
+          "tty_port_operations": {
+            "declaration": "struct tty_port_operations ops",
+            "fields": {
+              "activate": "%tty_port.port_activate%",
+              "shutdown": "%tty_port.port_shutdown%"
+            },
+            "header": "linux/tty.h"
+          }
+        },
+        "reference": true,
         "resources": {
           "tty_struct": {
             "declaration": "struct tty_struct *str",
             "header": "linux/tty.h"
           }
         }
+      }
+    },
+    "functions models": {
+      "tty_port_register_device": {
+        "declaration": "struct device *tty_port_register_device(*%tty_port.tty_port%, struct tty_driver *driver, unsigned index, struct device *device)",
+        "header": "linux/tty.h",
+        "reference": true
+      },
+      "tty_port_unregister_device": {
+        "declaration": "void tty_port_unregister_device(*%tty_port.tty_port%, struct tty_driver *driver, unsigned index)",
+        "header": "linux/tty.h",
+        "reference": true
       }
     }
   }

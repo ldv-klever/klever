@@ -1,33 +1,7 @@
 {
-  "Linux 3.14 (base)": {
-    "functions models": {
-      "device_create_file": {
-        "declaration": "int device_create_file(%devattr.device%, *%devattr.device_attribute%)",
-        "header": "linux/device.h"
-      },
-      "device_remove_file": {
-        "declaration": "void device_remove_file(%devattr.device%, *%devattr.device_attribute%)",
-        "header": "linux/device.h"
-      }
-    },
+  "3.14": {
     "categories": {
       "devattr": {
-        "containers": {
-          "device_attribute": {
-            "declaration": "struct device_attribute a",
-            "header": "linux/device.h",
-            "fields": {
-              "show": "%devattr.show%",
-              "store": "%devattr.store%"
-            }
-          }
-        },
-        "resources": {
-          "device": {
-            "declaration": "struct device *a",
-            "header": "linux/platform_device.h"
-          }
-        },
         "callbacks": {
           "show": {
             "declaration": "ssize_t (*show)(%devattr.device%, *%devattr.device_attribute%, char *buf)"
@@ -35,7 +9,36 @@
           "store": {
             "declaration": "ssize_t (*store)(%devattr.device%, *%devattr.device_attribute%, const char *buf, size_t count)"
           }
+        },
+        "containers": {
+          "device_attribute": {
+            "declaration": "struct device_attribute a",
+            "fields": {
+              "show": "%devattr.show%",
+              "store": "%devattr.store%"
+            },
+            "header": "linux/device.h"
+          }
+        },
+        "reference": true,
+        "resources": {
+          "device": {
+            "declaration": "struct device *a",
+            "header": "linux/platform_device.h"
+          }
         }
+      }
+    },
+    "functions models": {
+      "device_create_file": {
+        "declaration": "int device_create_file(%devattr.device%, *%devattr.device_attribute%)",
+        "header": "linux/device.h",
+        "reference": true
+      },
+      "device_remove_file": {
+        "declaration": "void device_remove_file(%devattr.device%, *%devattr.device_attribute%)",
+        "header": "linux/device.h",
+        "reference": true
       }
     }
   }

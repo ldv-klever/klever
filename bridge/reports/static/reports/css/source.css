@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+ * Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
  * Ivannikov Institute for System Programming of the Russian Academy of Sciences
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -152,6 +152,19 @@
 }
 .SrcHlMacroExpansionRefFrom {
     color: #8B008B;
+    font-weight: bold;
+}
+
+.SrcHlLDVModelFunc {
+    color: #4169E1;
+    font-weight: bold;
+}
+.SrcHlLDVEnvModelFunc {
+    color: #800000;
+    font-weight: bold;
+}
+.SrcHlCIFAuxFunc {
+    color: #008B8B;
     font-weight: bold;
 }
 .SrcHlAssume {

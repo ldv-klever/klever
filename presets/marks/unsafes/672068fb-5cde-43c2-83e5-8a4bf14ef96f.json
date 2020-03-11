@@ -2,47 +2,63 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:usb:coherent"
+      "name": "Requirements specification",
+      "value": "drivers:usb:core:usb:coherent"
     },
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/linux/usb/coherent/less-decrement.ko"
+      "value": "ext-modules/linux/drivers/usb/core/usb/coherent/less-decrement.ko"
     }
   ],
   "description": "",
   "error_trace": [
     [
-      {
-        "ldv_init": [
-          {
-            "ldv_usb_alloc_coherent": [
-              {
-                "ldv_undef_ptr": []
-              }
-            ]
-          },
-          {
-            "ldv_usb_free_coherent": [
-              {
-                "ldv_assert_linux_usb_coherent__less_initial_decrement": []
-              }
-            ]
-          },
-          {
-            "ldv_usb_free_coherent": [
-              {
-                "ldv_assert_linux_usb_coherent__less_initial_decrement": []
-              }
-            ]
-          }
-        ]
-      }
+      [
+        {
+          "EMG wrapper": [
+            {
+              "LDV model 'init'": [
+                {
+                  "Instrumented function 'usb_alloc_coherent'": [
+                    {
+                      "LDV model 'usb_alloc_coherent'": [
+                        {
+                          "LDV model 'undef_ptr'": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Instrumented function 'usb_free_coherent'": [
+                    {
+                      "LDV model 'usb_free_coherent'": []
+                    }
+                  ]
+                },
+                {
+                  "Instrumented function 'usb_free_coherent'": [
+                    {
+                      "LDV model 'usb_free_coherent'": [
+                        {
+                          "LDV model 'assert'": []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",
-  "is_modifiable": true,
+  "is_modifiable": false,
+  "status": null,
   "tags": [],
+  "threshold": 0,
   "verdict": "2"
 }

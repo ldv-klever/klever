@@ -19,8 +19,8 @@
 
 before: file("$this")
 {
-#include <verifier/common.h>
 #include <linux/ldv/common.h>
+#include <verifier/common.h>
 #include <verifier/memory.h>
 #include <verifier/nondet.h>
 

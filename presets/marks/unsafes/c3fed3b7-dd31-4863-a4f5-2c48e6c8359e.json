@@ -2,50 +2,55 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:usb:gadget"
+      "name": "Requirements specification",
+      "value": "drivers:usb:gadget:udc-core"
     },
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/linux/usb/gadget/class-with-usb-gadget.ko"
+      "value": "ext-modules/linux/drivers/usb/gadget/udc-core/class-with-usb-gadget.ko"
     }
   ],
   "description": "",
   "error_trace": [
     [
-      {
-        "ldv_init": [
-          {
-            "ldv_usb_gadget_probe_driver_23": [
-              {
-                "ldv_register_usb_gadget": [
-                  {
-                    "ldv_undef_int_nonpositive": []
-                  },
-                  {
-                    "ldv_assert_linux_usb_gadget__double_usb_gadget_registration": []
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "ldv_register_class": [
-              {
-                "ldv_undef_int_nonpositive": []
-              },
-              {
-                "ldv_assert_linux_usb_gadget__class_registration_with_usb_gadget": []
-              }
-            ]
-          }
-        ]
-      }
+      [
+        {
+          "EMG wrapper": [
+            {
+              "LDV model 'init'": [
+                {
+                  "Instrumented function 'usb_gadget_probe_driver'": [
+                    {
+                      "LDV model 'register_usb_gadget'": [
+                        {
+                          "LDV model 'undef_int_nonpositive'": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "LDV model 'register_class'": [
+                    {
+                      "LDV model 'undef_int_nonpositive'": []
+                    },
+                    {
+                      "LDV model 'assert'": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",
-  "is_modifiable": true,
+  "is_modifiable": false,
+  "status": null,
   "tags": [],
+  "threshold": 0,
   "verdict": "2"
 }

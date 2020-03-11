@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
 # Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -41,9 +41,8 @@ from service.models import Task
 from tools.models import LockTable
 
 from tools.utils import objects_without_relations, ClearFiles, Recalculation, RecalculateMarksCache
-from tools.profiling import ProfileData, clear_old_logs, ExecLocker, LoggedCallMixin
+from tools.profiling import ProfileData, ExecLocker, LoggedCallMixin, DBLogsAnalizer
 
-from jobs.population import JobsPopulation
 from marks.population import (
     PopulateSafeTags, PopulateUnsafeTags, PopulateSafeMarks, PopulateUnsafeMarks, PopulateUnknownMarks
 )
@@ -175,15 +174,6 @@ class ProcessingListView(LoginRequiredMixin, TemplateView):
         return context
 
 
-class ClearLogsAPIView(LoggedCallMixin, APIView):
-    permission_classes = (ManagerPermission,)
-
-    def delete(self, request):
-        assert request.user.role == USER_ROLES[2][0]
-        clear_old_logs()
-        return Response({'message': _('Logs were successfully cleared')})
-
-
 class ClearTasksAPIView(LoggedCallMixin, APIView):
     permission_classes = (ManagerPermission,)
 
@@ -216,9 +206,6 @@ class PopulationAPIView(LoggedCallMixin, APIView):
         if 'schedulers' in data:
             populuate_schedulers()
             messages.append('Schedulers were populated!')
-        if 'jobs' in data:
-            res = JobsPopulation().populate()
-            messages.append('Number of new jobs: {}'.format(res))
         if 'safe-tags' in data:
             res = PopulateSafeTags()
             messages.append("{} of {} safe tags were populated".format(res.created, res.total))
@@ -235,3 +222,22 @@ class PopulationAPIView(LoggedCallMixin, APIView):
             res = PopulateUnknownMarks()
             messages.append("{} of {} unknown marks were populated".format(res.created, res.total))
         return Response({'messages': messages})
+
+
+class DBLogsStatistics(TemplateView):
+    template_name = 'tools/DBLogsStatistics.html'
+
+    def get_context_data(self, **kwargs):
+        context = super(DBLogsStatistics, self).get_context_data(**kwargs)
+        results_file = os.path.join('logs', DBLogsAnalizer.results_file)
+        if os.path.isfile(results_file):
+            with open(results_file, mode='r', encoding='utf-8') as fp:
+                data = json.load(fp)
+                context['data'] = list({
+                    'name': k,
+                    'numbers': data[k][:6],
+                    'percents': list(int(x / data[k][5] * 100) for x in data[k][:5]),
+                    'average': data[k][6] / data[k][5],
+                    'total': data[k][6]
+                } for k in sorted(data) if data[k][0] != data[k][5] > 10)
+        return context

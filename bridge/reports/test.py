@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
 # Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,7 +29,7 @@ from django.db.models import Q
 from django.test import Client
 from django.urls import reverse
 
-from bridge.vars import SCHEDULER_TYPE, JOB_STATUS, JOB_ROLES, FORMAT
+from bridge.vars import SCHEDULER_TYPE, JOB_STATUS, JOB_ROLES
 from bridge.utils import KleverTestCase, logger, RMQConnect
 
 from users.models import User
@@ -484,7 +484,7 @@ class TestReports(KleverTestCase):
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
 
         # Test verifier input files
-        report = ReportComponent.objects.exclude(root__job_id=self.job.pk, verifier_input='').first()
+        report = ReportComponent.objects.exclude(root__job_id=self.job.pk, verifier_files='').first()
         self.assertIsNotNone(report)
 
         response = self.client.post(reverse('jobs:download_file_for_compet', args=[self.job.pk]),
@@ -496,13 +496,13 @@ class TestReports(KleverTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn(response['Content-Type'], {'application/x-zip-compressed', 'application/zip'})
 
-        # Clear verification files
-        response = self.client.post('/reports/clear_verification_files/%s/' % self.job.pk)
+        # Clear verifier input files
+        response = self.client.post('/reports/clear_verifier_files/%s/' % self.job.pk)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
         self.assertEqual(ReportComponent.objects.filter(root=self.job.reportroot, verification=True)
-                         .exclude(verifier_input='').count(), 0)
+                         .exclude(verifier_files='').count(), 0)
 
     def test_coverage(self):
         self.job = Job.objects.order_by('parent').first()
@@ -770,10 +770,10 @@ class TestReports(KleverTestCase):
             self.assertNotEqual(report.log, '')
         else:
             self.assertEqual(report.log, '')
-        if verifier_input:
-            self.assertNotEqual(report.verifier_input, '')
+        if verifier_files:
+            self.assertNotEqual(report.verifier_files, '')
         else:
-            self.assertEqual(report.verifier_input, '')
+            self.assertEqual(report.verifier_files, '')
         return r_id
 
     def __upload_progress(self, ts, sj=None, start=False, finish=False):
@@ -896,7 +896,7 @@ class TestReports(KleverTestCase):
 
         response = self.service_client.post('/jobs/decide_job/', {'report': json.dumps({
             'type': 'start', 'id': '/', 'attrs': [{'name': 'Klever Core version', 'value': 'latest'}], 'comp': COMPUTER
-        }), 'job format': FORMAT})
+        })})
         self.assertIn(response['Content-Type'], {'application/x-zip-compressed', 'application/zip'})
         self.assertEqual(Job.objects.get(pk=self.job.pk).status, JOB_STATUS[2][0])
 
@@ -1027,7 +1027,7 @@ class TestReports(KleverTestCase):
             coverage = None
         tool = self.__upload_verification_report(
             chunk['tool'], parent, coverage=coverage,
-            verifier_input=chunk.get('verifier_input', False), log=chunk.get('log', False)
+            verifier_files=chunk.get('verifier_files', False), log=chunk.get('log', False)
         )
         if 'safe' in chunk:
             self.__upload_safe_report(tool, [], chunk['safe'])
@@ -1058,7 +1058,7 @@ class DecideJobs:
         self._password = kwargs.get('password', 'service')
         self._full_coverage = bool(kwargs.get('with_full_coverage'))
         self._progress = bool(kwargs.get('with_progress'))
-        self._queue_name = kwargs.get('queue_name') or settings.RABBIT_MQ['name']
+        self._queue_name = kwargs.get('queue_name') or settings.RABBIT_MQ_QUEUE
 
         self.session = self.__login()
         self.__start()
@@ -1563,3 +1563,82 @@ class DecideJob:
 
     def __is_not_used(self):
         pass
+
+
+class UploadRawReports:
+    base_url = 'http://127.0.0.1:8998'
+
+    def __init__(self, job_uuid, reports_dir):
+        self._upload_url = '/reports/api/upload/{}/'.format(job_uuid)
+        self._reports_dir = os.path.abspath(reports_dir)
+        assert os.path.isdir(self._reports_dir), 'Reports directory not found!'
+        self.session = requests.Session()
+        self.__login()
+        self.__decide_job(job_uuid)
+
+    def __login(self):
+        resp = self.__request('/service/get_token/', data={'username': 'service', 'password': 'service'})
+        self.session.headers.update({'Authorization': 'Token {}'.format(resp.json()['token'])})
+
+    def __decide_job(self, job_uuid):
+        self.__request('/jobs/api/download-files/{}/'.format(job_uuid), method='GET')
+        self.__send_reports()
+        self.__request('/service/job-status/{}/'.format(job_uuid), method='PATCH', data={'status': '3'})
+
+    def __send_reports(self):
+        all_archives = list(f for f in os.listdir(self._reports_dir) if f.endswith('.zip'))
+        cnt = 1
+        while True:
+            report_json = os.path.join(self._reports_dir, '{}.json'.format(cnt))
+            if not os.path.isfile(report_json):
+                logger.info('{}.json not found!'.format(cnt))
+                return
+            with open(report_json, mode='r', encoding='utf-8') as fp:
+                report = json.load(fp)
+            report_archives = []
+            for a_name in all_archives:
+                if a_name.startswith('{}-'.format(cnt)) or a_name.startswith('{} '.format(cnt)):
+                    report_archives.append(a_name)
+            self.__upload_report(report, report_archives)
+            cnt += 1
+            time.sleep(0.01)
+
+    def __upload_report(self, report, archives):
+        if report.get('original_sources'):
+            report['original_sources'] = '936d4726-6d0b-4244-a63e-bb1133706555'
+        report.pop('task', None)
+
+        logger.info('{}: {}; '.format(report.get('type'), report.get('identifier')) + str(archives))
+        archives_fp = {}
+        try:
+            for a_name in archives:
+                archives_fp[os.path.basename(a_name)] = open(os.path.join(self._reports_dir, a_name), mode='rb')
+            self.__request(self._upload_url, data={'report': json.dumps(report)}, files=archives_fp)
+        finally:
+            for fp in archives_fp.values():
+                fp.close()
+
+    def __request(self, url, method='POST', **kwargs):
+        cnt = 0
+        while True:
+            try:
+                resp = self.session.request(method, self.base_url + url, **kwargs)
+            except Exception as e:
+                logger.error(str(e))
+            else:
+                break
+            time.sleep(1)
+            cnt += 1
+            if cnt > 3:
+                raise ResponseError('Connection max tries exceeded')
+
+        if not 200 <= resp.status_code < 300:
+            try:
+                error_str = str(resp.json())
+            except Exception as e:
+                print(e)
+                error_str = resp.content
+            logger.error(error_str)
+            resp.close()
+            raise ResponseError('Unexpected status code returned: {}'.format(resp.status_code))
+        return resp

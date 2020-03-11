@@ -1,50 +1,55 @@
 {
-  "Linux 3.14 (base)": {
-    "functions models": {
-      "tasklet_init": {
-        "declaration": "void tasklet_init(*%tasklet.tasklet_struct%, *%tasklet.func%, %tasklet.data%);",
-        "header":"linux/interrupt.h"
-      },
-      "tasklet_schedule": {
-        "declaration": "void tasklet_schedule(*%tasklet.tasklet_struct%)",
-        "header":"linux/interrupt.h"
-      },
-      "tasklet_hi_schedule": {
-        "declaration": "void __tasklet_hi_schedule(*%tasklet.tasklet_struct%)",
-        "header":"linux/interrupt.h"
-      },
-      "tasklet_hi_schedule_first": {
-        "declaration": "void __tasklet_hi_schedule_first(*%tasklet.tasklet_struct%)",
-        "header":"linux/interrupt.h"
-      }
-    },
+  "3.14": {
     "categories": {
       "tasklet": {
-        "containers": {
-          "tasklet_struct": {
-            "declaration": "struct tasklet_struct tasklet",
-            "header": "linux/interrupt.h",
-            "fields": {
-              "count": "%tasklet.count%",
-              "data": "%tasklet.data%",
-              "func": "%tasklet.func%"
-            }
-          }
-        },
-        "resources": {
-          "data": {
-            "declaration": "unsigned long data"
-          },
-          "count": {
-            "declaration": "atomic_t count"
-          }
-        },
         "callbacks": {
           "func": {
             "declaration": "void (*func)(%tasklet.data%)",
             "interrupt context": false
           }
+        },
+        "containers": {
+          "tasklet_struct": {
+            "declaration": "struct tasklet_struct tasklet",
+            "fields": {
+              "count": "%tasklet.count%",
+              "data": "%tasklet.data%",
+              "func": "%tasklet.func%"
+            },
+            "header": "linux/interrupt.h"
+          }
+        },
+        "reference": true,
+        "resources": {
+          "count": {
+            "declaration": "atomic_t count"
+          },
+          "data": {
+            "declaration": "unsigned long data"
+          }
         }
+      }
+    },
+    "functions models": {
+      "tasklet_hi_schedule": {
+        "declaration": "void __tasklet_hi_schedule(*%tasklet.tasklet_struct%)",
+        "header": "linux/interrupt.h",
+        "reference": true
+      },
+      "tasklet_hi_schedule_first": {
+        "declaration": "void __tasklet_hi_schedule_first(*%tasklet.tasklet_struct%)",
+        "header": "linux/interrupt.h",
+        "reference": true
+      },
+      "tasklet_init": {
+        "declaration": "void tasklet_init(*%tasklet.tasklet_struct%, *%tasklet.func%, %tasklet.data%);",
+        "header": "linux/interrupt.h",
+        "reference": true
+      },
+      "tasklet_schedule": {
+        "declaration": "void tasklet_schedule(*%tasklet.tasklet_struct%)",
+        "header": "linux/interrupt.h",
+        "reference": true
       }
     }
   }

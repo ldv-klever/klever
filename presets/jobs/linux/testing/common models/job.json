@@ -1,15 +1,11 @@
 {
-  "Class": "Verification of Linux kernel modules",
+  "project": "Linux",
   "build base": "testing/6e6e1c",
-  "program": "Linux",
-  "version": "3.14",
-  "fragmentation set": "Modules",
-  "specifications set": "Linux 3.14 (base)",
-  "requirements": ["linux:test:common"],
+  "requirement specifications": ["test:common"],
   "ideal verdicts": [
     {
       "ideal verdict": "safe",
-      "program fragment": [
+      "program fragments": [
         "ext-modules/linux/drivers/base/dd/safe.ko",
         "ext-modules/linux/drivers/spi/safe.ko",
         "ext-modules/linux/err/safe.ko",
@@ -25,12 +21,10 @@
         "ext-modules/verifier/set/flag/safe.ko",
         "ext-modules/verifier/set/nonnegative-counter/safe.ko",
         "ext-modules/verifier/thread/safe.ko"
-      ]},
+      ]
+    },
     {"ideal verdict": "unsafe"}
   ],
-  "extra CIF opts": [
-    "-D__GNUC__=4",
-    "-D__GNUC_MINOR__=6"
-  ],
-  "add targets": ["**"]
+  "extra results processing": "testing",
+  "targets": ["**"]
 }

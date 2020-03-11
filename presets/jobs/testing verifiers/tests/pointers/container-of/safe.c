@@ -16,7 +16,7 @@
  */
 
 #include <linux/module.h>
-#include <verifier/common.h>
+#include <ldv/test.h>
 #include "container-of.h"
 
 static int __init ldv_init(void)
@@ -24,7 +24,7 @@ static int __init ldv_init(void)
 	struct ldv_struct var;
 
 	if (&var != ldv_container_of(&var.field2, struct ldv_struct, field2))
-		ldv_error();
+		ldv_unexpected_error();
 
 	return 0;
 }

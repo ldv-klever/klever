@@ -1,3 +1,20 @@
+#
+# Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 from collections import OrderedDict, Mapping
 from django.db.models import F, Count, Case, When, BooleanField
 from django.utils.functional import cached_property
@@ -278,11 +295,8 @@ class ComputerSerializer(serializers.ModelSerializer):
     data = ComputerDataField()
 
     def create(self, validated_data):
-        try:
-            # Do not create the computer with the same identifier again
-            return Computer.objects.get(identifier=validated_data['identifier'])
-        except Computer.DoesNotExist:
-            return super().create(validated_data)
+        # Do not create the computer with the same identifier again
+        return Computer.objects.get_or_create(identifier=validated_data['identifier'], defaults=validated_data)[0]
 
     class Meta:
         model = Computer

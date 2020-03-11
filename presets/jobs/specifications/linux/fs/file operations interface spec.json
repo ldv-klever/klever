@@ -1,77 +1,7 @@
 {
-  "Linux 3.14 (base)": {
-    "functions models": {
-      "cdev_init": {
-        "declaration": "void cdev_init(*%file_operations.cdev%, *%file_operations.file_operations%)",
-        "header": "linux/cdev.h"
-      },
-      "misc_register": {
-        "declaration": "int misc_register(*%file_operations.miscdevice%)",
-        "header": "linux/miscdevice.h"
-      },
-      "cdev_del": {
-        "declaration": "void cdev_del(*%file_operations.cdev%)",
-        "header": "linux/cdev.h"
-      },
-      "misc_deregister": {
-        "declaration": "void misc_deregister(*%file_operations.miscdevice%)",
-        "header": "linux/miscdevice.h"
-      },
-      "register_chrdev": {
-        "declaration": "int register_chrdev(unsigned int major, const char *name, *%file_operations.file_operations%)",
-        "header": "linux/fs.h"
-      },
-      "unregister_chrdev": {
-        "declaration": "void unregister_chrdev(unsigned int major, const char *name)",
-        "header": "linux/fs.h"
-      },
-      "debugfs_create_file": {
-        "declaration": "struct dentry *debugfs_create_file(const char *name, umode_t mode, struct dentry *parent, void *data, *%file_operations.file_operations%)",
-        "header": "linux/debugfs.h"
-      },
-      "debugfs_remove": {
-        "declaration": "void debugfs_remove(struct dentry *dentry)",
-        "header": "linux/debugfs.h"
-      }
-    },
+  "3.14": {
     "categories": {
       "file_operations": {
-        "containers": {
-          "file_operations": {
-            "declaration": "struct file_operations ops",
-            "header": "linux/fs.h",
-            "fields": {
-              "release": "%file_operations.release%",
-              "open": "%file_operations.probe%",
-              "write": "%file_operations.write%"
-            }
-          },
-          "cdev": {
-            "declaration": "struct cdev cdev",
-            "header": "linux/cdev.h",
-            "fields": {
-              "ops": "*%file_operations.file_operations%"
-            }
-          },
-          "miscdevice": {
-            "declaration": "struct miscdevice dev",
-            "header": "linux/miscdevice.h",
-            "fields": {
-              "fops": "*%file_operations.file_operations%"
-            }
-          }
-        },
-        "resources": {
-          "file": {
-            "declaration": "struct file *file"
-          },
-          "inode": {
-            "declaration": "struct inode *inode"
-          },
-          "write_size": {
-            "declaration": "size_t cnt"
-          }
-        },
         "callbacks": {
           "probe": {
             "declaration": "int (*probe) (%file_operations.inode%, %file_operations.file%)"
@@ -82,7 +12,86 @@
           "write": {
             "declaration": "ssize_t (*write) (%file_operations.file%, const char *, %file_operations.write_size%, loff_t *)"
           }
+        },
+        "containers": {
+          "cdev": {
+            "declaration": "struct cdev cdev",
+            "fields": {
+              "ops": "*%file_operations.file_operations%"
+            },
+            "header": "linux/cdev.h"
+          },
+          "file_operations": {
+            "declaration": "struct file_operations ops",
+            "fields": {
+              "open": "%file_operations.probe%",
+              "release": "%file_operations.release%",
+              "write": "%file_operations.write%"
+            },
+            "header": "linux/fs.h"
+          },
+          "miscdevice": {
+            "declaration": "struct miscdevice dev",
+            "fields": {
+              "fops": "*%file_operations.file_operations%"
+            },
+            "header": "linux/miscdevice.h"
+          }
+        },
+        "reference": true,
+        "resources": {
+          "file": {
+            "declaration": "struct file *file"
+          },
+          "inode": {
+            "declaration": "struct inode *inode"
+          },
+          "write_size": {
+            "declaration": "size_t cnt"
+          }
         }
+      }
+    },
+    "functions models": {
+      "cdev_del": {
+        "declaration": "void cdev_del(*%file_operations.cdev%)",
+        "header": "linux/cdev.h",
+        "reference": true
+      },
+      "cdev_init": {
+        "declaration": "void cdev_init(*%file_operations.cdev%, *%file_operations.file_operations%)",
+        "header": "linux/cdev.h",
+        "reference": true
+      },
+      "debugfs_create_file": {
+        "declaration": "struct dentry *debugfs_create_file(const char *name, umode_t mode, struct dentry *parent, void *data, *%file_operations.file_operations%)",
+        "header": "linux/debugfs.h",
+        "reference": true
+      },
+      "debugfs_remove": {
+        "declaration": "void debugfs_remove(struct dentry *dentry)",
+        "header": "linux/debugfs.h",
+        "reference": true
+      },
+      "misc_deregister": {
+        "declaration": "void misc_deregister(*%file_operations.miscdevice%)",
+        "header": "linux/miscdevice.h",
+        "reference": true
+      },
+      "misc_register": {
+        "declaration": "int misc_register(*%file_operations.miscdevice%)",
+        "header": "linux/miscdevice.h",
+        "reference": true
+      },
+      "register_chrdev": {
+        "declaration": "int register_chrdev(unsigned int major, const char *name, *%file_operations.file_operations%)",
+        "header": "linux/fs.h",
+        "reference": true
+      },
+      "unregister_chrdev": {
+        "declaration": "void unregister_chrdev(unsigned int major, const char *name)",
+        "header": "linux/fs.h",
+        "reference": true
       }
     }
   }

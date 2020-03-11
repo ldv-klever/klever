@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
 # Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,6 +30,7 @@ from urllib.parse import quote
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
 from django.core.files import File
+from django.db import connection, transaction
 from django.db.models import FileField
 from django.http import HttpResponseBadRequest, Http404
 from django.template import loader
@@ -47,21 +48,45 @@ BLOCKER = {}
 GROUP_BLOCKER = {}
 CALL_STATISTIC = {}
 TESTS_DIR = 'Tests'
+LOCK_MODES = (
+    'ACCESS SHARE',
+    'ROW SHARE',
+    'ROW EXCLUSIVE',
+    'SHARE UPDATE EXCLUSIVE',
+    'SHARE',
+    'SHARE ROW EXCLUSIVE',
+    'EXCLUSIVE',
+    'ACCESS EXCLUSIVE',
+)
 
 logger = logging.getLogger('bridge')
 
 
-class InfoFilter(object):
+class InfoFilter(logging.Filter):
     def __init__(self, level):
         self.__level = level
+        super(InfoFilter, self).__init__()
 
     def filter(self, log_record):
-        return log_record.levelno == self.__level
+        return log_record.levelno == self.__level and super(InfoFilter, self).filter(log_record)
 
 
 for h in logger.handlers:
     if h.name == 'other':
         h.addFilter(InfoFilter(logging.INFO))
+
+
+def require_lock(model, lock='EXCLUSIVE'):
+    def require_lock_decorator(func):
+        def wrapper(*args, **kwargs):
+            if lock not in LOCK_MODES:
+                raise ValueError('%s is not a PostgreSQL supported lock mode.')
+            with transaction.atomic():
+                cursor = connection.cursor()
+                cursor.execute('LOCK TABLE {} IN {} MODE'.format(getattr(model, '_meta').db_table, lock))
+                return func(*args, **kwargs)
+        return wrapper
+    return require_lock_decorator
 
 
 def exec_time(func):
@@ -212,41 +237,6 @@ class ArchiveFileContent:
                     if self._name not in zfp.namelist():
                         return None
                 return zfp.read(self._name)
-
-
-class OpenFiles:
-    def __init__(self, *args, mode='rb', rel_path=None):
-        self._files = {}
-        self._mode = mode
-        self._rel_path = rel_path
-        self._paths = self.__check_files(*args)
-
-    def __enter__(self):
-        try:
-            for p in self._paths:
-                dict_key = p
-                if isinstance(self._rel_path, str) and os.path.isdir(self._rel_path):
-                    dict_key = os.path.relpath(dict_key, self._rel_path)
-                dict_key = dict_key.replace('\\', '/')
-                if dict_key not in self._files:
-                    self._files[dict_key] = File(open(p, mode=self._mode))
-        except Exception as e:
-            self.__exit__(type(e), str(e), e.__traceback__)
-        return self._files
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        for fp in self._files.values():
-            fp.close()
-
-    def __check_files(self, *args):
-        paths = set()
-        for arg in args:
-            if not isinstance(arg, str):
-                raise ValueError('Unsupported argument: {0}'.format(arg))
-            if not os.path.isfile(arg):
-                raise FileNotFoundError("The file doesn't exist: {0}".format(arg))
-            paths.add(arg)
-        return paths
 
 
 class BridgeException(Exception):

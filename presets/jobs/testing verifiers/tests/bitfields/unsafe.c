@@ -16,7 +16,7 @@
  */
 
 #include <linux/module.h>
-#include <verifier/common.h>
+#include <ldv/test.h>
 #include "bitfields.h"
 
 static int __init ldv_init(void)
@@ -28,7 +28,7 @@ static int __init ldv_init(void)
 	    var2.field1.bitfield1 == 1 &&
 	    var2.field1.bitfield2 == 1 &&
 	    var2.field1.bitfield3 == 7)
-		ldv_error();
+		ldv_expected_error();
 
 	return 0;
 }

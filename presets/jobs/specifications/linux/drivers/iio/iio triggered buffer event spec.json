@@ -1,138 +1,21 @@
 {
-  "Linux 3.14 (base)": {
-    "functions models": {
-      "iio_triggered_buffer_setup": {
-        "comment": "Setup industrial I/O triggered buffer.",
-        "labels": {
-          "thread": {
-            "callback": true,
-            "interface": [
-              "iio_triggered_buffer.thread"
-            ],
-            "parameter": true
-          },
-          "callback": {
-            "callback": true,
-            "interface": [
-              "iio_triggered_buffer.handler"
-            ],
-            "parameter": true
-          },
-          "dev": {
-            "resource": true,
-            "interface": [
-              "iio_triggered_buffer.dev"
-            ],
-            "parameter": true
-          }
-        },
-        "process": "<assign>.[irq_register].<success> | <fail>",
-        "actions": {
-          "irq_register": {
-            "comment": "Register top and bottom halfs handlers for a poll function.",
-            "parameters": [
-              "%dev%",
-              "%callback%",
-              "%thread%"
-            ]
-          },
-          "fail": {
-            "comment": "Industrial I/O triggered buffer setup has failed.",
-            "statements": [
-              "return ldv_undef_int_negative();"
-            ]
-          },
-          "assign": {
-            "comment": "Get IIO device structure and handler functions.",
-            "statements": [
-              "%dev% = $ARG1;",
-              "%callback% = $ARG2;",
-              "%thread% = $ARG3;"
-            ]
-          },
-          "success": {
-            "comment": "Industrial I/O triggered buffer setup has finished successfully.",
-            "statements": [
-              "return 0;"
-            ]
-          }
-        }
-      },
-      "iio_triggered_buffer_cleanup": {
-        "comment": "Cleanup industrial I/O triggered buffer.",
-        "labels": {
-          "dev": {
-            "resource": true,
-            "interface": [
-              "iio_triggered_buffer.dev"
-            ],
-            "parameter": true
-          }
-        },
-        "process": "<assign>.[irq_deregister]",
-        "actions": {
-          "irq_deregister": {
-            "comment": "Industrial I/O poll functions will not be called since this point in time.",
-            "parameters": [
-              "%dev%"
-            ]
-          },
-          "assign": {
-            "comment": "Get IIO device structure.",
-            "statements": [
-              "%dev% = $ARG1;"
-            ]
-          }
-        }
-      }
-    },
+  "3.14": {
     "environment processes": {
       "iio_triggered_buffer_scenario": {
-        "headers": ["linux/interrupt.h"],
-        "comment": "Invoke Industrial I/O triggered buffer poll function callbacks.",
-        "labels": {
-          "thread": {
-            "callback": true,
-            "interface": [
-              "iio_triggered_buffer.thread"
-            ]
-          },
-          "callback": {
-            "callback": true,
-            "interface": [
-              "iio_triggered_buffer.handler"
-            ]
-          },
-          "line": {
-            "resource": true,
-            "interface": [
-              "iio_triggered_buffer.line"
-            ]
-          },
-          "data": {
-            "resource": true,
-            "interface": [
-              "iio_triggered_buffer.data"
-            ]
-          },
-          "dev": {
-            "resource": true,
-            "interface": [
-              "iio_triggered_buffer.dev"
-            ]
-          },
-          "ret_val": {
-            "declaration": "irqreturn_t a"
-          }
-        },
-        "process": "(!irq_register).[handler].(<need_thread>.[thread] | <handled>).(irq_deregister)",
         "actions": {
-          "irq_register": {
-            "comment": "Industrial I/O triggered buffer poll function top and bottom halfs are registered.",
+          "handled": {
+            "comment": "No need to execute the poll function bottom half handler.",
+            "condition": [
+              "%ret_val% != IRQ_WAKE_THREAD"
+            ]
+          },
+          "handler": {
+            "callback": "%callback%",
+            "callback return value": "%ret_val%",
+            "comment": "Industrial I/O triggered buffer poll function top half.",
             "parameters": [
-              "%dev%",
-              "%callback%",
-              "%thread%"
+              "%line%",
+              "%data%"
             ]
           },
           "irq_deregister": {
@@ -144,21 +27,12 @@
               "%dev%"
             ]
           },
-          "handler": {
-            "comment": "Industrial I/O triggered buffer poll function top half.",
-            "callback": "%callback%",
+          "irq_register": {
+            "comment": "Industrial I/O triggered buffer poll function top and bottom halfs are registered.",
             "parameters": [
-              "%line%",
-              "%data%"
-            ],
-            "callback return value": "%ret_val%"
-          },
-          "thread": {
-            "comment": "Industrial I/O triggered buffer poll function bottom half.",
-            "callback": "%thread%",
-            "parameters": [
-              "%line%",
-              "%data%"
+              "%dev%",
+              "%callback%",
+              "%thread%"
             ]
           },
           "need_thread": {
@@ -167,13 +41,144 @@
               "%ret_val% == IRQ_WAKE_THREAD"
             ]
           },
-          "handled": {
-            "comment": "No need to execute the poll function bottom half handler.",
-            "condition": [
-              "%ret_val% != IRQ_WAKE_THREAD"
+          "thread": {
+            "callback": "%thread%",
+            "comment": "Industrial I/O triggered buffer poll function bottom half.",
+            "parameters": [
+              "%line%",
+              "%data%"
             ]
           }
-        }
+        },
+        "comment": "Invoke Industrial I/O triggered buffer poll function callbacks.",
+        "headers": [
+          "linux/interrupt.h"
+        ],
+        "labels": {
+          "callback": {
+            "callback": true,
+            "interface": [
+              "iio_triggered_buffer.handler"
+            ]
+          },
+          "data": {
+            "interface": [
+              "iio_triggered_buffer.data"
+            ],
+            "resource": true
+          },
+          "dev": {
+            "interface": [
+              "iio_triggered_buffer.dev"
+            ],
+            "resource": true
+          },
+          "line": {
+            "interface": [
+              "iio_triggered_buffer.line"
+            ],
+            "resource": true
+          },
+          "ret_val": {
+            "declaration": "irqreturn_t a"
+          },
+          "thread": {
+            "callback": true,
+            "interface": [
+              "iio_triggered_buffer.thread"
+            ]
+          }
+        },
+        "process": "(!irq_register).[handler].(<need_thread>.[thread] | <handled>).(irq_deregister)",
+        "reference": true
+      }
+    },
+    "functions models": {
+      "iio_triggered_buffer_cleanup": {
+        "actions": {
+          "assign": {
+            "comment": "Get IIO device structure.",
+            "statements": [
+              "%dev% = $ARG1;"
+            ]
+          },
+          "irq_deregister": {
+            "comment": "Industrial I/O poll functions will not be called since this point in time.",
+            "parameters": [
+              "%dev%"
+            ]
+          }
+        },
+        "comment": "Cleanup industrial I/O triggered buffer.",
+        "labels": {
+          "dev": {
+            "interface": [
+              "iio_triggered_buffer.dev"
+            ],
+            "parameter": true,
+            "resource": true
+          }
+        },
+        "process": "<assign>.[irq_deregister]",
+        "reference": true
+      },
+      "iio_triggered_buffer_setup": {
+        "actions": {
+          "assign": {
+            "comment": "Get IIO device structure and handler functions.",
+            "statements": [
+              "%dev% = $ARG1;",
+              "%callback% = $ARG2;",
+              "%thread% = $ARG3;"
+            ]
+          },
+          "fail": {
+            "comment": "Industrial I/O triggered buffer setup has failed.",
+            "statements": [
+              "return ldv_undef_int_negative();"
+            ]
+          },
+          "irq_register": {
+            "comment": "Register top and bottom halfs handlers for a poll function.",
+            "parameters": [
+              "%dev%",
+              "%callback%",
+              "%thread%"
+            ]
+          },
+          "success": {
+            "comment": "Industrial I/O triggered buffer setup has finished successfully.",
+            "statements": [
+              "return 0;"
+            ]
+          }
+        },
+        "comment": "Setup industrial I/O triggered buffer.",
+        "labels": {
+          "callback": {
+            "callback": true,
+            "interface": [
+              "iio_triggered_buffer.handler"
+            ],
+            "parameter": true
+          },
+          "dev": {
+            "interface": [
+              "iio_triggered_buffer.dev"
+            ],
+            "parameter": true,
+            "resource": true
+          },
+          "thread": {
+            "callback": true,
+            "interface": [
+              "iio_triggered_buffer.thread"
+            ],
+            "parameter": true
+          }
+        },
+        "process": "<assign>.[irq_register].<success> | <fail>",
+        "reference": true
       }
     }
   }

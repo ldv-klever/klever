@@ -2,8 +2,8 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:concurrency safety"
+      "name": "Requirements specification",
+      "value": "concurrency safety"
     },
     {
       "is_compare": true,
@@ -14,48 +14,68 @@
   "description": "",
   "error_trace": [
     [
-      {
-        "init": [
-          {
-            "ldv_main": [
-              {
-                "ldv_func5": [
-                  {
-                    "ldv_mutex_lock_37": []
-                  },
-                  {
-                    "ldv_mutex_unlock_38": []
-                  },
-                  {
-                    "ldv_func2": [
-                      {
-                        "ldv_func1": []
-                      }
-                    ]
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      }
+      [
+        {
+          "EMG wrapper": [
+            {
+              "init": [
+                {
+                  "LDV model 'main'": [
+                    {
+                      "LDV model 'func5'": [
+                        {
+                          "Instrumented function 'mutex_lock'": []
+                        },
+                        {
+                          "Instrumented function 'mutex_unlock'": []
+                        },
+                        {
+                          "LDV model 'func2'": [
+                            {
+                              "LDV model 'func1'": []
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ],
     [
-      {
-        "ldv_main": [
-          {
-            "ldv_func5": [
-              {
-                "ldv_mutex_lock_37": []
-              }
-            ]
-          }
-        ]
-      }
+      [
+        {
+          "LDV model 'main'": [
+            {
+              "LDV model 'func5'": [
+                {
+                  "Instrumented function 'mutex_lock'": []
+                },
+                {
+                  "Instrumented function 'mutex_unlock'": []
+                },
+                {
+                  "LDV model 'func2'": [
+                    {
+                      "LDV model 'func1'": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",
   "is_modifiable": false,
+  "status": null,
   "tags": [],
+  "threshold": 0,
   "verdict": "2"
 }

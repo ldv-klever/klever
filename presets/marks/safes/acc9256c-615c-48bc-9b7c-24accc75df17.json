@@ -2,17 +2,17 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:net:rtnetlink"
+      "name": "Requirements specification",
+      "value": "net:core:rtnetlink"
     },
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/linux/net/rtnetlink/safe.ko"
+      "value": "ext-modules/linux/net/core/rtnetlink/safe.ko"
     }
   ],
   "description": "",
-  "is_modifiable": true,
+  "is_modifiable": false,
   "tags": [],
   "verdict": "0"
 }

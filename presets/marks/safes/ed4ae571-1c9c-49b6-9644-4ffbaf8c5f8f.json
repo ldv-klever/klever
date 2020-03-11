@@ -2,17 +2,17 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:lib:find_bit"
+      "name": "Requirements specification",
+      "value": "lib:find_next_bit"
     },
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/linux/lib/find_bit/safe.ko"
+      "value": "ext-modules/linux/lib/find_next_bit/safe.ko"
     }
   ],
   "description": "",
-  "is_modifiable": true,
+  "is_modifiable": false,
   "tags": [],
   "verdict": "0"
 }

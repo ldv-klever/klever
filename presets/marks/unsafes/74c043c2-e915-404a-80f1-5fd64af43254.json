@@ -2,8 +2,8 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:kernel:locking:rwlock"
+      "name": "Requirements specification",
+      "value": "kernel:locking:rwlock"
     },
     {
       "is_compare": true,
@@ -14,28 +14,36 @@
   "description": "",
   "error_trace": [
     [
-      {
-        "ldv_init": [
-          {
-            "ldv_read_trylock": [
-              {
-                "ldv_undef_int": []
-              }
-            ]
-          },
-          {
-            "ldv_read_unlock": [
-              {
-                "ldv_assert_linux_kernel_locking_rwlock__more_read_unlocks": []
-              }
-            ]
-          }
-        ]
-      }
+      [
+        {
+          "EMG wrapper": [
+            {
+              "LDV model 'init'": [
+                {
+                  "LDV model 'read_trylock'": [
+                    {
+                      "LDV model 'undef_int'": []
+                    }
+                  ]
+                },
+                {
+                  "LDV model 'read_unlock'": [
+                    {
+                      "LDV model 'assert'": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",
-  "is_modifiable": true,
+  "is_modifiable": false,
+  "status": null,
   "tags": [],
+  "threshold": 0,
   "verdict": "2"
 }

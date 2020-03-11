@@ -1,60 +1,31 @@
 {
-  "Linux 3.14 (base)": {
-    "functions models": {
-      "uart_add_one_port": {
-        "declaration": "int uart_add_one_port(%serial_core.uart_driver%, *%serial_core.uart_port%)",
-        "header": "linux/serial_core.h"
-      },
-      "uart_remove_one_port": {
-        "declaration": "int uart_remove_one_port(%serial_core.uart_driver%, *%serial_core.uart_port%)",
-        "header": "linux/serial_core.h"
-      }
-    },
+  "3.14": {
     "categories": {
       "serial_core": {
-        "containers": {
-          "uart_ops": {
-            "declaration": "struct uart_ops ops",
-            "header": "linux/serial_core.h",
-            "fields": {
-              "pm": "%serial_core.pm%",
-              "startup": "%serial_core.startup%",
-              "set_termios": "%serial_core.set_termios%",
-              "get_mctrl": "%serial_core.get_mctrl%",
-              "set_mctrl": "%serial_core.set_mctrl%",
-              "stop_rx": "%serial_core.stop_rx%",
-              "stop_tx": "%serial_core.stop_tx%",
-              "start_tx": "%serial_core.start_tx%",
-              "throttle": "%serial_core.throttle%",
-              "unthrottle": "%serial_core.unthrottle%",
-              "send_xchar": "%serial_core.send_xchar%",
-              "shutdown": "%serial_core.shutdown%",
-              "verify_port": "%serial_core.verify_port%"
-            }
-          },
-          "uart_port": {
-            "declaration": "struct uart_port port",
-            "header": "linux/serial_core.h",
-            "fields": {
-              "ops": "*%serial_core.uart_ops%"
-            }
-          }
-        },
         "callbacks": {
+          "get_mctrl": {
+            "declaration": "unsigned int (*get_mctrl)(*%serial_core.uart_port%)"
+          },
           "pm": {
             "declaration": "void (*pm)(*%serial_core.uart_port%, %serial_core.state%, %serial_core.oldstate%)"
           },
-          "startup": {
-            "declaration": "int (*startup)(*%serial_core.uart_port%)"
+          "send_xchar": {
+            "declaration": "void (*send_xchar)(*%serial_core.uart_port%, char ch)"
+          },
+          "set_mctrl": {
+            "declaration": "void (*set_mctrl)(*%serial_core.uart_port%, unsigned int mctrl)"
           },
           "set_termios": {
             "declaration": "void (*set_termios)(*%serial_core.uart_port%, struct ktermios *new, struct ktermios *old)"
           },
-          "get_mctrl": {
-            "declaration": "unsigned int (*get_mctrl)(*%serial_core.uart_port%)"
+          "shutdown": {
+            "declaration": "void (*shutdown)(*%serial_core.uart_port%)"
           },
-          "set_mctrl": {
-            "declaration": "void (*set_mctrl)(*%serial_core.uart_port%, unsigned int mctrl)"
+          "start_tx": {
+            "declaration": "void (*start_tx)(*%serial_core.uart_port%)"
+          },
+          "startup": {
+            "declaration": "int (*startup)(*%serial_core.uart_port%)"
           },
           "stop_rx": {
             "declaration": "void (*stop_rx)(*%serial_core.uart_port%)"
@@ -62,39 +33,70 @@
           "stop_tx": {
             "declaration": "void (*stop_tx)(*%serial_core.uart_port%)"
           },
-          "start_tx": {
-            "declaration": "void (*start_tx)(*%serial_core.uart_port%)"
-          },
           "throttle": {
             "declaration": "void (*throttle)(*%serial_core.uart_port%)"
           },
           "unthrottle": {
             "declaration": "void (*unthrottle)(*%serial_core.uart_port%)"
           },
-          "send_xchar": {
-            "declaration": "void (*send_xchar)(*%serial_core.uart_port%, char ch)"
-          },
-          "shutdown": {
-            "declaration": "void (*shutdown)(*%serial_core.uart_port%)"
-          },
           "verify_port": {
             "declaration": "int (*verify_port)(*%serial_core.uart_port%, struct serial_struct *str)"
           }
         },
-        "resources": {
-          "uart_driver": {
-            "declaration": "struct uart_driver *driver",
+        "containers": {
+          "uart_ops": {
+            "declaration": "struct uart_ops ops",
+            "fields": {
+              "get_mctrl": "%serial_core.get_mctrl%",
+              "pm": "%serial_core.pm%",
+              "send_xchar": "%serial_core.send_xchar%",
+              "set_mctrl": "%serial_core.set_mctrl%",
+              "set_termios": "%serial_core.set_termios%",
+              "shutdown": "%serial_core.shutdown%",
+              "start_tx": "%serial_core.start_tx%",
+              "startup": "%serial_core.startup%",
+              "stop_rx": "%serial_core.stop_rx%",
+              "stop_tx": "%serial_core.stop_tx%",
+              "throttle": "%serial_core.throttle%",
+              "unthrottle": "%serial_core.unthrottle%",
+              "verify_port": "%serial_core.verify_port%"
+            },
             "header": "linux/serial_core.h"
+          },
+          "uart_port": {
+            "declaration": "struct uart_port port",
+            "fields": {
+              "ops": "*%serial_core.uart_ops%"
+            },
+            "header": "linux/serial_core.h"
+          }
+        },
+        "reference": true,
+        "resources": {
+          "oldstate": {
+            "declaration": "unsigned int oldstate"
           },
           "state": {
             "declaration": "unsigned int state"
           },
-          "oldstate": {
-            "declaration": "unsigned int oldstate"
+          "uart_driver": {
+            "declaration": "struct uart_driver *driver",
+            "header": "linux/serial_core.h"
           }
         }
+      }
+    },
+    "functions models": {
+      "uart_add_one_port": {
+        "declaration": "int uart_add_one_port(%serial_core.uart_driver%, *%serial_core.uart_port%)",
+        "header": "linux/serial_core.h",
+        "reference": true
+      },
+      "uart_remove_one_port": {
+        "declaration": "int uart_remove_one_port(%serial_core.uart_driver%, *%serial_core.uart_port%)",
+        "header": "linux/serial_core.h",
+        "reference": true
       }
     }
   }
 }
-

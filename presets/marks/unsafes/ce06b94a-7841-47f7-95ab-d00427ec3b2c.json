@@ -2,8 +2,8 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:concurrency safety"
+      "name": "Requirements specification",
+      "value": "concurrency safety"
     },
     {
       "is_compare": true,
@@ -14,85 +14,98 @@
   "description": "",
   "error_trace": [
     [
-      {
-        "ldv_init": [
-          {
-            "ldv_main": [
-              {
-                "my_main": [
-                  {
-                    "difficult_function": [
-                      {
-                        "get": [
-                          {
-                            "tryLock": [
-                              {
-                                "ldv_mutex_lock_39": []
-                              },
-                              {
-                                "ldv_mutex_unlock_40": []
-                              }
-                            ]
-                          },
-                          {
-                            "local_init": [
-                              {
-                                "ldv_mutex_lock_37": []
-                              }
-                            ]
-                          }
-                        ]
-                      },
-                      {
-                        "ldv_mutex_unlock_41": []
-                      }
-                    ]
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      }
+      [
+        {
+          "EMG wrapper": [
+            {
+              "LDV model 'init'": [
+                {
+                  "LDV model 'main'": [
+                    {
+                      "my_main": [
+                        {
+                          "difficult_function": [
+                            {
+                              "get": [
+                                {
+                                  "tryLock": [
+                                    {
+                                      "Instrumented function 'mutex_lock'": []
+                                    },
+                                    {
+                                      "Instrumented function 'mutex_unlock'": []
+                                    }
+                                  ]
+                                },
+                                {
+                                  "local_init": [
+                                    {
+                                      "Instrumented function 'mutex_lock'": []
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "Instrumented function 'mutex_unlock'": []
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ],
     [
-      {
-        "ldv_main": [
-          {
-            "my_main": [
-              {
-                "difficult_function": [
-                  {
-                    "get": [
-                      {
-                        "tryLock": [
-                          {
-                            "ldv_mutex_lock_39": []
-                          },
-                          {
-                            "ldv_mutex_unlock_40": []
-                          }
-                        ]
-                      },
-                      {
-                        "local_init": [
-                          {
-                            "ldv_mutex_lock_37": []
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      }
+      [
+        {
+          "LDV model 'main'": [
+            {
+              "my_main": [
+                {
+                  "difficult_function": [
+                    {
+                      "get": [
+                        {
+                          "tryLock": [
+                            {
+                              "Instrumented function 'mutex_lock'": []
+                            },
+                            {
+                              "Instrumented function 'mutex_unlock'": []
+                            }
+                          ]
+                        },
+                        {
+                          "local_init": [
+                            {
+                              "Instrumented function 'mutex_lock'": []
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "Instrumented function 'mutex_unlock'": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",
   "is_modifiable": false,
+  "status": null,
   "tags": [],
+  "threshold": 0,
   "verdict": "2"
 }

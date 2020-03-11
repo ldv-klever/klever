@@ -16,14 +16,14 @@
  */
 
 #include <linux/module.h>
-#include <verifier/common.h>
+#include <ldv/test.h>
 #include "funcs.h"
 
 static int __init ldv_init(void)
 {
 	if (ldv_func1(1) == 1 &&
 	    ldv_func2(2) == -2)
-		ldv_error();
+		ldv_expected_error();
 
 	return 0;
 }

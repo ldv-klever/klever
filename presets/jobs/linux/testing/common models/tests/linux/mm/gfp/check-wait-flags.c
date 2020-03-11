@@ -17,8 +17,7 @@
 
 #include <linux/module.h>
 #include <linux/ldv/gfp.h>
-#include <verifier/common.h>
-#include <verifier/nondet.h>
+#include <ldv/test.h>
 
 static int __init ldv_init(void)
 {
@@ -29,7 +28,7 @@ static int __init ldv_init(void)
 	if (CHECK_WAIT_FLAGS(GFP_ATOMIC) &&
 		CHECK_WAIT_FLAGS(GFP_NOWAIT) &&
 		!CHECK_WAIT_FLAGS(flags))
-		ldv_error();
+		ldv_expected_error();
 
 	return 0;
 }

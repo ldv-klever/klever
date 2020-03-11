@@ -1,249 +1,38 @@
 {
-  "Linux 3.14 (base)": {
-    "functions models": {
-      "sock_register": {
-        "comment": "Add a socket protocol handler.",
-        "labels": {
-          "ops": {
-            "container": true,
-            "parameter": true,
-            "interface": [
-              "proto.family_ops"
-            ]
-          },
-          "family": {
-            "resource": true,
-            "parameter": true,
-            "interface": [
-              "proto.family"
-            ]
-          },
-          "socket": {
-            "interface": ["proto.socket"],
-            "resource": true
-          },
-          "ret": {
-            "declaration": "int a",
-            "value": "ldv_undef_int()"
-          }
-        },
-        "process": "<assign>.[create].(<create_success>.[register].<success> | <create_fail>) | <fail>",
-        "actions": {
-          "assign": {
-            "comment": "Get socket from arguments.",
-            "statements": [
-              "%ops% = $ARG1;",
-              "%family% = %ops%->family;",
-              "%socket% = $ALLOC(%socket%);"
-            ]
-          },
-          "fail": {
-            "comment": "Failed to add a socket protocol handler.",
-            "statements": [
-              "return ldv_undef_int_negative();"
-            ]
-          },
-          "success": {
-            "comment": "Added a socket protocol handler successfully.",
-            "statements": [
-              "return 0;"
-            ]
-          },
-          "register": {
-            "parameters": [
-              "%socket%", "%family%"
-            ]
-          },
-          "create": {
-            "callback": "%ops.family_create%",
-            "callback return value": "%ret%",
-            "parameters": [
-              "%socket%"
-            ]
-          },
-          "create_success": {
-            "comment": "Create has been successfull.",
-            "condition": [
-              "%ret% == 0"
-            ]
-          },
-          "create_fail": {
-            "comment": "Create has failed.",
-            "condition": [
-              "%ret% != 0"
-            ],
-            "statements": [
-              "$FREE(%socket%);",
-              "return %ret%;"
-            ]
-          }
-        }
-      },
-      "sock_unregister": {
-        "comment": "Remove a protocol handler.",
-        "labels": {
-          "family": {
-            "resource": true,
-            "parameter": true,
-            "interface": [
-              "proto.family"
-            ]
-          }
-        },
-        "process": "<assign>.[deregister]",
-        "actions": {
-          "assign": {
-            "comment": "Get family identifier from arguments.",
-            "statements": [
-              "%family% = $ARG1;"
-            ]
-          },
-          "deregister": {
-            "parameters": [
-              "%family%"
-            ]
-          }
-        }
-      },
-      "register_pppox_proto": {
-        "comment": "Add a socket protocol handler.",
-        "labels": {
-          "ops": {
-            "container": true,
-            "parameter": true,
-            "interface": [
-              "proto.pppox_proto"
-            ]
-          },
-          "family": {
-            "resource": true,
-            "parameter": true,
-            "interface": [
-              "proto.family"
-            ]
-          },
-          "socket": {
-            "interface": ["proto.socket"],
-            "resource": true
-          },
-          "ret": {
-            "declaration": "int a",
-            "value": "ldv_undef_int()"
-          }
-        },
-        "process": "<assign>.[create].(<create_success>.[register].<success> | <create_fail>) | <fail>",
-        "actions": {
-          "assign": {
-            "comment": "Get PPP encapsulation socket family identifier and socket from arguments.",
-            "statements": [
-              "%family% = $ARG1;",
-              "%ops% = $ARG2;",
-              "%socket% = $ALLOC(%socket%);"
-            ]
-          },
-          "fail": {
-            "comment": "Failed to add a PPP encapsulation socket protocol handler.",
-            "statements": [
-              "return ldv_undef_int_negative();"
-            ]
-          },
-          "success": {
-            "comment": "Added a PPP encapsulation socket protocol handler successfully.",
-            "statements": [
-              "return 0;"
-            ]
-          },
-          "register": {
-            "parameters": [
-              "%socket%", "%family%"
-            ]
-          },
-          "create": {
-            "callback": "%ops.proto_create%",
-            "callback return value": "%ret%",
-            "parameters": [
-              "%socket%"
-            ]
-          },
-          "create_success": {
-            "comment": "Create has been successfull.",
-            "condition": [
-              "%ret% == 0"
-            ]
-          },
-          "create_fail": {
-            "comment": "Create has failed.",
-            "condition": [
-              "%ret% != 0"
-            ],
-            "statements": [
-              "$FREE(%socket%);",
-              "return %ret%;"
-            ]
-          }
-        }
-      },
-      "unregister_pppox_proto": {
-        "comment": "Remove a PPP encapsulation socket protocol handler.",
-        "labels": {
-          "family": {
-            "resource": true,
-            "parameter": true,
-            "interface": [
-              "proto.family"
-            ]
-          }
-        },
-        "process": "<assign>.[deregister]",
-        "actions": {
-          "assign": {
-            "comment": "Get PPP encapsulation socket family identifier from arguments.",
-            "statements": [
-              "%family% = $ARG1;"
-            ]
-          },
-          "deregister": {
-            "parameters": [
-              "%family%"
-            ]
-          }
-        }
-      }
-    },
+  "3.14": {
     "environment processes": {
       "proto_scenario": {
-        "headers": ["linux/poll.h"],
-        "comment": "Invoke socket family callbacks.",
-        "labels": {
-          "proto_ops": {
-            "container": true,
-            "pointer": true,
-            "interface": ["proto.proto_ops"]
+        "actions": {
+          "alloc": {
+            "comment": "Initialize socket structure with proto ops.",
+            "trace relevant": true,
+            "statements": [
+              "%socket%->ops = %proto_ops%;"
+            ]
           },
-          "family": {
-            "resource": true,
-            "interface": ["proto.family"]
+          "bind": {
+            "callback": "%proto_ops.bind%",
+            "callback return value": "%ret%",
+            "parameters": [
+              "%socket%"
+            ]
+          },
+          "bind_fail": {
+            "comment": "Bind has failed.",
+            "condition": [
+              "%ret% != 0"
+            ]
+          },
+          "bind_success": {
+            "comment": "Bind has been successfull.",
+            "condition": [
+              "%ret% == 0"
+            ]
           },
           "callback": {
-            "callback": true
-          },
-          "ret": {
-            "declaration": "int a",
-            "value": "ldv_undef_int()"
-          },
-          "socket": {
-            "interface": ["proto.socket"],
-            "pointer": true,
-            "resource": true
-          }
-        },
-        "process": "(!register).<alloc>.[bind].(<bind_success>.[callback].[release] | <bind_fail>).<free>.(deregister)",
-        "actions": {
-          "register": {
-            "parameters": [
-              "%socket%",
-              "%family%"
-            ]
+            "callback": "%callback%",
+            "comment": "Call any random callback.",
+            "parameters": []
           },
           "deregister": {
             "condition": [
@@ -253,16 +42,17 @@
               "%family%"
             ]
           },
-          "callback": {
-            "comment": "Call any random callback.",
-            "callback": "%callback%",
-            "parameters": []
+          "free": {
+            "comment": "Free memory of socket structure.",
+            "trace relevant": true,
+            "statements": [
+              "$FREE(%socket%);"
+            ]
           },
-          "bind": {
-            "callback": "%proto_ops.bind%",
-            "callback return value": "%ret%",
+          "register": {
             "parameters": [
-              "%socket%"
+              "%socket%",
+              "%family%"
             ]
           },
           "release": {
@@ -270,32 +60,273 @@
             "parameters": [
               "%socket%"
             ]
+          }
+        },
+        "comment": "Invoke socket family callbacks.",
+        "headers": [
+          "linux/poll.h"
+        ],
+        "labels": {
+          "callback": {
+            "callback": true
           },
-          "alloc": {
-            "comment": "Initialize socket structure with proto ops.",
+          "family": {
+            "interface": [
+              "proto.family"
+            ],
+            "resource": true
+          },
+          "proto_ops": {
+            "container": true,
+            "interface": [
+              "proto.proto_ops"
+            ],
+            "pointer": true
+          },
+          "ret": {
+            "declaration": "int a",
+            "value": "ldv_undef_int()"
+          },
+          "socket": {
+            "interface": [
+              "proto.socket"
+            ],
+            "pointer": true,
+            "resource": true
+          }
+        },
+        "process": "(!register).<alloc>.[bind].(<bind_success>.[callback].[release] | <bind_fail>).<free>.(deregister)",
+        "reference": true
+      }
+    },
+    "functions models": {
+      "register_pppox_proto": {
+        "actions": {
+          "assign": {
+            "comment": "Get PPP encapsulation socket family identifier and socket from arguments.",
+            "trace relevant": true,
             "statements": [
-              "%socket%->ops = %proto_ops%;"
+              "%family% = $ARG1;",
+              "%ops% = $ARG2;",
+              "%socket% = $ALLOC(%socket%);"
             ]
           },
-          "free": {
-            "comment": "Free memory of socket structure.",
-            "statements": [
-              "$FREE(%socket%);"
+          "create": {
+            "callback": "%ops.proto_create%",
+            "callback return value": "%ret%",
+            "parameters": [
+              "%socket%"
             ]
           },
-          "bind_success": {
-            "comment": "Bind has been successfull.",
+          "create_fail": {
+            "comment": "Create has failed.",
+            "condition": [
+              "%ret% != 0"
+            ],
+            "trace relevant": true,
+            "statements": [
+              "$FREE(%socket%);",
+              "return %ret%;"
+            ]
+          },
+          "create_success": {
+            "comment": "Create has been successfull.",
             "condition": [
               "%ret% == 0"
             ]
           },
-          "bind_fail": {
-            "comment": "Bind has failed.",
-            "condition": [
-              "%ret% != 0"
+          "fail": {
+            "comment": "Failed to add a PPP encapsulation socket protocol handler.",
+            "trace relevant": true,
+            "statements": [
+              "return ldv_undef_int_negative();"
+            ]
+          },
+          "register": {
+            "parameters": [
+              "%socket%",
+              "%family%"
+            ]
+          },
+          "success": {
+            "comment": "Added a PPP encapsulation socket protocol handler successfully.",
+            "trace relevant": true,
+            "statements": [
+              "return 0;"
             ]
           }
-        }
+        },
+        "comment": "Add a socket protocol handler.",
+        "labels": {
+          "family": {
+            "interface": [
+              "proto.family"
+            ],
+            "parameter": true,
+            "resource": true
+          },
+          "ops": {
+            "container": true,
+            "interface": [
+              "proto.pppox_proto"
+            ],
+            "parameter": true
+          },
+          "ret": {
+            "declaration": "int a",
+            "value": "ldv_undef_int()"
+          },
+          "socket": {
+            "interface": [
+              "proto.socket"
+            ],
+            "resource": true
+          }
+        },
+        "process": "<assign>.[create].(<create_success>.[register].<success> | <create_fail>) | <fail>",
+        "reference": true
+      },
+      "sock_register": {
+        "actions": {
+          "assign": {
+            "comment": "Get socket from arguments.",
+            "trace relevant": true,
+            "statements": [
+              "%ops% = $ARG1;",
+              "%family% = %ops%->family;",
+              "%socket% = $ALLOC(%socket%);"
+            ]
+          },
+          "create": {
+            "callback": "%ops.family_create%",
+            "callback return value": "%ret%",
+            "parameters": [
+              "%socket%"
+            ]
+          },
+          "create_fail": {
+            "comment": "Create has failed.",
+            "condition": [
+              "%ret% != 0"
+            ],
+            "trace relevant": true,
+            "statements": [
+              "$FREE(%socket%);",
+              "return %ret%;"
+            ]
+          },
+          "create_success": {
+            "comment": "Create has been successfull.",
+            "condition": [
+              "%ret% == 0"
+            ]
+          },
+          "fail": {
+            "comment": "Failed to add a socket protocol handler.",
+            "trace relevant": true,
+            "statements": [
+              "return ldv_undef_int_negative();"
+            ]
+          },
+          "register": {
+            "parameters": [
+              "%socket%",
+              "%family%"
+            ]
+          },
+          "success": {
+            "comment": "Added a socket protocol handler successfully.",
+            "trace relevant": true,
+            "statements": [
+              "return 0;"
+            ]
+          }
+        },
+        "comment": "Add a socket protocol handler.",
+        "labels": {
+          "family": {
+            "interface": [
+              "proto.family"
+            ],
+            "parameter": true,
+            "resource": true
+          },
+          "ops": {
+            "container": true,
+            "interface": [
+              "proto.family_ops"
+            ],
+            "parameter": true
+          },
+          "ret": {
+            "declaration": "int a",
+            "value": "ldv_undef_int()"
+          },
+          "socket": {
+            "interface": [
+              "proto.socket"
+            ],
+            "resource": true
+          }
+        },
+        "process": "<assign>.[create].(<create_success>.[register].<success> | <create_fail>) | <fail>",
+        "reference": true
+      },
+      "sock_unregister": {
+        "actions": {
+          "assign": {
+            "comment": "Get family identifier from arguments.",
+            "trace relevant": true,
+            "statements": [
+              "%family% = $ARG1;"
+            ]
+          },
+          "deregister": {
+            "parameters": [
+              "%family%"
+            ]
+          }
+        },
+        "comment": "Remove a protocol handler.",
+        "labels": {
+          "family": {
+            "interface": [
+              "proto.family"
+            ],
+            "parameter": true,
+            "resource": true
+          }
+        },
+        "process": "<assign>.[deregister]",
+        "reference": true
+      },
+      "unregister_pppox_proto": {
+        "actions": {
+          "assign": {
+            "comment": "Get PPP encapsulation socket family identifier from arguments.",
+            "trace relevant": true,
+            "statements": [
+              "%family% = $ARG1;"
+            ]
+          },
+          "deregister": {
+            "parameters": [
+              "%family%"
+            ]
+          }
+        },
+        "comment": "Remove a PPP encapsulation socket protocol handler.",
+        "labels": {
+          "family": {
+            "interface": [
+              "proto.family"
+            ],
+            "parameter": true,
+            "resource": true
+          }
+        },
+        "process": "<assign>.[deregister]",
+        "reference": true
       }
     }
   }

@@ -2,8 +2,8 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:drivers:clk1"
+      "name": "Requirements specification",
+      "value": "drivers:clk1"
     },
     {
       "is_compare": true,
@@ -11,32 +11,52 @@
       "value": "drivers/ata/pata_arasan_cf.ko"
     }
   ],
-  "description": "Callback probe does not process errors from ata_host_activate(). Newer versions of the Linux kernel fixed that. ",
+  "description": "Callback probe does not process errors from ata_host_activate(). Newer versions of the Linux kernel fixed that.",
   "error_trace": [
     [
-      {
-        "ldv_check_final_state": [
-          {
-            "ldv_assert_linux_drivers_clk1__more_at_exit": []
-          },
-          {
-            "ldv_assert_linux_drivers_clk1__more_at_exit": []
-          }
-        ]
-      }
+      [
+        {
+          "Entry point 'main'": [
+            {
+              "LDV model 'check_final_state'": [
+                {
+                  "LDV model 'assert'": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ],
     [
-      {
-        "arasan_cf_probe": [
-          {
-            "cf_init": [
-              {
-                "ldv_clk_enable_clk_of_arasan_cf_dev": []
-              }
-            ]
-          }
-        ]
-      }
+      [
+        {
+          "EMG wrapper": [
+            {
+              "arasan_cf_probe": [
+                {
+                  "cf_init": [
+                    {
+                      "Instrumented function 'clk_prepare_enable'": [
+                        {
+                          "LDV model 'clk_prepare_enable_clk_of_arasan_cf_dev'": [
+                            {
+                              "LDV model 'clk_prepare_clk_of_arasan_cf_dev'": []
+                            },
+                            {
+                              "LDV model 'clk_enable_clk_of_arasan_cf_dev'": []
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",
@@ -44,5 +64,6 @@
   "production": true,
   "status": "0",
   "tags": [],
+  "threshold": 0,
   "verdict": "1"
 }

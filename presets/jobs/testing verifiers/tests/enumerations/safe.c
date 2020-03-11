@@ -16,7 +16,7 @@
  */
 
 #include <linux/module.h>
-#include <verifier/common.h>
+#include <ldv/test.h>
 #include "enums.h"
 
 static int __init ldv_init(void)
@@ -25,10 +25,10 @@ static int __init ldv_init(void)
 	enum ldv_enum2 var2 = ldv_enumerator23;
 
 	if (var1 != ldv_enumerator13)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (var2 != ldv_enumerator23)
-		ldv_error();
+		ldv_unexpected_error();
 
 	return 0;
 }

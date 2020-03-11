@@ -1,54 +1,56 @@
 {
-  "Linux 3.14 (base)": {
-    "functions models": {
-      "parport_register_port": {
-        "declaration": "%parport.parport% parport_register_port(unsigned long base, int irq, int dma, *%parport.parport_operations%)",
-        "header": "linux/parport.h"
-      },
-      "parport_remove_port": {
-        "declaration": "void parport_remove_port(%parport.parport%)",
-        "header": "linux/parport.h"
-      }
-
-    },
+  "3.14": {
     "categories": {
       "parport": {
-        "containers": {
-          "parport_operations": {
-            "header": "linux/parport.h",
-            "declaration": "struct parport_operations driver",
-            "fields": {
-              "init_state": "%parport.init_state%",
-              "save_state": "%parport.save_state%",
-              "restore_state": "%parport.restore_state%",
-              "enable_irq": "%parport.enable_irq%",
-              "disable_irq": "%parport.disable_irq%"
-            }
-          }
-        },
         "callbacks": {
-          "init_state": {
-            "declaration": "void (*init_state)(struct pardevice *, struct parport_state *)"
-          },
-          "save_state": {
-            "declaration": "void (*save_state)(%parport.parport%, struct parport_state *)"
-          },
-          "restore_state": {
-            "declaration": "void (*restore_state)(%parport.parport%, struct parport_state *)"
+          "disable_irq": {
+            "declaration": "void (*disable_irq)(%parport.parport%)"
           },
           "enable_irq": {
             "declaration": "void (*enable_irq)(%parport.parport%)"
           },
-          "disable_irq": {
-            "declaration": "void (*disable_irq)(%parport.parport%)"
+          "init_state": {
+            "declaration": "void (*init_state)(struct pardevice *, struct parport_state *)"
+          },
+          "restore_state": {
+            "declaration": "void (*restore_state)(%parport.parport%, struct parport_state *)"
+          },
+          "save_state": {
+            "declaration": "void (*save_state)(%parport.parport%, struct parport_state *)"
           }
         },
+        "containers": {
+          "parport_operations": {
+            "declaration": "struct parport_operations driver",
+            "fields": {
+              "disable_irq": "%parport.disable_irq%",
+              "enable_irq": "%parport.enable_irq%",
+              "init_state": "%parport.init_state%",
+              "restore_state": "%parport.restore_state%",
+              "save_state": "%parport.save_state%"
+            },
+            "header": "linux/parport.h"
+          }
+        },
+        "reference": true,
         "resources": {
           "parport": {
             "declaration": "struct parport *a",
             "header": "linux/parport.h"
           }
         }
+      }
+    },
+    "functions models": {
+      "parport_register_port": {
+        "declaration": "%parport.parport% parport_register_port(unsigned long base, int irq, int dma, *%parport.parport_operations%)",
+        "header": "linux/parport.h",
+        "reference": true
+      },
+      "parport_remove_port": {
+        "declaration": "void parport_remove_port(%parport.parport%)",
+        "header": "linux/parport.h",
+        "reference": true
       }
     }
   }

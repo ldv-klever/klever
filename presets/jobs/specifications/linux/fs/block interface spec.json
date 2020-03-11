@@ -1,34 +1,7 @@
 {
-  "Linux 3.14 (base)": {
-    "functions models": {
-      "add_disk": {
-        "declaration": "void add_disk(*%block_device.gendisk%)",
-        "header": "linux/genhd.h"
-      },
-      "del_gendisk": {
-        "declaration": "void del_gendisk(*%block_device.gendisk%)",
-        "header": "linux/genhd.h"
-      }
-    },
+  "3.14": {
     "categories": {
       "block_device": {
-        "containers": {
-          "gendisk": {
-            "declaration": "struct gendisk a",
-            "header": "linux/genhd.h",
-            "fields": {
-              "fops": "*%block_device.block_device_operations%"
-            }
-          },
-          "block_device_operations": {
-            "header": "linux/blkdev.h",
-            "declaration": "struct block_device_operations driver",
-            "fields": {
-              "open": "%block_device.open%",
-              "release": "%block_device.release%"
-            }
-          }
-        },
         "callbacks": {
           "open": {
             "declaration": "int (*open) (%block_device.block_dev%, fmode_t)"
@@ -37,12 +10,42 @@
             "declaration": "void (*release) (%block_device.gendisk%, fmode_t)"
           }
         },
+        "containers": {
+          "block_device_operations": {
+            "declaration": "struct block_device_operations driver",
+            "fields": {
+              "open": "%block_device.open%",
+              "release": "%block_device.release%"
+            },
+            "header": "linux/blkdev.h"
+          },
+          "gendisk": {
+            "declaration": "struct gendisk a",
+            "fields": {
+              "fops": "*%block_device.block_device_operations%"
+            },
+            "header": "linux/genhd.h"
+          }
+        },
+        "reference": true,
         "resources": {
           "block_dev": {
-            "header": "linux/fs.h",
-            "declaration": "struct block_device * a"
+            "declaration": "struct block_device * a",
+            "header": "linux/fs.h"
           }
         }
+      }
+    },
+    "functions models": {
+      "add_disk": {
+        "declaration": "void add_disk(*%block_device.gendisk%)",
+        "header": "linux/genhd.h",
+        "reference": true
+      },
+      "del_gendisk": {
+        "declaration": "void del_gendisk(*%block_device.gendisk%)",
+        "header": "linux/genhd.h",
+        "reference": true
       }
     }
   }

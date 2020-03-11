@@ -1,98 +1,84 @@
 {
-  "Linux 3.14 (base)": {
-    "functions models": {
-      "mod_timer": {
-        "declaration": "int mod_timer(*%timer.timer_list%, unsigned long expires)",
-        "header": "linux/timer.h"
-      },
-      "mod_timer_pinned": {
-        "declaration": "int mod_timer_pinned(*%timer.timer_list%, unsigned long expires)",
-        "header": "linux/timer.h"
-      },
-      "mod_timer_pending": {
-        "declaration": "int mod_timer_pending(*%timer.timer_list%, unsigned long expires)",
-        "header": "linux/timer.h"
-      },
-      "del_timer": {
-        "declaration": "int del_timer(*%timer.timer_list%)",
-        "header": "linux/timer.h"
-      },
-      "del_timer_sync": {
-        "declaration": "int del_timer_sync(*%timer.timer_list%)",
-        "header": "linux/timer.h"
-      },
-      "try_to_del_timer_sync": {
-        "declaration": "int try_to_del_timer_sync(*%timer.timer_list%)",
-        "header": "linux/timer.h"
-      }
-    },
+  "3.14": {
     "categories": {
       "timer": {
-        "containers": {
-          "timer_list": {
-            "declaration": "struct timer_list list",
-            "header": "linux/timer.h",
-            "fields": {
-              "data": "%timer.data%",
-              "function": "%timer.handler%"
-            }
-          }
-        },
-        "resources": {
-          "data": {
-            "declaration": "long unsigned int data"
-          }
-        },
         "callbacks": {
           "handler": {
             "declaration": "void (*handler)(%timer.data%)",
             "interrupt context": true
           }
-        }
-      }
-    }
-  },
-  "Linux 4.15": {
-    "functions models": {
-      "mod_timer": {
-        "declaration": "int mod_timer(*%timer.timer_list%, unsigned long expires)",
-        "header": "linux/timer.h"
-      },
-      "mod_timer_pending": {
-        "declaration": "int mod_timer_pending(*%timer.timer_list%, unsigned long expires)",
-        "header": "linux/timer.h"
-      },
-      "del_timer": {
-        "declaration": "int del_timer(*%timer.timer_list%)",
-        "header": "linux/timer.h"
-      },
-      "del_timer_sync": {
-        "declaration": "int del_timer_sync(*%timer.timer_list%)",
-        "header": "linux/timer.h"
-      },
-      "try_to_del_timer_sync": {
-        "declaration": "int try_to_del_timer_sync(*%timer.timer_list%)",
-        "header": "linux/timer.h"
-      }
-    },
-    "categories": {
-      "timer": {
+        },
         "containers": {
           "timer_list": {
             "declaration": "struct timer_list list",
-            "header": "linux/timer.h",
             "fields": {
+              "data": "%timer.data%",
               "function": "%timer.handler%"
-            }
+            },
+            "header": "linux/timer.h"
           }
         },
+        "reference": true,
+        "resources": {
+          "data": {
+            "declaration": "long unsigned int data"
+          }
+        }
+      }
+    },
+    "functions models": {
+      "del_timer": {
+        "declaration": "int del_timer(*%timer.timer_list%)",
+        "header": "linux/timer.h",
+        "reference": true
+      },
+      "del_timer_sync": {
+        "declaration": "int del_timer_sync(*%timer.timer_list%)",
+        "header": "linux/timer.h",
+        "reference": true
+      },
+      "mod_timer": {
+        "declaration": "int mod_timer(*%timer.timer_list%, unsigned long expires)",
+        "header": "linux/timer.h",
+        "reference": true
+      },
+      "mod_timer_pending": {
+        "declaration": "int mod_timer_pending(*%timer.timer_list%, unsigned long expires)",
+        "header": "linux/timer.h",
+        "reference": true
+      },
+      "mod_timer_pinned": {
+        "declaration": "int mod_timer_pinned(*%timer.timer_list%, unsigned long expires)",
+        "header": "linux/timer.h",
+        "reference": true
+      },
+      "try_to_del_timer_sync": {
+        "declaration": "int try_to_del_timer_sync(*%timer.timer_list%)",
+        "header": "linux/timer.h",
+        "reference": true
+      }
+    }
+  },
+  "4.15": {
+    "categories": {
+      "timer": {
         "callbacks": {
           "handler": {
             "declaration": "void (*handler)(*%timer.timer_list%)",
             "interrupt context": true
           }
+        },
+        "containers": {
+          "timer_list": {
+            "declaration": "struct timer_list list",
+            "fields": {
+              "function": "%timer.handler%"
+            },
+            "header": "linux/timer.h"
+          }
         }
       }
-    }
+    },
+    "functions models": {}
   }
 }

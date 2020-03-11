@@ -16,24 +16,23 @@
  */
 
 #include <linux/module.h>
-#include <verifier/common.h>
-#include <verifier/nondet.h>
+#include <ldv/test.h>
 
 static int __init ldv_init(void)
 {
 	int var1 = ldv_undef_int(), var2 = ldv_undef_int();
 
 	if ((0 | var1) != var1)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if ((var1 | var1) != var1)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (!(var1 | ~var1))
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (((var1 & var2) + (var1 | var2)) != (var1 + var2))
-		ldv_error();
+		ldv_unexpected_error();
 
 	return 0;
 }

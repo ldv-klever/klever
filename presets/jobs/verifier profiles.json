@@ -3,11 +3,9 @@
     "CPAchecker common": {
       "description": "Common options for the CPAchecker tool",
       "add options": [
-        {"-setprop": "parser.readLineDirectives=true"},
         {"-setprop": "counterexample.export.extendedWitnessFile=witness.%d.graphml"},
         {"-setprop": "counterexample.export.exportExtendedWitness=true"},
         {"-setprop": "counterexample.export.compressWitness=false"},
-        {"-setprop": "cpa.arg.witness.exportSourcecode=true"},
         {"-setprop": "cpa.arg.witness.removeInsufficientEdges=false"},
         {"-setprop": "output.disable=true"},
         {"-heap": "%ldv:memory size:0.8:MB%m"}
@@ -76,16 +74,16 @@
       "add options": [
         {"-smg-ldv": ""},
         {"-setprop": "analysis.machineModel=LINUX64"},
-        {"-setprop": "CompositeCPA.cpas=cpa.location.LocationCPA,cpa.callstack.CallstackCPA,cpa.smg.SMGCPA"}
+        {"-setprop": "CompositeCPA.cpas=cpa.location.LocationCPA,cpa.callstack.CallstackCPA,cpa.smg.SMGCPA"},
+        {"-setprop": "parser.readLineDirectives=false"}
       ]
     },
     "CPALockator": {
       "description": "CPAchecker for checking races",
       "inherit": "CPAchecker common",
-      "safety properties": ["CHECK( init({entry_point}()), LTL(G ! call(__VERIFIER_error())) )"],
+      "safety properties": ["CHECK( init({entry_point}()), LTL(G ! data-race) )"],
       "add options": [
         {"-lockator-linux": ""},
-        {"-setprop": "parser.readLineDirectives=true"},
         {"-setprop": "counterexample.export.graphml=witness.%d.graphml"},
         {"-setprop": "counterexample.export.compressWitness=false"},
         {"-heap": "%ldv:memory size:0.8:MB%m"},
@@ -117,7 +115,7 @@
       }
     },
     "race checking": {
-      "CPAchecker": {"CPALockator-combat-mode:28916": {"inherit": "CPALockator"}}
+      "CPAchecker": {"CPALockator-combat-mode:32435": {"inherit": "CPALockator"}}
     },
     "memory checking Linux64": {
       "CPAchecker": {"trunk:31140": {"inherit": "CPAchecker SMG memory checking"}}

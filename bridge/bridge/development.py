@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
 # Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,8 +18,6 @@
 from bridge.common import *
 
 TEMPLATES[0]['OPTIONS']['debug'] = DEBUG = True
-STATICFILES_DIRS = (os.path.join(BASE_DIR, 'static'),)
 DEF_KLEVER_CORE_MODE = 'development'
 UNLOCK_FAILED_REQUESTS = True
 POPULATE_JUST_PRODUCTION_PRESETS = False
-ALLOW_POPULATION = True

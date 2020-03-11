@@ -16,7 +16,7 @@
  */
 
 #include <linux/module.h>
-#include <verifier/common.h>
+#include <ldv/test.h>
 
 extern int multimodule_false_error_export_with_error(void);
 
@@ -25,7 +25,7 @@ static int __init init(void)
 	int c = multimodule_false_error_export_with_error();
 
 	if (c)
-	  ldv_error();
+		ldv_expected_error();
 
 
 	return 0;

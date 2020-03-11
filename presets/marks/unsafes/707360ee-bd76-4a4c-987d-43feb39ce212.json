@@ -2,51 +2,51 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:net:register"
+      "name": "Requirements specification",
+      "value": "net:core:dev"
     },
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/linux/net/register/netdev.ko"
+      "value": "ext-modules/linux/net/core/dev/netdev.ko"
     }
   ],
   "description": "",
   "error_trace": [
     [
-      {
-        "ldv_pre_probe": [
-          {
-            "ldv_reset_error_counter": []
-          }
-        ]
-      },
-      {
-        "ldv_usb_probe": [
-          {
-            "ldv_emg_register_netdev": [
-              {
-                "ldv_failed_register_netdev": []
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "ldv_post_probe": [
-          {
-            "ldv_check_return_value_probe": [
-              {
-                "ldv_assert_linux_net_register__wrong_return_value": []
-              }
-            ]
-          }
-        ]
-      }
+      [
+        {
+          "LDV model 'pre_probe'": [
+            {
+              "LDV model 'reset_error_counter'": []
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "LDV model 'failed_register_netdev'": []
+        }
+      ],
+      [
+        {
+          "LDV model 'post_probe'": [
+            {
+              "LDV model 'check_return_value_probe'": [
+                {
+                  "LDV model 'assert'": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",
-  "is_modifiable": true,
+  "is_modifiable": false,
+  "status": null,
   "tags": [],
+  "threshold": 0,
   "verdict": "2"
 }

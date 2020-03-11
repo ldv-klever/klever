@@ -1,34 +1,7 @@
 {
-  "Linux 3.14 (base)": {
-    "functions models": {
-      "rtc_device_register": {
-        "declaration": "*%rtc.rtc_device% rtc_device_register(const char *name, %rtc.device%, *%rtc.rtc_class_ops%, struct module *owner)",
-        "header": "linux/rtc.h"
-      },
-      "rtc_device_unregister": {
-        "declaration": "void rtc_device_unregister(*%rtc.rtc_device%)",
-        "header": "linux/rtc.h"
-      }
-    },
+  "3.14": {
     "categories": {
       "rtc": {
-        "containers": {
-          "rtc_class_ops": {
-            "declaration": "struct rtc_class_ops ops",
-            "header": "linux/rtc.h",
-            "fields": {
-              "open": "%rtc.probe%",
-              "release": "%rtc.release%"
-            }
-          },
-          "rtc_device": {
-            "declaration": "struct rtc_device dev",
-            "header": "linux/rtc.h",
-            "fields": {
-              "ops": "*%rtc.rtc_class_ops%"
-            }
-          }
-        },
         "callbacks": {
           "probe": {
             "declaration": "int (*probe)(%rtc.device%)"
@@ -37,6 +10,24 @@
             "declaration": "void (*release)(%rtc.device%)"
           }
         },
+        "containers": {
+          "rtc_class_ops": {
+            "declaration": "struct rtc_class_ops ops",
+            "fields": {
+              "open": "%rtc.probe%",
+              "release": "%rtc.release%"
+            },
+            "header": "linux/rtc.h"
+          },
+          "rtc_device": {
+            "declaration": "struct rtc_device dev",
+            "fields": {
+              "ops": "*%rtc.rtc_class_ops%"
+            },
+            "header": "linux/rtc.h"
+          }
+        },
+        "reference": true,
         "resources": {
           "device": {
             "declaration": "struct device *dev",
@@ -44,6 +35,18 @@
             "implemented in kernel": true
           }
         }
+      }
+    },
+    "functions models": {
+      "rtc_device_register": {
+        "declaration": "*%rtc.rtc_device% rtc_device_register(const char *name, %rtc.device%, *%rtc.rtc_class_ops%, struct module *owner)",
+        "header": "linux/rtc.h",
+        "reference": true
+      },
+      "rtc_device_unregister": {
+        "declaration": "void rtc_device_unregister(*%rtc.rtc_device%)",
+        "header": "linux/rtc.h",
+        "reference": true
       }
     }
   }

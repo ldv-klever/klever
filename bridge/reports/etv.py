@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
 # Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -130,8 +130,8 @@ class GetETV:
         # Action
         if node['type'] == 'action':
             enter_data = self.__parse_action(node, depth, thread, scope)
-            if enter_data['callback']:
-                # Show all callback actions
+            if enter_data['relevant']:
+                # Show all relevant actions
                 self.shown_scopes.add(scope)
             return self.__parse_body(enter_data, node, depth, thread, has_asc_note, scope)
 
@@ -193,7 +193,7 @@ class GetETV:
     def __parse_action(self, node, depth, thread, scope):
         return {
             'type': node['type'],
-            'callback': node.get('callback', False),
+            'relevant': node.get('relevant', False),
             'thread': self._html_thread[thread],
             'line': self.__get_line(node['line']),
             'file': self.trace['files'][node['file']],
@@ -213,7 +213,8 @@ class GetETV:
         }
 
     def __parse_source(self, node):
-        src_line = SourceLine(node['source'], highlights=node.get('highlight', []))
+        src_line = SourceLine(node['source'], highlights=node.get('highlight', []), filename='error trace',
+                              line=node['line'])
         source_html = src_line.html_code
 
         # Wrap to assume() conditions

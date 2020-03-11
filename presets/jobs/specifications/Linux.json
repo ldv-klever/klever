@@ -1,0 +1,869 @@
+{
+  "templates": {
+    "loadable kernel modules and kernel subsystems": {
+      "plugins": [
+        {
+          "name": "EMG",
+          "options": {
+            "macros white list": "linux/emg/macros white list.json",
+            "generators options": [
+              {
+                "linuxModule": {
+                  "callback comment": "Invoke callback {0} from {1}.",
+                  "action comments": {
+                    "dispatch": {
+                      "register": "Register {} callbacks.",
+                      "instance_register": "Register {} callbacks.",
+                      "deregister": "Deregister {} callbacks.",
+                      "instance_deregister": "Deregister {} callbacks.",
+                      "irq_register": "Register {} interrupt handler.",
+                      "irq_deregister": "Deregister {} interrupt handler."
+                    },
+                    "receive": {
+                      "register": "Begin {} callbacks invocations scenario.",
+                      "instance_register": "Begin {} callbacks invocations scenario.",
+                      "deregister": "Finish {} callbacks invocations scenario.",
+                      "instance_deregister": "Finish {} callbacks invocations scenario."
+                    }
+                  }
+                }
+              },
+              {
+                "linuxInsmod": {
+                  "init": "module_init",
+                  "exit": "module_exit",
+                  "kernel_initialization": [
+                    "early_initcall",
+                    "pure_initcall",
+                    "core_initcall",
+                    "core_initcall_sync",
+                    "postcore_initcall",
+                    "postcore_initcall_sync",
+                    "arch_initcall",
+                    "arch_initcall_sync",
+                    "subsys_initcall",
+                    "subsys_initcall_sync",
+                    "fs_initcall",
+                    "fs_initcall_sync",
+                    "rootfs_initcall",
+                    "device_initcall",
+                    "device_initcall_sync",
+                    "late_initcall",
+                    "late_initcall_sync",
+                    "console_initcall",
+                    "security_initcall"
+                  ],
+                  "kernel": false
+                }
+              },
+              {
+                "genericManual": {"enforce replacement": true}
+              }
+            ],
+            "translation options": {
+              "allocate external": false,
+              "environment model file": "environment_model.c",
+              "additional headers": [
+                "linux/ldv/common.h",
+                "linux/ldv/err.h",
+                "verifier/common.h",
+                "verifier/gcc.h",
+                "verifier/nondet.h",
+                "verifier/memory.h",
+                "verifier/thread.h"
+              ]
+            }
+          }
+        },
+        {
+          "name": "RSG",
+          "options": {
+            "common sets model": "counter",
+            "model compiler input file": "scripts/mod/empty.c",
+            "common models": [
+              "linux/arch/asm/atomic.c",
+              "linux/drivers/base/dd.c",
+              "linux/drivers/spi.c",
+              "linux/err.c",
+              "linux/kernel/panic.c",
+              "linux/ldv/common.c",
+              "linux/mm/slab.c",
+              "linux/verifier/memory.c",
+              "verifier/common.c",
+              "verifier/gcc.c",
+              "verifier/nondet.c",
+              "verifier/reference memory.c"
+            ]
+          }
+        },
+        {"name": "Weaver"},
+        {
+          "name": "FVTP",
+          "options": {
+            "merge source files": true,
+            "verifier profile": "reachability",
+            "verifier": {
+              "name": "CPAchecker",
+              "version": "trunk:31140"
+            }
+          }
+        }
+      ]
+    },
+    "argument signatures for loadable kernel modules and kernel subsystems": {
+      "template": "loadable kernel modules and kernel subsystems",
+      "plugins": [
+        {"name": "EMG"},
+        {
+          "name": "ASE",
+          "options": {"algorithm": "COMPLEX_ID"}
+        },
+        {"name": "TR"},
+        {"name": "RSG"},
+        {"name": "Weaver"},
+        {"name": "FVTP"}
+      ]
+    }
+  },
+  "requirement specifications": {
+    "description": "Linux requirement specifications",
+    "template": "loadable kernel modules and kernel subsystems",
+    "children": [
+      {
+        "identifier": "alloc",
+        "children": [
+          {
+            "identifier": "irq",
+            "description": "...",
+            "plugins": [{
+              "name": "RSG",
+              "options": {"models": ["linux/alloc/irq.c"]}
+            }]
+          },
+          {
+            "identifier": "spinlock",
+            "description": "...",
+            "template": "argument signatures for loadable kernel modules and kernel subsystems",
+            "plugins": [
+              {
+                "name": "ASE",
+                "options": {"request aspects": ["linux/kernel/locking/spinlock.request.aspect"]}
+              },
+              {
+                "name": "TR",
+                "options": {"templates": [
+                  "linux/kernel/locking/spinlock.c.tmpl",
+                  "linux/kernel/locking/spinlock.aspect.tmpl"
+                ]}
+              },
+              {
+                "name": "RSG",
+                "options": {"models": [
+                  {
+                    "model": "$linux/kernel/locking/spinlock.c",
+                    "options": {"sets model": "flag"}
+                  },
+                  "linux/alloc/spinlock.c"
+                ]}
+              }
+            ]
+          },
+          {
+            "identifier": "usb lock",
+            "description": "...",
+            "plugins": [{
+              "name": "RSG",
+              "options": {"models": ["linux/alloc/usb lock.c"]}
+            }]
+          }
+        ]
+      },
+      {
+        "identifier": "arch",
+        "children": [
+          {
+            "identifier": "asm",
+            "children": [
+              {
+                "identifier": "dma-mapping",
+                "description": "...",
+                "plugins": [{
+                  "name": "RSG",
+                  "options": {"models": ["linux/arch/asm/dma-mapping.c"]}
+                }]
+              }
+            ]
+          },
+          {
+            "identifier": "mm",
+            "children": [{
+              "identifier": "ioremap",
+              "description": "...",
+              "plugins": [{
+                "name": "RSG",
+                "options": {"models": ["linux/arch/mm/ioremap.c"]}
+              }]
+            }]
+          }
+        ]
+      },
+      {
+        "identifier": "block",
+        "children": [
+          {
+            "identifier": "blk-core",
+            "children": [
+              {
+                "identifier": "queue",
+                "description": "...",
+                "plugins": [{
+                  "name": "RSG",
+                  "options": {"models": ["linux/block/blk-core/queue.c"]}
+                }]
+              },
+              {
+                "identifier": "request",
+                "description": "...",
+                "plugins": [{
+                  "name": "RSG",
+                  "options": {"models": ["linux/block/blk-core/request.c"]}
+                }]
+              }
+            ]
+          },
+          {
+            "identifier": "genhd",
+            "description": "...",
+            "plugins": [{
+              "name": "RSG",
+              "options": {"models": ["linux/block/genhd.c"]}
+            }]
+          }
+        ]
+      },
+      {
+        "identifier": "concurrency safety",
+        "description": "Linux concurrency safety",
+        "plugins": [
+          {
+            "name": "EMG",
+            "options": {
+              "entry point": "main",
+              "initialize requirements": true,
+              "check final state": false,
+              "macros white list": "linux/emg/macros white list.json",
+              "generators options": [
+                {
+                  "linuxModule": {
+                    "callback comment": "Invoke callback {0} from {1}.",
+                    "action comments": {
+                      "dispatch": {
+                        "register": "Register {} callbacks.",
+                        "instance_register": "Register {} callbacks.",
+                        "deregister": "Deregister {} callbacks.",
+                        "instance_deregister": "Deregister {} callbacks.",
+                        "irq_register": "Register {} interrupt handler.",
+                        "irq_deregister": "Deregister {} interrupt handler."
+                      },
+                      "receive": {
+                        "register": "Begin {} callbacks invocations scenario.",
+                        "instance_register": "Begin {} callbacks invocations scenario.",
+                        "deregister": "Finish {} callbacks invocations scenario.",
+                        "instance_deregister": "Finish {} callbacks invocations scenario."
+                      }
+                    }
+                  }
+                },
+                {
+                  "linuxInsmod": {
+                    "init": "module_init",
+                    "exit": "module_exit",
+                    "kernel_initialization": [
+                      "early_initcall",
+                      "pure_initcall",
+                      "core_initcall",
+                      "core_initcall_sync",
+                      "postcore_initcall",
+                      "postcore_initcall_sync",
+                      "arch_initcall",
+                      "arch_initcall_sync",
+                      "subsys_initcall",
+                      "subsys_initcall_sync",
+                      "fs_initcall",
+                      "fs_initcall_sync",
+                      "rootfs_initcall",
+                      "device_initcall",
+                      "device_initcall_sync",
+                      "late_initcall",
+                      "late_initcall_sync",
+                      "console_initcall",
+                      "security_initcall"
+                    ],
+                    "kernel": false
+                  }
+                },
+                {"genericManual": {"enforce replacement": true}}
+              ],
+              "translation options": {
+                "self parallel processes": true,
+                "do not skip signals": true,
+                "not self parallel processes": ["linux/insmod"],
+                "not self parallel processes from categories": ["usb"],
+                "not self parallel processes from scenarios": ["usb_serial_scenario"],
+                "direct control functions calls": false,
+                "allocate external": false,
+                "environment model file": "environment_model.c",
+                "additional headers": [
+                  "linux/ldv/common.h",
+                  "linux/ldv/err.h",
+                  "verifier/common.h",
+                  "verifier/gcc.h",
+                  "verifier/nondet.h",
+                  "verifier/memory.h",
+                  "verifier/thread.h"
+                ]
+              }
+            }
+          },
+          {
+            "name": "RSG",
+            "options": {"models": ["linux/concurrency safety/synchronization primitives.c"]}
+          },
+          {
+            "name": "FVTP",
+            "options": {
+              "verifier profile": "race checking",
+              "verifier": {
+                "name": "CPAchecker",
+                "version": "CPALockator-combat-mode:32435"
+              },
+              "result processing": {
+                "expect several witnesses": true,
+                "code coverage details": "None"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "identifier": "drivers",
+        "children": [
+          {
+            "identifier": "base",
+            "children": [{
+              "identifier": "class",
+              "description": "...",
+              "plugins": [{
+                "name": "RSG",
+                "options": {"models": ["linux/drivers/base/class.c"]}
+              }]
+            }]
+          },
+          {
+            "identifier": "usb",
+            "children": [
+              {
+                "identifier": "core",
+                "children": [
+                  {
+                    "identifier": "usb",
+                    "children": [
+                      {
+                        "identifier": "coherent",
+                        "description": "...",
+                        "plugins": [{
+                          "name": "RSG",
+                          "options": {"models": ["linux/drivers/usb/core/usb/coherent.c"]}
+                        }]
+                      },
+                      {
+                        "identifier": "dev",
+                        "description": "...",
+                        "plugins": [{
+                          "name": "RSG",
+                          "options": {"models": ["linux/drivers/usb/core/usb/dev.c"]}
+                        }]
+                      }
+                    ]
+                  },
+                  {
+                    "identifier": "driver",
+                    "description": "Error handling for usb register in probe()",
+                    "plugins": [{
+                      "name": "RSG",
+                      "options": {"models": ["linux/drivers/usb/core/driver.c"]}
+                    }]
+                  },
+                  {
+                    "identifier": "urb",
+                    "description": "...",
+                    "plugins": [{
+                      "name": "RSG",
+                      "options": {"models": ["linux/drivers/usb/core/urb.c"]}
+                    }]
+                  }
+                ]
+              },
+              {
+                "identifier": "gadget",
+                "children": [{
+                  "identifier": "udc-core",
+                  "description": "...",
+                  "plugins": [{
+                    "name": "RSG",
+                    "options": {"models": ["linux/drivers/usb/gadget/udc-core.c"]}
+                  }]
+                }]
+              }
+            ]
+          },
+          {
+            "identifier": "clk1",
+            "description": "...",
+            "template": "argument signatures for loadable kernel modules and kernel subsystems",
+            "plugins": [
+              {
+                "name": "ASE",
+                "options": {"request aspects": ["linux/drivers/clk1.request.aspect"]}
+              },
+              {
+                "name": "TR",
+                "options": {"templates": [
+                  "linux/drivers/clk1.c.tmpl",
+                  "linux/drivers/clk1.aspect.tmpl"
+                ]}
+              },
+              {
+                "name": "RSG",
+                "options": {"models": ["$linux/drivers/clk1.c"]}
+              }
+            ]
+          },
+          {
+            "identifier": "clk2",
+            "description": "...",
+            "template": "argument signatures for loadable kernel modules and kernel subsystems",
+            "plugins": [
+              {
+                "name": "ASE",
+                "options": {"request aspects": ["linux/drivers/clk2.request.aspect"]}
+              },
+              {
+                "name": "TR",
+                "options": {"templates": [
+                  "linux/drivers/clk2.c.tmpl",
+                  "linux/drivers/clk2.aspect.tmpl"
+                ]}
+              },
+              {
+                "name": "RSG",
+                "options": {"models": ["$linux/drivers/clk2.c"]}
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "identifier": "empty",
+        "description": "..."
+      },
+      {
+        "identifier": "fs",
+        "children": [{
+          "identifier": "sysfs",
+          "children": [{
+            "identifier": "group",
+            "description": "...",
+            "plugins": [{
+              "name": "RSG",
+              "options": {"models": ["linux/fs/sysfs/group.c"]}
+            }]
+          }]
+        }]
+      },
+      {
+        "identifier": "kernel",
+        "children": [
+          {
+            "identifier": "locking",
+            "children": [
+              {
+                "identifier": "mutex",
+                "description": "...",
+                "template": "argument signatures for loadable kernel modules and kernel subsystems",
+                "plugins": [
+                  {
+                    "name": "ASE",
+                    "options": {"request aspects": ["linux/kernel/locking/mutex.request.aspect"]}
+                  },
+                  {
+                    "name": "TR",
+                    "options": {"templates": [
+                      "linux/kernel/locking/mutex.c.tmpl",
+                      "linux/kernel/locking/mutex.aspect.tmpl"
+                    ]}
+                  },
+                  {
+                    "name": "RSG",
+                    "options": {"models": [{
+                      "model": "$linux/kernel/locking/mutex.c",
+                      "options": {"sets model": "flag"}
+                    }]}
+                  }
+                ]
+              },
+              {
+                "identifier": "rwlock",
+                "description": "...",
+                "plugins": [{
+                  "name": "RSG",
+                  "options": {"models": ["linux/kernel/locking/rwlock.c"]}
+                }]
+              },
+              {
+                "identifier": "spinlock",
+                "description": "...",
+                "template": "argument signatures for loadable kernel modules and kernel subsystems",
+                "plugins": [
+                  {
+                    "name": "ASE",
+                    "options": {"request aspects": ["linux/kernel/locking/spinlock.request.aspect"]}
+                  },
+                  {
+                    "name": "TR",
+                    "options": {"templates": [
+                      "linux/kernel/locking/spinlock.c.tmpl",
+                      "linux/kernel/locking/spinlock.aspect.tmpl"
+                    ]}
+                  },
+                  {
+                    "name": "RSG",
+                    "options": {"models": [{
+                      "model": "$linux/kernel/locking/spinlock.c",
+                      "options": {"sets model": "flag"}
+                    }]}
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "identifier": "module",
+            "description": "...",
+            "plugins": [{
+              "name": "RSG",
+              "options": {"models": ["linux/kernel/module.c"]}
+            }]
+          },
+          {
+            "identifier": "rcu",
+            "children": [
+              {
+                "identifier": "update",
+                "children": [
+                  {
+                    "identifier": "lock bh",
+                    "description": "...",
+                    "plugins": [{
+                      "name": "RSG",
+                      "options": {"models": ["linux/kernel/rcu/update/lock bh.c"]}
+                    }]
+                  },
+                  {
+                    "identifier": "lock sched",
+                    "description": "...",
+                    "plugins": [{
+                      "name": "RSG",
+                      "options": {"models": ["linux/kernel/rcu/update/lock sched.c"]}
+                    }]
+                  },
+                  {
+                    "identifier": "lock",
+                    "description": "...",
+                    "plugins": [{
+                      "name": "RSG",
+                      "options": {"models": ["linux/kernel/rcu/update/lock.c"]}
+                    }]
+                  }
+                ]
+              },
+              {
+                "identifier": "srcu",
+                "description": "...",
+                "plugins": [{
+                  "name": "RSG",
+                  "options": {"models": ["linux/kernel/rcu/srcu.c"]}
+                }]
+              }
+            ]
+          },
+          {
+            "identifier": "sched",
+            "children": [{
+              "identifier": "completion",
+              "description": "...",
+              "template": "argument signatures for loadable kernel modules and kernel subsystems",
+              "plugins": [
+                {
+                  "name": "ASE",
+                  "options": {"request aspects": ["linux/kernel/sched/completion.request.aspect"]}
+                },
+                {
+                  "name": "TR",
+                  "options": {"templates": [
+                    "linux/kernel/sched/completion.c.tmpl",
+                    "linux/kernel/sched/completion.aspect.tmpl"
+                  ]}
+                },
+                {
+                  "name": "RSG",
+                  "options": {"models": ["$linux/kernel/sched/completion.c"]}
+                }
+              ]
+            }]
+          }
+        ]
+      },
+      {
+        "identifier": "lib",
+        "children": [
+          {
+            "identifier": "find_next_bit",
+            "description": "...",
+            "plugins": [{
+              "name": "RSG",
+              "options": {"models": ["linux/lib/find_next_bit.c"]}
+            }]
+          },
+          {
+            "identifier": "idr",
+            "description": "...",
+            "template": "argument signatures for loadable kernel modules and kernel subsystems",
+            "plugins": [
+              {
+                "name": "ASE",
+                "options": {"request aspects": ["linux/lib/idr.request.aspect"]}
+              },
+              {
+                "name": "TR",
+                "options": {"templates": [
+                  "linux/lib/idr.c.tmpl",
+                  "linux/lib/idr.aspect.tmpl"
+                ]}
+              },
+              {
+                "name": "RSG",
+                "options": {"models": ["$linux/lib/idr.c"]}
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "identifier":  "memory safety",
+        "description": "Linux memory safety",
+        "plugins": [
+          {
+            "name": "EMG",
+            "options": {
+              "entry point": "main",
+              "initialize requirements": true,
+              "check final state": true,
+              "macros white list": "linux/emg/macros white list.json",
+              "generators options": [
+                {
+                  "linuxModule": {
+                    "callback comment": "Invoke callback {0} from {1}.",
+                    "action comments": {
+                      "dispatch": {
+                        "register": "Register {} callbacks.",
+                        "instance_register": "Register {} callbacks.",
+                        "deregister": "Deregister {} callbacks.",
+                        "instance_deregister": "Deregister {} callbacks.",
+                        "irq_register": "Register {} interrupt handler.",
+                        "irq_deregister": "Deregister {} interrupt handler."
+                      },
+                      "receive": {
+                        "register": "Begin {} callbacks invocations scenario.",
+                        "instance_register": "Begin {} callbacks invocations scenario.",
+                        "deregister": "Finish {} callbacks invocations scenario.",
+                        "instance_deregister": "Finish {} callbacks invocations scenario."
+                      }
+                    }
+                  }
+                },
+                {
+                  "linuxInsmod": {
+                    "init": "module_init",
+                    "exit": "module_exit",
+                    "kernel_initialization": [
+                      "early_initcall",
+                      "pure_initcall",
+                      "core_initcall",
+                      "core_initcall_sync",
+                      "postcore_initcall",
+                      "postcore_initcall_sync",
+                      "arch_initcall",
+                      "arch_initcall_sync",
+                      "subsys_initcall",
+                      "subsys_initcall_sync",
+                      "fs_initcall",
+                      "fs_initcall_sync",
+                      "rootfs_initcall",
+                      "device_initcall",
+                      "device_initcall_sync",
+                      "late_initcall",
+                      "late_initcall_sync",
+                      "console_initcall",
+                      "security_initcall"
+                    ],
+                    "kernel": false
+                  }
+                },
+                {"genericManual": {"enforce replacement": true}}
+              ],
+              "translation options": {
+                "allocate external": true,
+                "environment model file": "environment_model.c",
+                "additional headers": [
+                  "linux/user_namespace.h",
+                  "linux/ldv/common.h",
+                  "linux/ldv/err.h",
+                  "verifier/common.h",
+                  "verifier/gcc.h",
+                  "verifier/nondet.h",
+                  "verifier/memory.h",
+                  "verifier/thread.h"
+                ]
+              }
+            }
+          },
+          {
+            "name": "RSG",
+            "options": {"models": ["linux/memory safety/memory.c"]}
+          },
+          {
+            "name": "FVTP",
+            "options": {
+              "verifier profile": "memory checking Linux64",
+              "verifier": {
+                "name": "CPAchecker",
+                "version": "trunk:31140"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "identifier": "net",
+        "children": [
+          {
+            "identifier": "core",
+            "children": [
+              {
+                "identifier": "dev",
+                "description": "Error handling for netdev in probe()",
+                "plugins": [{
+                  "name": "RSG",
+                  "options": {"models": ["linux/net/core/dev.c"]}
+                }]
+              },
+              {
+                "identifier": "rtnetlink",
+                "description": "...",
+                "plugins": [{
+                  "name": "RSG",
+                  "options": {"models": ["linux/net/core/rtnetlink.c"]}
+                }]
+              },
+              {
+                "identifier": "sock",
+                "description": "...",
+                "plugins": [{
+                  "name": "RSG",
+                  "options": {"models": ["linux/net/core/sock.c"]}
+                }]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "identifier": "test",
+        "children": [
+          {
+            "identifier": "environment model specifications",
+            "description": "Requirement intended for testing environment model specifications and the generator",
+            "plugins": [{
+              "name": "RSG",
+              "options": {"models": ["linux/emg/test_model.c"]}
+            }]
+          },
+          {
+            "identifier": "environment model specifications with function pointer analysis",
+            "description": "Requirement intended for testing environment model specifications and generator with function pointer analysis",
+            "plugins": [
+              {
+                "name": "RSG",
+                "options": {"models": ["linux/emg/test_model.c"]}
+              },
+              {
+                "name": "FVTP",
+                "options": {
+                  "verifier profile": "reachability with function pointers",
+                  "verifier": {
+                    "name": "CPAchecker",
+                    "version": "trunk:31140"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "identifier": "common",
+            "description": "...",
+            "plugins": [{
+              "name": "RSG",
+              "options": {"models": ["ldv/test.c"]}
+            }]
+          }
+        ]
+      },
+      {
+        "identifier": "staging",
+        "children": [
+          {
+            "identifier": "alloc",
+            "description": "...",
+            "plugins": [{
+              "name": "RSG",
+              "options": {"models": ["linux/alloc/memory.c"]}
+            }]
+          },
+          {
+            "identifier": "fs",
+            "children": [{
+              "identifier": "char_dev",
+              "description": "...",
+              "plugins": [{
+                "name": "RSG",
+                "options": {"models": ["linux/fs/char_dev.c"]}
+              }]
+            }]
+          },
+          {
+            "identifier": "mmc",
+            "children": [{
+              "identifier": "sdio_func",
+              "description": "...",
+              "plugins": [{
+                "name": "RSG",
+                "options": {"models": ["linux/mmc/sdio_func.c"]}
+              }]
+            }]
+          }
+        ]
+      }
+    ]
+  }
+}

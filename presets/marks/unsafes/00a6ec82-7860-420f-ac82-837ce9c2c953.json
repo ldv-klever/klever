@@ -2,13 +2,13 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Linux:Version",
+      "name": "Project:Version",
       "value": "v3.12.17-54-gd40390bf1206"
     },
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:kernel:locking:spinlock"
+      "name": "Requirements specification",
+      "value": "kernel:locking:spinlock"
     },
     {
       "is_compare": true,
@@ -19,84 +19,53 @@
   "description": "Verifier needs model for vzalloc() to bypass this false alarm.",
   "error_trace": [
     [
-      {
-        "tipc_init": [
-          {
-            "tipc_core_start": [
-              {
-                "tipc_handler_start": [
-                  {
-                    "tasklet_enable": [
-                      {
-                        "atomic_dec_0": [
-                          {
-                            "ldv_atomic_dec": []
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                ]
-              },
-              {
-                "tipc_socket_init": [
-                  {
-                    "ldv_emg_sock_register": [
-                      {
-                        "tipc_sk_create": [
-                          {
-                            "tipc_createport": [
-                              {
-                                "ldv_spin_lock_bh_72_0": [
-                                  {
-                                    "ldv_spin_lock_tipc_port_list_lock": [
-                                      {
-                                        "ldv_assert_linux_kernel_locking_spinlock__one_thread_double_lock": []
-                                      }
-                                    ]
-                                  }
-                                ]
-                              },
-                              {
-                                "ldv_spin_unlock_bh_73_1": [
-                                  {
-                                    "ldv_spin_unlock_tipc_port_list_lock": [
-                                      {
-                                        "ldv_assert_linux_kernel_locking_spinlock__one_thread_double_unlock": []
-                                      }
-                                    ]
-                                  }
-                                ]
-                              }
-                            ]
-                          },
-                          {
-                            "ldv_spin_unlock_bh_87_0": [
-                              {
-                                "ldv_spin_unlock_lock_of_tipc_port": [
-                                  {
-                                    "ldv_assert_linux_kernel_locking_spinlock__one_thread_double_unlock": []
-                                  }
-                                ]
-                              }
-                            ]
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      }
+      [
+        {
+          "EMG wrapper": [
+            {
+              "tipc_sk_create": [
+                {
+                  "tipc_createport": [
+                    {
+                      "cif_spin_lock_bh_tipc_port_list_lock_0": [
+                        {
+                          "LDV model 'spin_lock_tipc_port_list_lock'": []
+                        }
+                      ]
+                    },
+                    {
+                      "cif_spin_unlock_bh_tipc_port_list_lock_0": [
+                        {
+                          "LDV model 'spin_unlock_tipc_port_list_lock'": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Instrumented function 'spin_unlock_bh'": [
+                    {
+                      "LDV model 'spin_unlock_lock_of_tipc_port'": [
+                        {
+                          "LDV model 'assert'": []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",
-  "is_modifiable": true,
+  "is_modifiable": false,
+  "status": null,
   "tags": [
     "KernelModel"
   ],
+  "threshold": 0,
   "verdict": "3"
 }

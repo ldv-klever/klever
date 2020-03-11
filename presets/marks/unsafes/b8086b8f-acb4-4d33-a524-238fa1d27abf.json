@@ -2,33 +2,45 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:drivers:base:dma-mapping"
+      "name": "Requirements specification",
+      "value": "arch:asm:dma-mapping"
     },
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/linux/drivers/base/dma-mapping/check-before-map.ko"
+      "value": "ext-modules/linux/arch/asm/dma-mapping/check-before-map.ko"
     }
   ],
   "description": "",
   "error_trace": [
     [
-      {
-        "ldv_init": [
-          {
-            "ldv_dma_mapping_error": [
-              {
-                "ldv_assert_linux_drivers_base_dma_mapping__check_before_map": []
-              }
-            ]
-          }
-        ]
-      }
+      [
+        {
+          "EMG wrapper": [
+            {
+              "LDV model 'init'": [
+                {
+                  "Instrumented function 'dma_mapping_error'": [
+                    {
+                      "LDV model 'dma_mapping_error'": [
+                        {
+                          "LDV model 'assert'": []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",
-  "is_modifiable": true,
+  "is_modifiable": false,
+  "status": null,
   "tags": [],
+  "threshold": 0,
   "verdict": "2"
 }

@@ -2,8 +2,8 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:lib:idr"
+      "name": "Requirements specification",
+      "value": "lib:idr"
     },
     {
       "is_compare": true,
@@ -14,41 +14,47 @@
   "description": "",
   "error_trace": [
     [
-      {
-        "ldv_init": [
-          {
-            "ldv_idr_init_idp": [
-              {
-                "ldv_assert_linux_lib_idr__double_init": []
-              }
-            ]
-          },
-          {
-            "ldv_idr_destroy_idp": [
-              {
-                "ldv_assert_linux_lib_idr__not_initialized": []
-              },
-              {
-                "ldv_assert_linux_lib_idr__destroyed_before_usage": []
-              }
-            ]
-          },
-          {
-            "ldv_idr_alloc_idp": [
-              {
-                "ldv_assert_linux_lib_idr__not_initialized": []
-              },
-              {
-                "ldv_assert_linux_lib_idr__destroyed_before_usage": []
-              }
-            ]
-          }
-        ]
-      }
+      [
+        {
+          "EMG wrapper": [
+            {
+              "LDV model 'init'": [
+                {
+                  "Instrumented function 'idr_init'": [
+                    {
+                      "LDV model 'idr_init_idp'": []
+                    }
+                  ]
+                },
+                {
+                  "Instrumented function 'idr_destroy'": [
+                    {
+                      "LDV model 'idr_destroy_idp'": []
+                    }
+                  ]
+                },
+                {
+                  "Instrumented function 'idr_alloc'": [
+                    {
+                      "LDV model 'idr_alloc_idp'": [
+                        {
+                          "LDV model 'assert'": []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",
-  "is_modifiable": true,
+  "is_modifiable": false,
+  "status": null,
   "tags": [],
+  "threshold": 0,
   "verdict": "2"
 }

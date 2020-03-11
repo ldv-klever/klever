@@ -7,8 +7,8 @@
     },
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:kernel:locking:mutex"
+      "name": "Requirements specification",
+      "value": "kernel:locking:mutex"
     },
     {
       "is_compare": true,
@@ -19,5 +19,6 @@
   "description": "Relevant code is covered, but CPAchecker cannot handle driver. Previously there was a non-target bug.",
   "function": "CPU time exhausted",
   "is_regexp": true,
-  "problem_pattern": "Timeout"
+  "problem_pattern": "Timeout",
+  "is_modifiable": false
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+ * Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
  * Ivannikov Institute for System Programming of the Russian Academy of Sciences
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -71,13 +71,14 @@ $(document).ready(function () {
         confirm_delete_btn.unbind().click(function () {
             $('#remove_jobs_popup').modal('hide');
             $('#dimmer_of_page').addClass('active');
+            let remove_failed = false;
             $.each(jobs_for_delete, function (i, job_id) {
-                $.ajax({url: `/jobs/api/${job_id}/remove/`, method: "DELETE", data: {}});
+                $.ajax({url: `/jobs/api/${job_id}/remove/`, method: "DELETE", error: function () { remove_failed = true }});
             });
             // When all delete requests are finished then reload the page
             $(document).ajaxStop(function () {
                 $('#dimmer_of_page').removeClass('active');
-                window.location.replace('')
+                if (!remove_failed) window.location.replace('')
             });
         });
     });
@@ -115,4 +116,11 @@ $(document).ready(function () {
 
     $('#compare_reports_btn').click(compare_reports);
     $('#compare_files_btn').click(compare_files);
+
+    let create_job_modal = $('#create_job_modal');
+    create_job_modal.modal({transition: 'fade', autofocus: false, closable: true})
+        .modal('attach events', '#create_job_modal_show');
+    create_job_modal.find('.modal-cancel').click(function () {
+        create_job_modal.modal('hide')
+    })
 });

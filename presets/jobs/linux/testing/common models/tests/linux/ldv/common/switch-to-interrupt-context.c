@@ -17,13 +17,13 @@
 
 #include <linux/module.h>
 #include <linux/ldv/common.h>
-#include <verifier/common.h>
+#include <ldv/test.h>
 
 static int __init ldv_init(void)
 {
 	ldv_switch_to_interrupt_context();
 	if (ldv_in_interrupt_context())
-		ldv_error();
+		ldv_expected_error();
 
 	return 0;
 }

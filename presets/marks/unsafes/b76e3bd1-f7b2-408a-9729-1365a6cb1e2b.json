@@ -2,43 +2,56 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:block:request"
+      "name": "Requirements specification",
+      "value": "block:blk-core:request"
     },
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/linux/block/request/double-get.ko"
+      "value": "ext-modules/linux/block/blk-core/request/double-get.ko"
     }
   ],
   "description": "",
   "error_trace": [
     [
-      {
-        "ldv_init": [
-          {
-            "ldv_blk_get_request": [
-              {
-                "ldv_assert_linux_block_request__double_get": []
-              },
-              {
-                "ldv_undef_ptr": []
-              }
-            ]
-          },
-          {
-            "ldv_blk_get_request": [
-              {
-                "ldv_assert_linux_block_request__double_get": []
-              }
-            ]
-          }
-        ]
-      }
+      [
+        {
+          "EMG wrapper": [
+            {
+              "LDV model 'init'": [
+                {
+                  "Instrumented function 'blk_get_request'": [
+                    {
+                      "LDV model 'blk_get_request'": [
+                        {
+                          "LDV model 'undef_ptr'": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Instrumented function 'blk_get_request'": [
+                    {
+                      "LDV model 'blk_get_request'": [
+                        {
+                          "LDV model 'assert'": []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",
-  "is_modifiable": true,
+  "is_modifiable": false,
+  "status": null,
   "tags": [],
+  "threshold": 0,
   "verdict": "2"
 }

@@ -2,8 +2,8 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:test:environment model specifications"
+      "name": "Requirements specification",
+      "value": "test:environment model specifications"
     },
     {
       "is_compare": true,
@@ -14,43 +14,65 @@
   "description": "",
   "error_trace": [
     [
-      {
-        "ldv_initialize": []
-      }
+      [
+        {
+          "Entry point 'main'": [
+            {
+              "LDV model 'initialize'": []
+            }
+          ]
+        }
+      ]
     ],
     [
-      {
-        "ldv_init": [
-          {
-            "ldv_invoke_test": []
-          }
-        ]
-      }
+      [
+        {
+          "EMG wrapper": [
+            {
+              "LDV model 'init'": [
+                {
+                  "LDV model 'invoke_test'": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ],
     [
-      {
-        "ldv_switch_to_interrupt_context": []
-      },
-      {
-        "ldv_switch_to_process_context": []
-      }
-    ],
-    [
-      {
-        "irq_thread": [
-          {
-            "ldv_invoke_reached": [
-              {
-                "ldv_assert_linux_emg_test": []
-              }
-            ]
-          }
-        ]
-      }
+      [
+        {
+          "LDV model 'switch_to_interrupt_context'": []
+        }
+      ],
+      [
+        {
+          "LDV model 'switch_to_process_context'": []
+        }
+      ],
+      [
+        {
+          "EMG wrapper": [
+            {
+              "irq_thread": [
+                {
+                  "LDV model 'invoke_reached'": [
+                    {
+                      "LDV model 'assert'": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",
-  "is_modifiable": true,
+  "is_modifiable": false,
+  "status": null,
   "tags": [],
+  "threshold": 0,
   "verdict": "2"
 }

@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
 # Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,7 +18,6 @@
 from django.core.management.base import BaseCommand, CommandError
 
 from bridge.utils import logger
-from jobs.population import JobsPopulation
 from marks.population import (
     PopulateSafeMarks, PopulateUnsafeMarks, PopulateUnknownMarks, PopulateSafeTags, PopulateUnsafeTags
 )
@@ -31,7 +30,6 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument('--all', dest='all', action='store_true', help='Populate everything?')
-        parser.add_argument('--jobs', dest='jobs', action='store_true', help='Populate jobs?')
         parser.add_argument('--marks', dest='marks', action='store_true', help='Populate all marks?')
         parser.add_argument('--safe-marks', dest='marks_s', action='store_true', help='Populate safe marks?')
         parser.add_argument('--unsafe-marks', dest='marks_u', action='store_true', help='Populate unsafe marks?')
@@ -42,15 +40,6 @@ class Command(BaseCommand):
         parser.add_argument('--schedulers', dest='schedulers', action='store_true', help='Populate schedulers?')
 
     def handle(self, *args, **options):
-        # Jobs
-        if options['all'] or options['jobs']:
-            self.stdout.write('Jobs population started')
-            try:
-                res = JobsPopulation().populate()
-            except Exception as e:
-                raise CommandError('Jobs population failed: %s' % e)
-            self.stdout.write("Jobs were populated successfully. Number of new jobs: %s" % res)
-
         # Safe tags
         if options['all'] or options['tags'] or options['tags_s']:
             self.stdout.write('Safe tags population started')

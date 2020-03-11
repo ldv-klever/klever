@@ -2,17 +2,17 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:drivers:base:dma-mapping"
+      "name": "Requirements specification",
+      "value": "arch:asm:dma-mapping"
     },
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/linux/drivers/base/dma-mapping/safe.ko"
+      "value": "ext-modules/linux/arch/asm/dma-mapping/safe.ko"
     }
   ],
   "description": "",
-  "is_modifiable": true,
+  "is_modifiable": false,
   "tags": [],
   "verdict": "0"
 }

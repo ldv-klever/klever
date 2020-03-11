@@ -1,24 +1,12 @@
 {
-  "Linux 3.14 (base)": {
+  "3.14": {
+    "environment processes": {},
     "functions models": {
       "alloc_etherdev_mq, alloc_etherdev_mqs": {
-        "comment": "Allocate and set up an ethernet device.",
-        "labels": {
-          "netdev": {
-            "container": true,
-            "pointer": true,
-            "interface": [
-              "net.net_device"
-            ]
-          },
-          "size": {
-            "declaration": "size_t a"
-          }
-        },
-        "process": "<alloc>.<success> | <fail>",
         "actions": {
           "alloc": {
             "comment": "Allocate memory for an ethernet device.",
+            "trace relevant": true,
             "statements": [
               "%size% = sizeof(struct net_device);",
               "if ($ARG1) {",
@@ -30,126 +18,148 @@
               "ldv_assume(%netdev% != 0);"
             ]
           },
-          "success": {
-            "comment": "Memory has been allocated properly.",
-            "statements": [
-              "return %netdev%;"
-            ]
-          },
           "fail": {
             "comment": "Memory has not been allocated.",
+            "trace relevant": true,
             "statements": [
               "return 0;"
             ]
-          }
-        }
-      },
-      "alloc_netdev_mq, alloc_netdev_mqs": {
-        "comment": "Allocate network device.",
-        "labels": {
-          "netdev": {
-            "container": true,
-            "pointer": true,
-            "interface": [
-              "net.net_device"
-            ]
           },
-          "setup": {
-            "callback": true,
-            "parameter": true,
-            "interface": [
-              "net.setup"
+          "success": {
+            "comment": "Memory has been allocated properly.",
+            "trace relevant": true,
+            "statements": [
+              "return %netdev%;"
             ]
           }
         },
-        "process": "<alloc>.[setup].<success> | <fail>",
+        "comment": "Allocate and set up an ethernet device.",
+        "labels": {
+          "netdev": {
+            "container": true,
+            "interface": [
+              "net.net_device"
+            ],
+            "pointer": true
+          },
+          "size": {
+            "declaration": "size_t a"
+          }
+        },
+        "process": "<alloc>.<success> | <fail>",
+        "reference": true
+      },
+      "alloc_netdev_mq, alloc_netdev_mqs": {
         "actions": {
           "alloc": {
             "comment": "Allocate memory for a network device.",
+            "trace relevant": true,
             "statements": [
               "%netdev% = $ALLOC(%netdev%);",
               "%setup% = $ARG3;"
             ]
           },
+          "fail": {
+            "comment": "Memory has not been allocated.",
+            "trace relevant": true,
+            "statements": [
+              "return 0;"
+            ]
+          },
           "setup": {
+            "callback": "%setup%",
             "comment": "Setup the network device.",
-            "callback": "%setup%",
             "parameters": [
               "%netdev%"
             ]
           },
           "success": {
             "comment": "Memory has been allocated properly.",
+            "trace relevant": true,
             "statements": [
               "return %netdev%;"
             ]
-          },
-          "fail": {
-            "comment": "Memory has not been allocated.",
-            "statements": [
-              "return 0;"
-            ]
           }
-        }
-      },
-      "free_netdev": {
-        "comment": "Free memory of a network device.",
+        },
+        "comment": "Allocate network device.",
         "labels": {
           "netdev": {
             "container": true,
-            "parameter": true,
             "interface": [
               "net.net_device"
-            ]
+            ],
+            "pointer": true
+          },
+          "setup": {
+            "callback": true,
+            "interface": [
+              "net.setup"
+            ],
+            "parameter": true
           }
         },
-        "process": "<free>",
+        "process": "<alloc>.[setup].<success> | <fail>",
+        "reference": true
+      },
+      "free_netdev": {
         "actions": {
           "free": {
             "comment": "Freeing memory of a network device.",
+            "trace relevant": true,
             "statements": [
               "%netdev% = $ARG1;",
               "$FREE(%netdev%);"
             ]
           }
-        }
-      },
-      "register_netdev": {
-        "comment": "Register network device and its callbacks.",
+        },
+        "comment": "Free memory of a network device.",
         "labels": {
           "netdev": {
             "container": true,
-            "parameter": true,
             "interface": [
               "net.net_device"
-            ]
-          },
-          "ret": {
-            "declaration": "int a",
-            "value": "ldv_undef_int()"
+            ],
+            "parameter": true
           }
         },
-        "process": "<assign>.[open].(<open_success>.[register].<success> | <open_fail>) | <fail>",
+        "process": "<free>",
+        "reference": true
+      },
+      "register_netdev": {
         "actions": {
           "assign": {
             "comment": "Get network device structure.",
+            "trace relevant": true,
             "statements": [
               "%netdev% = $ARG1;"
             ]
           },
+          "fail": {
+            "comment": "Registration of the network device has failed.",
+            "trace relevant": true,
+            "statements": [
+              "ldv_failed_register_netdev();",
+              "return ldv_undef_int_negative();"
+            ]
+          },
           "open": {
-            "comment": "Switch network device to the up state.",
             "callback": "%netdev.net_device_ops.ndo_open%",
+            "callback return value": "%ret%",
+            "comment": "Switch network device to the up state.",
             "parameters": [
               "%netdev%"
             ],
-            "callback return value": "%ret%",
             "post-call": []
           },
-          "register": {
-            "comment": "Register network device callbacks.",
-            "parameters": [
-              "%netdev%"
+          "open_fail": {
+            "comment": "Registration of the network device has failed.",
+            "condition": [
+              "%ret% != 0"
+            ],
+            "trace relevant": true,
+            "statements": [
+              "ldv_failed_register_netdev();",
+              "return ldv_undef_int_negative();"
             ]
           },
           "open_success": {
@@ -158,49 +168,44 @@
               "%ret% == 0"
             ]
           },
+          "register": {
+            "comment": "Register network device callbacks.",
+            "parameters": [
+              "%netdev%"
+            ]
+          },
           "success": {
             "comment": "Registration of the network device has successfully finished.",
+            "trace relevant": true,
             "statements": [
               "return 0;"
             ]
-          },
-          "open_fail": {
-            "comment": "Registration of the network device has failed.",
-            "condition": [
-              "%ret% != 0"
-            ],
-            "statements": [
-              "ldv_failed_register_netdev();",
-              "return ldv_undef_int_negative();"
-            ]
-          },
-          "fail": {
-            "comment": "Registration of the network device has failed.",
-            "statements": [
-              "ldv_failed_register_netdev();",
-              "return ldv_undef_int_negative();"
-            ]
           }
-        }
-      },
-      "unregister_netdev": {
-        "comment": "Deregister network device and its callbacks.",
+        },
+        "comment": "Register network device and its callbacks.",
         "labels": {
           "netdev": {
             "container": true,
-            "parameter": true,
             "interface": [
               "net.net_device"
-            ]
+            ],
+            "parameter": true
+          },
+          "ret": {
+            "declaration": "int a",
+            "value": "ldv_undef_int()"
           }
         },
-        "process": "<assign>.[stop].[deregister]",
+        "process": "<assign>.[open].(<open_success>.[register].<success> | <open_fail>) | <fail>",
+        "reference": true
+      },
+      "unregister_netdev": {
         "actions": {
-          "stop": {
-            "comment": "Switch network device to the down state.",
-            "callback": "%netdev.net_device_ops.ndo_stop%",
-            "parameters": [
-              "%netdev%"
+          "assign": {
+            "comment": "Get network device structure.",
+            "trace relevant": true,
+            "statements": [
+              "%netdev% = $ARG1;"
             ]
           },
           "deregister": {
@@ -209,77 +214,83 @@
               "%netdev%"
             ]
           },
-          "assign": {
-            "comment": "Get network device structure.",
-            "statements": [
-              "%netdev% = $ARG1;"
-            ]
-          }
-        }
-      }
-    },
-    "environment processes": {}
-  },
-  "Linux 4.6.7": {
-    "functions models": {
-      "alloc_etherdev_mqs": {
-        "comment": "Allocate and set up an ethernet device.",
-        "labels": {
-          "netdev": {
-            "container": true,
-            "pointer": true,
-            "interface": [
-              "net.net_device"
+          "stop": {
+            "callback": "%netdev.net_device_ops.ndo_stop%",
+            "comment": "Switch network device to the down state.",
+            "parameters": [
+              "%netdev%"
             ]
           }
         },
-        "process": "<alloc>.<success> | <fail>",
+        "comment": "Deregister network device and its callbacks.",
+        "labels": {
+          "netdev": {
+            "container": true,
+            "interface": [
+              "net.net_device"
+            ],
+            "parameter": true
+          }
+        },
+        "process": "<assign>.[stop].[deregister]",
+        "reference": true
+      }
+    }
+  },
+  "4.15": {
+    "environment processes": {},
+    "functions models": {
+      "alloc_etherdev_mqs": {
         "actions": {
           "alloc": {
             "comment": "Allocate memory for an ethernet device.",
+            "trace relevant": true,
             "statements": [
               "%netdev% = $ALLOC(%netdev%);"
             ]
           },
+          "fail": {
+            "comment": "Memory has not been allocated.",
+            "trace relevant": true,
+            "statements": [
+              "return 0;"
+            ]
+          },
           "success": {
             "comment": "Memory has been allocated properly.",
+            "trace relevant": true,
             "statements": [
               "return %netdev%;"
+            ]
+          }
+        },
+        "comment": "Allocate and set up an ethernet device.",
+        "labels": {
+          "netdev": {
+            "container": true,
+            "interface": [
+              "net.net_device"
+            ],
+            "pointer": true
+          }
+        },
+        "process": "<alloc>.<success> | <fail>"
+      },
+      "alloc_netdev_mqs": {
+        "actions": {
+          "alloc": {
+            "comment": "Allocate memory for a network device.",
+            "trace relevant": true,
+            "statements": [
+              "%netdev% = $ALLOC(%netdev%);",
+              "%setup% = $ARG4;"
             ]
           },
           "fail": {
             "comment": "Memory has not been allocated.",
+            "trace relevant": true,
             "statements": [
               "return 0;"
-            ]
-          }
-        }
-      },
-      "alloc_netdev_mqs": {
-        "comment": "Allocate network device.",
-        "labels": {
-          "netdev": {
-            "container": true,
-            "pointer": true,
-            "interface": [
-              "net.net_device"
-            ]
-          },
-          "setup": {
-            "callback": true,
-            "parameter": true,
-            "interface": [
-              "net.setup"
-            ]
-          }
-        },
-        "process": "<alloc>.[setup].<success> | <fail>",
-        "actions": {
-          "alloc": {
-            "comment": "Allocate memory for a network device.",
-            "statements": [
-              "%netdev% = $ALLOC(%netdev%);",
-              "%setup% = $ARG4;"
             ]
           },
           "setup": {
@@ -290,206 +301,160 @@
           },
           "success": {
             "comment": "Memory has been allocated properly.",
+            "trace relevant": true,
             "statements": [
               "return %netdev%;"
             ]
-          },
-          "fail": {
-            "comment": "Memory has not been allocated.",
-            "statements": [
-              "return 0;"
-            ]
           }
-        }
-      },
-      "free_netdev": {
-        "comment": "Free memory of a network device.",
+        },
+        "comment": "Allocate network device.",
         "labels": {
           "netdev": {
             "container": true,
-            "parameter": true,
             "interface": [
               "net.net_device"
-            ]
+            ],
+            "pointer": true
+          },
+          "setup": {
+            "callback": true,
+            "interface": [
+              "net.setup"
+            ],
+            "parameter": true
           }
         },
-        "process": "<free>",
-        "actions": {
-          "free": {
-            "comment": "Freeing memory of a network device.",
-            "statements": [
-              "%netdev% = $ARG1;",
-              "$FREE(%netdev%);"
-            ]
-          }
-        }
+        "process": "<alloc>.[setup].<success> | <fail>"
       },
       "register_netdev": {
-        "comment": "Register network device and its callbacks.",
-        "labels": {
-          "netdev": {
-            "container": true,
-            "parameter": true,
-            "interface": [
-              "net.net_device"
-            ]
-          },
-          "ret": {
-            "declaration": "int a",
-            "value": "ldv_undef_int()"
-          }
-        },
-        "process": "<assign>.[open].(<open_success>.[register].<success> | <open_fail>) | <fail>",
         "actions": {
           "assign": {
             "comment": "Get network device structure.",
+            "trace relevant": true,
             "statements": [
               "%netdev% = $ARG1;"
             ]
           },
+          "fail": {
+            "comment": "Registration of the network device has failed.",
+            "trace relevant": true,
+            "statements": [
+              "ldv_failed_register_netdev();",
+              "return ldv_undef_int_negative();"
+            ]
+          },
           "open": {
-            "comment": "Switch network device to the up state.",
             "callback": "%netdev.net_device_ops.ndo_open%",
+            "callback return value": "%ret%",
+            "comment": "Switch network device to the up state.",
             "parameters": [
               "%netdev%"
             ],
-            "callback return value": "%ret%",
             "post-call": []
-          },
-          "register": {
-            "comment": "Register network device callbacks.",
-            "parameters": [
-              "%netdev%"
-            ]
-          },
-          "open_success": {
-            "comment": "Network device is in the up state.",
-            "condition": [
-              "%ret% == 0"
-            ]
-          },
-          "success": {
-            "comment": "Registration of the network device has successfully finished.",
-            "statements": [
-              "return 0;"
-            ]
           },
           "open_fail": {
             "comment": "Open at the registration of the network device has failed.",
             "condition": [
               "%ret% != 0"
             ],
+            "trace relevant": true,
             "statements": [
               "ldv_failed_register_netdev();",
               "return ldv_undef_int_negative();"
             ]
           },
-          "fail": {
-            "comment": "Registration of the network device has failed.",
-            "statements": [
-              "ldv_failed_register_netdev();",
-              "return ldv_undef_int_negative();"
-            ]
-          }
-        }
-      },
-      "unregister_netdev": {
-        "comment": "Deregister network device and its callbacks.",
-        "labels": {
-          "netdev": {
-            "container": true,
-            "parameter": true,
-            "interface": [
-              "net.net_device"
-            ]
-          }
-        },
-        "process": "<assign>.[stop].[deregister]",
-        "actions": {
-          "stop": {
-            "comment": "Switch network device to the down state.",
-            "callback": "%netdev.net_device_ops.ndo_stop%",
-            "parameters": [
-              "%netdev%"
+          "open_success": {
+            "comment": "Network device is in the up state.",
+            "condition": [
+              "%ret% == 0"
             ]
           },
-          "deregister": {
-            "comment": "Deregiste of the network device has finished.",
+          "register": {
+            "comment": "Register network device callbacks.",
             "parameters": [
               "%netdev%"
-            ]
-          },
-          "assign": {
-            "comment": "Get network device structure.",
-            "statements": [
-              "%netdev% = $ARG1;"
-            ]
-          }
-        }
-      }
-    },
-    "environment processes": {}
-  },
-  "Linux 4.15": {
-    "functions models": {
-      "alloc_etherdev_mqs": {
-        "comment": "Allocate and set up an ethernet device.",
-        "labels": {
-          "netdev": {
-            "container": true,
-            "pointer": true,
-            "interface": [
-              "net.net_device"
-            ]
-          }
-        },
-        "process": "<alloc>.<success> | <fail>",
-        "actions": {
-          "alloc": {
-            "comment": "Allocate memory for an ethernet device.",
-            "statements": [
-              "%netdev% = $ALLOC(%netdev%);"
             ]
           },
           "success": {
-            "comment": "Memory has been allocated properly.",
-            "statements": [
-              "return %netdev%;"
-            ]
-          },
-          "fail": {
-            "comment": "Memory has not been allocated.",
+            "comment": "Registration of the network device has successfully finished.",
+            "trace relevant": true,
             "statements": [
               "return 0;"
             ]
           }
-        }
-      },
-      "alloc_netdev_mqs": {
-        "comment": "Allocate network device.",
+        },
+        "comment": "Register network device and its callbacks.",
         "labels": {
           "netdev": {
             "container": true,
-            "pointer": true,
             "interface": [
               "net.net_device"
+            ],
+            "parameter": true
+          },
+          "ret": {
+            "declaration": "int a",
+            "value": "ldv_undef_int()"
+          }
+        },
+        "process": "<assign>.[open].(<open_success>.[register].<success> | <open_fail>) | <fail>"
+      }
+    }
+  },
+  "5.5": {
+    "environment processes": {},
+    "functions models": {
+      "alloc_etherdev_mqs": {
+        "actions": {
+          "alloc": {
+            "comment": "Allocate memory for an ethernet device.",
+            "trace relevant": true,
+            "statements": [
+              "%netdev% = $ALLOC(%netdev%);"
             ]
           },
-          "setup": {
-            "callback": true,
-            "parameter": true,
-            "interface": [
-              "net.setup"
+          "fail": {
+            "comment": "Memory has not been allocated.",
+            "trace relevant": true,
+            "statements": [
+              "return 0;"
+            ]
+          },
+          "success": {
+            "comment": "Memory has been allocated properly.",
+            "trace relevant": true,
+            "statements": [
+              "return %netdev%;"
             ]
           }
         },
-        "process": "<alloc>.[setup].<success> | <fail>",
+        "comment": "Allocate and set up an ethernet device.",
+        "labels": {
+          "netdev": {
+            "container": true,
+            "interface": [
+              "net.net_device"
+            ],
+            "pointer": true
+          }
+        },
+        "process": "<alloc>.<success> | <fail>"
+      },
+      "alloc_netdev_mqs": {
         "actions": {
           "alloc": {
             "comment": "Allocate memory for a network device.",
+            "trace relevant": true,
             "statements": [
               "%netdev% = $ALLOC(%netdev%);",
               "%setup% = $ARG4;"
+            ]
+          },
+          "fail": {
+            "comment": "Memory has not been allocated.",
+            "trace relevant": true,
+            "statements": [
+              "return 0;"
             ]
           },
           "setup": {
@@ -500,76 +465,66 @@
           },
           "success": {
             "comment": "Memory has been allocated properly.",
+            "trace relevant": true,
             "statements": [
               "return %netdev%;"
             ]
-          },
-          "fail": {
-            "comment": "Memory has not been allocated.",
-            "statements": [
-              "return 0;"
-            ]
           }
-        }
-      },
-      "free_netdev": {
-        "comment": "Free memory of a network device.",
+        },
+        "comment": "Allocate network device.",
         "labels": {
           "netdev": {
             "container": true,
-            "parameter": true,
             "interface": [
               "net.net_device"
-            ]
+            ],
+            "pointer": true
+          },
+          "setup": {
+            "callback": true,
+            "interface": [
+              "net.setup"
+            ],
+            "parameter": true
           }
         },
-        "process": "<free>",
-        "actions": {
-          "free": {
-            "comment": "Freeing memory of a network device.",
-            "statements": [
-              "%netdev% = $ARG1;",
-              "$FREE(%netdev%);"
-            ]
-          }
-        }
+        "process": "<alloc>.[setup].<success> | <fail>"
       },
       "register_netdev": {
-        "comment": "Register network device and its callbacks.",
-        "labels": {
-          "netdev": {
-            "container": true,
-            "parameter": true,
-            "interface": [
-              "net.net_device"
-            ]
-          },
-          "ret": {
-            "declaration": "int a",
-            "value": "ldv_undef_int()"
-          }
-        },
-        "process": "<assign>.[open].(<open_success>.[register].<success> | <open_fail>) | <fail>",
         "actions": {
           "assign": {
             "comment": "Get network device structure.",
+            "trace relevant": true,
             "statements": [
               "%netdev% = $ARG1;"
             ]
           },
+          "fail": {
+            "comment": "Registration of the network device has failed.",
+            "trace relevant": true,
+            "statements": [
+              "ldv_failed_register_netdev();",
+              "return ldv_undef_int_negative();"
+            ]
+          },
           "open": {
-            "comment": "Switch network device to the up state.",
             "callback": "%netdev.net_device_ops.ndo_open%",
+            "callback return value": "%ret%",
+            "comment": "Switch network device to the up state.",
             "parameters": [
               "%netdev%"
             ],
-            "callback return value": "%ret%",
             "post-call": []
           },
-          "register": {
-            "comment": "Register network device callbacks.",
-            "parameters": [
-              "%netdev%"
+          "open_fail": {
+            "comment": "Open at the registration of the network device has failed.",
+            "condition": [
+              "%ret% != 0"
+            ],
+            "trace relevant": true,
+            "statements": [
+              "ldv_failed_register_netdev();",
+              "return ldv_undef_int_negative();"
             ]
           },
           "open_success": {
@@ -578,128 +533,92 @@
               "%ret% == 0"
             ]
           },
+          "register": {
+            "comment": "Register network device callbacks.",
+            "parameters": [
+              "%netdev%"
+            ]
+          },
           "success": {
             "comment": "Registration of the network device has successfully finished.",
+            "trace relevant": true,
             "statements": [
               "return 0;"
             ]
-          },
-          "open_fail": {
-            "comment": "Open at the registration of the network device has failed.",
-            "condition": [
-              "%ret% != 0"
-            ],
-            "statements": [
-              "ldv_failed_register_netdev();",
-              "return ldv_undef_int_negative();"
-            ]
-          },
-          "fail": {
-            "comment": "Registration of the network device has failed.",
-            "statements": [
-              "ldv_failed_register_netdev();",
-              "return ldv_undef_int_negative();"
-            ]
           }
-        }
-      },
-      "unregister_netdev": {
-        "comment": "Deregister network device and its callbacks.",
+        },
+        "comment": "Register network device and its callbacks.",
         "labels": {
           "netdev": {
             "container": true,
-            "parameter": true,
             "interface": [
               "net.net_device"
-            ]
+            ],
+            "parameter": true
+          },
+          "ret": {
+            "declaration": "int a",
+            "value": "ldv_undef_int()"
           }
         },
-        "process": "<assign>.[stop].[deregister]",
-        "actions": {
-          "stop": {
-            "comment": "Switch network device to the down state.",
-            "callback": "%netdev.net_device_ops.ndo_stop%",
-            "parameters": [
-              "%netdev%"
-            ]
-          },
-          "deregister": {
-            "comment": "Deregiste of the network device has finished.",
-            "parameters": [
-              "%netdev%"
-            ]
-          },
-          "assign": {
-            "comment": "Get network device structure.",
-            "statements": [
-              "%netdev% = $ARG1;"
-            ]
-          }
-        }
+        "process": "<assign>.[open].(<open_success>.[register].<success> | <open_fail>) | <fail>"
       }
-    },
-    "environment processes": {}
+    }
   },
-  "Linux 4.17": {
+  "4.17": {
+    "environment processes": {},
     "functions models": {
       "alloc_etherdev_mqs": {
-        "comment": "Allocate and set up an ethernet device.",
-        "labels": {
-          "netdev": {
-            "container": true,
-            "pointer": true,
-            "interface": [
-              "net.net_device"
-            ]
-          }
-        },
-        "process": "<alloc>.<success> | <fail>",
         "actions": {
           "alloc": {
             "comment": "Allocate memory for an ethernet device.",
+            "trace relevant": true,
             "statements": [
               "%netdev% = $ALLOC(%netdev%);"
             ]
           },
+          "fail": {
+            "comment": "Memory has not been allocated.",
+            "trace relevant": true,
+            "statements": [
+              "return 0;"
+            ]
+          },
           "success": {
             "comment": "Memory has been allocated properly.",
+            "trace relevant": true,
             "statements": [
               "return %netdev%;"
+            ]
+          }
+        },
+        "comment": "Allocate and set up an ethernet device.",
+        "labels": {
+          "netdev": {
+            "container": true,
+            "interface": [
+              "net.net_device"
+            ],
+            "pointer": true
+          }
+        },
+        "process": "<alloc>.<success> | <fail>"
+      },
+      "alloc_netdev_mqs": {
+        "actions": {
+          "alloc": {
+            "comment": "Allocate memory for a network device.",
+            "trace relevant": true,
+            "statements": [
+              "%netdev% = $ALLOC(%netdev%);",
+              "%setup% = $ARG4;"
             ]
           },
           "fail": {
             "comment": "Memory has not been allocated.",
+            "trace relevant": true,
             "statements": [
               "return 0;"
-            ]
-          }
-        }
-      },
-      "alloc_netdev_mqs": {
-        "comment": "Allocate network device.",
-        "labels": {
-          "netdev": {
-            "container": true,
-            "pointer": true,
-            "interface": [
-              "net.net_device"
-            ]
-          },
-          "setup": {
-            "callback": true,
-            "parameter": true,
-            "interface": [
-              "net.setup"
-            ]
-          }
-        },
-        "process": "<alloc>.[setup].<success> | <fail>",
-        "actions": {
-          "alloc": {
-            "comment": "Allocate memory for a network device.",
-            "statements": [
-              "%netdev% = $ALLOC(%netdev%);",
-              "%setup% = $ARG4;"
             ]
           },
           "setup": {
@@ -710,76 +629,66 @@
           },
           "success": {
             "comment": "Memory has been allocated properly.",
+            "trace relevant": true,
             "statements": [
               "return %netdev%;"
             ]
-          },
-          "fail": {
-            "comment": "Memory has not been allocated.",
-            "statements": [
-              "return 0;"
-            ]
           }
-        }
-      },
-      "free_netdev": {
-        "comment": "Free memory of a network device.",
+        },
+        "comment": "Allocate network device.",
         "labels": {
           "netdev": {
             "container": true,
-            "parameter": true,
             "interface": [
               "net.net_device"
-            ]
+            ],
+            "pointer": true
+          },
+          "setup": {
+            "callback": true,
+            "interface": [
+              "net.setup"
+            ],
+            "parameter": true
           }
         },
-        "process": "<free>",
-        "actions": {
-          "free": {
-            "comment": "Freeing memory of a network device.",
-            "statements": [
-              "%netdev% = $ARG1;",
-              "$FREE(%netdev%);"
-            ]
-          }
-        }
+        "process": "<alloc>.[setup].<success> | <fail>"
       },
       "register_netdev": {
-        "comment": "Register network device and its callbacks.",
-        "labels": {
-          "netdev": {
-            "container": true,
-            "parameter": true,
-            "interface": [
-              "net.net_device"
-            ]
-          },
-          "ret": {
-            "declaration": "int a",
-            "value": "ldv_undef_int()"
-          }
-        },
-        "process": "<assign>.[open].(<open_success>.[register].<success> | <open_fail>) | <fail>",
         "actions": {
           "assign": {
             "comment": "Get network device structure.",
+            "trace relevant": true,
             "statements": [
               "%netdev% = $ARG1;"
             ]
           },
+          "fail": {
+            "comment": "Registration of the network device has failed.",
+            "trace relevant": true,
+            "statements": [
+              "ldv_failed_register_netdev();",
+              "return ldv_undef_int_negative();"
+            ]
+          },
           "open": {
-            "comment": "Switch network device to the up state.",
             "callback": "%netdev.net_device_ops.ndo_open%",
+            "callback return value": "%ret%",
+            "comment": "Switch network device to the up state.",
             "parameters": [
               "%netdev%"
             ],
-            "callback return value": "%ret%",
             "post-call": []
           },
-          "register": {
-            "comment": "Register network device callbacks.",
-            "parameters": [
-              "%netdev%"
+          "open_fail": {
+            "comment": "Open at the registration of the network device has failed.",
+            "condition": [
+              "%ret% != 0"
+            ],
+            "trace relevant": true,
+            "statements": [
+              "ldv_failed_register_netdev();",
+              "return ldv_undef_int_negative();"
             ]
           },
           "open_success": {
@@ -788,66 +697,200 @@
               "%ret% == 0"
             ]
           },
+          "register": {
+            "comment": "Register network device callbacks.",
+            "parameters": [
+              "%netdev%"
+            ]
+          },
           "success": {
             "comment": "Registration of the network device has successfully finished.",
+            "trace relevant": true,
             "statements": [
               "return 0;"
             ]
+          }
+        },
+        "comment": "Register network device and its callbacks.",
+        "labels": {
+          "netdev": {
+            "container": true,
+            "interface": [
+              "net.net_device"
+            ],
+            "parameter": true
+          },
+          "ret": {
+            "declaration": "int a",
+            "value": "ldv_undef_int()"
+          }
+        },
+        "process": "<assign>.[open].(<open_success>.[register].<success> | <open_fail>) | <fail>"
+      }
+    }
+  },
+  "4.6.7": {
+    "environment processes": {},
+    "functions models": {
+      "alloc_etherdev_mqs": {
+        "actions": {
+          "alloc": {
+            "comment": "Allocate memory for an ethernet device.",
+            "trace relevant": true,
+            "statements": [
+              "%netdev% = $ALLOC(%netdev%);"
+            ]
+          },
+          "fail": {
+            "comment": "Memory has not been allocated.",
+            "trace relevant": true,
+            "statements": [
+              "return 0;"
+            ]
+          },
+          "success": {
+            "comment": "Memory has been allocated properly.",
+            "trace relevant": true,
+            "statements": [
+              "return %netdev%;"
+            ]
+          }
+        },
+        "comment": "Allocate and set up an ethernet device.",
+        "labels": {
+          "netdev": {
+            "container": true,
+            "interface": [
+              "net.net_device"
+            ],
+            "pointer": true
+          }
+        },
+        "process": "<alloc>.<success> | <fail>"
+      },
+      "alloc_netdev_mqs": {
+        "actions": {
+          "alloc": {
+            "comment": "Allocate memory for a network device.",
+            "trace relevant": true,
+            "statements": [
+              "%netdev% = $ALLOC(%netdev%);",
+              "%setup% = $ARG4;"
+            ]
+          },
+          "fail": {
+            "comment": "Memory has not been allocated.",
+            "trace relevant": true,
+            "statements": [
+              "return 0;"
+            ]
+          },
+          "setup": {
+            "callback": "%setup%",
+            "parameters": [
+              "%netdev%"
+            ]
+          },
+          "success": {
+            "comment": "Memory has been allocated properly.",
+            "trace relevant": true,
+            "statements": [
+              "return %netdev%;"
+            ]
+          }
+        },
+        "comment": "Allocate network device.",
+        "labels": {
+          "netdev": {
+            "container": true,
+            "interface": [
+              "net.net_device"
+            ],
+            "pointer": true
+          },
+          "setup": {
+            "callback": true,
+            "interface": [
+              "net.setup"
+            ],
+            "parameter": true
+          }
+        },
+        "process": "<alloc>.[setup].<success> | <fail>"
+      },
+      "register_netdev": {
+        "actions": {
+          "assign": {
+            "comment": "Get network device structure.",
+            "trace relevant": true,
+            "statements": [
+              "%netdev% = $ARG1;"
+            ]
+          },
+          "fail": {
+            "comment": "Registration of the network device has failed.",
+            "trace relevant": true,
+            "statements": [
+              "ldv_failed_register_netdev();",
+              "return ldv_undef_int_negative();"
+            ]
+          },
+          "open": {
+            "callback": "%netdev.net_device_ops.ndo_open%",
+            "callback return value": "%ret%",
+            "comment": "Switch network device to the up state.",
+            "parameters": [
+              "%netdev%"
+            ],
+            "post-call": []
           },
           "open_fail": {
             "comment": "Open at the registration of the network device has failed.",
             "condition": [
               "%ret% != 0"
             ],
+            "trace relevant": true,
             "statements": [
               "ldv_failed_register_netdev();",
               "return ldv_undef_int_negative();"
             ]
           },
-          "fail": {
-            "comment": "Registration of the network device has failed.",
-            "statements": [
-              "ldv_failed_register_netdev();",
-              "return ldv_undef_int_negative();"
+          "open_success": {
+            "comment": "Network device is in the up state.",
+            "condition": [
+              "%ret% == 0"
             ]
-          }
-        }
-      },
-      "unregister_netdev": {
-        "comment": "Deregister network device and its callbacks.",
-        "labels": {
-          "netdev": {
-            "container": true,
-            "parameter": true,
-            "interface": [
-              "net.net_device"
+          },
+          "register": {
+            "comment": "Register network device callbacks.",
+            "parameters": [
+              "%netdev%"
+            ]
+          },
+          "success": {
+            "comment": "Registration of the network device has successfully finished.",
+            "trace relevant": true,
+            "statements": [
+              "return 0;"
             ]
           }
         },
-        "process": "<assign>.[stop].[deregister]",
-        "actions": {
-          "stop": {
-            "comment": "Switch network device to the down state.",
-            "callback": "%netdev.net_device_ops.ndo_stop%",
-            "parameters": [
-              "%netdev%"
-            ]
+        "comment": "Register network device and its callbacks.",
+        "labels": {
+          "netdev": {
+            "container": true,
+            "interface": [
+              "net.net_device"
+            ],
+            "parameter": true
           },
-          "deregister": {
-            "comment": "Deregiste of the network device has finished.",
-            "parameters": [
-              "%netdev%"
-            ]
-          },
-          "assign": {
-            "comment": "Get network device structure.",
-            "statements": [
-              "%netdev% = $ARG1;"
-            ]
+          "ret": {
+            "declaration": "int a",
+            "value": "ldv_undef_int()"
           }
-        }
+        },
+        "process": "<assign>.[open].(<open_success>.[register].<success> | <open_fail>) | <fail>"
       }
-    },
-    "environment processes": {}
+    }
   }
 }

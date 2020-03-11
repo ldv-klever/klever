@@ -2,8 +2,8 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:memory safety"
+      "name": "Requirements specification",
+      "value": "memory safety"
     },
     {
       "is_compare": true,
@@ -14,13 +14,21 @@
   "description": "",
   "error_trace": [
     [
-      {
-        "ldv_init": []
-      }
+      [
+        {
+          "EMG wrapper": [
+            {
+              "LDV model 'init'": []
+            }
+          ]
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",
-  "is_modifiable": true,
+  "is_modifiable": false,
+  "status": null,
   "tags": [],
+  "threshold": 0,
   "verdict": "2"
 }

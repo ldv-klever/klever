@@ -1,6 +1,6 @@
 {% extends 'bridge/base.html' %}
 {% comment "License" %}
-% Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+% Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
 % Ivannikov Institute for System Programming of the Russian Academy of Sciences
 %
 % Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,11 +18,15 @@
 
 {% load i18n %}
 {% load staticfiles %}
+{% load compress %}
 
 {% block head_block %}
-    <link href="{% static 'marks/css/tagsmap.css' %}" rel="stylesheet">
-{#    <script type="text/javascript" src="{% static 'marks/js/tags.js' %}"></script>#}
-    <script type="text/javascript" src="{% static 'marks/js/tagsmap.js' %}"></script>
+    {% compress css file tagsmap %}
+        <link href="{% static 'marks/css/tagsmap.css' %}" rel="stylesheet">
+    {% endcompress %}
+    {% compress js file tagsmap %}
+        <script type="text/javascript" src="{% static 'marks/js/tagsmap.js' %}"></script>
+    {% endcompress %}
 {% endblock %}
 
 {% block title %}{{ title }}{% endblock %}
@@ -42,21 +46,21 @@
         <br><br>
         <p style="margin-left: 10px"><i class="ui large gift purple icon"></i> <span style="color: #808080" class="italic">- {% trans 'Populated tags' %}</span></p>
 
-        <table>
+        <div style="display: table">
             {% for row in tree.table %}
-                <tr>
+                <div style="display: table-row">
                 {% for cell in row %}
                     {% if cell and cell.type == 'link' %}
-                        <td class="tag-tree-link" data-links="{{ cell.value }}">&nbsp;</td>
+                        <div style="display: table-cell" class="tag-tree-link" data-links="{{ cell.value }}">&nbsp;</div>
                     {% elif cell and cell.type == 'tag' %}
-                        <td id="tag__{{ cell.value.id }}" class="edit-tag-cell {{ tree.type }}">{{ cell.value.name }}</td>
+                        <div style="display: table-cell" id="tag__{{ cell.value.id }}" class="edit-tag-cell {{ tree.type }}">{{ cell.value.name }}</div>
                     {% else %}
-                        <td>&nbsp;</td>
+                        <div style="display: table-cell">&nbsp;</div>
                     {% endif %}
                 {% endfor %}
-                </tr>
+                </div>
             {% endfor %}
-        </table>
+        </div>
     </div>
 
     <span id="tags_type" hidden>{{ tree.type }}</span>

@@ -2,13 +2,13 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Linux:Version",
+      "name": "Project:Version",
       "value": "v2.6.33.20"
     },
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:test:environment model specifications with function pointer analysis"
+      "name": "Requirements specification",
+      "value": "test:environment model specifications with function pointer analysis"
     },
     {
       "is_compare": true,
@@ -19,37 +19,49 @@
   "description": "",
   "error_trace": [
     [
-      {
-        "ldv_initialize": []
-      }
+      [
+        {
+          "Entry point 'main'": [
+            {
+              "LDV model 'initialize'": []
+            }
+          ]
+        }
+      ]
     ],
     [
-      {
-        "ldv_init": [
-          {
-            "ldv_invoke_test": []
-          },
-          {
-            "ldv_emg_flush_delayed_work": [
-              {
-                "ldv_handler": [
-                  {
-                    "ldv_invoke_callback": [
-                      {
-                        "ldv_assert_linux_emg_test": []
-                      }
-                    ]
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      }
+      [
+        {
+          "LDV model 'handler'": [
+            {
+              "LDV model 'invoke_callback'": [
+                {
+                  "LDV model 'assert'": []
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "EMG wrapper": [
+            {
+              "LDV model 'init'": [
+                {
+                  "LDV model 'invoke_test'": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
     ]
   ],
   "function": "thread_call_forests",
   "is_modifiable": false,
+  "status": null,
   "tags": [],
+  "threshold": 0,
   "verdict": "2"
 }

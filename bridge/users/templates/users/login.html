@@ -1,6 +1,6 @@
 {% extends 'bridge/base.html' %}
 {% comment "License" %}
-% Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+% Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
 % Ivannikov Institute for System Programming of the Russian Academy of Sciences
 %
 % Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,9 +18,15 @@
 
 {% load i18n %}
 {% load staticfiles %}
+{% load compress %}
+
 {% block title %}{% trans 'Sign in' %}{% endblock %}
 
-{% block head_block %}<link href="{% static 'users/css/login.css' %}" rel="stylesheet">{% endblock %}
+{% block head_block %}
+    {% compress css file login %}
+        <link href="{% static 'users/css/login.css' %}" rel="stylesheet">
+    {% endcompress %}
+{% endblock %}
 
 {% block body_block %}
     <form class="form-signin" role="form" id="login_form" method="post" action="{% url 'users:login' %}{% if request.GET %}?next={{ request.GET.next }}{% endif %}">

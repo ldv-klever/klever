@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
 # Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -202,7 +202,7 @@ class TestService(KleverTestCase):
         response = self.core.post('/jobs/decide_job/', {'report': json.dumps({
             'type': 'start', 'id': '/', 'comp': COMPUTER,
             'attrs': [{'name': 'Core version', 'value': 'stage-2-1k123j13'}]
-        }), 'job format': 1})
+        })})
         self.assertEqual(response.status_code, 200)
         self.assertIn(response['Content-Type'], {'application/x-zip-compressed', 'application/zip'})
         self.assertEqual(Job.objects.get(pk=self.job.pk).status, JOB_STATUS[2][0])
@@ -554,7 +554,7 @@ class TestService(KleverTestCase):
         response = self.core.post('/jobs/decide_job/', {'report': json.dumps({
             'type': 'start', 'id': '/', 'comp': COMPUTER,
             'attrs': [{'name': 'Core version', 'value': 'stage-2-1k123j13'}]
-        }), 'job format': 1})
+        })})
         self.assertEqual(response.status_code, 200)
         self.assertIn(response['Content-Type'], {'application/x-zip-compressed', 'application/zip'})
         self.assertEqual(Job.objects.get(pk=self.job.pk).status, JOB_STATUS[2][0])

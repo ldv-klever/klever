@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
 # Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -45,6 +45,26 @@ class TemplateAPIRetrieveView(GenericAPIView):
         assert self.template_name is not None, 'Template was not provided'
         instance = self.get_object()
         context = self.get_context_data(instance)
+        return Response(context, template_name=self.template_name)
+
+    def __is_not_used(self, *args, **kwargs):
+        pass
+
+
+class TemplateAPIListView(GenericAPIView):
+    template_name = None
+    renderer_classes = (TemplateHTMLRenderer,)
+
+    def get_context_data(self, queryset, **kwargs):
+        context = {'user': self.request.user, 'object_list': queryset}
+        context.update(kwargs)
+        return context
+
+    def get(self, request, *args, **kwargs):
+        self.__is_not_used(*args, **kwargs)
+        assert self.template_name is not None, 'Template was not provided'
+        queryset = self.get_queryset()
+        context = self.get_context_data(queryset)
         return Response(context, template_name=self.template_name)
 
     def __is_not_used(self, *args, **kwargs):

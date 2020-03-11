@@ -16,8 +16,7 @@
  */
 
 #include <linux/module.h>
-#include <verifier/common.h>
-#include <verifier/nondet.h>
+#include <ldv/test.h>
 #include "func.h"
 
 static int __init ldv_init(void)
@@ -28,22 +27,22 @@ static int __init ldv_init(void)
 	struct ldv_struct var6 = {ldv_func1, ldv_func2};
 
 	if (var1(var3) != var3)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (var2(var4) != -var4)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (var5[0](var3) != var3)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (var5[1](var4) != -var4)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (var6.field1(var3) != var3)
-		ldv_error();
+		ldv_unexpected_error();
 
 	if (var6.field2(var4) != -var4)
-		ldv_error();
+		ldv_unexpected_error();
 
 	return 0;
 }

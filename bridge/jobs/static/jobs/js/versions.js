@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+ * Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
  * Ivannikov Institute for System Programming of the Russian Academy of Sciences
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -105,7 +105,7 @@ window.init_versions_list = function() {
         let versions = checked_versions();
         if (versions.length !== 2) err_notify($('#error__select_two_vers').text());
         else {
-            $.post(`/jobs/api/compare-versions/${$('#job_id').val()}/${versions[0]}/${versions[1]}/`, {}, function (resp) {
+            $.get(`/jobs/api/compare-versions/${$('#job_id').val()}/${versions[0]}/${versions[1]}/`, {}, function (resp) {
                 comparison_modal.find('.content').html(resp);
                 comparison_modal.modal('show');
                 init_file_actions();

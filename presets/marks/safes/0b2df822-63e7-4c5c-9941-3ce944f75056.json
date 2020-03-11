@@ -2,17 +2,17 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirement",
-      "value": "linux:fs:sysfs"
+      "name": "Requirements specification",
+      "value": "fs:sysfs:group"
     },
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/linux/fs/sysfs/safe.ko"
+      "value": "ext-modules/linux/fs/sysfs/group/safe.ko"
     }
   ],
   "description": "",
-  "is_modifiable": true,
+  "is_modifiable": false,
   "tags": [],
   "verdict": "0"
 }

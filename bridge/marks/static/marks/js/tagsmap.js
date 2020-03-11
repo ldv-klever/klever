@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+ * Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
  * Ivannikov Institute for System Programming of the Russian Academy of Sciences
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-$(document).ready(function () {
+jQuery(function () {
 
     // Draw connections
     $('.tag-tree-link').each(function () {
@@ -31,6 +31,8 @@ $(document).ready(function () {
         $('#tag__' + $(this).data('tag')).popup({
             popup: $(this),
             hoverable: true,
+            position: 'top left',
+            exclusive: true,
             delay: {show: 100, hide: 300},
             variation: 'very wide'
         })

@@ -16,7 +16,7 @@
  */
 
 #include <linux/module.h>
-#include <verifier/common.h>
+#include <ldv/test.h>
 
 static int i;
 
@@ -35,7 +35,7 @@ static int __init init1(void)
 static void __exit exit1(void)
 {
 	if (i != 5)
-		ldv_error();
+		ldv_expected_error();
 }
 
 module_init(init1);

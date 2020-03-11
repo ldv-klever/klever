@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
 # Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,6 +15,7 @@
 # limitations under the License.
 #
 
+import json
 import os
 from io import BytesIO
 from urllib.parse import unquote
@@ -895,7 +896,7 @@ class ReportChildrenTable:
 
 class FilesForCompetitionArchive:
     obj_attr = 'Program fragment'
-    requirement_attr = 'Requirement'
+    requirement_attr = 'Requirements specification'
 
     def __init__(self, job, filters):
         try:
@@ -928,8 +929,8 @@ class FilesForCompetitionArchive:
     def __get_archives(self):
         archives = {}
         for report in ReportComponent.objects.filter(root=self.root, verification=True)\
-                .exclude(verifier_input='').only('id', 'verifier_input'):
-            archives[report.id] = report.verifier_input.path
+                .exclude(verifier_files='').only('id', 'verifier_files'):
+            archives[report.id] = report.verifier_files.path
         return archives
 
     def __get_attrs(self):
@@ -987,9 +988,9 @@ def report_attributes_with_parents(report):
     return list(attrs_qs.values_list('name', 'value'))
 
 
-def remove_verification_files(job):
-    for report in ReportComponent.objects.filter(root=job.reportroot, verification=True).exclude(verifier_input=''):
-        report.verifier_input.delete()
+def remove_verifier_files(job):
+    for report in ReportComponent.objects.filter(root=job.reportroot, verification=True).exclude(verifier_files=''):
+        report.verifier_files.delete()
 
 
 def get_report_data_type(component, data):
@@ -999,8 +1000,8 @@ def get_report_data_type(component, data):
         elif all(x in res for x in ['before fix', 'after fix'] for res in data.values()) \
                 and all('verdict' in data[mod]['before fix'] and 'verdict' in data[mod]['after fix'] for mod in data):
             return 'Core:validation'
-    elif component == 'LKVOG' and isinstance(data, dict):
-        return 'LKVOG:lines'
+    elif component == 'PFG' and isinstance(data, dict):
+        return 'PRG:lines'
     return 'Unknown'
 
 
@@ -1033,22 +1034,98 @@ class ReportData:
     def __init__(self, report):
         self._report = report
         self.data = self._report.data
-        self.type = self.__get_type()
+        self.type = self.data[0]['type'] if len(self.data) and 'type' in self.data[0] else 'unknown'
+        self.stats = None
 
-    def __get_type(self):
-        component = self._report.component
-        if component == 'Core' and isinstance(self.data, dict) \
-                and all(isinstance(res, dict) for res in self.data.values()):
-            if all(x in res for x in ['ideal verdict', 'verdict'] for res in self.data.values()):
-                return 'Core:testing'
-            elif all(any(x in res for x in ['before fix', 'after fix']) for res in self.data.values()) \
-                    and all(('verdict' in self.data[bug]['before fix'] if 'before fix' in self.data[bug] else True)
-                            or ('verdict' in self.data[bug]['after fix'] if 'after fix' in self.data[bug] else True)
-                            for bug in self.data):
-                return 'Core:validation'
-        elif component == 'LKVOG' and isinstance(self.data, dict):
-            return 'LKVOG:lines'
-        return 'Unknown'
+        if self.type == 'testing':
+            self.__calculate_test_stats()
+        elif self.type == 'validation':
+            self.__calculate_validation_stats()
+        # There is always the only element in a list of PFG data.
+        elif self.type == 'PFG':
+            self.data = self.data[0]
+            # Do not visualize data type. Before this type was already saved explicitly.
+            del self.data['type']
+        elif self.type == 'unknown' and self.data:
+            self.data = json.dumps(self.data, ensure_ascii=True, sort_keys=True, indent=4)
+
+    def __calculate_test_stats(self):
+        self.stats = {
+            "passed tests": 0,
+            "failed tests": 0,
+            "missed comments": 0,
+            "excessive comments": 0,
+            "tests": 0
+        }
+
+        for test_result in self.data:
+            self.stats["tests"] += 1
+            if test_result["ideal verdict"] == test_result["verdict"]:
+                self.stats["passed tests"] += 1
+                if test_result.get('comment'):
+                    self.stats["excessive comments"] += 1
+            else:
+                self.stats["failed tests"] += 1
+                if not test_result.get('comment'):
+                    self.stats["missed comments"] += 1
+
+    def __calculate_validation_stats(self):
+        self.stats = {
+            "found bug before fix and safe after fix": 0,
+            "found bug before fix and non-safe after fix": 0,
+            "found non-bug before fix and safe after fix": 0,
+            "found non-bug before fix and non-safe after fix": 0,
+            "missed comments": 0,
+            "excessive comments": 0,
+            "bugs": 0
+        }
+
+        # Merge together validation results before and after bug fixes. They have the same bug identifiers.
+        validation_results = dict()
+        for validation_result in self.data:
+            bug_id = validation_result['bug']
+            if bug_id in validation_results:
+                validation_results[bug_id].update(validation_result)
+            else:
+                validation_results[bug_id] = validation_result
+
+        self.data = validation_results.values()
+
+        for validation_result in self.data:
+            self.stats["bugs"] += 1
+
+            is_found_bug_before_fix = False
+
+            if "before fix" in validation_result:
+                if validation_result["before fix"]["verdict"] == "unsafe":
+                    is_found_bug_before_fix = True
+                    if validation_result["before fix"]["comment"]:
+                        self.stats["excessive comments"] += 1
+                elif 'comment' not in validation_result["before fix"] or not validation_result["before fix"]["comment"]:
+                    self.stats["missed comments"] += 1
+
+            is_found_safe_after_fix = False
+
+            if "after fix" in validation_result:
+                if validation_result["after fix"]["verdict"] == "safe":
+                    is_found_safe_after_fix = True
+                    if validation_result["after fix"]["comment"]:
+                        self.stats["excessive comments"] += 1
+                elif 'comment' not in validation_result["after fix"] or not validation_result["after fix"]["comment"]:
+                    self.stats["missed comments"] += 1
+
+            if is_found_bug_before_fix:
+                if is_found_safe_after_fix:
+                    self.stats["found bug before fix and safe after fix"] += 1
+                else:
+                    self.stats["found bug before fix and non-safe after fix"] += 1
+            else:
+                if is_found_safe_after_fix:
+                    self.stats["found non-bug before fix and safe after fix"] += 1
+                else:
+                    self.stats["found non-bug before fix and non-safe after fix"] += 1
+
+        return self.stats
 
 
 class ComponentLogGenerator(FileWrapper):
@@ -1071,11 +1148,11 @@ class AttrDataGenerator(FileWrapper):
 
 class VerifierFilesGenerator(FileWrapper):
     def __init__(self, instance):
-        if not instance.verifier_input:
-            raise BridgeException(_("The report doesn't have input files of static verifiers"))
-        self.name = '%s files.zip' % instance.component
-        self.size = instance.verifier_input.file.size
-        super().__init__(instance.verifier_input.file, 8192)
+        if not instance.verifier_files:
+            raise BridgeException(_("The report doesn't have verifier input files"))
+        self.name = '%s input files.zip' % instance.component
+        self.size = instance.verifier_files.file.size
+        super().__init__(instance.verifier_files.file, 8192)
 
 
 class ErrorTraceFileGenerator(FileWrapper):

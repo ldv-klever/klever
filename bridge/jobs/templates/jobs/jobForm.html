@@ -1,6 +1,6 @@
-{% extends 'jobs/base.html' %}
+{% extends 'bridge/base.html' %}
 {% comment "License" %}
-% Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+% Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
 % Ivannikov Institute for System Programming of the Russian Academy of Sciences
 %
 % Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,35 +18,42 @@
 
 {% load i18n %}
 {% load staticfiles %}
+{% load compress %}
 
-{% block title %}{% if action == 'copy' %}{% trans 'Job Copying' %}{% else %}{% trans 'Job Editing' %}{% endif %}{% endblock %}
+{% block title %}{% if action == 'copy' %}{% trans 'Job Copying' %}{% elif action == 'create' %}{% trans 'Job Creating' %}{% else %}{% trans 'Job Editing' %}{% endif %}{% endblock %}
 
-{% block jobs_head_block %}
+{% block head_block %}
     {# Code Mirror stylesheets #}
-    <link rel="stylesheet" href="{% static 'codemirror/lib/codemirror.css' %}">
-    <link rel="stylesheet" href="{% static 'codemirror/theme/midnight.css' %}">
-    <link rel="stylesheet" href="{% static 'codemirror/addon/dialog/dialog.css' %}">
-    <link rel="stylesheet" href="{% static 'codemirror/addon/search/matchesonscrollbar.css' %}">
+    {% compress css file codemirror %}
+        <link rel="stylesheet" href="{% static 'bridge/codemirror/lib/codemirror.css' %}">
+        <link rel="stylesheet" href="{% static 'bridge/codemirror/theme/midnight.css' %}">
+        <link rel="stylesheet" href="{% static 'bridge/codemirror/addon/dialog/dialog.css' %}">
+        <link rel="stylesheet" href="{% static 'bridge/codemirror/addon/search/matchesonscrollbar.css' %}">
+    {% endcompress %}
 
     {# Code Mirror js libraries #}
-    <script src="{% static 'codemirror/lib/codemirror.js' %}"></script>
-    <script src="{% static 'codemirror/mode/javascript.js' %}"></script>
-    <script src="{% static 'codemirror/mode/clike.js' %}"></script>
-    <script src="{% static 'codemirror/mode/xml.js' %}"></script>
-    <script src="{% static 'codemirror/mode/python.js' %}"></script>
-    <script src="{% static 'codemirror/addon/dialog/dialog.js' %}"></script>
-    <script src="{% static 'codemirror/addon/search/searchcursor.js' %}"></script>
-    <script src="{% static 'codemirror/addon/scroll/annotatescrollbar.js' %}"></script>
-    <script src="{% static 'codemirror/addon/search/matchesonscrollbar.js' %}"></script>
-    <script src="{% static 'codemirror/addon/search/search.js' %}"></script>
+    {% compress js file codemirror %}
+        <script src="{% static 'bridge/codemirror/lib/codemirror.js' %}"></script>
+        <script src="{% static 'bridge/codemirror/mode/javascript.js' %}"></script>
+        <script src="{% static 'bridge/codemirror/mode/clike.js' %}"></script>
+        <script src="{% static 'bridge/codemirror/mode/xml.js' %}"></script>
+        <script src="{% static 'bridge/codemirror/mode/python.js' %}"></script>
+        <script src="{% static 'bridge/codemirror/addon/dialog/dialog.js' %}"></script>
+        <script src="{% static 'bridge/codemirror/addon/search/searchcursor.js' %}"></script>
+        <script src="{% static 'bridge/codemirror/addon/scroll/annotatescrollbar.js' %}"></script>
+        <script src="{% static 'bridge/codemirror/addon/search/matchesonscrollbar.js' %}"></script>
+        <script src="{% static 'bridge/codemirror/addon/search/search.js' %}"></script>
+    {% endcompress %}
 
     {# Jstree #}
-    <link rel="stylesheet" href="{% static 'jstree/themes/default/style.min.css' %}">
-    <script src="{% static 'jstree/jstree.min.js' %}"></script>
+    <link rel="stylesheet" href="{% static 'bridge/jstree/themes/default/style.min.css' %}">
+    <script src="{% static 'bridge/jstree/jstree.min.js' %}"></script>
 
-    <script src="{% static 'jobs/js/jobFilesEdit.js' %}"></script>
-    <script src="{% static 'jobs/js/jobRolesEdit.js' %}"></script>
-    <script src="{% static 'jobs/js/jobForm.js' %}"></script>
+    {% compress js file jobform %}
+        <script src="{% static 'jobs/js/jobFilesEdit.js' %}"></script>
+        <script src="{% static 'jobs/js/jobRolesEdit.js' %}"></script>
+        <script src="{% static 'jobs/js/jobForm.js' %}"></script>
+    {% endcompress %}
 {% endblock %}
 
 {% block body_block %}
@@ -54,31 +61,31 @@
         <div class="seven wide column">
 
             {# Versions #}
-            <label for="job_version_selector" class="purple-title">{% trans 'Previous versions' %}</label>
-            <select id="job_version_selector" class="ui dropdown fluid">
-                {% for jv in versions %}
-                    <option value="{{ jv.version }}"{% if jv.version == object.version %} selected{% endif %}>{{ jv.title }}</option>
-                {% endfor %}
-            </select>
-            <br>
+            {% if initial.id and initial.version and initial.versions %}
+                {# Show versions only if job id, its current version and list of versions are provided #}
+                <label for="job_version_selector" class="purple-title">{% trans 'Previous versions' %}</label>
+                <select id="job_version_selector" class="ui dropdown fluid">
+                    {% for jv in initial.versions %}
+                        <option value="{% url 'jobs:api-job-version' initial.id jv.version %}"{% if jv.version == initial.version %} selected{% endif %}>{{ jv.title }}</option>
+                    {% endfor %}
+                </select>
+                <br>
+            {% endif %}
 
-            {# Title, parent and description #}
+            {# Title and parent #}
             <div class="ui violet segment" style="margin-bottom: 0;">
                 <label for="job_name"><strong>{% trans 'Title' %}</strong></label>
-                <div class="ui fluid input{% if action == 'copy' %} error{% endif %} field">
-                    <input id="job_name" type="text" value="{{ name }}">
+                <div class="ui fluid input field">
+                    <input id="job_name" type="text" value="{{ initial.name }}">
                 </div>
-                {% if action == 'copy' %}<p id="title_should_be_changed" class="error-comment">{% trans 'The title is used by the parent job' %}</p>{% endif %}
                 <br>
                 <label for="parent_identifier"><strong>{% trans 'Parent identifier' %}</strong></label>
                 <div class="ui fluid input field">
-                    <input id="parent_identifier" maxlength="36" type="text" value="{% if action == 'copy' %}{{ object.identifier }}{% else %}{{ parent }}{% endif %}">
+                    <input id="parent_identifier" maxlength="36" type="text" value="{{ initial.parent }}">
                 </div>
-                <br>
-                <label style="width: 100%;"><strong>{% trans 'Description' %}</strong></label>
-                <div class="ui form">
-                    <textarea id="description" rows="10" style="resize: none" placeholder="{% trans 'Description' %}">{{ description }}</textarea>
-                </div>
+                {% if initial.preset_uuid %}
+                    <input id="preset_uuid" type="hidden" value="{{ initial.preset_uuid }}">
+                {% endif %}
             </div>
 
             {# Files table #}
@@ -98,14 +105,13 @@
             {# Action Buttons #}
             <br>
             <button id="save_job_btn" type="submit" class="ui olive button">{% trans 'Save' %}</button>
-            <a href="{% url 'jobs:job' object.id %}" class="ui violet button" style="float: right">{% trans 'Cancel' %}</a>
+            <a href="{{ cancel_url }}" class="ui violet button" style="float: right">{% trans 'Cancel' %}</a>
         </div>
         <div id="editor_container" class="nine wide column">
             {# File editor #}
             {% include 'jobs/fileEditor.html' %}
         </div>
     </div>
-    <input id="job_version" value="{{ version }}" type="hidden">
 
     {# Warning modal for saving job without commiting file changes #}
     <div id="file_not_commited_modal" class="ui basic modal">
@@ -126,23 +132,17 @@
 
     <script type="application/javascript">
         jQuery(function () {
-            let job_id = "{{ object.id }}", versions_selector = $('#job_version_selector');
-
-            versions_selector.dropdown();
-
-            let job_form = new JobForm(job_id, "{{ action }}"),
+            let job_form = new JobForm(),
                 roles_form = new UserRoleForm('user_roles_form'),
                 files_form = new FilesTree('filestree', 'editor_container');
 
             job_form.initialize({
                 name: 'job_name',
                 comment: 'job_comment',
-                version: 'job_version',
-                description: 'description',
-                parent: 'parent_identifier'
+                parent: 'parent_identifier',
+                preset_uuid: 'preset_uuid'
             }, {
                 name: "{% trans 'Title' %}",
-                description: "{% trans 'Description' %}",
                 comment: "{% trans 'Change comment' %}",
                 version: "{% trans 'Latest version' %}",
                 parent: "{% trans 'Parent' %}"
@@ -166,27 +166,30 @@
                 'download': "{% trans 'Download' %}"
             });
 
-            function get_version_data() {
-                let version = versions_selector.children('option:selected').val();
-
-                $.get('/jobs/api/job-version/{0}/{1}/'.format(job_id, version), {}, function (data) {
+            function get_version_data(data_url) {
+                $('#dimmer_of_page').addClass('active');
+                $.get(data_url, {}, function (data) {
                     if (data.error) return err_notify(data.error);
-                    $('#job_name').val(data['name']);
-                    $('#description').val(data['description']);
                     roles_form.initialize(data['roles']);
                     files_form.initialize(data['files']);
+                    {% if action == 'edit' %}
+                        {# Get version name for editing job only #}
+                        $('#job_name').val(data['name']);
+                    {% endif %}
+                    $('#dimmer_of_page').removeClass('active');
                 });
             }
 
             function save_job() {
-                job_form.save({
+                job_form.save("{{ initial.save_url }}", "{% if action == 'edit' %}PUT{% else %}POST{% endif %}", {
                     global_role: roles_form.global_role(),
                     user_roles: roles_form.get_roles(),
-                    files: files_form.serialize()
+                    files: files_form.serialize(),
+                    version: {% if initial.version %}{{ initial.version }}{% else %}0{% endif %}
                 });
             }
 
-            get_version_data();
+            get_version_data("{{ initial_url }}");
 
             $('#file_not_commited_modal').modal({transition: 'fade in', autofocus: false, closable: false});
             $('#close_save_job_btn').click(function () { $('#file_not_commited_modal').modal('hide') });
@@ -196,12 +199,14 @@
                 files_form.not_commited() ? $('#file_not_commited_modal').modal('show') : save_job();
             });
 
-            versions_selector.change(get_version_data);
-
-            $('#job_name').on('input', function () {
-                $(this).parent().removeClass('error');
-                $('#title_should_be_changed').remove();
-            });
+            // Update data on change job version if it exists
+            let versions_selector = $('#job_version_selector');
+            if (versions_selector.length) {
+                versions_selector.dropdown();
+                versions_selector.change(function () {
+                    get_version_data(versions_selector.children('option:selected').val());
+                });
+            }
         });
     </script>
 {% endblock %}

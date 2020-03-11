@@ -1,7 +1,0 @@
-{
-  "attrs": [],
-  "function": "core.utils.CommandError: \"make\" failed",
-  "is_regexp": false,
-  "problem_pattern": "Build failure",
-  "production": true
-}

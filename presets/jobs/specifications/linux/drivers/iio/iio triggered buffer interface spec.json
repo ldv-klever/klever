@@ -1,30 +1,7 @@
 {
-  "Linux 3.14 (base)": {
-    "functions models": {
-      "iio_triggered_buffer_setup": {
-        "declaration": "int iio_triggered_buffer_setup(%iio_triggered_buffer.dev%, %iio_triggered_buffer.handler%, %iio_triggered_buffer.thread%, const struct iio_buffer_setup_ops *setup_ops)",
-        "header": "linux/iio/triggered_buffer.h"
-      },
-      "iio_triggered_buffer_cleanup": {
-        "declaration": "void iio_triggered_buffer_cleanup(%iio_triggered_buffer.dev%)",
-        "header": "linux/iio/triggered_buffer.h"
-      }
-    },
+  "3.14": {
     "categories": {
       "iio_triggered_buffer": {
-        "containers": {},
-        "resources": {
-          "line": {
-            "declaration": "int line"
-          },
-          "data": {
-            "declaration": "void *data"
-          },
-          "dev": {
-            "declaration": "struct iio_dev *dev",
-            "header": "linux/iio/iio.h"
-          }
-        },
         "callbacks": {
           "handler": {
             "declaration": "irqreturn_t (*handler)(%iio_triggered_buffer.line%, %iio_triggered_buffer.data%)",
@@ -33,7 +10,33 @@
           "thread": {
             "declaration": "irqreturn_t (*thread)(%iio_triggered_buffer.line%, %iio_triggered_buffer.data%)"
           }
+        },
+        "containers": {},
+        "reference": true,
+        "resources": {
+          "data": {
+            "declaration": "void *data"
+          },
+          "dev": {
+            "declaration": "struct iio_dev *dev",
+            "header": "linux/iio/iio.h"
+          },
+          "line": {
+            "declaration": "int line"
+          }
         }
+      }
+    },
+    "functions models": {
+      "iio_triggered_buffer_cleanup": {
+        "declaration": "void iio_triggered_buffer_cleanup(%iio_triggered_buffer.dev%)",
+        "header": "linux/iio/triggered_buffer.h",
+        "reference": true
+      },
+      "iio_triggered_buffer_setup": {
+        "declaration": "int iio_triggered_buffer_setup(%iio_triggered_buffer.dev%, %iio_triggered_buffer.handler%, %iio_triggered_buffer.thread%, const struct iio_buffer_setup_ops *setup_ops)",
+        "header": "linux/iio/triggered_buffer.h",
+        "reference": true
       }
     }
   }

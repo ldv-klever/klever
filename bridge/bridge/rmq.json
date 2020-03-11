@@ -1,0 +1,6 @@
+{
+  "username": "service",
+  "password": "service",
+  "host": "localhost",
+  "queue": "Klever jobs and tasks"
+}

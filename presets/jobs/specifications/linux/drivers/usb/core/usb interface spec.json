@@ -1,75 +1,80 @@
 {
-  "Linux 3.14 (base)": {
-    "functions models": {
-      "usb_reset_device": {
-        "declaration": "int usb_reset_device(%usb.usb_device%)",
-        "header": "linux/usb.h"
-      },
-      "usb_register_driver": {
-        "declaration": "int usb_register_driver(*%usb.usb_driver%, struct module *, const char *)",
-        "header": "linux/usb.h"
-      },
-      "usb_deregister": {
-        "declaration": "void usb_deregister(*%usb.usb_driver%)",
-        "header": "linux/usb.h"
-      },
-      "usb_register": {
-        "declaration": "int usb_register(*%usb.usb_driver%, struct module *, const char *)",
-        "header": "linux/usb.h"
-      }
-    },
+  "3.14": {
     "categories": {
       "usb": {
-        "containers": {
-          "usb_driver": {
-            "header": "linux/usb.h",
-            "declaration": "struct usb_driver driver",
-            "fields": {
-              "probe": "%usb.probe%",
-              "pre_reset": "%usb.pre%",
-              "post_reset": "%usb.post%",
-              "disconnect": "%usb.release%",
-              "suspend": "%usb.suspend%",
-              "resume": "%usb.resume%",
-              "reset_resume": "%usb.reset_resume%"
-            }
-          }
-        },
         "callbacks": {
-          "probe": {
-            "declaration": "int (*probe) (%usb.usb_interface%, const struct usb_device_id *id)"
+          "post": {
+            "declaration": "int (*post) (%usb.usb_interface%)"
           },
           "pre": {
             "declaration": "int (*pre) (%usb.usb_interface%)"
           },
-          "post": {
-            "declaration": "int (*post) (%usb.usb_interface%)"
+          "probe": {
+            "declaration": "int (*probe) (%usb.usb_interface%, const struct usb_device_id *id)"
           },
           "release": {
             "declaration": "void (*release) (%usb.usb_interface%)"
           },
-          "suspend": {
-            "declaration": "int (*suspend) (%usb.usb_interface%, pm_message_t message)"
+          "reset_resume": {
+            "declaration": "int (*reset_resume)(%usb.usb_interface%)"
           },
           "resume": {
             "declaration": "int (*resume) (%usb.usb_interface%)"
           },
-          "reset_resume": {
-            "declaration": "int (*reset_resume)(%usb.usb_interface%)"
+          "suspend": {
+            "declaration": "int (*suspend) (%usb.usb_interface%, pm_message_t message)"
           }
         },
+        "containers": {
+          "usb_driver": {
+            "declaration": "struct usb_driver driver",
+            "fields": {
+              "disconnect": "%usb.release%",
+              "post_reset": "%usb.post%",
+              "pre_reset": "%usb.pre%",
+              "probe": "%usb.probe%",
+              "reset_resume": "%usb.reset_resume%",
+              "resume": "%usb.resume%",
+              "suspend": "%usb.suspend%"
+            },
+            "header": "linux/usb.h"
+          }
+        },
+        "reference": true,
         "resources": {
-          "usb_interface": {
-            "declaration": "struct usb_interface *usb_interface",
-            "header": "linux/usb.h",
-            "implemented in kernel": true
-          },
           "usb_device": {
             "declaration": "struct usb_device *usb_device",
             "header": "linux/usb.h",
             "implemented in kernel": true
+          },
+          "usb_interface": {
+            "declaration": "struct usb_interface *usb_interface",
+            "header": "linux/usb.h",
+            "implemented in kernel": true
           }
         }
+      }
+    },
+    "functions models": {
+      "usb_deregister": {
+        "declaration": "void usb_deregister(*%usb.usb_driver%)",
+        "header": "linux/usb.h",
+        "reference": true
+      },
+      "usb_register": {
+        "declaration": "int usb_register(*%usb.usb_driver%, struct module *, const char *)",
+        "header": "linux/usb.h",
+        "reference": true
+      },
+      "usb_register_driver": {
+        "declaration": "int usb_register_driver(*%usb.usb_driver%, struct module *, const char *)",
+        "header": "linux/usb.h",
+        "reference": true
+      },
+      "usb_reset_device": {
+        "declaration": "int usb_reset_device(%usb.usb_device%)",
+        "header": "linux/usb.h",
+        "reference": true
       }
     }
   }

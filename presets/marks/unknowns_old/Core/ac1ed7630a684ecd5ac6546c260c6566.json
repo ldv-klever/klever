@@ -1,5 +1,0 @@
-{
-  "pattern": "ValueError: Cannot parse JSON configuration file 'verifier profiles.json'",
-  "problem": "BadVerifierProf",
-  "production": true
-}

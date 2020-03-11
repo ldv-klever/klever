@@ -16,6 +16,7 @@
  */
 
 #include <linux/module.h>
+#include <ldv/test.h>
 
 extern void several_groups_export_without_error(void);
 extern void several_groups_export_with_error(void);

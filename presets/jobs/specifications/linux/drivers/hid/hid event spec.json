@@ -1,119 +1,8 @@
 {
-  "Linux 3.14 (base)": {
-    "functions models": {
-      "hid_add_device": {
-        "comment": "Register hid device.",
-        "labels": {
-          "device": {
-            "container": true,
-            "parameter": true,
-            "interface": [
-              "hid.hid_device"
-            ]
-          }
-        },
-        "process": "<assign>.[register].<success> | <fail>",
-        "actions": {
-          "register": {
-            "parameters": [
-              "%device%"
-            ]
-          },
-          "assign": {
-            "comment": "Extract hid device from parameters.",
-            "statements": [
-              "%device% = $ARG1;"
-            ]
-          },
-          "fail": {
-            "comment": "Fail hid device registration.",
-            "statements": [
-              "return ldv_undef_int_negative();"
-            ]
-          },
-          "success": {
-            "comment": "Registration of hid device has been finished successfully.",
-            "statements": [
-              "return 0;"
-            ]
-          }
-        }
-      },
-      "hid_destroy_device": {
-        "comment": "Deregister hid device.",
-        "labels": {
-          "device": {
-            "container": true,
-            "parameter": true,
-            "interface": [
-              "hid.hid_device"
-            ]
-          }
-        },
-        "process": "<assign>.[deregister]",
-        "actions": {
-          "deregister": {
-            "parameters": [
-              "%device%"
-            ]
-          },
-          "assign": {
-            "comment": "Extract hid device from parameters.",
-            "statements": [
-              "%device% = $ARG1;"
-            ]
-          }
-        }
-      }
-    },
+  "3.14": {
     "environment processes": {
       "hid_scenario": {
-        "comment": "Invoke hid callbacks.",
-        "labels": {
-          "hid_device": {
-            "container": true,
-            "interface": [
-              "hid.hid_device"
-            ]
-          },
-          "ll_driver": {
-            "container": true,
-            "pointer": true,
-            "interface": [
-              "hid.ll_driver"
-            ]
-          },
-          "ret": {
-            "declaration": "int a",
-            "value": "ldv_undef_int()"
-          },
-          "callback": {
-            "callback": true
-          }
-        },
-        "process": "(!register).<assign>.{main}",
         "actions": {
-          "main": {
-            "comment": "Device initialization.",
-            "process": "[start].(<start_success>.{inside} | <start_fail>.{main}) | (deregister)"
-          },
-          "inside": {
-            "comment": "Input layer operations.",
-            "process": "[open].(<open_success>.[callback].[close].{inside} | <open_fail>.[stop].{main}) | [stop].{main}"
-          },
-          "register": {
-            "parameters": [
-              "%hid_device%"
-            ]
-          },
-          "deregister": {
-            "condition": [
-              "%hid_device% == $ARG1"
-            ],
-            "parameters": [
-              "%hid_device%"
-            ]
-          },
           "assign": {
             "comment": "Extract ll_driver operations.",
             "statements": [
@@ -126,46 +15,38 @@
               "%hid_device%"
             ]
           },
-          "start": {
-            "comment": "Start the hid device.",
-            "callback": "%ll_driver.start%",
+          "close": {
+            "callback": "%ll_driver.close%",
+            "comment": "Input layer close.",
             "parameters": [
               "%hid_device%"
-            ],
-            "callback return value": "%ret%",
-            "post-call": [
-              "%ret% = ldv_post_probe(%ret%);"
             ]
           },
-          "stop": {
-            "comment": "Stop the hid device.",
-            "callback": "%ll_driver.stop%",
+          "deregister": {
+            "condition": [
+              "%hid_device% == $ARG1"
+            ],
             "parameters": [
               "%hid_device%"
             ]
+          },
+          "inside": {
+            "comment": "Input layer operations.",
+            "process": "[open].(<open_success>.[callback].[close].{inside} | <open_fail>.[stop1].{main}) | [stop2].{main}"
+          },
+          "main": {
+            "comment": "Device initialization.",
+            "process": "[start].(<start_success>.{inside} | <start_fail>.{main}) | (deregister)"
           },
           "open": {
-            "comment": "Input layer open.",
             "callback": "%ll_driver.open%",
+            "comment": "Input layer open.",
             "parameters": [
               "%hid_device%"
             ]
           },
-          "close": {
-            "comment": "Input layer close.",
-            "callback": "%ll_driver.close%",
-            "parameters": [
-              "%hid_device%"
-            ]
-          },
-          "start_success": {
-            "comment": "Start has been successful.",
-            "condition": [
-              "%ret% == 0"
-            ]
-          },
-          "start_fail": {
-            "comment": "Start has failed.",
+          "open_fail": {
+            "comment": "Input layer open has been failed.",
             "condition": [
               "%ret% != 0"
             ]
@@ -176,13 +57,142 @@
               "%ret% == 0"
             ]
           },
-          "open_fail": {
-            "comment": "Input layer open has been failed.",
+          "register": {
+            "parameters": [
+              "%hid_device%"
+            ]
+          },
+          "start": {
+            "callback": "%ll_driver.start%",
+            "callback return value": "%ret%",
+            "comment": "Start the hid device.",
+            "parameters": [
+              "%hid_device%"
+            ],
+            "post-call": [
+              "%ret% = ldv_post_probe(%ret%);"
+            ]
+          },
+          "start_fail": {
+            "comment": "Start has failed.",
             "condition": [
               "%ret% != 0"
             ]
+          },
+          "start_success": {
+            "comment": "Start has been successful.",
+            "condition": [
+              "%ret% == 0"
+            ]
+          },
+          "stop1": {
+            "callback": "%ll_driver.stop%",
+            "comment": "Stop the hid device.",
+            "parameters": [
+              "%hid_device%"
+            ]
+          },
+          "stop2": {
+            "callback": "%ll_driver.stop%",
+            "comment": "Stop the hid device.",
+            "parameters": [
+              "%hid_device%"
+            ]
           }
-        }
+        },
+        "comment": "Invoke hid callbacks.",
+        "labels": {
+          "callback": {
+            "callback": true
+          },
+          "hid_device": {
+            "container": true,
+            "interface": [
+              "hid.hid_device"
+            ]
+          },
+          "ll_driver": {
+            "container": true,
+            "interface": [
+              "hid.ll_driver"
+            ],
+            "pointer": true
+          },
+          "ret": {
+            "declaration": "int a",
+            "value": "ldv_undef_int()"
+          }
+        },
+        "process": "(!register).<assign>.{main}",
+        "reference": true
+      }
+    },
+    "functions models": {
+      "hid_add_device": {
+        "actions": {
+          "assign": {
+            "comment": "Extract hid device from parameters.",
+            "statements": [
+              "%device% = $ARG1;"
+            ]
+          },
+          "fail": {
+            "comment": "Fail hid device registration.",
+            "statements": [
+              "return ldv_undef_int_negative();"
+            ]
+          },
+          "register": {
+            "parameters": [
+              "%device%"
+            ]
+          },
+          "success": {
+            "comment": "Registration of hid device has been finished successfully.",
+            "statements": [
+              "return 0;"
+            ]
+          }
+        },
+        "comment": "Register hid device.",
+        "labels": {
+          "device": {
+            "container": true,
+            "interface": [
+              "hid.hid_device"
+            ],
+            "parameter": true
+          }
+        },
+        "process": "<assign>.[register].<success> | <fail>",
+        "reference": true
+      },
+      "hid_destroy_device": {
+        "actions": {
+          "assign": {
+            "comment": "Extract hid device from parameters.",
+            "statements": [
+              "%device% = $ARG1;"
+            ]
+          },
+          "deregister": {
+            "parameters": [
+              "%device%"
+            ]
+          }
+        },
+        "comment": "Deregister hid device.",
+        "labels": {
+          "device": {
+            "container": true,
+            "interface": [
+              "hid.hid_device"
+            ],
+            "parameter": true
+          }
+        },
+        "process": "<assign>.[deregister]",
+        "reference": true
       }
     }
   }

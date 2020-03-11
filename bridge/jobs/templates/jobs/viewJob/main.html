@@ -1,6 +1,6 @@
-{% extends 'jobs/base.html' %}
+{% extends 'bridge/base.html' %}
 {% comment "License" %}
-% Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+% Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
 % Ivannikov Institute for System Programming of the Russian Academy of Sciences
 %
 % Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,13 +21,13 @@
 {% load humanize %}
 {% load tz %}
 {% load staticfiles %}
+{% load compress %}
 
-{% block jobs_head_block %}
-    <link rel="stylesheet" href="{% static 'jstree/themes/default/style.min.css' %}">
+{% block head_block %}
+    {# Jstree #}
+    <link rel="stylesheet" href="{% static 'bridge/jstree/themes/default/style.min.css' %}">
+    <script src="{% static 'bridge/jstree/jstree.min.js' %}"></script>
 
-    <script src="{% static 'jstree/jstree.min.js' %}"></script>
-    <script src="{% static 'jobs/js/jobFilesView.js' %}"></script>
-    <script src="{% static 'jobs/js/versions.js' %}"></script>
     <script type="application/javascript">
         const PAGE_URLS = {
             get_status: "{% url 'jobs:api-job-status' job.id %}",
@@ -42,7 +42,12 @@
             has_children: "{% url 'jobs:api-has-children' job.id %}"
         };
     </script>
-    <script src="{% static 'jobs/js/jobPage.js' %}"></script>
+
+    {% compress js file job %}
+        <script src="{% static 'jobs/js/jobFilesView.js' %}"></script>
+        <script src="{% static 'jobs/js/versions.js' %}"></script>
+        <script src="{% static 'jobs/js/jobPage.js' %}"></script>
+    {% endcompress %}
 {% endblock %}
 
 {% block title %}{% trans 'Job' %} ({{ object.get_status_display }}){% endblock %}
@@ -67,8 +72,13 @@
                 <div class="ui dropdown item">
                     <div class="header">{% trans 'Decision' %}</div><i class="dropdown icon"></i>
                     <div class="menu">
-                        <a id="decide_job_btn" class="item{% if not job_access.can_decide %} disabled{% endif %}"><i class="play icon"></i> {% trans 'Start' %}</a>
-                        <a id="fast_decide_job_btn" class="item{% if not job_access.can_decide %} disabled{% endif %}"><i class="forward icon"></i> {% trans 'Start with default values' %}</a>
+                        {% if run_history|length %}
+                            <a id="decide_job_btn" class="item{% if not job_access.can_decide %} disabled{% endif %}"><i class="play icon"></i> {% trans 'Start' %}</a>
+                            <a id="fast_decide_job_btn" class="item{% if not job_access.can_decide %} disabled{% endif %}"><i class="forward icon"></i> {% trans 'Start with default values' %}</a>
+                        {% else %}
+                            <a href="{% url 'jobs:prepare-decision' job.id %}" class="item{% if not job_access.can_decide %} disabled{% endif %}"><i class="play icon"></i> {% trans 'Start' %}</a>
+                            <a id="force_fast_decide_job_btn" class="item{% if not job_access.can_decide %} disabled{% endif %}"><i class="forward icon"></i> {% trans 'Start with default values' %}</a>
+                        {% endif %}
                         <a id="last_decide_job_btn" class="item{% if not job_access.can_decide_last %} disabled{% endif %}"><i class="redo icon"></i> {% trans 'Start with last configuration' %}</a>
                         <a id="stop_job_btn" class="item{% if not job_access.can_stop %} disabled{% endif %}"><i class="stop icon"></i> {% trans 'Stop' %}</a>
                     </div>
@@ -78,8 +88,8 @@
                     <div class="header">{% trans 'Reports' %}</div><i class="dropdown icon"></i>
                     <div class="menu">
                         <a id="collapse_reports_btn" class="item{% if not job_access.can_collapse %} disabled{% endif %}"><i class="adjust icon"></i> {% trans 'Collapse' %}</a>
-                        <a id="dfc_modal_show" class="item{% if not job_access.can_download_verifier_input %} disabled{% endif %}"><i class="download icon"></i> {% trans 'Download files for competition' %}</a>
-                        <a id="clear_verifications_modal_show" class="item{% if not job_access.can_clear_verifications %} disabled{% endif %}" data-url="{% url 'reports:clear-verification-files' object.id %}"><i class="eraser icon"></i> {% trans 'Clear verification files' %}</a>
+                        <a id="dfc_modal_show" class="item{% if not job_access.can_download_verifier_files %} disabled{% endif %}"><i class="download icon"></i> {% trans 'Download files for competition' %}</a>
+                        <a id="clear_verifier_files_modal_show" class="item{% if not job_access.can_clear_verifier_files %} disabled{% endif %}" data-url="{% url 'reports:clear-verification-files' object.id %}"><i class="eraser icon"></i> {% trans 'Clear verifier input files' %}</a>
                     </div>
                 </div>
 
@@ -94,11 +104,11 @@
                     <tr>
                         <th class="center aligned" colspan="2">
                             <span class="ui olive header">{{ object.name }}{% if object.weight == '1' %} ({{ object.get_weight_display|lower }}){% endif %}</span>
+                            {% if preset_changed %}<br>(<span style="color: #ff8d9e">{% trans 'Preset files for this job were changed' %}</span>){% endif %}
                         </th>
                     </tr>
                 </thead>
                 <tbody>
-                    <tr><th class="right aligned">{% trans 'Format' %}</th><td>{{ object.format }}</td></tr>
                     <tr><th class="right aligned">{% trans 'Identifier' %}</th><td>{{ object.identifier }}</td></tr>
                     {% if object.parent %}
                         <tr><th class="right aligned">{% trans 'Parent identifier' %}</th><td>{{ object.parent.identifier }}</td></tr>
@@ -157,9 +167,6 @@
                             {% endif %}
                         </td>
                     </tr>
-                    {% if last_version.description|length %}
-                        <tr><th class="right aligned">{% trans 'Description' %}</th><td>{{ last_version.description|safe }}</td></tr>
-                    {% endif %}
                 </tbody>
             </table>
 
@@ -221,7 +228,7 @@
         <span id="jstree_view_label">{% trans 'View' %}</span>
         <span id="jstree_download_label">{% trans 'Download' %}</span>
 
-        <span id="warn__decide_job">{% trans 'All existing reports of this job will be deleted' %}!</span>
+        <span id="warn__decide_job">{% trans 'All existing reports and previous decision results of this job will be deleted' %}!</span>
         <span id="warn__remove_job">{% trans 'All versions and all data of this job will be deleted' %}!</span>
         <span id="warn__collapse">{% trans 'There is no reverse of this action' %}!</span>
         <span id="warn__has_children">{% trans 'The job has children, and all of them will be deleted' %}!</span>

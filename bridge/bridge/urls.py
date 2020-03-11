@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
 # Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -42,4 +42,4 @@ handler404 = 'bridge.views.error_404_view'
 handler500 = 'bridge.views.error_500_view'
 
 with RMQConnect() as channel:
-    channel.queue_declare(queue=settings.RABBIT_MQ['name'], durable=True)
+    channel.queue_declare(queue=settings.RABBIT_MQ_QUEUE, durable=True)
