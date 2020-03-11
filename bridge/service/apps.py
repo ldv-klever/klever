@@ -15,15 +15,8 @@
 # limitations under the License.
 #
 
-from django.core.management.base import BaseCommand
-from jobs.preset import PresetsChecker
+from django.apps import AppConfig
 
 
-class Command(BaseCommand):
-    help = 'Used to calculate checksums of jobs preset files and store check date if it total checksum has changed.'
-    requires_migrations_checks = True
-
-    def handle(self, *args, **options):
-        PresetsChecker().calculate_hash_sums()
-        if options['verbosity'] >= 1:
-            self.stdout.write("Preset files were successfully checked.")
+class CachesConfig(AppConfig):
+    name = 'service'

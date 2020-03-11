@@ -27,52 +27,6 @@ class Migration(migrations.Migration):
 
     operations = [
 
-        migrations.CreateModel(name='Scheduler', fields=[
-            ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-            ('type',
-             models.CharField(choices=[
-                 ('Klever', 'Klever'), ('VerifierCloud', 'VerifierCloud')
-             ], db_index=True, max_length=15)),
-            ('status', models.CharField(choices=[
-                ('HEALTHY', 'Healthy'), ('AILING', 'Ailing'), ('DISCONNECTED', 'Disconnected')
-            ], default='AILING', max_length=15)),
-        ], options={'db_table': 'scheduler'}),
-
-        migrations.CreateModel(name='Decision', fields=[
-            ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-            ('priority', models.CharField(choices=[
-                ('URGENT', 'Urgent'), ('HIGH', 'High'), ('LOW', 'Low'), ('IDLE', 'Idle')
-            ], max_length=6)),
-            ('error', models.TextField(null=True)),
-            ('fake', models.BooleanField(default=False)),
-            ('start_date', models.DateTimeField(null=True)),
-            ('finish_date', models.DateTimeField(null=True)),
-            ('tasks_total', models.PositiveIntegerField(default=0)),
-            ('tasks_pending', models.PositiveIntegerField(default=0)),
-            ('tasks_processing', models.PositiveIntegerField(default=0)),
-            ('tasks_finished', models.PositiveIntegerField(default=0)),
-            ('tasks_error', models.PositiveIntegerField(default=0)),
-            ('tasks_cancelled', models.PositiveIntegerField(default=0)),
-            ('solutions', models.PositiveIntegerField(default=0)),
-            ('total_sj', models.PositiveIntegerField(null=True)),
-            ('failed_sj', models.PositiveIntegerField(null=True)),
-            ('solved_sj', models.PositiveIntegerField(null=True)),
-            ('expected_time_sj', models.PositiveIntegerField(null=True)),
-            ('start_sj', models.DateTimeField(null=True)),
-            ('finish_sj', models.DateTimeField(null=True)),
-            ('gag_text_sj', models.CharField(max_length=128, null=True)),
-            ('total_ts', models.PositiveIntegerField(null=True)),
-            ('failed_ts', models.PositiveIntegerField(null=True)),
-            ('solved_ts', models.PositiveIntegerField(null=True)),
-            ('expected_time_ts', models.PositiveIntegerField(null=True)),
-            ('start_ts', models.DateTimeField(null=True)),
-            ('finish_ts', models.DateTimeField(null=True)),
-            ('gag_text_ts', models.CharField(max_length=128, null=True)),
-            ('configuration', models.ForeignKey(on_delete=models.deletion.CASCADE, to='jobs.JobFile')),
-            ('job', models.OneToOneField(on_delete=models.deletion.CASCADE, to='jobs.Job')),
-            ('scheduler', models.ForeignKey(on_delete=models.deletion.CASCADE, to='service.Scheduler')),
-        ], options={'db_table': 'decision'}),
-
         migrations.CreateModel(name='NodesConfiguration', fields=[
             ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
             ('cpu_model', models.CharField(max_length=128, verbose_name='CPU model')),
@@ -102,14 +56,14 @@ class Migration(migrations.Migration):
             ('archive', models.FileField(upload_to='Service')),
             ('description', jsonb.JSONField()),
             ('decision', models.ForeignKey(
-                on_delete=models.deletion.CASCADE, related_name='tasks', to='service.Decision'
+                on_delete=models.deletion.CASCADE, related_name='tasks', to='jobs.Decision'
             )),
         ], options={'db_table': 'task'}, bases=(bridge.utils.WithFilesMixin, models.Model)),
 
         migrations.CreateModel(name='Solution', fields=[
             ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
             ('decision', models.ForeignKey(
-                on_delete=models.deletion.CASCADE, related_name='solutions_set', to='service.Decision'
+                on_delete=models.deletion.CASCADE, related_name='solutions_set', to='jobs.Decision'
             )),
             ('task', models.OneToOneField(
                 on_delete=models.deletion.CASCADE, related_name='solution', to='service.Task'
@@ -123,7 +77,7 @@ class Migration(migrations.Migration):
             ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
             ('name', models.CharField(max_length=128)),
             ('version', models.CharField(max_length=128)),
-            ('scheduler', models.ForeignKey(on_delete=models.deletion.CASCADE, to='service.Scheduler')),
+            ('scheduler', models.ForeignKey(on_delete=models.deletion.CASCADE, to='jobs.Scheduler')),
         ], options={'db_table': 'verification_tool'}),
 
         migrations.CreateModel(name='Workload', fields=[

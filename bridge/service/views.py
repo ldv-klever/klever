@@ -19,7 +19,9 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic.base import TemplateView
 
 from tools.profiling import LoggedCallMixin
-from service.models import Scheduler, Node
+
+from jobs.models import Scheduler
+from service.models import Node
 from service.utils import NodesData
 
 

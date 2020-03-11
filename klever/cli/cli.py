@@ -44,84 +44,68 @@ def download_marks():
 
 
 def download_progress():
-    parser = get_args_parser('Download JSON file with solution progress of verification job.')
-    parser.add_argument('job', type=UUID, help='Verification job identifier (uuid).')
+    parser = get_args_parser('Download JSON file with solution progress of verification job decision.')
+    parser.add_argument('decision', type=UUID, help='Verification job decision identifier (uuid).')
     parser.add_argument('-o', '--out', help='JSON file name.', default='progress.json')
     args = parser.parse_args()
 
     session = Session(args)
-    session.job_progress(args.job, args.out)
+    session.decision_progress(args.decision, args.out)
 
-    print('JSON file with solution progress of verification job "{0}" was successfully downloaded to "{1}"'
-          .format(args.job, args.out))
+    print('JSON file with solution progress of verification job decision "{0}" was successfully downloaded to "{1}"'
+          .format(args.decision, args.out))
 
 
 def download_results():
     parser = get_args_parser('Download JSON file with verification results of verificaiton job.')
-    parser.add_argument('job', type=UUID, help='Verification job identifier (uuid).')
+    parser.add_argument('decision', type=UUID, help='Verification job decision identifier (uuid).')
     parser.add_argument('-o', '--out', help='JSON file name.', default='results.json')
     args = parser.parse_args()
 
     session = Session(args)
-    session.decision_results(args.job, args.out)
+    session.decision_results(args.decision, args.out)
 
-    print('JSON file with verification results of verificaiton job "{0}" was successfully downloaded to "{1}"'
-          .format(args.job, args.out))
+    print('JSON file with verification results of verificaiton job decision "{0}" was successfully downloaded to "{1}"'
+          .format(args.decision, args.out))
 
 
 def start_preset_solution():
     parser = get_args_parser('Create and start solution of verification job created on the base of specified preset.')
     parser.add_argument('preset', type=UUID,
                         help='Preset job identifier (uuid). Can be obtained form presets/jobs/base.json')
-    parser.add_argument('--replacement',
-                        help='JSON file name or string with data what files should be replaced before starting solution.')
-    parser.add_argument('--rundata', type=open,
-                        help='JSON file name. Set it if you would like to start solution with specific settings.')
+    parser.add_argument('--replacement', help='JSON file name or string with data what files '
+                                              'should be replaced before starting solution.')
+    parser.add_argument('--rundata', type=open, help='JSON file name. Set it if you would like to '
+                                                     'start solution with specific settings.')
     args = parser.parse_args()
 
     session = Session(args)
-    _, job_uuid = session.create_preset_job(args.preset)
+    _, job_uuid = session.create_job(args.preset)
+    _, decision_uuid = session.start_job_decision(job_uuid, args.rundata, args.replacement)
 
-    # Replace files before start
-    if args.replacement:
-        session.replace_files(job_uuid, args.replacement)
-
-    session.start_job_decision(job_uuid, args.rundata)
-
-    print('Solution of verification job "{0}" was successfully started'.format(job_uuid))
+    print('Solution of verification job "{0}" was successfully started: {1}'.format(job_uuid, decision_uuid))
 
 
 def start_solution():
     parser = get_args_parser('Start solution of verification job.')
     parser.add_argument('job', type=UUID, help='Verification job identifier (uuid).')
-    parser.add_argument('--copy', action='store_true',
-                        help='Set it if you would like to copy verification job before starting solution.')
-    parser.add_argument('--replacement',
-                        help='JSON file name or string with data what files should be replaced before starting solution.')
-    parser.add_argument('--rundata', type=open,
-                        help='JSON file name. Set it if you would like to start solution with specific settings.')
+    parser.add_argument('--replacement', help='JSON file name or string with data what files '
+                                              'should be replaced before starting solution.')
+    parser.add_argument('--rundata', type=open, help='JSON file name. Set it if you would like '
+                                                     'to start solution with specific settings.')
     args = parser.parse_args()
 
     session = Session(args)
-    job_uuid = args.job
-    if args.copy:
-        job_uuid = session.copy_job(args.job)
-    elif args.replacement:
-        session.copy_job_version(args.job)
+    _, decision_uuid = session.start_job_decision(args.job, args.rundata, args.replacement)
 
-    # Replace files before start
-    if args.replacement:
-        session.replace_files(job_uuid, args.replacement)
-
-    session.start_job_decision(job_uuid, args.rundata)
-
-    print('Solution of verification job "{0}" was successfully started'.format(job_uuid))
+    print('Solution of verification job "{0}" was successfully started: {1}'.format(args.job, decision_uuid))
 
 
 def update_preset_mark():
     parser = get_args_parser('Update preset mark on the base of most relevant associated report and current version.')
     parser.add_argument('mark', type=str, help='Preset mark path.')
-    parser.add_argument('--report', type=int, help='Unsafe report primary key if you want specific error trace for update.')
+    parser.add_argument('--report', type=int, help='Unsafe report primary key if you want '
+                                                   'specific error trace for update.')
     args = parser.parse_args()
 
     session = Session(args)
@@ -140,8 +124,6 @@ def update_preset_mark():
 
 def upload_job():
     parser = get_args_parser('Upload ZIP archive of verification job.')
-    parser.add_argument('--parent', type=UUID, help='Parent verification job identifier (uuid). '
-                                                    'By default the job will be uploaded to the root.')
     parser.add_argument('--archive', help='ZIP archive name.', required=True)
     args = parser.parse_args()
 
@@ -149,7 +131,7 @@ def upload_job():
         raise FileNotFoundError('ZIP archive of verification job "{0}" does not exist'.format(args.archive))
 
     session = Session(args)
-    session.upload_job(args.parent, args.archive)
+    session.upload_job(args.archive)
 
     print('ZIP archive of verification job "{0}" was successfully uploaded. '
           'If archive is not corrupted the job will be soon created.'.format(args.archive))

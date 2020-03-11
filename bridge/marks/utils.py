@@ -22,7 +22,7 @@ from django.utils.functional import cached_property
 from bridge.vars import USER_ROLES, JOB_ROLES, ASSOCIATION_TYPE, COMPARE_FUNCTIONS, CONVERT_FUNCTIONS
 
 from users.models import User
-from jobs.models import Job
+from jobs.models import Job, UserRole
 from reports.models import ReportUnsafe, ReportSafe, ReportUnknown
 from marks.models import MarkSafe, MarkUnsafe, MarkUnknown, ConvertedTrace
 
@@ -57,20 +57,6 @@ class MarkAccess:
     def _is_expert(self):
         return self._user_valid and self.user.role == USER_ROLES[3][0]
 
-    def __is_job_expert(self, job):
-        if not self._user_valid or not job:
-            return False
-
-        if job.author == self.user:
-            # User is author of job for which the mark was applied, he is always expert of such marks
-            return True
-
-        last_v = job.versions.get(version=job.version)
-        if last_v.global_role in {JOB_ROLES[2][0], JOB_ROLES[4][0]}:
-            return True
-        user_role = last_v.userrole_set.filter(user=self.user).first()
-        return bool(user_role and user_role.role in {JOB_ROLES[2][0], JOB_ROLES[4][0]})
-
     @cached_property
     def _job_expert(self):
         if not self._user_valid:
@@ -79,8 +65,17 @@ class MarkAccess:
         if self._mark_valid:
             job = self.mark.job
         if self._report_valid:
-            job = Job.objects.filter(reportroot__id=self.report.root_id).first()
-        return self.__is_job_expert(job)
+            job = Job.objects.filter(decision__id=self.report.decision_id).first()
+        if not job:
+            return False
+
+        if job.author == self.user:
+            # User is author of job for which the mark was applied, he is always expert of such marks
+            return True
+        if job.global_role in {JOB_ROLES[2][0], JOB_ROLES[4][0]}:
+            return True
+        user_role = UserRole.objects.filter(user=self.user, job=job).only('role').first()
+        return bool(user_role and user_role.role in {JOB_ROLES[2][0], JOB_ROLES[4][0]})
 
     @cached_property
     def can_edit(self):

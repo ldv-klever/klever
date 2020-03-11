@@ -26,14 +26,13 @@ from bridge.vars import MARK_SOURCE
 from bridge.utils import BridgeException
 
 from marks.models import SafeTag, MarkSafe, UnsafeTag, MarkUnsafe, MarkUnknown
+
 from marks.serializers import (
     SafeMarkSerializer, UnsafeMarkSerializer, UnknownMarkSerializer, SafeTagSerializer, UnsafeTagSerializer
 )
-
 from marks.SafeUtils import ConnectSafeMark
 from marks.UnsafeUtils import ConnectUnsafeMark
 from marks.UnknownUtils import ConnectUnknownMark
-
 from caches.utils import UpdateCachesOnMarkPopulate
 
 

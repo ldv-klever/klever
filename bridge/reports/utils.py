@@ -21,18 +21,20 @@ from io import BytesIO
 from urllib.parse import unquote
 from wsgiref.util import FileWrapper
 
-from django.db.models import Max, Case, When, F, CharField, Value
+from django.db.models import Max, Case, When, F, Q, CharField, Value
 from django.db.models.expressions import RawSQL
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 from django.utils.functional import cached_property
 
-from bridge.vars import UNSAFE_VERDICTS, SAFE_VERDICTS, JOB_WEIGHT, ERROR_TRACE_FILE, SAFE_COLOR, UNSAFE_COLOR
+from bridge.vars import (
+    UNSAFE_VERDICTS, SAFE_VERDICTS, DECISION_WEIGHT, ERROR_TRACE_FILE, SAFE_COLOR, UNSAFE_COLOR, SUBJOB_NAME
+)
 from bridge.tableHead import Header
 from bridge.utils import BridgeException, ArchiveFileContent
 from bridge.ZipGenerator import ZipStream
 
-from reports.models import ReportComponent, ReportAttr, ReportUnsafe, ReportSafe, ReportUnknown, ReportRoot
+from reports.models import ReportComponent, ReportAttr, ReportUnsafe, ReportSafe, ReportUnknown, CoverageArchive
 
 from users.utils import HumanizedValue, paginate_queryset
 
@@ -99,6 +101,58 @@ def report_resources(user, report):
     return None
 
 
+def collapse_reports(decision):
+    if decision.weight == DECISION_WEIGHT[1][0]:
+        # The decision is already lightweight
+        return
+
+    if ReportComponent.objects.filter(decision=decision, component=SUBJOB_NAME).exists():
+        return
+    core = ReportComponent.objects.get(decision=decision, parent=None)
+    ReportComponent.objects.filter(decision=decision, verification=True).update(parent=core)
+    ReportUnknown.objects.filter(decision=decision, parent__reportcomponent__verification=False).update(parent=core)
+
+    # Non-verification reports except Core
+    reports_qs = ReportComponent.objects.filter(decision=decision).exclude(Q(verification=True) | Q(parent=None))
+
+    # Update core original and additional sources
+    report_with_original = reports_qs.exclude(original_sources=None).first()
+    if report_with_original:
+        core.original_sources = report_with_original.original_sources
+    report_with_additional = reports_qs.exclude(additional_sources=None).first()
+    if report_with_additional:
+        core.additional_sources = report_with_additional.additional_sources
+    core.save()
+
+    # Move coverage to core
+    CoverageArchive.objects.filter(report__decision=decision, report__verification=False).update(report=core)
+
+    # Remove all non-verification reports except Core
+    reports_qs.delete()
+
+    # Update decision weight
+    decision.weight = DECISION_WEIGHT[1][0]
+    decision.save()
+
+
+def report_attributes_with_parents(report):
+    reports_ids = list(report.get_ancestors(include_self=True).values_list('id', flat=True))
+    attrs_qs = ReportAttr.objects.filter(report_id__in=reports_ids).order_by('report_id', 'id')
+    return list(attrs_qs.values_list('name', 'value'))
+
+
+def get_report_data_type(component, data):
+    if component == 'Core' and isinstance(data, dict) and all(isinstance(res, dict) for res in data.values()):
+        if all(x in res for x in ['ideal verdict', 'verdict'] for res in data.values()):
+            return 'Core:testing'
+        elif all(x in res for x in ['before fix', 'after fix'] for res in data.values()) \
+                and all('verdict' in data[mod]['before fix'] and 'verdict' in data[mod]['after fix'] for mod in data):
+            return 'Core:validation'
+    elif component == 'PFG' and isinstance(data, dict):
+        return 'PRG:lines'
+    return 'Unknown'
+
+
 class ReportAttrsTable:
     def __init__(self, report):
         self._report = report
@@ -131,15 +185,10 @@ class SafesTable:
         self.verdicts = SAFE_VERDICTS
         self.title = self.__get_title(query_params)
         self.parents = None
-        if report.root.job.weight == JOB_WEIGHT[0][0]:
+        if report.decision.weight == DECISION_WEIGHT[0][0]:
             self.parents = get_parents(report, include_self=True)
 
         self.header, self.values = self.__safes_data()
-
-    def __redirect_link(self):
-        if self.view['is_unsaved'] and self.paginator.count == 1:
-            return reverse('reports:safe', args=[self.paginator.object_list.first().pk])
-        return None
 
     def __get_ms(self, value, measure):
         if isinstance(value, str):
@@ -371,7 +420,7 @@ class UnsafesTable:
 
         self.title = self.__get_title(query_params)
         self.parents = None
-        if report.root.job.weight == JOB_WEIGHT[0][0]:
+        if report.decision.weight == DECISION_WEIGHT[0][0]:
             self.parents = get_parents(report, include_self=True)
 
         self.header, self.values = self.__unsafes_data()
@@ -602,7 +651,7 @@ class UnknownsTable:
 
         self.title = self.__get_title(query_params)
         self.parents = None
-        if report.root.job.weight == JOB_WEIGHT[0][0]:
+        if report.decision.weight == DECISION_WEIGHT[0][0]:
             self.parents = get_parents(report, include_self=True)
 
         self.header, self.values = self.__unknowns_data()
@@ -898,11 +947,8 @@ class FilesForCompetitionArchive:
     obj_attr = 'Program fragment'
     requirement_attr = 'Requirements specification'
 
-    def __init__(self, job, filters):
-        try:
-            self.root = ReportRoot.objects.get(job=job)
-        except ReportRoot.DoesNotExist:
-            raise BridgeException(_('The job is not decided'))
+    def __init__(self, decision, filters):
+        self.decision = decision
         self._attrs = self.__get_attrs()
         self._archives = self.__get_archives()
         self._archives_to_upload = []
@@ -928,7 +974,7 @@ class FilesForCompetitionArchive:
 
     def __get_archives(self):
         archives = {}
-        for report in ReportComponent.objects.filter(root=self.root, verification=True)\
+        for report in ReportComponent.objects.filter(decision=self.decision, verification=True)\
                 .exclude(verifier_files='').only('id', 'verifier_files'):
             archives[report.id] = report.verifier_files.path
         return archives
@@ -937,7 +983,7 @@ class FilesForCompetitionArchive:
         # Select attributes for all safes, unsafes and unknowns
         attrs = {}
         for report_id, a_name, a_value in ReportAttr.objects\
-                .filter(report__root=self.root, name__in=[self.obj_attr, self.requirement_attr]) \
+                .filter(report__decision=self.decision, name__in=[self.obj_attr, self.requirement_attr]) \
                 .exclude(report__reportunsafe=None, report__reportsafe=None, report__reportunknown=None) \
                 .values_list('report_id', 'name', 'value'):
             if report_id not in attrs:
@@ -959,7 +1005,7 @@ class FilesForCompetitionArchive:
             )
 
     def __get_archives_to_upload(self, filters):
-        common_filters = {'root': self.root, 'parent__reportcomponent__verification': True}
+        common_filters = {'decision': self.decision, 'parent__reportcomponent__verification': True}
         if filters.get('safes'):
             for r_id, p_id in ReportSafe.objects.filter(**common_filters).values_list('id', 'parent_id'):
                 self.__add_archive('s', r_id, p_id)
@@ -980,29 +1026,6 @@ class FilesForCompetitionArchive:
         elif filters.get('unknowns'):
             for r_id, p_id in ReportUnknown.objects.filter(**common_filters).values_list('id', 'parent_id'):
                 self.__add_archive('f', r_id, p_id)
-
-
-def report_attributes_with_parents(report):
-    reports_ids = list(report.get_ancestors(include_self=True).values_list('id', flat=True))
-    attrs_qs = ReportAttr.objects.filter(report_id__in=reports_ids).order_by('report_id', 'id')
-    return list(attrs_qs.values_list('name', 'value'))
-
-
-def remove_verifier_files(job):
-    for report in ReportComponent.objects.filter(root=job.reportroot, verification=True).exclude(verifier_files=''):
-        report.verifier_files.delete()
-
-
-def get_report_data_type(component, data):
-    if component == 'Core' and isinstance(data, dict) and all(isinstance(res, dict) for res in data.values()):
-        if all(x in res for x in ['ideal verdict', 'verdict'] for res in data.values()):
-            return 'Core:testing'
-        elif all(x in res for x in ['before fix', 'after fix'] for res in data.values()) \
-                and all('verdict' in data[mod]['before fix'] and 'verdict' in data[mod]['after fix'] for mod in data):
-            return 'Core:validation'
-    elif component == 'PFG' and isinstance(data, dict):
-        return 'PRG:lines'
-    return 'Unknown'
 
 
 class ReportStatus:

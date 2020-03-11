@@ -15,13 +15,14 @@
 # limitations under the License.
 #
 
-from django.db import models
-from django.db.models.signals import post_save
-from django.dispatch import receiver
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.contrib.postgres.fields import JSONField
+from django.db import models
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 from django.utils.translation import ugettext_lazy as _
+
 from rest_framework.authtoken.models import Token
 
 from bridge.vars import LANGUAGES, USER_ROLES, DATAFORMAT, VIEW_TYPES
@@ -65,6 +66,18 @@ class User(AbstractUser):
 
     def get_full_name(self):
         return super().get_full_name() or self.username
+
+    @property
+    def is_manager(self):
+        return self.role == USER_ROLES[2][0]
+
+    @property
+    def is_expert(self):
+        return self.role == USER_ROLES[3][0]
+
+    @property
+    def can_create_jobs(self):
+        return self.role not in {USER_ROLES[0][0], USER_ROLES[4][0]}
 
     @property
     def default_threshold_percentage(self):

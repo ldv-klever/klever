@@ -34,13 +34,13 @@ urlpatterns = [
     path('solution/<int:task_id>/', api.SolutionDetailView.as_view()),
     path('solution/<int:task_id>/download/', api.SolutionDownloadView.as_view()),
 
-    path('job-status/<uuid:job_uuid>/', api.ChangeJobStatusView.as_view()),
+    path('decision-status/<uuid:identifier>/', api.DecisionStatusAPIView.as_view()),
 
     path('scheduler-user/', api.AddSchedulerUserView.as_view(), name='api-scheduler-user'),
-    path('scheduler-user/<uuid:job_uuid>/', api.SchedulerUserView.as_view(), name='api-scheduler-user'),
+    path('scheduler-user/<uuid:decision_uuid>/', api.SchedulerUserView.as_view()),
 
-    path('progress/<uuid:job_uuid>/', api.JobProgressAPIView.as_view()),
-    path('configuration/<uuid:job_uuid>/', api.JobConfigurationAPIView.as_view()),
+    path('progress/<uuid:identifier>/', api.DecisionProgressAPIView.as_view()),
+    path('configuration/<uuid:identifier>/', api.DecisionConfigurationAPIView.as_view()),
 
     path('update-tools/', api.UpdateToolsAPIView.as_view()),
     path('update-nodes/', api.UpdateNodes.as_view()),

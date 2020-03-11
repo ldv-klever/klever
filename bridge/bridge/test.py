@@ -25,9 +25,8 @@ from bridge.utils import KleverTestCase
 from bridge.vars import USER_ROLES
 
 from users.models import User
-from jobs.models import Job
+from jobs.models import Scheduler
 from marks.models import MarkUnknown, SafeTag, UnsafeTag
-from service.models import Scheduler, SCHEDULER_TYPE
 
 
 class TestPopulation(KleverTestCase):

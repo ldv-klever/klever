@@ -16,7 +16,7 @@
  */
 
 function FilesTree(tree_id) {
-    var tree_root = $('#' + tree_id);
+    let tree_root = $('#' + tree_id);
     this.tree_div = tree_root.find('.file-tree').first();
     this.file_content_modal = tree_root.find('#filetree_file_content_modal').first();
     this.tree_obj = null;
@@ -41,7 +41,7 @@ function FilesTree(tree_id) {
 }
 
 FilesTree.prototype.get_menu = function(node) {
-    var instance = this, menu = {};
+    let instance = this, menu = {};
     if (instance.tree_obj.get_type(node) === "file") {
         if (isFileReadable(node.text)) menu.view = {
             'label': instance.labels.view, 'icon': instance.icons.view,
@@ -56,7 +56,7 @@ FilesTree.prototype.get_menu = function(node) {
 };
 
 FilesTree.prototype.set_labels = function(labels) {
-    var instance = this;
+    let instance = this;
     $.each(labels, function (key, value) { instance.labels[key] = value });
 };
 
@@ -64,7 +64,7 @@ FilesTree.prototype.open_file_content = function(node) {
     // Do nothing if node is not file or file is not readable
     if (this.tree_obj.get_type(node) !== 'file' || !isFileReadable(node.text)) return;
 
-    var instance = this;
+    let instance = this;
 
     if (node.data && node.data.hashsum) {
         $.get(instance.get_file_url.format(node.data.hashsum), {}, function (resp) {
@@ -84,7 +84,7 @@ FilesTree.prototype.download_file = function(node) {
 };
 
 FilesTree.prototype.initialize = function (data) {
-    var instance = this;
+    let instance = this;
 
     // Already initialized, just return
     if (instance.tree_obj) return;

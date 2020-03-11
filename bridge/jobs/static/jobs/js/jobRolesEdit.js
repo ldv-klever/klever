@@ -41,7 +41,7 @@ UserRoleForm.prototype.global_role = function() {
 };
 
 UserRoleForm.prototype.add_user_role = function(user_id, user_name, selected_value) {
-    var tmp_div = $('<div>', {id: 'user_role__' + user_id, class: 'ui grid segment'})
+    let tmp_div = $('<div>', {id: 'user_role__' + user_id, class: 'ui grid segment'})
         .append(this.template_user_role.html());
 
     tmp_div.find("[for=user_role_select__]").each(function () {
@@ -55,18 +55,18 @@ UserRoleForm.prototype.add_user_role = function(user_id, user_name, selected_val
     tmp_div.find("select[id^='user_role_select__']").attr('class', 'ui dropdown');
 
     // Add action on "delete" button click
-    var instance = this;
+    let instance = this;
     tmp_div.find("#user_role_remove__" + user_id).click(function () {
         instance.remove_user_role(user_id);
         instance.check_users_length();
     });
 
     // Disable unavailable options and select first found one
-    var has_selected = false,
+    let has_selected = false,
         global_role = parseInt(this.global_role()),
         new_selector = tmp_div.find('#user_role_select__' + user_id);
     new_selector.children('option').each(function () {
-        var option_value = parseInt($(this).val());
+        let option_value = parseInt($(this).val());
         if (option_value <= global_role) {
             // Disable option
             $(this).attr('disabled', 'disabled');
@@ -87,7 +87,7 @@ UserRoleForm.prototype.add_user_role = function(user_id, user_name, selected_val
 };
 
 UserRoleForm.prototype.initialize = function (data) {
-    var instance = this;
+    let instance = this;
 
     // Set global role
     instance.global_role_select.dropdown('set selected', data['global_role']);
@@ -121,7 +121,7 @@ UserRoleForm.prototype.initialize = function (data) {
 
     // Action on "Add" button click
     instance.add_user_for_role.unbind().click(function () {
-        var selected_user = instance.user_select.children('option:selected');
+        let selected_user = instance.user_select.children('option:selected');
         instance.add_user_role(selected_user.val(), selected_user.text());
         selected_user.remove();
         instance.check_users_length();
@@ -131,9 +131,9 @@ UserRoleForm.prototype.initialize = function (data) {
 };
 
 UserRoleForm.prototype.get_roles = function () {
-    var user_roles = [];
+    let user_roles = [];
     this.users_roles_div.find('div[id^=user_role__]').each(function () {
-        var user_id = $(this).attr('id').replace('user_role__', ''),
+        let user_id = $(this).attr('id').replace('user_role__', ''),
             role = $(this).find('#user_role_select__'  + user_id).first().children('option:selected').val();
         user_roles.push({'user': user_id, 'role': role});
     });

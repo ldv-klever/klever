@@ -15,8 +15,9 @@
 # limitations under the License.
 #
 
-import os
 import json
+import logging
+import os
 import sys
 
 from datetime import timedelta
@@ -75,9 +76,21 @@ TEMPLATES = [
 WSGI_APPLICATION = 'bridge.wsgi.application'
 
 # In db.json ENGINE should be either "django.db.backends.postgresql_psycopg2"
-DATABASES = {
-    'default': json.load(open(os.path.join(BASE_DIR, 'bridge', 'db.json'), encoding='utf8')),
-}
+DB_SETTINGS_FILE = os.path.join(BASE_DIR, 'bridge', 'db.json')
+if os.path.isfile(DB_SETTINGS_FILE):
+    DATABASES = {
+        'default': json.load(open(DB_SETTINGS_FILE, encoding='utf8')),
+    }
+else:
+    DATABASES = {
+        'default': {
+            "ENGINE": "django.db.backends.postgresql",
+            "HOST": "127.0.0.1",
+            "NAME": "klever",
+            "USER": "klever",
+            "PASSWORD": "klever"
+        }
+    }
 
 LANGUAGE_CODE = 'en-us'
 
@@ -130,6 +143,12 @@ DEF_USER = {
 LOGS_DIR = os.path.join(BASE_DIR, 'logs')
 LOGGING = {
     'version': 1,
+    'filters': {
+        'justInfo': {
+            "()": 'bridge.utils.InfoFilter',
+            'level': logging.INFO
+        }
+    },
     'formatters': {
         'with_separator': {
             'format': '=' * 50 + '\n[%(asctime)s] %(message)s',
@@ -146,10 +165,10 @@ LOGGING = {
             'class': 'logging.StreamHandler',
             'stream': sys.stdout
         },
-        'file': {
+        'uncatched': {
             'level': 'ERROR',
             'class': 'logging.FileHandler',
-            'filename': os.path.join(LOGS_DIR, 'internal-server-error.log'),
+            'filename': os.path.join(LOGS_DIR, 'uncatched-error.log'),
             'formatter': 'with_separator'
         },
         'db-file': {
@@ -168,11 +187,12 @@ LOGGING = {
             'level': 'INFO',
             'class': 'logging.FileHandler',
             'filename': os.path.join(LOGS_DIR, 'info.log'),
-            'formatter': 'simple'
+            'formatter': 'simple',
+            'filters': ['justInfo']
         },
     },
     'loggers': {
-        'django.request': {'handlers': ['console', 'file'], 'level': 'DEBUG', 'propagate': True},
+        'django.request': {'handlers': ['console', 'uncatched'], 'level': 'DEBUG', 'propagate': True},
         'bridge': {'handlers': ['errors', 'console', 'other'], 'level': 'INFO', 'propagate': True},
         # 'django.db': {'handlers': ['db-file'], 'level': 'DEBUG', 'propagate': True},
     }
@@ -192,10 +212,21 @@ MAX_FILE_SIZE = 104857600  # 100MB
 
 # RabbitMQ
 # username, password, host are requried, port can be specified
-with open(os.path.join(BASE_DIR, 'bridge', 'rmq.json'), encoding='utf8') as fp:
-    RABBIT_MQ = json.load(fp)
-RABBIT_MQ.setdefault('port', 5672)
-RABBIT_MQ_QUEUE = RABBIT_MQ.get('queue', 'klever')
+RMQ_SETTINGS_FILE = os.path.join(BASE_DIR, 'bridge', 'rmq.json')
+
+if os.path.isfile(RMQ_SETTINGS_FILE):
+    with open(RMQ_SETTINGS_FILE, encoding='utf8') as fp:
+        RABBIT_MQ = json.load(fp)
+    RABBIT_MQ.setdefault('port', '5672')
+    RABBIT_MQ_QUEUE = RABBIT_MQ.get('queue', 'klever')
+else:
+    RABBIT_MQ = {
+        "username": "service",
+        "password": "service",
+        "host": "localhost",
+        "port": "5672"
+    }
+    RABBIT_MQ_QUEUE = "Klever jobs and tasks"
 
 # Celery, using the same RabbitMQ server
 CELERY_BROKER_URL = 'amqp://{username}:{password}@{host}:{port}'.format(**RABBIT_MQ)

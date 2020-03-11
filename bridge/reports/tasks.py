@@ -18,6 +18,7 @@
 from celery import shared_task
 
 from bridge.utils import BridgeException
+
 from reports.models import CoverageArchive
 from reports.coverage import FillCoverageStatistics
 

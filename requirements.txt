@@ -9,7 +9,7 @@ bcrypt==3.1.6
 BenchExec==1.18
 billiard==3.6.1.0
 cchardet==2.1.4
-celery==4.3.0
+celery==4.4.0
 certifi==2018.11.29
 cffi==1.12.2
 chardet==3.0.4
@@ -21,13 +21,13 @@ consulate==0.6.0
 cryptography==2.6.1
 debtcollector==1.21.0
 decorator==4.4.0
-Django==2.1.7
+Django==3.0.3
 django-appconf==1.0.3
-django-celery-results==1.1.2
-django-compressor==2.3
+django-celery-results==1.2.0
+django-compressor==2.4
 django-js-asset==1.2.2
-django-mptt==0.10.0
-djangorestframework==3.9.3
+django-mptt==0.11.0
+djangorestframework==3.11.0
 docutils==0.14
 dogpile.cache==0.7.1
 filelock==3.0.10
@@ -43,7 +43,7 @@ jsonpatch==1.23
 jsonpointer==2.0
 jsonschema==2.6.0
 keystoneauth1==3.13.1
-kombu==4.6.6
+kombu==4.6.7
 MarkupSafe==1.1.0
 monotonic==1.5
 more-itertools==6.0.0

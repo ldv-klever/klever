@@ -20,8 +20,6 @@ from datetime import timedelta
 
 from django.utils.timezone import now
 
-from bridge import celery_app
-from bridge.vars import JOB_UPLOAD_STATUS
 from bridge.utils import BridgeException
 
 from jobs.models import UploadedJobArchive
@@ -29,34 +27,13 @@ from jobs.Upload import JobArchiveUploader
 
 
 @shared_task
-def upload_job_archive(upload_id, parent_uuid):
+def upload_job_archive(upload_id):
     try:
         upload_obj = UploadedJobArchive.objects.get(id=upload_id)
     except UploadedJobArchive.DoesNotExist:
         raise BridgeException('Uploaded job archive with id "{}" was not found'.format(upload_id))
-    with JobArchiveUploader(upload_obj, parent_uuid) as uploader:
+    with JobArchiveUploader(upload_obj) as uploader:
         uploader.upload()
-
-
-@celery_app.task(bind=True)
-def link_uploaded_job_parent(self, upload_id, parent_upload_id):
-    try:
-        upload_obj = UploadedJobArchive.objects.select_related('job').get(id=upload_id)
-        upload_parent_obj = UploadedJobArchive.objects.get(id=parent_upload_id)
-    except UploadedJobArchive.DoesNotExist:
-        raise BridgeException('Uploaded job archives were not found!')
-    if upload_obj.status == JOB_UPLOAD_STATUS[6][0] \
-            and upload_parent_obj.status == JOB_UPLOAD_STATUS[6][0]\
-            and upload_obj.job and upload_parent_obj.job:
-        upload_obj.job.parent_id = upload_parent_obj.job_id
-        upload_obj.job.save()
-        return
-    elif upload_obj.status == JOB_UPLOAD_STATUS[7][0] or \
-            upload_parent_obj.status == JOB_UPLOAD_STATUS[7][0]:
-        # Job or its parent uploading failed!
-        return
-    # Try each 10 seconds for 2 hours maximum
-    raise self.retry(countdown=10, max_retries=720)
 
 
 @shared_task

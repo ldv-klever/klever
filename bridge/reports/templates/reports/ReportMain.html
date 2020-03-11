@@ -19,7 +19,7 @@
 {% load i18n %}
 
 {% load tz %}
-{% load staticfiles %}
+{% load static %}
 {% load compress %}
 
 {% block title %}{{ report.component }}{% endblock %}
@@ -44,15 +44,15 @@
                         <h3 class="header" style="margin-top: 5px;margin-bottom: 5px;">{{ report.component }}</h3>
                     </th>
                 </tr>
-            {% if report.root.user %}
+            {% if report.decision.operator %}
                 <tr>
                     <th class="right aligned">{% trans 'Author' %}</th>
-                    <td><a class="violet-link" href="{% url 'users:show-profile' report.root.user.id %}">{{ report.root.user.get_full_name }}</a></td>
+                    <td><a class="violet-link" href="{% url 'users:show-profile' report.decision.operator.id %}">{{ report.decision.operator.get_full_name }}</a></td>
                 </tr>
             {% endif %}
                 <tr>
-                    <th class="right aligned">{% trans 'Job' %}</th>
-                    <td><a class="violet-link" href="{% url 'jobs:job' report.root.job.pk %}">{{ report.root.job.name }}</a></td>
+                    <th class="right aligned">{% trans 'Decision' %}</th>
+                    <td><a class="violet-link" href="{% url 'jobs:decision' report.decision.pk %}">{{ report.decision.name }}</a></td>
                 </tr>
                 {% if status.name %}
                     <tr>
@@ -103,7 +103,7 @@
         {% endif %}
 
         <div id="timeinfo_popup" class="ui popup">
-            <div class="header">{{ report.component.name }}</div>
+            <div class="header">{{ report.component }}</div>
             <div class="content" style="white-space:nowrap;">
                 {% if status.duration != None %}
                     {% if status.duration %}
@@ -145,11 +145,11 @@
             </div>
         {% endif %}
         {% if Coverage %}
-            {% include 'jobs/viewJob/coverage.html' with Coverage=Coverage %}
+            {% include 'jobs/viewDecision/coverage.html' with Coverage=Coverage %}
         {% elif VerificationCoverage and VerificationCoverage.statistics|length %}
             <div class="ui violet segment">
                 <div class="ui top left attached violet label">{% trans 'Coverage' %}</div>
-                {% include 'jobs/viewJob/coverageTable.html' with statistics=VerificationCoverage.statistics %}
+                {% include 'jobs/viewDecision/coverageTable.html' with statistics=VerificationCoverage.statistics %}
             </div>
         {% endif %}
 

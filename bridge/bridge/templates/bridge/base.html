@@ -17,7 +17,7 @@
 
 <!DOCTYPE html>
 
-{% load staticfiles %}
+{% load static %}
 {% load compress %}
 {% load i18n %}
 
@@ -114,23 +114,17 @@
             {% endif %}
             </div>
         </div>
-        <br>
-        {% block body_block %}{% endblock %}
+
+        <div class="body-block">{% block body_block %}{% endblock %}</div>
 
         <div id="upload_jobs_modal" class="ui modal" data-activator="#upload_jobs_modal_show">
             <div class="header">{% trans 'Upload jobs' %}</div>
             <div class="content">
-                <p>{% trans "Set parent identifier. All file or folder names with non-ASCII characters will be truncated to 30 characters." %}</p>
                 <div class="ui grid">
-                    <div class="five wide column">
-                        <div class="ui fluid input">
-                            <input id="upload_jobs_parent" type="text" placeholder="{% trans 'Identifier' %}" maxlength="32">
-                        </div>
-                    </div>
-                    <div class="three wide column right aligned">
+                    <div class="four wide column right aligned">
                         <span class="ui violet button btn-file">{% trans 'Browse' %}<input id="upload_jobs_file" type="file" multiple></span>
                     </div>
-                    <div class="eight wide column">
+                    <div class="twelve wide column">
                         <span id="upload_jobs_filename"></span>
                     </div>
                 </div>

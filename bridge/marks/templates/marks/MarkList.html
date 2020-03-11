@@ -18,7 +18,7 @@
 
 {% load i18n %}
 {% load tz %}
-{% load staticfiles %}
+{% load static %}
 {% load compress %}
 
 {% block title %}{{ tabledata.title }}{% endblock %}
@@ -33,15 +33,12 @@
 {% block body_block %}
     <div class="ui grid">
         <div class="eight wide column">
-            {% if tabledata.is_manager %}
-                <div class="ui dropdown">
-                    <i class="ui check square outline icon"></i>{% trans 'Selected marks' %}
-                    <i class="dropdown icon"></i>
-                    <div class="menu">
-                        <div id="remove_marks_modal_show" class="item"><i class="ui remove icon"></i>{% trans 'Delete' %}</div>
-                    </div>
-                </div>
-            {% endif %}
+            <div class="ui mini buttons">
+                <button id="download_selected_marks_btn" class="ui teal button disabled">{% trans 'Download' %}</button>
+                {% if tabledata.is_manager %}
+                    <button id="remove_marks_modal_show" class="ui red button disabled">{% trans 'Delete' %}</button>
+                {% endif %}
+            </div>
         </div>
         <div class="eight wide column right aligned">
             <button id="view_show_form_btn_{{ tabledata.view.type }}" class="ui mini violet button">{{ tabledata.view.viewtitle }}</button>
@@ -81,7 +78,7 @@
                                 <td class="collapsing{% if v.checkbox %} one wide{% endif %}"{% if v.checkbox %} style="text-align: right"{% endif %}>
                                     {% if v.checkbox %}
                                         <div class="ui checkbox">
-                                            <input type="checkbox" id="mark_checkbox__{{ v.checkbox }}" value="{{ v.checkbox }}">
+                                            <input type="checkbox" id="mark_checkbox__{{ v.checkbox }}" value="{{ v.checkbox }}" class="mark-checkbox">
                                             <label for="mark_checkbox__{{ v.checkbox }}"></label>
                                         </div>
                                     {% elif v.href %}
@@ -120,5 +117,6 @@
             </div>
         </div>
     </div>
-    <span id="no_marks_selected" hidden>{% trans 'Please select marks you want to delete' %}</span>
+    <span id="no_marks_selected" hidden>{% trans 'Please select at least onw mark' %}</span>
+    <span id="download_marks_url" hidden>{% url 'marks:download-marks-list' %}</span>
 {% endblock %}

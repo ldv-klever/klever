@@ -16,9 +16,10 @@
 #
 
 import os
+import struct
 import time
 import zlib
-import struct
+
 from zipfile import ZipInfo, ZIP_DEFLATED, ZIP64_LIMIT, ZIP_FILECOUNT_LIMIT
 
 
@@ -27,6 +28,7 @@ CHUNK_SIZE = 1024 * 64
 
 class LargeZipFile(Exception):
     pass
+
 
 # Here are some struct module formats for reading headers
 structEndArchive = b"<4s4H2LH"

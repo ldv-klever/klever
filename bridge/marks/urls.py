@@ -85,6 +85,8 @@ urlpatterns = [
     path('safe/<int:pk>/download/', views.DownloadSafeMarkView.as_view(), name='safe-download'),
     path('unsafe/<int:pk>/download/', views.DownloadUnsafeMarkView.as_view(), name='unsafe-download'),
     path('unknown/<int:pk>/download/', views.DownloadUnknownMarkView.as_view(), name='unknown-download'),
+    path('download-marks-list/', views.DownloadSeveralMarksView.as_view(), name='download-marks-list'),
+
     path('safe/<int:pk>/download-preset/', views.PresetSafeMarkView.as_view(), name='safe-download-preset'),
     path('unsafe/<int:pk>/download-preset/', views.PresetUnsafeMarkView.as_view(), name='unsafe-download-preset'),
     path('unknown/<int:pk>/download-preset/', views.PresetUnknownMarkView.as_view(), name='unknown-download-preset'),
