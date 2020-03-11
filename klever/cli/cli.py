@@ -53,7 +53,7 @@ def download_progress():
     session.decision_progress(args.decision, args.out)
 
     print('JSON file with solution progress of verification job decision "{0}" was successfully downloaded to "{1}"'
-          .format(args.job, args.out))
+          .format(args.decision, args.out))
 
 
 def download_results():
@@ -66,7 +66,7 @@ def download_results():
     session.decision_results(args.decision, args.out)
 
     print('JSON file with verification results of verificaiton job decision "{0}" was successfully downloaded to "{1}"'
-          .format(args.job, args.out))
+          .format(args.decision, args.out))
 
 
 def start_preset_solution():
