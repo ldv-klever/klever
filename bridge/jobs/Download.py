@@ -23,40 +23,77 @@ from wsgiref.util import FileWrapper
 
 from django.conf import settings
 from django.core.files import File
+from django.db.models import Q
+from django.urls import reverse
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 
-from rest_framework import exceptions
-
-from bridge.vars import MPTT_FIELDS, TREE_LIST_JSON
-from bridge.utils import logger, extract_archive, BridgeException
+from bridge.utils import extract_archive, BridgeException
 from bridge.ZipGenerator import ZipStream, CHUNK_SIZE
 
-from jobs.models import Job, RunHistory, JobFile, FileSystem
+from jobs.models import Job, JobFile, FileSystem, Decision
 from reports.models import (
-    ReportRoot, ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent,
-    ReportAttr, CoverageArchive, AttrFile, OriginalSources, AdditionalSources, RootCache
+    ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent, ReportAttr,
+    CoverageArchive, OriginalSources, AdditionalSources, DecisionCache
 )
 
 from jobs.serializers import UploadedJobArchiveSerializer
+from jobs.tasks import upload_job_archive
+from jobs.utils import JobAccess, DecisionAccess
+
 from jobs.DownloadSerializers import (
-    DownloadJobSerializer, DownloadJobVersionSerializer,
-    DownloadReportAttrSerializer, DownloadReportComponentSerializer,
-    DownloadReportSafeSerializer, DownloadReportUnsafeSerializer,
-    DownloadReportUnknownSerializer, RootCacheSerializer
+    DownloadJobSerializer, DownloadReportAttrSerializer, DownloadReportComponentSerializer,
+    DownloadReportSafeSerializer, DownloadReportUnsafeSerializer, DownloadReportUnknownSerializer,
+    DecisionCacheSerializer, DownloadDecisionSerializer
 )
-from jobs.tasks import upload_job_archive, link_uploaded_job_parent
+
+
+def get_jobs_to_download(user, job_ids, decision_ids):
+    jobs_qs_filter = Q()
+    if job_ids:
+        jobs_qs_filter |= Q(id__in=job_ids)
+    if decision_ids:
+        jobs_qs_filter |= Q(decision__id__in=decision_ids)
+    if not jobs_qs_filter:
+        raise BridgeException(_("Please select jobs or/and decisions you want to download"), back=reverse('jobs:tree'))
+
+    # Collect selected jobs
+    jobs_to_download = {}
+    for job in Job.objects.filter(jobs_qs_filter):
+        jobs_to_download[job.id] = {'instance': job, 'decisions': []}
+
+    if not jobs_to_download:
+        raise BridgeException(_("Jobs were not found"), back=reverse('jobs:tree'))
+
+    # Collect selected decisions
+    for decision in Decision.objects.filter(pk__in=decision_ids).select_related('job'):
+        if decision.job_id not in jobs_to_download:
+            # Unexpected behavior
+            continue
+        jobs_to_download[decision.job_id]['decisions'].append(decision.id)
+        if not DecisionAccess(user, decision).can_download:
+            raise BridgeException(
+                _("You don't have an access to one of the selected decisions"), back=reverse('jobs:tree')
+            )
+
+    # Check access to jobs without any selected decision (all decisions will be downloaded)
+    for job_id in jobs_to_download:
+        if not jobs_to_download[job_id]['decisions']:
+            if not JobAccess(user, jobs_to_download[job_id]['instance']).can_download:
+                raise BridgeException(
+                    _("You don't have an access to one of the selected jobs"), back=reverse('jobs:tree')
+                )
+    return jobs_to_download
 
 
 class KleverCoreArchiveGen:
-    def __init__(self, job):
-        self.job = job
-        self.arcname = 'VJ__{}.zip'.format(job.identifier)
+    def __init__(self, decision):
+        self.decision = decision
+        self.arcname = 'VJ__{}.zip'.format(decision.identifier)
         self.stream = ZipStream()
 
     def __iter__(self):
-        last_version = self.job.versions.get(version=self.job.version)
-        for file_inst in last_version.files.select_related('file').all():
+        for file_inst in FileSystem.objects.filter(decision=self.decision).select_related('file'):
             arch_name = '/'.join(['root', file_inst.name])
             file_src = '/'.join([settings.MEDIA_ROOT, file_inst.file.file.name])
             for data in self.stream.compress_file(file_src, arch_name):
@@ -64,97 +101,80 @@ class KleverCoreArchiveGen:
         yield self.stream.close_stream()
 
 
-class AttrDataArchive:
-    def __init__(self, job):
-        self._job = job
-        self.stream = ZipStream()
-
-    def __iter__(self):
-        for afile in AttrFile.objects.filter(root__job=self._job):
-            file_name = os.path.join(settings.MEDIA_ROOT, afile.file.name)
-            arc_name = os.path.join('{0}{1}'.format(afile.id, os.path.splitext(afile.file.name)[-1]))
-            buf = b''
-            for data in self.stream.compress_file(file_name, arc_name):
-                buf += data
-                if len(buf) > CHUNK_SIZE:
-                    yield buf
-                    buf = b''
-            if len(buf) > 0:
-                yield buf
-        yield self.stream.close_stream()
-
-
 class JobArchiveGenerator:
-    def __init__(self, job):
+    def __init__(self, job, decisions_ids=None):
         self.job = job
+        self._decisions_ids = list(map(int, decisions_ids)) if decisions_ids else None
         self.name = 'Job-{}.zip'.format(self.job.identifier)
         self._arch_files = set()
         self.stream = ZipStream()
 
     def __iter__(self):
-        for job_v in self.job.versions.all():
-            version_data = self.__get_json(DownloadJobVersionSerializer(instance=job_v).data)
-            yield from self.stream.compress_string('version-%s.json' % job_v.version, version_data)
-        self.__add_versions_files()
-
         # Job data
-        job_data = self.__get_json(DownloadJobSerializer(instance=self.job).data)
-        yield from self.stream.compress_string('job.json', job_data)
-        self.__add_run_history_files()
+        yield from self.stream.compress_string('job.json', self.__get_job_data())
+        yield from self.stream.compress_string('{}.json'.format(Decision.__name__), self.__add_decisions_data())
+        yield from self.stream.compress_string('{}.json'.format(DecisionCache.__name__), self.__get_decision_cache())
+        yield from self.stream.compress_string('{}.json'.format(OriginalSources.__name__), self.__get_original_src())
+        yield from self.stream.compress_string('{}.json'.format(ReportComponent.__name__), self.__get_reports_data())
+        yield from self.stream.compress_string('{}.json'.format(ReportSafe.__name__), self.__get_safes_data())
+        yield from self.stream.compress_string('{}.json'.format(ReportUnsafe.__name__), self.__get_unsafes_data())
+        yield from self.stream.compress_string('{}.json'.format(ReportUnknown.__name__), self.__get_unknowns_data())
+        yield from self.stream.compress_string('{}.json'.format(ReportAttr.__name__), self.__get_attrs_data())
+        yield from self.stream.compress_string('{}.json'.format(CoverageArchive.__name__), self.__get_coverage_data())
 
-        # Reports data
-        try:
-            root = ReportRoot.objects.get(job=self.job)
-        except ReportRoot.DoesNotExist:
-            pass
-        else:
-            yield from self.stream.compress_string(
-                '{}.json'.format(OriginalSources.__name__), self.__get_original_sources(root)
-            )
-            yield from self.stream.compress_string(
-                '{}.json'.format(RootCache.__name__), self.__get_root_cache(root)
-            )
-            yield from self.stream.compress_string(
-                '{}.json'.format(ReportComponent.__name__), self.__get_reports_data(root)
-            )
-            yield from self.stream.compress_string(
-                '{}.json'.format(ReportSafe.__name__), self.__get_safes_data(root)
-            )
-            yield from self.stream.compress_string(
-                '{}.json'.format(ReportUnsafe.__name__), self.__get_unsafes_data(root)
-            )
-            yield from self.stream.compress_string(
-                '{}.json'.format(ReportUnknown.__name__), self.__get_unknowns_data(root)
-            )
-            yield from self.stream.compress_string(
-                '{}.json'.format(ReportAttr.__name__), self.__get_attrs_data(root)
-            )
-            yield from self.stream.compress_string(
-                '{}.json'.format(CoverageArchive.__name__), self.__get_coverage_data(root)
-            )
-            self.__add_additional_sources(root)
+        self.__add_job_files()
+        self.__add_additional_sources()
 
         for file_path, arcname in self._arch_files:
             yield from self.stream.compress_file(file_path, arcname)
         yield self.stream.close_stream()
 
-    def __add_versions_files(self):
+    @cached_property
+    def _decision_filter(self):
+        if self._decisions_ids:
+            return Q(decision_id__in=self._decisions_ids)
+        return Q(decision__job_id=self.job.id)
+
+    def __get_job_data(self):
+        return self.__get_json(DownloadJobSerializer(instance=self.job).data)
+
+    def __add_job_files(self):
         job_files = {}
-        for fs in FileSystem.objects.filter(job_version__job=self.job).select_related('file'):
+        for fs in FileSystem.objects.filter(decision__job=self.job).select_related('file'):
             job_files[fs.file.hash_sum] = (fs.file.file.path, fs.file.file.name)
         for f_path, arcname in job_files.values():
             self._arch_files.add((f_path, arcname))
 
-    def __add_run_history_files(self):
-        for rh in self.job.run_history.order_by('date'):
-            self._arch_files.add((rh.configuration.file.path, rh.configuration.file.name))
+    def __add_decisions_data(self):
+        if self._decisions_ids:
+            qs_filter = Q(id__in=self._decisions_ids)
+        else:
+            qs_filter = Q(job_id=self.job.id)
+        decisions_list = []
+        for decision in Decision.objects.filter(qs_filter).select_related('scheduler', 'configuration'):
+            decisions_list.append(DownloadDecisionSerializer(instance=decision).data)
+            self._arch_files.add((decision.configuration.file.path, decision.configuration.file.name))
+        return self.__get_json(decisions_list)
 
-    def __get_root_cache(self, root):
-        return self.__get_json(RootCacheSerializer(instance=RootCache.objects.filter(root=root), many=True).data)
+    def __get_decision_cache(self):
+        return self.__get_json(DecisionCacheSerializer(
+            instance=DecisionCache.objects.filter(self._decision_filter), many=True
+        ).data)
 
-    def __get_reports_data(self, root):
+    def __get_original_src(self):
+        if self._decisions_ids:
+            qs_filter = Q(reportcomponent__decision_id__in=self._decisions_ids)
+        else:
+            qs_filter = Q(reportcomponent__decision__job_id=self.job.id)
+        sources = {}
+        for src_arch in OriginalSources.objects.filter(qs_filter):
+            sources[src_arch.identifier] = src_arch.archive.name
+            self._arch_files.add((src_arch.archive.path, src_arch.archive.name))
+        return self.__get_json(sources)
+
+    def __get_reports_data(self):
         reports = []
-        for report in ReportComponent.objects.filter(root=root)\
+        for report in ReportComponent.objects.filter(self._decision_filter)\
                 .select_related('parent', 'computer', 'original_sources', 'additional_sources').order_by('level'):
             report_data = DownloadReportComponentSerializer(instance=report).data
 
@@ -167,44 +187,54 @@ class JobArchiveGenerator:
 
         return self.__get_json(reports)
 
-    def __get_safes_data(self, root):
-        reports = []
-        for report in ReportSafe.objects.filter(root=root).select_related('parent').order_by('id'):
-            reports.append(DownloadReportSafeSerializer(instance=report).data)
-        return self.__get_json(reports)
+    def __get_safes_data(self):
+        safes_queryset = ReportSafe.objects.filter(self._decision_filter).select_related('parent').order_by('id')
+        return self.__get_json(DownloadReportSafeSerializer(instance=safes_queryset, many=True).data)
 
-    def __get_unsafes_data(self, root):
+    def __get_unsafes_data(self):
         reports = []
-        for report in ReportUnsafe.objects.filter(root=root).select_related('parent').order_by('id'):
+        for report in ReportUnsafe.objects.filter(self._decision_filter).select_related('parent').order_by('id'):
             report_data = DownloadReportUnsafeSerializer(instance=report).data
             if report_data['error_trace']:
                 self._arch_files.add((report.error_trace.path, report_data['error_trace']))
             reports.append(report_data)
         return self.__get_json(reports)
 
-    def __get_unknowns_data(self, root):
+    def __get_unknowns_data(self):
         reports = []
-        for report in ReportUnknown.objects.filter(root=root).select_related('parent').order_by('id'):
+        for report in ReportUnknown.objects.filter(self._decision_filter).select_related('parent').order_by('id'):
             report_data = DownloadReportUnknownSerializer(instance=report).data
             if report_data['problem_description']:
                 self._arch_files.add((report.problem_description.path, report_data['problem_description']))
             reports.append(report_data)
         return self.__get_json(reports)
 
-    def __get_attrs_data(self, root):
+    def __get_attrs_data(self):
+        if self._decisions_ids:
+            qs_filter = Q(report__decision_id__in=self._decisions_ids)
+        else:
+            qs_filter = Q(report__decision__job_id=self.job.id)
+
         attrs_data = {}
-        for ra in ReportAttr.objects.filter(report__root=root).select_related('data', 'report').order_by('id'):
+        for ra in ReportAttr.objects.filter(qs_filter).select_related('data', 'report').order_by('id'):
             data = DownloadReportAttrSerializer(instance=ra).data
             if data['data_file']:
                 self._arch_files.add((ra.data.file.path, data['data_file']))
-            attrs_data.setdefault(ra.report.identifier, [])
-            attrs_data[ra.report.identifier].append(data)
+            attrs_data.setdefault(ra.report.decision_id, {})
+            attrs_data[ra.report.decision_id].setdefault(ra.report.identifier, [])
+            attrs_data[ra.report.decision_id][ra.report.identifier].append(data)
         return self.__get_json(attrs_data)
 
-    def __get_coverage_data(self, root):
+    def __get_coverage_data(self):
+        if self._decisions_ids:
+            qs_filter = Q(report__decision_id__in=self._decisions_ids)
+        else:
+            qs_filter = Q(report__decision__job_id=self.job.id)
+
         coverage_data = []
-        for carch in CoverageArchive.objects.filter(report__root=root).select_related('report').order_by('id'):
+        for carch in CoverageArchive.objects.filter(qs_filter).select_related('report').order_by('id'):
             coverage_data.append({
+                'decision': carch.report.decision_id,
                 'report': carch.report.identifier,
                 'identifier': carch.identifier,
                 'archive': carch.archive.name,
@@ -213,24 +243,17 @@ class JobArchiveGenerator:
             self._arch_files.add((carch.archive.path, carch.archive.name))
         return self.__get_json(coverage_data)
 
-    def __add_additional_sources(self, root):
-        for src_arch in AdditionalSources.objects.filter(root=root):
+    def __add_additional_sources(self):
+        for src_arch in AdditionalSources.objects.filter(self._decision_filter):
             self._arch_files.add((src_arch.archive.path, src_arch.archive.name))
-
-    def __get_original_sources(self, root):
-        sources = {}
-        for src_arch in OriginalSources.objects.filter(reportcomponent__root=root):
-            sources[src_arch.identifier] = src_arch.archive.name
-            self._arch_files.add((src_arch.archive.path, src_arch.archive.name))
-        return self.__get_json(sources)
 
     def __get_json(self, data):
         return json.dumps(data, ensure_ascii=False, sort_keys=True, indent=2)
 
 
 class JobsArchivesGen:
-    def __init__(self, jobs):
-        self.jobs = jobs
+    def __init__(self, jobs_to_download):
+        self.jobs = jobs_to_download
         self.stream = ZipStream()
         self.name = 'KleverJobs.zip'
 
@@ -245,72 +268,10 @@ class JobsArchivesGen:
             yield buf
 
     def __iter__(self):
-        for job in self.jobs:
-            jobgen = JobArchiveGenerator(job)
+        for job_id in self.jobs:
+            jobgen = JobArchiveGenerator(self.jobs[job_id]['instance'], decisions_ids=self.jobs[job_id]['decisions'])
             yield from self.generate_job(jobgen)
         yield self.stream.close_stream()
-
-
-class JobsTreesGen(JobsArchivesGen):
-    def __init__(self, jobs_ids):
-        self._root_ids = self.__get_root_ids(jobs_ids)
-        super(JobsTreesGen, self).__init__([])
-
-    def __iter__(self):
-        tree_list = []
-        for root_job in Job.objects.filter(id__in=self._root_ids).only(*MPTT_FIELDS):
-            for job in root_job.get_descendants(include_self=True):
-                jobgen = JobArchiveGenerator(job)
-                yield from self.generate_job(jobgen)
-
-                parent_uuid = None
-                if job.id not in self._root_ids:
-                    parent_id = self._all_jobs[job.id]['parent']
-                    if parent_id:
-                        parent_uuid = self._all_jobs[parent_id]['identifier']
-                tree_list.append({'uuid': str(job.identifier), 'file': jobgen.name, 'parent': parent_uuid})
-        yield from self.stream.compress_string(TREE_LIST_JSON, json.dumps(tree_list, sort_keys=True, indent=2))
-        yield self.stream.close_stream()
-
-    @property
-    def jobs_queryset(self):
-        ids_to_download = set()
-        parents_ids = set(self._root_ids)
-        while True:
-            new_parents = set()
-            for p_id in self._all_jobs:
-                if self._all_jobs[p_id]['parent'] in parents_ids:
-                    new_parents.add(p_id)
-            if new_parents:
-                ids_to_download |= new_parents
-                parents_ids = new_parents
-            else:
-                # If children were not found then the lowest tree level is reached
-                break
-        return Job.objects.filter(id__in=ids_to_download)
-
-    def __get_root_ids(self, jobs_ids):
-        # Get selected root for each selected job
-        jobs_ids = set(int(j_id) for j_id in jobs_ids)
-        root_ids = set()
-        for j_id in jobs_ids:
-            root_id = j_id
-            p_id = j_id
-            while True:
-                p_id = self._all_jobs[p_id]['parent']
-                if not p_id:
-                    break
-                if p_id in jobs_ids:
-                    root_id = p_id
-            root_ids.add(root_id)
-        return root_ids
-
-    @cached_property
-    def _all_jobs(self):
-        total_tree = {}
-        for j_id, p_id, j_uuid in Job.objects.values_list('id', 'parent_id', 'identifier'):
-            total_tree[j_id] = {'parent': p_id, 'identifier': str(j_uuid)}
-        return total_tree
 
 
 class JobFileGenerator(FileWrapper):
@@ -320,28 +281,18 @@ class JobFileGenerator(FileWrapper):
         super().__init__(jobfile.file, 8192)
 
 
-class JobConfGenerator(FileWrapper):
+class DecisionConfGenerator(FileWrapper):
     def __init__(self, instance):
-        assert isinstance(instance, RunHistory), 'Unknown error'
-        self.name = "job-{}.conf".format(instance.job.identifier)
+        assert isinstance(instance, Decision), 'Unknown error'
+        self.name = "decision-{}.conf".format(instance.identifier)
         self.size = len(instance.configuration.file)
         super().__init__(instance.configuration.file, 8192)
 
 
 class UploadJobsScheduler:
-    def __init__(self, user, archive, parent_uuid):
+    def __init__(self, user, archive):
         self._author = user
         self._archive = archive
-        self._parent_uuid = self.__get_parent(parent_uuid)
-
-    def __get_parent(self, parent_uuid):
-        if not parent_uuid:
-            return None
-        try:
-            parent_job = Job.objects.get(identifier=parent_uuid)
-        except Job.DoesNotExist:
-            raise exceptions.APIException(_('The job(s) parent was not found'))
-        return str(parent_job.identifier)
 
     @cached_property
     def _arch_files(self):
@@ -349,10 +300,7 @@ class UploadJobsScheduler:
             return zfp.namelist()
 
     def upload_all(self):
-        if TREE_LIST_JSON in self._arch_files:
-            # A tree of jobs
-            self.__upload_tree()
-        elif all(os.path.splitext(file_path)[-1] == '.zip' for file_path in self._arch_files):
+        if all(os.path.splitext(file_path)[-1] == '.zip' for file_path in self._arch_files):
             # A list of jobs
             jobs_dir = extract_archive(self._archive)
             for arch_name in os.listdir(jobs_dir.name):
@@ -362,37 +310,9 @@ class UploadJobsScheduler:
             # A single job
             self.__save_archive(self._archive)
 
-    def __upload_tree(self):
-        # Extract archive to a temporary directory
-        try:
-            jobs_dir = extract_archive(self._archive)
-        except Exception as e:
-            logger.exception(e)
-            raise exceptions.APIException(
-                _('Extraction of the archive "%(arcname)s" has failed') % {'arcname': self._archive.name}
-            )
-
-        # Parse tree structure json
-        tree_fname = os.path.join(jobs_dir.name, TREE_LIST_JSON)
-        if not os.path.exists(tree_fname):
-            raise BridgeException(_('The file with tree structure was not found'))
-        with open(tree_fname, mode='r', encoding='utf8') as fp:
-            tree_info = json.loads(fp.read())
-
-        delayed_uploads = {}
-        for job_info in tree_info:
-            # Save each job archive
-            with open(os.path.join(jobs_dir.name, job_info['file']), mode='rb') as fp:
-                upload_obj = self.__save_archive(File(fp, name=job_info['file']))
-            delayed_uploads[job_info['uuid']] = upload_obj.pk
-
-            # Schedule task to link correct parent after upload is completed
-            if job_info['parent'] and job_info['parent'] in delayed_uploads:
-                link_uploaded_job_parent.delay(upload_obj.pk, delayed_uploads[job_info['parent']])
-
     def __save_archive(self, arch_fp):
         serializer = UploadedJobArchiveSerializer(data={'archive': arch_fp})
         serializer.is_valid(raise_exception=True)
         upload_obj = serializer.save(author=self._author)
-        upload_job_archive.delay(upload_obj.id, self._parent_uuid)
+        upload_job_archive.delay(upload_obj.id)
         return upload_obj

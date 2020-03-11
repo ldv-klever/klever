@@ -27,9 +27,9 @@ from mptt.models import MPTTModel, TreeForeignKey
 from bridge.vars import MARK_STATUS, MARK_UNSAFE, MARK_SAFE, MARK_SOURCE, ASSOCIATION_TYPE
 from bridge.utils import WithFilesMixin, remove_instance_files
 
-from reports.models import MAX_COMPONENT_LEN, ReportUnsafe, ReportSafe, ReportComponent, ReportUnknown, AttrBase
-from jobs.models import Job
 from users.models import User
+from jobs.models import Job
+from reports.models import MAX_COMPONENT_LEN, ReportUnsafe, ReportSafe, ReportComponent, ReportUnknown, AttrBase
 
 CONVERTED_DIR = 'Error-traces'
 MAX_PROBLEM_LEN = 20

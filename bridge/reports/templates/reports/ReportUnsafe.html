@@ -17,7 +17,7 @@
 {% endcomment %}
 
 {% load i18n %}
-{% load staticfiles %}
+{% load static %}
 {% load compress %}
 
 {% block title %}{% trans 'Unsafe' %}{% endblock %}
@@ -54,12 +54,12 @@
 {% block body_block %}
     <div class="ui grid">
         <div class="five wide column">
-            <span class="purple-title">{% trans 'Job' %}: </span>
-            <a href="{% url 'jobs:job' report.root.job.pk %}">{{ report.root.job.name }}</a>
+            <span class="purple-title">{% trans 'Decision' %}: </span>
+            <a href="{% url 'jobs:decision' report.decision.pk %}">{{ report.decision.name }}</a>
             <br>
-            {% if report.root.user %}
+            {% if report.decision.operator %}
                 <span class="purple-title">{% trans 'Author' %}: </span>
-                <a href="{% url 'users:show-profile' report.root.user.id %}">{{ report.root.user.get_full_name }}</a>
+                <a href="{% url 'users:show-profile' report.decision.operator.id %}">{{ report.decision.operator.get_full_name }}</a>
             {% endif %}
         </div>
         <div class="four wide column">

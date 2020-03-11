@@ -18,14 +18,20 @@
 import uuid
 from django.db import models
 from django.db.models.signals import post_delete
+from django.template import Template, Context
+from django.utils.timezone import now
+from django.utils.translation import ugettext_lazy as _
 from mptt.models import MPTTModel, TreeForeignKey
 
-from bridge.vars import JOB_ROLES, JOB_STATUS, JOB_WEIGHT, COVERAGE_DETAILS, JOB_UPLOAD_STATUS
+from bridge.vars import (
+    JOB_ROLES, JOB_UPLOAD_STATUS, PRESET_JOB_TYPE, DECISION_STATUS, DECISION_WEIGHT,
+    PRIORITY, SCHEDULER_STATUS, SCHEDULER_TYPE
+)
 from bridge.utils import WithFilesMixin, remove_instance_files
 
 from users.models import User
 
-JOBFILE_DIR = 'Job'
+JOBFILE_DIR = 'JobFile'
 UPLOAD_DIR = 'UploadedJobs'
 
 
@@ -40,48 +46,43 @@ class JobFile(WithFilesMixin, models.Model):
         return self.hash_sum
 
 
-class PresetStatus(models.Model):
-    identifier = models.UUIDField(db_index=True)
-    check_date = models.DateTimeField(auto_now=True)
-    hash_sum = models.CharField(max_length=128)
+class PresetJob(MPTTModel):
+    parent = TreeForeignKey('self', models.CASCADE, null=True, blank=True, related_name='children')
+    identifier = models.UUIDField(db_index=True, null=True)
+    name = models.CharField(max_length=150, unique=True, db_index=True, verbose_name=_('Name'))
+    type = models.CharField(max_length=1, choices=PRESET_JOB_TYPE)
+    check_date = models.DateTimeField()
+
+    creation_date = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table = 'job_preset'
+        verbose_name = _('Preset job')
+
+    class MPTTMeta:
+        order_insertion_by = ['creation_date']
 
 
-class Job(MPTTModel):
+class PresetFile(models.Model):
+    preset = models.ForeignKey(PresetJob, models.CASCADE)
+    name = models.CharField(max_length=1024)
+    file = models.ForeignKey(JobFile, models.PROTECT)
+
+    class Meta:
+        db_table = 'job_preset_file'
+
+
+class Job(models.Model):
+    preset = models.ForeignKey(PresetJob, models.CASCADE)
     identifier = models.UUIDField(unique=True, db_index=True, default=uuid.uuid4)
-    name = models.CharField(max_length=150, unique=True, db_index=True)
-    parent = TreeForeignKey('self', models.CASCADE, null=True, blank=True, related_name='children')
-    version = models.PositiveSmallIntegerField(default=1)
-    status = models.CharField(max_length=1, choices=JOB_STATUS, default=JOB_STATUS[0][0])
-    weight = models.CharField(max_length=1, choices=JOB_WEIGHT, default=JOB_WEIGHT[0][0])
-    coverage_details = models.CharField(max_length=1, choices=COVERAGE_DETAILS,
-                                        default=COVERAGE_DETAILS[0][0])
-    author = models.ForeignKey(User, models.SET_NULL, blank=True, null=True, related_name='jobs')
+    name = models.CharField(max_length=150, db_index=True)
+    global_role = models.CharField(max_length=1, choices=JOB_ROLES, default=JOB_ROLES[0][0])
 
-    preset_uuid = models.UUIDField(null=True, blank=True)
     creation_date = models.DateTimeField(auto_now_add=True)
+    author = models.ForeignKey(User, models.SET_NULL, blank=True, null=True, related_name='+')
 
     def __str__(self):
         return self.name
-
-    @property
-    def is_lightweight(self):
-        return self.weight == JOB_WEIGHT[1][0]
-
-    @property
-    def is_finished(self):
-        return self.status in {
-            JOB_STATUS[3][0], JOB_STATUS[4][0], JOB_STATUS[5][0], JOB_STATUS[7][0], JOB_STATUS[8][0]
-        }
-
-    @property
-    def not_decided(self):
-        return self.status == JOB_STATUS[0][0]
-
-    class MPTTMeta:
-        order_insertion_by = ['name']
 
     class Meta:
         db_table = 'job'
@@ -101,52 +102,114 @@ class UploadedJobArchive(models.Model):
         db_table = 'job_uploaded_archives'
 
 
-class RunHistory(models.Model):
-    job = models.ForeignKey(Job, models.CASCADE, related_name='run_history')
-    operator = models.ForeignKey(User, models.SET_NULL, null=True, related_name='+')
-    date = models.DateTimeField(db_index=True)
-    status = models.CharField(choices=JOB_STATUS, max_length=1, default=JOB_STATUS[1][0])
+class UserRole(models.Model):
+    job = models.ForeignKey(Job, models.CASCADE)
+    user = models.ForeignKey(User, models.CASCADE)
+    role = models.CharField(max_length=1, choices=JOB_ROLES)
+
+    class Meta:
+        db_table = 'user_job_role'
+
+
+class Scheduler(models.Model):
+    type = models.CharField(max_length=15, choices=SCHEDULER_TYPE, db_index=True)
+    status = models.CharField(max_length=15, choices=SCHEDULER_STATUS, default=SCHEDULER_STATUS[1][0])
+
+    class Meta:
+        db_table = 'scheduler'
+
+
+class Decision(models.Model):
+    job = models.ForeignKey(Job, models.CASCADE)
+    title = models.CharField(max_length=128, blank=True)
+    identifier = models.UUIDField(unique=True, db_index=True, default=uuid.uuid4)
+    operator = models.ForeignKey(User, models.SET_NULL, null=True, related_name='decisions')
+    status = models.CharField(max_length=1, choices=DECISION_STATUS, default=DECISION_STATUS[1][0])
+    weight = models.CharField(max_length=1, choices=DECISION_WEIGHT, default=DECISION_WEIGHT[0][0])
+
+    scheduler = models.ForeignKey(Scheduler, models.CASCADE)
+    priority = models.CharField(max_length=6, choices=PRIORITY)
+
+    error = models.TextField(null=True)
     configuration = models.ForeignKey(JobFile, models.CASCADE)
 
+    start_date = models.DateTimeField(default=now)
+    finish_date = models.DateTimeField(null=True)
+
+    tasks_total = models.PositiveIntegerField(default=0)
+    tasks_pending = models.PositiveIntegerField(default=0)
+    tasks_processing = models.PositiveIntegerField(default=0)
+    tasks_finished = models.PositiveIntegerField(default=0)
+    tasks_error = models.PositiveIntegerField(default=0)
+    tasks_cancelled = models.PositiveIntegerField(default=0)
+    solutions = models.PositiveIntegerField(default=0)
+
+    total_sj = models.PositiveIntegerField(null=True)
+    failed_sj = models.PositiveIntegerField(null=True)
+    solved_sj = models.PositiveIntegerField(null=True)
+    expected_time_sj = models.PositiveIntegerField(null=True)
+    start_sj = models.DateTimeField(null=True)
+    finish_sj = models.DateTimeField(null=True)
+    gag_text_sj = models.CharField(max_length=128, null=True)
+
+    total_ts = models.PositiveIntegerField(null=True)
+    failed_ts = models.PositiveIntegerField(null=True)
+    solved_ts = models.PositiveIntegerField(null=True)
+    expected_time_ts = models.PositiveIntegerField(null=True)
+    start_ts = models.DateTimeField(null=True)
+    finish_ts = models.DateTimeField(null=True)
+    gag_text_ts = models.CharField(max_length=128, null=True)
+
+    @property
+    def is_lightweight(self):
+        return self.weight == DECISION_WEIGHT[1][0]
+
+    @property
+    def is_finished(self):
+        return self.status in {
+            DECISION_STATUS[3][0], DECISION_STATUS[4][0], DECISION_STATUS[5][0],
+            DECISION_STATUS[7][0], DECISION_STATUS[8][0]
+        }
+
+    @property
+    def status_color(self):
+        if self.status == DECISION_STATUS[1][0]:
+            return 'pink'
+        if self.status == DECISION_STATUS[2][0]:
+            return 'purple'
+        if self.status == DECISION_STATUS[3][0]:
+            return 'green'
+        if self.status in {DECISION_STATUS[4][0], DECISION_STATUS[5][0], DECISION_STATUS[8][0]}:
+            return 'red'
+        if self.status == DECISION_STATUS[6][0]:
+            return 'yellow'
+        if self.status == DECISION_STATUS[7][0]:
+            return 'orange'
+        return 'violet'
+
+    @property
+    def name(self):
+        return Template("{{ date }}{% if title %} ({{ title }}){% endif %}").render(Context({
+            'date': self.start_date, 'title': self.title
+        }))
+
+    def __str__(self):
+        return self.name
+
     class Meta:
-        db_table = 'job_run_history'
-
-
-class JobHistory(models.Model):
-    job = models.ForeignKey(Job, models.CASCADE, related_name='versions')
-    version = models.PositiveSmallIntegerField()
-    change_author = models.ForeignKey(User, models.SET_NULL, blank=True, null=True, related_name='+')
-    change_date = models.DateTimeField()
-    comment = models.CharField(max_length=255, default='', blank=True)
-
-    name = models.CharField(max_length=150)
-    global_role = models.CharField(max_length=1, choices=JOB_ROLES, default=JOB_ROLES[0][0])
-
-    class Meta:
-        db_table = 'jobhistory'
-        index_together = ['job', 'version']
-        ordering = ('-version',)
+        db_table = 'decision'
 
 
 class FileSystem(models.Model):
-    job_version = models.ForeignKey(JobHistory, models.CASCADE, related_name='files')
+    decision = models.ForeignKey(Decision, models.CASCADE, related_name='files')
     name = models.CharField(max_length=1024)
-    file = models.ForeignKey(JobFile, models.CASCADE)
+    file = models.ForeignKey(JobFile, models.PROTECT)
 
     def __str__(self):
         return self.name
 
     class Meta:
         db_table = 'file_system'
-
-
-class UserRole(models.Model):
-    job_version = models.ForeignKey(JobHistory, models.CASCADE)
-    user = models.ForeignKey(User, models.CASCADE)
-    role = models.CharField(max_length=1, choices=JOB_ROLES)
-
-    class Meta:
-        db_table = 'user_job_role'
 
 
 post_delete.connect(remove_instance_files, sender=JobFile)

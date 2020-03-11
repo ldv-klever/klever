@@ -16,7 +16,7 @@
 #
 
 from bridge.vars import SCHEDULER_TYPE
-from service.models import Scheduler
+from jobs.models import Scheduler
 
 
 def populuate_schedulers():

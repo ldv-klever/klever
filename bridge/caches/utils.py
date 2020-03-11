@@ -69,7 +69,7 @@ class UpdateSafeCachesOnMarkChange:
         old_data = {}
         for cache_obj in self._cache_queryset:
             old_data[cache_obj.report_id] = {
-                'job_id': cache_obj.job_id,
+                'decision_id': cache_obj.decision_id,
                 'verdict': cache_obj.verdict,
                 'tags': cache_obj.tags
             }
@@ -166,7 +166,7 @@ class UpdateSafeCachesOnMarkChange:
             tags_new = self._new_data[report_id].get('tags', tags_old)
             changes_objects.append(SafeMarkAssociationChanges(
                 identifier=identifier, mark=self._mark,
-                job_id=self._old_data[report_id]['job_id'], report_id=report_id,
+                decision_id=self._old_data[report_id]['decision_id'], report_id=report_id,
                 kind=self._change_kinds[report_id],
                 verdict_old=verdict_old, verdict_new=verdict_new,
                 tags_old=tags_old, tags_new=tags_new
@@ -198,7 +198,7 @@ class UpdateUnsafeCachesOnMarkChange:
         old_data = {}
         for cache_obj in self._cache_queryset:
             old_data[cache_obj.report_id] = {
-                'job_id': cache_obj.job_id,
+                'decision_id': cache_obj.decision_id,
                 'verdict': cache_obj.verdict,
                 'tags': cache_obj.tags
             }
@@ -296,7 +296,7 @@ class UpdateUnsafeCachesOnMarkChange:
             tags_new = self._new_data[report_id].get('tags', tags_old)
             changes_objects.append(UnsafeMarkAssociationChanges(
                 identifier=identifier, mark=self._mark,
-                job_id=self._old_data[report_id]['job_id'], report_id=report_id,
+                decision_id=self._old_data[report_id]['decision_id'], report_id=report_id,
                 kind=self._change_kinds[report_id],
                 verdict_old=verdict_old, verdict_new=verdict_new,
                 tags_old=tags_old, tags_new=tags_new
@@ -329,7 +329,7 @@ class UpdateUnknownCachesOnMarkChange:
         old_data = {}
         for cache_obj in self._cache_queryset:
             old_data[cache_obj.report_id] = {
-                'job_id': cache_obj.job_id,
+                'decision_id': cache_obj.decision_id,
                 'problems': cache_obj.problems
             }
         return old_data
@@ -376,7 +376,7 @@ class UpdateUnknownCachesOnMarkChange:
             problems_new = self._new_data[report_id].get('problems', problems_old)
             changes_objects.append(UnknownMarkAssociationChanges(
                 identifier=identifier, mark=self._mark,
-                job_id=self._old_data[report_id]['job_id'], report_id=report_id,
+                decision_id=self._old_data[report_id]['decision_id'], report_id=report_id,
                 kind=self._change_kinds[report_id],
                 problems_old=problems_old, problems_new=problems_new
             ))

@@ -43,9 +43,9 @@ urlpatterns = [
     path('report/<int:report_id>/source/', api.GetSourceCodeView.as_view(), name='api-get-source'),
 
     # Reports comparison
-    path('api/fill-comparison/<int:job1_id>/<int:job2_id>/',
+    path('api/fill-comparison/<int:decision1>/<int:decision2>/',
          api.FillComparisonView.as_view(), name='api-fill-comparison'),
-    path('comparison/<int:job1_id>/<int:job2_id>/', views.ReportsComparisonView.as_view(), name='comparison'),
+    path('comparison/<int:decision1>/<int:decision2>/', views.ReportsComparisonView.as_view(), name='comparison'),
     path('api/comparison-data/<int:info_id>/', api.ReportsComparisonDataView.as_view(), name='api-comparison-data'),
 
     # Coverage
@@ -57,7 +57,7 @@ urlpatterns = [
     # Utils
     path('api/has-sources/', api.HasOriginalSources.as_view()),
     path('api/upload-sources/', api.UploadOriginalSourcesView.as_view()),
-    path('api/upload/<uuid:job_uuid>/', api.UploadReportView.as_view()),
-    path('api/clear-verification-files/<int:job_id>/', api.ClearVerificationFilesView.as_view(),
+    path('api/upload/<uuid:decision_uuid>/', api.UploadReportView.as_view()),
+    path('api/clear-verification-files/<int:decision_id>/', api.ClearVerificationFilesView.as_view(),
          name='clear-verification-files')
 ]

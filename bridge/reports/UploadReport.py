@@ -23,30 +23,28 @@ import zipfile
 from django.core.files import File
 from django.db import transaction
 from django.db.models import Q
-from django.utils.functional import cached_property
 from django.utils.timezone import now
 
 from rest_framework import exceptions, fields, serializers
 from rest_framework.settings import api_settings
 
 from bridge.vars import (
-    JOB_WEIGHT, JOB_STATUS, ERROR_TRACE_FILE, REPORT_ARCHIVE,
-    SUBJOB_NAME, NAME_ATTR, UNKNOWN_ATTRS_NOT_ASSOCIATE, MPTT_FIELDS
+    ERROR_TRACE_FILE, REPORT_ARCHIVE, DECISION_STATUS, SUBJOB_NAME,
+    NAME_ATTR, UNKNOWN_ATTRS_NOT_ASSOCIATE, MPTT_FIELDS
 )
 from bridge.utils import logger, extract_archive, CheckArchiveError
 
 from reports.models import (
-    ReportRoot, ReportComponent, ReportSafe, ReportUnsafe, ReportUnknown, ReportAttr, ReportComponentLeaf,
-    CoverageArchive, AttrFile, Computer, OriginalSources, AdditionalSources, RootCache
+    ReportComponent, ReportSafe, ReportUnsafe, ReportUnknown, ReportAttr, ReportComponentLeaf,
+    CoverageArchive, AttrFile, Computer, OriginalSources, AdditionalSources, DecisionCache
 )
-from service.models import Task, Decision
-from service.utils import FinishJobDecision
+from service.models import Task
 from caches.models import ReportSafeCache, ReportUnsafeCache, ReportUnknownCache
-
-from marks.tasks import connect_safe_report, connect_unsafe_report, connect_unknown_report
 
 from reports.serializers import ReportAttrSerializer, ComputerSerializer
 from reports.tasks import fill_coverage_statistics
+from marks.tasks import connect_safe_report, connect_unsafe_report, connect_unknown_report
+from service.utils import FinishDecision
 
 
 class ReportParentField(serializers.SlugRelatedField):
@@ -57,7 +55,7 @@ class ReportParentField(serializers.SlugRelatedField):
         super(ReportParentField, self).__init__(*args, **kwargs)
 
     def get_queryset(self):
-        return super().get_queryset().filter(root=getattr(self.root, 'reportroot'))
+        return super().get_queryset().filter(decision=getattr(self.root, 'decision'))
 
 
 class ReportAttrsField(fields.ListField):
@@ -117,8 +115,7 @@ class UploadBaseSerializer(serializers.ModelSerializer):
     attrs = ReportAttrsField(required=False)
 
     def __init__(self, *args, **kwargs):
-        self.reportroot = kwargs.pop('reportroot')
-        self._fullweight = kwargs.pop('fullweight', True)
+        self.decision = kwargs.pop('decision')
         custom_fields = kwargs.pop('fields', None)
         super().__init__(*args, **kwargs)
         if custom_fields:
@@ -126,13 +123,13 @@ class UploadBaseSerializer(serializers.ModelSerializer):
                 self.fields.pop(field_name)
 
     def validate_component(self, value):
-        if value == SUBJOB_NAME and not self._fullweight:
+        if value == SUBJOB_NAME and self.decision.is_lightweight:
             self.fail('light_subjob')
         return value
 
     def validate_data(self, value):
-        # Do not save report data for lightweight jobs
-        if not self._fullweight:
+        # Do not save report data for lightweight decisions
+        if self.decision.is_lightweight:
             return None
         if not isinstance(value, dict):
             self.fail('data_not_dict')
@@ -145,8 +142,8 @@ class UploadBaseSerializer(serializers.ModelSerializer):
         return [value]
 
     def validate_log(self, value):
-        # Do not save log for lightweight jobs
-        return value if self._fullweight else None
+        # Do not save log for lightweight decisions
+        return None if self.decision.is_lightweight else value
 
     def __get_computer(self, value, parent=None):
         if value:
@@ -197,7 +194,7 @@ class UploadBaseSerializer(serializers.ModelSerializer):
         if 'computer' in self.fields:
             value['computer'] = self.__get_computer(value.get('computer'), parent=value.get('parent'))
 
-        value['root'] = self.reportroot
+        value['decision'] = self.decision
         return value
 
     def create(self, validated_data):
@@ -223,7 +220,7 @@ class ReportComponentSerializer(UploadBaseSerializer):
     def create(self, validated_data):
         # Validate report parent
         if not validated_data.get('parent'):
-            if ReportComponent.objects.filter(root=self.reportroot, parent=None).exists():
+            if ReportComponent.objects.filter(decision=self.decision, parent=None).exists():
                 raise exceptions.ValidationError(detail={'parent': "The report parent is required"})
         elif validated_data['parent'].parent is not None \
                 and validated_data['component'] == SUBJOB_NAME:
@@ -280,7 +277,7 @@ class ReportVerificationSerializer(UploadBaseSerializer):
 
 
 class UploadLeafBaseSerializer(UploadBaseSerializer):
-    def get_cache_object(self, reportroot):
+    def get_cache_object(self, decision):
         raise NotImplementedError('Wrong serialzier usage')
 
     def validate(self, value):
@@ -291,7 +288,7 @@ class UploadLeafBaseSerializer(UploadBaseSerializer):
         return value
 
     def create(self, validated_data):
-        cache_obj = self.get_cache_object(validated_data['root'])
+        cache_obj = self.get_cache_object(validated_data['decision'])
         cache_obj.attrs = dict((attr['name'], attr['value']) for attr in validated_data['attrs'])
 
         if validated_data['parent'].verification:
@@ -305,8 +302,8 @@ class UploadLeafBaseSerializer(UploadBaseSerializer):
 
 
 class ReportUnknownSerializer(UploadLeafBaseSerializer):
-    def get_cache_object(self, reportroot):
-        return ReportUnknownCache(job_id=reportroot.job_id)
+    def get_cache_object(self, decision):
+        return ReportUnknownCache(decision=decision)
 
     def parent_attributes(self, parent, select_fields=None):
         attrs_list = super().parent_attributes(parent, select_fields=select_fields)
@@ -326,8 +323,8 @@ class ReportUnknownSerializer(UploadLeafBaseSerializer):
 
 
 class ReportSafeSerializer(UploadLeafBaseSerializer):
-    def get_cache_object(self, reportroot):
-        return ReportSafeCache(job_id=reportroot.job_id)
+    def get_cache_object(self, decision):
+        return ReportSafeCache(decision=decision)
 
     def validate(self, value):
         if not value['parent'].verification:
@@ -344,8 +341,8 @@ class ReportUnsafeSerializer(UploadLeafBaseSerializer):
         'wrong_format': 'Error trace has wrong format: {detail}.'
     }
 
-    def get_cache_object(self, reportroot):
-        return ReportUnsafeCache(job_id=reportroot.job_id)
+    def get_cache_object(self, decision):
+        return ReportUnsafeCache(decision=decision)
 
     def __check_node(self, node):
         if not isinstance(node, dict):
@@ -397,8 +394,8 @@ class ReportUnsafeSerializer(UploadLeafBaseSerializer):
 
 
 class UploadReport:
-    def __init__(self, job, archives=None):
-        self.job = job
+    def __init__(self, decision, archives=None):
+        self.decision = decision
         self.archives = archives
 
     def upload_all(self, reports):
@@ -419,10 +416,10 @@ class UploadReport:
             logger.exception(exc)
             err_detail = 'Unknown error: {}'.format(exc)
         try:
-            FinishJobDecision(self.job, JOB_STATUS[5][0], self.__collapse_detail(err_detail))
+            FinishDecision(self.decision, DECISION_STATUS[5][0], self.__collapse_detail(err_detail))
         except Exception as e:
             logger.exception(e)
-            err_detail = 'Error while finishing job decision with error'
+            err_detail = 'Error while finishing decision with error'
         raise exceptions.ValidationError(detail=err_detail)
 
     def __collapse_detail(self, value):
@@ -479,19 +476,6 @@ class UploadReport:
             if not zipfile.is_zipfile(arch) or zipfile.ZipFile(arch).testzip():
                 raise CheckArchiveError('The archive "{}" is not a ZIP file'.format(arch.name))
 
-    @transaction.atomic
-    def __start_decision(self):
-        try:
-            progress = Decision.objects.select_for_update().get(job=self.job)
-        except Decision.DoesNotExist:
-            raise exceptions.ValidationError(detail={'job': "The decision wasn't successfully started"})
-        if progress.start_date is not None:
-            raise exceptions.ValidationError(detail={'job': "Decision start date is filled already"})
-        elif progress.finish_date is not None:
-            raise exceptions.ValidationError(detail={'job': "The job is not solving already"})
-        progress.start_date = now()
-        progress.save()
-
     def __get_archive(self, arch_name):
         if not arch_name:
             return None
@@ -499,17 +483,6 @@ class UploadReport:
             raise exceptions.ValidationError(detail={'archives': 'Archive "{}" was not attached'.format(arch_name)})
         self.archives[arch_name].seek(0)
         return self.archives[arch_name]
-
-    @cached_property
-    def root(self):
-        try:
-            return ReportRoot.objects.get(job=self.job)
-        except ReportRoot.DoesNotExist:
-            raise exceptions.ValidationError(detail={'job': 'The job was not started properly'})
-
-    @cached_property
-    def _is_fullweight(self):
-        return self.job.weight == JOB_WEIGHT[0][0]
 
     def __get_report_for_update(self, identifier):
         """
@@ -520,30 +493,26 @@ class UploadReport:
         if not identifier:
             raise exceptions.ValidationError(detail={'identifier': "Required"})
         try:
-            return ReportComponent.objects.select_for_update().get(root=self.root, identifier=identifier)
+            return ReportComponent.objects.select_for_update().get(decision=self.decision, identifier=identifier)
         except ReportComponent.DoesNotExist:
             raise exceptions.ValidationError(detail={'identifier': "The report wasn't found"})
 
     def __ancestors_for_cache(self, report):
         ancestors_qs = report.get_ancestors()
-        if not self._is_fullweight:
+        if self.decision.is_lightweight:
             # Update cache just for Core and verification reports as other reports will be deleted
             ancestors_qs = ancestors_qs.filter(Q(parent=None) | Q(reportcomponent__verification=True))
         return list(parent.pk for parent in ancestors_qs)
 
     def __create_report_component(self, data):
         data['attr_data'] = self.__upload_attrs_files(self.__get_archive(data.get('attr_data')))
-        serializer = ReportComponentSerializer(
-            data=data, fullweight=self._is_fullweight, reportroot=self.root,
-            fields={'identifier', 'parent', 'component', 'attrs', 'data', 'computer', 'log'}
-        )
+        serializer = ReportComponentSerializer(data=data, decision=self.decision, fields={
+            'identifier', 'parent', 'component', 'attrs', 'data', 'computer', 'log'
+        })
         serializer.is_valid(raise_exception=True)
         report = serializer.save()
 
-        self.__update_root_cache(report.component, started=True)
-
-        if report.parent is None:
-            self.__start_decision()
+        self.__update_decision_cache(report.component, started=True)
 
     def __create_verification_report(self, data):
         data['attr_data'] = self.__upload_attrs_files(self.__get_archive(data.get('attr_data')))
@@ -554,7 +523,7 @@ class UploadReport:
         if 'additional_sources' in data:
             save_kwargs['additional_sources_id'] = self.__upload_additional_sources(data['additional_sources'])
 
-        serializer = ReportVerificationSerializer(data=data, fullweight=self._is_fullweight, reportroot=self.root)
+        serializer = ReportVerificationSerializer(data=data, decision=self.decision)
         serializer.is_valid(raise_exception=True)
         report = serializer.save(**save_kwargs)
 
@@ -562,7 +531,7 @@ class UploadReport:
         if 'coverage' in data:
             self.__save_coverage(report, self.__get_archive(data['coverage']))
 
-        self.__update_root_cache(
+        self.__update_decision_cache(
             report.component, started=True,
             cpu_time=report.cpu_time, wall_time=report.wall_time, memory=report.memory
         )
@@ -570,15 +539,17 @@ class UploadReport:
     def __upload_coverage(self, data):
         if not data.get('identifier'):
             raise exceptions.ValidationError(detail={'identifier': "Required"})
-        if self._is_fullweight:
+        if self.decision.is_lightweight:
+            # Upload for Core for lightweight decisions
+            report = ReportComponent.objects.get(parent=None, decision=self.decision)
+        else:
             # Get component report
             try:
-                report = ReportComponent.objects.get(root=self.root, identifier=data['identifier'], verification=False)
+                report = ReportComponent.objects.get(
+                    decision=self.decision, identifier=data['identifier'], verification=False
+                )
             except ReportComponent.DoesNotExist:
                 raise exceptions.ValidationError(detail={'identifier': "The component report wasn't found"})
-        else:
-            # Upload for Core for lightweight jobs
-            report = ReportComponent.objects.get(parent=None, root=self.root)
 
         if not report.original_sources:
             raise exceptions.ValidationError(detail={
@@ -601,16 +572,15 @@ class UploadReport:
                 save_kwargs['additional_sources_id'] = self.__upload_additional_sources(data['additional_sources'])
 
             serializer = ReportComponentSerializer(
-                instance=report, data=data, partial=True,
-                reportroot=report.root, fullweight=self._is_fullweight,
+                instance=report, data=data, partial=True, decision=self.decision,
                 fields={'data', 'attrs', 'original_sources'}
             )
             serializer.is_valid(raise_exception=True)
             report = serializer.save(**save_kwargs)
 
-        if not self._is_fullweight and report.parent and (report.additional_sources or report.original_sources):
+        if self.decision.is_lightweight and report.parent and (report.additional_sources or report.original_sources):
             with transaction.atomic():
-                core_report = ReportComponent.objects.select_for_update().get(root=self.root, parent=None)
+                core_report = ReportComponent.objects.select_for_update().get(decision=self.decision, parent=None)
                 if report.original_sources:
                     core_report.original_sources = report.original_sources
                 if report.additional_sources:
@@ -625,19 +595,19 @@ class UploadReport:
         with transaction.atomic():
             report = self.__get_report_for_update(data.get('identifier'))
             serializer = ReportComponentSerializer(
-                instance=report, data=data, reportroot=report.root,
+                instance=report, data=data, decision=self.decision,
                 fields={'wall_time', 'cpu_time', 'memory', 'attrs', 'data', 'log'}
             )
             serializer.is_valid(raise_exception=True)
             report = serializer.save(finish_date=now())
 
-        self.__update_root_cache(
+        self.__update_decision_cache(
             report.component, finished=True,
             cpu_time=report.cpu_time, wall_time=report.wall_time, memory=report.memory
         )
 
         # Get report ancestors before report might be deleted
-        if report.parent and not self._is_fullweight:
+        if report.parent and self.decision.is_lightweight:
             # WARNING: If report has children it will be deleted!
             # It means verification reports (children) are not finished yet.
             report.delete()
@@ -650,36 +620,36 @@ class UploadReport:
             raise exceptions.ValidationError(detail={'identifier': "Required"})
         try:
             report = ReportComponent.objects.only('id', 'component', *MPTT_FIELDS)\
-                .get(root=self.root, identifier=data['identifier'], verification=True)
+                .get(decision=self.decision, identifier=data['identifier'], verification=True)
         except ReportComponent.DoesNotExist:
             raise exceptions.ValidationError(detail={'identifier': "The report wasn't found"})
 
-        if not self._is_fullweight:
+        if self.decision.is_lightweight:
             if report.is_leaf_node():
-                # Remove verification report if it doesn't have children for lightweight jobs
-                # But before update root caches
-                self.__update_root_cache(report.component, finished=True)
+                # Remove verification report if it doesn't have children for lightweight decisions
+                # But before update decision caches
+                self.__update_decision_cache(report.component, finished=True)
                 report.delete()
                 return
-            # Set parent to Core for lightweight jobs that will be preserved
-            update_data['parent_id'] = ReportComponent.objects.only('id').get(root=self.root, parent=None).id
+            # Set parent to Core for lightweight decisions that will be preserved
+            update_data['parent_id'] = ReportComponent.objects.only('id').get(decision=self.decision, parent=None).id
 
         # Save report with new data
         ReportComponent.objects.filter(id=report.id).update(**update_data)
 
-        self.__update_root_cache(report.component, finished=True)
+        self.__update_decision_cache(report.component, finished=True)
 
     def __create_report_unknown(self, data):
         data['attr_data'] = self.__upload_attrs_files(self.__get_archive(data.get('attr_data')))
         data['problem_description'] = self.__get_archive(data['problem_description'])
-        serializer = ReportUnknownSerializer(data=data, reportroot=self.root)
+        serializer = ReportUnknownSerializer(data=data, decision=self.decision)
         serializer.is_valid(raise_exception=True)
         report = serializer.save()
 
         # Get ancestors before parent might me changed
         ancestors_ids = self.__ancestors_for_cache(report)
 
-        if not self._is_fullweight and not report.parent.verification:
+        if self.decision.is_lightweight and not report.parent.verification:
             # Change parent to Core
             report.parent_id = ancestors_ids[0]
             report.save()
@@ -694,7 +664,7 @@ class UploadReport:
 
     def __create_report_safe(self, data):
         data['attr_data'] = self.__upload_attrs_files(self.__get_archive(data.get('attr_data')))
-        serializer = ReportSafeSerializer(data=data, reportroot=self.root)
+        serializer = ReportSafeSerializer(data=data, decision=self.decision)
         serializer.is_valid(raise_exception=True)
         report = serializer.save()
 
@@ -710,7 +680,7 @@ class UploadReport:
     def __create_report_unsafe(self, data):
         data['attr_data'] = self.__upload_attrs_files(self.__get_archive(data.get('attr_data')))
         data['error_trace'] = self.__get_archive(data.get('error_trace'))
-        serializer = ReportUnsafeSerializer(data=data, reportroot=self.root)
+        serializer = ReportUnsafeSerializer(data=data, decision=self.decision)
         serializer.is_valid(raise_exception=True)
         report = serializer.save()
 
@@ -724,7 +694,7 @@ class UploadReport:
         connect_unsafe_report.delay(report.id)
 
     def __upload_additional_sources(self, arch_name):
-        add_src = AdditionalSources(root=self.root)
+        add_src = AdditionalSources(decision=self.decision)
         add_src.add_archive(self.__get_archive(arch_name), save=True)
         return add_src.id
 
@@ -743,11 +713,11 @@ class UploadReport:
         fill_coverage_statistics.delay(carch.id)
 
     @transaction.atomic
-    def __update_root_cache(self, component, **kwargs):
+    def __update_decision_cache(self, component, **kwargs):
         try:
-            cache_obj = RootCache.objects.select_for_update().get(root=self.root, component=component)
-        except RootCache.DoesNotExist:
-            cache_obj = RootCache(root=self.root, component=component)
+            cache_obj = DecisionCache.objects.select_for_update().get(decision=self.decision, component=component)
+        except DecisionCache.DoesNotExist:
+            cache_obj = DecisionCache(decision=self.decision, component=component)
         if kwargs.get('cpu_time'):
             cache_obj.cpu_time += kwargs['cpu_time']
         if kwargs.get('wall_time'):
@@ -773,41 +743,8 @@ class UploadReport:
             for file_name in file_names:
                 full_path = os.path.join(dir_path, file_name)
                 rel_path = os.path.relpath(full_path, files_dir.name).replace('\\', '/')
-                newfile = AttrFile(root=self.root)
+                newfile = AttrFile(decision=self.decision)
                 with open(full_path, mode='rb') as fp:
                     newfile.file.save(os.path.basename(rel_path), File(fp), save=True)
                 db_files[rel_path] = newfile.pk
         return db_files
-
-
-def collapse_reports(job):
-    if job.weight == JOB_WEIGHT[1][0]:
-        # The job is already lightweight
-        return
-    root = job.reportroot
-    if ReportComponent.objects.filter(root=root, component=SUBJOB_NAME).exists():
-        return
-    core = ReportComponent.objects.get(root=root, parent=None)
-    ReportComponent.objects.filter(root=root, verification=True).update(parent=core)
-    ReportUnknown.objects.filter(root=root, parent__reportcomponent__verification=False).update(parent=core)
-
-    # Non-verification reports except Core
-    reports_qs = ReportComponent.objects.filter(root=root).exclude(Q(verification=True) | Q(parent=None))
-
-    # Update core original and additional sources
-    report_with_original = reports_qs.exclude(original_sources=None).first()
-    if report_with_original:
-        core.original_sources = report_with_original.original_sources
-    report_with_additional = reports_qs.exclude(additional_sources=None).first()
-    if report_with_additional:
-        core.additional_sources = report_with_additional.additional_sources
-    core.save()
-
-    # Move coverage to core
-    CoverageArchive.objects.filter(report__root=root, report__verification=False).update(report=core)
-
-    # Remove all non-verification reports except Core
-    reports_qs.delete()
-
-    job.weight = JOB_WEIGHT[1][0]
-    job.save()

@@ -19,14 +19,30 @@ $(document).ready(function () {
     $('.ui.dropdown').each(function () { if (!$(this).hasClass('search')) $(this).dropdown() });
     $('table').tablesort();
 
+    function get_selected_marks() {
+        let marks_ids = [];
+        $('.mark-checkbox:checked').each(function () {
+            marks_ids.push($(this).val())
+        });
+        return  marks_ids;
+    }
+
+    let download_marks_btn = $('#download_selected_marks_btn'),
+        remove_selected_marks_btn = $('#remove_marks_modal_show');
+    $('.mark-checkbox').parent().checkbox({
+        onChange: function () {
+            let sel_marks = get_selected_marks();
+            update_action_button(download_marks_btn, !sel_marks.length);
+            update_action_button(remove_selected_marks_btn, !sel_marks.length);
+        }
+    });
+
+    // Remove marks action
     let rm_marks_modal = $('#remove_marks_modal');
     rm_marks_modal.modal({transition: 'fly up', autofocus: false, closable: false});
     rm_marks_modal.find('.modal-cancel').click(function () { rm_marks_modal.modal('hide') });
     rm_marks_modal.find('.modal-confirm').click(function () {
-        let ids_for_del = [];
-        $('input[id^="mark_checkbox__"]').each(function () {
-            if ($(this).is(':checked')) ids_for_del.push($(this).val());
-        });
+        let ids_for_del = get_selected_marks();
         if (!ids_for_del.length) {
             rm_marks_modal.modal('hide');
             err_notify($('#no_marks_selected').text());
@@ -42,12 +58,18 @@ $(document).ready(function () {
             });
         }
     });
-    $('#remove_marks_modal_show').click(function () {
-        let ids_for_del = [];
-        $('input[id^="mark_checkbox__"]').each(function () {
-            if ($(this).is(':checked')) ids_for_del.push($(this).val());
-        });
+    remove_selected_marks_btn.click(function () {
+        let ids_for_del = get_selected_marks();
         if (ids_for_del.length) rm_marks_modal.modal('show');
         else err_notify($('#no_marks_selected').text());
+    });
+
+    // Download selected marks
+    download_marks_btn.click(function () {
+        let sel_marks = get_selected_marks();
+        if (!sel_marks.length) return err_notify($('#no_marks_selected').text());
+        let marks_data = {};
+        marks_data[$('#marks_type').val()] = sel_marks;
+        window.location.href = $('#download_marks_url').text() + '?marks=' + encodeURIComponent(JSON.stringify(marks_data));
     });
 });

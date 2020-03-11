@@ -28,15 +28,15 @@ $(document).ready(function () {
             }
         })
     });
-    $('#recalc_for_all_jobs_checkbox').checkbox({
+    $('#recalc_for_all_decisions_checkbox').checkbox({
         onChecked: function () {
-            $('input[name="job"]').each(function () {
+            $('input[name="decision"]').each(function () {
                 $(this).prop('checked', true);
                 $(this).parent().addClass('disabled');
             });
         },
         onUnchecked: function () {
-            $('input[name="job"]').each(function () {
+            $('input[name="decision"]').each(function () {
                 $(this).prop('checked', false);
                 $(this).parent().removeClass('disabled');
             });

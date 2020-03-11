@@ -28,7 +28,7 @@ from caches.utils import UpdateSafeCachesOnMarkChange, RecalculateSafeCache
 
 
 def perform_safe_mark_create(user, report, serializer):
-    mark = serializer.save(job=report.root.job)
+    mark = serializer.save(job=report.decision.job)
     res = ConnectSafeMark(mark, prime_id=report.id, author=user)
     cache_upd = UpdateSafeCachesOnMarkChange(mark, res.old_links, res.new_links)
     cache_upd.update_all()

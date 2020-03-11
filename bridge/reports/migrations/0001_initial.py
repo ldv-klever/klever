@@ -36,35 +36,36 @@ class Migration(migrations.Migration):
 
     operations = [
 
-        migrations.CreateModel(name='ReportRoot', fields=[
+        migrations.CreateModel(name='DecisionCache', fields=[
             ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-            ('resources', JSONField(default=dict)),
-            ('instances', JSONField(default=dict)),
-            ('job', models.OneToOneField(on_delete=models.deletion.CASCADE, to='jobs.Job')),
-            ('user', models.ForeignKey(
-                null=True, on_delete=models.deletion.SET_NULL, related_name='roots', to=settings.AUTH_USER_MODEL
-            )),
-        ], options={'db_table': 'report_root'}),
+            ('component', models.CharField(max_length=20)),
+            ('cpu_time', models.BigIntegerField(default=0)),
+            ('wall_time', models.BigIntegerField(default=0)),
+            ('memory', models.BigIntegerField(default=0)),
+            ('total', models.IntegerField(default=0)),
+            ('finished', models.IntegerField(default=0)),
+            ('decision', models.ForeignKey(on_delete=models.deletion.CASCADE, to='jobs.Decision')),
+        ], options={'db_table': 'cache_decision_data', 'index_together': {('component', 'decision')}}),
 
         migrations.CreateModel(name='AdditionalSources', fields=[
             ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
             ('archive', models.FileField(upload_to='Sources/%Y/%m')),
-            ('root', models.ForeignKey(on_delete=models.deletion.CASCADE, to='reports.ReportRoot')),
+            ('decision', models.ForeignKey(on_delete=models.deletion.CASCADE, to='jobs.Decision')),
         ], options={'db_table': 'report_additional_sources'}, bases=(bridge.utils.WithFilesMixin, models.Model)),
 
         migrations.CreateModel(name='AttrFile', fields=[
             ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
             ('file', models.FileField(upload_to=reports.models.get_attr_data_path)),
-            ('root', models.ForeignKey(on_delete=models.deletion.CASCADE, to='reports.ReportRoot')),
+            ('decision', models.ForeignKey(on_delete=models.deletion.CASCADE, to='jobs.Decision')),
         ], options={'db_table': 'report_attr_file'}, bases=(bridge.utils.WithFilesMixin, models.Model)),
 
-        migrations.CreateModel(name='CompareJobsInfo', fields=[
+        migrations.CreateModel(name='CompareDecisionsInfo', fields=[
             ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
             ('names', ArrayField(base_field=models.CharField(max_length=64), size=None)),
-            ('root1', models.ForeignKey(on_delete=models.deletion.CASCADE, related_name='+', to='reports.ReportRoot')),
-            ('root2', models.ForeignKey(on_delete=models.deletion.CASCADE, related_name='+', to='reports.ReportRoot')),
+            ('decision1', models.ForeignKey(on_delete=models.deletion.CASCADE, related_name='+', to='jobs.Decision')),
+            ('decision2', models.ForeignKey(on_delete=models.deletion.CASCADE, related_name='+', to='jobs.Decision')),
             ('user', models.ForeignKey(on_delete=models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
-        ], options={'db_table': 'cache_report_jobs_compare_info'}),
+        ], options={'db_table': 'cache_report_decisions_compare_info'}),
 
         migrations.CreateModel(name='ComparisonObject', fields=[
             ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
@@ -77,8 +78,11 @@ class Migration(migrations.Migration):
                 ('0', 'Total safe'), ('1', 'Found all unsafes'), ('2', 'Found not all unsafes'),
                 ('3', 'Unknown'), ('4', 'Unmatched'), ('5', 'Broken')
             ], max_length=1)),
-            ('info', models.ForeignKey(on_delete=models.deletion.CASCADE, to='reports.CompareJobsInfo')),
-        ], options={'db_table': 'cache_report_comparison_object'}),
+            ('info', models.ForeignKey(on_delete=models.deletion.CASCADE, to='reports.CompareDecisionsInfo')),
+        ], options={
+            'db_table': 'cache_report_comparison_object',
+            'index_together': {('info', 'verdict1', 'verdict2')}
+        }),
 
         migrations.CreateModel(name='ComparisonLink', fields=[
             ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
@@ -115,8 +119,15 @@ class Migration(migrations.Migration):
             ('rght', models.PositiveIntegerField(editable=False)),
             ('tree_id', models.PositiveIntegerField(db_index=True, editable=False)),
             ('level', models.PositiveIntegerField(editable=False)),
-            ('root', models.ForeignKey(on_delete=models.deletion.CASCADE, to='reports.ReportRoot')),
-        ], options={'db_table': 'report'}),
+            ('decision', models.ForeignKey(on_delete=models.deletion.CASCADE, to='jobs.Decision')),
+            ('parent', mptt.fields.TreeForeignKey(
+                null=True, on_delete=models.deletion.CASCADE, related_name='children', to='reports.Report'
+            )),
+        ], options={
+            'db_table': 'report',
+            'index_together': {('decision', 'identifier')},
+            'unique_together': {('decision', 'identifier')}
+        }),
 
         migrations.CreateModel(name='ReportAttr', fields=[
             ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
@@ -137,9 +148,9 @@ class Migration(migrations.Migration):
             ('verification', models.BooleanField(default=False)),
             ('start_date', models.DateTimeField(default=now)),
             ('finish_date', models.DateTimeField(null=True)),
-            ('data', JSONField(null=True)),
+            ('data', JSONField(default=list, null=True)),
             ('log', models.FileField(null=True, upload_to=reports.models.get_component_path)),
-            ('verifier_input', models.FileField(null=True, upload_to=reports.models.get_component_path)),
+            ('verifier_files', models.FileField(null=True, upload_to=reports.models.get_component_path)),
             ('additional_sources', models.ForeignKey(
                 null=True, on_delete=models.deletion.CASCADE, to='reports.AdditionalSources'
             )),
@@ -221,15 +232,8 @@ class Migration(migrations.Migration):
             ('lines_total_extra', models.PositiveIntegerField(default=0)),
         ], options={'db_table': 'report_coverage_statistics'}),
 
-        migrations.AddField(model_name='report', name='parent', field=mptt.fields.TreeForeignKey(
-            null=True, on_delete=models.deletion.CASCADE, related_name='children', to='reports.Report')
-        ),
-
         migrations.AddIndex(
             model_name='reportattr', index=models.Index(fields=['name', 'value'], name='report_attr_name_e431b9_idx'),
         ),
-        migrations.AlterUniqueTogether(name='report', unique_together={('root', 'identifier')}),
-        migrations.AlterIndexTogether(name='report', index_together={('root', 'identifier')}),
-        migrations.AlterIndexTogether(name='comparisonobject', index_together={('info', 'verdict1', 'verdict2')}),
 
     ]

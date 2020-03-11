@@ -66,7 +66,7 @@ class Server:
 
     @_robust_request
     def get_job_status(self, identifier):
-        return self.session.json_exchange("service/job-status/{}/".format(identifier), method='GET').get('status')
+        return self.session.json_exchange("service/decision-status/{}/".format(identifier), method='GET').get('status')
 
     @_robust_request
     def get_job_progress(self, identifier):
@@ -75,15 +75,17 @@ class Server:
 
     @_robust_request
     def cancel_job(self, job_identifier):
-        self.session.exchange("service/job-status/{}/".format(job_identifier), method='PATCH', data={"status": "7"})
+        self.session.exchange("service/decision-status/{}/".format(job_identifier), method='PATCH',
+                              data={"status": "7"})
 
     @_robust_request
     def submit_job_status(self, job_identifier, status):
-        self.session.exchange("service/job-status/{}/".format(job_identifier), method='PATCH', data={"status": status})
+        self.session.exchange("service/decision-status/{}/".format(job_identifier), method='PATCH',
+                              data={"status": status})
 
     @_robust_request
     def submit_job_error(self, job_identifier, error):
-        self.session.exchange("service/job-status/{}/".format(job_identifier), method='PATCH',
+        self.session.exchange("service/decision-status/{}/".format(job_identifier), method='PATCH',
                               data={"status": "4", "error": error})
 
     @_robust_request
@@ -162,7 +164,7 @@ class Server:
 
         :return: ((id, status))
         """
-        ret = self.session.json_exchange("jobs/api/job-status/", method='GET')
+        ret = self.session.json_exchange("jobs/api/decision-status/", method='GET')
         return ((item['identifier'], item['status']) for item in ret)
 
     def get_all_tasks(self):

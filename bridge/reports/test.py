@@ -16,6 +16,7 @@
 #
 
 import os
+import re
 import json
 from multiprocessing import Process, Pipe
 import random
@@ -29,13 +30,8 @@ from django.db.models import Q
 from django.test import Client
 from django.urls import reverse
 
-from bridge.vars import SCHEDULER_TYPE, JOB_STATUS, JOB_ROLES
+from bridge.vars import SCHEDULER_TYPE, JOB_ROLES
 from bridge.utils import KleverTestCase, logger, RMQConnect
-
-from users.models import User
-from jobs.models import Job
-from reports.models import ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent, CompareJobsInfo, CoverageArchive,\
-    ReportAttr
 
 
 LINUX_ATTR = {'name': 'Linux kernel', 'value': [
@@ -1065,8 +1061,8 @@ class DecideJobs:
 
     def __start(self):
         conn_producer, conn_consumer = Pipe()
-        rmq_reader = Process(target=self.__read_queue, args=(conn_producer,))
-        msg_processor = Process(target=self.__process_message, args=(conn_consumer,))
+        rmq_reader = Process(target=self.read_queue, args=(conn_producer,))
+        msg_processor = Process(target=self.process_message, args=(conn_consumer,))
 
         rmq_reader.start()
         msg_processor.start()
@@ -1102,7 +1098,7 @@ class DecideJobs:
             return None
         return resp
 
-    def __read_queue(self, conn):
+    def read_queue(self, conn):
         def callback(ch, method, properties, body):
             ch.basic_ack(delivery_tag=method.delivery_tag)
             res = body.decode('utf-8')
@@ -1130,14 +1126,14 @@ class DecideJobs:
     def __cancel_job(self, job_id):
         logger.info('Cancelling the job: {}'.format(job_id))
         try:
-            self.__request('/service/job-status/{}/'.format(job_id), method='PATCH', data={'status': '7'})
+            self.__request('/service/decision-status/{}/'.format(job_id), method='PATCH', data={'status': '7'})
         except Exception as e:
             logger.exception(e)
 
-    def __process_message(self, conn):
+    def process_message(self, conn):
         while True:
             msg = conn.recv()
-            m_type, m_id, m_status = msg.split()
+            m_type, m_id, m_status, m_sch_type = msg.split()
             if m_type != 'job':
                 continue
             if m_status == '1':
@@ -1170,7 +1166,7 @@ class DecideJob:
             self.__decide_job()
         except DecisionError as e:
             self.__request(
-                url='/service/job-status/{}/'.format(self._job_uuid), method='PATCH',
+                url='/service/decision-status/{}/'.format(self._job_uuid), method='PATCH',
                 data={'status': '4', 'error': str(e)}
             )
 
@@ -1442,7 +1438,7 @@ class DecideJob:
 
         self.__upload_progress()
         self.__upload_finish_report(core_id)
-        self.__request(url='/service/job-status/{}/'.format(self._job_uuid), method='PATCH', data={'status': '3'})
+        self.__request(url='/service/decision-status/{}/'.format(self._job_uuid), method='PATCH', data={'status': '3'})
 
     def __upload_subjob(self, subjob, core_id):
         sj = self.__upload_start_report('Subjob', core_id, [{
@@ -1567,23 +1563,24 @@ class DecideJob:
 
 class UploadRawReports:
     base_url = 'http://127.0.0.1:8998'
+    orig_sources_uuid = "936d4726-6d0b-4244-a63e-bb1133706555"
 
-    def __init__(self, job_uuid, reports_dir):
-        self._upload_url = '/reports/api/upload/{}/'.format(job_uuid)
+    def __init__(self, decision_uuid, reports_dir):
+        self._upload_url = '/reports/api/upload/{}/'.format(decision_uuid)
         self._reports_dir = os.path.abspath(reports_dir)
         assert os.path.isdir(self._reports_dir), 'Reports directory not found!'
         self.session = requests.Session()
         self.__login()
-        self.__decide_job(job_uuid)
+        self.__decide_job(decision_uuid)
 
     def __login(self):
         resp = self.__request('/service/get_token/', data={'username': 'service', 'password': 'service'})
         self.session.headers.update({'Authorization': 'Token {}'.format(resp.json()['token'])})
 
-    def __decide_job(self, job_uuid):
-        self.__request('/jobs/api/download-files/{}/'.format(job_uuid), method='GET')
+    def __decide_job(self, decision_uuid):
+        self.__request('/jobs/api/download-files/{}/'.format(decision_uuid), method='GET')
         self.__send_reports()
-        self.__request('/service/job-status/{}/'.format(job_uuid), method='PATCH', data={'status': '3'})
+        self.__request('/service/decision-status/{}/'.format(decision_uuid), method='PATCH', data={'status': '3'})
 
     def __send_reports(self):
         all_archives = list(f for f in os.listdir(self._reports_dir) if f.endswith('.zip'))
@@ -1605,7 +1602,7 @@ class UploadRawReports:
 
     def __upload_report(self, report, archives):
         if report.get('original_sources'):
-            report['original_sources'] = '936d4726-6d0b-4244-a63e-bb1133706555'
+            report['original_sources'] = self.orig_sources_uuid
         report.pop('task', None)
 
         logger.info('{}: {}; '.format(report.get('type'), report.get('identifier')) + str(archives))
@@ -1642,3 +1639,139 @@ class UploadRawReports:
             resp.close()
             raise ResponseError('Unexpected status code returned: {}'.format(resp.status_code))
         return resp
+
+
+class GetReportsPacks:
+    def __init__(self, filename):
+        self._file = filename
+        self.data = [[]]
+        self._collect_files = False
+
+    def analyze(self):
+        with open(self._file, mode='r', encoding='utf-8') as fp:
+            for line in fp:
+                self.__parse_line(line)
+
+    def __parse_line(self, line):
+        if self._collect_files:
+            m = re.match(r'^.*/(.*?\.zip).*$', line)
+            if m:
+                self.data[-1][-1]['files'].append(m.group(1))
+                return
+            self._collect_files = False
+        m = re.match(r'^.*Send\s"POST"\srequest.*api/upload.*$', line)
+        if m:
+            self.data.append([])
+            return
+        m = re.match(r'^.*Upload\sreport\sfile.*/(\d+\.json)(.*)$', line)
+        if m:
+            self.data[-1].append({'report': m.group(1), 'files': []})
+            if 'archives:' in m.group(2):
+                self._collect_files = True
+
+
+class UploadRawReportsPacks:
+    base_url = 'http://127.0.0.1'
+
+    def __init__(self, job_uuid, reports_log, original_sources):
+        self.original_sources = original_sources
+        self._upload_url = '/reports/api/upload/{}/'.format(job_uuid)
+        self._reports_log = os.path.abspath(reports_log)
+        assert os.path.isfile(self._reports_log), 'Reports log not found!'
+        self.session = requests.Session()
+        self.__login()
+        self.__decide_job(job_uuid)
+
+    def __login(self):
+        resp = self.__request('/service/get_token/', data={'username': 'service', 'password': 'service'})
+        self.session.headers.update({'Authorization': 'Token {}'.format(resp.json()['token'])})
+
+    def __decide_job(self, job_uuid):
+        self.__request('/jobs/api/download-files/{}/'.format(job_uuid), method='GET')
+        self.__send_reports()
+        self.__request('/service/decision-status/{}/'.format(job_uuid), method='PATCH', data={'status': '3'})
+
+    def __send_reports(self):
+        reports_dir = os.path.join(os.path.dirname(self._reports_log), 'reports')
+        packs = GetReportsPacks(self._reports_log)
+        packs.analyze()
+        total_exec = 0
+        for reports_pack in packs.data:
+            reports = []
+            archives = []
+            report_types = []
+            for report_data in reports_pack:
+                with open(os.path.join(reports_dir, report_data['report']), mode='r', encoding='utf-8') as fp:
+                    report = json.load(fp)
+                    self.__fix_report(report)
+                    report_types.append(report.get('type', 'UNKNOWN'))
+                    reports.append(report)
+                    for arch_name in report_data['files']:
+                        archives.append(os.path.join(reports_dir, arch_name))
+            exec_time = self.__upload_reports(reports, archives)
+            total_exec += exec_time
+            logger.info('{} ({}): {};'.format('+'.join(report_types), len(archives), exec_time))
+            time.sleep(0.01)
+        logger.info('Total exec: {}'.format(total_exec))
+
+    def __fix_report(self, report):
+        if report.get('original_sources'):
+            report['original_sources'] = self.original_sources
+        report.pop('task', None)
+
+    def __upload_reports(self, reports, archives):
+        archives_fp = {}
+        try:
+            for a_name in archives:
+                archives_fp[os.path.basename(a_name)] = open(a_name, mode='rb')
+            t1 = time.time()
+            self.__request(self._upload_url, data={'reports': json.dumps(reports)}, files=archives_fp)
+            exec_time = time.time() - t1
+        finally:
+            for fp in archives_fp.values():
+                fp.close()
+        return exec_time
+
+    def __request(self, url, method='POST', **kwargs):
+        cnt = 0
+        while True:
+            try:
+                resp = self.session.request(method, self.base_url + url, **kwargs)
+            except Exception as e:
+                logger.error(str(e))
+            else:
+                break
+            time.sleep(1)
+            cnt += 1
+            if cnt > 3:
+                raise ResponseError('Connection max tries exceeded')
+
+        if not 200 <= resp.status_code < 300:
+            try:
+                error_str = str(resp.json())
+            except Exception as e:
+                print(e)
+                error_str = resp.content
+            logger.error(error_str)
+            resp.close()
+            raise ResponseError('Unexpected status code returned: {}'.format(resp.status_code))
+        return resp
+
+
+def upload_sources(port=None):
+    base_url = "http://127.0.0.1"
+    if port:
+        base_url += ':{}'.format(port)
+
+    session = requests.Session()
+    resp = session.post('{}/service/get_token/'.format(base_url), data={'username': 'service', 'password': 'service'})
+    session.headers.update({'Authorization': 'Token {}'.format(resp.json()['token'])})
+    with open('reports/test_files/linux.zip', mode='rb') as fp:
+        resp = session.post(
+            '{}/reports/api/upload-sources/'.format(base_url),
+            data={'identifier': '936d4726-6d0b-4244-a63e-bb1133706555'}, files=[('archive', fp)]
+        )
+        print(resp.json())
+
+# UploadRawReportsPacks('6b2ab3c7-1367-4cb2-8841-fff0fc2f6f85', 'S:/Work/temp/logs/log.txt',
+# '6b2ab3c7-1367-4cb2-8841-fff0fc2f6f85')

@@ -1,0 +1,41 @@
+{% load i18n %}
+{% load humanize %}
+
+<table class="ui compact table">
+    <thead>
+        <tr>
+            {% if with_checkbox %}<th>&nbsp;</th>{% endif %}
+            <th>{% trans 'Name' %}</th>
+            <th>{% trans 'Start date' %}</th>
+            <th>{% trans 'Finish date' %}</th>
+            <th>{% trans 'Status' %}</th>
+            <th>&nbsp;</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for decision in decisions %}
+            <tr>
+                {% if with_checkbox %}
+                    <td>
+                        <div class="ui checkbox decision-checkbox">
+                            <input class="decision-checkbox-input" type="checkbox" value="{{ decision.id }}">
+                        </div>
+                    </td>
+                {% endif %}
+                <td><a href="{% url 'jobs:decision' decision.id %}">{{ decision.name }}</a></td>
+                <td>{% if user.data_format == 'hum' %}{{ decision.start_date|naturaltime }}{% else %}{{ decision.start_date }}{% endif %}</td>
+                <td>{% if decision.finish_date %}{% if user.data_format == 'hum' %}{{ decision.finish_date|naturaltime }}{% else %}{{ decision.finish_date }}{% endif %}{% else %}-{% endif %}</td>
+                <td>
+                    {% if decision.error %}
+                        <div class="ui {{ decision.status_color }} label note-popup" data-html="{{ decision.error|safe }}">{{ decision.get_status_display }}</div>
+                    {% else %}
+                        <div class="ui {{ decision.status_color }} label">{{ decision.get_status_display }}</div>
+                    {% endif %}
+                </td>
+                <td class="note-popup" data-content="{% trans 'Configuration' %}">
+                    <i class="ui settings link blue icon file-content-activator" data-url="{% url 'jobs:file-content' decision.configuration.hash_sum %}" data-download="{% url 'jobs:download-decision-conf' decision.pk %}"></i>
+                </td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>

@@ -17,28 +17,28 @@
 
 from rest_framework import exceptions
 from rest_framework.generics import (
-    RetrieveAPIView, CreateAPIView, RetrieveDestroyAPIView, RetrieveUpdateAPIView, get_object_or_404
+    get_object_or_404, RetrieveAPIView, CreateAPIView, RetrieveDestroyAPIView, RetrieveUpdateAPIView
 )
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 
-from bridge.vars import JOB_STATUS, TASK_STATUS
+from bridge.vars import TASK_STATUS, DECISION_STATUS
 from bridge.access import ServicePermission
 from bridge.CustomViews import StreamingResponseAPIView
 from tools.profiling import LoggedCallMixin
 
 from users.models import SchedulerUser
-from jobs.models import Job
-from service.models import Decision, Task, Solution, VerificationTool, Scheduler, NodesConfiguration
+from jobs.models import Decision, Scheduler
+from service.models import Task, Solution, VerificationTool, NodesConfiguration
 
-from jobs.serializers import change_job_status
-from service.utils import FinishJobDecision, TaskArchiveGenerator, SolutionArchiveGenerator, ReadJobConfiguration
+from jobs.serializers import decision_status_changed
 from service.serializers import (
     TaskSerializer, SolutionSerializer, SchedulerUserSerializer, DecisionSerializer,
     UpdateToolsSerializer, SchedulerSerializer, NodeConfSerializer
 )
+from service.utils import FinishDecision, TaskArchiveGenerator, SolutionArchiveGenerator, ReadDecisionConfiguration
 
 
 class TaskAPIViewset(LoggedCallMixin, ModelViewSet):
@@ -63,7 +63,7 @@ class TaskAPIViewset(LoggedCallMixin, ModelViewSet):
 
     def filter_queryset(self, queryset):
         if 'job' in self.request.query_params:
-            return queryset.filter(decision__job__identifier=self.request.query_params['job'])
+            return queryset.filter(decision__identifier=self.request.query_params['job'])
         return super().filter_queryset(queryset)
 
     def perform_destroy(self, instance):
@@ -80,15 +80,14 @@ class DownloadTaskArchiveView(StreamingResponseAPIView):
 
     def get_generator(self):
         task = get_object_or_404(Task, pk=self.kwargs['pk'])
-        if Job.objects.only('status').get(decision=task.decision).status != JOB_STATUS[2][0]:
-            raise exceptions.APIException('The job is not processing')
+        if Decision.objects.only('status').get(id=task.decision_id).status != DECISION_STATUS[2][0]:
+            raise exceptions.APIException('The decision is not processing')
         if task.status not in {TASK_STATUS[0][0], TASK_STATUS[1][0]}:
             raise exceptions.APIException('The task status is {}'.format(task.status))
         return TaskArchiveGenerator(task)
 
 
 class SolutionCreateView(LoggedCallMixin, CreateAPIView):
-    unparallel = [Decision]
     serializer_class = SolutionSerializer
     permission_classes = (ServicePermission,)
 
@@ -97,7 +96,6 @@ class SolutionDetailView(LoggedCallMixin, RetrieveDestroyAPIView):
     serializer_class = SolutionSerializer
     permission_classes = (ServicePermission,)
     queryset = Solution.objects.all()
-    lookup_url_kwarg = 'task_id'
     lookup_field = 'task_id'
 
     def get_serializer(self, *args, **kwargs):
@@ -107,8 +105,8 @@ class SolutionDetailView(LoggedCallMixin, RetrieveDestroyAPIView):
 class SolutionDownloadView(LoggedCallMixin, StreamingResponseAPIView):
     def get_generator(self):
         solution = get_object_or_404(Solution.objects.select_related('task'), task_id=self.kwargs['task_id'])
-        if Job.objects.only('status').get(decision=solution.decision).status != JOB_STATUS[2][0]:
-            raise exceptions.ValidationError('The job is not processing')
+        if Decision.objects.only('status').get(id=solution.decision_id).status != DECISION_STATUS[2][0]:
+            raise exceptions.ValidationError('The decision is not processing')
         if solution.task.status != TASK_STATUS[2][0]:
             raise exceptions.ValidationError('The task is not finished')
         return SolutionArchiveGenerator(solution)
@@ -118,64 +116,64 @@ class AddSchedulerUserView(LoggedCallMixin, CreateAPIView):
     serializer_class = SchedulerUserSerializer
     permission_classes = (IsAuthenticated,)
 
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
-
 
 class SchedulerUserView(LoggedCallMixin, RetrieveAPIView):
     serializer_class = SchedulerUserSerializer
     permission_classes = (ServicePermission,)
 
     def get_object(self):
-        return SchedulerUser.objects.filter(user__roots__job__identifier=self.kwargs['job_uuid']).first()
+        return SchedulerUser.objects.filter(user__decisions__identifier=self.kwargs['decision_uuid']).first()
 
 
-class ChangeJobStatusView(LoggedCallMixin, APIView):
+class DecisionStatusAPIView(LoggedCallMixin, APIView):
     permission_classes = (ServicePermission,)
 
-    def get(self, request, job_uuid):
-        job = get_object_or_404(Job.objects.only('status'), identifier=job_uuid)
-        return Response({'status': job.status})
+    def get(self, request, **kwargs):
+        decision = get_object_or_404(Decision.objects.only('status'), **kwargs)
+        return Response({'status': decision.status})
 
-    def patch(self, request, job_uuid):
-        job = get_object_or_404(Job, identifier=job_uuid)
+    def patch(self, request, **kwargs):
+        decision = get_object_or_404(Decision, **kwargs)
         if 'status' not in request.data:
             raise exceptions.ValidationError('Status is required')
-        if request.data['status'] == JOB_STATUS[7][0]:
-            if job.status != JOB_STATUS[6][0]:
-                raise exceptions.ValidationError("The job status is not cancelling")
-            change_job_status(job, JOB_STATUS[7][0])
-        elif request.data['status'] == JOB_STATUS[3][0]:
-            res = FinishJobDecision(job, JOB_STATUS[3][0])
+        if request.data['status'] == DECISION_STATUS[7][0]:
+            if decision.status != DECISION_STATUS[6][0]:
+                raise exceptions.ValidationError("The decision status is not cancelling")
+            decision.status = DECISION_STATUS[7][0]
+            decision.save()
+            decision_status_changed(decision)
+        elif request.data['status'] == DECISION_STATUS[3][0]:
+            res = FinishDecision(decision, DECISION_STATUS[3][0])
             if res.error:
                 raise exceptions.ValidationError({'job': res.error})
             return Response({})
-        elif request.data['status'] == JOB_STATUS[4][0]:
-            FinishJobDecision(job, JOB_STATUS[4][0], request.data.get('error'))
+        elif request.data['status'] == DECISION_STATUS[4][0]:
+            FinishDecision(decision, DECISION_STATUS[4][0], request.data.get('error'))
             return Response({})
         else:
-            raise exceptions.APIException('Unsupported job status: {}'.format(request.data['status']))
+            raise exceptions.APIException('Unsupported decision status: {}'.format(request.data['status']))
         return Response({})
 
 
-class JobProgressAPIView(LoggedCallMixin, RetrieveUpdateAPIView):
-    unparallel = [Job]
+class DecisionProgressAPIView(LoggedCallMixin, RetrieveUpdateAPIView):
+    unparallel = [Decision]
     permission_classes = (ServicePermission,)
     serializer_class = DecisionSerializer
-    queryset = Decision.objects.select_related('job')
-    lookup_url_kwarg = 'job_uuid'
-    lookup_field = 'job__identifier'
+    queryset = Decision.objects
+    lookup_field = 'identifier'
 
     def perform_update(self, serializer):
-        if serializer.instance.job.status != JOB_STATUS[2][0]:
-            raise exceptions.ValidationError('The job is not solving')
+        if serializer.instance.status != DECISION_STATUS[2][0]:
+            raise exceptions.ValidationError('The decision is not solving')
         serializer.save()
 
 
-class JobConfigurationAPIView(LoggedCallMixin, APIView):
-    def get(self, request, job_uuid):
-        job = get_object_or_404(Job, identifier=job_uuid)
-        res = ReadJobConfiguration(job)
+class DecisionConfigurationAPIView(LoggedCallMixin, APIView):
+    def get(self, request, identifier):
+        decision = get_object_or_404(
+            Decision.objects.select_related('scheduler', 'configuration'), identifier=identifier
+        )
+        res = ReadDecisionConfiguration(decision)
         return Response(res.data)
 
 
@@ -186,7 +184,7 @@ class UpdateToolsAPIView(LoggedCallMixin, CreateAPIView):
 
 
 class SchedulerAPIView(LoggedCallMixin, RetrieveUpdateAPIView):
-    unparallel = [Scheduler, Job]
+    unparallel = [Scheduler, Decision]
     permission_classes = (ServicePermission,)
     serializer_class = SchedulerSerializer
     queryset = Scheduler.objects.all()

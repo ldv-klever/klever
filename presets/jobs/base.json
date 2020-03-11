@@ -8,6 +8,7 @@
     {
       "name": "Linux",
       "uuid": "027012dc-c23b-45d8-bc5d-e31ab8a62c42",
+      "production": true,
       "children": [
         {
           "uuid": "c1529fbf-a7db-4507-829e-55f846044309",

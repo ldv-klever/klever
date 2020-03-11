@@ -126,6 +126,7 @@ $(document).ready(function () {
 
     $('#save_mark_btn').click(function () {
         $(this).addClass('disabled');
+        $('#dimmer_of_page').addClass('active');
 
         $.ajax({
             url: $(this).data('url'),

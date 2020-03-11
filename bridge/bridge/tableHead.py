@@ -15,6 +15,8 @@
 # limitations under the License.
 #
 
+
+# TODO: use mixin?
 class Header:
     def __init__(self, columns, titles):
         self.columns = columns

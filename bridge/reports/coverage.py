@@ -163,21 +163,21 @@ class CoverageStatisticsBase:
         return CoverageStatistics.objects.filter(coverage=cov_obj).order_by('id')
 
 
-class JobCoverageStatistics(CoverageStatisticsBase):
-    def __init__(self, job, coverage_id=None):
-        self._job = job
-        super(JobCoverageStatistics, self).__init__(coverage_id=coverage_id)
-        if not self._job.is_lightweight:
+class DecisionCoverageStatistics(CoverageStatisticsBase):
+    def __init__(self, decision, coverage_id=None):
+        self._decision = decision
+        super(DecisionCoverageStatistics, self).__init__(coverage_id=coverage_id)
+        if not self._decision.is_lightweight:
             self.with_report_link = True
 
     def coverage_queryset(self):
-        qs = CoverageArchive.objects.filter(report__root__job_id=self._job.id).exclude(identifier='')
+        qs = CoverageArchive.objects.filter(report__decision_id=self._decision.id).exclude(identifier='')
         if self.with_report_link:
             return qs.select_related('report')
         return qs
 
     def coverage_api(self, coverage_id):
-        return construct_url('jobs:api-get-coverage', self._job.id, coverage_id=coverage_id)
+        return construct_url('jobs:api-get-coverage', self._decision.id, coverage_id=coverage_id)
 
 
 class ReportCoverageStatistics(CoverageStatisticsBase):

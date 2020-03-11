@@ -22,11 +22,11 @@ from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.urls import reverse
 
-from bridge.vars import JOB_ROLES, JOB_STATUS
+from bridge.vars import JOB_ROLES
 from bridge.utils import KleverTestCase
 
 from users.models import User, PreferableView
-from jobs.models import Job, JobHistory, JobFile, FileSystem, RunHistory
+from jobs.models import Job, JobFile, FileSystem
 
 
 class TestJobs(KleverTestCase):

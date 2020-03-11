@@ -20,55 +20,104 @@ import os
 import pika
 
 from django.conf import settings
+from django.db.models import Q
 from django.db.models.query import QuerySet
 from django.template.defaultfilters import filesizeformat
 from django.urls import reverse
 from django.utils.timezone import now
 from django.utils.translation import ugettext_lazy as _
+
 from rest_framework import serializers, exceptions, fields
 
-from bridge.vars import USER_ROLES, MPTT_FIELDS, JOB_STATUS
-from bridge.utils import logger, file_checksum, RMQConnect, BridgeException
+from bridge.vars import DECISION_STATUS
+from bridge.utils import logger, file_checksum, file_get_or_create, RMQConnect, BridgeException
+from bridge.serializers import DynamicFieldsModelSerializer
 
-from users.models import User
-from jobs.models import Job, JobHistory, JobFile, FileSystem, UserRole, RunHistory, UploadedJobArchive
-from service.models import Decision
+from jobs.models import (
+    PRESET_JOB_TYPE, Job, Decision, JobFile, FileSystem, UserRole, UploadedJobArchive, PresetJob, PresetFile
+)
+from reports.models import Report, AttrFile, AdditionalSources, CompareDecisionsInfo, DecisionCache
+from service.models import Task
 
-from jobs.utils import get_unique_name, JobAccess, JSTreeConverter
+from jobs.configuration import GetConfiguration
+from jobs.utils import JSTreeConverter, validate_scheduler, copy_files_with_replace
 
 FILE_SEP = '/'
 ARCHIVE_FORMAT = 13
 
 
-def create_job_version(job, files, roles, **kwargs):
+def decision_status_changed(decision):
+    if decision.status in {DECISION_STATUS[1][0], DECISION_STATUS[5][0], DECISION_STATUS[6][0]}:
+        with RMQConnect() as channel:
+            channel.basic_publish(
+                exchange='', routing_key=settings.RABBIT_MQ_QUEUE, properties=pika.BasicProperties(delivery_mode=2),
+                body="job {} {} {}".format(decision.identifier, decision.status, decision.scheduler.type)
+            )
+
+
+def create_default_decision(request, job, configuration):
     """
-    Creates job version (JobHistory) without any validation.
-    :param job: Job instance
-    :param files: list of dictionaries like {"name": <str>, "file_id": <existing file pk>}
-    :param roles: list of dictionaries like {"user_id": <existing user pk>, "role": JOB_ROLES[<i>][0]}
-    :param kwargs: JobHistory fields
-    :return: JobHistory instance
+    Creates decision with provided configuration and files copied from preset job.
+    If 'files' are provided in request.data then those files will be replaced.
+    :param request:
+    :param job:
+    :param configuration:
+    :return:
     """
-    kwargs.setdefault('name', job.name)
-    kwargs.setdefault('version', job.version)
-    kwargs.setdefault('change_date', now())
+    # Get scheduler
+    scheduler = validate_scheduler(type=configuration['task scheduler'])
 
-    # Create job version, its files and user roles
-    job_version = JobHistory.objects.create(job=job, **kwargs)
-    FileSystem.objects.bulk_create(list(FileSystem(job_version=job_version, **fkwargs) for fkwargs in files))
-    UserRole.objects.bulk_create(list(UserRole(job_version=job_version, **rkwargs) for rkwargs in roles))
-    return job_version
+    # Save configuration
+    conf_db = file_get_or_create(
+        json.dumps(configuration, indent=2, sort_keys=True, ensure_ascii=False), 'configuration.json', JobFile
+    )
+
+    # Create decision
+    decision = Decision.objects.create(
+        title='', job=job, operator=request.user, scheduler=scheduler, configuration=conf_db,
+        weight=configuration['weight'], priority=configuration['priority']
+    )
+
+    # Copy files for decision from preset job
+    preset_job = job.preset.get_ancestors(include_self=True).filter(type=PRESET_JOB_TYPE[1][0]).first()
+    preset_files_qs = PresetFile.objects.filter(preset=preset_job).values_list('file_id', 'name')
+    copy_files_with_replace(request, decision.id, preset_files_qs)
+
+    return decision
 
 
-class ReadOnlyMixin:
-    def create(self, validated_data):
-        raise RuntimeError('The serializer is for data representation only')
+def validate_configuration(conf_str):
+    validated_data = {}
 
-    def update(self, instance, validated_data):
-        raise RuntimeError('The serializer is for data representation only')
+    # Get configuration
+    if conf_str:
+        try:
+            configuration = GetConfiguration(user_conf=json.loads(conf_str)).for_json()
+        except Exception as e:
+            logger.exception(e)
+            raise exceptions.ValidationError({'configuration': _('The configuration has wrong format')})
+    else:
+        configuration = GetConfiguration().for_json()
+
+    validated_data['priority'] = configuration['priority']
+    validated_data['weight'] = configuration['weight']
+
+    # Validate task scheduler
+    try:
+        validated_data['scheduler'] = validate_scheduler(type=configuration['task scheduler'])
+    except BridgeException as e:
+        raise exceptions.ValidationError({'scheduler': str(e)})
+
+    # Save configuration file
+    conf_db = file_get_or_create(
+        json.dumps(configuration, indent=2, sort_keys=True, ensure_ascii=False), 'configuration.json', JobFile
+    )
+    validated_data['configuration_id'] = conf_db.id
+
+    return validated_data
 
 
-class JobFilesField(fields.Field):
+class DecisionFilesField(fields.Field):
     initial = []
 
     default_error_messages = {
@@ -89,8 +138,8 @@ class JobFilesField(fields.Field):
     def to_representation(self, value):
         # Get list of files [(<id>, <hash_sum>)]
         queryset = FileSystem.objects.all()
-        if isinstance(value, JobHistory):
-            queryset = queryset.filter(job_version=value)
+        if isinstance(value, Decision):
+            queryset = queryset.filter(decision=value)
         elif isinstance(value, QuerySet):
             queryset = value
         else:
@@ -149,271 +198,142 @@ class UserRoleSerializer(serializers.ModelSerializer):
         fields = ('user', 'role', 'title')
 
 
-class JobVersionSerializer(serializers.ModelSerializer):
-    def get_value(self, dictionary):
-        return dictionary
-
-    class Meta:
-        model = JobHistory
-        fields = ('comment', 'name', 'global_role')
-
-
 class CreateJobSerializer(serializers.ModelSerializer):
     author = fields.HiddenField(default=serializers.CurrentUserDefault())
-    parent = serializers.SlugRelatedField(slug_field='identifier', allow_null=True, queryset=Job.objects.all())
-    job_version = JobVersionSerializer()
-    files = JobFilesField()
     user_roles = UserRoleSerializer(many=True, default=[])
 
-    def validate_version(self, version):
-        if self.instance and self.instance.version != version:
-            raise exceptions.ValidationError(_("Your version is expired, please reload the page"))
-        return version
-
     def create(self, validated_data):
-        job_files = validated_data.pop('files')
-        version_data = validated_data.pop('job_version')
         user_roles = validated_data.pop('user_roles')
-        validated_data.pop('version', None)  # Use default version on job create
         instance = super().create(validated_data)
-
-        # Create job version with files and roles
-        create_job_version(instance, job_files, user_roles, change_author=instance.author, **version_data)
+        UserRole.objects.bulk_create(list(UserRole(job=instance, **rkwargs) for rkwargs in user_roles))
         return instance
 
     def update(self, instance, validated_data):
-        assert isinstance(instance, Job)
-        job_files = validated_data.pop('files')
-        version_data = validated_data.pop('job_version')
-        # Do not chnage the author of the first job version
-        version_data['change_author'] = validated_data.pop('author')
+        raise RuntimeError('Update method is not supported for this serializer')
+
+    def to_representation(self, instance):
+        if isinstance(instance, self.Meta.model):
+            return {'url': reverse('jobs:decision-create', args=[instance.pk])}
+        return super(CreateJobSerializer, self).to_representation(instance)
+
+    class Meta:
+        model = Job
+        fields = ('preset', 'name', 'global_role', 'user_roles', 'author')
+
+
+class UpdateJobSerializer(serializers.ModelSerializer):
+    user_roles = UserRoleSerializer(many=True, default=[])
+
+    def create(self, validated_data):
+        raise RuntimeError('Create method is not supported for this serializer')
+
+    def update(self, instance, validated_data):
         user_roles = validated_data.pop('user_roles')
-        validated_data['version'] = instance.version + 1
         instance = super().update(instance, validated_data)
 
-        # Create job version with files and roles
-        create_job_version(instance, job_files, user_roles, **version_data)
+        # Update user roles
+        UserRole.objects.filter(job=instance).delete()
+        UserRole.objects.bulk_create(list(UserRole(job=instance, **rkwargs) for rkwargs in user_roles))
         return instance
 
     def to_representation(self, instance):
         if isinstance(instance, self.Meta.model):
             return {'url': reverse('jobs:job', args=[instance.pk])}
-        return {'url': reverse('jobs:job', args=[instance['id']])}
+        return super(UpdateJobSerializer, self).to_representation(instance)
 
     class Meta:
         model = Job
-        exclude = ('status', *MPTT_FIELDS)
+        fields = ('preset', 'name', 'global_role', 'user_roles')
 
 
-class JVrolesSerializerRO(serializers.ModelSerializer):
-    user_roles = serializers.ListField(child=UserRoleSerializer(), source='userrole_set.all')
-    available_users = serializers.SerializerMethodField()
+class CreateDecisionSerializer(serializers.ModelSerializer):
+    operator = fields.HiddenField(default=serializers.CurrentUserDefault())
+    files = DecisionFilesField()
+    configuration = fields.CharField(required=False)
 
-    def get_available_users(self, instance):
-        users_qs = User.objects.exclude(role__in=[USER_ROLES[2][0], USER_ROLES[4][0]])
-
-        # Return all users in the system except service and manager users, exclude the job author also
-        users = dict((u.id, u.get_full_name()) for u in users_qs)
-        users.pop(instance.job.author_id, None)
-        return users
-
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-
-        # Add user full "name" for each user with specified role
-        user_roles = []
-        for ur in data['user_roles']:
-            # Either user is manager, author or service of the job if he is not in all_users dict
-            ur['name'] = data['available_users'].pop(ur['user'], None)
-            if ur['name']:
-                user_roles.append(ur)
-        data['user_roles'] = user_roles
-
-        # Available users for specifying the role; sorted by user full name
-        data['available_users'] = list({'id': u_id, 'name': u_name} for u_id, u_name in data['available_users'].items())
-        data['available_users'].sort(key=lambda x: x['name'])
-
-        return data
-
-    class Meta:
-        model = JobHistory
-        fields = ('user_roles', 'available_users', 'global_role')
-        read_only = ('global_role',)
-
-
-class JVlistSerializerRO(ReadOnlyMixin, serializers.ModelSerializer):
-    title = serializers.SerializerMethodField()
-
-    def get_title(self, instance):
-        if instance.job.version == instance.version:
-            return _("Current version")
-        title = serializers.DateTimeField(format="%d.%m.%Y %H:%M:%S").to_representation(instance.change_date)
-        if instance.change_author:
-            title += ' ({0})'.format(instance.change_author.get_full_name())
-        if instance.comment:
-            title += ': {0}'.format(instance.comment)
-        return title
-
-    class Meta:
-        model = JobHistory
-        fields = ('version', 'title')
-
-
-class JobFormSerializerRO(ReadOnlyMixin, serializers.ModelSerializer):
-    name = serializers.SerializerMethodField()
-    parent = serializers.SerializerMethodField()
-    versions = JVlistSerializerRO(many=True)
-    save_url = serializers.SerializerMethodField()
-
-    def __init__(self, action, *args, **kwargs):
-        self._action = action
-        super(JobFormSerializerRO, self).__init__(*args, **kwargs)
-
-    def get_name(self, instance):
-        if self._action == 'edit':
-            return instance.name
-        return get_unique_name(instance.name)
-
-    def get_parent(self, instance):
-        if self._action == 'copy':
-            return str(instance.identifier)
-        return str(instance.parent.identifier) if instance.parent else ''
-
-    def get_save_url(self, instance):
-        if self._action == 'edit':
-            return reverse('jobs:api-update-job', args=[instance.id])
-        return reverse('jobs:api-create-job')
-
-    class Meta:
-        model = Job
-        fields = ('id', 'name', 'parent', 'versions', 'version', 'save_url', 'preset_uuid')
-
-
-class JVformSerializerRO(serializers.ModelSerializer):
-    files = JobFilesField(source='*')
-    roles = JVrolesSerializerRO(source='*')
-
-    class Meta:
-        model = JobHistory
-        fields = ('name', 'files', 'roles')
-
-
-class JobStatusSerializer(serializers.ModelSerializer):
-    def update(self, instance, validated_data):
-        instance = super().update(instance, validated_data)
-        try:
-            run_data = instance.run_history.latest('date')
-            run_data.status = instance.status
-            run_data.save()
-        except RunHistory.DoesNotExist:
-            pass
-
-        if instance.status in {JOB_STATUS[1][0], JOB_STATUS[5][0], JOB_STATUS[6][0]}:
-            sch_type = Decision.objects.filter(job=instance).select_related('scheduler')\
-                .only('scheduler__type').get().scheduler.type
-            with RMQConnect() as channel:
-                channel.basic_publish(
-                    exchange='', routing_key=settings.RABBIT_MQ_QUEUE,
-                    properties=pika.BasicProperties(delivery_mode=2),
-                    body="job {} {} {}".format(instance.identifier, instance.status, sch_type)
-                )
-        return instance
-
-    class Meta:
-        model = Job
-        fields = ('status', 'identifier')
-        extra_kwargs = {
-            'identifier': {'read_only': True},
-        }
-
-
-class DuplicateJobSerializer(serializers.ModelSerializer):
-    parent = serializers.SlugRelatedField(slug_field='identifier', queryset=Job.objects.all())
-    author = fields.HiddenField(default=serializers.CurrentUserDefault())
-    name = fields.CharField(max_length=150, required=False)
-
-    def validate_name(self, name):
-        return get_unique_name(name)
+    def validate(self, attrs):
+        conf_data = validate_configuration(attrs.pop('configuration', None))
+        attrs.update(conf_data)
+        return attrs
 
     def create(self, validated_data):
-        parent_version = validated_data['parent'].versions.first()
-        if not validated_data.get('name'):
-            validated_data['name'] = get_unique_name(parent_version.name)
+        assert 'job_id' in validated_data, 'Wrong serializer usage'
+
+        job_files = validated_data.pop('files')
         instance = super().create(validated_data)
-
-        job_files = FileSystem.objects.filter(job_version=parent_version).values('file_id', 'name')
-        user_roles = UserRole.objects.filter(job_version=parent_version).values('user_id', 'role')
-
-        # Create job version with parent files and user roles
-        create_job_version(
-            instance, job_files, user_roles, change_author=instance.author, global_role=parent_version.global_role
-        )
-
+        FileSystem.objects.bulk_create(list(FileSystem(decision=instance, **fkwargs) for fkwargs in job_files))
+        decision_status_changed(instance)
         return instance
 
     def update(self, instance, validated_data):
-        assert isinstance(instance, Job)
-        last_version = instance.versions.order_by('-version').first()
-        instance.version += 1
+        raise RuntimeError('Update method is not supported for this serializer')
 
-        job_files = FileSystem.objects.filter(job_version=last_version).values('file_id', 'name')
-        user_roles = UserRole.objects.filter(job_version=last_version).values('user_id', 'role')
+    def to_representation(self, instance):
+        if isinstance(instance, self.Meta.model):
+            return {'url': reverse('jobs:decision', args=[instance.pk])}
+        return super(CreateDecisionSerializer, self).to_representation(instance)
 
-        # Copy job version with its files and user roles
-        create_job_version(
-            instance, job_files, user_roles,
-            change_author=self.context['request'].user,
-            global_role=last_version.global_role
+    class Meta:
+        model = Decision
+        fields = ('title', 'operator', 'files', 'configuration')
+
+
+class RestartDecisionSerializer(serializers.ModelSerializer):
+    operator = fields.HiddenField(default=serializers.CurrentUserDefault())
+    configuration = fields.CharField()
+
+    def __clear_related_objects(self, instance):
+        Report.objects.filter(decision=instance).delete()
+        AttrFile.objects.filter(decision=instance).delete()
+        AdditionalSources.objects.filter(decision=instance).delete()
+        CompareDecisionsInfo.objects.filter(Q(decision1=instance) | Q(decision2=instance)).delete()
+        DecisionCache.objects.filter(decision=instance).delete()
+        Task.objects.filter(decision=instance).delete()
+
+    def validate(self, attrs):
+        conf_data = validate_configuration(attrs.pop('configuration'))
+        attrs.update(conf_data)
+
+        attrs['status'] = DECISION_STATUS[1][0]
+        attrs['start_date'] = now()
+
+        int_fields = (
+            'tasks_total', 'tasks_pending', 'tasks_processing', 'tasks_finished',
+            'tasks_error', 'tasks_cancelled', 'solutions'
         )
+        null_fields = (
+            'error', 'finish_date', 'total_sj', 'failed_sj', 'solved_sj', 'expected_time_sj',
+            'start_sj', 'finish_sj', 'gag_text_sj', 'total_ts', 'failed_ts', 'solved_ts', 'expected_time_ts',
+            'start_ts', 'finish_ts', 'gag_text_ts'
+        )
+        for field_name in int_fields:
+            attrs[field_name] = 0
+        for field_name in null_fields:
+            attrs[field_name] = None
 
-        instance.save()
+        return attrs
+
+    def create(self, validated_data):
+        raise NotImplementedError('Create method is not supported for this serializer')
+
+    def update(self, instance, validated_data):
+        self.__clear_related_objects(instance)
+        instance = super(RestartDecisionSerializer, self).update(instance, validated_data)
+        decision_status_changed(instance)
         return instance
 
     def to_representation(self, instance):
-        return {'id': instance.pk, 'identifier': str(instance.identifier)}
+        return {'url': reverse('jobs:decision', args=[instance.pk])}
 
     class Meta:
-        model = Job
-        fields = ('parent', 'name', 'author')
+        model = Decision
+        fields = ('operator', 'configuration')
 
 
-def change_job_status(job, status):
-    serializer = JobStatusSerializer(instance=job, data={'status': status})
-    serializer.is_valid(raise_exception=True)
-    return serializer.save()
-
-
-def get_view_job_data(user, job: Job):
-    # Get parents list
-    parents = []
-    parents_qs = job.get_ancestors()
-    with_access = JobAccess(user).can_view_jobs(parents_qs)
-    for parent in parents_qs:
-        parents.append({
-            'name': parent.name,
-            'pk': parent.pk if parent.pk in with_access else None
-        })
-
-    # Get children list
-    children = []
-    children_qs = job.get_children()
-    with_access = JobAccess(user).can_view_jobs(children_qs)
-    for child in children_qs:
-        if child.pk in with_access:
-            children.append({'pk': child.pk, 'name': child.name})
-
-    # Versions queryset
-    versions_qs = job.versions.select_related('change_author').all()
-
-    return {
-        'author': job.author, 'parents': parents, 'children': children, 'last_version': versions_qs[0],
-        'versions': JVlistSerializerRO(instance=versions_qs, many=True).data,
-        'files': json.dumps(JobFilesField().to_representation(versions_qs[0])),
-        'run_history': RunHistory.objects.filter(job=job).order_by('-date').select_related('operator'),
-        'user_roles': versions_qs[0].userrole_set.select_related('user').order_by(
-            'user__first_name', 'user__last_name', 'user__username'
-        )
-    }
+class DecisionStatusSerializerRO(serializers.ModelSerializer):
+    class Meta:
+        model = Decision
+        fields = ('status', 'identifier')
 
 
 class UploadedJobArchiveSerializer(serializers.ModelSerializer):
@@ -425,3 +345,20 @@ class UploadedJobArchiveSerializer(serializers.ModelSerializer):
     class Meta:
         model = UploadedJobArchive
         fields = ('archive',)
+
+
+class PresetJobDirSerializer(DynamicFieldsModelSerializer):
+    def create(self, validated_data):
+        validated_data['type'] = PRESET_JOB_TYPE[2][0]
+        validated_data['check_date'] = validated_data['parent'].check_date
+        return super(PresetJobDirSerializer, self).create(validated_data)
+
+    class Meta:
+        model = PresetJob
+        fields = ('parent', 'name')
+
+
+class UpdateDecisionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Decision
+        fields = ('title',)

@@ -114,6 +114,9 @@ class Migration(migrations.Migration):
             ('tree_id', models.PositiveIntegerField(db_index=True, editable=False)),
             ('level', models.PositiveIntegerField(editable=False)),
             ('author', models.ForeignKey(null=True, on_delete=models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
+            ('parent', mptt.fields.TreeForeignKey(
+                null=True, on_delete=models.deletion.CASCADE, related_name='children', to='marks.SafeTag'
+            )),
         ], options={'db_table': 'mark_safe_tag'}),
 
         migrations.CreateModel(name='MarkSafeTag', fields=[
@@ -142,7 +145,10 @@ class Migration(migrations.Migration):
                 null=True, on_delete=models.deletion.SET_NULL, related_name='+', to=settings.AUTH_USER_MODEL
             )),
             ('job', models.ForeignKey(null=True, on_delete=models.deletion.SET_NULL, related_name='+', to='jobs.Job')),
-        ], options={'verbose_name': 'Unknowns mark', 'db_table': 'mark_unknown'}),
+        ], options={
+            'verbose_name': 'Unknowns mark', 'db_table': 'mark_unknown',
+            'index_together': {('component', 'problem_pattern')}
+        }),
 
         migrations.CreateModel(name='MarkUnknownHistory', fields=[
             ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
@@ -308,6 +314,9 @@ class Migration(migrations.Migration):
             ('tree_id', models.PositiveIntegerField(db_index=True, editable=False)),
             ('level', models.PositiveIntegerField(editable=False)),
             ('author', models.ForeignKey(null=True, on_delete=models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
+            ('parent', mptt.fields.TreeForeignKey(
+                null=True, on_delete=models.deletion.CASCADE, related_name='children', to='marks.UnsafeTag'
+            )),
         ], options={'db_table': 'mark_unsafe_tag'}),
 
         migrations.CreateModel(name='MarkUnsafeTag', fields=[
@@ -325,14 +334,4 @@ class Migration(migrations.Migration):
             ('tag', models.ForeignKey(on_delete=models.deletion.CASCADE, to='marks.UnsafeTag')),
             ('user', models.ForeignKey(on_delete=models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
         ], options={'db_table': 'marks_unsafe_tag_access'}),
-
-        migrations.AddField(model_name='unsafetag', name='parent', field=mptt.fields.TreeForeignKey(
-            null=True, on_delete=models.deletion.CASCADE, related_name='children', to='marks.UnsafeTag'
-        )),
-
-        migrations.AddField(model_name='safetag', name='parent', field=mptt.fields.TreeForeignKey(
-            null=True, on_delete=models.deletion.CASCADE, related_name='children', to='marks.SafeTag'
-        )),
-
-        migrations.AlterIndexTogether(name='markunknown', index_together={('component', 'problem_pattern')}),
     ]

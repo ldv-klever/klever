@@ -15,19 +15,15 @@
 # limitations under the License.
 #
 
-from django.db import migrations
+from django.core.management.base import BaseCommand
+from jobs.preset import PopulatePresets
 
 
-class Migration(migrations.Migration):
+class Command(BaseCommand):
+    help = 'Used to populate (update) preset jobs and files and store check date if files were changed.'
+    requires_migrations_checks = True
 
-    dependencies = [
-        ('reports', '0001_initial'),
-    ]
-
-    operations = [
-        migrations.RenameField(
-            model_name='reportcomponent',
-            old_name='verifier_input',
-            new_name='verifier_files',
-        ),
-    ]
+    def handle(self, *args, **options):
+        PopulatePresets().populate()
+        if options['verbosity'] >= 1:
+            self.stdout.write("Preset jobs and files were successfully populated.")

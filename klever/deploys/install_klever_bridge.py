@@ -42,9 +42,6 @@ def _install_klever_bridge(logger):
                 '--role', '4')
     execute_cmd(logger, sys.executable, './manage.py', 'populate', '--all')
 
-    logger.info('Check whether preset files of existing verification jobs differ from new ones')
-    execute_cmd(logger, sys.executable, './manage.py', 'check-preset')
-
 
 def install_klever_bridge_development(logger, src_dir):
     logger.info('Install/update development Klever Bridge')

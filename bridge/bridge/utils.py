@@ -71,11 +71,6 @@ class InfoFilter(logging.Filter):
         return log_record.levelno == self.__level and super(InfoFilter, self).filter(log_record)
 
 
-for h in logger.handlers:
-    if h.name == 'other':
-        h.addFilter(InfoFilter(logging.INFO))
-
-
 def require_lock(model, lock='EXCLUSIVE'):
     def require_lock_decorator(func):
         def wrapper(*args, **kwargs):
