@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 
+#include <stddef.h>
 #include <verifier/common.h>
 #include <verifier/memory.h>
 #include <verifier/nondet.h>

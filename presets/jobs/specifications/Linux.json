@@ -91,8 +91,7 @@
               "linux/verifier/memory.c",
               "verifier/common.c",
               "verifier/gcc.c",
-              "verifier/nondet.c",
-              "verifier/reference memory.c"
+              "verifier/nondet.c"
             ]
           }
         },
