@@ -24,14 +24,12 @@ from django.db.models import Q
 from django.test import Client
 from django.urls import reverse
 
-from bridge.vars import JOB_STATUS, SCHEDULER_TYPE, SCHEDULER_STATUS, PRIORITY, NODE_STATUS
+from bridge.vars import SCHEDULER_TYPE, SCHEDULER_STATUS, PRIORITY, NODE_STATUS
 from bridge.utils import KleverTestCase
-# from bridge.populate import populate_users
 
 from users.models import User, SchedulerUser
-from jobs.models import Job
-from service.models import Scheduler, Decision, Task, Solution, VerificationTool, Node, NodesConfiguration,\
-    Workload
+from jobs.models import Job, Scheduler
+from service.models import Task, Solution, VerificationTool, Node, NodesConfiguration, Workload
 
 from reports.test import COMPUTER
 
@@ -343,7 +341,7 @@ class TestService(KleverTestCase):
         self.assertEqual(json.loads(res['jobs and tasks status'])['tasks']['error'], [])
         self.assertEqual(json.loads(res['jobs and tasks status'])['tasks']['finished'], [])
 
-        # Donwload solutions for finished tasks
+        # Download solutions for finished tasks
         response = self.core.post('/service/download_solution/', {'task id': task_ids[2]})
         self.assertEqual(response.status_code, 200)
         self.assertNotEqual(response['Content-Type'], 'application/json')
@@ -635,7 +633,7 @@ class TestService(KleverTestCase):
         self.assertEqual(json.loads(res['jobs and tasks status'])['tasks']['error'], [])
         self.assertEqual(json.loads(res['jobs and tasks status'])['tasks']['finished'], [])
 
-        # Donwload solutions for finished tasks
+        # Download solutions for finished tasks
         response = self.core.post('/service/download_solution/', {'task id': task_ids[0]})
         self.assertEqual(response.status_code, 200)
         self.assertNotEqual(response['Content-Type'], 'application/json')

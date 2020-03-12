@@ -17,5 +17,6 @@
 
 before: file("$this")
 {
+#include <linux/types.h>
 #include <verifier/memory.h>
 }

@@ -37,7 +37,6 @@ $(document).ready(function () {
     $('.show-nodes').click(function (event) {
         event.preventDefault();
         let conf_id = $(this).data('conf');
-
         $('.node-of-conf').removeClass('active-tr');
         $('.nodes-configuration').removeClass('active-tr');
         $('.conf-info').hide();
@@ -55,12 +54,11 @@ $(document).ready(function () {
 
     $('.show-node-conf').click(function (event) {
         event.preventDefault();
-        let conf_id = $(this).data('conf');
-
         $('.node-of-conf').removeClass('active-tr');
         $('.nodes-configuration').removeClass('active-tr');
         $('.conf-info').hide();
 
+        let conf_id = $(this).data('conf');
         $(this).closest('tr').addClass('active-tr');
         $(`.show-nodes[data-conf="${conf_id}"]`).closest('tr').addClass('active-tr');
     });

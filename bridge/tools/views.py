@@ -30,12 +30,12 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.renderers import TemplateHTMLRenderer
 
-from bridge.vars import USER_ROLES, JOB_STATUS, UNKNOWN_ERROR
+from bridge.vars import USER_ROLES, UNKNOWN_ERROR, DECISION_STATUS
 from bridge.utils import BridgeException, logger
 from bridge.access import ManagerPermission
 
-from jobs.models import Job, JobFile
-from reports.models import Computer, OriginalSources, CompareJobsInfo
+from jobs.models import JobFile, Decision
+from reports.models import Computer, OriginalSources, CompareDecisionsInfo
 from marks.models import ConvertedTrace
 from service.models import Task
 from tools.models import LockTable
@@ -43,6 +43,7 @@ from tools.models import LockTable
 from tools.utils import objects_without_relations, ClearFiles, Recalculation, RecalculateMarksCache
 from tools.profiling import ProfileData, ExecLocker, LoggedCallMixin, DBLogsAnalizer
 
+from jobs.preset import PopulatePresets
 from marks.population import (
     PopulateSafeTags, PopulateUnsafeTags, PopulateSafeMarks, PopulateUnsafeMarks, PopulateUnknownMarks
 )
@@ -53,16 +54,16 @@ class ManagerPageView(LoginRequiredMixin, TemplateView):
     template_name = 'tools/ManagerPanel.html'
 
     def get_context_data(self, **kwargs):
-        if self.request.user.role != USER_ROLES[2][0]:
-            raise PermissionDenied("You don't have an acces to this page")
+        if not self.request.user.is_manager:
+            raise PermissionDenied("You don't have an access to this page")
         context = super().get_context_data(**kwargs)
-        context['jobs'] = Job.objects.exclude(reportroot=None).exclude(
-            status__in=[JOB_STATUS[0][0], JOB_STATUS[1][0], JOB_STATUS[2][0], JOB_STATUS[6][0]]
-        )
+        context['decisions'] = Decision.objects.exclude(
+            status__in=[DECISION_STATUS[0][0], DECISION_STATUS[1][0], DECISION_STATUS[2][0], DECISION_STATUS[6][0]]
+        ).select_related('job')
         context['original_sources'] = OriginalSources.objects.annotate(
-            links_num=Count('reportcomponent__root', distinct=True)
+            links_num=Count('reportcomponent__decision', distinct=True)
         ).all()
-        context['comparison'] = CompareJobsInfo.objects.select_related('user', 'root1__job', 'root2__job')
+        context['comparison'] = CompareDecisionsInfo.objects.select_related('user', 'decision1', 'decision2')
         return context
 
 
@@ -78,17 +79,17 @@ class ClearSystemAPIView(LoggedCallMixin, APIView):
 
 
 class ClearComparisonAPIView(LoggedCallMixin, DestroyAPIView):
-    queryset = CompareJobsInfo.objects.all()
+    queryset = CompareDecisionsInfo.objects.all()
     permission_classes = (ManagerPermission,)
 
 
 class RecalculationAPIView(LoggedCallMixin, APIView):
     permission_classes = (ManagerPermission,)
-    unparallel = [Job]
+    unparallel = [Decision]
 
     def post(self, request):
         try:
-            Recalculation(request.data['type'], request.data['jobs'])
+            Recalculation(request.data['type'], request.data['decisions'])
         except BridgeException as e:
             raise exceptions.ValidationError({'error': str(e)})
         except Exception as e:
@@ -179,7 +180,7 @@ class ClearTasksAPIView(LoggedCallMixin, APIView):
 
     def delete(self, request):
         assert request.user.role == USER_ROLES[2][0]
-        Task.objects.exclude(decision__job__status=JOB_STATUS[2][0]).delete()
+        Task.objects.exclude(decision__status=DECISION_STATUS[2][0]).delete()
         return Response({'message': _('Tasks were successfully deleted')})
 
 
@@ -198,11 +199,14 @@ class ManualUnlockAPIView(LoggedCallMixin, APIView):
 
 class PopulationAPIView(LoggedCallMixin, APIView):
     permission_classes = (ManagerPermission,)
-    unparallel = [Job, 'MarkSafe', 'MarkUnsafe', 'MarkUnknown', 'SafeTag', 'UnsafeTag', 'Scheduler']
+    unparallel = ['PresetJob', 'MarkSafe', 'MarkUnsafe', 'MarkUnknown', 'SafeTag', 'UnsafeTag', 'Scheduler']
 
     def post(self, request):
         data = json.loads(request.data['data'])
         messages = []
+        if 'preset-jobs' in data:
+            PopulatePresets().populate()
+            messages.append('Preset jobs were populated!')
         if 'schedulers' in data:
             populuate_schedulers()
             messages.append('Schedulers were populated!')

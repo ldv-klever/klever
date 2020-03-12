@@ -19,11 +19,10 @@ import json
 
 from django.urls import reverse
 
-from bridge.utils import KleverTestCase
 from bridge.vars import LANGUAGES, DATAFORMAT
+from bridge.utils import KleverTestCase
 
-from users.models import User, Notifications
-from service.models import SchedulerUser
+from users.models import User, SchedulerUser
 
 
 class TestLoginAndRegister(KleverTestCase):

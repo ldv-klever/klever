@@ -98,25 +98,25 @@
         <div class="ui divider"></div>
     {% endif %}
 
-        {# Job title #}
-        <input id="view_data_{{ view.type }}__job_title" value="list_if_job_title" data-list="job_title_type__job_title_value" type="hidden">
+        {# Decision title #}
+        <input id="view_data_{{ view.type }}__decision_title" value="list_if_decision_title" data-list="decision_title_type__decision_title_value" type="hidden">
         <div class="ui checkbox">
-            <input type="checkbox" id="view_condition_{{ view.type }}__job_title"{% if 'job_title' in view %} checked{% endif %}>
-            <label for="view_condition_{{ view.type }}__job_title">{% trans 'Job title' %}</label>
+            <input type="checkbox" id="view_condition_{{ view.type }}__decision_title"{% if 'decision_title' in view %} checked{% endif %}>
+            <label for="view_condition_{{ view.type }}__decision_title">{% trans 'Decision title' %}</label>
         </div>
         <br><br>
         <div class="inline fields">
             <div class="field">
-                <label for="view_{{ view.type }}__job_title_type"></label>
-                <select id="view_{{ view.type }}__job_title_type" class="ui dropdown">
-                    <option value="iexact"{% if 'job_title' in view and view.job_title.0 == 'iexact' %} selected{% endif %}>{% trans 'is' %}</option>
-                    <option value="istartswith"{% if 'job_title' in view and view.job_title.0 == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
-                    <option value="icontains"{% if 'job_title' in view and view.job_title.0 == 'icontains' %} selected{% endif %}>{% trans 'contains' %}</option>
+                <label for="view_{{ view.type }}__decision_title_type"></label>
+                <select id="view_{{ view.type }}__decision_title_type" class="ui dropdown">
+                    <option value="iexact"{% if 'decision_title' in view and view.decision_title.0 == 'iexact' %} selected{% endif %}>{% trans 'is' %}</option>
+                    <option value="istartswith"{% if 'decision_title' in view and view.decision_title.0 == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
+                    <option value="icontains"{% if 'decision_title' in view and view.decision_title.0 == 'icontains' %} selected{% endif %}>{% trans 'contains' %}</option>
                 </select>
             </div>
             <div class="field">
-                <label for="view_{{ view.type }}__job_title_value"></label>
-                <input id="view_{{ view.type }}__job_title_value" type="text"{% if 'job_title' in view %} value="{{ view.job_title.1 }}"{% endif %} style="min-width: 300px;">
+                <label for="view_{{ view.type }}__decision_title_value"></label>
+                <input id="view_{{ view.type }}__decision_title_value" type="text"{% if 'decision_title' in view %} value="{{ view.decision_title.1 }}"{% endif %} style="min-width: 300px;">
             </div>
         </div>
         <div class="ui divider"></div>

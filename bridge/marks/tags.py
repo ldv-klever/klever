@@ -27,6 +27,7 @@ from bridge.utils import logger, BridgeException
 
 from users.models import User
 from marks.models import SafeTag, UnsafeTag, SafeTagAccess, UnsafeTagAccess, MarkSafeHistory, MarkUnsafeHistory
+
 from marks.serializers import SafeTagSerializer, UnsafeTagSerializer
 from caches.utils import UpdateSafeMarksTags, UpdateUnsafeMarksTags
 

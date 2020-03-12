@@ -23,17 +23,17 @@ from django.utils.translation import ugettext_lazy as _
 
 from rest_framework import fields, serializers
 
-from bridge.vars import PRIORITY, SCHEDULER_TYPE, JOB_WEIGHT, COVERAGE_DETAILS, SCHEDULER_STATUS
+from bridge.vars import PRIORITY, SCHEDULER_TYPE, DECISION_WEIGHT, COVERAGE_DETAILS, SCHEDULER_STATUS
 from bridge.utils import logger, BridgeException
 
 from users.models import SchedulerUser
-from service.models import Scheduler
+from jobs.models import Scheduler
 
 # Each Klever Core mode represents sets of values for following sets of attributes:
 #   priority - see bridge.vars.PRIORITY for available values (job priority),
 #   scheduler - see bridge.vars.SCHEDULER_TYPE for available values (task scheduler),
 #   max_tasks - positive number (max solving tasks per sub-job),
-#   job_weight - see vars.JOB_WEIGHT for available values (weight of decision),
+#   weight - see vars.DECISION_WEIGHT for available values (weight of decision),
 #   parallelism: [Sub-jobs processing, Tasks generation, Results processing]
 #   memory - memory size in GB,
 #   cpu_num - number of CPU cores; if number is None then any,
@@ -73,7 +73,7 @@ KLEVER_CORE_DEF_MODES = [
             'priority': PRIORITY[2][0],
             'scheduler': SCHEDULER_TYPE[0][0],
             'max_tasks': 100,
-            'job_weight': JOB_WEIGHT[1][0],
+            'weight': DECISION_WEIGHT[1][0],
             'parallelism': ['1', '1', '1'],
             'memory': 3,
             'cpu_num': None,
@@ -98,7 +98,7 @@ KLEVER_CORE_DEF_MODES = [
             'priority': PRIORITY[3][0],
             'scheduler': SCHEDULER_TYPE[0][0],
             'max_tasks': 100,
-            'job_weight': JOB_WEIGHT[0][0],
+            'weight': DECISION_WEIGHT[0][0],
             'parallelism': ['1', '2', '1'],
             'memory': 5,
             'cpu_num': None,
@@ -123,7 +123,7 @@ KLEVER_CORE_DEF_MODES = [
             'priority': PRIORITY[3][0],
             'scheduler': SCHEDULER_TYPE[0][0],
             'max_tasks': 100,
-            'job_weight': JOB_WEIGHT[0][0],
+            'weight': DECISION_WEIGHT[0][0],
             'parallelism': ['1', '2', '1'],
             'memory': 5,
             'cpu_num': None,
@@ -143,33 +143,6 @@ KLEVER_CORE_DEF_MODES = [
         }
     }
 ]
-
-
-class ConfigurationSerializer(serializers.Serializer):
-    priority = fields.ChoiceField(PRIORITY)
-    scheduler = fields.ChoiceField(SCHEDULER_TYPE)
-    max_tasks = fields.IntegerField(min_value=1)
-    job_weight = fields.ChoiceField(JOB_WEIGHT)
-
-    parallelism = fields.ListField(child=fields.RegexField(r'^\d+(\.\d+)?$'), min_length=3, max_length=3)
-
-    memory = fields.FloatField()
-    cpu_num = fields.IntegerField(allow_null=True, min_value=1)
-    disk_size = fields.FloatField()
-    cpu_model = fields.CharField(default='', allow_null=True, allow_blank=True)
-
-    console_level = fields.ChoiceField(LOGGING_LEVELS)
-    file_level = fields.ChoiceField(LOGGING_LEVELS)
-    console_formatter = fields.CharField()
-    file_formatter = fields.CharField()
-
-    keep_intermediate_files = fields.BooleanField()
-    upload_verifier_files = fields.BooleanField()
-    upload_other_files = fields.BooleanField()
-    ignore_instances = fields.BooleanField()
-    ignore_subjobs = fields.BooleanField()
-    total_coverage = fields.BooleanField()
-    coverage_details = fields.ChoiceField(COVERAGE_DETAILS)
 
 
 def get_configuration_value(name, value):
@@ -192,16 +165,49 @@ def get_configuration_value(name, value):
     return {}
 
 
+class ConfigurationSerializer(serializers.Serializer):
+    priority = fields.ChoiceField(PRIORITY)
+    scheduler = fields.ChoiceField(SCHEDULER_TYPE)
+    max_tasks = fields.IntegerField(min_value=1)
+    weight = fields.ChoiceField(DECISION_WEIGHT)
+
+    parallelism = fields.ListField(child=fields.RegexField(r'^\d+(\.\d+)?$'), min_length=3, max_length=3)
+
+    memory = fields.FloatField()
+    cpu_num = fields.IntegerField(allow_null=True, min_value=1)
+    disk_size = fields.FloatField()
+    cpu_model = fields.CharField(default='', allow_null=True, allow_blank=True)
+
+    console_level = fields.ChoiceField(LOGGING_LEVELS)
+    file_level = fields.ChoiceField(LOGGING_LEVELS)
+    console_formatter = fields.CharField()
+    file_formatter = fields.CharField()
+
+    keep_intermediate_files = fields.BooleanField()
+    upload_verifier_files = fields.BooleanField()
+    upload_other_files = fields.BooleanField()
+    ignore_instances = fields.BooleanField()
+    ignore_subjobs = fields.BooleanField()
+    total_coverage = fields.BooleanField()
+    coverage_details = fields.ChoiceField(COVERAGE_DETAILS)
+
+    def create(self, validated_data):
+        raise NotImplementedError
+
+    def update(self, instance, validated_data):
+        raise NotImplementedError
+
+
 class GetConfiguration:
-    def __init__(self, conf_name=None, file_conf=None, user_conf=None, last_run=None):
+    def __init__(self, conf_name=None, file_conf=None, user_conf=None, base_decision=None):
         if conf_name is not None:
             self.configuration = self.__get_default_conf_args(conf_name)
         elif user_conf is not None:
             self.configuration = self.__validate_conf(user_conf)
         elif file_conf is not None:
             self.configuration = self.__json_to_conf(file_conf)
-        elif last_run is not None:
-            with last_run.configuration.file as fp:
+        elif base_decision is not None:
+            with base_decision.configuration.file as fp:
                 self.configuration = self.__json_to_conf(fp)
         else:
             self.configuration = self.__get_default_conf_args(settings.DEF_KLEVER_CORE_MODE)
@@ -226,16 +232,16 @@ class GetConfiguration:
         for f in filedata['logging']['formatters']:
             formatters[f['name']] = f['value']
         loggers = {}
-        for l in filedata['logging']['loggers']:
-            if l['name'] == 'default':
-                for l_h in l['handlers']:
+        for conf_l in filedata['logging']['loggers']:
+            if conf_l['name'] == 'default':
+                for l_h in conf_l['handlers']:
                     loggers[l_h['name']] = {'formatter': formatters[l_h['formatter']], 'level': l_h['level']}
 
         configuration = {
             'priority': filedata['priority'],
             'scheduler': filedata['task scheduler'],
             'max_tasks': filedata['max solving tasks per sub-job'],
-            'job_weight': filedata['weight'],
+            'weight': filedata['weight'],
             'parallelism': [
                 str(filedata['parallelism']['Sub-jobs processing']),
                 str(filedata['parallelism']['Tasks generation']),
@@ -264,7 +270,7 @@ class GetConfiguration:
     def for_json(self):
         return {
             'priority': self.configuration['priority'],
-            'weight': self.configuration['job_weight'],
+            'weight': self.configuration['weight'],
             'task scheduler': self.configuration['scheduler'],
             'max solving tasks per sub-job': self.configuration['max_tasks'],
             'resource limits': {
@@ -316,7 +322,7 @@ class StartDecisionData:
 
         self.job_sch_err = None
         self.priorities = reversed(PRIORITY)
-        self.job_weight = JOB_WEIGHT
+        self.weight = DECISION_WEIGHT
         self.parallelism = PARALLELISM_PACKS
         self.levels = LOGGING_LEVELS
         self.formatters = DEFAULT_FORMATTER

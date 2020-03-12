@@ -16,6 +16,7 @@
  */
 
 #include <linux/device.h>
+#include <linux/types.h>
 #include <linux/ldv/device.h>
 #include <verifier/memory.h>
 #include <verifier/memlist.h>

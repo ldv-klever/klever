@@ -18,11 +18,12 @@
 import pytz
 
 from django import forms
-from django.forms.widgets import Input
 from django.conf import settings
 from django.contrib.auth import password_validation
 from django.contrib.auth.forms import AuthenticationForm, UsernameField, UserCreationForm
+from django.forms.widgets import Input
 from django.utils.translation import ugettext_lazy as _
+
 from users.models import User, SchedulerUser
 
 

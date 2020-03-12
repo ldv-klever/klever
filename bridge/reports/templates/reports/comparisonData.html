@@ -17,13 +17,13 @@
 
 <div class="ui grid">
     <div class="seven wide column right aligned">
-        <h3>{{ data.comparison.get_verdict1_display }} (<a href="{% url 'jobs:job' data.info.root1.job_id %}" class="job-href-1">{{ data.info.root1.job.name }}</a>)</h3>
+        <h3>{{ data.comparison.get_verdict1_display }} (<a href="{% url 'jobs:decision' data.info.decision1_id %}" class="decision-href-1">{{ data.info.decision1.name }}</a>)</h3>
     </div>
     <div class="two wide column center aligned">
         <h3><i class="arrow right icon"></i></h3>
     </div>
     <div class="seven wide column">
-        <h3>{{ data.comparison.get_verdict2_display }} (<a href="{% url 'jobs:job' data.info.root2.job_id %}" class="job-href-2">{{ data.info.root2.job.name }}</a>)</h3>
+        <h3>{{ data.comparison.get_verdict2_display }} (<a href="{% url 'jobs:decision' data.info.decision2_id %}" class="decision-href-2">{{ data.info.decision2.job.name }}</a>)</h3>
     </div>
 </div>
 <div class="ui grid">

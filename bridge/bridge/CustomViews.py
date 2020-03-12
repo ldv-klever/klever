@@ -21,11 +21,11 @@ import mimetypes
 from django.http import StreamingHttpResponse, HttpResponseNotAllowed
 from django.views.generic.base import View
 
-from rest_framework.views import APIView
 from rest_framework.exceptions import APIException
 from rest_framework.generics import GenericAPIView
 from rest_framework.renderers import TemplateHTMLRenderer
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from bridge.vars import VIEW_TYPES
 from bridge.utils import logger, BridgeException

@@ -17,7 +17,6 @@
 
 #ifndef __VERIFIER_MEMORY_H
 #define __VERIFIER_MEMORY_H
-#include <stddef.h>
 
 // Implementations for direct use in specifications and models
 extern void *ldv_malloc(size_t size);
@@ -52,7 +51,6 @@ extern void *external_allocated_reference_data(void);
 extern void *ldv_reference_malloc_unknown_size(void);
 extern void *ldv_reference_calloc_unknown_size(void);
 extern void *ldv_reference_zalloc_unknown_size(void);
-
 
 /**
  * ldv_xmalloc_unknown_size() - This function is intended just for EMG that likes to pass some size even

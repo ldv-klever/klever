@@ -15,8 +15,9 @@
  * limitations under the License.
  */
 
-#include <verifier/memory.h>
 #include <linux/fb.h>
+#include <linux/types.h>
+#include <verifier/memory.h>
 
 void ldv_after_alloc(void *res)
 {

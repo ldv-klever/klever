@@ -17,6 +17,7 @@
 
 before: file("$this")
 {
+#include <stddef.h>
 #include <verifier/memory.h>
 struct globals;
 static struct globals *ldv_globals;

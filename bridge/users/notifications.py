@@ -18,14 +18,16 @@
 import json
 import smtplib
 from email.mime.text import MIMEText
+
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _, activate
+
 from bridge.vars import JOB_ROLES, USER_ROLES
 from bridge.utils import logger
-from jobs.models import Job
-from users.models import User
 
+from users.models import User
+from jobs.models import Job
 
 SUBJECTS = {
     0: _("New job was created"),
@@ -77,7 +79,7 @@ class Notify(object):
             s = smtplib.SMTP(self.server)
         except Exception as e:
             # TODO: analize exception
-            # logger.exception("SMTP registration error: %s" % e)
+            logger.exception("SMTP registration error: %s" % e)
             return
         for user in User.objects.filter(~Q(notifications__settings='[]') & ~Q(notifications=None)):
             if user.email is not None and len(user.email) > 0:

@@ -21,8 +21,9 @@ from django.http import HttpResponseRedirect
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, UpdateView, DetailView
 
-from users.forms import BridgeAuthForm, RegisterForm, EditProfileForm, SchedulerUserForm
 from users.models import User, SchedulerUser
+
+from users.forms import BridgeAuthForm, RegisterForm, EditProfileForm, SchedulerUserForm
 from users.utils import UserActionsHistory
 
 

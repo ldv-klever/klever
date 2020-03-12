@@ -92,7 +92,7 @@ SourceProcessor.prototype.refresh = function() {
 
     let cov_data_url = this.container.find('#coverage_data_url');
     instance.cov_data_url = cov_data_url.length ? cov_data_url.val() : null;
-    if (!instance.cov_data_url) warn_notify(instance.errors.coverage_not_found);
+    if (!instance.cov_data_url) warn_notify(instance.errors.coverage_not_found, 3000);
 
     this.container.find('.SrcRefToLink').click(function () {
         if (instance.ref_click_callback) instance.ref_click_callback();

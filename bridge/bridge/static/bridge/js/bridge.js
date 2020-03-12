@@ -20,7 +20,7 @@ function getCookie(name) {
     if (document.cookie && document.cookie !== '') {
         let cookies = document.cookie.split(';');
         for (let i = 0; i < cookies.length; i++) {
-            let cookie = $.trim(cookies[i]);
+            let cookie = cookies[i].trim();
             if (cookie.substring(0, name.length + 1) === (name + '=')) {
                 cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
                 break;
@@ -148,6 +148,33 @@ window.encodeQueryData = function(data) {
     return Object.keys(data).map(function(key) {
         return [key, data[key]].map(encodeURIComponent).join("=");
     }).join("&");
+};
+
+window.api_send_json = function(url, method, data, on_success, on_error) {
+    $.ajax({
+        url: url, method: method,
+        data: JSON.stringify(data),
+        contentType: "application/json; charset=utf-8",
+        dataType: 'json',
+        crossDomain: false,
+        success: on_success,
+        error: on_error
+    });
+};
+
+window.api_upload_file = function(url, method, data, on_success) {
+    $('#dimmer_of_page').addClass('active');
+    $.ajax({
+        url: url,
+        method: method,
+        data: data,
+        dataType: 'json',
+        contentType: false,
+        processData: false,
+        mimeType: 'multipart/form-data',
+        xhr: function() { return $.ajaxSettings.xhr() },
+        success: on_success
+    });
 };
 
 window.collect_view_data = function(view_type) {
@@ -388,9 +415,7 @@ window.set_actions_for_views = function(view_type) {
 };
 
 window.update_colors = function (table) {
-    if (!table.hasClass('alternate-color')) {
-        return false;
-    }
+    if (!table.hasClass('alternate-color')) return false;
     let is_dark = false;
     table.find('tbody').first().find('tr:visible').each(function () {
         if (is_dark) {
@@ -402,6 +427,7 @@ window.update_colors = function (table) {
             is_dark = true;
         }
     });
+    return true;
 };
 
 window.getFileExtension = function(name) {
@@ -450,6 +476,40 @@ String.prototype.format = String.prototype.f = function(){
 
 };
 
+window.activate_warn_modal = function (warn_modal_id, activator, error_text, on_confirm) {
+    let modal_div = $('#' + warn_modal_id);
+    if (!modal_div.length) return false;
+
+    if (!error_text) error_text = 'Warning!';
+    modal_div.find('.warn-text').text(error_text);
+
+    let confirm_btn = modal_div.find('.modal-confirm'),
+        cancel_btn = modal_div.find('.modal-cancel');
+    modal_div.modal({closable: false, transition: 'fade in', autofocus: false});
+    cancel_btn.click(function () {
+        modal_div.modal('hide')
+    });
+    if (activator) {
+        $(activator).click(function () {
+            modal_div.modal('show')
+        });
+    }
+    confirm_btn.click(function () {
+        modal_div.modal('hide');
+        if (on_confirm) on_confirm();
+    });
+    return modal_div;
+};
+
+window.update_action_button = function(btn_obj, disable=false) {
+    if (disable) {
+        if (!btn_obj.hasClass('disabled')) btn_obj.addClass('disabled');
+    }
+    else {
+        if (btn_obj.hasClass('disabled')) btn_obj.removeClass('disabled');
+    }
+};
+
 $(document).ready(function () {
     $('.browse').popup({
         inline: true,
@@ -463,10 +523,12 @@ $(document).ready(function () {
     });
     $('.ui.checkbox').checkbox();
     $('.ui.accordion').accordion();
-    $('.note-popup').each(function () {
-        let position = $(this).data('position');
-        position ? $(this).popup({position: position}) : $(this).popup();
-    });
+    // $('.note-popup').each(function () {
+    //     let position = $(this).data('position');
+    //     position ? $(this).popup({position: position}) : $(this).popup();
+    // });
+    $('.note-popup').popup();
+
     $('.ui.range').each(function () {
         let range_preview = $('#' + $(this).data('preview')),
             range_input = $('#' + $(this).data('input')),
@@ -501,10 +563,8 @@ $(document).ready(function () {
         upload_jobs_modal_show = $(upload_jobs_modal.data('activator'));
     if (upload_jobs_modal_show.length && !upload_jobs_modal_show.hasClass('disabled')) {
         let upload_jobs_file_input = $('#upload_jobs_file');
-        upload_jobs_modal.modal({transition: 'vertical flip', onShow: function () {
-            let parent_identifier = $('#job_identifier');
-            if (parent_identifier.length) $('#upload_jobs_parent').val(parent_identifier.val());
-        }}).modal('attach events', upload_jobs_modal.data('activator'), 'show');
+        upload_jobs_modal.modal({transition: 'vertical flip'})
+            .modal('attach events', upload_jobs_modal.data('activator'), 'show');
 
         upload_jobs_modal.find('.modal-cancel').click(function () {
             upload_jobs_modal.modal('hide')
@@ -522,7 +582,6 @@ $(document).ready(function () {
                 data = new FormData();
             if (files.length <= 0) return err_notify($('#error__no_file_chosen').text());
             for (let i = 0; i < files.length; i++) data.append('file', files[i]);
-            data.append('parent', $('#upload_jobs_parent').val());
 
             upload_jobs_modal.modal('hide');
             $('#dimmer_of_page').addClass('active');

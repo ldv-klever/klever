@@ -37,13 +37,13 @@ JobForm.prototype.serialize = function() {
 JobForm.prototype.save = function (save_url, save_method, extra_data) {
     let instance = this, data = this.serialize();
     if (extra_data) $.each(extra_data, function (key, value) { data[key] = value });
+    $('#dimmer_of_page').addClass('active');
 
     $.ajax({
         url: save_url, type: save_method, data: JSON.stringify(data),
         processData: false, dataType: "json", contentType: "application/json",
         success: function (resp) {
-            $('#dimmer_of_page').removeClass('active');
-            resp.error ? err_notify(resp.error) : window.location.replace(resp['url']);
+            window.location.replace(resp['url']);
         },
         error: function (resp) {
             $('#dimmer_of_page').removeClass('active');

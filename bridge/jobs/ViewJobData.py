@@ -22,14 +22,14 @@ from django.urls import reverse
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 
-from bridge.vars import ASSOCIATION_TYPE, SafeVerdicts, UnsafeVerdicts, JOB_WEIGHT
+from bridge.vars import ASSOCIATION_TYPE, SafeVerdicts, UnsafeVerdicts, DECISION_WEIGHT
 
-from reports.models import ReportSafe, ReportUnsafe, ReportUnknown, ReportRoot, ReportComponent, Report, RootCache
+from reports.models import ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent, Report, DecisionCache
 from marks.models import MarkUnknownReport, SafeTag, UnsafeTag
+from caches.models import ReportSafeCache, ReportUnsafeCache
 
 from users.utils import HumanizedValue
 from jobs.utils import TITLES
-from caches.models import ReportSafeCache, ReportUnsafeCache
 
 
 def get_leaves_totals(**qs_kwargs):
@@ -95,7 +95,7 @@ class UnknownsInfo:
         # reverse('reports:unknowns', args=[self.report.id])
         self._base_url = base_url
 
-        # ReportUnknown.objects.filter(root=self.root)
+        # ReportUnknown.objects.filter(decision=self.decision)
         # ReportUnknown.objects.filter(leaves__report=self.report)
         self._queryset = queryset
 
@@ -188,9 +188,9 @@ class TagsInfo:
         # reverse('reports:safes', args=[self.report.id])
         self._base_url = base_url
 
-        # ReportSafeCache.objects.filter(report__root=self.root)
+        # ReportSafeCache.objects.filter(report__decision=self.decision)
         # ReportSafeCache.objects.filter(report__leaves__report=self.report)
-        # ReportUnsafeCache.objects.filter(report__root=self.root)
+        # ReportUnsafeCache.objects.filter(report__decision=self.decision)
         # ReportUnsafeCache.objects.filter(report__leaves__report=self.report)
         self._cache_qs = cache_qs
 
@@ -301,17 +301,15 @@ class AttrStatisticsInfo:
 
 
 class ViewJobData:
-    def __init__(self, user, view, job):
+    def __init__(self, user, view, decision):
         self.user = user
         self.view = view
-        self.job = job
-        self.root = ReportRoot.objects.filter(job=self.job).first()
-        self.report = ReportComponent.objects.filter(root__job=self.job, parent=None)\
-            .only('id', 'component').first()
+        self.decision = decision
+        self.report = ReportComponent.objects.filter(decision=decision, parent=None).only('id', 'component').first()
 
     @cached_property
     def core_link(self):
-        if self.report and self.job.weight == JOB_WEIGHT[0][0]:
+        if self.report and self.decision.weight == DECISION_WEIGHT[0][0]:
             return reverse('reports:component', args=[self.report.id])
         return None
 
@@ -336,16 +334,12 @@ class ViewJobData:
 
     @cached_property
     def totals(self):
-        if self.root:
-            return get_leaves_totals(root=self.root)
-        return {}
+        return get_leaves_totals(decision=self.decision)
 
     @cached_property
     def problems(self):
-        if not self.root:
-            return []
         queryset = MarkUnknownReport.objects\
-            .filter(report__root=self.root).exclude(type=ASSOCIATION_TYPE[2][0])\
+            .filter(report__decision=self.decision).exclude(type=ASSOCIATION_TYPE[2][0])\
             .values_list('report__component', 'problem').distinct().order_by('report__component', 'problem')
 
         cnt = 0
@@ -360,7 +354,7 @@ class ViewJobData:
             return []
         return TagsInfo(
             reverse('reports:safes', args=[self.report.id]),
-            ReportSafeCache.objects.filter(report__root=self.root),
+            ReportSafeCache.objects.filter(report__decision=self.decision),
             SafeTag, self.view['safe_tag']
         ).info
 
@@ -369,15 +363,13 @@ class ViewJobData:
             return []
         return TagsInfo(
             reverse('reports:unsafes', args=[self.report.id]),
-            ReportUnsafeCache.objects.filter(report__root=self.root),
+            ReportUnsafeCache.objects.filter(report__decision=self.decision),
             UnsafeTag, self.view['unsafe_tag']
         ).info
 
     def __resource_info(self):
-        if not self.root:
-            return []
         cache_data = {}
-        for cache_obj in RootCache.objects.filter(root=self.root):
+        for cache_obj in DecisionCache.objects.filter(decision=self.decision):
             cache_data[cache_obj.component] = {
                 'cpu_time': cache_obj.cpu_time,
                 'wall_time': cache_obj.wall_time,
@@ -392,7 +384,7 @@ class ViewJobData:
             return []
         return UnknownsInfo(
             self.view, reverse('reports:unknowns', args=[self.report.id]),
-            ReportUnknown.objects.filter(root=self.root)
+            ReportUnknown.objects.filter(decision=self.decision)
         ).info
 
     def __safes_info(self):
@@ -400,7 +392,7 @@ class ViewJobData:
             return []
         return VerdictsInfo(
             self.view, reverse('reports:safes', args=[self.report.pk]),
-            ReportSafe.objects.filter(root=self.root), SafeVerdicts()
+            ReportSafe.objects.filter(decision=self.decision), SafeVerdicts()
         ).info
 
     def __unsafes_info(self):
@@ -408,13 +400,13 @@ class ViewJobData:
             return []
         return VerdictsInfo(
             self.view, reverse('reports:unsafes', args=[self.report.id]),
-            ReportUnsafe.objects.filter(root=self.root), UnsafeVerdicts()
+            ReportUnsafe.objects.filter(decision=self.decision), UnsafeVerdicts()
         ).info
 
     def __attr_statistic(self):
         if not self.report:
             return None
-        return AttrStatisticsInfo(self.view, root=self.root).info
+        return AttrStatisticsInfo(self.view, decision=self.decision).info
 
 
 class ViewReportData:

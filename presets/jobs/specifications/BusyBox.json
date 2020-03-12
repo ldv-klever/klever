@@ -18,6 +18,7 @@
               "entry point": "ldv_main",
               "environment model file": "environment_model.c",
               "additional headers": [
+                "stddef.h",
                 "verifier/common.h",
                 "verifier/nondet.h",
                 "verifier/memory.h",
@@ -35,7 +36,6 @@
               "verifier/common.c": {},
               "verifier/gcc.c": {},
               "verifier/nondet.c": {},
-              "verifier/reference memory.c": {},
               "userspace/verifier/memory.c": {},
               "userspace/ldv.c": {},
               "userspace/string.c": {},

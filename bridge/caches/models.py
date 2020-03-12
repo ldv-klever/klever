@@ -23,7 +23,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from bridge.vars import SAFE_VERDICTS, UNSAFE_VERDICTS
 
-from jobs.models import Job
+from jobs.models import Decision
 from reports.models import ReportSafe, ReportUnsafe, ReportUnknown
 from marks.models import MarkSafe, MarkUnsafe, MarkUnknown
 
@@ -35,7 +35,7 @@ ASSOCIATION_CHANGE_KIND = (
 
 
 class ReportSafeCache(models.Model):
-    job = models.ForeignKey(Job, models.CASCADE, related_name='+')
+    decision = models.ForeignKey(Decision, models.CASCADE, related_name='+')
     report = models.OneToOneField(ReportSafe, models.CASCADE, related_name='cache')
     attrs = JSONField(default=dict)
     marks_total = models.PositiveIntegerField(default=0)
@@ -48,7 +48,7 @@ class ReportSafeCache(models.Model):
 
 
 class ReportUnsafeCache(models.Model):
-    job = models.ForeignKey(Job, models.CASCADE, related_name='+')
+    decision = models.ForeignKey(Decision, models.CASCADE, related_name='+')
     report = models.OneToOneField(ReportUnsafe, models.CASCADE, related_name='cache')
     attrs = JSONField(default=dict)
     marks_total = models.PositiveIntegerField(default=0)
@@ -61,7 +61,7 @@ class ReportUnsafeCache(models.Model):
 
 
 class ReportUnknownCache(models.Model):
-    job = models.ForeignKey(Job, models.CASCADE, related_name='+')
+    decision = models.ForeignKey(Decision, models.CASCADE, related_name='+')
     report = models.OneToOneField(ReportUnknown, models.CASCADE, related_name='cache')
     attrs = JSONField(default=dict)
     marks_total = models.PositiveIntegerField(default=0)
@@ -75,7 +75,7 @@ class ReportUnknownCache(models.Model):
 class SafeMarkAssociationChanges(models.Model):
     identifier = models.UUIDField(default=uuid.uuid4)
     mark = models.ForeignKey(MarkSafe, models.CASCADE)
-    job = models.ForeignKey(Job, models.CASCADE)
+    decision = models.ForeignKey(Decision, models.CASCADE)
     report = models.ForeignKey(ReportSafe, models.CASCADE)
     kind = models.CharField(max_length=1, choices=ASSOCIATION_CHANGE_KIND)
     verdict_old = models.CharField(max_length=1, choices=SAFE_VERDICTS)
@@ -90,7 +90,7 @@ class SafeMarkAssociationChanges(models.Model):
 class UnsafeMarkAssociationChanges(models.Model):
     identifier = models.UUIDField(default=uuid.uuid4)
     mark = models.ForeignKey(MarkUnsafe, models.CASCADE)
-    job = models.ForeignKey(Job, models.CASCADE)
+    decision = models.ForeignKey(Decision, models.CASCADE)
     report = models.ForeignKey(ReportUnsafe, models.CASCADE)
     kind = models.CharField(max_length=1, choices=ASSOCIATION_CHANGE_KIND)
     verdict_old = models.CharField(max_length=1, choices=UNSAFE_VERDICTS)
@@ -105,7 +105,7 @@ class UnsafeMarkAssociationChanges(models.Model):
 class UnknownMarkAssociationChanges(models.Model):
     identifier = models.UUIDField(default=uuid.uuid4)
     mark = models.ForeignKey(MarkUnknown, models.CASCADE)
-    job = models.ForeignKey(Job, models.CASCADE)
+    decision = models.ForeignKey(Decision, models.CASCADE)
     report = models.ForeignKey(ReportUnknown, models.CASCADE)
     kind = models.CharField(max_length=1, choices=ASSOCIATION_CHANGE_KIND)
     problems_old = JSONField(default=dict)

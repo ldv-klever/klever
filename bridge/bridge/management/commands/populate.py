@@ -18,6 +18,7 @@
 from django.core.management.base import BaseCommand, CommandError
 
 from bridge.utils import logger
+from jobs.preset import PopulatePresets
 from marks.population import (
     PopulateSafeMarks, PopulateUnsafeMarks, PopulateUnknownMarks, PopulateSafeTags, PopulateUnsafeTags
 )
@@ -38,8 +39,19 @@ class Command(BaseCommand):
         parser.add_argument('--safe-tags', dest='tags_s', action='store_true', help='Populate safe tags?')
         parser.add_argument('--unsafe-tags', dest='tags_u', action='store_true', help='Populate unsafe tags?')
         parser.add_argument('--schedulers', dest='schedulers', action='store_true', help='Populate schedulers?')
+        parser.add_argument('--preset-jobs', dest='presets', action='store_true', help='Populate preset jobs?')
 
     def handle(self, *args, **options):
+        # Preset jobs
+        if options['all'] or options['presets']:
+            self.stdout.write('Preset jobs population started')
+            try:
+                PopulatePresets().populate()
+            except Exception as e:
+                logger.exception(e)
+                raise CommandError('Preset jobs population failed: %s' % e)
+            self.stdout.write("Preset jobs were populated")
+
         # Safe tags
         if options['all'] or options['tags'] or options['tags_s']:
             self.stdout.write('Safe tags population started')

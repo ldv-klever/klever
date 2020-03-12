@@ -87,9 +87,6 @@ window.get_inline_mark_form = function(url, container) {
                 traditional: true,
                 success: function (resp) {
                     window.location.replace(resp['url']);
-                },
-                error: function () {
-                    $('#dimmer_of_page').removeClass('active');
                 }
             });
         });

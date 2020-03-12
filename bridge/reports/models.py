@@ -22,16 +22,18 @@ from django.conf import settings
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.postgres.fields import JSONField, ArrayField
+from django.core.files import File
 from django.db import models
 from django.db.models.signals import post_delete
-from django.core.files import File
 from django.utils.timezone import now
 from mptt.models import MPTTModel, TreeForeignKey
 
-from bridge.utils import CheckArchiveError, WithFilesMixin, remove_instance_files
 from bridge.vars import COMPARE_VERDICT, REPORT_ARCHIVE
+from bridge.utils import CheckArchiveError, WithFilesMixin, remove_instance_files
+
 from users.models import User
 from jobs.models import Job
+from service.models import Decision
 
 MAX_COMPONENT_LEN = 20
 ORIGINAL_SOURCES_DIR = 'OriginalSources'
@@ -53,15 +55,7 @@ def get_coverage_dir(instance, filename):
 
 
 def get_attr_data_path(instance, filename):
-    return os.path.join('Reports', 'AttrData', 'Root-%s' % str(instance.root_id), filename)
-
-
-class ReportRoot(models.Model):
-    user = models.ForeignKey(User, models.SET_NULL, null=True, related_name='roots')
-    job = models.OneToOneField(Job, models.CASCADE)
-
-    class Meta:
-        db_table = 'report_root'
+    return os.path.join('Reports', 'AttrData', 'Decision-%s' % str(instance.decision_id), filename)
 
 
 class AttrBase(models.Model):
@@ -73,7 +67,7 @@ class AttrBase(models.Model):
 
 
 class Report(MPTTModel):
-    root = models.ForeignKey(ReportRoot, models.CASCADE)
+    decision = models.ForeignKey(Decision, models.CASCADE)
     parent = TreeForeignKey('self', models.CASCADE, null=True, related_name='children')
     identifier = models.CharField(max_length=255, db_index=True)
     cpu_time = models.BigIntegerField(null=True)
@@ -82,12 +76,12 @@ class Report(MPTTModel):
 
     class Meta:
         db_table = 'report'
-        unique_together = [('root', 'identifier')]
-        index_together = [('root', 'identifier')]
+        unique_together = [('decision', 'identifier')]
+        index_together = [('decision', 'identifier')]
 
 
 class AttrFile(WithFilesMixin, models.Model):
-    root = models.ForeignKey(ReportRoot, models.CASCADE)
+    decision = models.ForeignKey(Decision, models.CASCADE)
     file = models.FileField(upload_to=get_attr_data_path)
 
     class Meta:
@@ -129,7 +123,7 @@ class OriginalSources(WithFilesMixin, models.Model):
 
 
 class AdditionalSources(WithFilesMixin, models.Model):
-    root = models.ForeignKey(ReportRoot, models.CASCADE)
+    decision = models.ForeignKey(Decision, models.CASCADE)
     archive = models.FileField(upload_to='Sources/%Y/%m')
 
     def add_archive(self, fp, save=False):
@@ -333,18 +327,18 @@ class ReportUnknown(WithFilesMixin, Report):
         db_table = 'report_unknown'
 
 
-class CompareJobsInfo(models.Model):
+class CompareDecisionsInfo(models.Model):
     user = models.ForeignKey(User, models.CASCADE)
-    root1 = models.ForeignKey(ReportRoot, models.CASCADE, related_name='+')
-    root2 = models.ForeignKey(ReportRoot, models.CASCADE, related_name='+')
+    decision1 = models.ForeignKey(Decision, models.CASCADE, related_name='+')
+    decision2 = models.ForeignKey(Decision, models.CASCADE, related_name='+')
     names = ArrayField(models.CharField(max_length=64))
 
     class Meta:
-        db_table = 'cache_report_jobs_compare_info'
+        db_table = 'cache_report_decisions_compare_info'
 
 
 class ComparisonObject(models.Model):
-    info = models.ForeignKey(CompareJobsInfo, models.CASCADE)
+    info = models.ForeignKey(CompareDecisionsInfo, models.CASCADE)
     values = ArrayField(models.CharField(max_length=255))
     verdict1 = models.CharField(max_length=1, choices=COMPARE_VERDICT)
     verdict2 = models.CharField(max_length=1, choices=COMPARE_VERDICT)
@@ -364,8 +358,8 @@ class ComparisonLink(models.Model):
         db_table = 'cache_report_comparison_link'
 
 
-class RootCache(models.Model):
-    root = models.ForeignKey(ReportRoot, models.CASCADE)
+class DecisionCache(models.Model):
+    decision = models.ForeignKey(Decision, models.CASCADE)
     component = models.CharField(max_length=MAX_COMPONENT_LEN)
     cpu_time = models.BigIntegerField(default=0)
     wall_time = models.BigIntegerField(default=0)
@@ -375,8 +369,8 @@ class RootCache(models.Model):
     finished = models.IntegerField(default=0)
 
     class Meta:
-        db_table = 'cache_report_root'
-        index_together = ['component', 'root']
+        db_table = 'cache_decision_data'
+        index_together = ['component', 'decision']
 
 
 post_delete.connect(remove_instance_files, sender=AttrFile)

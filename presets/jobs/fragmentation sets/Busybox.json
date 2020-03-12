@@ -10,6 +10,9 @@
       "reference": true,
       "exclude from all fragments": [
         "libbb/getopt32.c",
+        "libbb/appletlib.c",
+        "libbb/verror_msg.c",
+        "libbb/perror_msg.c",
         "libbb/xfuncs_printf.c"
       ],
       "add to all fragments": [
