@@ -1,0 +1,23 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "test:environment model specifications"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/pci_driver_v.2/pci_register_driver.ko"
+    },
+    {
+      "is_compare": true,
+      "name": "Project:Version",
+      "value": "v4.15.18"
+    }
+  ],
+  "description": "",
+  "is_modifiable": true,
+  "tags": [],
+  "verdict": "0"
+}

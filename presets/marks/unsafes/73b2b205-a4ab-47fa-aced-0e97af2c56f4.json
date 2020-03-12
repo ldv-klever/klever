@@ -1,0 +1,69 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "test:environment model specifications"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/ethtool_ops_v.3/ethtool_ops_invoke.ko"
+    },
+    {
+      "is_compare": true,
+      "name": "Project:Version",
+      "value": "v4.15.18"
+    }
+  ],
+  "description": "",
+  "error_trace": [
+    [
+      [
+        {
+          "Entry point 'main'": [
+            {
+              "LDV model 'initialize'": []
+            }
+          ]
+        }
+      ]
+    ],
+    [
+      [
+        {
+          "EMG wrapper": [
+            {
+              "LDV model 'init'": [
+                {
+                  "LDV model 'invoke_test'": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    ],
+    [
+      [
+        {
+          "LDV model 'get_fecparam'": [
+            {
+              "LDV model 'invoke_reached'": [
+                {
+                  "LDV model 'assert'": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": true,
+  "status": null,
+  "tags": [],
+  "threshold": 0,
+  "verdict": "2"
+}

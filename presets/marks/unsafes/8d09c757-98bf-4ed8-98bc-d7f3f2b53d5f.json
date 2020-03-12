@@ -1,0 +1,74 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "test:environment model specifications with function pointer analysis"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/timer_v.3/setup_timer_invoke.ko"
+    },
+    {
+      "is_compare": true,
+      "name": "Project:Version",
+      "value": "v4.17.19"
+    }
+  ],
+  "description": "",
+  "error_trace": [
+    [
+      [
+        {
+          "Entry point 'main'": [
+            {
+              "LDV model 'initialize'": []
+            }
+          ]
+        }
+      ]
+    ],
+    [
+      [
+        {
+          "EMG wrapper": [
+            {
+              "LDV model 'init'": [
+                {
+                  "LDV model 'invoke_test'": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    ],
+    [
+      [
+        {
+          "LDV model 'switch_to_interrupt_context'": []
+        }
+      ],
+      [
+        {
+          "LDV model 'handler'": [
+            {
+              "LDV model 'invoke_reached'": [
+                {
+                  "LDV model 'assert'": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": true,
+  "status": null,
+  "tags": [],
+  "threshold": 0,
+  "verdict": "2"
+}
