@@ -170,12 +170,12 @@ class ComparisonTableData:
                 .values_list('verdict1', 'verdict2', 'number'):
             numbers[(v1, v2)] = num
 
-        head_row = [{'class': 'job-th-0', 'value': ''}] + \
-                   [{'class': 'job-th-2', 'value': v[1]} for v in COMPARE_VERDICT]
+        head_row = [{'class': 'decision-th-0', 'value': ''}] + \
+                   [{'class': 'decision-th-2', 'value': v[1]} for v in COMPARE_VERDICT]
         table_data = [head_row]
 
         for v1 in COMPARE_VERDICT:
-            row_data = [{'class': 'job-th-1 right aligned', 'value': v1[1]}]
+            row_data = [{'class': 'decision-th-1 right aligned', 'value': v1[1]}]
             for v2 in COMPARE_VERDICT:
                 verdict_tuple = (v1[0], v2[0])
                 row_data.append({
