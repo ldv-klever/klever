@@ -422,60 +422,6 @@ class CompareFileSet:
             })
 
 
-class CompareJobVersions:
-    def __init__(self, v1, v2):
-        self.v1 = v1
-        self.v2 = v2
-        self.files_map = {}
-        self.roles = self.__user_roles()
-        self.paths, self.files = self.__compare_files()
-
-    def __user_roles(self):
-        set1 = set(uid for uid, in UserRole.objects.filter(job_version=self.v1).values_list('user_id'))
-        set2 = set(uid for uid, in UserRole.objects.filter(job_version=self.v2).values_list('user_id'))
-        if set1 != set2:
-            return [
-                UserRole.objects.filter(job_version=self.v1).order_by('user__last_name').select_related('user'),
-                UserRole.objects.filter(job_version=self.v2).order_by('user__last_name').select_related('user')
-            ]
-        return None
-
-    def __get_files(self, version):
-        files = {}
-        for f in FileSystem.objects.filter(job_version=version).select_related('file'):
-            files[f.name] = {'hashsum': f.file.hash_sum, 'name': os.path.basename(f.name)}
-        return files
-
-    def __compare_files(self):
-        files1 = self.__get_files(self.v1)
-        files2 = self.__get_files(self.v2)
-        changed_files = []
-        changed_paths = []
-        for fp1 in list(files1):
-            if fp1 in files2:
-                if files1[fp1]['hashsum'] != files2[fp1]['hashsum']:
-                    # The file was changed
-                    changed_files.append([is_readable(fp1), fp1, files1[fp1]['hashsum'], files2[fp1]['hashsum']])
-
-                # Files are not changed deleted here too
-                del files2[fp1]
-            else:
-                for fp2 in list(files2):
-                    if files2[fp2]['hashsum'] == files1[fp1]['hashsum']:
-                        # The file was moved
-                        changed_paths.append([files1[fp1]['hashsum'], files2[fp2]['hashsum'], fp1, fp2])
-                        del files2[fp2]
-                        break
-                else:
-                    # The file was deleted
-                    changed_paths.append([files1[fp1]['hashsum'], None, fp1, None])
-
-        # files2 contains now only created files (or moved+changed at the same time)
-        for fp2 in list(files2):
-            changed_paths.append([None, files2[fp2]['hashsum'], None, fp2])
-        return changed_paths, changed_files
-
-
 class JSTreeConverter:
     file_sep = '/'
 
