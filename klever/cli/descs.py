@@ -743,6 +743,399 @@ target_program_descs = [
     #         'linux/iio/triggered_buffer.h',
     #         'target/target_core_backend.h'
     #     ]
+    # },
+    ####################################################################################################################
+    # {
+    #     "Git repository version": "1251dab9e0a2c4~",
+    #     "build base": "build bases/new/1251dab9e0a2c4~",
+    #     "loadable kernel modules": [
+    #         "drivers/usb/serial/whiteheat.ko"
+    #     ],
+    #     "name": "Linux"
+    # },
+    # {
+    #     "Git repository version": "5dfdd24eb3d39d~",
+    #     "build base": "build bases/new/5dfdd24eb3d39d~",
+    #     "loadable kernel modules": [
+    #         "drivers/usb/serial/ti_usb_3410_5052.ko"
+    #     ],
+    #     "name": "Linux"
+    # },
+    # {
+    #     "Git repository version": "691a03cfe8ca48~",
+    #     "build base": "build bases/new/691a03cfe8ca48~",
+    #     "loadable kernel modules": [
+    #         "drivers/usb/serial/io_ti.h"
+    #     ],
+    #     "name": "Linux"
+    # },
+    # {
+    #     "Git repository version": "74d471b598444b~",
+    #     "build base": "build bases/new/74d471b598444b~",
+    #     "loadable kernel modules": [
+    #         "drivers/usb/serial/garmin_gps.ko"
+    #     ],
+    #     "name": "Linux"
+    # },
+    # {
+    #     "Git repository version": "299d7572e46f98~",
+    #     "build base": "build bases/new/299d7572e46f98~",
+    #     "loadable kernel modules": [
+    #         "drivers/usb/serial/usbserial.ko"
+    #     ],
+    #     "name": "Linux"
+    # },
+    # {
+    #     "Git repository version": "bd998c2e0df046~",
+    #     "build base": "build bases/new/bd998c2e0df046~",
+    #     "loadable kernel modules": [
+    #         "drivers/usb/serial/usbserial.ko"
+    #     ],
+    #     "name": "Linux"
+    # },
+    # {
+    #     "Git repository version": "d0559a2f294c9b~",
+    #     "build base": "build bases/new/d0559a2f294c9b~",
+    #     "loadable kernel modules": [
+    #         "drivers/usb/serial/ftdi_sio.ko"
+    #     ],
+    #     "name": "Linux"
+    # },
+    # {
+    #     "Git repository version": "db9240662a44e1~",
+    #     "build base": "build bases/new/db9240662a44e1~",
+    #     "loadable kernel modules": [
+    #         "drivers/usb/serial/ftdi_sio.ko"
+    #     ],
+    #     "name": "Linux"
+    # },
+    # {
+    #     "Git repository version": "8c76d7cd520ebf~",
+    #     "build base": "build bases/new/8c76d7cd520ebf~",
+    #     "loadable kernel modules": [
+    #         "drivers/usb/serial/safe_serial.ko"
+    #     ],
+    #     "name": "Linux"
+    # },
+    # {
+    #     "Git repository version": "654b404f2a222f~",
+    #     "build base": "build bases/new/654b404f2a222f~",
+    #     "loadable kernel modules": [
+    #         "drivers/usb/serial/io_ti.ko"
+    #     ],
+    #     "name": "Linux"
+    # },
+    # {
+    #     "Git repository version": "0b1d250afb8eb9~",
+    #     "build base": "build bases/new/0b1d250afb8eb9~",
+    #     "loadable kernel modules": [
+    #         "drivers/usb/serial/io_ti.ko"
+    #     ],
+    #     "name": "Linux"
+    # },
+    # {
+    #     "Git repository version": "5182c2cf2a9bfb~",
+    #     "build base": "build bases/new/5182c2cf2a9bfb~",
+    #     "loadable kernel modules": [
+    #         "drivers/usb/serial/mos7840.ko"
+    #     ],
+    #     "name": "Linux"
+    # },
+    # {
+    #     "Git repository version": "e4457d9798adb9~",
+    #     "build base": "build bases/new/e4457d9798adb9~",
+    #     "loadable kernel modules": [
+    #         "drivers/usb/serial/io_edgeport.ko"
+    #     ],
+    #     "name": "Linux"
+    # },
+    # {
+    #     "Git repository version": "4e2da44691cffb~",
+    #     "build base": "build bases/new/4e2da44691cffb~",
+    #     "loadable kernel modules": [
+    #         "drivers/usb/serial/ch341.ko"
+    #     ],
+    #     "name": "Linux"
+    # },
+    # {
+    #     "Git repository version": "ef079936d3cd09~",
+    #     "build base": "build bases/new/ef079936d3cd09~",
+    #     "loadable kernel modules": [
+    #         "drivers/usb/serial/ti_usb_3410_5052.ko"
+    #     ],
+    #     "name": "Linux"
+    # },
+    # {
+    #     "Git repository version": "cc0909248258f6~",
+    #     "build base": "build bases/new/cc0909248258f6~",
+    #     "loadable kernel modules": [
+    #         "drivers/usb/serial/spcp8x5.ko"
+    #     ],
+    #     "name": "Linux"
+    # },
+    # {
+    #     "Git repository version": "76ab439ed1b687~",
+    #     "build base": "build bases/new/76ab439ed1b687~",
+    #     "loadable kernel modules": [
+    #         "drivers/usb/serial/pl2303.ko"
+    #     ],
+    #     "name": "Linux"
+    # },
+    # {
+    #     "Git repository version": "5afeef2366db14~",
+    #     "build base": "build bases/new/5afeef2366db14~",
+    #     "loadable kernel modules": [
+    #         "drivers/usb/serial/oti6858.ko"
+    #     ],
+    #     "name": "Linux"
+    # },
+    # {
+    #     "Git repository version": "472d7e55d559aa~",
+    #     "build base": "build bases/new/472d7e55d559aa~",
+    #     "loadable kernel modules": [
+    #         "drivers/usb/serial/mos7840.ko"
+    #     ],
+    #     "name": "Linux"
+    # },
+    # {
+    #     "Git repository version": "b05aebc25fdc5a~",
+    #     "build base": "build bases/new/b05aebc25fdc5a~",
+    #     "loadable kernel modules": [
+    #         "drivers/usb/serial/mos7720.ko"
+    #     ],
+    #     "name": "Linux"
+    # },
+    # {
+    #     "Git repository version": "21ce57840243c7~",
+    #     "build base": "build bases/new/21ce57840243c7~",
+    #     "loadable kernel modules": [
+    #         "drivers/usb/serial/kobil_sct.ko"
+    #     ],
+    #     "name": "Linux"
+    # },
+    # {
+    #     "Git repository version": "90507d54f712d8~",
+    #     "build base": "build bases/new/90507d54f712d8~",
+    #     "loadable kernel modules": [
+    #         "drivers/usb/serial/iuu_phoenix.ko"
+    #     ],
+    #     "name": "Linux"
+    # },
+    # {
+    #     "Git repository version": "4f9785cc99feeb~",
+    #     "build base": "build bases/new/4f9785cc99feeb~",
+    #     "loadable kernel modules": [
+    #         "drivers/usb/serial/io_ti.ko"
+    #     ],
+    #     "name": "Linux"
+    # },
+    # {
+    #     "Git repository version": "a323fefc6f5079~",
+    #     "build base": "build bases/new/a323fefc6f5079~",
+    #     "loadable kernel modules": [
+    #         "drivers/usb/serial/io_ti.ko"
+    #     ],
+    #     "name": "Linux"
+    # },
+    # {
+    #     "Git repository version": "0dd408425eb21d~",
+    #     "build base": "build bases/new/0dd408425eb21d~",
+    #     "loadable kernel modules": [
+    #         "drivers/usb/serial/io_edgeport.ko"
+    #     ],
+    #     "name": "Linux"
+    # },
+    # {
+    #     "Git repository version": "c4ac4496e835b7~",
+    #     "build base": "build bases/new/c4ac4496e835b7~",
+    #     "loadable kernel modules": [
+    #         "drivers/usb/serial/garmin_gps.ko"
+    #     ],
+    #     "name": "Linux"
+    # },
+    # {
+    #     "Git repository version": "3dca01114dcecb~",
+    #     "build base": "build bases/new/3dca01114dcecb~",
+    #     "loadable kernel modules": [
+    #         "drivers/usb/serial/cyberjack.ko"
+    #     ],
+    #     "name": "Linux"
+    # },
+    # {
+    #     "Git repository version": "2fbd69c4e33360~",
+    #     "build base": "build bases/new/2fbd69c4e33360~",
+    #     "loadable kernel modules": [
+    #         "drivers/usb/serial/usb_wwan.ko"
+    #     ],
+    #     "name": "Linux"
+    # },
+    # {
+    #     "Git repository version": "126d26f66d9890~",
+    #     "build base": "build bases/new/126d26f66d9890~",
+    #     "loadable kernel modules": [
+    #         "drivers/usb/serial/usbserial.ko"
+    #     ],
+    #     "name": "Linux"
+    # },
+    # {
+    #     "Git repository version": "de24e0a108bc48~",
+    #     "build base": "build bases/new/de24e0a108bc48~",
+    #     "loadable kernel modules": [
+    #         "drivers/usb/serial/cp210x.ko"
+    #     ],
+    #     "name": "Linux"
+    # },
+    # {
+    #     "Git repository version": "647024a7df3601~",
+    #     "build base": "build bases/new/647024a7df3601~",
+    #     "loadable kernel modules": [
+    #         "drivers/usb/serial/usbserial.ko"
+    #     ],
+    #     "name": "Linux"
+    # },
+    # {
+    #     "Git repository version": "c8d62957d450cc~",
+    #     "build base": "build bases/new/c8d62957d450cc~",
+    #     "loadable kernel modules": [
+    #         "drivers/usb/serial/io_edgeport.ko"
+    #     ],
+    #     "name": "Linux"
+    # },
+    # {
+    #     "Git repository version": "c5c0c55598cefc~",
+    #     "build base": "build bases/new/c5c0c55598cefc~",
+    #     "loadable kernel modules": [
+    #         "drivers/usb/serial/io_edgeport.ko"
+    #     ],
+    #     "name": "Linux"
+    # },
+    # {
+    #     "Git repository version": "5a07975ad0a367~",
+    #     "build base": "build bases/new/5a07975ad0a367~",
+    #     "loadable kernel modules": [
+    #         "drivers/usb/serial/digi_acceleport.ko"
+    #     ],
+    #     "name": "Linux"
+    # },
+    # {
+    #     "Git repository version": "028635d6b5b42d~",
+    #     "build base": "build bases/new/028635d6b5b42d~",
+    #     "loadable kernel modules": [
+    #         "drivers/usb/serial/mxu11x0.ko"
+    #     ],
+    #     "name": "Linux"
+    # },
+    # {
+    #     "Git repository version": "cb3232138e3712~",
+    #     "build base": "build bases/new/cb3232138e3712~",
+    #     "loadable kernel modules": [
+    #         "drivers/usb/serial/visor.ko"
+    #     ],
+    #     "name": "Linux"
+    # },
+    # {
+    #     "Git repository version": "cac9b50b0d75a1~",
+    #     "build base": "build bases/new/cac9b50b0d75a1~",
+    #     "loadable kernel modules": [
+    #         "drivers/usb/serial/visor.ko"
+    #     ],
+    #     "name": "Linux"
+    # },
+    # {
+    #     "Git repository version": "e69f7a6724182e~",
+    #     "build base": "build bases/new/e69f7a6724182e~",
+    #     "loadable kernel modules": [
+    #         "drivers/usb/serial/mxu11x0.ko"
+    #     ],
+    #     "name": "Linux"
+    # },
+    # {
+    #     "Git repository version": "924eccc73db2f6~",
+    #     "build base": "build bases/new/924eccc73db2f6~",
+    #     "loadable kernel modules": [
+    #         "drivers/usb/serial/mxu11x0.ko"
+    #     ],
+    #     "name": "Linux"
+    # },
+    # {
+    #     "Git repository version": "cbb4be652d374f~",
+    #     "build base": "build bases/new/cbb4be652d374f~",
+    #     "loadable kernel modules": [
+    #         "drivers/usb/serial/whiteheat.ko"
+    #     ],
+    #     "name": "Linux"
+    # },
+    # {
+    #     "Git repository version": "db81de767e3757~",
+    #     "build base": "build bases/new/db81de767e3757~",
+    #     "loadable kernel modules": [
+    #         "drivers/usb/serial/mxuport.ko"
+    #     ],
+    #     "name": "Linux"
+    # },
+    # {
+    #     "Git repository version": "b5122236bba8d7~",
+    #     "build base": "build bases/new/b5122236bba8d7~",
+    #     "loadable kernel modules": [
+    #         "drivers/usb/serial/keyspan.ko"
+    #     ],
+    #     "name": "Linux"
+    # },
+    # {
+    #     "Git repository version": "5654699fb38512~",
+    #     "build base": "build bases/new/5654699fb38512~",
+    #     "loadable kernel modules": [
+    #         "drivers/usb/serial/usbserial.ko"
+    #     ],
+    #     "name": "Linux"
+    # },
+    # {
+    #     "Git repository version": "d979e9f9ecab04~",
+    #     "build base": "build bases/new/d979e9f9ecab04~",
+    #     "loadable kernel modules": [
+    #         "drivers/usb/serial/usbserial.ko"
+    #     ],
+    #     "name": "Linux"
+    # },
+    # {
+    #     "Git repository version": "aea1ae8760314e~",
+    #     "build base": "build bases/new/aea1ae8760314e~",
+    #     "loadable kernel modules": [
+    #         "drivers/usb/serial/ftdi_sio.ko"
+    #     ],
+    #     "name": "Linux"
+    # },
+    # {
+    #     "Git repository version": "d5afce82e131eb~",
+    #     "build base": "build bases/new/d5afce82e131eb~",
+    #     "loadable kernel modules": [
+    #         "drivers/usb/serial/keyspan.ko"
+    #     ],
+    #     "name": "Linux"
+    # },
+    # {
+    #     "Git repository version": "9096f1fbba916c~",
+    #     "build base": "build bases/new/9096f1fbba916c~",
+    #     "loadable kernel modules": [
+    #         "drivers/usb/serial/usb_wwan.ko"
+    #     ],
+    #     "name": "Linux"
+    # },
+    # {
+    #     "Git repository version": "8452727de70f6a~",
+    #     "build base": "build bases/new/8452727de70f6a~",
+    #     "loadable kernel modules": [
+    #         "drivers/usb/serial/sierra.ko"
+    #     ],
+    #     "name": "Linux"
+    # }
+    # {
+    #     "Git repository version": "bd73bd8831696f~",
+    #     "build base": "build bases/new/bd73bd8831696f~",
+    #     "loadable kernel modules": [
+    #         "drivers/usb/serial/usb_wwan.ko"
+    #     ],
+    #     "name": "Linux"
     # }
 ]
 
