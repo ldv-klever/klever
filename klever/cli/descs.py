@@ -229,7 +229,6 @@ target_program_descs = [
     #     ],
     #     'exclude extra headers': ['linux/poll.h'],
     #     # Linux 4.6.7 can be built with new versions of GCC.
-    #     'extra Clade options': {}
     # },
     # {
     #     'build base': 'build bases/testing/a8ec86',
@@ -268,7 +267,6 @@ target_program_descs = [
     #     ],
     #     'exclude extra headers': ['linux/poll.h'],
     #     # Linux 4.15 can be built with new versions of GCC.
-    #     'extra Clade options': {}
     # },
     # {
     #     'build base': 'build bases/testing/62134e',
@@ -307,7 +305,6 @@ target_program_descs = [
     #     ],
     #     'exclude extra headers': ['linux/poll.h'],
     #     # Linux 4.17 can be built with new versions of GCC.
-    #     'extra Clade options': {}
     # },
     # {
     #     'build base': 'build bases/testing/81b6e0',
@@ -346,7 +343,6 @@ target_program_descs = [
     #     ],
     #     'exclude extra headers': ['linux/poll.h'],
     #     # Linux 5.5 can be built with new versions of GCC.
-    #     'extra Clade options': {}
     # },
     # {
     #     'build base': 'build bases/testing/1de383',
@@ -992,7 +988,7 @@ target_program_descs = [
     #         "drivers/usb/serial/usbserial.ko"
     #     ],
     #     "name": "Linux"
-    # },
+    # }
     # {
     #     "Git repository version": "c8d62957d450cc~",
     #     "build base": "build bases/new/c8d62957d450cc~",
@@ -1007,7 +1003,8 @@ target_program_descs = [
     #     "loadable kernel modules": [
     #         "drivers/usb/serial/io_edgeport.ko"
     #     ],
-    #     "name": "Linux"
+    #     "name": "Linux",
+    #     'exclude extra headers': ['linux/poll.h']
     # },
     # {
     #     "Git repository version": "5a07975ad0a367~",
@@ -1016,7 +1013,8 @@ target_program_descs = [
     #         "drivers/usb/serial/digi_acceleport.ko"
     #     ],
     #     "name": "Linux"
-    # },
+    # }
+    ####### Build commits below with gcc-4.8 or any other old compiler
     # {
     #     "Git repository version": "028635d6b5b42d~",
     #     "build base": "build bases/new/028635d6b5b42d~",
@@ -1064,7 +1062,7 @@ target_program_descs = [
     #         "drivers/usb/serial/whiteheat.ko"
     #     ],
     #     "name": "Linux"
-    # },
+    # }
     # {
     #     "Git repository version": "db81de767e3757~",
     #     "build base": "build bases/new/db81de767e3757~",
@@ -1128,7 +1126,7 @@ target_program_descs = [
     #         "drivers/usb/serial/sierra.ko"
     #     ],
     #     "name": "Linux"
-    # }
+    # },
     # {
     #     "Git repository version": "bd73bd8831696f~",
     #     "build base": "build bases/new/bd73bd8831696f~",
