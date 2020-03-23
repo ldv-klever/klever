@@ -46,6 +46,7 @@
         "ext-modules/proto_v.2/proto_family_invoke.ko",
         "ext-modules/proto_v.2/proto_invoke.ko",
         "ext-modules/rtc_class_ops_v.1/rtc_class_ops_invoke.ko",
+        "ext-modules/rtc_class_ops_v.2/rtc_class_ops_invoke.ko",
         "ext-modules/scsi_device_handler_v.1/scsi_device_handler_invoke.ko",
         "ext-modules/scsi_host_template_v.1/scsi_host_alloc_invoke.ko",
         "ext-modules/scsi_host_template_v.1/scsi_host_template_invoke.ko",
