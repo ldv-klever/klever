@@ -9,11 +9,6 @@
       "is_compare": true,
       "name": "Program fragment",
       "value": "ext-modules/pci_driver_v.2/pci_driver_invoke.ko"
-    },
-    {
-      "is_compare": true,
-      "name": "Project:Version",
-      "value": "v4.17.19"
     }
   ],
   "description": "",

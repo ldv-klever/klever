@@ -9,11 +9,6 @@
       "is_compare": true,
       "name": "Program fragment",
       "value": "ext-modules/timer_v.3/setup_timer.ko"
-    },
-    {
-      "is_compare": true,
-      "name": "Project:Version",
-      "value": "v5.5.9"
     }
   ],
   "description": "",
