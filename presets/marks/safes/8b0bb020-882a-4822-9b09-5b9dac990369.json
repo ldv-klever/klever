@@ -8,7 +8,7 @@
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/timer_v.3/setup_timer.ko"
+      "value": "ext-modules/timer_v.3/del_timer_sync.ko"
     }
   ],
   "description": "",

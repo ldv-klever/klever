@@ -3,12 +3,12 @@
     {
       "is_compare": true,
       "name": "Requirements specification",
-      "value": "test:environment model specifications"
+      "value": "test:environment model specifications with function pointer analysis"
     },
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/scsi_host_template_v.2/scsi_host_template_invoke.ko"
+      "value": "ext-modules/timer_v.3/setup_timer_invoke.ko"
     }
   ],
   "description": "",
@@ -42,15 +42,16 @@
     [
       [
         {
-          "EMG wrapper": [
+          "LDV model 'switch_to_interrupt_context'": []
+        }
+      ],
+      [
+        {
+          "LDV model 'handler'": [
             {
-              "LDV model 'reset'": [
+              "LDV model 'invoke_reached'": [
                 {
-                  "LDV model 'invoke_reached'": [
-                    {
-                      "LDV model 'assert'": []
-                    }
-                  ]
+                  "LDV model 'assert'": []
                 }
               ]
             }

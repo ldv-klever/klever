@@ -3,12 +3,12 @@
     {
       "is_compare": true,
       "name": "Requirements specification",
-      "value": "test:environment model specifications with function pointer analysis"
+      "value": "test:environment model specifications"
     },
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/timer_v.3/setup_timer.ko"
+      "value": "ext-modules/pci_driver_v.2/pci_unregister_driver.ko"
     }
   ],
   "description": "",

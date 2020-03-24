@@ -46,6 +46,7 @@
         "ext-modules/proto_v.2/proto_family_invoke.ko",
         "ext-modules/proto_v.2/proto_invoke.ko",
         "ext-modules/rtc_class_ops_v.1/rtc_class_ops_invoke.ko",
+        "ext-modules/rtc_class_ops_v.2/rtc_class_ops_invoke.ko",
         "ext-modules/scsi_device_handler_v.1/scsi_device_handler_invoke.ko",
         "ext-modules/scsi_host_template_v.1/scsi_host_alloc_invoke.ko",
         "ext-modules/scsi_host_template_v.1/scsi_host_template_invoke.ko",
@@ -179,7 +180,63 @@
       ]
     },
     {
-      "build base": "testing/def9d",
+      "build base": "testing/a8ec86",
+      "specifications set": "4.15",
+      "targets": [
+        "ext-modules/block_device_operations_v.1",
+        "ext-modules/class_v.1",
+        "ext-modules/devm_threaded_irq_v.1",
+        "ext-modules/ethtool_ops_v.3",
+        "ext-modules/file_operations_v.1",
+        "ext-modules/hid_v.1",
+        "ext-modules/ieee80211_ops_v.1",
+        "ext-modules/iio_triggered_buffer_v.1",
+        "ext-modules/irq_v.2",
+        "ext-modules/net_device_ops_v.2",
+        "ext-modules/pci_driver_v.2",
+        "ext-modules/percpu_irq_v.1",
+        "ext-modules/platform_driver_v.1",
+        "ext-modules/proto_v.2",
+        "ext-modules/rtc_class_ops_v.2",
+        "ext-modules/scsi_host_template_v.2",
+        "ext-modules/seq_operations_v.1",
+        "ext-modules/serial_core_v.1",
+        "ext-modules/target_backend_v.1",
+        "ext-modules/tty_v.2",
+        "ext-modules/usb_driver_v.1",
+        "ext-modules/usb_serial_driver_v.2"
+      ]
+    },
+    {
+      "build base": "testing/62134e",
+      "specifications set": "4.17",
+      "targets": [
+        "ext-modules/block_device_operations_v.1",
+        "ext-modules/class_v.1",
+        "ext-modules/devm_threaded_irq_v.1",
+        "ext-modules/ethtool_ops_v.3",
+        "ext-modules/file_operations_v.1",
+        "ext-modules/hid_v.1",
+        "ext-modules/ieee80211_ops_v.1",
+        "ext-modules/iio_triggered_buffer_v.1",
+        "ext-modules/irq_v.2",
+        "ext-modules/net_device_ops_v.2",
+        "ext-modules/pci_driver_v.2",
+        "ext-modules/percpu_irq_v.1",
+        "ext-modules/platform_driver_v.1",
+        "ext-modules/proto_v.2",
+        "ext-modules/rtc_class_ops_v.2",
+        "ext-modules/scsi_host_template_v.2",
+        "ext-modules/seq_operations_v.1",
+        "ext-modules/serial_core_v.1",
+        "ext-modules/target_backend_v.1",
+        "ext-modules/tty_v.2",
+        "ext-modules/usb_driver_v.1",
+        "ext-modules/usb_serial_driver_v.2"
+      ]
+    },
+    {
+      "build base": "testing/81b6e0",
       "specifications set": "5.5",
       "targets": [
         "ext-modules/block_device_operations_v.1",
@@ -242,7 +299,31 @@
       "requirement specifications": ["test:environment model specifications with function pointer analysis"]
     },
     {
-      "build base": "testing/def9d",
+      "build base": "testing/a8ec86",
+      "specifications set": "4.15",
+      "targets": [
+        "ext-modules/timer_v.3",
+        "ext-modules/workqueue_v.1",
+        "ext-modules/urb_v.1",
+        "ext-modules/tasklet_v.2",
+        "ext-modules/kthread_v.1"
+      ],
+      "requirement specifications": ["test:environment model specifications with function pointer analysis"]
+    },
+    {
+      "build base": "testing/62134e",
+      "specifications set": "4.17",
+      "targets": [
+        "ext-modules/timer_v.3",
+        "ext-modules/workqueue_v.1",
+        "ext-modules/urb_v.1",
+        "ext-modules/tasklet_v.2",
+        "ext-modules/kthread_v.1"
+      ],
+      "requirement specifications": ["test:environment model specifications with function pointer analysis"]
+    },
+    {
+      "build base": "testing/81b6e0",
       "specifications set": "5.5",
       "targets": [
         "ext-modules/timer_v.3",
@@ -252,117 +333,6 @@
         "ext-modules/kthread_v.1"
       ],
       "requirement specifications": ["test:environment model specifications with function pointer analysis"]
-    }
-  ],
-  "To support": [
-    {
-      "build base": "testing/57d7f5",
-      "specifications set": "4.15",
-      "targets": [
-        "ext-modules/block_device_operations_v.1",
-        "ext-modules/class_v.1",
-        "ext-modules/devm_threaded_irq_v.1",
-        "ext-modules/ethtool_ops_v.2",
-        "ext-modules/file_operations_v.1",
-        "ext-modules/hid_v.1",
-        "ext-modules/ieee80211_ops_v.1",
-        "ext-modules/iio_triggered_buffer_v.1",
-        "ext-modules/irq_v.2",
-        "ext-modules/net_device_ops_v.2",
-        "ext-modules/pci_driver_v.1",
-        "ext-modules/percpu_irq_v.1",
-        "ext-modules/platform_driver_v.1",
-        "ext-modules/proto_v.2",
-        "ext-modules/rtc_class_ops_v.1",
-        "ext-modules/scsi_host_template_v.1",
-        "ext-modules/seq_operations_v.1",
-        "ext-modules/serial_core_v.1",
-        "ext-modules/target_backend_v.1",
-        "ext-modules/tty_v.2",
-        "ext-modules/usb_driver_v.1",
-        "ext-modules/usb_serial_driver_v.2"
-      ]
-    },
-    {
-      "build base": "testing/7a7e7e",
-      "specifications set": "4.17",
-      "targets": [
-        "ext-modules/block_device_operations_v.1",
-        "ext-modules/class_v.1",
-        "ext-modules/devm_threaded_irq_v.1",
-        "ext-modules/ethtool_ops_v.2",
-        "ext-modules/file_operations_v.1",
-        "ext-modules/hid_v.1",
-        "ext-modules/ieee80211_ops_v.1",
-        "ext-modules/iio_triggered_buffer_v.1",
-        "ext-modules/irq_v.2",
-        "ext-modules/net_device_ops_v.2",
-        "ext-modules/pci_driver_v.2",
-        "ext-modules/percpu_irq_v.1",
-        "ext-modules/platform_driver_v.1",
-        "ext-modules/proto_v.2",
-        "ext-modules/rtc_class_ops_v.1",
-        "ext-modules/scsi_host_template_v.2",
-        "ext-modules/seq_operations_v.1",
-        "ext-modules/serial_core_v.1",
-        "ext-modules/target_backend_v.1",
-        "ext-modules/tty_v.2",
-        "ext-modules/usb_driver_v.1",
-        "ext-modules/usb_serial_driver_v.2"
-      ]
-    },
-    {
-      "build base": "testing/57d7f5",
-      "specifications set": "4.15",
-      "targets": [
-        "ext-modules/timer_v.3",
-        "ext-modules/workqueue_v.1",
-        "ext-modules/urb_v.1",
-        "ext-modules/tasklet_v.2",
-        "ext-modules/kthread_v.1"
-      ],
-      "requirement specifications": ["test:environment model specifications with function pointer analysis"]
-    },
-    {
-      "build base": "testing/7a7e7e",
-      "specifications set": "4.17",
-      "targets": [
-        "ext-modules/timer_v.3",
-        "ext-modules/workqueue_v.1",
-        "ext-modules/urb_v.1",
-        "ext-modules/tasklet_v.2",
-        "ext-modules/kthread_v.1"
-      ],
-      "requirement specifications": ["test:environment model specifications with function pointer analysis"]
-    }
-  ],
-  "Default": [
-    {
-      "kernel subsystems": [
-        "ext-modules/atmdev_ops_v.1",
-        "ext-modules/dm_dirty_log_type_v.1",
-        "ext-modules/generic",
-        "ext-modules/md_personality_v.1",
-        "ext-modules/scsi_device_handler_v.1",
-        "ext-modules/serio_driver_v.1",
-        "ext-modules/target_type_v.1"
-      ],
-      "ideal verdicts": [
-        {"ideal verdict": "safe"},
-        {
-          "ideal verdict": "unsafe",
-          "program fragment": [
-            "ext-modules/generic/double_invoke.ko",
-            "ext-modules/atmdev_ops_v.1/atm_dev_invoke.ko",
-            "ext-modules/generic/default_invoke.ko",
-            "ext-modules/serio_driver_v.1/serio_driver_invoke.ko",
-            "ext-modules/generic/default_array_invoke.ko",
-            "ext-modules/md_personality_v.1/md_personality_invoke.ko",
-            "ext-modules/scsi_device_handler_v.1/scsi_device_handler_invoke.ko",
-            "ext-modules/target_type_v.1/target_type_invoke.ko"
-          ]
-        }
-      ]
     }
   ]
 }
