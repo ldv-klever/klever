@@ -237,7 +237,7 @@ class JobsTreeTable(ComplexHeaderMixin):
         jobs_ids = set(job.id for job in self._jobs_qs)
         job_user_roles = {}
         for ur in UserRole.objects.filter(user=self.view.user, job_id__in=jobs_ids).only('job_id', 'role'):
-            job_user_roles[ur.job_version.job_id] = ur.get_role_display()
+            job_user_roles[ur.job_id] = ur.get_role_display()
 
         # Get role for each job for the self._user
         job_roles_data = {}
