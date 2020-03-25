@@ -1,5 +1,5 @@
 {
-    "Loadable kernel modules sample #1": {
+    "c1529fbf-a7db-4507-829e-55f846044309": {
         "current verdicts": {
             "unknowns": {
                 "fd560131-1b49-42f2-aba3-f82ea3fa4431": 1,
@@ -23,7 +23,7 @@
             }
         }
     },
-    "Common models #1": {
+    "6ca7df9c-c480-46ce-8a51-2282b12cce35": {
         "current verdicts": {
             "safes": {
                 "1224c5d9-7660-4d8c-9d54-05bc8a81a0f6": 1,
@@ -128,7 +128,7 @@
             }
         }
     },
-    "Environment model specifications #1": {
+    "3d1158e6-cfec-4863-b4a6-366a6cb20478": {
         "ideal verdicts": {
             "safes": {
                 "2475af74-101f-4bde-9bb9-e4808d56c81d": 1,
@@ -355,7 +355,7 @@
             }
         }
     },
-    "Decomposition strategies #1": {
+    "b5599f0d-123c-43f7-aaaa-449b8b760f93": {
         "ideal verdicts": {
             "safes": {
                 "c46b8f5b-d269-432b-ad00-bc7b9323bdab": 1,
@@ -373,7 +373,7 @@
             }
         }
     },
-    "Requirement specifications #1": {
+    "eafba0a0-dd6a-46aa-9af9-47a03a7360d5": {
         "ideal verdicts": {
             "safes": {
                 "e39a3005-3362-420e-9653-58318a665d0a": 1,
@@ -574,7 +574,7 @@
             }
         }
     },
-    "Testing verifiers #1": {
+    "62439b5a-9039-4ef8-9bfe-fbf50a4a2112": {
         "current verdicts": {
             "safes": {
                 "7ba66f44-e21b-4303-88e7-f6d8c6ca8018": 1,
@@ -779,7 +779,7 @@
             }
         }
     },
-    "Validation #1": {
+    "88151938-64da-4809-8562-6cf736fbaec2": {
         "current verdicts": {
             "safes": {
                 "b0caadee-51ba-4ec6-9d17-057a81b8623f": 2,
