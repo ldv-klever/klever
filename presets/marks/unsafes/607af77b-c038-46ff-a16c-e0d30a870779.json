@@ -8,7 +8,7 @@
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/scsi_host_template_v.2/scsi_host_template_invoke.ko"
+      "value": "ext-modules/pci_driver_v.2/pci_driver_invoke.ko"
     }
   ],
   "description": "",
@@ -44,7 +44,7 @@
         {
           "EMG wrapper": [
             {
-              "LDV model 'reset'": [
+              "LDV model 'probe'": [
                 {
                   "LDV model 'invoke_reached'": [
                     {

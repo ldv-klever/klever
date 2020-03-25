@@ -2,11 +2,6 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Project:Version",
-      "value": "v3.14"
-    },
-    {
-      "is_compare": true,
       "name": "Requirements specification",
       "value": "test:environment model specifications"
     },

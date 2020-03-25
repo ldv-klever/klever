@@ -8,7 +8,7 @@
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/scsi_host_template_v.2/scsi_host_template_invoke.ko"
+      "value": "ext-modules/ethtool_ops_v.3/ethtool_ops_invoke.ko"
     }
   ],
   "description": "",
@@ -42,15 +42,11 @@
     [
       [
         {
-          "EMG wrapper": [
+          "LDV model 'get_fecparam'": [
             {
-              "LDV model 'reset'": [
+              "LDV model 'invoke_reached'": [
                 {
-                  "LDV model 'invoke_reached'": [
-                    {
-                      "LDV model 'assert'": []
-                    }
-                  ]
+                  "LDV model 'assert'": []
                 }
               ]
             }

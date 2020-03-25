@@ -100,11 +100,11 @@ def _import_code_analysis(logger, conf, clade, dependencies, collection):
     # todo: maybe this should be fixed in Clade
     # As we will not get definitions for library functions if there are in compiled parts we should add all scopes
     # that are given for all function called from outside of the code we analyze
-    # for scope in (s for s in collection.cfiles if s in cg):
-    #     for func in (f for f in cg[scope] if cg[scope][f].get('calls')):
-    #         for dep in cg[scope][func].get('calls'):
-    #             dependencies.setdefault(dep, sortedcontainers.SortedSet())
-    #             dependencies[dep].add(scope)
+    for scope in (s for s in collection.cfiles if s in cg):
+        for func in (f for f in cg[scope] if cg[scope][f].get('calls')):
+            for dep in cg[scope][func].get('calls'):
+                dependencies.setdefault(dep, sortedcontainers.SortedSet())
+                dependencies[dep].add(scope)
     fs = clade.get_functions_by_file(set(dependencies.keys()).union(collection.cfiles))
 
     # Add called functions
@@ -179,6 +179,8 @@ def _import_code_analysis(logger, conf, clade, dependencies, collection):
                         called_obj = collection.get_source_function(called_func, paths={obj.definition_file})
                         if called_obj:
                             called_obj.add_call(func, obj.definition_file)
+
+    logger.debug("The following functions were imported: {}".format(', '.join(collection.source_functions)))
 
     macros_file = conf.get('macros white list')
     if macros_file:
