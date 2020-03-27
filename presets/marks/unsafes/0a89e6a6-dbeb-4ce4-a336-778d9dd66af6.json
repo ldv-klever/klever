@@ -2,11 +2,6 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Project:Version",
-      "value": "v4.6.7"
-    },
-    {
-      "is_compare": true,
       "name": "Requirements specification",
       "value": "test:environment model specifications with function pointer analysis"
     },
