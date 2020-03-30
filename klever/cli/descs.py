@@ -761,7 +761,7 @@ target_program_descs = [
     #     "Git repository version": "691a03cfe8ca48~",
     #     "build base": "build bases/new/691a03cfe8ca48~",
     #     "loadable kernel modules": [
-    #         "drivers/usb/serial/io_ti.h"
+    #         "drivers/usb/serial/io_ti.ko"
     #     ],
     #     "name": "Linux"
     # },
@@ -988,7 +988,7 @@ target_program_descs = [
     #         "drivers/usb/serial/usbserial.ko"
     #     ],
     #     "name": "Linux"
-    # }
+    # },
     # {
     #     "Git repository version": "c8d62957d450cc~",
     #     "build base": "build bases/new/c8d62957d450cc~",
@@ -1013,7 +1013,7 @@ target_program_descs = [
     #         "drivers/usb/serial/digi_acceleport.ko"
     #     ],
     #     "name": "Linux"
-    # }
+    # },
     ####### Build commits below with gcc-4.8 or any other old compiler
     # {
     #     "Git repository version": "028635d6b5b42d~",
@@ -1062,7 +1062,7 @@ target_program_descs = [
     #         "drivers/usb/serial/whiteheat.ko"
     #     ],
     #     "name": "Linux"
-    # }
+    # },
     # {
     #     "Git repository version": "db81de767e3757~",
     #     "build base": "build bases/new/db81de767e3757~",
