@@ -48,9 +48,20 @@
           ]
         },
         {
-          "uuid": "88151938-64da-4809-8562-6cf736fbaec2",
           "name": "Validation",
-          "directory": "linux/validation"
+          "uuid": "a5c4de71-dac3-462d-8d73-3db9704c5d20",
+          "children": [
+            {
+              "uuid": "88151938-64da-4809-8562-6cf736fbaec2",
+              "name": "Stable Branch Bugs for 2014 Year",
+              "directory": "linux/validation"
+            },
+            {
+              "uuid": "30323f66-9dc9-4301-a646-b593e4cbb92f",
+              "name": "USB Serial Bugs from Linux 3.14+",
+              "directory": "linux/validation/usb serial bugs"
+            }
+          ]
         }
       ]
     },
