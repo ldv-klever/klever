@@ -749,7 +749,7 @@ target_program_descs = [
     # },
     # {
     #     "build base": "build bases/validation/1251dab9e0a2c4~",
-    #     "name": "Linux"
+    #     "name": "Linux",
     #     "Git repository version": "1251dab9e0a2c4~",
     #     "loadable kernel modules": ["drivers/usb/serial/whiteheat.ko"],
     # },
