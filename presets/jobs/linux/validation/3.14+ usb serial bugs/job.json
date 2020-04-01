@@ -10,10 +10,24 @@
       "data": {"bug identifier": "1568c58d11a7c8~"}
     },
     {
+      "build base": "build bases/validation/1568c58d11a7c8",
+      "targets": ["drivers/usb/serial/io_edgeport.ko"],
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "1568c58d11a7c8~"}
+    },
+    {
       "build base": "build bases/validation/1251dab9e0a2c4~",
       "targets": ["drivers/usb/serial/whiteheat.ko"],
       "requirement specifications": ["memory safety"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "data": {"bug identifier": "1251dab9e0a2c4~"}
+    },
+    {
+      "build base": "build bases/validation/1251dab9e0a2c4",
+      "targets": ["drivers/usb/serial/whiteheat.ko"],
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "1251dab9e0a2c4~"}
     },
     {
@@ -24,10 +38,24 @@
       "data": {"bug identifier": "5dfdd24eb3d39d~"}
     },
     {
+      "build base": "build bases/validation/5dfdd24eb3d39d",
+      "targets": ["drivers/usb/serial/ti_usb_3410_5052.ko"],
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "5dfdd24eb3d39d~"}
+    },
+    {
       "build base": "build bases/validation/691a03cfe8ca48~",
       "targets": ["drivers/usb/serial/io_ti.ko"],
       "requirement specifications": ["memory safety"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "data": {"bug identifier": "691a03cfe8ca48~"}
+    },
+    {
+      "build base": "build bases/validation/691a03cfe8ca48",
+      "targets": ["drivers/usb/serial/io_ti.ko"],
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "691a03cfe8ca48~"}
     },
     {
@@ -38,10 +66,24 @@
       "data": {"bug identifier": "74d471b598444b~"}
     },
     {
+      "build base": "build bases/validation/74d471b598444b",
+      "targets": ["drivers/usb/serial/garmin_gps.ko"],
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "74d471b598444b~"}
+    },
+    {
       "build base": "build bases/validation/299d7572e46f98~",
       "targets": ["drivers/usb/serial/usbserial.ko"],
       "requirement specifications": ["memory safety"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "data": {"bug identifier": "299d7572e46f98~"}
+    },
+    {
+      "build base": "build bases/validation/299d7572e46f98",
+      "targets": ["drivers/usb/serial/usbserial.ko"],
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "299d7572e46f98~"}
     },
     {
@@ -52,10 +94,24 @@
       "data": {"bug identifier": "bd998c2e0df046~"}
     },
     {
+      "build base": "build bases/validation/bd998c2e0df046",
+      "targets": ["drivers/usb/serial/usbserial.ko"],
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "bd998c2e0df046~"}
+    },
+    {
       "build base": "build bases/validation/d0559a2f294c9b~",
       "targets": ["drivers/usb/serial/ftdi_sio.ko"],
       "requirement specifications": ["memory safety"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "data": {"bug identifier": "d0559a2f294c9b~"}
+    },
+    {
+      "build base": "build bases/validation/d0559a2f294c9b",
+      "targets": ["drivers/usb/serial/ftdi_sio.ko"],
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "d0559a2f294c9b~"}
     },
     {
@@ -66,10 +122,24 @@
       "data": {"bug identifier": "db9240662a44e1~"}
     },
     {
+      "build base": "build bases/validation/db9240662a44e1",
+      "targets": ["drivers/usb/serial/ftdi_sio.ko"],
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "db9240662a44e1~"}
+    },
+    {
       "build base": "build bases/validation/8c76d7cd520ebf~",
       "targets": ["drivers/usb/serial/safe_serial.ko"],
       "requirement specifications": ["memory safety"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "data": {"bug identifier": "8c76d7cd520ebf~"}
+    },
+    {
+      "build base": "build bases/validation/8c76d7cd520ebf",
+      "targets": ["drivers/usb/serial/safe_serial.ko"],
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "8c76d7cd520ebf~"}
     },
     {
@@ -80,10 +150,24 @@
       "data": {"bug identifier": "654b404f2a222f~"}
     },
     {
+      "build base": "build bases/validation/654b404f2a222f",
+      "targets": ["drivers/usb/serial/io_ti.ko"],
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "654b404f2a222f~"}
+    },
+    {
       "build base": "build bases/validation/0b1d250afb8eb9~",
       "targets": ["drivers/usb/serial/io_ti.ko"],
       "requirement specifications": ["memory safety"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "data": {"bug identifier": "0b1d250afb8eb9~"}
+    },
+    {
+      "build base": "build bases/validation/0b1d250afb8eb9",
+      "targets": ["drivers/usb/serial/io_ti.ko"],
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "0b1d250afb8eb9~"}
     },
     {
@@ -94,10 +178,24 @@
       "data": {"bug identifier": "5182c2cf2a9bfb~"}
     },
     {
+      "build base": "build bases/validation/5182c2cf2a9bfb",
+      "targets": ["drivers/usb/serial/mos7840.ko"],
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "5182c2cf2a9bfb~"}
+    },
+    {
       "build base": "build bases/validation/e4457d9798adb9~",
       "targets": ["drivers/usb/serial/io_edgeport.ko"],
       "requirement specifications": ["memory safety"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "data": {"bug identifier": "e4457d9798adb9~"}
+    },
+    {
+      "build base": "build bases/validation/e4457d9798adb9",
+      "targets": ["drivers/usb/serial/io_edgeport.ko"],
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "e4457d9798adb9~"}
     },
     {
@@ -108,10 +206,24 @@
       "data": {"bug identifier": "4e2da44691cffb~"}
     },
     {
+      "build base": "build bases/validation/4e2da44691cffb",
+      "targets": ["drivers/usb/serial/ch341.ko"],
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "4e2da44691cffb~"}
+    },
+    {
       "build base": "build bases/validation/ef079936d3cd09~",
       "targets": ["drivers/usb/serial/ti_usb_3410_5052.ko"],
       "requirement specifications": ["memory safety"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "data": {"bug identifier": "ef079936d3cd09~"}
+    },
+    {
+      "build base": "build bases/validation/ef079936d3cd09",
+      "targets": ["drivers/usb/serial/ti_usb_3410_5052.ko"],
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "ef079936d3cd09~"}
     },
     {
@@ -122,10 +234,24 @@
       "data": {"bug identifier": "cc0909248258f6~"}
     },
     {
+      "build base": "build bases/validation/cc0909248258f6",
+      "targets": ["drivers/usb/serial/spcp8x5.ko"],
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "cc0909248258f6~"}
+    },
+    {
       "build base": "build bases/validation/76ab439ed1b687~",
       "targets": ["drivers/usb/serial/pl2303.ko"],
       "requirement specifications": ["memory safety"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "data": {"bug identifier": "76ab439ed1b687~"}
+    },
+    {
+      "build base": "build bases/validation/76ab439ed1b687",
+      "targets": ["drivers/usb/serial/pl2303.ko"],
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "76ab439ed1b687~"}
     },
     {
@@ -136,10 +262,24 @@
       "data": {"bug identifier": "5afeef2366db14~"}
     },
     {
+      "build base": "build bases/validation/5afeef2366db14",
+      "targets": ["drivers/usb/serial/oti6858.ko"],
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "5afeef2366db14~"}
+    },
+    {
       "build base": "build bases/validation/472d7e55d559aa~",
       "targets": ["drivers/usb/serial/mos7840.ko"],
       "requirement specifications": ["memory safety"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "data": {"bug identifier": "472d7e55d559aa~"}
+    },
+    {
+      "build base": "build bases/validation/472d7e55d559aa",
+      "targets": ["drivers/usb/serial/mos7840.ko"],
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "472d7e55d559aa~"}
     },
     {
@@ -150,10 +290,24 @@
       "data": {"bug identifier": "75dd211e773afc~"}
     },
     {
+      "build base": "build bases/validation/75dd211e773afc",
+      "targets": ["drivers/usb/serial/mos7720.ko"],
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "75dd211e773afc~"}
+    },
+    {
       "build base": "build bases/validation/b05aebc25fdc5a~",
       "targets": ["drivers/usb/serial/mos7720.ko"],
       "requirement specifications": ["memory safety"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "data": {"bug identifier": "b05aebc25fdc5a~"}
+    },
+    {
+      "build base": "build bases/validation/b05aebc25fdc5a",
+      "targets": ["drivers/usb/serial/mos7720.ko"],
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "b05aebc25fdc5a~"}
     },
     {
@@ -164,10 +318,24 @@
       "data": {"bug identifier": "21ce57840243c7~"}
     },
     {
+      "build base": "build bases/validation/21ce57840243c7",
+      "targets": ["drivers/usb/serial/kobil_sct.ko"],
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "21ce57840243c7~"}
+    },
+    {
       "build base": "build bases/validation/90507d54f712d8~",
       "targets": ["drivers/usb/serial/iuu_phoenix.ko"],
       "requirement specifications": ["memory safety"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "data": {"bug identifier": "90507d54f712d8~"}
+    },
+    {
+      "build base": "build bases/validation/90507d54f712d8",
+      "targets": ["drivers/usb/serial/iuu_phoenix.ko"],
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "90507d54f712d8~"}
     },
     {
@@ -178,10 +346,24 @@
       "data": {"bug identifier": "4f9785cc99feeb~"}
     },
     {
+      "build base": "build bases/validation/4f9785cc99feeb",
+      "targets": ["drivers/usb/serial/io_ti.ko"],
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "4f9785cc99feeb~"}
+    },
+    {
       "build base": "build bases/validation/a323fefc6f5079~",
       "targets": ["drivers/usb/serial/io_ti.ko"],
       "requirement specifications": ["memory safety"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "data": {"bug identifier": "a323fefc6f5079~"}
+    },
+    {
+      "build base": "build bases/validation/a323fefc6f5079",
+      "targets": ["drivers/usb/serial/io_ti.ko"],
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "a323fefc6f5079~"}
     },
     {
@@ -192,10 +374,24 @@
       "data": {"bug identifier": "0dd408425eb21d~"}
     },
     {
+      "build base": "build bases/validation/0dd408425eb21d",
+      "targets": ["drivers/usb/serial/io_edgeport.ko"],
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "0dd408425eb21d~"}
+    },
+    {
       "build base": "build bases/validation/c4ac4496e835b7~",
       "targets": ["drivers/usb/serial/garmin_gps.ko"],
       "requirement specifications": ["memory safety"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "data": {"bug identifier": "c4ac4496e835b7~"}
+    },
+    {
+      "build base": "build bases/validation/c4ac4496e835b7",
+      "targets": ["drivers/usb/serial/garmin_gps.ko"],
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "c4ac4496e835b7~"}
     },
     {
@@ -206,10 +402,24 @@
       "data": {"bug identifier": "3dca01114dcecb~"}
     },
     {
+      "build base": "build bases/validation/3dca01114dcecb",
+      "targets": ["drivers/usb/serial/cyberjack.ko"],
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "3dca01114dcecb~"}
+    },
+    {
       "build base": "build bases/validation/2fbd69c4e33360~",
       "targets": ["drivers/usb/serial/usb_wwan.ko"],
       "requirement specifications": ["memory safety"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "data": {"bug identifier": "2fbd69c4e33360~"}
+    },
+    {
+      "build base": "build bases/validation/2fbd69c4e33360",
+      "targets": ["drivers/usb/serial/usb_wwan.ko"],
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "2fbd69c4e33360~"}
     },
     {
@@ -220,10 +430,24 @@
       "data": {"bug identifier": "126d26f66d9890~"}
     },
     {
+      "build base": "build bases/validation/126d26f66d9890",
+      "targets": ["drivers/usb/serial/usbserial.ko"],
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "126d26f66d9890~"}
+    },
+    {
       "build base": "build bases/validation/de24e0a108bc48~",
       "targets": ["drivers/usb/serial/cp210x.ko"],
       "requirement specifications": ["memory safety"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "data": {"bug identifier": "de24e0a108bc48~"}
+    },
+    {
+      "build base": "build bases/validation/de24e0a108bc48",
+      "targets": ["drivers/usb/serial/cp210x.ko"],
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "de24e0a108bc48~"}
     },
     {
@@ -234,10 +458,24 @@
       "data": {"bug identifier": "647024a7df3601~"}
     },
     {
+      "build base": "build bases/validation/647024a7df3601",
+      "targets": ["drivers/usb/serial/usbserial.ko"],
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "647024a7df3601~"}
+    },
+    {
       "build base": "build bases/validation/9e452849840963~",
       "targets": ["drivers/usb/serial/mxuport.ko"],
       "requirement specifications": ["memory safety"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "data": {"bug identifier": "9e452849840963~"}
+    },
+    {
+      "build base": "build bases/validation/9e452849840963",
+      "targets": ["drivers/usb/serial/mxuport.ko"],
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "9e452849840963~"}
     },
     {
@@ -248,10 +486,24 @@
       "data": {"bug identifier": "c8d62957d450cc~"}
     },
     {
+      "build base": "build bases/validation/c8d62957d450cc",
+      "targets": ["drivers/usb/serial/io_edgeport.ko"],
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "c8d62957d450cc~"}
+    },
+    {
       "build base": "build bases/validation/c5c0c55598cefc~",
       "targets": ["drivers/usb/serial/io_edgeport.ko"],
       "requirement specifications": ["memory safety"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "data": {"bug identifier": "c5c0c55598cefc~"}
+    },
+    {
+      "build base": "build bases/validation/c5c0c55598cefc",
+      "targets": ["drivers/usb/serial/io_edgeport.ko"],
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "c5c0c55598cefc~"}
     },
     {
@@ -262,10 +514,24 @@
       "data": {"bug identifier": "5a07975ad0a367~"}
     },
     {
+      "build base": "build bases/validation/5a07975ad0a367",
+      "targets": ["drivers/usb/serial/digi_acceleport.ko"],
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "5a07975ad0a367~"}
+    },
+    {
       "build base": "build bases/validation/028635d6b5b42d~",
       "targets": ["drivers/usb/serial/mxu11x0.ko"],
       "requirement specifications": ["memory safety"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "data": {"bug identifier": "028635d6b5b42d~"}
+    },
+    {
+      "build base": "build bases/validation/028635d6b5b42d",
+      "targets": ["drivers/usb/serial/mxu11x0.ko"],
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "028635d6b5b42d~"}
     },
     {
@@ -276,10 +542,24 @@
       "data": {"bug identifier": "cb3232138e3712~"}
     },
     {
+      "build base": "build bases/validation/cb3232138e3712",
+      "targets": ["drivers/usb/serial/visor.ko"],
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "cb3232138e3712~"}
+    },
+    {
       "build base": "build bases/validation/cac9b50b0d75a1~",
       "targets": ["drivers/usb/serial/visor.ko"],
       "requirement specifications": ["memory safety"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "data": {"bug identifier": "cac9b50b0d75a1~"}
+    },
+    {
+      "build base": "build bases/validation/cac9b50b0d75a1",
+      "targets": ["drivers/usb/serial/visor.ko"],
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "cac9b50b0d75a1~"}
     },
     {
@@ -290,10 +570,24 @@
       "data": {"bug identifier": "e69f7a6724182e~"}
     },
     {
+      "build base": "build bases/validation/e69f7a6724182e",
+      "targets": ["drivers/usb/serial/mxu11x0.ko"],
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "e69f7a6724182e~"}
+    },
+    {
       "build base": "build bases/validation/924eccc73db2f6~",
       "targets": ["drivers/usb/serial/mxu11x0.ko"],
       "requirement specifications": ["memory safety"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "data": {"bug identifier": "924eccc73db2f6~"}
+    },
+    {
+      "build base": "build bases/validation/924eccc73db2f6",
+      "targets": ["drivers/usb/serial/mxu11x0.ko"],
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "924eccc73db2f6~"}
     },
     {
@@ -304,10 +598,24 @@
       "data": {"bug identifier": "cbb4be652d374f~"}
     },
     {
+      "build base": "build bases/validation/cbb4be652d374f",
+      "targets": ["drivers/usb/serial/whiteheat.ko"],
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "cbb4be652d374f~"}
+    },
+    {
       "build base": "build bases/validation/db81de767e3757~",
       "targets": ["drivers/usb/serial/mxuport.ko"],
       "requirement specifications": ["memory safety"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "data": {"bug identifier": "db81de767e3757~"}
+    },
+    {
+      "build base": "build bases/validation/db81de767e3757",
+      "targets": ["drivers/usb/serial/mxuport.ko"],
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "db81de767e3757~"}
     },
     {
@@ -318,10 +626,24 @@
       "data": {"bug identifier": "b5122236bba8d7~"}
     },
     {
+      "build base": "build bases/validation/b5122236bba8d7",
+      "targets": ["drivers/usb/serial/keyspan.ko"],
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "b5122236bba8d7~"}
+    },
+    {
       "build base": "build bases/validation/5654699fb38512~",
       "targets": ["drivers/usb/serial/usbserial.ko"],
       "requirement specifications": ["memory safety"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "data": {"bug identifier": "5654699fb38512~"}
+    },
+    {
+      "build base": "build bases/validation/5654699fb38512",
+      "targets": ["drivers/usb/serial/usbserial.ko"],
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "5654699fb38512~"}
     },
     {
@@ -332,10 +654,24 @@
       "data": {"bug identifier": "d979e9f9ecab04~"}
     },
     {
+      "build base": "build bases/validation/d979e9f9ecab04",
+      "targets": ["drivers/usb/serial/usbserial.ko"],
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "d979e9f9ecab04~"}
+    },
+    {
       "build base": "build bases/validation/aea1ae8760314e~",
       "targets": ["drivers/usb/serial/ftdi_sio.ko"],
       "requirement specifications": ["memory safety"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "data": {"bug identifier": "aea1ae8760314e~"}
+    },
+    {
+      "build base": "build bases/validation/aea1ae8760314e",
+      "targets": ["drivers/usb/serial/ftdi_sio.ko"],
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "aea1ae8760314e~"}
     },
     {
@@ -346,10 +682,24 @@
       "data": {"bug identifier": "d5afce82e131eb~"}
     },
     {
+      "build base": "build bases/validation/d5afce82e131eb",
+      "targets": ["drivers/usb/serial/keyspan.ko"],
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "d5afce82e131eb~"}
+    },
+    {
       "build base": "build bases/validation/9096f1fbba916c~",
       "targets": ["drivers/usb/serial/usb_wwan.ko"],
       "requirement specifications": ["memory safety"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "data": {"bug identifier": "9096f1fbba916c~"}
+    },
+    {
+      "build base": "build bases/validation/9096f1fbba916c",
+      "targets": ["drivers/usb/serial/usb_wwan.ko"],
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "9096f1fbba916c~"}
     },
     {
@@ -360,10 +710,24 @@
       "data": {"bug identifier": "d9e93c08d8d985~"}
     },
     {
+      "build base": "build bases/validation/d9e93c08d8d985",
+      "targets": ["drivers/usb/serial/usb_wwan.ko"],
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "d9e93c08d8d985~"}
+    },
+    {
       "build base": "build bases/validation/014333f77c0b71~",
       "targets": ["drivers/usb/serial/sierra.ko"],
       "requirement specifications": ["memory safety"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "data": {"bug identifier": "014333f77c0b71~"}
+    },
+    {
+      "build base": "build bases/validation/014333f77c0b71",
+      "targets": ["drivers/usb/serial/sierra.ko"],
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "014333f77c0b71~"}
     },
     {
@@ -374,6 +738,13 @@
       "data": {"bug identifier": "7fdd26a01eb7b6~"}
     },
     {
+      "build base": "build bases/validation/7fdd26a01eb7b6",
+      "targets": ["drivers/usb/serial/sierra.ko"],
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "7fdd26a01eb7b6~"}
+    },
+    {
       "build base": "build bases/validation/8452727de70f6a~",
       "targets": ["drivers/usb/serial/sierra.ko"],
       "requirement specifications": ["memory safety"],
@@ -381,10 +752,24 @@
       "data": {"bug identifier": "8452727de70f6a~"}
     },
     {
+      "build base": "build bases/validation/8452727de70f6a",
+      "targets": ["drivers/usb/serial/sierra.ko"],
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "8452727de70f6a~"}
+    },
+    {
       "build base": "build bases/validation/bd73bd8831696f~",
       "targets": ["drivers/usb/serial/usb_wwan.ko"],
       "requirement specifications": ["memory safety"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "data": {"bug identifier": "bd73bd8831696f~"}
+    },
+    {
+      "build base": "build bases/validation/bd73bd8831696f",
+      "targets": ["drivers/usb/serial/usb_wwan.ko"],
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "bd73bd8831696f~"}
     }
   ]
