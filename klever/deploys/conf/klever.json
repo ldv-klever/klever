@@ -6,8 +6,8 @@
       "executable path": "usr/local/bin"
     },
     "CIL": {
-      "version": "918782e",
-      "path": "https://forge.ispras.ru/attachments/download/7245/frama-c-cil-918782e.tar.xz",
+      "version": "88b363d",
+      "path": "https://forge.ispras.ru/attachments/download/7479/frama-c-cil-88b363d.tar.xz",
       "executable path": "."
     },
     "Consul": {
