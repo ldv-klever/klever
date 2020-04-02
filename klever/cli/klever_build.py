@@ -42,9 +42,8 @@ class CProgram:
         # Main working source tree where various build and auxiliary actions will be performed.
         self.work_src_tree = None
 
-        # TODO: make this adaptive.
         # The number of parallel jobs for make.
-        self.jobs = '8'
+        self.jobs = str(os.cpu_count())
 
         # C program attributes. We expect that architecture is always specified in target program description while
         # configuration and version can be either obtained during build somehow or remained unspecified.
