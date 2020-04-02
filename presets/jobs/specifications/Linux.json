@@ -739,7 +739,10 @@
           },
           {
             "name": "RSG",
-            "options": {"models": ["linux/memory safety/memory.c"]}
+            "options": {"models": [
+              "linux/drivers/usb/core/usb/message.c",
+              "linux/memory safety/memory.c"
+            ]}
           },
           {
             "name": "FVTP",
