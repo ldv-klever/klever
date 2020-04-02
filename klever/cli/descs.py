@@ -152,10 +152,12 @@ target_program_descs = [
     #         'target/target_core_base.h',
     #         'target/target_core_backend.h'
     #     ],
-    #      'extra Clade options': {'Info.extra_CIF_opts': [
-    #        '-D__GNUC__=4',
-    #        '-D__GNUC_MINOR__=6'
-    #    ]
+    #     'extra Clade options': {
+    #         'Info.extra_CIF_opts': [
+    #             '-D__GNUC__=4',
+    #             '-D__GNUC_MINOR__=6'
+    #         ]
+    #     }
     # },
     # {
     #     'build base': 'build bases/testing/fedc1e',
