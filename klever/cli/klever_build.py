@@ -133,13 +133,19 @@ class CProgram:
         if opts is None:
             opts = []
 
-        # TODO: switch to Clade Python API.
-        clade_bin = os.path.join(os.path.dirname(sys.executable), "clade")
-        return execute_cmd(self.logger,
-                           *(([clade_bin, '-ia', '--cmds',
-                               os.path.realpath(os.path.join(self.work_src_tree, 'cmds.txt'))]
-                              if intercept_build_cmds else []) + ['make', '-j', self.jobs] + opts + list(target)),
-                           cwd=self.work_src_tree, env=env, get_output=get_output)
+        cmd = ['make', '-j', self.jobs] + opts + list(target)
+
+        if intercept_build_cmds:
+            clade = Clade(cmds_file=os.path.realpath(os.path.join(self.work_src_tree, 'cmds.txt')))
+
+            r = clade.intercept(cmd, append=True, cwd=self.work_src_tree)
+
+            if r:
+                raise RuntimeError('Build failed')
+
+            return r
+        else:
+            return execute_cmd(self.logger, *(cmd), cwd=self.work_src_tree, env=env, get_output=get_output)
 
     def _make_canonical_work_src_tree(self):
         self.logger.info('Make canonical working source tree "{0}"'.format(self.work_src_tree))
