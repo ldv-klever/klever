@@ -83,6 +83,7 @@
             "common models": [
               "linux/arch/asm/atomic.c",
               "linux/drivers/base/dd.c",
+              "linux/drivers/base/firmware_loader.c",
               "linux/drivers/spi.c",
               "linux/err.c",
               "linux/kernel/panic.c",
