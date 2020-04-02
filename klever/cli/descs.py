@@ -20,7 +20,7 @@ preset_jobs_dir = os.path.join(os.path.dirname(__file__), os.path.pardir, os.pat
 common_target_program_descs = {
     'Linux': {
         'source code': 'linux-stable',
-        'Git repository version': 'v3.14',
+        'Git repository version': 'v3.14.79',
         'configuration': 'allmodconfig',
         'architecture': 'x86_64',
         'model CC options file': 'scripts/mod/empty.c',
@@ -61,11 +61,7 @@ common_target_program_descs = {
             'target/target_core_backend.h',
             'linux/spi/spi.h',
             'linux/fb.h'
-        ],
-        'extra Clade options': {'Info.extra_CIF_opts': [
-            '-D__GNUC__=4',
-            '-D__GNUC_MINOR__=6'
-        ]}
+        ]
     }
 }
 
@@ -155,7 +151,11 @@ target_program_descs = [
     #         'linux/iio/triggered_buffer.h',
     #         'target/target_core_base.h',
     #         'target/target_core_backend.h'
-    #     ]
+    #     ],
+    #      'extra Clade options': {'Info.extra_CIF_opts': [
+    #        '-D__GNUC__=4',
+    #        '-D__GNUC_MINOR__=6'
+    #    ]
     # },
     # {
     #     'build base': 'build bases/testing/fedc1e',
