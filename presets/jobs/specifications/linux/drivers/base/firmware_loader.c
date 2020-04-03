@@ -16,7 +16,7 @@
  */
 
 #include <linux/types.h>
-#include <include/linux/firmware.h>
+#include <linux/firmware.h>
 #include <verifier/common.h>
 #include <verifier/memory.h>
 #include <verifier/nondet.h>
