@@ -1,0 +1,24 @@
+[
+    {
+        "build base": "testing/6e6e1c",
+        "name": "Linux",
+        "external modules": "linux/testing/common models/tests",
+        "loadable kernel modules": [
+            "ext-modules/linux/drivers/base/dd",
+            "ext-modules/linux/drivers/spi",
+            "ext-modules/linux/err",
+            "ext-modules/linux/ldv/common",
+            "ext-modules/linux/mm/gfp",
+            "ext-modules/linux/mm/slab",
+            "ext-modules/verifier/common",
+            "ext-modules/verifier/gcc",
+            "ext-modules/verifier/map",
+            "ext-modules/verifier/memory",
+            "ext-modules/verifier/nondet",
+            "ext-modules/verifier/set/counter",
+            "ext-modules/verifier/set/flag",
+            "ext-modules/verifier/set/nonnegative-counter",
+            "ext-modules/verifier/thread"
+        ]
+    }
+]
