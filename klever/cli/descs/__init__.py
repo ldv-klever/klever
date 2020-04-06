@@ -66,12 +66,6 @@ common_target_program_descs = {
             'target/target_core_backend.h',
             'linux/spi/spi.h',
             'linux/fb.h'
-        ],
-        'extra Clade options': {
-            'Info.extra_CIF_opts': [
-                '-D__GNUC__=4',
-                '-D__GNUC_MINOR__=6'
-            ]
-        }
+        ]
     }
 }
