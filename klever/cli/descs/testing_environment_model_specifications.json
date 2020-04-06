@@ -113,8 +113,7 @@
             "ext-modules/usb_serial_driver_v.2",
             "ext-modules/workqueue_v.1"
         ],
-        "exclude extra headers": ["linux/poll.h"],
-        "comment": "Linux 4.6.7 can be built with new versions of GCC."
+        "exclude extra headers": ["linux/poll.h"]
     },
     {
         "build base": "testing/a8ec86",
@@ -150,8 +149,7 @@
             "ext-modules/usb_serial_driver_v.2",
             "ext-modules/workqueue_v.1"
         ],
-        "exclude extra headers": ["linux/poll.h"],
-        "comment": "Linux 4.15 can be built with new versions of GCC."
+        "exclude extra headers": ["linux/poll.h"]
     },
     {
         "build base": "testing/62134e",
@@ -187,8 +185,7 @@
             "ext-modules/usb_serial_driver_v.2",
             "ext-modules/workqueue_v.1"
         ],
-        "exclude extra headers": ["linux/poll.h"],
-        "comment": "Linux 4.17 can be built with new versions of GCC."
+        "exclude extra headers": ["linux/poll.h"]
     },
     {
         "build base": "testing/81b6e0",
@@ -224,7 +221,6 @@
             "ext-modules/usb_serial_driver_v.2",
             "ext-modules/workqueue_v.1"
         ],
-        "exclude extra headers": ["linux/poll.h"],
-        "comment": "Linux 5.5 can be built with new versions of GCC."
+        "exclude extra headers": ["linux/poll.h"]
     }
 ]
