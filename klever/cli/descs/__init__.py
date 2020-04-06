@@ -15,13 +15,6 @@
 
 import os
 
-preset_jobs_dir = os.path.normpath(
-    os.path.join(
-        os.path.dirname(__file__), os.path.pardir, os.path.pardir, os.path.pardir,
-        'bridge', 'jobs', 'presets'
-    )
-)
-
 common_target_program_descs = {
     'Linux': {
         'source code': 'linux-stable',
@@ -29,7 +22,7 @@ common_target_program_descs = {
         'configuration': 'allmodconfig',
         'architecture': 'x86_64',
         'model CC options file': 'scripts/mod/empty.c',
-        'external modules header files search directory': os.path.join(preset_jobs_dir, 'specifications'),
+        'external modules header files search directory': os.path.join(os.path.dirname(__file__), 'include'),
         'loadable kernel modules': ['all'],
         'allow local source trees use': True,
         'generate makefiles': True,
