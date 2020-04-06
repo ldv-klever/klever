@@ -31,7 +31,7 @@ import urllib.parse
 
 from clade import Clade
 from klever.cli.utils import execute_cmd, get_logger, make_relative_path
-from klever.cli.descs import preset_jobs_dir, common_target_program_descs
+from klever.cli.descs import common_target_program_descs
 
 
 class CProgram:
@@ -374,10 +374,9 @@ class Linux(CProgram):
         self.logger.info('Configure Linux kernel')
 
         # Linux kernel configuration can be specified by means of configuration file or configuration target.
-        if os.path.isfile(self.target_program_desc['configuration']):
-            # preset_jobs_dir is common directory for all configuration files
-            conf_file = os.path.join(preset_jobs_dir, self.target_program_desc['configuration'])
-
+        # all configuration files are located in the description directory
+        conf_file = os.path.join(self.target_program_desc['description directory'], self.target_program_desc['configuration'])
+        if os.path.isfile(conf_file):
             self.logger.info('Linux kernel configuration file is "{0}"'.format(conf_file))
 
             # Use configuration file SHA1 digest as Linux kernel configuration.

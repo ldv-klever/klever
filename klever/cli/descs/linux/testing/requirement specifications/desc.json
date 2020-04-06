@@ -45,7 +45,7 @@
     {
         "build base": "testing/1cae6b",
         "name": "Linux",
-        "configuration": "linux/testing/requirement specifications/configs/no-lockdep",
+        "configuration": "configs/no-lockdep",
         "external modules": "tests",
         "comment": "The only module needs specific kernel configuration for testing.",
         "loadable kernel modules": ["ext-modules/linux/kernel/sched/completion-no-lockdep"]
