@@ -2,7 +2,7 @@
     {
         "build base": "testing/5b3d50",
         "name": "Linux",
-        "external modules": "linux/testing/decomposition strategies/tests",
+        "external modules": "tests",
         "loadable kernel modules": [
             "ext-modules/kernel_library",
             "ext-modules/load_order",

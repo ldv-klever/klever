@@ -419,8 +419,8 @@ class Linux(CProgram):
         if not ext_modules:
             return None
 
-        # preset_jobs_dir is common directory for all external modules
-        ext_modules = os.path.join(preset_jobs_dir, ext_modules)
+        # all external modules are located in the description directory
+        ext_modules = os.path.join(self.target_program_desc['description directory'], ext_modules)
 
         tmp_dir = tempfile.mkdtemp()
         self.tmp_dirs.append(tmp_dir)
@@ -593,6 +593,7 @@ def klever_build():
 
         logger.info('Use {!r} description'.format(get_desc_name(desc_path)))
         for desc in descs:
+            desc['description directory'] = os.path.dirname(desc_path)
             desc['build base'] = os.path.abspath(os.path.join(args.output, desc['build base']))
             logger.info('Prepare build base "{}"'.format(desc['build base']))
 

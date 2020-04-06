@@ -2,7 +2,7 @@
     {
         "build base": "testing/6e6e1c",
         "name": "Linux",
-        "external modules": "linux/testing/common models/tests",
+        "external modules": "tests",
         "loadable kernel modules": [
             "ext-modules/linux/drivers/base/dd",
             "ext-modules/linux/drivers/spi",

@@ -2,7 +2,7 @@
     {
         "build base": "testing/606cdb",
         "name": "Linux",
-        "external modules": "testing verifiers/tests",
+        "external modules": "tests",
         "loadable kernel modules": [
             "ext-modules/arrays/one-element",
             "ext-modules/arrays/ten-elements",

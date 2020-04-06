@@ -2,7 +2,7 @@
     {
         "build base": "testing/1de383",
         "name": "Linux",
-        "external modules": "linux/testing/requirement specifications/tests",
+        "external modules": "tests",
         "loadable kernel modules": [
             "ext-modules/linux/alloc/irq",
             "ext-modules/linux/alloc/spinlock",
@@ -46,7 +46,7 @@
         "build base": "testing/1cae6b",
         "name": "Linux",
         "configuration": "linux/testing/requirement specifications/configs/no-lockdep",
-        "external modules": "linux/testing/requirement specifications/tests",
+        "external modules": "tests",
         "comment": "The only module needs specific kernel configuration for testing.",
         "loadable kernel modules": ["ext-modules/linux/kernel/sched/completion-no-lockdep"]
     }
