@@ -17,9 +17,9 @@
 
 import argparse
 import distutils.dir_util
-import glob
 import hashlib
 import json
+import pathlib
 import os
 import re
 import shutil
@@ -498,13 +498,20 @@ def get_descs_dir():
     return os.path.join(os.path.dirname(__file__), 'descs')
 
 
-def get_desc_paths(desc_name_pattern='*'):
+def get_desc_paths(desc_name_pattern=None):
     desc_paths = []
 
-    for desc_path in glob.glob(os.path.join(get_descs_dir(), '{}.json'.format(desc_name_pattern))):
-        desc_paths.append(desc_path)
+    for desc_path in pathlib.Path.rglob(pathlib.Path(get_descs_dir()), "desc.json"):
+        desc_paths.append(str(desc_path))
+
+    if desc_name_pattern:
+        desc_paths = [x for x in desc_paths if desc_name_pattern in os.path.relpath(x, get_descs_dir())]
 
     return desc_paths
+
+
+def get_desc_name(desc_path):
+    return os.path.dirname(os.path.relpath(desc_path, start=get_descs_dir()))
 
 
 def get_all_desc_names():
@@ -512,8 +519,7 @@ def get_all_desc_names():
     desc_names = []
 
     for desc_path in get_desc_paths():
-        file_name = os.path.basename(desc_path)
-        desc_names.append(os.path.splitext(file_name)[0])
+        desc_names.append(get_desc_name(desc_path))
 
     return desc_names
 
@@ -547,7 +553,7 @@ def parse_args(logger):
     parser.add_argument(
         dest='descriptions',
         nargs=argparse.REMAINDER,
-        help='list of descriptions to use. Glob patterns are also supported',
+        help='list of descriptions to use',
     )
 
     args = parser.parse_args(sys.argv[1:])
@@ -585,6 +591,7 @@ def klever_build():
         with open(desc_path, 'r', encoding='utf-8') as fp:
             descs = json.load(fp)
 
+        logger.info('Use {!r} description'.format(get_desc_name(desc_path)))
         for desc in descs:
             desc['build base'] = os.path.abspath(os.path.join(args.output, desc['build base']))
             logger.info('Prepare build base "{}"'.format(desc['build base']))
