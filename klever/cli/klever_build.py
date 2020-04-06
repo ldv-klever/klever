@@ -518,7 +518,7 @@ def get_all_desc_names():
     return desc_names
 
 
-def parse_args(logger, sys_args):
+def parse_args(logger):
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
@@ -550,7 +550,7 @@ def parse_args(logger, sys_args):
         help='list of descriptions to use. Glob patterns are also supported',
     )
 
-    args = parser.parse_args(sys_args)
+    args = parser.parse_args(sys.argv[1:])
 
     if args.list:
         logger.info('Available target program descriptions:\n{}'.format(
@@ -565,11 +565,9 @@ def parse_args(logger, sys_args):
     return args
 
 
-def klever_build(sys_args=sys.argv[1:]):
+def klever_build():
     logger = get_logger(__name__)
-
-    args = parse_args(logger, sys_args)
-
+    args = parse_args(logger)
     all_desc_paths = []
 
     for desc_name_pattern in args.descriptions:
@@ -603,4 +601,4 @@ def klever_build(sys_args=sys.argv[1:]):
 
 
 if __name__ == '__main__':
-    klever_build(sys.argv[1:])
+    klever_build()
