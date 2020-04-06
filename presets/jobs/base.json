@@ -44,6 +44,11 @@
               "uuid": "eafba0a0-dd6a-46aa-9af9-47a03a7360d5",
               "name": "Requirement specifications",
               "directory": "linux/testing/requirement specifications"
+            },
+            {
+              "uuid": "62439b5a-9039-4ef8-9bfe-fbf50a4a2112",
+              "name": "Testing verifiers",
+              "directory": "linux/testing/verifiers"
             }
           ]
         },
@@ -53,11 +58,6 @@
           "directory": "linux/validation"
         }
       ]
-    },
-    {
-      "uuid": "62439b5a-9039-4ef8-9bfe-fbf50a4a2112",
-      "name": "Testing verifiers",
-      "directory": "testing verifiers"
     }
   ],
   "common directories and files": [
