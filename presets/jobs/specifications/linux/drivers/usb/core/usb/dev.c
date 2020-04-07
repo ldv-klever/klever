@@ -17,7 +17,7 @@
 
 #include <ldv/linux/common.h>
 #include <ldv/verifier/common.h>
-#include <verifier/map.h>
+#include <ldv/verifier/map.h>
 
 struct usb_device;
 

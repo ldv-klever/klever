@@ -18,12 +18,12 @@
 #ifndef __LDV_TEST_H
 #define __LDV_TEST_H
 
-#include <verifier/common.h>
-#include <verifier/gcc.h>
-#include <verifier/map.h>
-#include <verifier/memory.h>
-#include <verifier/nondet.h>
-#include <verifier/thread.h>
+#include <ldv/verifier/common.h>
+#include <ldv/verifier/gcc.h>
+#include <ldv/verifier/map.h>
+#include <ldv/verifier/memory.h>
+#include <ldv/verifier/nondet.h>
+#include <ldv/verifier/thread.h>
 
 extern void ldv_expected_error(void);
 extern void ldv_unexpected_error(void);

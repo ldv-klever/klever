@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-#include <verifier/memory.h>
+#include <ldv/verifier/memory.h>
 
 struct ldv_list_element
 {

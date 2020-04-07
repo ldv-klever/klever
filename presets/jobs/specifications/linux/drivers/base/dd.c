@@ -19,7 +19,7 @@
 #include <linux/types.h>
 #include <ldv/linux/device.h>
 #include <ldv/verifier/memory.h>
-#include <verifier/memlist.h>
+#include <ldv/verifier/memlist.h>
 #include <ldv/verifier/nondet.h>
 
 struct device_private {
