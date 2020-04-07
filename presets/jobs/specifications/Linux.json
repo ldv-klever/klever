@@ -86,7 +86,7 @@
               "linux/drivers/spi.c",
               "linux/err.c",
               "linux/kernel/panic.c",
-              "linux/ldv/common.c",
+              "linux/common.c",
               "linux/mm/slab.c",
               "linux/verifier/memory.c",
               "verifier/common.c",
