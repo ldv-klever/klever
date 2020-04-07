@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-#include <verifier/nondet.h>
+#include <ldv/verifier/nondet.h>
 
 int pid;
 int ldv_fork(void);

@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-#include <linux/ldv/common.h>
-#include <verifier/common.h>
-#include <verifier/nondet.h>
+#include <ldv/linux/common.h>
+#include <ldv/verifier/common.h>
+#include <ldv/verifier/nondet.h>
 
 /* NOTE Read lock is not aquired at the beginning */
 int ldv_rlock = 1;

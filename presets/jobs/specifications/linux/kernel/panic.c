@@ -16,7 +16,7 @@
  */
 
 #include <linux/ldv/panic.h>
-#include <verifier/common.h>
+#include <ldv/verifier/common.h>
 
 void ldv_panic(void)
 {

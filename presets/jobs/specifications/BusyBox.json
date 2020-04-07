@@ -37,7 +37,7 @@
               "verifier/gcc.c": {},
               "verifier/nondet.c": {},
               "userspace/verifier/memory.c": {},
-              "userspace/ldv.c": {},
+              "userspace/common.c": {},
               "userspace/string.c": {},
               "userspace/stdlib.c": {},
               "userspace/stdio.c": {},

@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-#include <linux/ldv/err.h>
-#include <verifier/common.h>
+#include <ldv/linux/err.h>
+#include <ldv/verifier/common.h>
 
 long ldv_is_err(const void *ptr)
 {

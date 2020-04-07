@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-#include <linux/ldv/common.h>
-#include <verifier/common.h>
+#include <ldv/linux/common.h>
+#include <ldv/verifier/common.h>
 
 /*
  * Trivial model for interrupt context. Likely it is correct just in case of

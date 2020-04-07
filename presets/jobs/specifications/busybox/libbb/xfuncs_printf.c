@@ -16,7 +16,7 @@
  */
 
 #include <stddef.h>
-#include <verifier/memory.h>
+#include <ldv/verifier/memory.h>
 
 char* ldv_xasprintf(void);
 

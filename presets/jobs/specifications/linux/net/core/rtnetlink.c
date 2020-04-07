@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-#include <linux/ldv/common.h>
-#include <verifier/common.h>
-#include <verifier/nondet.h>
+#include <ldv/linux/common.h>
+#include <ldv/verifier/common.h>
+#include <ldv/verifier/nondet.h>
 
 void rtnl_lock(void);
 void rtnl_unlock(void);

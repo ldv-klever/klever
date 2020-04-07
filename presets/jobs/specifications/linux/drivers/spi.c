@@ -18,7 +18,7 @@
 #include <linux/types.h>
 #include <linux/spi/spi.h>
 #include <linux/ldv/device.h>
-#include <verifier/memory.h>
+#include <ldv/verifier/memory.h>
 
 struct spi_master *ldv_spi_alloc_master(struct device *host, unsigned size)
 {

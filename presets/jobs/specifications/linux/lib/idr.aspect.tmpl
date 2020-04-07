@@ -17,7 +17,7 @@
 
 before: file ("$this")
 {
-#include <verifier/nondet.h>
+#include <ldv/verifier/nondet.h>
 
 // for arg_sign in idr_arg_signs
 extern void ldv_idr_init{{ arg_sign.id }}(void);

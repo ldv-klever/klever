@@ -17,7 +17,7 @@
 
 #include <linux/types.h>
 #include <linux/ldv/slab.h>
-#include <verifier/memory.h>
+#include <ldv/verifier/memory.h>
 
 void *ldv_kmalloc(size_t size, gfp_t flags)
 {

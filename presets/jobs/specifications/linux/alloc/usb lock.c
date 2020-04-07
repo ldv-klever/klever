@@ -17,8 +17,8 @@
 
 #include <linux/gfp.h>
 #include <linux/ldv/slab.h>
-#include <verifier/common.h>
-#include <verifier/nondet.h>
+#include <ldv/verifier/common.h>
+#include <ldv/verifier/nondet.h>
 
 /* NOTE USB lock is not acquired at the beginning */
 int ldv_lock = 1;

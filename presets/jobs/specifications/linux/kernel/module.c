@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-#include <linux/ldv/common.h>
-#include <verifier/common.h>
-#include <verifier/nondet.h>
+#include <ldv/linux/common.h>
+#include <ldv/verifier/common.h>
+#include <ldv/verifier/nondet.h>
 
 /* Module reference counter that shouldn't go lower its initial state. We do not distinguish different modules. */
 /* NOTE Set module reference counter initial value at the beginning */

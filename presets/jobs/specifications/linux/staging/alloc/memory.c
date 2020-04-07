@@ -16,9 +16,9 @@
  */
 
 #include <linux/types.h>
-#include <linux/ldv/common.h>
-#include <verifier/common.h>
-#include <verifier/memory.h>
+#include <ldv/linux/common.h>
+#include <ldv/verifier/common.h>
+#include <ldv/verifier/memory.h>
 
 /* NOTE At the beginning nothing is allocated. */
 int ldv_alloc_count = 0;
