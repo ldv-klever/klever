@@ -17,8 +17,8 @@
 
 #include <linux/module.h>
 #include <linux/fs.h>
-#include <linux/emg/test_model.h>
-#include <verifier/nondet.h>
+#include <ldv/linux/emg/test_model.h>
+#include <ldv/verifier/nondet.h>
 
 static int ldv_probe(struct file_system_type *fs_type, int flags, const char *dev_name, void *data, struct vfsmount *mnt)
 {

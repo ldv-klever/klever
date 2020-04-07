@@ -16,7 +16,7 @@
  */
 
 #include <linux/module.h>
-#include <linux/ldv/gfp.h>
+#include <ldv/linux/gfp.h>
 #include <ldv/test.h>
 
 static int __init ldv_init(void)

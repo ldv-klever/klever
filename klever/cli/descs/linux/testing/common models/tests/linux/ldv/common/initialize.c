@@ -16,7 +16,7 @@
  */
 
 #include <linux/module.h>
-#include <linux/ldv/common.h>
+#include <ldv/linux/common.h>
 #include <ldv/test.h>
 
 void ldv_initialize(void)

@@ -17,8 +17,8 @@
 
 #include <linux/module.h>
 #include <linux/device.h>
-#include <linux/emg/test_model.h>
-#include <verifier/nondet.h>
+#include <ldv/linux/emg/test_model.h>
+#include <ldv/verifier/nondet.h>
 
 static int ldv_add_dev(struct device *dev, struct class_interface *intf)
 {

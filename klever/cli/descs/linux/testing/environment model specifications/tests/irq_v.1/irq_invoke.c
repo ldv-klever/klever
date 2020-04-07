@@ -18,8 +18,8 @@
 #include <linux/module.h>
 #include <linux/interrupt.h>
 #include <linux/irqreturn.h>
-#include <linux/emg/test_model.h>
-#include <verifier/nondet.h>
+#include <ldv/linux/emg/test_model.h>
+#include <ldv/verifier/nondet.h>
 
 unsigned int irq_id = 100;
 void * data;

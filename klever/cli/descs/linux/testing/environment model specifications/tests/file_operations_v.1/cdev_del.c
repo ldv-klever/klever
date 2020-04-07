@@ -18,8 +18,8 @@
 #include <linux/module.h>
 #include <linux/fs.h>
 #include <linux/cdev.h>
-#include <linux/emg/test_model.h>
-#include <verifier/nondet.h>
+#include <ldv/linux/emg/test_model.h>
+#include <ldv/verifier/nondet.h>
 
 static int ldv_open(struct inode *inode, struct file *filp)
 {

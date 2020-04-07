@@ -17,8 +17,8 @@
 
 #include <linux/module.h>
 #include <linux/serio.h>
-#include <linux/emg/test_model.h>
-#include <verifier/nondet.h>
+#include <ldv/linux/emg/test_model.h>
+#include <ldv/verifier/nondet.h>
 
 static int ldv_connect(struct serio *serio, struct serio_driver *drv)
 {

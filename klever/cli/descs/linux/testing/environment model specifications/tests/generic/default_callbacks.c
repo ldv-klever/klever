@@ -16,8 +16,8 @@
  */
 
 #include <linux/module.h>
-#include <verifier/nondet.h>
-#include <linux/emg/test_model.h>
+#include <ldv/verifier/nondet.h>
+#include <ldv/linux/emg/test_model.h>
 #include "ldvops.h"
 
 int flip_a_coin;

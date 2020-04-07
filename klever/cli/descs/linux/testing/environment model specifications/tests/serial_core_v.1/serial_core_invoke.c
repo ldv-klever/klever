@@ -17,8 +17,8 @@
 
 #include <linux/module.h>
 #include <linux/serial_core.h>
-#include <linux/emg/test_model.h>
-#include <verifier/nondet.h>
+#include <ldv/linux/emg/test_model.h>
+#include <ldv/verifier/nondet.h>
 
 struct uart_driver *driver;
 struct uart_port *port;

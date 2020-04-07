@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-#include <verifier/memory.h>
+#include <ldv/verifier/memory.h>
 
 /*
  * List elements consist of two fields:

@@ -17,8 +17,8 @@
 
 #include <linux/module.h>
 #include <linux/atmdev.h>
-#include <linux/emg/test_model.h>
-#include <verifier/nondet.h>
+#include <ldv/linux/emg/test_model.h>
+#include <ldv/verifier/nondet.h>
 
 struct atm_dev *ldv_dev;
 

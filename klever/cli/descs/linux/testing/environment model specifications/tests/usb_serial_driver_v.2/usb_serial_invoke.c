@@ -19,8 +19,8 @@
 #include <linux/tty.h>
 #include <linux/usb.h>
 #include <linux/usb/serial.h>
-#include <linux/emg/test_model.h>
-#include <verifier/nondet.h>
+#include <ldv/linux/emg/test_model.h>
+#include <ldv/verifier/nondet.h>
 
 const struct usb_device_id *id_table;
 

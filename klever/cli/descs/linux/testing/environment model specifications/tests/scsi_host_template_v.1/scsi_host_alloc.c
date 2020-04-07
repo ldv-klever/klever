@@ -18,8 +18,8 @@
 #include <linux/module.h>
 #include <linux/device.h>
 #include <scsi/scsi_host.h>
-#include <linux/emg/test_model.h>
-#include <verifier/nondet.h>
+#include <ldv/linux/emg/test_model.h>
+#include <ldv/verifier/nondet.h>
 
 int flip_a_coin;
 struct device *dev;

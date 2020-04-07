@@ -18,8 +18,8 @@
 #include <linux/module.h>
 #include <linux/blkdev.h>
 #include <linux/genhd.h>
-#include <linux/emg/test_model.h>
-#include <verifier/nondet.h>
+#include <ldv/linux/emg/test_model.h>
+#include <ldv/verifier/nondet.h>
 
 int ldv_open(struct block_device *bdev, fmode_t mode)
 {

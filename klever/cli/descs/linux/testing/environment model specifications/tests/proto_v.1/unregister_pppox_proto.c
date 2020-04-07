@@ -17,8 +17,8 @@
 
 #include <linux/module.h>
 #include <linux/if_pppox.h>
-#include <linux/emg/test_model.h>
-#include <verifier/nondet.h>
+#include <ldv/linux/emg/test_model.h>
+#include <ldv/verifier/nondet.h>
 
 int ldv_create(struct net *net, struct socket *sock)
 {

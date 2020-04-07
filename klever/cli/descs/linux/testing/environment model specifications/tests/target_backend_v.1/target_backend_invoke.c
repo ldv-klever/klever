@@ -18,8 +18,8 @@
 #include <linux/module.h>
 #include <target/target_core_base.h>
 #include <target/target_core_backend.h>
-#include <linux/emg/test_model.h>
-#include <verifier/nondet.h>
+#include <ldv/linux/emg/test_model.h>
+#include <ldv/verifier/nondet.h>
 
 struct se_device * ldv_alloc_device(struct se_hba *hba, const char *name)
 {

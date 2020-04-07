@@ -1,7 +1,7 @@
 #include <linux/module.h>
 #include <linux/interrupt.h>
-#include <linux/emg/test_model.h>
-#include <verifier/nondet.h>
+#include <ldv/linux/emg/test_model.h>
+#include <ldv/verifier/nondet.h>
 
 static void ldv_handler(unsigned long);
 DECLARE_TASKLET_DISABLED(tasklet, ldv_handler, 0);

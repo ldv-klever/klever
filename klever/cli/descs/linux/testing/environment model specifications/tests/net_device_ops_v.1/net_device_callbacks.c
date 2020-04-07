@@ -17,8 +17,8 @@
 
 #include <linux/module.h>
 #include <linux/netdevice.h>
-#include <linux/emg/test_model.h>
-#include <verifier/nondet.h>
+#include <ldv/linux/emg/test_model.h>
+#include <ldv/verifier/nondet.h>
 
 struct net_device dev;
 struct mutex *ldv_envgen;

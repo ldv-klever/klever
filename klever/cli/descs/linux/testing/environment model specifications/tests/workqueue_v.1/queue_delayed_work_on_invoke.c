@@ -17,8 +17,8 @@
 
 #include <linux/module.h>
 #include <linux/workqueue.h>
-#include <linux/emg/test_model.h>
-#include <verifier/nondet.h>
+#include <ldv/linux/emg/test_model.h>
+#include <ldv/verifier/nondet.h>
 
 static struct delayed_work work;
 static struct workqueue_struct *queue;

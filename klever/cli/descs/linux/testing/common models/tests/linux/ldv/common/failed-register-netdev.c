@@ -17,7 +17,7 @@
 
 #include <linux/module.h>
 #include <linux/netdevice.h>
-#include <linux/ldv/common.h>
+#include <ldv/linux/common.h>
 #include <ldv/test.h>
 
 static int __init ldv_init(void)

@@ -17,8 +17,8 @@
 
 #include <linux/module.h>
 #include <linux/pci.h>
-#include <linux/emg/test_model.h>
-#include <verifier/nondet.h>
+#include <ldv/linux/emg/test_model.h>
+#include <ldv/verifier/nondet.h>
 
 static int ldv_probe(struct pci_dev *dev, const struct pci_device_id *id)
 {

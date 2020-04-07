@@ -16,8 +16,8 @@
  */
 
 #include <linux/module.h>
-#include <verifier/nondet.h>
-#include <linux/emg/test_model.h>
+#include <ldv/verifier/nondet.h>
+#include <ldv/linux/emg/test_model.h>
 
 extern int wrapper_register(void);
 extern void wrapper_deregister(void);

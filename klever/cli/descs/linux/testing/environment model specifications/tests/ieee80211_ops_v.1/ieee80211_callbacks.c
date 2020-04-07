@@ -17,8 +17,8 @@
 
 #include <linux/module.h>
 #include <net/mac80211.h>
-#include <linux/emg/test_model.h>
-#include <verifier/nondet.h>
+#include <ldv/linux/emg/test_model.h>
+#include <ldv/verifier/nondet.h>
 
 struct ieee80211_hw *priv;
 int flip_a_coin;

@@ -18,8 +18,8 @@
 #include <linux/module.h>
 #include <linux/tty.h>
 #include <linux/tty_driver.h>
-#include <linux/emg/test_model.h>
-#include <verifier/nondet.h>
+#include <ldv/linux/emg/test_model.h>
+#include <ldv/verifier/nondet.h>
 
 int flip_a_coin;
 struct tty_driver *driver;
