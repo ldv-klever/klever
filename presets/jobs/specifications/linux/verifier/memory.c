@@ -18,7 +18,7 @@
 #include <linux/types.h>
 #include <ldv/linux/err.h>
 
-#include <verifier/reference memory.c>
+#include <../verifier/reference memory.c>
 
 void *ldv_malloc(size_t size)
 {

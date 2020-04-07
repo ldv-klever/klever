@@ -16,7 +16,7 @@
  */
 
 #include <stddef.h>
-#include <verifier/reference memory.c>
+#include <../verifier/reference memory.c>
 
 void *ldv_malloc(size_t size)
 {
