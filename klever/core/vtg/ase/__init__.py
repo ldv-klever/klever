@@ -142,10 +142,9 @@ class ASE(klever.core.vtg.plugins.Plugin):
                                              ['--'] +
                                              klever.core.vtg.utils.prepare_cif_opts(cc['opts'], clade) +
                                              [
-                                                 # Besides header files specific for requirements will be
-                                                 # searched for.
-                                                 '-I' + os.path.realpath(os.path.dirname(
-                                                     self.conf['specifications base'])),
+                                                 # Like in Weaver.
+                                                 '-I' + os.path.join(os.path.dirname(self.conf['specifications base']),
+                                                                     'include'),
                                                  aspectator_search_dir
                                              ]),
                                        env,

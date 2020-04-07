@@ -230,7 +230,7 @@ class Weaver(klever.core.vtg.plugins.Plugin):
                     '--in', storage_path,
                     # Besides header files specific for requirements specifications will be searched for.
                     '--general-opts',
-                    '-I' + os.path.realpath(os.path.dirname(self.conf['specifications base'])),
+                    '-I' + os.path.join(os.path.dirname(self.conf['specifications base']), 'include'),
                     '--aspect-preprocessing-opts', ' '.join(self.conf['aspect preprocessing options'])
                     if 'aspect preprocessing options' in self.conf else '',
                     '--out', os.path.realpath(outfile),
@@ -263,7 +263,7 @@ class Weaver(klever.core.vtg.plugins.Plugin):
         clade_extra.intercept(
             [
                 'aspectator',
-                '-I' + os.path.realpath(os.path.dirname(self.conf['specifications base']))
+                '-I' + os.path.join(os.path.dirname(self.conf['specifications base']), 'include')
             ] + klever.core.vtg.utils.prepare_cif_opts(opts, clade, True) +
             [
                 aspectator_search_dir,
