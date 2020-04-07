@@ -18,8 +18,8 @@
 #include <linux/module.h>
 #include <linux/interrupt.h>
 #include <linux/slab.h>
-#include <verifier/common.h>
-#include <verifier/nondet.h>
+#include <ldv/verifier/common.h>
+#include <ldv/verifier/nondet.h>
 
 static irqreturn_t ldv_handler(int irq, void *dev_id)
 {

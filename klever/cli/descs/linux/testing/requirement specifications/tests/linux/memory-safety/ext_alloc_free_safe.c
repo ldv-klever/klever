@@ -17,7 +17,7 @@
 
 #include <linux/module.h>
 #include <linux/slab.h>
-#include <verifier/memory.h>
+#include <ldv/verifier/memory.h>
 
 static int __init ldv_init(void)
 {

@@ -18,8 +18,8 @@
 #include <linux/module.h>
 #include <linux/spinlock.h>
 #include <linux/slab.h>
-#include <verifier/common.h>
-#include <verifier/nondet.h>
+#include <ldv/verifier/common.h>
+#include <ldv/verifier/nondet.h>
 
 static DEFINE_SPINLOCK(ldv_lock);
 

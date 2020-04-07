@@ -18,7 +18,7 @@
 #include <linux/module.h>
 #include <linux/pci.h>
 #include <linux/usb.h>
-#include <verifier/common.h>
+#include <ldv/verifier/common.h>
 
 static int ldv_pci_probe(struct pci_dev *pdev, const struct pci_device_id *id)
 {

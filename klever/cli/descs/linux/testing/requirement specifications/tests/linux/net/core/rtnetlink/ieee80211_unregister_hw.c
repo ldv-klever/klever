@@ -18,8 +18,8 @@
 #include <linux/module.h>
 #include <linux/rtnetlink.h>
 #include <net/mac80211.h>
-#include <verifier/common.h>
-#include <verifier/nondet.h>
+#include <ldv/verifier/common.h>
+#include <ldv/verifier/nondet.h>
 
 static int __init ldv_init(void)
 {

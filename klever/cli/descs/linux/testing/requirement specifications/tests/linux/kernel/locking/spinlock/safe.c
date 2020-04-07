@@ -18,7 +18,7 @@
 #include <linux/module.h>
 #include <linux/spinlock.h>
 #include <linux/atomic.h>
-#include <verifier/nondet.h>
+#include <ldv/verifier/nondet.h>
 
 static DEFINE_SPINLOCK(ldv_lock1);
 static DEFINE_SPINLOCK(ldv_lock2);

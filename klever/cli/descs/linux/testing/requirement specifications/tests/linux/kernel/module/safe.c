@@ -16,7 +16,7 @@
  */
 
 #include <linux/module.h>
-#include <verifier/nondet.h>
+#include <ldv/verifier/nondet.h>
 
 static int __init ldv_init(void)
 {

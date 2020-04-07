@@ -17,7 +17,7 @@
 
 #include <linux/module.h>
 #include <linux/genhd.h>
-#include <verifier/nondet.h>
+#include <ldv/verifier/nondet.h>
 
 static int __init ldv_init(void)
 {

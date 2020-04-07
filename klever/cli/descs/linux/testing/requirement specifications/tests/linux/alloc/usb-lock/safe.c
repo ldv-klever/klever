@@ -19,7 +19,7 @@
 #include <linux/usb.h>
 #include <linux/gfp.h>
 #include "memory.h"
-#include <verifier/nondet.h>
+#include <ldv/verifier/nondet.h>
 
 
 static int __init ldv_init(void)

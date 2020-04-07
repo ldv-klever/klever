@@ -17,8 +17,8 @@
 
 #include <linux/module.h>
 #include <linux/mutex.h>
-#include <verifier/nondet.h>
-#include <verifier/thread.h>
+#include <ldv/verifier/nondet.h>
+#include <ldv/verifier/thread.h>
 
 static DEFINE_MUTEX(ldv_lock);
 static int _ldv_global;

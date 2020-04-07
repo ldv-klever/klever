@@ -18,8 +18,8 @@
 /* The main aim of this test is to check handling of variable links. */
 #include <linux/module.h>
 #include <linux/mutex.h>
-#include <verifier/nondet.h>
-#include <verifier/thread.h>
+#include <ldv/verifier/nondet.h>
+#include <ldv/verifier/thread.h>
 
 extern int *ldv_list_get_first(int *arg);
 

@@ -17,7 +17,7 @@
 
 #include <linux/module.h>
 #include <linux/sysfs.h>
-#include <verifier/nondet.h>
+#include <ldv/verifier/nondet.h>
 
 static struct attribute *attrs[] = {
 	NULL,

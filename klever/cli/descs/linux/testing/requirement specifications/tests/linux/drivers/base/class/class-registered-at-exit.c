@@ -17,7 +17,7 @@
 
 #include <linux/module.h>
 #include <linux/device.h>
-#include <verifier/common.h>
+#include <ldv/verifier/common.h>
 
 static int __init ldv_init(void)
 {

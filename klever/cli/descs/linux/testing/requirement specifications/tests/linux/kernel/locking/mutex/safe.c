@@ -19,7 +19,7 @@
 #include <linux/mutex.h>
 #include <linux/types.h>
 #include <linux/kref.h>
-#include <verifier/nondet.h>
+#include <ldv/verifier/nondet.h>
 
 static DEFINE_MUTEX(ldv_lock1);
 static DEFINE_MUTEX(ldv_lock2);

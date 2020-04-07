@@ -23,7 +23,7 @@
 #include <linux/dma-mapping.h>
 #include <linux/vmalloc.h>
 #include <linux/usb.h>
-#include <verifier/nondet.h>
+#include <ldv/verifier/nondet.h>
 
 static inline void ldv_alloc(gfp_t flags)
 {

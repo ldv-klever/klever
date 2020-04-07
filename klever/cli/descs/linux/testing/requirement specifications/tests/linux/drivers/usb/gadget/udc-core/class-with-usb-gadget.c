@@ -19,7 +19,7 @@
 #include <linux/device.h>
 #include <linux/fs.h>
 #include <linux/usb/gadget.h>
-#include <verifier/common.h>
+#include <ldv/verifier/common.h>
 
 static int __init ldv_init(void)
 {

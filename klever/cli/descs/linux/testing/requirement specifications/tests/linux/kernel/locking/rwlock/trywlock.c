@@ -17,7 +17,7 @@
 
 #include <linux/module.h>
 #include <linux/spinlock.h>
-#include <verifier/common.h>
+#include <ldv/verifier/common.h>
 
 static DEFINE_RWLOCK(ldv_lock);
 

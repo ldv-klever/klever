@@ -17,8 +17,8 @@
 
 /* Test should check, how the value analysis handles loops. */
 #include <linux/module.h>
-#include <verifier/nondet.h>
-#include <verifier/thread.h>
+#include <ldv/verifier/nondet.h>
+#include <ldv/verifier/thread.h>
 
 static DEFINE_MUTEX(ldv_lock);
 static int _ldv_global_var;

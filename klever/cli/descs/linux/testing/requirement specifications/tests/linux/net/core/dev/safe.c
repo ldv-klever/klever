@@ -18,7 +18,7 @@
 #include <linux/module.h>
 #include <linux/usb.h>
 #include <linux/netdevice.h>
-#include <verifier/nondet.h>
+#include <ldv/verifier/nondet.h>
 
 static int ldv_usb_probe(struct usb_interface *intf,
                          const struct usb_device_id *id)

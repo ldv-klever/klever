@@ -17,7 +17,7 @@
 
 #include <linux/module.h>
 #include <linux/srcu.h>
-#include <verifier/nondet.h>
+#include <ldv/verifier/nondet.h>
 
 DEFINE_STATIC_SRCU(sp);
 
