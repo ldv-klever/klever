@@ -24,7 +24,7 @@ for development purposes, otherwise, please, choose *production*) and to run the
 
 .. parsed-literal::
 
-    $ sudo :term:`$KLEVER_SRC`/venv/bin/klever-deploy-local --deployment-directory :term:`$KLEVER_DEPLOY_DIR` install production
+    $ sudo venv/bin/klever-deploy-local --deployment-directory :term:`$KLEVER_DEPLOY_DIR` install production
 
 .. note:: Absolute path to :file:`klever-deploy-local` is necessary due to environment variables required for the
           Klever Python virtual environment are not passed to sudo commands most likely.
@@ -34,13 +34,13 @@ installed :ref:`klever_addons` and :ref:`klever_build_bases`:
 
 .. parsed-literal::
 
-    $ sudo :term:`$KLEVER_SRC`/venv/bin/klever-deploy-local --deployment-directory :term:`$KLEVER_DEPLOY_DIR` update production
+    $ sudo venv/bin/klever-deploy-local --deployment-directory :term:`$KLEVER_DEPLOY_DIR` update production
 
 To *uninstall* Klever, e.g. if something went wrong during installation, you need to run:
 
 .. parsed-literal::
 
-    $ sudo :term:`$KLEVER_SRC`/venv/bin/klever-deploy-local --deployment-directory :term:`$KLEVER_DEPLOY_DIR` uninstall production
+    $ sudo venv/bin/klever-deploy-local --deployment-directory :term:`$KLEVER_DEPLOY_DIR` uninstall production
 
 A normal sequence of actions for :ref:`local_deploy` is the following:
 :menuselection:`install --> update --> update --> ... --> update --> uninstall`.
