@@ -17,7 +17,7 @@
 
 #include <linux/device.h>
 #include <linux/types.h>
-#include <linux/ldv/device.h>
+#include <ldv/linux/device.h>
 #include <ldv/verifier/memory.h>
 #include <verifier/memlist.h>
 #include <ldv/verifier/nondet.h>

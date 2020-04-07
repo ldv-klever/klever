@@ -17,7 +17,7 @@
 
 before: file("$this")
 {
-#include <linux/ldv/panic.h>
+#include <ldv/linux/panic.h>
 } 
 
 around: call(void panic(..))
