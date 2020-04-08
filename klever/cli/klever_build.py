@@ -31,7 +31,7 @@ import urllib.parse
 
 from clade import Clade
 from klever.cli.utils import execute_cmd, get_logger, make_relative_path
-from klever.cli.descs import common_target_program_descs
+from klever.cli.descs import common_target_program_descs, gcc46_clade_cif_opts
 
 
 class CProgram:
@@ -594,6 +594,10 @@ def klever_build():
         for desc in descs:
             desc['description directory'] = os.path.dirname(desc_path)
             desc['build base'] = os.path.abspath(os.path.join(args.output, desc['build base']))
+
+            if "GCC 4.6 Clade CIF options" in desc:
+                desc.update(gcc46_clade_cif_opts)
+
             logger.info('Prepare build base "{}"'.format(desc['build base']))
 
             common_desc = dict(common_target_program_descs[desc['name']])

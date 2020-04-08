@@ -62,3 +62,10 @@ common_target_program_descs = {
         ]
     }
 }
+
+gcc46_clade_cif_opts = {"extra Clade options": {
+    "Info.extra_CIF_opts": [
+        "-D__GNUC__=4",
+        "-D__GNUC_MINOR__=6"
+    ]
+}}
