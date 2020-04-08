@@ -823,7 +823,7 @@
             "description": "...",
             "plugins": [{
               "name": "RSG",
-              "options": {"models": ["ldv/test.c"]}
+              "options": {"models": ["test.c"]}
             }]
           }
         ]
