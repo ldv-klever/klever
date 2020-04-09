@@ -81,9 +81,9 @@ class ScenarioModelgenerator(AbstractGenerator):
 
             # Replace rest processes
             if self.conf.get("enforce replacement"):
-                for collection, manual in ((collection.models, manual_processes.models),
-                                           (collection.environment, manual_processes.environment)):
-                    collection.update(manual)
+                for current, manual in ((collection.models, manual_processes.models),
+                                        (collection.environment, manual_processes.environment)):
+                    current.update(manual)
 
             collection.entry = or_entry
             collection.establish_peers(strict=True)
