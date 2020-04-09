@@ -37,7 +37,18 @@ _v_identifiers = id_generator()
 
 
 def generate_instances(logger, conf, sa, interfaces, model, instance_maps):
-    # todo: write docs
+    """
+    Generate instances which are process copies and each contain unique single implementation per interface.
+
+    :param logger: Logger object.
+    :param conf: Configuration dictionary.
+    :param sa:
+    :param interfaces:
+    :param model:
+    :param instance_maps:
+    :return:
+    """
+
     # todo: This should be done completely in another way. First we can prepare instance maps with implementations then
     #       convert ExtendedProcesses into Processes at the same time applying instance maps. This would allow to avoid
     #       unnecessary serialization of the whole collection at the end and reduce memory usage by avoiding
@@ -266,6 +277,21 @@ def _simplify_process(logger, conf, sa, interfaces, process):
 
 
 def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, action_identifiers, param_identifiers):
+    """
+    This function takes an extended Process and converts the given Call action into a Condition object as a part of
+    translation of an extrended Process into a common one.
+
+    :param conf: Configuration dictionary.
+    :param sa: Source object.
+    :param interfaces: Inerfaces collection.
+    :param process: Process object.
+    :param label_map: Process label map dictionary.
+    :param call: Call object.
+    :param action_identifiers: Genrerator of action identifiers.
+    :param param_identifiers: Generator of parameters identifiers.
+    :return:
+    """
+
     the_last_added = None
 
     def ret_expression():
@@ -683,6 +709,13 @@ def _fulfill_label_maps(logger, conf, sa, interfaces, instances, process, instan
 
 
 def __get_relevant_expressions(process):
+    """
+    Function extracts relevant interface implementation for a processs.
+
+    :param process: Process object.
+    :return: List of string identifiers.
+    """
+
     # First get list of container implementations
     expressions = []
     for collection in process.accesses().values():
@@ -718,6 +751,12 @@ def __get_relevant_expressions(process):
 
 
 def __generate_model_comment(process):
+    """
+    Adds to the Process comment a suffix that points which interface implementation the process is relevant to.
+
+    :param process: Process objet.
+    :return: None.
+    """
     expressions = __get_relevant_expressions(process)
     # Generate a comment as a concatenation of an original comment and a suffix
     if len(expressions) > 0:
@@ -727,7 +766,15 @@ def __generate_model_comment(process):
 
 
 def _remove_statics(logger, sa, process):
-    # todo: write docstring
+    """
+    This function removes calls of static functions in an environment model. Instead it creates wrappers for
+    static functions and static global variables and use them.
+
+    :param logger: Logger object.
+    :param sa: Source collection.
+    :param process: Process object - modified!
+    :return: None
+    """
 
     access_map = process.allowed_implementations
 
