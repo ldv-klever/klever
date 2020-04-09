@@ -44,31 +44,32 @@
               "uuid": "eafba0a0-dd6a-46aa-9af9-47a03a7360d5",
               "name": "Requirement specifications",
               "directory": "linux/testing/requirement specifications"
+            },
+            {
+              "uuid": "62439b5a-9039-4ef8-9bfe-fbf50a4a2112",
+              "name": "Testing verifiers",
+              "directory": "linux/testing/verifiers"
             }
           ]
         },
         {
-          "name": "Validation",
           "uuid": "88151938-64da-4809-8562-6cf736fbaec2",
+          "name": "Validation",
+          "uuid": "dfd84ccc-f580-497f-9c50-77425ef6302f",
           "children": [
             {
-              "uuid": "a5c4de71-dac3-462d-8d73-3db9704c5d20",
+              "uuid": "b8d817a8-1b6a-493e-b869-c03ff7a65f6d",
               "name": "Stable Branch Bugs for 2014 Year",
               "directory": "linux/validation/2014 stable branch bugs"
             },
             {
-              "uuid": "30323f66-9dc9-4301-a646-b593e4cbb92f",
+              "uuid": "058e9338-36af-4f58-8db9-cc4afbf191ce",
               "name": "USB Serial Bugs from Linux 3.14+",
               "directory": "linux/validation/3.14+ usb serial bugs"
             }
           ]
         }
       ]
-    },
-    {
-      "uuid": "62439b5a-9039-4ef8-9bfe-fbf50a4a2112",
-      "name": "Testing verifiers",
-      "directory": "testing verifiers"
     }
   ],
   "common directories and files": [

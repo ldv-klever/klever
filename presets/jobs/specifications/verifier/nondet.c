@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-#include <verifier/common.h>
-#include <verifier/nondet.h>
+#include <ldv/verifier/common.h>
+#include <ldv/verifier/nondet.h>
 #include <stddef.h>
 
 typedef void* loff_t;

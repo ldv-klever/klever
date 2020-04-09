@@ -18,8 +18,8 @@
 #include <linux/mmc/sdio_func.h>
 #include <linux/mmc/host.h>
 #include <linux/mmc/card.h>
-#include <linux/ldv/common.h>
-#include <verifier/common.h>
+#include <ldv/linux/common.h>
+#include <ldv/verifier/common.h>
 
 /* NOTE SDIO bus is unclaimed */
 unsigned short ldv_sdio_element = 0;

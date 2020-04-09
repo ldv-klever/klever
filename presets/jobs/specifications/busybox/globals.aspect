@@ -18,7 +18,7 @@
 before: file("$this")
 {
 #include <stddef.h>
-#include <verifier/memory.h>
+#include <ldv/verifier/memory.h>
 struct globals;
 static struct globals *ldv_globals;
 void ldv_setup_common_bufsiz(void);

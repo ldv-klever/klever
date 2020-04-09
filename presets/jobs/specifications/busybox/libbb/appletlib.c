@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-#include <verifier/common.h>
+#include <ldv/verifier/common.h>
 
 void ldv_bb_show_usage(void);
 

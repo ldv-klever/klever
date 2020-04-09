@@ -173,7 +173,7 @@ class PopulatePresets:
         for name in self._presets_data['common directories and files']:
             path = os.path.join(self._presets_dir, name)
             if os.path.isdir(path):
-                for dir_path, dir_names, file_names in os.walk(path):
+                for dir_path, dir_names, file_names in os.walk(path, followlinks=True):
                     for file_name in file_names:
                         file_path = os.path.join(dir_path, file_name)
                         rel_path = os.path.relpath(file_path, self._presets_dir)

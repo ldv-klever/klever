@@ -15,8 +15,11 @@
 # limitations under the License.
 #
 
-from distutils.dir_util import copy_tree
+import argparse
+import distutils.dir_util
 import hashlib
+import json
+import pathlib
 import os
 import re
 import shutil
@@ -28,7 +31,7 @@ import urllib.parse
 
 from clade import Clade
 from klever.cli.utils import execute_cmd, get_logger, make_relative_path
-from klever.cli.descs import common_target_program_descs, target_program_descs
+from klever.cli.descs import common_target_program_descs, gcc46_clade_cif_opts
 
 
 class CProgram:
@@ -42,9 +45,8 @@ class CProgram:
         # Main working source tree where various build and auxiliary actions will be performed.
         self.work_src_tree = None
 
-        # TODO: make this adaptive.
         # The number of parallel jobs for make.
-        self.jobs = '8'
+        self.jobs = str(os.cpu_count())
 
         # C program attributes. We expect that architecture is always specified in target program description while
         # configuration and version can be either obtained during build somehow or remained unspecified.
@@ -97,9 +99,9 @@ class CProgram:
             else:
                 self.logger.debug("Source code is provided in form of source tree")
 
-            if 'Git repository version' in self.target_program_desc:
+            if 'git repository version' in self.target_program_desc:
                 self.logger.info('Checkout Git repository "{0}"'
-                                 .format(self.target_program_desc['Git repository version']))
+                                 .format(self.target_program_desc['git repository version']))
 
                 # Always remove Git repository lock file .git/index.lock if it exists since it can remain after
                 # some previous Git commands crashed.
@@ -110,7 +112,7 @@ class CProgram:
                 # In case of dirty Git working directory checkout may fail so clean up it first.
                 execute_cmd(self.logger, 'git', 'clean', '-f', '-d', cwd=self.work_src_tree)
                 execute_cmd(self.logger, 'git', 'reset', '--hard', cwd=self.work_src_tree)
-                execute_cmd(self.logger, 'git', 'checkout', '-f', self.target_program_desc['Git repository version'],
+                execute_cmd(self.logger, 'git', 'checkout', '-f', self.target_program_desc['git repository version'],
                             cwd=self.work_src_tree)
 
                 # Use Git describe to properly identify C program version which source code is provided in form of Git
@@ -133,13 +135,19 @@ class CProgram:
         if opts is None:
             opts = []
 
-        # TODO: switch to Clade Python API.
-        clade_bin = os.path.join(os.path.dirname(sys.executable), "clade")
-        return execute_cmd(self.logger,
-                           *(([clade_bin, '-ia', '--cmds',
-                               os.path.realpath(os.path.join(self.work_src_tree, 'cmds.txt'))]
-                              if intercept_build_cmds else []) + ['make', '-j', self.jobs] + opts + list(target)),
-                           cwd=self.work_src_tree, env=env, get_output=get_output)
+        cmd = ['make', '-j', self.jobs] + opts + list(target)
+
+        if intercept_build_cmds:
+            clade = Clade(cmds_file=os.path.realpath(os.path.join(self.work_src_tree, 'cmds.txt')))
+
+            r = clade.intercept(cmd, append=True, cwd=self.work_src_tree)
+
+            if r:
+                raise RuntimeError('Build failed')
+
+            return r
+        else:
+            return execute_cmd(self.logger, *(cmd), cwd=self.work_src_tree, env=env, get_output=get_output)
 
     def _make_canonical_work_src_tree(self):
         self.logger.info('Make canonical working source tree "{0}"'.format(self.work_src_tree))
@@ -366,9 +374,9 @@ class Linux(CProgram):
         self.logger.info('Configure Linux kernel')
 
         # Linux kernel configuration can be specified by means of configuration file or configuration target.
-        if os.path.isfile(self.target_program_desc['configuration']):
-            conf_file = self.target_program_desc['configuration']
-
+        # all configuration files are located in the description directory
+        conf_file = os.path.join(self.target_program_desc['description directory'], self.target_program_desc['configuration'])
+        if os.path.isfile(conf_file):
             self.logger.info('Linux kernel configuration file is "{0}"'.format(conf_file))
 
             # Use configuration file SHA1 digest as Linux kernel configuration.
@@ -410,6 +418,9 @@ class Linux(CProgram):
         if not ext_modules:
             return None
 
+        # all external modules are located in the description directory
+        ext_modules = os.path.join(self.target_program_desc['description directory'], ext_modules)
+
         tmp_dir = tempfile.mkdtemp()
         self.tmp_dirs.append(tmp_dir)
 
@@ -426,7 +437,7 @@ class Linux(CProgram):
 
         if os.path.isdir(ext_modules):
             self.logger.debug('External loadable Linux kernel modules source code is provided in form of source tree')
-            copy_tree(ext_modules, work_src_tree)
+            distutils.dir_util.copy_tree(ext_modules, work_src_tree)
         elif os.path.isfile(ext_modules):
             self.logger.debug('External loadable Linux kernel modules source code is provided in form of archive')
             with tarfile.open(ext_modules, encoding='utf8') as TarFile:
@@ -434,7 +445,7 @@ class Linux(CProgram):
 
         self.logger.info('Make canonical working source tree of external loadable Linux kernel modules')
         work_src_tree_root = None
-        for dirpath, dirnames, filenames in os.walk(work_src_tree):
+        for dirpath, _, filenames in os.walk(work_src_tree):
             ismakefile = False
             for filename in filenames:
                 if filename == 'Makefile':
@@ -482,15 +493,122 @@ class BusyBox(CProgram):
         super().__init__(logger, target_program_desc)
 
 
+def get_descs_dir():
+    return os.path.join(os.path.dirname(__file__), 'descs')
+
+
+def get_desc_paths(desc_name_pattern=None):
+    desc_paths = []
+
+    for desc_path in pathlib.Path.rglob(pathlib.Path(get_descs_dir()), "desc.json"):
+        desc_paths.append(str(desc_path))
+
+    if desc_name_pattern:
+        desc_paths = [x for x in desc_paths if desc_name_pattern in os.path.relpath(x, get_descs_dir())]
+
+    return desc_paths
+
+
+def get_desc_name(desc_path):
+    return os.path.dirname(os.path.relpath(desc_path, start=get_descs_dir()))
+
+
+def get_all_desc_names():
+    # Get names of all json files with target program descriptions (without .json extension)
+    desc_names = []
+
+    for desc_path in get_desc_paths():
+        desc_names.append(get_desc_name(desc_path))
+
+    return desc_names
+
+
+def parse_args(logger):
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument(
+        '-o',
+        '--output',
+        help='path to the directory where build bases will be stored. Default: {!r}'.format('build bases'),
+        default='build bases',
+        metavar='PATH'
+    )
+
+    parser.add_argument(
+        '-r',
+        '--repositories',
+        help='path to the directory that contains all required git repositorues (linux-stable, busybox)',
+        default='.',
+        metavar='PATH'
+    )
+
+    parser.add_argument(
+        '-l',
+        '--list',
+        help='show the list of available target program descriptions and exit',
+        action='store_true'
+    )
+
+    parser.add_argument(
+        dest='descriptions',
+        nargs=argparse.REMAINDER,
+        help='list of descriptions to use',
+    )
+
+    args = parser.parse_args(sys.argv[1:])
+
+    if args.list:
+        logger.info('Available target program descriptions:\n{}'.format(
+            '\n'.join(sorted(get_all_desc_names()))
+        ))
+        sys.exit()
+
+    if not args.descriptions:
+        logger.error('You need to specify at least one target program description')
+        sys.exit(-1)
+
+    return args
+
+
 def klever_build():
     logger = get_logger(__name__)
+    args = parse_args(logger)
+    all_desc_paths = []
 
-    for target_program_desc in target_program_descs:
-        logger.info('Prepare build base "{}"'.format(target_program_desc['build base']))
-        common_target_program_desc = dict(common_target_program_descs[target_program_desc['name']])
-        common_target_program_desc.update(target_program_desc)
-        getattr(sys.modules[__name__], target_program_desc['name'])(logger, common_target_program_desc).build()
-        logger.info('Build base "{}" was successfully prepared'.format(target_program_desc['build base']))
+    for desc_name_pattern in args.descriptions:
+        desc_paths = get_desc_paths(desc_name_pattern)
+        all_desc_paths.extend(desc_paths)
+
+        if not desc_paths:
+            logger.error('There are no json files corresponding to the specified description pattern {!r}'.format(
+                desc_name_pattern
+            ))
+            logger.error('Targer program descriptions are stored in the {!r} directory'.format(get_descs_dir()))
+            sys.exit(-1)
+
+    for desc_path in all_desc_paths:
+        with open(desc_path, 'r', encoding='utf-8') as fp:
+            descs = json.load(fp)
+
+        logger.info('Use {!r} description'.format(get_desc_name(desc_path)))
+        for desc in descs:
+            desc['description directory'] = os.path.dirname(desc_path)
+            desc['build base'] = os.path.abspath(os.path.join(args.output, desc['build base']))
+
+            if "GCC 4.6 Clade CIF options" in desc:
+                desc.update(gcc46_clade_cif_opts)
+
+            logger.info('Prepare build base "{}"'.format(desc['build base']))
+
+            common_desc = dict(common_target_program_descs[desc['name']])
+            common_desc.update(desc)
+            common_desc['source code'] = os.path.abspath(os.path.join(args.repositories, common_desc['source code']))
+
+            CProgramClass = getattr(sys.modules[__name__], desc['name'])
+            CProgramObj = CProgramClass(logger, common_desc)
+            CProgramObj.build()
+
+            logger.info('Build base "{}" was successfully prepared'.format(desc['build base']))
 
 
 if __name__ == '__main__':

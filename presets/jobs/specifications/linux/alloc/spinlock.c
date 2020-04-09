@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-#include <linux/ldv/gfp.h>
-#include <linux/ldv/slab.h>
-#include <verifier/common.h>
+#include <ldv/linux/gfp.h>
+#include <ldv/linux/slab.h>
+#include <ldv/verifier/common.h>
 
 extern int ldv_exclusive_spin_is_locked(void);
 

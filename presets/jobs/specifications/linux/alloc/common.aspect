@@ -18,11 +18,11 @@
 before: file ("$this")
 {
 #include <linux/types.h>
-#include <linux/ldv/common.h>
-#include <linux/ldv/err.h>
-#include <verifier/common.h>
-#include <verifier/memory.h>
-#include <verifier/nondet.h>
+#include <ldv/linux/common.h>
+#include <ldv/linux/err.h>
+#include <ldv/verifier/common.h>
+#include <ldv/verifier/memory.h>
+#include <ldv/verifier/nondet.h>
 
 #ifndef __LINUX_ALLOC_ASPECT
 #define __LINUX_ALLOC_ASPECT

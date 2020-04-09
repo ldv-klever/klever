@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-#include <linux/ldv/common.h>
-#include <verifier/common.h>
-#include <verifier/nondet.h>
+#include <ldv/linux/common.h>
+#include <ldv/verifier/common.h>
+#include <ldv/verifier/nondet.h>
 
 /* NOTE Indicates the level of srcu_lock nesting */
 int ldv_srcu_nested = 0;

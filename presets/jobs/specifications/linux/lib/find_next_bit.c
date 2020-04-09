@@ -16,9 +16,9 @@
  */
 
 #include <linux/cpumask.h>
-#include <linux/ldv/common.h>
-#include <verifier/common.h>
-#include <verifier/nondet.h>
+#include <ldv/linux/common.h>
+#include <ldv/verifier/common.h>
+#include <ldv/verifier/nondet.h>
 
 unsigned long ldv_find_next_bit(unsigned long size, unsigned long offset)
 {

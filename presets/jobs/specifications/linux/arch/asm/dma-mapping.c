@@ -16,9 +16,9 @@
  */
 
 #include <linux/types.h>
-#include <linux/ldv/common.h>
-#include <verifier/common.h>
-#include <verifier/nondet.h>
+#include <ldv/linux/common.h>
+#include <ldv/verifier/common.h>
+#include <ldv/verifier/nondet.h>
 
 int ldv_dma_calls = 0;
 

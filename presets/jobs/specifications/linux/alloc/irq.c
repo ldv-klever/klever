@@ -16,9 +16,9 @@
  */
 
 #include <linux/gfp.h>
-#include <linux/ldv/slab.h>
-#include <linux/ldv/common.h>
-#include <verifier/common.h>
+#include <ldv/linux/slab.h>
+#include <ldv/linux/common.h>
+#include <ldv/verifier/common.h>
 
 void ldv_check_alloc_flags(gfp_t flags) 
 {

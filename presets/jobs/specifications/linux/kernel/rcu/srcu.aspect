@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 
-@include <linux/kernel/rcu/common.aspect>
+@include <../linux/kernel/rcu/common.aspect>
 
 before: file("$this")
 {
-#include <verifier/nondet.h>
+#include <ldv/verifier/nondet.h>
 
 extern void ldv_srcu_read_lock(void);
 extern void ldv_srcu_read_unlock(void);

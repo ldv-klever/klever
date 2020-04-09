@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-#include <verifier/common.h>
-#include <verifier/nondet.h>
-#include <verifier/memory.h>
+#include <ldv/verifier/common.h>
+#include <ldv/verifier/nondet.h>
+#include <ldv/verifier/memory.h>
 
 /* ISO/IEC 9899:1999 specification, § 7.20.3 "Memory management functions". */
 extern void *malloc(size_t size);

@@ -16,9 +16,9 @@
  */
 
 #include <stddef.h>
-#include <verifier/common.h>
-#include <verifier/memory.h>
-#include <verifier/nondet.h>
+#include <ldv/verifier/common.h>
+#include <ldv/verifier/memory.h>
+#include <ldv/verifier/nondet.h>
 
 int ldv_asprintf(char **ptr);
 

@@ -16,4 +16,4 @@
  */
 
 #include <stddef.h>
-#include <verifier/memory.h>
+#include <ldv/verifier/memory.h>

@@ -17,7 +17,7 @@
 
 before: file("$this")
 {
-#include <linux/ldv/device.h>
+#include <ldv/linux/device.h>
 }
 
 around: call(void *dev_get_drvdata(const struct device *dev))

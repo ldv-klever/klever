@@ -17,7 +17,7 @@
 
 #include <linux/fb.h>
 #include <linux/types.h>
-#include <verifier/memory.h>
+#include <ldv/verifier/memory.h>
 
 void ldv_after_alloc(void *res)
 {

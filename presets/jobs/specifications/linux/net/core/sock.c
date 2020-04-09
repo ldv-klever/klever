@@ -16,9 +16,9 @@
  */
 
 #include <linux/types.h>
-#include <linux/ldv/common.h>
-#include <verifier/common.h>
-#include <verifier/nondet.h>
+#include <ldv/linux/common.h>
+#include <ldv/verifier/common.h>
+#include <ldv/verifier/nondet.h>
 
 /* NOTE There is no locked sockets at the beginning */
 int locksocknumber = 0;

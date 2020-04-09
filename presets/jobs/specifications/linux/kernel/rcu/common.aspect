@@ -17,7 +17,7 @@
 
 before: file("$this")
 {
-#include <verifier/nondet.h>
+#include <ldv/verifier/nondet.h>
 
 extern void ldv_check_for_read_section(void);
 }

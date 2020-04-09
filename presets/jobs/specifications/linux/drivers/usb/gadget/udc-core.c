@@ -15,10 +15,10 @@
  * limitations under the License.
  */
 
-#include <linux/ldv/common.h>
-#include <linux/ldv/err.h>
-#include <verifier/common.h>
-#include <verifier/nondet.h>
+#include <ldv/linux/common.h>
+#include <ldv/linux/err.h>
+#include <ldv/verifier/common.h>
+#include <ldv/verifier/nondet.h>
 
 struct class;
 

@@ -1,0 +1,14 @@
+[
+    {
+        "build base": "testing/5b3d50",
+        "name": "Linux",
+        "external modules": "tests",
+        "loadable kernel modules": [
+            "ext-modules/kernel_library",
+            "ext-modules/load_order",
+            "ext-modules/multimodule_error",
+            "ext-modules/multimodule_false_error",
+            "ext-modules/several_groups"
+        ]
+    }
+]

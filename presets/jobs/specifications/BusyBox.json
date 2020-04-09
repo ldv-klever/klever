@@ -19,10 +19,10 @@
               "environment model file": "environment_model.c",
               "additional headers": [
                 "stddef.h",
-                "verifier/common.h",
-                "verifier/nondet.h",
-                "verifier/memory.h",
-                "userspace/ldv.h"
+                "ldv/verifier/common.h",
+                "ldv/verifier/nondet.h",
+                "ldv/verifier/memory.h",
+                "ldv/userspace/common.h"
               ]
             }
           }
@@ -37,7 +37,7 @@
               "verifier/gcc.c": {},
               "verifier/nondet.c": {},
               "userspace/verifier/memory.c": {},
-              "userspace/ldv.c": {},
+              "userspace/common.c": {},
               "userspace/string.c": {},
               "userspace/stdlib.c": {},
               "userspace/stdio.c": {},
