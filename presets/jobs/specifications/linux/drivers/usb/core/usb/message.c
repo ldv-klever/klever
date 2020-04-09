@@ -16,8 +16,8 @@
  */
 
 #include <linux/types.h>
-#include <verifier/common.h>
-#include <verifier/nondet.h>
+#include <ldv/verifier/common.h>
+#include <ldv/verifier/nondet.h>
 
 int ldv_usb_string(size_t size)
 {
