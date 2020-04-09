@@ -112,8 +112,17 @@ class Process:
     def __hash__(self):
         return hash(str(self))
 
+    def __eq__(self, other):
+        if isinstance(other, Process):
+            return str(self) == str(other)
+        else:
+            return False
+
     def __lt__(self, other):
-        return str(self) < str(other)
+        if isinstance(other, Process):
+            return str(self) < str(other)
+        else:
+            return False
 
     def __copy__(self):
         inst = type(self)(self.name, self.category)
