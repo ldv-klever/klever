@@ -43,7 +43,7 @@
                   ]
                 },
                 {
-                  "Instrumented function 'spin_unlock_bh'": [
+                  "cif_spin_unlock_bh_lock_of_tipc_port_0": [
                     {
                       "LDV model 'spin_unlock_lock_of_tipc_port'": [
                         {
