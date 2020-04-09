@@ -21,10 +21,11 @@ from klever.core.vtg.emg.common.process import Action
 from klever.core.vtg.emg.common.c.types import Pointer, Primitive
 
 
-def extract_relevant_automata(automata, automata_peers, peers, sb_type=None):
+def extract_relevant_automata(logger, automata, automata_peers, peers, sb_type=None):
     """
     Determine which automata can receive signals from the given instance or send signals to it.
 
+    :param logger: Logger object.
     :param automata: List with Automaton objects.
     :param automata_peers: Dictionary {'Automaton.identfier string' -> {'states': ['relevant State objects'],
                                                                         'automaton': 'Automaton object'}
@@ -36,15 +37,19 @@ def extract_relevant_automata(automata, automata_peers, peers, sb_type=None):
     """
     for peer in peers:
         relevant_automata = [a for a in automata if a.process == peer["process"]]
-        for automaton in relevant_automata:
-            if automaton not in automata_peers:
-                automata_peers[automaton] = {
-                    "automaton": automaton,
-                    "actions": sortedcontainers.SortedSet()
-                }
-            for action in [n for n in automaton.process.actions.filter(include={Action}) if n == peer["action"]]:
-                if not sb_type or isinstance(action, sb_type):
-                    automata_peers[automaton]["actions"].add(action)
+        if relevant_automata:
+            for automaton in relevant_automata:
+                if automaton not in automata_peers:
+                    automata_peers[automaton] = {
+                        "automaton": automaton,
+                        "actions": sortedcontainers.SortedSet()
+                    }
+                for action in [n for n in automaton.process.actions.filter(include={Action}) if n == peer["action"]]:
+                    if not sb_type or isinstance(action, sb_type):
+                        automata_peers[automaton]["actions"].add(action)
+        else:
+            logger.debug("No automata peers found for {!r}, total available: {}".
+                         format(str(peer["process"]), ', '.join({str(a.process) for a in automata})))
 
 
 def initialize_automaton_variables(conf, automaton):

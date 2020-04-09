@@ -168,7 +168,7 @@ class FSATranslator:
         automata_peers = sortedcontainers.SortedDict()
         if len(action.peers) > 0:
             # Do call only if model which can be called will not hang
-            extract_relevant_automata(self._event_fsa + self._model_fsa + [self._entry_fsa],
+            extract_relevant_automata(self._logger, self._event_fsa + self._model_fsa + [self._entry_fsa],
                                       automata_peers, action.peers, Receive)
         else:
             # Generate comment
@@ -180,7 +180,7 @@ class FSATranslator:
             category = list(automata_peers.values())[0]['automaton'].process.category.upper()
             comment = action.comment.format(category)
         else:
-            comment = 'Skip the action, since no callbacks has been found.'
+            comment = 'Skip the action, since no peers has been found.'
         comments.append(action_model_comment(action, comment, begin=True))
         comments.append(action_model_comment(action, None, begin=False))
 
@@ -279,8 +279,10 @@ class FSATranslator:
                 ])
             else:
                 # This is becouse translation can have specific restrictions
+                self._logger.debug(f'No block to implement signal receive of actioon {str(action)} in {str(automaton)}')
                 code.append('/* Skip the dispatch because there is no process to receive the signal */')
         else:
+            self._logger.debug(f'No peers to implement signal receive of actioon {str(action)} in {str(automaton)}')
             code.append('/* Skip the dispatch because there is no process to receive the signal */')
 
         return code, v_code, conditions, comments
