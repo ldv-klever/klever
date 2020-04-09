@@ -59,7 +59,7 @@ common_target_program_descs = {
             'target/target_core_backend.h',
             'linux/spi/spi.h',
             'linux/fb.h',
-            'linux/firmware'
+            'linux/firmware.h'
         ]
     }
 }
