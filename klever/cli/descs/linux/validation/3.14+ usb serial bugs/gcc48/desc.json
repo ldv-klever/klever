@@ -1,5 +1,11 @@
 [
     {
+        "build base": "validation/5dfdd24eb3d39d~",
+        "name": "Linux",
+        "git repository version": "5dfdd24eb3d39d~",
+        "loadable kernel modules": ["drivers/usb/serial/ti_usb_3410_5052.ko"]
+    },
+    {
         "build base": "validation/5dfdd24eb3d39d",
         "name": "Linux",
         "git repository version": "5dfdd24eb3d39d",
