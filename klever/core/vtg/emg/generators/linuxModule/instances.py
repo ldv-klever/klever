@@ -21,7 +21,7 @@ import copy
 import sortedcontainers
 
 import klever.core.vtg.emg.common.c as c
-from klever.core.vtg.emg.common import get_or_die
+from klever.core.vtg.emg.common import get_or_die, id_generator
 from klever.core.vtg.emg.common.process import Dispatch, Receive, Block
 from klever.core.vtg.emg.common.process.serialization import CollectionEncoder
 from klever.core.vtg.emg.common.c.types import Structure, Primitive, Pointer, Array, Function, import_declaration
@@ -32,17 +32,8 @@ from klever.core.vtg.emg.generators.linuxModule.process import get_common_parame
 _declarations = {'environment model': list()}
 _definitions = {'environment model': list()}
 _values_map = sortedcontainers.SortedDict()
-
-
-def _yeild_identifier():
-    """Return unique identifier."""
-    identifier_counter = 1
-    while True:
-        identifier_counter += 1
-        yield identifier_counter
-
-_f_identifiers = _yeild_identifier()
-_v_identifiers = _yeild_identifier()
+_f_identifiers = id_generator()
+_v_identifiers = id_generator()
 
 
 def generate_instances(logger, conf, sa, interfaces, model, instance_maps):
@@ -169,8 +160,8 @@ def _simplify_process(logger, conf, sa, interfaces, process):
             process.replace_action(action, new)
 
     # Remove callback actions
-    param_identifiers = _yeild_identifier()
-    action_identifiers = _yeild_identifier()
+    param_identifiers = id_generator()
+    action_identifiers = id_generator()
     for action in list(process.actions.filter(include={Call})):
         _convert_calls_to_conds(conf, sa, interfaces, process, label_map, action, action_identifiers, param_identifiers)
 
@@ -334,7 +325,7 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
                 else:
                     param_signature = declaration.points.parameters[index]
                     expression = "%{}%"
-                tmp_lb = process.add_label("emg_param_{}_{}".format(index, param_identifiers.__next__()),
+                tmp_lb = process.add_label("emg_param_{}_{}".format(index, next(param_identifiers)),
                                            param_signature)
                 label_params.append(tmp_lb)
                 expression = expression.format(tmp_lb.name)
@@ -354,11 +345,11 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
                 post.append('$FREE({});'.format(repr(label)))
 
         if pre:
-            pre_name = 'pre_call_{}'.format(action_identifiers.__next__())
+            pre_name = 'pre_call_{}'.format(next(action_identifiers))
             pre = process.add_condition(pre_name, [], pre, "Callback {} precondition.".format(call.name))
             pre.trace_relevant = True
         if post:
-            post_name = 'post_call_{}'.format(action_identifiers.__next__())
+            post_name = 'post_call_{}'.format(next(action_identifiers))
             post = process.add_condition(post_name, [], post, "Callback {} postcondition.".format(format(call.name)))
             post.trace_relevant = True
 
@@ -494,7 +485,7 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
                        (["} else {", '\t' + ret, "}"] if ret != '' else ['}'])
 
             # Insert new action and replace this one
-            new = process.add_condition("{}_{}".format(call.name, action_identifiers.__next__()),
+            new = process.add_condition("{}_{}".format(call.name, next(action_identifiers)),
                                         conditions, code, comment)
             new.trace_relevant = True
 
@@ -526,7 +517,7 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
         if reinitialize_vars_flag:
             reinitialize_variables(code)
 
-        n = process.add_condition("{}_{}".format(call.name, action_identifiers.__next__()),
+        n = process.add_condition("{}_{}".format(call.name, next(action_identifiers)),
                                   [], code, "No callbacks implemented to call here")
         process.replace_action(call, n)
         n.statements = code
@@ -546,7 +537,7 @@ def _yield_instances(logger, conf, sa, interfaces, model, instance_maps):
     :return: List with model qutomata, list with callback automata.
     """
     logger.info("Generate automata for processes with callback calls")
-    identifiers = _yeild_identifier()
+    identifiers = id_generator()
     identifiers_map = sortedcontainers.SortedDict()
 
     def rename_process(inst):
@@ -722,7 +713,7 @@ def __get_relevant_expressions(process):
                 if len(expressions) == 3:
                     break
 
-    expressions = [re.sub('\s|&', '', e) for e in expressions]
+    expressions = [re.sub(r'\s|&', '', e) for e in expressions]
     return expressions
 
 
@@ -747,7 +738,7 @@ def _remove_statics(logger, sa, process):
 
     def create_definition(decl, nm, impl, requre_suffix=False):
         if requre_suffix:
-            new_name = "emg_wrapper_{}_{}".format(nm, _f_identifiers.__next__())
+            new_name = "emg_wrapper_{}_{}".format(nm, next(_f_identifiers))
         else:
             new_name = "emg_wrapper_{}".format(nm)
         f = c.Function(new_name, decl)
@@ -845,7 +836,7 @@ def _remove_statics(logger, sa, process):
                                 value = '& ' + value
 
                             if len(sa.get_source_variables(name)) > 1:
-                                v_name = "emg_alias_{}_{}".format(name, _v_identifiers.__next__())
+                                v_name = "emg_alias_{}_{}".format(name, next(_v_identifiers))
                             else:
                                 v_name = "emg_alias_{}".format(name)
                             var = c.Variable(v_name, declaration.to_string('x', specifiers=False))

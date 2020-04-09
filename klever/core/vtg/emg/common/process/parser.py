@@ -18,10 +18,12 @@
 import ply.lex as lex
 import ply.yacc as yacc
 
+from klever.core.vtg.emg.common import id_generator
 from klever.core.vtg.emg.common.process import Receive, Dispatch, Subprocess, Block, Concatenation, Choice, Parentheses
 
 __parser = None
 __lexer = None
+_aux_identifier = id_generator()
 
 tokens = (
     'DOT',
@@ -267,13 +269,6 @@ def p_subprocess(p):
     p[0] = action
 
 
-def _new_identifier():
-    i = 0
-    while True:
-        i += 1
-        yield str(i)
-
-
 def _check_action(process, action):
     if action.name in process.actions:
         raise ValueError('Do not use actions twice, remove second use of {!r} in {!r}'.
@@ -312,6 +307,3 @@ def parse_process(process, string):
         return __parser.parse(string, lexer=__lexer)
     except TypeError as err:
         raise ValueError("Cannot parse process '{}' due to parse error: {}".format(string, err.args))
-
-
-_aux_identifier = _new_identifier()

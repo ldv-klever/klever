@@ -59,3 +59,15 @@ def model_comment(comment_type, text=None, other=None):
 
     string = json.dumps(comment)
     return "/* EMG_ACTION {} */".format(string)
+
+
+def id_generator(start_from=0):
+    """
+    Function-generator to generate numerical identifiers from 1 or zero.
+
+    :return: Inifinite sequence of identifiers.
+    """
+    while True:
+        yield str(start_from)
+        start_from += 1
+
