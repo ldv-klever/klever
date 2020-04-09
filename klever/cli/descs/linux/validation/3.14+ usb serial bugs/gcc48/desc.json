@@ -1,35 +1,5 @@
 [
     {
-        "build base": "validation/1568c58d11a7c8~",
-        "name": "Linux",
-        "git repository version": "1568c58d11a7c8~",
-        "loadable kernel modules": ["drivers/usb/serial/io_edgeport.ko"]
-    },
-    {
-        "build base": "validation/1568c58d11a7c8",
-        "name": "Linux",
-        "git repository version": "1568c58d11a7c8",
-        "loadable kernel modules": ["drivers/usb/serial/io_edgeport.ko"]
-    },
-    {
-        "build base": "validation/1251dab9e0a2c4~",
-        "name": "Linux",
-        "git repository version": "1251dab9e0a2c4~",
-        "loadable kernel modules": ["drivers/usb/serial/whiteheat.ko"]
-    },
-    {
-        "build base": "validation/1251dab9e0a2c4",
-        "name": "Linux",
-        "git repository version": "1251dab9e0a2c4",
-        "loadable kernel modules": ["drivers/usb/serial/whiteheat.ko"]
-    },
-    {
-        "build base": "validation/5dfdd24eb3d39d~",
-        "name": "Linux",
-        "git repository version": "5dfdd24eb3d39d~",
-        "loadable kernel modules": ["drivers/usb/serial/ti_usb_3410_5052.ko"]
-    },
-    {
         "build base": "validation/5dfdd24eb3d39d",
         "name": "Linux",
         "git repository version": "5dfdd24eb3d39d",
