@@ -54,13 +54,20 @@ def generate_instances(logger, conf, sa, interfaces, model, instance_maps):
     #       unnecessary serialization of the whole collection at the end and reduce memory usage by avoiding
     #       ExtendedProcess copying.
     model_processes, callback_processes = _yield_instances(logger, conf, sa, interfaces, model, instance_maps)
-    # Simplify first and set ids then dump
-    for process in model_processes + callback_processes:
-        _simplify_process(logger, conf, sa, interfaces, process)
 
     # Now we can change names
     for process in callback_processes:
-        process.name = process.name + '_%d' % process.instance_number
+        # Change names into unique ones
+        __add_pretty_name(logger, process)
+
+    # According to new identifiers change signals peers
+    for process in model_processes + callback_processes:
+        if conf.get("convert statics to globals", True):
+            _remove_statics(logger, sa, process)
+
+    # Simplify first and set ids then dump
+    for process in model_processes + callback_processes:
+        _simplify_process(logger, conf, sa, interfaces, process)
 
     model.environment = sortedcontainers.SortedDict({str(p): p for p in callback_processes})
     # todo: Here we can loose instances of model functions
@@ -619,11 +626,6 @@ def _yield_instances(logger, conf, sa, interfaces, model, instance_maps):
                         new_peers.append(new_peer)
             action.peers = new_peers
 
-    # According to new identifiers change signals peers
-    for process in model_fsa + callback_fsa:
-        if conf.get("convert statics to globals", True):
-            _remove_statics(logger, sa, process)
-
     return model_fsa, callback_fsa
 
 
@@ -748,6 +750,25 @@ def __get_relevant_expressions(process):
 
     expressions = [re.sub(r'\s|&', '', e) for e in expressions]
     return expressions
+
+
+def __add_pretty_name(logger, process):
+    """
+    This function adds to a process name a unique suffix based on some implementation to avoid numerical processs
+    identifiers and consequently use them in manual specificatin for addressing signals.
+
+    :param logger: Logger object.
+    :param process: Process object.
+    :return: None
+    """
+    expressions = __get_relevant_expressions(process)
+    if process.category != 'functions models':
+        old_name = process.name
+        if len(expressions):
+            process.name = f"{process.name}_{expressions[0]}"
+        else:
+            process.name = f"{process.name}_{process.instance_number}"
+        logger.debug(f'Set new process name: {process.name} instead of {old_name}')
 
 
 def __generate_model_comment(process):
