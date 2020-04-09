@@ -59,7 +59,7 @@
             {
               "uuid": "b8d817a8-1b6a-493e-b869-c03ff7a65f6d",
               "name": "Stable Branch Bugs for 2014 Year",
-              "directory": "linux/validation/3.14+ usb serial bugs"
+              "directory": "linux/validation/2014 stable branch bugs"
             }
           ]
         }
