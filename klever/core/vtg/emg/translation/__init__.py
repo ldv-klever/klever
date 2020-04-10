@@ -127,7 +127,7 @@ def translate_intermediate_model(logger, conf, avt, source, collection):
 
     logger.info("Generate finite state machine on each process")
     entry_fsa = Automaton(collection.entry, 1)
-    identifiers = id_generator(start_from=2)
+    identifiers = id_generator(start_from=2, cast=int)
     model_fsa = []
     main_fsa = []
     for process in collection.models.values():

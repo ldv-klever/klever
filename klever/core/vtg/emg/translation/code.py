@@ -57,6 +57,10 @@ def control_function_comment_begin(function_name, comment, identifier=None):
     data = {'function': function_name}
     if isinstance(identifier, int):
         data['thread'] = identifier + 1
+    elif identifier is None:
+        pass
+    else:
+        raise ValueError('Unsupported identifier type {}'.format(str(type(identifier).__name__)))
     return model_comment('CONTROL_FUNCTION_BEGIN', comment, data)
 
 
