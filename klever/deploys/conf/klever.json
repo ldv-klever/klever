@@ -1,8 +1,8 @@
 {
   "Klever Addons": {
     "CIF": {
-      "version": "8c83608",
-      "path": "https://forge.ispras.ru/attachments/download/7334/cif-8c83608.tar.xz",
+      "version": "fa4a563",
+      "path": "https://forge.ispras.ru/attachments/download/7518/cif-fa4a563.tar.xz",
       "executable path": "usr/local/bin"
     },
     "CIL": {
