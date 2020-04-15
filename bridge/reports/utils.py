@@ -34,7 +34,7 @@ from bridge.tableHead import Header
 from bridge.utils import BridgeException, ArchiveFileContent
 from bridge.ZipGenerator import ZipStream
 
-from reports.models import ReportComponent, ReportAttr, ReportUnsafe, ReportSafe, ReportUnknown, CoverageArchive
+from reports.models import Report, ReportComponent, ReportAttr, ReportUnsafe, ReportSafe, ReportUnknown, CoverageArchive
 
 from users.utils import HumanizedValue, paginate_queryset
 
@@ -129,6 +129,9 @@ def collapse_reports(decision):
 
     # Remove all non-verification reports except Core
     reports_qs.delete()
+
+    # Rebuild mptt tree of the current decision
+    Report.objects.partial_rebuild(core.tree_id)
 
     # Update decision weight
     decision.weight = DECISION_WEIGHT[1][0]

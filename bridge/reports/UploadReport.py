@@ -632,10 +632,14 @@ class UploadReport:
                 report.delete()
                 return
             # Set parent to Core for lightweight decisions that will be preserved
-            update_data['parent_id'] = ReportComponent.objects.only('id').get(decision=self.decision, parent=None).id
+            update_data['parent'] = ReportComponent.objects.only('id').get(decision=self.decision, parent=None)
 
         # Save report with new data
-        ReportComponent.objects.filter(id=report.id).update(**update_data)
+        with transaction.atomic():
+            report = ReportComponent.objects.select_for_update().get(id=report.id)
+            for k, v in update_data.items():
+                setattr(report, k, v)
+            report.save()
 
         self.__update_decision_cache(report.component, finished=True)
 

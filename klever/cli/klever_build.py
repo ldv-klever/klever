@@ -583,7 +583,7 @@ def klever_build():
             logger.error('There are no json files corresponding to the specified description pattern {!r}'.format(
                 desc_name_pattern
             ))
-            logger.error('Targer program descriptions are stored in the {!r} directory'.format(get_descs_dir()))
+            logger.error('Target program descriptions are stored in the {!r} directory'.format(get_descs_dir()))
             sys.exit(-1)
 
     for desc_path in all_desc_paths:
