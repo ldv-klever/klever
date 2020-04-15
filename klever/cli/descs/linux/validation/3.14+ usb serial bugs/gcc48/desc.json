@@ -497,144 +497,168 @@
         "build base": "validation/db81de767e3757~",
         "name": "Linux",
         "git repository version": "db81de767e3757~",
-        "loadable kernel modules": ["drivers/usb/serial/mxuport.ko"]
+        "loadable kernel modules": ["drivers/usb/serial/mxuport.ko"],
+        "GCC 4.6 Clade CIF options": true
     },
     {
         "build base": "validation/db81de767e3757",
         "name": "Linux",
         "git repository version": "db81de767e3757",
-        "loadable kernel modules": ["drivers/usb/serial/mxuport.ko"]
+        "loadable kernel modules": ["drivers/usb/serial/mxuport.ko"],
+        "GCC 4.6 Clade CIF options": true
     },
     {
         "build base": "validation/b5122236bba8d7~",
         "name": "Linux",
         "git repository version": "b5122236bba8d7~",
-        "loadable kernel modules": ["drivers/usb/serial/keyspan.ko"]
+        "loadable kernel modules": ["drivers/usb/serial/keyspan.ko"],
+        "GCC 4.6 Clade CIF options": true
     },
     {
         "build base": "validation/b5122236bba8d7",
         "name": "Linux",
         "git repository version": "b5122236bba8d7",
-        "loadable kernel modules": ["drivers/usb/serial/keyspan.ko"]
+        "loadable kernel modules": ["drivers/usb/serial/keyspan.ko"],
+        "GCC 4.6 Clade CIF options": true
     },
     {
         "build base": "validation/5654699fb38512~",
         "name": "Linux",
         "git repository version": "5654699fb38512~",
-        "loadable kernel modules": ["drivers/usb/serial/usbserial.ko"]
+        "loadable kernel modules": ["drivers/usb/serial/usbserial.ko"],
+        "GCC 4.6 Clade CIF options": true
     },
     {
         "build base": "validation/5654699fb38512",
         "name": "Linux",
         "git repository version": "5654699fb38512",
-        "loadable kernel modules": ["drivers/usb/serial/usbserial.ko"]
+        "loadable kernel modules": ["drivers/usb/serial/usbserial.ko"],
+        "GCC 4.6 Clade CIF options": true
     },
     {
         "build base": "validation/d979e9f9ecab04~",
         "name": "Linux",
         "git repository version": "d979e9f9ecab04~",
-        "loadable kernel modules": ["drivers/usb/serial/usbserial.ko"]
+        "loadable kernel modules": ["drivers/usb/serial/usbserial.ko"],
+        "GCC 4.6 Clade CIF options": true
     },
     {
         "build base": "validation/d979e9f9ecab04",
         "name": "Linux",
         "git repository version": "d979e9f9ecab04",
-        "loadable kernel modules": ["drivers/usb/serial/usbserial.ko"]
+        "loadable kernel modules": ["drivers/usb/serial/usbserial.ko"],
+        "GCC 4.6 Clade CIF options": true
     },
     {
         "build base": "validation/aea1ae8760314e~",
         "name": "Linux",
         "git repository version": "aea1ae8760314e~",
-        "loadable kernel modules": ["drivers/usb/serial/ftdi_sio.ko"]
+        "loadable kernel modules": ["drivers/usb/serial/ftdi_sio.ko"],
+        "GCC 4.6 Clade CIF options": true
     },
     {
         "build base": "validation/aea1ae8760314e",
         "name": "Linux",
         "git repository version": "aea1ae8760314e",
-        "loadable kernel modules": ["drivers/usb/serial/ftdi_sio.ko"]
+        "loadable kernel modules": ["drivers/usb/serial/ftdi_sio.ko"],
+        "GCC 4.6 Clade CIF options": true
     },
     {
         "build base": "validation/d5afce82e131eb~",
         "name": "Linux",
         "git repository version": "d5afce82e131eb~",
-        "loadable kernel modules": ["drivers/usb/serial/keyspan.ko"]
+        "loadable kernel modules": ["drivers/usb/serial/keyspan.ko"],
+        "GCC 4.6 Clade CIF options": true
     },
     {
         "build base": "validation/d5afce82e131eb",
         "name": "Linux",
         "git repository version": "d5afce82e131eb",
-        "loadable kernel modules": ["drivers/usb/serial/keyspan.ko"]
+        "loadable kernel modules": ["drivers/usb/serial/keyspan.ko"],
+        "GCC 4.6 Clade CIF options": true
     },
     {
         "build base": "validation/9096f1fbba916c~",
         "name": "Linux",
         "git repository version": "9096f1fbba916c~",
-        "loadable kernel modules": ["drivers/usb/serial/usb_wwan.ko"]
+        "loadable kernel modules": ["drivers/usb/serial/usb_wwan.ko"],
+        "GCC 4.6 Clade CIF options": true
     },
     {
         "build base": "validation/9096f1fbba916c",
         "name": "Linux",
         "git repository version": "9096f1fbba916c",
-        "loadable kernel modules": ["drivers/usb/serial/usb_wwan.ko"]
+        "loadable kernel modules": ["drivers/usb/serial/usb_wwan.ko"],
+        "GCC 4.6 Clade CIF options": true
     },
     {
         "build base": "validation/d9e93c08d8d985~",
         "name": "Linux",
         "git repository version": "d9e93c08d8d985~",
-        "loadable kernel modules": ["drivers/usb/serial/usb_wwan.ko"]
+        "loadable kernel modules": ["drivers/usb/serial/usb_wwan.ko"],
+        "GCC 4.6 Clade CIF options": true
     },
     {
         "build base": "validation/d9e93c08d8d985",
         "name": "Linux",
         "git repository version": "d9e93c08d8d985",
-        "loadable kernel modules": ["drivers/usb/serial/usb_wwan.ko"]
+        "loadable kernel modules": ["drivers/usb/serial/usb_wwan.ko"],
+        "GCC 4.6 Clade CIF options": true
     },
     {
         "build base": "validation/014333f77c0b71~",
         "name": "Linux",
         "git repository version": "014333f77c0b71~",
-        "loadable kernel modules": ["drivers/usb/serial/sierra.ko"]
+        "loadable kernel modules": ["drivers/usb/serial/sierra.ko"],
+        "GCC 4.6 Clade CIF options": true
     },
     {
         "build base": "validation/014333f77c0b71",
         "name": "Linux",
         "git repository version": "014333f77c0b71",
-        "loadable kernel modules": ["drivers/usb/serial/sierra.ko"]
+        "loadable kernel modules": ["drivers/usb/serial/sierra.ko"],
+        "GCC 4.6 Clade CIF options": true
     },
     {
         "build base": "validation/7fdd26a01eb7b6~",
         "name": "Linux",
         "git repository version": "7fdd26a01eb7b6~",
-        "loadable kernel modules": ["drivers/usb/serial/sierra.ko"]
+        "loadable kernel modules": ["drivers/usb/serial/sierra.ko"],
+        "GCC 4.6 Clade CIF options": true
     },
     {
         "build base": "validation/7fdd26a01eb7b6",
         "name": "Linux",
         "git repository version": "7fdd26a01eb7b6",
-        "loadable kernel modules": ["drivers/usb/serial/sierra.ko"]
+        "loadable kernel modules": ["drivers/usb/serial/sierra.ko"],
+        "GCC 4.6 Clade CIF options": true
     },
     {
         "build base": "validation/8452727de70f6a~",
         "name": "Linux",
         "git repository version": "8452727de70f6a~",
-        "loadable kernel modules": ["drivers/usb/serial/sierra.ko"]
+        "loadable kernel modules": ["drivers/usb/serial/sierra.ko"],
+        "GCC 4.6 Clade CIF options": true
     },
     {
         "build base": "validation/8452727de70f6a",
         "name": "Linux",
         "git repository version": "8452727de70f6a",
-        "loadable kernel modules": ["drivers/usb/serial/sierra.ko"]
+        "loadable kernel modules": ["drivers/usb/serial/sierra.ko"],
+        "GCC 4.6 Clade CIF options": true
     },
     {
         "build base": "validation/bd73bd8831696f~",
         "name": "Linux",
         "git repository version": "bd73bd8831696f~",
-        "loadable kernel modules": ["drivers/usb/serial/usb_wwan.ko"]
+        "loadable kernel modules": ["drivers/usb/serial/usb_wwan.ko"],
+        "GCC 4.6 Clade CIF options": true
     },
     {
         "build base": "validation/bd73bd8831696f",
         "name": "Linux",
         "git repository version": "bd73bd8831696f",
-        "loadable kernel modules": ["drivers/usb/serial/usb_wwan.ko"]
+        "loadable kernel modules": ["drivers/usb/serial/usb_wwan.ko"],
+        "GCC 4.6 Clade CIF options": true
     }
 ]
