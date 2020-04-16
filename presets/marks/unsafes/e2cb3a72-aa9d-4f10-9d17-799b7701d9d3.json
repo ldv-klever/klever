@@ -38,5 +38,6 @@
   "function": "thread_call_forests",
   "is_modifiable": false,
   "tags": [],
+  "threshold": 100,
   "verdict": "2"
 }
