@@ -230,6 +230,21 @@ def test_function_pointer_args():
 
 
 @parser_test
+def test_struct_attributes():
+    return [
+        "struct A {int x; int y;};",
+        "struct A {int x; int y;} __attribute__(());",
+        "struct A {int x; int y;} __attribute__((__packed__));",
+        "struct B {int x; int y;} __attribute__((__aligned__));",
+        "struct C {int x; int y;} __attribute__((__aligned__(b)));",
+        "struct C {int x; int y;} __attribute__((__aligned__(4)));",
+        "struct D {int x; int y;} __attribute__((__packed__)) __attribute__((__aligned__(4)));",
+        "struct D {int x; int y;} __attribute__((__packed__)) __attribute__((format(printf, 2, 3)));",
+        'struct D {int x; int y;} __attribute__((__packed__)) __attribute__((weak, alias("__f")));'
+    ]
+
+
+@parser_test
 def test_mess_declarations():
     return [
         'void (*((*a)(int, ...)) []) (void) []'
