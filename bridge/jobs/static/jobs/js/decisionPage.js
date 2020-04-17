@@ -132,7 +132,7 @@ $(document).ready(function () {
             update_decision_results(interval);
             update_progress(interval);
             num_of_updates++;
-            if (num_of_updates > 20) stop_autoupdate();
+            if (num_of_updates > 100) stop_autoupdate();
         }
         // Always update the status
         check_status(interval);
