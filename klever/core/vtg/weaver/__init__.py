@@ -171,8 +171,6 @@ class Weaver(klever.core.vtg.plugins.Plugin):
                                 shutil.copytree(outfile_unique + ' additional sources',
                                                 os.path.join(cache_dir, 'additional sources'))
 
-                        os.remove(cache_dir + '.tmp')
-
         # For auxiliary files there is no cross references since it is rather hard to get them from Aspectator. But
         # there still highlighting.
         if self.conf['code coverage details'] == 'All source files':

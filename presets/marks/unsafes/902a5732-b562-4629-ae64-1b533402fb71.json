@@ -60,6 +60,6 @@
   "is_modifiable": false,
   "status": "2",
   "tags": [],
-  "threshold": 0,
+  "threshold": 100,
   "verdict": "1"
 }
