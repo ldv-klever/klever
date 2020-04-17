@@ -66,6 +66,6 @@
   "tags": [
     "KernelModel"
   ],
-  "threshold": 0,
+  "threshold": 100,
   "verdict": "3"
 }
