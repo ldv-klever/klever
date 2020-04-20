@@ -31,8 +31,9 @@ int ldv_request_firmware(const struct firmware **fw)
 	if (!retval)
     {
 		_fw = ldv_xzalloc(sizeof(**fw));
-		_fw->data = ldv_malloc_unknown_size();
-		ldv_assume(_fw->data);
+		_fw->data = external_allocated_data();
+		_fw->size = ldv_undef_long();
+		ldv_assume(_fw->data && _fw->size > 0);
 		*fw = _fw;
     }
 
