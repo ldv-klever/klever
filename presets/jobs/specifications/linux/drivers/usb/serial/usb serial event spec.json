@@ -367,18 +367,18 @@
             "callback": "%driver.throttle%",
             "comment": "Notify the tty driver that input buffers for the line discipline are close to full.",
             "parameters": [
-              "%resource%"
+              "%tty_struct%"
             ]
           },
           "tty_layer": {
             "comment": "Call the rest callbacks from tty layer.",
-            "process": "([throttle].[unthrottle] | [irq_write] | [write] | [rest_line_attached_callbacks]).{tty_layer} | (deregister_tty_layer)"
+            "process": "([read_int_callback].([throttle].[unthrottle] | [irq_write] | [write] | [write_int_callback] | [read_bulk_callback] | [write_bulk_callback] | [process_read_urb]) | [rest_line_attached_callbacks]).<free>.(deregister_tty_layer)"
           },
           "unthrottle": {
             "callback": "%driver.unthrottle%",
             "comment": "Notify the tty drivers that it should signals that characters can now be sent.",
             "parameters": [
-              "%resource%"
+              "%tty_struct%"
             ]
           },
           "write": {
@@ -387,6 +387,69 @@
             "parameters": [
               "%resource%",
               "%port%"
+            ]
+          },
+          "read_int_callback": {
+            "callback": "%driver.read_int_callback%",
+            "comment": "Call read interrupt URB callback.",
+            "parameters": [
+              "%urb%"
+            ],
+            "~pre-call": ["%urb% = %port%->interrupt_in_urb;"]
+          },
+          "write_int_callback": {
+            "callback": "%driver.write_int_callback%",
+            "comment": ".",
+            "parameters": [
+              "%urb%"
+            ],
+            "~pre-call": ["%urb% = %port%->interrupt_out_urb;"]
+          },
+          "read_bulk_callback": {
+            "callback": "%driver.read_bulk_callback%",
+            "comment": ".",
+            "parameters": [
+              "%urb%"
+            ],
+            "~pre-call": ["%urb% = %port%->read_urbs[0];"]
+          },
+          "write_bulk_callback": {
+            "callback": "%driver.write_bulk_callback%",
+            "comment": ".",
+            "parameters": [
+              "%urb%"
+            ],
+            "~pre-call": ["%urb% = %port%->write_urbs[0];"]
+          },
+          "process_read_urb": {
+            "callback": "%driver.read_int_callback%",
+            "comment": ".",
+            "parameters": [
+              "%urb%"
+            ],
+            "~pre-call": ["%urb% = %port%->read_urbs[0];"]
+          },
+          "init": {
+            "comment": "Initialize a new URB.",
+            "statements": [
+              "%tty_struct% = ldv_xmalloc(sizeof(struct tty_struct));",
+              "%tty_struct%->driver_data = %port%;",
+              "%urb% = ldv_xmalloc(sizeof(struct urb));",
+              "%urb%->transfer_buffer = external_allocated_data();",
+              "%urb%->context = %port%;",
+              "ldv_assume(%urb%->actual_length > 0);",
+              "ldv_assume(%urb%->actual_length < 1000);",
+              "%port%->interrupt_in_urb = %urb%;",
+              "%port%->interrupt_out_urb = %urb%;",
+              "%port%->read_urbs[0] = %urb%;",
+              "%port%->write_urbs[0] = %urb%;"
+            ]
+          },
+          "free": {
+            "comment": "Free URB.",
+            "statements": [
+              "$FREE(%urb%);",
+              "$FREE(%tty_struct%);"
             ]
           }
         },
@@ -412,11 +475,23 @@
           "resource": {
             "resource": true
           },
+          "urb": {
+            "resource": true,
+            "interface": [
+              "usb_serial.urb"
+            ]
+          },
+          "tty_struct": {
+            "resource": true,
+            "interface": [
+              "usb_serial.tty_struct"
+            ]
+          },
           "rest_line_attached_callbacks": {
             "callback": true
           }
         },
-        "process": "(!register_tty_layer).{tty_layer}",
+        "process": "(!register_tty_layer).<init>.{tty_layer}",
         "reference": true
       },
       "usb_serial_scenario": {
@@ -477,7 +552,7 @@
             "comment": "Alloc memory and initialize an usb_serial structure that should be done by USB serial subsystem when the device is inserted.",
             "statements": [
               "%resource% = $ALLOC(%resource%);",
-              "%port% = $ALLOC(%port%);"
+              "%port% = ldv_xmalloc(sizeof(struct usb_serial_port));"
             ]
           },
           "insert_device": {

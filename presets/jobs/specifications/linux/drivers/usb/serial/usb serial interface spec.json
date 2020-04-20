@@ -158,9 +158,6 @@
           "read": {
             "declaration": "void (*close)(%usb_serial.usb_serial_port%)"
           },
-          "read_bulk_callback": {
-            "declaration": "void (*read_bulk_callback)(struct urb *urb)"
-          },
           "release": {
             "declaration": "void (*release)(%usb_serial.usb_serial%)"
           },
@@ -197,11 +194,23 @@
           "write": {
             "declaration": "int (*write)(%usb_serial.tty_struct%, %usb_serial.usb_serial_port%, const unsigned char *buf, int count)"
           },
-          "write_bulk_callback": {
-            "declaration": "void (*write_bulk_callback)(struct urb *urb)"
-          },
           "write_room": {
             "declaration": "int  (*write_room)(%usb_serial.tty_struct%)"
+          },
+          "read_int_callback": {
+            "declaration": "void (*read_int_callback)(%usb_serial.urb%)"
+          },
+          "write_int_callback": {
+            "declaration": "void (*write_int_callback)(%usb_serial.urb%)"
+          },
+          "read_bulk_callback": {
+            "declaration": "void (*read_bulk_callback)(%usb_serial.urb%);"
+          },
+          "write_bulk_callback": {
+            "declaration": "void (*write_bulk_callback)(%usb_serial.urb%);"
+          },
+          "process_read_urb": {
+            "declaration": "void (*process_read_urb)(%usb_serial.urb%);"
           }
         },
         "containers": {
@@ -224,7 +233,6 @@
               "prepare_write_buffer": "%usb_serial.prepare_write_buffer%",
               "probe": "%usb_serial.probe%",
               "read": "%usb_serial.read%",
-              "read_bulk_callback": "%usb_serial.read_bulk_callback%",
               "release": "%usb_serial.release%",
               "reset_resume": "%usb_serial.reset_resume%",
               "resume": "%usb_serial.resume%",
@@ -237,8 +245,12 @@
               "unthrottle": "%usb_serial.unthrottle%",
               "wait_until_sent": "%usb_serial.wait_until_sent%",
               "write": "%usb_serial.write%",
+              "write_room": "%usb_serial.write_room%",
+              "read_int_callback": "%usb_serial.read_int_callback%",
+              "write_int_callback": "%usb_serial.write_int_callback%",
+              "read_bulk_callback": "%usb_serial.read_bulk_callback%",
               "write_bulk_callback": "%usb_serial.write_bulk_callback%",
-              "write_room": "%usb_serial.write_room%"
+              "process_read_urb": "%usb_serial.process_read_urb%"
             },
             "headers": [
               "linux/usb.h",
@@ -268,6 +280,14 @@
           },
           "usb_serial_port": {
             "declaration": "struct usb_serial_port *port",
+            "headers": [
+              "linux/usb.h",
+              "linux/usb/serial.h"
+            ],
+            "implemented in kernel": true
+          },
+          "urb": {
+            "declaration": "struct urb *urb",
             "headers": [
               "linux/usb.h",
               "linux/usb/serial.h"
