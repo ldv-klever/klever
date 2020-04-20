@@ -12,11 +12,130 @@
     },
     {
       "build base": "validation/1568c58d11a7c8",
-      "targets": ["drivers/usb/serial/io_edgeport.ko"],      
+      "targets": ["drivers/usb/serial/io_edgeport.ko"],
       "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "1568c58d11a7c8~"},
       "specifications set": "5.5"
     },
+    {
+      "build base": "validation/5dfdd24eb3d39d~",
+      "targets": ["drivers/usb/serial/ti_usb_3410_5052.ko"],
+      "data": {"bug identifier": "5dfdd24eb3d39d~"},
+      "specifications set": "4.17"
+    },
+    {
+      "build base": "validation/5dfdd24eb3d39d",
+      "targets": ["drivers/usb/serial/ti_usb_3410_5052.ko"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "5dfdd24eb3d39d~"},
+      "specifications set": "4.17"
+    },
+    {
+      "build base": "validation/691a03cfe8ca48~",
+      "targets": ["drivers/usb/serial/io_ti.ko"],
+      "data": {"bug identifier": "691a03cfe8ca48~"},
+      "specifications set": "4.17"
+    },
+    {
+      "build base": "validation/691a03cfe8ca48",
+      "targets": ["drivers/usb/serial/io_ti.ko"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "691a03cfe8ca48~"},
+      "specifications set": "4.17"
+    },
+    {
+      "build base": "validation/74d471b598444b~",
+      "targets": ["drivers/usb/serial/garmin_gps.ko"],
+      "data": {"bug identifier": "74d471b598444b~"},
+      "specifications set": "4.17"
+    },
+    {
+      "build base": "validation/74d471b598444b",
+      "targets": ["drivers/usb/serial/garmin_gps.ko"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "74d471b598444b~"},
+      "specifications set": "4.17"
+    },
+    {
+      "build base": "validation/0b1d250afb8eb9~",
+      "targets": ["drivers/usb/serial/io_ti.ko"],
+      "data": {"bug identifier": "0b1d250afb8eb9~"},
+      "specifications set": "4.15"
+    },
+    {
+      "build base": "validation/0b1d250afb8eb9",
+      "targets": ["drivers/usb/serial/io_ti.ko"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "0b1d250afb8eb9~"},
+      "specifications set": "4.15"
+    },
+    {
+      "build base": "validation/c4ac4496e835b7~",
+      "targets": ["drivers/usb/serial/garmin_gps.ko"],
+      "data": {"bug identifier": "c4ac4496e835b7~"},
+      "specifications set": "4.6.7"
+    },
+    {
+      "build base": "validation/c4ac4496e835b7",
+      "targets": ["drivers/usb/serial/garmin_gps.ko"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "c4ac4496e835b7~"},
+      "specifications set": "4.6.7"
+    },
+    {
+      "build base": "validation/647024a7df3601~",
+      "targets": ["drivers/usb/serial/usbserial.ko"],
+      "data": {"bug identifier": "647024a7df3601~"},
+      "specifications set": "4.6.7"
+    },
+    {
+      "build base": "validation/647024a7df3601",
+      "targets": ["drivers/usb/serial/usbserial.ko"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "647024a7df3601~"},
+      "specifications set": "4.6.7"
+    },
+    {
+      "build base": "validation/c8d62957d450cc~",
+      "targets": ["drivers/usb/serial/io_edgeport.ko"],
+      "data": {"bug identifier": "c8d62957d450cc~"},
+      "specifications set": "4.6.7"
+    },
+    {
+      "build base": "validation/c8d62957d450cc",
+      "targets": ["drivers/usb/serial/io_edgeport.ko"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "c8d62957d450cc~"},
+      "specifications set": "4.6.7"
+    },
+     {
+      "build base": "validation/028635d6b5b42d~",
+      "targets": ["drivers/usb/serial/mxu11x0.ko"],
+      "data": {"bug identifier": "028635d6b5b42d~"},
+      "specifications set": "4.6.7"
+    },
+    {
+      "build base": "validation/028635d6b5b42d",
+      "targets": ["drivers/usb/serial/mxu11x0.ko"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "028635d6b5b42d~"},
+      "specifications set": "4.6.7"
+    },
+     {
+      "build base": "validation/db81de767e3757~",
+      "targets": ["drivers/usb/serial/mxuport.ko"],
+      "data": {"bug identifier": "db81de767e3757~"},
+      "specifications set": "4.6.7"
+    },
+    {
+      "build base": "validation/db81de767e3757",
+      "targets": ["drivers/usb/serial/mxuport.ko"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "db81de767e3757~"},
+      "specifications set": "4.6.7"
+    }
+  ],
+  "Other possible tasks": [
     {
       "build base": "validation/1251dab9e0a2c4~",
       "targets": ["drivers/usb/serial/whiteheat.ko"],
@@ -30,45 +149,7 @@
       "data": {"bug identifier": "1251dab9e0a2c4~"},
       "specifications set": "5.5"
     },
-    {
-      "build base": "validation/5dfdd24eb3d39d~",
-      "targets": ["drivers/usb/serial/ti_usb_3410_5052.ko"],
-      "data": {"bug identifier": "5dfdd24eb3d39d~"},
-      "specifications set": "4.17"
-    },
-    {
-      "build base": "validation/5dfdd24eb3d39d",
-      "targets": ["drivers/usb/serial/ti_usb_3410_5052.ko"],      
-      "ideal verdicts": [{"ideal verdict": "safe"}],
-      "data": {"bug identifier": "5dfdd24eb3d39d~"},
-      "specifications set": "4.17"
-    },
-    {
-      "build base": "validation/691a03cfe8ca48~",
-      "targets": ["drivers/usb/serial/io_ti.ko"],
-      "data": {"bug identifier": "691a03cfe8ca48~"},
-      "specifications set": "4.17"
-    },
-    {
-      "build base": "validation/691a03cfe8ca48",
-      "targets": ["drivers/usb/serial/io_ti.ko"],      
-      "ideal verdicts": [{"ideal verdict": "safe"}],
-      "data": {"bug identifier": "691a03cfe8ca48~"},
-      "specifications set": "4.17"
-    },
-    {
-      "build base": "validation/74d471b598444b~",
-      "targets": ["drivers/usb/serial/garmin_gps.ko"],
-      "data": {"bug identifier": "74d471b598444b~"},
-      "specifications set": "4.17"
-    },
-    {
-      "build base": "validation/74d471b598444b",
-      "targets": ["drivers/usb/serial/garmin_gps.ko"],      
-      "ideal verdicts": [{"ideal verdict": "safe"}],
-      "data": {"bug identifier": "74d471b598444b~"},
-      "specifications set": "4.17"
-    },
+
     {
       "build base": "validation/299d7572e46f98~",
       "targets": ["drivers/usb/serial/usbserial.ko"],
@@ -147,19 +228,7 @@
       "data": {"bug identifier": "654b404f2a222f~"},
       "specifications set": "4.15"
     },
-    {
-      "build base": "validation/0b1d250afb8eb9~",
-      "targets": ["drivers/usb/serial/io_ti.ko"],
-      "data": {"bug identifier": "0b1d250afb8eb9~"},
-      "specifications set": "4.15"
-    },
-    {
-      "build base": "validation/0b1d250afb8eb9",
-      "targets": ["drivers/usb/serial/io_ti.ko"],      
-      "ideal verdicts": [{"ideal verdict": "safe"}],
-      "data": {"bug identifier": "0b1d250afb8eb9~"},
-      "specifications set": "4.15"
-    },
+
     {
       "build base": "validation/5182c2cf2a9bfb~",
       "targets": ["drivers/usb/serial/mos7840.ko"],
@@ -356,19 +425,6 @@
       "specifications set": "4.6.7"
     },
     {
-      "build base": "validation/c4ac4496e835b7~",
-      "targets": ["drivers/usb/serial/garmin_gps.ko"],
-      "data": {"bug identifier": "c4ac4496e835b7~"},
-      "specifications set": "4.6.7"
-    },
-    {
-      "build base": "validation/c4ac4496e835b7",
-      "targets": ["drivers/usb/serial/garmin_gps.ko"],      
-      "ideal verdicts": [{"ideal verdict": "safe"}],
-      "data": {"bug identifier": "c4ac4496e835b7~"},
-      "specifications set": "4.6.7"
-    },
-    {
       "build base": "validation/3dca01114dcecb~",
       "targets": ["drivers/usb/serial/cyberjack.ko"],
       "data": {"bug identifier": "3dca01114dcecb~"},
@@ -421,19 +477,6 @@
       "specifications set": "4.6.7"
     },
     {
-      "build base": "validation/647024a7df3601~",
-      "targets": ["drivers/usb/serial/usbserial.ko"],
-      "data": {"bug identifier": "647024a7df3601~"},
-      "specifications set": "4.6.7"
-    },
-    {
-      "build base": "validation/647024a7df3601",
-      "targets": ["drivers/usb/serial/usbserial.ko"],      
-      "ideal verdicts": [{"ideal verdict": "safe"}],
-      "data": {"bug identifier": "647024a7df3601~"},
-      "specifications set": "4.6.7"
-    },
-    {
       "build base": "validation/9e452849840963~",
       "targets": ["drivers/usb/serial/mxuport.ko"],
       "data": {"bug identifier": "9e452849840963~"},
@@ -444,19 +487,6 @@
       "targets": ["drivers/usb/serial/mxuport.ko"],      
       "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "9e452849840963~"},
-      "specifications set": "4.6.7"
-    },
-    {
-      "build base": "validation/c8d62957d450cc~",
-      "targets": ["drivers/usb/serial/io_edgeport.ko"],
-      "data": {"bug identifier": "c8d62957d450cc~"},
-      "specifications set": "4.6.7"
-    },
-    {
-      "build base": "validation/c8d62957d450cc",
-      "targets": ["drivers/usb/serial/io_edgeport.ko"],      
-      "ideal verdicts": [{"ideal verdict": "safe"}],
-      "data": {"bug identifier": "c8d62957d450cc~"},
       "specifications set": "4.6.7"
     },
     {
@@ -483,19 +513,6 @@
       "targets": ["drivers/usb/serial/digi_acceleport.ko"],      
       "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "5a07975ad0a367~"},
-      "specifications set": "4.6.7"
-    },
-    {
-      "build base": "validation/028635d6b5b42d~",
-      "targets": ["drivers/usb/serial/mxu11x0.ko"],
-      "data": {"bug identifier": "028635d6b5b42d~"},
-      "specifications set": "4.6.7"
-    },
-    {
-      "build base": "validation/028635d6b5b42d",
-      "targets": ["drivers/usb/serial/mxu11x0.ko"],      
-      "ideal verdicts": [{"ideal verdict": "safe"}],
-      "data": {"bug identifier": "028635d6b5b42d~"},
       "specifications set": "4.6.7"
     },
     {
@@ -561,19 +578,6 @@
       "targets": ["drivers/usb/serial/whiteheat.ko"],      
       "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "cbb4be652d374f~"},
-      "specifications set": "4.6.7"
-    },
-    {
-      "build base": "validation/db81de767e3757~",
-      "targets": ["drivers/usb/serial/mxuport.ko"],
-      "data": {"bug identifier": "db81de767e3757~"},
-      "specifications set": "4.6.7"
-    },
-    {
-      "build base": "validation/db81de767e3757",
-      "targets": ["drivers/usb/serial/mxuport.ko"],      
-      "ideal verdicts": [{"ideal verdict": "safe"}],
-      "data": {"bug identifier": "db81de767e3757~"},
       "specifications set": "4.6.7"
     },
     {
