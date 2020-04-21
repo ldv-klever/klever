@@ -256,7 +256,7 @@ class Linux(CProgram):
         }
     }
     _CLADE_CONF = dict()
-    _CLADE_PRESET = 'linux_kernel'
+    _CLADE_PRESET = 'klever_linux_kernel'
 
     def __init__(self, logger, target_program_desc):
         super().__init__(logger, target_program_desc)
@@ -489,8 +489,22 @@ class Linux(CProgram):
 
 
 class BusyBox(CProgram):
+    _ARCH_OPTS = {
+        'x86_64': {
+            'ARCH': 'x86_64'
+        }
+    }
+    _CLADE_CONF = dict()
+    _CLADE_PRESET = 'klever_busybox_linux'
+
     def __init__(self, logger, target_program_desc):
         super().__init__(logger, target_program_desc)
+        self.configuration = self.target_program_desc.get('configuration')
+
+    def _configure(self):
+        self.logger.info(f'Configure BusyBox as {self.configuration}')
+        target = [self.configuration]
+        self._make(*target)
 
 
 def get_descs_dir():
@@ -537,7 +551,7 @@ def parse_args(logger):
     parser.add_argument(
         '-r',
         '--repositories',
-        help='path to the directory that contains all required git repositorues (linux-stable, busybox)',
+        help='path to the directory that contains all required git repositorues (linux-stable, userspace)',
         default='.',
         metavar='PATH'
     )

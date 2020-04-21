@@ -1,0 +1,7 @@
+[
+    {
+        "build base": "build-base-busybox-1.31.1-x86_64",
+        "name": "BusyBox",
+        "git repository version": "1_30_stable"
+    }
+]
