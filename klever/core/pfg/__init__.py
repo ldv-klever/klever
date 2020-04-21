@@ -56,23 +56,22 @@ class PFG(klever.core.components.Component):
 
         with open(attr_data[1]) as fp:
             data = json.load(fp)
-
         data.update({'type': 'PFG'})
-
-        klever.core.utils.report(self.logger,
-                          'patch',
-                          {
-                              'identifier': self.id,
-                              'data': data
-                          },
-                          self.mqs['report files'],
-                          self.vals['report id'],
-                          self.conf['main working directory'])
+        klever.core.utils.report(
+            self.logger,
+            'patch',
+            {
+              'identifier': self.id,
+              'data': data
+            },
+            self.mqs['report files'],
+            self.vals['report id'],
+            self.conf['main working directory'])
 
         self.prepare_descriptions_file(fragments_files)
         self.excluded_clean = [self.PF_DIR, self.PF_FILE]
-        self.excluded_clean.extend(attr_data[1])
-        self.logger.debug("Excluded {0}".format(self.excluded_clean))
+        self.excluded_clean.append(attr_data[1])
+        self.logger.debug("Excluded {}".format(', '.join(self.excluded_clean)))
         self.clean_dir = True
 
     main = generate_program_fragments
