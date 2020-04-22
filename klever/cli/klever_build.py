@@ -129,7 +129,8 @@ class CProgram:
         self.work_src_trees.append(os.path.realpath(self.work_src_tree))
 
     def _get_version(self):
-        self.version = self.target_program_desc.get('version')
+        if self.target_program_desc.get('version'):
+            self.version = self.target_program_desc.get('version')
 
     def _make(self, *target, opts=None, env=None, intercept_build_cmds=False, get_output=False):
         if opts is None:
