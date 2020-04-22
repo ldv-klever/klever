@@ -584,26 +584,27 @@ class VTGW(klever.core.components.Component):
     def tasks_generator_worker(self):
         files_list_file = 'files list.txt'
         klever.core.utils.save_program_fragment_description(self.program_fragment_desc, files_list_file)
-        klever.core.utils.report(self.logger,
-                          'patch',
-                          {
-                              'identifier': self.id,
-                              'attrs': [
-                                  {
-                                      "name": "Program fragment",
-                                      "value": self.program_fragment_id,
-                                      "data": files_list_file
-                                  },
-                                  {
-                                      "name": "Requirements specification",
-                                      "value": self.req_spec_id
-                                  }
-                              ]
-                          },
-                          self.mqs['report files'],
-                          self.vals['report id'],
-                          self.conf['main working directory'],
-                          data_files=[files_list_file])
+        klever.core.utils.report(
+            self.logger,
+            'patch',
+            {
+              'identifier': self.id,
+              'attrs': [
+                  {
+                      "name": "Program fragment",
+                      "value": self.program_fragment_id,
+                      "data": files_list_file
+                  },
+                  {
+                      "name": "Requirements specification",
+                      "value": self.req_spec_id
+                  }
+              ]
+            },
+            self.mqs['report files'],
+            self.vals['report id'],
+            self.conf['main working directory'],
+            data_files=[files_list_file])
 
         try:
             self.generate_abstact_verification_task_desc(self.program_fragment_desc, self.req_spec_desc)
