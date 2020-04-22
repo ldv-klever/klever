@@ -1167,6 +1167,101 @@
           }
         },
         "process": "(!register).<init>.{insert_device}"
+      },
+      "tty_layer": {
+        "actions": {
+          "deregister_tty_layer": {
+            "comment": "End up with USB serial tty layer callbacks invocation scenario.",
+            "condition": [
+              "%driver% == $ARG1"
+            ],
+            "parameters": [
+              "%driver%"
+            ]
+          },
+          "irq_write": {
+            "callback": "%driver.write%",
+            "comment": "Write a block of characters to the tty device in atomic context.",
+            "parameters": [
+              "%resource%",
+              "%port%"
+            ],
+            "post-call": [
+              "ldv_switch_to_process_context();"
+            ],
+            "pre-call": [
+              "ldv_switch_to_interrupt_context();"
+            ]
+          },
+          "register_tty_layer": {
+            "comment": "Begin USB serial tty layer callbacks invocation scenario.",
+            "parameters": [
+              "%driver%",
+              "%port%",
+              "%resource%"
+            ]
+          },
+          "rest_line_attached_callbacks": {
+            "callback": "%rest_line_attached_callbacks%",
+            "parameters": [
+              "%resource%"
+            ]
+          },
+          "throttle": {
+            "callback": "%driver.throttle%",
+            "comment": "Notify the tty driver that input buffers for the line discipline are close to full.",
+            "parameters": [
+              "%resource%"
+            ]
+          },
+          "tty_layer": {
+            "comment": "Call the rest callbacks from tty layer.",
+            "process": "([throttle].[unthrottle] | [irq_write] | [write] | [rest_line_attached_callbacks]).{tty_layer} | (deregister_tty_layer)"
+          },
+          "unthrottle": {
+            "callback": "%driver.unthrottle%",
+            "comment": "Notify the tty drivers that it should signals that characters can now be sent.",
+            "parameters": [
+              "%resource%"
+            ]
+          },
+          "write": {
+            "callback": "%driver.write%",
+            "comment": "Write a block of characters to the tty device in atomic context.",
+            "parameters": [
+              "%resource%",
+              "%port%"
+            ]
+          }
+        },
+        "comment": "Invoke USB serial tty layer callbacks.",
+        "headers": [
+          "linux/tty.h",
+          "linux/usb.h",
+          "linux/usb/serial.h"
+        ],
+        "labels": {
+          "driver": {
+            "container": true,
+            "interface": [
+              "usb_serial.usb_serial_driver"
+            ]
+          },
+          "port": {
+            "interface": [
+              "usb_serial.usb_serial_port"
+            ],
+            "resource": true
+          },
+          "resource": {
+            "resource": true
+          },
+          "rest_line_attached_callbacks": {
+            "callback": true
+          }
+        },
+        "process": "(!register_tty_layer).{tty_layer}",
+        "reference": true
       }
     },
     "functions models": {
