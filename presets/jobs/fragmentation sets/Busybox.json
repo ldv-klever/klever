@@ -13,7 +13,12 @@
         "libbb/appletlib.c",
         "libbb/verror_msg.c",
         "libbb/perror_msg.c",
-        "libbb/xfuncs_printf.c"
+        "libbb/xfuncs_printf.c",
+        "procps/kill.c",
+        "shell/ash.c",
+        "shell/math.c",
+        "shell/random.c",
+        "shell/shell_common.c"
       ],
       "add to all fragments": [
         "libbb/wfopen.c",

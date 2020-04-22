@@ -2,8 +2,15 @@
   "jobs": [
     {
       "uuid": "5ba02606-8bd8-4bc0-a72d-d1ddded47f79",
-      "name": "BusyBox",
-      "directory": "busybox"
+      "name": "Userspace",
+      "directory": "userspace",
+      "children": [
+        {
+          "uuid": "08c7a442-83ed-11ea-88e0-879ef40bbdcf",
+          "name": "BusyBox applets",
+          "directory": "userspace/busybox"
+        }
+      ]
     },
     {
       "name": "Linux",
@@ -54,7 +61,6 @@
         },
         {
           "name": "Validation",
-          "uuid": "dfd84ccc-f580-497f-9c50-77425ef6302f",
           "children": [
             {
               "uuid": "b8d817a8-1b6a-493e-b869-c03ff7a65f6d",

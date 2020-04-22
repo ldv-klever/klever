@@ -1,10 +1,9 @@
 {
   "project": "BusyBox",
   "build base": "build-base-busybox-1.31.1-x86_64",
-  "targets": ["ssl_client", "wall", "cpio"],
+  "targets": ["wall"],
   "requirement specifications": [
     "empty",
-    "open",
     "memory safety"
   ]
 }
