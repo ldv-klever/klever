@@ -399,7 +399,7 @@
           },
           "write_int_callback": {
             "callback": "%driver.write_int_callback%",
-            "comment": ".",
+            "comment": "Call write_int_callback callback.",
             "parameters": [
               "%urb%"
             ],
@@ -407,7 +407,7 @@
           },
           "read_bulk_callback": {
             "callback": "%driver.read_bulk_callback%",
-            "comment": ".",
+            "comment": "Call read_bulk_callback callback.",
             "parameters": [
               "%urb%"
             ],
@@ -415,15 +415,15 @@
           },
           "write_bulk_callback": {
             "callback": "%driver.write_bulk_callback%",
-            "comment": ".",
+            "comment": "Call write_bulk_callback callback.",
             "parameters": [
               "%urb%"
             ],
             "~pre-call": ["%urb% = %port%->write_urbs[0];"]
           },
           "process_read_urb": {
-            "callback": "%driver.read_int_callback%",
-            "comment": ".",
+            "callback": "%driver.process_read_urb%",
+            "comment": "Call process_read_urb callback.",
             "parameters": [
               "%urb%"
             ],
