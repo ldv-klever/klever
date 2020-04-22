@@ -135,38 +135,78 @@ def __choose_processes(logger, conf, interfaces, category, chosen, collection):
     best_process = collection.environment[suits[0]]
     best_map = estimations[str(best_process)]
 
-    for process in [collection.environment[name] for name in estimations]:
+    # Keep only that with matched callbacks
+    estimations = {name: estimations[name] for name in estimations
+                   if estimations[name] and estimations[name]["matched calls"] and
+                   not estimations[name]["unmatched labels"]}
+
+    # Filter by native interfaces
+    reduced_estimations = {name: estimations[name] for name in estimations
+                           if estimations[name]["native interfaces"] > 0}
+    if reduced_estimations:
+        logger.info('Consider only processes with relevant interfaces: {}'.format(', '.join(reduced_estimations.keys())))
+        estimations = reduced_estimations
+
+    # Filter by send relationships
+    signal_maps = {}
+    for process in (collection.environment[name] for name in estimations):
+        for sending in process.actions.filter(include=[Dispatch]):
+            params = str(len(sending.parameters))
+            logger.debug(f'Found dispatch {str(sending)} with {params}')
+            nname = str(sending) + '_' + params
+            signal_maps.setdefault(nname, {'send': set(), 'receive': set()})
+            signal_maps[nname]['send'].add(str(process))
+        for receive in process.actions.filter(include=[Receive]):
+            params = str(len(receive.parameters))
+            logger.debug(f'Found dispatch {str(receive)} with {params}')
+            nname = str(receive) + '_' + str(len(receive.parameters))
+            signal_maps.setdefault(nname, {'send': set(), 'receive': set()})
+            signal_maps[nname]['receive'].add(str(process))
+
+    # Now filter processes to take into account dependencies
+    to_remove = set()
+    for nname in (n for n in signal_maps if len(signal_maps[n]['send']) > 0):
+        for dependant in signal_maps[nname]['receive']:
+            to_remove.add(dependant)
+    if len(to_remove) < len(list(estimations.keys())):
+        # Do not remove them all!
+        logger.debug('Going to remove the following signal depending processes: {}'.
+                     format(', '.format(list(to_remove))))
+        estimations = {n: estimations[n] for n in estimations if n not in to_remove}
+    else:
+        logger.warning('Loop dependencies between processes: {}'.format(', '.join(list(to_remove))))
+
+    for process in (collection.environment[name] for name in estimations):
         label_map = estimations[str(process)]
-        if label_map and label_map["matched calls"] and not label_map["unmatched labels"]:
-            logger.info("Matching process {!r} for category {!r}, it has:".format(process.name, category))
-            logger.info("Matching labels: {!r}".format(str(label_map["matched labels"])))
-            logger.info("Unmatched labels: {!r}".format(str(label_map["unmatched labels"])))
-            logger.info("Matched callbacks: {!r}".format(str(label_map["matched callbacks"])))
-            logger.info("Unmatched callbacks: {!r}".format(str(label_map["unmatched callbacks"])))
-            logger.info("Matched calls: {!r}".format(str(label_map["matched calls"])))
-            logger.info("Native interfaces: {!r}".format(str(label_map["native interfaces"])))
+        logger.info("Matching process {!r} for category {!r}, it has:".format(process.name, category))
+        logger.info("Matching labels: {!r}".format(str(label_map["matched labels"])))
+        logger.info("Unmatched labels: {!r}".format(str(label_map["unmatched labels"])))
+        logger.info("Matched callbacks: {!r}".format(str(label_map["matched callbacks"])))
+        logger.info("Unmatched callbacks: {!r}".format(str(label_map["unmatched callbacks"])))
+        logger.info("Matched calls: {!r}".format(str(label_map["matched calls"])))
+        logger.info("Native interfaces: {!r}".format(str(label_map["native interfaces"])))
 
-            do = False
-            if label_map["native interfaces"] > best_map["native interfaces"]:
+        do = False
+        if label_map["native interfaces"] > best_map["native interfaces"]:
+            do = True
+        elif label_map["native interfaces"] == best_map["native interfaces"] or best_map["native interfaces"] == 0:
+            if len(label_map["matched calls"]) > len(best_map["matched calls"]) and \
+                            len(label_map["unmatched callbacks"]) <= len(best_map["unmatched callbacks"]):
                 do = True
-            elif label_map["native interfaces"] == best_map["native interfaces"] or best_map["native interfaces"] == 0:
-                if len(label_map["matched calls"]) > len(best_map["matched calls"]) and \
-                                len(label_map["unmatched callbacks"]) <= len(best_map["unmatched callbacks"]):
-                    do = True
-                elif len(label_map["matched calls"]) >= len(best_map["matched calls"]) and \
-                        len(label_map["unmatched callbacks"]) <= len(best_map["unmatched callbacks"]) and \
-                        len(label_map["unmatched labels"]) < len(best_map["unmatched labels"]):
-                    do = True
-                elif len(label_map["unmatched callbacks"]) < len(best_map["unmatched callbacks"]):
-                    do = True
-                else:
-                    do = False
+            elif len(label_map["matched calls"]) >= len(best_map["matched calls"]) and \
+                    len(label_map["unmatched callbacks"]) <= len(best_map["unmatched callbacks"]) and \
+                    len(label_map["unmatched labels"]) < len(best_map["unmatched labels"]):
+                do = True
+            elif len(label_map["unmatched callbacks"]) < len(best_map["unmatched callbacks"]):
+                do = True
+            else:
+                do = False
 
-            if do:
-                best_map = label_map
-                best_process = process
-                logger.debug("Set process {!r} for category {!r} as the best one at the moment".
-                             format(process.name, category))
+        if do:
+            best_map = label_map
+            best_process = process
+            logger.debug("Set process {!r} for category {!r} as the best one at the moment".
+                         format(process.name, category))
 
     if not best_process:
         raise RuntimeError("Cannot find suitable process in event categories specification for category {!r}"
