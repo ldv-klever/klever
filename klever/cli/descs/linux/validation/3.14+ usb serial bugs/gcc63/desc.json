@@ -10,17 +10,5 @@
         "name": "Linux",
         "git repository version": "1568c58d11a7c8",
         "loadable kernel modules": ["drivers/usb/serial/io_edgeport.ko"]
-    },
-    {
-        "build base": "validation/1251dab9e0a2c4~",
-        "name": "Linux",
-        "git repository version": "1251dab9e0a2c4~",
-        "loadable kernel modules": ["drivers/usb/serial/whiteheat.ko"]
-    },
-    {
-        "build base": "validation/1251dab9e0a2c4",
-        "name": "Linux",
-        "git repository version": "1251dab9e0a2c4",
-        "loadable kernel modules": ["drivers/usb/serial/whiteheat.ko"]
     }
 ]
