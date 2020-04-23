@@ -463,7 +463,7 @@ class MarksTableBase:
             value = now() - timedelta(**{self.view['change_date'][2]: int(self.view['change_date'][1])})
             qs_filters['change_date__{}'.format(self.view['change_date'][0])] = value
         if 'component' in self.view:
-            qs_filters['component__{}'.format(self.view['component'][0])] = self.view['component'][1]
+            qs_filters['mark__component__{}'.format(self.view['component'][0])] = self.view['component'][1]
 
         # Sorting
         ordering = 'id'
