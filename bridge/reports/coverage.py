@@ -20,6 +20,7 @@ import json
 from urllib.parse import unquote
 from wsgiref.util import FileWrapper
 
+from django.http import Http404
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 
@@ -104,6 +105,8 @@ class GetCoverageStatistics:
     def __init__(self, report, coverage_id=None):
         # Earlier only first found file with extension in ['.i', '.c', '.c.aux'] was opened
         self.coverage = self.__get_coverage_object(report, coverage_id)
+        if not self.coverage:
+            raise Http404('Coverage archive was not found')
         self.data = CoverageStatistics.objects.filter(coverage=self.coverage).order_by('id')
         self.data_statistic = coverage_data_statistic(self.coverage)
         self.with_extra = self.coverage.has_extra
