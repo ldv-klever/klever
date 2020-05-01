@@ -408,7 +408,7 @@ class CModel:
 class FunctionModels:
     """Class represent common C extensions for simplifying environmen model C code generators."""
 
-    mem_function_template = r'\$({})\(%({})%(?:,\s?(\w+))?\)'
+    mem_function_template = r'\$({})\(%({})%[->[\]\w\s]*(?:,\s?(\w+))?\)'
     simple_function_template = r'\$({})\('
     access_template = r'\w+(?:(?:[.]|->)\w+)*'
     comment_template = re.compile(r'\$COMMENT\((\w+), (\w+)\);$')
