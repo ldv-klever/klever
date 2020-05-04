@@ -345,8 +345,7 @@
             "callback": true
           }
         },
-        "process": "(!register_tty_layer).{tty_layer}",
-        "reference": true
+        "process": "(!register_tty_layer).{tty_layer}"
       }
     },
     "functions models": {
@@ -490,7 +489,7 @@
             "parameters": [
               "%urb%"
             ],
-            "~pre-call": ["%urb% = %port%->interrupt_in_urb;"]
+            "pre-call": ["%urb% = %port%->interrupt_in_urb;"]
           },
           "write_int_callback": {
             "callback": "%driver.write_int_callback%",
@@ -498,7 +497,7 @@
             "parameters": [
               "%urb%"
             ],
-            "~pre-call": ["%urb% = %port%->interrupt_out_urb;"]
+            "pre-call": ["%urb% = %port%->interrupt_out_urb;"]
           },
           "read_bulk_callback": {
             "callback": "%driver.read_bulk_callback%",
@@ -506,7 +505,7 @@
             "parameters": [
               "%urb%"
             ],
-            "~pre-call": ["%urb% = %port%->read_urbs[0];"]
+            "pre-call": ["%urb% = %port%->read_urbs[0];"]
           },
           "write_bulk_callback": {
             "callback": "%driver.write_bulk_callback%",
@@ -514,7 +513,7 @@
             "parameters": [
               "%urb%"
             ],
-            "~pre-call": ["%urb% = %port%->write_urbs[0];"]
+            "pre-call": ["%urb% = %port%->write_urbs[0];"]
           },
           "process_read_urb": {
             "callback": "%driver.process_read_urb%",
@@ -522,28 +521,18 @@
             "parameters": [
               "%urb%"
             ],
-            "~pre-call": ["%urb% = %port%->read_urbs[0];"]
+            "pre-call": ["%urb% = %port%->read_urbs[0];"]
           },
           "init": {
             "comment": "Initialize a new URB.",
             "statements": [
               "%tty_struct% = ldv_xmalloc(sizeof(struct tty_struct));",
-              "%tty_struct%->driver_data = %port%;",
-              "%urb% = ldv_xmalloc(sizeof(struct urb));",
-              "%urb%->transfer_buffer = external_allocated_data();",
-              "%urb%->context = %port%;",
-              "ldv_assume(%urb%->actual_length > 0);",
-              "ldv_assume(%urb%->actual_length < 1000);",
-              "%port%->interrupt_in_urb = %urb%;",
-              "%port%->interrupt_out_urb = %urb%;",
-              "%port%->read_urbs[0] = %urb%;",
-              "%port%->write_urbs[0] = %urb%;"
+              "%tty_struct%->driver_data = %port%;"
             ]
           },
           "free": {
             "comment": "Free URB.",
             "statements": [
-              "$FREE(%urb%);",
               "$FREE(%tty_struct%);"
             ]
           }
@@ -640,6 +629,10 @@
             "comment": "Free usb_serial memory.",
             "statements": [
               "$FREE(%resource%);",
+              "$FREE(%port%->write_urbs[0]);",
+              "$FREE(%port%->interrupt_in_urb);",
+              "$FREE(%port%->interrupt_out_urb);",
+              "$FREE(%port%->read_urbs[0]);",
               "$FREE(%port%);"
             ]
           },
@@ -647,7 +640,11 @@
             "comment": "Alloc memory and initialize an usb_serial structure that should be done by USB serial subsystem when the device is inserted.",
             "statements": [
               "%resource% = $ALLOC(%resource%);",
-              "%port% = ldv_xmalloc(sizeof(struct usb_serial_port));"
+              "%port% = ldv_xmalloc(sizeof(struct usb_serial_port));",
+              "%port%->write_urbs[0] = emg_make_urb(%port%);",
+              "%port%->interrupt_in_urb = emg_make_urb(%port%);",
+              "%port%->interrupt_out_urb = emg_make_urb(%port%);",
+              "%port%->read_urbs[0] = emg_make_urb(%port%);"
             ]
           },
           "insert_device": {
@@ -831,7 +828,29 @@
           }
         },
         "process": "(!register).<init>.{insert_device}",
-        "reference": true
+        "reference": true,
+        "declarations": {
+          "environment model": {
+            "emg_make_urb": "struct urb *emg_make_urb(struct usb_serial_port *port);\n"
+          }
+        },
+        "definitions": {
+          "environment model": {
+            "emg_make_urb": [
+              "/* EMG_WRAPPER emg_make_urb */\n",
+              "struct urb *emg_make_urb(struct usb_serial_port *port) {\n",
+              "\t struct urb *new_urb;\n",
+              "\t new_urb = ldv_xmalloc(sizeof(struct urb));\n",
+              "\t new_urb->transfer_buffer = external_allocated_data();\n",
+              "\t new_urb->context = port;\n",
+              "\t ldv_assume(new_urb->actual_length > 0);\n",
+              "\t ldv_assume(new_urb->actual_length < 1000);\n",
+              "\t return new_urb;\n",
+              "}\n",
+              "\n"
+            ]
+          }
+        }
       }
     },
     "functions models": {
