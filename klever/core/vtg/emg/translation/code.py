@@ -408,7 +408,7 @@ class CModel:
 class FunctionModels:
     """Class represent common C extensions for simplifying environmen model C code generators."""
 
-    mem_function_template = r'\$({})\(%({})%[->[\]\w\s]*(?:,\s?(\w+))?\)'
+    mem_function_template = r'\$({})\(%({})%([->.[\]\w\s]*)(?:,\s?(\w+))?\)'
     simple_function_template = r'\$({})\('
     access_template = r'\w+(?:(?:[.]|->)\w+)*'
     comment_template = re.compile(r'\$COMMENT\((\w+), (\w+)\);$')
@@ -516,8 +516,12 @@ class FunctionModels:
             raise NotImplementedError("Replacement of {!r} comments is not implemented".format(arguments[0]))
 
     def _replace_mem_call(self, match):
-        func, label_name, flag = match.groups()
+        func, label_name, suffix, flag = match.groups()
         size = '0'
+
+        # TODO: Implement this using access parser
+        if suffix:
+            raise NotImplementedError(f'Provide a label to an allocation function: {func}')
 
         if func not in self.mem_function_map:
             raise NotImplementedError("Model of {} is not supported".format(func))
@@ -538,7 +542,7 @@ class FunctionModels:
             raise ValueError('This is not a pointer')
 
     def _replace_free_call(self, match):
-        func, label_name, flag = match.groups()
+        func, label_name, suffix, flag = match.groups()
         if func not in self.free_function_map:
             raise NotImplementedError("Model of {} is not supported".format(func))
         elif not self.free_function_map[func]:
@@ -546,6 +550,6 @@ class FunctionModels:
 
         # Create function call
         if isinstance(self.signature, Pointer):
-            return "{}(%{}%)".format(self.free_function_map[func], label_name)
+            return "{}(%{}%{})".format(self.free_function_map[func], label_name, suffix if suffix else '')
         else:
             raise ValueError('This is not a pointer')
