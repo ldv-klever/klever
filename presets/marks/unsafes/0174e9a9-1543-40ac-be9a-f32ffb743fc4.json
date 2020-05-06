@@ -26,7 +26,7 @@
                           {
                             "xsocket": [
                               {
-                                "cif_socket_0": [
+                                "Instrumented function 'socket'": [
                                   {
                                     "LDV model 'open'": []
                                   }
@@ -41,7 +41,7 @@
                           {
                             "xsocket": [
                               {
-                                "cif_socket_0": [
+                                "Instrumented function 'socket'": [
                                   {
                                     "LDV model 'open'": []
                                   }
@@ -60,7 +60,7 @@
                                   {
                                     "open_read_close": [
                                       {
-                                        "cif_open_4": [
+                                        "cif_open_5": [
                                           {
                                             "LDV model 'open'": []
                                           }
@@ -84,7 +84,7 @@
                                             ]
                                           },
                                           {
-                                            "cif_close_4": [
+                                            "cif_close_5": [
                                               {
                                                 "LDV model 'close'": []
                                               }
