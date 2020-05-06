@@ -7,7 +7,7 @@
       "children": [
         {
           "uuid": "08c7a442-83ed-11ea-88e0-879ef40bbdcf",
-          "name": "BusyBox applets",
+          "name": "BusyBox applets sample",
           "directory": "userspace/busybox"
         }
       ]
