@@ -96,7 +96,7 @@ def keyword_lookup(string):
             'STRUCT': re.compile('struct'),
             'UNION': re.compile('union'),
             'ENUM': re.compile('enum'),
-            'ATTRIBUTE': re.compile('__attribute__')
+            'ATTRIBUTE': re.compile('__attribute__|attribute')
         }
 
     for keyword_type in sorted(keyword_map.keys()):
@@ -426,17 +426,35 @@ def p_struct_declaration(p):
 
 def p_union_specifier(p):
     """
-    union_specifier : UNION IDENTIFIER
-                    | UNION BLOCK_OPEN struct_declaration_list BLOCK_CLOSE
+    union_specifier : union_partial_complex_specifier attribute_dict
+                    | union_partial_complex_specifier 
+                    | union_partial_simple_specifier
     """
-    first, *rest = p[2:]
+    union_specifier, *rest = p[1:]
 
-    union_specifier = {'class': 'union', 'name': None}
     if rest:
-        struct_declaration_list = rest.pop(0)
+        attributes, = rest
+        union_specifier['attributes'] = attributes
+    p[0] = union_specifier
+
+
+def p_union_partial_simple_specifier(p):
+    """
+    union_partial_simple_specifier : UNION IDENTIFIER
+    """
+    p[0] = {'class': 'union', 'name': p[2]}
+
+
+def p_union_partial_complex_specifier(p):
+    """
+    union_partial_complex_specifier : UNION BLOCK_OPEN struct_declaration_list BLOCK_CLOSE
+                                    | UNION BLOCK_OPEN BLOCK_CLOSE
+    """
+    *struct_declaration_list, _ = p[3:]
+    union_specifier = {'class': 'union', 'name': None}
+    if struct_declaration_list:
+        struct_declaration_list, = struct_declaration_list
         union_specifier['fields'] = struct_declaration_list
-    else:
-        union_specifier['name'] = first
     p[0] = union_specifier
 
 
