@@ -64,11 +64,10 @@ common_target_program_descs = {
     },
     "BusyBox": {
         'source code': 'busybox',
-        'git repository version': '1.30_stable',
+        'git repository version': '1_30_1',
         'configuration': 'defconfig',
         'architecture': 'x86_64',
         'model CC options file': 'applets/applets.c',
-        'loadable kernel modules': ['all'],
         'allow local source trees use': True
     }
 }
