@@ -304,6 +304,17 @@ def install_klever_build_bases(logger, src_dir, deploy_dir, deploy_conf, cmd_fn,
             cmd_fn('rm', '-rf', instance_klever_build_base)
             install_fn(klever_build_base, instance_klever_build_base)
 
+            # Below is special cheat for insalling the only test build base provided as remote archive in deployment
+            # configuration file by default.
+            if os.path.basename(instance_klever_build_base) == 'build-base-linux-3.14.79-x86_64-sample.tar.xz':
+                real_instance_klever_build_base = os.path.join(deploy_dir,
+                                                               'build bases/linux/loadable kernel modules sample')
+                cmd_fn('rm', '-rf', real_instance_klever_build_base)
+                cmd_fn('tar', '--warning', 'no-unknown-keyword', '-C', '{0}'
+                       .format(os.path.join(deploy_dir, 'build bases')), '-xf',
+                       os.path.basename(instance_klever_build_base))
+                instance_klever_build_base = real_instance_klever_build_base
+
             # Always grant to everybody (including user "klever" who does need that) at least read permissions for
             # deployed Klever build base. Otherwise user "klever" will not be able to access them.
             cmd_fn('chmod', '-R', '+r', instance_klever_build_base)
