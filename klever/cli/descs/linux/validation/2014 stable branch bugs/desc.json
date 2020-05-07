@@ -1,6 +1,6 @@
 [
     {
-        "build base": "validation/7ce77510c9c7~",
+        "build base": "linux/validation/2014 stable branch bugs/7ce77510c9c7~",
         "name": "Linux",
         "git repository version": "7ce77510c9c7~",
         "loadable kernel modules": ["drivers/usb/serial/opticon.ko"],
@@ -12,7 +12,7 @@
         "GCC 4.6 Clade CIF options": true
     },
     {
-        "build base": "validation/7ce77510c9c7",
+        "build base": "linux/validation/2014 stable branch bugs/7ce77510c9c7",
         "name": "Linux",
         "git repository version": "7ce77510c9c7",
         "loadable kernel modules": ["drivers/usb/serial/opticon.ko"],
@@ -24,35 +24,35 @@
         "GCC 4.6 Clade CIF options": true
     },
     {
-        "build base": "validation/60b35930067d~",
+        "build base": "linux/validation/2014 stable branch bugs/60b35930067d~",
         "name": "Linux",
         "git repository version": "60b35930067d~",
         "loadable kernel modules": ["drivers/media/usb/dvb-usb/dvb-usb-cxusb.ko"],
         "GCC 4.6 Clade CIF options": true
     },
     {
-        "build base": "validation/60b35930067d",
+        "build base": "linux/validation/2014 stable branch bugs/60b35930067d",
         "name": "Linux",
         "git repository version": "60b35930067d",
         "loadable kernel modules": ["drivers/media/usb/dvb-usb/dvb-usb-cxusb.ko"],
         "GCC 4.6 Clade CIF options": true
     },
     {
-        "build base": "validation/214c97a12f1f",
+        "build base": "linux/validation/2014 stable branch bugs/214c97a12f1f",
         "name": "Linux",
         "git repository version": "214c97a12f1f",
         "loadable kernel modules": ["drivers/media/usb/usbvision/usbvision.ko"],
         "GCC 4.6 Clade CIF options": true
     },
     {
-        "build base": "validation/214c97a12f1f~",
+        "build base": "linux/validation/2014 stable branch bugs/214c97a12f1f~",
         "name": "Linux",
         "git repository version": "214c97a12f1f~",
         "loadable kernel modules": ["drivers/media/usb/usbvision/usbvision.ko"],
         "GCC 4.6 Clade CIF options": true
     },
     {
-        "build base": "validation/e4c7f259c5be~",
+        "build base": "linux/validation/2014 stable branch bugs/e4c7f259c5be~",
         "name": "Linux",
         "git repository version": "e4c7f259c5be~",
         "loadable kernel modules": ["drivers/net/usb/kaweth.ko"],
@@ -60,7 +60,7 @@
         "GCC 4.6 Clade CIF options": true
     },
     {
-        "build base": "validation/e4c7f259c5be",
+        "build base": "linux/validation/2014 stable branch bugs/e4c7f259c5be",
         "name": "Linux",
         "git repository version": "e4c7f259c5be",
         "loadable kernel modules": ["drivers/net/usb/kaweth.ko"],
@@ -68,147 +68,147 @@
         "GCC 4.6 Clade CIF options": true
     },
     {
-        "build base": "validation/448356262f56~",
+        "build base": "linux/validation/2014 stable branch bugs/448356262f56~",
         "name": "Linux",
         "git repository version": "448356262f56~",
         "loadable kernel modules": ["drivers/usb/serial/kobil_sct.ko"],
         "GCC 4.6 Clade CIF options": true
     },
     {
-        "build base": "validation/448356262f56",
+        "build base": "linux/validation/2014 stable branch bugs/448356262f56",
         "name": "Linux",
         "git repository version": "448356262f56",
         "loadable kernel modules": ["drivers/usb/serial/kobil_sct.ko"],
         "GCC 4.6 Clade CIF options": true
     },
     {
-        "build base": "validation/d8e172f3c0a5",
+        "build base": "linux/validation/2014 stable branch bugs/d8e172f3c0a5",
         "name": "Linux",
         "git repository version": "d8e172f3c0a5",
         "loadable kernel modules": ["drivers/spi/spi-imx.ko"],
         "GCC 4.6 Clade CIF options": true
     },
     {
-        "build base": "validation/d8e172f3c0a5~",
+        "build base": "linux/validation/2014 stable branch bugs/d8e172f3c0a5~",
         "name": "Linux",
         "git repository version": "d8e172f3c0a5~",
         "loadable kernel modules": ["drivers/spi/spi-imx.ko"],
         "GCC 4.6 Clade CIF options": true
     },
     {
-        "build base": "validation/bff71889260f~",
+        "build base": "linux/validation/2014 stable branch bugs/bff71889260f~",
         "name": "Linux",
         "git repository version": "bff71889260f~",
         "loadable kernel modules": ["drivers/staging/iio/adc/mxs-lradc.ko"],
         "GCC 4.6 Clade CIF options": true
     },
     {
-        "build base": "validation/bff71889260f",
+        "build base": "linux/validation/2014 stable branch bugs/bff71889260f",
         "name": "Linux",
         "git repository version": "bff71889260f",
         "loadable kernel modules": ["drivers/staging/iio/adc/mxs-lradc.ko"],
         "GCC 4.6 Clade CIF options": true
     },
     {
-        "build base": "validation/2ba4b92e8773~",
+        "build base": "linux/validation/2014 stable branch bugs/2ba4b92e8773~",
         "name": "Linux",
         "git repository version": "2ba4b92e8773~",
         "loadable kernel modules": ["drivers/usb/dwc2/dwc2_gadget.ko"],
         "GCC 4.6 Clade CIF options": true
     },
     {
-        "build base": "validation/2ba4b92e8773",
+        "build base": "linux/validation/2014 stable branch bugs/2ba4b92e8773",
         "name": "Linux",
         "git repository version": "2ba4b92e8773",
         "loadable kernel modules": ["drivers/usb/dwc2/dwc2_gadget.ko"],
         "GCC 4.6 Clade CIF options": true
     },
     {
-        "build base": "validation/c822fb57ba12~",
+        "build base": "linux/validation/2014 stable branch bugs/c822fb57ba12~",
         "name": "Linux",
         "git repository version": "c822fb57ba12~",
         "loadable kernel modules": ["drivers/spi/spi-pxa2xx-platform.ko"],
         "GCC 4.6 Clade CIF options": true
     },
     {
-        "build base": "validation/c822fb57ba12",
+        "build base": "linux/validation/2014 stable branch bugs/c822fb57ba12",
         "name": "Linux",
         "git repository version": "c822fb57ba12",
         "loadable kernel modules": ["drivers/spi/spi-pxa2xx-platform.ko"],
         "GCC 4.6 Clade CIF options": true
     },
     {
-        "build base": "validation/5c256d215753~",
+        "build base": "linux/validation/2014 stable branch bugs/5c256d215753~",
         "name": "Linux",
         "git repository version": "5c256d215753~",
         "loadable kernel modules": ["drivers/media/usb/dvb-usb/dvb-usb-dw2102.ko"],
         "GCC 4.6 Clade CIF options": true
     },
     {
-        "build base": "validation/5c256d215753",
+        "build base": "linux/validation/2014 stable branch bugs/5c256d215753",
         "name": "Linux",
         "git repository version": "5c256d215753",
         "loadable kernel modules": ["drivers/media/usb/dvb-usb/dvb-usb-dw2102.ko"],
         "GCC 4.6 Clade CIF options": true
     },
     {
-        "build base": "validation/790cc82a2b2b~",
+        "build base": "linux/validation/2014 stable branch bugs/790cc82a2b2b~",
         "name": "Linux",
         "git repository version": "790cc82a2b2b~",
         "loadable kernel modules": ["drivers/input/misc/arizona-haptics.ko"],
         "GCC 4.6 Clade CIF options": true
     },
     {
-        "build base": "validation/790cc82a2b2b",
+        "build base": "linux/validation/2014 stable branch bugs/790cc82a2b2b",
         "name": "Linux",
         "git repository version": "790cc82a2b2b",
         "loadable kernel modules": ["drivers/input/misc/arizona-haptics.ko"],
         "GCC 4.6 Clade CIF options": true
     },
     {
-        "build base": "validation/ae3f34854485~",
+        "build base": "linux/validation/2014 stable branch bugs/ae3f34854485~",
         "name": "Linux",
         "git repository version": "ae3f34854485~",
         "loadable kernel modules": ["fs/nfs/nfs.ko"],
         "GCC 4.6 Clade CIF options": true
     },
     {
-        "build base": "validation/ae3f34854485",
+        "build base": "linux/validation/2014 stable branch bugs/ae3f34854485",
         "name": "Linux",
         "git repository version": "ae3f34854485",
         "loadable kernel modules": ["fs/nfs/nfs.ko"],
         "GCC 4.6 Clade CIF options": true
     },
     {
-        "build base": "validation/44f694330e1e~",
+        "build base": "linux/validation/2014 stable branch bugs/44f694330e1e~",
         "name": "Linux",
         "git repository version": "44f694330e1e~",
         "loadable kernel modules": ["net/sunrpc/sunrpc.ko"],
         "GCC 4.6 Clade CIF options": true
     },
     {
-        "build base": "validation/44f694330e1e",
+        "build base": "linux/validation/2014 stable branch bugs/44f694330e1e",
         "name": "Linux",
         "git repository version": "44f694330e1e",
         "loadable kernel modules": ["net/sunrpc/sunrpc.ko"],
         "GCC 4.6 Clade CIF options": true
     },
     {
-        "build base": "validation/21a018a58f3c~",
+        "build base": "linux/validation/2014 stable branch bugs/21a018a58f3c~",
         "name": "Linux",
         "git repository version": "21a018a58f3c~",
         "loadable kernel modules": ["net/tipc/tipc.ko"],
         "GCC 4.6 Clade CIF options": true
     },
     {
-        "build base": "validation/21a018a58f3c",
+        "build base": "linux/validation/2014 stable branch bugs/21a018a58f3c",
         "name": "Linux",
         "git repository version": "21a018a58f3c",
         "loadable kernel modules": ["net/tipc/tipc.ko"],
         "GCC 4.6 Clade CIF options": true
     },
     {
-        "build base": "validation/ac4de081312a~",
+        "build base": "linux/validation/2014 stable branch bugs/ac4de081312a~",
         "name": "Linux",
         "git repository version": "ac4de081312a~",
         "loadable kernel modules": [
@@ -219,7 +219,7 @@
         "GCC 4.6 Clade CIF options": true
     },
     {
-        "build base": "validation/ac4de081312a",
+        "build base": "linux/validation/2014 stable branch bugs/ac4de081312a",
         "name": "Linux",
         "git repository version": "ac4de081312a",
         "loadable kernel modules": [
@@ -230,7 +230,7 @@
         "GCC 4.6 Clade CIF options": true
     },
     {
-        "build base": "validation/063579d4c3ed~",
+        "build base": "linux/validation/2014 stable branch bugs/063579d4c3ed~",
         "name": "Linux",
         "git repository version": "063579d4c3ed~",
         "loadable kernel modules": [
@@ -240,7 +240,7 @@
         "GCC 4.6 Clade CIF options": true
     },
     {
-        "build base": "validation/063579d4c3ed",
+        "build base": "linux/validation/2014 stable branch bugs/063579d4c3ed",
         "name": "Linux",
         "git repository version": "063579d4c3ed",
         "loadable kernel modules": [
@@ -250,7 +250,7 @@
         "GCC 4.6 Clade CIF options": true
     },
     {
-        "build base": "validation/9aaf9678ea3e~",
+        "build base": "linux/validation/2014 stable branch bugs/9aaf9678ea3e~",
         "name": "Linux",
         "git repository version": "9aaf9678ea3e~",
         "loadable kernel modules": [
@@ -265,7 +265,7 @@
         "GCC 4.6 Clade CIF options": true
     },
     {
-        "build base": "validation/9aaf9678ea3e",
+        "build base": "linux/validation/2014 stable branch bugs/9aaf9678ea3e",
         "name": "Linux",
         "git repository version": "9aaf9678ea3e",
         "loadable kernel modules": [

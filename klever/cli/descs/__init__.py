@@ -63,7 +63,7 @@ common_target_program_descs = {
         ]
     },
     "BusyBox": {
-        'source code': 'busybox',
+        'source code': 'busybox applets sample',
         'git repository version': '1_30_1',
         'configuration': 'defconfig',
         'architecture': 'x86_64',

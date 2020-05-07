@@ -1,6 +1,6 @@
 [
     {
-        "build base": "testing/6e6e1c",
+        "build base": "linux/testing/common models/6e6e1c",
         "name": "Linux",
         "external modules": "tests",
         "loadable kernel modules": [

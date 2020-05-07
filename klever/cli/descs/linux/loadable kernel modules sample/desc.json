@@ -1,6 +1,6 @@
 [
     {
-        "build base": "build-base-linux-3.14.79-x86_64-sample",
+        "build base": "linux/loadable kernel modules sample",
         "name": "Linux",
         "git repository version": "v3.14.79",
         "loadable kernel modules": [

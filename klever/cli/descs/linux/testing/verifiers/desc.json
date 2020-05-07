@@ -1,6 +1,6 @@
 [
     {
-        "build base": "testing/606cdb",
+        "build base": "linux/testing/verifiers/606cdb",
         "name": "Linux",
         "external modules": "tests",
         "loadable kernel modules": [

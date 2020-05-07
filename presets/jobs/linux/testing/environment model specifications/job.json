@@ -1,6 +1,6 @@
 {
   "project": "Linux",
-  "build base": "testing/606cdb",
+  "build base": "linux/testing/environment model specifications/606cdb",
   "requirement specifications": ["test:environment model specifications"],
   "ideal verdicts": [
     {"ideal verdict": "safe"},
@@ -98,7 +98,7 @@
   "extra results processing": "testing",
   "sub-jobs": [
     {
-      "build base": "testing/455c6f",
+      "build base": "linux/testing/environment model specifications/455c6f",
       "specifications set": "2.6.33",
       "targets": [
         "ext-modules/block_device_operations_v.1",
@@ -125,7 +125,7 @@
       ]
     },
     {
-      "build base": "testing/fedc1e",
+      "build base": "linux/testing/environment model specifications/fedc1e",
       "targets": [
         "ext-modules/block_device_operations_v.1",
         "ext-modules/class_v.1",
@@ -152,7 +152,7 @@
       ]
     },
     {
-      "build base": "testing/01358e",
+      "build base": "linux/testing/environment model specifications/01358e",
       "specifications set": "4.6.7",
       "targets": [
         "ext-modules/block_device_operations_v.1",
@@ -180,7 +180,7 @@
       ]
     },
     {
-      "build base": "testing/a8ec86",
+      "build base": "linux/testing/environment model specifications/a8ec86",
       "specifications set": "4.15",
       "targets": [
         "ext-modules/block_device_operations_v.1",
@@ -208,7 +208,7 @@
       ]
     },
     {
-      "build base": "testing/62134e",
+      "build base": "linux/testing/environment model specifications/62134e",
       "specifications set": "4.17",
       "targets": [
         "ext-modules/block_device_operations_v.1",
@@ -236,7 +236,7 @@
       ]
     },
     {
-      "build base": "testing/81b6e0",
+      "build base": "linux/testing/environment model specifications/81b6e0",
       "specifications set": "5.5",
       "targets": [
         "ext-modules/block_device_operations_v.1",
@@ -264,7 +264,7 @@
       ]
     },
     {
-      "build base": "testing/455c6f",
+      "build base": "linux/testing/environment model specifications/455c6f",
       "specifications set": "2.6.33",
       "targets": [
         "ext-modules/timer_v.1",
@@ -276,7 +276,7 @@
       "requirement specifications": ["test:environment model specifications with function pointer analysis"]
     },
     {
-      "build base": "testing/fedc1e",
+      "build base": "linux/testing/environment model specifications/fedc1e",
       "targets": [
         "ext-modules/timer_v.1",
         "ext-modules/workqueue_v.1",
@@ -287,7 +287,7 @@
       "requirement specifications": ["test:environment model specifications with function pointer analysis"]
     },
     {
-      "build base": "testing/01358e",
+      "build base": "linux/testing/environment model specifications/01358e",
       "specifications set": "4.6.7",
       "targets": [
         "ext-modules/timer_v.2",
@@ -299,7 +299,7 @@
       "requirement specifications": ["test:environment model specifications with function pointer analysis"]
     },
     {
-      "build base": "testing/a8ec86",
+      "build base": "linux/testing/environment model specifications/a8ec86",
       "specifications set": "4.15",
       "targets": [
         "ext-modules/timer_v.3",
@@ -311,7 +311,7 @@
       "requirement specifications": ["test:environment model specifications with function pointer analysis"]
     },
     {
-      "build base": "testing/62134e",
+      "build base": "linux/testing/environment model specifications/62134e",
       "specifications set": "4.17",
       "targets": [
         "ext-modules/timer_v.3",
@@ -323,7 +323,7 @@
       "requirement specifications": ["test:environment model specifications with function pointer analysis"]
     },
     {
-      "build base": "testing/81b6e0",
+      "build base": "linux/testing/environment model specifications/81b6e0",
       "specifications set": "5.5",
       "targets": [
         "ext-modules/timer_v.3",

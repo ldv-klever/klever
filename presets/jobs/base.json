@@ -8,7 +8,7 @@
         {
           "uuid": "08c7a442-83ed-11ea-88e0-879ef40bbdcf",
           "name": "BusyBox applets sample",
-          "directory": "userspace/busybox"
+          "directory": "userspace/busybox applets sample"
         }
       ]
     },

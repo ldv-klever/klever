@@ -1,6 +1,6 @@
 {
   "project": "Linux",
-  "build base": "testing/6e6e1c",
+  "build base": "linux/testing/common models/6e6e1c",
   "requirement specifications": ["test:common"],
   "ideal verdicts": [
     {

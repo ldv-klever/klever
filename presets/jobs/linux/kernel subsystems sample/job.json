@@ -1,6 +1,6 @@
 {
   "project": "Linux",
-  "build base": "linux-3.14.79",
+  "build base": "linux/kernel subsystems sample",
   "fragmentation tactic": "subsystems with modules",
   "targets": ["drivers/tty", "drivers/char", "drivers/gpio"],
   "specifications set": "3.14",

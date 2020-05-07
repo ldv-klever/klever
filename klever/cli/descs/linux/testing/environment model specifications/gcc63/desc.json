@@ -1,6 +1,6 @@
 [
     {
-        "build base": "testing/81b6e0",
+        "build base": "linux/testing/environment model specifications/81b6e0",
         "name": "Linux",
         "git repository version": "v5.5.9",
         "external modules": "../tests",
