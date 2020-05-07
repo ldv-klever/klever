@@ -1,153 +1,153 @@
 {
-    "attrs": [
-      {
-        "is_compare": true,
-        "name": "Program fragment",
-        "value": "ssl_client"
-      },
-      {
-        "is_compare": true,
-        "name": "Requirements specification",
-        "value": "open"
-      }
-    ],
-    "description": "File descriptor tls-&gt;ofd was not open but provided through a command-line argument. This is a real catch from the perspective of the verifier.",
-    "error_trace": [
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ssl_client"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "open"
+    }
+  ],
+  "description": "File descriptor tls-&gt;ofd was not open but provided through a command-line argument. This is a real catch from the perspective of the verifier.",
+  "error_trace": [
+    [
       [
-        [
-          {
-            "Call exported functions.": [
-              {
-                "EMG wrapper": [
-                  {
-                    "ssl_client_main": [
-                      {
-                        "create_and_connect_stream_or_die": [
-                          {
-                            "xsocket": [
-                              {
-                                "Instrumented function 'socket'": [
-                                  {
-                                    "LDV model 'open'": []
-                                  }
-                                ]
-                              }
-                            ]
-                          }
-                        ]
-                      },
-                      {
-                        "create_and_connect_stream_or_die": [
-                          {
-                            "xsocket": [
-                              {
-                                "Instrumented function 'socket'": [
-                                  {
-                                    "LDV model 'open'": []
-                                  }
-                                ]
-                              }
-                            ]
-                          }
-                        ]
-                      },
-                      {
-                        "tls_handshake": [
-                          {
-                            "send_client_hello_and_alloc_hsd": [
-                              {
-                                "tls_get_random": [
-                                  {
-                                    "open_read_close": [
-                                      {
-                                        "cif_open_5": [
-                                          {
-                                            "LDV model 'open'": []
-                                          }
-                                        ]
-                                      },
-                                      {
-                                        "read_close": [
-                                          {
-                                            "full_read": [
-                                              {
-                                                "safe_read": [
-                                                  {
-                                                    "cif_read_2": [
-                                                      {
-                                                        "LDV model 'access'": []
-                                                      }
-                                                    ]
-                                                  }
-                                                ]
-                                              }
-                                            ]
-                                          },
-                                          {
-                                            "cif_close_5": [
-                                              {
-                                                "LDV model 'close'": []
-                                              }
-                                            ]
-                                          }
-                                        ]
-                                      }
-                                    ]
-                                  }
-                                ]
-                              },
-                              {
-                                "xwrite_and_update_handshake_hash": [
-                                  {
-                                    "xwrite_encrypted": [
-                                      {
-                                        "xwrite_encrypted_aesgcm": [
-                                          {
-                                            "xwrite": [
-                                              {
-                                                "full_write": [
-                                                  {
-                                                    "safe_write": [
-                                                      {
-                                                        "Instrumented function 'write'": [
-                                                          {
-                                                            "LDV model 'access'": [
-                                                              {
-                                                                "LDV model 'assert'": []
-                                                              }
-                                                            ]
-                                                          }
-                                                        ]
-                                                      }
-                                                    ]
-                                                  }
-                                                ]
-                                              }
-                                            ]
-                                          }
-                                        ]
-                                      }
-                                    ]
-                                  }
-                                ]
-                              }
-                            ]
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                ]
-              }
-            ]
-          }
-        ]
+        {
+          "Call exported functions.": [
+            {
+              "EMG wrapper": [
+                {
+                  "ssl_client_main": [
+                    {
+                      "create_and_connect_stream_or_die": [
+                        {
+                          "xsocket": [
+                            {
+                              "Instrumented function 'socket'": [
+                                {
+                                  "LDV model 'open'": []
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "create_and_connect_stream_or_die": [
+                        {
+                          "xsocket": [
+                            {
+                              "Instrumented function 'socket'": [
+                                {
+                                  "LDV model 'open'": []
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "tls_handshake": [
+                        {
+                          "send_client_hello_and_alloc_hsd": [
+                            {
+                              "tls_get_random": [
+                                {
+                                  "open_read_close": [
+                                    {
+                                      "Instrumented function 'open'": [
+                                        {
+                                          "LDV model 'open'": []
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "read_close": [
+                                        {
+                                          "full_read": [
+                                            {
+                                              "safe_read": [
+                                                {
+                                                  "Instrumented function 'read'": [
+                                                    {
+                                                      "LDV model 'access'": []
+                                                    }
+                                                  ]
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "Instrumented function 'close'": [
+                                            {
+                                              "LDV model 'close'": []
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "xwrite_and_update_handshake_hash": [
+                                {
+                                  "xwrite_encrypted": [
+                                    {
+                                      "xwrite_encrypted_aesgcm": [
+                                        {
+                                          "xwrite": [
+                                            {
+                                              "full_write": [
+                                                {
+                                                  "safe_write": [
+                                                    {
+                                                      "Instrumented function 'write'": [
+                                                        {
+                                                          "LDV model 'access'": [
+                                                            {
+                                                              "LDV model 'assert'": []
+                                                            }
+                                                          ]
+                                                        }
+                                                      ]
+                                                    }
+                                                  ]
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
       ]
-    ],
-    "function": "thread_call_forests",
-    "is_modifiable": true,
-    "status": "3",
-    "tags": [],
-    "threshold": 0,
-    "verdict": "1"
-  }
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": true,
+  "status": "3",
+  "tags": [],
+  "threshold": 100,
+  "verdict": "1"
+}
