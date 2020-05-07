@@ -175,10 +175,11 @@ class ErrorTraceParser:
                     self.error_trace.add_function(data.text)
                     if data_key == 'enterFunction':
                         _edge['enter'] = self.error_trace.resolve_function_id(data.text)
-                        # Frama-C (CIL) can add artificial suffixes "_d+" for functions with the same name during
-                        # merge to avoid conflicts during name resolution. Remember references to original function
-                        # names that can be useful later, e.g. when adding displays for instrumenting functions.
-                        m = re.search(r'(.+)(_d+)$', data.text)
+                        # Frama-C (CIL) can add artificial suffixes "_\d+" for functions with the same name during
+                        # merge to avoid conflicts during subsequent name resolution. Remember references to original
+                        # function names that can be useful later, e.g. when adding displays for instrumenting
+                        # functions.
+                        m = re.search(r'(.+)(_\d+)$', data.text)
                         if m:
                             unmerged_func_name = m.group(1)
                             self.error_trace.add_function(unmerged_func_name)
