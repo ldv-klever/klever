@@ -145,7 +145,7 @@ def test_unions():
         'union {   s64 lock;   struct   {     u32 read;     s32 write;   }; } name',
         'union {   struct sockaddr *restrict sockaddr; } __attribute__((transparent_union)) __SOCKADDR_ARG',
         'union {   struct sockaddr *restrict sockaddr;   } __attribute__((transparent_union)) __SOCKADDR_ARG',
-        'union {   struct sockaddr *restrict sockaddr;   struct sockaddr_at *restrict sockaddr_at;   struct sockaddr_ax25 *restrict sockaddr_ax25;   struct sockaddr_dl *restrict sockaddr_dl;   struct sockaddr_eon *restrict sockaddr_eon;   struct sockaddr_in *restrict sockaddr_in;   struct sockaddr_in6 *restrict sockaddr_in6;   struct sockaddr_inarp *restrict sockaddr_inarp;   struct sockaddr_ipx *restrict sockaddr_ipx;   struct sockaddr_iso *restrict sockaddr_iso;   struct sockaddr_ns *restrict sockaddr_ns;   struct sockaddr_un *restrict sockaddr_un;   struct sockaddr_x25 *restrict sockaddr_x25; } attribute ((transparent_union)) __SOCKADDR_ARG;'
+        'union {   struct sockaddr *restrict sockaddr;   struct sockaddr_at *restrict sockaddr_at;   struct sockaddr_ax25 *restrict sockaddr_ax25;   struct sockaddr_dl *restrict sockaddr_dl;   struct sockaddr_eon *restrict sockaddr_eon;   struct sockaddr_in *restrict sockaddr_in;   struct sockaddr_in6 *restrict sockaddr_in6;   struct sockaddr_inarp *restrict sockaddr_inarp;   struct sockaddr_ipx *restrict sockaddr_ipx;   struct sockaddr_iso *restrict sockaddr_iso;   struct sockaddr_ns *restrict sockaddr_ns;   struct sockaddr_un *restrict sockaddr_un;   struct sockaddr_x25 *restrict sockaddr_x25; } __attribute__ ((transparent_union)) __SOCKADDR_ARG;'
     ]
 
 

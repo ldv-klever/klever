@@ -96,7 +96,7 @@ def keyword_lookup(string):
             'STRUCT': re.compile('struct'),
             'UNION': re.compile('union'),
             'ENUM': re.compile('enum'),
-            'ATTRIBUTE': re.compile('__attribute__|attribute')
+            'ATTRIBUTE': re.compile('__attribute__')
         }
 
     for keyword_type in sorted(keyword_map.keys()):
