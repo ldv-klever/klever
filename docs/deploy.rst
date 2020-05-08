@@ -62,6 +62,10 @@ Then you need to install `Python 3.7 or higher <https://www.python.org/>`__ if y
 * For Fedora you can get it from
   `here <https://forge.ispras.ru/attachments/download/7252/python-fedora-3.7.6.tar.xz>`__.
 
+To avoid some unpleasant issues during installation we recommend to upgrade PIP::
+
+    $ /usr/local/python3-klever/bin/pip3 install --upgrade pip
+
 To install required Python packages we recommend to create a virtual environment using installed Python.
 For instance, you can run following commands within :term:`$KLEVER_SRC`::
 
