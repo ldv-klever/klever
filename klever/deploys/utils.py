@@ -311,8 +311,7 @@ def install_klever_build_bases(logger, src_dir, deploy_dir, deploy_conf, cmd_fn,
                                                                'build bases/linux/loadable kernel modules sample')
                 cmd_fn('rm', '-rf', real_instance_klever_build_base)
                 cmd_fn('tar', '--warning', 'no-unknown-keyword', '-C', '{0}'
-                       .format(os.path.join(deploy_dir, 'build bases')), '-xf',
-                       os.path.basename(instance_klever_build_base))
+                       .format(os.path.join(deploy_dir, 'build bases')), '-xf', instance_klever_build_base)
                 instance_klever_build_base = real_instance_klever_build_base
 
             # Always grant to everybody (including user "klever" who does need that) at least read permissions for
