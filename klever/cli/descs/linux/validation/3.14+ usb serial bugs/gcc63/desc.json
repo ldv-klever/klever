@@ -1,12 +1,12 @@
 [
     {
-        "build base": "validation/1568c58d11a7c8~",
+        "build base": "linux/validation/3.14+ usb serial bugs/1568c58d11a7c8~",
         "name": "Linux",
         "git repository version": "1568c58d11a7c8~",
         "loadable kernel modules": ["drivers/usb/serial/io_edgeport.ko"]
     },
     {
-        "build base": "validation/1568c58d11a7c8",
+        "build base": "linux/validation/3.14+ usb serial bugs/1568c58d11a7c8",
         "name": "Linux",
         "git repository version": "1568c58d11a7c8",
         "loadable kernel modules": ["drivers/usb/serial/io_edgeport.ko"]

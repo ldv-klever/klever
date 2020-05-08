@@ -1,0 +1,9 @@
+{
+  "project": "BusyBox",
+  "build base": "userspace/busybox applets sample",
+  "targets": ["wall", "ssl_client"],
+  "requirement specifications": [
+    "open",
+    "memory safety"
+  ]
+}

@@ -1,6 +1,6 @@
 [
     {
-        "build base": "testing/455c6f",
+        "build base": "linux/testing/environment model specifications/455c6f",
         "name": "Linux",
         "git repository version": "v2.6.33.20",
         "external modules": "../tests",
@@ -41,7 +41,7 @@
         "GCC 4.6 Clade CIF options": true
     },
     {
-        "build base": "testing/fedc1e",
+        "build base": "linux/testing/environment model specifications/fedc1e",
         "name": "Linux",
         "external modules": "../tests",
         "loadable kernel modules": [
@@ -75,7 +75,7 @@
         ]
     },
     {
-        "build base": "testing/01358e",
+        "build base": "linux/testing/environment model specifications/01358e",
         "name": "Linux",
         "git repository version": "v4.6.7",
         "external modules": "../tests",
@@ -111,7 +111,7 @@
         "exclude extra headers": ["linux/poll.h"]
     },
     {
-        "build base": "testing/a8ec86",
+        "build base": "linux/testing/environment model specifications/a8ec86",
         "name": "Linux",
         "git repository version": "v4.15.18",
         "external modules": "../tests",
@@ -147,7 +147,7 @@
         "exclude extra headers": ["linux/poll.h"]
     },
     {
-        "build base": "testing/62134e",
+        "build base": "linux/testing/environment model specifications/62134e",
         "name": "Linux",
         "git repository version": "v4.17.19",
         "external modules": "../tests",

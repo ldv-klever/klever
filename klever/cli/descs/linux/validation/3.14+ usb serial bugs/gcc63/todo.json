@@ -1,12 +1,12 @@
 [
     {
-        "build base": "validation/1251dab9e0a2c4~",
+        "build base": "linux/validation/3.14+ usb serial bugs/1251dab9e0a2c4~",
         "name": "Linux",
         "git repository version": "1251dab9e0a2c4~",
         "loadable kernel modules": ["drivers/usb/serial/whiteheat.ko"]
     },
     {
-        "build base": "validation/1251dab9e0a2c4",
+        "build base": "linux/validation/3.14+ usb serial bugs/1251dab9e0a2c4",
         "name": "Linux",
         "git repository version": "1251dab9e0a2c4",
         "loadable kernel modules": ["drivers/usb/serial/whiteheat.ko"]

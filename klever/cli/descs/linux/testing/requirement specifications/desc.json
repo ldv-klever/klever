@@ -1,6 +1,6 @@
 [
     {
-        "build base": "testing/1de383",
+        "build base": "linux/testing/requirement specifications/1de383",
         "name": "Linux",
         "external modules": "tests",
         "loadable kernel modules": [
@@ -44,7 +44,7 @@
     },
     {
         "comment": "The only module needs specific kernel configuration for testing",
-        "build base": "testing/1cae6b",
+        "build base": "linux/testing/requirement specifications/1cae6b",
         "name": "Linux",
         "configuration": "configs/no-lockdep",
         "external modules": "tests",

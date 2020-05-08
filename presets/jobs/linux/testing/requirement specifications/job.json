@@ -1,6 +1,6 @@
 {
   "project": "Linux",
-  "build base": "testing/1de383",
+  "build base": "linux/testing/requirement specifications/1de383",
   "ideal verdicts": [
     {
       "ideal verdict": "safe",
@@ -198,7 +198,7 @@
       "requirement specifications": ["kernel:sched:completion"]
     },
     {
-      "build base": "testing/1cae6b",
+      "build base": "linux/testing/requirement specifications/1cae6b",
       "targets": ["ext-modules/linux/kernel/sched/completion-no-lockdep"],
       "requirement specifications": ["kernel:sched:completion"]
     },

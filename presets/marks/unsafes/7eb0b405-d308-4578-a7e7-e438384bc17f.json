@@ -1,0 +1,82 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "wall"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "memory safety"
+    }
+  ],
+  "description": "SMG correctly catches the memory leak. However, this is not a bug if ENABLE_FEATURE_CLEAN_UP is disabled.",
+  "error_trace": [
+    [
+      [
+        {
+          "Call exported functions.": [
+            {
+              "EMG wrapper": [
+                {
+                  "wall_main": [
+                    {
+                      "xmalloc_read": [
+                        {
+                          "xrealloc": [
+                            {
+                              "Instrumented function 'realloc'": [
+                                {
+                                  "LDV model 'realloc'": [
+                                    {
+                                      "LDV model 'reference_realloc'": []
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "full_read": [
+                            {
+                              "safe_read": []
+                            }
+                          ]
+                        },
+                        {
+                          "xrealloc": [
+                            {
+                              "Instrumented function 'realloc'": [
+                                {
+                                  "LDV model 'realloc'": [
+                                    {
+                                      "LDV model 'reference_realloc'": []
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": true,
+  "status": "3",
+  "tags": [
+      "EMG"
+  ],
+  "threshold": 100,
+  "verdict": "1"
+}

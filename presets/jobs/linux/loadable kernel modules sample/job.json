@@ -1,6 +1,6 @@
 {
   "project": "Linux",
-  "build base": "build-base-linux-3.14.79-x86_64-sample.tar.xz",
+  "build base": "linux/loadable kernel modules sample",
   "targets": [
     "drivers/ata/pata_arasan_cf.ko",
     "drivers/idle/i7300_idle.ko",
