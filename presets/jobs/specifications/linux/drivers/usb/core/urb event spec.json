@@ -2,6 +2,33 @@
   "3.14": {
     "environment processes": {},
     "functions models": {
+      "usb_kill_urb": {
+        "actions": {
+          "assign": {
+            "comment": "Get the urb structure from arguments.",
+            "statements": [
+              "%urb% = $ARG1;"
+            ]
+          },
+          "callback": {
+            "callback": "%urb.complete%",
+            "comment": "Call the urb callback.",
+            "parameters": [
+              "%urb%"
+            ]
+          }
+        },
+        "comment": "Abort/cancel a transfer request for an endpoint.",
+        "labels": {
+          "urb": {
+            "container": true,
+            "interface": "urb.urb",
+            "parameter": true
+          }
+        },
+        "process": "<assign>.[callback]",
+        "reference": true
+      },
       "usb_submit_urb": {
         "actions": {
           "assign": {
