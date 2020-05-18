@@ -1,0 +1,15 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "alloc:irq"
+    }
+  ],
+  "description": "",
+  "function": "Refinement failed: Counterexample could not be ruled out and was found again",
+  "is_modifiable": true,
+  "is_regexp": false,
+  "link": "https://gitlab.com/sosy-lab/software/cpachecker/-/issues/408",
+  "problem_pattern": "ValueRefiner"
+}
