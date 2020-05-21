@@ -169,3 +169,5 @@ texinfo_documents = [
      author, 'Klever', 'One line description of project.',
      'Miscellaneous'),
 ]
+
+numfig = True

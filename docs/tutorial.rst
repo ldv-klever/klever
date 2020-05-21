@@ -1,0 +1,480 @@
+.. Copyright (c) 2020 ISP RAS (http://www.ispras.ru)
+   Ivannikov Institute for System Programming of the Russian Academy of Sciences
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+       http://www.apache.org/licenses/LICENSE-2.0
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+Tutorial
+========
+
+This tutorial describes a basic workflow of using Klever.
+We assume that you deploy Klever :ref:`locally <local_deploy>` on Debian 9 in the production mode with default settings
+from the latest master.
+In addition, we assume that your username is **debian** and your home directory is **/home/debian**\ [1]_.
+
+Preparing Build Bases
+---------------------
+
+After a successful deployment of Klever you need to prepare a :ref:`build base <klever_build_bases>` on the same machine
+where you deployed Klever.
+This tutorial treats just build bases for Linux kernel loadable modules since the publicly available version of Klever
+supports verification of other software in the experimental stage.
+You should not expect that Klever supports all versions and configurations of the Linux kernel well.
+There is a `big list of things to do <https://docs.google.com/document/d/11e7cDzRqx0nO1UBcM75l6MS28zRBJUicXdNiReEpDKI/edit#heading=h.y45dikr8c6v5>`__
+in this direction.
+
+Below we consider as an example preparation of a build base for verification of Linux 3.14.79 modules (architecture
+*x86_64*, configuration *allmodconfig*, GCC 4.8.5).
+You can try to execute similar steps for other versions and configurations of the Linux kernel at your own risks.
+To build new versions of the Linux kernel you may need newer versions of GCC.
+
+You can download the archive of the target build base prepared in advance from
+`here <https://forge.ispras.ru/attachments/download/7328/build-base-linux-3.14.79-x86_64-allmodconfig.tar.xz>`__.
+Let’s assume that you decompress this archive into directory
+**/home/debian/build-base-linux-3.14.79-x86_64-allmodconfig** so that there should be file *meta.json* directly at the
+top level in that directory.
+
+To prepare the target build base from scratch you can follow the next
+steps::
+
+   $ wget https://cdn.kernel.org/pub/linux/kernel/v3.x/linux-3.14.79.tar.xz
+   $ tar -xvf linux-3.14.79.tar.xz
+   $ cd linux-3.14.79/
+   $ make allmodconfig
+   $ clade -w ~/build-base-linux-3.14.79-x86_64-allmodconfig -p klever_linux_kernel make -j8 modules
+
+Then you will need to wait for quite a long period of time depending on the performance of your machine.
+
+Signing in
+----------
+
+Before performing all other actions described further in this tutorial you need to sign in to a Klever web interface:
+
+#. Open page http://localhost:8998 in your web-browser [2]_.
+#. Input **manager** as a username and a password and sign in (:numref:`tutorial_signing_in`).
+
+Then you will be automatically redirected to a *job tree* page presented in the following sections.
+
+.. _tutorial_signing_in:
+.. figure:: ./media/tutorial/signing-in.png
+
+   Signing in
+
+Starting Verification
+---------------------
+
+As an example we consider checking usage of clocks in device drivers.
+To start up verification you need to do as follows:
+
+#. Start the creation of a new *job* (:numref:`tutorial_starting_creation_new_job`).
+#. Specify an appropriate title and create the new job (:numref:`tutorial_creation_new_job`).
+#. To configure a first *job version* you need to specify
+   (:numref:`tutorial_configuring_first_job_version_and_starting_its_decision`):
+
+   * The path to the prepared build base that is **/home/debian/build-base-linux-3.14.79-x86_64-allmodconfig**.
+   * Targets, e.g. device drivers, i.e. all modules from directory **drivers** in our example.
+   * Requirement specifications to be checked, e.g. **drivers:clk1** and **drivers:clk2** in our example (you can see a
+     complete list of supported requirement specifications at the end of this section).
+
+#. Press *Ctrl-S* when being at the editor window to save changes.
+#. Start a *decision of the job version* (:numref:`tutorial_configuring_first_job_version_and_starting_its_decision`).
+
+After that Klever automatically redirects you to a *job version/decision page* that is described in detail in the
+following sections.
+
+.. _tutorial_starting_creation_new_job:
+.. figure:: ./media/tutorial/starting-creation-new-job.png
+
+   Starting the creation of a new job
+
+.. _tutorial_creation_new_job:
+.. figure:: ./media/tutorial/creation-new-job.png
+
+   The creation of the new job
+
+.. _tutorial_configuring_first_job_version_and_starting_its_decision:
+.. figure:: ./media/tutorial/configuring-first-job-version-and-starting-its-decision.png
+
+   Configuring the first job version and starting its decision
+
+Later you can create new jobs by opening the job tree page, e.g. through clicking on the Klever logo
+(:numref:`tutorial_opening_job_tree_page`), and by executing steps above.
+You can create new jobs even when some job version is being decided, but job versions are decided one by one by default.
+
+.. _tutorial_opening_job_tree_page:
+.. figure:: ./media/tutorial/opening-job-tree-page.png
+
+   Opening the job tree page
+
+Below there are requirement specifications that you can choose for verification of Linux loadable kernel modules (we do
+not recommend to check requirement specifications which identifiers are italicised since they produce either many false
+alarms or there are just a few violations of these requirements at all):
+
+#. alloc:irq
+#. alloc:spinlock
+#. alloc:usb lock
+#. arch:asm:dma-mapping
+#. arch:mm:ioremap
+#. *block:blk-core:queue*
+#. *block:blk-core:request*
+#. *block:genhd*
+#. *concurrency safety*
+#. drivers:base:class
+#. drivers:usb:core:usb:coherent
+#. drivers:usb:core:usb:dev
+#. drivers:usb:core:driver
+#. drivers:usb:core:urb
+#. drivers:usb:gadget:udc-core
+#. drivers:clk1
+#. drivers:clk2
+#. fs:sysfs:group
+#. kernel:locking:mutex
+#. kernel:locking:rwlock
+#. kernel:locking:spinlock
+#. kernel:module
+#. *kernel:rcu:update:lock bh*
+#. *kernel:rcu:update:lock shed*
+#. kernel:rcu:update:lock
+#. *kernel:rcu:srcu*
+#. *kernel:sched:completion*
+#. *lib:find_next_bit*
+#. *lib:idr*
+#. memory safety
+#. net:core:dev
+#. *net:core:rtnetlink*
+#. *net:core:sock*
+
+In case of verification of the Linux kernel rather than vanilla 3.14.79, you may need to specify one extra parameter
+**specifications set**, when configuring the job version
+(:numref:`tutorial_configuring_first_job_version_and_starting_its_decision`), with a value from the following list:
+
+#. 2.6.33
+#. 4.6.7
+#. 4.15
+#. 4.17
+#. 5.5
+
+These specification sets correspond to vanilla versions of the Linux kernel.
+You should select such a specifications set that matches your custom version of the Linux kernel better through trial
+and error.
+
+Decision Progress 
+------------------
+
+At the beginning of the decision of the job version Klever indexes each new build base.
+This can take rather much time before it starts to generate and to decide first *tasks*\ [3]_ for large build bases.
+In about 15 minutes you can refresh the page and see some tasks and their decisions there.
+Please, note that the automatic refresh of the job version/decision page stops after 5 minutes, so you either need to
+refresh it through web browser means or request Klever to switch it on back
+(:numref:`tutorial_switching_on_automatic_refresh_job_version_decision_page`).
+
+.. _tutorial_switching_on_automatic_refresh_job_version_decision_page:
+.. figure:: ./media/tutorial/switching-on-automatic-refresh-job-version-decision-page.png
+
+   Switching on the automatic refresh of the job version/decision page
+
+Before the job version is eventually decided Klever estimates and provides a *decision progress*
+(:numref:`tutorial_progress_decision_job_version_estimating_remaining_time` and
+:numref:`tutorial_progress_decision_job_version_remaining_time_estimated`).
+You should keep in mind that Klever collects statistics for 10% of tasks before it starts predicting an approximate
+remaining time for their decision.
+After that, it recalculates it on the base of new, accumulated statistics.
+In our example it takes 1 day and 2 hours to decide the job version completely
+(:numref:`tutorial_completed_decision_job_version`).
+
+.. _tutorial_progress_decision_job_version_estimating_remaining_time:
+.. figure:: ./media/tutorial/progress-decision-job-version-estimating-remaining-time.png
+
+   The progress of the decision of the job version (estimating a remaining time)
+
+.. _tutorial_progress_decision_job_version_remaining_time_estimated:
+.. figure:: ./media/tutorial/progress-decision-job-version-remaining-time-estimated.png
+
+   The progress of the decision of the job version (the remaining time is estimated)
+
+.. _tutorial_completed_decision_job_version:
+.. figure:: ./media/tutorial/completed-decision-job-version.png
+
+   The completed decision of the job version
+
+At the job tree page you can see all versions of particular jobs (:numref:`tutorial_showing_job_versions`) and their
+*decision statutes* (:numref:`tutorial_status_decision_job_version`).
+Besides, you can open the page with details of the decision of the latest job version
+(:numref:`tutorial_opening_page_with_decision_latest_job_version`) or the page describing the decision of the particular
+job version (:numref:`tutorial_opening_page_with_decision_particular_job_version`).
+
+.. _tutorial_showing_job_versions:
+.. figure:: ./media/tutorial/showing-job-versions.png
+
+   Showing job versions
+
+.. _tutorial_status_decision_job_version:
+.. figure:: ./media/tutorial/status-decision-job-version.png
+
+   The status of the decision of the job version
+
+.. _tutorial_opening_page_with_decision_latest_job_version:
+.. figure:: ./media/tutorial/opening-page-with-decision-latest-job-version.png
+
+   Opening the page with the decision of the latest job version
+
+.. _tutorial_opening_page_with_decision_particular_job_version:
+.. figure:: ./media/tutorial/opening-page-with-decision-particular-job-version.png
+
+   Opening the page with the decision of the particular job version
+
+Analyzing Verification Results
+------------------------------
+
+Klever can fail to generate and to decide tasks.
+In this case it provides users with *unknown* verdicts, otherwise there are *safe* or *unsafe* verdicts
+(:numref:`tutorial_verdicts`).
+You already saw the example with summaries of these verdicts at the job tree page
+(:numref:`tutorial_showing_job_versions` and :numref:`tutorial_status_decision_job_version`).
+In this tutorial we do not consider other verdicts rather than unsafes that are either violations of checked
+requirements or false alarms (:numref:`tutorial_total_number_unsafes_reported_thus_far`).
+Klever reports unsafes if so during the decision of the job version and you can assess them both during the decision and
+after its completion.
+
+.. _tutorial_verdicts:
+.. figure:: ./media/tutorial/verdicts.png
+
+   Verdicts
+
+.. _tutorial_total_number_unsafes_reported_thus_far:
+.. figure:: ./media/tutorial/total-number-unsafes-reported-thus-far.png
+
+   The total number of unsafes reported thus far
+
+During assessment of unsafes experts can create marks that can match other unsafes with similar error traces (we
+consider marks and error traces in detail within the next section).
+For instance, there is a preset mark for a sample job that matches one of the reported unsafes
+(:numref:`tutorial_total_number_automatically_assessed_unsafes`).
+Automatic assessment can reduce efforts for analysis of verification results considerably, e.g. when verifying several
+versions or configurations of the same software.
+But experts should analyze such automatically assessed unsafes since the same mark can match unsafes with error traces
+that look very similar but correspond to different faults.
+Unsafes without marks need assessment as well (:numref:`tutorial_total_number_unsafes_without_any_assessment`).
+When checking several requirement specifications in the same job, one is able to analyze unsafes just for a particular
+requirements specification
+(:numref:`tutorial_total_number_unsafes_corresponding_to_particular_requirements_specification`).
+
+.. _tutorial_total_number_automatically_assessed_unsafes:
+.. figure:: ./media/tutorial/total-number-automatically-assessed-unsafes.png
+
+   The total number of automatically assessed unsafes
+
+.. _tutorial_total_number_unsafes_without_any_assessment:
+.. figure:: ./media/tutorial/total-number-unsafes-without-any-assessment.png
+
+   The total number of unsafes without any assessment
+
+.. _tutorial_total_number_unsafes_corresponding_to_particular_requirements_specification:
+.. figure:: ./media/tutorial/total-number-unsafes-corresponding-to-particular-requirements-specification.png
+
+   The total number of unsafes corresponding to the particular requirements specification
+
+After clicking on the links in :numref:`tutorial_total_number_unsafes_reported_thus_far`-:numref:`tutorial_total_number_unsafes_corresponding_to_particular_requirements_specification`
+you will be redirected to pages with lists of corresponding unsafes (e.g.
+:numref:`tutorial_list_unsafes_without_any_assessment`) except for if there is the only element in this list an error
+trace will be shown immediately.
+For further analysis we recommend clicking on an unsafe index on the left to open a new page in a separate tab
+(:numref:`tutorial_opening_error_trace_corresponding_to_unsafe_without_any_assessment`).
+To return back to the job version/decision page you can click on the title of the job decision on the top left
+(:numref:`tutorial_moving_back_to_job_version_decision_page`).
+This can be done at any page with such the link.
+
+.. _tutorial_list_unsafes_without_any_assessment:
+.. figure:: ./media/tutorial/list-unsafes-without-any-assessment.png
+
+   The list of unsafes without any assessment
+
+.. _tutorial_opening_error_trace_corresponding_to_unsafe_without_any_assessment:
+.. figure:: ./media/tutorial/opening-error-trace-corresponding-to-unsafe-without-any-assessment.png
+
+   Opening the error trace corresponding to the unsafe without any assessment
+
+.. _tutorial_moving_back_to_job_version_decision_page:
+.. figure:: ./media/tutorial/moving-back-to-job-version-decision-page.png
+
+   Moving back to the job version/decision page
+
+Analyzing Error Traces
+----------------------
+
+After clicking on links within the list of unsafes like in
+:numref:`tutorial_opening_error_trace_corresponding_to_unsafe_without_any_assessment`, you will see corresponding error
+traces.
+For instance,
+:numref:`tutorial_error_trace_for_module_drivers_usb_gadget_mv_u3d_core_ko_and_requirements_specification_drivers_clk1`
+demonstrates an error trace example for module *drivers/usb/gadget/mv_u3d_core.ko* and requirements specification
+*drivers:clk1*.
+
+.. _tutorial_error_trace_for_module_drivers_usb_gadget_mv_u3d_core_ko_and_requirements_specification_drivers_clk1:
+.. figure:: ./media/tutorial/error-trace-for-module-drivers-usb-gadget-mv_u3d_core-ko-and-requirements-specification-drivers-clk1.png
+
+   The error trace for module drivers/usb/gadget/mv_u3d_core.ko and requirements specification drivers:clk1
+
+An *error trace* is a sequence of declarations and statements in a source code of a module under verification and an
+*environment model*\ [4]_ generated by Klever.
+Besides, within that sequence there are *assumptions* specifying conditions that a software model checker considers to
+be true.
+Declarations, statements and assumptions represent a path starting from an entry point and ending at a violation of one
+of checked requirements.
+The entry point analogue for userspace programs is the function *main* while for Linux loadable kernel modules entry
+points are generated by Klever as a part of environment models.
+Requirement violations do not always correspond to places where detected faults should be fixed.
+For instance, the developer can omit a check for a return value of a function that can fail.
+As a result various issues, such as leaks or null pointer dereferences, can be revealed somewhere later.
+
+Numbers in the left column correspond to line numbers in source files and models.
+Source files and models are displayed to the right of error traces.
+:numref:`tutorial_error_trace_for_module_drivers_usb_gadget_mv_u3d_core_ko_and_requirements_specification_drivers_clk1`
+does not contain anything at the right part of the window since there should be the environment model containing the
+generated *main* function but by default models are not demonstrated for users in the web interface.
+If you click on a line number corresponding to an original source file, you will see this source file as in
+:numref:`tutorial_showing_line_in_original_source_file_corresponding_to_error_trace_statement`.
+
+.. _tutorial_showing_line_in_original_source_file_corresponding_to_error_trace_statement:
+.. figure:: ./media/tutorial/showing-line-in-original-source-file-corresponding-to-error-trace-statement.png
+
+   Showing the line in the original source file corresponding to the error trace statement
+
+You can click on eyes and on rectangles to show hidden parts of the error trace
+(:numref:`tutorial_showing_hidden_declarations_statements_and_assumptions_for_functions_with_notes_or_warnings`-:numref:`tutorial_showing_hidden_declarations_statements_and_assumptions_for_functions_without_notes_or_warnings`).
+Then you can hide them back if they are out of your interest.
+The difference between eyes and rectangles is that functions with eyes have either notes
+(:numref:`tutorial_error_trace_note`) or warnings (:numref:`tutorial_error_trace_warning`) at some point of their
+execution, perhaps, within called functions.
+*Notes* describe important actions in models.
+*Warnings* represent places where Klever detects violations of checked requirements.
+
+.. _tutorial_showing_hidden_declarations_statements_and_assumptions_for_functions_with_notes_or_warnings:
+.. figure:: ./media/tutorial/showing-hidden-declarations-statements-and-assumptions-for-functions-with-notes-or-warnings.png
+
+   Showing hidden declarations, statements and assumptions for functions with notes or warnings
+
+.. _tutorial_showing_hidden_declarations_statements_and_assumptions_for_functions_without_notes_or_warnings:
+.. figure:: ./media/tutorial/showing-hidden-declarations-statements-and-assumptions-for-functions-without-notes-or-warnings.png
+
+   Showing hidden declarations, statements and assumptions for functions without notes or warnings
+
+.. _tutorial_error_trace_note:
+.. figure:: ./media/tutorial/error-trace-note.png
+
+   The error trace warning
+
+.. _tutorial_error_trace_warning:
+.. figure:: ./media/tutorial/error-trace-warning.png
+
+   The error trace warning
+
+You can see that before calling module initialization and exit functions as well as module callbacks there is additional
+stuff in the error trace.
+These are parts of the environment model necessary to initialize models, to invoke module interfaces in the way the
+environment does and to check the final state.
+This tutorial does not consider models in detail, but you should keep in mind that Klever can detect faults not only
+directly in the source code under verification but also when checking something after execution of corresponding
+functions.
+For instance, this is the case for the considered error trace (:numref:`tutorial_error_trace_warning`).
+
+The analyzed unsafe corresponds to the fault that was fixed in commit
+`374a1020d21b <https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/drivers/usb/gadget/udc/mv_u3d_core.c?id=374a1020d21b>`__
+to the Linux kernel.
+To finalize assessment you need to create a new *mark*
+(:numref:`tutorial_starting_creation_of_new_mark`-:numref:`tutorial_creation_of_new_lightweight_mark`):
+
+#. Specify a verdict (**Bug** in our example).
+#. Specify a status (**Fixed**).
+#. Provide a description.
+#. Save the mark.
+
+.. _tutorial_starting_creation_of_new_mark:
+.. figure:: ./media/tutorial/starting-creation-of-new-mark.png
+
+   Starting the creation of a new mark
+
+.. _tutorial_starting_creation_of_new_lightweight_mark:
+.. figure:: ./media/tutorial/starting-creation-of-new-lightweight-mark.png
+
+   Starting the creation of a new lightweight mark
+
+.. _tutorial_creation_of_new_lightweight_mark:
+.. figure:: ./media/tutorial/creation-of-new-lightweight-mark.png
+
+   The creation of the new lightweight mark
+
+After that you will be automatically redirected to the page demonstrating changes in total verdicts
+(:numref:`tutorial_changes_in_total_verdicts`).
+In our example there is the only change that corresponds to the analyzed unsafe and the new mark.
+But in a general case there may be many changes since the same mark can match several unsafes, and you may need to
+investigate these changes.
+
+.. _tutorial_changes_in_total_verdicts:
+.. figure:: ./media/tutorial/changes-in-total-verdicts.png
+
+   Changes in total verdicts
+
+After creating the mark you can see the first manually assessed unsafe
+(:numref:`tutorial_total_number_of_manually_assessed_unsafes`).
+Besides, as it was already noted, you should investigate automatically assessed unsafes by analyzing corresponding error
+traces and marks and by (un)confirming their associations
+(:numref:`tutorial_opening_error_trace_of_unsafe_with_automatic_assessment`-:numref:`tutorial_confirming_automatic_association`).
+
+.. _tutorial_total_number_of_manually_assessed_unsafes:
+.. figure:: ./media/tutorial/total-number-of-manually-assessed-unsafes.png
+
+   The total number of manually assessed unsafes
+
+.. _tutorial_opening_error_trace_of_unsafe_with_automatic_assessment:
+.. figure:: ./media/tutorial/opening-error-trace-of-unsafe-with-automatic-assessment.png
+
+   Opening the error trace of the unsafe with automatic assessment
+
+.. _tutorial_starting_changing_association_type:
+.. figure:: ./media/tutorial/starting-changing-association-type.png
+
+   Starting changing the association type
+
+.. _tutorial_confirming_automatic_association:
+.. figure:: ./media/tutorial/confirming-automatic-association.png
+
+   Confirming the automatic association
+
+What’s Next?
+------------
+
+We assume that you can be non-satisfied fully with a quality of obtained verification results.
+Perhaps, you even could not obtain them at all.
+This is expected since Klever is an open source software developed in the Academy and we support verification of Linux
+kernel loadable modules for evaluation purposes primarily.
+Besides, this tutorial misses `many tricky activities <https://docs.google.com/document/d/11e7cDzRqx0nO1UBcM75l6MS28zRBJUicXdNiReEpDKI/edit#heading=h.senezjrkxeg>`__
+like development of specifications and support for verification of additional software.
+We are ready to discuss different issues and even to fix some crucial bugs, but we do not have the manpower to make any
+considerable improvements for you for free.
+
+.. [1]
+   If this is not the case, you should adjust paths to build bases below respectively.
+
+.. [2]
+   You can open the Klever web interface from other machines as well, but you need to set up appropriate access for
+   that.
+
+.. [3]
+   For the considered example each task is a pair of a Linux loadable kernel module and a requirements specification.
+   There are 3355 modules under verification and 2 requirement specifications to be checked, so there are 6710 tasks in
+   total.
+
+.. [4]
+   Environment models emulate interactions of target programs or *program fragments* like Linux kernel loadable modules
+   with their environment like libraries, user inputs, interruptions and so on.
+   Ideally they should cover only those interaction scenarios that are possible during real executions, but usually this
+   is not the case, so false alarms and missing bugs take place.
+   Each environment model is generated on the basis of specifications and it is represented as a number of additional C
+   source files (*models*) bound with original ones through instrumentation.
