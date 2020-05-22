@@ -273,7 +273,7 @@ def install_klever_addons(logger, src_dir, deploy_dir, deploy_conf, prev_deploy_
                     dump_cur_deploy_info_fn(prev_deploy_info)
         elif install_entity(logger, addon, src_dir, os.path.join(deploy_dir, 'klever-addons', addon),
                             deploy_addons_conf, prev_deploy_addons_conf, cmd_fn, install_fn):
-                    dump_cur_deploy_info_fn(prev_deploy_info)
+            dump_cur_deploy_info_fn(prev_deploy_info)
 
 
 def install_klever_build_bases(logger, src_dir, deploy_dir, deploy_conf, cmd_fn, install_fn):
@@ -386,3 +386,12 @@ def replace_media_user(path, media_user):
         for line in content:
             line = line.replace('www-data', media_user)
             fp.write(line)
+
+
+def get_cgroup_version():
+    # I was not able to find a better way to detect cgroup version
+    # TODO: improve detection of cgroup version
+    if os.path.exists("/sys/fs/cgroup/freezer"):
+        return "v1"
+    else:
+        return "v2"
