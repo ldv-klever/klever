@@ -101,9 +101,9 @@ def install_klever_bridge_production(logger, src_dir, deploy_dir, populate_just_
     execute_cmd(logger, 'chown', '-R', user_group, '/var/www/klever-bridge/bridge/logs')
     execute_cmd(logger, 'chown', '-R', user_group, '/var/www/klever-bridge/bridge/static')
 
-    # Try to add port 8998 to SELinux rules
+    # Try to add httpd_t to the list of permissive domains
     try:
-        execute_cmd(logger, 'semanage', 'port', '-a', '-t', 'http_port_t', '-p', 'tcp', '8998')
+        execute_cmd(logger, 'semanage', 'permissive', '-a', 'httpd_t')
     except subprocess.CalledProcessError:
         pass
 

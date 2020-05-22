@@ -233,9 +233,9 @@ class Klever:
         except (FileNotFoundError, subprocess.CalledProcessError):
             pass
 
-        # Try to remove port 8998 from SELinux rules
+        # Try to remove httpd_t from the list of permissive domains
         try:
-            execute_cmd(self.logger, 'semanage', 'port', '-d', '-t', 'http_port_t', '-p', 'tcp', '8998')
+            execute_cmd(self.logger, 'semanage', 'permissive', '-d', 'httpd_t')
         except subprocess.CalledProcessError:
             pass
 
