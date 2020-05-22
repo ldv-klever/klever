@@ -17,6 +17,7 @@
 
 import os
 import shutil
+import subprocess
 import sys
 
 from klever.deploys.utils import Cd, execute_cmd, get_logger, start_services, stop_services, get_media_user
@@ -99,6 +100,12 @@ def install_klever_bridge_production(logger, src_dir, deploy_dir, populate_just_
     execute_cmd(logger, 'chown', '-R', user_group, media_real)
     execute_cmd(logger, 'chown', '-R', user_group, '/var/www/klever-bridge/bridge/logs')
     execute_cmd(logger, 'chown', '-R', user_group, '/var/www/klever-bridge/bridge/static')
+
+    # Try to add port 8998 to SELinux rules
+    try:
+        execute_cmd(logger, 'semanage', 'port', '-a', '-t', 'http_port_t', '-p', 'tcp', '8998')
+    except subprocess.CalledProcessError:
+        pass
 
     start_services(logger, services)
 

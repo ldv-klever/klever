@@ -233,6 +233,12 @@ class Klever:
         except (FileNotFoundError, subprocess.CalledProcessError):
             pass
 
+        # Try to remove port 8998 from SELinux rules
+        try:
+            execute_cmd(self.logger, 'semanage', 'port', '-d', '-t', 'http_port_t', '-p', 'tcp', '8998')
+        except subprocess.CalledProcessError:
+            pass
+
     def _post_install_or_update(self, is_dev=False):
         configure_controller_and_schedulers(self.logger, is_dev, self.args.source_directory,
                                             self.args.deployment_directory, self.prev_deploy_info)
