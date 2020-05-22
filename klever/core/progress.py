@@ -118,7 +118,8 @@ class PW(klever.core.components.Component):
         task_messages = list()
         if self.conf.get('wall time limit', None):
             self.logger.info("Expecting wall time limitation as {}".format(self.conf.get('wall time limit', None)))
-            given_finish_time = subjobs_start_time + klever.core.utils.time_units_converter(self.conf['wall time limit'])[0]
+            given_finish_time = subjobs_start_time + klever.core.utils.time_units_converter(
+                self.conf['wall time limit'])[0]
         else:
             given_finish_time = None
 

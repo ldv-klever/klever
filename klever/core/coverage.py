@@ -452,7 +452,8 @@ class LCOV:
             new_coverage_info = {}
             for orig_file, file_coverage_info in coverage_info.items():
                 # Like in klever.core.vrp.RP#__trim_file_names.
-                storage_file = klever.core.utils.make_relative_path([self.clade.storage_dir], os.path.normpath(orig_file))
+                storage_file = klever.core.utils.make_relative_path([self.clade.storage_dir],
+                                                                    os.path.normpath(orig_file))
                 shrinked_src_file_name = storage_file
                 tmp = klever.core.utils.make_relative_path(self.source_dirs, storage_file, absolutize=True)
 

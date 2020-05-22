@@ -389,12 +389,8 @@ class Component(multiprocessing.Process, CallbacksCaller):
                 }
                 if self.attrs:
                     report.update({'attrs': self.attrs})
-                klever.core.utils.report(self.logger,
-                                  'start',
-                                  report,
-                                  self.mqs['report files'],
-                                  self.vals['report id'],
-                                  self.conf['main working directory'])
+                klever.core.utils.report(self.logger, 'start', report, self.mqs['report files'], self.vals['report id'],
+                                         self.conf['main working directory'])
 
             self.main()
         except Exception:
@@ -416,16 +412,18 @@ class Component(multiprocessing.Process, CallbacksCaller):
         try:
             if self.separate_from_parent and self.__pid == os.getpid():
                 if os.path.isfile('problem desc.txt'):
-                    klever.core.utils.report(self.logger,
-                                      'unknown',
-                                      {
-                                          'identifier': self.id + '/unknown',
-                                          'parent': self.id,
-                                          'problem_description': klever.core.utils.ArchiveFiles(['problem desc.txt'])
-                                      },
-                                      self.mqs['report files'],
-                                      self.vals['report id'],
-                                      self.conf['main working directory'])
+                    klever.core.utils.report(
+                        self.logger,
+                        'unknown',
+                        {
+                            'identifier': self.id + '/unknown',
+                            'parent': self.id,
+                            'problem_description': klever.core.utils.ArchiveFiles(['problem desc.txt'])
+                        },
+                        self.mqs['report files'],
+                        self.vals['report id'],
+                        self.conf['main working directory']
+                    )
 
                 child_resources = all_child_resources()
                 report = {'identifier': self.id}
@@ -438,13 +436,13 @@ class Component(multiprocessing.Process, CallbacksCaller):
                 if os.path.isfile('log.txt'):
                     report['log'] = klever.core.utils.ArchiveFiles(['log.txt'])
 
-                klever.core.utils.report(self.logger, 'finish', report, self.mqs['report files'], self.vals['report id'],
-                                  self.conf['main working directory'])
+                klever.core.utils.report(self.logger, 'finish', report, self.mqs['report files'],
+                                         self.vals['report id'], self.conf['main working directory'])
             else:
                 with open(os.path.join('child resources', self.name + '.json'), 'w', encoding='utf8') as fp:
                     klever.core.utils.json_dump(count_consumed_resources(self.logger, self.tasks_start_time,
-                                                                  self.include_child_resources),
-                                         fp, self.conf['keep intermediate files'])
+                                                                         self.include_child_resources),
+                                                fp, self.conf['keep intermediate files'])
         except Exception:
             exception = True
             self.logger.exception('Catch exception')

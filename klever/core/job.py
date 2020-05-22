@@ -80,8 +80,8 @@ def start_jobs(core_obj, vals):
         klever.core.utils.find_file_or_dir(core_obj.logger, os.path.curdir, 'specifications'))
     common_components_conf['specifications base'] = os.path.abspath(
         klever.core.utils.find_file_or_dir(core_obj.logger, os.path.curdir,
-                                    os.path.join('specifications',
-                                                 '{0}.json'.format(common_components_conf['project']))))
+                                           os.path.join('specifications',
+                                                        '{0}.json'.format(common_components_conf['project']))))
     common_components_conf['verifier profiles base'] = os.path.abspath(
         klever.core.utils.find_file_or_dir(core_obj.logger, os.path.curdir, 'verifier profiles.json'))
     common_components_conf['program fragments base'] = os.path.abspath(
@@ -122,7 +122,8 @@ def start_jobs(core_obj, vals):
                      separate_from_parent=False, include_child_resources=True, queues_to_terminate=queues_to_terminate)
             # This can be done only in this module otherwise callbacks will be missed
             klever.core.components.set_component_callbacks(core_obj.logger, Job,
-                                                    [after_launch_sub_job_components, after_process_finished_task])
+                                                           [after_launch_sub_job_components,
+                                                            after_process_finished_task])
             cr.start()
             subcomponents.append(cr)
 
@@ -135,7 +136,7 @@ def start_jobs(core_obj, vals):
         if 'sub-jobs' in common_components_conf:
             core_obj.logger.info('Decide sub-jobs')
             sub_job_solvers_num = klever.core.utils.get_parallel_threads_num(core_obj.logger, common_components_conf,
-                                                                      'Sub-jobs processing')
+                                                                             'Sub-jobs processing')
             core_obj.logger.debug('Sub-jobs will be decided in parallel by "{0}" solvers'.format(sub_job_solvers_num))
             __solve_sub_jobs(core_obj, vals, common_components_conf,
                              subcomponents + [core_obj.uploading_reports_process])
@@ -148,7 +149,8 @@ def start_jobs(core_obj, vals):
                 separate_from_parent=True,
                 include_child_resources=False,
                 components_common_conf=common_components_conf)
-            klever.core.components.launch_workers(core_obj.logger, [job], subcomponents + [core_obj.uploading_reports_process])
+            klever.core.components.launch_workers(core_obj.logger, [job], subcomponents +
+                                                  [core_obj.uploading_reports_process])
             core_obj.logger.info("Finished main job")
     except Exception:
         for p in subcomponents:
@@ -191,7 +193,7 @@ def __solve_sub_jobs(core_obj, vals, components_common_conf, subcomponents):
         sub_job_components_common_conf = copy.deepcopy(components_common_conf)
         del (sub_job_components_common_conf['sub-jobs'])
         sub_job_concrete_conf = klever.core.utils.merge_confs(sub_job_components_common_conf,
-                                                       components_common_conf['sub-jobs'][number])
+                                                              components_common_conf['sub-jobs'][number])
 
         job = SubJob(
             core_obj.conf, core_obj.logger, core_obj.ID, core_obj.callbacks, core_obj.mqs,
@@ -225,7 +227,7 @@ def __solve_sub_jobs(core_obj, vals, components_common_conf, subcomponents):
 
     core_obj.logger.info('Start job sub-jobs')
     sub_job_solvers_num = klever.core.utils.get_parallel_threads_num(core_obj.logger, components_common_conf,
-                                                              'Sub-jobs processing')
+                                                                     'Sub-jobs processing')
     core_obj.logger.debug('Sub-jobs will be decided in parallel by "{0}" solvers'.format(sub_job_solvers_num))
 
     subjob_queue = multiprocessing.Queue()
@@ -238,7 +240,7 @@ def __solve_sub_jobs(core_obj, vals, components_common_conf, subcomponents):
     # Then run jobs
     core_obj.logger.debug('Start sub-jobs pull of workers')
     klever.core.components.launch_queue_workers(core_obj.logger, subjob_queue, constructor, sub_job_solvers_num,
-                                         components_common_conf['ignore failed sub-jobs'], subcomponents)
+                                                components_common_conf['ignore failed sub-jobs'], subcomponents)
 
 
 class REP(klever.core.components.Component):
@@ -301,16 +303,18 @@ class REP(klever.core.components.Component):
 
             os.makedirs(results_dir)
 
-            klever.core.utils.report(self.logger,
-                              'patch',
-                              {
-                                  'identifier': self.parent_id,
-                                  'data': data
-                              },
-                              self.mqs['report files'],
-                              self.vals['report id'],
-                              self.conf['main working directory'],
-                              results_dir)
+            klever.core.utils.report(
+                self.logger,
+                'patch',
+                {
+                    'identifier': self.parent_id,
+                    'data': data
+                },
+                self.mqs['report files'],
+                self.vals['report id'],
+                self.conf['main working directory'],
+                results_dir
+            )
 
     main = process_results_extra
 
@@ -347,12 +351,15 @@ class REP(klever.core.components.Component):
                 'data': context.conf.get('data')
             })
 
-        klever.core.components.set_component_callbacks(self.logger, type(self),
-                                                (
-                                                    after_plugin_fail_processing,
-                                                    after_process_single_verdict,
-                                                    after_process_failed_task
-                                                ))
+        klever.core.components.set_component_callbacks(
+            self.logger,
+            type(self),
+            (
+                after_plugin_fail_processing,
+                after_process_single_verdict,
+                after_process_failed_task
+            )
+        )
 
     @staticmethod
     def __match_ideal_verdict(verification_status):
@@ -552,12 +559,11 @@ class Job(klever.core.components.Component):
         # convenient to use when working with many build bases.
         try:
             build_base = klever.core.utils.find_file_or_dir(self.logger, os.path.curdir,
-                                                     self.common_components_conf['build base'])
+                                                            self.common_components_conf['build base'])
         except FileNotFoundError:
             try:
-                build_base = klever.core.utils.find_file_or_dir(self.logger, os.path.curdir,
-                                                         os.path.join('build bases',
-                                                                      self.common_components_conf['build base']))
+                build_base = klever.core.utils.find_file_or_dir(
+                    self.logger, os.path.curdir, os.path.join('build bases', self.common_components_conf['build base']))
             except FileNotFoundError:
                 raise FileNotFoundError(
                     'Specified build base "{0}" does not exist, {1}'.format(self.common_components_conf['build base'],
@@ -609,15 +615,17 @@ class Job(klever.core.components.Component):
             if 'working source trees' in clade_meta else [clade_meta['build_dir']]
 
     def __refer_original_sources(self, src_id):
-        klever.core.utils.report(self.logger,
-                          'patch',
-                          {
-                              'identifier': self.id,
-                              'original_sources': src_id
-                          },
-                          self.mqs['report files'],
-                          self.vals['report id'],
-                          self.conf['main working directory'])
+        klever.core.utils.report(
+            self.logger,
+            'patch',
+            {
+                'identifier': self.id,
+                'original_sources': src_id
+            },
+            self.mqs['report files'],
+            self.vals['report id'],
+            self.conf['main working directory']
+        )
 
     def __process_source_files(self):
         for file_name in self.clade.src_info:
@@ -634,7 +642,7 @@ class Job(klever.core.components.Component):
                 return
 
             src_file_name = klever.core.utils.make_relative_path(self.common_components_conf['working source trees'],
-                                                          file_name)
+                                                                 file_name)
 
             if src_file_name != file_name:
                 src_file_name = os.path.join('source files', src_file_name)
@@ -654,7 +662,8 @@ class Job(klever.core.components.Component):
         # For each source file we need to know the total number of lines and places where functions are defined.
         src_files_info = dict()
         for file_name, file_size in self.clade.src_info.items():
-            src_file_name = klever.core.utils.make_relative_path(self.common_components_conf['working source trees'], file_name)
+            src_file_name = klever.core.utils.make_relative_path(self.common_components_conf['working source trees'],
+                                                                 file_name)
 
             # Skip non-source files.
             if src_file_name == file_name:
@@ -724,8 +733,8 @@ class Job(klever.core.components.Component):
     def __get_job_or_sub_job_components(self):
         self.logger.info('Get components for sub-job "{0}"'.format(self.id))
 
-        self.components = [getattr(importlib.import_module('.{0}'.format(component.lower()), 'klever.core'), component) for
-                           component in self.CORE_COMPONENTS]
+        self.components = [getattr(importlib.import_module('.{0}'.format(component.lower()), 'klever.core'), component)
+                           for component in self.CORE_COMPONENTS]
 
         self.logger.debug('Components to be launched: "{0}"'.format(
             ', '.join([component.__name__ for component in self.components])))

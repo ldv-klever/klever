@@ -151,9 +151,9 @@ def execute(logger, args, env=None, cwd=None, timeout=0.1, collect_all_stdout=Fa
     last_try = True
     while not out_q.finished or not err_q.finished or last_try:
         if out_q.traceback:
-            raise RuntimeError('STDOUT reader thread failed with the following traceback:\n{0}'. format(out_q.traceback))
+            raise RuntimeError('STDOUT reader thread failed with the following traceback:\n{0}'.format(out_q.traceback))
         if err_q.traceback:
-            raise RuntimeError('STDERR reader thread failed with the following traceback:\n{0}'. format(err_q.traceback))
+            raise RuntimeError('STDERR reader thread failed with the following traceback:\n{0}'.format(err_q.traceback))
         last_try = not out_q.finished or not err_q.finished
         time.sleep(timeout)
 
