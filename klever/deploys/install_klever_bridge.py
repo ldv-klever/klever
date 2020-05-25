@@ -17,7 +17,6 @@
 
 import os
 import shutil
-import subprocess
 import sys
 
 from klever.deploys.utils import Cd, execute_cmd, get_logger, start_services, stop_services, get_media_user
@@ -101,10 +100,10 @@ def install_klever_bridge_production(logger, src_dir, deploy_dir, populate_just_
     execute_cmd(logger, 'chown', '-R', user_group, '/var/www/klever-bridge/bridge/logs')
     execute_cmd(logger, 'chown', '-R', user_group, '/var/www/klever-bridge/bridge/static')
 
-    # Try to add httpd_t to the list of permissive domains
+    # Try to add httpd_t to the list of permissive domains.
     try:
         execute_cmd(logger, 'semanage', 'permissive', '-a', 'httpd_t')
-    except subprocess.CalledProcessError:
+    except:
         pass
 
     start_services(logger, services)
