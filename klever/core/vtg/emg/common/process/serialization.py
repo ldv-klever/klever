@@ -271,10 +271,11 @@ class CollectionDecoder:
         for att in ('definitions', 'declarations'):
             # Avoid iterating over the dictionary that can change its content
             if att in dic:
-                for def_file in dic[att].keys():
-                    dic[att][source.find_file(def_file)] = dic[att].pop(def_file)
+                dic_copy = dict(dic[att])
+                for def_file in dic[att]:
+                    dic_copy[source.find_file(def_file)] = dic_copy.pop(def_file)
                 # Update object to be sure that changes are saved there
-                setattr(process, att, dic[att])
+                setattr(process, att, dic_copy)
 
         unused_labels = {str(l) for l in process.unused_labels}
         if unused_labels:
