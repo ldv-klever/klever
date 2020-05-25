@@ -18,6 +18,9 @@ Local Deployment
 .. warning:: Do not deploy Klever at your workstation or valuable servers unless you are ready to lose some sensitive
              data or to have misbehaved software.
 
+.. warning:: Currently deployment on Fedora makes the *httpd_t* SELinux domain permissive, which may negatively impact
+             the security of your system.
+
 To accomplish local deployment of Klever you need to choose an appropriate mode (one should select *development* only
 for development purposes, otherwise, please, choose *production*) and to run the following command within
 :term:`$KLEVER_SRC`:
