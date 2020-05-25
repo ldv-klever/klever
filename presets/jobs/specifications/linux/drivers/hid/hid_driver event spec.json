@@ -101,8 +101,7 @@
             ]
           }
         },
-        "process": "(!register).(<alloc_device>.{manage_hid})",
-        "reference": true
+        "process": "(!register).(<alloc_device>.{manage_hid})"
       }
     }
   },
