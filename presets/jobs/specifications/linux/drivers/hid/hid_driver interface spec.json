@@ -1,4 +1,37 @@
 {
+  "2.6.33": {
+    "categories": {
+      "hid_driver": {
+        "callbacks": {
+          "probe": {
+            "declaration": "int (*probe)(%hid_driver.hid_device%, %hid_driver.hid_id%)"
+          },
+          "remove": {
+            "declaration": "void (*remove)(%hid_driver.hid_device%)"
+          }
+        },
+        "containers": {
+          "hid_driver": {
+            "declaration": "struct hid_driver a",
+            "fields": {
+              "probe": "%hid_driver.probe%",
+              "remove": "%hid_driver.remove%"
+            },
+            "header": "linux/hid.h"
+          }
+        },
+        "resources": {
+          "hid_device": {
+            "declaration": "struct hid_device *dev"
+          },
+          "hid_id": {
+            "declaration": "struct hid_device_id *id"
+          }
+        },
+        "reference": true
+      }
+    }
+  },
   "3.14": {
     "categories": {
       "hid_driver": {
