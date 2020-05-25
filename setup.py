@@ -90,7 +90,18 @@ setuptools.setup(
         "sortedcontainers",
         "consulate"
     ],
-    extras_require={"strict": open("requirements.txt", encoding="utf8").read().splitlines()},
+    extras_require={
+        "strict": open("requirements.txt", encoding="utf8").read().splitlines(),
+        "openstack": [
+            "python-novaclient",
+            "python-neutronclient",
+            "python-glanceclient",
+            "python-cinderclient",
+            "keystoneauth1",
+            "paramiko",
+            "pycryptodome"
+        ]
+    },
     classifiers=[
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: Implementation :: CPython",

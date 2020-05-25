@@ -33,6 +33,8 @@ Increasing specified hardware characteristics in 2-4 times can reduce total veri
 To generate :ref:`klever_build_bases` for large programs, such as the Linux kernel, you need 3-5 times more free disk
 space.
 
+.. _software_requirements:
+
 Software Requirements
 ---------------------
 
