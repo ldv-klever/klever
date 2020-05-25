@@ -1,0 +1,64 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/hid_driver_v.1/hid_driver_invoke.ko"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "test:environment model specifications"
+    }
+  ],
+  "description": "",
+  "error_trace": [
+    [
+      [
+        {
+          "Entry point 'main'": [
+            {
+              "LDV model 'initialize'": []
+            }
+          ]
+        }
+      ]
+    ],
+    [
+      [
+        {
+          "EMG wrapper": [
+            {
+              "LDV model 'init'": [
+                {
+                  "LDV model 'invoke_test'": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    ],
+    [
+      [
+        {
+          "LDV model 'probe'": [
+            {
+              "LDV model 'invoke_reached'": [
+                {
+                  "LDV model 'assert'": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": true,
+  "status": null,
+  "tags": [],
+  "threshold": 0,
+  "verdict": "2"
+}
