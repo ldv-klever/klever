@@ -68,7 +68,7 @@ setuptools.setup(
         ]
     },
     install_requires=[
-        "Django>=3",
+        "Django==3.0.6",
         "BenchExec==1.18",
         "clade==3.2.7",
         "psycopg2",
