@@ -36,13 +36,10 @@ space.
 Software Requirements
 ---------------------
 
-Klever deployment is designed to work on `Debian 9 <https://wiki.debian.org/DebianStretch>`__.
-It is also possible to deploy it on `Ubuntu 18.04 <https://wiki.ubuntu.com/BionicBeaver/ReleaseNotes>`__ and
-`Fedora 32 <https://docs.fedoraproject.org/en-US/fedora/f32/>`__. You could also try other versions of Debian
-and Fedora, or their various derivatives.
-
-.. note:: Currently deployment on Fedora makes httpd_t SELinux domain permissive, which may
-  negatively impact the security of your system. Deployment on Debian doesn't have this issue.
+Klever deployment is designed to work on `Debian 9 <https://wiki.debian.org/DebianStretch>`__,
+`Ubuntu 18.04 <https://wiki.ubuntu.com/BionicBeaver/ReleaseNotes>`__ and
+`Fedora 32 <https://docs.fedoraproject.org/en-US/fedora/f32/>`__.
+You can try it for other versions of these distributions, as well as for their derivatives on your own risk.
 
 To deploy Klever one has to clone its Git repository (a path to a directory where it is cloned is referred to as
 :term:`$KLEVER_SRC`)::
