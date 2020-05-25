@@ -78,7 +78,7 @@ Then you need to install Python packages including the Klever one:
 
 * For production use it is necessary to run the following command within :term:`$KLEVER_SRC`::
 
-    $ pip install .
+    $ pip install -r requirements.txt .
 
   Later to upgrade Klever Python package you should run::
 
@@ -87,7 +87,10 @@ Then you need to install Python packages including the Klever one:
 * If one is going to develop Klever (see :ref:`dev_deploy` in addition), one should run the following command within
   :term:`$KLEVER_SRC`::
 
-    $ pip install -e .
+    $ pip install -r requirements.txt -e .
+
+  Removing `-r requirements.txt` from the command will install latest versions of required packages.
+  However, it is not guaranteed that they will work well with Klever.
 
 
 Then one has to get :ref:`klever_addons` and :ref:`klever_build_bases`.

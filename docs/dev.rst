@@ -126,9 +126,19 @@ corresponding merge window.
 Updating list of required Python packages
 -----------------------------------------
 
-To update the current list of required Python packages you should run the following command within :term:`$KLEVER_SRC`::
+To update the list of required Python packages first you need to install Klever package from scratch in the newly
+created virtual environment without using the old `requirements.txt` file.
+Run the following commands within :term:`$KLEVER_SRC`::
+
+    $ python3 -m venv venv
+    $ source venv/bin/activate
+    $ pip install -e .
+
+This will install latest versions of required packages. After confirming that Klever works as expected, you should run the following command within :term:`$KLEVER_SRC`::
 
     $ python -m pip freeze > requirements.txt
+
+Updated list of requirements will be saved and should be committed to the repository afterwards.
 
 .. _dev_deploy:
 
@@ -240,7 +250,7 @@ Klever Bridge Testing
           for following testing.
           The user should be allowed to create databases (using command-line option *--keedb* does not help).
 
-.. note:: PyCharm has reach abilities to analyse tests and their results. 
+.. note:: PyCharm has reach abilities to analyse tests and their results.
 
 Additional documentation
 ^^^^^^^^^^^^^^^^^^^^^^^^
