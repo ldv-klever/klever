@@ -12,6 +12,7 @@
             "ext-modules/file_operations_v.1",
             "ext-modules/hid_driver_v.1",
             "ext-modules/hid_v.1",
+            "ext-modules/i2c_v.1",
             "ext-modules/ieee80211_ops_v.1",
             "ext-modules/iio_triggered_buffer_v.1",
             "ext-modules/irq_v.2",
