@@ -90,8 +90,8 @@ Then you need to install Python packages including the Klever one:
 
     $ pip install -r requirements.txt -e .
 
-  Removing `-r requirements.txt` from the command will install latest versions of required packages.
-  However, it is not guaranteed that they will work well with Klever.
+.. note:: Removing `-r requirements.txt` from the command will install latest versions of required packages.
+          However, it is not guaranteed that they will work well with Klever.
 
 
 Then one has to get :ref:`klever_addons` and :ref:`klever_build_bases`.

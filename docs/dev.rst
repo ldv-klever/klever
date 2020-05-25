@@ -134,7 +134,8 @@ Run the following commands within :term:`$KLEVER_SRC`::
     $ source venv/bin/activate
     $ pip install -e .
 
-This will install latest versions of required packages. After confirming that Klever works as expected, you should run the following command within :term:`$KLEVER_SRC`::
+This will install latest versions of required packages.
+After confirming that Klever works as expected, you should run the following command within :term:`$KLEVER_SRC`::
 
     $ python -m pip freeze > requirements.txt
 
