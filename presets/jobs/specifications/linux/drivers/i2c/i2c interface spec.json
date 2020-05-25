@@ -3,8 +3,11 @@
     "categories": {
       "i2c": {
         "callbacks": {
-          "release": {
-            "declaration": "int (*release)(%i2c.client%)"
+          "probe": {
+            "declaration": "int (*probe)(%i2c.client%, %i2c.i2c_device_id%);"
+          },
+          "remove": {
+            "declaration": "int (*remove)(%i2c.client%)"
           }
         },
         "containers": {
@@ -16,12 +19,15 @@
             "header": "linux/i2c.h"
           }
         },
-        "reference": true,
         "resources": {
           "client": {
             "declaration": "struct i2c_client *client"
+          },
+          "i2c_device_id": {
+            "declaration": "struct i2c_device_id *"
           }
-        }
+        },
+        "reference": true
       }
     },
     "functions models": {
