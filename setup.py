@@ -39,7 +39,7 @@ setuptools.setup(
     url="http://forge.ispras.ru/projects/klever",
     license="LICENSE",
     description="Klever is a software verification framework",
-    long_description=open("README", encoding="utf8").read(),
+    long_description=open("README.md", encoding="utf8").read(),
     python_requires=">=3.7",
     packages=["klever"],
     package_data={"klever": package_files("klever")},
