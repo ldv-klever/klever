@@ -14,7 +14,8 @@
           "i2c_driver": {
             "declaration": "struct i2c_driver driver",
             "fields": {
-              "remove": "%i2c.release%"
+              "probe": "%i2c.probe%",
+              "remove": "%i2c.remove%"
             },
             "header": "linux/i2c.h"
           }

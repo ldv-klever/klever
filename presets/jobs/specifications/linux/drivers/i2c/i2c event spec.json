@@ -1,0 +1,179 @@
+{
+  "3.14": {
+    "environment processes": {
+      "i2c_scenario": {
+        "actions": {
+          "alloc_device": {
+            "comment": "Allocate memory and initialize new i2c client.",
+            "statements": [
+              "%i2c_client% = $ALLOC(%i2c_client%);",
+              "%i2c_id% = & %i2c_driver%->id_table[0];"
+            ]
+          },
+          "callback": {
+            "callback": "%callback%",
+            "parameters": [
+              "%i2c_client%"
+            ]
+          },
+          "deregister": {
+            "condition": [
+              "%i2c_driver% == $ARG1"
+            ],
+            "parameters": [
+              "%i2c_driver%"
+            ]
+          },
+          "failed_probe": {
+            "comment": "Failed probing the i2c client.",
+            "condition": [
+              "%probe_retval% != 0"
+            ]
+          },
+          "free_device": {
+            "comment": "Free allocated memory for i2c client.",
+            "statements": [
+              "$FREE(%i2c_client%);"
+            ]
+          },
+          "manage_i2c": {
+            "comment": "Manage a particular i2c client.",
+            "process": "[probe].(<probe_success>.([callback] | <skip>).[remove] | <failed_probe>).{manage_i2c} | <free_device>.(deregister)"
+          },
+          "probe": {
+            "callback": "%i2c_driver.probe%",
+            "callback return value": "%probe_retval%",
+            "comment": "Probe the new i2c client.",
+            "parameters": [
+              "%i2c_client%", "%i2c_id%"
+            ],
+            "post-call": [
+              "%probe_retval% = ldv_post_probe(%probe_retval%);"
+            ],
+            "pre-call": [
+              "ldv_pre_probe();"
+            ]
+          },
+          "probe_success": {
+            "comment": "Probing was successfully.",
+            "condition": [
+              "%probe_retval% == 0"
+            ]
+          },
+          "register": {
+            "comment": "Begin i2c driver callbacks invocation scenario.",
+            "parameters": [
+              "%i2c_driver%"
+            ]
+          },
+          "remove": {
+            "callback": "%i2c_driver.remove%",
+            "comment": "Remove the i2c device.",
+            "parameters": [
+              "%i2c_client%"
+            ]
+          },
+          "skip": {
+            "comment": "Do not call any callbacks."
+          }
+        },
+        "comment": "Invoke a random i2c driver callback.",
+        "labels": {
+          "callback": {
+            "callback": true
+          },
+          "i2c_driver": {
+            "container": true,
+            "interface": [
+              "i2c.i2c_driver"
+            ]
+          },
+          "probe_retval": {
+            "declaration": "int a",
+            "value": "ldv_undef_int()"
+          },
+          "i2c_client": {
+            "interface": [
+              "i2c.client"
+            ]
+          },
+          "i2c_id": {
+            "interface": [
+              "i2c.i2c_device_id"
+            ]
+          }
+        },
+        "process": "(!register).(<alloc_device>.{manage_i2c})",
+        "reference": true
+      }
+    },
+    "functions models": {
+      "i2c_del_driver": {
+        "actions": {
+          "assign": {
+            "comment": "Get callbacks provided within 'i2c_driver' argument.",
+            "statements": [
+              "%i2c_driver% = $ARG1;"
+            ]
+          },
+          "deregister": {
+            "parameters": [
+              "%i2c_driver%"
+            ]
+          }
+        },
+        "comment": "Deregister the i2c driver callbacks.",
+        "labels": {
+          "i2c_driver": {
+            "container": true,
+            "interface": [
+              "i2c.i2c_driver"
+            ],
+            "parameter": true
+          }
+        },
+        "process": "<assign>.[deregister]",
+        "reference": true
+      },
+      "i2c_register_driver": {
+        "actions": {
+          "assign": {
+            "comment": "Get callbacks provided within 'i2c_driver' argument.",
+            "statements": [
+              "%i2c_driver% = $ARG2;"
+            ]
+          },
+          "fail": {
+            "comment": "Failed registration of the i2c driver callbacks.",
+            "statements": [
+              "return ldv_undef_int_negative();"
+            ]
+          },
+          "register": {
+            "parameters": [
+              "%i2c_driver%"
+            ]
+          },
+          "success": {
+            "comment": "Registration of i2c_driver callbacks has been finished successfully.",
+            "statements": [
+              "return 0;"
+            ]
+          }
+        },
+        "comment": "Register i2c driver callbacks.",
+        "labels": {
+          "i2c_driver": {
+            "container": true,
+            "interface": [
+              "i2c.i2c_driver"
+            ],
+            "parameter": true
+          }
+        },
+        "process": "<assign>.[register].<success> | <fail>",
+        "reference": true
+      }
+    }
+  }
+}
