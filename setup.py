@@ -39,7 +39,7 @@ setuptools.setup(
     url="http://forge.ispras.ru/projects/klever",
     license="LICENSE",
     description="Klever is a software verification framework",
-    long_description=open("README", encoding="utf8").read(),
+    long_description=open("README.md", encoding="utf8").read(),
     python_requires=">=3.7",
     packages=["klever"],
     package_data={"klever": package_files("klever")},
@@ -67,7 +67,42 @@ setuptools.setup(
             "klever-deploy-openstack=klever.deploys.openstack:main",
         ]
     },
-    install_requires=open("requirements.txt", encoding="utf8").read().splitlines(),
+    install_requires=[
+        "Django==3.0.6",
+        "BenchExec==1.18",
+        "clade==3.2.7",
+        "psycopg2",
+        "graphviz",
+        "celery",
+        "django_celery_results",
+        "djangorestframework",
+        "django-compressor",
+        "django-mptt",
+        "gunicorn",
+        "pika",
+        "python-slugify",
+        "pytz",
+        "jinja2",
+        "ply",
+        "pygments",
+        "requests",
+        "setuptools_scm",
+        "sortedcontainers",
+        "consulate"
+    ],
+    extras_require={
+        "strict": open("requirements.txt", encoding="utf8").read().splitlines(),
+        "docs": ["sphinx", "sphinx_rtd_theme"],
+        "openstack": [
+            "python-novaclient",
+            "python-neutronclient",
+            "python-glanceclient",
+            "python-cinderclient",
+            "keystoneauth1",
+            "paramiko",
+            "pycryptodome"
+        ]
+    },
     classifiers=[
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: Implementation :: CPython",

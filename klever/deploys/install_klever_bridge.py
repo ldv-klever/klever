@@ -100,6 +100,12 @@ def install_klever_bridge_production(logger, src_dir, deploy_dir, populate_just_
     execute_cmd(logger, 'chown', '-R', user_group, '/var/www/klever-bridge/bridge/logs')
     execute_cmd(logger, 'chown', '-R', user_group, '/var/www/klever-bridge/bridge/static')
 
+    # Try to add httpd_t to the list of permissive domains.
+    try:
+        execute_cmd(logger, 'semanage', 'permissive', '-a', 'httpd_t')
+    except:
+        pass
+
     start_services(logger, services)
 
 

@@ -233,6 +233,12 @@ class Klever:
         except (FileNotFoundError, subprocess.CalledProcessError):
             pass
 
+        # Try to remove httpd_t from the list of permissive domains.
+        try:
+            execute_cmd(self.logger, 'semanage', 'permissive', '-d', 'httpd_t')
+        except:
+            pass
+
     def _post_install_or_update(self, is_dev=False):
         configure_controller_and_schedulers(self.logger, is_dev, self.args.source_directory,
                                             self.args.deployment_directory, self.prev_deploy_info)

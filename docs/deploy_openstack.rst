@@ -15,8 +15,21 @@
 OpenStack Deployment
 ====================
 
-.. warning:: Althouth we would like to support different `OpenStack <https://www.openstack.org/>`__ environments, we
-             tested :ref:`openstack_deploy` just for the `ISP RAS one <http://www.bigdataopenlab.ru/about.html>`__.
+.. note:: Althouth we would like to support different `OpenStack <https://www.openstack.org/>`__ environments, we
+          tested :ref:`openstack_deploy` just for the `ISP RAS one <http://www.bigdataopenlab.ru/about.html>`__.
+
+Additional Software Requirements
+--------------------------------
+
+To install additional packages required only by OpenStack deployment scripts you need to execute the following command::
+
+    $ pip install .[openstack]
+
+.. note:: If in the previous step you installed Klever package with the `-e` argument, then you should use it here as
+          well (i.e. execute `pip install -e .[openstack]`).
+
+Supported Options
+-----------------
 
 :ref:`openstack_deploy` supports 3 kinds of entities:
 
