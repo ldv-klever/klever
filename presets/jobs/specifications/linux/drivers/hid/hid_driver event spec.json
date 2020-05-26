@@ -250,7 +250,7 @@
         "comment": "Deregister HID driver callbacks.",
         "labels": {
           "hid_driver": {
-            "hid_driver": true,
+            "container": true,
             "interface": [
               "hid_driver.hid_driver"
             ],
@@ -289,7 +289,7 @@
         "comment": "Register HID driver callbacks.",
         "labels": {
           "hid_driver": {
-            "hid_driver": true,
+            "container": true,
             "interface": [
               "hid_driver.hid_driver"
             ],
