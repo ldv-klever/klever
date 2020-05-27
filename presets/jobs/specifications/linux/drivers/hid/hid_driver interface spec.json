@@ -27,8 +27,7 @@
           "hid_id": {
             "declaration": "struct hid_device_id *id"
           }
-        },
-        "reference": true
+        }
       }
     }
   },
