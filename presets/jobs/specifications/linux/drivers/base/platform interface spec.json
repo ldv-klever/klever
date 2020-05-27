@@ -8,6 +8,15 @@
           },
           "release": {
             "declaration": "int (*release)(%platform.platform_device%)"
+          },
+          "shutdown": {
+            "declaration": "void (*shutdown)(%platform.platform_device%)"
+          },
+          "suspend": {
+            "declaration": "int (*suspend)(%platform.platform_device%, pm_message_t state)"
+          },
+          "resume": {
+            "declaration": "int (*resume)(%platform.platform_device%)"
           }
         },
         "containers": {
@@ -15,7 +24,10 @@
             "declaration": "struct platform_driver driver",
             "fields": {
               "probe": "%platform.probe%",
-              "remove": "%platform.release%"
+              "remove": "%platform.release%",
+              "shutdown": "%platform.shutdown%",
+              "suspend": "%platform.suspend%",
+              "resume": "%platform.resume%"
             },
             "header": "linux/platform_device.h"
           }

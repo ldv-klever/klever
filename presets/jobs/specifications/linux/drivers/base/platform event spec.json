@@ -450,13 +450,29 @@
           },
           "call": {
             "comment": "Driver is probed. Call power management callbacks or release the device.",
-            "process": "([callback] | [pm_register].[pm_deregister]).{call} | [release].<after_release>.{main}"
+            "process": "([suspend].[resume] | <none>).{call} | [shutdown].[release].<after_release>.{main}"
           },
-          "callback": {
-            "callback": "%callback%",
+          "shutdown": {
+            "callback": "%container.shutdown%",
             "parameters": [
               "%resource%"
             ]
+          },
+          "suspend": {
+            "callback": "%container.suspend%",
+            "parameters": [
+              "%resource%"
+            ]
+          },
+          "resume": {
+            "callback": "%container.resume%",
+            "parameters": [
+              "%resource%"
+            ]
+          },
+          "none": {
+            "comment": "Skip callbacks call.",
+            "statements": []
           },
           "deregister": {
             "condition": [
@@ -487,14 +503,6 @@
             "condition": [
               "%probed% != 0"
             ]
-          },
-          "pm_deregister": {
-            "comment": "Finish the power management scenario.",
-            "parameters": []
-          },
-          "pm_register": {
-            "comment": "Proceed to a power management scenario.",
-            "parameters": []
           },
           "positive_probe": {
             "comment": "Platform device is probed successfully now.",
@@ -532,9 +540,6 @@
         },
         "comment": "Invoke platfrom callbacks.",
         "labels": {
-          "callback": {
-            "callback": true
-          },
           "container": {
             "container": true,
             "interface": [
