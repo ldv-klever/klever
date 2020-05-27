@@ -40,9 +40,9 @@ copyright = '2020, ISP RAS'
 author = 'ISP RAS'
 
 # The short X.Y version
-version = ''
+version = '3.0'
 # The full version, including alpha/beta/rc tags
-release = '1.0'
+release = ''
 
 
 # -- General configuration ---------------------------------------------------
