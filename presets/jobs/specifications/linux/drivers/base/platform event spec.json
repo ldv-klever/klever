@@ -11,13 +11,29 @@
           },
           "call": {
             "comment": "Driver is probed. Call power management callbacks or release the device.",
-            "process": "([callback] | [pm_register].[pm_deregister]).{call} | [release].<after_release>.{main}"
+            "process": "(([suspend].[resume]) | [pm_register].[pm_deregister] | <none>).{call} | [shutdown].[release].<after_release>.{main}"
           },
-          "callback": {
-            "callback": "%callback%",
+          "shutdown": {
+            "callback": "%container.shutdown%",
             "parameters": [
               "%resource%"
             ]
+          },
+          "suspend": {
+            "callback": "%container.suspend%",
+            "parameters": [
+              "%resource%"
+            ]
+          },
+          "resume": {
+            "callback": "%container.resume%",
+            "parameters": [
+              "%resource%"
+            ]
+          },
+          "none": {
+            "comment": "Skip callbacks call.",
+            "statements": []
           },
           "deregister": {
             "condition": [
@@ -91,11 +107,8 @@
             ]
           }
         },
-        "comment": "Invoke platform callbacks.",
+        "comment": "Invoke platfrom callbacks.",
         "labels": {
-          "callback": {
-            "callback": true
-          },
           "container": {
             "container": true,
             "interface": [
@@ -104,7 +117,7 @@
           },
           "probed": {
             "declaration": "int a",
-            "value": "ldv_undef_int()"
+            "value": "1"
           },
           "resource": {
             "resource": true
@@ -235,119 +248,6 @@
     }
   },
   "4.15": {
-    "environment processes": {
-      "platform_instance": {
-        "actions": {
-          "after_release": {
-            "comment": "Platform device is released now.",
-            "statements": [
-              "%probed% = 1;"
-            ]
-          },
-          "call": {
-            "comment": "Driver is probed. Call power management callbacks or release the device.",
-            "process": "([callback] | [pm_register].[pm_deregister]).{call} | [release].<after_release>.{main}"
-          },
-          "callback": {
-            "callback": "%callback%",
-            "parameters": [
-              "%resource%"
-            ]
-          },
-          "deregister": {
-            "condition": [
-              "%container% == $ARG1"
-            ],
-            "parameters": [
-              "%container%"
-            ]
-          },
-          "free": {
-            "comment": "Free memory for 'platform_device' structure.",
-            "statements": [
-              "$FREE(%resource%);"
-            ]
-          },
-          "init": {
-            "comment": "Alloc memory for 'platform_device' structure.",
-            "statements": [
-              "%resource% = $ALLOC(%resource%);"
-            ]
-          },
-          "main": {
-            "comment": "Check that device is truely in the system and begin callback invocations.",
-            "process": "[probe].(<positive_probe>.{call} | <negative_probe>.{main}) | <free>.(deregister)"
-          },
-          "negative_probe": {
-            "comment": "Failed to probe the device.",
-            "condition": [
-              "%probed% != 0"
-            ]
-          },
-          "pm_deregister": {
-            "comment": "Finish the power management scenario.",
-            "parameters": []
-          },
-          "pm_register": {
-            "comment": "Proceed to a power management scenario.",
-            "parameters": []
-          },
-          "positive_probe": {
-            "comment": "Platform device is probed successfully now.",
-            "condition": [
-              "%probed% == 0"
-            ]
-          },
-          "probe": {
-            "callback": "%container.probe%",
-            "callback return value": "%probed%",
-            "comment": "Check that the device in the system and do driver initializations.",
-            "parameters": [
-              "%resource%"
-            ],
-            "post-call": [
-              "%probed% = ldv_post_probe(%probed%);"
-            ],
-            "pre-call": [
-              "ldv_pre_probe();"
-            ]
-          },
-          "register": {
-            "comment": "Register a driver callbacks for platform-level device.",
-            "parameters": [
-              "%container%"
-            ]
-          },
-          "release": {
-            "callback": "%container.release%",
-            "comment": "Remove device from the system.",
-            "parameters": [
-              "%resource%"
-            ]
-          }
-        },
-        "comment": "Invoke platfrom callbacks.",
-        "labels": {
-          "callback": {
-            "callback": true
-          },
-          "container": {
-            "container": true,
-            "interface": [
-              "platform.platform_driver"
-            ]
-          },
-          "probed": {
-            "declaration": "int a",
-            "value": "1"
-          },
-          "resource": {
-            "resource": true
-          }
-        },
-        "process": "(!register).<init>.{main}"
-      }
-    },
     "functions models": {
       "__platform_driver_probe": {
         "actions": {
@@ -439,124 +339,6 @@
     }
   },
   "5.5": {
-    "environment processes": {
-      "platform_instance": {
-        "actions": {
-          "after_release": {
-            "comment": "Platform device is released now.",
-            "statements": [
-              "%probed% = 1;"
-            ]
-          },
-          "call": {
-            "comment": "Driver is probed. Call power management callbacks or release the device.",
-            "process": "([suspend].[resume] | <none>).{call} | [shutdown].[release].<after_release>.{main}"
-          },
-          "shutdown": {
-            "callback": "%container.shutdown%",
-            "parameters": [
-              "%resource%"
-            ]
-          },
-          "suspend": {
-            "callback": "%container.suspend%",
-            "parameters": [
-              "%resource%"
-            ]
-          },
-          "resume": {
-            "callback": "%container.resume%",
-            "parameters": [
-              "%resource%"
-            ]
-          },
-          "none": {
-            "comment": "Skip callbacks call.",
-            "statements": []
-          },
-          "deregister": {
-            "condition": [
-              "%container% == $ARG1"
-            ],
-            "parameters": [
-              "%container%"
-            ]
-          },
-          "free": {
-            "comment": "Free memory for 'platform_device' structure.",
-            "statements": [
-              "$FREE(%resource%);"
-            ]
-          },
-          "init": {
-            "comment": "Alloc memory for 'platform_device' structure.",
-            "statements": [
-              "%resource% = $ALLOC(%resource%);"
-            ]
-          },
-          "main": {
-            "comment": "Check that device is truely in the system and begin callback invocations.",
-            "process": "[probe].(<positive_probe>.{call} | <negative_probe>.{main}) | <free>.(deregister)"
-          },
-          "negative_probe": {
-            "comment": "Failed to probe the device.",
-            "condition": [
-              "%probed% != 0"
-            ]
-          },
-          "positive_probe": {
-            "comment": "Platform device is probed successfully now.",
-            "condition": [
-              "%probed% == 0"
-            ]
-          },
-          "probe": {
-            "callback": "%container.probe%",
-            "callback return value": "%probed%",
-            "comment": "Check that the device in the system and do driver initializations.",
-            "parameters": [
-              "%resource%"
-            ],
-            "post-call": [
-              "%probed% = ldv_post_probe(%probed%);"
-            ],
-            "pre-call": [
-              "ldv_pre_probe();"
-            ]
-          },
-          "register": {
-            "comment": "Register a driver callbacks for platform-level device.",
-            "parameters": [
-              "%container%"
-            ]
-          },
-          "release": {
-            "callback": "%container.release%",
-            "comment": "Remove device from the system.",
-            "parameters": [
-              "%resource%"
-            ]
-          }
-        },
-        "comment": "Invoke platfrom callbacks.",
-        "labels": {
-          "container": {
-            "container": true,
-            "interface": [
-              "platform.platform_driver"
-            ]
-          },
-          "probed": {
-            "declaration": "int a",
-            "value": "1"
-          },
-          "resource": {
-            "resource": true
-          }
-        },
-        "process": "(!register).<init>.{main}"
-      }
-    },
     "functions models": {
       "__platform_driver_probe": {
         "actions": {
@@ -648,119 +430,6 @@
     }
   },
   "4.17": {
-    "environment processes": {
-      "platform_instance": {
-        "actions": {
-          "after_release": {
-            "comment": "Platform device is released now.",
-            "statements": [
-              "%probed% = 1;"
-            ]
-          },
-          "call": {
-            "comment": "Driver is probed. Call power management callbacks or release the device.",
-            "process": "([callback] | [pm_register].[pm_deregister]).{call} | [release].<after_release>.{main}"
-          },
-          "callback": {
-            "callback": "%callback%",
-            "parameters": [
-              "%resource%"
-            ]
-          },
-          "deregister": {
-            "condition": [
-              "%container% == $ARG1"
-            ],
-            "parameters": [
-              "%container%"
-            ]
-          },
-          "free": {
-            "comment": "Free memory for 'platform_device' structure.",
-            "statements": [
-              "$FREE(%resource%);"
-            ]
-          },
-          "init": {
-            "comment": "Alloc memory for 'platform_device' structure.",
-            "statements": [
-              "%resource% = $ALLOC(%resource%);"
-            ]
-          },
-          "main": {
-            "comment": "Check that device is truely in the system and begin callback invocations.",
-            "process": "[probe].(<positive_probe>.{call} | <negative_probe>.{main}) | <free>.(deregister)"
-          },
-          "negative_probe": {
-            "comment": "Failed to probe the device.",
-            "condition": [
-              "%probed% != 0"
-            ]
-          },
-          "pm_deregister": {
-            "comment": "Finish the power management scenario.",
-            "parameters": []
-          },
-          "pm_register": {
-            "comment": "Proceed to a power management scenario.",
-            "parameters": []
-          },
-          "positive_probe": {
-            "comment": "Platform device is probed successfully now.",
-            "condition": [
-              "%probed% == 0"
-            ]
-          },
-          "probe": {
-            "callback": "%container.probe%",
-            "callback return value": "%probed%",
-            "comment": "Check that the device in the system and do driver initializations.",
-            "parameters": [
-              "%resource%"
-            ],
-            "post-call": [
-              "%probed% = ldv_post_probe(%probed%);"
-            ],
-            "pre-call": [
-              "ldv_pre_probe();"
-            ]
-          },
-          "register": {
-            "comment": "Register a driver callbacks for platform-level device.",
-            "parameters": [
-              "%container%"
-            ]
-          },
-          "release": {
-            "callback": "%container.release%",
-            "comment": "Remove device from the system.",
-            "parameters": [
-              "%resource%"
-            ]
-          }
-        },
-        "comment": "Invoke platfrom callbacks.",
-        "labels": {
-          "callback": {
-            "callback": true
-          },
-          "container": {
-            "container": true,
-            "interface": [
-              "platform.platform_driver"
-            ]
-          },
-          "probed": {
-            "declaration": "int a",
-            "value": "1"
-          },
-          "resource": {
-            "resource": true
-          }
-        },
-        "process": "(!register).<init>.{main}"
-      }
-    },
     "functions models": {
       "__platform_driver_probe": {
         "actions": {
@@ -852,119 +521,6 @@
     }
   },
   "4.6.7": {
-    "environment processes": {
-      "platform_instance": {
-        "actions": {
-          "after_release": {
-            "comment": "Platform device is released now.",
-            "statements": [
-              "%probed% = 1;"
-            ]
-          },
-          "call": {
-            "comment": "Driver is probed. Call power management callbacks or release the device.",
-            "process": "([callback] | [pm_register].[pm_deregister]).{call} | [release].<after_release>.{main}"
-          },
-          "callback": {
-            "callback": "%callback%",
-            "parameters": [
-              "%resource%"
-            ]
-          },
-          "deregister": {
-            "condition": [
-              "%container% == $ARG1"
-            ],
-            "parameters": [
-              "%container%"
-            ]
-          },
-          "free": {
-            "comment": "Free memory for 'platform_device' structure.",
-            "statements": [
-              "$FREE(%resource%);"
-            ]
-          },
-          "init": {
-            "comment": "Alloc memory for 'platform_device' structure.",
-            "statements": [
-              "%resource% = $ALLOC(%resource%);"
-            ]
-          },
-          "main": {
-            "comment": "Check that device is truely in the system and begin callback invocations.",
-            "process": "[probe].(<positive_probe>.{call} | <negative_probe>.{main}) | <free>.(deregister)"
-          },
-          "negative_probe": {
-            "comment": "Failed to probe the device.",
-            "condition": [
-              "%probed% != 0"
-            ]
-          },
-          "pm_deregister": {
-            "comment": "Finish the power management scenario.",
-            "parameters": []
-          },
-          "pm_register": {
-            "comment": "Proceed to a power management scenario.",
-            "parameters": []
-          },
-          "positive_probe": {
-            "comment": "Platform device is probed successfully now.",
-            "condition": [
-              "%probed% == 0"
-            ]
-          },
-          "probe": {
-            "callback": "%container.probe%",
-            "callback return value": "%probed%",
-            "comment": "Check that the device in the system and do driver initializations.",
-            "parameters": [
-              "%resource%"
-            ],
-            "post-call": [
-              "%probed% = ldv_post_probe(%probed%);"
-            ],
-            "pre-call": [
-              "ldv_pre_probe();"
-            ]
-          },
-          "register": {
-            "comment": "Register a driver callbacks for platform-level device.",
-            "parameters": [
-              "%container%"
-            ]
-          },
-          "release": {
-            "callback": "%container.release%",
-            "comment": "Remove device from the system.",
-            "parameters": [
-              "%resource%"
-            ]
-          }
-        },
-        "comment": "Invoke platfrom callbacks.",
-        "labels": {
-          "callback": {
-            "callback": true
-          },
-          "container": {
-            "container": true,
-            "interface": [
-              "platform.platform_driver"
-            ]
-          },
-          "probed": {
-            "declaration": "int a",
-            "value": "1"
-          },
-          "resource": {
-            "resource": true
-          }
-        },
-        "process": "(!register).<init>.{main}"
-      }
-    },
     "functions models": {
       "__platform_driver_probe": {
         "actions": {
