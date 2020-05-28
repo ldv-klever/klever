@@ -773,12 +773,13 @@ def __add_pretty_name(logger, process, names):
             new_name = None
             while not new_name and expressions:
                 candidate = expressions.pop(0)
-                candidate = f"{process.name}_{candidate}"
+                candidate = f"{old_name}_{candidate}"
                 if candidate not in names:
                     new_name = candidate
-            process.name = new_name
-        else:
-            process.name = f"{process.name}_{process.instance_number}"
+                    process.name = new_name
+
+        if process.name == old_name:
+            process.name = f"{old_name}_{process.instance_number}"
         logger.debug(f'Set new process name: {process.name} instead of {old_name}')
     return process.name
 
