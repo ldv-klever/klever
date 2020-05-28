@@ -28,6 +28,7 @@ before: file("$this")
 extern struct fb_info *ldv_framebuffer_alloc(size_t size, struct device *dev);
 void ldv_after_alloc(void *res);
 void* ldv_nonzero_alloc(size_t size);
+void ldv_memory_free(void);
 }
 
 around: define(_THIS_IP_)
