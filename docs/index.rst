@@ -26,6 +26,7 @@ Contents
    deploy
    tutorial
    dev
+   glossary
 
 ..
    Indices and tables
