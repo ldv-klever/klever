@@ -56,9 +56,13 @@ def generate_instances(logger, conf, sa, interfaces, model, instance_maps):
     model_processes, callback_processes = _yield_instances(logger, conf, sa, interfaces, model, instance_maps)
 
     # Now we can change names
+    names = set()
     for process in callback_processes:
         # Change names into unique ones
-        __add_pretty_name(logger, process)
+        new_name = __add_pretty_name(logger, process, names)
+        assert new_name not in names
+        names.add(new_name)
+    del names
 
     # According to new identifiers change signals peers
     for process in model_processes + callback_processes:
@@ -752,23 +756,31 @@ def __get_relevant_expressions(process):
     return expressions
 
 
-def __add_pretty_name(logger, process):
+def __add_pretty_name(logger, process, names):
     """
     This function adds to a process name a unique suffix based on some implementation to avoid numerical processs
     identifiers and consequently use them in manual specificatin for addressing signals.
 
     :param logger: Logger object.
     :param process: Process object.
-    :return: None
+    :param names: Already issued names.
+    :return: A new issued name.
     """
     expressions = __get_relevant_expressions(process)
     if process.category != 'functions models':
         old_name = process.name
         if len(expressions):
-            process.name = f"{process.name}_{expressions[0]}"
+            new_name = None
+            while not new_name and expressions:
+                candidate = expressions.pop(0)
+                candidate = f"{process.name}_{candidate}"
+                if candidate not in names:
+                    new_name = candidate
+            process.name = new_name
         else:
             process.name = f"{process.name}_{process.instance_number}"
         logger.debug(f'Set new process name: {process.name} instead of {old_name}')
+    return process.name
 
 
 def __generate_model_comment(process):
@@ -917,6 +929,7 @@ def _remove_statics(logger, sa, process):
                         if file not in _values_map:
                             _values_map[file] = sortedcontainers.SortedDict()
                         _values_map[file][new_value] = implementation.value
+
                         # This is quite precise match to avoid an exception assign valus through a void* match
                         if implementation.declaration != declaration and \
                                 isinstance(implementation.declaration, Pointer):
