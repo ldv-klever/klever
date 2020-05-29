@@ -23,7 +23,7 @@
 
 int ldv_request_firmware(const struct firmware **fw)
 {
-	struct firmware *_fw;
+	struct firmware *_fw = NULL;
 	int retval;
   
 	retval = ldv_undef_int_nonpositive();
