@@ -89,6 +89,7 @@
               "linux/kernel/panic.c",
               "linux/common.c",
               "linux/mm/slab.c",
+              "linux/mm/util.c",
               "linux/verifier/memory.c",
               "verifier/common.c",
               "verifier/gcc.c",

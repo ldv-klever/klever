@@ -10,6 +10,18 @@
               "%urb% = $ARG1;"
             ]
           },
+          "not_null_urb": {
+            "comment": "Check that URB is not NULL.",
+            "condition": [
+              "%urb% != NULL"
+            ]
+          },
+          "null_urb": {
+            "comment": "Do not proceed since URB is NULL.",
+            "condition": [
+              "%urb% == NULL"
+            ]
+          },
           "callback": {
             "callback": "%urb.complete%",
             "comment": "Call the urb callback.",
@@ -26,7 +38,7 @@
             "parameter": true
           }
         },
-        "process": "<assign>.[callback]",
+        "process": "<assign>.(<not_null_urb>.[callback] | <null_urb>)",
         "reference": true
       },
       "usb_submit_urb": {
