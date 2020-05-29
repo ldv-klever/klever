@@ -313,7 +313,7 @@ class OSKleverInstance(OSEntity):
 
         # Install/update Klever.
         self.ssh.execute_cmd(
-            'sudo /usr/local/python3-klever/bin/python3 -m pip install --upgrade ./klever')
+            'sudo /usr/local/python3-klever/bin/python3 -m pip install --upgrade -r klever/requirements.txt ./klever')
 
         # TODO: rename everywhere previous deployment information with deployment information since during deployment it is updated step by step.
         with self.ssh.sftp.file('klever-inst/klever.json') as fp:
