@@ -16,35 +16,20 @@
  */
 
 #include <linux/types.h>
-#include <linux/firmware.h>
-#include <ldv/verifier/common.h>
+#include <ldv/linux/string.h>
 #include <ldv/verifier/memory.h>
-#include <ldv/verifier/nondet.h>
 
-int ldv_request_firmware(const struct firmware **fw)
+void *ldv_kmemdup(const void *src, size_t len, gfp_t gfp)
 {
-	struct firmware *_fw = NULL;
-	int retval;
+	void *res;
+
+	ldv_check_alloc_flags(gfp);
+	res = ldv_malloc(len);
+	ldv_after_alloc(res);
+
+	if (res)
+		memcpy(res, src, len);
   
-	retval = ldv_undef_int_nonpositive();
-
-	if (!retval)
-    {
-		_fw = ldv_xzalloc(sizeof(**fw));
-		_fw->data = external_allocated_data();
-		_fw->size = ldv_undef_int_positive();
-		ldv_assume(_fw->data);
-		*fw = _fw;
-    }
-
-	return retval;
+	return res;
 }
 
-void ldv_release_firmware(const struct firmware *fw)
-{
-	if (fw)
-    {
-		ldv_free(fw->data);
-		ldv_free(fw);
-    }
-}

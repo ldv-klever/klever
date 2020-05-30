@@ -15,36 +15,14 @@
  * limitations under the License.
  */
 
+#ifndef __LINUX_LDV_STRING_H
+#define __LINUX_LDV_STRING_H
+
 #include <linux/types.h>
-#include <linux/firmware.h>
-#include <ldv/verifier/common.h>
-#include <ldv/verifier/memory.h>
-#include <ldv/verifier/nondet.h>
 
-int ldv_request_firmware(const struct firmware **fw)
-{
-	struct firmware *_fw = NULL;
-	int retval;
-  
-	retval = ldv_undef_int_nonpositive();
+extern void *ldv_kmemdup(const void *src, size_t len, gfp_t gfp);
 
-	if (!retval)
-    {
-		_fw = ldv_xzalloc(sizeof(**fw));
-		_fw->data = external_allocated_data();
-		_fw->size = ldv_undef_int_positive();
-		ldv_assume(_fw->data);
-		*fw = _fw;
-    }
+extern void ldv_check_alloc_flags(gfp_t flags);
+extern void ldv_after_alloc(void *res);
 
-	return retval;
-}
-
-void ldv_release_firmware(const struct firmware *fw)
-{
-	if (fw)
-    {
-		ldv_free(fw->data);
-		ldv_free(fw);
-    }
-}
+#endif /* __LINUX_LDV_STRING_H */

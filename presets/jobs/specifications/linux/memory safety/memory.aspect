@@ -42,13 +42,6 @@ around: call(struct fb_info *framebuffer_alloc(..))
 	return ldv_framebuffer_alloc($arg1, $arg2);
 }
 
-around: call(void *kmemdup(..))
-{
-	void *res = ldv_malloc($arg2);
-	ldv_after_alloc(res);
-	return res;
-}
-
 around: call(int wl1271_acx_init_mem_config(..))
 {
 	void* res = ldv_malloc_unknown_size();

@@ -17,6 +17,14 @@ Glossary
 
 .. glossary::
 
+    Environment model
+        Environment models emulate interactions of target programs or *program fragments* like Linux kernel loadable
+        modules with their environment like libraries, user inputs, interruptions and so on.
+        Ideally they should cover only those interaction scenarios that are possible during real executions, but usually
+        this is not the case, so false alarms and missing bugs take place.
+        Klever generates each environment model on the basis of specifications and it is represented as a number of
+        additional C source files (*models*) bound with original ones through instrumentation.
+
     $KLEVER_SRC
         A path to a root directory of a Klever source tree.
 
