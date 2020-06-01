@@ -63,6 +63,11 @@
         "header": "linux/cdev.h",
         "reference": true
       },
+      "debugfs_create_dir": {
+        "declaration": "struct dentry *debugfs_create_dir(const char *name, struct dentry *parent)",
+        "header": "linux/debugfs.h",
+        "reference": true
+      },
       "debugfs_create_file": {
         "declaration": "struct dentry *debugfs_create_file(const char *name, umode_t mode, struct dentry *parent, void *data, *%file_operations.file_operations%)",
         "header": "linux/debugfs.h",
