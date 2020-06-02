@@ -254,6 +254,9 @@ class OSKleverInstance(OSEntity):
     def _install_or_update_deps(self):
         self.ssh.execute_cmd('sudo PYTHONPATH=klever klever/klever/deploys/install_deps.py --non-interactive' +
                              (' --update-packages' if self.args.update_packages else ''))
+        # This version of PIP does not spend much time during processing files that are not required for installation,
+        # but that are stored within Klever source tree, e.g. within "bridge/media".
+        self.ssh.execute_cmd('sudo /usr/local/python3-klever/bin/python3 -m pip install pip==20.1')
         if self.args.update_python3_packages:
             self.ssh.execute_cmd(
                 'sudo /usr/local/python3-klever/bin/python3 -m pip install --upgrade -r klever/requirements.txt')
