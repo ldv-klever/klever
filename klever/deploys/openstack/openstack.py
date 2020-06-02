@@ -24,6 +24,8 @@ import shutil
 import sys
 import tempfile
 
+from setuptools_scm import get_version
+
 from keystoneauth1.identity import v2
 from keystoneauth1 import session
 import glanceclient.client
@@ -124,6 +126,12 @@ class CopyDeployConfAndSrcs:
         with Cd(self.args.source_directory):
             try:
                 execute_cmd(self.logger, 'git', 'clone', '.', '__klever')
+                # Store Klever version to dedicated file and remove directory ".git" since it occupies too much space.
+                with Cd('__klever'):
+                    version = get_version()
+                    with open('version', 'w') as fp:
+                        fp.write(version)
+                execute_cmd(self.logger, 'rm', '-rf', '__klever/.git')
                 execute_cmd(self.logger, 'tar', '-C', '__klever', '-cf', '__klever.tar.gz', '.')
                 self.ssh.sftp_put('__klever.tar.gz', 'klever/klever.tar.gz')
                 self.ssh.execute_cmd('tar --warning no-unknown-keyword -C klever -xf klever/klever.tar.gz')

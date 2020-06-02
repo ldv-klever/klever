@@ -17,6 +17,17 @@ import os
 import setuptools
 
 
+VERSION = '3.0'
+
+
+def get_fallback_version():
+    if os.path.isfile('version'):
+        with open('version') as fp:
+            return fp.read()
+
+    return VERSION
+
+
 def package_files(package_directory):
     paths = []
 
@@ -33,7 +44,7 @@ def package_files(package_directory):
 
 setuptools.setup(
     name="klever",
-    use_scm_version={'fallback_version': '3.0'},
+    use_scm_version={'fallback_version': get_fallback_version()},
     author="ISP RAS",
     author_email="ldv-project@linuxtesting.org",
     url="http://forge.ispras.ru/projects/klever",
