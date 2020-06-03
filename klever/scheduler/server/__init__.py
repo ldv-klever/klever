@@ -97,12 +97,12 @@ class Server:
 
     @_robust_request
     def submit_task_status(self, task_identifier, status):
-        self.logger.debug(f'Subit status {status} for task {task_identifier}')
+        self.logger.debug(f'Submit status {status} for task {task_identifier}')
         self.session.exchange("service/tasks/{}/".format(task_identifier), method='PATCH', data={"status": status})
 
     @_robust_request
     def submit_task_error(self, task_identifier, error):
-        self.logger.debug(f'Subit an error for task {task_identifier}: {error}')
+        self.logger.debug(f'Submit an error for task {task_identifier}: {error}')
         self.session.exchange("service/tasks/{}/".format(task_identifier), method='PATCH',
                               data={"status": "ERROR", "error": error})
 
