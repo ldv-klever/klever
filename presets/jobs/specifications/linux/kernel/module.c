@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+/* Define this macro to get proper value for macro THIS_MODULE. */
+#define MODULE
 #include <linux/export.h>
 #include <ldv/linux/common.h>
 #include <ldv/verifier/common.h>
