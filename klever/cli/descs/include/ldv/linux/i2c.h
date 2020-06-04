@@ -15,32 +15,11 @@
  * limitations under the License.
  */
 
+#ifndef __LINUX_LDV_I2C_H
+#define __LINUX_LDV_I2C_H
+
 #include <linux/types.h>
-#include <linux/fb.h>
-#include <ldv/linux/fb.h>
-#include <ldv/verifier/memory.h>
 
-struct fb_info *ldv_framebuffer_alloc(size_t size)
-{
-	struct fb_info *info;
+extern s32 ldv_i2c_smbus_read_block_data(u8 *values);
 
-	info = ldv_zalloc(sizeof(struct fb_info) + size);
-	ldv_after_alloc(info);
-
-	if (!info)
-		return NULL;
-
-	if (size)
-		info->par = (char *)info + sizeof(struct fb_info);
-
-	return info;
-}
-
-void ldv_framebuffer_release(struct fb_info *info)
-{
-	if (!info)
-		return;
-
-	ldv_free(info->apertures);
-	ldv_free(info);
-}
+#endif /* __LINUX_LDV_I2C_H */

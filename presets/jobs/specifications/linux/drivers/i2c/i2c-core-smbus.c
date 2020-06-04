@@ -16,31 +16,31 @@
  */
 
 #include <linux/types.h>
-#include <linux/fb.h>
-#include <ldv/linux/fb.h>
+#include <ldv/linux/i2c.h>
+#include <ldv/verifier/common.h>
 #include <ldv/verifier/memory.h>
+#include <ldv/verifier/nondet.h>
 
-struct fb_info *ldv_framebuffer_alloc(size_t size)
+s32 ldv_i2c_smbus_read_block_data(u8 *values)
 {
-	struct fb_info *info;
+	__u8 size;
+	char *bytes;
 
-	info = ldv_zalloc(sizeof(struct fb_info) + size);
-	ldv_after_alloc(info);
-
-	if (!info)
-		return NULL;
-
-	if (size)
-		info->par = (char *)info + sizeof(struct fb_info);
-
-	return info;
-}
-
-void ldv_framebuffer_release(struct fb_info *info)
-{
-	if (!info)
-		return;
-
-	ldv_free(info->apertures);
-	ldv_free(info);
+	if (ldv_undef_int())
+	{
+		/* NOTE Determine the number of bytes to be read nondeterministically */
+		size = ldv_undef_int_positive();
+		/* NOTE SMBus allows to read 32 bytes at most */
+		ldv_assume(size < 33);
+		/* NOTE "Read" bytes */
+		bytes = ldv_xmalloc(size);
+		/* NOTE Copy read bytes to buffer */
+		memcpy(values, bytes, size);
+		ldv_free(bytes);
+		/* NOTE Return the number of read bytes */
+		return size;
+	}
+	else
+		/* NOTE Could not read I2C SMBus data */
+		return ldv_undef_int_negative();
 }
