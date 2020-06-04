@@ -14,3 +14,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+#include <linux/types.h>
+#include <linux/fb.h>
+#include <ldv/linux/fb.h>
+#include <ldv/verifier/memory.h>
+
+struct fb_info *ldv_framebuffer_alloc(size_t size)
+{
+	struct fb_info *info;
+
+	info = ldv_zalloc(sizeof(struct fb_info) + size);
+	ldv_after_alloc(info);
+
+	if (!info)
+		return NULL;
+
+	if (size)
+		info->par = (char *)info + sizeof(struct fb_info);
+
+	return info;
+}
+
+void ldv_framebuffer_release(struct fb_info *info)
+{
+	if (!info)
+		return;
+
+	ldv_free(info->apertures);
+	ldv_free(info);
+}

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+ * Copyright (c) 2020 ISP RAS (http://www.ispras.ru)
  * Ivannikov Institute for System Programming of the Russian Academy of Sciences
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,3 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+#ifndef __LINUX_LDV_FB_H
+#define __LINUX_LDV_FB_H
+
+#include <linux/types.h>
+
+struct fb_info;
+struct device;
+extern struct fb_info *ldv_framebuffer_alloc(size_t size);
+extern void ldv_framebuffer_release(struct fb_info *info);
+
+extern void ldv_check_alloc_flags(gfp_t flags);
+extern void ldv_after_alloc(void *res);
+
+#endif /* __LINUX_LDV_FB_H */
