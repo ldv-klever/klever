@@ -23,6 +23,5 @@
 extern void *ldv_kmemdup(const void *src, size_t len, gfp_t gfp);
 
 extern void ldv_check_alloc_flags(gfp_t flags);
-extern void ldv_after_alloc(void *res);
 
 #endif /* __LDV_LINUX_STRING_H */

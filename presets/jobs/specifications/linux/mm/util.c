@@ -25,7 +25,6 @@ void *ldv_kmemdup(const void *src, size_t len, gfp_t gfp)
 
 	ldv_check_alloc_flags(gfp);
 	res = ldv_malloc(len);
-	ldv_after_alloc(res);
 
 	if (res)
 		memcpy(res, src, len);

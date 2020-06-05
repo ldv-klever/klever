@@ -26,6 +26,5 @@ extern struct fb_info *ldv_framebuffer_alloc(size_t size);
 extern void ldv_framebuffer_release(struct fb_info *info);
 
 extern void ldv_check_alloc_flags(gfp_t flags);
-extern void ldv_after_alloc(void *res);
 
 #endif /* __LDV_LINUX_FB_H */

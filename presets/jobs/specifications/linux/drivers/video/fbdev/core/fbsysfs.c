@@ -25,7 +25,6 @@ struct fb_info *ldv_framebuffer_alloc(size_t size)
 	struct fb_info *info;
 
 	info = ldv_zalloc(sizeof(struct fb_info) + size);
-	ldv_after_alloc(info);
 
 	if (!info)
 		return NULL;
