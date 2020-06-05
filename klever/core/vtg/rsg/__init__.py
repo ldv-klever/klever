@@ -219,6 +219,8 @@ class RSG(klever.core.vtg.plugins.Plugin):
             opts = ['-DLDV_SETS_MODEL_' + (model['options']['sets model']
                                            if isinstance(model, dict) and 'sets model' in model['options']
                                            else self.conf['common sets model']).upper()]
+            if 'specifications set' in self.conf:
+                opts += ['-DLDV_SPECS_SET_{0}'.format(self.conf['specifications set'].replace('.', '_'))]
 
             self.logger.debug('Dump CC full description to file "{0}"'.format(full_desc_file))
             with open(full_desc_file, 'w', encoding='utf8') as fp:

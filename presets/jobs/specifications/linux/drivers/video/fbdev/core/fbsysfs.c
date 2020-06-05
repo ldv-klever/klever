@@ -41,6 +41,8 @@ void ldv_framebuffer_release(struct fb_info *info)
 	if (!info)
 		return;
 
+#ifndef LDV_SPECS_SET_2_6_33
 	ldv_free(info->apertures);
+#endif
 	ldv_free(info);
 }
