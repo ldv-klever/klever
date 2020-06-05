@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-#ifndef __LINUX_LDV_SLAB_H
-#define __LINUX_LDV_SLAB_H
+#ifndef __LDV_LINUX_SLAB_H
+#define __LDV_LINUX_SLAB_H
 
 #include <linux/types.h>
 
@@ -28,4 +28,4 @@ extern void *ldv_kmalloc_array(size_t n, size_t size, gfp_t flags);
 extern void ldv_check_alloc_flags(gfp_t flags);
 extern void ldv_after_alloc(void *res);
 
-#endif /* __LINUX_LDV_SLAB_H */
+#endif /* __LDV_LINUX_SLAB_H */

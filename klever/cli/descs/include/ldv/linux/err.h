@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-#ifndef __LINUX_LDV_ERR_H
-#define __LINUX_LDV_ERR_H
+#ifndef __LDV_LINUX_ERR_H
+#define __LDV_LINUX_ERR_H
 
 /* Pointers greater then this number correspond to errors. We can't use
  * original value defined in linux/err.h ((unsigned long)-4095) since it is
@@ -29,4 +29,4 @@ long ldv_is_err_or_null(const void *ptr);
 void *ldv_err_ptr(long error);
 long ldv_ptr_err(const void *ptr);
 
-#endif /* __LINUX_LDV_ERR_H */
+#endif /* __LDV_LINUX_ERR_H */

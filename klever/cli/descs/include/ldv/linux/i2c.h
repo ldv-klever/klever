@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 
-#ifndef __LINUX_LDV_I2C_H
-#define __LINUX_LDV_I2C_H
+#ifndef __LDV_LINUX_I2C_H
+#define __LDV_LINUX_I2C_H
 
 #include <linux/types.h>
 
 extern s32 ldv_i2c_smbus_read_block_data(u8 *values);
 
-#endif /* __LINUX_LDV_I2C_H */
+#endif /* __LDV_LINUX_I2C_H */

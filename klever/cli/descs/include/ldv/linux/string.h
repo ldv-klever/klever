@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-#ifndef __LINUX_LDV_STRING_H
-#define __LINUX_LDV_STRING_H
+#ifndef __LDV_LINUX_STRING_H
+#define __LDV_LINUX_STRING_H
 
 #include <linux/types.h>
 
@@ -25,4 +25,4 @@ extern void *ldv_kmemdup(const void *src, size_t len, gfp_t gfp);
 extern void ldv_check_alloc_flags(gfp_t flags);
 extern void ldv_after_alloc(void *res);
 
-#endif /* __LINUX_LDV_STRING_H */
+#endif /* __LDV_LINUX_STRING_H */
