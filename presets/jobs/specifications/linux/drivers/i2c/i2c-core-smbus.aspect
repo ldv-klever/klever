@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+ * Copyright (c) 2020 ISP RAS (http://www.ispras.ru)
  * Ivannikov Institute for System Programming of the Russian Academy of Sciences
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,3 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+before: file("$this")
+{
+#include <ldv/linux/i2c.h>
+}
+
+around: call(s32 i2c_smbus_read_block_data(const struct i2c_client *client, u8 command, u8 *values))
+{
+	return ldv_i2c_smbus_read_block_data(values);
+}

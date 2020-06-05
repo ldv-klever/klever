@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+ * Copyright (c) 2020 ISP RAS (http://www.ispras.ru)
  * Ivannikov Institute for System Programming of the Russian Academy of Sciences
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,3 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+#ifndef __LINUX_LDV_I2C_H
+#define __LINUX_LDV_I2C_H
+
+#include <linux/types.h>
+
+extern s32 ldv_i2c_smbus_read_block_data(u8 *values);
+
+#endif /* __LINUX_LDV_I2C_H */

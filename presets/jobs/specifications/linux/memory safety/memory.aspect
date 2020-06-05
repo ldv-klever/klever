@@ -25,7 +25,6 @@ before: file("$this")
 #include <ldv/verifier/memory.h>
 #include <ldv/verifier/nondet.h>
 
-extern struct fb_info *ldv_framebuffer_alloc(size_t size, struct device *dev);
 void ldv_after_alloc(void *res);
 void* ldv_nonzero_alloc(size_t size);
 void ldv_memory_free(void);
@@ -34,12 +33,6 @@ void ldv_memory_free(void);
 around: define(_THIS_IP_)
 {
 ({0;})
-}
-
-//This function makes kzalloc()!
-around: call(struct fb_info *framebuffer_alloc(..))
-{
-	return ldv_framebuffer_alloc($arg1, $arg2);
 }
 
 around: call(int wl1271_acx_init_mem_config(..))
@@ -218,16 +211,6 @@ pointcut FREE:
 around: FREE
 {
     ldv_free($arg1);
-}
-
-around: call(void framebuffer_release(..))
-{
-	if ($arg1 != 0) {
-		if ($arg1->apertures != 0) {
-			ldv_memory_free();
-		}
-		ldv_memory_free();
-	}
 }
 
 around: call(void rsi_91x_deinit(..))

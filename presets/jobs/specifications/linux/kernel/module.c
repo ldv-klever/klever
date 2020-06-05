@@ -15,9 +15,14 @@
  * limitations under the License.
  */
 
+/* Define this macro to get proper value for macro THIS_MODULE. */
+#define MODULE
+#include <linux/export.h>
 #include <ldv/linux/common.h>
 #include <ldv/verifier/common.h>
 #include <ldv/verifier/nondet.h>
+
+struct module;
 
 /* Module reference counter that shouldn't go lower its initial state. We do not distinguish different modules. */
 /* NOTE Set module reference counter initial value at the beginning */
@@ -63,7 +68,7 @@ void ldv_module_put(struct module *module)
 
 void ldv_module_put_and_exit(void)
 {
-	ldv_module_put((struct module *)1);
+	ldv_module_put(THIS_MODULE);
 	/* TODO: indeed this can result in missing bugs because of final state won't be checked. Safe test shows that. */
 	/* NOTE Stop execution */
 	LDV_STOP: goto LDV_STOP;
