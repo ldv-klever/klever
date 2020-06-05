@@ -631,7 +631,8 @@ def __resolve_accesses(logger, chosen, interfaces):
                         laccess = ExtendedAccess(label_access)
                         laccess.label = label
                         laccess.interface = interfaces.get_intf(interface)
-                        laccess.list_interface = [interfaces.get_intf(interface)]
+                        if laccess.interface:
+                            laccess.list_interface = [laccess.interface]
                         laccess.list_access = [label.name]
 
                         if laccess.expression not in accesses:
@@ -649,7 +650,7 @@ def __resolve_accesses(logger, chosen, interfaces):
                         else:
                             options.append(__resolve_interface(logger, interfaces, interface, tail))
 
-                        for intfs in (o for o in options if isinstance(o, list) and len(o) > 0):
+                        for intfs in (o for o in options if isinstance(o, list) and len(o) > 0 and o[-1]):
                             list_access = []
                             for index, par in enumerate(intfs):
                                 if index == 0:
