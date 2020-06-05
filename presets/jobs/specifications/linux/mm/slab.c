@@ -16,6 +16,7 @@
  */
 
 #include <linux/types.h>
+#include <ldv/linux/common.h>
 #include <ldv/linux/slab.h>
 #include <ldv/verifier/memory.h>
 

@@ -155,4 +155,10 @@ extern void ldv_del_gendisk(void);
  */
 extern void ldv_check_alloc_flags(gfp_t flags);
 
+/**
+ * ldv_check_alloc_nonatomic() - check that a memory allocating function is
+ *                               called in the non-atomic context.
+ */
+extern void ldv_check_alloc_nonatomic(void);
+
 #endif /* __LDV_LINUX_COMMON_H */
