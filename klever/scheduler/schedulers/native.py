@@ -401,7 +401,7 @@ class Native(runners.Speculative):
         :return: Status after solution: FINISHED.
         :raise SchedulerException: Raised if an exception occured during the solution or if results are inconsistent.
         """
-        self.logger.info("Going to prepare execution of the {} {}".format(mode, identifier))
+        self.logger.info(f"Going to check execution of the {mode} {identifier}")
         return self._postprocess_solution(identifier, future, mode)
 
     def _cancel_solution(self, identifier, future, mode='task'):
