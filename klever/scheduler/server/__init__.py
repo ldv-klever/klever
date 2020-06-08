@@ -199,11 +199,12 @@ class Server:
         """
         self.session.json_exchange("service/update-nodes/", nodes, looping=looping)
 
-    def submit_tools(self, tools):
+    def submit_tools(self, tools, looping=True):
         """
         Send string with JSON description of verification tools available for verification in VerifierCloud.
 
         :param tools: Dictionary from scheduler configuration {'tool': {'version': path}}.
+        :param looping: Do not wait for a Bridge successful answer.
         """
         tools_list = list()
         for tool in tools.keys():
@@ -211,7 +212,7 @@ class Server:
                 tools_list.append({'name': tool, 'version': version})
 
         data = {'scheduler': self.scheduler_type, 'tools': tools_list}
-        self.session.json_exchange("service/update-tools/", data)
+        self.session.json_exchange("service/update-tools/", data, looping=looping)
 
     def stop(self):
         """
