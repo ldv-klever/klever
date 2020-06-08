@@ -465,6 +465,8 @@ class Native(runners.Speculative):
                                                 reserved_space)
 
                 result = future.result()
+                self.logger.info(f'Future processor of {mode} {identifier} returned {result}')
+
                 logfile = "{}/client-log.log".format(work_dir)
                 if os.path.isfile(logfile):
                     with open(logfile, mode='r', encoding="utf8") as f:
@@ -488,17 +490,25 @@ class Native(runners.Speculative):
                 else:
                     errors = []
 
-                if len(errors) > 0:
+                if errors:
                     error_msg = errors[-1]
                 else:
-                    error_msg = "Exited with exit code: {}".format(result)
-                if len(errors) > 0 or result != 0:
+                    error_msg = None
+                    try:
+                        result = int(result)
+                    except ValueError:
+                        error_msg = f'Cannot cast {result} to integer'
+                    else:
+                        if result != 0:
+                            error_msg = "Exited with exit code: {}".format(result)
+
+                if error_msg:
                     self.logger.warning(error_msg)
                     raise schedulers.SchedulerException(error_msg)
             else:
                 self.logger.debug("Seems that {} {} has not been started".format(mode, identifier))
         except Exception as err:
-            error_msg = "Execution of {} {} terminated with an exception: {}".format(mode, identifier, err)
+            error_msg = "Execution of {} {} terminated with an exception: {}".format(mode, identifier, str(err))
             raise schedulers.SchedulerException(error_msg)
         finally:
             # Clean working directory
@@ -541,7 +551,7 @@ class Native(runners.Speculative):
             ec = process.exitcode
             log("Future task {!r}: exit code of the process {!r} is {!r}".format(process.name, process.pid, str(ec)))
             if ec is not None:
-                return ec
+                return str(ec)
             else:
                 error_msg = 'Cannot determine exit code of process {!r}'.format(process.pid)
                 raise schedulers.SchedulerException(error_msg)
