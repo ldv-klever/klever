@@ -341,7 +341,7 @@ NSJC_3 = [
     }
 ]
 
-ARCHIVE_PATH = os.path.join(settings.BASE_DIR, 'reports', 'test_files')
+ARCHIVE_PATH = os.path.join(settings.BASE_DIR, 'tests', 'reports')
 
 
 def resources():
@@ -1775,3 +1775,16 @@ def upload_sources(port=None):
 
 # UploadRawReportsPacks('6b2ab3c7-1367-4cb2-8841-fff0fc2f6f85', 'S:/Work/temp/logs/log.txt',
 # '6b2ab3c7-1367-4cb2-8841-fff0fc2f6f85')
+
+
+class ReportsLogging:
+    filename = "reports.log"
+
+    def __init__(self, decision_id):
+        self._decision = decision_id
+
+    def log(self, action, *args):
+        message = "##".join(str(a) if a else 'NULL' for a in args)
+
+        with open(os.path.join(settings.LOGS_DIR, self.filename), mode="a", encoding="utf-8") as fp:
+            fp.write("{}-{}-{}: {}\n".format(time.time(), self._decision, action, message))
