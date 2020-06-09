@@ -1,8 +1,6 @@
 {
   "project": "Linux",
   "build base": "linux/testing/verifiers/606cdb",
-  "requirement specifications": ["test:common"],
-  "targets": ["**"],
   "ideal verdicts": [
     {"ideal verdict": "safe"},
     {
@@ -27,6 +25,7 @@
         "ext-modules/conditions/if-else-if-else/unsafe.ko",
         "ext-modules/conditions/nested/unsafe.ko",
         "ext-modules/conditions/ternary-operator/unsafe.ko",
+        "ext-modules/dynamic-memory/arrays/unsafe.ko",
         "ext-modules/dynamic-memory/xmalloc/unsafe.ko",
         "ext-modules/dynamic-memory/xmalloc-data/unsafe.ko",
         "ext-modules/dynamic-memory/xzalloc/unsafe.ko",
@@ -105,5 +104,19 @@
       ]
     }
   ],
-  "extra results processing": "testing"
+  "extra results processing": "testing",
+  "sub-jobs": [
+    {
+      "targets": ["**"],
+      "exclude targets": [
+          "ext-modules/dynamic-memory/arrays/safe.ko",
+          "ext-modules/dynamic-memory/arrays/unsafe.ko"
+      ],
+      "requirement specifications": ["test:common"]
+    },
+    {
+      "targets": ["ext-modules/dynamic-memory/arrays/*"],
+      "requirement specifications": ["test:common with heap arrays"]
+    }
+  ]
 }
