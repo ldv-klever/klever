@@ -16,6 +16,7 @@
  */
 
 #include <linux/types.h>
+#include <ldv/linux/common.h>
 #include <ldv/linux/string.h>
 #include <ldv/verifier/memory.h>
 
@@ -25,7 +26,6 @@ void *ldv_kmemdup(const void *src, size_t len, gfp_t gfp)
 
 	ldv_check_alloc_flags(gfp);
 	res = ldv_malloc(len);
-	ldv_after_alloc(res);
 
 	if (res)
 		memcpy(res, src, len);

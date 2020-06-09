@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-#ifndef __LINUX_LDV_GFP_H
-#define __LINUX_LDV_GFP_H
+#ifndef __LDV_LINUX_GFP_H
+#define __LDV_LINUX_GFP_H
 
 #include <linux/gfp.h>
 
@@ -26,4 +26,4 @@
 # define CHECK_WAIT_FLAGS(flags) ((flags == GFP_ATOMIC) || (flags == GFP_NOWAIT))
 #endif /* LDV_BITWISE */
 
-#endif /* __LINUX_LDV_GFP_H */
+#endif /* __LDV_LINUX_GFP_H */

@@ -25,7 +25,6 @@ before: file("$this")
 #include <ldv/verifier/memory.h>
 #include <ldv/verifier/nondet.h>
 
-void ldv_after_alloc(void *res);
 void* ldv_nonzero_alloc(size_t size);
 void ldv_memory_free(void);
 }
@@ -38,7 +37,7 @@ around: define(_THIS_IP_)
 around: call(int wl1271_acx_init_mem_config(..))
 {
 	void* res = ldv_malloc_unknown_size();
-	ldv_after_alloc(res);
+
 	if (res != 0) {
 		$arg1->target_mem_map = res;
 		return 0;
@@ -66,14 +65,12 @@ around: call(struct address_space *balloon_mapping_alloc(..))
 around: call(struct rsi_hw *rsi_91x_init(..))
 {
 	void *res = ldv_zalloc(sizeof(struct rsi_hw));
-	ldv_after_alloc(res);
 	return res;
 }
 
 around: call(struct mem_ctl_info *edac_mc_alloc(..))
 {
 	void *res = ldv_zalloc($arg4);
-	ldv_after_alloc(res);
 	return res;
 }
 
@@ -103,7 +100,6 @@ around: ZALLOC_UNKNOWN_SIZE
 {
 	// We don't know the size.
 	void *res = ldv_zalloc_unknown_size();
-	ldv_after_alloc(res);
 	return res;
 }
 
@@ -137,7 +133,6 @@ around: ALLOC_UNKNOWN_SIZE
 {
 	// We don't know the size.
 	void *res = ldv_malloc_unknown_size();
-	ldv_after_alloc(res);
 	return res;
 }
 

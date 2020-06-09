@@ -1,18 +1,19 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Controller" type="PythonConfigurationType" factoryName="Python">
+  <configuration default="false" name="$Native Scheduler" type="PythonConfigurationType" factoryName="Python">
     <module name="Klever" />
     <option name="INTERPRETER_OPTIONS" value="" />
     <option name="PARENT_ENVS" value="true" />
     <envs>
       <env name="PYTHONUNBUFFERED" value="1" />
+      <env name="KLEVER_DATA_DIR" value="/abs/path/to/data/dir" />
     </envs>
     <option name="SDK_HOME" value="" />
-    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/../klever-work" />
+    <option name="WORKING_DIRECTORY" value="/abs/path/to/work/dir" />
     <option name="IS_MODULE_SDK" value="true" />
     <option name="ADD_CONTENT_ROOTS" value="false" />
     <option name="ADD_SOURCE_ROOTS" value="false" />
-    <option name="SCRIPT_NAME" value="$PROJECT_DIR$/venv/bin/klever-client-controller" />
-    <option name="PARAMETERS" value="$PROJECT_DIR$/../klever-conf/controller.json" />
+    <option name="SCRIPT_NAME" value="$PROJECT_DIR$/venv/bin/klever-native-scheduler" />
+    <option name="PARAMETERS" value="/abs/path/to/conf/dir/native-scheduler.json" />
     <option name="SHOW_COMMAND_LINE" value="false" />
     <option name="EMULATE_TERMINAL" value="false" />
     <option name="MODULE_MODE" value="false" />

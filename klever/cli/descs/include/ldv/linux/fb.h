@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-#ifndef __LINUX_LDV_FB_H
-#define __LINUX_LDV_FB_H
+#ifndef __LDV_LINUX_FB_H
+#define __LDV_LINUX_FB_H
 
 #include <linux/types.h>
 
@@ -25,7 +25,4 @@ struct device;
 extern struct fb_info *ldv_framebuffer_alloc(size_t size);
 extern void ldv_framebuffer_release(struct fb_info *info);
 
-extern void ldv_check_alloc_flags(gfp_t flags);
-extern void ldv_after_alloc(void *res);
-
-#endif /* __LINUX_LDV_FB_H */
+#endif /* __LDV_LINUX_FB_H */
