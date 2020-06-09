@@ -40,7 +40,7 @@
       ]
     },
     "CPAchecker BAM reachability FP": {
-      "description": "CPAchecker with BAM for reachability checking and FPA",
+      "description": "CPAchecker with BAM and FPA for reachability checking",
       "inherit": "CPAchecker BAM reachability",
       "add options": [
         {"-setprop": "CompositeCPA.cpas=cpa.location.LocationCPA,cpa.callstack.CallstackCPA,cpa.value.ValueAnalysisCPA,cpa.predicate.BAMPredicateCPA"},

@@ -23,6 +23,7 @@
             "ext-modules/conditions/if-else-if-else",
             "ext-modules/conditions/nested",
             "ext-modules/conditions/ternary-operator",
+            "ext-modules/dynamic-memory/arrays",
             "ext-modules/dynamic-memory/xmalloc",
             "ext-modules/dynamic-memory/xmalloc-data",
             "ext-modules/dynamic-memory/xzalloc",
