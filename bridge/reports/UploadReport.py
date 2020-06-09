@@ -750,7 +750,7 @@ class UploadReport:
         # Connect new unsafe with marks
         connect_unsafe_report.delay(report.id)
 
-        self._logger.log("UF2")
+        self._logger.log("UF2", report.pk)
 
     def __upload_additional_sources(self, arch_name):
         add_src = AdditionalSources(decision=self.decision)
