@@ -571,15 +571,17 @@ class Scheduler:
         if self._runner_class.accept_jobs:
             # todo: At the moment we do not have several scheduilers that can serve jobs but in other case whis should
             #       be fixed
-            for identifier, status in self.server.get_all_jobs():
-                status = self._job_status(status)
-                if identifier not in self._jobs and status == 'PENDING':
-                    self.add_new_pending_job(identifier)
-                elif identifier not in self._jobs and status == 'PROCESSING':
-                    self.server.submit_job_error(identifier, 'Scheduler terminated or reset and does not '
-                                                             'track the job {}'.format(identifier))
-                elif identifier not in self._jobs and status == 'CANCELLING':
-                    self.server.cancel_job(identifier)
+            result = self.server.get_all_jobs()
+            if result:
+                for identifier, status in result:
+                    status = self._job_status(status)
+                    if identifier not in self._jobs and status == 'PENDING':
+                        self.add_new_pending_job(identifier)
+                    elif identifier not in self._jobs and status == 'PROCESSING':
+                        self.server.submit_job_error(identifier, 'Scheduler terminated or reset and does not '
+                                                                 'track the job {}'.format(identifier))
+                    elif identifier not in self._jobs and status == 'CANCELLING':
+                        self.server.cancel_job(identifier)
 
     def _job_status(self, status):
         job_map = {
