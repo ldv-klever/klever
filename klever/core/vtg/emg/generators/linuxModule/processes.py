@@ -617,8 +617,7 @@ def __resolve_accesses(logger, chosen, interfaces):
             label, tail = process.extract_label_with_tail(access)
 
             if not label:
-                raise ValueError("Expect a label in {!r} access in process {!r} description".
-                                 format(access, process.name))
+                raise ValueError(f"Expect a label in {access} access in process {process.name} description")
             elif label.interfaces:
                 for interface in label.interfaces:
                     new = ExtendedAccess(access)
@@ -631,8 +630,6 @@ def __resolve_accesses(logger, chosen, interfaces):
                         laccess = ExtendedAccess(label_access)
                         laccess.label = label
                         laccess.interface = interfaces.get_intf(interface)
-                        if laccess.interface:
-                            laccess.list_interface = [laccess.interface]
                         laccess.list_access = [label.name]
 
                         if laccess.expression not in accesses:
@@ -650,23 +647,28 @@ def __resolve_accesses(logger, chosen, interfaces):
                         else:
                             options.append(__resolve_interface(logger, interfaces, interface, tail))
 
-                        for intfs in (o for o in options if isinstance(o, list) and len(o) > 0 and o[-1]):
-                            list_access = []
-                            for index, par in enumerate(intfs):
-                                if index == 0:
-                                    list_access.append(label.name)
-                                else:
-                                    field = list(intfs[index - 1].field_interfaces.keys()
-                                                 )[list(intfs[index - 1].field_interfaces.values()).
-                                                   index(par)]
-                                    list_access.append(field)
-                            new.interface = intfs[-1]
-                            new.list_access = list_access
-                            new.list_interface = intfs
+                        options = [o for o in options if isinstance(o, list) and o and o[-1]]
+                        if options:
+                            for intfs in options:
+                                list_access = []
+                                for index, par in enumerate(intfs):
+                                    if index == 0:
+                                        list_access.append(label.name)
+                                    else:
+                                        field = list(intfs[index - 1].field_interfaces.keys()
+                                                     )[list(intfs[index - 1].field_interfaces.values()).index(par)]
+                                        list_access.append(field)
+                                new.list_access = list_access
+                                new.interface = intfs[-1]
+                                if len(intfs) > 1:
+                                    new.base_interface = intfs[0]
+                                    logger.debug(f'Match {str(new)} with base interface {str(new.base_interface)}')
+                                logger.debug(f'Match {str(new)} with {str(new.interface)}')
+                        else:
+                            logger.warning(f'Cannot determine interface of tail {str(tail)} of access {str(new)}')
                     else:
                         new.interface = interfaces.get_intf(interface)
                         new.list_access = [label.name]
-                        new.list_interface = [interfaces.get_intf(interface)]
 
                     # Complete list accesses if possible
                     if new.interface:
@@ -682,7 +684,6 @@ def __resolve_accesses(logger, chosen, interfaces):
                                 to_process.append(container)
                                 break
                         new_tail.reverse()
-                        new.complete_list_interface = new_tail
 
                     accesses[access].append(new)
             elif access not in accesses or not accesses[access]:
@@ -703,11 +704,11 @@ def __resolve_accesses(logger, chosen, interfaces):
         process.accesses(accesses)
 
 
-def __resolve_interface(logger, interfaces, interface, string):
-    tail = string.split(".")
+def __resolve_interface(logger, interfaces, interface, tail_string):
+    tail = tail_string.split(".")
     # todo: get rid of leading dot and support arrays
     if len(tail) == 1:
-        raise RuntimeError("Cannot resolve interface for access '{}'".format(string))
+        raise RuntimeError("Cannot resolve interface for access '{}'".format(tail_string))
     else:
         tail = tail[1:]
 
@@ -721,13 +722,11 @@ def __resolve_interface(logger, interfaces, interface, string):
         raise TypeError("Expect Interface object but not {}".format(str(type(interface))))
 
     # Be sure the first interface is a container
-    if not isinstance(matched[-1], Container) and len(tail) > 0:
+    if not isinstance(matched[-1], Container) and tail:
         return None
 
     # Collect interface list
-    for index in range(len(tail)):
-        field = tail[index]
-
+    for index, field in enumerate(tail):
         # Match using a container field name
         intf = [matched[-1].field_interfaces[name] for name in matched[-1].field_interfaces if name == field]
 
@@ -744,7 +743,7 @@ def __resolve_interface(logger, interfaces, interface, string):
             else:
                 return None
 
-    logger.debug("Resolve string '{}' as '{}'".format(string, ', '.join([str(m) for m in matched])))
+    logger.debug("Resolve string '{}' as '{}'".format(tail_string, ', '.join([str(m) for m in matched])))
     return matched
 
 

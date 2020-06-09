@@ -185,7 +185,7 @@ def _simplify_process(logger, conf, sa, interfaces, process):
     param_identifiers = id_generator()
     action_identifiers = id_generator()
     for action in list(process.actions.filter(include={Call})):
-        _convert_calls_to_conds(conf, sa, interfaces, process, label_map, action, action_identifiers, param_identifiers)
+        _convert_calls_to_conds(logger, conf, sa, interfaces, process, label_map, action, action_identifiers, param_identifiers)
 
     # Process rest code
     def code_replacment(statments):
@@ -205,7 +205,7 @@ def _simplify_process(logger, conf, sa, interfaces, process):
                     for s in tmp:
                         for acc in accesses:
                             if acc.interface:
-                                nl = label_map[acc.label.name][str(acc.list_interface[0])]
+                                nl = label_map[acc.label.name][str(acc.base_interface)]
                                 s = acc.replace_with_label(s, nl)
                                 new_tmp.add(s)
                                 matched = True
@@ -287,11 +287,12 @@ def _simplify_process(logger, conf, sa, interfaces, process):
     return
 
 
-def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, action_identifiers, param_identifiers):
+def _convert_calls_to_conds(logger, conf, sa, interfaces, process, label_map, call, action_identifiers, param_identifiers):
     """
     This function takes an extended Process and converts the given Call action into a Condition object as a part of
     translation of an extrended Process into a common one.
 
+    :param logger: Logger object.
     :param conf: Configuration dictionary.
     :param sa: Source object.
     :param interfaces: Inerfaces collection.
@@ -334,33 +335,32 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
 
         return return_expression
 
-    def match_parameters(declaration):
+    def match_parameters(callback_declaration):
         # Try to match action parameters
         found_positions = dict()
         for label_index in range(len(call.parameters)):
             accss = process.resolve_access(call.parameters[label_index])
-            for acc in (a for a in accss if a.list_interface and len(a.list_interface) > 0):
-                for position in (p for p in list(range(len(declaration.points.parameters)))[label_index:]
+            for acc in (a for a in accss if a.interface):
+                for position in (p for p in list(range(len(callback_declaration.points.parameters)))[label_index:]
                                  if p not in found_positions):
-                    parameter = declaration.points.parameters[position]
-                    if (acc.list_interface[-1].declaration == parameter or
-                            acc.list_interface[-1].declaration.pointer_alias(parameter)):
-                        expression = acc.access_with_label(label_map[acc.label.name][str(acc.list_interface[0])])
+                    parameter = callback_declaration.points.parameters[position]
+                    if acc.interface.declaration == parameter or acc.interface.declaration.pointer_alias(parameter):
+                        expression = acc.access_with_label(label_map[acc.label.name][str(acc.base_interface)])
                         found_positions[position] = expression
                         break
 
         # Fulfil rest parameters
         pointer_params = []
         label_params = []
-        for index in range(len(declaration.points.parameters)):
-            if not isinstance(declaration.points.parameters[index], str) and index not in found_positions:
-                if not isinstance(declaration.points.parameters[index], Primitive) and \
-                        not isinstance(declaration.points.parameters[index], Pointer):
-                    param_signature = declaration.points.parameters[index].take_pointer
+        for index in range(len(callback_declaration.points.parameters)):
+            if not isinstance(callback_declaration.points.parameters[index], str) and index not in found_positions:
+                if not isinstance(callback_declaration.points.parameters[index], Primitive) and \
+                        not isinstance(callback_declaration.points.parameters[index], Pointer):
+                    param_signature = callback_declaration.points.parameters[index].take_pointer
                     pointer_params.append(index)
                     expression = "*%{}%"
                 else:
-                    param_signature = declaration.points.parameters[index]
+                    param_signature = callback_declaration.points.parameters[index]
                     expression = "%{}%"
                 tmp_lb = process.add_label("emg_param_{}_{}".format(index, next(param_identifiers)),
                                            param_signature)
@@ -429,8 +429,8 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
 
         return callback_pre_call
 
-    def make_action(declaration, inv):
-        cd, pre, post = generate_function(declaration, inv)
+    def make_action(callback_declaration, inv):
+        cd, pre, post = generate_function(callback_declaration, inv)
 
         return cd, pre, post
 
@@ -457,7 +457,7 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
             elif not isinstance(implementation, bool) and conf.get('implicit callback calls', True)\
                     and not (access.label.callback and len(access.label.interfaces) > 1):
                 # Call by pointer
-                invoke = access.access_with_label(label_map[access.label.name][str(access.list_interface[0])])
+                invoke = access.access_with_label(label_map[access.label.name][str(access.base_interface)])
                 check = True
                 reinitialize_vars_flag = True
             else:
@@ -470,7 +470,7 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
                 invoke = sa.refined_name(access.label.value)
                 check = False
             else:
-                if access.list_interface and conf.get('implicit callback calls', True):
+                if access.interface and conf.get('implicit callback calls', True):
                     # Call if label(variable) is provided but with no explicit value
                     try:
                         invoke = access.access_with_label(access.label)
@@ -482,6 +482,8 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
 
         if invoke:
             code, comments = list(), list()
+            if not (isinstance(signature, Pointer) and isinstance(signature.points, Function)):
+                raise ValueError(f'Expect function pointer for {str(access)} but got {str(signature)}')
 
             # Determine structure type name of the container with the callback if such exists
             structure_name = None
@@ -504,6 +506,7 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
             # Generate comment
             comment = call.comment.format(field, structure_name)
             conditions = call.condition if call.condition and call.condition else list()
+
             new_code, pre_action, post_action = make_action(signature, invoke)
             code.extend(new_code)
 
@@ -695,11 +698,8 @@ def _fulfill_label_maps(logger, conf, sa, interfaces, instances, process, instan
                                 new = ExtendedAccess(access)
                                 new.label = prot.label
                                 new.interface = interface
-                                new.list_interface = prot.list_interface
-                                if len(new.list_interface):
-                                    new.list_interface[-1] = interface
-                                else:
-                                    new.list_interface = [interface]
+                                if prot.base_interface:
+                                    new.base_interface = prot.base_interface
                                 new.list_access = prot.list_access
                                 if len(new.list_access) == 1 and new.label:
                                     new.label.set_declaration(str(interface), access_map[access][i].declaration)
