@@ -400,10 +400,22 @@
                   {
                     "identifier": "urb",
                     "description": "...",
-                    "plugins": [{
-                      "name": "RSG",
-                      "options": {"models": ["linux/drivers/usb/core/urb.c"]}
-                    }]
+                    "plugins": [
+                      {
+                        "name": "RSG",
+                        "options": {"models": ["linux/drivers/usb/core/urb.c"]}
+                      },
+                      {
+                        "name": "FVTP",
+                        "options": {
+                          "verifier profile": "reachability with heap arrays",
+                          "verifier": {
+                            "name": "CPAchecker",
+                            "version": "trunk:31140"
+                          }
+                        }
+                      }
+                    ]
                   }
                 ]
               },

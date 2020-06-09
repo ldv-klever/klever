@@ -55,6 +55,15 @@
         {"-setprop": "solver.solver=MathSAT5"}
       ]
     },
+    "CPAchecker BAM reachability heap arrays": {
+      "description": "CPAchecker with BAM and heap arrays for reachability checking",
+      "inherit": "CPAchecker BAM reachability",
+      "add options": [
+        {"-setprop": "cpa.predicate.useArraysForHeap=true"},
+        {"-setprop": "cpa.predicate.defaultArrayLength=20"},
+        {"-setprop": "cpa.predicate.maxArrayLength=-1"}
+      ]
+    },
     "CPAchecker BAM BusyBox": {
       "description": "CPAchecker with BAM for reachability checking and FPA",
       "inherit": "CPAchecker BAM reachability FP",
@@ -107,6 +116,11 @@
       "CPAchecker": {
         "trunk:31140": {"inherit": "CPAchecker BAM reachability bit-precise"},
         "trunk:31503": {"inherit": "CPAchecker BAM reachability bit-precise"}
+      }
+    },
+    "reachability with heap arrays": {
+      "CPAchecker": {
+        "trunk:31140": {"inherit": "CPAchecker BAM reachability heap arrays"}
       }
     },
     "CPAchecker BAM BusyBox": {
