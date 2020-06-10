@@ -249,15 +249,18 @@ class CollectionDecoder:
                 "function model process".format(name))
 
         # Import actiones
-        for act_name in dic.get('actions', {}):
-            if not process.actions.get(act_name):
-                if dic['actions'][act_name].get('process'):
-                    for act in (a for a in process.actions.filter(include={Subprocess}) if a.reference_name == act_name):
-                        self._import_action(process, act, dic['actions'][act_name])
+        for some_name, description in dic.get('actions', {}).items():
+            names = some_name.split(", ")
+            for act_name in names:
+                if not process.actions.get(act_name):
+                    if description.get('process'):
+                        for act in (a for a in process.actions.filter(include={Subprocess})
+                                    if a.reference_name == act_name):
+                            self._import_action(process, act, dict(description))
+                    else:
+                        raise ValueError('Action {!r} was not used in {!r} process'.format(act_name, str(process)))
                 else:
-                    raise ValueError('Action {!r} was not used in {!r} process'.format(act_name, str(process)))
-            else:
-                self._import_action(process, process.actions[act_name], dic['actions'][act_name])
+                    self._import_action(process, process.actions[act_name], description)
 
         for att in self.PROCESS_ATTRIBUTES:
             if att in dic:
