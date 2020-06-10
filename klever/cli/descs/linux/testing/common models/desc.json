@@ -5,6 +5,7 @@
         "external modules": "tests",
         "loadable kernel modules": [
             "ext-modules/linux/drivers/base/dd",
+            "ext-modules/linux/drivers/base/firmware_loader",
             "ext-modules/linux/drivers/spi",
             "ext-modules/linux/err",
             "ext-modules/linux/ldv/common",
