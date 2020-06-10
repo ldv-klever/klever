@@ -22,14 +22,13 @@
 static int __init ldv_init(void)
 {
 	const struct firmware *fw;
-	const char *fw_name;
-	struct device *dev;
+	const char *fw_name = ldv_undef_ptr_non_null();;
+	struct device *dev = ldv_undef_ptr_non_null();;
 	int err;
 
-	dev = ldv_undef_ptr_non_null();
 	err = request_firmware(&fw, fw_name, dev);
-
 	ldv_assume(err);
+
 	if (!fw)
 		ldv_expected_error();
 
