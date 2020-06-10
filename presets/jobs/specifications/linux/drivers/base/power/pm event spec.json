@@ -171,6 +171,110 @@
     "environment processes": {
       "pm_ops_scenario": {
         "actions": {
+          "do": {
+            "comment": "Begin a power management scenario.",
+            "process": "{runt} | {normal} | (pm_deregister1)"
+          },
+          "runt": {
+            "comment": "Begin a runtime scenario.",
+            "process": "([runtime_idle] | [runtime_suspend].(<run_ok>.{run_resume} | <run_bad>)).(pm_deregister2) "
+          },
+          "run_resume": {
+            "comment": "Begin a runtime resume scenario.",
+            "process": "[runtime_resume].(<runr_ok> | <runr_bad>.{run_resume}).(pm_deregister3)"
+          },
+          "normal": {
+            "comment": "Begin prepare-complete scenario.",
+            "process": "[prepare].(<pre_ok>.({sus} | {fr} | {poff}) | <pre_bad> ).(pm_deregister4)"
+          },
+          "compl": {
+            "comment": "Do completing.",
+            "process": "[complete].(pm_deregister5)"
+          },
+          "sus": {
+            "comment": "Begin suspend-resume scenario.",
+            "process": "[suspend].(<sus_ok>.({no_irq} | {slate}) | <sus_bad>.{sus})"
+          },
+          "no_irq": {
+            "comment": "Begin noirq suspending.",
+            "process": "[suspend_noirq].(<snoirq_ok>.{resnoirq} | <snoirq_bad>).{no_irq}"
+          },
+          "resnoirq": {
+            "comment": "Begin noirq resuming.",
+            "process": "[resume_noirq].(<rnoirq_ok>.{res} | <rnoirq_bad>).{resnoirq}"
+          },
+          "slate": {
+            "comment": "Begin late suspending scenario.",
+            "process": "[suspend_late].(<sl_ok>.{reslate} | <sl_bad>).{slate}"
+          },
+          "reslate": {
+            "comment": "Begin early resuming.",
+            "process": "[resume_early].(<rearly_ok>.{res} | <rearly_bad>).{reslate}"
+          },
+          "res": {
+            "comment": "Begin main resuming.",
+            "process": "[resume].(<resume_ok>.{compl} | <resume_bad>.{res})"
+          },
+          "fr": {
+            "comment": "Begin freeaing.",
+            "process": "[freeze].(<freeze_ok>.({fnoirq} | {flate}) | <freeze_bad>.{fr})"
+          },
+          "fnoirq": {
+            "comment": "Begin noirq freezing.",
+            "process": "[freeze_noirq].(<fnoirq_ok>.{tnoirq} | <fnoirq_bad>).{fnoirq}"
+          },
+          "tnoirq": {
+            "comment": "Begin noirq thawing.",
+            "process": "[thaw_noirq].(<tnoirq_ok>.{th} | <tnoirq_bad>).{tnoirq}"
+          },
+          "flate": {
+            "comment": "Begin late freezing.",
+            "process": "[freeze_late].(<fl_ok>.{thlate} | <fl_bad>).{flate}"
+          },
+          "thlate": {
+            "comment": "Begin early thawing.",
+            "process": "[thaw_early].(<tearly_ok>.{th} | <tearly_bad>).{thlate}"
+          },
+          "th": {
+            "comment": "Begin resume scenario.",
+            "process": "[thaw].(<thaw_ok>.{compl} | <thaw_bad>.{th})"
+          },
+          "poff": {
+            "comment": "Begin runtime resume scenario.",
+            "process": "[poweroff].(<poff_ok>.({pno_irq} | {plate}) | <poff_bad>.{poff})"
+          },
+          "pno_irq": {
+            "comment": "Begin runtime resume scenario.",
+            "process": "[poweroff_noirq].(<pno_irq_ok>.{restnoirq} | <pno_irq_bad>).{pno_irq}"
+          },
+          "restnoirq": {
+            "comment": "Begin runtime resume scenario.",
+            "process": "[restore_noirq].(<restnoirq_ok>.{rest} | <restnoirq_bad>).{restnoirq}"
+          },
+          "plate": {
+            "comment": "Begin runtime resume scenario.",
+            "process": "[poweroff_late].(<plate_ok>.{reste} | <plate_bad>).{plate}"
+          },
+          "reste": {
+            "comment": "Begin runtime resume scenario.",
+            "process": "[restore_early].(<reste_ok>.{rest} | <reste_bad>).{reste}"
+          },
+          "rest": {
+            "comment": "Begin resume scenario.",
+            "process": "[restore].(<rest_ok>.{compl} | <rest_bad>.{rest})"
+          },
+          "run_ok, runr_ok, pre_ok, sus_ok, snoirq_ok, rnoirq_ok, sl_ok, rearly_ok, resume_ok, sus_ok, fnoirq_ok, tnoirq_ok, fl_ok, tearly_ok, resume_ok, poff_ok, pno_irq_ok, tnoirq_ok, plate_ok, reste_ok, rest_ok, restnoirq_ok, freeze_ok, thaw_ok": {
+            "comment": "Callback successfully finished.",
+            "condition": [
+              "%ret% == 0"
+            ]
+          },
+          "run_bad, runr_bad, pre_bad, sus_bad, snoirq_bad, rnoirq_bad, sl_bad, rearly_bad, resume_bad, sus_bad, fnoirq_bad, tnoirq_bad, fl_bad, tearly_bad, resume_bad, sus_bad, pno_irq_bad, tnoirq_bad, plate_bad, reste_bad, rest_bad, restnoirq_bad, freeze_bad, poff_bad, thaw_bad": {
+            "comment": "Callback failed.",
+            "condition": [
+              "%ret% != 0"
+            ]
+          },
           "complete": {
             "callback": "%pm_ops.complete%",
             "comment": "Undo the changes made by @prepare().",
@@ -178,15 +282,15 @@
               "%device%"
             ]
           },
-          "do": {
-            "comment": "Begin a power management scenario.",
-            "process": "[runtime_idle].{do} | [runtime_suspend].[runtime_resume].{do} | [prepare].([suspend].([suspend_noirq].[resume_noirq] | [suspend_late].[resume_early]).[resume] | [freeze].([freeze_late].[thaw_early] | [freeze_noirq].[thaw_noirq]).[thaw] | [poweroff].([poweroff_late].[restore_early] | [poweroff_noirq].[restore_noirq]).[restore]).[complete].{do} | (pm_deregister)"
-          },
           "freeze": {
             "callback": "%pm_ops.freeze%",
             "comment": "Prepare for creating a hibernation image.",
             "parameters": [
               "%device%"
+            ],
+            "callback return value": "%ret%",
+            "post-call": [
+              "%ret% = ldv_post_probe(%ret%);"
             ]
           },
           "freeze_late": {
@@ -194,6 +298,10 @@
             "comment": "Continue operations started by @freeze().",
             "parameters": [
               "%device%"
+            ],
+            "callback return value": "%ret%",
+            "post-call": [
+              "%ret% = ldv_post_probe(%ret%);"
             ]
           },
           "freeze_noirq": {
@@ -201,9 +309,13 @@
             "comment": "Complete the actions started by @freeze() that might be racing with device's interrupt handler.",
             "parameters": [
               "%device%"
+            ],
+            "callback return value": "%ret%",
+            "post-call": [
+              "%ret% = ldv_post_probe(%ret%);"
             ]
           },
-          "pm_deregister": {
+          "pm_deregister1, pm_deregister2, pm_deregister3, pm_deregister4, pm_deregister5": {
             "comment": "Do not expect power management scenarios.",
             "parameters": []
           },
@@ -216,6 +328,10 @@
             "comment": "Hibernation image has been created.",
             "parameters": [
               "%device%"
+            ],
+            "callback return value": "%ret%",
+            "post-call": [
+              "%ret% = ldv_post_probe(%ret%);"
             ]
           },
           "poweroff_late": {
@@ -223,6 +339,10 @@
             "comment": "Continue operations started by @poweroff().",
             "parameters": [
               "%device%"
+            ],
+            "callback return value": "%ret%",
+            "post-call": [
+              "%ret% = ldv_post_probe(%ret%);"
             ]
           },
           "poweroff_noirq": {
@@ -230,6 +350,10 @@
             "comment": "Complete the actions started by @poweroff().",
             "parameters": [
               "%device%"
+            ],
+            "callback return value": "%ret%",
+            "post-call": [
+              "%ret% = ldv_post_probe(%ret%);"
             ]
           },
           "prepare": {
@@ -237,6 +361,10 @@
             "comment": "Prevent new children of the device from being registered.",
             "parameters": [
               "%device%"
+            ],
+            "callback return value": "%ret%",
+            "post-call": [
+              "%ret% = ldv_post_probe(%ret%);"
             ]
           },
           "restore": {
@@ -244,6 +372,10 @@
             "comment": "Restoration of the contents of main memory from a hibernation image has been done.",
             "parameters": [
               "%device%"
+            ],
+            "callback return value": "%ret%",
+            "post-call": [
+              "%ret% = ldv_post_probe(%ret%);"
             ]
           },
           "restore_early": {
@@ -251,6 +383,10 @@
             "comment": "Prepare to execute @restore().",
             "parameters": [
               "%device%"
+            ],
+            "callback return value": "%ret%",
+            "post-call": [
+              "%ret% = ldv_post_probe(%ret%);"
             ]
           },
           "restore_noirq": {
@@ -258,6 +394,10 @@
             "comment": "Prepare for the execution of @restore() performing actions that might be racing with device's interrupt handler.",
             "parameters": [
               "%device%"
+            ],
+            "callback return value": "%ret%",
+            "post-call": [
+              "%ret% = ldv_post_probe(%ret%);"
             ]
           },
           "resume": {
@@ -265,6 +405,10 @@
             "comment": "Make the device start working again after resume.",
             "parameters": [
               "%device%"
+            ],
+            "callback return value": "%ret%",
+            "post-call": [
+              "%ret% = ldv_post_probe(%ret%);"
             ]
           },
           "resume_early": {
@@ -272,6 +416,10 @@
             "comment": "Prepare to execute @resume().",
             "parameters": [
               "%device%"
+            ],
+            "callback return value": "%ret%",
+            "post-call": [
+              "%ret% = ldv_post_probe(%ret%);"
             ]
           },
           "resume_noirq": {
@@ -279,6 +427,10 @@
             "comment": "Prepare for the @resume() performing actions that might be racing with device's interrupt handler.",
             "parameters": [
               "%device%"
+            ],
+            "callback return value": "%ret%",
+            "post-call": [
+              "%ret% = ldv_post_probe(%ret%);"
             ]
           },
           "runtime_idle": {
@@ -286,6 +438,10 @@
             "comment": "Device appears to be inactive and it might be put into a low-power state if all of the necessary conditions are satisfied.",
             "parameters": [
               "%device%"
+            ],
+            "callback return value": "%ret%",
+            "post-call": [
+              "%ret% = ldv_post_probe(%ret%);"
             ]
           },
           "runtime_resume": {
@@ -293,6 +449,10 @@
             "comment": "Put the device into the fully active state in response to a wakeup event generated by hardware or at the request of software.",
             "parameters": [
               "%device%"
+            ],
+            "callback return value": "%ret%",
+            "post-call": [
+              "%ret% = ldv_post_probe(%ret%);"
             ]
           },
           "runtime_suspend": {
@@ -300,6 +460,10 @@
             "comment": "The device should be put into a low-power state to prevent communication of the device with the CPU(s) and RAM.",
             "parameters": [
               "%device%"
+            ],
+            "callback return value": "%ret%",
+            "post-call": [
+              "%ret% = ldv_post_probe(%ret%);"
             ]
           },
           "suspend": {
@@ -307,6 +471,10 @@
             "comment": "Quiesce subsystem-level device before suspend.",
             "parameters": [
               "%device%"
+            ],
+            "callback return value": "%ret%",
+            "post-call": [
+              "%ret% = ldv_post_probe(%ret%);"
             ]
           },
           "suspend_late": {
@@ -314,6 +482,10 @@
             "comment": "Continue operations started by @suspend().",
             "parameters": [
               "%device%"
+            ],
+            "callback return value": "%ret%",
+            "post-call": [
+              "%ret% = ldv_post_probe(%ret%);"
             ]
           },
           "suspend_noirq": {
@@ -321,6 +493,10 @@
             "comment": "Expect that the device will be in a low-power state.",
             "parameters": [
               "%device%"
+            ],
+            "callback return value": "%ret%",
+            "post-call": [
+              "%ret% = ldv_post_probe(%ret%);"
             ]
           },
           "thaw": {
@@ -328,6 +504,10 @@
             "comment": "The hibernation image has created or creation has failed.",
             "parameters": [
               "%device%"
+            ],
+            "callback return value": "%ret%",
+            "post-call": [
+              "%ret% = ldv_post_probe(%ret%);"
             ]
           },
           "thaw_early": {
@@ -335,6 +515,10 @@
             "comment": "Prepare to execute @thaw().",
             "parameters": [
               "%device%"
+            ],
+            "callback return value": "%ret%",
+            "post-call": [
+              "%ret% = ldv_post_probe(%ret%);"
             ]
           },
           "thaw_noirq": {
@@ -342,6 +526,10 @@
             "comment": "Prepare for the execution of @thaw() performing actions that might be racing with device's interrupt handler.",
             "parameters": [
               "%device%"
+            ],
+            "callback return value": "%ret%",
+            "post-call": [
+              "%ret% = ldv_post_probe(%ret%);"
             ]
           }
         },
@@ -358,6 +546,10 @@
             "interface": [
               "pm.dev_pm_ops"
             ]
+          },
+          "ret": {
+            "declaration": "int a",
+            "value": "ldv_undef_int()"
           }
         },
         "process": "(!pm_register).{do}",
