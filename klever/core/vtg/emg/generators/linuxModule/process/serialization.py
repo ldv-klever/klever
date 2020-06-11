@@ -78,8 +78,8 @@ class ExtendedProcessDecoder(CollectionDecoder):
 
         if 'interface' in dic:
             if not (dic.get('resource') or dic.get('container') or dic.get('callback') or dic.get('parameter')):
-                self.logger.wearning(f'Specify kind of an interface (container, resource, callback or parameter) for'
-                                     f' label {name}')
+                self.logger.warning(f'Specify kind of an interface (container, resource, callback or parameter) for'
+                                    f' label {name}')
 
             if isinstance(dic['interface'], str):
                 label.set_declaration(dic['interface'], None)
