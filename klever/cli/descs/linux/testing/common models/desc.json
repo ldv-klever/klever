@@ -11,6 +11,7 @@
             "ext-modules/linux/ldv/common",
             "ext-modules/linux/mm/gfp",
             "ext-modules/linux/mm/slab",
+            "ext-modules/linux/mm/util",
             "ext-modules/verifier/common",
             "ext-modules/verifier/gcc",
             "ext-modules/verifier/map",

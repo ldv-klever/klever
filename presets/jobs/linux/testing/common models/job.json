@@ -13,6 +13,7 @@
         "ext-modules/linux/ldv/common/safe.ko",
         "ext-modules/linux/mm/gfp/safe.ko",
         "ext-modules/linux/mm/slab/safe.ko",
+        "ext-modules/linux/mm/util/safe.ko",
         "ext-modules/verifier/common/safe.ko",
         "ext-modules/verifier/gcc/safe.ko",
         "ext-modules/verifier/map/safe.ko",
