@@ -16,6 +16,9 @@
 #
 
 import os
+import re
+import tempfile
+import datetime
 
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
@@ -356,3 +359,42 @@ class RecalculateCoverage:
                 cov_obj.total = res.total_coverage
                 cov_obj.has_extra = res.has_extra
                 cov_obj.save()
+
+
+class ParseReportsLogs:
+    def __init__(self, file, decision_id):
+        self._file = file
+        self._line_regexp = re.compile(r'^(\d+\.\d+)-(\d+)-(\w+\d+):\s*(.*)\n$')
+        self.decision_id = decision_id
+        self.data = self.__parse()
+
+    def __parse(self):
+        reports_data = []
+
+        with tempfile.TemporaryDirectory() as td:
+            f_name = os.path.join(td, 'reports.log')
+            with open(f_name, 'wb') as fh:
+                for chunk in self._file.chunks():
+                    fh.write(chunk)
+            with open(f_name, mode='r', encoding='utf-8') as fp:
+                for line in fp:
+                    d_id, data = self.__parse_line(line)
+                    if not d_id or not data:
+                        continue
+                    if self.decision_id is None:
+                        self.decision_id = d_id
+                    if d_id != self.decision_id:
+                        continue
+                    reports_data.append(data)
+        reports_data.sort(key=lambda x: x['time'])
+        return reports_data
+
+    def __parse_line(self, line):
+        m = re.match(self._line_regexp, line)
+        if m:
+            return m.group(2), {
+                'time': str(datetime.datetime.fromtimestamp(float(m.group(1)))),
+                'type': m.group(3),
+                'text': m.group(4).split('##')
+            }
+        return None, None

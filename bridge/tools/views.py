@@ -245,3 +245,7 @@ class DBLogsStatistics(TemplateView):
                     'total': data[k][6]
                 } for k in sorted(data) if data[k][0] != data[k][5] > 10)
         return context
+
+
+class ReportsLogggingView(TemplateView):
+    template_name = 'tools/ReportsLogging.html'
