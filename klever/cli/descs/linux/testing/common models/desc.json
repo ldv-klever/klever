@@ -6,6 +6,7 @@
         "loadable kernel modules": [
             "ext-modules/linux/drivers/base/dd",
             "ext-modules/linux/drivers/base/firmware_loader",
+            "ext-modules/linux/drivers/i2c/i2c-core-smbus",
             "ext-modules/linux/drivers/spi",
             "ext-modules/linux/drivers/video/fbdev/core/fbsys",
             "ext-modules/linux/err",

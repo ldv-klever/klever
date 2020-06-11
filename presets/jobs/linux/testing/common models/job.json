@@ -7,6 +7,7 @@
       "program fragments": [
         "ext-modules/linux/drivers/base/dd/safe.ko",
         "ext-modules/linux/drivers/base/firmware_loader/safe.ko",
+        "ext-modules/linux/drivers/i2c/i2c-core-smbus/safe.ko",
         "ext-modules/linux/drivers/spi/safe.ko",
         "ext-modules/linux/drivers/video/fbdev/core/fbsys/safe.ko",
         "ext-modules/linux/err/safe.ko",
