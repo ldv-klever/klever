@@ -666,24 +666,13 @@ def __resolve_accesses(logger, chosen, interfaces):
                                 logger.debug(f'Match {str(new)} with {str(new.interface)}')
                         else:
                             logger.warning(f'Cannot determine interface of tail {str(tail)} of access {str(new)}')
-                    else:
+                    elif interfaces.get_intf(interface):
+                        logger.debug(f'Trying to match {str(new)} with interface {interface}')
                         new.interface = interfaces.get_intf(interface)
                         new.list_access = [label.name]
-
-                    # Complete list accesses if possible
-                    if new.interface:
-                        new_tail = [new.interface]
-                        to_process = [new.interface]
-                        while to_process:
-                            interface = to_process.pop()
-                            category = new.interface.category
-
-                            for container in (c for c in interfaces.containers(category)
-                                              if c.weak_contains(interface) and c not in new_tail):
-                                new_tail.append(container)
-                                to_process.append(container)
-                                break
-                        new_tail.reverse()
+                    else:
+                        logger.debug(f'Cannot match {str(new)} with missing interface {interface}')
+                        continue
 
                     accesses[access].append(new)
             elif access not in accesses or not accesses[access]:
