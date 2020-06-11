@@ -1,0 +1,85 @@
+{% extends 'bridge/base.html' %}
+
+{% load i18n %}
+{% load static %}
+{% load compress %}
+
+{% block title %}{% trans 'Reports logs' %}{% endblock %}
+
+{% block head_block %}
+    {# Jstree #}
+    <link rel="stylesheet" href="{% static 'bridge/jstree/themes/default/style.min.css' %}">
+    <script src="{% static 'bridge/jstree/jstree.min.js' %}"></script>
+
+    <script type="application/javascript">
+        const PAGE_URLS = {
+            parse_logs: "{% url 'tools:api-parse-reports-logs' %}"
+        };
+    </script>
+    {% compress js file reports_logging %}
+        <script src="{% static 'tools/js/reports_logging.js' %}"></script>
+    {% endcompress %}
+{% endblock %}
+
+{% block body_block %}
+    <div class="ui grid">
+        <div class="eight wide column">
+            <div id="parse_form_container">
+                <div class="ui input">
+                    <input id="decision_id_input" type="number" placeholder="{% trans 'Decision id' %}">
+                </div>
+                <br>
+                <span class="error-comment" style="color: grey">{% trans 'Leave empty for the first found decision id' %}</span>
+                <div class="ui divider"></div>
+                <span class="ui violet button btn-file"><span class="btn-title">{% trans 'Browse' %}</span><input id="logs_file_input" type="file" accept=".log"></span>
+                <div class="ui divider"></div>
+                <button id="parse_logs_btn" class="ui orange disabled button">{% trans 'Parse logs' %}</button>
+            </div>
+            <div id="analyze_form_container" style="display: none;">
+                <h5>{% trans 'Number of steps' %}: <span id="steps_number_header"></span></h5>
+                <div class="ui mini buttons">
+                    <div id="next_step_btn" class="ui mini violet button">{% trans 'Next step' %}</div>
+                    <div id="refresh_log_btn" class="ui mini orange button">{% trans 'Refresh' %}</div>
+                </div>
+                <br><br>
+                <div class="ui mini buttons">
+                    <div class="ui mini green button autofill-btn" data-speed="1">{% trans 'Auto' %} X1</div>
+                    <div class="ui mini green button autofill-btn" data-speed="2">{% trans 'Auto' %} X2</div>
+                    <div class="ui mini green button autofill-btn" data-speed="3">{% trans 'Auto' %} X3</div>
+                    <div class="ui mini green button autofill-btn" data-speed="4">{% trans 'Auto' %} X4</div>
+                    <div class="ui mini green button autofill-btn" data-speed="5">{% trans 'Auto' %} X5</div>
+                    <div class="ui mini green button autofill-btn" data-speed="10">{% trans 'Auto' %} X10</div>
+                    <div id="autofill_stop_btn" class="ui mini orange disabled button">{% trans 'Stop' %}</div>
+                </div>
+                <div id="log_container" style="display: none;"></div>
+                <div id="name_cache_div" style="display: none"></div>
+                <table class="ui compact violet table">
+                    <thead>
+                        <tr>
+                            <th>{% trans 'Time' %}</th>
+                            <th>{% trans 'Report type' %}</th>
+                            <th>{% trans 'Action' %}</th>
+                            <th>{% trans 'PK' %}</th>
+                            <th>{% trans 'Data' %}</th>
+                        </tr>
+                    </thead>
+                    <tbody id="log_table_body"></tbody>
+                </table>
+            </div>
+        </div>
+        <div class="eight wide column">
+            <div class="ui fluid mini input">
+                <input id="title_search_input" type="text" placeholder="{% trans 'Title search' %}">
+            </div>
+            <div id="tree_container_div"></div>
+            <div class="ui divider"></div>
+
+            <div id="node_data_segment" class="ui violet segment" style="display: none">
+                <div class="ui bulleted list">
+                    <div class="item">{% trans 'Node status' %}: <span id="selected_node_status"></span></div>
+                    <div class="item">{% trans 'Identifier' %}: <span id="selected_node_identifier"></span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
