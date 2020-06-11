@@ -7,6 +7,7 @@
             "ext-modules/linux/drivers/base/dd",
             "ext-modules/linux/drivers/base/firmware_loader",
             "ext-modules/linux/drivers/spi",
+            "ext-modules/linux/drivers/video/fbdev/core/fbsys",
             "ext-modules/linux/err",
             "ext-modules/linux/ldv/common",
             "ext-modules/linux/mm/gfp",

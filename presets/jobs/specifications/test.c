@@ -28,3 +28,17 @@ void ldv_unexpected_error(void)
 	/* ASSERT Unexpected error */
 	__VERIFIER_error();
 }
+
+void ldv_expected_memory_safety_error(void)
+{
+	int *var = (void *)0;
+	/* ASSERT Expected memory safety error */
+	*var;
+}
+
+void ldv_unexpected_memory_safety_error(void)
+{
+	int *var = (void *)0;
+	/* ASSERT Unexpected memory safety error */
+	*var;
+}

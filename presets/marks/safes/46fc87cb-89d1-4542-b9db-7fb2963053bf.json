@@ -1,0 +1,18 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "test:memory safety"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/linux/drivers/video/fbdev/core/fbsys/safe.ko"
+    }
+  ],
+  "description": "",
+  "is_modifiable": true,
+  "tags": [],
+  "verdict": "0"
+}
