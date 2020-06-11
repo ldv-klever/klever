@@ -121,10 +121,11 @@ class VTG(klever.core.components.Component):
                         if plugin_desc['name'] == base_tmpl_plugin_desc['name']:
                             if 'options' in base_tmpl_plugin_desc:
                                 if 'options' in plugin_desc:
-                                    plugin_desc['options'] = klever.core.utils.merge_confs(base_tmpl_plugin_desc['options'],
-                                                                                    plugin_desc['options'])
+                                    plugin_desc['options'] = klever.core.utils.merge_confs(
+                                        plugin_desc['options'], base_tmpl_plugin_desc['options'])
                                 else:
                                     plugin_desc['options'] = base_tmpl_plugin_desc['options']
+                            break
 
     # TODO: support inheritance of template sequences, i.e. when requirement needs template that is template of another one.
     def __extract_req_spec_descs(self):
