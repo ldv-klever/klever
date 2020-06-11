@@ -93,11 +93,13 @@
             "value": "ldv_undef_int()"
           },
           "i2c_client": {
+            "resource": true,
             "interface": [
               "i2c.client"
             ]
           },
           "i2c_id": {
+            "resource": true,
             "interface": [
               "i2c.i2c_device_id"
             ]
