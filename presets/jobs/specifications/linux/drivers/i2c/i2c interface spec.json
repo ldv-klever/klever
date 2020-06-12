@@ -22,10 +22,12 @@
         },
         "resources": {
           "client": {
-            "declaration": "struct i2c_client *client"
+            "declaration": "struct i2c_client *client",
+            "header": "linux/i2c.h"
           },
           "i2c_device_id": {
-            "declaration": "struct i2c_device_id *"
+            "declaration": "struct i2c_device_id *",
+            "header": "linux/i2c.h"
           }
         },
         "reference": true

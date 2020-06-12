@@ -499,6 +499,9 @@ class FunctionModels:
                             raise ValueError("Cannot resolve access in statement {!r} and expression {!r}".
                                              format(stm, expression))
                         var = automaton.determine_variable(access.label)
+                        if not var:
+                            raise ValueError(f'There is no variable created for '
+                                             f'label {access.label} of access {str(access)}')
                         stm = stm.replace(expression, var.name)
                         stm_set.add(stm)
                     else:

@@ -301,4 +301,10 @@ def __refine_categories(logger, collection, sa):
             logger.debug("Delete interface description {!r} as unrelevant".format(str(interface)))
             collection.del_intf(str(interface))
 
+    logger.debug('Finally we have the following interfaces saved:')
+    for category in collection.categories:
+        logger.debug('Containers of {} : {}'.format(category, ', '.join(map(str, collection.containers(category)))))
+        logger.debug('Callbacks of {} : {}'.format(category, ', '.join(map(str, collection.callbacks(category)))))
+        logger.debug('Resources of {} : {}'.format(category, ', '.join(map(str, collection.resources(category)))))
+
     return
