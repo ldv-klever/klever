@@ -34,8 +34,9 @@ int ldv_request_firmware(const struct firmware **fw)
 		_fw->data = external_allocated_data();
 		_fw->size = ldv_undef_int_positive();
 		ldv_assume(_fw->data);
-		*fw = _fw;
-    }
+	}
+
+	*fw = _fw;
 
 	return retval;
 }

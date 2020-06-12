@@ -15,11 +15,14 @@
 # limitations under the License.
 #
 
+import json
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
 from bridge.access import ManagerPermission
 from tools.profiling import DBLogsAnalizer
+from tools.utils import ParseReportsLogs
 
 
 class CalculateDBLogStatisticsView(APIView):
@@ -30,3 +33,11 @@ class CalculateDBLogStatisticsView(APIView):
         analizer.analize()
         analizer.print_results()
         return Response({})
+
+
+class ParseReportsLogsAPIView(APIView):
+    def post(self, request):
+        res = ParseReportsLogs(request.FILES['log'], request.data.get('decision', None))
+        return Response({
+            'decision': res.decision_id, 'reports': json.dumps(res.data, ensure_ascii=False)
+        })

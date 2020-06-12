@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
+ * Copyright (c) 2020 ISP RAS (http://www.ispras.ru)
  * Ivannikov Institute for System Programming of the Russian Academy of Sciences
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,30 +15,26 @@
  * limitations under the License.
  */
 
-#include <ldv/verifier/common.h>
+#include <linux/module.h>
+#include <linux/i2c.h>
+#include <ldv/test.h>
 
-void ldv_expected_error(void)
+static int __init ldv_init(void)
 {
-	/* ASSERT Expected error */
-	__VERIFIER_error();
+	struct i2c_client *client = ldv_undef_ptr_non_null();
+	u8 smbus_cmd = ldv_undef_int_positive();
+	u8 values[I2C_SMBUS_BLOCK_MAX + 1];
+	ssize_t ret;
+
+	ret = i2c_smbus_read_block_data(client, smbus_cmd, values);
+
+	if (ret < 0)
+		return ret;
+
+	if (ret > I2C_SMBUS_BLOCK_MAX)
+		ldv_unexpected_error();
+
+	return 0;
 }
 
-void ldv_unexpected_error(void)
-{
-	/* ASSERT Unexpected error */
-	__VERIFIER_error();
-}
-
-void ldv_expected_memory_safety_error(void)
-{
-	int *var = (void *)0;
-	/* ASSERT Expected memory safety error */
-	*var;
-}
-
-void ldv_unexpected_memory_safety_error(void)
-{
-	int *var = (void *)0;
-	/* ASSERT Unexpected memory safety error */
-	*var;
-}
+module_init(ldv_init);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
+ * Copyright (c) 2020 ISP RAS (http://www.ispras.ru)
  * Ivannikov Institute for System Programming of the Russian Academy of Sciences
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,30 +15,29 @@
  * limitations under the License.
  */
 
-#include <ldv/verifier/common.h>
+#include <linux/module.h>
+#include <linux/string.h>
+#include <ldv/linux/string.h>
+#include <ldv/test.h>
 
-void ldv_expected_error(void)
+gfp_t ldv_flags;
+
+void ldv_check_alloc_flags(gfp_t flags)
 {
-	/* ASSERT Expected error */
-	__VERIFIER_error();
+	if (flags != ldv_flags)
+		ldv_unexpected_error();
 }
 
-void ldv_unexpected_error(void)
+static int __init ldv_init(void)
 {
-	/* ASSERT Unexpected error */
-	__VERIFIER_error();
+	void *src;
+	size_t size = ldv_undef_uint();
+
+	src = ldv_xmalloc(size);
+	ldv_flags = ldv_undef_uint();
+	kmemdup(src, size, ldv_flags);
+
+	return 0;
 }
 
-void ldv_expected_memory_safety_error(void)
-{
-	int *var = (void *)0;
-	/* ASSERT Expected memory safety error */
-	*var;
-}
-
-void ldv_unexpected_memory_safety_error(void)
-{
-	int *var = (void *)0;
-	/* ASSERT Unexpected memory safety error */
-	*var;
-}
+module_init(ldv_init);

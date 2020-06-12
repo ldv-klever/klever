@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
+ * Copyright (c) 2020 ISP RAS (http://www.ispras.ru)
  * Ivannikov Institute for System Programming of the Russian Academy of Sciences
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,30 +15,36 @@
  * limitations under the License.
  */
 
-#include <ldv/verifier/common.h>
+#include <linux/module.h>
+#include <linux/firmware.h>
+#include <ldv/test.h>
 
-void ldv_expected_error(void)
+static int __init ldv_init(void)
 {
-	/* ASSERT Expected error */
-	__VERIFIER_error();
+	const struct firmware *fw;
+	const char *fw_name = ldv_undef_ptr_non_null();
+	struct device *dev = ldv_undef_ptr_non_null();
+	int err;
+
+	err = request_firmware(&fw, fw_name, dev);
+
+	if (err)
+	{
+		if (fw)
+			ldv_unexpected_error();
+
+		return ldv_undef_int_negative();
+	}
+
+	if (!fw)
+		ldv_unexpected_error();
+
+	if (!fw->data)
+		ldv_unexpected_error();
+
+	release_firmware(fw);
+
+	return 0;
 }
 
-void ldv_unexpected_error(void)
-{
-	/* ASSERT Unexpected error */
-	__VERIFIER_error();
-}
-
-void ldv_expected_memory_safety_error(void)
-{
-	int *var = (void *)0;
-	/* ASSERT Expected memory safety error */
-	*var;
-}
-
-void ldv_unexpected_memory_safety_error(void)
-{
-	int *var = (void *)0;
-	/* ASSERT Unexpected memory safety error */
-	*var;
-}
+module_init(ldv_init);

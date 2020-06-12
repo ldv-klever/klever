@@ -27,5 +27,7 @@
 
 extern void ldv_expected_error(void);
 extern void ldv_unexpected_error(void);
+extern void ldv_expected_memory_safety_error(void);
+extern void ldv_unexpected_memory_safety_error(void);
 
 #endif /* __LDV_TEST_H */

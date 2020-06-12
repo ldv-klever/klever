@@ -16,6 +16,7 @@
  */
 
 #include <linux/types.h>
+#include <linux/i2c.h>
 #include <ldv/linux/i2c.h>
 #include <ldv/verifier/common.h>
 #include <ldv/verifier/memory.h>
@@ -30,8 +31,8 @@ s32 ldv_i2c_smbus_read_block_data(u8 *values)
 	{
 		/* NOTE Determine the number of bytes to be read nondeterministically */
 		size = ldv_undef_int_positive();
-		/* NOTE SMBus allows to read 32 bytes at most */
-		ldv_assume(size < 33);
+		/* NOTE SMBus allows to read 32 (I2C_SMBUS_BLOCK_MAX) bytes at most */
+		ldv_assume(size <= I2C_SMBUS_BLOCK_MAX);
 		/* NOTE "Read" bytes */
 		bytes = ldv_xmalloc(size);
 		/* NOTE Copy read bytes to buffer */
