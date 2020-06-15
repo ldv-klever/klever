@@ -47,9 +47,11 @@ LogProcessor.prototype.get_next_line = function(speed) {
 
     if (speed <= 2) {
         // For low speed select each node met on updating the tree
-        result = self.process_log_step(log_type, log_time, log_data, function (node) {
-            self.rep_tree.tree_obj.deselect_all();
-            self.rep_tree.tree_obj.select_node(node);
+        result = self.process_log_step(log_type, log_time, log_data, function (node, force=false) {
+            if (force || self.rep_tree.sel_node_id !== node.id) {
+                self.rep_tree.tree_obj.deselect_all();
+                self.rep_tree.tree_obj.select_node(node);
+            }
         })
     }
     else result = self.process_log_step(log_type, log_time, log_data);
@@ -442,10 +444,10 @@ LogProcessor.prototype.process_log_step = function(log_type, time, data, callbac
         case 'UF2': {
             report_type = 'Unsafe';
             action_detail = 'Cache was updated';
-            // TODO: uncomment for good logs
-            // report_id = data[0];
-            // if (!this.report_ids.has(report_id)) return false;
-            // if (callback) callback(this.get_tree_node(report_id), false);
+            // TODO: comment 3 lines for old logs
+            report_id = data[0];
+            if (!this.report_ids.has(report_id)) return false;
+            if (callback) callback(this.get_tree_node(report_id), false);
             break;
         }
         default: {
@@ -480,6 +482,7 @@ function ReportsTree(tree_id) {
     this.tree_div = $('#' + tree_id);
     this.tree_obj = null;
     this.title_search_id = 'title_search_input';
+    this.sel_node_id = null;
     this.icons = {
         'root': 'violet archive icon',
         'component': 'violet desktop icon',
@@ -507,6 +510,7 @@ ReportsTree.prototype.initialize = function (data) {
         self.tree_obj.close_all();
         self.tree_obj.settings.core.data = data;
         self.tree_obj.refresh();
+        this.sel_node_id = null;
         return;
     }
 
@@ -530,6 +534,7 @@ ReportsTree.prototype.initialize = function (data) {
         })
         .on('select_node.jstree', function (e, data) {
             self.open_node_content(data.node);
+            self.sel_node_id = data.node.id;
         });
 
     let to = false;
