@@ -17,6 +17,7 @@
 
 import os
 import json
+import time
 import uuid
 import zipfile
 
@@ -639,7 +640,8 @@ class UploadReport:
             # WARNING: If report has children it will be deleted!
             # It means verification reports (children) are not finished yet.
             self._logger.log("F4", report.pk)
-            report.delete()
+            if not self.__remove_report(report.pk):
+                logger.error('Report deletion is failed!')
 
     def __finish_verification_report(self, data):
         update_data = {'finish_date': now()}
@@ -662,7 +664,8 @@ class UploadReport:
                 # But before update decision caches
                 self.__update_decision_cache(report.component, finished=True)
                 self._logger.log("FV2", report.pk)
-                report.delete()
+                if not self.__remove_report(report.pk):
+                    logger.error('Report deletion is failed!')
                 return
 
             # Set parent to Core for lightweight decisions that will be preserved
@@ -807,3 +810,17 @@ class UploadReport:
                     newfile.file.save(os.path.basename(rel_path), File(fp), save=True)
                 db_files[rel_path] = newfile.pk
         return db_files
+
+    @transaction.atomic
+    def __remove_report(self, report_id):
+        cnt = 0
+        while cnt < 5:
+            try:
+                report = ReportComponent.objects.select_for_update().get(id=report_id)
+                report.delete()
+                return True
+            except Exception as e:
+                logger.exception(e)
+                time.sleep(0.1)
+                cnt += 1
+        return False

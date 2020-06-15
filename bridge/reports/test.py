@@ -1782,8 +1782,11 @@ class ReportsLogging:
 
     def __init__(self, decision_id):
         self._decision = decision_id
+        self._enabled = settings.ENABLE_UPLOAD_REPORTS_LOGS
 
     def log(self, action, *args):
+        if not self._enabled:
+            return
         message = "##".join(str(a) if a else 'NULL' for a in args)
 
         with open(os.path.join(settings.LOGS_DIR, self.filename), mode="a", encoding="utf-8") as fp:
