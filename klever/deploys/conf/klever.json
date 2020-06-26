@@ -19,7 +19,7 @@
       "CPAchecker": {
         "name": "CPAchecker",
         "version": "trunk:34064",
-        "path": "https://forge.ispras.ru/attachments/download/7705/CPAchecker-34064.tar.xz`",
+        "path": "https://forge.ispras.ru/attachments/download/7705/CPAchecker-34064.tar.xz",
         "executable path": "scripts"
       }
     }
