@@ -58,7 +58,7 @@
             "verifier profile": "CPAchecker BAM BusyBox",
             "verifier": {
               "name": "CPAchecker",
-              "version": "trunk:31140"
+              "version": "trunk:34064"
             }
           }
         }
@@ -87,7 +87,7 @@
               "verifier profile": "memory checking Linux64",
               "verifier": {
                 "name": "CPAchecker",
-                "version": "trunk:31140"
+                "version": "trunk:34064"
               }
             }
           }

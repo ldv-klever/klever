@@ -18,8 +18,8 @@
     "Verification Backends": {
       "CPAchecker": {
         "name": "CPAchecker",
-        "version": "trunk:31140",
-        "path": "https://forge.ispras.ru/attachments/download/6427/CPAchecker-1.8-svn 31140-unix.tar.xz",
+        "version": "trunk:34064",
+        "path": "https://forge.ispras.ru/attachments/download/7705/CPAchecker-34064.tar.xz`",
         "executable path": "scripts"
       }
     }

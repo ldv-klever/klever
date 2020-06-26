@@ -65,7 +65,7 @@
             "verifier profile": "reachability",
             "verifier": {
               "name": "CPAchecker",
-              "version": "trunk:31140"
+              "version": "trunk:34064"
             }
           }
         }
