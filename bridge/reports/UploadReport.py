@@ -351,7 +351,7 @@ class ReportUnsafeSerializer(UploadLeafBaseSerializer):
         if not isinstance(node, dict):
             self.fail('wrong_format', detail="node is not a dictionary")
         if node.get('type') not in {'function call', 'statement', 'action', 'thread'}:
-            self.fail('wrong_format', detail='unsupported node type')
+            self.fail('wrong_format', detail='unsupported node type "{}"'.format(node.get('type')))
         if node['type'] == 'function call':
             required_fields = ['line', 'file', 'source', 'children', 'display']
         elif node['type'] == 'statement':
