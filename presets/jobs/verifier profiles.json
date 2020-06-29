@@ -3,6 +3,7 @@
     "CPAchecker common": {
       "description": "Common options for the CPAchecker tool",
       "add options": [
+        {"-setprop": "cpa.callstack.unsupportedFunctions={}"},
         {"-setprop": "cpa.predicate.allowedUnsupportedFunctions=memset,memcpy"},
         {"-setprop": "counterexample.export.extendedWitnessFile=witness.%d.graphml"},
         {"-setprop": "counterexample.export.exportExtendedWitness=true"},
