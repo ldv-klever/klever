@@ -80,6 +80,7 @@
                         {% if user.role != '0' and user.role != '4' %}
                             <a class="item" id="upload_jobs_modal_show">{% trans 'Upload jobs' %}</a>
                             <a id="uploading_status_link" class="item" href="{% url 'jobs:uploading-status' %}">{% trans 'Uploading status' %}</a>
+                            <a class="item" href="{% url 'jobs:job-upload-log' %}">{% trans 'Jobs uploading log' %}</a>
                         {% endif %}
                     </div>
                     <div class="column">

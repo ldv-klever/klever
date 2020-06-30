@@ -17,7 +17,9 @@
 
 import os
 import json
+import time
 
+from django.conf import settings
 from django.core.files import File
 from django.db import transaction
 from django.utils.functional import cached_property
@@ -52,6 +54,7 @@ class JobArchiveUploader:
     def __init__(self, upload_obj):
         self._upload_obj = upload_obj
         self.job = None
+        self._logger = UploadLogger()
 
     def __enter__(self):
         self.job = None
@@ -70,32 +73,44 @@ class JobArchiveUploader:
         self._upload_obj.save()
 
     def upload(self):
+        self._logger.log('=' * 20)
         # Extract job archive
         self.__change_upload_status(JOB_UPLOAD_STATUS[1][0])
+        self._logger.start('Extract archive')
         with self._upload_obj.archive.file as fp:
             job_dir = extract_archive(fp)
+        self._logger.end('Extract archive')
 
         # Upload job files
         self.__change_upload_status(JOB_UPLOAD_STATUS[2][0])
+        self._logger.start('Upload files')
         self.__upload_job_files(os.path.join(job_dir.name, JOBFILE_DIR))
+        self._logger.end('Upload files')
 
         # Save job
         self.__change_upload_status(JOB_UPLOAD_STATUS[3][0])
+        self._logger.start('Create job')
         serializer_data = self.__parse_job_json(os.path.join(job_dir.name, 'job.json'))
         serializer = DownloadJobSerializer(data=serializer_data)
         serializer.is_valid(raise_exception=True)
         self.job = serializer.save(
             author=self._upload_obj.author, preset_id=self.__get_preset_id(serializer_data.get('preset_info'))
         )
+        self._logger.end('Create job')
 
         # Upload job reports
         self.__change_upload_status(JOB_UPLOAD_STATUS[4][0])
+        self._logger.start('Upload reports')
         res = UploadReports(self._upload_obj.author, self.job, job_dir.name)
+        self._logger.end('Upload reports')
 
         if res.decisions:
             # Recalculate cache if job has decisions
             self.__change_upload_status(JOB_UPLOAD_STATUS[5][0])
+            self._logger.start('Cache recalculation')
             Recalculation('all', res.decisions)
+            self._logger.end('Cache recalculation')
+        self._logger.log('=' * 20)
 
     def __change_upload_status(self, new_status):
         self._upload_obj.status = new_status
@@ -150,6 +165,7 @@ class UploadReports:
         self._user = user
         self._jobdir = job_dir
         self._final_statuses = {}
+        self._logger = UploadLogger()
         self._uploaded_decisions = self.__upload_decisions(job)
 
         if not self._uploaded_decisions:
@@ -166,6 +182,7 @@ class UploadReports:
         self._attr_files = {}
         self.__upload_reports()
         self.__change_decision_statuses()
+        self._logger.print_all_stat()
 
     @cached_property
     def decisions(self):
@@ -182,14 +199,17 @@ class UploadReports:
         for decision in decisions_data:
             if 'id' not in decision or not isinstance(decision['id'], int):
                 raise exceptions.ValidationError({'decision': _('Decision data is corrupted')})
+            self._logger.start_stat('Create decision')
             serializer = DownloadDecisionSerializer(data=decision)
             serializer.is_valid(raise_exception=True)
             uploaded_map[decision['id']] = serializer.save(
                 job=job, operator=self._user, status=DECISION_STATUS[0][0]
             ).id
             self._final_statuses[uploaded_map[decision['id']]] = serializer.validated_data['status']
+            self._logger.end_stat('Create decision')
 
         # Upload decision cache
+        self._logger.start('Create decision cache')
         cache_data_list = self.__read_json_file('{}.json'.format(DecisionCache.__name__))
         new_cache_objects = []
         for dec_cache in cache_data_list:
@@ -201,6 +221,7 @@ class UploadReports:
                 decision_id=uploaded_map[dec_cache['decision']], **serializer.validated_data
             ))
         DecisionCache.objects.bulk_create(new_cache_objects)
+        self._logger.end('Create decision cache')
 
         return uploaded_map
 
@@ -220,6 +241,7 @@ class UploadReports:
         orig_data = self.__read_json_file('{}.json'.format(OriginalSources.__name__), required=True)
         if orig_data:
             for src_id, src_path in orig_data.items():
+                self._logger.start_stat('Upload original sources')
                 try:
                     src_obj = OriginalSources.objects.get(identifier=src_id)
                 except OriginalSources.DoesNotExist:
@@ -227,6 +249,7 @@ class UploadReports:
                     with open(self.__full_path(src_path), mode='rb') as fp:
                         src_obj.add_archive(fp, save=True)
                 original_sources[src_id] = src_obj.id
+                self._logger.end_stat('Upload original sources')
         return original_sources
 
     def __get_computer(self, comp_data):
@@ -248,6 +271,7 @@ class UploadReports:
     def __upload_reports_chunk(self):
         if not self._chunk:
             return
+        self._logger.start_stat('Upload reports chunk')
         for report_data in self._chunk:
             decision_id = report_data.pop('new_decision_id')
             serializer = DownloadReportComponentSerializer(data=report_data)
@@ -274,7 +298,7 @@ class UploadReports:
             report.save()
 
             self.saved_reports[(decision_id, report.identifier)] = report.id
-
+        self._logger.end_stat('Upload reports chunk')
         self._chunk = []
 
     def __get_additional_sources(self, decision_id, rel_path):
@@ -287,6 +311,7 @@ class UploadReports:
 
     def __upload_reports(self):
         # Upload components tree
+        self._logger.start('Upload reports')
         for report_data in self.__read_json_file('{}.json'.format(ReportComponent.__name__), required=True):
             decision_id = self.__get_decision_id(report_data['decision'])
             if report_data['parent'] and (decision_id, report_data['parent']) not in self.saved_reports:
@@ -296,13 +321,25 @@ class UploadReports:
             report_data['new_decision_id'] = decision_id
             self._chunk.append(report_data)
         self.__upload_reports_chunk()
+        self._logger.print_stat('Upload reports chunk')
+        self._logger.end('Upload reports')
 
         # Upload leaves
+        self._logger.start('Safes')
         self.__upload_safes()
+        self._logger.end('Safes')
+        self._logger.start('Unsafes')
         self.__upload_unsafes()
+        self._logger.end('Unsafes')
+        self._logger.start('Unknowns')
         self.__upload_unknowns()
+        self._logger.end('Unknowns')
+        self._logger.start('Attrs')
         self.__upload_attrs()
+        self._logger.end('Attrs')
+        self._logger.start('Coverage')
         self.__upload_coverage()
+        self._logger.end('Coverage')
 
     @transaction.atomic
     def __upload_safes(self):
@@ -311,6 +348,7 @@ class UploadReports:
             return
         safes_cache = []
         for report_data in safes_data:
+            self._logger.start_stat('Create safe')
             decision_id = self.__get_decision_id(report_data.get('decision'))
             save_kwargs = {
                 'decision_id': decision_id, 'parent_id': self.saved_reports[(decision_id, report_data.pop('parent'))]
@@ -321,7 +359,11 @@ class UploadReports:
             self.saved_reports[(decision_id, report.identifier)] = report.id
             self._leaves_ids.add(report.id)
             safes_cache.append(ReportSafeCache(decision_id=decision_id, report_id=report.id))
+            self._logger.end_stat('Create safe')
+        self._logger.print_stat('Create safe')
+        self._logger.start('Safes cache')
         ReportSafeCache.objects.bulk_create(safes_cache)
+        self._logger.end('Safes cache')
 
     @transaction.atomic
     def __upload_unsafes(self):
@@ -330,6 +372,7 @@ class UploadReports:
             return
         unsafes_cache = []
         for report_data in unsafes_data:
+            self._logger.start_stat('Create unsafe')
             decision_id = self.__get_decision_id(report_data.get('decision'))
             parent_id = self.saved_reports[(decision_id, report_data.pop('parent'))]
             serializer = DownloadReportUnsafeSerializer(data=report_data)
@@ -341,7 +384,11 @@ class UploadReports:
             self.saved_reports[(decision_id, report.identifier)] = report.id
             self._leaves_ids.add(report.id)
             unsafes_cache.append(ReportUnsafeCache(decision_id=decision_id, report_id=report.id))
+            self._logger.end_stat('Create unsafe')
+        self._logger.print_stat('Create unsafe')
+        self._logger.start('Unsafes cache')
         ReportUnsafeCache.objects.bulk_create(unsafes_cache)
+        self._logger.end('Unsafes cache')
 
     @transaction.atomic
     def __upload_unknowns(self):
@@ -350,6 +397,7 @@ class UploadReports:
             return
         unknowns_cache = []
         for report_data in unknowns_data:
+            self._logger.start_stat('Create unknown')
             decision_id = self.__get_decision_id(report_data.get('decision'))
             parent_id = self.saved_reports[(decision_id, report_data.pop('parent'))]
             serializer = DownloadReportUnknownSerializer(data=report_data)
@@ -361,7 +409,11 @@ class UploadReports:
             self.saved_reports[(decision_id, report.identifier)] = report.id
             self._leaves_ids.add(report.id)
             unknowns_cache.append(ReportUnknownCache(decision_id=decision_id, report_id=report.id))
+            self._logger.end_stat('Create unknown')
+        self._logger.print_stat('Create unknown')
+        self._logger.start('Unknowns cache')
         ReportUnknownCache.objects.bulk_create(unknowns_cache)
+        self._logger.end('Unknowns cache')
 
     def __upload_attrs(self):
         attrs_data = self.__read_json_file('{}.json'.format(ReportAttr.__name__), required=True)
@@ -371,6 +423,7 @@ class UploadReports:
             decision_id = self.__get_decision_id(int(old_d_id))
             for r_id in attrs_data[old_d_id]:
                 for adata in attrs_data[old_d_id][r_id]:
+                    self._logger.start_stat('Parse attr')
                     file_id = self.__get_attr_file_id(adata.pop('data_file', None), decision_id)
                     serializer = DownloadReportAttrSerializer(data=adata)
                     serializer.is_valid(raise_exception=True)
@@ -381,20 +434,28 @@ class UploadReports:
                     if report_id in self._leaves_ids:
                         attrs_cache.setdefault(report_id, {'attrs': {}})
                         attrs_cache[report_id]['attrs'][validated_data['name']] = validated_data['value']
+                    self._logger.end_stat('Parse attr')
+        self._logger.print_stat('Parse attr')
+        self._logger.start('Create attrs')
         ReportAttr.objects.bulk_create(new_attrs)
+        self._logger.end('Create attrs')
+        self._logger.start('Update attrs cache')
         decisions_ids = list(self._uploaded_decisions.values())
         update_cache_atomic(ReportSafeCache.objects.filter(report__decision_id__in=decisions_ids), attrs_cache)
         update_cache_atomic(ReportUnsafeCache.objects.filter(report__decision_id__in=decisions_ids), attrs_cache)
         update_cache_atomic(ReportUnknownCache.objects.filter(report__decision_id__in=decisions_ids), attrs_cache)
+        self._logger.end('Update attrs cache')
 
     def __get_attr_file_id(self, rel_path, decision_id):
         if rel_path is None:
             return None
         if rel_path not in self._attr_files:
+            self._logger.start_stat('Create attr file')
             instance = AttrFile(decision_id=decision_id)
             with open(self.__full_path(rel_path), mode='rb') as fp:
                 instance.file.save(os.path.basename(rel_path), File(fp), save=True)
             self._attr_files[rel_path] = instance.id
+            self._logger.end_stat('Create attr file')
         return self._attr_files[rel_path]
 
     def __upload_coverage(self):
@@ -402,6 +463,7 @@ class UploadReports:
         if not coverage_data:
             return
         for coverage in coverage_data:
+            self._logger.start_stat('Upload coverage')
             decision_id = self.__get_decision_id(coverage['decision'])
             instance = CoverageArchive(
                 report_id=self.saved_reports[(decision_id, coverage['report'])],
@@ -410,10 +472,15 @@ class UploadReports:
             with open(self.__full_path(coverage['archive']), mode='rb') as fp:
                 instance.add_coverage(fp, save=False)
             instance.save()
+            self._logger.end_stat('Upload coverage')
+            self._logger.start_stat('Fill coverage statistics')
             res = FillCoverageStatistics(instance)
             instance.total = res.total_coverage
             instance.has_extra = res.has_extra
             instance.save()
+            self._logger.end_stat('Fill coverage statistics')
+        self._logger.print_stat('Upload coverage')
+        self._logger.print_stat('Fill coverage statistics')
 
     def __full_path(self, rel_path):
         full_path = os.path.join(self._jobdir, rel_path)
@@ -433,3 +500,53 @@ class UploadReports:
                 _('Required file was not found in job archive: %(filename)s') % {'filename': rel_path}
             )
         return None
+
+
+class UploadLogger:
+    log_file_name = 'upload.log'
+
+    def __init__(self):
+        self._log_file = os.path.join(settings.LOGS_DIR, self.log_file_name)
+        self._status = {}
+        self._statistics = {}
+
+    def start(self, name):
+        self._status[name] = time.time()
+
+    def end(self, name):
+        if name not in self._status:
+            return
+        self.log("{}: {}".format(name, time.time() - self._status[name]))
+        del self._status[name]
+
+    def log(self, message):
+        with open(self._log_file, mode="a", encoding="utf-8") as fp:
+            fp.write("{}\n".format(message))
+
+    def start_stat(self, name):
+        self._statistics.setdefault(name, [])
+        self._statistics[name].append(time.time())
+
+    def end_stat(self, name):
+        self._statistics[name][-1] = time.time() - self._statistics[name][-1]
+
+    def __print_stat_row(self, name):
+        total_time = sum(self._statistics[name])
+        count = len(self._statistics[name])
+        self.log("{}: min - {}, max - {}, avg - {}, total = {}, count - {}".format(
+            name, min(self._statistics[name]),
+            max(self._statistics[name]),
+            total_time / count,
+            total_time, count
+        ))
+
+    def print_stat(self, name):
+        if name not in self._statistics:
+            return
+        self.__print_stat_row(name)
+        del self._statistics[name]
+
+    def print_all_stat(self):
+        for name in self._statistics:
+            self.__print_stat_row(name)
+        self._statistics = {}

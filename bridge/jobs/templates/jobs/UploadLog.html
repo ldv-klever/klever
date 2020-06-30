@@ -1,0 +1,13 @@
+{% extends 'bridge/base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans 'Upload Log' %}{% endblock %}
+{% block body_block %}
+    <div class="ui violet segment">
+        {% if log_content %}
+            <div class="filecontent" style="max-height: 80vh;overflow: auto;">{{ log_content }}</div>
+        {% else %}
+            <h5 class="ui red header">{% trans 'The log does not exist yet' %}</h5>
+        {% endif %}
+    </div>
+{% endblock %}
