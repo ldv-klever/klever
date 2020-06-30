@@ -17,9 +17,11 @@
 
 import json
 import mimetypes
+import os
 
 from difflib import unified_diff
 
+from django.conf import settings
 from django.db import transaction
 from django.http.response import HttpResponse, StreamingHttpResponse
 from django.urls import reverse
@@ -373,3 +375,12 @@ class GetJobCoverageTableView(LoggedCallMixin, TemplateAPIRetrieveView):
             instance, self.request.query_params['coverage_id']
         ).statistics
         return context
+
+
+class ClearUploadLogAPIView(APIView):
+    def delete(self, request):
+        file_path = os.path.join(settings.LOGS_DIR, settings.UPLOAD_LOG_FILE)
+        if os.path.isfile(file_path):
+            with open(file_path, mode='w', encoding='utf-8') as fp:
+                fp.write('')
+        return Response({})

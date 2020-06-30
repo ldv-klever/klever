@@ -88,4 +88,5 @@ urlpatterns = [
     path('api/coverage/<int:pk>/', api.GetJobCoverageTableView.as_view(), name='api-get-coverage'),
 
     path('upload-log/', views.UploadLogView.as_view(), name='job-upload-log'),
+    path('api/clear-upload-log/', api.ClearUploadLogAPIView.as_view(), name='api-clear-upload-log'),
 ]

@@ -74,6 +74,7 @@ class JobArchiveUploader:
 
     def upload(self):
         self._logger.log('=' * 20)
+        self._logger.start('Total')
         # Extract job archive
         self.__change_upload_status(JOB_UPLOAD_STATUS[1][0])
         self._logger.start('Extract archive')
@@ -110,6 +111,7 @@ class JobArchiveUploader:
             self._logger.start('Cache recalculation')
             Recalculation('all', res.decisions)
             self._logger.end('Cache recalculation')
+        self._logger.end('Total')
         self._logger.log('=' * 20)
 
     def __change_upload_status(self, new_status):
@@ -503,10 +505,8 @@ class UploadReports:
 
 
 class UploadLogger:
-    log_file_name = 'upload.log'
-
     def __init__(self):
-        self._log_file = os.path.join(settings.LOGS_DIR, self.log_file_name)
+        self._log_file = os.path.join(settings.LOGS_DIR, settings.UPLOAD_LOG_FILE)
         self._status = {}
         self._statistics = {}
 
@@ -516,7 +516,7 @@ class UploadLogger:
     def end(self, name):
         if name not in self._status:
             return
-        self.log("{}: {}".format(name, time.time() - self._status[name]))
+        self.log("{}: {:.5f}".format(name, time.time() - self._status[name]))
         del self._status[name]
 
     def log(self, message):
@@ -533,7 +533,7 @@ class UploadLogger:
     def __print_stat_row(self, name):
         total_time = sum(self._statistics[name])
         count = len(self._statistics[name])
-        self.log("{}: min - {}, max - {}, avg - {}, total = {}, count - {}".format(
+        self.log("{}: min - {:.5f}, max - {:.5f}, avg - {:.5f}, total - {:.5f}, count - {}".format(
             name, min(self._statistics[name]),
             max(self._statistics[name]),
             total_time / count,
