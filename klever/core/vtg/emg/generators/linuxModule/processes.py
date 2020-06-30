@@ -535,11 +535,18 @@ def __add_process(logger, conf, interfaces, process, chosen, category=None, mode
         for label in label_map["matched labels"]:
             for interface in [interfaces.get_or_restore_intf(name) for name
                               in label_map["matched labels"][label]]:
+                if new.labels[label].match_implemented and not interface.implementations:
+                    logger.debug(f"Do not match {str(label)} with {str(interface)} without implementations")
+                    continue
                 new.labels[label].set_interface(interface)
     else:
         for label, interface in ((l, i) for l in new.labels.values() for i in l.interfaces if not l.get_declaration(i)):
             try:
-                label.set_interface(interfaces.get_or_restore_intf(interface))
+                intf = interfaces.get_or_restore_intf(interface)
+                if label.match_implemented and not intf.implementations:
+                    logger.debug(f"Do not match {str(label)} with {str(intf)} without implementations")
+                    continue
+                label.set_interface(intf)
             except KeyError:
                 logger.warning("Process {!r} cannot be added, since it contains unknown interfaces for this "
                                "program fragment".format(str(new)))

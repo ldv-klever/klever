@@ -43,6 +43,7 @@ class ExtendedProcessDecoder(CollectionDecoder):
     }
     LABEL_CONSTRUCTOR = ExtendedLabel
     LABEL_ATTRIBUTES = {
+        'match only implemented interfaces': 'match_implemented',
         'value': None,
         'declaration': None,
         'container': None,
