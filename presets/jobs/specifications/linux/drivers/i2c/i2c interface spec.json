@@ -6,6 +6,9 @@
           "probe": {
             "declaration": "int (*probe)(%i2c.client%, %i2c.i2c_device_id%);"
           },
+          "probe_new": {
+            "declaration": "int (*probe_new)(%i2c.client%);"
+          },
           "remove": {
             "declaration": "int (*remove)(%i2c.client%)"
           }
@@ -15,6 +18,7 @@
             "declaration": "struct i2c_driver driver",
             "fields": {
               "probe": "%i2c.probe%",
+              "probe_new": "%i2c.probe_new%",
               "remove": "%i2c.remove%"
             },
             "header": "linux/i2c.h"
