@@ -41,7 +41,7 @@
             "process": "[probe].(<probe_success>.([callback] | <skip>).[remove] | <failed_probe>).{manage_i2c} | <free_device>.(deregister)"
           },
           "probe": {
-            "callback": "%i2c_driver.probe%",
+            "callback": "%probe%",
             "callback return value": "%probe_retval%",
             "comment": "Probe the new i2c client.",
             "parameters": [
@@ -102,6 +102,13 @@
             "resource": true,
             "interface": [
               "i2c.i2c_device_id"
+            ]
+          },
+          "probe": {
+            "match only implemented interfaces": true,
+            "interface":[
+              "i2c.probe",
+              "i2c.probe_new"
             ]
           }
         },
