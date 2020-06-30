@@ -391,7 +391,9 @@ class UploadReports:
         self._logger.print_stat('Validate safe')
 
         self._logger.start('Create safes')
-        ReportSafe.objects.bulk_create(new_safes)
+        with transaction.atomic():
+            for new_safe in new_safes:
+                new_safe.save()
         self._logger.end('Create safes')
 
         self._logger.start('Collect new safes')
