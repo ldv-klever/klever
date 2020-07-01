@@ -50,6 +50,8 @@ from tools.utils import Recalculation
 
 
 class JobArchiveUploader:
+    reports_chunk_size = 200
+
     def __init__(self, upload_obj):
         self._upload_obj = upload_obj
         self._logger = UploadLogger(upload_obj)
@@ -236,7 +238,7 @@ class JobArchiveUploader:
                 chunk_size = 0
                 if (decision_id, report_data['parent']) not in self.saved_reports:
                     raise BridgeException(_('Reports data was corrupted'))
-            elif chunk_size > 1000:
+            elif chunk_size > self.reports_chunk_size:
                 self.__upload_reports_chunk()
                 self._logger.update(chunk_size)
                 chunk_size = 0
@@ -286,20 +288,21 @@ class JobArchiveUploader:
         return save_kwargs
 
     def __upload_reports_chunk(self):
-        for report_save_data in self._reports_chunk:
-            log_file = report_save_data.pop('log', None)
-            verifier_files_arch = report_save_data.pop('verifier_files', None)
+        with transaction.atomic():
+            with ReportComponent.objects.delay_mptt_updates():
+                for report_save_data in self._reports_chunk:
+                    log_file = report_save_data.pop('log', None)
+                    verifier_files_arch = report_save_data.pop('verifier_files', None)
 
-            report = ReportComponent(**report_save_data)
-            if log_file:
-                with open(log_file, mode='rb') as fp:
-                    report.add_log(fp, save=False)
-            if verifier_files_arch:
-                with open(verifier_files_arch, mode='rb') as fp:
-                    report.add_verifier_files(fp, save=False)
-            report.save()
-
-            self.saved_reports[(report.decision_id, report.identifier)] = report.id
+                    report = ReportComponent(**report_save_data)
+                    if log_file:
+                        with open(log_file, mode='rb') as fp:
+                            report.add_log(fp, save=False)
+                    if verifier_files_arch:
+                        with open(verifier_files_arch, mode='rb') as fp:
+                            report.add_verifier_files(fp, save=False)
+                    report.save()
+                    self.saved_reports[(report.decision_id, report.identifier)] = report.id
         self._reports_chunk = []
 
     def __upload_safes(self):
