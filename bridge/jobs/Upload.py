@@ -75,10 +75,10 @@ class JobArchiveUploader:
             if self.job:
                 self.job.delete()
             self._upload_obj.error = str(exc_val)
-            self._upload_obj.status = JOB_UPLOAD_STATUS[7][0]
+            self._upload_obj.status = JOB_UPLOAD_STATUS[14][0]
         else:
             self._upload_obj.job = self.job
-            self._upload_obj.status = JOB_UPLOAD_STATUS[6][0]
+            self._upload_obj.status = JOB_UPLOAD_STATUS[13][0]
         self._upload_obj.finish_date = now()
         self._upload_obj.step_progress = 0
         self._upload_obj.save()
