@@ -25,6 +25,7 @@ urlpatterns = [
     path('processing-list/', views.ProcessingListView.as_view(), name='processing-list'),
     path('db-statistics/', views.DBLogsStatistics.as_view(), name='db-statistics'),
     path('reports-logging/', views.ReportsLogggingView.as_view(), name='reports-logging'),
+    path('logs/', views.FileLogView.as_view(), name='logs'),
 
     path('api/clear-system/', views.ClearSystemAPIView.as_view(), name='api-clear-system'),
     path('api/clear-comparison/<int:pk>/', views.ClearComparisonAPIView.as_view(), name='api-clear-comparison'),
@@ -37,4 +38,7 @@ urlpatterns = [
     path('api/population/', views.PopulationAPIView.as_view(), name='api-populate'),
     path('api/db-statistics/', api.CalculateDBLogStatisticsView.as_view(), name='api-db-statistics'),
     path('api/parse-reports-logs/', api.ParseReportsLogsAPIView.as_view(), name='api-parse-reports-logs'),
+
+    path('api/log-content/', api.LogContentAPIView.as_view(), name='api-log-content'),
+    path('api/clear-log/', api.ClearLogAPIView.as_view(), name='api-clear-log'),
 ]

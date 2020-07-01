@@ -85,6 +85,7 @@ class JobArchiveUploader:
 
     def upload(self):
         # Extract job archive
+        self._logger.log('=' * 20)
         self._logger.start(JOB_UPLOAD_STATUS[1][0])
         with self._upload_obj.archive.file as fp:
             job_dir = extract_archive(fp)
@@ -115,11 +116,11 @@ class JobArchiveUploader:
             self.__upload_reports()
             self.__change_decision_statuses()
 
-        self._logger.log("Decision: {}".format(self._decisions))
-        self._logger.log("Decision in DB: {}".format(
-            list(Decision.objects.filter(id__in=list(self._decisions.values())).values_list('id', flat=True))
-        ))
-        if self._decisions:
+            self._logger.log("Decision: {}".format(self._decisions))
+            self._logger.log("Decision in DB: {}".format(
+                list(Decision.objects.filter(id__in=list(self._decisions.values())).values_list('id', 'status'))
+            ))
+
             # Recalculate cache if job has decisions
             self._logger.start(JOB_UPLOAD_STATUS[12][0])
             Recalculation('all', list(self._decisions.values()))
@@ -572,4 +573,3 @@ class UploadLogger:
 
     def finish_all(self):
         self.log("Total: {:.5f}".format(time.time() - self._total_start))
-        self.log('=' * 20)

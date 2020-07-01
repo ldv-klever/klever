@@ -373,16 +373,3 @@ class DownloadJobsListView(LoginRequiredMixin, LoggedCallMixin, StreamingRespons
             json.loads(unquote(self.request.GET['decisions']))
         )
         return JobsArchivesGen(jobs_to_download)
-
-
-class UploadLogView(LoginRequiredMixin, TemplateView):
-    template_name = 'jobs/UploadLog.html'
-
-    def get_context_data(self, **kwargs):
-        context = super(UploadLogView, self).get_context_data(**kwargs)
-
-        file_path = os.path.join(settings.LOGS_DIR, settings.UPLOAD_LOG_FILE)
-        if os.path.isfile(file_path):
-            with open(file_path, mode='r', encoding='utf-8') as fp:
-                context['log_content'] = fp.read()
-        return context

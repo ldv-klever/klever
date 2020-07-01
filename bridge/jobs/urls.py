@@ -86,7 +86,4 @@ urlpatterns = [
     path('api/can-download/', api.CheckDownloadAccessView.as_view(), name='api-can-download'),
     path('api/collapse/<int:pk>/', api.CollapseReportsView.as_view(), name='api-collapse-reports'),
     path('api/coverage/<int:pk>/', api.GetJobCoverageTableView.as_view(), name='api-get-coverage'),
-
-    path('upload-log/', views.UploadLogView.as_view(), name='job-upload-log'),
-    path('api/clear-upload-log/', api.ClearUploadLogAPIView.as_view(), name='api-clear-upload-log'),
 ]
