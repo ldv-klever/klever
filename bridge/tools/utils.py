@@ -30,7 +30,7 @@ from django.utils.translation import ugettext_lazy as _
 from bridge.vars import DECISION_WEIGHT, DECISION_STATUS
 from bridge.utils import BridgeException, logger
 
-from jobs.models import JOBFILE_DIR, UPLOAD_DIR, JobFile, Decision, UploadedJobArchive
+from jobs.models import JOBFILE_DIR, JobFile, Decision
 from service.models import SERVICE_DIR, Solution, Task
 from marks.models import (
     CONVERTED_DIR, ConvertedTrace, MarkSafe, MarkSafeReport, MarkSafeAttr, MarkSafeTag,
@@ -82,7 +82,6 @@ class ClearFiles:
         self.__clear_files_with_ref(JobFile, JOBFILE_DIR)
         self.__clear_files_with_ref(OriginalSources, ORIGINAL_SOURCES_DIR)
         self.__clear_files_with_ref(ConvertedTrace, CONVERTED_DIR)
-        self.__clear_files_with_ref(UploadedJobArchive, UPLOAD_DIR)
         self.__clear_service_files()
 
     def __clear_files_with_ref(self, model, files_dir):
