@@ -390,15 +390,12 @@ class UploadReports:
             )
             self._logger.end_stat('Create safe')
 
-            self._logger.start_stat('Preserve safe data')
             self.saved_reports[(report.decision_id, report.identifier)] = report.id
             self._leaves_ids.add(report.id)
             safes_cache.append(ReportSafeCache(decision_id=decision_id, report_id=report.id))
-            self._logger.end_stat('Preserve safe data')
 
         self._logger.print_stat('Validate safe')
         self._logger.print_stat('Create safe')
-        self._logger.print_stat('Preserve safe data')
 
         self._logger.start('Create safes cache')
         ReportSafeCache.objects.bulk_create(safes_cache)
@@ -428,15 +425,12 @@ class UploadReports:
                 report.add_trace(fp, save=True)
             self._logger.end_stat('Create unsafe')
 
-            self._logger.start_stat('Preserve unsafe data')
             self.saved_reports[(decision_id, report.identifier)] = report.id
             self._leaves_ids.add(report.id)
             unsafes_cache.append(ReportUnsafeCache(decision_id=decision_id, report_id=report.id))
-            self._logger.end_stat('Preserve unsafe data')
 
         self._logger.print_stat('Validate unsafe')
         self._logger.print_stat('Create unsafe')
-        self._logger.print_stat('Preserve unsafe data')
 
         self._logger.start('Create unsafes cache')
         ReportUnsafeCache.objects.bulk_create(unsafes_cache)
@@ -466,15 +460,12 @@ class UploadReports:
                 report.add_problem_desc(fp, save=True)
             self._logger.end_stat('Create unknown')
 
-            self._logger.start_stat('Preserve unknown data')
             self.saved_reports[(decision_id, report.identifier)] = report.id
             self._leaves_ids.add(report.id)
             unknowns_cache.append(ReportUnknownCache(decision_id=decision_id, report_id=report.id))
-            self._logger.end_stat('Preserve unknown data')
 
         self._logger.print_stat('Validate unknown')
         self._logger.print_stat('Create unknown')
-        self._logger.print_stat('Preserve unknown data')
 
         self._logger.start('Unknowns cache')
         ReportUnknownCache.objects.bulk_create(unknowns_cache)
@@ -515,16 +506,17 @@ class UploadReports:
         self._logger.print_stat('Parse attr')
 
         # Upload attributes' files
-        for decision_id, file_path in new_attr_files:
-            self._logger.start_stat('Create attr file')
-            attr_file_obj = AttrFile(decision_id=decision_id)
-            with open(self.__full_path(file_path), mode='rb') as fp:
-                attr_file_obj.file.save(os.path.basename(file_path), File(fp), save=True)
+        with transaction.atomic():
+            for decision_id, file_path in new_attr_files:
+                self._logger.start_stat('Create attr file')
+                attr_file_obj = AttrFile(decision_id=decision_id)
+                with open(self.__full_path(file_path), mode='rb') as fp:
+                    attr_file_obj.file.save(os.path.basename(file_path), File(fp), save=True)
 
-            for i in new_attr_files[(decision_id, file_path)]:
-                # Add link to file for attributes that have it
-                new_attrs[i].data_id = attr_file_obj.id
-            self._logger.end_stat('Create attr file')
+                for i in new_attr_files[(decision_id, file_path)]:
+                    # Add link to file for attributes that have it
+                    new_attrs[i].data_id = attr_file_obj.id
+                self._logger.end_stat('Create attr file')
         self._logger.print_stat('Create attr file')
 
         self._logger.start('Create attrs')
