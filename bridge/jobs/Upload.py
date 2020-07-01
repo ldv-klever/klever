@@ -302,7 +302,6 @@ class UploadReports:
         self._logger.end_stat('Validate report')
         return save_kwargs
 
-    @transaction.atomic
     def __upload_reports_chunk(self):
         if not self._chunk:
             return
@@ -320,6 +319,7 @@ class UploadReports:
                 with open(verifier_files_arch, mode='rb') as fp:
                     report.add_verifier_files(fp, save=False)
             report.save()
+
             self.saved_reports[(report.decision_id, report.identifier)] = report.id
             self._logger.end_stat('Create component report')
         self._logger.end_stat('Upload reports chunk')
@@ -373,40 +373,32 @@ class UploadReports:
         safes_data = self.__read_json_file('{}.json'.format(ReportSafe.__name__))
         if not safes_data:
             return
-        new_safes_kwargs = []
+
+        safes_cache = []
         for report_data in safes_data:
             self._logger.start_stat('Validate safe')
             decision_id = self.__get_decision_id(report_data.get('decision'))
-
-            save_kwargs = {
-                'decision_id': decision_id,
-                'identifier': self.__validate_report_identifier(decision_id, report_data.pop('identifier')),
-                'parent_id': self.saved_reports[(decision_id, report_data.pop('parent'))]
-            }
+            parent_id = self.saved_reports[(decision_id, report_data.pop('parent'))]
+            identifier = self.__validate_report_identifier(decision_id, report_data.pop('identifier'))
             serializer = UploadReportSafeSerializer(data=report_data)
             serializer.is_valid(raise_exception=True)
-            new_safes_kwargs.append(dict(**save_kwargs, **serializer.validated_data))
             self._logger.end_stat('Validate safe')
-        self._logger.print_stat('Validate safe')
 
-        with open(os.path.join(settings.LOGS_DIR, 'safes.json'), mode='w', encoding='utf-8') as fp:
-            json.dump(new_safes_kwargs, fp)
-
-        for safe_kwargs in new_safes_kwargs:
             self._logger.start_stat('Create safe')
-            ReportSafe.objects.create(**safe_kwargs)
+            report = ReportSafe.objects.create(
+                decision_id=decision_id, identifier=identifier, parent_id=parent_id, **serializer.validated_data
+            )
             self._logger.end_stat('Create safe')
-        self._logger.print_stat('Create safe')
 
-        self._logger.start('Collect new safes')
-        safes_cache = []
-        new_safes_qs = ReportSafe.objects.filter(decision_id__in=list(self._identifiers_in_use))\
-            .values_list('id', 'decision_id', 'identifier')
-        for safe_id, decision_id, safe_identifier in new_safes_qs:
-            self.saved_reports[(decision_id, safe_identifier)] = safe_id
-            self._leaves_ids.add(safe_id)
-            safes_cache.append(ReportSafeCache(decision_id=decision_id, report_id=safe_id))
-        self._logger.end('Collect new safes')
+            self._logger.start_stat('Preserve safe data')
+            self.saved_reports[(report.decision_id, report.identifier)] = report.id
+            self._leaves_ids.add(report.id)
+            safes_cache.append(ReportSafeCache(decision_id=decision_id, report_id=report.id))
+            self._logger.end_stat('Preserve safe data')
+
+        self._logger.print_stat('Validate safe')
+        self._logger.print_stat('Create safe')
+        self._logger.print_stat('Preserve safe data')
 
         self._logger.start('Create safes cache')
         ReportSafeCache.objects.bulk_create(safes_cache)
@@ -417,90 +409,72 @@ class UploadReports:
         if not unsafes_data:
             return
 
-        unsafes_save_kwargs = []
+        unsafes_cache = []
         for report_data in unsafes_data:
             self._logger.start_stat('Validate unsafe')
             decision_id = self.__get_decision_id(report_data.get('decision'))
             parent_id = self.saved_reports[(decision_id, report_data.pop('parent'))]
             identifier = self.__validate_report_identifier(decision_id, report_data.pop('identifier'))
-            save_kwargs = {
-                'identifier': identifier, 'decision_id': decision_id, 'parent_id': parent_id,
-                'error_trace': self.__full_path(report_data['error_trace'])
-            }
-
+            error_trace = self.__full_path(report_data['error_trace'])
             serializer = UploadReportUnsafeSerializer(data=report_data)
             serializer.is_valid(raise_exception=True)
-            save_kwargs.update(serializer.validated_data)
-
-            unsafes_save_kwargs.append(save_kwargs)
             self._logger.end_stat('Validate unsafe')
-        self._logger.print_stat('Validate unsafe')
 
-        for unsafe_data in unsafes_save_kwargs:
             self._logger.start_stat('Create unsafe')
-            error_trace = unsafe_data.pop('error_trace')
-            report = ReportUnsafe(**unsafe_data)
+            report = ReportUnsafe(
+                identifier=identifier, decision_id=decision_id, parent_id=parent_id, **serializer.validated_data
+            )
             with open(error_trace, mode='rb') as fp:
                 report.add_trace(fp, save=True)
             self._logger.end_stat('Create unsafe')
+
+            self._logger.start_stat('Preserve unsafe data')
+            self.saved_reports[(decision_id, report.identifier)] = report.id
+            self._leaves_ids.add(report.id)
+            unsafes_cache.append(ReportUnsafeCache(decision_id=decision_id, report_id=report.id))
+            self._logger.end_stat('Preserve unsafe data')
+
+        self._logger.print_stat('Validate unsafe')
         self._logger.print_stat('Create unsafe')
+        self._logger.print_stat('Preserve unsafe data')
 
-        self._logger.start('Collect new unsafes')
-        unsafes_cache = []
-        new_unsafes_qs = ReportUnsafe.objects.filter(decision_id__in=list(self._identifiers_in_use)) \
-            .values_list('id', 'decision_id', 'identifier')
-        for unsafe_id, decision_id, unsafe_identifier in new_unsafes_qs:
-            self.saved_reports[(decision_id, unsafe_identifier)] = unsafe_id
-            self._leaves_ids.add(unsafe_id)
-            unsafes_cache.append(ReportUnsafeCache(decision_id=decision_id, report_id=unsafe_id))
-        self._logger.end('Collect new unsafes')
-
-        self._logger.start('Unsafes cache')
+        self._logger.start('Create unsafes cache')
         ReportUnsafeCache.objects.bulk_create(unsafes_cache)
-        self._logger.end('Unsafes cache')
+        self._logger.end('Create unsafes cache')
 
     def __upload_unknowns(self):
         unknowns_data = self.__read_json_file('{}.json'.format(ReportUnknown.__name__))
         if not unknowns_data:
             return
 
-        unknowns_save_kwargs = []
+        unknowns_cache = []
         for report_data in unknowns_data:
             self._logger.start_stat('Validate unknown')
             decision_id = self.__get_decision_id(report_data.get('decision'))
             parent_id = self.saved_reports[(decision_id, report_data.pop('parent'))]
             identifier = self.__validate_report_identifier(decision_id, report_data.pop('identifier'))
-            save_kwargs = {
-                'decision_id': decision_id, 'parent_id': parent_id, 'identifier': identifier,
-                'problem_description': self.__full_path(report_data['problem_description'])
-            }
-
+            problem_description = self.__full_path(report_data['problem_description'])
             serializer = UploadReportUnknownSerializer(data=report_data)
             serializer.is_valid(raise_exception=True)
-            save_kwargs.update(serializer.validated_data)
-
-            unknowns_save_kwargs.append(save_kwargs)
             self._logger.end_stat('Validate unknown')
-        self._logger.print_stat('Validate unknown')
 
-        for unknown_data in unknowns_save_kwargs:
             self._logger.start_stat('Create unknown')
-            problem_description = unknown_data.pop('problem_description')
-            report = ReportUnknown(**unknown_data)
+            report = ReportUnknown(
+                decision_id=decision_id, parent_id=parent_id, identifier=identifier, **serializer.validated_data
+            )
             with open(problem_description, mode='rb') as fp:
                 report.add_problem_desc(fp, save=True)
             self._logger.end_stat('Create unknown')
-        self._logger.print_stat('Create unknown')
 
-        self._logger.start('Collect new unknowns')
-        unknowns_cache = []
-        new_unknowns_qs = ReportUnknown.objects.filter(decision_id__in=list(self._identifiers_in_use)) \
-            .values_list('id', 'decision_id', 'identifier')
-        for unknown_id, decision_id, unknown_identifier in new_unknowns_qs:
-            self.saved_reports[(decision_id, unknown_identifier)] = unknown_id
-            self._leaves_ids.add(unknown_id)
-            unknowns_cache.append(ReportUnknownCache(decision_id=decision_id, report_id=unknown_id))
-        self._logger.end('Collect new unknowns')
+            self._logger.start_stat('Preserve unknown data')
+            self.saved_reports[(decision_id, report.identifier)] = report.id
+            self._leaves_ids.add(report.id)
+            unknowns_cache.append(ReportUnknownCache(decision_id=decision_id, report_id=report.id))
+            self._logger.end_stat('Preserve unknown data')
+
+        self._logger.print_stat('Validate unknown')
+        self._logger.print_stat('Create unknown')
+        self._logger.print_stat('Preserve unknown data')
 
         self._logger.start('Unknowns cache')
         ReportUnknownCache.objects.bulk_create(unknowns_cache)
@@ -541,17 +515,16 @@ class UploadReports:
         self._logger.print_stat('Parse attr')
 
         # Upload attributes' files
-        with transaction.atomic():
-            for decision_id, file_path in new_attr_files:
-                self._logger.start_stat('Create attr file')
-                attr_file_obj = AttrFile(decision_id=decision_id)
-                with open(self.__full_path(file_path), mode='rb') as fp:
-                    attr_file_obj.file.save(os.path.basename(file_path), File(fp), save=True)
+        for decision_id, file_path in new_attr_files:
+            self._logger.start_stat('Create attr file')
+            attr_file_obj = AttrFile(decision_id=decision_id)
+            with open(self.__full_path(file_path), mode='rb') as fp:
+                attr_file_obj.file.save(os.path.basename(file_path), File(fp), save=True)
 
-                for i in new_attr_files[(decision_id, file_path)]:
-                    # Add link to file for attributes that have it
-                    new_attrs[i].data_id = attr_file_obj.id
-                self._logger.end_stat('Create attr file')
+            for i in new_attr_files[(decision_id, file_path)]:
+                # Add link to file for attributes that have it
+                new_attrs[i].data_id = attr_file_obj.id
+            self._logger.end_stat('Create attr file')
         self._logger.print_stat('Create attr file')
 
         self._logger.start('Create attrs')
