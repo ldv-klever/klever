@@ -115,6 +115,10 @@ class JobArchiveUploader:
             self.__upload_reports()
             self.__change_decision_statuses()
 
+        self._logger.log("Decision: {}".format(self._decisions))
+        self._logger.log("Decision in DB: {}".format(
+            list(Decision.objects.filter(id__in=list(self._decisions.values())).values_list('id', flat=True))
+        ))
         if self._decisions:
             # Recalculate cache if job has decisions
             self._logger.start(JOB_UPLOAD_STATUS[12][0])
