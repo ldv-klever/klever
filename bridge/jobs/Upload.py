@@ -328,6 +328,7 @@ class JobArchiveUploader:
             with Report.objects.delay_mptt_updates():
                 for report in new_reports:
                     report.save()
+                    self._logger.update()
 
         reports_qs = ReportSafe.objects.filter(decision_id__in=list(self._decisions.values()))\
             .only('id', 'identifier', 'decision_id')
@@ -335,7 +336,6 @@ class JobArchiveUploader:
             self.saved_reports[(report.decision_id, report.identifier)] = report.id
             self._leaves_ids.add(report.id)
             safes_cache.append(ReportSafeCache(decision_id=report.decision_id, report_id=report.id))
-            self._logger.update()
 
         ReportSafeCache.objects.bulk_create(safes_cache)
         self._logger.end()
@@ -347,6 +347,7 @@ class JobArchiveUploader:
         self._logger.start(JOB_UPLOAD_STATUS[8][0], len(unsafes_data) + 1)
 
         unsafes_cache = []
+        new_reports = []
         for report_data in unsafes_data:
             decision_id = self.__get_decision_id(report_data.get('decision'))
             parent_id = self.saved_reports[(decision_id, report_data.pop('parent'))]
@@ -359,12 +360,21 @@ class JobArchiveUploader:
                 identifier=identifier, decision_id=decision_id, parent_id=parent_id, **serializer.validated_data
             )
             with open(error_trace, mode='rb') as fp:
-                report.add_trace(fp, save=True)
+                report.add_trace(fp, save=False)
+            new_reports.append(report)
 
-            self.saved_reports[(decision_id, report.identifier)] = report.id
+        with transaction.atomic():
+            with Report.objects.delay_mptt_updates():
+                for report in new_reports:
+                    report.save()
+                    self._logger.update()
+
+        reports_qs = ReportUnsafe.objects.filter(decision_id__in=list(self._decisions.values()))\
+            .only('id', 'identifier', 'decision_id')
+        for report in reports_qs:
+            self.saved_reports[(report.decision_id, report.identifier)] = report.id
             self._leaves_ids.add(report.id)
-            unsafes_cache.append(ReportUnsafeCache(decision_id=decision_id, report_id=report.id))
-            self._logger.update()
+            unsafes_cache.append(ReportUnsafeCache(decision_id=report.decision_id, report_id=report.id))
 
         ReportUnsafeCache.objects.bulk_create(unsafes_cache)
         self._logger.end()
@@ -376,6 +386,7 @@ class JobArchiveUploader:
         self._logger.start(JOB_UPLOAD_STATUS[9][0], len(unknowns_data) + 1)
 
         unknowns_cache = []
+        new_reports = []
         for report_data in unknowns_data:
             decision_id = self.__get_decision_id(report_data.get('decision'))
             parent_id = self.saved_reports[(decision_id, report_data.pop('parent'))]
@@ -388,12 +399,21 @@ class JobArchiveUploader:
                 decision_id=decision_id, parent_id=parent_id, identifier=identifier, **serializer.validated_data
             )
             with open(problem_description, mode='rb') as fp:
-                report.add_problem_desc(fp, save=True)
+                report.add_problem_desc(fp, save=False)
+            new_reports.append(report)
 
-            self.saved_reports[(decision_id, report.identifier)] = report.id
+        with transaction.atomic():
+            with Report.objects.delay_mptt_updates():
+                for report in new_reports:
+                    report.save()
+                    self._logger.update()
+
+        reports_qs = ReportUnsafe.objects.filter(decision_id__in=list(self._decisions.values()))\
+            .only('id', 'identifier', 'decision_id')
+        for report in reports_qs:
+            self.saved_reports[(report.decision_id, report.identifier)] = report.id
             self._leaves_ids.add(report.id)
-            unknowns_cache.append(ReportUnknownCache(decision_id=decision_id, report_id=report.id))
-            self._logger.update()
+            unknowns_cache.append(ReportUnknownCache(decision_id=report.decision_id, report_id=report.id))
 
         ReportUnknownCache.objects.bulk_create(unknowns_cache)
         self._logger.end()
