@@ -50,7 +50,7 @@ from tools.utils import Recalculation
 
 
 class JobArchiveUploader:
-    reports_chunk_size = 200
+    reports_chunk_size = 500
 
     def __init__(self, upload_obj):
         self._upload_obj = upload_obj
