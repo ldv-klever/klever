@@ -310,7 +310,7 @@ class JobArchiveUploader:
         if not safes_data:
             return
 
-        self._logger.start(JOB_UPLOAD_STATUS[7][0], len(safes_data) + 1)
+        self._logger.start(JOB_UPLOAD_STATUS[7][0])
 
         safes_cache = []
         new_reports = []
@@ -328,7 +328,6 @@ class JobArchiveUploader:
             with Report.objects.delay_mptt_updates():
                 for report in new_reports:
                     report.save()
-                    self._logger.update()
 
         reports_qs = ReportSafe.objects.filter(decision_id__in=list(self._decisions.values()))\
             .only('id', 'identifier', 'decision_id')
@@ -344,7 +343,7 @@ class JobArchiveUploader:
         unsafes_data = self.__read_json_file('{}.json'.format(ReportUnsafe.__name__))
         if not unsafes_data:
             return
-        self._logger.start(JOB_UPLOAD_STATUS[8][0], len(unsafes_data) + 1)
+        self._logger.start(JOB_UPLOAD_STATUS[8][0])
 
         unsafes_cache = []
         new_reports = []
@@ -367,7 +366,6 @@ class JobArchiveUploader:
             with Report.objects.delay_mptt_updates():
                 for report in new_reports:
                     report.save()
-                    self._logger.update()
 
         reports_qs = ReportUnsafe.objects.filter(decision_id__in=list(self._decisions.values()))\
             .only('id', 'identifier', 'decision_id')
@@ -383,7 +381,7 @@ class JobArchiveUploader:
         unknowns_data = self.__read_json_file('{}.json'.format(ReportUnknown.__name__))
         if not unknowns_data:
             return
-        self._logger.start(JOB_UPLOAD_STATUS[9][0], len(unknowns_data) + 1)
+        self._logger.start(JOB_UPLOAD_STATUS[9][0])
 
         unknowns_cache = []
         new_reports = []
@@ -406,9 +404,8 @@ class JobArchiveUploader:
             with Report.objects.delay_mptt_updates():
                 for report in new_reports:
                     report.save()
-                    self._logger.update()
 
-        reports_qs = ReportUnsafe.objects.filter(decision_id__in=list(self._decisions.values()))\
+        reports_qs = ReportUnknown.objects.filter(decision_id__in=list(self._decisions.values()))\
             .only('id', 'identifier', 'decision_id')
         for report in reports_qs:
             self.saved_reports[(report.decision_id, report.identifier)] = report.id
