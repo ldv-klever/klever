@@ -185,7 +185,7 @@ class JobArchiveUploader:
             decision_obj = serializer.save(job=self.job, operator=self._upload_obj.author, status=DECISION_STATUS[0][0])
             self._decisions[decision['id']] = decision_obj.id
             self._identifiers_in_use[decision_obj.id] = set()
-            self._final_statuses[decision_obj.id] = decision_obj.status
+            self._final_statuses[decision_obj.id] = serializer.validated_data['status']
 
         if not self._decisions:
             # The job does not have decisions
