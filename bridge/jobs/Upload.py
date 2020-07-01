@@ -285,10 +285,7 @@ class JobArchiveUploader:
 
         return save_kwargs
 
-    @transaction.atomic
     def __upload_reports_chunk(self):
-        if not self._reports_chunk:
-            return
         for report_save_data in self._reports_chunk:
             log_file = report_save_data.pop('log', None)
             verifier_files_arch = report_save_data.pop('verifier_files', None)
