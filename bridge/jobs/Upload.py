@@ -313,20 +313,28 @@ class JobArchiveUploader:
         self._logger.start(JOB_UPLOAD_STATUS[7][0], len(safes_data) + 1)
 
         safes_cache = []
+        new_reports = []
         for report_data in safes_data:
             decision_id = self.__get_decision_id(report_data.get('decision'))
             parent_id = self.saved_reports[(decision_id, report_data.pop('parent'))]
             identifier = self.__validate_report_identifier(decision_id, report_data.pop('identifier'))
             serializer = UploadReportSafeSerializer(data=report_data)
             serializer.is_valid(raise_exception=True)
-
-            report = ReportSafe.objects.create(
+            new_reports.append(ReportSafe(
                 decision_id=decision_id, identifier=identifier, parent_id=parent_id, **serializer.validated_data
-            )
+            ))
 
+        with transaction.atomic():
+            with Report.objects.delay_mptt_updates():
+                for report in new_reports:
+                    report.save()
+
+        reports_qs = ReportSafe.objects.filter(decision_id__in=list(self._decisions.values()))\
+            .only('id', 'identifier', 'decision_id')
+        for report in reports_qs:
             self.saved_reports[(report.decision_id, report.identifier)] = report.id
             self._leaves_ids.add(report.id)
-            safes_cache.append(ReportSafeCache(decision_id=decision_id, report_id=report.id))
+            safes_cache.append(ReportSafeCache(decision_id=report.decision_id, report_id=report.id))
             self._logger.update()
 
         ReportSafeCache.objects.bulk_create(safes_cache)
