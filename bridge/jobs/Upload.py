@@ -373,7 +373,7 @@ class UploadReports:
         safes_data = self.__read_json_file('{}.json'.format(ReportSafe.__name__))
         if not safes_data:
             return
-        new_safes = []
+        new_safes_kwargs = []
         for report_data in safes_data:
             self._logger.start_stat('Validate safe')
             decision_id = self.__get_decision_id(report_data.get('decision'))
@@ -385,16 +385,18 @@ class UploadReports:
             }
             serializer = UploadReportSafeSerializer(data=report_data)
             serializer.is_valid(raise_exception=True)
-
-            new_safes.append(ReportSafe(**save_kwargs, **serializer.validated_data))
+            new_safes_kwargs.append(dict(**save_kwargs, **serializer.validated_data))
             self._logger.end_stat('Validate safe')
         self._logger.print_stat('Validate safe')
 
-        self._logger.start('Create safes')
-        with transaction.atomic():
-            for new_safe in new_safes:
-                new_safe.save()
-        self._logger.end('Create safes')
+        with open(os.path.join(settings.LOGS_DIR, 'safes.json'), mode='w', encoding='utf-8') as fp:
+            json.dump(new_safes_kwargs, fp)
+
+        for safe_kwargs in new_safes_kwargs:
+            self._logger.start_stat('Create safe')
+            ReportSafe.objects.create(**safe_kwargs)
+            self._logger.end_stat('Create safe')
+        self._logger.print_stat('Create safe')
 
         self._logger.start('Collect new safes')
         safes_cache = []
@@ -434,14 +436,13 @@ class UploadReports:
             self._logger.end_stat('Validate unsafe')
         self._logger.print_stat('Validate unsafe')
 
-        with transaction.atomic():
-            for unsafe_data in unsafes_save_kwargs:
-                self._logger.start_stat('Create unsafe')
-                error_trace = unsafe_data.pop('error_trace')
-                report = ReportUnsafe(**unsafe_data)
-                with open(error_trace, mode='rb') as fp:
-                    report.add_trace(fp, save=True)
-                self._logger.end_stat('Create unsafe')
+        for unsafe_data in unsafes_save_kwargs:
+            self._logger.start_stat('Create unsafe')
+            error_trace = unsafe_data.pop('error_trace')
+            report = ReportUnsafe(**unsafe_data)
+            with open(error_trace, mode='rb') as fp:
+                report.add_trace(fp, save=True)
+            self._logger.end_stat('Create unsafe')
         self._logger.print_stat('Create unsafe')
 
         self._logger.start('Collect new unsafes')
@@ -482,14 +483,13 @@ class UploadReports:
             self._logger.end_stat('Validate unknown')
         self._logger.print_stat('Validate unknown')
 
-        with transaction.atomic():
-            for unknown_data in unknowns_save_kwargs:
-                self._logger.start_stat('Create unknown')
-                problem_description = unknown_data.pop('problem_description')
-                report = ReportUnknown(**unknown_data)
-                with open(problem_description, mode='rb') as fp:
-                    report.add_problem_desc(fp, save=True)
-                self._logger.end_stat('Create unknown')
+        for unknown_data in unknowns_save_kwargs:
+            self._logger.start_stat('Create unknown')
+            problem_description = unknown_data.pop('problem_description')
+            report = ReportUnknown(**unknown_data)
+            with open(problem_description, mode='rb') as fp:
+                report.add_problem_desc(fp, save=True)
+            self._logger.end_stat('Create unknown')
         self._logger.print_stat('Create unknown')
 
         self._logger.start('Collect new unknowns')
