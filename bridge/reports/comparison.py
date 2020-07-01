@@ -221,7 +221,7 @@ class ComparisonData:
 
     @property
     def lightweight(self):
-        return self.info.decision1.job.weight == self.info.decision2.job.weight == DECISION_WEIGHT[1][0]
+        return self.info.decision1.weight == self.info.decision2.weight == DECISION_WEIGHT[1][0]
 
     def __get_verdicts(self, verdict):
         m = re.match(r'^(\d)_(\d)$', verdict)
