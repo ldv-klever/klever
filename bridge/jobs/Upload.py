@@ -33,7 +33,7 @@ from bridge.utils import BridgeException, extract_archive
 from jobs.models import JOBFILE_DIR, PresetJob, UploadedJobArchive
 from reports.models import (
     DecisionCache, ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent,
-    ReportAttr, CoverageArchive, AttrFile, OriginalSources, AdditionalSources
+    ReportAttr, CoverageArchive, AttrFile, OriginalSources, AdditionalSources, Report
 )
 from service.models import Decision
 from caches.models import ReportSafeCache, ReportUnsafeCache, ReportUnknownCache
@@ -289,7 +289,7 @@ class JobArchiveUploader:
 
     def __upload_reports_chunk(self):
         with transaction.atomic():
-            with ReportComponent.objects.delay_mptt_updates():
+            with Report.objects.delay_mptt_updates():
                 for report_save_data in self._reports_chunk:
                     log_file = report_save_data.pop('log', None)
                     verifier_files_arch = report_save_data.pop('verifier_files', None)
