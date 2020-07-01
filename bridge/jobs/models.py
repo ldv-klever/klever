@@ -88,7 +88,7 @@ class Job(models.Model):
         db_table = 'job'
 
 
-class UploadedJobArchive(models.Model):
+class UploadedJobArchive(WithFilesMixin, models.Model):
     author = models.ForeignKey(User, models.CASCADE)
     name = models.CharField(max_length=128)
     archive = models.FileField(upload_to=UPLOAD_DIR)
