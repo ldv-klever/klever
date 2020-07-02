@@ -152,6 +152,7 @@ class ExtendedLabel(Label):
 
     def __init__(self, name):
         super(ExtendedLabel, self).__init__(name)
+        self.match_implemented = False
         self.container = False
         self.resource = False
         self.callback = False

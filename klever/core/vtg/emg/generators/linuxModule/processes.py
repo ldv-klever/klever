@@ -278,7 +278,7 @@ def __match_labels(logger, interfaces, process, category):
 
         if (intf in interfaces.interfaces or interfaces.is_removed_intf(intf)) and intf_category == category:
             ni.add(intf)
-            __add_label_match(logger, interfaces, label_map, label, intf)
+            __add_label_match(logger, interfaces, label_map, label, interfaces.get_or_restore_intf(intf))
     label_map["native interfaces"] = len(ni)
 
     # Stop analysis if process tied with another category
@@ -305,12 +305,12 @@ def __match_labels(logger, interfaces, process, category):
                     interface_obj = interfaces.get_intf(interface)
 
                     if interface_obj.category == category:
-                        __add_label_match(logger, interfaces, label_map, label, interface)
+                        __add_label_match(logger, interfaces, label_map, label, interface_obj)
             elif not label.interfaces and not label.declaration and tail and label.container and \
                     label.name not in label_map["matched labels"]:
                 for cn in (c for c in interfaces.containers(category)
                            if __resolve_interface(logger, interfaces, c, tail)):
-                    __add_label_match(logger, interfaces, label_map, label, str(cn))
+                    __add_label_match(logger, interfaces, label_map, label, cn)
 
             # Try to match callback itself
             functions = []
@@ -344,7 +344,7 @@ def __match_labels(logger, interfaces, process, category):
                         for cn in interfaces.containers(category):
                             intfs = __resolve_interface(logger, interfaces, cn, p_tail)
                             if intfs:
-                                __add_label_match(logger, interfaces, label_map, p_label, str(cn))
+                                __add_label_match(logger, interfaces, label_map, p_label, cn)
                                 pre_matched.add(str(intfs[-1]))
 
                     labels.append([p_label, p_tail])
@@ -358,28 +358,17 @@ def __match_labels(logger, interfaces, process, category):
                         unmatched = [label[0] for label in labels
                                      if label[0].name not in label_map['matched labels'] and not label[1]]
                         if unmatched:
-                            __add_label_match(logger, interfaces, label_map, unmatched[0], str(par))
+                            __add_label_match(logger, interfaces, label_map, unmatched[0], par)
                         else:
                             rsrs = [label[0] for label in labels if label[0].resource]
                             if rsrs:
-                                __add_label_match(logger, interfaces, label_map, rsrs[0], str(par))
+                                __add_label_match(logger, interfaces, label_map, rsrs[0], par)
 
-        # After containers are matched try to match rest callbacks from category
-        matched_containers = [cn for cn in process.containers if cn.name in label_map["matched labels"] and
-                              isinstance(cn, StructureContainer)]
         unmatched_callbacks = [cl for cl in process.callbacks if cl.name not in label_map["matched labels"]]
-        if matched_containers and unmatched_callbacks:
-            for cl, cn in ((cl, cn) for cl in unmatched_callbacks for cn in matched_containers):
-                for cn_intf, fn_intf in \
-                        ((interfaces.get_intf(i), fn_intf) for i in label_map["matched labels"][cn.name] for fn_intf in
-                         i.field_interfaces.values() if isinstance(fn_intf, Callback) and not fn_intf.called and
-                         str(fn_intf) not in label_map['matched callbacks'] and str(fn_intf) in interfaces.interfaces):
-                    __add_label_match(logger, interfaces, label_map, cl, str(fn_intf))
-
         for cl in unmatched_callbacks:
             for intf in [intf for intf in interfaces.callbacks(category)
                          if not intf.called and str(intf) not in label_map['matched callbacks']]:
-                __add_label_match(logger, interfaces, label_map, cl, str(intf))
+                __add_label_match(logger, interfaces, label_map, cl, intf)
 
         # Discard unmatched labels
         label_map["unmatched labels"] = [label for label in process.labels.keys()
@@ -447,7 +436,7 @@ def __match_labels(logger, interfaces, process, category):
         containers = interfaces.containers(category)
         if "%{}%".format(label) not in acceses and containers:
             # Try to match with random container
-            __add_label_match(logger, interfaces, label_map, process.labels[label], str(containers[0]))
+            __add_label_match(logger, interfaces, label_map, process.labels[label], containers[0])
             label_map["unmatched labels"].remove(label)
 
     logger.info("Matched labels and interfaces:")
@@ -469,14 +458,14 @@ def __match_labels(logger, interfaces, process, category):
 
 
 def __add_label_match(logger, interfaces, label_map, label, interface):
-    if interfaces.is_removed_intf(interface):
-        interfaces.get_or_restore_intf(interface)
-
     if label.name not in label_map["matched labels"]:
-        logger.debug("Match label {!r} with interface {!r}".format(label.name, interface))
-        label_map["matched labels"][label.name] = {interface}
+        logger.debug("Match label {!r} with interface {!r}".format(label.name, str(interface)))
+        label_map["matched labels"][label.name] = {str(interface)}
     else:
-        label_map["matched labels"][label.name].add(interface)
+        label_map["matched labels"][label.name].add(str(interface))
+
+    if isinstance(interface, Callback):
+        label_map["matched callbacks"].append(str(interface))
 
 
 def __find_native_categories(process):

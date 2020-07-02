@@ -455,7 +455,8 @@ def _convert_calls_to_conds(logger, conf, sa, interfaces, process, label_map, ca
                 invoke = sa.refined_name(implementation.value)
                 check = False
             elif not isinstance(implementation, bool) and conf.get('implicit callback calls', True)\
-                    and not (access.label.callback and len(access.label.interfaces) > 1):
+                    and not (access.label.callback and len(access.label.interfaces) > 1) \
+                    and not access.label.match_implemented:
                 # Call by pointer
                 invoke = access.access_with_label(label_map[access.label.name][str(access.base_interface)])
                 check = True
