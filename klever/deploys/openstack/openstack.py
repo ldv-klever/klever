@@ -300,31 +300,33 @@ class OSKleverInstance(OSEntity):
                 with CopyDeployConfAndSrcs(self.args, self.logger, self.ssh, 'creation of Klever instance'):
                     self._install_or_update_deps()
                     self.ssh.execute_cmd('sudo PYTHONPATH=klever klever/klever/deploys/prepare_env.py')
-                    self._create_or_update(is_dev)
+                    self._pre_create_or_update(is_dev)
 
-                with self.ssh.sftp.file('klever-inst/klever.json') as fp:
-                    prev_deploy_info = json.loads(fp.read().decode('utf8'))
+                    with self.ssh.sftp.file('klever-inst/klever.json') as fp:
+                        prev_deploy_info = json.loads(fp.read().decode('utf8'))
 
-                # TODO: looks like deploys/local/local.py too much.
-                with tempfile.NamedTemporaryFile('w', encoding='utf8') as fp:
-                    # TODO: avoid using "/home/debian" - rename ssh username to instance username and add option to provide instance user home directory.
-                    fp.write('KLEVER_SOURCE_DIRECTORY=/home/debian/klever\n')
-                    fp.write('KLEVER_DEPLOYMENT_DIRECTORY=/home/debian/klever-inst\n')
-                    fp.write('KLEVER_DATA_DIR="/home/debian/klever-inst/klever/build bases"\n')
-                    # TODO: make it depending on the number of CPUs.
-                    fp.write("KLEVER_WORKERS=2\n")
-                    fp.write("KLEVER_PYTHON_BIN_DIR=/usr/local/python3-klever/bin\n")
-                    fp.write("KLEVER_PYTHON=/usr/local/python3-klever/bin/python3\n")
-                    fp.write("JAVA={}\n".format(
-                        os.path.join('/home/debian/klever-inst/klever-addons', 'JRE',
-                                     prev_deploy_info['Klever Addons']['JRE']['executable path'], 'java')))
-                    fp.flush()
-                    self.ssh.sftp_put(fp.name, '/etc/default/klever', sudo=True, directory=os.path.sep)
+                    # TODO: looks like deploys/local/local.py too much.
+                    with tempfile.NamedTemporaryFile('w', encoding='utf8') as fp:
+                        # TODO: avoid using "/home/debian" - rename ssh username to instance username and add option to provide instance user home directory.
+                        fp.write('KLEVER_SOURCE_DIRECTORY=/home/debian/klever\n')
+                        fp.write('KLEVER_DEPLOYMENT_DIRECTORY=/home/debian/klever-inst\n')
+                        fp.write('KLEVER_DATA_DIR="/home/debian/klever-inst/klever/build bases"\n')
+                        # TODO: make it depending on the number of CPUs.
+                        fp.write("KLEVER_WORKERS=2\n")
+                        fp.write("KLEVER_PYTHON_BIN_DIR=/usr/local/python3-klever/bin\n")
+                        fp.write("KLEVER_PYTHON=/usr/local/python3-klever/bin/python3\n")
+                        fp.write("JAVA={}\n".format(
+                            os.path.join('/home/debian/klever-inst/klever-addons', 'JRE',
+                                         prev_deploy_info['Klever Addons']['JRE']['executable path'], 'java')))
+                        fp.flush()
+                        self.ssh.sftp_put(fp.name, '/etc/default/klever', sudo=True, directory=os.path.sep)
+
+                    self._post_create_or_update(is_dev)
 
                 # Preserve instance if everything above went well.
                 self.instance.keep_on_exit = True
 
-    def _create_or_update(self, is_dev):
+    def _pre_create_or_update(self, is_dev):
         with open(self.args.deployment_configuration_file) as fp:
             deploy_conf = json.load(fp)
 
@@ -347,6 +349,8 @@ class OSKleverInstance(OSEntity):
                               self._install_fn, dump_cur_deploy_info)
         install_klever_build_bases(self.logger, 'klever', 'klever-inst/klever', deploy_conf, self._cmd_fn,
                                    self._install_fn)
+
+    def _post_create_or_update(self, is_dev):
         # This script requires Klever Python since it executes manage.py commands.
         self.ssh.execute_cmd('sudo PYTHONPATH=klever /usr/local/python3-klever/bin/python3 '
                              'klever/klever/deploys/install_klever_bridge.py{0}'
@@ -406,7 +410,8 @@ class OSKleverInstance(OSEntity):
                  floating_ip=self._get_instance_floating_ip(instance)) as self.ssh:
             with CopyDeployConfAndSrcs(self.args, self.logger, self.ssh, 'update of Klever instance'):
                 self._install_or_update_deps()
-                self._create_or_update(is_dev)
+                self._pre_create_or_update(is_dev)
+                self._post_create_or_update(is_dev)
 
 
 class OSKleverDeveloperInstance(OSKleverInstance):
