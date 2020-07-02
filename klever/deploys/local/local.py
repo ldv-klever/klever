@@ -131,6 +131,14 @@ class Klever:
         prepare_env(self.logger, self.args.deployment_directory)
         self._pre_install_or_update()
 
+        # Set environment variable JAVA to point out absolute path to java executable to be used for executing Java
+        # programs within Klever. At the moment the same java will be used for all Java programs but that may be changed
+        # in future.
+        with open('/etc/default/klever', 'a+') as fp:
+            fp.write("JAVA={}\n".format(
+                os.path.join(self.args.deployment_directory, 'klever-addons', 'JRE',
+                             self.prev_deploy_info['Klever Addons']['JRE']['executable path'], 'java')))
+
     def _pre_update(self):
         if not self.prev_deploy_info:
             self.logger.error('There is not information on previous deployment ({0})'

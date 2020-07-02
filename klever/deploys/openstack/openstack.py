@@ -274,19 +274,6 @@ class OSKleverInstance(OSEntity):
                         base_image=base_image, flavor_name=self.args.flavor) as self.instance:
             with SSH(args=self.args, logger=self.logger, name=self.name,
                      floating_ip=self.instance.floating_ip['floating_ip_address']) as self.ssh:
-                # TODO: looks like deploys/local/local.py too much.
-                with tempfile.NamedTemporaryFile('w', encoding='utf8') as fp:
-                    # TODO: avoid using "/home/debian" - rename ssh username to instance username and add option to provide instance user home directory.
-                    fp.write('KLEVER_SOURCE_DIRECTORY=/home/debian/klever\n')
-                    fp.write('KLEVER_DEPLOYMENT_DIRECTORY=/home/debian/klever-inst\n')
-                    fp.write('KLEVER_DATA_DIR="/home/debian/klever-inst/klever/build bases"\n')
-                    # TODO: make it depending on the number of CPUs.
-                    fp.write("KLEVER_WORKERS=2\n")
-                    fp.write("KLEVER_PYTHON_BIN_DIR=/usr/local/python3-klever/bin\n")
-                    fp.write("KLEVER_PYTHON=/usr/local/python3-klever/bin/python3\n")
-                    fp.flush()
-                    self.ssh.sftp_put(fp.name, '/etc/default/klever', sudo=True, directory=os.path.sep)
-
                 self.logger.info('Install systemd configuration files and services')
                 self.ssh.execute_cmd('sudo mkdir -p /etc/conf.d')
                 for dirpath, _, filenames in os.walk(os.path.join(os.path.dirname(__file__), os.path.pardir,
@@ -314,6 +301,25 @@ class OSKleverInstance(OSEntity):
                     self._install_or_update_deps()
                     self.ssh.execute_cmd('sudo PYTHONPATH=klever klever/klever/deploys/prepare_env.py')
                     self._create_or_update(is_dev)
+
+                with self.ssh.sftp.file('klever-inst/klever.json') as fp:
+                    prev_deploy_info = json.loads(fp.read().decode('utf8'))
+
+                # TODO: looks like deploys/local/local.py too much.
+                with tempfile.NamedTemporaryFile('w', encoding='utf8') as fp:
+                    # TODO: avoid using "/home/debian" - rename ssh username to instance username and add option to provide instance user home directory.
+                    fp.write('KLEVER_SOURCE_DIRECTORY=/home/debian/klever\n')
+                    fp.write('KLEVER_DEPLOYMENT_DIRECTORY=/home/debian/klever-inst\n')
+                    fp.write('KLEVER_DATA_DIR="/home/debian/klever-inst/klever/build bases"\n')
+                    # TODO: make it depending on the number of CPUs.
+                    fp.write("KLEVER_WORKERS=2\n")
+                    fp.write("KLEVER_PYTHON_BIN_DIR=/usr/local/python3-klever/bin\n")
+                    fp.write("KLEVER_PYTHON=/usr/local/python3-klever/bin/python3\n")
+                    fp.write("JAVA={}\n".format(
+                        os.path.join('/home/debian/klever-inst/klever-addons', 'JRE',
+                                     prev_deploy_info['Klever Addons']['JRE']['executable path'], 'java')))
+                    fp.flush()
+                    self.ssh.sftp_put(fp.name, '/etc/default/klever', sudo=True, directory=os.path.sep)
 
                 # Preserve instance if everything above went well.
                 self.instance.keep_on_exit = True
