@@ -275,6 +275,13 @@ def install_klever_addons(logger, src_dir, deploy_dir, deploy_conf, prev_deploy_
                             deploy_addons_conf, prev_deploy_addons_conf, cmd_fn, install_fn):
             dump_cur_deploy_info_fn(prev_deploy_info)
 
+    # Set environment variable JAVA to point out absolute path to java executable to be used for executing Java programs
+    # within Klever. At the moment the same java will be used for all Java programs but that may be changed in future.
+    with open('/etc/default/klever', 'a+') as fp:
+        fp.write("JAVA={}\n".format(
+            os.path.join(deploy_dir, 'klever-addons', 'JRE',
+                         prev_deploy_info['Klever Addons']['JRE']['executable path'], 'java')))
+
 
 def install_klever_build_bases(logger, src_dir, deploy_dir, deploy_conf, cmd_fn, install_fn):
     for klever_build_base in deploy_conf['Klever Build Bases']:
