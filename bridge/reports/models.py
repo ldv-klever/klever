@@ -74,6 +74,9 @@ class Report(MPTTModel):
     wall_time = models.BigIntegerField(null=True)
     memory = models.BigIntegerField(null=True)
 
+    def __str__(self):
+        return self.identifier
+
     class Meta:
         db_table = 'report'
         unique_together = [('decision', 'identifier')]

@@ -119,7 +119,7 @@ class ClearFiles:
 
     def __clear_unused_files(self, files_dir, excluded: set):
         files_directory = os.path.join(settings.MEDIA_ROOT, files_dir)
-        if os.path.exists(files_directory):
+        if os.path.isdir(files_directory):
             files_on_disk = set(os.path.abspath(os.path.join(files_directory, x)) for x in os.listdir(files_directory))
             for f in files_on_disk - excluded:
                 os.remove(f)
@@ -262,7 +262,7 @@ class RecalculateMarksCache:
             cache_data[mt.mark_version.mark_id]['cache_tags'].append(mt.tag.name)
 
         with transaction.atomic():
-            for mark in MarkSafe.objects.all():
+            for mark in MarkSafe.objects.all().select_for_update():
                 if mark.id not in cache_data:
                     continue
                 for field_name, field_value in cache_data[mark.id].items():
@@ -291,7 +291,7 @@ class RecalculateMarksCache:
             cache_data[mt.mark_version.mark_id]['cache_tags'].append(mt.tag.name)
 
         with transaction.atomic():
-            for mark in MarkUnsafe.objects.all():
+            for mark in MarkUnsafe.objects.all().select_for_update():
                 if mark.id not in cache_data:
                     continue
                 for field_name, field_value in cache_data[mark.id].items():
@@ -310,7 +310,7 @@ class RecalculateMarksCache:
             cache_data[ma.mark_version.mark_id]['cache_attrs'][ma.name] = ma.value
 
         with transaction.atomic():
-            for mark in MarkUnknown.objects.all():
+            for mark in MarkUnknown.objects.all().select_for_update():
                 if mark.id not in cache_data:
                     continue
                 for field_name, field_value in cache_data[mark.id].items():

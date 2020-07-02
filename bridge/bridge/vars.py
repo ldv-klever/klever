@@ -393,11 +393,18 @@ JOB_UPLOAD_STATUS = (
     ('0', _('Pending')),
     ('1', _('Extracting archive files')),
     ('2', _('Uploading files')),
-    ('3', _('Uploading job with versions')),
-    ('4', _('Uploading reports')),
-    ('5', _('Associating marks and cache recalculation')),
-    ('6', _('Finished')),
-    ('7', _('Failed')),
+    ('3', _('Uploading job')),
+    ('4', _('Uploading decisions cache')),
+    ('5', _('Uploading original sources')),
+    ('6', _('Uploading reports trees')),
+    ('7', _('Uploading safes')),
+    ('8', _('Uploading unsafes')),
+    ('9', _('Uploading unknowns')),
+    ('10', _('Uploading attributes')),
+    ('11', _('Uploading coverage')),
+    ('12', _('Associating marks and cache recalculation')),
+    ('13', _('Finished')),
+    ('14', _('Failed')),
 )
 
 PRESET_JOB_TYPE = (

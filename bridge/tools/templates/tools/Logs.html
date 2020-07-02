@@ -1,0 +1,39 @@
+{% extends 'bridge/base.html' %}
+
+{% load i18n %}
+{% load static %}
+{% load compress %}
+
+{% block title %}{% trans 'Upload Log' %}{% endblock %}
+{% block head_block %}
+    <script type="application/javascript">
+        const PAGE_URLS = {
+            get_log_content: "{% url 'tools:api-log-content' %}",
+            clear_log: "{% url 'tools:api-clear-log' %}"
+        };
+    </script>
+
+    {% compress js file filelogs %}
+        <script src="{% static 'tools/js/file_logs.js' %}"></script>
+    {% endcompress %}
+{% endblock %}
+{% block body_block %}
+    {% if logs|length %}
+        <div class="ui small action input">
+            <select id="log_file_selector" class="ui dropdown">
+                {% for log_name in logs %}
+                    <option value="{{ log_name }}"{% if selected_log and selected_log == log_name %} selected{% endif %}>{{ log_name }}</option>
+                {% endfor %}
+            </select>
+            <button id="clear_log_btn" class="ui small red basic button">{% trans 'Clear' %}</button>
+        </div>
+        <div class="ui divider"></div>
+    {% endif %}
+
+    <div class="ui violet segment">
+        <div id="dimmer_of_log_content" class="ui dimmer">
+            <div class="ui text loader">{% trans 'Please wait' %}</div>
+        </div>
+        <div id="log_container" class="filecontent" style="min-height: 100px;max-height: 80vh;overflow: auto;"></div>
+    </div>
+{% endblock %}
