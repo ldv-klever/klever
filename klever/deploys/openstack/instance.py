@@ -118,7 +118,7 @@ class OSInstance:
                                          .format(self.floating_ip['floating_ip_address'], self.name))
 
                         self.logger.info(
-                            'Wait for {0} seconds until operating system will start before performing other operations'
+                            'Wait for {0} seconds until operating system is started before performing other operations'
                             .format(self.OPERATING_SYSTEM_STARTUP_DELAY))
                         time.sleep(self.OPERATING_SYSTEM_STARTUP_DELAY)
 
