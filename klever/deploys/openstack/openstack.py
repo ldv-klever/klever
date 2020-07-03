@@ -49,7 +49,7 @@ class OSClients:
         self.glance = glanceclient.client.Client('1', session=sess)
         self.nova = novaclient.client.Client('2', session=sess)
         self.neutron = neutronclient.v2_0.client.Client(session=sess)
-        self.cinder = cinderclient.client.Client('2', session=sess)
+        self.cinder = cinderclient.client.Client('3', session=sess)
 
 
 class OSEntity:
