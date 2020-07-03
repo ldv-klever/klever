@@ -30,7 +30,7 @@ from klever.deploys.utils import execute_cmd, get_password
 class SSH:
     CONNECTION_ATTEMPTS = 30
     CONNECTION_RECOVERY_INTERVAL = 10
-    COMMAND_EXECUTION_CHECK_INTERVAL = 3
+    COMMAND_EXECUTION_CHECK_INTERVAL = 0.1
     COMMAND_EXECUTION_STREAM_BUF_SIZE = 10000
 
     def __init__(self, args, logger, name, floating_ip, open_sftp=True):
@@ -77,7 +77,7 @@ class SSH:
                     self.sftp = self.ssh.open_sftp()
 
                 return self
-            except:
+            except Exception:
                 attempts -= 1
                 self.logger.info('Could not open SSH session, wait for {0} seconds and try {1} times more'
                                  .format(self.CONNECTION_RECOVERY_INTERVAL, attempts))
@@ -104,21 +104,22 @@ class SSH:
         chan.exec_command(cmd)
 
         # Print command STDOUT and STDERR until it will be executed.
-        while True:
-            try:
-                if chan.exit_status_ready():
-                    break
-            finally:
-                stderr = ''
-                while chan.recv_stderr_ready():
-                    stderr += chan.recv_stderr(self.COMMAND_EXECUTION_STREAM_BUF_SIZE).decode(encoding='utf8')
-                if stderr:
-                    self.logger.info('Executed command STDERR:\n{0}'.format(stderr.rstrip()))
-                stdout = ''
-                while chan.recv_ready():
-                    stdout += chan.recv(self.COMMAND_EXECUTION_STREAM_BUF_SIZE).decode(encoding='utf8')
-                if stdout:
-                    self.logger.info('Executed command STDOUT:\n{0}'.format(stdout.rstrip()))
+        while not chan.exit_status_ready():
+            stderr = ''
+            while chan.recv_stderr_ready():
+                stderr += chan.recv_stderr(self.COMMAND_EXECUTION_STREAM_BUF_SIZE).decode(encoding='utf8')
+            stderr = stderr.rstrip()
+
+            if stderr:
+                print('Executed command STDERR:\n{}'.format(stderr))
+
+            stdout = ''
+            while chan.recv_ready():
+                stdout += chan.recv(self.COMMAND_EXECUTION_STREAM_BUF_SIZE).decode(encoding='utf8')
+            stdout = stdout.rstrip()
+
+            if stdout:
+                print(stdout)
             time.sleep(self.COMMAND_EXECUTION_CHECK_INTERVAL)
 
         retcode = chan.recv_exit_status()
