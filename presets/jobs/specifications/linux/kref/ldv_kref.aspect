@@ -1,0 +1,153 @@
+before: file ("$this")
+{
+#include <linux/kobject.h>
+#include <linux/types.h>
+#include <linux/kref.h>
+#include <linux/refcount.h>
+#include <ldv/common.h>
+#include <linux/kernel.h>
+#include <media/v4l2-device.h>
+#include <linux/usb.h>
+#include <ldv/linux/device.h>
+#include <ldv/linux/kref.h>
+}
+
+around: define(REFCOUNT_INIT(n))
+{
+ldv_kref_init(n)
+}
+
+around: call(static inline void v4l2_device_get(..))
+{
+	return ldv_kref_get(& $arg1->ref);
+}
+
+around: call(int v4l2_device_put(..))
+{
+	return ldv_v4l2_device_put($arg1);
+}
+
+around: call(static inline void refcount_set(..))
+{
+	return ldv_refcount_set($arg1,$arg2);
+}
+
+around: call(static inline void kref_init(..))
+{
+	return ldv_kref_init($arg1);
+}
+
+around: call(static inline unsigned int kref_read(..))
+{
+	return ldv_kref_read($arg1);
+}
+
+around: call(void put_device(..))
+{
+	return ldv_put_device($arg1);
+}
+
+around: call(void kobject_put(..))
+{
+	return ldv_kobject_put($arg1);
+}
+
+around: call(struct device get_device(..))
+{
+	return ldv_get_device($arg1);
+}
+
+around: call(struct kobject kobject_get(..))
+{
+	return ldv_kobject_get($arg1);
+}
+
+around: call(static inline int kref_put(..))
+{
+	return ldv_kref_put($arg1,$arg2);
+}
+
+around: call(static inline void kref_get(..))
+{
+	return ldv_kref_get($arg1);
+}
+
+around: call(static inline void refcount_inc(..))
+{
+	return ldv_refcount_inc($arg1);
+}
+
+around: call(void kobject_init(..))
+{
+	return ldv_kobject_init($arg1, $arg2);
+}
+
+around: call(static void kobject_init_internal(..))
+{
+	return ldv_kobject_init_internal($arg1);
+}
+
+around: call(struct usb_device *usb_get_dev(..))
+{
+	return ldv_usb_get_dev($arg1);
+}
+
+around: call(void usb_put_dev(..))
+{
+	return ldv_usb_put_dev($arg1);
+}
+
+around: call(int v4l2_device_register(..))
+{
+	return ldv_v4l2_device_register($arg1, $arg2);
+}
+
+around: call(void v4l2_prio_init(..))
+{
+	return ldv_v4l2_prio_initr($arg1);
+}
+
+around: call(void v4l2_device_disconnect(..))
+{
+	return ldv_v4l2_device_disconnect($arg1);
+}
+
+around: call(void usb_set_intfdata(..))
+{
+	return ldv_usb_set_intfdata($arg1, $arg2);
+}
+
+around: call(void refcount_dec(..))
+{
+	return ldv_refcount_dec($arg1);
+}
+
+around: call(void refcount_read(..))
+{
+	return ldv_refcount_read($arg1);
+}
+
+around: call(void video_device_release(..))
+{
+	return ldv_video_device_release($arg1);
+}
+
+around: call(struct video_device *video_device_alloc(..))
+{
+	return ldv_video_device_alloc($arg1);
+}
+
+around: call(void video_get(..))
+{
+	return ldv_video_get($arg1);
+}
+
+around: call(void video_put(..))
+{
+	return ldv_video_put($arg1);
+}
+
+around: call(void v4l2_device_release(..))
+{
+	return ldv_v4l2_device_release($arg1);
+}
