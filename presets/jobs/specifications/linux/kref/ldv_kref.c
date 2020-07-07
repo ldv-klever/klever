@@ -13,57 +13,6 @@
 #include <ldv/linux/kref.h>
 
 
-void ldv_refcount_set(refcount_t *r, int n)
-{
-	r->refs.counter = n;
-}
-
-unsigned int ldv_refcount_read(refcount_t *r)
-{
-	return r->refs.counter;
-}
-
-void ldv_kref_init(struct kref *kref)
-{
-	ldv_refcount_set(&kref->refcount, 1);
-}
-
-unsigned int ldv_kref_read(const struct kref *kref)
-{
-	return ldv_refcount_read(&kref->refcount);
-}
-
-void ldv_refcount_inc(refcount_t *r)
-{
-	r->refs.counter++;
-}
-
-void ldv_refcount_dec(refcount_t *r)
-{
-	ldv_assert(ldv_refcount_read(r) <= 0);
-	r->refs.counter--;
-	//ldv_refcount_set(r, -((int)(~0U >> 1)) - 1);
-}
-
-void ldv_kref_get(struct kref *kref)
-{
-	ldv_assert(kref->refcount.refs.counter > 0);
-	ldv_refcount_inc(&kref->refcount);
-}
-
-int ldv_kref_put(struct kref *kref, void (*release)(struct kref *kref))
-{
-	ldv_assert(ldv_kref_read(kref) > 0);
-	ldv_refcount_dec(&kref->refcount);
-
-	if (ldv_kref_read(kref) == 0) {
-		release(kref);
-		return 1;
-	}
-
-	return 0;
-}
-
 void ldv_kobject_release(struct kref *kref)
 {
 	struct kobject *kobj = container_of(kref, struct kobject, kref);

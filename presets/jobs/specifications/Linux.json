@@ -209,8 +209,7 @@
           "name": "RSG",
           "options": {"models": [
             "linux/drivers/usb/core/usb/message.c",
-            "linux/memory safety/memory.c",
-            "linux/kref/ldv_kref.c"
+            "linux/memory safety/memory.c"
           ]}
         },
         {"name": "Weaver"},
@@ -880,7 +879,6 @@
               "options": {"models": [
                 "linux/drivers/usb/core/usb/message.c",
                 "linux/memory safety/memory.c",
-                "linux/kref/ldv_kref.c",
                 "test.c"
               ]}
             }]

@@ -27,21 +27,6 @@ around: call(int v4l2_device_put(..))
 	return ldv_v4l2_device_put($arg1);
 }
 
-around: call(static inline void refcount_set(..))
-{
-	return ldv_refcount_set($arg1,$arg2);
-}
-
-around: call(static inline void kref_init(..))
-{
-	return ldv_kref_init($arg1);
-}
-
-around: call(static inline unsigned int kref_read(..))
-{
-	return ldv_kref_read($arg1);
-}
-
 around: call(void put_device(..))
 {
 	return ldv_put_device($arg1);
@@ -60,21 +45,6 @@ around: call(struct device get_device(..))
 around: call(struct kobject kobject_get(..))
 {
 	return ldv_kobject_get($arg1);
-}
-
-around: call(static inline int kref_put(..))
-{
-	return ldv_kref_put($arg1,$arg2);
-}
-
-around: call(static inline void kref_get(..))
-{
-	return ldv_kref_get($arg1);
-}
-
-around: call(static inline void refcount_inc(..))
-{
-	return ldv_refcount_inc($arg1);
 }
 
 around: call(void kobject_init(..))
@@ -115,16 +85,6 @@ around: call(void v4l2_device_disconnect(..))
 around: call(void usb_set_intfdata(..))
 {
 	return ldv_usb_set_intfdata($arg1, $arg2);
-}
-
-around: call(void refcount_dec(..))
-{
-	return ldv_refcount_dec($arg1);
-}
-
-around: call(void refcount_read(..))
-{
-	return ldv_refcount_read($arg1);
 }
 
 around: call(void video_device_release(..))
