@@ -337,7 +337,6 @@ def __match_labels(logger, interfaces, process, category):
             for callback in callbacks:
                 labels_tails = []
                 pre_matched_intfs = set()
-
                 for par_intf in action.parameters:
                     p_label, p_tail = process.extract_label_with_tail(par_intf)
                     if p_tail:
@@ -351,8 +350,7 @@ def __match_labels(logger, interfaces, process, category):
 
                 for par_intf in (par_intf for par_intf in callback.param_interfaces if par_intf):
                     matched = {str(label) for label, _ in labels_tails if label.name in label_map['matched labels'] and
-                               str(par_intf) in label_map['matched labels'][label.name]} & \
-                               set(map(lambda x: str(x[0]), labels_tails))
+                               str(par_intf) in label_map['matched labels'][label.name]}
                     if not matched and str(par_intf) not in pre_matched_intfs:
                         unmatched = [label for label, tail in labels_tails
                                      if not tail and label.name not in label_map['matched labels']]
@@ -360,6 +358,11 @@ def __match_labels(logger, interfaces, process, category):
                             # todo: This is nasty to get the first one
                             __add_label_match(logger, interfaces, label_map, unmatched[0], par_intf)
                         else:
+                            # Check that the interface is not already matched
+                            matched_interfaces = {i for x in label_map['matched labels'].values() for i in x}
+                            if str(par_intf) in matched_interfaces:
+                                continue
+
                             rsrs = [label[0] for label in labels_tails if label[0].resource]
                             if rsrs:
                                 __add_label_match(logger, interfaces, label_map, rsrs[0], par_intf)
