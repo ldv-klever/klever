@@ -31,7 +31,8 @@
           "init": {
             "comment": "Allocate memory for pci_dev structure.",
             "statements": [
-              "%resource% = $ALLOC(%resource%);"
+              "%resource% = $ALLOC(%resource%);",
+              "%device_id% = & %container%->id_table[0];"
             ]
           },
           "main": {
@@ -43,7 +44,7 @@
             "callback return value": "%ret%",
             "comment": "Probe new PCI driver.",
             "parameters": [
-              "%resource%"
+              "%resource%", "%device_id%"
             ],
             "post-call": [
               "%ret% = ldv_post_probe(%ret%);"
@@ -121,10 +122,15 @@
             "callback": true
           },
           "container": {
-            "container": true
+            "container": true,
+            "interface": ["pci.pci_driver"]
           },
           "resource": {
-            "resource": true
+            "resource": true,
+            "interface": ["pci.dev"]
+          },
+          "device_id": {
+            "interface": ["pci.pci_device_id"]
           },
           "ret": {
             "declaration": "int a",
@@ -236,7 +242,8 @@
           "init": {
             "comment": "Allocate memory for pci_dev structure.",
             "statements": [
-              "%resource% = $ALLOC(%resource%);"
+              "%resource% = $ALLOC(%resource%);",
+              "%device_id% = & %container%->id_table[0];"
             ]
           },
           "main": {
@@ -248,7 +255,7 @@
             "callback return value": "%ret%",
             "comment": "Probe new PCI driver.",
             "parameters": [
-              "%resource%"
+              "%resource%", "%device_id%"
             ],
             "post-call": [
               "%ret% = ldv_post_probe(%ret%);"
@@ -310,10 +317,15 @@
             "callback": true
           },
           "container": {
-            "container": true
+            "container": true,
+            "interface": ["pci.pci_driver"]
           },
           "resource": {
-            "resource": true
+            "resource": true,
+            "interface": ["pci.dev"]
+          },
+          "device_id": {
+            "interface": ["pci.pci_device_id"]
           },
           "ret": {
             "declaration": "int a",

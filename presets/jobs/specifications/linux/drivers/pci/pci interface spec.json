@@ -4,7 +4,7 @@
       "pci": {
         "callbacks": {
           "probe": {
-            "declaration": "int (*probe)(%pci.dev%, const struct pci_device_id *id)"
+            "declaration": "int (*probe)(%pci.dev%, %pci.pci_device_id%)"
           },
           "release": {
             "declaration": "void (*release)(%pci.dev%)"
@@ -50,6 +50,10 @@
           "pm_message": {
             "declaration": "pm_message_t state",
             "header": "linux/pm.h"
+          },
+          "pci_device_id": {
+            "declaration": "struct pci_device_id *",
+            "header": "linux/pci.h"
           }
         }
       }
@@ -77,7 +81,7 @@
       "pci": {
         "callbacks": {
           "probe": {
-            "declaration": "int (*probe)(%pci.dev%, const struct pci_device_id *id)"
+            "declaration": "int (*probe)(%pci.dev%, %pci.pci_device_id%)"
           },
           "release": {
             "declaration": "void (*release)(%pci.dev%)"
@@ -115,6 +119,10 @@
           "pm_message": {
             "declaration": "pm_message_t state",
             "header": "linux/pm.h"
+          },
+          "pci_device_id": {
+            "declaration": "struct pci_device_id *",
+            "header": "linux/pci.h"
           }
         }
       }
