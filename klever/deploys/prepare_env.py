@@ -24,8 +24,11 @@ from klever.deploys.utils import execute_cmd, get_logger
 
 
 def prepare_env(logger, deploy_dir):
-    logger.info('Create user "klever"')
-    execute_cmd(logger, 'useradd', 'klever')
+    try:
+        logger.info('Try to create user "klever"')
+        execute_cmd(logger, 'useradd', 'klever')
+    except subprocess.CalledProcessError:
+        logger.info('User "klever" already exists')
 
     try:
         logger.info('Obtain execute access to {!r} home directory'.format(os.getlogin()))

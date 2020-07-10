@@ -104,7 +104,7 @@ def install_klever_bridge_production(logger, src_dir, deploy_dir, populate_just_
     # Try to add httpd_t to the list of permissive domains.
     try:
         execute_cmd(logger, 'semanage', 'permissive', '-a', 'httpd_t')
-    except:
+    except Exception:
         pass
 
     start_services(logger, services)
