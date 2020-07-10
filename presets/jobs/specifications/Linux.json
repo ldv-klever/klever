@@ -406,7 +406,7 @@
                 {"genericManual": {"enforce replacement": true}}
               ],
               "translation options": {
-                "self parallel processes": true,
+                "self parallel processes": false,
                 "do not skip signals": true,
                 "not self parallel processes": ["linux/insmod"],
                 "not self parallel processes from categories": ["usb"],
