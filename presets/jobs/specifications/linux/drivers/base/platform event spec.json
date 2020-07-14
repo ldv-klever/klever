@@ -2,6 +2,9 @@
   "3.14": {
     "environment processes": {
       "platform_instance": {
+        "headers": [
+          "linux/mod_devicetable.h"
+        ],
         "actions": {
           "after_release": {
             "comment": "Platform device is released now.",
@@ -52,7 +55,8 @@
           "init": {
             "comment": "Alloc memory for 'platform_device' structure.",
             "statements": [
-              "%resource% = $ALLOC(%resource%);"
+              "%resource% = $ALLOC(%resource%);",
+              "%resource%->id_entry = & %container%->id_table[0];"
             ]
           },
           "main": {
@@ -120,7 +124,8 @@
             "value": "1"
           },
           "resource": {
-            "resource": true
+            "resource": true,
+            "interface": ["platform.platform_device"]
           }
         },
         "process": "(!register).<init>.{main}",
