@@ -374,10 +374,9 @@ def __match_labels(logger, interfaces, process, category):
                 __add_label_match(logger, interfaces, label_map, cl, intf)
 
         # Discard unmatched labels
-        label_map["unmatched labels"] = [label for label in process.labels.keys()
-                                         if label not in label_map["matched labels"] and
-                                         len(process.labels[label].interfaces) == 0 and not
-                                         process.labels[label].declaration]
+        label_map["unmatched labels"] = [str(label) for label in process.labels.values()
+                                         if str(label) not in label_map["matched labels"] and not label.interfaces
+                                         and not label.declaration and not label.callback]
 
         # Discard unmatched callbacks
         label_map["unmatched callbacks"] = []
