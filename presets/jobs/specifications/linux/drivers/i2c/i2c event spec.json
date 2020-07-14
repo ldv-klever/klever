@@ -105,6 +105,7 @@
             ]
           },
           "probe": {
+            "callback": true,
             "match only implemented interfaces": true,
             "interface":[
               "i2c.probe",
