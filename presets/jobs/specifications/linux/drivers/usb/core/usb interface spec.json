@@ -10,7 +10,7 @@
             "declaration": "int (*pre) (%usb.usb_interface%)"
           },
           "probe": {
-            "declaration": "int (*probe) (%usb.usb_interface%, const struct usb_device_id *id)"
+            "declaration": "int (*probe) (%usb.usb_interface%, %usb.device_id%)"
           },
           "release": {
             "declaration": "void (*release) (%usb.usb_interface%)"
@@ -51,6 +51,10 @@
             "declaration": "struct usb_interface *usb_interface",
             "header": "linux/usb.h",
             "implemented in kernel": true
+          },
+          "device_id": {
+            "declaration": "struct usb_device_id *",
+            "header": "linux/usb.h"
           }
         }
       }
