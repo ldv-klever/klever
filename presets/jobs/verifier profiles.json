@@ -19,6 +19,15 @@
         {"--architecture": "64bit"}
       ]
     },
+    "CPALockator races": {
+      "description": "Common part of CPAchecker configuration for checking races",
+      "inherit": "CPAchecker common",
+      "safety properties": ["CHECK( init({entry_point}()), LTL(G ! data-race) )"],
+      "add options": [
+        {"-setprop": "counterexample.export.graphml=witness.%d.graphml"},
+        {"-setprop": "analysis.machineModel=LINUX64"}
+      ]
+    },
     "CPAchecker reachability": {
       "description": "CPAchecker for reachability checking",
       "inherit": "CPAchecker common",
@@ -89,26 +98,16 @@
     },
     "CPALockator lightweight": {
       "description": "CPAchecker for checking races",
-      "inherit": "CPAchecker common",
-      "safety properties": ["CHECK( init({entry_point}()), LTL(G ! data-race) )"],
+      "inherit": "CPALockator races",
       "add options": [
-        {"-lockator-linux": ""},
-        {"-setprop": "counterexample.export.graphml=witness.%d.graphml"},
-        {"-setprop": "counterexample.export.compressWitness=false"},
-        {"-heap": "%ldv:memory size:0.8:MB%m"},
-        {"-setprop": "analysis.machineModel=LINUX64"}
+        {"-lockator-linux": ""}
       ]
     },
     "CPALockator thread-modular": {
       "description": "CPAchecker for checking races with powerful theory",
-      "inherit": "CPAchecker common",
-      "safety properties": ["CHECK( init({entry_point}()), LTL(G ! data-race) )"],
+      "inherit": "CPALockator races",
       "add options": [
-        {"-lockator-threadmodular-linux": ""},
-        {"-setprop": "counterexample.export.graphml=witness.%d.graphml"},
-        {"-setprop": "counterexample.export.compressWitness=false"},
-        {"-heap": "%ldv:memory size:0.8:MB%m"},
-        {"-setprop": "analysis.machineModel=LINUX64"}
+        {"-lockator-threadmodular-linux": ""}
       ]
     }
   },
