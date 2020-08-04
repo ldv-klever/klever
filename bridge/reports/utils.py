@@ -104,7 +104,7 @@ def report_resources(user, report):
 def leaf_verifier_files_url(report):
     parent_qs = ReportComponent.objects.filter(id=report.parent_id, verification=True).exclude(verifier_files='')
     if parent_qs.exists():
-        return reverse('reports:download_files', args=report.parent_id)
+        return reverse('reports:download_files', args=[report.parent_id])
     return None
 
 
