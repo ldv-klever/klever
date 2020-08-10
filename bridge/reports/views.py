@@ -250,8 +250,7 @@ class ReportSafeView(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, DetailV
         context = super().get_context_data(**kwargs)
         if self.object.decision.weight == DECISION_WEIGHT[0][0]:
             context['parents'] = get_parents(self.object)
-        else:
-            context['verifier_files_url'] = leaf_verifier_files_url(self.object)
+        context['verifier_files_url'] = leaf_verifier_files_url(self.object)
         context.update({
             'report': self.object, 'resources': report_resources(self.request.user, self.object),
             'SelfAttrsData': self.object.attrs.order_by('id').values_list('id', 'name', 'value', 'data'),
@@ -284,8 +283,7 @@ class ReportUnsafeView(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, Detai
         context = super().get_context_data(**kwargs)
         if self.object.decision.weight == DECISION_WEIGHT[0][0]:
             context['parents'] = get_parents(self.object)
-        else:
-            context['verifier_files_url'] = leaf_verifier_files_url(self.object)
+        context['verifier_files_url'] = leaf_verifier_files_url(self.object)
         context.update({
             'include_jquery_ui': True, 'report': self.object, 'etv': etv,
             'SelfAttrsData': self.object.attrs.order_by('id').values_list('id', 'name', 'value', 'data'),
@@ -328,8 +326,7 @@ class ReportUnknownView(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, Deta
 
         if self.object.decision.weight == DECISION_WEIGHT[0][0]:
             context['parents'] = get_parents(self.object)
-        else:
-            context['verifier_files_url'] = leaf_verifier_files_url(self.object)
+        context['verifier_files_url'] = leaf_verifier_files_url(self.object)
         return context
 
 
