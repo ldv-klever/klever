@@ -184,10 +184,12 @@ class TagsInfo:
         self._tags_filter = tags_filter
         self._tags_model = tags_model
 
+        # Values:
         # reverse('reports:unsafes', args=[self.report.id])
         # reverse('reports:safes', args=[self.report.id])
         self._base_url = base_url
 
+        # Values:
         # ReportSafeCache.objects.filter(report__decision=self.decision)
         # ReportSafeCache.objects.filter(report__leaves__report=self.report)
         # ReportUnsafeCache.objects.filter(report__decision=self.decision)
@@ -205,21 +207,44 @@ class TagsInfo:
         qs_filter = {}
         if self._tags_filter:
             qs_filter['name__{}'.format(self._tags_filter[0])] = self._tags_filter[1]
-        return dict(self._tags_model.objects.filter(**qs_filter).values_list('name', 'description'))
+        db_tags_qs = self._tags_model.objects.filter(**qs_filter).order_by('level')\
+            .only('id', 'parent_id', 'name', 'description')
+        db_tags = {}
+        for tag in db_tags_qs:
+            if tag.parent_id and tag.parent_id not in db_tags:
+                continue
+            db_tags[tag.id] = {
+                'parent': tag.parent_id,
+                'name': tag.name,
+                'description': tag.description
+            }
+        return db_tags
+
+    @cached_property
+    def _db_tags_names(self):
+        return dict((self._db_tags[t_id]['name'], t_id) for t_id in self._db_tags)
 
     def __get_tags_info(self):
         tags_data = {}
         for cache_obj in self._cache_qs.only('tags'):
             for tag in cache_obj.tags:
-                if tag not in self._db_tags:
+                if tag not in self._db_tags_names:
                     continue
-                if tag not in tags_data:
-                    tags_data[tag] = {
-                        'name': tag, 'value': 0, 'description': self._db_tags[tag],
-                        'url': '{}?tag={}'.format(self._base_url, quote(tag))
+                tag_id = self._db_tags_names[tag]
+                parent_id = tag_id
+                while parent_id:
+                    if parent_id in tags_data:
+                        break
+                    tags_data[parent_id] = {
+                        'parent': self._db_tags[parent_id]['parent'],
+                        'name': self._db_tags[parent_id]['name'],
+                        'description': self._db_tags[parent_id]['description'],
+                        'value': 0,
+                        'url': '{}?tag={}'.format(self._base_url, quote(self._db_tags[parent_id]['name']))
                     }
-                tags_data[tag]['value'] += 1
-        return list(tags_data[tag] for tag in sorted(tags_data))
+                    parent_id = self._db_tags[parent_id]['parent']
+                tags_data[tag_id]['value'] += 1
+        return tags_data
 
 
 class ResourcesInfo:

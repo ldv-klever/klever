@@ -16,6 +16,7 @@
 {% endcomment %}
 
 {% load i18n %}
+{% load tree %}
 
 
 {% if reportdata.totals.unsafes or reportdata.totals.safes or reportdata.totals.unknowns %}
@@ -141,32 +142,18 @@
             <tr>
                 {% if reportdata.data.tags_unsafe|length %}
                     <td class="top aligned">
-                        <div class="ui list">
-                            {% for rt in reportdata.data.tags_unsafe %}
-                                <div class="item">
-                                    <i class="tag small orange icon"></i>
-                                    <div class="content">
-                                        <span{% if rt.description %} class="tag-description-popup" data-tooltip="{{ rt.description }}"{% endif %}>{{ rt.name }}: </span>
-                                        <a href="{{ rt.url }}">{{ rt.value }}</a>
-                                    </div>
-                                </div>
-                            {% endfor %}
-                        </div>
+                        {% tree reportdata.data.tags_unsafe 'parent' 'name' 'tag small orange' %}
+                            <span{% if item.description %} class="tag-description-popup" data-tooltip="{{ item.description }}"{% endif %}>{{ item.name }}: </span>
+                            <a href="{{ item.url }}">{{ item.value }}</a>
+                        {% endtree %}
                     </td>
                 {% endif %}
                 {% if reportdata.data.tags_safe|length %}
                     <td class="top aligned">
-                        <div class="ui list">
-                            {% for rt in reportdata.data.tags_safe %}
-                                <div class="item">
-                                    <i class="tag small green icon"></i>
-                                    <div class="content">
-                                        <span{% if rt.description %} class="tag-description-popup" data-tooltip="{{ rt.description }}"{% endif %}>{{ rt.name }}: </span>
-                                        <a href="{{ rt.url }}">{{ rt.value }}</a>
-                                    </div>
-                                </div>
-                            {% endfor %}
-                        </div>
+                        {% tree reportdata.data.tags_safe 'parent' 'name' 'tag small green' %}
+                            <span{% if item.description %} class="tag-description-popup" data-tooltip="{{ item.description }}"{% endif %}>{{ item.name }}: </span>
+                            <a href="{{ item.url }}">{{ item.value }}</a>
+                        {% endtree %}
                     </td>
                 {% endif %}
             </tr>
