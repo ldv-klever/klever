@@ -140,10 +140,10 @@
       }
     },
     "race checking lightweight": {
-      "CPAchecker": {"CPALockator-combat-mode:32886": {"inherit": "CPALockator lightweight"}}
+      "CPAchecker": {"CPALockator-combat-mode:34381": {"inherit": "CPALockator lightweight"}}
     },
     "race checking": {
-      "CPAchecker": {"CPALockator-combat-mode:32886": {"inherit": "CPALockator thread-modular"}}
+      "CPAchecker": {"CPALockator-combat-mode:34381": {"inherit": "CPALockator thread-modular"}}
     },
     "memory checking Linux64": {
       "CPAchecker": {"trunk:31140": {"inherit": "CPAchecker SMG memory checking"}}
