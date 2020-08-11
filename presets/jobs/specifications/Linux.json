@@ -406,7 +406,7 @@
                 {"genericManual": {"enforce replacement": true}}
               ],
               "translation options": {
-                "self parallel processes": true,
+                "self parallel processes": false,
                 "do not skip signals": true,
                 "not self parallel processes": ["linux/insmod"],
                 "not self parallel processes from categories": ["usb"],
@@ -436,7 +436,7 @@
               "verifier profile": "race checking",
               "verifier": {
                 "name": "CPAchecker",
-                "version": "CPALockator-combat-mode:32435"
+                "version": "CPALockator-combat-mode:34381"
               },
               "result processing": {
                 "expect several witnesses": true,
