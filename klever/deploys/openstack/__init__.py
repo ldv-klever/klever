@@ -28,6 +28,12 @@ from klever.deploys.utils import check_deployment_configuration_file, get_logger
 from klever.deploys.openstack.constants import OS_USER
 
 
+def load_default_base_image_name():
+    with open(os.path.normpath(os.path.join(os.path.dirname(__file__), '..', 'conf', 'openstack-base-image.txt'))) \
+            as fp:
+        return fp.read().strip()
+
+
 def parse_args(args, logger):
     parser = argparse.ArgumentParser()
     parser.add_argument('action', choices=['show', 'create', 'update', 'ssh', 'remove', 'share', 'hide'],
@@ -52,7 +58,7 @@ def parse_args(args, logger):
     parser.add_argument('--name', help='Entity name.')
     parser.add_argument('--base-image', default='Debian 9.11.1 64-bit',
                         help='Name of base image on which Klever base image will be based on (default: "%(default)s").')
-    parser.add_argument('--klever-base-image', default='Klever Base v2',
+    parser.add_argument('--klever-base-image', default=load_default_base_image_name(),
                         help='Name of Klever base image on which instances will be based on (default: "%(default)s").')
     parser.add_argument('--flavor', default='spark.large',
                         help='Name of flavor to be used for new instances (default: "%(default)s").')

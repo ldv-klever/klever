@@ -35,7 +35,7 @@ Supported Options
 
 * :ref:`klever_base_image` - with default settings this is a Debian 9 OpenStack image with installed Klever
   dependencies.
-  Using :ref:`klever_base_image` allows to substantially reduce a time for deploying other entities.
+  Using :ref:`klever_base_image` allows to substantially reduce a time for deploying other :ref:`klever_inst`.
 * :ref:`klever_inst` - an OpenStack instance, either for development or production purposes.
   For development mode many debug options are activated by default.
 
@@ -47,8 +47,8 @@ Almost all deployment commands require you to specify path to the private SSH ke
 
 For brevity they are omitted from the following examples.
 
-Also, in addition to command-line arguments mentioned above and below, there are several optional command-line arguments which you can
-find out by running:
+Also, in addition to command-line arguments mentioned above and below, there are several optional command-line arguments
+which you can find out by running:
 
 .. code-block:: bash
 
@@ -66,14 +66,12 @@ The common workflow for :ref:`klever_base_image` is :menuselection:`create --> r
 
     $ klever-deploy-openstack create image
 
-Unless specified, name *Klever Base v2* is used for new :ref:`klever_base_image`.
-If there is already an image with such name you will need to either remove it (using remove action),
-or to use a new name for the image. New images can be incompatible with older deployment scripts, so it is better
-to use a new name for the image if there are some drastic changes inside:
-
-.. code-block:: bash
-
-    $ klever-deploy-openstack --name "Klever Base v3" create image
+Unless specified, name *Klever Base vN* (where N is 1 plus a maximum of 0 and vi) is used for new
+:ref:`klever_base_image`.
+Besides, deployment scripts overwrites file :file:`klever/deploys/conf/openstack-base-image.txt` with this name so that
+new instances will be based on the new :ref:`klever_base_image`.
+To force other users to switch to the new :ref:`klever_base_image` you need to commit changes of this file to the
+repository.
 
 .. _klever_inst:
 
@@ -88,7 +86,7 @@ Basically you should perform actions with :ref:`klever_inst` in the following or
 
     $ klever-deploy-openstack create instance
 
-By default Klever is deployed in production mode, but you can change this with *--mode* argument. In development mode many debug options are activated by default:
+By default Klever is deployed in production mode, but you can change this with the *--mode* command-line argument:
 
 .. parsed-literal::
 
@@ -96,15 +94,16 @@ By default Klever is deployed in production mode, but you can change this with *
 
 In addition, between creating and removing you can also *share*/*hide* for/from the outside world :ref:`klever_inst`
 and open an SSH connection to it.
-By default name for :ref:`klever_inst` is a concatenation of :term:`$OS_USERNAME`, "klever", and mode used (development or production).
-Example: *petrov-klever-development*.
+By default name for :ref:`klever_inst` is a concatenation of :term:`$OS_USERNAME`, "klever", and the mode used
+(development or production), e.g. *petrov-klever-development*.
 
 .. _klever_insts:
 
 Multiple Klever Instances
 -------------------------
 
-You can also create a specified number of OpenStack instances for performing various experiments.
+You can also create a specified number of OpenStack instances for performing various experiments by using the
+*--instances* command-line argument.
 In this mode you can only execute actions *show*, *create*, *update* and *remove*.
 The normal workflow for :ref:`klever_insts` is the same as for :ref:`klever_inst`, e.g.:
 

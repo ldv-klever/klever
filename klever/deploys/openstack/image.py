@@ -14,6 +14,8 @@
 # limitations under the License.
 
 import errno
+import os
+import re
 import sys
 
 from klever.deploys.openstack.client import OSClient
@@ -53,11 +55,24 @@ class OSKleverBaseImage:
             self.logger.info(f'There are no Klever base images matching "{image_name}"')
 
     def create(self):
-        klever_base_image_name = self.name or self.args.klever_base_image
+        # Use either name specified explicitly or "Klever Base vN" where N is 1 plus a maximum of 0 and vi.
+        if self.name:
+            klever_base_image_name = self.name
+            if self.client.image_exists(klever_base_image_name):
+                self.logger.error(f'Klever image matching "{klever_base_image_name}" already exists')
+                sys.exit(errno.EINVAL)
+        else:
+            n = 0
+            image_name = self.name if self.name else 'Klever Base.*'
+            images = self.client.get_images(image_name)
+            if images:
+                for image in images:
+                    match = re.search(r' v(\d+)', image.name)
+                    if match:
+                        i = int(match.group(1))
+                        n = max(i, n)
 
-        if self.client.image_exists(klever_base_image_name):
-            self.logger.error(f'Klever image matching "{klever_base_image_name}" already exists')
-            sys.exit(errno.EINVAL)
+            klever_base_image_name = "Klever Base v{}".format(n + 1)
 
         base_image = self.client.get_base_image(self.args.base_image)
 
@@ -90,6 +105,8 @@ class OSKleverBaseImage:
 
             instance.create_image()
 
+        self.__overwrite_default_base_image_name(klever_base_image_name)
+
     def __install_rsync(self, ssh):
         ssh.execute_cmd('sudo apt-get update', timeout=1)
         ssh.execute_cmd('sudo apt-get install -y rsync', timeout=1)
@@ -108,6 +125,12 @@ class OSKleverBaseImage:
     def __install_python_packages(self, ssh):
         ssh.execute_cmd(f'sudo {PYTHON} -m pip install --upgrade pip==20.1 setuptools wheel', timeout=1)
         ssh.execute_cmd(f'sudo {PYTHON} -m pip install --upgrade -r klever/requirements.txt', timeout=3)
+
+    def __overwrite_default_base_image_name(self, klever_base_image_name):
+        # Most likely the new base image should be used for creating instances by all users.
+        with open(os.path.normpath(os.path.join(os.path.dirname(__file__), '..', 'conf', 'openstack-base-image.txt')),
+                  'w') as fp:
+            fp.write(klever_base_image_name + '\n')
 
     def remove(self):
         klever_base_image_name = self.name or self.args.klever_base_image
