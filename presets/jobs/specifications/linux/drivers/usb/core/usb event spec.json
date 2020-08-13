@@ -9,7 +9,8 @@
               "%resource% = $ALLOC(%resource%);",
               "%usb_device% = $ALLOC(%usb_device%);",
               "%resource%->dev.parent = & %usb_device%->dev;",
-              "%device_id% = & %container%->id_table[0];"
+              "%choice% = ldv_random_int(0, $SIZE(%ids%));",
+              "%device_id% = & %container%->id_table[%choice%];"
             ]
           },
           "callback": {
@@ -145,6 +146,16 @@
           },
           "device_id": {
             "interface": ["usb.device_id"]
+          },
+          "choice": {
+            "declaration": "int a",
+            "value": "0"
+          },
+          "ids": {
+            "container": true,
+            "interface": [
+              "usb.driver_ids"
+            ]
           }
         },
         "process": "(!register).(<alloc_interface>.{manage_interface})",

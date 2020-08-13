@@ -38,6 +38,10 @@
               "suspend": "%usb.suspend%"
             },
             "header": "linux/usb.h"
+          },
+          "driver_ids": {
+            "declaration": "const struct usb_device_id x[]",
+            "header": "linux/usb.h"
           }
         },
         "reference": true,

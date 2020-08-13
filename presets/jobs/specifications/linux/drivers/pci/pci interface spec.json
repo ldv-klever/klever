@@ -38,6 +38,10 @@
               "suspend_late": "%pci.suspend_late%"
             },
             "header": "linux/pci.h"
+          },
+          "driver_ids": {
+            "declaration": "const struct pci_device_id x[]",
+            "header": "linux/pci.h"
           }
         },
         "reference": true,
@@ -106,6 +110,10 @@
               "shutdown": "%pci.shutdown%",
               "suspend": "%pci.suspend%"
             },
+            "header": "linux/pci.h"
+          },
+          "driver_ids": {
+            "declaration": "const struct pci_device_id x[]",
             "header": "linux/pci.h"
           }
         },

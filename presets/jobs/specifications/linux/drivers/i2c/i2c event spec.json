@@ -96,7 +96,7 @@
           "ids": {
             "container": true,
             "interface": [
-              "i2c.i2c_driver_ids"
+              "i2c.driver_ids"
             ]
           },
           "probe_retval": {

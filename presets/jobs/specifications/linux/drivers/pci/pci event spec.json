@@ -32,7 +32,8 @@
             "comment": "Allocate memory for pci_dev structure.",
             "statements": [
               "%resource% = $ALLOC(%resource%);",
-              "%device_id% = & %container%->id_table[0];"
+              "%choice% = ldv_random_int(0, $SIZE(%ids%));",
+              "%device_id% = & %container%->id_table[%choice%];"
             ]
           },
           "main": {
@@ -135,6 +136,16 @@
           "ret": {
             "declaration": "int a",
             "value": "ldv_undef_int()"
+          },
+          "choice": {
+            "declaration": "int a",
+            "value": "0"
+          },
+          "ids": {
+            "container": true,
+            "interface": [
+              "pci.driver_ids"
+            ]
           }
         },
         "process": "(!register).<init>.{main}",
@@ -243,7 +254,8 @@
             "comment": "Allocate memory for pci_dev structure.",
             "statements": [
               "%resource% = $ALLOC(%resource%);",
-              "%device_id% = & %container%->id_table[0];"
+              "%choice% = ldv_random_int(0, $SIZE(%ids%));",
+              "%device_id% = & %container%->id_table[%choice%];"
             ]
           },
           "main": {
@@ -330,6 +342,16 @@
           "ret": {
             "declaration": "int a",
             "value": "ldv_undef_int()"
+          },
+          "choice": {
+            "declaration": "int a",
+            "value": "0"
+          },
+          "ids": {
+            "container": true,
+            "interface": [
+              "pci.driver_ids"
+            ]
           }
         },
         "process": "(!register).<init>.{main}",
