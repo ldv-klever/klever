@@ -51,10 +51,15 @@ int ldv_undef_int(void)
 int ldv_random_int(int begin, int end)
 {
 	int ret;
-	ret = __VERIFIER_nondet_int();
-	ldv_assume(ret >= begin);
-	ldv_assume(ret < end);
-	return ret;
+
+	if (begin >= end)
+        return begin;
+  	else {
+        ret = __VERIFIER_nondet_int();
+        ldv_assume(ret >= begin);
+        ldv_assume(ret < end);
+        return ret;
+	}
 }
 
 int ldv_undef_long(void)
