@@ -708,20 +708,23 @@ def __resolve_interface(logger, interfaces, interface, tail_string):
     # Collect interface list
     for index, field in enumerate(tail):
         # Match using a container field name
-        intf = [matched[-1].field_interfaces[name] for name in matched[-1].field_interfaces if name == field]
+        if isinstance(matched[-1], StructureContainer):
+            intf = [matched[-1].field_interfaces[name] for name in matched[-1].field_interfaces if name == field]
 
-        # Match using an identifier
-        if len(intf) == 0:
-            intf = [matched[-1].field_interfaces[name] for name in matched[-1].field_interfaces
-                    if matched[-1].field_interfaces[name].name == field]
+            # Match using an identifier
+            if len(intf) == 0:
+                intf = [matched[-1].field_interfaces[name] for name in matched[-1].field_interfaces
+                        if matched[-1].field_interfaces[name].name == field]
 
-        if len(intf) == 0:
-            return None
-        else:
-            if index == (len(tail) - 1) or isinstance(intf[-1], Container):
-                matched.append(intf[-1])
-            else:
+            if len(intf) == 0:
                 return None
+            else:
+                if index == (len(tail) - 1) or isinstance(intf[-1], Container):
+                    matched.append(intf[-1])
+                else:
+                    return None
+        else:
+            return None
 
     logger.debug("Resolve string '{}' as '{}'".format(tail_string, ', '.join([str(m) for m in matched])))
     return matched
