@@ -249,6 +249,9 @@ class Declaration:
                     return True
                 elif isinstance(self, Pointer):
                     return self.points == other.points
+                elif isinstance(self, Array):
+                    # Compare children to avoid comparing sizes
+                    return self.element == other.element
                 elif isinstance(self, Function):
                     return self.return_value == other.return_value and \
                            len(self.parameters) == len(other.parameters) and \
