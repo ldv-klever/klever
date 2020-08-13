@@ -27,7 +27,11 @@ around: call(void *ioremap(..)) ||
         call(void *ioremap_cache(..)) ||
         execution(static inline void *ioremap_cache(..)) ||
         call(void *ioremap_nocache(..)) ||
-        execution(static inline void *ioremap_nocache(..))
+        execution(static inline void *ioremap_nocache(..)) ||
+        call(void *ioremap_wc(..)) ||
+        call(void *of_iomap(..)) ||
+        call(void *ioremap_uc(..)) ||
+        call(void *pci_ioremap_bar(..))
 {
 	return ldv_io_mem_remap();
 }

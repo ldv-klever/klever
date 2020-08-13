@@ -236,7 +236,7 @@ class Klever:
         # Try to remove httpd_t from the list of permissive domains.
         try:
             execute_cmd(self.logger, 'semanage', 'permissive', '-d', 'httpd_t')
-        except:
+        except Exception:
             pass
 
     def _post_install_or_update(self, is_dev=False):

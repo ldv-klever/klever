@@ -48,11 +48,6 @@ class DownloadJobSerializer(serializers.ModelSerializer):
     name = fields.CharField(max_length=150)
     archive_format = fields.IntegerField(write_only=True)
 
-    def validate_identifier(self, value):
-        if Job.objects.filter(identifier=value).exists():
-            return uuid.uuid4()
-        return value
-
     def validate_archive_format(self, value):
         if value != ARCHIVE_FORMAT:
             raise exceptions.ValidationError(_("The job archive format is not supported"))
@@ -61,6 +56,12 @@ class DownloadJobSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         attrs.pop('archive_format')
         return attrs
+
+    def create(self, validated_data):
+        try:
+            return Job.objects.get(identifier=validated_data['identifier'])
+        except Job.DoesNotExist:
+            return super(DownloadJobSerializer, self).create(validated_data)
 
     def to_representation(self, instance):
         value = super().to_representation(instance)
