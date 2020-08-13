@@ -75,6 +75,8 @@ class OSKleverBaseImage:
                 name=klever_base_image_name,
                 floating_ip=instance.floating_ip['floating_ip_address']
             ) as ssh:
+                # Copying files uses rsync that needs rsync to be installed on the remote host as well.
+                self.__install_rsync(ssh)
                 with CopyDeployConfAndSrcs(
                     self.args,
                     self.logger,
@@ -87,6 +89,10 @@ class OSKleverBaseImage:
                     self.__install_python_packages(ssh)
 
             instance.create_image()
+
+    def __install_rsync(self, ssh):
+        ssh.execute_cmd('sudo apt-get update')
+        ssh.execute_cmd('sudo apt-get install -y rsync')
 
     def __install_sys_deps(self, ssh):
         # Only Debian (Ubuntu) is supported for now
