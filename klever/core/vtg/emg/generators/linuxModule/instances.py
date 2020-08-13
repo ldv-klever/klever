@@ -132,21 +132,28 @@ def _simplify_process(logger, conf, sa, interfaces, process):
             array_size_re = r'\$SIZE\(%(\w+)%\)'
             match = re.search(array_size_re, statement)
             if match:
+                size = None
                 whole = match.group(0)
-                access = process.resolve_access(f'%{match.group(1)}%')[0]
-                impl = process.get_implementation(access)
-                if not impl:
-                    raise ValueError(f'There is no implementation to replace {whole}')
+                label_name = match.group(1)
 
-                if isinstance(impl.declaration, Array):
-                    size = impl.declaration.size
-                elif isinstance(impl.declaration, Pointer) and isinstance(impl.declaration.points, Array):
-                    size = impl.declaration.points.size
+                access = process.resolve_access(f'%{label_name}%')
+                if access:
+                    access = access[0]
+                    impl = process.get_implementation(access)
+                    if impl:
+                        if isinstance(impl.declaration, Array):
+                            size = impl.declaration.size
+                        elif isinstance(impl.declaration, Pointer) and isinstance(impl.declaration.points, Array):
+                            size = impl.declaration.points.size
+
+                        if not isinstance(size, int):
+                            logger.warning(f'Cannot determine the size of implementation {str(impl)}')
                 else:
-                    size = None
+                    logger.warning(f'Cannot determine access of the label %{str(label_name)}%')
 
-                if not size:
-                    raise ValueError(f'Cannot determine the size of label {str(impl.declaration)}')
+                if not isinstance(size, int):
+                    size = 0
+                    logger.warning(f'Cannot determine the size of label {whole}')
 
                 action.statements[pos] = statement.replace(whole, str(size))
 
