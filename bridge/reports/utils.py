@@ -101,6 +101,13 @@ def report_resources(user, report):
     return None
 
 
+def leaf_verifier_files_url(report):
+    parent_qs = ReportComponent.objects.filter(id=report.parent_id, verification=True).exclude(verifier_files='')
+    if parent_qs.exists():
+        return reverse('reports:download_files', args=[report.parent_id])
+    return None
+
+
 def collapse_reports(decision):
     if decision.weight == DECISION_WEIGHT[1][0]:
         # The decision is already lightweight
