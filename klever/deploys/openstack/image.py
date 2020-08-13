@@ -91,22 +91,23 @@ class OSKleverBaseImage:
             instance.create_image()
 
     def __install_rsync(self, ssh):
-        ssh.execute_cmd('sudo apt-get update')
-        ssh.execute_cmd('sudo apt-get install -y rsync')
+        ssh.execute_cmd('sudo apt-get update', timeout=1)
+        ssh.execute_cmd('sudo apt-get install -y rsync', timeout=1)
 
     def __install_sys_deps(self, ssh):
         # Only Debian (Ubuntu) is supported for now
-        ssh.execute_cmd('sudo apt-get update')
-        ssh.execute_cmd('cat klever/klever/deploys/conf/debian-packages.txt | sudo xargs apt-get install -y')
+        ssh.execute_cmd('sudo apt-get update', timeout=1)
+        ssh.execute_cmd('cat klever/klever/deploys/conf/debian-packages.txt | sudo xargs apt-get install -y',
+                        timeout=3)
 
     def __install_klever_pyton(self, ssh):
-        ssh.execute_cmd('wget https://forge.ispras.ru/attachments/download/7251/python-3.7.6.tar.xz')
+        ssh.execute_cmd('wget https://forge.ispras.ru/attachments/download/7251/python-3.7.6.tar.xz', timeout=1)
         ssh.execute_cmd('sudo tar -C / -xf python-3.7.6.tar.xz')
         ssh.execute_cmd('rm python-3.7.6.tar.xz')
 
     def __install_python_packages(self, ssh):
-        ssh.execute_cmd(f'sudo {PYTHON} -m pip install --upgrade pip==20.1 setuptools wheel')
-        ssh.execute_cmd(f'sudo {PYTHON} -m pip install --upgrade -r klever/requirements.txt')
+        ssh.execute_cmd(f'sudo {PYTHON} -m pip install --upgrade pip==20.1 setuptools wheel', timeout=1)
+        ssh.execute_cmd(f'sudo {PYTHON} -m pip install --upgrade -r klever/requirements.txt', timeout=3)
 
     def remove(self):
         klever_base_image_name = self.name or self.args.klever_base_image

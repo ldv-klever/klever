@@ -81,7 +81,7 @@ class SSH:
         self.logger.info('Close SSH session to instance "{0}" (IP: {1})'.format(self.name, self.floating_ip))
         self.ssh.close()
 
-    def execute_cmd(self, cmd):
+    def execute_cmd(self, cmd, timeout=COMMAND_EXECUTION_CHECK_INTERVAL):
         self.logger.info('Execute command over SSH on instance "{0}" (IP: {1})\n{2}'
                          .format(self.name, self.floating_ip, cmd))
 
@@ -106,7 +106,7 @@ class SSH:
 
             if stdout:
                 print(stdout)
-            time.sleep(self.COMMAND_EXECUTION_CHECK_INTERVAL)
+            time.sleep(timeout)
 
         retcode = chan.recv_exit_status()
 
