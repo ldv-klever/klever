@@ -22,6 +22,10 @@
               "remove": "%i2c.remove%"
             },
             "header": "linux/i2c.h"
+          },
+          "i2c_driver_ids": {
+            "declaration": "const struct i2c_device_id adc128_id[]",
+            "header": "linux/i2c.h"
           }
         },
         "resources": {
