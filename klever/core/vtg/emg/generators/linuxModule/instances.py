@@ -124,6 +124,39 @@ def _simplify_process(logger, conf, sa, interfaces, process):
             label.value = value
             label_map[label.name][str(access.interface)] = label
 
+    # Replace array sizes. Sometimes we need to get the size of global arrays and for this purpose we write $SIZE(%label%).
+    # Where %label% is an interface label that must have an implementation which is a global array. The expression above
+    # should be replaces by a size number like '4'.
+    for action in process.actions.filter(include={Block}):
+        for pos, statement in enumerate(action.statements):
+            array_size_re = r'\$SIZE\(%(\w+)%\)'
+            match = re.search(array_size_re, statement)
+            if match:
+                size = None
+                whole = match.group(0)
+                label_name = match.group(1)
+
+                access = process.resolve_access(f'%{label_name}%')
+                if access:
+                    access = access[0]
+                    impl = process.get_implementation(access)
+                    if impl:
+                        if isinstance(impl.declaration, Array):
+                            size = impl.declaration.size
+                        elif isinstance(impl.declaration, Pointer) and isinstance(impl.declaration.points, Array):
+                            size = impl.declaration.points.size
+
+                        if not isinstance(size, int):
+                            logger.warning(f'Cannot determine the size of implementation {str(impl)}')
+                else:
+                    logger.warning(f'Cannot determine access of the label %{str(label_name)}%')
+
+                if not isinstance(size, int):
+                    size = 0
+                    logger.warning(f'Cannot determine the size of label {whole}')
+
+                action.statements[pos] = statement.replace(whole, str(size))
+
     # Then replace accesses in parameters with simplified expressions
     for action in process.actions.filter(include={Dispatch, Receive}):
         if action.peers:
@@ -910,7 +943,9 @@ def _remove_statics(logger, sa, process):
                         var = resolve_existing(name, implementation, _declarations)
                         if not var:
                             if isinstance(declaration, Array):
-                                declaration = declaration.element.take_pointer
+                                size = declaration.size
+                                declaration = declaration.take_pointer
+                                declaration.points.size = size
                                 value = '& ' + value
                             elif not isinstance(declaration, Pointer):
                                 # Try to use pointer instead of the value

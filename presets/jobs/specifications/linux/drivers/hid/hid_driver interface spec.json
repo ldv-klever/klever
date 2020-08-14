@@ -18,6 +18,10 @@
               "remove": "%hid_driver.remove%"
             },
             "header": "linux/hid.h"
+          },
+          "driver_ids": {
+            "declaration": "const struct hid_device_id x[]",
+            "header": "linux/hid.h"
           }
         },
         "resources": {

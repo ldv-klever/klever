@@ -171,6 +171,7 @@ def __import_entities(collection, sa, entities):
 
         elif "value" in entity["description"] and isinstance(entity["description"]['value'], list):
             if isinstance(bt, Array):
+                bt.size = len(entity["description"]['value'])
                 for entry in entity["description"]['value']:
                     if not entity["root type"]:
                         new_root_type = bt

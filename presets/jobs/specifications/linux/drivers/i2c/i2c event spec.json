@@ -7,7 +7,8 @@
             "comment": "Allocate memory and initialize new i2c client.",
             "statements": [
               "%i2c_client% = $ALLOC(%i2c_client%);",
-              "%i2c_id% = & %i2c_driver%->id_table[0];"
+              "%choice% = ldv_random_int(0, $SIZE(%ids%));",
+              "%i2c_id% = & %i2c_driver%->id_table[%choice%];"
             ]
           },
           "callback": {
@@ -88,6 +89,16 @@
               "i2c.i2c_driver"
             ]
           },
+          "choice": {
+            "declaration": "int a",
+            "value": "0"
+          },
+          "ids": {
+            "container": true,
+            "interface": [
+              "i2c.driver_ids"
+            ]
+          },
           "probe_retval": {
             "declaration": "int a",
             "value": "ldv_undef_int()"
@@ -105,6 +116,7 @@
             ]
           },
           "probe": {
+            "callback": true,
             "match only implemented interfaces": true,
             "interface":[
               "i2c.probe",

@@ -313,56 +313,59 @@ def __match_labels(logger, interfaces, process, category):
                     __add_label_match(logger, interfaces, label_map, label, cn)
 
             # Try to match callback itself
-            functions = []
+            callbacks = []
             if label.name in label_map["matched labels"] and label.container:
                 for intf in label_map["matched labels"][label.name]:
                     intfs = __resolve_interface(logger, interfaces, interfaces.get_intf(intf), tail)
                     if intfs and isinstance(intfs[-1], Callback):
-                        functions.append(intfs[-1])
+                        callbacks.append(intfs[-1])
             elif label.name in label_map["matched labels"] and label.callback:
                 if isinstance(label_map["matched labels"][label.name], set) or \
                         isinstance(label_map["matched labels"][label.name], sortedcontainers.SortedSet):
-                    functions.extend([interfaces.get_or_restore_intf(name) for name in
+                    callbacks.extend([interfaces.get_or_restore_intf(name) for name in
                                       label_map["matched labels"][label.name]
                                       if name in interfaces.interfaces or interfaces.is_deleted_intf(name)])
                 elif label_map["matched labels"][label.name] in interfaces.interfaces or \
                         interfaces.is_removed_intf(label_map["matched labels"][label.name]):
-                    functions.append(interfaces.get_intf(label_map["matched labels"][label.name]))
+                    callbacks.append(interfaces.get_intf(label_map["matched labels"][label.name]))
 
             # Restore interfaces if necesary
-            for intf in (f for f in functions if interfaces.is_removed_intf(f)):
+            for intf in (f for f in callbacks if interfaces.is_removed_intf(f)):
                 interfaces.get_or_restore_intf(intf)
 
             # Match parameters
-            for func in functions:
-                labels = []
-                pre_matched = set()
-
-                for par in action.parameters:
-                    p_label, p_tail = process.extract_label_with_tail(par)
+            for callback in callbacks:
+                labels_tails = []
+                pre_matched_intfs = set()
+                for par_intf in action.parameters:
+                    p_label, p_tail = process.extract_label_with_tail(par_intf)
                     if p_tail:
                         for cn in interfaces.containers(category):
                             intfs = __resolve_interface(logger, interfaces, cn, p_tail)
                             if intfs:
                                 __add_label_match(logger, interfaces, label_map, p_label, cn)
-                                pre_matched.add(str(intfs[-1]))
+                                pre_matched_intfs.add(str(intfs[-1]))
 
-                    labels.append([p_label, p_tail])
+                    labels_tails.append([p_label, p_tail])
 
-                f_intfs = [pr for pr in func.param_interfaces if pr]
-                for pr, par in enumerate(f_intfs):
-                    matched = {str(l[0]) for l in labels if l[0].name in label_map['matched labels'] and
-                               str(par) in label_map['matched labels'][l[0].name]} & \
-                              set(map(lambda x: str(x[0]), labels))
-                    if not matched and str(par) not in pre_matched:
-                        unmatched = [label[0] for label in labels
-                                     if label[0].name not in label_map['matched labels'] and not label[1]]
+                for par_intf in (par_intf for par_intf in callback.param_interfaces if par_intf):
+                    matched = {str(label) for label, _ in labels_tails if label.name in label_map['matched labels'] and
+                               str(par_intf) in label_map['matched labels'][label.name]}
+                    if not matched and str(par_intf) not in pre_matched_intfs:
+                        unmatched = [label for label, tail in labels_tails
+                                     if not tail and label.name not in label_map['matched labels']]
                         if unmatched:
-                            __add_label_match(logger, interfaces, label_map, unmatched[0], par)
+                            # todo: This is nasty to get the first one
+                            __add_label_match(logger, interfaces, label_map, unmatched[0], par_intf)
                         else:
-                            rsrs = [label[0] for label in labels if label[0].resource]
+                            # Check that the interface is not already matched
+                            matched_interfaces = {i for x in label_map['matched labels'].values() for i in x}
+                            if str(par_intf) in matched_interfaces:
+                                continue
+
+                            rsrs = [label[0] for label in labels_tails if label[0].resource]
                             if rsrs:
-                                __add_label_match(logger, interfaces, label_map, rsrs[0], par)
+                                __add_label_match(logger, interfaces, label_map, rsrs[0], par_intf)
 
         unmatched_callbacks = [cl for cl in process.callbacks if cl.name not in label_map["matched labels"]]
         for cl in unmatched_callbacks:
@@ -371,10 +374,9 @@ def __match_labels(logger, interfaces, process, category):
                 __add_label_match(logger, interfaces, label_map, cl, intf)
 
         # Discard unmatched labels
-        label_map["unmatched labels"] = [label for label in process.labels.keys()
-                                         if label not in label_map["matched labels"] and
-                                         len(process.labels[label].interfaces) == 0 and not
-                                         process.labels[label].declaration]
+        label_map["unmatched labels"] = [str(label) for label in process.labels.values()
+                                         if str(label) not in label_map["matched labels"] and not label.interfaces
+                                         and not label.declaration and not label.callback]
 
         # Discard unmatched callbacks
         label_map["unmatched callbacks"] = []
@@ -706,20 +708,23 @@ def __resolve_interface(logger, interfaces, interface, tail_string):
     # Collect interface list
     for index, field in enumerate(tail):
         # Match using a container field name
-        intf = [matched[-1].field_interfaces[name] for name in matched[-1].field_interfaces if name == field]
+        if isinstance(matched[-1], StructureContainer):
+            intf = [matched[-1].field_interfaces[name] for name in matched[-1].field_interfaces if name == field]
 
-        # Match using an identifier
-        if len(intf) == 0:
-            intf = [matched[-1].field_interfaces[name] for name in matched[-1].field_interfaces
-                    if matched[-1].field_interfaces[name].name == field]
+            # Match using an identifier
+            if len(intf) == 0:
+                intf = [matched[-1].field_interfaces[name] for name in matched[-1].field_interfaces
+                        if matched[-1].field_interfaces[name].name == field]
 
-        if len(intf) == 0:
-            return None
-        else:
-            if index == (len(tail) - 1) or isinstance(intf[-1], Container):
-                matched.append(intf[-1])
-            else:
+            if len(intf) == 0:
                 return None
+            else:
+                if index == (len(tail) - 1) or isinstance(intf[-1], Container):
+                    matched.append(intf[-1])
+                else:
+                    return None
+        else:
+            return None
 
     logger.debug("Resolve string '{}' as '{}'".format(tail_string, ', '.join([str(m) for m in matched])))
     return matched
