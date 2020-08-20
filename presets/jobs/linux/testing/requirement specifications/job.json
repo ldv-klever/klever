@@ -31,6 +31,8 @@
         "ext-modules/linux/concurrency-safety/unsorted/RaceTest8-safe.ko",
         "ext-modules/linux/concurrency-safety/unsorted/RaceTest9-safe.ko",
         "ext-modules/linux/concurrency-safety/unsorted/RaceTest10-safe.ko",
+        "ext-modules/linux/concurrency-safety/rcu/reader_writer-N-true-no-datarace.ko",
+        "ext-modules/linux/concurrency-safety/rcu/reader_writer-true-no-datarace.ko",
         "ext-modules/linux/drivers/base/class/safe.ko",
         "ext-modules/linux/drivers/clk1/safe.ko",
         "ext-modules/linux/drivers/clk2/safe.ko",
@@ -113,6 +115,10 @@
     {
       "targets": ["ext-modules/linux/concurrency-safety/unsorted"],
       "requirement specifications": ["concurrency safety"]
+    },
+    {
+      "targets": ["ext-modules/linux/concurrency-safety/rcu"],
+      "requirement specifications": ["concurrency safety rcu"]
     },
     {
       "targets": ["ext-modules/linux/drivers/base/class"],
