@@ -40,8 +40,7 @@ def merge_files(logger, conf, abstract_task_desc):
             '-no-autoload-plugins', '-no-findlib',
             # Copy user or internal errors to "problem desc.txt" explicitly since CIL does not output them to STDERR.
             '-kernel-log', 'e:problem desc.txt',
-            # TODO: Indeed, we need to think more about everything related with architectures. This is not CIL specific issue.
-            '-machdep', 'gcc_' + conf['architecture'],
+            '-machdep', conf['CIL']['machine'],
             # Compatibility with C11 (ISO/IEC 9899:2011).
             '-c11',
             # In our mode this is the only warning resulting to errors by default.
