@@ -62,28 +62,25 @@ class Weaver(klever.core.vtg.plugins.Plugin):
                 # with compiler command description.
                 if isinstance(extra_cc['CC'], list):
                     cc = clade.get_cmd(*extra_cc['CC'], with_opts=True)
+                    if "in file" in extra_cc:
+                        # This is for CC commands with several input files
+                        infile = extra_cc["in file"]
+                    else:
+                        infile = cc["in"][0]
+
+                    infile = clade.get_storage_path(infile)
+                    if meta['conf'].get('Compiler.preprocess_cmds', False):
+                        infile = infile('.c')[0] + '.i'
                 else:
                     with open(os.path.join(self.conf['main working directory'], extra_cc['CC']),
                               encoding='utf8') as fp:
                         cc = json.load(fp)
 
-                    # extra_cc is a cc command that is not from Clade
-                    # Thus paths in it need to be converted to be absolute
-                    # like in other Clade commands
-                    if "cwd" in cc and "in" in cc:
-                        cc["in"] = [os.path.join(cc["cwd"], cc_in) for cc_in in cc["in"]]
-
-                    if "cwd" in cc and "out" in cc:
-                        cc["out"] = [os.path.join(cc["cwd"], cc_out) for cc_out in cc["out"]]
-
-                if "in file" in extra_cc:
-                    # This is for CC commands with several input files
-                    infile = extra_cc["in file"]
-                else:
                     infile = cc["in"][0]
+
                 # Distinguish source files having the same names.
-                outfile_unique = '{0}.c'.format(klever.core.utils.unique_file_name(os.path.splitext(os.path.basename(
-                    infile))[0], '.c'))
+                outfile_unique = '{0}.c'.format(
+                    klever.core.utils.unique_file_name(os.path.splitext(os.path.basename(infile))[0], '.c'))
                 # This is used for storing/getting to/from cache where uniqueness is guaranteed by other means.
                 outfile = '{0}.c'.format(os.path.splitext(os.path.basename(infile))[0])
                 self.logger.info('Weave in C file "{0}"'.format(infile))
@@ -122,11 +119,6 @@ class Weaver(klever.core.vtg.plugins.Plugin):
                 else:
                     self.logger.info('C file will be passed through C Back-end only')
 
-                storage_path = clade.get_storage_path(infile)
-                if meta['conf'].get('Compiler.preprocess_cmds', False) and \
-                        'klever-core-work-dir' not in storage_path:
-                    storage_path = storage_path.split('.c')[0] + '.i'
-
                 cwd = clade.get_storage_path(cc['cwd'])
 
                 is_model = (grp['id'] == 'models')
@@ -134,20 +126,20 @@ class Weaver(klever.core.vtg.plugins.Plugin):
                 # Original sources should be woven in and we do not need to get cross references for them since this
                 # was already done before.
                 if not is_model:
-                    self.__weave(storage_path, cc['opts'], aspect, outfile_unique, clade, env, cwd,
+                    self.__weave(infile, cc['opts'], aspect, outfile_unique, clade, env, cwd,
                                  aspectator_search_dir, is_model)
                 # For generated models we need to weave them in (actually, just pass through C Back-end) and to get
                 # cross references always since most likely they all are different.
                 elif 'generated' in extra_cc:
-                    self.__weave(storage_path, cc['opts'], aspect, outfile_unique, clade, env, cwd,
+                    self.__weave(infile, cc['opts'], aspect, outfile_unique, clade, env, cwd,
                                  aspectator_search_dir, is_model)
                     if self.conf['code coverage details'] != 'Original C source files':
-                        self.__get_cross_refs(storage_path, cc['opts'], outfile_unique, clade, cwd,
+                        self.__get_cross_refs(infile, cc['opts'], outfile_unique, clade, cwd,
                                               aspectator_search_dir)
                 # For non-generated models use results cache in addition.
                 else:
                     cache_dir = os.path.join(self.conf['cache directory'],
-                                             klever.core.utils.get_file_checksum(storage_path))
+                                             klever.core.utils.get_file_checksum(infile))
                     with klever.core.utils.LockedOpen(cache_dir + '.tmp', 'w'):
                         if os.path.exists(cache_dir):
                             self.logger.info('Get woven in C file from cache')
@@ -159,13 +151,13 @@ class Weaver(klever.core.vtg.plugins.Plugin):
                                 self.__merge_additional_srcs(os.path.join(cache_dir, 'additional sources'))
                         else:
                             os.makedirs(cache_dir)
-                            self.__weave(storage_path, cc['opts'], aspect, outfile_unique, clade, env, cwd,
+                            self.__weave(infile, cc['opts'], aspect, outfile_unique, clade, env, cwd,
                                          aspectator_search_dir, is_model)
                             self.logger.info('Store woven in C file to cache')
                             shutil.copy(outfile_unique, os.path.join(cache_dir, outfile))
 
                             if self.conf['code coverage details'] != 'Original C source files':
-                                self.__get_cross_refs(storage_path, cc['opts'], outfile_unique, clade, cwd,
+                                self.__get_cross_refs(infile, cc['opts'], outfile_unique, clade, cwd,
                                                       aspectator_search_dir)
                                 self.logger.info('Store cross references to cache')
                                 shutil.copytree(outfile_unique + ' additional sources',
@@ -219,13 +211,13 @@ class Weaver(klever.core.vtg.plugins.Plugin):
         del (self.abstract_task_desc['grps'])
         del (self.abstract_task_desc['deps'])
 
-    def __weave(self, storage_path, opts, aspect, outfile, clade, env, cwd, aspectator_search_dir, is_model):
+    def __weave(self, infile, opts, aspect, outfile, clade, env, cwd, aspectator_search_dir, is_model):
         klever.core.utils.execute(
             self.logger,
             tuple(
                 [
                     'cif',
-                    '--in', storage_path,
+                    '--in', infile,
                     # Besides header files specific for requirements specifications will be searched for.
                     '--general-opts',
                     '-I' + os.path.join(os.path.dirname(self.conf['specifications base']), 'include'),
@@ -250,7 +242,7 @@ class Weaver(klever.core.vtg.plugins.Plugin):
         self.abstract_task_desc['extra C files'].append(
             {'C file': os.path.relpath(outfile, self.conf['main working directory'])})
 
-    def __get_cross_refs(self, storage_path, opts, outfile, clade, cwd, aspectator_search_dir):
+    def __get_cross_refs(self, infile, opts, outfile, clade, cwd, aspectator_search_dir):
         # Get cross references and everything required for them.
         # Limit parallel workers in Clade by 4 since at this stage there may be several parallel task generators and we
         # prefer their parallelism over the Clade default one.
@@ -266,7 +258,7 @@ class Weaver(klever.core.vtg.plugins.Plugin):
             [
                 aspectator_search_dir,
                 '-fsyntax-only',
-                storage_path
+                infile
             ],
             cwd=cwd
         )
