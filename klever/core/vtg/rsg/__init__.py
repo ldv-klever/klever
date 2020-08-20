@@ -226,7 +226,7 @@ class RSG(klever.core.vtg.plugins.Plugin):
             with open(full_desc_file, 'w', encoding='utf8') as fp:
                 klever.core.utils.json_dump({
                     'cwd': model_compiler_cwd,
-                    'in': [os.path.relpath(model_c_file, os.path.realpath(clade.get_storage_path(model_compiler_cwd)))],
+                    'in': [os.path.realpath(model_c_file)],
                     'out': [os.path.realpath(out_file)],
                     'opts': model_compiler_opts + opts
                 }, fp, self.conf['keep intermediate files'])
