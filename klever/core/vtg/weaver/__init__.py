@@ -48,7 +48,8 @@ class Weaver(klever.core.vtg.plugins.Plugin):
         # This is required to get compiler (Aspectator) specific stdarg.h since kernel C files are compiled
         # with "-nostdinc" option and system stdarg.h couldn't be used.
         aspectator_search_dir = '-isystem' + klever.core.utils.execute(
-            self.logger, ('aspectator', '-print-file-name=include'), collect_all_stdout=True)[0]
+            self.logger, (klever.core.vtg.utils.get_cif_or_aspectator_exec(self.conf, 'aspectator'),
+                          '-print-file-name=include'), collect_all_stdout=True)[0]
 
         env = dict(os.environ)
         # Print stubs instead of inline Assembler since verifiers do not interpret it and even can fail.
@@ -216,7 +217,7 @@ class Weaver(klever.core.vtg.plugins.Plugin):
             self.logger,
             tuple(
                 [
-                    'cif',
+                    klever.core.vtg.utils.get_cif_or_aspectator_exec(self.conf, 'cif'),
                     '--in', infile,
                     # Besides header files specific for requirements specifications will be searched for.
                     '--general-opts',
@@ -246,13 +247,14 @@ class Weaver(klever.core.vtg.plugins.Plugin):
         # Get cross references and everything required for them.
         # Limit parallel workers in Clade by 4 since at this stage there may be several parallel task generators and we
         # prefer their parallelism over the Clade default one.
-        clade_extra = Clade(work_dir=os.path.realpath(outfile + ' clade'), conf={'cpu_count': 4})
+        clade_extra = Clade(work_dir=os.path.realpath(outfile + ' clade'), preset=self.conf['Clade']['preset'],
+                            conf={'cpu_count': 4})
         # TODO: this can be incorporated into instrumentation above but it will need some Clade changes.
         # Emulate normal compilation (indeed just parsing thanks to "-fsyntax-only") to get additional
         # dependencies (model source files) and information on them.
         clade_extra.intercept(
             [
-                'aspectator',
+                klever.core.vtg.utils.get_cif_or_aspectator_exec(self.conf, 'aspectator'),
                 '-I' + os.path.join(os.path.dirname(self.conf['specifications base']), 'include')
             ] + klever.core.vtg.utils.prepare_cif_opts(opts, clade, True) +
             [

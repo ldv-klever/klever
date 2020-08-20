@@ -42,6 +42,34 @@ NECESSARY_FILES = [
     'tasks.json',
     'verifier profiles.json'
 ]
+DEFAULT_ARCH = 'x86-64'
+DEFAULT_ARCH_OPTS = {
+  'ARM': {
+    'CIF': {
+      'cross compile prefix': 'arm-unknown-eabi-'
+    },
+    # Currently CIL does not support ARM (https://forge.ispras.ru/issues/10471).
+    'CIL': {
+      'machine': 'gcc_x86_64'
+    },
+    'Clade': {
+      'preset': 'klever_linux_kernel_arm'
+    }
+  },
+  'x86-64': {
+    'CIF': {
+      'cross compile prefix': ''
+    },
+    'CIL': {
+      'machine': 'gcc_x86_64'
+    },
+    # Hey! Everybody will use Linux kernel specific preset for Clade. Let's hope that it does not matter since at the
+    # moment this is used just for getting cross references.
+    'Clade': {
+      'preset': 'klever_linux_kernel'
+    }
+  }
+}
 CODE_COVERAGE_DETAILS_MAP = {
     '0': 'Original C source files',
     '1': 'C source files including models',
@@ -174,6 +202,10 @@ def __get_common_components_conf(logger, conf):
 
     with open(klever.core.utils.find_file_or_dir(logger, os.path.curdir, 'job.json'), encoding='utf8') as fp:
         components_common_conf = json.load(fp)
+
+    # Add architecture specific options. At the moment there are only default options but one may add dedicated
+    # configuration files to jobs.
+    components_common_conf.update(DEFAULT_ARCH_OPTS[components_common_conf.get('architecture', DEFAULT_ARCH)])
 
     # Add complete Klever Core configuration itself to components configuration since almost all its attributes will
     # be used somewhere in components.
