@@ -9,7 +9,19 @@
         {"-setprop": "cpa.arg.witness.removeInsufficientEdges=false"},
         {"-setprop": "output.disable=true"},
         {"-heap": "%ldv:memory size:0.8:MB%m"}
-      ]
+      ],
+      "architecture dependant options": {
+        "x86-64": {
+          "add options": [
+            {"-setprop": "analysis.machineModel=LINUX64"}
+          ]
+        },
+        "arm": {
+          "add options": [
+            {"-setprop": "analysis.machineModel=ARM"}
+          ]
+        }
+      }
     },
     "Ultimate common": {
       "description": "Common options for the UltimateAutimizer tool",
@@ -147,13 +159,6 @@
     },
     "memory checking Linux64": {
       "CPAchecker": {"trunk:31140": {"inherit": "CPAchecker SMG memory checking"}}
-    },
-    "memory checking ARM": {
-      "CPAchecker": {"trunk:31140": {
-          "inherit": "CPAchecker SMG memory checking",
-          "add options": [{"-setprop": "analysis.machineModel=ARM"}],
-          "exclude options": [{"-setprop": "analysis.machineModel=LINUX64"}]
-      }}
     }
   }
 }
