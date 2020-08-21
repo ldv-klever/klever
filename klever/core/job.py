@@ -205,7 +205,9 @@ def __get_common_components_conf(logger, conf):
 
     # Add architecture specific options. At the moment there are only default options but one may add dedicated
     # configuration files to jobs.
-    components_common_conf.update(DEFAULT_ARCH_OPTS[components_common_conf.get('architecture', DEFAULT_ARCH)])
+    if 'architecture' not in components_common_conf:
+        components_common_conf['architecture'] = DEFAULT_ARCH
+    components_common_conf.update(DEFAULT_ARCH_OPTS[components_common_conf['architecture']])
 
     # Add complete Klever Core configuration itself to components configuration since almost all its attributes will
     # be used somewhere in components.
