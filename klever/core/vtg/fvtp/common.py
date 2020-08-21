@@ -21,6 +21,8 @@ import zipfile
 import json
 import klever.core.utils
 
+DEFAULT_ARCH = "x86-64"
+
 
 def merge_files(logger, conf, abstract_task_desc):
     """
@@ -175,11 +177,15 @@ def get_verifier_opts_and_safe_prps(logger, resource_limits, conf):
 
     logger.debug("Prepare final opts description")
     last = None
+    current_arch = conf.get('architecture', DEFAULT_ARCH)
     while len(sets):
         if not last:
             # We know that there are at least two elements in the list
             last = sets.pop()
         new = sets.pop()
+        if new.get('architecture dependant options'):
+            arch_options = new['architecture dependant options'].get(current_arch, {})
+            new = merge(new, arch_options)
         last = merge(last, new)
 
     # Then get verification profile directly from user if it is set
