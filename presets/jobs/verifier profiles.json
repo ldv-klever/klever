@@ -157,7 +157,7 @@
     "race checking": {
       "CPAchecker": {"CPALockator-combat-mode:34381": {"inherit": "CPALockator thread-modular"}}
     },
-    "memory checking Linux64": {
+    "memory checking": {
       "CPAchecker": {"trunk:31140": {"inherit": "CPAchecker SMG memory checking"}}
     }
   }
