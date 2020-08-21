@@ -611,6 +611,12 @@
             "value": "ldv_undef_int()"
           }
         },
+        "declarations": {
+          "environment model": {
+            "emg_runtime_enabled": "int emg_runtime_enabled = 0;\n",
+            "emg_runtime_status": "int emg_runtime_lowpower = 1;\n"
+          }
+        },
         "process": "<assign>.[runtime_resume].<return>",
         "reference": true
       },
@@ -659,6 +665,12 @@
             "value": "ldv_undef_int()"
           }
         },
+        "declarations": {
+          "environment model": {
+            "emg_runtime_enabled": "int emg_runtime_enabled = 0;\n",
+            "emg_runtime_status": "int emg_runtime_lowpower = 1;\n"
+          }
+        },
         "process": "<assign>.[runtime_suspend].<return>",
         "reference": true
       },
@@ -702,6 +714,12 @@
             ]
           }
         },
+        "declarations": {
+          "environment model": {
+            "emg_runtime_enabled": "int emg_runtime_enabled = 0;\n",
+            "emg_runtime_status": "int emg_runtime_lowpower = 1;\n"
+          }
+        },
         "process": "<assign>.(<lowpower>.[runtime_resume])",
         "reference": true
       },
@@ -716,6 +734,12 @@
           }
         },
         "labels": {},
+        "declarations": {
+          "environment model": {
+            "emg_runtime_enabled": "int emg_runtime_enabled = 0;\n",
+            "emg_runtime_status": "int emg_runtime_lowpower = 1;\n"
+          }
+        },
         "process": "<activate>",
         "reference": true
       },
@@ -758,6 +782,12 @@
             "interface": [
               "pm.dev_pm_ops"
             ]
+          }
+        },
+        "declarations": {
+          "environment model": {
+            "emg_runtime_enabled": "int emg_runtime_enabled = 0;\n",
+            "emg_runtime_status": "int emg_runtime_lowpower = 1;\n"
           }
         },
         "process": "<assign>.(<lowpower>.[runtime_suspend])",
