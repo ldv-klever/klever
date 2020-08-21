@@ -40,8 +40,7 @@ def merge_files(logger, conf, abstract_task_desc):
             '-no-autoload-plugins', '-no-findlib',
             # Copy user or internal errors to "problem desc.txt" explicitly since CIL does not output them to STDERR.
             '-kernel-log', 'e:problem desc.txt',
-            # TODO: Indeed, we need to think more about everything related with architectures. This is not CIL specific issue.
-            '-machdep', 'gcc_' + conf['architecture'],
+            '-machdep', conf['CIL']['machine'],
             # Compatibility with C11 (ISO/IEC 9899:2011).
             '-c11',
             # In our mode this is the only warning resulting to errors by default.
@@ -181,6 +180,9 @@ def get_verifier_opts_and_safe_prps(logger, resource_limits, conf):
             # We know that there are at least two elements in the list
             last = sets.pop()
         new = sets.pop()
+        if new.get('architecture dependant options'):
+            arch_options = new['architecture dependant options'].get(conf['architecture'], {})
+            new = merge(new, arch_options)
         last = merge(last, new)
 
     # Then get verification profile directly from user if it is set

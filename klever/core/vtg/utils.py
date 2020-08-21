@@ -30,6 +30,10 @@ def find_file_or_dir(logger, main_work_dir, file_or_dir):
         return klever.core.utils.find_file_or_dir(logger, main_work_dir, file_or_dir)
 
 
+def get_cif_or_aspectator_exec(conf, exec):
+    return conf['CIF']['cross compile prefix'] + exec
+
+
 def prepare_cif_opts(opts, clade, model_opts=False):
     new_opts = []
     meta = clade.get_meta()
