@@ -225,8 +225,18 @@
         "header": "linux/pm.h",
         "reference": true
       },
-      "pm_runtime_set_active": {
-        "declaration": "static inline int pm_runtime_set_active(%pm.device%)",
+      "pm_runtime_active": {
+        "declaration": "bool pm_runtime_active(%pm.device%)",
+        "header": "linux/pm.h",
+        "reference": true
+      },
+      "pm_runtime_suspended": {
+        "declaration": "bool pm_runtime_suspended(%pm.device%)",
+        "header": "linux/pm.h",
+        "reference": true
+      },
+      "pm_runtime_enabled": {
+        "declaration": "bool pm_runtime_enabled(%pm.device%)",
         "header": "linux/pm.h",
         "reference": true
       }
