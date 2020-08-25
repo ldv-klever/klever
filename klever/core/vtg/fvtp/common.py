@@ -180,6 +180,9 @@ def get_verifier_opts_and_safe_prps(logger, resource_limits, conf):
             # We know that there are at least two elements in the list
             last = sets.pop()
         new = sets.pop()
+        if last.get('architecture dependant options'):
+            arch_options = last['architecture dependant options'].get(conf['architecture'], {})
+            last = merge(last, arch_options)
         if new.get('architecture dependant options'):
             arch_options = new['architecture dependant options'].get(conf['architecture'], {})
             new = merge(new, arch_options)
