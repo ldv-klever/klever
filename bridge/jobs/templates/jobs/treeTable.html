@@ -18,18 +18,11 @@
 {% load i18n %}
 
 {% load tz %}
+{% load tableheader %}
 
 {% if TableData.content %}
     <table class="ui celled compact structured violet table tree alternate-color">
-        <thead style="background: #c0b3e7;">
-            {% for column_row in TableData.header %}
-                <tr>
-                    {% for coldata in column_row %}
-                        <th colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.title }}</th>
-                    {% endfor %}
-                </tr>
-            {% endfor %}
-        </thead>
+        <thead>{% tableheader TableData.columns TableData.titles %}</thead>
         <tbody>
             {% for preset_data in TableData.content.values %}
                 <tr class="{% if preset_data.instance.type != '2' %}tr-show{% endif %} treegrid-p{{ preset_data.instance.id }}{% if preset_data.instance.parent_id %} treegrid-parent-p{{ preset_data.instance.parent_id }}{% endif %}">

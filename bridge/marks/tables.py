@@ -27,10 +27,8 @@ from django.utils.timezone import now
 from django.utils.translation import ugettext_lazy as _
 
 from bridge.vars import (
-    MARK_SAFE, MARK_UNSAFE, ASSOCIATION_TYPE, MARK_SOURCE, USER_ROLES, MARK_STATUS,
-    SAFE_VERDICTS, UNSAFE_VERDICTS, SAFE_COLOR, UNSAFE_COLOR, STATUS_COLOR
+    MARK_SAFE, MARK_UNSAFE, ASSOCIATION_TYPE, MARK_SOURCE, USER_ROLES, MARK_STATUS, SAFE_VERDICTS, UNSAFE_VERDICTS
 )
-from bridge.tableHead import Header
 
 from users.models import User
 from jobs.models import Decision
@@ -43,6 +41,8 @@ from marks.models import (
 )
 from caches.models import SafeMarkAssociationChanges, UnsafeMarkAssociationChanges, UnknownMarkAssociationChanges
 
+from reports.verdicts import safe_color, unsafe_color, bug_status_color
+
 from users.utils import HumanizedValue, paginate_queryset
 from jobs.utils import decisions_with_view_access
 from marks.utils import MarkAccess
@@ -53,6 +53,7 @@ MARK_TITLES = {
     'change_kind': _('Association change kind'),
     'verdict': _("Verdict"),
     'sum_verdict': _('Total verdict'),
+    'sum_status': _('Total status'),
     'similarity': _('Similarity'),
     'status': _('Status'),
     'author': _('Last change author'),
@@ -85,12 +86,6 @@ CHANGE_COLOR = {
     '2': '#D11919'
 }
 
-ASSOCIATION_TYPE_COLOR = {
-    '0': '#7506b4',
-    '1': '#3f9f32',
-    '2': '#c71a2d'
-}
-
 
 def result_color(result):
     if 0 <= result <= 0.33:
@@ -113,10 +108,10 @@ class ReportMarksTableBase:
         self.user = user
         self.report = report
         self.view = view
+        self.titles = MARK_TITLES
         self.can_mark = MarkAccess(user, report=report).can_create
         self.ass_types = ASSOCIATION_TYPE
         self.statuses = self.verdicts = None
-        self.values, self.header = self.__get_values()
 
     @cached_property
     def selected_columns(self):
@@ -124,14 +119,14 @@ class ReportMarksTableBase:
         supported_columns = set(self.supported_columns)
         for col in self.view['columns']:
             if col in supported_columns:
-                columns.append({'value': col, 'title': MARK_TITLES.get(col, col)})
+                columns.append({'value': col, 'title': self.titles.get(col, col)})
         return columns
 
     @cached_property
     def available_columns(self):
         columns = []
         for col in self.supported_columns:
-            columns.append({'value': col, 'title': MARK_TITLES.get(col, col)})
+            columns.append({'value': col, 'title': self.titles.get(col, col)})
         return columns
 
     @cached_property
@@ -182,12 +177,12 @@ class ReportMarksTableBase:
         if 'associated' in self.view:
             qs_filters['markreport_set__associated'] = True
 
-        annotations = {'ass_id': F('markreport_set__id')}
+        annotations = {
+            'ass_id': F('markreport_set__id'),
+            'ass_type': F('markreport_set__type')
+        }
         columns_set = set(self.columns)
-        fields = ['id', 'ass_id']
-        if 'associated' in columns_set:
-            annotations['associated'] = F('markreport_set__associated')
-            fields.append('associated')
+        fields = ['id', 'ass_id', 'ass_type']
         if 'verdict' in columns_set:
             fields.append('verdict')
         if 'problem' in columns_set:
@@ -203,9 +198,6 @@ class ReportMarksTableBase:
             fields.append('source')
         if 'tags' in columns_set:
             fields.append('cache_tags')
-        if 'ass_type' in columns_set:
-            annotations['ass_type'] = F('markreport_set__type')
-            fields.append('ass_type')
         if 'ass_author' in columns_set:
             annotations['ass_author'] = F('markreport_set__author')
             fields.append('ass_author')
@@ -246,10 +238,44 @@ class ReportMarksTableBase:
                 likes_data_list.append({'id': ass_id, 'authors': self.likes_data['dislikes'][ass_id]})
         return likes_data_list
 
-    def __get_values(self):
-        value_data = []
+    @cached_property
+    def _verdicts_map(self):
+        if self.verdicts:
+            return dict(self.verdicts)
+        return {}
+
+    @cached_property
+    def _statuses_map(self):
+        if self.statuses:
+            return dict(self.statuses)
+        return {}
+
+    @cached_property
+    def values(self):
+        value_data = {
+            ASSOCIATION_TYPE[0][0]: {
+                'title': _('Dissimilar marks'),
+                'color': '#8f361e',
+                'values': []
+            },
+            ASSOCIATION_TYPE[1][0]: {
+                'title': _('Similar marks with unconfirmed associations'),
+                'color': '#c71a2d',
+                'values': []
+            },
+            ASSOCIATION_TYPE[2][0]: {
+                'title': _('Similar marks with automatic associations'),
+                'color': '#7506b4',
+                'values': []
+            },
+            ASSOCIATION_TYPE[3][0]: {
+                'title': _('Similar marks with confirmed associations'),
+                'color': '#3f9f32',
+                'values': []
+            }
+        }
+
         source_dict = dict(MARK_SOURCE)
-        ass_type_dict = dict(self.ass_types)
 
         cnt = 1
         for mark_data in self.queryset:
@@ -262,11 +288,11 @@ class ReportMarksTableBase:
                     val = cnt
                     href = reverse('marks:{}'.format(self.report_type), args=[mark_data['id']])
                 elif col == 'verdict':
-                    val = self.marks_model(verdict=mark_data['verdict']).get_verdict_display()
+                    val = self._verdicts_map[mark_data['verdict']]
                     if self.report_type == 'unsafe':
-                        color = UNSAFE_COLOR[mark_data['verdict']]
+                        color = unsafe_color(mark_data['verdict'])
                     else:
-                        color = SAFE_COLOR[mark_data['verdict']]
+                        color = safe_color(mark_data['verdict'])
                 elif col == 'problem':
                     val = mark_data['problem']
                     problem_link = mark_data['link']
@@ -283,29 +309,13 @@ class ReportMarksTableBase:
                         color = result_color(mark_data['similarity'])
                 elif col == 'status':
                     if mark_data['status']:
-                        val = MarkUnsafe(status=mark_data['status']).get_status_display()
-                        color = STATUS_COLOR[mark_data['status']]
+                        val = self._statuses_map[mark_data['status']]
+                        color = bug_status_color(mark_data['status'])
                 elif col == 'source':
                     val = source_dict[mark_data['source']]
                 elif col == 'tags':
                     if mark_data['cache_tags']:
                         val = '; '.join(sorted(mark_data['cache_tags']))
-                elif col == 'ass_type':
-                    val = {
-                        'id': mark_data['id'], 'origin': mark_data['ass_type'],
-                        'display': ass_type_dict[mark_data['ass_type']]
-                    }
-                    if mark_data['ass_type'] != ASSOCIATION_TYPE[1][0]:
-                        val['confirm_url'] = reverse(
-                            'marks:api-confirm-{}'.format(self.report_type),
-                            args=[mark_data['ass_id']]
-                        )
-                    if mark_data['ass_type'] != ASSOCIATION_TYPE[2][0]:
-                        val['unconfirm_url'] = reverse(
-                            'marks:api-confirm-{}'.format(self.report_type),
-                            args=[mark_data['ass_id']]
-                        )
-                    color = ASSOCIATION_TYPE_COLOR[mark_data['ass_type']]
                 elif col == 'ass_author':
                     if mark_data['ass_author'] and mark_data['ass_author'] in self.authors:
                         val = self.authors[mark_data['ass_author']].get_full_name()
@@ -325,26 +335,29 @@ class ReportMarksTableBase:
                         'edit': reverse('marks:{}-edit-inl'.format(self.report_type), args=[mark_data['id']]),
                         'delete': reverse('marks:api-{}-detail'.format(self.report_type), args=[mark_data['id']]),
                     }
+                    if mark_data['ass_type'] in {ASSOCIATION_TYPE[1][0], ASSOCIATION_TYPE[2][0]}:
+                        val['confirm'] = reverse(
+                            'marks:api-confirm-{}'.format(self.report_type), args=[mark_data['ass_id']]
+                        )
+                    if mark_data['ass_type'] in {ASSOCIATION_TYPE[2][0], ASSOCIATION_TYPE[3][0]}:
+                        val['unconfirm_url'] = reverse(
+                            'marks:api-confirm-{}'.format(self.report_type), args=[mark_data['ass_id']]
+                        )
                 elif col == 'change_date':
                     val = mark_data['cahnge_date']
-                elif col == 'associated':
-                    val = mark_data['associated']
                 elif col == 'author':
                     if mark_data['author'] and mark_data['author'] in self.authors:
                         val = self.authors[mark_data['author']].get_full_name()
                         href = reverse('users:show-profile', args=[mark_data['author']])
                 row_data.append({'value': val, 'color': color, 'column': col, 'href': href})
             cnt += 1
-            value_data.append(row_data)
-        return value_data, Header(self.columns, MARK_TITLES).struct
+            value_data[mark_data['ass_type']]['values'].append(row_data)
+        return list(value_data[at] for at in sorted(value_data, reverse=True) if value_data[at]['values'])
 
 
 class SafeReportMarksTable(ReportMarksTableBase):
     report_type = 'safe'
-    supported_columns = [
-        'verdict', 'associated', 'source', 'tags', 'ass_type',
-        'ass_author', 'description', 'change_date', 'author'
-    ]
+    supported_columns = ['verdict', 'source', 'tags', 'ass_author', 'description', 'change_date', 'author']
     marks_model = MarkSafe
     likes_model = SafeAssociationLike
 
@@ -356,12 +369,11 @@ class SafeReportMarksTable(ReportMarksTableBase):
 class UnsafeReportMarksTable(ReportMarksTableBase):
     report_type = 'unsafe'
     supported_columns = [
-        'verdict', 'similarity', 'status', 'associated', 'source', 'tags',
-        'ass_type', 'ass_author', 'description', 'change_date', 'author'
+        'verdict', 'similarity', 'status', 'source', 'tags', 'ass_author', 'description', 'change_date', 'author'
     ]
     marks_model = MarkUnsafe
     likes_model = UnsafeAssociationLike
-    ordering = ('-markreport_set__id', '-markreport_set__result')
+    ordering = ('-markreport_set__result', '-markreport_set__id')
 
     def __init__(self, user, report, view):
         super().__init__(user, report, view)
@@ -371,10 +383,7 @@ class UnsafeReportMarksTable(ReportMarksTableBase):
 
 class UnknownReportMarksTable(ReportMarksTableBase):
     report_type = 'unknown'
-    supported_columns = [
-        'problem', 'associated', 'source', 'ass_type',
-        'ass_author', 'description', 'change_date', 'author'
-    ]
+    supported_columns = ['problem', 'source', 'ass_author', 'description', 'change_date', 'author']
     marks_model = MarkUnknown
     likes_model = UnknownAssociationLike
 
@@ -399,7 +408,8 @@ class MarksTableBase:
         self.sources = MARK_SOURCE
         self.title = ''
 
-        self.header, self.values = self.marks_data()
+        self.titles = MARK_TITLES
+        self.columns, self.values = self.marks_data()
 
     @cached_property
     def is_manager(self):
@@ -590,7 +600,7 @@ class MarksTableBase:
                 values_row.append({'value': val, 'color': color, 'href': href})
             values_data.append(values_row)
             cnt += 1
-        return Header(columns, MARK_TITLES).struct, values_data
+        return columns, values_data
 
 
 class SafeMarksTable(MarksTableBase):
@@ -614,7 +624,7 @@ class SafeMarksTable(MarksTableBase):
         color = None
         if column == 'verdict':
             val = mark_version.get_verdict_display()
-            color = SAFE_COLOR[mark_version.verdict]
+            color = safe_color(mark_version.verdict)
         return val, href, color
 
 
@@ -650,12 +660,12 @@ class UnsafeMarksTable(MarksTableBase):
         color = None
         if column == 'verdict':
             val = mark_version.get_verdict_display()
-            color = UNSAFE_COLOR[mark_version.verdict]
+            color = unsafe_color(mark_version.verdict)
         elif column == 'threshold':
             val = '{}%'.format(mark_version.threshold_percentage)
         elif column == 'status' and mark_version.status:
             val = mark_version.get_status_display()
-            color = STATUS_COLOR[mark_version.status]
+            color = bug_status_color(mark_version.status)
         return val, href, color
 
 
@@ -700,7 +710,8 @@ class MarkAssociationsBase:
 
         self.ass_types = ASSOCIATION_TYPE
 
-        self.header, self.values = self.__get_data()
+        self.titles = MARK_TITLES
+        self.columns, self.values = self.__get_data()
 
     @cached_property
     def type(self):
@@ -834,7 +845,7 @@ class MarkAssociationsBase:
 
                 values_str.append({'value': val, 'href': href, 'color': color, 'column': col})
             values.append(values_str)
-        return Header(columns, MARK_TITLES).struct, values
+        return columns, values
 
     def get_value(self, column, mark_report):
         assert isinstance(column, str)
@@ -882,7 +893,8 @@ class AssChangesBase:
     def __init__(self, cache_id, view):
         self._cache_id = cache_id
         self.view = view
-        self.header, self.values = self.__get_values()
+        self.titles = MARK_TITLES
+        self.columns, self.values = self.__get_values()
 
     @cached_property
     def selected_columns(self):
@@ -900,19 +912,33 @@ class AssChangesBase:
             columns.append({'value': col, 'title': MARK_TITLES.get(col, col)})
         return columns
 
-    def __get_sum_verdict(self, cache_obj):
-        if self.model == SafeMarkAssociationChanges:
-            vtmpl = '<span class="safe-verdict-{value}">{text}</span>'
-        elif self.model == UnsafeMarkAssociationChanges:
-            vtmpl = '<span class="unsafe-verdict-{value}">{text}</span>'
-        else:
+    def get_verdict_html(self, verdict, text):
+        raise NotImplementedError
+
+    def get_sum_verdict(self, cache_obj):
+        verdicts_html = [self.get_verdict_html(cache_obj.verdict_old, cache_obj.get_verdict_old_display())]
+        if cache_obj.verdict_old != cache_obj.verdict_new:
+            verdicts_html.append(
+                self.get_verdict_html(cache_obj.verdict_new, cache_obj.get_verdict_new_display())
+            )
+        return '<i class="ui long arrow right icon"></i>'.join(verdicts_html)
+
+    def get_sum_status(self, cache_obj):
+        if not isinstance(cache_obj, UnsafeMarkAssociationChanges):
             return '-'
-        if cache_obj.verdict_old == cache_obj.verdict_new:
-            return vtmpl.format(value=cache_obj.verdict_new, text=cache_obj.get_verdict_new_display())
-        return '<i class="ui long arrow right icon"></i>'.join([
-            vtmpl.format(value=cache_obj.verdict_old, text=cache_obj.get_verdict_old_display()),
-            vtmpl.format(value=cache_obj.verdict_new, text=cache_obj.get_verdict_new_display())
-        ])
+
+        def get_status_html(status, text):
+            if not status:
+                return '<i class="ui red ban icon"></i>'
+            color = bug_status_color(status)
+            if color:
+                return '<span style="color: {color};">{text}</span>'.format(color=color, text=text)
+            return '<span>{text}</span>'.format(text=text)
+
+        statuses_html = [get_status_html(cache_obj.status_old, cache_obj.get_status_old_display())]
+        if cache_obj.status_old != cache_obj.status_new:
+            statuses_html.append(get_status_html(cache_obj.status_new, cache_obj.get_status_new_display()))
+        return '<i class="ui long arrow right icon"></i>'.join(statuses_html)
 
     def __get_tags_or_problems(self, data_old, data_new):
         context = {}
@@ -967,6 +993,8 @@ class AssChangesBase:
         if 'hidden' in self.view and 'unchanged' in self.view['hidden']:
             if self.model == UnknownMarkAssociationChanges:
                 qs_filters &= ~Q(problems_new=F('problems_old'))
+            elif self.model == UnsafeMarkAssociationChanges:
+                qs_filters &= ~Q(verdict_new=F('verdict_old'), tags_new=F('tags_old'), status_new=F('status_old'))
             else:
                 qs_filters &= ~Q(verdict_new=F('verdict_old'), tags_new=F('tags_old'))
 
@@ -977,6 +1005,8 @@ class AssChangesBase:
             select_only.extend(['decision__id', 'decision__title', 'decision__start_date'])
         if 'sum_verdict' in selected_columns:
             select_only.extend(['verdict_old', 'verdict_new'])
+        if 'sum_status' in selected_columns:
+            select_only.extend(['status_old', 'status_new'])
         if 'tags' in selected_columns:
             select_only.extend(['tags_old', 'tags_new'])
         if 'problems' in selected_columns:
@@ -1026,7 +1056,9 @@ class AssChangesBase:
                     else:
                         href = reverse('reports:unknown', args=[cache_obj.report_id])
                 elif col == 'sum_verdict':
-                    html = self.__get_sum_verdict(cache_obj)
+                    html = self.get_sum_verdict(cache_obj)
+                elif col == 'sum_status':
+                    html = self.get_sum_status(cache_obj)
                 elif col == 'change_kind':
                     html = self.__get_kind_html(cache_obj)
                 elif col == 'decision':
@@ -1038,7 +1070,7 @@ class AssChangesBase:
                     html = self.__get_tags_or_problems(cache_obj.problems_old, cache_obj.problems_new)
                 values_str.append({'value': str(val), 'href': href, 'html': html})
             values.append(values_str)
-        return Header(columns, MARK_TITLES).struct, values
+        return columns, values
 
 
 class SafeAssChanges(AssChangesBase):
@@ -1047,15 +1079,30 @@ class SafeAssChanges(AssChangesBase):
     supported_columns = ['change_kind', 'decision', 'sum_verdict', 'tags']
     report_cache_table = 'cache_safe'
 
+    def get_verdict_html(self, verdict, text):
+        color = safe_color(verdict)
+        if color:
+            return '<span style="color: {color};">{text}</span>'.format(color=color, text=text)
+        return '<span>{text}</span>'.format(text=text)
+
 
 class UnsafeAssChanges(AssChangesBase):
     model = UnsafeMarkAssociationChanges
     verdicts = UNSAFE_VERDICTS
-    supported_columns = ['change_kind', 'decision', 'sum_verdict', 'tags']
+    supported_columns = ['change_kind', 'decision', 'sum_verdict', 'sum_status', 'tags']
     report_cache_table = 'cache_unsafe'
+
+    def get_verdict_html(self, verdict, text):
+        color = unsafe_color(verdict)
+        if color:
+            return '<span style="color: {color};">{text}</span>'.format(color=color, text=text)
+        return '<span>{text}</span>'.format(text=text)
 
 
 class UnknownAssChanges(AssChangesBase):
     model = UnknownMarkAssociationChanges
     supported_columns = ['change_kind', 'decision', 'problems']
     report_cache_table = 'cache_unknown'
+
+    def get_verdict_html(self, *args):
+        return '-'

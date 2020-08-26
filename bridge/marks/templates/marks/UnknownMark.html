@@ -21,6 +21,7 @@
 {% load humanize %}
 {% load static %}
 {% load compress %}
+{% load tableheader %}
 
 {% block title %}{% trans 'Unknowns mark' %}{% endblock %}
 
@@ -159,15 +160,7 @@
                 </div>
                 <div style="overflow-x: auto;">
                     <table class="ui compact teal celled selectable table alternate-color">
-                        <thead>
-                            {% for column_row in reports.header %}
-                                <tr>
-                                {% for coldata in column_row %}
-                                    <th colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.title }}</th>
-                                {% endfor %}
-                                </tr>
-                            {% endfor %}
-                        </thead>
+                        <thead>{% tableheader reports.columns reports.titles %}</thead>
                         <tbody>
                             {% for row_data in reports.values %}
                                 <tr>

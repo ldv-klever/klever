@@ -22,6 +22,8 @@ from bridge.vars import MARK_SAFE, MARK_UNSAFE, MARK_STATUS, COMPARE_FUNCTIONS, 
 
 from marks.tags import TagsTree, MarkTagsTree
 
+from reports.verdicts import safe_color, unsafe_color, bug_status_color
+
 
 class MarkVersionFormData:
     def __init__(self, mark_type, mark_version=None):
@@ -70,16 +72,16 @@ class MarkVersionFormData:
     @cached_property
     def verdicts(self):
         if self.type == 'safe':
-            return MARK_SAFE
+            return list({'id': v_id, 'text': v_text, 'color': safe_color(v_id)} for v_id, v_text in MARK_SAFE)
         elif self.type == 'unsafe':
-            return MARK_UNSAFE
+            return list({'id': v_id, 'text': v_text, 'color': unsafe_color(v_id)} for v_id, v_text in MARK_UNSAFE)
         return None
 
     @cached_property
     def statuses(self):
         if self.type != 'unsafe':
             return None
-        return MARK_STATUS
+        return list({'id': s_id, 'text': s_text, 'color': bug_status_color(s_id)} for s_id, s_text in MARK_STATUS)
 
     @cached_property
     def function(self):

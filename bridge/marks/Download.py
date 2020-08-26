@@ -422,9 +422,15 @@ class UploadAllMarks:
         MarkSafe.objects.all().delete()
         MarkUnsafe.objects.all().delete()
         MarkUnknown.objects.all().delete()
-        ReportSafeCache.objects.update(marks_total=0, marks_confirmed=0, verdict=SAFE_VERDICTS[4][0], tags={})
-        ReportUnsafeCache.objects.update(marks_total=0, marks_confirmed=0, verdict=UNSAFE_VERDICTS[5][0], tags={})
-        ReportUnknownCache.objects.update(marks_total=0, marks_confirmed=0, problems={})
+        ReportSafeCache.objects.update(
+            marks_confirmed=0, marks_automatic=0, marks_total=0, verdict=SAFE_VERDICTS[4][0], tags={}
+        )
+        ReportUnsafeCache.objects.update(
+            marks_confirmed=0, marks_automatic=0, marks_total=0, verdict=UNSAFE_VERDICTS[5][0], tags={}
+        )
+        ReportUnknownCache.objects.update(
+            marks_confirmed=0, marks_automatic=0, marks_total=0, problems={}
+        )
 
     def __upload_all(self, marks_dir):
         upload_result = {'safe': 0, 'unsafe': 0, 'unknown': 0, 'fail': 0}

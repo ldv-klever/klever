@@ -26,33 +26,17 @@
             <tr>
                 {% if reportdata.totals.unsafes %}
                     <th style="background-color: #ffe6dc">
-                        {% if not reportdata.view.hidden or 'confirmed_marks' not in reportdata.view.hidden %}
-                            <span>{% trans 'Unsafes' %}: </span>
-                            {% if reportdata.totals.unsafes_confirmed > 0 %}
-                                <a href="{% url 'reports:unsafes' reportdata.report.id %}?confirmed=1">{{ reportdata.totals.unsafes_confirmed }}</a>
-                            {% else %}<span>0</span>{% endif %}
-                        {% else %}
-                            {% trans 'Unsafes' %}
-                        {% endif %}
-                        (<a href="{% url 'reports:unsafes' reportdata.report.id %}">{{ reportdata.totals.unsafes }}</a>)
+                        {% trans 'Unsafes' %}: <a href="{% url 'reports:unsafes' reportdata.report.id %}">{{ reportdata.totals.unsafes }}</a>
                     </th>
                 {% endif %}
                 {% if reportdata.totals.safes %}
                     <th style="background-color: #dcffdc">
-                        {% if not reportdata.view.hidden or 'confirmed_marks' not in reportdata.view.hidden %}
-                            <span>{% trans 'Safes' %}: </span>
-                            {% if reportdata.totals.safes_confirmed > 0 %}
-                                <a href="{% url 'reports:safes' reportdata.report.id %}?confirmed=1">{{ reportdata.totals.safes_confirmed }}</a>
-                            {% else %}<span>0</span>{% endif %}
-                        {% else %}
-                            {% trans 'Safes' %}
-                        {% endif %}
-                        (<a href="{% url 'reports:safes' reportdata.report.id %}">{{ reportdata.totals.safes }}</a>)
+                        {% trans 'Safes' %}: <a href="{% url 'reports:safes' reportdata.report.id %}">{{ reportdata.totals.safes }}</a>
                     </th>
                 {% endif %}
                 {% if reportdata.totals.unknowns %}
                     <th style="background-color: #ffdcdc">
-                        {% trans 'Unknowns' %} (<a href="{% url 'reports:unknowns' reportdata.report.id %}">{{ reportdata.totals.unknowns }}</a>)
+                        {% trans 'Unknowns' %}: <a href="{% url 'reports:unknowns' reportdata.report.id %}">{{ reportdata.totals.unknowns }}</a>
                     </th>
                 {% endif %}
             </tr>
@@ -64,14 +48,21 @@
                         <div class="ui list">
                             {% for v in reportdata.data.unsafes %}
                                 <div class="item">
-                                    <i class="pointing right icon"></i>
+                                    <i class="orange bookmark outline icon"></i>
                                     <div class="content">
-                                        <span class="unsafe-verdict-{{ v.verdict }}">{{ v.title }}: </span>
-                                        {% if 'confirmed' in v %}
-                                            {% if v.confirmed %}<a href="{{ v.url }}?verdict={{ v.verdict }}&confirmed=1">{{ v.confirmed }}</a>{% else %}<span>0</span>{% endif %}
-                                            (<a href="{{ v.url }}?verdict={{ v.verdict }}">{{ v.total }}</a>)
-                                        {% else %}
-                                            <a href="{{ v.url }}?verdict={{ v.verdict }}">{{ v.total }}</a>
+                                        <span{% if v.color %} style="color: {{ v.color }};"{% endif %}>{{ v.title }}: </span>
+                                        <a href="{{ v.url }}">{{ v.value }}</a>
+                                        {% if v.manual or v.automatic %}
+                                            <div class="list">
+                                                <div class="item">
+                                                    <i class="user icon"></i>
+                                                    <div class="content">{{ v.manual.title }}: {% if v.manual.value %}<a href="{{ v.manual.url }}">{{ v.manual.value }}</a>{% else %}0{% endif %}</div>
+                                                </div>
+                                                <div class="item">
+                                                    <i class="microchip icon"></i>
+                                                    <div class="content">{{ v.automatic.title }}: {% if v.automatic.value %}<a href="{{ v.automatic.url }}">{{ v.automatic.value }}</a>{% else %}0{% endif %}</div>
+                                                </div>
+                                            </div>
                                         {% endif %}
                                     </div>
                                 </div>
@@ -84,14 +75,25 @@
                         <div class="ui list">
                             {% for v in reportdata.data.safes %}
                                 <div class="item">
-                                    <i class="pointing right icon"></i>
+                                    <i class="green bookmark outline icon"></i>
                                     <div class="content">
-                                        <span class="safe-verdict-{{ v.verdict }}">{{ v.title }}: </span>
-                                        {% if 'confirmed' in v %}
-                                            {% if v.confirmed %}<a href="{{ v.url }}?verdict={{ v.verdict }}&confirmed=1">{{ v.confirmed }}</a>{% else %}<span>0</span>{% endif %}
-                                            (<a href="{{ v.url }}?verdict={{ v.verdict }}">{{ v.total }}</a>)
-                                        {% else %}
-                                            <a href="{{ v.url }}?verdict={{ v.verdict }}">{{ v.total }}</a>
+                                        <span{% if v.color %} style="color: {{ v.color }};"{% endif %}>{{ v.title }}: </span>
+                                        <a href="{{ v.url }}">{{ v.value }}</a>
+                                        {% if v.manual or v.automatic %}
+                                            <div class="list">
+                                                <div class="item">
+                                                    <i class="user icon"></i>
+                                                    <div class="content">
+                                                        {{ v.manual.title }}: {% if v.manual.value %}<a href="{{ v.manual.url }}">{{ v.manual.value }}</a>{% else %}0{% endif %}
+                                                    </div>
+                                                </div>
+                                                <div class="item">
+                                                    <i class="microchip icon"></i>
+                                                    <div class="content">
+                                                        {{ v.automatic.title }}: {% if v.automatic.value %}<a href="{{ v.automatic.url }}">{{ v.automatic.value }}</a>{% else %}0{% endif %}
+                                                    </div>
+                                                </div>
+                                            </div>
                                         {% endif %}
                                     </div>
                                 </div>
@@ -110,7 +112,7 @@
                                         <div class="ui list">
                                             {% for probl in comp.problems %}
                                                 <div class="item">
-                                                    <i class="pointing right icon"></i>
+                                                    <i class="red bookmark outline icon"></i>
                                                     <div class="content">{{ probl.problem }}: <a href="{{ probl.href }}">{{ probl.num }}</a></div>
                                                 </div>
                                             {% endfor %}
