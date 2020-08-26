@@ -252,7 +252,7 @@ class Core(klever.core.components.CallbacksCaller):
                 ('number of CPU cores', 'cat /proc/cpuinfo | grep processor | wc -l'),
                 ('memory size', 'cat /proc/meminfo | grep "MemTotal" | sed -r "s/^.*: *([0-9]+).*/1024 * \\1/" | bc'),
                 ('Linux kernel version', 'uname -r'),
-                ('architecture', 'uname -m'),
+                ('host architecture', 'uname -m'),
             )
             ])
 

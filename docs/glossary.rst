@@ -37,5 +37,8 @@ Glossary
         create and use a specific one or use keys that are accepted in your groups to enable an access to other group
         members.
 
+    $OS_USERNAME
+        Username used to login to OpenStack.
+
     $INSTANCES
         A number of OpenStack instances to be deployed.

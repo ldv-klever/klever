@@ -8,7 +8,9 @@
             "statements": [
               "%resource% = $ALLOC(%resource%);",
               "%usb_device% = $ALLOC(%usb_device%);",
-              "%resource%->dev.parent = & %usb_device%->dev;"
+              "%resource%->dev.parent = & %usb_device%->dev;",
+              "%choice% = ldv_random_int(0, $SIZE(%ids%));",
+              "%device_id% = & %container%->id_table[%choice%];"
             ]
           },
           "callback": {
@@ -61,7 +63,7 @@
             "callback return value": "%probe_retval%",
             "comment": "Associate driver-specific data with the USB interface.",
             "parameters": [
-              "%resource%"
+              "%resource%", "%device_id%"
             ],
             "post-call": [
               "%probe_retval% = ldv_post_probe(%probe_retval%);"
@@ -140,6 +142,19 @@
           "usb_device": {
             "interface": [
               "usb.usb_device"
+            ]
+          },
+          "device_id": {
+            "interface": ["usb.device_id"]
+          },
+          "choice": {
+            "declaration": "int a",
+            "value": "0"
+          },
+          "ids": {
+            "container": true,
+            "interface": [
+              "usb.driver_ids"
             ]
           }
         },

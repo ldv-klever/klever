@@ -243,17 +243,31 @@ class FSATranslator:
                     for block in blocks:
                         body += block
                 else:
-                    body.append('switch (ldv_undef_int()) {')
-                    for index in range(len(blocks)):
-                        body.extend(
-                            ['\tcase {}: '.format(index) + '{'] + \
-                            ['\t\t' + stm for stm in blocks[index]] + \
-                            ['\t\tbreak;',
-                             '\t};']
-                        )
-                    if self._conf.get('do not skip signals'):
-                        body.append('\tdefault: ldv_assume(0);')
-                    body.append('};')
+                    imply_signals = self._conf.get('do not skip signals')
+                    if len(blocks) > 2 or (len(blocks) == 2 and not imply_signals):
+                        body.append('switch (ldv_undef_int()) {')
+                        for index in range(len(blocks)):
+                            body.extend(
+                                ['\tcase {}: '.format(index) + '{'] + \
+                                ['\t\t' + stm for stm in blocks[index]] + \
+                                ['\t\tbreak;',
+                                 '\t};']
+                            )
+                        if imply_signals:
+                            body.append('\tdefault: ldv_assume(0);')
+                        body.append('};')
+                    elif len(blocks) == 2 and imply_signals:
+                        body.append('if (ldv_undef_int()) {')
+                        body.extend(['\t' + stm for stm in blocks[0]])
+                        body.extend(['}', 'else {'])
+                        body.extend(['\t' + stm for stm in blocks[1]])
+                        body.extend(['}'])
+                    elif len(blocks) == 1 and not imply_signals:
+                        body.append('if (ldv_undef_int()) {')
+                        body.extend(['\t' + stm for stm in blocks[0]])
+                        body.extend(['}'])
+                    else:
+                        body.extend(blocks[0])
 
                 if len(function_parameters) > 0:
                     df = Function(

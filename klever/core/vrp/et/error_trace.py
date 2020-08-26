@@ -188,6 +188,9 @@ class ErrorTrace:
                 if 'entry_point' in edge:
                     func_call_node['display'] = edge['entry_point']
 
+                if 'assumption' in edge:
+                    func_call_node['assumption'] = edge['assumption']
+
                 # Each thread can have its own function call stack.
                 if edge['thread'] not in thread_func_call_stacks:
                     thread_func_call_stacks[edge['thread']] = list()
@@ -228,6 +231,9 @@ class ErrorTrace:
 
                 if 'condition' in edge:
                     stmt_node['condition'] = True
+
+                if 'assumption' in edge:
+                    stmt_node['assumption'] = edge['assumption']
 
                 # Add created statement node to action node of last function call node from corresponding thread
                 # function call stack or to last function call node itself.
