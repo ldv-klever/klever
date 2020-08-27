@@ -31,7 +31,7 @@ void ldv_free(void *);
 void ldv_synchronize_rcu(void);
 void ldv_rcu_assign_pointer(void * p1, const void * p2);
 
-void* calloc(size_t size, int n);
+void* calloc( size_t number, size_t size );
 
 static char * gp;
 

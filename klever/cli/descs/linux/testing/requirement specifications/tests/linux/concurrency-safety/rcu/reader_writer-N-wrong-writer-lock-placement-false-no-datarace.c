@@ -31,7 +31,7 @@ void ldv_free(void *);
 void ldv_synchronize_rcu(void);
 void ldv_rcu_assign_pointer(void * p1, const void * p2);
 
-void* calloc(size_t size, int n);
+void* calloc( size_t number, size_t size );
 
 static DEFINE_MUTEX(ldv_lock);
 static char * gp;
@@ -105,7 +105,6 @@ static int __init ldv_init(void)
 
 	gp = calloc(3, sizeof(int));
 
-	pthread_mutex_init(&mutex, ((void *)0));
 	pthread_create(&rd, attr, reader, arg1);
 	pthread_create(&wr1, attr, writer1, arg2);
 	pthread_create(&wr2, attr, writer2, arg3);

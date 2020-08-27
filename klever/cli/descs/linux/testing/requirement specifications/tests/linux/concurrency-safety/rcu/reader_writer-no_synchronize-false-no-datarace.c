@@ -31,7 +31,7 @@ void ldv_free(void *);
 void ldv_synchronize_rcu(void);
 void ldv_rcu_assign_pointer(void * p1, const void * p2);
 
-void* calloc(size_t size, int n);
+void* calloc( size_t number, size_t size );
 
 static char * gp;
 
@@ -74,10 +74,10 @@ static int __init ldv_init(void)
 {
 	pthread_attr_t const *attr = ldv_undef_ptr();
 	void *arg1 = ldv_undef_ptr(), *arg2 = ldv_undef_ptr();
+	pthread_t rd, wr;
 
 	gp = calloc(3,sizeof(int));
 
-	pthread_t rd, wr;
 	pthread_create(&rd, attr, reader, arg1);
 	pthread_create(&wr, attr, writer, arg2);
 

@@ -204,6 +204,7 @@
           "name": "RSG",
           "options": {"models": ["linux/concurrency safety/synchronization primitives.c"]}
         },
+        {"name": "Weaver"},
         {
           "name": "FVTP",
           "options": {
