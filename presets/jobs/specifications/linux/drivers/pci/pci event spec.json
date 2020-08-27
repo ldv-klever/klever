@@ -31,7 +31,9 @@
           "init": {
             "comment": "Allocate memory for pci_dev structure.",
             "statements": [
-              "%resource% = $ALLOC(%resource%);"
+              "%resource% = $ALLOC(%resource%);",
+              "%choice% = ldv_random_int(0, $SIZE(%ids%));",
+              "%device_id% = & %container%->id_table[%choice%];"
             ]
           },
           "main": {
@@ -43,7 +45,7 @@
             "callback return value": "%ret%",
             "comment": "Probe new PCI driver.",
             "parameters": [
-              "%resource%"
+              "%resource%", "%device_id%"
             ],
             "post-call": [
               "%ret% = ldv_post_probe(%ret%);"
@@ -121,14 +123,29 @@
             "callback": true
           },
           "container": {
-            "container": true
+            "container": true,
+            "interface": ["pci.pci_driver"]
           },
           "resource": {
-            "resource": true
+            "resource": true,
+            "interface": ["pci.dev"]
+          },
+          "device_id": {
+            "interface": ["pci.pci_device_id"]
           },
           "ret": {
             "declaration": "int a",
             "value": "ldv_undef_int()"
+          },
+          "choice": {
+            "declaration": "int a",
+            "value": "0"
+          },
+          "ids": {
+            "container": true,
+            "interface": [
+              "pci.driver_ids"
+            ]
           }
         },
         "process": "(!register).<init>.{main}",
@@ -236,7 +253,9 @@
           "init": {
             "comment": "Allocate memory for pci_dev structure.",
             "statements": [
-              "%resource% = $ALLOC(%resource%);"
+              "%resource% = $ALLOC(%resource%);",
+              "%choice% = ldv_random_int(0, $SIZE(%ids%));",
+              "%device_id% = & %container%->id_table[%choice%];"
             ]
           },
           "main": {
@@ -248,7 +267,7 @@
             "callback return value": "%ret%",
             "comment": "Probe new PCI driver.",
             "parameters": [
-              "%resource%"
+              "%resource%", "%device_id%"
             ],
             "post-call": [
               "%ret% = ldv_post_probe(%ret%);"
@@ -310,14 +329,29 @@
             "callback": true
           },
           "container": {
-            "container": true
+            "container": true,
+            "interface": ["pci.pci_driver"]
           },
           "resource": {
-            "resource": true
+            "resource": true,
+            "interface": ["pci.dev"]
+          },
+          "device_id": {
+            "interface": ["pci.pci_device_id"]
           },
           "ret": {
             "declaration": "int a",
             "value": "ldv_undef_int()"
+          },
+          "choice": {
+            "declaration": "int a",
+            "value": "0"
+          },
+          "ids": {
+            "container": true,
+            "interface": [
+              "pci.driver_ids"
+            ]
           }
         },
         "process": "(!register).<init>.{main}",

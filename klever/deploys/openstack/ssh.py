@@ -16,26 +16,24 @@
 #
 
 import errno
-import os
 import paramiko
+import subprocess
 import sys
-import tarfile
-import tempfile
 import time
-import zipfile
 
 from klever.deploys.utils import execute_cmd, get_password
+from klever.deploys.openstack.constants import OS_USER
 
 
 class SSH:
     CONNECTION_ATTEMPTS = 30
     CONNECTION_RECOVERY_INTERVAL = 10
-    COMMAND_EXECUTION_CHECK_INTERVAL = 3
+    COMMAND_EXECUTION_CHECK_INTERVAL = 0.1
     COMMAND_EXECUTION_STREAM_BUF_SIZE = 10000
 
-    def __init__(self, args, logger, name, floating_ip, open_sftp=True):
+    def __init__(self, args, logger, name, floating_ip):
         if not args.ssh_rsa_private_key_file:
-            logger.error('Please specify path to SSH RSA private key file with help of command-line option' +
+            logger.error('Please specify path to SSH RSA private key file with help of command-line option'
                          ' --ssh-rsa-private-key-file')
             sys.exit(errno.EINVAL)
 
@@ -43,7 +41,6 @@ class SSH:
         self.logger = logger
         self.name = name
         self.floating_ip = floating_ip
-        self.open_sftp = open_sftp
 
     def __enter__(self):
         self.logger.info('Open SSH session to instance "{0}" (IP: {1})'.format(self.name, self.floating_ip))
@@ -70,14 +67,8 @@ class SSH:
         while attempts > 0:
             try:
                 self.ssh.connect(hostname=self.floating_ip, username=self.args.ssh_username, pkey=k)
-
-                if self.open_sftp:
-                    self.logger.info(
-                        'Open SFTP session to instance "{0}" (IP: {1})'.format(self.name, self.floating_ip))
-                    self.sftp = self.ssh.open_sftp()
-
                 return self
-            except:
+            except Exception:
                 attempts -= 1
                 self.logger.info('Could not open SSH session, wait for {0} seconds and try {1} times more'
                                  .format(self.CONNECTION_RECOVERY_INTERVAL, attempts))
@@ -87,15 +78,10 @@ class SSH:
         sys.exit(errno.EPERM)
 
     def __exit__(self, etype, value, traceback):
-        if self.open_sftp:
-            self.logger.info(
-                'Close SFTP session to instance "{0}" (IP: {1})'.format(self.name, self.floating_ip))
-            self.sftp.close()
-
         self.logger.info('Close SSH session to instance "{0}" (IP: {1})'.format(self.name, self.floating_ip))
         self.ssh.close()
 
-    def execute_cmd(self, cmd):
+    def execute_cmd(self, cmd, timeout=COMMAND_EXECUTION_CHECK_INTERVAL):
         self.logger.info('Execute command over SSH on instance "{0}" (IP: {1})\n{2}'
                          .format(self.name, self.floating_ip, cmd))
 
@@ -104,22 +90,23 @@ class SSH:
         chan.exec_command(cmd)
 
         # Print command STDOUT and STDERR until it will be executed.
-        while True:
-            try:
-                if chan.exit_status_ready():
-                    break
-            finally:
-                stderr = ''
-                while chan.recv_stderr_ready():
-                    stderr += chan.recv_stderr(self.COMMAND_EXECUTION_STREAM_BUF_SIZE).decode(encoding='utf8')
-                if stderr:
-                    self.logger.info('Executed command STDERR:\n{0}'.format(stderr.rstrip()))
-                stdout = ''
-                while chan.recv_ready():
-                    stdout += chan.recv(self.COMMAND_EXECUTION_STREAM_BUF_SIZE).decode(encoding='utf8')
-                if stdout:
-                    self.logger.info('Executed command STDOUT:\n{0}'.format(stdout.rstrip()))
-            time.sleep(self.COMMAND_EXECUTION_CHECK_INTERVAL)
+        while not chan.exit_status_ready():
+            stderr = ''
+            while chan.recv_stderr_ready():
+                stderr += chan.recv_stderr(self.COMMAND_EXECUTION_STREAM_BUF_SIZE).decode(encoding='utf8')
+            stderr = stderr.rstrip()
+
+            if stderr:
+                print('Executed command STDERR:\n"{}"'.format(stderr))
+
+            stdout = ''
+            while chan.recv_ready():
+                stdout += chan.recv(self.COMMAND_EXECUTION_STREAM_BUF_SIZE).decode(encoding='utf8')
+            stdout = stdout.rstrip()
+
+            if stdout:
+                print(stdout)
+            time.sleep(timeout)
 
         retcode = chan.recv_exit_status()
 
@@ -133,32 +120,19 @@ class SSH:
         execute_cmd(self.logger, 'ssh', '-o', 'StrictHostKeyChecking=no', '-i', self.args.ssh_rsa_private_key_file,
                     '{0}@{1}'.format(self.args.ssh_username, self.floating_ip))
 
-    def sftp_put(self, host_path, instance_path, sudo=False, directory=None, ignore=None):
-        self.logger.info('Copy "{0}" to "{1}"'
-                         .format(host_path,
-                                 os.path.join(directory if directory else '', instance_path)))
-
-        # Always transfer files using archives to preserve file permissions and reduce net load.
-        if os.path.isfile(host_path) and (tarfile.is_tarfile(host_path) or zipfile.is_zipfile(host_path)):
-            # Just copy archive as is. It will be decompressed later.
-            self.sftp.put(host_path, os.path.basename(host_path))
-            self.execute_cmd(('sudo ' if sudo else '') + 'mkdir -p "{0}"'.format(os.path.dirname(instance_path)))
-            self.execute_cmd(('sudo ' if sudo else '') + 'mv "{0}" "{1}"'.format(os.path.basename(host_path),
-                                                                                 instance_path))
+    def rsync(self, host_path, instance_path):
+        if instance_path:
+            self.execute_cmd(f'mkdir -p {instance_path}')
         else:
-            # Compress files and directories into temporary archives.
-            with tempfile.NamedTemporaryFile(suffix='.tar.gz') as fp:
-                instance_archive = os.path.basename(fp.name)
-                with tarfile.open(fileobj=fp, mode='w:gz') as TarFile:
-                    TarFile.add(host_path, instance_path,
-                                filter=lambda i: i if not (ignore and any(i.name.endswith(p) for p in ignore)
-                                                           and i.isfile()) else None)
-                fp.flush()
-                fp.seek(0)
-                self.sftp.putfo(fp, instance_archive)
+            instance_path = "~/"
 
-            # Use sudo to allow extracting archives outside home directory.
-            self.execute_cmd('{0} --warning=no-timestamp -xf "{1}"'
-                             .format(('sudo ' if sudo else '') + 'tar' + (' -C ' + directory if directory else ''),
-                                     instance_archive))
-            self.execute_cmd('rm "{0}"'.format(instance_archive))
+        # stderr=subprocess.DEVNULL is required to suppress WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!
+        # maybe there is a better way to fix it
+        execute_cmd(
+            self.logger,
+            'rsync', '-ar',
+            '-e', f'ssh -o StrictHostKeyChecking=no -i {self.args.ssh_rsa_private_key_file}',
+            host_path,
+            f'{OS_USER}@{self.floating_ip}:{instance_path}',
+            stderr=subprocess.DEVNULL
+        )

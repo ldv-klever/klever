@@ -74,10 +74,13 @@ class JobArchiveUploader:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if exc_val:
+            if self._decisions:
+                Decision.objects.filter(id__in=self._decisions).delete()
             if self.job:
-                self.job.delete()
+                self._upload_obj.job = self.job
             self._upload_obj.error = str(exc_val)
             self._upload_obj.status = JOB_UPLOAD_STATUS[14][0]
+
         else:
             self._upload_obj.job = self.job
             self._upload_obj.status = JOB_UPLOAD_STATUS[13][0]

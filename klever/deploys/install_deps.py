@@ -48,13 +48,15 @@ def install_deps(logger, deploy_conf, prev_deploy_info, non_interactive, update_
 
     if pckgs_to_install or (pckgs_to_update and update_pckgs):
         logger.info('Update packages list')
-        if shutil.which('apt'):
-            execute_cmd(logger, 'apt', 'update')
+        if shutil.which('apt-get'):
+            execute_cmd(logger, 'apt-get', 'update')
         elif shutil.which('dnf'):
-            execute_cmd(logger, 'dnf', 'update')
+            # dnf updates package list automatically
+            pass
         elif shutil.which('zypper'):
             execute_cmd(logger, 'zypper', 'ref')
         elif shutil.which('yum'):
+            # TODO. Yum returns exit value of 100 if there are packages available for an update. Handle it!
             execute_cmd(logger, 'yum', 'check-update')
         else:
             logger.error('Your Linux distribution is not supported')
@@ -63,7 +65,7 @@ def install_deps(logger, deploy_conf, prev_deploy_info, non_interactive, update_
     if pckgs_to_install:
         logger.info('Install packages:\n  {0}'.format('\n  '.join(pckgs_to_install)))
 
-        for util in ('apt', 'dnf', 'zypper', 'yum'):
+        for util in ('apt-get', 'dnf', 'zypper', 'yum'):
             if shutil.which(util):
                 args = [util, 'install']
 
@@ -84,13 +86,16 @@ def install_deps(logger, deploy_conf, prev_deploy_info, non_interactive, update_
 
     if pckgs_to_update and update_pckgs:
         logger.info('Update packages:\n  {0}'.format('\n  '.join(pckgs_to_update)))
-        for util in ('apt', 'dnf', 'zypper', 'yum'):
+        for util in ('apt-get', 'dnf', 'zypper', 'yum'):
             if shutil.which(util):
                 args = []
-                if util in ('apt', 'dnf'):
+                if util in ('apt-get', 'dnf'):
                     args = [util, 'upgrade']
                 elif util in ('yum', 'zypper'):
                     args = [util, 'update']
+                else:
+                    logger.error('Your Linux distribution is not supported')
+                    sys.exit(errno.EINVAL)
 
                 if non_interactive:
                     args.append('-y')

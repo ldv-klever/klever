@@ -572,7 +572,10 @@ def p_array_size(p):
                | STAR_SIGN
                | NUMBER
     """
-    number = p[-1]
+    if len(p) == 2:
+        number = p[1]
+    else:
+        number = p[2]
 
     if isinstance(number, int):
         array_size = {'size': number}

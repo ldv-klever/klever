@@ -11,7 +11,11 @@
         {"-setprop": "cpa.arg.witness.removeInsufficientEdges=false"},
         {"-setprop": "output.disable=true"},
         {"-heap": "%ldv:memory size:0.8:MB%m"}
-      ]
+      ],
+      "architecture dependant options": {
+        "x86-64": {"add options": [{"-setprop": "analysis.machineModel=LINUX64"}]},
+        "ARM": {"add options": [{"-setprop": "analysis.machineModel=ARM"}]}
+      }
     },
     "Ultimate common": {
       "description": "Common options for the UltimateAutimizer tool",
@@ -21,14 +25,19 @@
         {"--architecture": "64bit"}
       ]
     },
+    "CPALockator races": {
+      "description": "Common part of CPAchecker configuration for checking races",
+      "inherit": "CPAchecker common",
+      "safety properties": ["CHECK( init({entry_point}()), LTL(G ! data-race) )"],
+      "add options": [{"-setprop": "counterexample.export.graphml=witness.%d.graphml"}]
+    },
     "CPAchecker reachability": {
       "description": "CPAchecker for reachability checking",
       "inherit": "CPAchecker common",
       "safety properties": ["CHECK( init({entry_point}()), LTL(G ! call(__VERIFIER_error())) )"],
       "add options": [
         {"-ldv": ""},
-        {"-setprop": "coverage.file=coverage.info"},
-        {"-setprop": "analysis.machineModel=LINUX64"}
+        {"-setprop": "coverage.file=coverage.info"}
       ]
     },
     "CPAchecker BAM reachability": {
@@ -37,7 +46,6 @@
       "safety properties": ["CHECK( init({entry_point}()), LTL(G ! call(__VERIFIER_error())) )"],
       "add options": [
         {"-ldv-bam": ""},
-        {"-setprop": "analysis.machineModel=LINUX64"},
         {"-setprop": "coverage.file=coverage.info"}
       ]
     },
@@ -84,22 +92,19 @@
       ],
       "add options": [
         {"-smg-ldv": ""},
-        {"-setprop": "analysis.machineModel=LINUX64"},
         {"-setprop": "CompositeCPA.cpas=cpa.location.LocationCPA,cpa.callstack.CallstackCPA,cpa.smg.SMGCPA"},
         {"-setprop": "parser.readLineDirectives=false"}
       ]
     },
-    "CPALockator": {
+    "CPALockator lightweight": {
       "description": "CPAchecker for checking races",
-      "inherit": "CPAchecker common",
-      "safety properties": ["CHECK( init({entry_point}()), LTL(G ! data-race) )"],
-      "add options": [
-        {"-lockator-linux": ""},
-        {"-setprop": "counterexample.export.graphml=witness.%d.graphml"},
-        {"-setprop": "counterexample.export.compressWitness=false"},
-        {"-heap": "%ldv:memory size:0.8:MB%m"},
-        {"-setprop": "analysis.machineModel=LINUX64"}
-      ]
+      "inherit": "CPALockator races",
+      "add options": [{"-lockator-linux": ""}]
+    },
+    "CPALockator thread-modular": {
+      "description": "CPAchecker for checking races with powerful theory",
+      "inherit": "CPALockator races",
+      "add options": [{"-lockator-threadmodular-linux": ""}]
     }
   },
   "profiles": {
@@ -110,9 +115,7 @@
       "UltimateAutomizer": {"v0.1.20": {"inherit": "Ultimate common"}}
     },
     "reachability with function pointers": {
-      "CPAchecker": {
-        "trunk:34133": {"inherit": "CPAchecker BAM reachability FP"}
-      }
+      "CPAchecker": {"trunk:34133": {"inherit": "CPAchecker BAM reachability FP"}}
     },
     "reachability with bit precision": {
       "CPAchecker": {
@@ -121,27 +124,19 @@
       }
     },
     "reachability with heap arrays": {
-      "CPAchecker": {
-        "trunk:34133": {"inherit": "CPAchecker BAM reachability heap arrays"}
-      }
+      "CPAchecker": {"trunk:34133": {"inherit": "CPAchecker BAM reachability heap arrays"}}
     },
     "CPAchecker BAM BusyBox": {
-      "CPAchecker": {
-        "trunk:34133": {"inherit": "CPAchecker BAM BusyBox"}
-      }
+      "CPAchecker": {"trunk:34133": {"inherit": "CPAchecker BAM BusyBox"}}
+    },
+    "race checking lightweight": {
+      "CPAchecker": {"CPALockator-combat-mode:34381": {"inherit": "CPALockator lightweight"}}
     },
     "race checking": {
-      "CPAchecker": {"CPALockator-combat-mode:32435": {"inherit": "CPALockator"}}
+      "CPAchecker": {"CPALockator-combat-mode:34381": {"inherit": "CPALockator thread-modular"}}
     },
-    "memory checking Linux64": {
+    "memory checking": {
       "CPAchecker": {"trunk:34133": {"inherit": "CPAchecker SMG memory checking"}}
-    },
-    "memory checking ARM": {
-      "CPAchecker": {"trunk:34133": {
-          "inherit": "CPAchecker SMG memory checking",
-          "add options": [{"-setprop": "analysis.machineModel=ARM"}],
-          "exclude options": [{"-setprop": "analysis.machineModel=LINUX64"}]
-      }}
     }
   }
 }
