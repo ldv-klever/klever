@@ -736,3 +736,9 @@ def get_file_checksum(file_name):
             hash_sha256.update(chunk)
 
     return hash_sha256.hexdigest()
+
+
+def get_file_name_checksum(file_name):
+    hash_sha256 = hashlib.sha256()
+    hash_sha256.update(file_name.encode('utf-8'))
+    return hash_sha256.hexdigest()

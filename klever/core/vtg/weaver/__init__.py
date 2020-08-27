@@ -15,8 +15,8 @@
 # limitations under the License.
 #
 
-import glob
 import fileinput
+import glob
 import json
 import os
 import shutil
@@ -140,7 +140,7 @@ class Weaver(klever.core.vtg.plugins.Plugin):
                 # For non-generated models use results cache in addition.
                 else:
                     cache_dir = os.path.join(self.conf['cache directory'],
-                                             klever.core.utils.get_file_checksum(infile))
+                                             klever.core.utils.get_file_name_checksum(infile))
                     with klever.core.utils.LockedOpen(cache_dir + '.tmp', 'w'):
                         if os.path.exists(cache_dir):
                             self.logger.info('Get woven in C file from cache')
