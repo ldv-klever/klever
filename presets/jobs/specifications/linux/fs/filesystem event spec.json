@@ -9,14 +9,14 @@
             "container": true,
             "parameter": true,
             "interface": [
-              "super.file_system_type"
+              "filesystem.file_system_type"
             ]
           },
           "super_block": {
             "container": true,
             "pointer": true,
             "interface": [
-              "super.super_block"
+              "filesystem.super_block"
             ]
           }
         },
@@ -45,14 +45,14 @@
             "container": true,
             "parameter": true,
             "interface": [
-              "super.file_system_type"
+              "filesystem.file_system_type"
             ]
           },
           "super_block": {
             "container": true,
             "pointer": true,
             "interface": [
-              "super.super_block"
+              "filesystem.super_block"
             ]
           }
         },
@@ -81,7 +81,7 @@
             "container": true,
             "parameter": true,
             "interface": [
-              "super.file_system_type"
+              "filesystem.file_system_type"
             ]
           }
         },
@@ -123,7 +123,7 @@
             "container": true,
             "parameter": true,
             "interface": [
-              "super.file_system_type"
+              "filesystem.file_system_type"
             ]
           }
         },
@@ -145,8 +145,8 @@
       }
     },
     "environment processes": {
-      "filesystem_type": {
-        "comment": "Super block scenario.",
+      "filesystem_scenario": {
+        "comment": "Filesystem scenario.",
         "reference": true,
         "headers": [
           "linux/fs.h"
@@ -155,26 +155,26 @@
           "file_system_type": {
             "container": true,
             "interface": [
-              "super.file_system_type"
+              "filesystem.file_system_type"
             ]
           },
           "super_ops": {
             "container": true,
             "pointer": true,
             "interface": [
-              "super.super_operations"
+              "filesystem.super_operations"
             ]
           },
           "block": {
             "container": true,
             "interface": [
-              "super.super_block"
+              "filesystem.super_block"
             ]
           },
           "resource": {
             "resource": true,
             "interface": [
-              "super.inode"
+              "filesystem.inode"
             ]
           },
           "callback": {
@@ -189,11 +189,11 @@
         "actions": {
           "main": {
             "comment": "Going to initialize super block.",
-            "process": "[probe].(<probe_success>.{call} | <probe_fail>.{main}) | (deregister)"
+            "process": "[get_sb].(<get_sb_success>.{call} | <get_sb_fail>.{main}) | (deregister)"
           },
           "call": {
             "comment": "Super block is created.",
-            "process": "[callback].{call} | [put].[release].{main}"
+            "process": "[callback].{call} | [put_super].[kill_sb].{main}"
           },
           "register": {
             "parameters": [
@@ -214,31 +214,31 @@
               "%resource%"
             ]
           },
-          "put": {
+          "put_super": {
             "comment": "Put super block.",
-            "callback": "%super_ops.put%",
+            "callback": "%super_ops.put_super%",
             "parameters": [
               "%block%"
             ]
           },
-          "release": {
+          "kill_sb": {
             "comment": "Release super block.",
-            "callback": "%file_system_type.release%",
+            "callback": "%file_system_type.kill_sb%",
             "parameters": [
               "%block%"
             ]
           },
-          "probe": {
-            "comment": "Allocate super block.",
-            "callback": "%file_system_type.probe%",
+          "get_sb": {
+            "comment": "Mount a new filesystem.",
+            "callback": "%file_system_type.get_sb%",
             "parameters": [],
             "callback return value": "%ret%",
             "post-call": [
               "%ret% = ldv_filter_err_code(%ret%);"
             ]
           },
-          "probe_success": {
-            "comment": "Device file is opened successfully.",
+          "get_sb_success": {
+            "comment": "Filesystem is mounted successfully.",
             "condition": [
               "%ret% == 0"
             ],
@@ -248,8 +248,8 @@
               "%super_ops% = %block%->s_op;"
             ]
           },
-          "probe_fail": {
-            "comment": "Failed to open devices file.",
+          "get_sb_fail": {
+            "comment": "Failed to mount a new filesystem.",
             "condition": [
               "%ret% != 0"
             ]

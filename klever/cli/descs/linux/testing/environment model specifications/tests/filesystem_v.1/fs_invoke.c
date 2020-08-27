@@ -20,40 +20,31 @@
 #include <ldv/linux/emg/test_model.h>
 #include <ldv/verifier/nondet.h>
 
-static int ldv_probe(struct file_system_type *fs_type, int flags, const char *dev_name, void *data, struct vfsmount *mnt)
+static int ldv_get_sb(struct file_system_type *fs_type, int flags, const char *dev_name, void *data, struct vfsmount *mnt)
 {
-	ldv_invoke_callback();
+	ldv_invoke_reached();
 	return 0;
 }
 
-static void ldv_disconnect(struct super_block *sb)
+static void ldv_kill_sb(struct super_block *sb)
 {
-	ldv_invoke_callback();
+	ldv_invoke_reached();
 }
 
-static struct file_system_type ldv_driver = {
-	.get_sb = ldv_probe,
-	.kill_sb = ldv_disconnect,
+static struct file_system_type ldv_fs = {
+	.get_sb = ldv_get_sb,
+	.kill_sb = ldv_kill_sb,
 };
 
 static int __init ldv_init(void)
 {
-	int ret = ldv_undef_int();
-	int flip_a_coin = ldv_undef_int();
-	if (flip_a_coin) {
-		ldv_register();
-		ret = register_filesystem(&ldv_driver);
-		if (!ret) {
-			unregister_filesystem(&ldv_driver);
-		}
-		ldv_deregister();
-	}
-	return ret;
+	ldv_invoke_test();
+	return register_filesystem(&ldv_fs);
 }
 
 static void __exit ldv_exit(void)
 {
-	/* pass */
+	unregister_filesystem(&ldv_fs);
 }
 
 module_init(ldv_init);

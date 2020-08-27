@@ -20,43 +20,42 @@
 #include <ldv/linux/emg/test_model.h>
 #include <ldv/verifier/nondet.h>
 
-int flip_a_coin;
-
-static int ldv_probe(struct file_system_type *fs_type, int flags, const char *dev_name, void *data, struct vfsmount *mnt)
+static int ldv_get_sb(struct file_system_type *fs_type, int flags, const char *dev_name, void *data, struct vfsmount *mnt)
 {
 	ldv_invoke_callback();
 	return 0;
 }
 
-static void ldv_disconnect(struct super_block *sb)
+static void ldv_kill_sb(struct super_block *sb)
 {
 	ldv_invoke_callback();
 }
 
-static struct file_system_type ldv_driver = {
-	.get_sb = ldv_probe,
-	.kill_sb = ldv_disconnect,
+static struct file_system_type ldv_fs = {
+	.get_sb = ldv_get_sb,
+	.kill_sb = ldv_kill_sb,
 };
 
 static int __init ldv_init(void)
 {
 	int ret = ldv_undef_int();
-	flip_a_coin = ldv_undef_int();
+	int flip_a_coin = ldv_undef_int();
+
 	if (flip_a_coin) {
 		ldv_register();
-		ret = register_filesystem(&ldv_driver);
-		if (ret)
-			ldv_deregister();
+		ret = register_filesystem(&ldv_fs);
+		if (!ret) {
+			unregister_filesystem(&ldv_fs);
+		}
+		ldv_deregister();
 	}
+
 	return ret;
 }
 
 static void __exit ldv_exit(void)
 {
-	if (flip_a_coin) {
-		unregister_filesystem(&ldv_driver);
-		ldv_deregister();
-	}
+	/* pass */
 }
 
 module_init(ldv_init);

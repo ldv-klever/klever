@@ -1,0 +1,76 @@
+{
+  "2.6.33": {
+    "functions models": {
+      "register_filesystem": {
+        "declaration": "int register_filesystem(*%filesystem.file_system_type%)",
+        "header": "linux/fs.h"
+      },
+      "unregister_filesystem": {
+        "declaration": "int unregister_filesystem(*%filesystem.file_system_type%)",
+        "header": "linux/fs.h"
+      },
+      "get_sb_bdev": {
+        "declaration": "int get_sb_bdev(*%filesystem.file_system_type%, int flags, const char *dev_name, void *data, int (*fill_super)(struct super_block *, void *, int), struct vfsmount *mnt)",
+        "header": "linux/fs.h"
+      },
+      "get_sb_single": {
+        "declaration": "int get_sb_single(*%filesystem.file_system_type%, int flags, void *data, int (*fill_super)(struct super_block *, void *, int), struct vfsmount *mnt)",
+        "header": "linux/fs.h"
+      },
+      "get_sb_nodev": {
+        "declaration": "int get_sb_nodev(*%filesystem.file_system_type%, int flags, void *data, int (*fill_super)(struct super_block *, void *, int), struct vfsmount *mnt)",
+        "header": "linux/fs.h"
+      },
+      "get_sb_ns": {
+        "declaration": "int get_sb_ns(*%filesystem.file_system_type%, int flags, void *data, int (*fill_super)(struct super_block *, void *, int), struct vfsmount *mnt)",
+        "header": "linux/fs.h"
+      }
+    },
+    "categories": {
+      "filesystem": {
+        "containers": {
+          "file_system_type": {
+            "declaration": "struct file_system_type ops",
+            "header": "linux/fs.h",
+            "fields": {
+              "get_sb": "%filesystem.get_sb%",
+              "kill_sb": "%filesystem.kill_sb%"
+            }
+          },
+          "super_block": {
+            "declaration": "struct super_block ops",
+            "header": "linux/fs.h",
+            "fields": {
+              "s_op": "*%filesystem.super_operations%",
+              "s_type": "*%filesystem.file_system_type%"
+            }
+          },
+          "super_operations": {
+            "declaration": "struct super_operations ops",
+            "header": "linux/fs.h",
+            "fields": {
+              "put_super": "%filesystem.put_super%"
+            }
+          }
+        },
+        "resources": {
+          "inode": {
+            "declaration": "struct inode *i",
+            "header": "linux/fs.h"
+          }
+        },
+        "callbacks": {
+          "get_sb": {
+            "declaration": "int (*get_sb) (*%filesystem.file_system_type%, int, const char *, void *, struct vfsmount *)"
+          },
+          "kill_sb": {
+            "declaration": "void (*kill_sb) (*%filesystem.super_block%)"
+          },
+          "put_super": {
+            "declaration": "void (*put_super) (*%filesystem.super_block%)"
+          }
+        }
+      }
+    }
+  }
+}

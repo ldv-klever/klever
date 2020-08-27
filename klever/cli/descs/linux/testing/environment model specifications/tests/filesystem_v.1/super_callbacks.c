@@ -22,61 +22,64 @@
 
 int flip_a_coin;
 
-void ldv_put(struct super_block *sb)
+void ldv_put_super(struct super_block *sb)
 {
     ldv_release_down();
 }
 
-static struct super_operations sops = {
-    .put_super = ldv_put,
+static struct super_operations ldv_sops = {
+    .put_super = ldv_put_super,
 };
 
-int fill_super(struct super_block *sb, void *a, int b)
+int fill_super(struct super_block *sb, void *data, int silent)
 {
-    sb->s_op = & sops;
+    sb->s_op = &ldv_sops;
 	ldv_probe_up();
 	return 0;
 }
 
-static int ldv_probe(struct file_system_type *fs_type, int flags, const char *dev_name, void *data, struct vfsmount *mnt)
+static int ldv_get_sb(struct file_system_type *fs_type, int flags, const char *dev_name, void *data, struct vfsmount *mnt)
 {
 	int res;
 
 	ldv_invoke_callback();
-	res = get_sb_nodev(fs_type, flags, NULL, & fill_super, mnt);
+	res = get_sb_nodev(fs_type, flags, NULL, fill_super, mnt);
 	if (!res)
 		ldv_probe_up();
+
 	return res;
 }
 
-static void ldv_disconnect(struct super_block *sb)
+static void ldv_kill_sb(struct super_block *sb)
 {
 	ldv_release_down();
 	ldv_invoke_callback();
 }
 
-static struct file_system_type ldv_driver = {
-	.get_sb = ldv_probe,
-	.kill_sb = ldv_disconnect,
+static struct file_system_type ldv_fs = {
+	.get_sb = ldv_get_sb,
+	.kill_sb = ldv_kill_sb,
 };
 
 static int __init ldv_init(void)
 {
 	int ret = ldv_undef_int();
+
 	flip_a_coin = ldv_undef_int();
 	if (flip_a_coin) {
 		ldv_register();
-		ret = register_filesystem(&ldv_driver);
+		ret = register_filesystem(&ldv_fs);
 		if (ret)
 			ldv_deregister();
 	}
+
 	return ret;
 }
 
 static void __exit ldv_exit(void)
 {
 	if (flip_a_coin) {
-		unregister_filesystem(&ldv_driver);
+		unregister_filesystem(&ldv_fs);
 		ldv_deregister();
 	}
 }

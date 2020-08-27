@@ -8,7 +8,7 @@
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/super_block_v.1/super_callbacks.ko"
+      "value": "ext-modules/filesystem_v.1/super_callbacks.ko"
     }
   ],
   "description": "",
