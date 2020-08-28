@@ -529,11 +529,9 @@ def report(logger, kind, report_data, mq, report_id, main_work_dir, report_dir='
         elif isinstance(elem, ArchiveFiles):
             logger.debug('{0} going to pack report files to archive'.format(kind.capitalize()))
 
-            fp, archive = tempfile.mkstemp(prefix='{0}-'.format(cur_report_id), suffix='.zip',
-                                           dir=os.path.join(main_work_dir, 'reports'))
+            archive = tempfile.mktemp(prefix='{0}-'.format(cur_report_id), suffix='.zip',
+                                      dir=os.path.join(main_work_dir, 'reports'))
             elem.make_archive(archive)
-            os.close(fp)
-
             archives.append(elem.archive)
 
             # Create symlink to report files archive in current working directory.
