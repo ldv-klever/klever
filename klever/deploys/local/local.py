@@ -136,7 +136,7 @@ class Klever:
         # in future.
         with open('/etc/default/klever', 'a+') as fp:
             fp.write("JAVA={}\n".format(
-                os.path.join(self.args.deployment_directory, 'klever-addons', 'JRE',
+                os.path.join(os.path.realpath(self.args.deployment_directory), 'klever-addons', 'JRE',
                              self.prev_deploy_info['Klever Addons']['JRE']['executable path'], 'java')))
 
     def _pre_update(self):
