@@ -340,7 +340,7 @@ class ReportMarksTableBase:
                             'marks:api-confirm-{}'.format(self.report_type), args=[mark_data['ass_id']]
                         )
                     if mark_data['ass_type'] in {ASSOCIATION_TYPE[2][0], ASSOCIATION_TYPE[3][0]}:
-                        val['unconfirm_url'] = reverse(
+                        val['unconfirm'] = reverse(
                             'marks:api-confirm-{}'.format(self.report_type), args=[mark_data['ass_id']]
                         )
                 elif col == 'change_date':

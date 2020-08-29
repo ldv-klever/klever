@@ -28,7 +28,7 @@ from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 from django.utils.functional import cached_property
 
-from bridge.vars import UNSAFE_VERDICTS, SAFE_VERDICTS, DECISION_WEIGHT, ERROR_TRACE_FILE, SUBJOB_NAME
+from bridge.vars import UNSAFE_VERDICTS, UNSAFE_STATUS, SAFE_VERDICTS, DECISION_WEIGHT, ERROR_TRACE_FILE, SUBJOB_NAME
 from bridge.utils import BridgeException, ArchiveFileContent
 from bridge.ZipGenerator import ZipStream
 
@@ -36,7 +36,7 @@ from reports.models import Report, ReportComponent, ReportAttr, ReportUnsafe, Re
 from caches.models import ReportSafeCache, ReportUnsafeCache, ReportUnknownCache
 
 from users.utils import HumanizedValue, paginate_queryset
-from reports.verdicts import safe_color, unsafe_color
+from reports.verdicts import safe_color, unsafe_color, bug_status_color
 
 
 REP_MARK_TITLES = {
@@ -51,6 +51,7 @@ REP_MARK_TITLES = {
     'marks_number:confirmed': _("Confirmed"),
     'marks_number:automatic': _("Automatic"),
     'report_verdict': _("Total verdict"),
+    'report_status': _("Total status"),
 
     'tags': _('Tags'),
     'verifiers': _('Verifiers'),
@@ -451,7 +452,10 @@ class SafesTable:
 
 
 class UnsafesTable:
-    columns_list = ['marks_number', 'report_verdict', 'tags', 'verifiers:cpu', 'verifiers:wall', 'verifiers:memory']
+    columns_list = [
+        'marks_number', 'report_verdict', 'report_status', 'tags',
+        'verifiers:cpu', 'verifiers:wall', 'verifiers:memory'
+    ]
     confirmed_col = 'marks_number:confirmed'
     automatic_col = 'marks_number:automatic'
 
@@ -674,6 +678,7 @@ class UnsafesTable:
         columns.extend(list(self._attributes))
 
         verdicts_dict = dict(UNSAFE_VERDICTS)
+        statuses_dict = dict(UNSAFE_STATUS)
 
         values_data = []
         for report in self.page:
@@ -696,6 +701,10 @@ class UnsafesTable:
                 elif col == 'report_verdict':
                     val = verdicts_dict[report.cache.verdict]
                     color = unsafe_color(report.cache.verdict)
+                elif col == 'report_status':
+                    if report.cache.status:
+                        val = statuses_dict[report.cache.status]
+                        color = bug_status_color(report.cache.status)
                 elif col == 'tags':
                     if len(report.cache.tags):
                         tags_values = []

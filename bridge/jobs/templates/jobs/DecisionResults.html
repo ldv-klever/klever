@@ -54,14 +54,18 @@
                                         <a href="{{ v.url }}">{{ v.value }}</a>
                                         {% if v.manual or v.automatic %}
                                             <div class="list">
-                                                <div class="item">
-                                                    <i class="user icon"></i>
-                                                    <div class="content">{{ v.manual.title }}: {% if v.manual.value %}<a href="{{ v.manual.url }}">{{ v.manual.value }}</a>{% else %}0{% endif %}</div>
-                                                </div>
-                                                <div class="item">
-                                                    <i class="microchip icon"></i>
-                                                    <div class="content">{{ v.automatic.title }}: {% if v.automatic.value %}<a href="{{ v.automatic.url }}">{{ v.automatic.value }}</a>{% else %}0{% endif %}</div>
-                                                </div>
+                                                {% if v.manual.value %}
+                                                    <div class="item">
+                                                        <i class="user icon"></i>
+                                                        <div class="content">{{ v.manual.title }}: {% if v.manual.value %}<a href="{{ v.manual.url }}">{{ v.manual.value }}</a>{% else %}0{% endif %}</div>
+                                                    </div>
+                                                {% endif %}
+                                                {% if v.automatic.value %}
+                                                    <div class="item">
+                                                        <i class="microchip icon"></i>
+                                                        <div class="content">{{ v.automatic.title }}: {% if v.automatic.value %}<a href="{{ v.automatic.url }}">{{ v.automatic.value }}</a>{% else %}0{% endif %}</div>
+                                                    </div>
+                                                {% endif %}
                                             </div>
                                         {% endif %}
                                     </div>
@@ -81,18 +85,22 @@
                                         <a href="{{ v.url }}">{{ v.value }}</a>
                                         {% if v.manual or v.automatic %}
                                             <div class="list">
-                                                <div class="item">
-                                                    <i class="user icon"></i>
-                                                    <div class="content">
-                                                        {{ v.manual.title }}: {% if v.manual.value %}<a href="{{ v.manual.url }}">{{ v.manual.value }}</a>{% else %}0{% endif %}
+                                                {% if v.manual.value %}
+                                                    <div class="item">
+                                                        <i class="user icon"></i>
+                                                        <div class="content">
+                                                            {{ v.manual.title }}: {% if v.manual.value %}<a href="{{ v.manual.url }}">{{ v.manual.value }}</a>{% else %}0{% endif %}
+                                                        </div>
                                                     </div>
-                                                </div>
-                                                <div class="item">
-                                                    <i class="microchip icon"></i>
-                                                    <div class="content">
-                                                        {{ v.automatic.title }}: {% if v.automatic.value %}<a href="{{ v.automatic.url }}">{{ v.automatic.value }}</a>{% else %}0{% endif %}
+                                                {% endif %}
+                                                {% if v.automatic.value %}
+                                                    <div class="item">
+                                                        <i class="microchip icon"></i>
+                                                        <div class="content">
+                                                            {{ v.automatic.title }}: {% if v.automatic.value %}<a href="{{ v.automatic.url }}">{{ v.automatic.value }}</a>{% else %}0{% endif %}
+                                                        </div>
                                                     </div>
-                                                </div>
+                                                {% endif %}
                                             </div>
                                         {% endif %}
                                     </div>
