@@ -3,7 +3,6 @@
     "functions models": {
       "get_sb_nodev, get_sb_single, get_sb_ns": {
         "comment": "Call fill_super implementation.",
-        "reference": true,
         "labels": {
           "file_system_type": {
             "container": true,
@@ -39,7 +38,6 @@
       },
       "get_sb_bdev": {
         "comment": "Call fill_super implementation.",
-        "reference": true,
         "labels": {
           "file_system_type": {
             "container": true,
@@ -75,7 +73,6 @@
       },
       "register_filesystem": {
         "comment": "Register a new filesystem.",
-        "reference": true,
         "labels": {
           "file_system_type": {
             "container": true,
@@ -117,7 +114,6 @@
       },
       "unregister_filesystem": {
         "comment": "Deregister a new filesystem.",
-        "reference": true,
         "labels": {
           "file_system_type": {
             "container": true,
@@ -147,7 +143,6 @@
     "environment processes": {
       "filesystem_scenario": {
         "comment": "Filesystem scenario.",
-        "reference": true,
         "headers": [
           "linux/fs.h"
         ],
@@ -252,6 +247,233 @@
             "comment": "Failed to mount a new filesystem.",
             "condition": [
               "%ret% != 0"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "3.14": {
+    "functions models": {
+      "mount_bdev": {
+        "comment": "Call fill_super implementation.",
+        "reference": true,
+        "labels": {
+          "file_system_type": {
+            "container": true,
+            "parameter": true,
+            "interface": [
+              "filesystem.file_system_type"
+            ]
+          },
+          "super_block": {
+            "container": true,
+            "pointer": true,
+            "interface": [
+              "filesystem.super_block"
+            ]
+          }
+        },
+        "process": "<call>",
+        "actions": {
+          "call": {
+            "comment": "Alloc memory for super block and fill it.",
+            "trace relevant": true,
+            "statements": [
+              "struct dentry *dentry;",
+              "int ret;",
+              "dentry = ldv_undef_ptr();",
+              "if (ldv_is_err(dentry))",
+              "    return dentry;",
+              "%super_block% = ldv_xzalloc(sizeof(struct super_block));",
+              "%super_block%->s_type = %file_system_type%;",
+              "ret = $ARG5(%super_block%, $ARG4, 1);",
+              "if (ret != 0) {",
+              "    ldv_free(%super_block%);",
+              "    ldv_ptr_err(ret);",
+              "}",
+              "return dentry;"
+            ]
+          }
+        }
+      },
+      "register_filesystem": {
+        "comment": "Register a new filesystem.",
+        "reference": true,
+        "labels": {
+          "file_system_type": {
+            "container": true,
+            "parameter": true,
+            "interface": [
+              "filesystem.file_system_type"
+            ]
+          }
+        },
+        "process": "<assign>.[register].<success> | <fail>",
+        "actions": {
+          "register": {
+            "parameters": [
+              "%file_system_type%"
+            ]
+          },
+          "assign": {
+            "comment": "Get callbacks to register provided within 'file_system_type' argument.",
+            "trace relevant": true,
+            "statements": [
+              "%file_system_type% = $ARG1;"
+            ]
+          },
+          "fail": {
+            "comment": "Fail a new filesystem registration.",
+            "trace relevant": true,
+            "statements": [
+              "return ldv_undef_int_negative();"
+            ]
+          },
+          "success": {
+            "comment": "Registration of file_system_type callbacks has been finished successfully.",
+            "trace relevant": true,
+            "statements": [
+              "return 0;"
+            ]
+          }
+        }
+      },
+      "unregister_filesystem": {
+        "comment": "Deregister a new filesystem.",
+        "reference": true,
+        "labels": {
+          "file_system_type": {
+            "container": true,
+            "parameter": true,
+            "interface": [
+              "filesystem.file_system_type"
+            ]
+          }
+        },
+        "process": "<assign>.[deregister]",
+        "actions": {
+          "deregister": {
+            "parameters": [
+              "%file_system_type%"
+            ]
+          },
+          "assign": {
+            "comment": "Get callbacks to deregister provided within 'file_system_type' argument.",
+            "trace relevant": true,
+            "statements": [
+              "%file_system_type% = $ARG1;"
+            ]
+          }
+        }
+      }
+    },
+    "environment processes": {
+      "filesystem_scenario": {
+        "comment": "File system scenario.",
+        "reference": true,
+        "headers": [
+          "linux/fs.h",
+          "linux/mount.h"
+        ],
+        "labels": {
+          "file_system_type": {
+            "container": true,
+            "interface": [
+              "filesystem.file_system_type"
+            ]
+          },
+          "super_ops": {
+            "container": true,
+            "pointer": true,
+            "interface": [
+              "filesystem.super_operations"
+            ]
+          },
+          "super_block": {
+            "container": true,
+            "interface": [
+              "filesystem.super_block"
+            ]
+          },
+          "resource": {
+            "resource": true,
+            "interface": [
+              "filesystem.inode"
+            ]
+          },
+          "callback": {
+            "callback": true
+          },
+          "ret": {
+            "declaration": "struct dentry *a",
+            "value": "ldv_undef_ptr()"
+          }
+        },
+        "process": "(!register).{main}",
+        "actions": {
+          "main": {
+            "comment": "Going to initialize super block.",
+            "process": "[mount].(<mount_success>.{call} | <mount_fail>.{main}) | (deregister)"
+          },
+          "call": {
+            "comment": "Super block is created.",
+            "process": "[callback].{call} | [put_super].[kill_sb].{main}"
+          },
+          "register": {
+            "parameters": [
+              "%file_system_type%"
+            ]
+          },
+          "deregister": {
+            "condition": [
+              "%file_system_type% == $ARG1"
+            ],
+            "parameters": [
+              "%file_system_type%"
+            ]
+          },
+          "callback": {
+            "callback": "%callback%",
+            "parameters": [
+              "%resource%"
+            ]
+          },
+          "put_super": {
+            "comment": "Put super block.",
+            "callback": "%super_ops.put_super%",
+            "parameters": [
+              "%super_block%"
+            ]
+          },
+          "kill_sb": {
+            "comment": "Release super block.",
+            "callback": "%file_system_type.kill_sb%",
+            "parameters": [
+              "%super_block%"
+            ]
+          },
+          "mount": {
+            "comment": "Mount a new filesystem.",
+            "callback": "%file_system_type.mount%",
+            "parameters": [],
+            "callback return value": "%ret%"
+          },
+          "mount_success": {
+            "comment": "Filesystem is mounted successfully.",
+            "condition": [
+              "!ldv_is_err(%ret%)"
+            ],
+            "trace relevant": true,
+            "statements": [
+              "%super_block% = container_of(%file_system_type%, struct super_block, s_type);",
+              "%super_ops% = %super_block%->s_op;"
+            ]
+          },
+          "mount_fail": {
+            "comment": "Failed to mount a new filesystem.",
+            "condition": [
+              "ldv_is_err(%ret%)"
             ]
           }
         }
