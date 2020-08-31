@@ -27,13 +27,13 @@ void ldv_put(struct super_block *sb)
     ldv_release_down();
 }
 
-static struct super_operations sops = {
+static struct super_operations ldv_sops = {
     .put_super = ldv_put,
 };
 
 int fill_super(struct super_block *sb, void *a, int b)
 {
-    sb->s_op = & sops;
+    sb->s_op = &ldv_sops;
 	ldv_probe_up();
 	return 0;
 }
