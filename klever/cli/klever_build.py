@@ -34,6 +34,19 @@ from klever.cli.utils import execute_cmd, get_logger, make_relative_path
 from klever.cli.descs import common_target_program_descs, gcc46_clade_cif_opts
 
 
+def build_wrapper(build):
+    '''Wrapper for build() method of CProgram class and its descendants'''
+    def wrapper(self, *args, **kwargs):
+        try:
+            return build(self, *args, **kwargs)
+        finally:
+            for tmp_dir in self.tmp_dirs:
+                self.logger.info(f'Remove temporary directory "{tmp_dir}"')
+                shutil.rmtree(tmp_dir)
+
+    return wrapper
+
+
 class CProgram:
     _CLADE_CONF = dict()
     _CLADE_PRESET = "klever_linux_kernel"
@@ -185,6 +198,7 @@ class CProgram:
         self.logger.debug('Remove "{0}"'.format(trash_dir))
         shutil.rmtree(os.path.realpath(trash_dir))
 
+    @build_wrapper
     def build(self):
         self._fetch_work_src_tree()
         self._make_canonical_work_src_tree()
@@ -240,10 +254,6 @@ class CProgram:
         }])
         clade.add_meta_by_key('working source trees', self.work_src_trees)
         clade.add_meta_by_key('target program description', self.target_program_desc)
-
-        self.logger.info('Remove temporary directories')
-        for tmp_dir in self.tmp_dirs:
-            shutil.rmtree(tmp_dir)
 
 
 class Linux(CProgram):
