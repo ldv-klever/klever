@@ -24,7 +24,6 @@ common_target_program_descs = {
         'model CC options file': 'scripts/mod/empty.c',
         'external modules header files search directory': os.path.join(os.path.dirname(__file__), 'include'),
         'loadable kernel modules': ['all'],
-        'allow local source trees use': True,
         'generate makefiles': True,
         'extra headers': [
             'linux/user_namespace.h',
@@ -68,7 +67,6 @@ common_target_program_descs = {
         'configuration': 'defconfig',
         'architecture': 'x86_64',
         'model CC options file': 'applets/applets.c',
-        'allow local source trees use': True
     }
 }
 
