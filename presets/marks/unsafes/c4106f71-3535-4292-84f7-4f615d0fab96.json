@@ -1,0 +1,45 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "concurrency safety"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/linux/concurrency-safety/ldv-races/race-2_4-container_of_false-unreach-call.ko"
+    }
+  ],
+  "description": "",
+  "error_trace": [
+    [
+      [
+        {
+          "LDV model 'main'": [
+            {
+              "my_drv_disconnect": []
+            }
+          ]
+        }
+      ]
+    ],
+    [
+      [
+        {
+          "my_callback": [
+            {
+              "Instrumented function 'mutex_lock'": []
+            }
+          ]
+        }
+      ]
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": true,
+  "status": null,
+  "tags": [],
+  "threshold": 100,
+  "verdict": "2"
+}
