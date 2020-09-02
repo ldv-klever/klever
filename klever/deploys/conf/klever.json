@@ -21,6 +21,12 @@
         "version": "trunk:31140",
         "path": "https://forge.ispras.ru/attachments/download/6427/CPAchecker-1.8-svn 31140-unix.tar.xz",
         "executable path": "scripts"
+      },
+      "CPALockator": {
+        "name": "CPAchecker",
+        "version": "CPALockator-combat-mode:34832",
+        "path": "https://forge.ispras.ru/attachments/download/7864/CPAchecker-1.8-svn-34832-unix.tar.xz",
+        "executable path": "scripts"
       }
     }
   },
