@@ -39,7 +39,6 @@ static char * gp;
 void *reader(void * arg) {
 	char *a;
 	char b;
-	char * p = &b;
 
 	//ldv_rcu_read_lock();//BUG is here! No read lock
 	a = ({typeof(gp) p;

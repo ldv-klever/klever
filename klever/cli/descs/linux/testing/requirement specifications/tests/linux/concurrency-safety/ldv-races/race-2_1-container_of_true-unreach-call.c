@@ -52,11 +52,11 @@ void* my_callback(void *arg) {
 
 int my_drv_probe(struct my_data *data) {
 	struct device *d = &data->dev;
+	int res = ldv_undef_int();
 
 	data->shared.a = 0;
 	data->shared.b = 0;
 
-	int res = ldv_undef_ptr();
 	if(res)
 		goto exit;
 
