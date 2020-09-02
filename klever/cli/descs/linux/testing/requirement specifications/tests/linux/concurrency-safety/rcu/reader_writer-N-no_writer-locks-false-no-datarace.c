@@ -33,7 +33,6 @@ void ldv_rcu_assign_pointer(void * p1, const void * p2);
 
 void* calloc( size_t number, size_t size );
 
-static DEFINE_MUTEX(ldv_lock);
 static char * gp;
 
 void *reader(void * arg) {
@@ -48,15 +47,13 @@ void *reader(void * arg) {
 		p;});
 	b = *a;
 	ldv_rcu_read_unlock();
-
+	
 	return 0;
 }
 
 void *writer1(void * arg) {
-	char * pWriter = calloc(3, sizeof(int));
-	char * ptr;
-	mutex_lock(&ldv_lock);
-	ptr = gp;
+	char * pWriter = calloc(3,sizeof(int));
+	char * ptr = gp;
 
 	pWriter[0] = 'r';
 	pWriter[1] = 'c';
@@ -67,7 +64,6 @@ void *writer1(void * arg) {
 		ldv_rcu_assign_pointer(gp, pWriter);
 		ldv_wunlock_rcu();
 	} while(0);
-	mutex_unlock(&ldv_lock);
 	ldv_synchronize_rcu();
 	ldv_free(ptr);
 
@@ -75,10 +71,8 @@ void *writer1(void * arg) {
 }
 
 void *writer2(void * arg) {
-	char * pWriter = calloc(3, sizeof(int));
-	char * ptr;
-	mutex_lock(&ldv_lock);
-	ptr = gp;
+	char * pWriter = calloc(3,sizeof(int));
+	char * ptr = gp;
 
 	pWriter[0] = 'r';
 	pWriter[1] = 'c';
@@ -89,7 +83,6 @@ void *writer2(void * arg) {
 		ldv_rcu_assign_pointer(gp, pWriter);
 		ldv_wunlock_rcu();
 	} while(0);
-	mutex_unlock(&ldv_lock);
 	ldv_synchronize_rcu();
 	ldv_free(ptr);
 
@@ -101,6 +94,7 @@ static int __init ldv_init(void)
 	pthread_attr_t const *attr = ldv_undef_ptr();
 	void *arg1 = ldv_undef_ptr(), *arg2 = ldv_undef_ptr(), *arg3 = ldv_undef_ptr();
 	pthread_t rd, wr1, wr2;
+
 	gp = calloc(3, sizeof(int));
 
 	pthread_create(&rd, attr, reader, arg1);

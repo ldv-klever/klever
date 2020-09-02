@@ -33,30 +33,38 @@ void ldv_rcu_assign_pointer(void * p1, const void * p2);
 
 void* calloc( size_t number, size_t size );
 
-static DEFINE_MUTEX(ldv_lock);
 static char * gp;
+
+struct foo {
+	char * gp;
+} * pStruct;
+
+struct bar {
+	char * ptr;
+};
 
 void *reader(void * arg) {
 	char *a;
 	char b;
+	struct bar p;
 
 	ldv_rcu_read_lock();
-	a = ({typeof(gp) p;
+	p.ptr = ({typeof(pStruct -> gp) p;
 		ldv_rlock_rcu();
-		p = ldv_rcu_dereference(gp);
+		p = ldv_rcu_dereference(pStruct -> gp);
 		ldv_runlock_rcu();
 		p;});
+	a = p.ptr;
 	b = *a;
 	ldv_rcu_read_unlock();
 
 	return 0;
 }
 
-void *writer1(void * arg) {
+void *writer(void * arg) {
 	char * pWriter = calloc(3, sizeof(int));
-	char * ptr;
-	mutex_lock(&ldv_lock);
-	ptr = gp;
+	struct bar p;
+	p.ptr = pStruct -> gp;
 
 	pWriter[0] = 'r';
 	pWriter[1] = 'c';
@@ -64,34 +72,11 @@ void *writer1(void * arg) {
 
 	do {
 		ldv_wlock_rcu();
-		ldv_rcu_assign_pointer(gp, pWriter);
+		ldv_rcu_assign_pointer(pStruct -> gp, pWriter);
 		ldv_wunlock_rcu();
 	} while(0);
-	mutex_unlock(&ldv_lock);
-	ldv_synchronize_rcu();
-	ldv_free(ptr);
-
-	return 0;
-}
-
-void *writer2(void * arg) {
-	char * pWriter = calloc(3, sizeof(int));
-	char * ptr;
-	mutex_lock(&ldv_lock);
-	ptr = gp;
-
-	pWriter[0] = 'r';
-	pWriter[1] = 'c';
-	pWriter[2] = 'u';
-
-	do {
-		ldv_wlock_rcu();
-		ldv_rcu_assign_pointer(gp, pWriter);
-		ldv_wunlock_rcu();
-	} while(0);
-	mutex_unlock(&ldv_lock);
-	ldv_synchronize_rcu();
-	ldv_free(ptr);
+	//ldv_synchronize_rcu(); //BUG is here
+	ldv_free(p.ptr);
 
 	return 0;
 }
@@ -99,13 +84,12 @@ void *writer2(void * arg) {
 static int __init ldv_init(void)
 {
 	pthread_attr_t const *attr = ldv_undef_ptr();
-	void *arg1 = ldv_undef_ptr(), *arg2 = ldv_undef_ptr(), *arg3 = ldv_undef_ptr();
-	pthread_t rd, wr1, wr2;
+	void *arg1 = ldv_undef_ptr(), *arg2 = ldv_undef_ptr();
+	pthread_t rd, wr;
 	gp = calloc(3, sizeof(int));
 
 	pthread_create(&rd, attr, reader, arg1);
-	pthread_create(&wr1, attr, writer1, arg2);
-	pthread_create(&wr2, attr, writer2, arg3);
+	pthread_create(&wr, attr, writer, arg2);
 
 	return 0;
 }
