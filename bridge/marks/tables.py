@@ -103,6 +103,12 @@ class ReportMarksTableBase:
     marks_model = None
     likes_model = None
     ordering = ('-markreport_set__id',)
+    ass_type_block_titles = {
+        ASSOCIATION_TYPE[0][0]: _('Dissimilar marks'),
+        ASSOCIATION_TYPE[1][0]: _('Marks with unconfirmed associations'),
+        ASSOCIATION_TYPE[2][0]: _('Marks with automatic associations'),
+        ASSOCIATION_TYPE[3][0]: _('Marks with confirmed associations')
+    }
 
     def __init__(self, user, report, view):
         self.user = user
@@ -254,22 +260,22 @@ class ReportMarksTableBase:
     def values(self):
         value_data = {
             ASSOCIATION_TYPE[0][0]: {
-                'title': _('Dissimilar marks'),
+                'title': self.ass_type_block_titles[ASSOCIATION_TYPE[0][0]],
                 'color': '#8f361e',
                 'values': []
             },
             ASSOCIATION_TYPE[1][0]: {
-                'title': _('Similar marks with unconfirmed associations'),
+                'title': self.ass_type_block_titles[ASSOCIATION_TYPE[1][0]],
                 'color': '#c71a2d',
                 'values': []
             },
             ASSOCIATION_TYPE[2][0]: {
-                'title': _('Similar marks with automatic associations'),
+                'title': self.ass_type_block_titles[ASSOCIATION_TYPE[2][0]],
                 'color': '#7506b4',
                 'values': []
             },
             ASSOCIATION_TYPE[3][0]: {
-                'title': _('Similar marks with confirmed associations'),
+                'title': self.ass_type_block_titles[ASSOCIATION_TYPE[3][0]],
                 'color': '#3f9f32',
                 'values': []
             }
@@ -374,6 +380,12 @@ class UnsafeReportMarksTable(ReportMarksTableBase):
     marks_model = MarkUnsafe
     likes_model = UnsafeAssociationLike
     ordering = ('-markreport_set__result', '-markreport_set__id')
+    ass_type_block_titles = {
+        ASSOCIATION_TYPE[0][0]: _('Dissimilar marks'),
+        ASSOCIATION_TYPE[1][0]: _('Similar marks with unconfirmed associations'),
+        ASSOCIATION_TYPE[2][0]: _('Similar marks with automatic associations'),
+        ASSOCIATION_TYPE[3][0]: _('Similar marks with confirmed associations')
+    }
 
     def __init__(self, user, report, view):
         super().__init__(user, report, view)
