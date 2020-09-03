@@ -15,27 +15,27 @@
  * limitations under the License.
  */
 
-before: file("$this")
-{
+#include <linux/module.h>
+#include <linux/slab.h>
 #include <ldv/linux/slab.h>
-} 
+#include <ldv/test.h>
 
-around: execution(static inline void *kmalloc(size_t size, gfp_t flags))
+gfp_t ldv_flags;
+
+void ldv_check_alloc_flags(gfp_t flags)
 {
-	return ldv_kmalloc(size, flags);
+	if (flags == ldv_flags)
+		ldv_expected_error();
 }
 
-around: execution(static inline void *kzalloc(size_t size, gfp_t flags))
+static int __init ldv_init(void)
 {
-	return ldv_kzalloc(size, flags);
+	size_t size = ldv_undef_uint();
+
+	ldv_flags = ldv_undef_uint();
+	kmalloc(size, ldv_flags);
+
+	return 0;
 }
 
-around: execution(static inline void *kmalloc_array(size_t n, size_t size, gfp_t flags))
-{
-	return ldv_kmalloc_array(n, size, flags);
-}
-
-around: execution(static inline void *kcalloc(size_t n, size_t size, gfp_t flags))
-{
-	return ldv_kcalloc(n, size, flags);
-}
+module_init(ldv_init);
