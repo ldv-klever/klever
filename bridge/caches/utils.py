@@ -600,7 +600,7 @@ class RecalculateUnknownCache:
         # Collect unsafes cache (just automatic and confirmed associations can affect the cache)
         markreport_qs = MarkUnknownReport.objects.filter(
             Q(type__in=[ASSOCIATION_TYPE[2][0], ASSOCIATION_TYPE[3][0]]) & self._qs_filter
-        ).select_related('mark').only('type', 'problem', 'report_id', 'associated')
+        ).only('type', 'problem', 'report_id', 'associated')
         for mr in markreport_qs:
             new_data[mr.report_id]['marks_automatic'] += int(mr.type == ASSOCIATION_TYPE[2][0])
             if not mr.associated:
