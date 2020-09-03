@@ -5,6 +5,8 @@
         "external modules": "tests",
         "loadable kernel modules": [
             "ext-modules/linux/drivers/base/dd",
+            "ext-modules/linux/drivers/base/devres",
+            "ext-modules/linux/drivers/base/devres-memory-safety",
             "ext-modules/linux/drivers/base/firmware_loader",
             "ext-modules/linux/drivers/i2c/i2c-core-smbus",
             "ext-modules/linux/drivers/spi",

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+ * Copyright (c) 2020 ISP RAS (http://www.ispras.ru)
  * Ivannikov Institute for System Programming of the Russian Academy of Sciences
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,18 +15,23 @@
  * limitations under the License.
  */
 
-#ifndef __LDV_LINUX_DEVICE_H
-#define __LDV_LINUX_DEVICE_H
+#include <linux/module.h>
+#include <linux/device.h>
+#include <ldv/test.h>
 
-struct device;
+static int __init ldv_init(void)
+{
+	struct device *dev = ldv_undef_ptr();
+	size_t size = ldv_undef_uint();
+	gfp_t flags = ldv_undef_uint();
+	size_t n = ldv_undef_uint();
 
-extern void *ldv_dev_get_drvdata(const struct device *dev);
-extern int ldv_dev_set_drvdata(struct device *dev, void *data);
+	devm_kmalloc(dev, size, flags);
+	devm_kzalloc(dev, size, flags);
+	devm_kmalloc_array(dev, n, size, flags);
+	devm_kcalloc(dev, n, size, flags);
 
-extern void *ldv_devm_kmalloc(size_t size, gfp_t gfp);
-extern void *ldv_devm_kzalloc(size_t size, gfp_t gfp);
-extern void *ldv_devm_kmalloc_array(size_t n, size_t size, gfp_t gfp);
-extern void *ldv_devm_kcalloc(size_t n, size_t size, gfp_t gfp);
-extern void ldv_devm_kfree(const void *p);
+	return 0;
+}
 
-#endif /* __LDV_LINUX_DEVICE_H */
+module_init(ldv_init);

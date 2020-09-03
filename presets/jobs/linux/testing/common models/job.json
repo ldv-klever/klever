@@ -6,6 +6,8 @@
       "ideal verdict": "safe",
       "program fragments": [
         "ext-modules/linux/drivers/base/dd/safe.ko",
+        "ext-modules/linux/drivers/base/devres/safe.ko",
+        "ext-modules/linux/drivers/base/devres-memory-safety/safe.ko",
         "ext-modules/linux/drivers/base/firmware_loader/safe.ko",
         "ext-modules/linux/drivers/i2c/i2c-core-smbus/safe.ko",
         "ext-modules/linux/drivers/spi/safe.ko",
@@ -32,11 +34,17 @@
   "sub-jobs": [
     {
       "targets": ["**"],
-      "exclude targets": ["ext-modules/linux/drivers/video/fbdev/core/fbsys/*"],
+      "exclude targets": [
+        "ext-modules/linux/drivers/base/devres-memory-safety/*",
+        "ext-modules/linux/drivers/video/fbdev/core/fbsys/*"
+      ],
       "requirement specifications": ["test:common"]
     },
     {
-      "targets": ["ext-modules/linux/drivers/video/fbdev/core/fbsys/*"],
+      "targets": [
+        "ext-modules/linux/drivers/base/devres-memory-safety/*",
+        "ext-modules/linux/drivers/video/fbdev/core/fbsys/*"
+      ],
       "requirement specifications": ["test:memory safety"]
     }
   ]

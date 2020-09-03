@@ -86,6 +86,7 @@
             "common models": [
               "linux/arch/asm/atomic.c",
               "linux/drivers/base/dd.c",
+              "linux/drivers/base/devres.c",
               "linux/drivers/base/firmware_loader.c",
               "linux/drivers/i2c/i2c-core-smbus.c",
               "linux/drivers/video/fbdev/core/fbsysfs.c",
@@ -155,6 +156,7 @@
         {
           "name": "RSG",
           "options": {"models": [
+            "common/list.c",
             "linux/drivers/usb/core/usb/message.c",
             "linux/memory safety/memory.c"
           ]}
@@ -791,6 +793,7 @@
             "plugins": [{
               "name": "RSG",
               "options": {"models": [
+                "common/list.c",
                 "linux/drivers/usb/core/usb/message.c",
                 "linux/memory safety/memory.c",
                 "test.c"
