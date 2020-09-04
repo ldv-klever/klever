@@ -43,13 +43,18 @@ class GetETV:
 
         self._threads = self.__get_threads()
         self.globals = self.__get_global_vars()
-        self.html_trace = self.__parse_node(self.trace['trace'])
+        self.html_trace = []
+        if self.trace['trace']:
+            self.html_trace = self.__parse_node(self.trace['trace'])
 
     def __get_threads(self):
         threads = []
         if self.trace.get('global variable declarations'):
             threads.append(self.global_thread)
-        threads.extend(self.__get_child_threads(self.trace['trace']))
+            for node in self.trace['global variable declarations']:
+                self._max_line_len = max(self._max_line_len, len(str(node['line'])))
+        if self.trace['trace']:
+            threads.extend(self.__get_child_threads(self.trace['trace']))
         return threads
 
     def __get_child_threads(self, node_obj):

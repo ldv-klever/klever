@@ -351,7 +351,7 @@ class ReportUnsafeSerializer(UploadLeafBaseSerializer):
         if not isinstance(node, dict):
             self.fail('wrong_format', detail="node is not a dictionary")
         if node.get('type') not in {'function call', 'statement', 'action', 'thread'}:
-            self.fail('wrong_format', detail='unsupported node type')
+            self.fail('wrong_format', detail='unsupported node type "{}"'.format(node.get('type')))
         if node['type'] == 'function call':
             required_fields = ['line', 'file', 'source', 'children', 'display']
         elif node['type'] == 'statement':
@@ -377,13 +377,14 @@ class ReportUnsafeSerializer(UploadLeafBaseSerializer):
         archive.seek(0)
         if not isinstance(error_trace, dict):
             self.fail('wrong_format', detail='error trace is not a dictionary')
-        if 'trace' not in error_trace:
-            self.fail('wrong_format', detail='error trace does not have "trace"')
         if not isinstance(error_trace.get('files'), list):
             self.fail('wrong_format', detail='error trace does not have files or it is not a list')
-        self.__check_node(error_trace['trace'])
-        if error_trace['trace']['type'] != 'thread':
-            self.fail('wrong_format', detail='root error trace node type should be a "thread"')
+        if 'trace' not in error_trace:
+            self.fail('wrong_format', detail='error trace does not have "trace"')
+        if error_trace['trace']:
+            self.__check_node(error_trace['trace'])
+            if error_trace['trace']['type'] != 'thread':
+                self.fail('wrong_format', detail='root error trace node type should be a "thread"')
         return archive
 
     def validate(self, value):
