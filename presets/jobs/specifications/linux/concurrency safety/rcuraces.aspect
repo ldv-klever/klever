@@ -61,6 +61,7 @@ around: call(static inline void rcu_read_unlock(void))
 }
 
 around: call(void synchronize_rcu(void))
+        || call(static inline void synchronize_rcu(void))
 {
 	ldv_synchronize_rcu();
 }
