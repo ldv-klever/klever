@@ -2,6 +2,11 @@
   "attrs": [
     {
       "is_compare": true,
+      "name": "Declaration",
+      "value": "char *gp"
+    },
+    {
+      "is_compare": true,
       "name": "Requirements specification",
       "value": "concurrency safety rcu"
     },
@@ -16,14 +21,14 @@
     [
       [
         {
-          "writer1": []
+          "writer": []
         }
       ]
     ],
     [
       [
         {
-          "writer2": []
+          "writer": []
         }
       ]
     ]

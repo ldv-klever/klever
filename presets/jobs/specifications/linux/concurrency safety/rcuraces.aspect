@@ -45,7 +45,7 @@ around: define(rcu_assign_pointer(gp, p))
 {
 	do {
 		ldv_wlock_rcu();
-		ldv_rcu_assign_pointer(gp, p)
+		ldv_rcu_assign_pointer(gp, p);
 		ldv_wunlock_rcu();
 	} while(0)
 }
@@ -61,6 +61,7 @@ around: call(static inline void rcu_read_unlock(void))
 }
 
 around: call(void synchronize_rcu(void))
+        || call(static inline void synchronize_rcu(void))
 {
 	ldv_synchronize_rcu();
 }

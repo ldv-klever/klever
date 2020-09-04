@@ -17,21 +17,12 @@
 
 #include <linux/module.h>
 #include <linux/mutex.h>
+#include <linux/rcupdate.h>
 #include <ldv/verifier/nondet.h>
 #include <ldv/verifier/thread.h>
 
-void ldv_rcu_read_lock(void);
-void ldv_rcu_read_unlock(void);
-void ldv_rlock_rcu(void);
-void ldv_runlock_rcu(void);
-void * ldv_rcu_dereference(const void * pp);
-void ldv_wlock_rcu(void);
-void ldv_wunlock_rcu(void);
-void ldv_free(void *);
-void ldv_synchronize_rcu(void);
-void ldv_rcu_assign_pointer(void * p1, const void * p2);
-
 void* calloc( size_t number, size_t size );
+void free(void *mem);
 
 static char * gp;
 
@@ -48,15 +39,11 @@ void *reader(void * arg) {
 	char b;
 	struct bar * p1 = calloc(1, sizeof(struct bar));
 
-	ldv_rcu_read_lock();
-	p1 -> ptr = ({typeof(pStruct -> gp) p;
-		ldv_rlock_rcu();
-		p = ldv_rcu_dereference(pStruct -> gp);
-		ldv_runlock_rcu();
-		p;});
+	rcu_read_lock();
+	a = rcu_dereference(pStruct -> gp);
 	a = p1 -> ptr;
 	b = *a;
-	ldv_rcu_read_unlock();
+	rcu_read_unlock();
 
 	return 0;
 }
@@ -70,13 +57,9 @@ void *writer(void * arg) {
 	pWriter[1] = 'c';
 	pWriter[2] = 'u';
 
-	do {
-		ldv_wlock_rcu();
-		ldv_rcu_assign_pointer(pStruct -> gp, pWriter);
-		ldv_wunlock_rcu();
-	} while(0);
-	//ldv_synchronize_rcu(); //BUG is here
-	ldv_free(p -> ptr);
+	rcu_assign_pointer(pStruct -> gp, pWriter);
+	//synchronize_rcu(); //BUG is here
+	free(p -> ptr);
 
 	return 0;
 }

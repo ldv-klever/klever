@@ -2,18 +2,13 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Declaration",
-      "value": "char *gp"
-    },
-    {
-      "is_compare": true,
       "name": "Requirements specification",
       "value": "concurrency safety rcu"
     },
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/linux/concurrency-safety/rcu/reader_writer-N-wrong-writer-lock-placement-false-no-datarace.ko"
+      "value": "ext-modules/linux/concurrency-safety/rcu/reader_writer-N-true-no-datarace.ko"
     }
   ],
   "description": "",
@@ -24,6 +19,12 @@
           "writer": [
             {
               "Instrumented function 'mutex_lock'": []
+            },
+            {
+              "Instrumented function 'mutex_unlock'": []
+            },
+            {
+              "Instrumented function 'free'": []
             }
           ]
         }
@@ -32,7 +33,17 @@
     [
       [
         {
-          "writer": []
+          "writer": [
+            {
+              "Instrumented function 'mutex_lock'": []
+            },
+            {
+              "Instrumented function 'mutex_unlock'": []
+            },
+            {
+              "Instrumented function 'free'": []
+            }
+          ]
         }
       ]
     ]
@@ -42,5 +53,5 @@
   "status": null,
   "tags": [],
   "threshold": 100,
-  "verdict": "2"
+  "verdict": "3"
 }

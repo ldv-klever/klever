@@ -3,7 +3,7 @@
     {
       "is_compare": true,
       "name": "Declaration",
-      "value": "char *gp"
+      "value": "cif_free::void *cif_free::*ldv_func_arg1"
     },
     {
       "is_compare": true,
@@ -24,6 +24,12 @@
           "writer": [
             {
               "Instrumented function 'mutex_lock'": []
+            },
+            {
+              "Instrumented function 'mutex_unlock'": []
+            },
+            {
+              "Instrumented function 'free'": []
             }
           ]
         }
@@ -32,7 +38,17 @@
     [
       [
         {
-          "writer": []
+          "writer": [
+            {
+              "Instrumented function 'mutex_lock'": []
+            },
+            {
+              "Instrumented function 'mutex_unlock'": []
+            },
+            {
+              "Instrumented function 'free'": []
+            }
+          ]
         }
       ]
     ]
@@ -42,5 +58,5 @@
   "status": null,
   "tags": [],
   "threshold": 100,
-  "verdict": "2"
+  "verdict": "3"
 }
