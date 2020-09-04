@@ -22,13 +22,19 @@ import pwd
 import shutil
 import subprocess
 import sys
+import tarfile
+import tempfile
+import urllib.parse
+import zipfile
+
+from clade import Clade
 
 from klever.deploys.configure_controller_and_schedulers import configure_controller_and_schedulers
 from klever.deploys.install_deps import install_deps
 from klever.deploys.install_klever_bridge import install_klever_bridge_development, install_klever_bridge_production
 from klever.deploys.prepare_env import prepare_env
-from klever.deploys.utils import execute_cmd, install_klever_addons, install_klever_build_bases, \
-    need_verifiercloud_scheduler, start_services, stop_services, get_media_user, replace_media_user
+from klever.deploys.utils import execute_cmd, need_verifiercloud_scheduler, start_services, stop_services, \
+    get_media_user, replace_media_user, make_canonical_path
 
 
 class Klever:
@@ -55,7 +61,7 @@ class Klever:
             self.logger.error('You can not both use symbolic links and ignore some directories')
             sys.exit(errno.EINVAL)
 
-        self.logger.info('Install "{0}" to "{1}"'.format(src, dst))
+        self.logger.info(f'Install "{src}" to "{dst}"')
 
         os.makedirs(dst if os.path.isdir(dst) else os.path.dirname(dst), exist_ok=True)
 
@@ -72,11 +78,214 @@ class Klever:
             json.dump(cur_deploy_info, fp, sort_keys=True, indent=4)
 
     def _pre_install_or_update(self):
-        install_klever_addons(self.logger, self.args.source_directory, self.args.deployment_directory, self.deploy_conf,
-                              self.prev_deploy_info, self._cmd_fn, self._install_fn, self._dump_cur_deploy_info)
-        install_klever_build_bases(self.logger, self.args.source_directory,
-                                   os.path.join(self.args.deployment_directory, 'klever'),
-                                   self.deploy_conf, self._cmd_fn, self._install_fn)
+        self._install_klever_addons(self.args.source_directory, self.args.deployment_directory)
+        self._install_klever_build_bases(self.args.source_directory, self.args.deployment_directory)
+
+    def _install_klever_addons(self, src_dir, deploy_dir):
+        deploy_addons_conf = self.deploy_conf['Klever Addons']
+
+        if 'Klever Addons' not in self.prev_deploy_info:
+            self.prev_deploy_info['Klever Addons'] = {}
+
+        prev_deploy_addons_conf = self.prev_deploy_info['Klever Addons']
+
+        for addon in deploy_addons_conf:
+            if addon == 'Verification Backends':
+                if 'Verification Backends' not in prev_deploy_addons_conf:
+                    prev_deploy_addons_conf['Verification Backends'] = {}
+
+                for verification_backend in deploy_addons_conf['Verification Backends']:
+                    backend_deploy_dir = os.path.join(deploy_dir, 'klever-addons', 'verification-backends',
+                                                      verification_backend)
+                    if self._install_entity(verification_backend, src_dir, backend_deploy_dir,
+                                            deploy_addons_conf['Verification Backends'],
+                                            prev_deploy_addons_conf['Verification Backends']):
+                        self._dump_cur_deploy_info(self.prev_deploy_info)
+            else:
+                addon_deploy_dir = os.path.join(deploy_dir, 'klever-addons', addon)
+                if self._install_entity(addon, src_dir, addon_deploy_dir, deploy_addons_conf,
+                                        prev_deploy_addons_conf):
+                    self._dump_cur_deploy_info(self.prev_deploy_info)
+
+    def _install_klever_build_bases(self, src_dir, deploy_dir):
+        deploy_dir = os.path.join(deploy_dir, 'klever')
+
+        for klever_build_base in self.deploy_conf['Klever Build Bases']:
+            self.logger.info(f'Install Klever build base "{klever_build_base}"')
+
+            base_deploy_dir = os.path.join(deploy_dir, 'build bases')
+
+            if os.path.isfile(klever_build_base):
+                # Use md5 checksum of the archive as version
+                output = execute_cmd(self.logger, 'md5sum', klever_build_base, stderr=subprocess.DEVNULL,
+                                     get_output=True).rstrip()
+                version = output.split(' ')[0]
+            elif os.path.isdir(klever_build_base):
+                # Use unique identifier of the build base as version
+                try:
+                    version = Clade(klever_build_base).get_uuid()
+                except RuntimeError:
+                    self.logger.error(f'"{klever_build_base}" is not a valid Clade build base')
+                    sys.exit(errno.EINVAL)
+                base_deploy_dir = os.path.join(base_deploy_dir, os.path.basename(klever_build_base))
+            else:
+                # Otherwise build base is probably a link to the remote file
+                # Our build bases are mostly stored at redmine, which has unique links
+                # Here we use this link as version
+                version = klever_build_base
+
+            # _install_entity method expects configuration in a specific format
+            deploy_bases_conf = {
+                klever_build_base: {
+                    'path': klever_build_base,
+                    'version': version
+                }
+            }
+
+            if 'Klever Build Bases' not in self.prev_deploy_info:
+                self.prev_deploy_info['Klever Build Bases'] = {}
+
+            prev_deploy_bases_conf = self.prev_deploy_info['Klever Build Bases']
+
+            if self._install_entity(klever_build_base, src_dir, base_deploy_dir,
+                                    deploy_bases_conf, prev_deploy_bases_conf,
+                                    remove_previous_version=False):
+                self._dump_cur_deploy_info(self.prev_deploy_info)
+
+    def _install_entity(self, name, src_dir, deploy_dir, deploy_conf, prev_deploy_info, remove_previous_version=True):
+        if name not in deploy_conf:
+            self.logger.error(f'"{name}" is not described')
+            sys.exit(errno.EINVAL)
+
+        deploy_dir = os.path.normpath(deploy_dir)
+
+        desc = deploy_conf[name]
+
+        if 'version' not in desc:
+            self.logger.error(f'Version is not specified for "{name}"')
+            sys.exit(errno.EINVAL)
+
+        version = desc['version']
+
+        if 'path' not in desc:
+            self.logger.error(f'Path is not specified for "{name}"')
+            sys.exit(errno.EINVAL)
+
+        path = desc['path']
+        o = urllib.parse.urlparse(path)
+        if not o[0]:
+            path = make_canonical_path(src_dir, path)
+
+        refs = {}
+        try:
+            ref_strs = execute_cmd(self.logger, 'git', 'ls-remote', '--refs', path, stderr=subprocess.DEVNULL,
+                                   get_output=True).rstrip().split('\n')
+            is_git_repo = True
+            for ref_str in ref_strs:
+                commit, ref = ref_str.split('\t')
+                refs[ref] = commit
+        except subprocess.CalledProcessError:
+            is_git_repo = False
+
+        if is_git_repo and version != 'CURRENT':
+            # Version can be either some reference or commit hash. In the former case we need to get corresponding commit
+            # hash since it can differ from the previous one installed before for the same reference. In the latter case we
+            # will fail below one day if commit hash isn't valid.
+            # Note that here we can use just Git commands working with remote repositories since we didn't clone them yet
+            # and we don't want do this if update isn't necessary.
+            for prefix in ('refs/heads/', 'refs/tags/'):
+                if prefix + version in refs:
+                    version = refs[prefix + version]
+                    break
+
+        prev_version = prev_deploy_info[name]['version'] if name in prev_deploy_info else None
+
+        if version == prev_version and version != 'CURRENT':
+            self.logger.info(f'"{name}" is up to date (version: "{version}")')
+            return False
+
+        if prev_version:
+            self.logger.info(f'Update "{name}" from version "{prev_version}" to version "{version}"')
+        else:
+            self.logger.info(f'Install "{name}" (version: "{version}")')
+
+        # Remove previous version of entity if so. Do not make this in depend on previous version since it can be unset
+        # while entity is deployed. For instance, this can be the case when entity deployment fails somewhere in the middle.
+        # BUT: do not remove build bases since they are all deployed in the same directory!
+        if remove_previous_version:
+            self._cmd_fn('rm', '-rf', deploy_dir)
+
+        # Install new version of entity.
+        tmp_file = None
+        tmp_dir = None
+        try:
+            instance_path = os.path.join(deploy_dir, os.path.basename(path))
+
+            # Clone remote Git repository.
+            if (o[0] == 'git' or is_git_repo) and not os.path.exists(path):
+                tmp_dir = tempfile.mkdtemp()
+                execute_cmd(self.logger, 'git', 'clone', '-q', '--recursive', path, tmp_dir)
+                path = tmp_dir
+            # Download remote file.
+            elif o[0] in ('http', 'https', 'ftp'):
+                _, tmp_file = tempfile.mkstemp()
+                execute_cmd(self.logger, 'wget', '-O', tmp_file, '-q', path)
+                path = tmp_file
+            elif o[0]:
+                self.logger.error(f'"{name}" is provided in unsupported form "{o[0]}"')
+                sys.exit(errno.EINVAL)
+            elif not os.path.exists(path):
+                self.logger.error(f'Path "{path}" does not exist')
+                sys.exit(errno.ENOENT)
+
+            if is_git_repo:
+                if version == 'CURRENT':
+                    self._install_fn(path, deploy_dir, allow_symlink=True)
+                else:
+                    with tempfile.TemporaryDirectory() as tmpdir:
+                        # Checkout specified version within local Git repository if this is allowed or clone local Git
+                        # repository to temporary directory and checkout specified version there.
+                        if desc.get('allow use local Git repository'):
+                            tmp_path = path
+                            execute_cmd(self.logger, 'git', '-C', tmp_path, 'checkout', '-fq', version)
+                            execute_cmd(self.logger, 'git', '-C', tmp_path, 'clean', '-xfdq')
+                        else:
+                            tmp_path = os.path.join(tmpdir, os.path.basename(os.path.realpath(path)))
+                            execute_cmd(self.logger, 'git', 'clone', '-q', path, tmp_path)
+                            execute_cmd(self.logger, 'git', '-C', tmp_path, 'checkout', '-q', version)
+
+                        # Directory .git can be quite large so ignore it during installing except one needs it.
+                        self._install_fn(tmp_path, deploy_dir, ignore=None if desc.get('copy .git directory') else ['.git'])
+            elif os.path.isfile(path) and (tarfile.is_tarfile(path) or zipfile.is_zipfile(path)):
+                os.makedirs(deploy_dir, exist_ok=True)
+
+                if tarfile.is_tarfile(path):
+                    self._cmd_fn('tar', '--warning', 'no-unknown-keyword', '-C', '{0}'.format(deploy_dir), '-xf', path)
+                else:
+                    self._cmd_fn('unzip', '-u', '-d', '{0}'.format(deploy_dir), path)
+            elif os.path.isfile(path):
+                self._install_fn(path, instance_path, allow_symlink=True)
+            elif os.path.isdir(path):
+                self._install_fn(path, deploy_dir, allow_symlink=True)
+            else:
+                self.logger.error(f'Could not install "{name}" since it is provided in the unsupported format')
+                sys.exit(errno.ENOSYS)
+
+            # Remember what entity was installed just if everything went well.
+            prev_deploy_info[name] = {
+                'version': version,
+                'directory': deploy_dir
+            }
+            for attr in ('name', 'executable path', 'python path'):
+                if attr in desc:
+                    prev_deploy_info[name][attr] = desc[attr]
+
+            return True
+        finally:
+            if tmp_file:
+                os.unlink(tmp_file)
+            if tmp_dir:
+                shutil.rmtree(tmp_dir)
 
     def _install_or_update_deps(self):
         install_deps(self.logger, self.deploy_conf, self.prev_deploy_info, self.args.non_interactive,
