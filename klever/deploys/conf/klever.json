@@ -3,7 +3,7 @@
     "CIF": {
       "version": "64af3bf",
       "path": "https://forge.ispras.ru/attachments/download/7914/cif-64af3bf.tar.xz",
-      "executable path": "usr/local/bin"
+      "executable path": "bin"
     },
     "CIL": {
       "version": "88d3732",
