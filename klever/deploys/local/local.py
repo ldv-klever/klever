@@ -188,11 +188,11 @@ class Klever:
             is_git_repo = False
 
         if is_git_repo and version != 'CURRENT':
-            # Version can be either some reference or commit hash. In the former case we need to get corresponding commit
-            # hash since it can differ from the previous one installed before for the same reference. In the latter case we
-            # will fail below one day if commit hash isn't valid.
-            # Note that here we can use just Git commands working with remote repositories since we didn't clone them yet
-            # and we don't want do this if update isn't necessary.
+            # Version can be either some reference or commit hash. In the former case we need to get corresponding
+            # commit hash since it can differ from the previous one installed before for the same reference. In the
+            # latter case we will fail below one day if commit hash isn't valid.
+            # Note that here we can use just Git commands working with remote repositories since we didn't clone them
+            # yet and we don't want do this if update isn't necessary.
             for prefix in ('refs/heads/', 'refs/tags/'):
                 if prefix + version in refs:
                     version = refs[prefix + version]
@@ -210,7 +210,8 @@ class Klever:
             self.logger.info(f'Install "{name}" (version: "{version}")')
 
         # Remove previous version of entity if so. Do not make this in depend on previous version since it can be unset
-        # while entity is deployed. For instance, this can be the case when entity deployment fails somewhere in the middle.
+        # while entity is deployed. For instance, this can be the case when entity deployment fails somewhere in the
+        # middle.
         # BUT: do not remove build bases since they are all deployed in the same directory!
         if remove_previous_version:
             self._cmd_fn('rm', '-rf', deploy_dir)
@@ -255,7 +256,8 @@ class Klever:
                             execute_cmd(self.logger, 'git', '-C', tmp_path, 'checkout', '-q', version)
 
                         # Directory .git can be quite large so ignore it during installing except one needs it.
-                        self._install_fn(tmp_path, deploy_dir, ignore=None if desc.get('copy .git directory') else ['.git'])
+                        self._install_fn(tmp_path, deploy_dir,
+                                         ignore=None if desc.get('copy .git directory') else ['.git'])
             elif os.path.isfile(path) and (tarfile.is_tarfile(path) or zipfile.is_zipfile(path)):
                 os.makedirs(deploy_dir, exist_ok=True)
 
