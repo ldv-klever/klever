@@ -953,8 +953,8 @@ class ReportChildrenTable:
         return Header(columns, REP_MARK_TITLES).struct, values_data
 
 
-class FilesForCompetitionArchive:
-    obj_attr = 'Program fragment'
+class VerifierFilesArchive:
+    program_fragment_attr = 'Program fragment'
     requirement_attr = 'Requirements specification'
 
     def __init__(self, decision, filters):
@@ -964,7 +964,7 @@ class FilesForCompetitionArchive:
         self._archives_to_upload = []
         self.__get_archives_to_upload(filters)
         self.stream = ZipStream()
-        self.name = 'svcomp.zip'
+        self.name = 'verifier_input_files.zip'
 
     def __iter__(self):
         cnt = 0
@@ -993,7 +993,7 @@ class FilesForCompetitionArchive:
         # Select attributes for all safes, unsafes and unknowns
         attrs = {}
         for report_id, a_name, a_value in ReportAttr.objects\
-                .filter(report__decision=self.decision, name__in=[self.obj_attr, self.requirement_attr]) \
+                .filter(report__decision=self.decision, name__in=[self.program_fragment_attr, self.requirement_attr]) \
                 .exclude(report__reportunsafe=None, report__reportsafe=None, report__reportunknown=None) \
                 .values_list('report_id', 'name', 'value'):
             if report_id not in attrs:
@@ -1003,16 +1003,16 @@ class FilesForCompetitionArchive:
 
     def __add_archive(self, r_type, r_id, p_id):
         if p_id in self._archives and r_id in self._attrs \
-                and self.obj_attr in self._attrs[r_id] \
+                and self.program_fragment_attr in self._attrs[r_id] \
                 and self.requirement_attr in self._attrs[r_id]:
 
-            ver_obj = self._attrs[r_id][self.obj_attr].replace('~', 'HOME').replace('/', '---')
-            ver_requirement = self._attrs[r_id][self.requirement_attr].replace(':', '-')
-            dirname = 'Unknowns' if r_type == 'f' else 'Unsafes' if r_type == 'u' else 'Safes'
-
-            self._archives_to_upload.append(
-                (self._archives[p_id], '{0}/{1}__{2}__{3}'.format(dirname, r_type, ver_requirement, ver_obj))
-            )
+            self._archives_to_upload.append((
+                self._archives[p_id],
+                '{0}/{1}/{2} - {3}'.format(self._job_name,
+                                           'Unknowns' if r_type == 'f' else 'Unsafes' if r_type == 'u' else 'Safes',
+                                           self._attrs[r_id][self.program_fragment_attr].replace('/', '---'),
+                                           self._attrs[r_id][self.requirement_attr])
+            ))
 
     def __get_archives_to_upload(self, filters):
         common_filters = {'decision': self.decision, 'parent__reportcomponent__verification': True}
