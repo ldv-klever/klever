@@ -34,7 +34,7 @@ from bridge.tableHead import Header
 from bridge.utils import BridgeException, ArchiveFileContent
 from bridge.ZipGenerator import ZipStream
 
-from jobs.models import Job
+from jobs.models import Job, Decision
 from reports.models import Report, ReportComponent, ReportAttr, ReportUnsafe, ReportSafe, ReportUnknown, CoverageArchive
 
 from users.utils import HumanizedValue, paginate_queryset
@@ -985,10 +985,16 @@ class VerifierFilesArchive:
 
     @cached_property
     def _job_name(self):
-        job = Job.objects.filter(id=self.decision.job_id).select_related('preset').only('preset__name').first()
-        if job:
-            return job.preset.name
-        return 'Job'
+        job = Job.objects.filter(id=self.decision.job_id).select_related('preset')\
+            .only('name', 'preset__name', 'preset_id').first()
+        if not job:
+            return 'Job'
+        dir_name = job.preset.name
+        if Job.objects.filter(preset_id=job.preset_id).count() > 1:
+            dir_name += ' - {}'.format(job.name)
+        if Decision.objects.filter(job_id=job.id).count() > 1:
+            dir_name += ' - {}'.format(self.decision.name)
+        return dir_name
 
     def __get_archives(self):
         archives = {}
