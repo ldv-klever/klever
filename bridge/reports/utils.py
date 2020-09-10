@@ -955,6 +955,7 @@ class ReportChildrenTable:
 
 
 class VerifierFilesArchive:
+    sub_job_identifier_attr = 'Sub-job identifier'
     program_fragment_attr = 'Program fragment'
     requirement_attr = 'Requirements specification'
 
@@ -1007,7 +1008,11 @@ class VerifierFilesArchive:
         # Select attributes for all safes, unsafes and unknowns
         attrs = {}
         for report_id, a_name, a_value in ReportAttr.objects\
-                .filter(report__decision=self.decision, name__in=[self.program_fragment_attr, self.requirement_attr]) \
+                .filter(report__decision=self.decision, name__in=[
+                    self.sub_job_identifier_attr,
+                    self.program_fragment_attr,
+                    self.requirement_attr
+                ]) \
                 .exclude(report__reportunsafe=None, report__reportsafe=None, report__reportunknown=None) \
                 .values_list('report_id', 'name', 'value'):
             if report_id not in attrs:
@@ -1022,10 +1027,14 @@ class VerifierFilesArchive:
 
             self._archives_to_upload.append((
                 self._archives[p_id],
-                '{0}/{1}/{2} - {3}'.format(self._job_name,
-                                           'Unknowns' if r_type == 'f' else 'Unsafes' if r_type == 'u' else 'Safes',
-                                           self._attrs[r_id][self.program_fragment_attr].replace('/', '---'),
-                                           self._attrs[r_id][self.requirement_attr])
+                '{0}/{1}/{2}{3} - {4}'.format(
+                    self._job_name,
+                    'Unknowns' if r_type == 'f' else 'Unsafes' if r_type == 'u' else 'Safes',
+                    self._attrs[r_id][self.sub_job_identifier_attr] + ' - '
+                        if self.sub_job_identifier_attr in self._attrs[r_id] else '',
+                    self._attrs[r_id][self.program_fragment_attr].replace('/', '---'),
+                    self._attrs[r_id][self.requirement_attr]
+                )
             ))
 
     def __get_archives_to_upload(self, filters):
