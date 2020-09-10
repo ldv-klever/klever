@@ -295,8 +295,7 @@ class VerifierCloud(runners.Runner):
                                   result_files_pattern='output/**',
                                   priority=task.run.priority,
                                   user_pwd=task.run.user_pwd(user, password),
-                                  svn_branch=task.run.branch,
-                                  svn_revision=task.run.revision,
+                                  revision=task.run.branch + ':' + task.run.revision,
                                   meta_information=json.dumps({'Verification tasks produced by Klever': None}))
         except Exception as err:
             raise schedulers.SchedulerException(str(err))
