@@ -974,7 +974,7 @@ class VerifierFilesArchive:
         for arch_path, name_pattern in self._archives_to_upload:
             if name_pattern in names_in_use:
                 cnt += 1
-                arch_name = '%s_%s.zip' % (name_pattern, cnt)
+                arch_name = '%s-%s.zip' % (name_pattern, cnt)
             else:
                 arch_name = '%s.zip' % name_pattern
             names_in_use.add(name_pattern)
