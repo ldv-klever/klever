@@ -67,6 +67,7 @@
               "allocate external": false,
               "environment model file": "environment_model.c",
               "additional headers": [
+                "ldv/common/list.h",
                 "ldv/linux/common.h",
                 "ldv/linux/err.h",
                 "ldv/verifier/common.h",
@@ -143,6 +144,7 @@
               "additional headers": [
                 "linux/user_namespace.h",
                 "ldv/linux/common.h",
+                "ldv/common/list.h",
                 "ldv/linux/err.h",
                 "ldv/verifier/common.h",
                 "ldv/verifier/gcc.h",
@@ -191,6 +193,7 @@
               "allocate external": false,
               "environment model file": "environment_model.c",
               "additional headers": [
+                "ldv/common/list.h",
                 "ldv/linux/common.h",
                 "ldv/linux/err.h",
                 "ldv/verifier/common.h",

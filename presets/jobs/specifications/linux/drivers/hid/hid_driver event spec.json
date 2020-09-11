@@ -381,6 +381,7 @@
         "reference": true
       },
       "input_ff_create_memless": {
+        "headers": ["ldv/common/list.h"],
         "actions": {
           "fail": {
             "comment": "Failed to create memoryless force-feedback device.",
@@ -397,6 +398,7 @@
               "}",
               "%hid_input% = $ARG1;",
               "%data% = $ARG2;",
+              "ldv_save_allocated_memory_to_list(%data%);",
               "%ff_playback% = $ARG3;",
               "emg_ff_input = %hid_input%;",
               "emg_ff_data = %data%;",
