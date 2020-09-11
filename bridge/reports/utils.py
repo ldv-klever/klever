@@ -955,6 +955,8 @@ class ReportChildrenTable:
 
 
 class VerifierFilesArchive:
+    # These attributes allow to distinguish uniqely all verification tasks within the same job. Sub-job identifier may
+    # be not specified. In this case remaining attributes are unique.
     sub_job_identifier_attr = 'Sub-job identifier'
     program_fragment_attr = 'Program fragment'
     requirement_attr = 'Requirements specification'
