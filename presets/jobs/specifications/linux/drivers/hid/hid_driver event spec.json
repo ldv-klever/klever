@@ -151,12 +151,16 @@
           "free_device": {
             "comment": "Free allocated memory for HID device.",
             "statements": [
-              "$FREE(%resource%);"
+              "$FREE(%resource%);",
+              "if (emg_ff_input != 0) {",
+              " %data% = emg_ff_data;",
+              " $FREE(%data%);",
+              "}"
             ]
           },
           "manage_hid": {
             "comment": "Manage a particular HID device.",
-            "process": "[probe].(<probe_success>.([suspend].([resume] | [reset_resume]) | [callback] | <skip>).[remove] | <failed_probe>).{manage_hid} | <free_device>.(deregister)"
+            "process": "[probe].(<probe_success>.([suspend].([resume] | [reset_resume]) | (<ff_check>.[play_effect].<ff_success>) | [callback] | <skip>).[remove] | <failed_probe>).{manage_hid} | <free_device>.(deregister)"
           },
           "probe": {
             "callback": "%hid_driver.probe%",
@@ -214,12 +218,60 @@
             "parameters": [
               "%resource%"
             ]
+          },
+          "ff_check": {
+            "comment": "Check that there was allocation of memory for a memoryless force-feedback device.",
+            "condition": [
+              "emg_ff_input != 0"
+            ],
+            "statements": [
+              "%hid_input% = emg_ff_input;",
+              "%data% = emg_ff_data;",
+              "%ff_playback% = emg_ff_playback;"
+            ]
+          },
+          "play_effect": {
+            "callback": "%ff_playback%",
+            "comment": "Try a test playback.",
+            "parameters": [
+              "%hid_input%", "%data%"
+            ]
+          },
+          "ff_success": {
+            "comment": "Successfully called playback and now release resources.",
+            "statements": [
+              "$FREE(%data%);",
+              "emg_ff_input = 0;",
+              "emg_ff_data = 0;",
+              "emg_ff_playback = 0;"
+            ]
           }
         },
         "comment": "Invoke a random HID driver callback.",
         "labels": {
           "callback": {
             "callback": true
+          },
+          "hid_input": {
+            "resource": true,
+            "interface": [
+              "hid_driver.hid_input_device"
+            ],
+            "parameter": true
+          },
+          "ff_playback": {
+            "callback": true,
+            "interface": [
+              "hid_driver.ff_playback"
+            ],
+            "parameter": true
+          },
+          "data": {
+            "resource": true,
+            "interface": [
+              "hid_driver.input_data"
+            ],
+            "parameter": true
           },
           "hid_driver": {
             "container": true,
@@ -248,6 +300,13 @@
             "interface": [
               "hid_driver.driver_ids"
             ]
+          }
+        },
+        "declarations": {
+          "environment model": {
+            "emg_ff_input": "struct input_dev *emg_ff_input = 0;\n",
+            "emg_ff_data": "void *emg_ff_data = 0;\n",
+            "emg_ff_playback": "int (*emg_ff_playback)(struct input_dev *, void *, struct ff_effect *) = 0;\n"
           }
         },
         "process": "(!register).(<alloc_device>.{manage_hid})",
@@ -319,6 +378,65 @@
           }
         },
         "process": "<assign>.[register].<success> | <fail>",
+        "reference": true
+      },
+      "input_ff_create_memless": {
+        "actions": {
+          "fail": {
+            "comment": "Failed to create memoryless force-feedback device.",
+            "statements": [
+              "return ldv_undef_int_negative();"
+            ]
+          },
+          "success": {
+            "comment": "Successfully created memoryless force-feedback device.",
+            "statements": [
+              "if (emg_ff_input != 0) {",
+              " %data% = emg_ff_data;",
+              " $FREE(%data%);",
+              "}",
+              "%hid_input% = $ARG1;",
+              "%data% = $ARG2;",
+              "%ff_playback% = $ARG3;",
+              "emg_ff_input = %hid_input%;",
+              "emg_ff_data = %data%;",
+              "emg_ff_playback = %ff_playback%;",
+              "return 0;"
+            ]
+          }
+        },
+        "comment": "Create memoryless force-feedback device.",
+        "labels": {
+          "hid_input": {
+            "resource": true,
+            "interface": [
+              "hid_driver.hid_input_device"
+            ],
+            "parameter": true
+          },
+          "ff_playback": {
+            "callback": true,
+            "interface": [
+              "hid_driver.ff_playback"
+            ],
+            "parameter": true
+          },
+          "data": {
+            "resource": true,
+            "interface": [
+              "hid_driver.input_data"
+            ],
+            "parameter": true
+          }
+        },
+        "declarations": {
+          "environment model": {
+            "emg_ff_input": "struct input_dev *emg_ff_input = 0;\n",
+            "emg_ff_data": "void *emg_ff_data = 0;\n",
+            "emg_ff_playback": "int (*emg_ff_playback)(struct input_dev *, void *, struct ff_effect *) = 0;\n"
+          }
+        },
+        "process": "<success> | <fail>",
         "reference": true
       }
     }

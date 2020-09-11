@@ -53,6 +53,9 @@
           },
           "reset_resume": {
             "declaration": "int (*reset_resume)(%hid_driver.hid_device%)"
+          },
+          "ff_playback": {
+            "declaration": "int (*play_effect)(%hid_driver.hid_input_device%, %hid_driver.input_data%, struct ff_effect *)"
           }
         },
         "containers": {
@@ -72,6 +75,13 @@
           "hid_device": {
             "declaration": "struct hid_device *dev"
           },
+          "hid_input_device": {
+            "declaration": "struct input_dev *dev",
+            "headers": ["linux/input.h"]
+          },
+          "input_data": {
+            "declaration": "void *data"
+          },
           "hid_id": {
             "declaration": "struct hid_device_id *id"
           }
@@ -88,6 +98,11 @@
       "hid_unregister_driver": {
         "declaration": "void hid_unregister_driver(*%hid_driver.hid_driver%)",
         "header": "linux/hid.h",
+        "reference": true
+      },
+      "input_ff_create_memless": {
+        "declaration": "int input_ff_create_memless(%hid_driver.hid_input_device%, void *data, %hid_driver.ff_playback%)",
+        "header": "linux/input.h",
         "reference": true
       }
     }
