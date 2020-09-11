@@ -969,12 +969,12 @@ class VerifierFilesArchive:
         self.name = 'verifier_input_files.zip'
 
     def __iter__(self):
-        cnt = 0
         names_in_use = set()
         for arch_path, name_pattern in self._archives_to_upload:
+            # Do not treat archives with the same names. Indeed, these archives represent exactly the same verification
+            # tasks for which a verifier reported several unsafes per each verification task.
             if name_pattern in names_in_use:
-                cnt += 1
-                arch_name = '%s-%s.zip' % (name_pattern, cnt)
+                continue
             else:
                 arch_name = '%s.zip' % name_pattern
             names_in_use.add(name_pattern)
