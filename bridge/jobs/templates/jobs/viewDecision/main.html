@@ -177,11 +177,13 @@
                             </div>
                             <br>
                         {% endfor %}
-                        <div class="ui checkbox">
-                            <label for="download_verifier_files_p_null">{% trans 'Without marks' %}</label>
-                            <input id="download_verifier_files_p_null" class="download_verifier_files-problem" type="checkbox" data-component="null" data-problem="null" checked>
-                        </div>
-                        <br>
+                        {% if reportdata.has_unmarked %}
+                            <div class="ui checkbox">
+                                <label for="download_verifier_files_p_null">{% trans 'Without marks' %}</label>
+                                <input id="download_verifier_files_p_null" class="download_verifier_files-problem" type="checkbox" data-component="null" data-problem="null" checked>
+                            </div>
+                            <br>
+                        {% endif %}
                     </div>
                     <div class="sixteen wide column right aligned">
                         <div class="ui buttons">

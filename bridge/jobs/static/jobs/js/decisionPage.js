@@ -91,6 +91,7 @@ $(document).ready(function () {
                 });
             }
         });
+        download_verifier_files_modal.modal('hide');
         window.location.href = $(this).data('url') + '?filters=' +
                                encodeURIComponent(JSON.stringify(download_verifier_files_filters));
     });

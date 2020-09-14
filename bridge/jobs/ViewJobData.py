@@ -374,6 +374,10 @@ class ViewJobData:
             cnt += 1
         return problems
 
+    @property
+    def has_unmarked(self):
+        return ReportUnknown.objects.filter(cache__marks_total=0, decision=self.decision).count() > 0
+
     def __safe_tags_info(self):
         if not self.report:
             return []
