@@ -147,39 +147,39 @@
                         {% if reportdata.totals and reportdata.totals.unsafes > 0 %}
                             <div class="ui checkbox">
                                 <label for="download_verifier_files_unsafes">{% trans 'Unsafes' %}</label>
-                                <input id="download_verifier_files_unsafes" type="checkbox">
+                                <input id="download_verifier_files_unsafes" type="checkbox" checked>
                             </div>
                             <br>
                         {% endif %}
                         {% if reportdata.totals and reportdata.totals.safes > 0 %}
                             <div class="ui checkbox">
                                 <label for="download_verifier_files_safes">{% trans 'Safes' %}</label>
-                                <input id="download_verifier_files_safes" type="checkbox">
+                                <input id="download_verifier_files_safes" type="checkbox" checked>
                             </div>
                             <br>
                         {% endif %}
                         {% if reportdata.totals and reportdata.totals.unknowns > 0 %}
                             <div class="ui checkbox">
                                 <label for="download_verifier_files_unknowns">{% trans 'Unknowns' %}</label>
-                                <input id="download_verifier_files_unknowns" type="checkbox">
+                                <input id="download_verifier_files_unknowns" type="checkbox" checked>
                             </div>
                             <br>
                         {% endif %}
                     </div>
-                    <div id="download_verifier_files_problems" class="ten wide column" style="display: none">
+                    <div id="download_verifier_files_problems" class="ten wide column">
                         {% if reportdata.problems|length %}
                             <p><small>{% trans "If you don't choose unknowns' problems then all unknowns files will be downloaded" %}</small></p>
                         {% endif %}
                         {% for p in reportdata.problems %}
                             <div class="ui checkbox">
                                 <label for="download_verifier_files_p_{{ p.id }}">{{ p.component }}/{{ p.problem }}</label>
-                                <input id="download_verifier_files_p_{{ p.id }}" class="download_verifier_files-problem" type="checkbox" data-component="{{ p.component }}" data-problem="{{ p.problem }}">
+                                <input id="download_verifier_files_p_{{ p.id }}" class="download_verifier_files-problem" type="checkbox" data-component="{{ p.component }}" data-problem="{{ p.problem }}" checked>
                             </div>
                             <br>
                         {% endfor %}
                         <div class="ui checkbox">
                             <label for="download_verifier_files_p_null">{% trans 'Without marks' %}</label>
-                            <input id="download_verifier_files_p_null" class="download_verifier_files-problem" type="checkbox" data-component="null" data-problem="null">
+                            <input id="download_verifier_files_p_null" class="download_verifier_files-problem" type="checkbox" data-component="null" data-problem="null" checked>
                         </div>
                         <br>
                     </div>
