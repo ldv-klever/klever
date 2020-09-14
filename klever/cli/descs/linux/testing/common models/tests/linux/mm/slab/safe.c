@@ -31,9 +31,13 @@ void ldv_check_alloc_flags(gfp_t flags)
 static int __init ldv_init(void)
 {
 	size_t size = ldv_undef_uint();
+	size_t n = ldv_undef_uint();
 
 	ldv_flags = ldv_undef_uint();
+	kmalloc(size, ldv_flags);
 	kzalloc(size, ldv_flags);
+	kmalloc_array(n, size, ldv_flags);
+	kcalloc(n, size, ldv_flags);
 
 	return 0;
 }

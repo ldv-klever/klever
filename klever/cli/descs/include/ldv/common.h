@@ -15,10 +15,10 @@
  * limitations under the License.
  */
 
-#ifndef __LDV_H
-#define __LDV_H
+#ifndef __LDV_COMMON_H
+#define __LDV_COMMON_H
 
 /* Function declaration for inline Assembler stubs. */
 extern void ldv_inline_asm(void);
 
-#endif /* __LDV_H */
+#endif /* __LDV_COMMON_H */

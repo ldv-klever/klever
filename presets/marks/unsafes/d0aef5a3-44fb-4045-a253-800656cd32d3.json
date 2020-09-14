@@ -3,7 +3,7 @@
     {
       "is_compare": true,
       "name": "Declaration",
-      "value": "ldv_main::int **temp2"
+      "value": "ldv_main::int *ldv_main::*temp2"
     },
     {
       "is_compare": true,

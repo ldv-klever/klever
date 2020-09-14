@@ -1,9 +1,9 @@
 {
   "Klever Addons": {
     "CIF": {
-      "version": "894b1b3",
-      "path": "https://forge.ispras.ru/attachments/download/7624/cif-894b1b3.tar.xz",
-      "executable path": "usr/local/bin"
+      "version": "64af3bf",
+      "path": "https://forge.ispras.ru/attachments/download/7914/cif-64af3bf.tar.xz",
+      "executable path": "bin"
     },
     "CIL": {
       "version": "88d3732",
@@ -25,6 +25,12 @@
         "name": "CPAchecker",
         "version": "trunk:34830",
         "path": "https://forge.ispras.ru/attachments/download/7850/CPAchecker-34830.tar.xz",
+        "executable path": "scripts"
+      },
+      "CPALockator": {
+        "name": "CPAchecker",
+        "version": "CPALockator-combat-mode:34860",
+        "path": "https://forge.ispras.ru/attachments/download/7881/CPAchecker-1.8-svn-34860-unix.tar.xz",
         "executable path": "scripts"
       }
     }

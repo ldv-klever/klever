@@ -82,7 +82,7 @@ urlpatterns = [
     path('api/download-files/<uuid:identifier>/', api.CoreDecisionArchiveView.as_view()),
 
     # "Utils"
-    path('decision/svcomp-files/<int:pk>/', views.DownloadFilesForCompetition.as_view(), name='svcomp-files'),
+    path('decision/download-verifier-files/<int:pk>/', views.DownloadVerifierFiles.as_view(), name='verifier-files'),
     path('api/can-download/', api.CheckDownloadAccessView.as_view(), name='api-can-download'),
     path('api/collapse/<int:pk>/', api.CollapseReportsView.as_view(), name='api-collapse-reports'),
     path('api/coverage/<int:pk>/', api.GetJobCoverageTableView.as_view(), name='api-get-coverage'),

@@ -1,0 +1,37 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "concurrency safety rcu"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/linux/concurrency-safety/rcu/reader_writer-fields-no-synchronize-false-no-datarace.ko"
+    }
+  ],
+  "description": "",
+  "error_trace": [
+    [
+      [
+        {
+          "writer": []
+        }
+      ]
+    ],
+    [
+      [
+        {
+          "reader": []
+        }
+      ]
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": true,
+  "status": null,
+  "tags": [],
+  "threshold": 100,
+  "verdict": "2"
+}

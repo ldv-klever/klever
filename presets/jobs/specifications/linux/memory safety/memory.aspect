@@ -136,13 +136,6 @@ around: ALLOC_UNKNOWN_SIZE
 	return res;
 }
 
-around: call(static inline void *devm_kzalloc(..))
-{
-	// Memory allocated with this function is automatically freed on driver detach.
-	void *res = ldv_calloc_unknown_size();
-	return res;
-}
-
 around: call(struct iio_dev *devm_iio_device_alloc(..))
 {
 	// Calls kzalloc, be careful!

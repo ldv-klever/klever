@@ -13,7 +13,7 @@
     {
       "is_compare": true,
       "name": "Declaration",
-      "value": "ldv_func::int **c"
+      "value": "ldv_func::int *ldv_func::*c"
     }
   ],
   "description": "",

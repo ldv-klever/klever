@@ -65,7 +65,7 @@ setuptools.setup(
             "klever-node-check=klever.scheduler.controller.checks.node:main",
             "klever-resources-check=klever.scheduler.controller.checks.resources:main",
             "klever-schedulers-check=klever.scheduler.controller.checks.schedulers:main",
-            "klever-build=klever.cli.klever_build:klever_build",
+            "klever-build=klever.cli.build.__main__:main",
             "klever-download-job=klever.cli.cli:download_job",
             "klever-download-marks=klever.cli.cli:download_marks",
             "klever-download-progress=klever.cli.cli:download_progress",

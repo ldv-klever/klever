@@ -30,16 +30,6 @@ void *ldv_kmalloc(size_t size, gfp_t flags)
 	return res;
 }
 
-void *ldv_kcalloc(size_t n, size_t size, gfp_t flags)
-{
-	void *res;
-
-	ldv_check_alloc_flags(flags);
-	res = ldv_calloc(n, size);
-
-	return res;
-}
-
 void *ldv_kzalloc(size_t size, gfp_t flags)
 {
 	void *res;
@@ -56,6 +46,16 @@ void *ldv_kmalloc_array(size_t n, size_t size, gfp_t flags)
 
 	ldv_check_alloc_flags(flags);
 	res = ldv_malloc(n * size);
+
+	return res;
+}
+
+void *ldv_kcalloc(size_t n, size_t size, gfp_t flags)
+{
+	void *res;
+
+	ldv_check_alloc_flags(flags);
+	res = ldv_calloc(n, size);
 
 	return res;
 }
