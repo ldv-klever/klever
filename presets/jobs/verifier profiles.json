@@ -123,10 +123,7 @@
       "CPAchecker": {"trunk:34133": {"inherit": "CPAchecker BAM reachability FP"}}
     },
     "reachability with bit precision": {
-      "CPAchecker": {
-        "trunk:34133": {"inherit": "CPAchecker BAM reachability bit-precise"},
-        "trunk:31503": {"inherit": "CPAchecker BAM reachability bit-precise"}
-      }
+      "CPAchecker": {"trunk:34133": {"inherit": "CPAchecker BAM reachability bit-precise"}}
     },
     "reachability with heap arrays": {
       "CPAchecker": {"trunk:34133": {"inherit": "CPAchecker BAM reachability heap arrays"}}
