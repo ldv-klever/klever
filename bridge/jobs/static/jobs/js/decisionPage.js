@@ -66,35 +66,38 @@ $(document).ready(function () {
         });
     });
 
-    // Activate download for competition modal
-    let dfc_modal = $('#dfc_modal'), dfc_problems = $('#dfc_problems');
-    dfc_modal.modal({transition: 'slide down', autofocus: false, closable: false});
-    $('#dfc_modal_show').click(function () {
-        dfc_modal.modal('show')
+    // Activate download verifier files modal
+    let download_verifier_files_modal = $('#download_verifier_files_modal');
+    let download_verifier_files_problems = $('download_verifier_filesc_problems');
+    download_verifier_files_modal.modal({transition: 'slide down', autofocus: false, closable: false});
+    $('#download_verifier_files_modal_show').click(function () {
+        download_verifier_files_modal.modal('show')
     });
-    dfc_modal.find('.modal-cancel').click(function () {
-        dfc_modal.modal('hide')
+    download_verifier_files_modal.find('.modal-cancel').click(function () {
+        download_verifier_files_modal.modal('hide')
     });
-    dfc_modal.find('.modal-confirm').click(function () {
-        let dfc_filters = {
-            safes: $('#dfc_safes').is(':checked'),
-            unsafes: $('#dfc_unsafes').is(':checked'),
-            unknowns: $('#dfc_unknowns').is(':checked'),
+    download_verifier_files_modal.find('.modal-confirm').click(function () {
+        let download_verifier_files_filters = {
+            safes: $('#download_verifier_files_safes').is(':checked'),
+            unsafes: $('#download_verifier_files_unsafes').is(':checked'),
+            unknowns: $('#download_verifier_files_unknowns').is(':checked'),
             problems: []
         };
-        $('.dfc-problem').each(function () {
+        $('.download_verifier_files-problem').each(function () {
             if ($(this).is(':checked')) {
-                dfc_filters.problems.push({
+                download_verifier_files_filters.problems.push({
                     problem: $(this).data('problem'),
                     component: $(this).data('component')
                 });
             }
         });
-        window.location.href = $(this).data('url') + '?filters=' + encodeURIComponent(JSON.stringify(dfc_filters));
+        download_verifier_files_modal.modal('hide');
+        window.location.href = $(this).data('url') + '?filters=' +
+                               encodeURIComponent(JSON.stringify(download_verifier_files_filters));
     });
-    $('#dfc_unknowns').parent().checkbox({
-        onChecked: function () { dfc_problems.show() },
-        onUnchecked: function () { dfc_problems.hide() }
+    $('#download_verifier_files_unknowns').parent().checkbox({
+        onChecked: function () { download_verifier_files_problems.show() },
+        onUnchecked: function () { download_verifier_files_problems.hide() }
     });
 
     let num_of_updates = 0, is_filters_open = false, autoupdate_btn = $('#decision_autoupdate_btn');
