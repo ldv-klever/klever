@@ -149,6 +149,72 @@ Deployment for Development Purposes
 To deploy Klever for development purposes in addition to using mode *development* (see :ref:`local_deploy`) one needs
 to specify command-line option *--allow-symbolic-links*.
 
+How to generate build bases for testing Klever
+----------------------------------------------
+
+To generate build bases for testing Klever you need to perform following preliminary steps:
+
+#. Install Klever locally for development purposes according to the user documentation (see :ref:`dev_deploy`).
+#. Create a dedicated directory for sources and build bases and move to it.
+   Note that there should be quite much free space.
+   We recommend at least 100 GB.
+   In addition, it would be best of all if you will name this directory "build bases" and create it within the root of
+   the Klever Git repository (this directory is not tracked by the repository).
+#. Clone a Linux kernel stable Git repository to *linux-stable* (scripts prepare build bases for different versions of
+   the Linux kernel for which the Git repository serves best of all), e.g.::
+
+    $ git clone https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/ linux-stable
+
+   You can use alternative sources of the Git repository, if the above one is not working well and fast enough:
+
+   #. https://kernel.googlesource.com/pub/scm/linux/kernel/git/stable/linux-stable
+   #. https://github.com/gregkh/linux
+
+#. Make CIF executables to be available through the PATH environment variable, e.g.::
+
+    $ export PATH=/abs/path/to/klever/deploy/dir/klever-addons/CIF/usr/local/bin/:$PATH
+
+#. Read notes regarding the compiler after the end of this list.
+#. Run the following command to find out available descriptions of build bases for testing Klever::
+
+    $ klever-build -l
+
+#. Select appropriate build bases descriptions and run the command like below::
+
+    $ klever-build "linux/testing/requirement specifications" "linux/testing/common models"
+
+#. Wait for a while.
+   Prepared build bases will be available within directory "build bases".
+   Note that there will be additional identifiers, e.g. "build bases/linux/testing/6e6e1c".
+   These identifiers are already specified within corresponding preset verification jobs.
+#. You can install prepared build bases using deployment scripts, but it is boring.
+   If you did not follow an advice regarding the name and the place of the dedicated directory from item 2, you can
+   create a symbolic link with name "build bases" that points to the dedicated directory within the root of the Klever
+   Git repository.
+
+Providing an appropriate compiler
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Most of build bases for testing Klever could be built using GCC 4.8 on Debian or Ubuntu.
+Otherwise there is an explicit division of build bases descriptions, e.g.:
+
+* linux/testing/environment model specifications/gcc48
+* linux/testing/environment model specifications/gcc63
+
+(the former requires GCC 4.8 while the latter needs GCC 6.3 at least).
+
+That's why you may need to get GCC 4.8 and make it available through PATH.
+Users of some other Linux distributions, e.g. openSUSE 15.1, can leverage the default compiler for building all build
+bases for testing Klever.
+
+The simplest way to get GCC 4.8 on Ubuntu is to execute the following commands::
+
+    $ sudo apt update
+    $ sudo apt install gcc-4.8
+    $ sudo update-alternatives --config gcc
+
+(after executing the last command you need to select GCC 4.8; do not forget to make v.v. after preparing build bases!)
+
 Generating Bare CPAchecker Benchmarks
 -------------------------------------
 
