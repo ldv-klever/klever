@@ -123,7 +123,7 @@ This branch will start from a commit corresponding to the given release.
 It can contain just bug fixes relevant to an existing functionality and not to a new one which is supported within a
 corresponding merge window.
 
-Updating list of required Python packages
+Updating List of Required Python Packages
 -----------------------------------------
 
 To update the list of required Python packages first you need to install Klever package from scratch in the newly
@@ -163,11 +163,12 @@ In contrast to other test suites this one likely corresponds to the most industr
 
 One can (re-)generate bare CPAchecker benchmarks almost automatically.
 To do this it is recommended to follow next steps:
+
 #. Clone https://gitlab.com/sosy-lab/software/ldv-klever-benchmarks.git or
    git@gitlab.com:sosy-lab/software/ldv-klever-benchmarks.git once.
 #. After some changes within Klever specifications, configurations and test cases you need to solve appropriate
    verification jobs.
-   Tto avoid some non-determinism it is better to use the same machine, e.g. LDV Dev, to do this.
+   To avoid some non-determinism it is better to use the same machine, e.g. LDV Dev, to do this.
    Though particular verification jobs to be solved depend on changes made, in ideal, it is much easier to consider all
    verification jobs at once to avoid any tricky interdependencies (even slight improvements or fixes of some
    specifications may result in dramatic and unexpected changes in some verification results).
