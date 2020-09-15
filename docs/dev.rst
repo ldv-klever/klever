@@ -149,6 +149,36 @@ Deployment for Development Purposes
 To deploy Klever for development purposes in addition to using mode *development* (see :ref:`local_deploy`) one needs
 to specify command-line option *--allow-symbolic-links*.
 
+Generating Bare CPAchecker Benchmarks
+-------------------------------------
+
+Development of Klever and development of CPAchecker are not strongly coupled.
+Thus, verification tasks that are used for testing/validation of Klever including different versions and configurations
+of CPAchecker as back-ends may be useful to track regressions of new versions of CPAchecker.
+This should considerably simplify updating CPAchecker within Klever (this process usually involves a lot of various
+activities both in Klever and in CPAchecker; these activities can take enormous time to be completed that complicates
+and postpones updates considerably).
+In addition, this is yet another test suite for CPAchecker.
+In contrast to other test suites this one likely corresponds to the most industry close use cases.
+
+One can (re-)generate bare CPAchecker benchmarks almost automatically.
+To do this it is recommended to follow next steps:
+#. Clone https://gitlab.com/sosy-lab/software/ldv-klever-benchmarks.git or
+   git@gitlab.com:sosy-lab/software/ldv-klever-benchmarks.git once.
+#. After some changes within Klever specifications, configurations and test cases you need to solve appropriate
+   verification jobs.
+   Tto avoid some non-determinism it is better to use the same machine, e.g. LDV Dev, to do this.
+   Though particular verification jobs to be solved depend on changes made, in ideal, it is much easier to consider all
+   verification jobs at once to avoid any tricky interdependencies (even slight improvements or fixes of some
+   specifications may result in dramatic and unexpected changes in some verification results).
+#. Download archives with verifier input files for each solved verification jobs to the root directory of the cloned
+   repository.
+#. Run "python3 make-benchs.py" there.
+#. Estimate changes in benchmarks and verification tasks (there is not any formal guidance).
+   If you agree with these changes, then you need to commit them and to push to the remote.
+   After that one may expect that new commits to trunk of the CPAchecker repository will be checked for regressions
+   against an updated test suite.
+
 Using PyCharm IDE
 -----------------
 
