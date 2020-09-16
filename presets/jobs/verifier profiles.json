@@ -7,11 +7,11 @@
         {"-setprop": "counterexample.export.exportExtendedWitness=true"},
         {"-setprop": "counterexample.export.compressWitness=false"},
         {"-setprop": "cpa.arg.witness.removeInsufficientEdges=false"},
-        {"-setprop": "output.disable=true"},
+        {"-noout": ""},
         {"-heap": "%ldv:memory size:0.8:MB%m"}
       ],
       "architecture dependant options": {
-        "x86-64": {"add options": [{"-setprop": "analysis.machineModel=LINUX64"}]},
+        "x86-64": {"add options": [{"-64": ""}]},
         "ARM": {"add options": [{"-setprop": "analysis.machineModel=ARM"}]}
       }
     },

@@ -39,7 +39,7 @@ installed :ref:`klever_addons` and :ref:`klever_build_bases`:
 
     $ sudo venv/bin/klever-deploy-local --deployment-directory :term:`$KLEVER_DEPLOY_DIR` update production
 
-To *uninstall* Klever, e.g. if something went wrong during installation, you need to run:
+To *uninstall* Klever you need to run:
 
 .. parsed-literal::
 
@@ -56,3 +56,9 @@ We strongly recommend to configure your file indexing service if you have it ena
 Otherwise, it can consume too much computational resources since Klever manipulates files very extensively during its
 operation.
 To do this, please, refer to an appropriate user documentation.
+
+Troubleshooting
+---------------
+
+If something went wrong during installation, you need to uninstall Klever completely prior to following attempts to
+install it.

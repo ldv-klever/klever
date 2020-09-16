@@ -16,7 +16,6 @@
 #
 
 import json
-import os
 
 from urllib.parse import unquote
 
@@ -52,7 +51,7 @@ from jobs.utils import (
 )
 from jobs.ViewJobData import ViewJobData
 from reports.coverage import DecisionCoverageStatistics
-from reports.utils import FilesForCompetitionArchive
+from reports.utils import VerifierFilesArchive
 from service.serializers import ProgressSerializerRO
 
 
@@ -316,7 +315,7 @@ class JobsUploadingStatus(LoginRequiredMixin, LoggedCallMixin, ListView):
         return UploadedJobArchive.objects.filter(author=self.request.user).select_related('job').order_by('-start_date')
 
 
-class DownloadFilesForCompetition(LoginRequiredMixin, LoggedCallMixin, SingleObjectMixin, StreamingResponseView):
+class DownloadVerifierFiles(LoginRequiredMixin, LoggedCallMixin, SingleObjectMixin, StreamingResponseView):
     model = Decision
 
     def get_generator(self):
@@ -325,7 +324,7 @@ class DownloadFilesForCompetition(LoginRequiredMixin, LoggedCallMixin, SingleObj
             raise BridgeException(code=400)
         if 'filters' not in self.request.GET:
             raise BridgeException()
-        return FilesForCompetitionArchive(decision, json.loads(self.request.GET['filters']))
+        return VerifierFilesArchive(decision, json.loads(self.request.GET['filters']))
 
 
 class DecisionProgress(LoginRequiredMixin, LoggedCallMixin, DetailView):

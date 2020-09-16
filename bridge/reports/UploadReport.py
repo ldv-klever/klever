@@ -411,6 +411,9 @@ class UploadReport:
             try:
                 self.__upload(report)
             except Exception as e:
+                if str(e).__contains__('report_decision_id_identifier'):
+                    logger.error('UniqueError')
+                    logger.exception(e)
                 self.__process_exception(e)
 
     def __process_exception(self, exc):
