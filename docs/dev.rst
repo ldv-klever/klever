@@ -172,7 +172,7 @@ To generate build bases for testing Klever you need to perform following prelimi
 
 #. Make CIF executables to be available through the PATH environment variable, e.g.::
 
-    $ export PATH=/abs/path/to/klever/deploy/dir/klever-addons/CIF/usr/local/bin/:$PATH
+    $ export PATH=/abs/path/to/klever/deploy/dir/klever-addons/CIF/bin/:$PATH
 
 #. Read notes regarding the compiler after the end of this list.
 #. Run the following command to find out available descriptions of build bases for testing Klever::
