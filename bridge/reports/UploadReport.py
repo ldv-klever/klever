@@ -415,7 +415,7 @@ class UploadReport:
 
     def __process_exception(self, exc):
         if isinstance(exc, CheckArchiveError):
-            raise exceptions.ValidationError(detail={'ZIP': 'Zip archive check has failed: {}'.format(exc)})
+            raise exc
         if isinstance(exc, exceptions.ValidationError):
             err_detail = exc.detail
         else:
