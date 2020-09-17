@@ -116,29 +116,9 @@ class Klever:
 
             base_deploy_dir = os.path.join(deploy_dir, 'build bases', klever_build_base)
 
-            klever_build_base_path = self.deploy_conf['Klever Build Bases'][klever_build_base]['path']
-
-            if os.path.isfile(klever_build_base_path):
-                # Use md5 checksum of the archive as version
-                output = execute_cmd(self.logger, 'md5sum', klever_build_base_path, stderr=subprocess.DEVNULL,
-                                     get_output=True).rstrip()
-                version = output.split(' ')[0]
-            elif os.path.isdir(klever_build_base_path):
-                # Use unique identifier of the build base as version
-                try:
-                    version = Clade(klever_build_base_path).get_uuid()
-                except RuntimeError:
-                    self.logger.error(f'"{klever_build_base}" is not a valid Clade build base')
-                    sys.exit(errno.EINVAL)
-            else:
-                # Otherwise build base is probably a link to the remote file
-                # Our build bases are mostly stored at redmine, which has unique links
-                # Here we use this link as version
-                version = klever_build_base_path
-
             # _install_entity method expects configuration in a specific format
             deploy_bases_conf = self.deploy_conf['Klever Build Bases']
-            deploy_bases_conf[klever_build_base]['version'] = version
+            deploy_bases_conf[klever_build_base]['version'] = self.__get_build_base_version(klever_build_base)
 
             if 'Klever Build Bases' not in self.prev_deploy_info:
                 self.prev_deploy_info['Klever Build Bases'] = {}
@@ -458,6 +438,34 @@ class Klever:
     def _post_install_or_update(self, is_dev=False):
         configure_controller_and_schedulers(self.logger, is_dev, self.args.source_directory,
                                             self.args.deployment_directory, self.prev_deploy_info)
+
+    def __get_build_base_version(self, klever_build_base):
+        version = self.deploy_conf['Klever Build Bases'][klever_build_base].get('version')
+
+        if version:
+            return version
+
+        klever_build_base_path = self.deploy_conf['Klever Build Bases'][klever_build_base]['path']
+
+        if os.path.isfile(klever_build_base_path):
+            # Use md5 checksum of the archive as version
+            output = execute_cmd(self.logger, 'md5sum', klever_build_base_path, stderr=subprocess.DEVNULL,
+                                 get_output=True).rstrip()
+            version = output.split(' ')[0]
+        elif os.path.isdir(klever_build_base_path):
+            # Use unique identifier of the build base as version
+            try:
+                version = Clade(klever_build_base_path).get_uuid()
+            except RuntimeError:
+                self.logger.error(f'"{klever_build_base}" is not a valid Clade build base')
+                sys.exit(errno.EINVAL)
+        else:
+            # Otherwise build base is probably a link to the remote file
+            # Our build bases are mostly stored at redmine, which has unique links
+            # Here we use this link as version
+            version = klever_build_base_path
+
+        return version
 
     def __find_build_base(self, deploy_dir):
         build_bases = self.__find_build_bases_recursive(deploy_dir)
