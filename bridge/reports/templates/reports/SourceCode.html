@@ -54,6 +54,8 @@
 
 {% if data.coverage_id %}
     <input id="coverage_data_url" type="hidden" value="{% url 'reports:api-coverage-data' data.coverage_id %}">
+{% else %}
+    <div id="no_coverage_warn" hidden><span class="ui orange header"><i class="ui exclamation triangle icon"></i>{% trans 'You can try another code coverage type to get code coverage for a given source file' %}</span></div>
 {% endif %}
 
 {% if data.with_legend and data.legend %}
