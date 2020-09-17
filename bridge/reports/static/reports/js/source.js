@@ -200,7 +200,11 @@ SourceProcessor.prototype.get_source = function(line, filename, save_history=tru
         history.pushState([filename, line], null, state_url);
     }
 
-    if (filename === this.title_container.text()) instance.select_line(line);
+    if (filename === this.title_container.text()) {
+        if (!instance.container.find('#source_not_found').length) {
+            instance.select_line(line);
+        }
+    }
     else {
         $.ajax({
             url: instance.url,
