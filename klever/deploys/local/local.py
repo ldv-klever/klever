@@ -18,6 +18,7 @@
 import errno
 import json
 import os
+import pathlib
 import pwd
 import shutil
 import subprocess
@@ -113,34 +114,31 @@ class Klever:
         for klever_build_base in self.deploy_conf['Klever Build Bases']:
             self.logger.info(f'Install Klever build base "{klever_build_base}"')
 
-            base_deploy_dir = os.path.join(deploy_dir, 'build bases')
+            base_deploy_dir = os.path.join(deploy_dir, 'build bases', klever_build_base)
 
-            if os.path.isfile(klever_build_base):
+            klever_build_base_path = self.deploy_conf['Klever Build Bases'][klever_build_base]['path']
+
+            if os.path.isfile(klever_build_base_path):
                 # Use md5 checksum of the archive as version
-                output = execute_cmd(self.logger, 'md5sum', klever_build_base, stderr=subprocess.DEVNULL,
+                output = execute_cmd(self.logger, 'md5sum', klever_build_base_path, stderr=subprocess.DEVNULL,
                                      get_output=True).rstrip()
                 version = output.split(' ')[0]
-            elif os.path.isdir(klever_build_base):
+            elif os.path.isdir(klever_build_base_path):
                 # Use unique identifier of the build base as version
                 try:
-                    version = Clade(klever_build_base).get_uuid()
+                    version = Clade(klever_build_base_path).get_uuid()
                 except RuntimeError:
                     self.logger.error(f'"{klever_build_base}" is not a valid Clade build base')
                     sys.exit(errno.EINVAL)
-                base_deploy_dir = os.path.join(base_deploy_dir, os.path.basename(klever_build_base))
             else:
                 # Otherwise build base is probably a link to the remote file
                 # Our build bases are mostly stored at redmine, which has unique links
                 # Here we use this link as version
-                version = klever_build_base
+                version = klever_build_base_path
 
             # _install_entity method expects configuration in a specific format
-            deploy_bases_conf = {
-                klever_build_base: {
-                    'path': klever_build_base,
-                    'version': version
-                }
-            }
+            deploy_bases_conf = self.deploy_conf['Klever Build Bases']
+            deploy_bases_conf[klever_build_base]['version'] = version
 
             if 'Klever Build Bases' not in self.prev_deploy_info:
                 self.prev_deploy_info['Klever Build Bases'] = {}
@@ -148,11 +146,20 @@ class Klever:
             prev_deploy_bases_conf = self.prev_deploy_info['Klever Build Bases']
 
             if self._install_entity(klever_build_base, src_dir, base_deploy_dir,
-                                    deploy_bases_conf, prev_deploy_bases_conf,
-                                    remove_previous_version=False):
+                                    deploy_bases_conf, prev_deploy_bases_conf):
                 self._dump_cur_deploy_info(self.prev_deploy_info)
 
-    def _install_entity(self, name, src_dir, deploy_dir, deploy_conf, prev_deploy_info, remove_previous_version=True):
+                build_base_path = self.__find_build_base(base_deploy_dir)
+
+                if build_base_path != base_deploy_dir:
+                    self.logger.info(f'Move "{klever_build_base}" from {build_base_path} to {base_deploy_dir}')
+                    for i in os.listdir(build_base_path):
+                        # In theory, it is possible to get "shutil.Error: Destination path already exists" here.
+                        # But, it can only happen if the top-level directory inside the archive with the build base
+                        # was named as some directory from the Clade build base (CC, LD, CrossRef, ...)
+                        shutil.move(os.path.join(build_base_path, i), base_deploy_dir)
+
+    def _install_entity(self, name, src_dir, deploy_dir, deploy_conf, prev_deploy_info):
         if name not in deploy_conf:
             self.logger.error(f'"{name}" is not described')
             sys.exit(errno.EINVAL)
@@ -212,9 +219,7 @@ class Klever:
         # Remove previous version of entity if so. Do not make this in depend on previous version since it can be unset
         # while entity is deployed. For instance, this can be the case when entity deployment fails somewhere in the
         # middle.
-        # BUT: do not remove build bases since they are all deployed in the same directory!
-        if remove_previous_version:
-            self._cmd_fn('rm', '-rf', deploy_dir)
+        self._cmd_fn('rm', '-rf', deploy_dir)
 
         # Install new version of entity.
         tmp_file = None
@@ -453,6 +458,37 @@ class Klever:
     def _post_install_or_update(self, is_dev=False):
         configure_controller_and_schedulers(self.logger, is_dev, self.args.source_directory,
                                             self.args.deployment_directory, self.prev_deploy_info)
+
+    def __find_build_base(self, deploy_dir):
+        build_bases = self.__find_build_bases_recursive(deploy_dir)
+
+        if len(build_bases) == 0:
+            self.logger.error(f'No build bases were found in "{deploy_dir}"')
+            sys.exit(errno.ENOENT)
+        elif len(build_bases) > 1:
+            self.logger.error(f'Multiple build bases were found in "{deploy_dir}"')
+            sys.exit(errno.ENOENT)
+
+        return str(build_bases[0].resolve())
+
+    def __find_build_bases_recursive(self, deploy_dir):
+        deploy_dir = pathlib.Path(deploy_dir)
+
+        build_bases = []
+
+        if Clade(deploy_dir).work_dir_ok():
+            return [deploy_dir]
+
+        for file in deploy_dir.glob("*"):
+            if not file.is_dir():
+                continue
+
+            if Clade(file).work_dir_ok():
+                build_bases.append(file)
+            else:
+                build_bases.extend(self.__find_build_bases_recursive(file))
+
+        return build_bases
 
 
 class KleverDevelopment(Klever):
