@@ -127,8 +127,6 @@ class Klever:
 
             if self._install_entity(klever_build_base, src_dir, base_deploy_dir,
                                     deploy_bases_conf, prev_deploy_bases_conf):
-                self._dump_cur_deploy_info(self.prev_deploy_info)
-
                 build_base_path = self.__find_build_base(base_deploy_dir)
 
                 if build_base_path != base_deploy_dir:
@@ -138,6 +136,8 @@ class Klever:
                         # But, it can only happen if the top-level directory inside the archive with the build base
                         # was named as some directory from the Clade build base (CC, LD, CrossRef, ...)
                         shutil.move(os.path.join(build_base_path, i), base_deploy_dir)
+
+                self._dump_cur_deploy_info(self.prev_deploy_info)
 
     def _install_entity(self, name, src_dir, deploy_dir, deploy_conf, prev_deploy_info):
         if name not in deploy_conf:
