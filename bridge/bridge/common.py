@@ -198,6 +198,17 @@ LOGGING = {
     }
 }
 
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
+        'LOCATION': os.path.join(BASE_DIR, 'django_cache'),
+        'TIMEOUT': 300,  # 5 minutes by default
+        'OPTIONS': {
+            'MAX_ENTRIES': 1000
+        }
+    }
+}
+
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework.authentication.TokenAuthentication',
@@ -243,6 +254,11 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'jobs.tasks.clear_old_uploads',
         'schedule': timedelta(hours=1),
         'args': (60,)  # Clear archives older than 60 minutes
+    },
+    'remove-old-django-cache': {
+        'task': 'bridge.tasks.clear_old_django_cache',
+        'schedule': timedelta(hours=1),
+        'args': (60,)  # Clear cache files older than 60 minutes
     },
 }
 
