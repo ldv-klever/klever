@@ -140,6 +140,11 @@
         }
     },
     "3d1158e6-cfec-4863-b4a6-366a6cb20478": {
+        "current verdicts": {
+            "unknowns": {
+                "fd560131-1b49-42f2-aba3-f82ea3fa4431": 3
+            }
+        },
         "ideal verdicts": {
             "safes": {
                 "2475af74-101f-4bde-9bb9-e4808d56c81d": 1,
@@ -280,7 +285,7 @@
                 "89110e51-3f97-4bb7-b0a5-392d1f01e1af": 6,
                 "1dc6dab3-46ac-41cd-91fe-9a4d6ba07d43": 6,
                 "79c42b82-f0e7-484e-b14b-60c615bf8b9a": 6,
-                "04c484c6-dafa-4357-abf3-db7f7db3fa8f": 6,
+                "04c484c6-dafa-4357-abf3-db7f7db3fa8f": 3,
                 "89506b07-c440-434f-a6a9-00afcf29ae7c": 6,
                 "feb7c814-1609-4732-bb5d-145dafda9bdc": 6,
                 "e97841ad-f2f0-4d1b-820f-7e90a8e96c3d": 6,
@@ -652,7 +657,7 @@
                 "aa53a3d1-33cd-4443-acab-de8d8ceed6d8": 1.0
             },
             "unknowns": {
-                "fd560131-1b49-42f2-aba3-f82ea3fa4431": 1
+                "fd560131-1b49-42f2-aba3-f82ea3fa4431": 2
             }
         },
         "ideal verdicts": {
@@ -810,8 +815,7 @@
                 "545781e3-e6d5-4c62-b05e-76edfc47f07f": 1.0,
                 "48730151-9883-4639-992d-03c9052946d1": 1.0,
                 "e6d4b634-6ebf-4614-98f0-1570a090d323": 1.0,
-                "c06e47f3-8ddb-4093-b90c-23b46c391063": 1.0,
-                "65fb5c2f-70f1-4ef8-a70d-e8ce31b5d177": 1.0
+                "c06e47f3-8ddb-4093-b90c-23b46c391063": 1.0
             }
         }
     },
