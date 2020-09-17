@@ -211,11 +211,13 @@ SourceProcessor.prototype.get_source = function(line, filename, save_history=tru
             },
             success: function (resp) {
                 instance.container.html(resp);
-                instance.selected_line = null;
-                instance.title_container.text(filename);
-                instance.title_container.popup({content: filename});
-                instance.select_line(line);
-                instance.refresh();
+                if (!instance.container.find('#source_not_found').length) {
+                    instance.selected_line = null;
+                    instance.title_container.text(filename);
+                    instance.title_container.popup({content: filename});
+                    instance.select_line(line);
+                    instance.refresh();
+                }
             }
         });
     }

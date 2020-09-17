@@ -42,7 +42,7 @@ from jobs.utils import JobAccess, DecisionAccess
 from reports.comparison import FillComparisonCache, ComparisonData
 from reports.coverage import GetCoverageData, ReportCoverageStatistics
 from reports.serializers import OriginalSourcesSerializer
-from reports.source import GetSource
+from reports.source import GetSource, SourceNotFound
 from reports.UploadReport import UploadReport, CheckArchiveError
 
 
@@ -132,10 +132,13 @@ class GetSourceCodeView(LoggedCallMixin, TemplateAPIRetrieveView):
         if 'file_name' not in self.request.query_params:
             raise exceptions.APIException('File name was not provided')
         context = super().get_context_data(instance, **kwargs)
-        context['data'] = GetSource(
-            self.request.user, instance, self.request.query_params['file_name'],
-            self.request.query_params.get('coverage_id'), self.request.query_params.get('with_legend')
-        )
+        try:
+            context['data'] = GetSource(
+                self.request.user, instance, self.request.query_params['file_name'],
+                self.request.query_params.get('coverage_id'), self.request.query_params.get('with_legend')
+            )
+        except SourceNotFound:
+            pass
         return context
 
 
