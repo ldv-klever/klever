@@ -15,7 +15,18 @@
 # limitations under the License.
 #
 
+import os
+import shutil
+
+from django.conf import settings
 from django.db import migrations, models
+
+
+def clear_media(apps, schema_editor):
+    for obj in os.listdir(settings.MEDIA_ROOT):
+        full_path = os.path.join(settings.MEDIA_ROOT, obj)
+        if os.path.isdir(full_path):
+            shutil.rmtree(full_path)
 
 
 class Migration(migrations.Migration):
@@ -41,5 +52,7 @@ class Migration(migrations.Migration):
             ('name', models.CharField(db_index=True, max_length=64, unique=True)),
             ('locked', models.BooleanField(default=False)),
         ], options={'db_table': 'lock_table'}),
+
+        migrations.RunPython(clear_media),
 
     ]
