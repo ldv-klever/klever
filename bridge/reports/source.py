@@ -84,6 +84,10 @@ class EmptyCoverage:
         return self.value
 
 
+class SourceNotFound(Exception):
+    pass
+
+
 class SourceLine:
     max_ref_links = 7
     ref_to_class = 'SrcRefToLink'
@@ -327,7 +331,7 @@ class GetSource:
                 content = self.__extract_file(file_obj, self.file_name)
                 if content:
                     return content
-        raise BridgeException(_('The source file was not found'))
+        raise SourceNotFound('The source file was not found')
 
     def __get_indexes_data(self):
         index_name = self.file_name + self.index_postfix

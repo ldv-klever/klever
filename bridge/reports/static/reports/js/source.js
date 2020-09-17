@@ -27,8 +27,7 @@ function SourceProcessor(container, title_container, history_container, data_con
     this.url = null;
     this.cov_data_url = null;
     this.errors = {
-        line_not_found: 'Line not found',
-        coverage_not_found: 'You can try another code coverage type to get code coverage for a given source file'
+        line_not_found: 'Line not found'
     };
     this.selected_line = null;
     return this;
@@ -38,7 +37,6 @@ SourceProcessor.prototype.initialize = function(ref_click_callback, source_url) 
     let instance = this;
 
     if (PAGE_ERRORS && PAGE_ERRORS.line_not_found) instance.errors.line_not_found = PAGE_ERRORS.line_not_found;
-    if (PAGE_ERRORS && PAGE_ERRORS.coverage_not_found) instance.errors.coverage_not_found = PAGE_ERRORS.coverage_not_found;
 
     instance.ref_click_callback = ref_click_callback;
     instance.url = source_url;
@@ -92,7 +90,10 @@ SourceProcessor.prototype.refresh = function() {
 
     let cov_data_url = this.container.find('#coverage_data_url');
     instance.cov_data_url = cov_data_url.length ? cov_data_url.val() : null;
-    if (!instance.cov_data_url) warn_notify(instance.errors.coverage_not_found, 3000);
+
+    let no_coverage_warn = $('#no_coverage_warn').html();
+    if (no_coverage_warn && no_coverage_warn.length) instance.data_container.html(no_coverage_warn);
+    else instance.data_container.empty();
 
     this.container.find('.SrcRefToLink').click(function () {
         if (instance.ref_click_callback) instance.ref_click_callback();
@@ -199,7 +200,11 @@ SourceProcessor.prototype.get_source = function(line, filename, save_history=tru
         history.pushState([filename, line], null, state_url);
     }
 
-    if (filename === this.title_container.text()) instance.select_line(line);
+    if (filename === this.title_container.text()) {
+        if (!instance.container.find('#source_not_found').length) {
+            instance.select_line(line);
+        }
+    }
     else {
         $.ajax({
             url: instance.url,
@@ -213,8 +218,10 @@ SourceProcessor.prototype.get_source = function(line, filename, save_history=tru
                 instance.selected_line = null;
                 instance.title_container.text(filename);
                 instance.title_container.popup({content: filename});
-                instance.select_line(line);
-                instance.refresh();
+                if (!instance.container.find('#source_not_found').length) {
+                    instance.select_line(line);
+                    instance.refresh();
+                }
             }
         });
     }
