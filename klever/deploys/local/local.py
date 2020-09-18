@@ -109,8 +109,6 @@ class Klever:
                     self._dump_cur_deploy_info(self.prev_deploy_info)
 
     def _install_klever_build_bases(self, src_dir, deploy_dir):
-        deploy_dir = os.path.join(deploy_dir, 'klever')
-
         for klever_build_base in self.deploy_conf['Klever Build Bases']:
             self.logger.info(f'Install Klever build base "{klever_build_base}"')
 
@@ -300,7 +298,7 @@ class Klever:
             fp.write('KLEVER_SOURCE_DIRECTORY="{0}"\n'.format(os.path.realpath(self.args.source_directory)))
             fp.write('KLEVER_DEPLOYMENT_DIRECTORY="{0}"\n'.format(os.path.realpath(self.args.deployment_directory)))
             fp.write('KLEVER_DATA_DIR="{0}"\n'
-                     .format(os.path.join(os.path.realpath(self.args.deployment_directory), 'klever', 'build bases')
+                     .format(os.path.join(os.path.realpath(self.args.deployment_directory), 'build bases')
                              if len(self.deploy_conf['Klever Build Bases'])
                              else os.path.join(os.path.realpath(self.args.source_directory), 'build bases')))
             fp.write("KLEVER_WORKERS={}\n".format(os.cpu_count() + 1))
