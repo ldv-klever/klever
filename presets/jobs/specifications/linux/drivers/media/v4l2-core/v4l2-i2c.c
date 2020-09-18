@@ -15,12 +15,15 @@
  * limitations under the License.
  */
 
+#include <linux/i2c.h>
 #include <media/v4l2-common.h>
 #include <media/v4l2-device.h>
 #include <ldv/linux/media/v4l2-common.h>
+#include <ldv/linux/device.h>
 
 void ldv_v4l2_i2c_subdev_init(struct v4l2_subdev *sd, struct i2c_client *client, const struct v4l2_subdev_ops *ops)
 {
 	sd->ops = ops;
-	i2c_set_clientdata(client, sd);
+	v4l2_set_subdevdata(sd, client);
+	ldv_dev_set_drvdata(&client->dev, sd);
 }
