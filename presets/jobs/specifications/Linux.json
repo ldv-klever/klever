@@ -89,6 +89,7 @@
               "linux/drivers/base/devres.c",
               "linux/drivers/base/firmware_loader.c",
               "linux/drivers/i2c/i2c-core-smbus.c",
+              "linux/drivers/media/v4l2-core/v4l2-i2c.c",
               "linux/drivers/video/fbdev/core/fbsysfs.c",
               "linux/drivers/spi.c",
               "linux/err.c",
