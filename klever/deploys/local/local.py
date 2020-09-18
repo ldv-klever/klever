@@ -130,12 +130,17 @@ class Klever:
                 build_base_path = self.__find_build_base(base_deploy_dir)
 
                 if build_base_path != base_deploy_dir:
+                    paths_to_remove = [os.path.join(base_deploy_dir, i) for i in os.listdir(base_deploy_dir)]
+
                     self.logger.info(f'Move "{klever_build_base}" from {build_base_path} to {base_deploy_dir}')
                     for i in os.listdir(build_base_path):
                         # In theory, it is possible to get "shutil.Error: Destination path already exists" here.
                         # But, it can only happen if the top-level directory inside the archive with the build base
                         # was named as some directory from the Clade build base (CC, LD, CrossRef, ...)
                         shutil.move(os.path.join(build_base_path, i), base_deploy_dir)
+
+                    for path in paths_to_remove:
+                        shutil.rmtree(path)
 
                 self._dump_cur_deploy_info(self.prev_deploy_info)
 
