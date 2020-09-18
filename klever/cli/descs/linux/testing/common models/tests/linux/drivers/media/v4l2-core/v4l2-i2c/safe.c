@@ -16,7 +16,9 @@
  */
 
 #include <linux/module.h>
+#include <linux/i2c.h>
 #include <media/v4l2-common.h>
+#include <media/v4l2-device.h>
 #include <ldv/test.h>
 
 
@@ -28,11 +30,14 @@ static int __init ldv_init(void)
 
 	v4l2_i2c_subdev_init(&sd, &client, &ldv_ops);
 
-	if (sd->ops != &ldv_ops)
-		ldv_unexpected_memory_safety_error();
+	if (sd.ops != &ldv_ops)
+		ldv_unexpected_error();
 
-	if (sd != i2c_get_clientdata(&client))
-		ldv_unexpected_memory_safety_error();
+	if (&client != v4l2_get_subdevdata(&sd))
+		ldv_unexpected_error();
+
+	if (&sd != i2c_get_clientdata(&client))
+		ldv_unexpected_error();
 
 	return 0;
 }
