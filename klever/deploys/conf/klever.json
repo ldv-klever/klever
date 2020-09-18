@@ -30,7 +30,9 @@
       }
     }
   },
-  "Klever Build Bases": [
-    "https://forge.ispras.ru/attachments/download/7604/build-base-linux-3.14.79-x86_64-sample.tar.xz"
-  ]
+  "Klever Build Bases": {
+    "linux/loadable kernel modules sample": {
+      "path": "https://forge.ispras.ru/attachments/download/7604/build-base-linux-3.14.79-x86_64-sample.tar.xz"
+    }
+  }
 }

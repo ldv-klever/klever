@@ -16,10 +16,13 @@
 #
 
 import errno
+import os
 import paramiko
 import subprocess
 import sys
+import tarfile
 import time
+import zipfile
 
 from klever.deploys.utils import execute_cmd, get_password
 from klever.deploys.openstack.constants import OS_USER
@@ -121,16 +124,28 @@ class SSH:
                     '{0}@{1}'.format(self.args.ssh_username, self.floating_ip))
 
     def rsync(self, host_path, instance_path):
-        if instance_path:
-            self.execute_cmd(f'mkdir -p {instance_path}')
-        else:
+        if not instance_path:
             instance_path = "~/"
+
+        if instance_path.startswith('~'):
+            # with '-s' rsync sends all filenames without allowing the remote shell to interpret them
+            # so, we need to explicitly expand ~ here
+            instance_path = instance_path.replace('~', f'/home/{OS_USER}', 1)
+
+        # mkdir also doesn't work with paths inside quotes that contain ~
+        self.execute_cmd(f'mkdir -p "{instance_path}"')
+
+        if os.path.isfile(host_path) and (tarfile.is_tarfile(host_path) or zipfile.is_zipfile(host_path)):
+            rsync_flags = '-ars'
+        else:
+            # with '-z' rsync compresses the transmitted data
+            rsync_flags = '-arsz'
 
         # stderr=subprocess.DEVNULL is required to suppress WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!
         # maybe there is a better way to fix it
         execute_cmd(
             self.logger,
-            'rsync', '-ar',
+            'rsync', rsync_flags,
             '-e', f'ssh -o StrictHostKeyChecking=no -i {self.args.ssh_rsa_private_key_file}',
             host_path,
             f'{OS_USER}@{self.floating_ip}:{instance_path}',
