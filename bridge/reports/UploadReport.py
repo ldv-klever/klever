@@ -129,7 +129,7 @@ class UploadBaseSerializer(serializers.ModelSerializer):
     def validate_identifier(self, value):
         if not self.instance:
             reports_model = getattr(self, 'Meta').model
-            if reports_model.objects.filter(identifer=value, decision=self.decision).exists():
+            if reports_model.objects.filter(identifier=value, decision=self.decision).exists():
                 self.fail('identifier_not_unique')
         return value
 
