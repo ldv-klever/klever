@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-#include <ldv/verifier/common.h>
+#include <ldv/common/test.h>
 
 void ldv_expected_error(void)
 {
