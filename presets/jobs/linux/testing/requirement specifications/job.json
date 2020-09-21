@@ -1,6 +1,6 @@
 {
   "project": "Linux",
-  "build base": "testing/1de383",
+  "build base": "linux/testing/requirement specifications/1de383",
   "ideal verdicts": [
     {
       "ideal verdict": "safe",
@@ -31,6 +31,13 @@
         "ext-modules/linux/concurrency-safety/unsorted/RaceTest8-safe.ko",
         "ext-modules/linux/concurrency-safety/unsorted/RaceTest9-safe.ko",
         "ext-modules/linux/concurrency-safety/unsorted/RaceTest10-safe.ko",
+        "ext-modules/linux/concurrency-safety/rcu/reader_writer-N-true-no-datarace.ko",
+        "ext-modules/linux/concurrency-safety/rcu/reader_writer-true-no-datarace.ko",
+        "ext-modules/linux/concurrency-safety/rcu/reader_writer-fields-true-no-datarace.ko",
+        "ext-modules/linux/concurrency-safety/ldv-races/race-1_1-join_true-unreach-call.ko",
+        "ext-modules/linux/concurrency-safety/ldv-races/race-2_1-container_of_true-unreach-call.ko",
+        "ext-modules/linux/concurrency-safety/ldv-races/race-3_1-container_of-global_true-unreach-call.ko",
+        "ext-modules/linux/concurrency-safety/ldv-races/race-4_1-thread_local_vars_true-unreach-call.ko",
         "ext-modules/linux/drivers/base/class/safe.ko",
         "ext-modules/linux/drivers/clk1/safe.ko",
         "ext-modules/linux/drivers/clk2/safe.ko",
@@ -103,6 +110,10 @@
       "requirement specifications": ["block:genhd"]
     },
     {
+      "targets": ["ext-modules/linux/concurrency-safety/ldv-races"],
+      "requirement specifications": ["concurrency safety"]
+    },
+    {
       "targets": ["ext-modules/linux/concurrency-safety/lock-reduce"],
       "requirement specifications": ["concurrency safety"]
     },
@@ -113,6 +124,10 @@
     {
       "targets": ["ext-modules/linux/concurrency-safety/unsorted"],
       "requirement specifications": ["concurrency safety"]
+    },
+    {
+      "targets": ["ext-modules/linux/concurrency-safety/rcu"],
+      "requirement specifications": ["concurrency safety rcu"]
     },
     {
       "targets": ["ext-modules/linux/drivers/base/class"],
@@ -198,7 +213,7 @@
       "requirement specifications": ["kernel:sched:completion"]
     },
     {
-      "build base": "testing/1cae6b",
+      "build base": "linux/testing/requirement specifications/1cae6b",
       "targets": ["ext-modules/linux/kernel/sched/completion-no-lockdep"],
       "requirement specifications": ["kernel:sched:completion"]
     },

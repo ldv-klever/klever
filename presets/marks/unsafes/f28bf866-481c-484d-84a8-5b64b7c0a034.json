@@ -20,7 +20,19 @@
             {
               "LDV model 'init'": [
                 {
-                  "LDV model 'expected_error'": []
+                  "Instrumented function 'kzalloc'": [
+                    {
+                      "LDV model 'kzalloc'": [
+                        {
+                          "LDV model 'check_alloc_flags'": [
+                            {
+                              "LDV model 'expected_error'": []
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
                 }
               ]
             }

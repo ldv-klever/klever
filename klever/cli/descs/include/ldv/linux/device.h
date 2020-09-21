@@ -15,12 +15,18 @@
  * limitations under the License.
  */
 
-#ifndef __LINUX_LDV_DEVICE_H
-#define __LINUX_LDV_DEVICE_H
+#ifndef __LDV_LINUX_DEVICE_H
+#define __LDV_LINUX_DEVICE_H
 
 struct device;
 
-void *ldv_dev_get_drvdata(const struct device *dev);
-int ldv_dev_set_drvdata(struct device *dev, void *data);
+extern void *ldv_dev_get_drvdata(const struct device *dev);
+extern int ldv_dev_set_drvdata(struct device *dev, void *data);
 
-#endif /* __LINUX_LDV_DEVICE_H */
+extern void *ldv_devm_kmalloc(size_t size, gfp_t gfp);
+extern void *ldv_devm_kzalloc(size_t size, gfp_t gfp);
+extern void *ldv_devm_kmalloc_array(size_t n, size_t size, gfp_t gfp);
+extern void *ldv_devm_kcalloc(size_t n, size_t size, gfp_t gfp);
+extern void ldv_devm_kfree(const void *p);
+
+#endif /* __LDV_LINUX_DEVICE_H */

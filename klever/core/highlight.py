@@ -190,8 +190,9 @@ class Highlight:
                 self.logger.warning("Does not support token \"{0}\" of type \"{1}\"".format(token_text, token_type))
                 continue
 
-    # In klever.core.highlight.Highlight#highlight we assume that highlighted entity locations do not overlap. But there may
-    # be other more important sources for highlighting, e.g. for cross referencing, so, we may need to remove overlaps.
+    # In klever.core.highlight.Highlight#highlight we assume that highlighted entity locations do not overlap. But there
+    # may be other more important sources for highlighting, e.g. for cross referencing, so, we may need to remove
+    # overlaps.
     def extra_highlight(self, extra_highlights):
         # Remove previous less important highlights that are overlapped with extra ones.
         # Store highlights to be removed and remove them later at once rather than create new list of highlights each

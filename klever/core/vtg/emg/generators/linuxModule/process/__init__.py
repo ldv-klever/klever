@@ -19,7 +19,7 @@ import re
 import sortedcontainers
 
 from klever.core.vtg.emg.common.c.types import Array, Structure, Pointer
-from klever.core.vtg.emg.generators.linuxModule.interface import Container
+from klever.core.vtg.emg.generators.linuxModule.interface import Interface, Container
 from klever.core.vtg.emg.common.process import Process, Label, Access, Block, Dispatch, Receive, Action
 
 
@@ -63,9 +63,35 @@ class CallRetval(Action):
 class ExtendedAccess(Access):
     def __init__(self, expression):
         super(ExtendedAccess, self).__init__(expression)
-        self.interface = None
-        self.list_interface = None
-        self.complete_list_interface = None
+        self._interface = None
+        self._base_interface = None
+
+    @property
+    def interface(self):
+        return self._interface
+
+    @interface.setter
+    def interface(self, value):
+        if not isinstance(value, Interface):
+            raise ValueError(f'Cannot set non-interface value as an interface to the access {str(self)}')
+        self._interface = value
+
+    @property
+    def base_interface(self):
+        if self._base_interface:
+            return self._base_interface
+        elif self._interface:
+            return self._interface
+        else:
+            return None
+
+    @base_interface.setter
+    def base_interface(self, value):
+        if not isinstance(value, Interface):
+            raise ValueError(f'Cannot set non-interface as a base interface to the access {str(self)}')
+        if not self._interface:
+            raise ValueError(f'Set the interface attribute before setting the base interface of {str(self)}')
+        self._base_interface = value
 
     def replace_with_label(self, statement, label):
         reg = re.compile(self.expression)
@@ -77,13 +103,12 @@ class ExtendedAccess(Access):
 
     def access_with_label(self, label):
         # Increase use counter
-
         if self.label and self.label.declaration and not self.interface:
             target = self.label.declaration
-        elif self.label and str(self.list_interface[-1]) in self.label.interfaces:
-            target = self.label.get_declaration(str(self.list_interface[-1]))
+        elif self.label and str(self.interface) in self.label.interfaces:
+            target = self.label.get_declaration(str(self.interface))
         else:
-            target = self.list_interface[-1].declaration
+            target = self.interface.declaration
 
         expression = "%{}%".format(label.name)
         accesses = self.list_access[1:]
@@ -127,6 +152,7 @@ class ExtendedLabel(Label):
 
     def __init__(self, name):
         super(ExtendedLabel, self).__init__(name)
+        self.match_implemented = False
         self.container = False
         self.resource = False
         self.callback = False

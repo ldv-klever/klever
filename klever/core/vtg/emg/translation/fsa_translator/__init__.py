@@ -168,7 +168,7 @@ class FSATranslator:
         automata_peers = sortedcontainers.SortedDict()
         if len(action.peers) > 0:
             # Do call only if model which can be called will not hang
-            extract_relevant_automata(self._event_fsa + self._model_fsa + [self._entry_fsa],
+            extract_relevant_automata(self._logger, self._event_fsa + self._model_fsa + [self._entry_fsa],
                                       automata_peers, action.peers, Receive)
         else:
             # Generate comment
@@ -180,7 +180,7 @@ class FSATranslator:
             category = list(automata_peers.values())[0]['automaton'].process.category.upper()
             comment = action.comment.format(category)
         else:
-            comment = 'Skip the action, since no callbacks has been found.'
+            comment = 'Skip the action, since no peers has been found.'
         comments.append(action_model_comment(action, comment, begin=True))
         comments.append(action_model_comment(action, None, begin=False))
 
@@ -243,17 +243,31 @@ class FSATranslator:
                     for block in blocks:
                         body += block
                 else:
-                    body.append('switch (ldv_undef_int()) {')
-                    for index in range(len(blocks)):
-                        body.extend(
-                            ['\tcase {}: '.format(index) + '{'] + \
-                            ['\t\t' + stm for stm in blocks[index]] + \
-                            ['\t\tbreak;',
-                             '\t};']
-                        )
-                    if self._conf.get('do not skip signals'):
-                        body.append('\tdefault: ldv_assume(0);')
-                    body.append('};')
+                    imply_signals = self._conf.get('do not skip signals')
+                    if len(blocks) > 2 or (len(blocks) == 2 and not imply_signals):
+                        body.append('switch (ldv_undef_int()) {')
+                        for index in range(len(blocks)):
+                            body.extend(
+                                ['\tcase {}: '.format(index) + '{'] + \
+                                ['\t\t' + stm for stm in blocks[index]] + \
+                                ['\t\tbreak;',
+                                 '\t};']
+                            )
+                        if imply_signals:
+                            body.append('\tdefault: ldv_assume(0);')
+                        body.append('};')
+                    elif len(blocks) == 2 and imply_signals:
+                        body.append('if (ldv_undef_int()) {')
+                        body.extend(['\t' + stm for stm in blocks[0]])
+                        body.extend(['}', 'else {'])
+                        body.extend(['\t' + stm for stm in blocks[1]])
+                        body.extend(['}'])
+                    elif len(blocks) == 1 and not imply_signals:
+                        body.append('if (ldv_undef_int()) {')
+                        body.extend(['\t' + stm for stm in blocks[0]])
+                        body.extend(['}'])
+                    else:
+                        body.extend(blocks[0])
 
                 if len(function_parameters) > 0:
                     df = Function(
@@ -279,8 +293,10 @@ class FSATranslator:
                 ])
             else:
                 # This is becouse translation can have specific restrictions
+                self._logger.debug(f'No block to implement signal receive of actioon {str(action)} in {str(automaton)}')
                 code.append('/* Skip the dispatch because there is no process to receive the signal */')
         else:
+            self._logger.debug(f'No peers to implement signal receive of actioon {str(action)} in {str(automaton)}')
             code.append('/* Skip the dispatch because there is no process to receive the signal */')
 
         return code, v_code, conditions, comments
@@ -437,7 +453,7 @@ class FSATranslator:
                     ', '.join(param_types))
                 cf = Function(name, declaration)
             else:
-                name = 'emg_{}_{}'.format(automaton.process.name, str(automaton))
+                name = f'emg_{automaton.process.category}_{automaton.process.name}'
                 if not get_or_die(self._conf, "direct control functions calls"):
                     declaration = 'void *f(void *data)'
                 else:

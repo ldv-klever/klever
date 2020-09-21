@@ -76,14 +76,15 @@ class ASE(klever.core.vtg.plugins.Plugin):
 
         for request_aspect in self.conf['request aspects']:
             request_aspect = klever.core.vtg.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
-                                                             request_aspect)
+                                                                    request_aspect)
             self.logger.debug('Request aspect is "{0}"'.format(request_aspect))
 
             # This is required to get compiler (Aspectator) specific stdarg.h since kernel C files are compiled with
             # "-nostdinc" option and system stdarg.h couldn't be used.
-            aspectator_search_dir = '-isystem' + klever.core.utils.execute(self.logger,
-                                                                    ('aspectator', '-print-file-name=include'),
-                                                                    collect_all_stdout=True)[0]
+            aspectator_search_dir = '-isystem' + klever.core.utils.execute(
+                self.logger,
+                (klever.core.vtg.utils.get_cif_or_aspectator_exec(self.conf, 'aspectator'), '-print-file-name=include'),
+                collect_all_stdout=True)[0]
 
             for grp in self.abstract_task_desc['grps']:
                 self.logger.info('Request argument signatures for C files of group "{0}"'.format(grp['id']))
@@ -106,8 +107,9 @@ class ASE(klever.core.vtg.plugins.Plugin):
                         self.logger.info('Concatenate all aspects of all plugins together')
 
                         # Resulting request aspect.
-                        aspect = '{0}.aspect'.format(klever.core.utils.unique_file_name(os.path.splitext(os.path.basename(
-                            infile))[0], '.aspect'))
+                        aspect = '{0}.aspect'.format(
+                            klever.core.utils.unique_file_name(os.path.splitext(os.path.basename(infile))[0],
+                                                               '.aspect'))
 
                         # Get all aspects. Place original request aspect at beginning since it can instrument entities
                         # added by aspects of other plugins while corresponding function declarations still need be at
@@ -130,26 +132,29 @@ class ASE(klever.core.vtg.plugins.Plugin):
                             'klever-core-work-dir' not in storage_path:
                         storage_path = storage_path.split('.c')[0] + '.i'
 
-                    klever.core.utils.execute(self.logger,
-                                       tuple(['cif',
-                                              '--in', storage_path,
-                                              '--aspect', os.path.realpath(aspect),
-                                              '--stage', 'instrumentation',
-                                              '--out', os.path.realpath('{0}.c'.format(klever.core.utils.unique_file_name(
-                                               os.path.splitext(os.path.basename(infile))[0], '.c.aux'))),
-                                              '--debug', 'DEBUG'] +
-                                             (['--keep'] if self.conf['keep intermediate files'] else []) +
-                                             ['--'] +
-                                             klever.core.vtg.utils.prepare_cif_opts(cc['opts'], clade) +
-                                             [
-                                                 # Like in Weaver.
-                                                 '-I' + os.path.join(os.path.dirname(self.conf['specifications base']),
-                                                                     'include'),
-                                                 aspectator_search_dir
-                                             ]),
-                                       env,
-                                       cwd=clade.get_storage_path(cc['cwd']),
-                                       timeout=0.01,
-                                       filter_func=klever.core.vtg.utils.CIFErrorFilter())
+                    klever.core.utils.execute(
+                        self.logger,
+                        tuple(
+                            [
+                                klever.core.vtg.utils.get_cif_or_aspectator_exec(self.conf, 'cif'),
+                                '--in', storage_path,
+                                '--aspect', os.path.realpath(aspect),
+                                '--stage', 'instrumentation',
+                                '--out', os.path.realpath('{0}.c'.format(klever.core.utils.unique_file_name(
+                                    os.path.splitext(os.path.basename(infile))[0], '.c.aux'))),
+                                '--debug', 'DEBUG'
+                            ] +
+                            (['--keep'] if self.conf['keep intermediate files'] else []) +
+                            ['--'] +
+                            klever.core.vtg.utils.prepare_cif_opts(cc['opts'], clade) +
+                            [
+                                # Like in Weaver.
+                                '-I' + os.path.join(os.path.dirname(self.conf['specifications base']), 'include'),
+                                aspectator_search_dir
+                            ]),
+                        env,
+                        cwd=clade.get_storage_path(cc['cwd']),
+                        timeout=0.01,
+                        filter_func=klever.core.vtg.utils.CIFErrorFilter())
 
     main = extract_argument_signatures

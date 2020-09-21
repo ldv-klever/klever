@@ -1,0 +1,456 @@
+[
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/299d7572e46f98~",
+        "name": "Linux",
+        "git repository version": "299d7572e46f98~",
+        "loadable kernel modules": ["drivers/usb/serial/usbserial.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/299d7572e46f98",
+        "name": "Linux",
+        "git repository version": "299d7572e46f98",
+        "loadable kernel modules": ["drivers/usb/serial/usbserial.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/bd998c2e0df046~",
+        "name": "Linux",
+        "git repository version": "bd998c2e0df046~",
+        "loadable kernel modules": ["drivers/usb/serial/usbserial.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/bd998c2e0df046",
+        "name": "Linux",
+        "git repository version": "bd998c2e0df046",
+        "loadable kernel modules": ["drivers/usb/serial/usbserial.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/d0559a2f294c9b~",
+        "name": "Linux",
+        "git repository version": "d0559a2f294c9b~",
+        "loadable kernel modules": ["drivers/usb/serial/ftdi_sio.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/d0559a2f294c9b",
+        "name": "Linux",
+        "git repository version": "d0559a2f294c9b",
+        "loadable kernel modules": ["drivers/usb/serial/ftdi_sio.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/db9240662a44e1~",
+        "name": "Linux",
+        "git repository version": "db9240662a44e1~",
+        "loadable kernel modules": ["drivers/usb/serial/ftdi_sio.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/db9240662a44e1",
+        "name": "Linux",
+        "git repository version": "db9240662a44e1",
+        "loadable kernel modules": ["drivers/usb/serial/ftdi_sio.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/8c76d7cd520ebf~",
+        "name": "Linux",
+        "git repository version": "8c76d7cd520ebf~",
+        "loadable kernel modules": ["drivers/usb/serial/safe_serial.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/8c76d7cd520ebf",
+        "name": "Linux",
+        "git repository version": "8c76d7cd520ebf",
+        "loadable kernel modules": ["drivers/usb/serial/safe_serial.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/654b404f2a222f~",
+        "name": "Linux",
+        "git repository version": "654b404f2a222f~",
+        "loadable kernel modules": ["drivers/usb/serial/io_ti.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/654b404f2a222f",
+        "name": "Linux",
+        "git repository version": "654b404f2a222f",
+        "loadable kernel modules": ["drivers/usb/serial/io_ti.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/5182c2cf2a9bfb~",
+        "name": "Linux",
+        "git repository version": "5182c2cf2a9bfb~",
+        "loadable kernel modules": ["drivers/usb/serial/mos7840.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/5182c2cf2a9bfb",
+        "name": "Linux",
+        "git repository version": "5182c2cf2a9bfb",
+        "loadable kernel modules": ["drivers/usb/serial/mos7840.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/e4457d9798adb9~",
+        "name": "Linux",
+        "git repository version": "e4457d9798adb9~",
+        "loadable kernel modules": ["drivers/usb/serial/io_edgeport.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/e4457d9798adb9",
+        "name": "Linux",
+        "git repository version": "e4457d9798adb9",
+        "loadable kernel modules": ["drivers/usb/serial/io_edgeport.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/4e2da44691cffb~",
+        "name": "Linux",
+        "git repository version": "4e2da44691cffb~",
+        "loadable kernel modules": ["drivers/usb/serial/ch341.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/4e2da44691cffb",
+        "name": "Linux",
+        "git repository version": "4e2da44691cffb",
+        "loadable kernel modules": ["drivers/usb/serial/ch341.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/ef079936d3cd09~",
+        "name": "Linux",
+        "git repository version": "ef079936d3cd09~",
+        "loadable kernel modules": ["drivers/usb/serial/ti_usb_3410_5052.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/ef079936d3cd09",
+        "name": "Linux",
+        "git repository version": "ef079936d3cd09",
+        "loadable kernel modules": ["drivers/usb/serial/ti_usb_3410_5052.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/cc0909248258f6~",
+        "name": "Linux",
+        "git repository version": "cc0909248258f6~",
+        "loadable kernel modules": ["drivers/usb/serial/spcp8x5.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/cc0909248258f6",
+        "name": "Linux",
+        "git repository version": "cc0909248258f6",
+        "loadable kernel modules": ["drivers/usb/serial/spcp8x5.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/76ab439ed1b687~",
+        "name": "Linux",
+        "git repository version": "76ab439ed1b687~",
+        "loadable kernel modules": ["drivers/usb/serial/pl2303.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/76ab439ed1b687",
+        "name": "Linux",
+        "git repository version": "76ab439ed1b687",
+        "loadable kernel modules": ["drivers/usb/serial/pl2303.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/5afeef2366db14~",
+        "name": "Linux",
+        "git repository version": "5afeef2366db14~",
+        "loadable kernel modules": ["drivers/usb/serial/oti6858.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/5afeef2366db14",
+        "name": "Linux",
+        "git repository version": "5afeef2366db14",
+        "loadable kernel modules": ["drivers/usb/serial/oti6858.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/472d7e55d559aa~",
+        "name": "Linux",
+        "git repository version": "472d7e55d559aa~",
+        "loadable kernel modules": ["drivers/usb/serial/mos7840.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/472d7e55d559aa",
+        "name": "Linux",
+        "git repository version": "472d7e55d559aa",
+        "loadable kernel modules": ["drivers/usb/serial/mos7840.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/75dd211e773afc~",
+        "name": "Linux",
+        "git repository version": "75dd211e773afc~",
+        "loadable kernel modules": ["drivers/usb/serial/mos7720.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/75dd211e773afc",
+        "name": "Linux",
+        "git repository version": "75dd211e773afc",
+        "loadable kernel modules": ["drivers/usb/serial/mos7720.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/b05aebc25fdc5a~",
+        "name": "Linux",
+        "git repository version": "b05aebc25fdc5a~",
+        "loadable kernel modules": ["drivers/usb/serial/mos7720.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/b05aebc25fdc5a",
+        "name": "Linux",
+        "git repository version": "b05aebc25fdc5a",
+        "loadable kernel modules": ["drivers/usb/serial/mos7720.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/21ce57840243c7~",
+        "name": "Linux",
+        "git repository version": "21ce57840243c7~",
+        "loadable kernel modules": ["drivers/usb/serial/kobil_sct.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/21ce57840243c7",
+        "name": "Linux",
+        "git repository version": "21ce57840243c7",
+        "loadable kernel modules": ["drivers/usb/serial/kobil_sct.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/90507d54f712d8~",
+        "name": "Linux",
+        "git repository version": "90507d54f712d8~",
+        "loadable kernel modules": ["drivers/usb/serial/iuu_phoenix.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/90507d54f712d8",
+        "name": "Linux",
+        "git repository version": "90507d54f712d8",
+        "loadable kernel modules": ["drivers/usb/serial/iuu_phoenix.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/4f9785cc99feeb~",
+        "name": "Linux",
+        "git repository version": "4f9785cc99feeb~",
+        "loadable kernel modules": ["drivers/usb/serial/io_ti.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/4f9785cc99feeb",
+        "name": "Linux",
+        "git repository version": "4f9785cc99feeb",
+        "loadable kernel modules": ["drivers/usb/serial/io_ti.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/a323fefc6f5079~",
+        "name": "Linux",
+        "git repository version": "a323fefc6f5079~",
+        "loadable kernel modules": ["drivers/usb/serial/io_ti.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/a323fefc6f5079",
+        "name": "Linux",
+        "git repository version": "a323fefc6f5079",
+        "loadable kernel modules": ["drivers/usb/serial/io_ti.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/0dd408425eb21d~",
+        "name": "Linux",
+        "git repository version": "0dd408425eb21d~",
+        "loadable kernel modules": ["drivers/usb/serial/io_edgeport.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/0dd408425eb21d",
+        "name": "Linux",
+        "git repository version": "0dd408425eb21d",
+        "loadable kernel modules": ["drivers/usb/serial/io_edgeport.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/3dca01114dcecb~",
+        "name": "Linux",
+        "git repository version": "3dca01114dcecb~",
+        "loadable kernel modules": ["drivers/usb/serial/cyberjack.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/3dca01114dcecb",
+        "name": "Linux",
+        "git repository version": "3dca01114dcecb",
+        "loadable kernel modules": ["drivers/usb/serial/cyberjack.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/2fbd69c4e33360~",
+        "name": "Linux",
+        "git repository version": "2fbd69c4e33360~",
+        "loadable kernel modules": ["drivers/usb/serial/usb_wwan.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/2fbd69c4e33360",
+        "name": "Linux",
+        "git repository version": "2fbd69c4e33360",
+        "loadable kernel modules": ["drivers/usb/serial/usb_wwan.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/126d26f66d9890~",
+        "name": "Linux",
+        "git repository version": "126d26f66d9890~",
+        "loadable kernel modules": ["drivers/usb/serial/usbserial.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/126d26f66d9890",
+        "name": "Linux",
+        "git repository version": "126d26f66d9890",
+        "loadable kernel modules": ["drivers/usb/serial/usbserial.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/de24e0a108bc48~",
+        "name": "Linux",
+        "git repository version": "de24e0a108bc48~",
+        "loadable kernel modules": ["drivers/usb/serial/cp210x.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/de24e0a108bc48",
+        "name": "Linux",
+        "git repository version": "de24e0a108bc48",
+        "loadable kernel modules": ["drivers/usb/serial/cp210x.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/9e452849840963~",
+        "name": "Linux",
+        "git repository version": "9e452849840963~",
+        "loadable kernel modules": ["drivers/usb/serial/mxuport.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/9e452849840963",
+        "name": "Linux",
+        "git repository version": "9e452849840963",
+        "loadable kernel modules": ["drivers/usb/serial/mxuport.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/5a07975ad0a367~",
+        "name": "Linux",
+        "git repository version": "5a07975ad0a367~",
+        "loadable kernel modules": ["drivers/usb/serial/digi_acceleport.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/5a07975ad0a367",
+        "name": "Linux",
+        "git repository version": "5a07975ad0a367",
+        "loadable kernel modules": ["drivers/usb/serial/digi_acceleport.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/cb3232138e3712~",
+        "name": "Linux",
+        "git repository version": "cb3232138e3712~",
+        "loadable kernel modules": ["drivers/usb/serial/visor.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/cb3232138e3712",
+        "name": "Linux",
+        "git repository version": "cb3232138e3712",
+        "loadable kernel modules": ["drivers/usb/serial/visor.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/cac9b50b0d75a1~",
+        "name": "Linux",
+        "git repository version": "cac9b50b0d75a1~",
+        "loadable kernel modules": ["drivers/usb/serial/visor.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/cac9b50b0d75a1",
+        "name": "Linux",
+        "git repository version": "cac9b50b0d75a1",
+        "loadable kernel modules": ["drivers/usb/serial/visor.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/e69f7a6724182e~",
+        "name": "Linux",
+        "git repository version": "e69f7a6724182e~",
+        "loadable kernel modules": ["drivers/usb/serial/mxu11x0.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/e69f7a6724182e",
+        "name": "Linux",
+        "git repository version": "e69f7a6724182e",
+        "loadable kernel modules": ["drivers/usb/serial/mxu11x0.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/924eccc73db2f6~",
+        "name": "Linux",
+        "git repository version": "924eccc73db2f6~",
+        "loadable kernel modules": ["drivers/usb/serial/mxu11x0.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/924eccc73db2f6",
+        "name": "Linux",
+        "git repository version": "924eccc73db2f6",
+        "loadable kernel modules": ["drivers/usb/serial/mxu11x0.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/cbb4be652d374f~",
+        "name": "Linux",
+        "git repository version": "cbb4be652d374f~",
+        "loadable kernel modules": ["drivers/usb/serial/whiteheat.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/cbb4be652d374f",
+        "name": "Linux",
+        "git repository version": "cbb4be652d374f",
+        "loadable kernel modules": ["drivers/usb/serial/whiteheat.ko"]
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/b5122236bba8d7~",
+        "name": "Linux",
+        "git repository version": "b5122236bba8d7~",
+        "loadable kernel modules": ["drivers/usb/serial/keyspan.ko"],
+        "GCC 4.6 Clade CIF options": true
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/b5122236bba8d7",
+        "name": "Linux",
+        "git repository version": "b5122236bba8d7",
+        "loadable kernel modules": ["drivers/usb/serial/keyspan.ko"],
+        "GCC 4.6 Clade CIF options": true
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/5654699fb38512~",
+        "name": "Linux",
+        "git repository version": "5654699fb38512~",
+        "loadable kernel modules": ["drivers/usb/serial/usbserial.ko"],
+        "GCC 4.6 Clade CIF options": true
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/5654699fb38512",
+        "name": "Linux",
+        "git repository version": "5654699fb38512",
+        "loadable kernel modules": ["drivers/usb/serial/usbserial.ko"],
+        "GCC 4.6 Clade CIF options": true
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/9096f1fbba916c~",
+        "name": "Linux",
+        "git repository version": "9096f1fbba916c~",
+        "loadable kernel modules": ["drivers/usb/serial/usb_wwan.ko"],
+        "GCC 4.6 Clade CIF options": true
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/9096f1fbba916c",
+        "name": "Linux",
+        "git repository version": "9096f1fbba916c",
+        "loadable kernel modules": ["drivers/usb/serial/usb_wwan.ko"],
+        "GCC 4.6 Clade CIF options": true
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/d9e93c08d8d985~",
+        "name": "Linux",
+        "git repository version": "d9e93c08d8d985~",
+        "loadable kernel modules": ["drivers/usb/serial/usb_wwan.ko"],
+        "GCC 4.6 Clade CIF options": true
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/d9e93c08d8d985",
+        "name": "Linux",
+        "git repository version": "d9e93c08d8d985",
+        "loadable kernel modules": ["drivers/usb/serial/usb_wwan.ko"],
+        "GCC 4.6 Clade CIF options": true
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/bd73bd8831696f~",
+        "name": "Linux",
+        "git repository version": "bd73bd8831696f~",
+        "loadable kernel modules": ["drivers/usb/serial/usb_wwan.ko"],
+        "GCC 4.6 Clade CIF options": true
+    },
+    {
+        "build base": "linux/validation/3.14+ usb serial bugs/bd73bd8831696f",
+        "name": "Linux",
+        "git repository version": "bd73bd8831696f",
+        "loadable kernel modules": ["drivers/usb/serial/usb_wwan.ko"],
+        "GCC 4.6 Clade CIF options": true
+    }
+]

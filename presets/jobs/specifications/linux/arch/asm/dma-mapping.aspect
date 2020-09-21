@@ -35,12 +35,13 @@ around: call(dma_addr_t dma_map_single(struct device *dev, void *cpu_addr, size_
 	return ldv_dma_map_single();
 }
 
+around: execution(static inline dma_addr_t dma_map_single_attrs(struct device *dev, void *ptr, size_t size, enum dma_data_direction dir, struct dma_attrs *attrs)) ||
+        execution(static inline dma_addr_t dma_map_single_attrs(struct device *dev, void *ptr, size_t size, enum dma_data_direction dir, unsigned long attrs))
+{
+	return ldv_dma_map_single_attrs();
+}
+
 around: execution(static inline int dma_mapping_error(struct device *dev, dma_addr_t dma_addr))
 {
 	return ldv_dma_mapping_error();
-}
-
-around: execution(static inline dma_addr_t dma_map_single_attrs(struct device *dev, void *ptr, size_t size, enum dma_data_direction dir, struct dma_attrs *attrs))
-{
-	return ldv_dma_map_single_attrs();
 }

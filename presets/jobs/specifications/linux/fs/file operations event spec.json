@@ -201,14 +201,53 @@
         "process": "<assign>.[register]",
         "reference": true
       },
-      "debugfs_create_file": {
+      "debugfs_create_dir": {
         "actions": {
           "assign": {
-            "comment": "Extract a file_operations structure pointer.",
+            "comment": "Allocate memory for extrnal model dentry and inode.",
             "trace relevant": true,
             "statements": [
               "%dentry% = $ALLOC(%dentry%);",
-              "%file_operations% = $ARG5;"
+              "%inode% = $ALLOC(%inode%);",
+              "%inode%->i_mode = S_IFDIR | S_IRWXU | S_IRUGO | S_IXUGO;",
+	          "%dentry%->d_parent = $ARG2;",
+              "%dentry%->d_inode = %inode%;",
+              "return %dentry%;"
+            ]
+          },
+          "fail": {
+            "comment": "Failed to create a file in the debugfs filesystem.",
+            "trace relevant": true,
+            "statements": [
+              "return ERR_PTR(-ENODEV);"
+            ]
+          }
+        },
+        "comment": "Create a file in the debugfs filesystem.",
+        "labels": {
+          "dentry": {
+            "declaration": "struct dentry *d"
+          },
+          "inode": {
+            "declaration": "struct inode *inode"
+          }
+        },
+        "process": "<assign> | <fail>",
+        "reference": true
+      },
+      "debugfs_create_file": {
+        "actions": {
+          "assign": {
+            "comment": "Allocate memory for model dentry and inode.",
+            "trace relevant": true,
+            "statements": [
+              "%dentry% = $ALLOC(%dentry%);",
+              "%inode% = $ALLOC(%inode%);",
+              "%inode%->i_mode = $ARG2;",
+	          "%dentry%->d_parent = $ARG3;",
+              "%inode%->i_private = $ARG4;",
+              "%file_operations% = $ARG5;",
+              "%dentry%->d_inode = %inode%;"
             ]
           },
           "fail": {
@@ -237,6 +276,9 @@
           "dentry": {
             "declaration": "struct dentry *d"
           },
+          "inode": {
+            "declaration": "struct inode *inode"
+          },
           "file_operations": {
             "container": true,
             "interface": [
@@ -250,13 +292,28 @@
       "debugfs_remove": {
         "actions": {
           "assign": {
-            "comment": "Extract a file_operations structure pointer.",
+            "comment": "Get dentry.",
             "condition": [],
+            "trace relevant": false,
+            "statements": [
+              "%dentry% = $ARG1;"
+            ]
+          },
+          "created": {
+            "comment": "Free memory for model data.",
+            "condition": ["!IS_ERR_OR_NULL(%dentry%)"],
             "trace relevant": true,
             "statements": [
-              "%dentry% = $ARG1;",
+              "%inode% = %dentry%->d_inode;",
+              "$FREE(%inode%);",
               "$FREE(%dentry%);"
             ]
+          },
+          "not_created": {
+            "comment": "Do not free any memory in case of NULL or IS_ERR.",
+            "condition": ["IS_ERR_OR_NULL(%dentry%)"],
+            "trace relevant": true,
+            "statements": []
           },
           "deregister": {
             "parameters": [
@@ -269,6 +326,9 @@
           "dentry": {
             "declaration": "struct dentry *d"
           },
+          "inode": {
+            "declaration": "struct inode *inode"
+          },
           "file_operations": {
             "container": true,
             "interface": [
@@ -276,7 +336,7 @@
             ]
           }
         },
-        "process": "<assign>.[deregister]",
+        "process": "<assign>.(<created>.[deregister] | <not_created>)",
         "reference": true
       },
       "misc_deregister": {

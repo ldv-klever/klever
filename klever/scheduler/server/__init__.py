@@ -58,15 +58,19 @@ class Server:
 
     @_robust_request
     def pull_job_conf(self, job_identifier):
+        self.logger.debug(f'Pull the configuration of job {job_identifier}')
         return self.session.json_exchange("service/configuration/{}".format(job_identifier), method='GET')
 
     @_robust_request
     def pull_task_conf(self, task_identifier):
+        self.logger.debug(f'Pull the task configuration of task {task_identifier}')
         return self.session.json_exchange("service/tasks/{}/?fields=description".format(task_identifier), method='GET')
 
     @_robust_request
     def get_job_status(self, identifier):
-        return self.session.json_exchange("service/decision-status/{}/".format(identifier), method='GET').get('status')
+        ret = self.session.json_exchange("service/decision-status/{}/".format(identifier), method='GET').get('status')
+        self.logger.debug(f'Requested the status of job {identifier} and got {ret}')
+        return ret
 
     @_robust_request
     def get_job_progress(self, identifier):
@@ -75,32 +79,36 @@ class Server:
 
     @_robust_request
     def cancel_job(self, job_identifier):
+        self.logger.debug(f'Request cancelling of the job {job_identifier}')
         self.session.exchange("service/decision-status/{}/".format(job_identifier), method='PATCH',
                               data={"status": "7"})
 
     @_robust_request
     def submit_job_status(self, job_identifier, status):
+        self.logger.debug(f'Submit a new job {job_identifier} status: {status}')
         self.session.exchange("service/decision-status/{}/".format(job_identifier), method='PATCH',
                               data={"status": status})
 
     @_robust_request
     def submit_job_error(self, job_identifier, error):
+        self.logger.debug(f'Submit job {job_identifier} error: {error}')
         self.session.exchange("service/decision-status/{}/".format(job_identifier), method='PATCH',
                               data={"status": "4", "error": error})
 
     @_robust_request
     def submit_task_status(self, task_identifier, status):
-        self.logger.debug('Subit status {!r} for task {!r}'.format(status, task_identifier))
+        self.logger.debug(f'Submit status {status} for task {task_identifier}')
         self.session.exchange("service/tasks/{}/".format(task_identifier), method='PATCH', data={"status": status})
 
     @_robust_request
     def submit_task_error(self, task_identifier, error):
-        self.logger.debug('Subit for task {!r} the following error: {!r}'.format(task_identifier, error))
+        self.logger.debug(f'Submit an error for task {task_identifier}: {error}')
         self.session.exchange("service/tasks/{}/".format(task_identifier), method='PATCH',
                               data={"status": "ERROR", "error": error})
 
     @_robust_request
     def delete_task(self, task_identifier):
+        self.logger.debug(f'Submit deletion of task {task_identifier}')
         self.session.exchange("service/tasks/{}/".format(task_identifier), method='DELETE')
 
     @_robust_request
@@ -111,6 +119,7 @@ class Server:
         :param identifier: Verification task identifier.
         :param archive: Path to the zip archive to save.
         """
+        self.logger.debug(f'Pull task {identifier} data')
         return self.session.get_archive("service/tasks/{}/download/".format(identifier), archive=archive)
 
     @_robust_request
@@ -122,6 +131,7 @@ class Server:
         :param description: Path to the JSON file to send.
         :param archive: Path to the zip archive to send.
         """
+        self.logger.debug(f'Submit the solution of task {identifier}')
         return self.session.push_archive("service/solution/",
                                          {
                                              "task": identifier,
@@ -136,6 +146,7 @@ class Server:
 
         :param identifier: job identifier.
         """
+        self.logger.debug(f'Request user credentials {identifier}')
         return self.session.json_exchange('service/scheduler-user/{}/'.format(identifier), method='GET')
 
     def register(self, scheduler_type=None):
@@ -154,6 +165,7 @@ class Server:
         :param identifier: Job identifier
         :return: ((id, status), ...)
         """
+        self.logger.debug(f'Request tasks for job {identifier}')
         ret = self.session.json_exchange("service/tasks/?job={}&fields=status&fields=id".format(identifier),
                                          method='GET')
         return ((item['id'], item['status']) for item in ret)
@@ -164,6 +176,7 @@ class Server:
 
         :return: ((id, status))
         """
+        self.logger.debug(f'Request a list of all running jobs')
         ret = self.session.json_exchange("jobs/api/decision-status/", method='GET')
         return ((item['identifier'], item['status']) for item in ret)
 
@@ -173,6 +186,7 @@ class Server:
 
         :return: ((id, status))
         """
+        self.logger.debug(f'Request a list of all running tasks')
         ret = self.session.json_exchange("service/tasks/?fields=status&fields=id&fields=id", method='GET')
         return ((item['id'], item['status']) for item in ret)
 
@@ -185,11 +199,12 @@ class Server:
         """
         self.session.json_exchange("service/update-nodes/", nodes, looping=looping)
 
-    def submit_tools(self, tools):
+    def submit_tools(self, tools, looping=True):
         """
         Send string with JSON description of verification tools available for verification in VerifierCloud.
 
         :param tools: Dictionary from scheduler configuration {'tool': {'version': path}}.
+        :param looping: Do not wait for a Bridge successful answer.
         """
         tools_list = list()
         for tool in tools.keys():
@@ -197,7 +212,7 @@ class Server:
                 tools_list.append({'name': tool, 'version': version})
 
         data = {'scheduler': self.scheduler_type, 'tools': tools_list}
-        self.session.json_exchange("service/update-tools/", data)
+        self.session.json_exchange("service/update-tools/", data, looping=looping)
 
     def stop(self):
         """

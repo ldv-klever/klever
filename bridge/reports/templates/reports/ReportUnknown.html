@@ -106,6 +106,9 @@
                 {% if coverage %}
                     <button id="get_data_statistic" class="ui purple button">{% trans 'Coverage data statistics' %}</button>
                 {% endif %}
+                {% if verifier_files_url %}
+                    <a href="{{ verifier_files_url }}" class="ui violet button">{% trans 'Download verifier input files' %}</a>
+                {% endif %}
             </div>
 
             <br><br>

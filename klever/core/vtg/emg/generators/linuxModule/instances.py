@@ -21,7 +21,7 @@ import copy
 import sortedcontainers
 
 import klever.core.vtg.emg.common.c as c
-from klever.core.vtg.emg.common import get_or_die
+from klever.core.vtg.emg.common import get_or_die, id_generator
 from klever.core.vtg.emg.common.process import Dispatch, Receive, Block
 from klever.core.vtg.emg.common.process.serialization import CollectionEncoder
 from klever.core.vtg.emg.common.c.types import Structure, Primitive, Pointer, Array, Function, import_declaration
@@ -32,33 +32,46 @@ from klever.core.vtg.emg.generators.linuxModule.process import get_common_parame
 _declarations = {'environment model': list()}
 _definitions = {'environment model': list()}
 _values_map = sortedcontainers.SortedDict()
-
-
-def _yeild_identifier():
-    """Return unique identifier."""
-    identifier_counter = 1
-    while True:
-        identifier_counter += 1
-        yield identifier_counter
-
-_f_identifiers = _yeild_identifier()
-_v_identifiers = _yeild_identifier()
+_f_identifiers = id_generator()
+_v_identifiers = id_generator()
 
 
 def generate_instances(logger, conf, sa, interfaces, model, instance_maps):
-    # todo: write docs
+    """
+    Generate instances which are process copies and each contain unique single implementation per interface.
+
+    :param logger: Logger object.
+    :param conf: Configuration dictionary.
+    :param sa:
+    :param interfaces:
+    :param model:
+    :param instance_maps:
+    :return:
+    """
+
     # todo: This should be done completely in another way. First we can prepare instance maps with implementations then
     #       convert ExtendedProcesses into Processes at the same time applying instance maps. This would allow to avoid
     #       unnecessary serialization of the whole collection at the end and reduce memory usage by avoiding
     #       ExtendedProcess copying.
     model_processes, callback_processes = _yield_instances(logger, conf, sa, interfaces, model, instance_maps)
+
+    # Now we can change names
+    names = set()
+    for process in callback_processes:
+        # Change names into unique ones
+        new_name = __add_pretty_name(logger, process, names)
+        assert new_name not in names
+        names.add(new_name)
+    del names
+
+    # According to new identifiers change signals peers
+    for process in model_processes + callback_processes:
+        if conf.get("convert statics to globals", True):
+            _remove_statics(logger, sa, process)
+
     # Simplify first and set ids then dump
     for process in model_processes + callback_processes:
         _simplify_process(logger, conf, sa, interfaces, process)
-
-    # Now we can change names
-    for process in callback_processes:
-        process.name = process.name + '_%d' % process.instance_number
 
     model.environment = sortedcontainers.SortedDict({str(p): p for p in callback_processes})
     # todo: Here we can loose instances of model functions
@@ -110,6 +123,39 @@ def _simplify_process(logger, conf, sa, interfaces, process):
             label.declaration = declaration
             label.value = value
             label_map[label.name][str(access.interface)] = label
+
+    # Replace array sizes. Sometimes we need to get the size of global arrays and for this purpose we write $SIZE(%label%).
+    # Where %label% is an interface label that must have an implementation which is a global array. The expression above
+    # should be replaces by a size number like '4'.
+    for action in process.actions.filter(include={Block}):
+        for pos, statement in enumerate(action.statements):
+            array_size_re = r'\$SIZE\(%(\w+)%\)'
+            match = re.search(array_size_re, statement)
+            if match:
+                size = None
+                whole = match.group(0)
+                label_name = match.group(1)
+
+                access = process.resolve_access(f'%{label_name}%')
+                if access:
+                    access = access[0]
+                    impl = process.get_implementation(access)
+                    if impl:
+                        if isinstance(impl.declaration, Array):
+                            size = impl.declaration.size
+                        elif isinstance(impl.declaration, Pointer) and isinstance(impl.declaration.points, Array):
+                            size = impl.declaration.points.size
+
+                        if not isinstance(size, int):
+                            logger.warning(f'Cannot determine the size of implementation {str(impl)}')
+                else:
+                    logger.warning(f'Cannot determine access of the label %{str(label_name)}%')
+
+                if not isinstance(size, int):
+                    size = 0
+                    logger.warning(f'Cannot determine the size of label {whole}')
+
+                action.statements[pos] = statement.replace(whole, str(size))
 
     # Then replace accesses in parameters with simplified expressions
     for action in process.actions.filter(include={Dispatch, Receive}):
@@ -169,10 +215,10 @@ def _simplify_process(logger, conf, sa, interfaces, process):
             process.replace_action(action, new)
 
     # Remove callback actions
-    param_identifiers = _yeild_identifier()
-    action_identifiers = _yeild_identifier()
+    param_identifiers = id_generator()
+    action_identifiers = id_generator()
     for action in list(process.actions.filter(include={Call})):
-        _convert_calls_to_conds(conf, sa, interfaces, process, label_map, action, action_identifiers, param_identifiers)
+        _convert_calls_to_conds(logger, conf, sa, interfaces, process, label_map, action, action_identifiers, param_identifiers)
 
     # Process rest code
     def code_replacment(statments):
@@ -192,7 +238,7 @@ def _simplify_process(logger, conf, sa, interfaces, process):
                     for s in tmp:
                         for acc in accesses:
                             if acc.interface:
-                                nl = label_map[acc.label.name][str(acc.list_interface[0])]
+                                nl = label_map[acc.label.name][str(acc.base_interface)]
                                 s = acc.replace_with_label(s, nl)
                                 new_tmp.add(s)
                                 matched = True
@@ -274,7 +320,23 @@ def _simplify_process(logger, conf, sa, interfaces, process):
     return
 
 
-def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, action_identifiers, param_identifiers):
+def _convert_calls_to_conds(logger, conf, sa, interfaces, process, label_map, call, action_identifiers, param_identifiers):
+    """
+    This function takes an extended Process and converts the given Call action into a Condition object as a part of
+    translation of an extrended Process into a common one.
+
+    :param logger: Logger object.
+    :param conf: Configuration dictionary.
+    :param sa: Source object.
+    :param interfaces: Inerfaces collection.
+    :param process: Process object.
+    :param label_map: Process label map dictionary.
+    :param call: Call object.
+    :param action_identifiers: Genrerator of action identifiers.
+    :param param_identifiers: Generator of parameters identifiers.
+    :return:
+    """
+
     the_last_added = None
 
     def ret_expression():
@@ -306,35 +368,34 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
 
         return return_expression
 
-    def match_parameters(declaration):
+    def match_parameters(callback_declaration):
         # Try to match action parameters
         found_positions = dict()
         for label_index in range(len(call.parameters)):
             accss = process.resolve_access(call.parameters[label_index])
-            for acc in (a for a in accss if a.list_interface and len(a.list_interface) > 0):
-                for position in (p for p in list(range(len(declaration.points.parameters)))[label_index:]
+            for acc in (a for a in accss if a.interface):
+                for position in (p for p in list(range(len(callback_declaration.points.parameters)))[label_index:]
                                  if p not in found_positions):
-                    parameter = declaration.points.parameters[position]
-                    if (acc.list_interface[-1].declaration == parameter or
-                            acc.list_interface[-1].declaration.pointer_alias(parameter)):
-                        expression = acc.access_with_label(label_map[acc.label.name][str(acc.list_interface[0])])
+                    parameter = callback_declaration.points.parameters[position]
+                    if acc.interface.declaration == parameter or acc.interface.declaration.pointer_alias(parameter):
+                        expression = acc.access_with_label(label_map[acc.label.name][str(acc.base_interface)])
                         found_positions[position] = expression
                         break
 
         # Fulfil rest parameters
         pointer_params = []
         label_params = []
-        for index in range(len(declaration.points.parameters)):
-            if not isinstance(declaration.points.parameters[index], str) and index not in found_positions:
-                if not isinstance(declaration.points.parameters[index], Primitive) and \
-                        not isinstance(declaration.points.parameters[index], Pointer):
-                    param_signature = declaration.points.parameters[index].take_pointer
+        for index in range(len(callback_declaration.points.parameters)):
+            if not isinstance(callback_declaration.points.parameters[index], str) and index not in found_positions:
+                if not isinstance(callback_declaration.points.parameters[index], Primitive) and \
+                        not isinstance(callback_declaration.points.parameters[index], Pointer):
+                    param_signature = callback_declaration.points.parameters[index].take_pointer
                     pointer_params.append(index)
                     expression = "*%{}%"
                 else:
-                    param_signature = declaration.points.parameters[index]
+                    param_signature = callback_declaration.points.parameters[index]
                     expression = "%{}%"
-                tmp_lb = process.add_label("emg_param_{}_{}".format(index, param_identifiers.__next__()),
+                tmp_lb = process.add_label("emg_param_{}_{}".format(index, next(param_identifiers)),
                                            param_signature)
                 label_params.append(tmp_lb)
                 expression = expression.format(tmp_lb.name)
@@ -354,11 +415,11 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
                 post.append('$FREE({});'.format(repr(label)))
 
         if pre:
-            pre_name = 'pre_call_{}'.format(action_identifiers.__next__())
+            pre_name = 'pre_call_{}'.format(next(action_identifiers))
             pre = process.add_condition(pre_name, [], pre, "Callback {} precondition.".format(call.name))
             pre.trace_relevant = True
         if post:
-            post_name = 'post_call_{}'.format(action_identifiers.__next__())
+            post_name = 'post_call_{}'.format(next(action_identifiers))
             post = process.add_condition(post_name, [], post, "Callback {} postcondition.".format(format(call.name)))
             post.trace_relevant = True
 
@@ -401,8 +462,8 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
 
         return callback_pre_call
 
-    def make_action(declaration, inv):
-        cd, pre, post = generate_function(declaration, inv)
+    def make_action(callback_declaration, inv):
+        cd, pre, post = generate_function(callback_declaration, inv)
 
         return cd, pre, post
 
@@ -427,9 +488,10 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
                 invoke = sa.refined_name(implementation.value)
                 check = False
             elif not isinstance(implementation, bool) and conf.get('implicit callback calls', True)\
-                    and not (access.label.callback and len(access.label.interfaces) > 1):
+                    and not (access.label.callback and len(access.label.interfaces) > 1) \
+                    and not access.label.match_implemented:
                 # Call by pointer
-                invoke = access.access_with_label(label_map[access.label.name][str(access.list_interface[0])])
+                invoke = access.access_with_label(label_map[access.label.name][str(access.base_interface)])
                 check = True
                 reinitialize_vars_flag = True
             else:
@@ -442,7 +504,7 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
                 invoke = sa.refined_name(access.label.value)
                 check = False
             else:
-                if access.list_interface and conf.get('implicit callback calls', True):
+                if access.interface and conf.get('implicit callback calls', True):
                     # Call if label(variable) is provided but with no explicit value
                     try:
                         invoke = access.access_with_label(access.label)
@@ -454,6 +516,8 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
 
         if invoke:
             code, comments = list(), list()
+            if not (isinstance(signature, Pointer) and isinstance(signature.points, Function)):
+                raise ValueError(f'Expect function pointer for {str(access)} but got {str(signature)}')
 
             # Determine structure type name of the container with the callback if such exists
             structure_name = None
@@ -476,6 +540,7 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
             # Generate comment
             comment = call.comment.format(field, structure_name)
             conditions = call.condition if call.condition and call.condition else list()
+
             new_code, pre_action, post_action = make_action(signature, invoke)
             code.extend(new_code)
 
@@ -494,7 +559,7 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
                        (["} else {", '\t' + ret, "}"] if ret != '' else ['}'])
 
             # Insert new action and replace this one
-            new = process.add_condition("{}_{}".format(call.name, action_identifiers.__next__()),
+            new = process.add_condition("{}_{}".format(call.name, next(action_identifiers)),
                                         conditions, code, comment)
             new.trace_relevant = True
 
@@ -526,7 +591,7 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
         if reinitialize_vars_flag:
             reinitialize_variables(code)
 
-        n = process.add_condition("{}_{}".format(call.name, action_identifiers.__next__()),
+        n = process.add_condition("{}_{}".format(call.name, next(action_identifiers)),
                                   [], code, "No callbacks implemented to call here")
         process.replace_action(call, n)
         n.statements = code
@@ -546,7 +611,7 @@ def _yield_instances(logger, conf, sa, interfaces, model, instance_maps):
     :return: List with model qutomata, list with callback automata.
     """
     logger.info("Generate automata for processes with callback calls")
-    identifiers = _yeild_identifier()
+    identifiers = id_generator()
     identifiers_map = sortedcontainers.SortedDict()
 
     def rename_process(inst):
@@ -601,11 +666,6 @@ def _yield_instances(logger, conf, sa, interfaces, model, instance_maps):
                         }
                         new_peers.append(new_peer)
             action.peers = new_peers
-
-    # According to new identifiers change signals peers
-    for process in model_fsa + callback_fsa:
-        if conf.get("convert statics to globals", True):
-            _remove_statics(logger, sa, process)
 
     return model_fsa, callback_fsa
 
@@ -672,11 +732,8 @@ def _fulfill_label_maps(logger, conf, sa, interfaces, instances, process, instan
                                 new = ExtendedAccess(access)
                                 new.label = prot.label
                                 new.interface = interface
-                                new.list_interface = prot.list_interface
-                                if len(new.list_interface):
-                                    new.list_interface[-1] = interface
-                                else:
-                                    new.list_interface = [interface]
+                                if prot.base_interface:
+                                    new.base_interface = prot.base_interface
                                 new.list_access = prot.list_access
                                 if len(new.list_access) == 1 and new.label:
                                     new.label.set_declaration(str(interface), access_map[access][i].declaration)
@@ -692,6 +749,13 @@ def _fulfill_label_maps(logger, conf, sa, interfaces, instances, process, instan
 
 
 def __get_relevant_expressions(process):
+    """
+    Function extracts relevant interface implementation for a processs.
+
+    :param process: Process object.
+    :return: List of string identifiers.
+    """
+
     # First get list of container implementations
     expressions = []
     for collection in process.accesses().values():
@@ -722,11 +786,45 @@ def __get_relevant_expressions(process):
                 if len(expressions) == 3:
                     break
 
-    expressions = [re.sub('\s|&', '', e) for e in expressions]
+    expressions = [re.sub(r'\s|&', '', e) for e in expressions]
     return expressions
 
 
+def __add_pretty_name(logger, process, names):
+    """
+    This function adds to a process name a unique suffix based on some implementation to avoid numerical processs
+    identifiers and consequently use them in manual specificatin for addressing signals.
+
+    :param logger: Logger object.
+    :param process: Process object.
+    :param names: Already issued names.
+    :return: A new issued name.
+    """
+    expressions = __get_relevant_expressions(process)
+    if process.category != 'functions models':
+        old_name = process.name
+        if len(expressions):
+            new_name = None
+            while not new_name and expressions:
+                candidate = expressions.pop(0)
+                candidate = f"{old_name}_{candidate}"
+                if candidate not in names:
+                    new_name = candidate
+                    process.name = new_name
+
+        if process.name == old_name:
+            process.name = f"{old_name}_{process.instance_number}"
+        logger.debug(f'Set new process name: {process.name} instead of {old_name}')
+    return process.name
+
+
 def __generate_model_comment(process):
+    """
+    Adds to the Process comment a suffix that points which interface implementation the process is relevant to.
+
+    :param process: Process objet.
+    :return: None.
+    """
     expressions = __get_relevant_expressions(process)
     # Generate a comment as a concatenation of an original comment and a suffix
     if len(expressions) > 0:
@@ -736,7 +834,15 @@ def __generate_model_comment(process):
 
 
 def _remove_statics(logger, sa, process):
-    # todo: write docstring
+    """
+    This function removes calls of static functions in an environment model. Instead it creates wrappers for
+    static functions and static global variables and use them.
+
+    :param logger: Logger object.
+    :param sa: Source collection.
+    :param process: Process object - modified!
+    :return: None
+    """
 
     access_map = process.allowed_implementations
 
@@ -747,7 +853,7 @@ def _remove_statics(logger, sa, process):
 
     def create_definition(decl, nm, impl, requre_suffix=False):
         if requre_suffix:
-            new_name = "emg_wrapper_{}_{}".format(nm, _f_identifiers.__next__())
+            new_name = "emg_wrapper_{}_{}".format(nm, next(_f_identifiers))
         else:
             new_name = "emg_wrapper_{}".format(nm)
         f = c.Function(new_name, decl)
@@ -837,7 +943,9 @@ def _remove_statics(logger, sa, process):
                         var = resolve_existing(name, implementation, _declarations)
                         if not var:
                             if isinstance(declaration, Array):
-                                declaration = declaration.element.take_pointer
+                                size = declaration.size
+                                declaration = declaration.take_pointer
+                                declaration.points.size = size
                                 value = '& ' + value
                             elif not isinstance(declaration, Pointer):
                                 # Try to use pointer instead of the value
@@ -845,7 +953,7 @@ def _remove_statics(logger, sa, process):
                                 value = '& ' + value
 
                             if len(sa.get_source_variables(name)) > 1:
-                                v_name = "emg_alias_{}_{}".format(name, _v_identifiers.__next__())
+                                v_name = "emg_alias_{}_{}".format(name, next(_v_identifiers))
                             else:
                                 v_name = "emg_alias_{}".format(name)
                             var = c.Variable(v_name, declaration.to_string('x', specifiers=False))
@@ -858,6 +966,7 @@ def _remove_statics(logger, sa, process):
                         if file not in _values_map:
                             _values_map[file] = sortedcontainers.SortedDict()
                         _values_map[file][new_value] = implementation.value
+
                         # This is quite precise match to avoid an exception assign valus through a void* match
                         if implementation.declaration != declaration and \
                                 isinstance(implementation.declaration, Pointer):

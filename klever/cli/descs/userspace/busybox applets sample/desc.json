@@ -1,0 +1,7 @@
+[
+    {
+        "build base": "userspace/busybox applets sample",
+        "name": "BusyBox",
+        "git repository version": "1_30_1"
+    }
+]

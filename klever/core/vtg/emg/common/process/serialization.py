@@ -249,15 +249,18 @@ class CollectionDecoder:
                 "function model process".format(name))
 
         # Import actiones
-        for act_name in dic.get('actions', {}):
-            if not process.actions.get(act_name):
-                if dic['actions'][act_name].get('process'):
-                    for act in (a for a in process.actions.filter(include={Subprocess}) if a.reference_name == act_name):
-                        self._import_action(process, act, dic['actions'][act_name])
+        for some_name, description in dic.get('actions', {}).items():
+            names = some_name.split(", ")
+            for act_name in names:
+                if not process.actions.get(act_name):
+                    if description.get('process'):
+                        for act in (a for a in process.actions.filter(include={Subprocess})
+                                    if a.reference_name == act_name):
+                            self._import_action(process, act, dict(description))
+                    else:
+                        raise ValueError('Action {!r} was not used in {!r} process'.format(act_name, str(process)))
                 else:
-                    raise ValueError('Action {!r} was not used in {!r} process'.format(act_name, str(process)))
-            else:
-                self._import_action(process, process.actions[act_name], dic['actions'][act_name])
+                    self._import_action(process, process.actions[act_name], description)
 
         for att in self.PROCESS_ATTRIBUTES:
             if att in dic:
@@ -271,10 +274,11 @@ class CollectionDecoder:
         for att in ('definitions', 'declarations'):
             # Avoid iterating over the dictionary that can change its content
             if att in dic:
-                for def_file in dic[att].keys():
-                    dic[att][source.find_file(def_file)] = dic[att].pop(def_file)
+                dic_copy = dict(dic[att])
+                for def_file in dic[att]:
+                    dic_copy[source.find_file(def_file)] = dic_copy.pop(def_file)
                 # Update object to be sure that changes are saved there
-                setattr(process, att, dic[att])
+                setattr(process, att, dic_copy)
 
         unused_labels = {str(l) for l in process.unused_labels}
         if unused_labels:

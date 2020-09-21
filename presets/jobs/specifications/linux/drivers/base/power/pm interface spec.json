@@ -204,6 +204,42 @@
         }
       }
     },
-    "functions models": {}
+    "functions models": {
+      "pm_runtime_force_resume": {
+        "declaration": "int pm_runtime_force_resume(%pm.device%)",
+        "header": "linux/pm.h",
+        "reference": true
+      },
+      "pm_runtime_force_suspend": {
+        "declaration": "int pm_runtime_force_suspend(%pm.device%)",
+        "header": "linux/pm.h",
+        "reference": true
+      },
+      "pm_runtime_enable": {
+        "declaration": "void pm_runtime_enable(%pm.device%)",
+        "header": "linux/pm.h",
+        "reference": true
+      },
+      "pm_runtime_disable": {
+        "declaration": "void pm_runtime_disable(%pm.device%)",
+        "header": "linux/pm.h",
+        "reference": true
+      },
+      "pm_runtime_active": {
+        "declaration": "bool pm_runtime_active(%pm.device%)",
+        "header": "linux/pm.h",
+        "reference": true
+      },
+      "pm_runtime_suspended": {
+        "declaration": "bool pm_runtime_suspended(%pm.device%)",
+        "header": "linux/pm.h",
+        "reference": true
+      },
+      "pm_runtime_enabled": {
+        "declaration": "bool pm_runtime_enabled(%pm.device%)",
+        "header": "linux/pm.h",
+        "reference": true
+      }
+    }
   }
 }

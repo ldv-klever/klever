@@ -90,7 +90,10 @@ def import_typedefs(tds, dependencies):
 
     candidates = [t for t in _type_collection if isinstance(_type_collection[t], Primitive)]
     for dep, decl in ((dep, decl) for dep in sorted(tds.keys()) for decl in tds[dep]):
-        ast = parse_declaration(decl)
+        try:
+            ast = parse_declaration(decl)
+        except Exception:
+            raise ValueError(f"Cannot parse typedef declaration: {decl}")
         name = extract_name(decl)
 
         add_file(ast, name, dep)
@@ -246,6 +249,9 @@ class Declaration:
                     return True
                 elif isinstance(self, Pointer):
                     return self.points == other.points
+                elif isinstance(self, Array):
+                    # Compare children to avoid comparing sizes
+                    return self.element == other.element
                 elif isinstance(self, Function):
                     return self.return_value == other.return_value and \
                            len(self.parameters) == len(other.parameters) and \

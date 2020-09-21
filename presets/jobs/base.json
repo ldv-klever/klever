@@ -2,8 +2,15 @@
   "jobs": [
     {
       "uuid": "5ba02606-8bd8-4bc0-a72d-d1ddded47f79",
-      "name": "BusyBox",
-      "directory": "busybox"
+      "name": "Userspace",
+      "directory": "userspace",
+      "children": [
+        {
+          "uuid": "08c7a442-83ed-11ea-88e0-879ef40bbdcf",
+          "name": "BusyBox applets sample",
+          "directory": "userspace/busybox applets sample"
+        }
+      ]
     },
     {
       "name": "Linux",
@@ -60,6 +67,11 @@
               "uuid": "b8d817a8-1b6a-493e-b869-c03ff7a65f6d",
               "name": "Stable Branch Bugs for 2014 Year",
               "directory": "linux/validation/2014 stable branch bugs"
+            },
+            {
+              "uuid": "058e9338-36af-4f58-8db9-cc4afbf191ce",
+              "name": "USB Serial Bugs from Linux 3.14+",
+              "directory": "linux/validation/3.14+ usb serial bugs"
             }
           ]
         }

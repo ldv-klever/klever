@@ -18,6 +18,10 @@
 #ifndef __VERIFIER_MEMORY_H
 #define __VERIFIER_MEMORY_H
 
+typedef unsigned long size_t;
+
+extern void *memcpy(void *dest, const void *src, size_t n);
+
 // Implementations for direct use in specifications and models
 extern void *ldv_malloc(size_t size);
 extern void *ldv_calloc(size_t nmemb, size_t size);

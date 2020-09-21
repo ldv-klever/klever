@@ -88,11 +88,12 @@ class Job(models.Model):
         db_table = 'job'
 
 
-class UploadedJobArchive(models.Model):
+class UploadedJobArchive(WithFilesMixin, models.Model):
     author = models.ForeignKey(User, models.CASCADE)
     name = models.CharField(max_length=128)
     archive = models.FileField(upload_to=UPLOAD_DIR)
-    status = models.CharField(max_length=1, choices=JOB_UPLOAD_STATUS, default=JOB_UPLOAD_STATUS[0][0])
+    status = models.CharField(max_length=2, choices=JOB_UPLOAD_STATUS, default=JOB_UPLOAD_STATUS[0][0])
+    step_progress = models.PositiveIntegerField(default=0)
     job = models.ForeignKey(Job, models.SET_NULL, null=True, related_name='+')  # Filled after upload is started
     start_date = models.DateTimeField(auto_now_add=True)  # Upload archive date
     finish_date = models.DateTimeField(null=True)

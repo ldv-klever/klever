@@ -21,7 +21,6 @@
 #include <ldv/test.h>
 
 gfp_t ldv_flags;
-void *ldv_res;
 
 void ldv_check_alloc_flags(gfp_t flags)
 {
@@ -29,18 +28,16 @@ void ldv_check_alloc_flags(gfp_t flags)
 		ldv_unexpected_error();
 }
 
-void ldv_after_alloc(void *res)
-{
-	ldv_res = res;
-}
-
 static int __init ldv_init(void)
 {
 	size_t size = ldv_undef_uint();
+	size_t n = ldv_undef_uint();
 
 	ldv_flags = ldv_undef_uint();
-	if (kzalloc(size, ldv_flags) != ldv_res)
-		ldv_unexpected_error();
+	kmalloc(size, ldv_flags);
+	kzalloc(size, ldv_flags);
+	kmalloc_array(n, size, ldv_flags);
+	kcalloc(n, size, ldv_flags);
 
 	return 0;
 }

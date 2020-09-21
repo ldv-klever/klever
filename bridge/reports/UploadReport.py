@@ -17,6 +17,7 @@
 
 import os
 import json
+import time
 import uuid
 import zipfile
 
@@ -45,6 +46,8 @@ from reports.serializers import ReportAttrSerializer, ComputerSerializer
 from reports.tasks import fill_coverage_statistics
 from marks.tasks import connect_safe_report, connect_unsafe_report, connect_unknown_report
 from service.utils import FinishDecision
+
+from reports.test import ReportsLogging
 
 
 class ReportParentField(serializers.SlugRelatedField):
@@ -348,7 +351,7 @@ class ReportUnsafeSerializer(UploadLeafBaseSerializer):
         if not isinstance(node, dict):
             self.fail('wrong_format', detail="node is not a dictionary")
         if node.get('type') not in {'function call', 'statement', 'action', 'thread'}:
-            self.fail('wrong_format', detail='unsupported node type')
+            self.fail('wrong_format', detail='unsupported node type "{}"'.format(node.get('type')))
         if node['type'] == 'function call':
             required_fields = ['line', 'file', 'source', 'children', 'display']
         elif node['type'] == 'statement':
@@ -374,13 +377,14 @@ class ReportUnsafeSerializer(UploadLeafBaseSerializer):
         archive.seek(0)
         if not isinstance(error_trace, dict):
             self.fail('wrong_format', detail='error trace is not a dictionary')
-        if 'trace' not in error_trace:
-            self.fail('wrong_format', detail='error trace does not have "trace"')
         if not isinstance(error_trace.get('files'), list):
             self.fail('wrong_format', detail='error trace does not have files or it is not a list')
-        self.__check_node(error_trace['trace'])
-        if error_trace['trace']['type'] != 'thread':
-            self.fail('wrong_format', detail='root error trace node type should be a "thread"')
+        if 'trace' not in error_trace:
+            self.fail('wrong_format', detail='error trace does not have "trace"')
+        if error_trace['trace']:
+            self.__check_node(error_trace['trace'])
+            if error_trace['trace']['type'] != 'thread':
+                self.fail('wrong_format', detail='root error trace node type should be a "thread"')
         return archive
 
     def validate(self, value):
@@ -398,6 +402,8 @@ class UploadReport:
         self.decision = decision
         self.archives = archives
 
+        self._logger = ReportsLogging(self.decision.id)
+
     def upload_all(self, reports):
         # Check that all archives are valid ZIP files
         self.__check_archives()
@@ -405,11 +411,14 @@ class UploadReport:
             try:
                 self.__upload(report)
             except Exception as e:
+                if str(e).__contains__('report_decision_id_identifier'):
+                    logger.error('UniqueError')
+                    logger.exception(e)
                 self.__process_exception(e)
 
     def __process_exception(self, exc):
         if isinstance(exc, CheckArchiveError):
-            raise exceptions.ValidationError(detail={'ZIP': 'Zip archive check has failed: {}'.format(exc)})
+            raise exc
         if isinstance(exc, exceptions.ValidationError):
             err_detail = exc.detail
         else:
@@ -477,10 +486,15 @@ class UploadReport:
                 raise CheckArchiveError('The archive "{}" is not a ZIP file'.format(arch.name))
 
     def __get_archive(self, arch_name):
+        """
+        Get archive from attached files by name. Should be called before any DB changes.
+        :param arch_name: Archive name
+        :return: archive file pointer
+        """
         if not arch_name:
             return None
         if arch_name not in self.archives:
-            raise exceptions.ValidationError(detail={'archives': 'Archive "{}" was not attached'.format(arch_name)})
+            raise CheckArchiveError('Archive "{}" was not attached'.format(arch_name))
         self.archives[arch_name].seek(0)
         return self.archives[arch_name]
 
@@ -505,40 +519,60 @@ class UploadReport:
         return list(parent.pk for parent in ancestors_qs)
 
     def __create_report_component(self, data):
+        self._logger.log("S0", data.get("identifier"))
         data['attr_data'] = self.__upload_attrs_files(self.__get_archive(data.get('attr_data')))
+
+        self._logger.log("S1", data.get('component'), data.get("identifier"), data.get('parent'))
         serializer = ReportComponentSerializer(data=data, decision=self.decision, fields={
             'identifier', 'parent', 'component', 'attrs', 'data', 'computer', 'log'
         })
         serializer.is_valid(raise_exception=True)
         report = serializer.save()
+        self._logger.log("S2", report.pk, report.identifier, report.parent_id)
 
         self.__update_decision_cache(report.component, started=True)
+        self._logger.log("S3", report.pk)
 
     def __create_verification_report(self, data):
-        data['attr_data'] = self.__upload_attrs_files(self.__get_archive(data.get('attr_data')))
+        self._logger.log("SV0", data.get("identifier"))
         data['log'] = self.__get_archive(data.get('log'))
+
+        coverage_arch = None
+        if 'coverage' in data:
+            coverage_arch = self.__get_archive(data['coverage'])
+
+        data['attr_data'] = self.__upload_attrs_files(self.__get_archive(data.get('attr_data')))
         save_kwargs = {}
 
         # Add additional sources if provided
         if 'additional_sources' in data:
             save_kwargs['additional_sources_id'] = self.__upload_additional_sources(data['additional_sources'])
 
+        self._logger.log("SV1", data.get('component'), data.get("identifier"), data.get('parent'))
         serializer = ReportVerificationSerializer(data=data, decision=self.decision)
         serializer.is_valid(raise_exception=True)
         report = serializer.save(**save_kwargs)
+        self._logger.log("SV2", report.pk, report.identifier, report.parent_id)
 
         # Upload coverage for the report
-        if 'coverage' in data:
-            self.__save_coverage(report, self.__get_archive(data['coverage']))
+        if coverage_arch:
+            self.__save_coverage(report, coverage_arch)
 
         self.__update_decision_cache(
             report.component, started=True,
             cpu_time=report.cpu_time, wall_time=report.wall_time, memory=report.memory
         )
+        self._logger.log("SV3", report.pk)
 
     def __upload_coverage(self, data):
+        self._logger.log("C0", data.get('identifier'))
         if not data.get('identifier'):
             raise exceptions.ValidationError(detail={'identifier': "Required"})
+
+        coverages = {}
+        for cov_id in data['coverage']:
+            coverages[cov_id] = self.__get_archive(data['coverage'][cov_id])
+
         if self.decision.is_lightweight:
             # Upload for Core for lightweight decisions
             report = ReportComponent.objects.get(parent=None, decision=self.decision)
@@ -550,19 +584,25 @@ class UploadReport:
                 )
             except ReportComponent.DoesNotExist:
                 raise exceptions.ValidationError(detail={'identifier': "The component report wasn't found"})
+        self._logger.log("C1", report.pk, report.identifier)
 
         if not report.original_sources:
             raise exceptions.ValidationError(detail={
                 'coverage': "The coverage can be uploaded only for reports with original sources"
             })
 
-        for cov_id in data['coverage']:
+        for cov_id, cov_arch in coverages.items():
             # Save global coverage archive
-            self.__save_coverage(report, self.__get_archive(data['coverage'][cov_id]), identifier=cov_id)
+            self.__save_coverage(report, cov_arch, identifier=cov_id)
+        self._logger.log("C2", report.pk)
 
     def __patch_report_component(self, data):
         with transaction.atomic():
+            self._logger.log("P0", data.get('identifier'))
+
             report = self.__get_report_for_update(data.get('identifier'))
+            self._logger.log("P1", report.pk, report.identifier)
+
             save_kwargs = {}
 
             if 'attrs' in data:
@@ -577,6 +617,7 @@ class UploadReport:
             )
             serializer.is_valid(raise_exception=True)
             report = serializer.save(**save_kwargs)
+            self._logger.log("P2", report.pk)
 
         if self.decision.is_lightweight and report.parent and (report.additional_sources or report.original_sources):
             with transaction.atomic():
@@ -586,34 +627,45 @@ class UploadReport:
                 if report.additional_sources:
                     core_report.additional_sources = report.additional_sources
                 core_report.save()
+                self._logger.log("P3", report.pk)
 
     def __finish_report_component(self, data):
+        self._logger.log("F0", data.get('identifier'))
+
         data['log'] = self.__get_archive(data.get('log'))
         data['attr_data'] = self.__upload_attrs_files(self.__get_archive(data.get('attr_data')))
 
         # Update report atomicly
         with transaction.atomic():
             report = self.__get_report_for_update(data.get('identifier'))
+            self._logger.log("F1", report.pk, report.identifier)
+
             serializer = ReportComponentSerializer(
                 instance=report, data=data, decision=self.decision,
                 fields={'wall_time', 'cpu_time', 'memory', 'attrs', 'data', 'log'}
             )
             serializer.is_valid(raise_exception=True)
             report = serializer.save(finish_date=now())
+            self._logger.log("F2", report.pk)
 
         self.__update_decision_cache(
             report.component, finished=True,
             cpu_time=report.cpu_time, wall_time=report.wall_time, memory=report.memory
         )
+        self._logger.log("F3", report.pk)
 
         # Get report ancestors before report might be deleted
         if report.parent and self.decision.is_lightweight:
             # WARNING: If report has children it will be deleted!
             # It means verification reports (children) are not finished yet.
-            report.delete()
+            self._logger.log("F4", report.pk)
+            if not self.__remove_report(report.pk):
+                logger.error('Report deletion is failed!')
 
     def __finish_verification_report(self, data):
         update_data = {'finish_date': now()}
+
+        self._logger.log("FV0", data.get('identifier'))
 
         # Get verification report by identifier
         if not data.get('identifier'):
@@ -623,16 +675,21 @@ class UploadReport:
                 .get(decision=self.decision, identifier=data['identifier'], verification=True)
         except ReportComponent.DoesNotExist:
             raise exceptions.ValidationError(detail={'identifier': "The report wasn't found"})
+        self._logger.log("FV1", report.pk, report.identifier)
 
         if self.decision.is_lightweight:
             if report.is_leaf_node():
                 # Remove verification report if it doesn't have children for lightweight decisions
                 # But before update decision caches
                 self.__update_decision_cache(report.component, finished=True)
-                report.delete()
+                self._logger.log("FV2", report.pk)
+                if not self.__remove_report(report.pk):
+                    logger.error('Report deletion is failed!')
                 return
+
             # Set parent to Core for lightweight decisions that will be preserved
             update_data['parent'] = ReportComponent.objects.only('id').get(decision=self.decision, parent=None)
+            self._logger.log("FV3", report.pk, update_data['parent'].id)
 
         # Save report with new data
         with transaction.atomic():
@@ -640,15 +697,20 @@ class UploadReport:
             for k, v in update_data.items():
                 setattr(report, k, v)
             report.save()
+            self._logger.log("FV4", report.pk)
 
         self.__update_decision_cache(report.component, finished=True)
+        self._logger.log("FV5", report.pk, report.parent_id)
 
     def __create_report_unknown(self, data):
-        data['attr_data'] = self.__upload_attrs_files(self.__get_archive(data.get('attr_data')))
+        self._logger.log("UN0", data.get('parent'))
+
         data['problem_description'] = self.__get_archive(data['problem_description'])
+        data['attr_data'] = self.__upload_attrs_files(self.__get_archive(data.get('attr_data')))
         serializer = ReportUnknownSerializer(data=data, decision=self.decision)
         serializer.is_valid(raise_exception=True)
         report = serializer.save()
+        self._logger.log("UN1", report.pk, report.parent_id)
 
         # Get ancestors before parent might me changed
         ancestors_ids = self.__ancestors_for_cache(report)
@@ -657,6 +719,7 @@ class UploadReport:
             # Change parent to Core
             report.parent_id = ancestors_ids[0]
             report.save()
+            self._logger.log("UN2", report.pk, report.parent_id)
 
         # Caching leaves for each tree branch node
         ReportComponentLeaf.objects.bulk_create(list(
@@ -666,11 +729,17 @@ class UploadReport:
         # Connect report with marks
         connect_unknown_report.delay(report.id)
 
+        self._logger.log("UN3", report.pk)
+
     def __create_report_safe(self, data):
+        self._logger.log("SF0", data.get('parent'))
+
         data['attr_data'] = self.__upload_attrs_files(self.__get_archive(data.get('attr_data')))
         serializer = ReportSafeSerializer(data=data, decision=self.decision)
         serializer.is_valid(raise_exception=True)
         report = serializer.save()
+
+        self._logger.log("SF1", report.pk, report.parent_id)
 
         # Caching leaves for each tree branch node
         ReportComponentLeaf.objects.bulk_create(list(
@@ -681,12 +750,18 @@ class UploadReport:
         # Connect report with marks
         connect_safe_report.delay(report.id)
 
+        self._logger.log("SF2", report.pk)
+
     def __create_report_unsafe(self, data):
-        data['attr_data'] = self.__upload_attrs_files(self.__get_archive(data.get('attr_data')))
+        self._logger.log("UF0", data.get('parent'))
+
         data['error_trace'] = self.__get_archive(data.get('error_trace'))
+        data['attr_data'] = self.__upload_attrs_files(self.__get_archive(data.get('attr_data')))
         serializer = ReportUnsafeSerializer(data=data, decision=self.decision)
         serializer.is_valid(raise_exception=True)
         report = serializer.save()
+
+        self._logger.log("UF1", report.pk, report.parent_id)
 
         # Caching leaves for each tree branch node
         ReportComponentLeaf.objects.bulk_create(list(
@@ -696,6 +771,8 @@ class UploadReport:
 
         # Connect new unsafe with marks
         connect_unsafe_report.delay(report.id)
+
+        self._logger.log("UF2", report.pk)
 
     def __upload_additional_sources(self, arch_name):
         add_src = AdditionalSources(decision=self.decision)
@@ -752,3 +829,17 @@ class UploadReport:
                     newfile.file.save(os.path.basename(rel_path), File(fp), save=True)
                 db_files[rel_path] = newfile.pk
         return db_files
+
+    @transaction.atomic
+    def __remove_report(self, report_id):
+        cnt = 0
+        while cnt < 5:
+            try:
+                report = ReportComponent.objects.select_for_update().get(id=report_id)
+                report.delete()
+                return True
+            except Exception as e:
+                logger.exception(e)
+                time.sleep(0.1)
+                cnt += 1
+        return False

@@ -1,17 +1,22 @@
 {
   "project": "Linux",
-  "build base": "testing/6e6e1c",
-  "requirement specifications": ["test:common"],
+  "build base": "linux/testing/common models/6e6e1c",
   "ideal verdicts": [
     {
       "ideal verdict": "safe",
       "program fragments": [
         "ext-modules/linux/drivers/base/dd/safe.ko",
+        "ext-modules/linux/drivers/base/devres/safe.ko",
+        "ext-modules/linux/drivers/base/devres-memory-safety/safe.ko",
+        "ext-modules/linux/drivers/base/firmware_loader/safe.ko",
+        "ext-modules/linux/drivers/i2c/i2c-core-smbus/safe.ko",
         "ext-modules/linux/drivers/spi/safe.ko",
+        "ext-modules/linux/drivers/video/fbdev/core/fbsys/safe.ko",
         "ext-modules/linux/err/safe.ko",
         "ext-modules/linux/ldv/common/safe.ko",
         "ext-modules/linux/mm/gfp/safe.ko",
         "ext-modules/linux/mm/slab/safe.ko",
+        "ext-modules/linux/mm/util/safe.ko",
         "ext-modules/verifier/common/safe.ko",
         "ext-modules/verifier/gcc/safe.ko",
         "ext-modules/verifier/map/safe.ko",
@@ -26,5 +31,21 @@
     {"ideal verdict": "unsafe"}
   ],
   "extra results processing": "testing",
-  "targets": ["**"]
+  "sub-jobs": [
+    {
+      "targets": ["**"],
+      "exclude targets": [
+        "ext-modules/linux/drivers/base/devres-memory-safety/*",
+        "ext-modules/linux/drivers/video/fbdev/core/fbsys/*"
+      ],
+      "requirement specifications": ["test:common"]
+    },
+    {
+      "targets": [
+        "ext-modules/linux/drivers/base/devres-memory-safety/*",
+        "ext-modules/linux/drivers/video/fbdev/core/fbsys/*"
+      ],
+      "requirement specifications": ["test:memory safety"]
+    }
+  ]
 }

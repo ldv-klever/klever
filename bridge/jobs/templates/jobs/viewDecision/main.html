@@ -72,7 +72,7 @@
                     <div class="header">{% trans 'Reports' %}</div><i class="dropdown icon"></i>
                     <div class="menu">
                         <a id="collapse_reports_btn" class="item{% if not access.can_collapse %} disabled{% endif %}"><i class="adjust icon"></i> {% trans 'Collapse' %}</a>
-                        <a id="dfc_modal_show" class="item{% if not access.can_download_verifier_files %} disabled{% endif %}"><i class="download icon"></i> {% trans 'Download files for competition' %}</a>
+                        <a id="download_verifier_files_modal_show" class="item{% if not access.can_download_verifier_files %} disabled{% endif %}"><i class="download icon"></i> {% trans 'Download verifier input files' %}</a>
                         <a id="clear_verifier_files_modal_show" class="item{% if not access.can_clear_verifier_files %} disabled{% endif %}"><i class="eraser icon"></i> {% trans 'Clear verifier input files' %}</a>
                     </div>
                 </div>
@@ -137,62 +137,64 @@
         </div>
     </div>
 
-    {# Download files for competition modal #}
+    {# Download verifier files modal #}
     {% if access.can_download_verifier_files %}
-        <div id="dfc_modal" class="ui small dinamic modal">
+        <div id="download_verifier_files_modal" class="ui small dinamic modal">
             <div class="ui header">{% trans 'Choose filters' %}</div>
             <div class="content">
                 <div class="ui grid">
                     <div class="six wide column">
                         {% if reportdata.totals and reportdata.totals.unsafes > 0 %}
                             <div class="ui checkbox">
-                                <label for="dfc_unsafes">{% trans 'Unsafes' %}</label>
-                                <input id="dfc_unsafes" type="checkbox">
+                                <label for="download_verifier_files_unsafes">{% trans 'Unsafes' %}</label>
+                                <input id="download_verifier_files_unsafes" type="checkbox" checked>
                             </div>
                             <br>
                         {% endif %}
                         {% if reportdata.totals and reportdata.totals.safes > 0 %}
                             <div class="ui checkbox">
-                                <label for="dfc_safes">{% trans 'Safes' %}</label>
-                                <input id="dfc_safes" type="checkbox">
+                                <label for="download_verifier_files_safes">{% trans 'Safes' %}</label>
+                                <input id="download_verifier_files_safes" type="checkbox" checked>
                             </div>
                             <br>
                         {% endif %}
                         {% if reportdata.totals and reportdata.totals.unknowns > 0 %}
                             <div class="ui checkbox">
-                                <label for="dfc_unknowns">{% trans 'Unknowns' %}</label>
-                                <input id="dfc_unknowns" type="checkbox">
+                                <label for="download_verifier_files_unknowns">{% trans 'Unknowns' %}</label>
+                                <input id="download_verifier_files_unknowns" type="checkbox" checked>
                             </div>
                             <br>
                         {% endif %}
                     </div>
-                    <div id="dfc_problems" class="ten wide column" style="display: none">
+                    <div id="download_verifier_files_problems" class="ten wide column">
                         {% if reportdata.problems|length %}
                             <p><small>{% trans "If you don't choose unknowns' problems then all unknowns files will be downloaded" %}</small></p>
                         {% endif %}
                         {% for p in reportdata.problems %}
                             <div class="ui checkbox">
-                                <label for="dfc_p_{{ p.id }}">{{ p.component }}/{{ p.problem }}</label>
-                                <input id="dfc_p_{{ p.id }}" class="dfc-problem" type="checkbox" data-component="{{ p.component }}" data-problem="{{ p.problem }}">
+                                <label for="download_verifier_files_p_{{ p.id }}">{{ p.component }}/{{ p.problem }}</label>
+                                <input id="download_verifier_files_p_{{ p.id }}" class="download_verifier_files-problem" type="checkbox" data-component="{{ p.component }}" data-problem="{{ p.problem }}" checked>
                             </div>
                             <br>
                         {% endfor %}
-                        <div class="ui checkbox">
-                            <label for="dfc_p_null">{% trans 'Without marks' %}</label>
-                            <input id="dfc_p_null" class="dfc-problem" type="checkbox" data-component="null" data-problem="null">
-                        </div>
-                        <br>
+                        {% if reportdata.has_unmarked %}
+                            <div class="ui checkbox">
+                                <label for="download_verifier_files_p_null">{% trans 'Without marks' %}</label>
+                                <input id="download_verifier_files_p_null" class="download_verifier_files-problem" type="checkbox" data-component="null" data-problem="null" checked>
+                            </div>
+                            <br>
+                        {% endif %}
                     </div>
                     <div class="sixteen wide column right aligned">
                         <div class="ui buttons">
-                            <button class="ui green button modal-confirm" data-url="{% url 'jobs:svcomp-files' object.id %}">{% trans 'Download' %}</button>
+                            <button class="ui green button modal-confirm" data-url="{% url 'jobs:verifier-files' object.id %}">{% trans 'Download' %}</button>
                             <button class="ui blue button modal-cancel">{% trans 'Cancel' %}</button>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        <span id="error___dfc_notype" hidden>{% trans 'Choose at least one type of reports' %}</span>
+        <span id="error___download_verifier_files_notype" hidden>{% trans 'Choose at least one type of reports' %}</span>
     {% endif %}
     {% if access.can_rename %}
         <div id="rename_decision_modal" class="ui small modal">

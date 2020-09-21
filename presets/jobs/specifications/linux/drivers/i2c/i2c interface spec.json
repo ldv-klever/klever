@@ -1,0 +1,57 @@
+{
+  "3.14": {
+    "categories": {
+      "i2c": {
+        "callbacks": {
+          "probe": {
+            "declaration": "int (*probe)(%i2c.client%, %i2c.i2c_device_id%);"
+          },
+          "probe_new": {
+            "declaration": "int (*probe_new)(%i2c.client%);"
+          },
+          "remove": {
+            "declaration": "int (*remove)(%i2c.client%)"
+          }
+        },
+        "containers": {
+          "i2c_driver": {
+            "declaration": "struct i2c_driver driver",
+            "fields": {
+              "probe": "%i2c.probe%",
+              "probe_new": "%i2c.probe_new%",
+              "remove": "%i2c.remove%"
+            },
+            "header": "linux/i2c.h"
+          },
+          "driver_ids": {
+            "declaration": "const struct i2c_device_id adc128_id[]",
+            "header": "linux/i2c.h"
+          }
+        },
+        "resources": {
+          "client": {
+            "declaration": "struct i2c_client *client",
+            "header": "linux/i2c.h"
+          },
+          "i2c_device_id": {
+            "declaration": "struct i2c_device_id *",
+            "header": "linux/i2c.h"
+          }
+        },
+        "reference": true
+      }
+    },
+    "functions models": {
+      "i2c_del_driver": {
+        "declaration": "void i2c_del_driver(*%i2c.i2c_driver%)",
+        "header": "linux/i2c.h",
+        "reference": true
+      },
+      "i2c_register_driver": {
+        "declaration": "int i2c_register_driver(struct module *owner, *%i2c.i2c_driver%)",
+        "header": "linux/i2c.h",
+        "reference": true
+      }
+    }
+  }
+}

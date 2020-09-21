@@ -43,6 +43,7 @@ class ExtendedProcessDecoder(CollectionDecoder):
     }
     LABEL_CONSTRUCTOR = ExtendedLabel
     LABEL_ATTRIBUTES = {
+        'match only implemented interfaces': 'match_implemented',
         'value': None,
         'declaration': None,
         'container': None,
@@ -77,6 +78,10 @@ class ExtendedProcessDecoder(CollectionDecoder):
         label = super()._import_label(name, dic)
 
         if 'interface' in dic:
+            if not (dic.get('resource') or dic.get('container') or dic.get('callback') or dic.get('parameter')):
+                self.logger.warning(f'Specify kind of an interface (container, resource, callback or parameter) for'
+                                    f' label {name}')
+
             if isinstance(dic['interface'], str):
                 label.set_declaration(dic['interface'], None)
             elif isinstance(dic['interface'], list):

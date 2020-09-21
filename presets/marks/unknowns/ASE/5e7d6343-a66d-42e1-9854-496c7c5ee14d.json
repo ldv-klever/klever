@@ -1,7 +1,7 @@
 {
   "attrs": [],
   "description": "New versions of GCC complains about incorrect types introduced when substituting MODULE_DEVICE_TABLE. This was fixed in https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/include/linux/module.h?id=6301939d97d079f0d3dbe71e750f4daf5d39fc33.",
-  "function": "storage size of ‘__mod_usb__usbvision_table_device_table’ isn’t known",
+  "function": "storage size of '__mod_usb__usbvision_table_device_table' isn't known",
   "is_modifiable": false,
   "is_regexp": false,
   "problem_pattern": "Mod dev table"

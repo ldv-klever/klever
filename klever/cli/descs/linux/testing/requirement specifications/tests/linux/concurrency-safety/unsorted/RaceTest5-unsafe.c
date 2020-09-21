@@ -49,7 +49,7 @@ static int __init ldv_init(void)
 {
 	pthread_t thread;
 	pthread_attr_t const *attr = ldv_undef_ptr();
-	void *arg1 = ldv_undef_ptr(), *arg2 = ldv_undef_ptr();
+	void *arg1 = ldv_undef_ptr();
 
 	pthread_create(&thread, attr, &ldv_main, arg1);
 	_ldv_global_var = 1;

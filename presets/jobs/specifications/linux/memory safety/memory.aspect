@@ -25,9 +25,8 @@ before: file("$this")
 #include <ldv/verifier/memory.h>
 #include <ldv/verifier/nondet.h>
 
-extern struct fb_info *ldv_framebuffer_alloc(size_t size, struct device *dev);
-void ldv_after_alloc(void *res);
 void* ldv_nonzero_alloc(size_t size);
+void ldv_memory_free(void);
 }
 
 around: define(_THIS_IP_)
@@ -35,23 +34,10 @@ around: define(_THIS_IP_)
 ({0;})
 }
 
-//This function makes kzalloc()!
-around: call(struct fb_info *framebuffer_alloc(..))
-{
-	return ldv_framebuffer_alloc($arg1, $arg2);
-}
-
-around: call(void *kmemdup(..))
-{
-	void *res = ldv_malloc($arg2);
-	ldv_after_alloc(res);
-	return res;
-}
-
 around: call(int wl1271_acx_init_mem_config(..))
 {
 	void* res = ldv_malloc_unknown_size();
-	ldv_after_alloc(res);
+
 	if (res != 0) {
 		$arg1->target_mem_map = res;
 		return 0;
@@ -79,14 +65,12 @@ around: call(struct address_space *balloon_mapping_alloc(..))
 around: call(struct rsi_hw *rsi_91x_init(..))
 {
 	void *res = ldv_zalloc(sizeof(struct rsi_hw));
-	ldv_after_alloc(res);
 	return res;
 }
 
 around: call(struct mem_ctl_info *edac_mc_alloc(..))
 {
 	void *res = ldv_zalloc($arg4);
-	ldv_after_alloc(res);
 	return res;
 }
 
@@ -116,7 +100,6 @@ around: ZALLOC_UNKNOWN_SIZE
 {
 	// We don't know the size.
 	void *res = ldv_zalloc_unknown_size();
-	ldv_after_alloc(res);
 	return res;
 }
 
@@ -150,14 +133,6 @@ around: ALLOC_UNKNOWN_SIZE
 {
 	// We don't know the size.
 	void *res = ldv_malloc_unknown_size();
-	ldv_after_alloc(res);
-	return res;
-}
-
-around: call(static inline void *devm_kzalloc(..))
-{
-	// Memory allocated with this function is automatically freed on driver detach.
-	void *res = ldv_calloc_unknown_size();
 	return res;
 }
 
@@ -224,16 +199,6 @@ pointcut FREE:
 around: FREE
 {
     ldv_free($arg1);
-}
-
-around: call(void framebuffer_release(..))
-{
-	if ($arg1 != 0) {
-		if ($arg1->apertures != 0) {
-			ldv_memory_free();
-		}
-		ldv_memory_free();
-	}
 }
 
 around: call(void rsi_91x_deinit(..))

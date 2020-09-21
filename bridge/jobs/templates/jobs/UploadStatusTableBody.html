@@ -21,7 +21,7 @@
     {% for upload_obj in object_list %}
         <tr>
             <td>{{ upload_obj.name }}</td>
-            <td>{{ upload_obj.get_status_display }}</td>
+            <td>{{ upload_obj.get_status_display }}{% if upload_obj.step_progress %}: {{ upload_obj.step_progress }}%{% endif %}</td>
             <td>
                 {% if user.data_format == 'hum' %}
                     {{ upload_obj.start_date|naturaltime }}

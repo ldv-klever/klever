@@ -1,4 +1,4 @@
-.. Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+.. Copyright (c) 2020 ISP RAS (http://www.ispras.ru)
    Ivannikov Institute for System Programming of the Russian Academy of Sciences
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -33,14 +33,15 @@ Increasing specified hardware characteristics in 2-4 times can reduce total veri
 To generate :ref:`klever_build_bases` for large programs, such as the Linux kernel, you need 3-5 times more free disk
 space.
 
+.. _software_requirements:
+
 Software Requirements
 ---------------------
 
-Klever deployment works for `Debian 9 <https://wiki.debian.org/DebianStretch>`__ and
-`Fedora 31 <https://docs.fedoraproject.org/en-US/fedora/f31/>`__.
-Also, you can try it for other versions of Debian and Fedora as well as for various derivatives, e.g. it works for
-`Ubuntu 18.04 <https://wiki.ubuntu.com/BionicBeaver/ReleaseNotes>`__.
-
+Klever deployment is designed to work on `Debian 9 <https://wiki.debian.org/DebianStretch>`__,
+`Ubuntu 18.04 <https://wiki.ubuntu.com/BionicBeaver/ReleaseNotes>`__ and
+`Fedora 32 <https://docs.fedoraproject.org/en-US/fedora/f32/>`__.
+You can try it for other versions of these distributions, as well as for their derivatives on your own risk.
 
 To deploy Klever one has to clone its Git repository (a path to a directory where it is cloned is referred to as
 :term:`$KLEVER_SRC`)::
@@ -68,13 +69,17 @@ For instance, you can run following commands within :term:`$KLEVER_SRC`::
     $ /usr/local/python3-klever/bin/python3 -m venv venv
     $ source venv/bin/activate
 
+To avoid some unpleasant issues during installation we recommend to upgrade PIP::
+
+    $ pip install --upgrade pip
+
 .. note:: Later we assume that you are using the Klever Python virtual environment created in the way described above.
 
 Then you need to install Python packages including the Klever one:
 
 * For production use it is necessary to run the following command within :term:`$KLEVER_SRC`::
 
-    $ pip install .
+    $ pip install -r requirements.txt .
 
   Later to upgrade Klever Python package you should run::
 
@@ -83,7 +88,10 @@ Then you need to install Python packages including the Klever one:
 * If one is going to develop Klever (see :ref:`dev_deploy` in addition), one should run the following command within
   :term:`$KLEVER_SRC`::
 
-    $ pip install -e .
+    $ pip install -r requirements.txt -e .
+
+.. note:: Removing `-r requirements.txt` from the command will install latest versions of required packages.
+          However, it is not guaranteed that they will work well with Klever.
 
 
 Then one has to get :ref:`klever_addons` and :ref:`klever_build_bases`.

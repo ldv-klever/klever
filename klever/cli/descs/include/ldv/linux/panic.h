@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-#ifndef __LINUX_LDV_PANIC_H
-#define __LINUX_LDV_PANIC_H
+#ifndef __LDV_LINUX_PANIC_H
+#define __LDV_LINUX_PANIC_H
 
 void ldv_panic(void);
 
-#endif /* __LINUX_LDV_PANIC_H */
+#endif /* __LDV_LINUX_PANIC_H */

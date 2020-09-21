@@ -21,7 +21,7 @@ import os
 import sys
 
 from klever.deploys.local.local import KleverDevelopment, KleverProduction, KleverTesting
-from klever.deploys.utils import check_deployment_configuration_file, get_logger
+from klever.deploys.utils import check_deployment_configuration_file, get_logger, get_cgroup_version
 
 
 def main():
@@ -55,6 +55,12 @@ def main():
     logger = get_logger(__name__)
 
     check_deployment_configuration_file(logger, args.deployment_configuration_file)
+
+    if get_cgroup_version() != "v1":
+        logger.error('It appears that you are using cgroup v2, which is not supported by Klever')
+        logger.error('To revert the systemd configuration to use cgroup v1 run the following command and reboot:')
+        logger.error('\tsudo grubby --update-kernel=ALL --args="systemd.unified_cgroup_hierarchy=0"')
+        sys.exit(-1)
 
     logger.info('Start execution of action "{0}" for Klever "{1}"'.format(args.action, args.mode))
 

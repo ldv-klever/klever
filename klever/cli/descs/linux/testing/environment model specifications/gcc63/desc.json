@@ -1,6 +1,6 @@
 [
     {
-        "build base": "testing/81b6e0",
+        "build base": "linux/testing/environment model specifications/81b6e0",
         "name": "Linux",
         "git repository version": "v5.5.9",
         "external modules": "../tests",
@@ -10,7 +10,9 @@
             "ext-modules/devm_threaded_irq_v.1",
             "ext-modules/ethtool_ops_v.3",
             "ext-modules/file_operations_v.1",
+            "ext-modules/hid_driver_v.1",
             "ext-modules/hid_v.1",
+            "ext-modules/i2c_v.1",
             "ext-modules/ieee80211_ops_v.1",
             "ext-modules/iio_triggered_buffer_v.1",
             "ext-modules/irq_v.2",

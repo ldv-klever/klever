@@ -27,14 +27,14 @@
                 {
                   "tipc_createport": [
                     {
-                      "cif_spin_lock_bh_tipc_port_list_lock_0": [
+                      "Instrumented function 'spin_lock_bh'": [
                         {
                           "LDV model 'spin_lock_tipc_port_list_lock'": []
                         }
                       ]
                     },
                     {
-                      "cif_spin_unlock_bh_tipc_port_list_lock_0": [
+                      "Instrumented function 'spin_unlock_bh'": [
                         {
                           "LDV model 'spin_unlock_tipc_port_list_lock'": []
                         }
@@ -43,7 +43,7 @@
                   ]
                 },
                 {
-                  "cif_spin_unlock_bh_lock_of_tipc_port_0": [
+                  "Instrumented function 'spin_unlock_bh'": [
                     {
                       "LDV model 'spin_unlock_lock_of_tipc_port'": [
                         {

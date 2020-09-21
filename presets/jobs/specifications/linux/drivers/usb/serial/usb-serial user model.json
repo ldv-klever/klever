@@ -349,8 +349,7 @@
                 "comment": "End up with USB serial tty layer callbacks invocation scenario.",
                 "condition": [
                   "%driver% == $ARG1",
-                  "$ARG1 == ldv_emg_alias_debug_device_2",
-                  "$ARG1 == &usb_serial_generic_device"
+                  "$ARG1 == & emg_alias_usb_serial_generic_device"
                 ],
                 "parameters": [
                   "%driver%"
@@ -482,7 +481,7 @@
               "register_tty_layer": {
                 "comment": "Begin USB serial tty layer callbacks invocation scenario.",
                 "condition": [
-                  "$ARG1 == &usb_serial_generic_device"
+                  "$ARG1 == &emg_alias_usb_serial_generic_device"
                 ],
                 "parameters": [
                   "%driver%",
@@ -608,8 +607,8 @@
             "category": "usb_serial",
             "comment": "Invoke USB serial tty layer callbacks. (Relevant to 'usb_serial_generic_device')",
             "declarations": {
-              "drivers/usb/serial/usb_debug.c": {
-                "debug_device": "struct usb_serial_driver *ldv_emg_alias_debug_device_2 = & debug_device;\n"
+              "drivers/usb/serial/generic.c": {
+                "emg_alias_usb_serial_generic_device": "struct usb_serial_driver *emg_alias_usb_serial_generic_device = & usb_serial_generic_device;\n"
               },
               "environment model": {
                 "& usb_serial_generic_throttle": "extern void usb_serial_generic_throttle(struct tty_struct *tty);\n",
@@ -622,31 +621,12 @@
                 "&usb_serial_generic_wait_until_sent": "extern void usb_serial_generic_wait_until_sent(struct tty_struct *tty, long int timeout);\n",
                 "&usb_serial_generic_write_bulk_callback": "extern void usb_serial_generic_write_bulk_callback(struct urb *urb);\n",
                 "&usb_serial_generic_write_room": "extern int usb_serial_generic_write_room(struct tty_struct *tty);\n",
-                "debug_device": "extern struct usb_serial_driver *ldv_emg_alias_debug_device_2;\n",
-                "usb_debug_break_ctl": "extern void ldv_emg_wrapper_usb_debug_break_ctl_3(struct tty_struct *, int);\n",
-                "usb_debug_process_read_urb": "extern void ldv_emg_wrapper_usb_debug_process_read_urb_4(struct urb *);\n",
-                "usb_serial_generic_device": "extern struct usb_serial_driver usb_serial_generic_device;\n",
+                "emg_alias_usb_serial_generic_device": "extern struct usb_serial_driver *emg_alias_usb_serial_generic_device;\n",
                 "& serial_port_carrier_raised": "extern int ldv_wrapper_serial_port_carrier_raised(struct tty_port *port);\n",
                 "& serial_port_dtr_rts": "extern void ldv_wrapper_serial_port_dtr_rts(struct tty_port *port, int on);\n"
               }
             },
             "definitions": {
-              "drivers/usb/serial/usb_debug.c": {
-                "usb_debug_break_ctl": [
-                  "/* AUX_FUNC ldv_emg_wrapper_usb_debug_break_ctl_3 */\n",
-                  "void ldv_emg_wrapper_usb_debug_break_ctl_3(struct tty_struct *arg0, int arg1) {\n",
-                  "\t usb_debug_break_ctl(arg0, arg1);\n",
-                  "}\n",
-                  "\n"
-                ],
-                "usb_debug_process_read_urb": [
-                  "/* AUX_FUNC ldv_emg_wrapper_usb_debug_process_read_urb_4 */\n",
-                  "void ldv_emg_wrapper_usb_debug_process_read_urb_4(struct urb *arg0) {\n",
-                  "\t usb_debug_process_read_urb(arg0);\n",
-                  "}\n",
-                  "\n"
-                ]
-              },
               "drivers/usb/serial/usb-serial.c": {
                 "serial_port_carrier_raised": [
                   "/* AUX_FUNC ldv_wrapper_serial_port_carrier_raised */\n",
@@ -678,7 +658,7 @@
             "labels": {
               "driver": {
                 "declaration": "struct usb_serial_driver *driver",
-                "value": "&usb_serial_generic_device"
+                "value": "& emg_alias_usb_serial_generic_device"
               },
               "ldv_param_0_10": {
                 "declaration": "struct usb_serial_port *ldv_param_0_10"
@@ -736,7 +716,7 @@
             "actions": {
               "call": {
                 "comment": "Call rest tty callbacks.",
-                "process": "((((((((((((<callback_2> | <seq_ops> | <pre_call_27>.<callback_29>.<post_call_28>) | <pre_call_24>.<callback_26>.<post_call_25>) | <pre_call_21>.<callback_23>.<post_call_22>) | <pre_call_18>.<callback_20>.<post_call_19>) | <pre_call_15>.<callback_17>.<post_call_16>) | <callback_14>) | <pre_call_11>.<callback_13>.<post_call_12>) | <callback_10>) | <pre_call_7>.<callback_9>.<post_call_8>) | <callback_6>) | <pre_call_3>.<callback_5>.<post_call_4>) | <pre_call_41>.<set_termios_43>.<post_call_42> | <throttle_47>.<unthrottle_48> | <start_49>.<stop_50> | <pre_call_44>.<set_termiox_46>.<post_call_45>).{call} | <pre_call_36>.<close_38>.<post_call_37>.<shutdown_39>.<remove_34>.<cleanup_40>.{main}"
+                "process": "(((((((((((<callback_2> | <seq_ops> | <pre_call_27>.<callback_29>.<post_call_28>) | <pre_call_24>.<callback_26>.<post_call_25>) | <pre_call_21>.<callback_23>.<post_call_22>) | <pre_call_18>.<callback_20>.<post_call_19>) | <pre_call_15>.<callback_17>.<post_call_16>) | <callback_14>) | <pre_call_11>.<callback_13>.<post_call_12>) | <callback_10>) | <pre_call_7>.<callback_9>.<post_call_8>) | <callback_6>) | <pre_call_41>.<set_termios_43>.<post_call_42> | <throttle_47>.<unthrottle_48> | <start_49>.<stop_50> | <pre_call_44>.<set_termiox_46>.<post_call_45>).{call} | <pre_call_36>.<close_38>.<post_call_37>.<shutdown_39>.<remove_34>.<cleanup_40>.{main}"
               },
               "callback_10": {
                 "comment": "Invoke callback write_room from tty_operations.",
@@ -808,14 +788,6 @@
                 "statements": [
                   "/* LDV {\"call\": \"ldv_emg_wrapper_serial_ioctl_13(%tty_struct%, %ldv_param_1_11%, %ldv_param_2_12%);\", \"type\": \"CALLBACK\", \"comment\": \"callback\"} */",
                   "ldv_emg_wrapper_serial_ioctl_13(%tty_struct%, %ldv_param_1_11%, %ldv_param_2_12%);"
-                ]
-              },
-              "callback_5": {
-                "comment": "Invoke callback break_ctl from tty_operations.",
-                "trace relevant": true,
-                "statements": [
-                  "/* LDV {\"call\": \"ldv_emg_wrapper_serial_break_3(%tty_struct%, %ldv_param_1_2%);\", \"type\": \"CALLBACK\", \"comment\": \"callback\"} */",
-                  "ldv_emg_wrapper_serial_break_3(%tty_struct%, %ldv_param_1_2%);"
                 ]
               },
               "callback_6": {
@@ -906,7 +878,7 @@
               },
               "main": {
                 "comment": "Install tty or deregister.",
-                "process": "<pre_call_30>.<lookup_32>.<post_call_31>.<install_33>.(<install_success>.<open_35>.(<open_success>.{call} | <open_failed>.<remove_34>) | <install_failed>).{main} | <free>.(tty_deregister)"
+                "process": "<pre_call_30>.<lookup_32>.<post_call_31>.<install_33>.(<install_success>.<open_35>.(<open_success>.{call} | <open_failed>.<remove_35>) | <install_failed>).{main} | <free>.(tty_deregister)"
               },
               "open_35": {
                 "comment": "Open a tty device. Invoke callback open from tty_operations.",
@@ -982,12 +954,6 @@
                   "$FREE(%ldv_param_1_15%);"
                 ]
               },
-              "post_call_4": {
-                "comment": "Free memory of adhoc callback parameters.",
-                "statements": [
-                  "$FREE(%ldv_param_1_2%);"
-                ]
-              },
               "post_call_42": {
                 "comment": "Free memory of adhoc callback parameters.",
                 "statements": [
@@ -1045,12 +1011,6 @@
                   "%ldv_param_2_12% = $UALLOC(%ldv_param_2_12%);"
                 ]
               },
-              "pre_call_3": {
-                "comment": "Allocate memory for adhoc callback parameters.",
-                "statements": [
-                  "%ldv_param_1_2% = $UALLOC(%ldv_param_1_2%);"
-                ]
-              },
               "pre_call_30": {
                 "comment": "Allocate memory for adhoc callback parameters.",
                 "statements": [
@@ -1090,6 +1050,16 @@
                 "replicative": true
               },
               "remove_34": {
+                "comment": "Remove a closed tty from the tty driver internal tables. Invoke callback remove from TTY.",
+                "trace relevant": true,
+                "statements": [
+                  "if (%tty_operations%->remove) {",
+                  "\t/* LDV {\"call\": \"%tty_operations%->remove(%tty_driver%, %tty_struct%);\", \"type\": \"CALLBACK\", \"comment\": \"remove\"} */",
+                  "\t%tty_operations%->remove(%tty_driver%, %tty_struct%);",
+                  "}"
+                ]
+              },
+              "remove_35": {
                 "comment": "Remove a closed tty from the tty driver internal tables. Invoke callback remove from TTY.",
                 "trace relevant": true,
                 "statements": [
@@ -1400,9 +1370,6 @@
               "ldv_param_1_17": {
                 "declaration": "struct termiox *ldv_param_1_17"
               },
-              "ldv_param_1_2": {
-                "declaration": "int ldv_param_1_2"
-              },
               "ldv_param_1_3": {
                 "declaration": "struct serial_icounter_struct *ldv_param_1_3"
               },
@@ -1466,7 +1433,7 @@
                 "comment": "Finish {} callbacks invocations scenario.",
                 "condition": [
                   "%container% == $ARG1",
-                  "$ARG1 == ldv_emg_alias_usb_serial_driver_2"
+                  "$ARG1 == emg_alias_usb_serial_driver"
                 ],
                 "parameters": [
                   "%container%"
@@ -1573,7 +1540,7 @@
               "register": {
                 "comment": "Begin USB callbacks invocation scenario.",
                 "condition": [
-                  "$ARG1 == ldv_emg_alias_usb_serial_driver_2"
+                  "$ARG1 == emg_alias_usb_serial_driver"
                 ],
                 "parameters": [
                   "%container%"
@@ -1662,7 +1629,7 @@
             "labels": {
               "container": {
                 "declaration": "struct usb_driver *container",
-                "value": "ldv_emg_alias_usb_serial_driver_2"
+                "value": "emg_alias_usb_serial_driver"
               },
               "ldv_param_1_2": {
                 "declaration": "struct usb_device_id *ldv_param_1_2"
@@ -1681,7 +1648,7 @@
                 "declaration": "struct usb_device *usb_device"
               }
             },
-            "process": "(!register).(<alloc_interface>.{manage_interface} | (deregister))"
+            "process": "(!register).<alloc_interface>.{manage_interface}"
           }
         }
       }

@@ -121,10 +121,12 @@ class VTG(klever.core.components.Component):
                         if plugin_desc['name'] == base_tmpl_plugin_desc['name']:
                             if 'options' in base_tmpl_plugin_desc:
                                 if 'options' in plugin_desc:
-                                    plugin_desc['options'] = klever.core.utils.merge_confs(base_tmpl_plugin_desc['options'],
-                                                                                    plugin_desc['options'])
+                                    base_tmpl_plugin_opts = copy.deepcopy(base_tmpl_plugin_desc['options'])
+                                    plugin_desc['options'] = klever.core.utils.merge_confs(
+                                        base_tmpl_plugin_opts, plugin_desc['options'])
                                 else:
                                     plugin_desc['options'] = base_tmpl_plugin_desc['options']
+                            break
 
     # TODO: support inheritance of template sequences, i.e. when requirement needs template that is template of another one.
     def __extract_req_spec_descs(self):
@@ -584,26 +586,27 @@ class VTGW(klever.core.components.Component):
     def tasks_generator_worker(self):
         files_list_file = 'files list.txt'
         klever.core.utils.save_program_fragment_description(self.program_fragment_desc, files_list_file)
-        klever.core.utils.report(self.logger,
-                          'patch',
-                          {
-                              'identifier': self.id,
-                              'attrs': [
-                                  {
-                                      "name": "Program fragment",
-                                      "value": self.program_fragment_id,
-                                      "data": files_list_file
-                                  },
-                                  {
-                                      "name": "Requirements specification",
-                                      "value": self.req_spec_id
-                                  }
-                              ]
-                          },
-                          self.mqs['report files'],
-                          self.vals['report id'],
-                          self.conf['main working directory'],
-                          data_files=[files_list_file])
+        klever.core.utils.report(
+            self.logger,
+            'patch',
+            {
+              'identifier': self.id,
+              'attrs': [
+                  {
+                      "name": "Program fragment",
+                      "value": self.program_fragment_id,
+                      "data": files_list_file
+                  },
+                  {
+                      "name": "Requirements specification",
+                      "value": self.req_spec_id
+                  }
+              ]
+            },
+            self.mqs['report files'],
+            self.vals['report id'],
+            self.conf['main working directory'],
+            data_files=[files_list_file])
 
         try:
             self.generate_abstact_verification_task_desc(self.program_fragment_desc, self.req_spec_desc)

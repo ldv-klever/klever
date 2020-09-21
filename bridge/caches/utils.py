@@ -38,7 +38,7 @@ from caches.models import (
 
 @transaction.atomic
 def update_cache_atomic(queryset, data):
-    for rep_cache in queryset:
+    for rep_cache in queryset.select_for_update():
         if rep_cache.report_id not in data:
             continue
         for field, value in data[rep_cache.report_id].items():
@@ -403,40 +403,42 @@ class UpdateCachesOnMarkPopulate:
     @transaction.atomic
     def __update_safes(self):
         # If report has confirmed mark, then new populated mark can't affect its cache
-        for cache_obj in ReportSafeCache.objects.filter(report_id__in=self._new_links, marks_confirmed=0):
+        for cache_obj in ReportSafeCache.objects.filter(report_id__in=self._new_links, marks_confirmed=0)\
+                .select_for_update():
             # Populated mark can't be confirmed, so we don't need to update confirmed number
             cache_obj.marks_total += 1
             cache_obj.verdict = self.__sum_safe_verdict(cache_obj.verdict)
             cache_obj.tags = self.__sum_tags(cache_obj.tags)
             cache_obj.save()
 
-    @transaction.atomic
     def __update_unsafes(self):
         # Filter new_links with associations where associated flag is True
         affected_reports = set(MarkUnsafeReport.objects.filter(
             report_id__in=self._new_links, mark=self._mark, associated=True
         ).values_list('report_id', flat=True))
 
-        for cache_obj in ReportUnsafeCache.objects.filter(report_id__in=affected_reports):
-            # Populated mark can't be confirmed, so we don't need to update confirmed number
-            cache_obj.marks_total += 1
-            cache_obj.verdict = self.__sum_unsafe_verdict(cache_obj.verdict)
-            cache_obj.tags = self.__sum_tags(cache_obj.tags)
-            cache_obj.save()
+        with transaction.atomic():
+            for cache_obj in ReportUnsafeCache.objects.filter(report_id__in=affected_reports).select_for_update():
+                # Populated mark can't be confirmed, so we don't need to update confirmed number
+                cache_obj.marks_total += 1
+                cache_obj.verdict = self.__sum_unsafe_verdict(cache_obj.verdict)
+                cache_obj.tags = self.__sum_tags(cache_obj.tags)
+                cache_obj.save()
 
-    @transaction.atomic
     def __update_unknowns(self):
         new_problems = dict(MarkUnknownReport.objects.filter(mark=self._mark).values_list('report_id', 'problem'))
 
-        # If report has confirmed mark, then new populated mark can't affect its cache
-        for cache_obj in ReportUnknownCache.objects.filter(report_id__in=self._new_links, marks_confirmed=0):
-            # Populated mark can't be confirmed, so we don't need to update confirmed number
-            cache_obj.marks_total += 1
-            if cache_obj.report_id in new_problems:
-                problem = new_problems[cache_obj.report_id]
-                cache_obj.problems.setdefault(problem, 0)
-                cache_obj.problems[problem] += 1
-            cache_obj.save()
+        with transaction.atomic():
+            # If report has confirmed mark, then new populated mark can't affect its cache
+            for cache_obj in ReportUnknownCache.objects.filter(report_id__in=self._new_links, marks_confirmed=0)\
+                    .select_for_update():
+                # Populated mark can't be confirmed, so we don't need to update confirmed number
+                cache_obj.marks_total += 1
+                if cache_obj.report_id in new_problems:
+                    problem = new_problems[cache_obj.report_id]
+                    cache_obj.problems.setdefault(problem, 0)
+                    cache_obj.problems[problem] += 1
+                cache_obj.save()
 
     def __sum_safe_verdict(self, old_verdict):
         if self._mark.verdict == old_verdict:

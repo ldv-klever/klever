@@ -57,6 +57,10 @@ def control_function_comment_begin(function_name, comment, identifier=None):
     data = {'function': function_name}
     if isinstance(identifier, int):
         data['thread'] = identifier + 1
+    elif identifier is None:
+        pass
+    else:
+        raise ValueError('Unsupported identifier type {}'.format(str(type(identifier).__name__)))
     return model_comment('CONTROL_FUNCTION_BEGIN', comment, data)
 
 
@@ -404,7 +408,7 @@ class CModel:
 class FunctionModels:
     """Class represent common C extensions for simplifying environmen model C code generators."""
 
-    mem_function_template = r'\$({})\(%({})%(?:,\s?(\w+))?\)'
+    mem_function_template = r'\$({})\(%({})%([->.[\]\w\s]*)(?:,\s?(\w+))?\)'
     simple_function_template = r'\$({})\('
     access_template = r'\w+(?:(?:[.]|->)\w+)*'
     comment_template = re.compile(r'\$COMMENT\((\w+), (\w+)\);$')
@@ -495,6 +499,9 @@ class FunctionModels:
                             raise ValueError("Cannot resolve access in statement {!r} and expression {!r}".
                                              format(stm, expression))
                         var = automaton.determine_variable(access.label)
+                        if not var:
+                            raise ValueError(f'There is no variable created for '
+                                             f'label {access.label} of access {str(access)}')
                         stm = stm.replace(expression, var.name)
                         stm_set.add(stm)
                     else:
@@ -512,8 +519,12 @@ class FunctionModels:
             raise NotImplementedError("Replacement of {!r} comments is not implemented".format(arguments[0]))
 
     def _replace_mem_call(self, match):
-        func, label_name, flag = match.groups()
+        func, label_name, suffix, flag = match.groups()
         size = '0'
+
+        # TODO: Implement this using access parser
+        if suffix:
+            raise NotImplementedError(f'Provide a label to an allocation function: {func}')
 
         if func not in self.mem_function_map:
             raise NotImplementedError("Model of {} is not supported".format(func))
@@ -534,7 +545,7 @@ class FunctionModels:
             raise ValueError('This is not a pointer')
 
     def _replace_free_call(self, match):
-        func, label_name, flag = match.groups()
+        func, label_name, suffix, flag = match.groups()
         if func not in self.free_function_map:
             raise NotImplementedError("Model of {} is not supported".format(func))
         elif not self.free_function_map[func]:
@@ -542,6 +553,6 @@ class FunctionModels:
 
         # Create function call
         if isinstance(self.signature, Pointer):
-            return "{}(%{}%)".format(self.free_function_map[func], label_name)
+            return "{}(%{}%{})".format(self.free_function_map[func], label_name, suffix if suffix else '')
         else:
             raise ValueError('This is not a pointer')

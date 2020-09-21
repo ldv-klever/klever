@@ -1,4 +1,4 @@
-.. Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+.. Copyright (c) 2020 ISP RAS (http://www.ispras.ru)
    Ivannikov Institute for System Programming of the Russian Academy of Sciences
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -18,6 +18,9 @@ Local Deployment
 .. warning:: Do not deploy Klever at your workstation or valuable servers unless you are ready to lose some sensitive
              data or to have misbehaved software.
 
+.. warning:: Currently deployment on Fedora makes the *httpd_t* SELinux domain permissive, which may negatively impact
+             the security of your system.
+
 To accomplish local deployment of Klever you need to choose an appropriate mode (one should select *development* only
 for development purposes, otherwise, please, choose *production*) and to run the following command within
 :term:`$KLEVER_SRC`:
@@ -36,7 +39,7 @@ installed :ref:`klever_addons` and :ref:`klever_build_bases`:
 
     $ sudo venv/bin/klever-deploy-local --deployment-directory :term:`$KLEVER_DEPLOY_DIR` update production
 
-To *uninstall* Klever, e.g. if something went wrong during installation, you need to run:
+To *uninstall* Klever you need to run:
 
 .. parsed-literal::
 
@@ -53,3 +56,9 @@ We strongly recommend to configure your file indexing service if you have it ena
 Otherwise, it can consume too much computational resources since Klever manipulates files very extensively during its
 operation.
 To do this, please, refer to an appropriate user documentation.
+
+Troubleshooting
+---------------
+
+If something went wrong during installation, you need to uninstall Klever completely prior to following attempts to
+install it.

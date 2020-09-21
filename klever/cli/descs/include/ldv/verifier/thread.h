@@ -42,6 +42,6 @@ int pthread_create_N(pthread_t **thread, pthread_attr_t const *attr, void *(*sta
 
 /* Join N threads. This is an artificial function accepted by specific verifiers.
  */
-int pthread_join_N(pthread_t **thread, void (*start_routine)(void *));
+int pthread_join_N(pthread_t **thread, void *(*start_routine)(void *));
 
 #endif /* __VERIFIER_THREAD_H */

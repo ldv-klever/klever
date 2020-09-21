@@ -18,6 +18,9 @@
 import os
 import json
 
+from urllib.parse import unquote
+
+from django.conf import settings
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
 from django.db.models import Count
@@ -244,4 +247,28 @@ class DBLogsStatistics(TemplateView):
                     'average': data[k][6] / data[k][5],
                     'total': data[k][6]
                 } for k in sorted(data) if data[k][0] != data[k][5] > 10)
+        return context
+
+
+class ReportsLogggingView(TemplateView):
+    template_name = 'tools/ReportsLogging.html'
+
+
+class FileLogView(LoginRequiredMixin, TemplateView):
+    template_name = 'tools/Logs.html'
+
+    def get_context_data(self, **kwargs):
+        context = super(FileLogView, self).get_context_data(**kwargs)
+
+        context['logs'] = list(sorted(name for name in os.listdir(settings.LOGS_DIR) if name.endswith('.log')))
+        selected_log = None
+        if self.request.GET.get('name'):
+            log_name = unquote(self.request.GET['name'])
+            if log_name in context['logs']:
+                selected_log = log_name
+
+        if not selected_log and len(context['logs']):
+            selected_log = context['logs'][0]
+
+        context['selected_log'] = selected_log
         return context

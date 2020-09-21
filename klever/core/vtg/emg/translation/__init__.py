@@ -18,7 +18,7 @@
 import os
 import sortedcontainers
 
-from klever.core.vtg.emg.common import get_or_die
+from klever.core.vtg.emg.common import id_generator, get_or_die
 from klever.core.vtg.utils import find_file_or_dir
 from klever.core.vtg.emg.translation.code import CModel
 from klever.core.vtg.emg.translation.automaton import Automaton
@@ -127,15 +127,13 @@ def translate_intermediate_model(logger, conf, avt, source, collection):
 
     logger.info("Generate finite state machine on each process")
     entry_fsa = Automaton(collection.entry, 1)
-    identifier_cnt = 2
+    identifiers = id_generator(start_from=2, cast=int)
     model_fsa = []
     main_fsa = []
     for process in collection.models.values():
-        model_fsa.append(Automaton(process, identifier_cnt))
-        identifier_cnt += 1
+        model_fsa.append(Automaton(process, next(identifiers)))
     for process in collection.environment.values():
-        main_fsa.append(Automaton(process, identifier_cnt))
-        identifier_cnt += 1
+        main_fsa.append(Automaton(process, next(identifiers)))
 
     # Set self parallel flag
     sp_ids = conf["translation options"].get('not self parallel processes')

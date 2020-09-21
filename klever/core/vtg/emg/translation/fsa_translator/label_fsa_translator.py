@@ -134,7 +134,7 @@ class LabelTranslator(FSATranslator):
         automata_peers = {}
         if len(action.peers) > 0:
             # Do call only if model which can be called will not hang
-            extract_relevant_automata(self._event_fsa + self._model_fsa + [self._entry_fsa],
+            extract_relevant_automata(self._logger, self._event_fsa + self._model_fsa + [self._entry_fsa],
                                       automata_peers, action.peers, Dispatch)
 
             # Add additional condition

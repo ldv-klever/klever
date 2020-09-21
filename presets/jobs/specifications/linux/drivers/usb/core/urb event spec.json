@@ -2,12 +2,24 @@
   "3.14": {
     "environment processes": {},
     "functions models": {
-      "usb_poison_urb, usb_kill_urb": {
+      "usb_kill_urb": {
         "actions": {
           "assign": {
             "comment": "Get the urb structure from arguments.",
             "statements": [
               "%urb% = $ARG1;"
+            ]
+          },
+          "not_null_urb": {
+            "comment": "Check that URB is not NULL.",
+            "condition": [
+              "%urb% != NULL"
+            ]
+          },
+          "null_urb": {
+            "comment": "Do not proceed since URB is NULL.",
+            "condition": [
+              "%urb% == NULL"
             ]
           },
           "callback": {
@@ -26,7 +38,7 @@
             "parameter": true
           }
         },
-        "process": "<assign>.[callback]",
+        "process": "<assign>.(<not_null_urb>.[callback] | <null_urb>)",
         "reference": true
       },
       "usb_submit_urb": {

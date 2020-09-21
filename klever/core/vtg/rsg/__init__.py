@@ -219,12 +219,14 @@ class RSG(klever.core.vtg.plugins.Plugin):
             opts = ['-DLDV_SETS_MODEL_' + (model['options']['sets model']
                                            if isinstance(model, dict) and 'sets model' in model['options']
                                            else self.conf['common sets model']).upper()]
+            if 'specifications set' in self.conf:
+                opts += ['-DLDV_SPECS_SET_{0}'.format(self.conf['specifications set'].replace('.', '_'))]
 
             self.logger.debug('Dump CC full description to file "{0}"'.format(full_desc_file))
             with open(full_desc_file, 'w', encoding='utf8') as fp:
                 klever.core.utils.json_dump({
                     'cwd': model_compiler_cwd,
-                    'in': [os.path.relpath(model_c_file, os.path.realpath(clade.get_storage_path(model_compiler_cwd)))],
+                    'in': [os.path.realpath(model_c_file)],
                     'out': [os.path.realpath(out_file)],
                     'opts': model_compiler_opts + opts
                 }, fp, self.conf['keep intermediate files'])

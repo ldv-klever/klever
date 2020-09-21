@@ -1,4 +1,4 @@
-.. Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+.. Copyright (c) 2020 ISP RAS (http://www.ispras.ru)
    Ivannikov Institute for System Programming of the Russian Academy of Sciences
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -10,16 +10,23 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 
-Welcome to Klever's documentation!
-==================================
+Klever
+======
 
-Contents:
+Klever is a software verification framework that aims at automated checking of programs developed in the GNU C
+programming language against a variety of requirements using software model checkers.
+You can learn more about Klever at the `project site <https://forge.ispras.ru/projects/klever>`__.
+
+Contents
+========
 
 .. toctree::
    :maxdepth: 2
 
    deploy
+   tutorial
    dev
+   glossary
 
 ..
    Indices and tables

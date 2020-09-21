@@ -341,7 +341,7 @@ NSJC_3 = [
     }
 ]
 
-ARCHIVE_PATH = os.path.join(settings.BASE_DIR, 'reports', 'test_files')
+ARCHIVE_PATH = os.path.join(settings.BASE_DIR, 'tests', 'reports')
 
 
 def resources():
@@ -483,7 +483,7 @@ class TestReports(KleverTestCase):
         report = ReportComponent.objects.exclude(root__job_id=self.job.pk, verifier_files='').first()
         self.assertIsNotNone(report)
 
-        response = self.client.post(reverse('jobs:download_file_for_compet', args=[self.job.pk]),
+        response = self.client.post(reverse('jobs:download_verifier_input_files', args=[self.job.pk]),
                                     {'filters': json.dumps(['u', 's'])})
         self.assertEqual(response.status_code, 200)
         self.assertIn(response['Content-Type'], {'application/x-zip-compressed', 'application/zip'})
@@ -1775,3 +1775,19 @@ def upload_sources(port=None):
 
 # UploadRawReportsPacks('6b2ab3c7-1367-4cb2-8841-fff0fc2f6f85', 'S:/Work/temp/logs/log.txt',
 # '6b2ab3c7-1367-4cb2-8841-fff0fc2f6f85')
+
+
+class ReportsLogging:
+    filename = "reports.log"
+
+    def __init__(self, decision_id):
+        self._decision = decision_id
+        self._enabled = settings.ENABLE_UPLOAD_REPORTS_LOGS
+
+    def log(self, action, *args):
+        if not self._enabled:
+            return
+        message = "##".join(str(a) if a else 'NULL' for a in args)
+
+        with open(os.path.join(settings.LOGS_DIR, self.filename), mode="a", encoding="utf-8") as fp:
+            fp.write("{}-{}-{}: {}\n".format(time.time(), self._decision, action, message))

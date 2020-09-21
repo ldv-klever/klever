@@ -1,6 +1,6 @@
 [
     {
-        "build base": "testing/5b3d50",
+        "build base": "linux/testing/decomposition strategies/5b3d50",
         "name": "Linux",
         "external modules": "tests",
         "loadable kernel modules": [

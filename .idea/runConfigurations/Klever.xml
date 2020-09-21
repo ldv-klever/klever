@@ -1,0 +1,8 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Klever" type="CompoundRunConfigurationType">
+    <toRun name="Bridge Celery" type="PythonConfigurationType" />
+    <toRun name="Controller" type="PythonConfigurationType" />
+    <toRun name="Native Scheduler" type="PythonConfigurationType" />
+    <method v="2" />
+  </configuration>
+</component>

@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-#ifndef __LINUX_LDV_H
-#define __LINUX_LDV_H
+#ifndef __LDV_LINUX_COMMON_H
+#define __LDV_LINUX_COMMON_H
 
 #include <linux/types.h>
 
@@ -155,4 +155,10 @@ extern void ldv_del_gendisk(void);
  */
 extern void ldv_check_alloc_flags(gfp_t flags);
 
-#endif /* __LINUX_LDV_H */
+/**
+ * ldv_check_alloc_nonatomic() - check that a memory allocating function is
+ *                               called in the non-atomic context.
+ */
+extern void ldv_check_alloc_nonatomic(void);
+
+#endif /* __LDV_LINUX_COMMON_H */

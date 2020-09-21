@@ -241,6 +241,7 @@ class Runner:
         """
         if item["future"].done():
             try:
+                item.pop('error', None)
                 item["status"] = self._process_task_result(identifier, item["future"], item["description"])
                 self.logger.debug("Task {} new status is {!r}".format(identifier, item["status"]))
                 assert item["status"] in ["FINISHED", "ERROR"]
@@ -279,6 +280,7 @@ class Runner:
         """
         if item.get("future") and item["future"].done():
             try:
+                item.pop('error', None)
                 item["status"] = self._process_job_result(identifier, item["future"])
                 self.logger.debug("Job {} new status is {!r}".format(identifier, item["status"]))
                 assert item["status"] in ["FINISHED", "ERROR"]

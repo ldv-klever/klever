@@ -24,6 +24,8 @@ __parser = None
 __lexer = None
 
 tokens = (
+    'STRING',
+    'ATTRIBUTE',
     'INTERFACE',
     'UNKNOWN',
     'TYPE_SPECIFIER',
@@ -51,6 +53,8 @@ tokens = (
 
 keyword_map = None
 
+t_STRING = r'"'
+
 t_STAR_SIGN = r"\*"
 
 t_SQUARE_BOPEN_SIGN = r"\["
@@ -77,7 +81,7 @@ t_END = r'[;]'
 
 t_EQUAL_SIGN = r'='
 
-t_ignore = ' \t'
+t_ignore = ' \t\n'
 
 
 def keyword_lookup(string):
@@ -91,7 +95,8 @@ def keyword_lookup(string):
             'FUNCTION_SPECIFIER': re.compile('inline|_Noreturn'),
             'STRUCT': re.compile('struct'),
             'UNION': re.compile('union'),
-            'ENUM': re.compile('enum')
+            'ENUM': re.compile('enum'),
+            'ATTRIBUTE': re.compile('__attribute__')
         }
 
     for keyword_type in sorted(keyword_map.keys()):
@@ -271,22 +276,134 @@ def p_type_specifier_list(p):
 
 def p_struct_specifier(p):
     """
-    struct_specifier : STRUCT IDENTIFIER
-                     | STRUCT BLOCK_OPEN BLOCK_CLOSE
-                     | STRUCT BLOCK_OPEN struct_declaration_list BLOCK_CLOSE
+    struct_specifier : complete_struct_specifier attribute_dict
+                     | short_struct_specifier attribute_dict
+                     | complete_struct_specifier
+                     | short_struct_specifier
     """
-    first, *rest = p[2:]
-
-    struct = {'class': 'structure', 'name': None}
+    struct_specifier, *rest = p[1:]
     if rest:
-        struct_declaration_list = rest[:-1]
-        if struct_declaration_list:
-            struct_declaration_list, = struct_declaration_list
+        attributes, = rest
+        struct_specifier['attributes'] = attributes
+    p[0] = struct_specifier
+
+
+def p_short_struct_specifier(p):
+    """
+    short_struct_specifier : STRUCT BLOCK_OPEN struct_declaration_list BLOCK_CLOSE
+                           | STRUCT BLOCK_OPEN BLOCK_CLOSE
+    """
+    *struct_declaration_list, _ = p[3:]
+    struct = {'class': 'structure', 'name': None}
+    if struct_declaration_list:
+        struct_declaration_list, = struct_declaration_list
+        struct['fields'] = struct_declaration_list
+    p[0] = struct
+
+
+def p_complete_struct_specifier(p):
+    """
+    complete_struct_specifier : STRUCT IDENTIFIER BLOCK_OPEN struct_declaration_list BLOCK_CLOSE
+                              | STRUCT IDENTIFIER BLOCK_OPEN BLOCK_CLOSE
+                              | STRUCT IDENTIFIER
+    """
+    name, *rest = p[2:]
+    struct = {'class': 'structure', 'name': name}
+    if rest:
+        *rest, _ = rest[1:]
+        if rest:
+            struct_declaration_list, = rest
             struct['fields'] = struct_declaration_list
-    else:
-        struct['name'] = first
 
     p[0] = struct
+
+
+def p_attribute_dict(p):
+    """
+    attribute_dict : attribute attribute_dict
+                   | attribute 
+    """
+    attribute, *attr_dict = p[1:]
+    if attr_dict:
+        attr_dict, = attr_dict
+    else:
+        attr_dict = dict()
+    attr_dict.update(attribute)
+    p[0] = attr_dict
+
+
+def p_attribute(p):
+    """
+    attribute : ATTRIBUTE PARENTH_OPEN PARENTH_OPEN inside_attr_list PARENTH_CLOSE PARENTH_CLOSE
+              | ATTRIBUTE PARENTH_OPEN PARENTH_OPEN PARENTH_CLOSE PARENTH_CLOSE
+    """
+    name, _, _, *inside_list, _, _ = p[1:]
+    if inside_list:
+        inside_list, = inside_list
+    else:
+        inside_list = None
+    p[0] = {
+        name: inside_list
+    }
+
+
+def p_inside_attr_list(p):
+    """
+    inside_attr_list : inside_attr COMMA inside_attr_list
+                     | inside_attr 
+    """
+    inside_attr, *rest = p[1:]
+    if rest:
+        _, inside_attr_list = rest
+    else:
+        inside_attr_list = []
+    inside_attr_list = [inside_attr] + inside_attr_list
+    p[0] = inside_attr_list
+
+
+def p_inside_attr(p):
+    """
+    inside_attr : IDENTIFIER PARENTH_OPEN attr_param_list PARENTH_CLOSE 
+                | IDENTIFIER PARENTH_OPEN PARENTH_CLOSE
+                | IDENTIFIER 
+    """
+    name, *rest = p[1:]
+    params = None
+    if rest:
+        _, *nparams, _ = rest
+        if nparams:
+            params, = nparams
+    p[0] = {
+        name: params
+    }
+
+
+def p_attr_param_list(p):
+    """
+    attr_param_list : attr_param COMMA attr_param_list
+                    | attr_param
+    """
+    param, *rest = p[1:]
+    if rest:
+        _, attrs = rest
+        attrs = [param] + attrs
+    else:
+        attrs = [param]
+    p[0] = attrs
+
+
+def p_attr_param(p):
+    """
+    attr_param : STRING IDENTIFIER STRING
+               | IDENTIFIER
+               | NUMBER
+    """
+    tokens = p[1:]
+    if len(tokens) == 1:
+        p[0] = tokens[0]
+    else:
+        _, token, _ = tokens
+        p[0] = f'"{token}"'
 
 
 def p_struct_declaration_list(p):
@@ -309,17 +426,35 @@ def p_struct_declaration(p):
 
 def p_union_specifier(p):
     """
-    union_specifier : UNION IDENTIFIER
-                    | UNION BLOCK_OPEN struct_declaration_list BLOCK_CLOSE
+    union_specifier : union_partial_complex_specifier attribute_dict
+                    | union_partial_complex_specifier 
+                    | union_partial_simple_specifier
     """
-    first, *rest = p[2:]
+    union_specifier, *rest = p[1:]
 
-    union_specifier = {'class': 'union', 'name': None}
     if rest:
-        struct_declaration_list = rest.pop(0)
+        attributes, = rest
+        union_specifier['attributes'] = attributes
+    p[0] = union_specifier
+
+
+def p_union_partial_simple_specifier(p):
+    """
+    union_partial_simple_specifier : UNION IDENTIFIER
+    """
+    p[0] = {'class': 'union', 'name': p[2]}
+
+
+def p_union_partial_complex_specifier(p):
+    """
+    union_partial_complex_specifier : UNION BLOCK_OPEN struct_declaration_list BLOCK_CLOSE
+                                    | UNION BLOCK_OPEN BLOCK_CLOSE
+    """
+    *struct_declaration_list, _ = p[3:]
+    union_specifier = {'class': 'union', 'name': None}
+    if struct_declaration_list:
+        struct_declaration_list, = struct_declaration_list
         union_specifier['fields'] = struct_declaration_list
-    else:
-        union_specifier['name'] = first
     p[0] = union_specifier
 
 
@@ -437,7 +572,10 @@ def p_array_size(p):
                | STAR_SIGN
                | NUMBER
     """
-    number = p[-1]
+    if len(p) == 2:
+        number = p[1]
+    else:
+        number = p[2]
 
     if isinstance(number, int):
         array_size = {'size': number}

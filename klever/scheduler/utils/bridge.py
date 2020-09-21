@@ -66,8 +66,13 @@ class Session:
         """
 
         kwargs.setdefault('allow_redirects', True)
+        if looping:
+            attempts = 20
+        else:
+            attempts = 3
 
-        while True:
+        while attempts:
+            attempts -= 1
             try:
                 url = 'http://' + self.name + '/' + path_url
 
@@ -93,7 +98,7 @@ class Session:
                                            .format(status_code, method, url))
             except requests.ConnectionError as err:
                 self.logger.info('Could not send "{0}" request to "{1}"'.format(method, err.request.url))
-                if looping:
+                if attempts:
                     time.sleep(0.2)
                 else:
                     self.logger.warning('Aborting request to Bridge')

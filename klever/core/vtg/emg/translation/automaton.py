@@ -33,6 +33,8 @@ class Automaton:
         # Set given values
         self.process = process
         self.self_parallelism = True
+
+        assert isinstance(identifier, int)
         self._identifier = identifier
 
         # Generate FSA itself

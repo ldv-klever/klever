@@ -1,0 +1,42 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Declaration",
+      "value": "char *gp"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "concurrency safety rcu"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/linux/concurrency-safety/rcu/reader_writer-N-no_writer-locks-false-no-datarace.ko"
+    }
+  ],
+  "description": "",
+  "error_trace": [
+    [
+      [
+        {
+          "writer": []
+        }
+      ]
+    ],
+    [
+      [
+        {
+          "writer": []
+        }
+      ]
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": true,
+  "status": null,
+  "tags": [],
+  "threshold": 100,
+  "verdict": "2"
+}

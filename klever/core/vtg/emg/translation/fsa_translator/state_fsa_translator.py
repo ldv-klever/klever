@@ -265,7 +265,7 @@ class StateTranslator(FSATranslator):
 
         # Expect exactly single chain with the state identifier
         try:
-            found = (o for o in chains if state_identifier in chains[o]).__next__()
+            found = (o for o in chains if state_identifier in next(chains[o]))
         except StopIteration:
             raise RuntimeError('Seems that state {!r} is not reachable in automaton {!r}'.
                                format(state_identifier, automaton.process.name))

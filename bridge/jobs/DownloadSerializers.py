@@ -33,15 +33,20 @@ from jobs.serializers import DecisionFilesField
 ARCHIVE_FORMAT = 16
 
 
+def validate_report_identifier(value, field_name='report_identifier'):
+    if not isinstance(value, str):
+        raise exceptions.ValidationError({field_name: 'Report identifier must be a string'})
+    identifier_field = fields.CharField(min_length=1, max_length=255)
+    try:
+        identifier_field.run_validators(value)
+    except exceptions.ValidationError as exc:
+        raise exceptions.ValidationError(detail={field_name: exc.detail})
+
+
 class DownloadJobSerializer(serializers.ModelSerializer):
     identifier = fields.UUIDField()
     name = fields.CharField(max_length=150)
     archive_format = fields.IntegerField(write_only=True)
-
-    def validate_identifier(self, value):
-        if Job.objects.filter(identifier=value).exists():
-            return uuid.uuid4()
-        return value
 
     def validate_archive_format(self, value):
         if value != ARCHIVE_FORMAT:
@@ -51,6 +56,12 @@ class DownloadJobSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         attrs.pop('archive_format')
         return attrs
+
+    def create(self, validated_data):
+        try:
+            return Job.objects.get(identifier=validated_data['identifier'])
+        except Job.DoesNotExist:
+            return super(DownloadJobSerializer, self).create(validated_data)
 
     def to_representation(self, instance):
         value = super().to_representation(instance)
@@ -136,6 +147,15 @@ class DownloadReportComponentSerializer(serializers.ModelSerializer):
         }
 
 
+class UploadReportComponentSerializer(serializers.ModelSerializer):
+    start_date = TimeStampField()
+    finish_date = TimeStampField(allow_null=True)
+
+    class Meta:
+        model = ReportComponent
+        fields = ('cpu_time', 'wall_time', 'memory', 'component', 'verification', 'start_date', 'finish_date', 'data')
+
+
 class DownloadReportSafeSerializer(serializers.ModelSerializer):
     parent = serializers.SlugRelatedField(slug_field='identifier', read_only=True)
 
@@ -143,6 +163,12 @@ class DownloadReportSafeSerializer(serializers.ModelSerializer):
         model = ReportSafe
         exclude = ('id', *MPTT_FIELDS)
         extra_kwargs = {'decision': {'read_only': True}}
+
+
+class UploadReportSafeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ReportSafe
+        exclude = ('id', 'parent', 'identifier', 'decision', *MPTT_FIELDS)
 
 
 class DownloadReportUnsafeSerializer(serializers.ModelSerializer):
@@ -154,6 +180,12 @@ class DownloadReportUnsafeSerializer(serializers.ModelSerializer):
         extra_kwargs = {'decision': {'read_only': True}, 'error_trace': {'read_only': True}}
 
 
+class UploadReportUnsafeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ReportUnsafe
+        exclude = ('id', 'identifier', 'parent', 'trace_id', 'error_trace', 'decision', *MPTT_FIELDS)
+
+
 class DownloadReportUnknownSerializer(serializers.ModelSerializer):
     parent = serializers.SlugRelatedField(slug_field='identifier', read_only=True)
 
@@ -161,6 +193,12 @@ class DownloadReportUnknownSerializer(serializers.ModelSerializer):
         model = ReportUnknown
         exclude = ('id', *MPTT_FIELDS)
         extra_kwargs = {'decision': {'read_only': True}, 'problem_description': {'read_only': True}}
+
+
+class UploadReportUnknownSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ReportUnknown
+        exclude = ('id', 'identifier', 'parent', 'decision', 'problem_description', *MPTT_FIELDS)
 
 
 class DownloadReportAttrSerializer(serializers.ModelSerializer):
