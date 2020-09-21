@@ -113,6 +113,7 @@ class UploadBaseSerializer(serializers.ModelSerializer):
         'data_not_dict': 'Dictionary expected.',
         'light_subjob': "Subjobs aren't allowed for lightweight jobs",
         'redefine': 'Trying to redefine attributes',
+        'identifier_not_unique': 'Report with provided identifier already exists'
     }
     parent = ReportParentField()
     attrs = ReportAttrsField(required=False)
@@ -124,6 +125,13 @@ class UploadBaseSerializer(serializers.ModelSerializer):
         if custom_fields:
             for field_name in set(self.fields) - set(custom_fields):
                 self.fields.pop(field_name)
+
+    def validate_identifier(self, value):
+        if not self.instance:
+            reports_model = getattr(self, 'Meta').model
+            if reports_model.objects.filter(identifer=value, decision=self.decision).exists():
+                self.fail('identifier_not_unique')
+        return value
 
     def validate_component(self, value):
         if value == SUBJOB_NAME and self.decision.is_lightweight:
