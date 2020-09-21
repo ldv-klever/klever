@@ -17,7 +17,7 @@
 
 #include <linux/module.h>
 #include <linux/i2c.h>
-#include <ldv/test.h>
+#include <ldv/common/test.h>
 
 static int __init ldv_init(void)
 {

@@ -19,7 +19,7 @@
 #include <linux/i2c.h>
 #include <media/v4l2-common.h>
 #include <media/v4l2-device.h>
-#include <ldv/test.h>
+#include <ldv/common/test.h>
 
 
 static int __init ldv_init(void)

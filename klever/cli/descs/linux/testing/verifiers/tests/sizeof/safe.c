@@ -16,7 +16,7 @@
  */
 
 #include <linux/module.h>
-#include <ldv/test.h>
+#include <ldv/common/test.h>
 
 struct ldv_struct1 {
 	char field;

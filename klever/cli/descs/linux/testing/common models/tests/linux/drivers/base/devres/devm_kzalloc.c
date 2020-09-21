@@ -17,7 +17,7 @@
 
 #include <linux/module.h>
 #include <linux/device.h>
-#include <ldv/test.h>
+#include <ldv/common/test.h>
 
 gfp_t ldv_flags;
 
