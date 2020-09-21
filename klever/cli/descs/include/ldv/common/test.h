@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-#ifndef __LDV_TEST_H
-#define __LDV_TEST_H
+#ifndef __LDV_COMMON_TEST_H
+#define __LDV_COMMON_TEST_H
 
 #include <ldv/verifier/common.h>
 #include <ldv/verifier/gcc.h>
@@ -30,4 +30,4 @@ extern void ldv_unexpected_error(void);
 extern void ldv_expected_memory_safety_error(void);
 extern void ldv_unexpected_memory_safety_error(void);
 
-#endif /* __LDV_TEST_H */
+#endif /* __LDV_COMMON_TEST_H */

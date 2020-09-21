@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-#ifndef __USERSPACE_LDV_H
-#define __USERSPACE_LDV_H
+#ifndef __LDV_USERSPACE_COMMON_H
+#define __LDV_USERSPACE_COMMON_H
 
 /**
  * ldv_initialize() - explicitly initialize requirement model states.
@@ -52,4 +52,4 @@ extern void ldv_check_final_state(void);
  */
 extern int ldv_filter_err_code(int ret_val);
 
-#endif /* __USERSPACE_LDV_H */
+#endif /* __LDV_USERSPACE_COMMON_H */

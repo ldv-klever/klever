@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-#ifndef __LDV_LINUX_V4L2_COMMON_H
-#define __LDV_LINUX_V4L2_COMMON_H
+#ifndef __LDV_LINUX_MEDIA_V4L2_COMMON_H
+#define __LDV_LINUX_MEDIA_V4L2_COMMON_H
 
 struct v4l2_subdev;
 struct i2c_client;
 struct v4l2_subdev_ops;
 extern void ldv_v4l2_i2c_subdev_init(struct v4l2_subdev *sd, struct i2c_client *client, const struct v4l2_subdev_ops *ops);
 
-#endif /* __LDV_LINUX_V4L2_COMMON_H */
+#endif /* __LDV_LINUX_MEDIA_V4L2_COMMON_H */

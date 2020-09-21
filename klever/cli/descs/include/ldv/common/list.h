@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-#ifndef __LDV_LIST_H
-#define __LDV_LIST_H
+#ifndef __LDV_COMMON_LIST_H
+#define __LDV_COMMON_LIST_H
 
 struct ldv_list_node {
 	void *data;
@@ -27,4 +27,4 @@ extern struct ldv_list_node *ldv_create_list_node(void *data);
 extern struct ldv_list_node *ldv_insert_list_node(struct ldv_list_node *list_node, void *data);
 extern void ldv_save_allocated_memory_to_list(void *ptr);
 
-#endif /* __LDV_LIST_H */
+#endif /* __LDV_COMMON_LIST_H */
