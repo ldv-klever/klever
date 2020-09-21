@@ -17,8 +17,8 @@
 
 #include <linux/module.h>
 #include <linux/string.h>
+#include <ldv/common/test.h>
 #include <ldv/linux/string.h>
-#include <ldv/test.h>
 
 gfp_t ldv_flags;
 

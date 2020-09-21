@@ -96,17 +96,14 @@ class CopyDeployConfAndSrcs:
         return deploy_conf
 
     def __copy_build_bases(self, deploy_conf):
-        build_bases = []
-        for path in deploy_conf['Klever Build Bases']:
-            if os.path.exists(path):
+        for build_base in deploy_conf['Klever Build Bases']:
+            path = deploy_conf['Klever Build Bases'][build_base].get('path')
+            if path and os.path.exists(path):
+                self.logger.info(f'Copy Klever Build Base {build_base}')
                 to_path = self.__copy_path(path)
 
-                build_bases.append(to_path)
-            else:
-                build_bases.append(path)
-
-        # Store new path in the deployment configuration
-        deploy_conf['Klever Build Bases'] = list(build_bases)
+                # Store new path in the deployment configuration
+                deploy_conf['Klever Build Bases'][build_base]['path'] = to_path
 
         return deploy_conf
 

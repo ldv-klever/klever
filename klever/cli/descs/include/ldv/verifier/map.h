@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-#ifndef __VERIFIER_MAP_H
-#define __VERIFIER_MAP_H
+#ifndef __LDV_VERIFIER_MAP_H
+#define __LDV_VERIFIER_MAP_H
 
 typedef int ldv_map;
 typedef int ldv_map_value;
@@ -28,4 +28,4 @@ typedef int ldv_map_value;
 #define ldv_map_remove(map, key) (map = 0)
 #define ldv_map_is_empty(map) (map == 0)
 
-#endif /* __VERIFIER_MAP_H */
+#endif /* __LDV_VERIFIER_MAP_H */

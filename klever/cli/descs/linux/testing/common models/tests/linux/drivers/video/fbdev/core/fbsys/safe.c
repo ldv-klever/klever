@@ -17,7 +17,7 @@
 
 #include <linux/module.h>
 #include <linux/fb.h>
-#include <ldv/test.h>
+#include <ldv/common/test.h>
 
 struct ldv_par
 {

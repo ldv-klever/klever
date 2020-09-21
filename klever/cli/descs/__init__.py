@@ -58,7 +58,9 @@ common_target_program_descs = {
             'target/target_core_backend.h',
             'linux/spi/spi.h',
             'linux/fb.h',
-            'linux/firmware.h'
+            'linux/firmware.h',
+            'media/v4l2-common.h',
+            'media/v4l2-device.h'
         ]
     },
     "BusyBox": {

@@ -16,7 +16,7 @@
  */
 
 #include <linux/module.h>
-#include <ldv/test.h>
+#include <ldv/common/test.h>
 #include "lists.h"
 
 static int __init ldv_init(void)
