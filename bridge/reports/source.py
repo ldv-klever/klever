@@ -16,17 +16,22 @@
 #
 
 import hashlib
+import io
 import json
 from collections import OrderedDict
 from urllib.parse import unquote
 
+from django.core.files import File
+from django.db import transaction
+from django.template import loader
+from django.utils.timezone import now
 from django.utils.translation import ugettext_lazy as _, get_language
 from django.utils.functional import cached_property
 
 from bridge.vars import ETV_FORMAT
 from bridge.utils import ArchiveFileContent, BridgeException, logger
 
-from reports.models import ReportComponent, CoverageArchive, CoverageStatistics
+from reports.models import ReportComponent, CoverageArchive, CoverageStatistics, SourceCodeCache
 
 TAB_LENGTH = 4
 
@@ -498,19 +503,15 @@ class ParseSource:
 
 
 class GetSource:
-    def __init__(self, user, report, file_name, coverage_id, with_legend):
-        # If coverage_id is set then it can be source for Sub-job or Core only,
-        # Otherwise - for verification report or its leaf.
-
-        self._user = user
+    def __init__(self, request, report):
+        self._request = request
         self._report = report
-        self.file_name = self.__parse_file_name(file_name)
-        self.coverage_id = coverage_id
-        self.with_legend = (with_legend == 'true')
-
+        self.file_name = self.__parse_file_name()
+        self.with_legend = (self._request.query_params.get('with_legend') == 'true')
         self.identifier = self.__get_cache_identifier()
 
-    def __parse_file_name(self, file_name):
+    def __parse_file_name(self):
+        file_name = self._request.query_params['file_name']
         name = unquote(file_name)
         if name.startswith('/'):
             name = name[1:]
@@ -530,9 +531,13 @@ class GetSource:
     @cached_property
     def _coverage_qs(self):
         qs_filters = {'report_id__in': list(r.id for r in self._ancestors)}
-        if self.coverage_id:
+
+        # If coverage_id is set then it can be source for Sub-job or Core only,
+        # Otherwise - for verification report or its leaf.
+        coverage_id = self._request.query_params.get('coverage_id')
+        if coverage_id:
             # For full coverage (Subjob reports) where there can be several coverages
-            qs_filters['id'] = self.coverage_id
+            qs_filters['id'] = coverage_id
         else:
             # Do not use full coverage for sub-jobs
             qs_filters['identifier'] = ''
@@ -545,11 +550,30 @@ class GetSource:
             list([r.id, r.original_sources_id, r.additional_sources_id] for r in self._ancestors),
             list(ca.id for ca in self._coverage_qs)
         ]).encode('utf-8')
-        return hashlib.md5(identifier_data).hexdigest()
+        return hashlib.md5(identifier_data).hexdigest()[:256]
 
-    @cached_property
-    def data(self):
+    def __render_html(self):
         try:
-            return ParseSource(self._user, self.file_name, self._ancestors, self._coverage_qs, self.with_legend)
+            print('Collecting data for:', self.file_name)
+            data = ParseSource(self._request.user, self.file_name, self._ancestors, self._coverage_qs, self.with_legend)
         except SourceNotFound:
-            return None
+            data = None
+        template = loader.get_template('reports/SourceCode.html')
+        return template.render({'data': data}, self._request)
+
+    @transaction.atomic
+    def get_html(self):
+        try:
+            src_code = SourceCodeCache.objects.select_for_update().get(identifier=self.identifier)
+            with open(src_code.file.path, mode='rb') as fp:
+                html_content_b = fp.read()
+            src_code.access_date = now()
+            src_code.save()
+            print('Got source from cache: {}'.format(self.identifier))
+        except SourceCodeCache.DoesNotExist:
+            html_content_b = self.__render_html().encode('utf8')
+            fp = io.BytesIO(html_content_b)
+            fp.seek(0)
+            src_code = SourceCodeCache(identifier=self.identifier)
+            src_code.file.save('SourceCode.html', File(fp), save=True)
+        return html_content_b

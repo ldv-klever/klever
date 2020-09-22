@@ -18,56 +18,54 @@
 {% load i18n %}
 {% load cache %}
 
-{% cache 3600 source_code source.identifier %}
-    {% if source.data %}
-        {% for line in source.data.source_lines %}
-            {% if line.note %}
-                <span>
-                    <span class="SrcLine"></span>
-                    <span class="SrcCode {{ line.note.0 }}"> {{ line.note.1 }}</span>
-                </span>
-            {% endif %}
+{% if data %}
+    {% for line in data.source_lines %}
+        {% if line.note %}
             <span>
-                <span id="SrcL_{{ line.number }}" class="SrcLine">
-                    <span class="SrcFuncCov"{% if line.func_cov %} data-value="{{ line.func_cov.value }}" style="background-color: {{ line.func_cov.color }};"{% endif %}><i class="ui small {{ line.func_cov.icon }} icon"></i></span>
-                    <span class="SrcLineCov"{% if line.line_cov %} data-value="{{ line.line_cov.value }}"{% endif %}>{{ line.number_prefix }}<span{% if line.has_data %} class="SrcCovDataLink"{% endif %}>{{ line.number }}</span></span>
-                </span>
-                <span class="SrcCode"{% if line.line_cov %} data-value="{{ line.line_cov.value }}" style="background-color:{{ line.line_cov.color }};"{% endif %}> {{ line.code|safe }}</span>
+                <span class="SrcLine"></span>
+                <span class="SrcCode {{ line.note.0 }}"> {{ line.note.1 }}</span>
             </span>
+        {% endif %}
+        <span>
+            <span id="SrcL_{{ line.number }}" class="SrcLine">
+                <span class="SrcFuncCov"{% if line.func_cov %} data-value="{{ line.func_cov.value }}" style="background-color: {{ line.func_cov.color }};"{% endif %}><i class="ui small {{ line.func_cov.icon }} icon"></i></span>
+                <span class="SrcLineCov"{% if line.line_cov %} data-value="{{ line.line_cov.value }}"{% endif %}>{{ line.number_prefix }}<span{% if line.has_data %} class="SrcCovDataLink"{% endif %}>{{ line.number }}</span></span>
+            </span>
+            <span class="SrcCode"{% if line.line_cov %} data-value="{{ line.line_cov.value }}" style="background-color:{{ line.line_cov.color }};"{% endif %}> {{ line.code|safe }}</span>
+        </span>
+    {% endfor %}
+
+    <div id="source_references_links" class="ui small popup">
+        <span class="ReferencesHeader">{% trans 'References' %}:</span>
+        <div class="ReferencesContainer"></div>
+    </div>
+    <div id="source_declarations_popup" class="ui small popup">
+        <span class="ReferencesHeader">{% trans 'Declarations' %}:</span>
+        <div class="ReferencesContainer"></div>
+    </div>
+
+    {% if data.references|length %}
+        {% for ref_data in data.references %}
+            {% include 'reports/References.html' with ref_data=ref_data source_files=data.source_files %}
         {% endfor %}
-
-        <div id="source_references_links" class="ui small popup">
-            <span class="ReferencesHeader">{% trans 'References' %}:</span>
-            <div class="ReferencesContainer"></div>
-        </div>
-        <div id="source_declarations_popup" class="ui small popup">
-            <span class="ReferencesHeader">{% trans 'Declarations' %}:</span>
-            <div class="ReferencesContainer"></div>
-        </div>
-
-        {% if source.data.references|length %}
-            {% for ref_data in source.data.references %}
-                {% include 'reports/References.html' with ref_data=ref_data source_files=source.data.source_files %}
-            {% endfor %}
-        {% endif %}
-
-        {% for file_ind, file_name in source.data.source_files %}
-            <div class="SrcFileData" data-index="{{ file_ind }}" hidden>{{ file_name }}</div>
-        {% endfor %}
-
-        {# Should be after access to source.data.source_files as coverage_id is set during source lines collecting #}
-        {% if source.data.coverage_id %}
-            <input id="coverage_data_url" type="hidden" value="{% url 'reports:api-coverage-data' source.data.coverage_id %}">
-        {% else %}
-            <div id="no_coverage_warn" hidden><span style="color: #9d4e1d; font-weight: bold;"><i class="ui exclamation triangle icon"></i>{% trans 'You can try another level of code coverage details when starting decision to get code coverage for the given source file' %}</span></div>
-        {% endif %}
-
-        {% if source.data.with_legend and source.data.legend %}
-            <div id="source_legend" hidden>
-                {% include 'reports/coverage/cov_legend.html' with legend=source.data.legend %}
-            </div>
-        {% endif %}
-    {% else %}
-        <h5 id="source_not_found" class="ui red header" style="margin: 5px;"><i class="ui exclamation triangle icon"></i>{% trans 'You can try another level of code coverage details when starting decision to get the given source file' %}</h5>
     {% endif %}
-{% endcache %}
+
+    {% for file_ind, file_name in data.source_files %}
+        <div class="SrcFileData" data-index="{{ file_ind }}" hidden>{{ file_name }}</div>
+    {% endfor %}
+
+    {# Should be after access to data.source_files as coverage_id is set during source lines collecting #}
+    {% if data.coverage_id %}
+        <input id="coverage_data_url" type="hidden" value="{% url 'reports:api-coverage-data' data.coverage_id %}">
+    {% else %}
+        <div id="no_coverage_warn" hidden><span style="color: #9d4e1d; font-weight: bold;"><i class="ui exclamation triangle icon"></i>{% trans 'You can try another level of code coverage details when starting decision to get code coverage for the given source file' %}</span></div>
+    {% endif %}
+
+    {% if data.with_legend and data.legend %}
+        <div id="source_legend" hidden>
+            {% include 'reports/coverage/cov_legend.html' with legend=data.legend %}
+        </div>
+    {% endif %}
+{% else %}
+    <h5 id="source_not_found" class="ui red header" style="margin: 5px;"><i class="ui exclamation triangle icon"></i>{% trans 'You can try another level of code coverage details when starting decision to get the given source file' %}</h5>
+{% endif %}

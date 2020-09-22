@@ -58,6 +58,15 @@ def get_attr_data_path(instance, filename):
     return os.path.join('Reports', 'AttrData', 'Decision-%s' % str(instance.decision_id), filename)
 
 
+def source_code_path(instance, filename):
+    assert isinstance(filename, str)
+    curr_date = now()
+    return os.path.join(
+        'SourceCode', str(curr_date.year), str(curr_date.month), str(curr_date.day),
+        'src-{}.html'.format(instance.identifier[:16])
+    )
+
+
 class AttrBase(models.Model):
     name = models.CharField(max_length=64, db_index=True)
     value = models.CharField(max_length=255)
@@ -376,6 +385,15 @@ class DecisionCache(models.Model):
         index_together = ['component', 'decision']
 
 
+class SourceCodeCache(WithFilesMixin, models.Model):
+    identifier = models.CharField(max_length=256, db_index=True)
+    file = models.FileField(upload_to=source_code_path)
+    access_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'cache_source_code'
+
+
 post_delete.connect(remove_instance_files, sender=AttrFile)
 post_delete.connect(remove_instance_files, sender=OriginalSources)
 post_delete.connect(remove_instance_files, sender=AdditionalSources)
@@ -383,3 +401,4 @@ post_delete.connect(remove_instance_files, sender=ReportComponent)
 post_delete.connect(remove_instance_files, sender=ReportUnsafe)
 post_delete.connect(remove_instance_files, sender=ReportUnknown)
 post_delete.connect(remove_instance_files, sender=CoverageArchive)
+post_delete.connect(remove_instance_files, sender=SourceCodeCache)

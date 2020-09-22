@@ -2,4 +2,3 @@ locale/ru/LC_MESSAGES/django.mo
 bridge/db.json
 bridge/rmq.json
 tests/
-django_cache/

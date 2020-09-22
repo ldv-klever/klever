@@ -122,21 +122,15 @@ class UploadReportView(LoggedCallMixin, APIView):
         return Response({})
 
 
-class GetSourceCodeView(LoggedCallMixin, TemplateAPIRetrieveView):
-    template_name = 'reports/SourceCode.html'
+class GetSourceCodeView(LoggedCallMixin, APIView):
     permission_classes = (IsAuthenticated,)
-    queryset = Report.objects.only('id')
-    lookup_url_kwarg = 'report_id'
 
-    def get_context_data(self, instance, **kwargs):
+    def get(self, request, report_id):
         if 'file_name' not in self.request.query_params:
             raise exceptions.APIException('File name was not provided')
-        context = super().get_context_data(instance, **kwargs)
-        context['source'] = GetSource(
-            self.request.user, instance, self.request.query_params['file_name'],
-            self.request.query_params.get('coverage_id'), self.request.query_params.get('with_legend')
-        )
-        return context
+        report = get_object_or_404(Report.objects.only('id'), id=report_id)
+        source_collector = GetSource(self.request, report)
+        return HttpResponse(source_collector.get_html())
 
 
 class ClearVerificationFilesView(LoggedCallMixin, DestroyAPIView):
