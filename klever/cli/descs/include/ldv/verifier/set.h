@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-#ifndef __VERIFIER_SET_H
-#define __VERIFIER_SET_H
+#ifndef __LDV_VERIFIER_SET_H
+#define __LDV_VERIFIER_SET_H
 
 #if defined(LDV_SETS_MODEL_FLAG)
 typedef _Bool ldv_set;
@@ -43,4 +43,4 @@ typedef unsigned int ldv_set;
 # error "Sets are likely used but sets model is not specified"
 #endif
 
-#endif /* __VERIFIER_SET_H */
+#endif /* __LDV_VERIFIER_SET_H */

@@ -16,8 +16,8 @@
  */
 
 #include <linux/module.h>
+#include <ldv/common/test.h>
 #include <ldv/linux/err.h>
-#include <ldv/test.h>
 
 static int __init ldv_init(void)
 {

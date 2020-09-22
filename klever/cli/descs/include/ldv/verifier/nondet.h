@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-#ifndef __VERIFIER_NONDET_H
-#define __VERIFIER_NONDET_H
+#ifndef __LDV_VERIFIER_NONDET_H
+#define __LDV_VERIFIER_NONDET_H
 
 
 /* Special nondeterministic functions. */
@@ -40,4 +40,4 @@ extern int ldv_undef_int_nonpositive(void);
 /* Return nondeterministic non-null pointer. */
 extern void *ldv_undef_ptr_non_null(void);
 
-#endif /* __VERIFIER_NONDET_H */
+#endif /* __LDV_VERIFIER_NONDET_H */

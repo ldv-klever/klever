@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
+ * Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
  * Ivannikov Institute for System Programming of the Russian Academy of Sciences
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,30 +15,10 @@
  * limitations under the License.
  */
 
-#include <ldv/verifier/common.h>
+#ifndef __LDV_COMMON_INLINE_ASM_H
+#define __LDV_COMMON_INLINE_ASM_H
 
-void ldv_expected_error(void)
-{
-	/* ASSERT Expected error */
-	__VERIFIER_error();
-}
+/* Function declaration for inline Assembler stubs. */
+extern void ldv_inline_asm(void);
 
-void ldv_unexpected_error(void)
-{
-	/* ASSERT Unexpected error */
-	__VERIFIER_error();
-}
-
-void ldv_expected_memory_safety_error(void)
-{
-	int *var = (void *)0;
-	/* ASSERT Expected memory safety error */
-	*var;
-}
-
-void ldv_unexpected_memory_safety_error(void)
-{
-	int *var = (void *)0;
-	/* ASSERT Unexpected memory safety error */
-	*var;
-}
+#endif /* __LDV_COMMON_INLINE_ASM_H */

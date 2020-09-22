@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-#ifndef __VERIFIER_GCC_H
-#define __VERIFIER_GCC_H
+#ifndef __LDV_VERIFIER_GCC_H
+#define __LDV_VERIFIER_GCC_H
 
 /* Explicit model for GCC function __builin_expect(). Without this model
  * return value of __builtin_expect() will be treated as nondetermined by
@@ -32,4 +32,4 @@ extern long __builtin_expect(long exp, long c);
  */
 extern void __builtin_trap(void);
 
-#endif /* __VERIFIER_GCC_H */
+#endif /* __LDV_VERIFIER_GCC_H */

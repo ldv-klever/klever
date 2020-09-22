@@ -230,7 +230,7 @@ class Weaver(klever.core.vtg.plugins.Plugin):
                 ] +
                 (['--keep'] if self.conf['keep intermediate files'] else []) +
                 (['--aspect', os.path.realpath(aspect)] if aspect else ['--stage', 'C-backend']) +
-                ['--', '-include', 'ldv/common.h'] +
+                ['--', '-include', 'ldv/common/inline_asm.h'] +
                 klever.core.vtg.utils.prepare_cif_opts(opts, clade, is_model) +
                 [aspectator_search_dir] +
                 ['-I' + clade.get_storage_path(p) for p in self.conf['working source trees']]

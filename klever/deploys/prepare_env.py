@@ -70,7 +70,7 @@ def prepare_env(logger, deploy_dir):
         pass
 
     # Search for pg_hba_conf_file in all possible locations
-    for path in ('/etc/postgresql', '/var/lib/pgsql'):
+    for path in ('/etc/postgresql', '/var/lib/pgsql/data'):
         try:
             pg_hba_conf_file = execute_cmd(logger, 'find', path, '-name', 'pg_hba.conf', get_output=True).rstrip()
         except subprocess.CalledProcessError:
