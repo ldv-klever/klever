@@ -186,7 +186,8 @@ class Session:
                                       stream=True)
                 return resp.json()
             except BridgeError:
-                if 'ZIP error' in self.error:
+                if 'ZIP error' in self.error or ('archive' in self.error and any(['is not a ZIP file' in error
+                                                                                  for error in self.error['archive']])):
                     self.logger.exception('Could not upload ZIP archive')
                     self.error = None
                     time.sleep(0.2)
