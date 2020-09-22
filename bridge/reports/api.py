@@ -110,10 +110,11 @@ class UploadReportView(LoggedCallMixin, APIView):
             raise exceptions.APIException('Reports can be uploaded only for processing decisions')
 
         reports_uploader = UploadReports(decision)
-        try:
-            reports_uploader.validate_archives(json.loads(request.POST.get('archives', '[]')), request.FILES)
-        except CheckArchiveError as e:
-            return Response({'ZIP error': str(e)}, status=HTTP_403_FORBIDDEN)
+        if 'archives' in request.POST:
+            try:
+                reports_uploader.validate_archives(json.loads(request.POST['archives']), request.FILES)
+            except CheckArchiveError as e:
+                return Response({'ZIP error': str(e)}, status=HTTP_403_FORBIDDEN)
         reports_uploader.upload_all(json.loads(request.POST['reports']))
         return Response({})
 
