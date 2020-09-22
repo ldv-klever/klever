@@ -154,8 +154,8 @@ class Session:
                                       stream=True)
                 break
             except BridgeError:
-                if 'ZIP error' in self.error:
-                    self.logger.debug('Could not upload ZIP archive')
+                if 'archive' in self.error and any(['is not a ZIP file' in error for error in self.error['archive']]):
+                    self.logger.info('Could not upload ZIP archive')
                     self.error = None
                     time.sleep(0.2)
                 else:

@@ -91,9 +91,8 @@ SourceProcessor.prototype.refresh = function() {
     let cov_data_url = this.container.find('#coverage_data_url');
     instance.cov_data_url = cov_data_url.length ? cov_data_url.val() : null;
 
-    let no_coverage_warn = $('#no_coverage_warn').html();
-    if (no_coverage_warn && no_coverage_warn.length) instance.data_container.html(no_coverage_warn);
-    else instance.data_container.empty();
+    let no_coverage_warn = $('#no_coverage_warn');
+    instance.cov_data_url ? no_coverage_warn.hide() : no_coverage_warn.show();
 
     this.container.find('.SrcRefToLink').click(function () {
         if (instance.ref_click_callback) instance.ref_click_callback();
