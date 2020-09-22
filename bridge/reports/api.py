@@ -43,7 +43,7 @@ from reports.comparison import FillComparisonCache, ComparisonData
 from reports.coverage import GetCoverageData, ReportCoverageStatistics
 from reports.serializers import OriginalSourcesSerializer
 from reports.source import GetSource, SourceNotFound
-from reports.UploadReport import UploadReport, CheckArchiveError
+from reports.UploadReport import UploadReports, CheckArchiveError
 
 
 class FillComparisonView(LoggedCallMixin, APIView):
@@ -109,16 +109,12 @@ class UploadReportView(LoggedCallMixin, APIView):
         if decision.status != DECISION_STATUS[2][0]:
             raise exceptions.APIException('Reports can be uploaded only for processing decisions')
 
-        if 'report' in request.POST:
-            data = [json.loads(request.POST['report'])]
-        elif 'reports' in request.POST:
-            data = json.loads(request.POST['reports'])
-        else:
-            raise exceptions.APIException('Report json data is required')
+        reports_uploader = UploadReports(decision)
         try:
-            UploadReport(decision, request.FILES).upload_all(data)
+            reports_uploader.validate_archives(json.loads(request.POST['archives']), request.FILES)
         except CheckArchiveError as e:
             return Response({'ZIP error': str(e)}, status=HTTP_403_FORBIDDEN)
+        reports_uploader.upload_all(json.loads(request.POST['reports']))
         return Response({})
 
 
