@@ -141,7 +141,11 @@ class Session:
 
         # TODO: report is likely should be compressed.
         self.__upload_archives('reports/api/upload/{0}/'.format(self.job_id),
-                               {'reports': json.dumps(batch_reports)},
+                               {
+                                   'reports': json.dumps(batch_reports),
+                                   'archives': json.dumps([os.path.basename(archive)
+                                                           for archive in batch_report_file_archives])
+                               },
                                {os.path.basename(archive): archive for archive in batch_report_file_archives})
 
         # We can safely remove task and its files after uploading report referencing task files.
@@ -182,7 +186,8 @@ class Session:
                                       stream=True)
                 return resp.json()
             except BridgeError:
-                if 'ZIP error' in self.error:
+                if 'ZIP error' in self.error or ('archive' in self.error and any(['is not a ZIP file' in error
+                                                                                  for error in self.error['archive']])):
                     self.logger.exception('Could not upload ZIP archive')
                     self.error = None
                     time.sleep(0.2)

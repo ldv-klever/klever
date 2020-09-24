@@ -57,8 +57,6 @@
     {# Should be after access to data.source_files as coverage_id is set during source lines collecting #}
     {% if data.coverage_id %}
         <input id="coverage_data_url" type="hidden" value="{% url 'reports:api-coverage-data' data.coverage_id %}">
-    {% else %}
-        <div id="no_coverage_warn" hidden><span style="color: #9d4e1d; font-weight: bold;"><i class="ui exclamation triangle icon"></i>{% trans 'You can try another level of code coverage details when starting decision to get code coverage for the given source file' %}</span></div>
     {% endif %}
 
     {% if data.with_legend and data.legend %}

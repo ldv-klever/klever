@@ -405,16 +405,24 @@ class ReportUnsafeSerializer(UploadLeafBaseSerializer):
         fields = ('parent', 'error_trace', 'attrs')
 
 
-class UploadReport:
-    def __init__(self, decision, archives=None):
+class UploadReports:
+    def __init__(self, decision):
         self.decision = decision
-        self.archives = archives
-
+        self.archives = {}
         self._logger = ReportsLogging(self.decision.id)
+
+    def validate_archives(self, archives_list, archives):
+        for arch_name in archives_list:
+            if arch_name not in archives:
+                raise CheckArchiveError('Archive "{}" was not attached'.format(arch_name))
+            arch = archives[arch_name]
+            if not zipfile.is_zipfile(arch) or zipfile.ZipFile(arch).testzip():
+                raise CheckArchiveError('The archive "{}" is not a ZIP file'.format(arch_name))
+            arch.seek(0)
+            self.archives[arch_name] = arch
 
     def upload_all(self, reports):
         # Check that all archives are valid ZIP files
-        self.__check_archives()
         for report in reports:
             try:
                 self.__upload(report)
@@ -425,8 +433,6 @@ class UploadReport:
                 self.__process_exception(e)
 
     def __process_exception(self, exc):
-        if isinstance(exc, CheckArchiveError):
-            raise exc
         if isinstance(exc, exceptions.ValidationError):
             err_detail = exc.detail
         else:
@@ -486,13 +492,6 @@ class UploadReport:
         # Upload report
         supported_actions[data['type']](data)
 
-    def __check_archives(self):
-        if self.archives is None:
-            self.archives = {}
-        for arch in self.archives.values():
-            if not zipfile.is_zipfile(arch) or zipfile.ZipFile(arch).testzip():
-                raise CheckArchiveError('The archive "{}" is not a ZIP file'.format(arch.name))
-
     def __get_archive(self, arch_name):
         """
         Get archive from attached files by name. Should be called before any DB changes.
@@ -502,7 +501,7 @@ class UploadReport:
         if not arch_name:
             return None
         if arch_name not in self.archives:
-            raise CheckArchiveError('Archive "{}" was not attached'.format(arch_name))
+            raise exceptions.ValidationError(detail={'archive': 'Archive "{}" was not provided'.format(arch_name)})
         self.archives[arch_name].seek(0)
         return self.archives[arch_name]
 
