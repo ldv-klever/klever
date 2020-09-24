@@ -554,7 +554,6 @@ class GetSource:
 
     def __render_html(self):
         try:
-            print('Collecting data for:', self.file_name)
             data = ParseSource(self._request.user, self.file_name, self._ancestors, self._coverage_qs, self.with_legend)
         except SourceNotFound:
             data = None
@@ -569,7 +568,6 @@ class GetSource:
                 html_content_b = fp.read()
             src_code.access_date = now()
             src_code.save()
-            print('Got source from cache: {}'.format(self.identifier))
         except SourceCodeCache.DoesNotExist:
             html_content_b = self.__render_html().encode('utf8')
             fp = io.BytesIO(html_content_b)
