@@ -244,6 +244,11 @@ CELERY_BEAT_SCHEDULE = {
         'schedule': timedelta(hours=1),
         'args': (60,)  # Clear archives older than 60 minutes
     },
+    'remove-old-source-code-cache': {
+        'task': 'reports.tasks.clear_old_source_code_cache',
+        'schedule': timedelta(hours=1),
+        'args': (1,)  # Clear cache objects older than 1 hour
+    },
 }
 
 ENABLE_CALL_LOGS = False

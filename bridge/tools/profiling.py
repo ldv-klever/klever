@@ -23,7 +23,7 @@ from datetime import datetime
 from django.conf import settings
 from django.db.models.base import ModelBase
 
-from bridge.utils import BridgeException
+from bridge.utils import BridgeException, logger
 from tools.models import LockTable, CallLogs
 
 # Waiting while other function try to lock with DB table + try to lock with DB table
@@ -38,7 +38,8 @@ def get_time():
     while True:
         try:
             return time.time()
-        except Exception:
+        except Exception as e:
+            logger.error(e)
             pass
 
 
@@ -103,10 +104,10 @@ class ExecLocker:
         can_lock = True
         names_in_db = set()
         # Get all created models in table with names in self.block
-        for l in LockTable.objects.filter(name__in=self.names):
-            names_in_db.add(l.name)
-            self.lock_ids.add(l.id)
-            if l.locked:
+        for lt in LockTable.objects.filter(name__in=self.names):
+            names_in_db.add(lt.name)
+            self.lock_ids.add(lt.id)
+            if lt.locked:
                 can_lock = False
 
         # Are there models which aren't created yet?
@@ -240,11 +241,11 @@ class ProfileData:
 
     def processing(self):
         data = []
-        for l in CallLogs.objects.filter(return_time=None).order_by('id'):
+        for cl in CallLogs.objects.filter(return_time=None).order_by('id'):
             data.append({
-                'name': l.name, 'enter': datetime.fromtimestamp(l.enter_time),
-                'wait1': l.wait1, 'wait2': l.wait2,
-                'exec': datetime.fromtimestamp(l.execution_time) if l.execution_time else None
+                'name': cl.name, 'enter': datetime.fromtimestamp(cl.enter_time),
+                'wait1': cl.wait1, 'wait2': cl.wait2,
+                'exec': datetime.fromtimestamp(cl.execution_time) if cl.execution_time else None
             })
         return data
 
@@ -309,14 +310,12 @@ class DBLogsAnalizer:
         with open(self._log_file, mode='r', encoding='utf-8') as fp:
             cnt = 0
             for line in fp:
-                m = re.match(r'^\[.*?\]\s\((.*?)\)\s(.*)$', line)
+                m = re.match(r'^\[.*?]\s\((.*?)\)\s(.*)$', line)
                 if m:
                     try:
                         exec_time = float(m.group(1))
                     except ValueError:
-                        print(m.group(1))
-                        print(line)
-                        print(m.groups())
+                        logger.error('Call log ValueError: {}, {}, {}'.format(m.group(1), line, m.groups()))
                         raise
                     query_sql = m.group(2)
                     if query_sql:

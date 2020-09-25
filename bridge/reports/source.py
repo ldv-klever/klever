@@ -15,17 +15,23 @@
 # limitations under the License.
 #
 
+import hashlib
+import io
 import json
 from collections import OrderedDict
 from urllib.parse import unquote
 
-from django.utils.translation import ugettext_lazy as _
+from django.core.files import File
+from django.db import transaction
+from django.template import loader
+from django.utils.timezone import now
+from django.utils.translation import ugettext_lazy as _, get_language
 from django.utils.functional import cached_property
 
 from bridge.vars import ETV_FORMAT
 from bridge.utils import ArchiveFileContent, BridgeException, logger
 
-from reports.models import ReportComponent, CoverageArchive, CoverageStatistics
+from reports.models import ReportComponent, CoverageArchive, CoverageStatistics, SourceCodeCache
 
 TAB_LENGTH = 4
 
@@ -279,29 +285,20 @@ class SourceLine:
                 raise ValueError('type of "{}" is "{}", int expected'.format(value, type(value)))
 
 
-class GetSource:
+class ParseSource:
     index_postfix = '.idx.json'
     coverage_postfix = '.cov.json'
 
-    def __init__(self, user, report, file_name, coverage_id, with_legend):
-        # If coverage_id is set then it can be source for Sub-job or Core only,
-        # Otherwise - for verification report or its leaf.
-
+    def __init__(self, user, file_name, ancestors, coverage_qs, with_legend):
         self._user = user
-        self._report = report
-        self.file_name = self.__parse_file_name(file_name)
+        self._ancestors = ancestors
+        self.file_name = file_name
+        self._coverage_qs = coverage_qs
+        self.with_legend = with_legend
 
-        self.with_legend = (with_legend == 'true')
+        self._source_lines = self._references = self.coverage_id = None
 
-        self._indexes = self.__get_indexes_data()
-        self._coverage, self.coverage_id = self.__get_coverage_data(coverage_id)
-        self.source_lines, self.references = self.__parse_source()
-
-    def __parse_file_name(self, file_name):
-        name = unquote(file_name)
-        if name.startswith('/'):
-            name = name[1:]
-        return name
+        self.file_content = self.__get_source_code()
 
     def __extract_file(self, obj, name, field_name='archive'):
         if obj is None:
@@ -314,17 +311,6 @@ class GetSource:
             return None
         return res.content.decode('utf8')
 
-    @cached_property
-    def _ancestors(self):
-        parents_ids = set(self._report.get_ancestors(include_self=True).exclude(
-            reportcomponent__additional_sources=None, reportcomponent__original_sources=None
-        ).values_list('id', flat=True))
-        return ReportComponent.objects.filter(id__in=parents_ids)\
-            .select_related('original_sources', 'additional_sources')\
-            .only('id', 'verification', 'original_sources_id', 'additional_sources_id',
-                  'original_sources__archive', 'additional_sources__archive')\
-            .order_by('-id')
-
     def __get_source_code(self):
         for report in self._ancestors:
             for file_obj in [report.additional_sources, report.original_sources]:
@@ -333,7 +319,8 @@ class GetSource:
                     return content
         raise SourceNotFound('The source file was not found')
 
-    def __get_indexes_data(self):
+    @cached_property
+    def _indexes(self):
         index_name = self.file_name + self.index_postfix
         for report in self._ancestors:
             for file_obj in [report.additional_sources, report.original_sources]:
@@ -345,25 +332,19 @@ class GetSource:
                     return index_data
         return None
 
-    def __get_coverage_data(self, cov_id):
+    @cached_property
+    def _coverage(self):
         cov_name = self.file_name + self.coverage_postfix
-        qs_filters = {'report_id__in': list(r.id for r in self._ancestors)}
-        if cov_id:
-            # For full coverage (Subjob reports) where there can be several coverages
-            qs_filters['id'] = cov_id
-        else:
-            # Do not use full coverage for sub-jobs
-            qs_filters['identifier'] = ''
-
-        for cov_obj in CoverageArchive.objects.filter(**qs_filters).order_by('-report_id'):
+        for cov_obj in self._coverage_qs:
             content = self.__extract_file(cov_obj, cov_name)
             if not content:
                 continue
             coverage_data = json.loads(content)
             if coverage_data.get('format') != ETV_FORMAT:
                 raise BridgeException(_('Sources coverage format is not supported'))
-            return coverage_data, cov_obj.id
-        return None, None
+            self.coverage_id = cov_obj.id
+            return coverage_data
+        return None
 
     @cached_property
     def _line_coverage(self):
@@ -408,8 +389,6 @@ class GetSource:
         return set(self._coverage['data'])
 
     def __parse_source(self):
-        file_content = self.__get_source_code()
-
         highlights = {}
         if self._indexes and 'highlight' in self._indexes:
             for h_name, line_num, start, end in self._indexes['highlight']:
@@ -438,7 +417,7 @@ class GetSource:
                 references_declarations[line_num].append(ref_data)
 
         cnt = 1
-        lines = file_content.split('\n')
+        lines = self.file_content.split('\n')
         total_lines_len = len(str(len(lines)))
 
         lines_data = []
@@ -463,6 +442,18 @@ class GetSource:
             references_data.extend(src_line.declarations.values())
             cnt += 1
         return lines_data, references_data
+
+    @property
+    def source_lines(self):
+        if self._source_lines is None:
+            self._source_lines, self._references = self.__parse_source()
+        return self._source_lines
+
+    @property
+    def references(self):
+        if self._references is None:
+            self._source_lines, self._references = self.__parse_source()
+        return self._references
 
     @cached_property
     def source_files(self):
@@ -509,3 +500,78 @@ class GetSource:
             if colors[i] not in new_colors:
                 new_colors.insert(0, colors[i])
         return new_colors
+
+
+class GetSource:
+    def __init__(self, request, report):
+        self._request = request
+        self._report = report
+        self.file_name = self.__parse_file_name()
+        self.with_legend = (self._request.query_params.get('with_legend') == 'true')
+        self.identifier = self.__get_cache_identifier()
+
+    def __parse_file_name(self):
+        file_name = self._request.query_params['file_name']
+        name = unquote(file_name)
+        if name.startswith('/'):
+            name = name[1:]
+        return name
+
+    @cached_property
+    def _ancestors(self):
+        parents_ids = set(self._report.get_ancestors(include_self=True).exclude(
+            reportcomponent__additional_sources=None, reportcomponent__original_sources=None
+        ).values_list('id', flat=True))
+        return ReportComponent.objects.filter(id__in=parents_ids) \
+            .select_related('original_sources', 'additional_sources') \
+            .only('id', 'verification', 'original_sources_id', 'additional_sources_id',
+                  'original_sources__archive', 'additional_sources__archive') \
+            .order_by('-id')
+
+    @cached_property
+    def _coverage_qs(self):
+        qs_filters = {'report_id__in': list(r.id for r in self._ancestors)}
+
+        # If coverage_id is set then it can be source for Sub-job or Core only,
+        # Otherwise - for verification report or its leaf.
+        coverage_id = self._request.query_params.get('coverage_id')
+        if coverage_id:
+            # For full coverage (Subjob reports) where there can be several coverages
+            qs_filters['id'] = coverage_id
+        else:
+            # Do not use full coverage for sub-jobs
+            qs_filters['identifier'] = ''
+
+        return CoverageArchive.objects.filter(**qs_filters).order_by('-report_id')
+
+    def __get_cache_identifier(self):
+        identifier_data = json.dumps([
+            get_language(), self.file_name, self.with_legend,
+            list([r.id, r.original_sources_id, r.additional_sources_id] for r in self._ancestors),
+            list(ca.id for ca in self._coverage_qs)
+        ]).encode('utf-8')
+        return hashlib.md5(identifier_data).hexdigest()[:256]
+
+    def __render_html(self):
+        try:
+            data = ParseSource(self._request.user, self.file_name, self._ancestors, self._coverage_qs, self.with_legend)
+        except SourceNotFound:
+            data = None
+        template = loader.get_template('reports/SourceCode.html')
+        return template.render({'data': data}, self._request)
+
+    @transaction.atomic
+    def get_html(self):
+        try:
+            src_code = SourceCodeCache.objects.select_for_update().get(identifier=self.identifier)
+            with open(src_code.file.path, mode='rb') as fp:
+                html_content_b = fp.read()
+            src_code.access_date = now()
+            src_code.save()
+        except SourceCodeCache.DoesNotExist:
+            html_content_b = self.__render_html().encode('utf8')
+            fp = io.BytesIO(html_content_b)
+            fp.seek(0)
+            src_code = SourceCodeCache(identifier=self.identifier)
+            src_code.file.save('SourceCode.html', File(fp), save=True)
+        return html_content_b

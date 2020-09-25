@@ -29,7 +29,7 @@ from django.utils.timezone import now
 from mptt.models import MPTTModel, TreeForeignKey
 
 from bridge.vars import COMPARE_VERDICT, REPORT_ARCHIVE
-from bridge.utils import CheckArchiveError, WithFilesMixin, remove_instance_files
+from bridge.utils import WithFilesMixin, remove_instance_files
 
 from users.models import User
 from jobs.models import Job
@@ -56,6 +56,15 @@ def get_coverage_dir(instance, filename):
 
 def get_attr_data_path(instance, filename):
     return os.path.join('Reports', 'AttrData', 'Decision-%s' % str(instance.decision_id), filename)
+
+
+def source_code_path(instance, filename):
+    assert isinstance(filename, str)
+    curr_date = now()
+    return os.path.join(
+        'SourceCode', str(curr_date.year), str(curr_date.month), str(curr_date.day),
+        'src-{}.html'.format(instance.identifier[:16])
+    )
 
 
 class AttrBase(models.Model):
@@ -118,7 +127,7 @@ class OriginalSources(WithFilesMixin, models.Model):
     def add_archive(self, fp, save=False):
         self.archive.save(REPORT_ARCHIVE['original_sources'], File(fp), save)
         if not os.path.isfile(os.path.join(settings.MEDIA_ROOT, self.archive.name)):
-            raise CheckArchiveError('OriginalSources.archive was not saved')
+            raise RuntimeError('OriginalSources.archive was not saved')
 
     class Meta:
         db_table = 'report_original_sources'
@@ -132,7 +141,7 @@ class AdditionalSources(WithFilesMixin, models.Model):
     def add_archive(self, fp, save=False):
         self.archive.save(REPORT_ARCHIVE['additional_sources'], File(fp), save)
         if not os.path.isfile(os.path.join(settings.MEDIA_ROOT, self.archive.name)):
-            raise CheckArchiveError('AdditionalSources.archive was not saved')
+            raise RuntimeError('AdditionalSources.archive was not saved')
 
     class Meta:
         db_table = 'report_additional_sources'
@@ -157,12 +166,12 @@ class ReportComponent(WithFilesMixin, Report):
     def add_log(self, fp, save=False):
         self.log.save(REPORT_ARCHIVE['log'], File(fp), save)
         if not os.path.isfile(os.path.join(settings.MEDIA_ROOT, self.log.name)):
-            raise CheckArchiveError('ReportComponent.log was not saved')
+            raise RuntimeError('ReportComponent.log was not saved')
 
     def add_verifier_files(self, fp, save=False):
         self.verifier_files.save(REPORT_ARCHIVE['verifier_files'], File(fp), save)
         if not os.path.isfile(os.path.join(settings.MEDIA_ROOT, self.verifier_files.name)):
-            raise CheckArchiveError('ReportComponent.verifier_files was not saved')
+            raise RuntimeError('ReportComponent.verifier_files was not saved')
 
     class Meta:
         db_table = 'report_component'
@@ -303,7 +312,7 @@ class ReportUnsafe(WithFilesMixin, Report):
     def add_trace(self, fp, save=False):
         self.error_trace.save(REPORT_ARCHIVE['error_trace'], File(fp), save)
         if not os.path.isfile(os.path.join(settings.MEDIA_ROOT, self.error_trace.name)):
-            raise CheckArchiveError('ReportUnsafe.error_trace was not saved')
+            raise RuntimeError('ReportUnsafe.error_trace was not saved')
 
     class Meta:
         db_table = 'report_unsafe'
@@ -324,7 +333,7 @@ class ReportUnknown(WithFilesMixin, Report):
     def add_problem_desc(self, fp, save=False):
         self.problem_description.save(REPORT_ARCHIVE['problem_description'], File(fp), save)
         if not os.path.isfile(os.path.join(settings.MEDIA_ROOT, self.problem_description.name)):
-            raise CheckArchiveError('ReportUnknown.problem_description was not saved')
+            raise RuntimeError('ReportUnknown.problem_description was not saved')
 
     class Meta:
         db_table = 'report_unknown'
@@ -376,6 +385,15 @@ class DecisionCache(models.Model):
         index_together = ['component', 'decision']
 
 
+class SourceCodeCache(WithFilesMixin, models.Model):
+    identifier = models.CharField(max_length=256, db_index=True)
+    file = models.FileField(upload_to=source_code_path)
+    access_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'cache_source_code'
+
+
 post_delete.connect(remove_instance_files, sender=AttrFile)
 post_delete.connect(remove_instance_files, sender=OriginalSources)
 post_delete.connect(remove_instance_files, sender=AdditionalSources)
@@ -383,3 +401,4 @@ post_delete.connect(remove_instance_files, sender=ReportComponent)
 post_delete.connect(remove_instance_files, sender=ReportUnsafe)
 post_delete.connect(remove_instance_files, sender=ReportUnknown)
 post_delete.connect(remove_instance_files, sender=CoverageArchive)
+post_delete.connect(remove_instance_files, sender=SourceCodeCache)
