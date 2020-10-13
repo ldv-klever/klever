@@ -96,8 +96,8 @@ StartDecision.prototype.update = function(resp) {
     $('#cpu_num').val(resp['cpu_num'] || '');
     $('#disk_size').val(resp['disk_size']);
     $('#cpu_model').val(resp['cpu_model']);
-    $('#console_level').val(resp['console_level']);
-    $('#file_level').val(resp['file_level']);
+    $('#console_level').dropdown('set selected', resp['console_level']);
+    $('#file_level').dropdown('set selected', resp['file_level']);
     $('#console_formatter').val(resp['console_formatter']);
     $('#file_formatter').val(resp['file_formatter']);
     $('.boolean-value').each(function () {
