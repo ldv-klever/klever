@@ -23,7 +23,9 @@ from django.urls import reverse
 from django.utils.translation import ugettext as _
 
 from rest_framework import exceptions
-from rest_framework.generics import get_object_or_404, RetrieveAPIView, CreateAPIView, DestroyAPIView, GenericAPIView
+from rest_framework.generics import (
+    get_object_or_404, RetrieveAPIView, CreateAPIView, DestroyAPIView, UpdateAPIView, GenericAPIView
+)
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.status import HTTP_403_FORBIDDEN
@@ -41,7 +43,7 @@ from reports.models import Report, ReportComponent, OriginalSources, CoverageArc
 from jobs.utils import JobAccess, DecisionAccess
 from reports.comparison import FillComparisonCache, ComparisonData
 from reports.coverage import GetCoverageData, ReportCoverageStatistics
-from reports.serializers import OriginalSourcesSerializer
+from reports.serializers import OriginalSourcesSerializer, PatchReportAttrSerializer
 from reports.source import GetSource
 from reports.UploadReport import UploadReports, CheckArchiveError
 
@@ -223,3 +225,28 @@ class ComponentLogContentView(LoggedCallMixin, GenericAPIView):
         else:
             content = content.decode('utf8')
         return HttpResponse(content)
+
+
+class UpdateReportAttrView(LoggedCallMixin, UpdateAPIView):
+    permission_classes = (ServicePermission,)
+    serializer_class = PatchReportAttrSerializer
+
+    def get_queryset(self):
+        decision = get_object_or_404(Decision.objects.only('id', 'status'), identifier=self.kwargs['decision'])
+        if decision.status != DECISION_STATUS[2][0]:
+            raise exceptions.APIException('Attributes can be updated only for processing decisions')
+        if 'report' not in self.request.data:
+            raise exceptions.ValidationError('Report identifier was not provided')
+        return ReportAttr.objects.filter(report__decision=decision, report__identifier=self.request.data['report'])
+
+    def get_object(self):
+        queryset = self.filter_queryset(self.get_queryset())
+
+        if 'name' not in self.request.data:
+            raise exceptions.ValidationError('Attribite name was not provided')
+        obj = get_object_or_404(queryset, name=self.request.data['name'])
+
+        # May raise a permission denied
+        self.check_object_permissions(self.request, obj)
+
+        return obj

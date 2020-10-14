@@ -58,6 +58,7 @@ urlpatterns = [
     path('api/has-sources/', api.HasOriginalSources.as_view()),
     path('api/upload-sources/', api.UploadOriginalSourcesView.as_view()),
     path('api/upload/<uuid:decision_uuid>/', api.UploadReportView.as_view()),
+    path('api/report-attr/<uuid:decision>/', api.UpdateReportAttrView.as_view()),
     path('api/clear-verification-files/<int:decision_id>/', api.ClearVerificationFilesView.as_view(),
          name='clear-verification-files')
 ]
