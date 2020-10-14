@@ -5,6 +5,11 @@
       "path": "https://forge.ispras.ru/attachments/download/7914/cif-64af3bf.tar.xz",
       "executable path": "bin"
     },
+    "CIF-ARM": {
+      "version": "d62e4d9",
+      "path": "https://forge.ispras.ru/attachments/download/7828/arm-unknown-eabi-cif-d62e4d9.tar.xz",
+      "executable path": "bin"
+    },
     "CIL": {
       "version": "88d3732",
       "path": "https://forge.ispras.ru/attachments/download/7582/frama-c-cil-88d3732.tar.xz",
