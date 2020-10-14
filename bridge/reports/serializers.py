@@ -332,4 +332,4 @@ class PatchReportAttrSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ReportAttr
-        fields = ('compare', 'associate', 'value')
+        fields = ('compare', 'associate')
