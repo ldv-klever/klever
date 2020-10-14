@@ -29,10 +29,7 @@ from django.utils.timezone import now
 from rest_framework import exceptions, fields, serializers
 from rest_framework.settings import api_settings
 
-from bridge.vars import (
-    ERROR_TRACE_FILE, REPORT_ARCHIVE, DECISION_STATUS, SUBJOB_NAME,
-    NAME_ATTR, UNKNOWN_ATTRS_NOT_ASSOCIATE, MPTT_FIELDS
-)
+from bridge.vars import ERROR_TRACE_FILE, REPORT_ARCHIVE, DECISION_STATUS, SUBJOB_NAME, NAME_ATTR, MPTT_FIELDS
 from bridge.utils import logger, extract_archive, CheckArchiveError
 
 from reports.models import (
@@ -315,13 +312,6 @@ class UploadLeafBaseSerializer(UploadBaseSerializer):
 class ReportUnknownSerializer(UploadLeafBaseSerializer):
     def get_cache_object(self, decision):
         return ReportUnknownCache(decision=decision)
-
-    def parent_attributes(self, parent, select_fields=None):
-        attrs_list = super().parent_attributes(parent, select_fields=select_fields)
-        for adata in attrs_list:
-            if adata['name'] in UNKNOWN_ATTRS_NOT_ASSOCIATE:
-                adata['associate'] = False
-        return attrs_list
 
     def validate(self, value):
         value = super(ReportUnknownSerializer, self).validate(value)
