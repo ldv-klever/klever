@@ -1,0 +1,9 @@
+{
+  "project": "Harmony",
+  "build base": "harmony",
+  "targets": ["**"],
+  "architecture": "ARM",
+  "requirement specifications": [
+    "empty"
+  ]
+}

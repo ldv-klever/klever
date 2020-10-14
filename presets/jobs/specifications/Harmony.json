@@ -1,0 +1,68 @@
+{
+  "templates": {
+    "kernel": {
+      "plugins": [
+        {
+          "name": "EMG",
+          "options": {
+            "generators options": [
+              {
+                "genericFunctions": {
+                  "infinite calls sequence": false,
+                  "initialize strings as null terminated": false,
+                  "functions to call": ["OsMain"]
+                }
+              }
+            ],
+            "translation options": {
+              "entry point": "ldv_main",
+              "environment model file": "environment_model.c",
+              "additional headers": [
+                "stddef.h",
+                "ldv/verifier/common.h",
+                "ldv/verifier/nondet.h",
+                "ldv/verifier/memory.h",
+                "ldv/userspace/common.h"
+              ]
+            }
+          }
+        },
+        {
+          "name": "RSG",
+          "options": {
+            "common sets model": "counter",
+            "model compiler input file": "kernel/liteos_a/platform/main.c",
+            "common models": {
+              "verifier/common.c": {},
+              "verifier/gcc.c": {},
+              "verifier/nondet.c": {},
+              "harmony/common.c": {}
+            }
+          }
+        },
+        {"name": "Weaver"},
+        {
+          "name": "FVTP",
+          "options": {
+            "merge source files": true,
+            "verifier profile": "CPAchecker BAM reachability",
+            "verifier": {
+              "name": "CPAchecker",
+              "version": "trunk:31140"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "requirement specifications": {
+    "description": "harmony OS requirement specifications",
+    "template": "kernel",
+    "children": [
+      {
+        "identifier": "empty",
+        "description": "..."
+      }
+    ]
+  }
+}

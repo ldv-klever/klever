@@ -1,0 +1,9 @@
+{
+  "tactics": {
+    "kernel": {
+      "reference": true,
+      "ignore missing files": true
+    }
+  },
+  "fragmentation sets": {}
+}

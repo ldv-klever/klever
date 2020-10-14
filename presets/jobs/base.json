@@ -1,6 +1,18 @@
 {
   "jobs": [
     {
+      "uuid": "e36dd467-6715-423e-b2d4-0e9dde752faa",
+      "name": "Harmony OS",
+      "directory": "harmony",
+      "children": [
+        {
+          "uuid": "e38bef6a-5fb8-4990-9ed9-3a97a69946ee",
+          "name": "Harmony OS kernel verification",
+          "directory": "harmony/harmony sample"
+        }
+      ]
+    },
+    {
       "uuid": "5ba02606-8bd8-4bc0-a72d-d1ddded47f79",
       "name": "Userspace",
       "directory": "userspace",
