@@ -188,9 +188,7 @@ class VRP(klever.core.components.Component):
                 workdir = os.path.join(pf, requirement, str(attempt))
                 attrs = [{
                     "name": "Rescheduling attempt",
-                    "value": str(attempt),
-                    "compare": False,
-                    "associate": False
+                    "value": str(attempt)
                 }]
             else:
                 new_id = "{}/{}/RP".format(pf, requirement)
