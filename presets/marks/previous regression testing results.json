@@ -859,13 +859,12 @@
     "08c7a442-83ed-11ea-88e0-879ef40bbdcf": {
         "current verdicts": {
             "unknowns": {
-                "fd560131-1b49-42f2-aba3-f82ea3fa4431": 2
+                "fd560131-1b49-42f2-aba3-f82ea3fa4431": 3
             }
         },
         "ideal verdicts": {
             "unsafes": {
-                "7eb0b405-d308-4578-a7e7-e438384bc17f": 1.0,
-                "0174e9a9-1543-40ac-be9a-f32ffb743fc4": 1.0
+                "7eb0b405-d308-4578-a7e7-e438384bc17f": 1.0
             }
         }
     }
