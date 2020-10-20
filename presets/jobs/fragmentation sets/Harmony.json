@@ -5,5 +5,47 @@
       "ignore missing files": true
     }
   },
-  "fragmentation sets": {}
+  "fragmentation sets": {
+    "1.0": {
+      "reference": true,
+      "exclude from all fragments": [
+        "kernel/extended/vdso/usr/los_vdso_sys.c",
+        "lib/libc/musl/src/internal/intscan.c",
+        "lib/libc/musl/src/internal/shgetc.c",
+        "lib/libc/musl/src/internal/floatscan.c",
+        "lib/libc/musl/src/stdio/fflush.c",
+        "lib/libc/musl/src/stdio/__uflow.c",
+        "lib/libc/musl/src/stdio/perror.c",
+        "lib/libc/musl/src/stdio/__overflow.c",
+        "lib/libc/musl/src/stdio/__stdio_seek.c",
+        "lib/libc/musl/src/stdio/stdout.c",
+        "lib/libc/musl/src/stdio/__fdopen.c",
+        "lib/libc/musl/src/stdio/vfprintf.c",
+        "lib/libc/musl/src/stdio/fclose.c",
+        "lib/libc/musl/src/stdio/ungetc.c",
+        "lib/libc/musl/src/stdio/__stdout_write.c",
+        "lib/libc/musl/src/stdio/puts.c",
+        "lib/libc/musl/src/stdio/fwrite.c",
+        "lib/libc/musl/src/stdio/__stdio_read.c",
+        "lib/libc/musl/src/stdio/setvbuf.c",
+        "lib/libc/musl/src/stdio/ftrylockfile.c",
+        "lib/libc/musl/src/stdio/ftell.c",
+        "lib/libc/musl/src/stdio/__lockfile.c",
+        "lib/libc/musl/src/stdio/__towrite.c",
+        "lib/libc/musl/src/stdio/feof.c",
+        "lib/libc/musl/src/stdio/fputc.c",
+        "lib/libc/musl/src/stdio/ofl_add.c",
+        "lib/libc/musl/src/stdio/fgetc.c",
+        "lib/libc/musl/src/stdio/__stdio_write.c",
+        "lib/libc/musl/src/stdio/stderr.c",
+        "lib/libc/musl/src/stdio/__toread.c",
+        "lib/libc/musl/src/stdio/vsnprintf.c",
+        "lib/libc/musl/src/stdio/__stdio_close.c",
+        "lib/libc/musl/src/stdio/fseek.c",
+        "lib/libc/musl/src/stdlib/strtol.c",
+        "lib/libc/musl/src/stdio/fread.c",
+        "lib/libc/musl/src/stdlib/strtod.c"
+      ]
+    }
+  }
 }
