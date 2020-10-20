@@ -6,8 +6,8 @@
       "executable path": "bin"
     },
     "CIF-ARM": {
-      "version": "d62e4d9",
-      "path": "https://forge.ispras.ru/attachments/download/7828/arm-unknown-eabi-cif-d62e4d9.tar.xz",
+      "version": "a451e44",
+      "path": "https://forge.ispras.ru/attachments/download/8051/arm-unknown-eabi-cif-a451e44.tar.xz",
       "executable path": "bin"
     },
     "CIL": {
