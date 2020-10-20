@@ -261,16 +261,20 @@ def p_type_specifier(p):
 def p_type_specifier_list(p):
     """
     type_specifier_list : TYPE_SPECIFIER type_specifier_list
+                        | TYPE_SPECIFIER attribute_dict
                         | TYPE_SPECIFIER
     """
-    type_specifier, *type_specifier_list = p[1:]
+    type_specifier, *second = p[1:]
 
-    if type_specifier_list:
-        type_specifier_list, = type_specifier_list
-        type_specifier_list = type_specifier + ' %s' % type_specifier_list
+    if second:
+        second, = second
+        if isinstance(second, str):
+            type_specifier_list = second
+            type_specifier_list = type_specifier + ' %s' % type_specifier_list
+        else:
+            type_specifier_list = type_specifier
     else:
         type_specifier_list = type_specifier
-
     p[0] = type_specifier_list
 
 
@@ -494,9 +498,10 @@ def p_enumerator(p):
 
 def p_typedef(p):
     """
-    typedef : IDENTIFIER
+    typedef : IDENTIFIER attribute_dict
+            | IDENTIFIER
     """
-    identifier = p[1]
+    identifier, *attrs = p[1]
     p[0] = {
         'class': 'typedef',
         'name': identifier

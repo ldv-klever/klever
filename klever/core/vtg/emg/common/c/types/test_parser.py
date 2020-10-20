@@ -99,6 +99,14 @@ def test_tricky_names():
 
 
 @parser_test
+def test_var_attributes():
+    return [
+        'int __attribute__(()) word;',
+        'size_t __attribute__((__may_alias__)) word;'
+    ]
+
+
+@parser_test
 def test_complex_types():
     return [
         'static int a',
