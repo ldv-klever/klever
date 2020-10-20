@@ -43,7 +43,8 @@
           "name": "FVTP",
           "options": {
             "merge source files": true,
-            "verifier profile": "CPAchecker BAM reachability",
+            "verifier profile": "reachability",
+            "CIL additional opts": [],
             "verifier": {
               "name": "CPAchecker",
               "version": "trunk:31140"
