@@ -80,10 +80,10 @@ class Weaver(klever.core.vtg.plugins.Plugin):
                     infile = cc["in"][0]
 
                 # Distinguish source files having the same names.
-                outfile_unique = '{0}.c'.format(
-                    klever.core.utils.unique_file_name(os.path.splitext(os.path.basename(infile))[0], '.c'))
+                outfile_unique = '{0}.i'.format(
+                    klever.core.utils.unique_file_name(os.path.splitext(os.path.basename(infile))[0], '.i'))
                 # This is used for storing/getting to/from cache where uniqueness is guaranteed by other means.
-                outfile = '{0}.c'.format(os.path.splitext(os.path.basename(infile))[0])
+                outfile = '{0}.i'.format(os.path.splitext(os.path.basename(infile))[0])
                 self.logger.info('Weave in C file "{0}"'.format(infile))
 
                 # Produce aspect to be weaved in.
