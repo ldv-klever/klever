@@ -16,9 +16,10 @@
 #
 
 import os
-import re
 
 import klever.core.utils
+
+from clade.extensions.opts import filter_opts
 
 
 # Many files and directories which are searched by VTG plugins are located within directory "specifications". Help to
@@ -38,70 +39,10 @@ def prepare_cif_opts(opts, clade, model_opts=False):
     new_opts = []
     meta = clade.get_meta()
 
-    is_sysroot_search_dir = False
-    is_include = False
-
     # Keep model options as well as build options when input files were not preprocessed.
     if model_opts or not meta['conf'].get("Compiler.preprocess_cmds", False):
-        skip_opt_value = False
-        for opt in opts:
-            if skip_opt_value:
-                skip_opt_value = False
-                continue
-
-            # Get rid of options unsupported by Aspectator.
-            match = re.match(
-                '(-Werror=date-time|-fcf-protection=none|-fmacro-prefix-map=./=|-mpreferred-stack-boundary|-fsanitize-coverage|-flive-patching=inline-clone|--param=|.*?-MD).*'
-                , opt)
-            if match:
-                continue
-
-            # Get rid of redundant options useless from instrumentation point of view.
-            match = re.match('(-ftest-coverage|-fprofile-arcs).*', opt)
-            if match:
-                continue
-
-            match = re.match('--param', opt)
-            if match:
-                skip_opt_value = True
-                continue
-
-            new_opt = opt
-
-            # --sysroot has effect just if search directories specified with help of absolute paths start with "=".
-            if is_sysroot_search_dir:
-                if new_opt.startswith('/'):
-                    new_opt = '=' + new_opt
-
-                is_sysroot_search_dir = False
-            else:
-                match = re.match('-(I|iquote|isystem|idirafter)(.*)', new_opt)
-                if match:
-                    if match.group(2):
-                        if match.group(2).startswith('/'):
-                            new_opt = '-{0}={1}'.format(match.group(1), match.group(2))
-                    else:
-                        is_sysroot_search_dir = True
-
-            # Explicitly change absolute paths passed to --include since --sysroot does not help with it.
-            if is_include:
-                if new_opt.startswith('/'):
-                    new_opt = clade.storage_dir + new_opt
-
-                is_include = False
-            else:
-                match = re.match('-include(.*)', new_opt)
-                if match:
-                    if match.group(1):
-                        if match.group(1).startswith('/'):
-                            new_opt = '-include' + clade.storage_dir + match.group(1)
-                    else:
-                        is_include = True
-
-            new_opts.append(new_opt.replace('"', '\\"'))
-
-        # Aspectator will search for headers within Clade storage.
-        new_opts.append('-isysroot' + clade.storage_dir)
+        new_opts = filter_opts(opts, clade.get_storage_path)
+        new_opts = [opt.replace('"', '\\"') for opt in new_opts]
 
     extra_cc_opts = meta['conf'].get('Info.extra_CIF_opts', list())
     new_opts.extend(extra_cc_opts)
