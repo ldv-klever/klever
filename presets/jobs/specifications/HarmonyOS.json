@@ -10,7 +10,7 @@
                 "genericFunctions": {
                   "infinite calls sequence": false,
                   "initialize strings as null terminated": false,
-                  "functions to call": ["OsMain"]
+                  "functions to call": ["OsMain", "SysTyme", "ConsoleSendTask", "OsArmA32SyscallHandle", "OsResourceRecoveryTask", "OsSwtmrTask", "SysAccept", "SysAccess", "SysBind", "SysBrk", "SysChdir", "SysChmod", "SysChown", "SysClose", "SysConnect"]
                 }
               }
             ],
