@@ -1,6 +1,6 @@
 {
-  "project": "Harmony",
-  "build base": "harmony",
+  "project": "HarmonyOS",
+  "build base": "harmonyos",
   "targets": ["**"],
   "architecture": "ARM",
   "requirement specifications": [

@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
+# Copyright (c) 2020 ISP RAS (http://www.ispras.ru)
 # Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,7 +18,7 @@
 from klever.core.pfg.fragmentation import FragmentationAlgorythm
 
 
-class Harmony(FragmentationAlgorythm):
+class Harmonyos(FragmentationAlgorythm):
 
     CLADE_PRESET = 'base_print'
 
@@ -29,8 +29,8 @@ class Harmony(FragmentationAlgorythm):
         :param program: Program object.
         """
         # Get all C files
-        program.create_fragment('harmony', program.files, add=True)
-        self.logger.info('Created harmony fragment')
+        program.create_fragment('harmonyos', program.files, add=True)
+        self.logger.info('Created harmonyos fragment')
 
     def __init__(self, logger, conf, tactic, pf_dir):
         super().__init__(logger, conf, tactic, pf_dir)

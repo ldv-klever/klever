@@ -29,12 +29,12 @@
           "name": "RSG",
           "options": {
             "common sets model": "counter",
-            "model compiler input file": "kernel/common/los_config.c",
+            "model compiler input file": "kernel/liteos_a/kernel/common/los_config.c",
             "common models": {
               "verifier/common.c": {},
               "verifier/gcc.c": {},
               "verifier/nondet.c": {},
-              "harmony/common.c": {}
+              "harmonyos/common.c": {}
             }
           }
         },
@@ -55,7 +55,7 @@
     }
   },
   "requirement specifications": {
-    "description": "harmony OS requirement specifications",
+    "description": "Harmony OS requirement specifications",
     "template": "kernel",
     "children": [
       {

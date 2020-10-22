@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-#ifndef __LDV_HARMONY_COMMON_H
-#define __LDV_HARMONY_COMMON_H
+#ifndef __LDV_HARMONYOS_COMMON_H
+#define __LDV_HARMONYOS_COMMON_H
 
 /**
  * ldv_initialize() - explicitly initialize requirement model states.
@@ -52,4 +52,4 @@ extern void ldv_check_final_state(void);
  */
 extern int ldv_filter_err_code(int ret_val);
 
-#endif /* __LDV_HARMONY_COMMON_H */
+#endif /* __LDV_HARMONYOS_COMMON_H */

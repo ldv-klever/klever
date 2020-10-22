@@ -15,4 +15,4 @@
  * limitations under the License.
  */
 
-#include <ldv/harmony/common.h>
+#include <ldv/harmonyos/common.h>
