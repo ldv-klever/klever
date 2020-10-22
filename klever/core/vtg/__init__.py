@@ -595,11 +595,13 @@ class VTGW(klever.core.components.Component):
                   {
                       "name": "Program fragment",
                       "value": self.program_fragment_id,
-                      "data": files_list_file
+                      "data": files_list_file,
+                      "compare": True
                   },
                   {
                       "name": "Requirements specification",
-                      "value": self.req_spec_id
+                      "value": self.req_spec_id,
+                      "compare": True
                   }
               ]
             },
