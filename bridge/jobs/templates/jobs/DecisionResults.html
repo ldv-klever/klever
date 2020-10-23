@@ -113,7 +113,7 @@
                                     <div class="item">
                                         <i class="cube icon"></i>
                                         <div class="content">
-                                            <div>{{ comp.component }}{% if comp.total %} (<a href="{{ comp.total.href }}">{{ comp.total.num }}</a>){% endif %}</div>
+                                            <div>{{ comp.component }}{% if comp.total %}: <a href="{{ comp.total.href }}">{{ comp.total.num }}</a>{% endif %}</div>
                                             <div class="ui list">
                                                 {% for probl in comp.problems %}
                                                     <div class="item">
