@@ -32,6 +32,7 @@ from bridge.vars import UNSAFE_VERDICTS, UNSAFE_STATUS, SAFE_VERDICTS, DECISION_
 from bridge.utils import BridgeException, ArchiveFileContent
 from bridge.ZipGenerator import ZipStream
 
+from jobs.models import PresetJob, Job, Decision
 from reports.models import Report, ReportComponent, ReportAttr, ReportUnsafe, ReportSafe, ReportUnknown, CoverageArchive
 from caches.models import ReportSafeCache, ReportUnsafeCache, ReportUnknownCache
 
@@ -1074,8 +1075,11 @@ class ReportChildrenTable:
         return columns, values_data
 
 
-class FilesForCompetitionArchive:
-    obj_attr = 'Program fragment'
+class VerifierFilesArchive:
+    # These attributes allow to distinguish uniqely all verification tasks within the same job. Sub-job identifier may
+    # be not specified. In this case remaining attributes are unique.
+    sub_job_identifier_attr = 'Sub-job identifier'
+    program_fragment_attr = 'Program fragment'
     requirement_attr = 'Requirements specification'
 
     def __init__(self, decision, filters):
@@ -1085,15 +1089,15 @@ class FilesForCompetitionArchive:
         self._archives_to_upload = []
         self.__get_archives_to_upload(filters)
         self.stream = ZipStream()
-        self.name = 'svcomp.zip'
+        self.name = 'verifier_input_files.zip'
 
     def __iter__(self):
-        cnt = 0
         names_in_use = set()
         for arch_path, name_pattern in self._archives_to_upload:
+            # Do not treat archives with the same names. Indeed, these archives represent exactly the same verification
+            # tasks for which a verifier reported several unsafes per each verification task.
             if name_pattern in names_in_use:
-                cnt += 1
-                arch_name = '%s_%s.zip' % (name_pattern, cnt)
+                continue
             else:
                 arch_name = '%s.zip' % name_pattern
             names_in_use.add(name_pattern)
@@ -1102,6 +1106,19 @@ class FilesForCompetitionArchive:
                 yield data
 
         yield self.stream.close_stream()
+
+    @cached_property
+    def _job_name(self):
+        job = Job.objects.filter(id=self.decision.job_id).only('name', 'preset_id').first()
+        if not job:
+            return 'Job'
+        preset_job = PresetJob.objects.get(id=job.preset_id)
+        dir_name = ' - '.join(list(preset_job.get_ancestors(include_self=True).values_list('name', flat=True)))
+        if Job.objects.filter(preset_id=job.preset_id).count() > 1:
+            dir_name += ' - {}'.format(job.name)
+        if Decision.objects.filter(job_id=job.id).count() > 1:
+            dir_name += ' - {}'.format(self.decision.name)
+        return dir_name
 
     def __get_archives(self):
         archives = {}
@@ -1114,7 +1131,11 @@ class FilesForCompetitionArchive:
         # Select attributes for all safes, unsafes and unknowns
         attrs = {}
         for report_id, a_name, a_value in ReportAttr.objects\
-                .filter(report__decision=self.decision, name__in=[self.obj_attr, self.requirement_attr]) \
+                .filter(report__decision=self.decision, name__in=[
+                    self.sub_job_identifier_attr,
+                    self.program_fragment_attr,
+                    self.requirement_attr
+                ]) \
                 .exclude(report__reportunsafe=None, report__reportsafe=None, report__reportunknown=None) \
                 .values_list('report_id', 'name', 'value'):
             if report_id not in attrs:
@@ -1124,16 +1145,20 @@ class FilesForCompetitionArchive:
 
     def __add_archive(self, r_type, r_id, p_id):
         if p_id in self._archives and r_id in self._attrs \
-                and self.obj_attr in self._attrs[r_id] \
+                and self.program_fragment_attr in self._attrs[r_id] \
                 and self.requirement_attr in self._attrs[r_id]:
 
-            ver_obj = self._attrs[r_id][self.obj_attr].replace('~', 'HOME').replace('/', '---')
-            ver_requirement = self._attrs[r_id][self.requirement_attr].replace(':', '-')
-            dirname = 'Unknowns' if r_type == 'f' else 'Unsafes' if r_type == 'u' else 'Safes'
-
-            self._archives_to_upload.append(
-                (self._archives[p_id], '{0}/{1}__{2}__{3}'.format(dirname, r_type, ver_requirement, ver_obj))
-            )
+            self._archives_to_upload.append((
+                self._archives[p_id],
+                '{0}/{1}/{2}{3} - {4}'.format(
+                    self._job_name,
+                    'Unknowns' if r_type == 'f' else 'Unsafes' if r_type == 'u' else 'Safes',
+                    self._attrs[r_id][self.sub_job_identifier_attr] + ' - '
+                        if self.sub_job_identifier_attr in self._attrs[r_id] else '',
+                    self._attrs[r_id][self.program_fragment_attr].replace('/', '---'),
+                    self._attrs[r_id][self.requirement_attr]
+                )
+            ))
 
     def __get_archives_to_upload(self, filters):
         common_filters = {'decision': self.decision, 'parent__reportcomponent__verification': True}

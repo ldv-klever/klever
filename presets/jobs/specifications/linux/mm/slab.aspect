@@ -25,11 +25,6 @@ around: execution(static inline void *kmalloc(size_t size, gfp_t flags))
 	return ldv_kmalloc(size, flags);
 }
 
-around: execution(static inline void *kcalloc(size_t n, size_t size, gfp_t flags))
-{
-	return ldv_kcalloc(n, size, flags);
-}
-
 around: execution(static inline void *kzalloc(size_t size, gfp_t flags))
 {
 	return ldv_kzalloc(size, flags);
@@ -38,4 +33,9 @@ around: execution(static inline void *kzalloc(size_t size, gfp_t flags))
 around: execution(static inline void *kmalloc_array(size_t n, size_t size, gfp_t flags))
 {
 	return ldv_kmalloc_array(n, size, flags);
+}
+
+around: execution(static inline void *kcalloc(size_t n, size_t size, gfp_t flags))
+{
+	return ldv_kcalloc(n, size, flags);
 }

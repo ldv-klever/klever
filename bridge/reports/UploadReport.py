@@ -113,6 +113,7 @@ class UploadBaseSerializer(serializers.ModelSerializer):
         'data_not_dict': 'Dictionary expected.',
         'light_subjob': "Subjobs aren't allowed for lightweight jobs",
         'redefine': 'Trying to redefine attributes',
+        'identifier_not_unique': 'Report with provided identifier already exists'
     }
     parent = ReportParentField()
     attrs = ReportAttrsField(required=False)
@@ -124,6 +125,13 @@ class UploadBaseSerializer(serializers.ModelSerializer):
         if custom_fields:
             for field_name in set(self.fields) - set(custom_fields):
                 self.fields.pop(field_name)
+
+    def validate_identifier(self, value):
+        if not self.instance:
+            reports_model = getattr(self, 'Meta').model
+            if reports_model.objects.filter(identifier=value, decision=self.decision).exists():
+                self.fail('identifier_not_unique')
+        return value
 
     def validate_component(self, value):
         if value == SUBJOB_NAME and self.decision.is_lightweight:
@@ -351,7 +359,7 @@ class ReportUnsafeSerializer(UploadLeafBaseSerializer):
         if not isinstance(node, dict):
             self.fail('wrong_format', detail="node is not a dictionary")
         if node.get('type') not in {'function call', 'statement', 'action', 'thread'}:
-            self.fail('wrong_format', detail='unsupported node type')
+            self.fail('wrong_format', detail='unsupported node type "{}"'.format(node.get('type')))
         if node['type'] == 'function call':
             required_fields = ['line', 'file', 'source', 'children', 'display']
         elif node['type'] == 'statement':
@@ -377,13 +385,14 @@ class ReportUnsafeSerializer(UploadLeafBaseSerializer):
         archive.seek(0)
         if not isinstance(error_trace, dict):
             self.fail('wrong_format', detail='error trace is not a dictionary')
-        if 'trace' not in error_trace:
-            self.fail('wrong_format', detail='error trace does not have "trace"')
         if not isinstance(error_trace.get('files'), list):
             self.fail('wrong_format', detail='error trace does not have files or it is not a list')
-        self.__check_node(error_trace['trace'])
-        if error_trace['trace']['type'] != 'thread':
-            self.fail('wrong_format', detail='root error trace node type should be a "thread"')
+        if 'trace' not in error_trace:
+            self.fail('wrong_format', detail='error trace does not have "trace"')
+        if error_trace['trace']:
+            self.__check_node(error_trace['trace'])
+            if error_trace['trace']['type'] != 'thread':
+                self.fail('wrong_format', detail='root error trace node type should be a "thread"')
         return archive
 
     def validate(self, value):
@@ -396,25 +405,34 @@ class ReportUnsafeSerializer(UploadLeafBaseSerializer):
         fields = ('parent', 'error_trace', 'attrs')
 
 
-class UploadReport:
-    def __init__(self, decision, archives=None):
+class UploadReports:
+    def __init__(self, decision):
         self.decision = decision
-        self.archives = archives
-
+        self.archives = {}
         self._logger = ReportsLogging(self.decision.id)
+
+    def validate_archives(self, archives_list, archives):
+        for arch_name in archives_list:
+            if arch_name not in archives:
+                raise CheckArchiveError('Archive "{}" was not attached'.format(arch_name))
+            arch = archives[arch_name]
+            if not zipfile.is_zipfile(arch) or zipfile.ZipFile(arch).testzip():
+                raise CheckArchiveError('The archive "{}" is not a ZIP file'.format(arch_name))
+            arch.seek(0)
+            self.archives[arch_name] = arch
 
     def upload_all(self, reports):
         # Check that all archives are valid ZIP files
-        self.__check_archives()
         for report in reports:
             try:
                 self.__upload(report)
             except Exception as e:
+                if str(e).__contains__('report_decision_id_identifier'):
+                    logger.error('UniqueError')
+                    logger.exception(e)
                 self.__process_exception(e)
 
     def __process_exception(self, exc):
-        if isinstance(exc, CheckArchiveError):
-            raise exceptions.ValidationError(detail={'ZIP': 'Zip archive check has failed: {}'.format(exc)})
         if isinstance(exc, exceptions.ValidationError):
             err_detail = exc.detail
         else:
@@ -474,18 +492,16 @@ class UploadReport:
         # Upload report
         supported_actions[data['type']](data)
 
-    def __check_archives(self):
-        if self.archives is None:
-            self.archives = {}
-        for arch in self.archives.values():
-            if not zipfile.is_zipfile(arch) or zipfile.ZipFile(arch).testzip():
-                raise CheckArchiveError('The archive "{}" is not a ZIP file'.format(arch.name))
-
     def __get_archive(self, arch_name):
+        """
+        Get archive from attached files by name. Should be called before any DB changes.
+        :param arch_name: Archive name
+        :return: archive file pointer
+        """
         if not arch_name:
             return None
         if arch_name not in self.archives:
-            raise exceptions.ValidationError(detail={'archives': 'Archive "{}" was not attached'.format(arch_name)})
+            raise exceptions.ValidationError(detail={'archive': 'Archive "{}" was not provided'.format(arch_name)})
         self.archives[arch_name].seek(0)
         return self.archives[arch_name]
 
@@ -526,8 +542,13 @@ class UploadReport:
 
     def __create_verification_report(self, data):
         self._logger.log("SV0", data.get("identifier"))
-        data['attr_data'] = self.__upload_attrs_files(self.__get_archive(data.get('attr_data')))
         data['log'] = self.__get_archive(data.get('log'))
+
+        coverage_arch = None
+        if 'coverage' in data:
+            coverage_arch = self.__get_archive(data['coverage'])
+
+        data['attr_data'] = self.__upload_attrs_files(self.__get_archive(data.get('attr_data')))
         save_kwargs = {}
 
         # Add additional sources if provided
@@ -541,8 +562,8 @@ class UploadReport:
         self._logger.log("SV2", report.pk, report.identifier, report.parent_id)
 
         # Upload coverage for the report
-        if 'coverage' in data:
-            self.__save_coverage(report, self.__get_archive(data['coverage']))
+        if coverage_arch:
+            self.__save_coverage(report, coverage_arch)
 
         self.__update_decision_cache(
             report.component, started=True,
@@ -554,6 +575,11 @@ class UploadReport:
         self._logger.log("C0", data.get('identifier'))
         if not data.get('identifier'):
             raise exceptions.ValidationError(detail={'identifier': "Required"})
+
+        coverages = {}
+        for cov_id in data['coverage']:
+            coverages[cov_id] = self.__get_archive(data['coverage'][cov_id])
+
         if self.decision.is_lightweight:
             # Upload for Core for lightweight decisions
             report = ReportComponent.objects.get(parent=None, decision=self.decision)
@@ -572,9 +598,9 @@ class UploadReport:
                 'coverage': "The coverage can be uploaded only for reports with original sources"
             })
 
-        for cov_id in data['coverage']:
+        for cov_id, cov_arch in coverages.items():
             # Save global coverage archive
-            self.__save_coverage(report, self.__get_archive(data['coverage'][cov_id]), identifier=cov_id)
+            self.__save_coverage(report, cov_arch, identifier=cov_id)
         self._logger.log("C2", report.pk)
 
     def __patch_report_component(self, data):
@@ -686,8 +712,8 @@ class UploadReport:
     def __create_report_unknown(self, data):
         self._logger.log("UN0", data.get('parent'))
 
-        data['attr_data'] = self.__upload_attrs_files(self.__get_archive(data.get('attr_data')))
         data['problem_description'] = self.__get_archive(data['problem_description'])
+        data['attr_data'] = self.__upload_attrs_files(self.__get_archive(data.get('attr_data')))
         serializer = ReportUnknownSerializer(data=data, decision=self.decision)
         serializer.is_valid(raise_exception=True)
         report = serializer.save()
@@ -736,8 +762,8 @@ class UploadReport:
     def __create_report_unsafe(self, data):
         self._logger.log("UF0", data.get('parent'))
 
-        data['attr_data'] = self.__upload_attrs_files(self.__get_archive(data.get('attr_data')))
         data['error_trace'] = self.__get_archive(data.get('error_trace'))
+        data['attr_data'] = self.__upload_attrs_files(self.__get_archive(data.get('attr_data')))
         serializer = ReportUnsafeSerializer(data=data, decision=self.decision)
         serializer.is_valid(raise_exception=True)
         report = serializer.save()

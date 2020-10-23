@@ -510,6 +510,13 @@ window.update_action_button = function(btn_obj, disable=false) {
     }
 };
 
+window.is_mac = function () {
+    let userAgent = navigator.userAgent;
+    let edge = /Edge\/(\d+)/.exec(userAgent)
+    let ios = !edge && /AppleWebKit/.test(userAgent) && /Mobile\/\w+/.test(userAgent)
+    return ios || /Mac/.test(navigator.platform)
+}
+
 $(document).ready(function () {
     $('.browse').popup({
         inline: true,

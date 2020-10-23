@@ -7,11 +7,11 @@
         {"-setprop": "counterexample.export.exportExtendedWitness=true"},
         {"-setprop": "counterexample.export.compressWitness=false"},
         {"-setprop": "cpa.arg.witness.removeInsufficientEdges=false"},
-        {"-setprop": "output.disable=true"},
+        {"-noout": ""},
         {"-heap": "%ldv:memory size:0.8:MB%m"}
       ],
       "architecture dependant options": {
-        "x86-64": {"add options": [{"-setprop": "analysis.machineModel=LINUX64"}]},
+        "x86-64": {"add options": [{"-64": ""}]},
         "ARM": {"add options": [{"-setprop": "analysis.machineModel=ARM"}]}
       }
     },
@@ -103,6 +103,11 @@
       "description": "CPAchecker for checking races with powerful theory",
       "inherit": "CPALockator races",
       "add options": [{"-lockator-threadmodular-linux": ""}]
+    },
+    "CPALockator rcu": {
+      "description": "CPAchecker for checking races over rcu pointers",
+      "inherit": "CPALockator races",
+      "add options": [{"-rcucpa": ""}]
     }
   },
   "profiles": {
@@ -128,10 +133,13 @@
       "CPAchecker": {"trunk:31140": {"inherit": "CPAchecker BAM BusyBox"}}
     },
     "race checking lightweight": {
-      "CPAchecker": {"CPALockator-combat-mode:34381": {"inherit": "CPALockator lightweight"}}
+      "CPAchecker": {"CPALockator-combat-mode:34860": {"inherit": "CPALockator lightweight"}}
     },
     "race checking": {
-      "CPAchecker": {"CPALockator-combat-mode:34381": {"inherit": "CPALockator thread-modular"}}
+      "CPAchecker": {"CPALockator-combat-mode:34860": {"inherit": "CPALockator thread-modular"}}
+    },
+    "race checking rcu": {
+      "CPAchecker": {"CPALockator-combat-mode:34860": {"inherit": "CPALockator rcu"}}
     },
     "memory checking": {
       "CPAchecker": {"trunk:31140": {"inherit": "CPAchecker SMG memory checking"}}

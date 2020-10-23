@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-#ifndef __VERIFIER_COMMON_H
-#define __VERIFIER_COMMON_H
+#ifndef __LDV_VERIFIER_COMMON_H
+#define __LDV_VERIFIER_COMMON_H
 
 /* https://sv-comp.sosy-lab.org/2017/rules.php */
 void __VERIFIER_error(void);
@@ -34,4 +34,4 @@ extern void ldv_error(void);
  * nonzero. */
 #define ldv_assume(expr) __VERIFIER_assume(expr)
 
-#endif /* __VERIFIER_COMMON_H */
+#endif /* __LDV_VERIFIER_COMMON_H */

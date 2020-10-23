@@ -529,11 +529,9 @@ def report(logger, kind, report_data, mq, report_id, main_work_dir, report_dir='
         elif isinstance(elem, ArchiveFiles):
             logger.debug('{0} going to pack report files to archive'.format(kind.capitalize()))
 
-            fp, archive = tempfile.mkstemp(prefix='{0}-'.format(cur_report_id), suffix='.zip',
-                                           dir=os.path.join(main_work_dir, 'reports'))
+            archive = tempfile.mktemp(prefix='{0}-'.format(cur_report_id), suffix='.zip',
+                                      dir=os.path.join(main_work_dir, 'reports'))
             elem.make_archive(archive)
-            os.close(fp)
-
             archives.append(elem.archive)
 
             # Create symlink to report files archive in current working directory.
@@ -735,4 +733,10 @@ def get_file_checksum(file_name):
         for chunk in iter(lambda: fp.read(4096), b""):
             hash_sha256.update(chunk)
 
+    return hash_sha256.hexdigest()
+
+
+def get_file_name_checksum(file_name):
+    hash_sha256 = hashlib.sha256()
+    hash_sha256.update(file_name.encode('utf-8'))
     return hash_sha256.hexdigest()

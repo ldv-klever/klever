@@ -483,7 +483,7 @@ class TestReports(KleverTestCase):
         report = ReportComponent.objects.exclude(root__job_id=self.job.pk, verifier_files='').first()
         self.assertIsNotNone(report)
 
-        response = self.client.post(reverse('jobs:download_file_for_compet', args=[self.job.pk]),
+        response = self.client.post(reverse('jobs:download_verifier_input_files', args=[self.job.pk]),
                                     {'filters': json.dumps(['u', 's'])})
         self.assertEqual(response.status_code, 200)
         self.assertIn(response['Content-Type'], {'application/x-zip-compressed', 'application/zip'})

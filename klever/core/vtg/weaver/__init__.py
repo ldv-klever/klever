@@ -15,8 +15,8 @@
 # limitations under the License.
 #
 
-import glob
 import fileinput
+import glob
 import json
 import os
 import shutil
@@ -80,10 +80,10 @@ class Weaver(klever.core.vtg.plugins.Plugin):
                     infile = cc["in"][0]
 
                 # Distinguish source files having the same names.
-                outfile_unique = '{0}.c'.format(
-                    klever.core.utils.unique_file_name(os.path.splitext(os.path.basename(infile))[0], '.c'))
+                outfile_unique = '{0}.i'.format(
+                    klever.core.utils.unique_file_name(os.path.splitext(os.path.basename(infile))[0], '.i'))
                 # This is used for storing/getting to/from cache where uniqueness is guaranteed by other means.
-                outfile = '{0}.c'.format(os.path.splitext(os.path.basename(infile))[0])
+                outfile = '{0}.i'.format(os.path.splitext(os.path.basename(infile))[0])
                 self.logger.info('Weave in C file "{0}"'.format(infile))
 
                 # Produce aspect to be weaved in.
@@ -140,7 +140,7 @@ class Weaver(klever.core.vtg.plugins.Plugin):
                 # For non-generated models use results cache in addition.
                 else:
                     cache_dir = os.path.join(self.conf['cache directory'],
-                                             klever.core.utils.get_file_checksum(infile))
+                                             klever.core.utils.get_file_name_checksum(infile))
                     with klever.core.utils.LockedOpen(cache_dir + '.tmp', 'w'):
                         if os.path.exists(cache_dir):
                             self.logger.info('Get woven in C file from cache')
@@ -230,7 +230,7 @@ class Weaver(klever.core.vtg.plugins.Plugin):
                 ] +
                 (['--keep'] if self.conf['keep intermediate files'] else []) +
                 (['--aspect', os.path.realpath(aspect)] if aspect else ['--stage', 'C-backend']) +
-                ['--', '-include', 'ldv/common.h'] +
+                ['--', '-include', 'ldv/common/inline_asm.h'] +
                 klever.core.vtg.utils.prepare_cif_opts(opts, clade, is_model) +
                 [aspectator_search_dir] +
                 ['-I' + clade.get_storage_path(p) for p in self.conf['working source trees']]

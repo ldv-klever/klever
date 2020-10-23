@@ -425,9 +425,11 @@ FilesTree.prototype.initialize = function (data) {
     });
 
     // Init files editor window
+    let commit_file_key = is_mac() ? 'Cmd-S' : 'Ctrl-S';
     instance.mirror = CodeMirror(function (elt) { instance.editor_display.append(elt) }, {
         mode: {name: "javascript", json: true}, theme: "midnight", lineNumbers: true,
-        readOnly: true, extraKeys: {'Ctrl-S': function () { instance.commit_file(); }}
+        readOnly: true, extraKeys: {
+            [commit_file_key]: function () { instance.commit_file(); }}
     });
     instance.mirror.setSize('100%', '85vh');
     instance.mirror.on('change', function (doc, changeObj) {

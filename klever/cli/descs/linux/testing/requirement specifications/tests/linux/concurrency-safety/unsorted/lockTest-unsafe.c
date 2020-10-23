@@ -22,6 +22,7 @@
 #include <ldv/verifier/thread.h>
 
 extern int *ldv_list_get_first(int *arg);
+void* calloc( size_t number, size_t size );
 
 static DEFINE_MUTEX(ldv_lock);
 static DEFINE_MUTEX(ldv_lock2);
@@ -31,7 +32,6 @@ static struct ldv_struct {
 	int b;
 } *_ldv_var;
 static int t, p;
-static struct testStruct *s1;
 
 /* Check disjoint sets. */
 static int ldv_func(int a)
@@ -51,9 +51,8 @@ static int ldv_func(int a)
 
 static void *ldv_main(void *arg)
 {
-	int a;
 	int q = 1;
-	int *temp;
+	int *temp = calloc(1, sizeof(int));
 	int *temp2;
 	
 	ldv_func(0);

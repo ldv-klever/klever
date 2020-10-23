@@ -16,8 +16,8 @@
  */
 
 #include <linux/module.h>
+#include <ldv/common/test.h>
 #include <ldv/linux/common.h>
-#include <ldv/test.h>
 
 void ldv_check_final_state(void)
 {

@@ -1,0 +1,72 @@
+/*
+ * Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+ * Ivannikov Institute for System Programming of the Russian Academy of Sciences
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+before: file ("$this")
+{
+
+extern void ldv_rlock_rcu(void);
+extern void ldv_runlock_rcu(void);
+extern void ldv_wlock_rcu(void);
+extern void ldv_wunlock_rcu(void);
+
+extern void ldv_rcu_read_lock(void);
+extern void ldv_rcu_read_unlock(void);
+extern void * ldv_rcu_dereference(const void * gp);
+extern void ldv_rcu_assign_pointer(void * gp, const void * p);
+extern void ldv_synchronize_rcu(void);
+extern void ldv_free(void * ptr);
+}
+
+around: define(rcu_dereference(gp))
+{
+	((typeof(gp)) ({
+		void * p;
+		ldv_rlock_rcu(); 
+		p = ldv_rcu_dereference(gp);
+		ldv_runlock_rcu();
+		p;}))
+}
+
+around: define(rcu_assign_pointer(gp, p))
+{
+	do {
+		ldv_wlock_rcu();
+		ldv_rcu_assign_pointer(gp, p);
+		ldv_wunlock_rcu();
+	} while(0)
+}
+
+around: call(static inline void rcu_read_lock(void))
+{
+	ldv_rcu_read_lock();
+}
+
+around: call(static inline void rcu_read_unlock(void))
+{
+	ldv_rcu_read_unlock();
+}
+
+around: call(void synchronize_rcu(void))
+        || call(static inline void synchronize_rcu(void))
+{
+	ldv_synchronize_rcu();
+}
+
+around: call(void free(..))
+{
+	ldv_free($arg1);
+}

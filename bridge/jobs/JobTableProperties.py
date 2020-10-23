@@ -34,8 +34,8 @@ from jobs.models import UserRole, PresetJob, Job, Decision
 from reports.models import ReportComponent, DecisionCache
 from caches.models import ReportSafeCache, ReportUnsafeCache, ReportUnknownCache
 
-from users.utils import HumanizedValue
-from reports.verdicts import SafeColumns, UnsafeColumns
+from users.utils import HumanizedValue, JOB_TREE_VIEW
+from jobs.utils import SafeColumns, UnsafeColumns
 from service.serializers import ProgressSerializerRO
 
 
@@ -109,6 +109,26 @@ def cell_value(value, url=None):
     return {'text': '-' if value is None else str(value)}
 
 
+def get_jobs_order(view):
+    qs_order = ('id',)
+    if 'jobs_order' in view and len(view['jobs_order']) == 2 and view['jobs_order'][1]:
+        order_value = view['jobs_order'][1]
+        if view['jobs_order'][0] == 'up':
+            order_value = '-' + order_value
+        qs_order = (order_value, 'id')
+    return qs_order
+
+
+def get_decisions_order(view):
+    qs_order = ('id',)
+    if 'decisions_order' in view and len(view['decisions_order']) == 2 and view['decisions_order'][1]:
+        order_value = view['decisions_order'][1]
+        if view['decisions_order'][0] == 'up':
+            order_value = '-' + order_value
+        qs_order = (order_value, 'id')
+    return qs_order
+
+
 def jobs_view_queryset(view, qs_filter=None):
     if qs_filter is None:
         qs_filter = Q()
@@ -135,13 +155,7 @@ def jobs_view_queryset(view, qs_filter=None):
         qs_filter &= (Q(author=view.user) | ~Q(global_role=JOB_ROLES[0][0]) | Q(id__in=custom_access_ids))
 
     # Get queryset order
-    qs_order = ('id',)
-    if 'jobs_order' in view and len(view['jobs_order']) == 2 and view['jobs_order'][1]:
-        order_value = view['jobs_order'][1]
-        if view['jobs_order'][0] == 'up':
-            order_value = '-' + order_value
-        qs_order = (order_value, 'id')
-
+    qs_order = get_jobs_order(view)
     return Job.objects.filter(qs_filter).select_related('author').order_by(*qs_order)
 
 
@@ -203,12 +217,7 @@ def decisions_view_queryset(view, qs_filter=None):
         qs_filter &= Q(weight__in=view['weight'])
 
     # Get queryset order
-    qs_order = ('id',)
-    if 'decisions_order' in view and len(view['decisions_order']) == 2 and view['decisions_order'][1]:
-        order_value = view['decisions_order'][1]
-        if view['decisions_order'][0] == 'up':
-            order_value = '-' + order_value
-        qs_order = (order_value, 'id')
+    qs_order = get_decisions_order(view)
 
     return Decision.objects.filter(qs_filter).select_related('operator', 'job').order_by(*qs_order)
 
@@ -296,7 +305,11 @@ class PresetChildrenTree:
 
     def __get_jobs_queryset(self):
         qs_filter = Q(preset_id=self._preset_job.id) | Q(preset__parent_id=self._preset_job.id)
-        return Job.objects.filter(qs_filter).order_by('name').only('id', 'name', 'preset_id')
+
+        # Get queryset order from default jobs tree view
+        qs_order = get_jobs_order(JOB_TREE_VIEW)
+
+        return Job.objects.filter(qs_filter).order_by(*qs_order).only('id', 'name', 'preset_id')
 
     def __get_job_value(self, job):
         return {'name': job.name, 'url': reverse('jobs:job', args=[job.id])}

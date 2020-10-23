@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 
+#include <ldv/common/list.h>
 #include <linux/device.h>
 #include <linux/types.h>
 #include <ldv/linux/device.h>
 #include <ldv/verifier/memory.h>
-#include <ldv/verifier/memlist.h>
 #include <ldv/verifier/nondet.h>
 
 struct device_private {
@@ -43,7 +43,7 @@ void *ldv_dev_get_drvdata(const struct device *dev)
 int ldv_dev_set_drvdata(struct device *dev, void *data)
 {
 	dev->p = ldv_xzalloc(sizeof(*dev->p));
-	ldv_save_pointer(dev->p);
+	ldv_save_allocated_memory_to_list(dev->p);
 	dev->p->driver_data = data;
 
 	return 0;

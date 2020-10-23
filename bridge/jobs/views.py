@@ -16,7 +16,6 @@
 #
 
 import json
-import os
 
 from urllib.parse import unquote
 
@@ -40,11 +39,12 @@ from users.models import User
 from jobs.models import Job, JobFile, UploadedJobArchive, PresetJob, FileSystem, UserRole
 from service.models import Decision
 
+from users.utils import JOB_TREE_VIEW
 from jobs.configuration import StartDecisionData
 from jobs.Download import (
     get_jobs_to_download, JobFileGenerator, DecisionConfGenerator, JobArchiveGenerator, JobsArchivesGen
 )
-from jobs.JobTableProperties import JobsTreeTable, PresetChildrenTree
+from jobs.JobTableProperties import get_decisions_order, JobsTreeTable, PresetChildrenTree
 from jobs.preset import get_preset_dir_list, preset_job_files_tree_json
 from jobs.utils import (
     months_choices, years_choices, is_preset_changed, get_roles_form_data, get_core_link,
@@ -52,7 +52,7 @@ from jobs.utils import (
 )
 from jobs.ViewJobData import ViewJobData
 from reports.coverage import DecisionCoverageStatistics
-from reports.utils import FilesForCompetitionArchive
+from reports.utils import VerifierFilesArchive
 from service.serializers import ProgressSerializerRO
 
 
@@ -162,8 +162,10 @@ class JobPage(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, DetailView):
         context['user_roles'] = UserRole.objects.filter(job=self.object).select_related('user')\
             .order_by('user__first_name', 'user__last_name', 'user__username')
         context['preset_changed'] = is_preset_changed(self.object)
+
+        qs_order = get_decisions_order(JOB_TREE_VIEW)
         context['decisions'] = Decision.objects.filter(job=self.object).exclude(status=DECISION_STATUS[0][0])\
-            .select_related('configuration').order_by('-start_date')
+            .select_related('configuration').order_by(*qs_order)
         return context
 
 
@@ -332,7 +334,7 @@ class JobsUploadingStatus(LoginRequiredMixin, LoggedCallMixin, ListView):
         return UploadedJobArchive.objects.filter(author=self.request.user).select_related('job').order_by('-start_date')
 
 
-class DownloadFilesForCompetition(LoginRequiredMixin, LoggedCallMixin, SingleObjectMixin, StreamingResponseView):
+class DownloadVerifierFiles(LoginRequiredMixin, LoggedCallMixin, SingleObjectMixin, StreamingResponseView):
     model = Decision
 
     def get_generator(self):
@@ -341,7 +343,7 @@ class DownloadFilesForCompetition(LoginRequiredMixin, LoggedCallMixin, SingleObj
             raise BridgeException(code=400)
         if 'filters' not in self.request.GET:
             raise BridgeException()
-        return FilesForCompetitionArchive(decision, json.loads(self.request.GET['filters']))
+        return VerifierFilesArchive(decision, json.loads(self.request.GET['filters']))
 
 
 class DecisionProgress(LoginRequiredMixin, LoggedCallMixin, DetailView):

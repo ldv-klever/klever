@@ -21,10 +21,8 @@ common_target_program_descs = {
         'git repository version': 'v3.14.79',
         'configuration': 'allmodconfig',
         'architecture': 'x86_64',
-        'model CC options file': 'scripts/mod/empty.c',
         'external modules header files search directory': os.path.join(os.path.dirname(__file__), 'include'),
         'loadable kernel modules': ['all'],
-        'allow local source trees use': True,
         'generate makefiles': True,
         'extra headers': [
             'linux/user_namespace.h',
@@ -59,16 +57,16 @@ common_target_program_descs = {
             'target/target_core_backend.h',
             'linux/spi/spi.h',
             'linux/fb.h',
-            'linux/firmware.h'
+            'linux/firmware.h',
+            'media/v4l2-common.h',
+            'media/v4l2-device.h'
         ]
     },
     "BusyBox": {
         'source code': 'busybox',
         'git repository version': '1_30_1',
         'configuration': 'defconfig',
-        'architecture': 'x86_64',
-        'model CC options file': 'applets/applets.c',
-        'allow local source trees use': True
+        'architecture': 'x86_64'
     }
 }
 

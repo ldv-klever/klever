@@ -18,8 +18,8 @@
 #include <linux/module.h>
 #include <linux/usb.h>
 #include <linux/netdevice.h>
+#include <ldv/common/test.h>
 #include <ldv/linux/common.h>
-#include <ldv/test.h>
 
 static bool ldv_is_initialized = false;
 static bool ldv_is_failed_usb_register_driver = false;

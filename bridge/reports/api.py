@@ -43,7 +43,7 @@ from reports.comparison import FillComparisonCache, ComparisonData
 from reports.coverage import GetCoverageData, ReportCoverageStatistics
 from reports.serializers import OriginalSourcesSerializer
 from reports.source import GetSource
-from reports.UploadReport import UploadReport, CheckArchiveError
+from reports.UploadReport import UploadReports, CheckArchiveError
 
 
 class FillComparisonView(LoggedCallMixin, APIView):
@@ -109,34 +109,25 @@ class UploadReportView(LoggedCallMixin, APIView):
         if decision.status != DECISION_STATUS[2][0]:
             raise exceptions.APIException('Reports can be uploaded only for processing decisions')
 
-        if 'report' in request.POST:
-            data = [json.loads(request.POST['report'])]
-        elif 'reports' in request.POST:
-            data = json.loads(request.POST['reports'])
-        else:
-            raise exceptions.APIException('Report json data is required')
-        try:
-            UploadReport(decision, request.FILES).upload_all(data)
-        except CheckArchiveError as e:
-            return Response({'ZIP error': str(e)}, status=HTTP_403_FORBIDDEN)
+        reports_uploader = UploadReports(decision)
+        if 'archives' in request.POST:
+            try:
+                reports_uploader.validate_archives(json.loads(request.POST['archives']), request.FILES)
+            except CheckArchiveError as e:
+                return Response({'ZIP error': str(e)}, status=HTTP_403_FORBIDDEN)
+        reports_uploader.upload_all(json.loads(request.POST['reports']))
         return Response({})
 
 
-class GetSourceCodeView(LoggedCallMixin, TemplateAPIRetrieveView):
-    template_name = 'reports/SourceCode.html'
+class GetSourceCodeView(LoggedCallMixin, APIView):
     permission_classes = (IsAuthenticated,)
-    queryset = Report.objects.only('id')
-    lookup_url_kwarg = 'report_id'
 
-    def get_context_data(self, instance, **kwargs):
+    def get(self, request, report_id):
         if 'file_name' not in self.request.query_params:
             raise exceptions.APIException('File name was not provided')
-        context = super().get_context_data(instance, **kwargs)
-        context['data'] = GetSource(
-            self.request.user, instance, self.request.query_params['file_name'],
-            self.request.query_params.get('coverage_id'), self.request.query_params.get('with_legend')
-        )
-        return context
+        report = get_object_or_404(Report.objects.only('id'), id=report_id)
+        source_collector = GetSource(self.request, report)
+        return HttpResponse(source_collector.get_html())
 
 
 class ClearVerificationFilesView(LoggedCallMixin, DestroyAPIView):

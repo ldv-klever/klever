@@ -123,7 +123,7 @@ This branch will start from a commit corresponding to the given release.
 It can contain just bug fixes relevant to an existing functionality and not to a new one which is supported within a
 corresponding merge window.
 
-Updating list of required Python packages
+Updating List of Required Python Packages
 -----------------------------------------
 
 To update the list of required Python packages first you need to install Klever package from scratch in the newly
@@ -148,6 +148,105 @@ Deployment for Development Purposes
 
 To deploy Klever for development purposes in addition to using mode *development* (see :ref:`local_deploy`) one needs
 to specify command-line option *--allow-symbolic-links*.
+
+How to generate build bases for testing Klever
+----------------------------------------------
+
+To generate build bases for testing Klever you need to perform following preliminary steps:
+
+#. Install Klever locally for development purposes according to the user documentation (see :ref:`dev_deploy`).
+#. Create a dedicated directory for sources and build bases and move to it.
+   Note that there should be quite much free space.
+   We recommend at least 100 GB.
+   In addition, it would be best of all if you will name this directory "build bases" and create it within the root of
+   the Klever Git repository (this directory is not tracked by the repository).
+#. Clone a Linux kernel stable Git repository to *linux-stable* (scripts prepare build bases for different versions of
+   the Linux kernel for which the Git repository serves best of all), e.g.::
+
+    $ git clone https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/ linux-stable
+
+   You can use alternative sources of the Git repository, if the above one is not working well and fast enough:
+
+   #. https://kernel.googlesource.com/pub/scm/linux/kernel/git/stable/linux-stable
+   #. https://github.com/gregkh/linux
+
+#. Make CIF executables to be available through the PATH environment variable, e.g.::
+
+    $ export PATH=$KLEVER_DEPLOY_DIR/klever-addons/CIF/bin/:$PATH
+
+   where the KLEVER_DEPLOY_DIR environment variable is explained at :term:`$KLEVER_DEPLOY_DIR`.
+
+#. Read notes regarding the compiler after the end of this list.
+#. Run the following command to find out available descriptions of build bases for testing Klever::
+
+    $ klever-build -l
+
+#. Select appropriate build bases descriptions and run the command like below::
+
+    $ klever-build "linux/testing/requirement specifications" "linux/testing/common models"
+
+#. Wait for a while.
+   Prepared build bases will be available within directory "build bases".
+   Note that there will be additional identifiers, e.g. "build bases/linux/testing/6e6e1c".
+   These identifiers are already specified within corresponding preset verification jobs.
+#. You can install prepared build bases using deployment scripts, but it is boring.
+   If you did not follow an advice regarding the name and the place of the dedicated directory from item 2, you can
+   create a symbolic link with name "build bases" that points to the dedicated directory within the root of the Klever
+   Git repository.
+
+Providing an appropriate compiler
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Most of build bases for testing Klever could be built using GCC 4.8 on Debian or Ubuntu.
+Otherwise there is an explicit division of build bases descriptions, e.g.:
+
+* linux/testing/environment model specifications/gcc48
+* linux/testing/environment model specifications/gcc63
+
+(the former requires GCC 4.8 while the latter needs GCC 6.3 at least).
+
+That's why you may need to get GCC 4.8 and make it available through PATH.
+Users of some other Linux distributions, e.g. openSUSE 15.1, can leverage the default compiler for building all build
+bases for testing Klever.
+
+The simplest way to get GCC 4.8 on Ubuntu is to execute the following commands::
+
+    $ sudo apt update
+    $ sudo apt install gcc-4.8
+    $ sudo update-alternatives --config gcc
+
+(after executing the last command you need to select GCC 4.8; do not forget to make v.v. after preparing build bases!)
+
+Generating Bare CPAchecker Benchmarks
+-------------------------------------
+
+Development of Klever and development of CPAchecker are not strongly coupled.
+Thus, verification tasks that are used for testing/validation of Klever including different versions and configurations
+of CPAchecker as back-ends may be useful to track regressions of new versions of CPAchecker.
+This should considerably simplify updating CPAchecker within Klever (this process usually involves a lot of various
+activities both in Klever and in CPAchecker; these activities can take enormous time to be completed that complicates
+and postpones updates considerably).
+In addition, this is yet another test suite for CPAchecker.
+In contrast to other test suites this one likely corresponds to the most industry close use cases.
+
+One can (re-)generate bare CPAchecker benchmarks almost automatically.
+To do this it is recommended to follow next steps:
+
+#. Clone https://gitlab.com/sosy-lab/software/ldv-klever-benchmarks.git or
+   git@gitlab.com:sosy-lab/software/ldv-klever-benchmarks.git once.
+#. After some changes within Klever specifications, configurations and test cases you need to solve appropriate
+   verification jobs.
+   To avoid some non-determinism it is better to use the same machine, e.g. LDV Dev, to do this.
+   Though particular verification jobs to be solved depend on changes made, in ideal, it is much easier to consider all
+   verification jobs at once to avoid any tricky interdependencies (even slight improvements or fixes of some
+   specifications may result in dramatic and unexpected changes in some verification results).
+#. Download archives with verifier input files for each solved verification jobs to the root directory of the cloned
+   repository.
+#. Run "python3 make-benchs.py" there.
+#. Estimate changes in benchmarks and verification tasks (there is not any formal guidance).
+   If you agree with these changes, then you need to commit them and to push to the remote.
+   After that one may expect that new commits to trunk of the CPAchecker repository will be checked for regressions
+   against an updated test suite.
 
 Using PyCharm IDE
 -----------------

@@ -16,10 +16,12 @@
 #
 
 from celery import shared_task
+from datetime import timedelta
+
+from django.utils.timezone import now
 
 from bridge.utils import BridgeException
-
-from reports.models import CoverageArchive
+from reports.models import CoverageArchive, SourceCodeCache
 from reports.coverage import FillCoverageStatistics
 
 
@@ -34,3 +36,8 @@ def fill_coverage_statistics(carch_id):
     carch.total = res.total_coverage
     carch.has_extra = res.has_extra
     carch.save()
+
+
+@shared_task
+def clear_old_source_code_cache(hours):
+    SourceCodeCache.objects.filter(access_date__lt=now() - timedelta(hours=hours)).delete()
