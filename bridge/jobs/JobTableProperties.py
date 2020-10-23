@@ -35,7 +35,7 @@ from reports.models import ReportComponent, DecisionCache
 from caches.models import ReportSafeCache, ReportUnsafeCache, ReportUnknownCache
 
 from users.utils import HumanizedValue, JOB_TREE_VIEW
-from jobs.utils import SafeColumns, UnsafeColumns
+from reports.verdicts import SafeColumns, UnsafeColumns
 from service.serializers import ProgressSerializerRO
 
 
