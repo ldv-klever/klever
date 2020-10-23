@@ -92,8 +92,6 @@ class PresetJobPage(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, DetailVi
 
     def get_context_data(self, **kwargs):
         context = super(PresetJobPage, self).get_context_data(**kwargs)
-        if self.object.type != PRESET_JOB_TYPE[1][0]:
-            raise Http404
         context.update({
             'can_create': self.request.user.can_create_jobs,
             'parents': self.object.get_ancestors(),

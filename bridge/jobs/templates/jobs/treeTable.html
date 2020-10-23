@@ -36,11 +36,7 @@
                         {% endif %}
                     </td> {# Checkbox column #}
                     <td class="collapsing bold-text">
-                        {% if preset_data.instance.type == '1' %}
-                            <a href="{% url 'jobs:preset' preset_data.instance.id %}">{{ preset_data.instance.name }}</a>
-                        {% else %}
-                            <span>{{ preset_data.instance.name }}</span>
-                        {% endif %}
+                        <a href="{% url 'jobs:preset' preset_data.instance.id %}">{{ preset_data.instance.name }}</a>
                         {% if can_create and preset_data.instance.type != '0' %}
                             <span>
                                 {% if preset_data.instance.type == '1' %}

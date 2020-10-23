@@ -15,7 +15,6 @@
 # limitations under the License.
 #
 
-from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _, pgettext_lazy as __
 
 ETV_FORMAT = 1

@@ -320,7 +320,7 @@ class PresetChildrenTree:
             if job.preset_id != preset.id:
                 continue
             jobs_list.append(self.__get_job_value(job))
-        return {'name': preset.name, 'children': jobs_list}
+        return {'name': preset.name, 'children': jobs_list, 'url': reverse('jobs:preset', args=[preset.id])}
 
     def __get_jobs_tree(self):
         jobs_tree = []
