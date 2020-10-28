@@ -10,12 +10,16 @@
                 "genericFunctions": {
                   "infinite calls sequence": false,
                   "initialize strings as null terminated": false,
+                  "process per call": true,
                   "functions to call": ["OsMain", "SysTyme", "ConsoleSendTask", "OsArmA32SyscallHandle", "OsResourceRecoveryTask", "OsSwtmrTask", "SysAccept", "SysAccess", "SysBind", "SysBrk", "SysChdir", "SysChmod", "SysChown", "SysClose", "SysConnect"]
                 }
               }
             ],
             "translation options": {
-              "entry point": "ldv_main",
+              "self parallel processes": false,
+              "do not skip signals": true,
+              "direct control functions calls": false,
+              "allocate external": false,
               "environment model file": "environment_model.c",
               "additional headers": [
                 "stddef.h",
