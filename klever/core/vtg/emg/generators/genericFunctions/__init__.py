@@ -20,7 +20,8 @@ import sortedcontainers
 
 from klever.core.vtg.emg.common import get_or_die
 from klever.core.vtg.emg.common.c.types import Pointer
-from klever.core.vtg.emg.common.process import Process
+from klever.core.vtg.emg.common.process import Process, Receive, Dispatch
+from klever.core.vtg.emg.common.process.parser import parse_process
 from klever.core.vtg.emg.common.c import Function, Variable
 from klever.core.vtg.emg.generators.abstract import AbstractGenerator
 
@@ -92,12 +93,102 @@ class ScenarioModelgenerator(AbstractGenerator):
 
         # Genrate scenario
         self.logger.info('Generate main scenario')
-        new = self.__generate_calls(functions_collection)
-        collection.entry = new
+        if self.conf.get("process per call"):
+            processes, main_process = self.__generate_separate_processes(functions_collection)
+            collection.environment.update(processes)
+            collection.entry = main_process
+            collection.establish_peers()
+        else:
+            collection.entry = self.__generate_calls_together(functions_collection)
 
         return {}
 
-    def __generate_calls(self, functions_collection):
+    def __generate_separate_processes(self, functions_collection):
+        """
+        Generate the main process and child processes. The main process registers child processes and
+        each of which calls a separate function. This would allow to spawn a thread per process.
+
+        :param functions_collection: Dictionary: function name -> a list of Function obects.
+        :return: name -> child Process, main Process object.
+        """
+        processes = dict()
+
+        # Make a process
+        main_process = Process("main", "main")
+        main_process.comment = "Main entry point."
+        main_process.self_parallelism = False
+
+        # Split and get identifiers and processes
+        reg_list = []
+        dereg_list = []
+        for identifier, pair in enumerate(((func, obj) for func in functions_collection
+                                           for obj in functions_collection[func])):
+            func, obj = pair
+            self.logger.info("Call function {!r} from {!r}".format(func, obj.definition_file))
+            decl = obj.declaration.to_string(func, typedef='none', scope={obj.definition_file})
+            self.logger.debug(f"Function has the signature: {decl}")
+            child_process = self.__generate_process(obj, identifier)
+            processes[str(child_process)] = child_process
+
+            reg_name = self.__reg_name(identifier)
+            reg_list.append(f"[{reg_name}]")
+
+            dereg_name = self.__dereg_name(identifier)
+            dereg_list.insert(0, f"[{dereg_name}]")
+
+        process = ".".join(reg_list + dereg_list)
+        parse_process(main_process, process)
+
+        # Now establish peers
+        for child in processes.values():
+            child.establish_peers(main_process)
+
+        return processes, main_process
+
+    def __generate_process(self, func_obj, identifier):
+        """
+        Generate a separte process with a function call.
+
+        :param func_obj: Function object.
+        :param identifier: Identifier of the function.
+        :return: a new Process object.
+        """
+        child_proc = Process(f"{func_obj.name}_{identifier}", "manual")
+        child_proc.comment = "Call fucntion {!r}.".format(func_obj.name)
+        child_proc.self_parallelism = False
+
+        # Make register action
+        reg_name = self.__reg_name(identifier)
+
+        # Make deregister action
+        dereg_name = self.__dereg_name(identifier)
+
+        # Make actions string
+        process = f"(!{str(reg_name)}).<call>.({str(dereg_name)})"
+
+        # Populate actions
+        parse_process(child_proc, process)
+
+        # Set up Call action
+        call = child_proc.actions['call']
+        call.statements = [self.__generate_call(child_proc, func_obj.name, func_obj, identifier)]
+        call.comment = f"Call the function {func_obj.name}."
+
+        return child_proc
+
+    def __reg_name(self, identifier):
+        return f"register_{identifier}"
+
+    def __dereg_name(self, identifier):
+        return f"deregister_{identifier}"
+
+    def __generate_calls_together(self, functions_collection):
+        """
+        Generate a single process with a large switch for all given functions.
+
+        :param functions_collection: dictionary from functions to lists of Function objects.
+        :return: Main process
+        """
         def indented_line(t, s):
             return (t * "\t") + s
 
@@ -152,25 +243,34 @@ class ScenarioModelgenerator(AbstractGenerator):
 
         return ep
 
-    def __generate_call(self, ep, func, obj, identifier):
+    def __generate_call(self, process, func_name, func_obj, identifier):
+        """
+        Generate a C code to call a particular function.
+
+        :param process: Process object to add definitions and declarations.
+        :param func_name: Function name.
+        :param func_obj: Function object.
+        :param identifier: Numerical identifier.
+        :return: List of C statements
+        """
         # Add declaration of caller
-        caller_func = Function("emg_{}_caller_{}".format(func, identifier), "void a(void)")
-        ep.add_declaration("environment model", caller_func.name, caller_func.declare(True)[0])
+        caller_func = Function("emg_{}_caller_{}".format(func_name, identifier), "void a(void)")
+        process.add_declaration("environment model", caller_func.name, caller_func.declare(True)[0])
         expression = ""
         body = []
         initializations = []
 
         # Check retval and cast to void call
-        if obj.declaration.return_value and obj.declaration.return_value != 'void':
+        if func_obj.declaration.return_value and func_obj.declaration.return_value != 'void':
             expression += "(void) "
 
         # Get arguments and allocate memory for them
         args = []
         free_args = []
-        for index, arg in enumerate(obj.declaration.parameters):
+        for index, arg in enumerate(func_obj.declaration.parameters):
             if not isinstance(arg, str):
                 argvar = Variable("emg_arg_{}".format(index), arg)
-                body.append(argvar.declare() + ";")
+                body.append(argvar.declare(scope={func_obj.definition_file}) + ";")
                 args.append(argvar.name)
                 if isinstance(arg, Pointer):
                     elements = self.conf.get("initialize strings as null terminated")
@@ -209,7 +309,7 @@ class ScenarioModelgenerator(AbstractGenerator):
                         initializations.append("{} = {}".format(argvar.name, value))
 
         # Generate call
-        expression += "{}({});".format(func, ", ".join(args))
+        expression += "{}({});".format(func_name, ", ".join(args))
 
         # Generate function body
         body += initializations + [expression]
@@ -221,7 +321,7 @@ class ScenarioModelgenerator(AbstractGenerator):
         caller_func.body = body
 
         # Add definition of caller
-        ep.add_definition(obj.definition_file, caller_func.name, caller_func.define() + ["\n"])
+        process.add_definition(func_obj.definition_file, caller_func.name, caller_func.define() + ["\n"])
 
         # Return call expression
         return "{}();".format(caller_func.name)
