@@ -22,6 +22,7 @@
               "allocate external": false,
               "environment model file": "environment_model.c",
               "additional headers": [
+                "pthread.h",
                 "stddef.h",
                 "ldv/verifier/common.h",
                 "ldv/verifier/nondet.h"
