@@ -24,7 +24,8 @@
               "additional headers": [
                 "stddef.h",
                 "ldv/verifier/common.h",
-                "ldv/verifier/nondet.h"
+                "ldv/verifier/nondet.h",
+                "ldv/verifier/thread.h"
               ]
             }
           }
@@ -33,7 +34,7 @@
           "name": "RSG",
           "options": {
             "common sets model": "counter",
-            "model compiler input file": "kernel/liteos_a/kernel/common/los_config.c",
+            "model compiler input file": "kernel/common/los_config.c",
             "models": ["harmonyos/concurrency safety/synchronization primitives.c"],
             "common models": {
               "verifier/common.c": {},
