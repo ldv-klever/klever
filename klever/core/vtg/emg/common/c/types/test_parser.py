@@ -39,7 +39,9 @@ def test_equality():
         'int *x',
         'void x(void)',
         'void *x(void)',
-        'void *x(void *)'
+        'void *x(void *)',
+        'size_t x',
+        'size_t *x(size_t *)'
     ]
 
     for test in tests:
