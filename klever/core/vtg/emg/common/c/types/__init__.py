@@ -17,6 +17,7 @@
 
 import re
 import copy
+import json
 import sortedcontainers
 
 from klever.core.vtg.emg.common.c.types.typeParser import parse_declaration
@@ -206,6 +207,11 @@ def import_declaration(declaration, ast=None, track_typedef=False):
         return ret, typedef
 
 
+def dump_types(file_name):
+    with open(file_name, 'w') as fp:
+        json.dump({str(k): v.dump() for k, v in _type_collection.items()}, fp, indent=2, sort_keys=True)
+
+
 def _take_pointer(exp, tp):
     if isinstance(tp, Array) or isinstance(tp, Function):
         return '(*' + exp + ')'
@@ -350,6 +356,21 @@ class Declaration:
                 break
 
         return ret
+
+    def dump(self):
+        """
+        Dump various versions of the object string representation.
+
+        :return: Dictionary with string keys and values.
+        """
+        return {
+            'main': str(self),
+            'basic': self.to_string('x', qualifiers=True),
+            'with_qualifiers': self.to_string('x'),
+            'typedef_all': self.to_string('x', typedef='all'),
+            'typedef_none': self.to_string('x', typedef='none'),
+            'typedef_mixed': self.to_string('x', typedef='complex_and_params')
+        }
 
     def to_string(self, declarator='', pointer=False, typedef='none', scope=None, specifiers=True, qualifiers=False):
         """
