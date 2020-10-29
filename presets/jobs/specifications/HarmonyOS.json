@@ -24,8 +24,7 @@
               "additional headers": [
                 "stddef.h",
                 "ldv/verifier/common.h",
-                "ldv/verifier/nondet.h",
-                "ldv/verifier/thread.h"
+                "ldv/verifier/nondet.h"
               ]
             }
           }
