@@ -1,0 +1,123 @@
+/*
+ * Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+ * Ivannikov Institute for System Programming of the Russian Academy of Sciences
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+before: file ("$this")
+{
+#include <los_spinlock.h>
+#include <los_mux.h>
+#include <internal.h>
+// Seems is disabled
+// #include <fd_table.h>
+
+#include <ldv/verifier/common.h>
+#include <ldv/verifier/nondet.h>
+
+extern void __ldv_mutex_lock(LosMux *lock, char *sign);
+extern void __ldv_mutex_unlock(LosMux *lock, char *sign);
+
+extern void __ldv_arch_lock(void);
+extern void __ldv_arch_unlock(void);
+
+extern void __ldv_int_lock(void);
+extern void __ldv_int_unlock(void);
+
+extern void __ldv_spin_lock(SPIN_LOCK_S *lock, char *sign);
+extern void __ldv_spin_unlock(SPIN_LOCK_S *lock, char *sign);
+extern void __ldv_spin_trylock(SPIN_LOCK_S *lock, char *sign);
+
+// extern void __ldv_filetable_lock(struct fd_table_s *lock, char *sign);
+// extern void __ldv_filetable_unlock(struct fd_table_s *lock, char *sign);
+}
+
+around: call(UINT32 LOS_MuxLock(LosMux *, UINT32))
+{
+	/* NOTE Lock mutex */
+	__ldv_mutex_lock($arg1, "$arg_sign1");
+}
+
+around: call(UINT32 LOS_MuxUnlock(LosMux *))
+{
+	/* NOTE Unlock mutex */
+	__ldv_mutex_unlock($arg1, "$arg_sign1");
+}
+
+
+around: call(sys_prot_t sys_arch_protect(void))
+{
+	/* NOTE Lock arch spinlock */
+	__ldv_arch_lock();
+}
+
+around: call(void sys_arch_unprotect(sys_prot_t))
+{
+	/* NOTE Unlock arch spinlock */
+	__ldv_arch_unlock();
+}
+
+around: call(UINT32 LOS_IntLock(void))
+{
+	/* NOTE Disable interrupts */
+	__ldv_int_lock();
+}
+
+around: call(void LOS_IntRestore(UINT32))
+{
+	/* NOTE Enable interrupts */
+	__ldv_int_unlock();
+}
+
+around: call(void LOS_SpinLock(SPIN_LOCK_S *))
+{
+	/* NOTE Lock spinlock */
+    __ldv_spin_lock($arg1, "$arg_sign1");
+}
+
+around: call(void LOS_SpinLockSave(SPIN_LOCK_S *, UINT32 *))
+{
+	/* NOTE Lock spinlock */
+    __ldv_spin_lock($arg1, "$arg_sign1");
+}
+
+around: call(void LOS_SpinUnlockRestore(SPIN_LOCK_S *, UINT32))
+{
+	/* NOTE Unlock spinlock */
+    __ldv_spin_unlock($arg1, "$arg_sign1");
+}
+
+around: call(void LOS_SpinUnlock(SPIN_LOCK_S *))
+{
+	/* NOTE Unlock spinlock */
+    __ldv_spin_unlock($arg1, "$arg_sign1");
+}
+
+around: call(INT32 LOS_SpinTrylock(SPIN_LOCK_S *))
+{
+	/* NOTE Try to lock spinlock */
+	__ldv_spin_trylock($arg1, "$arg_sign1");
+}
+
+// around: call(void FileTableLock(struct fd_table_s *))
+// {
+	/* NOTE Lock file table lock */
+// 	__ldv_filetable_lock($arg1, "$arg_sign1");
+// }
+
+// around: call(void FileTableUnLock(struct fd_table_s *))
+// {
+	/* NOTE Unlock file table lock */
+// 	__ldv_filetable_unlock($arg1, "$arg_sign1");
+// }

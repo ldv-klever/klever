@@ -34,6 +34,7 @@
           "options": {
             "common sets model": "counter",
             "model compiler input file": "kernel/liteos_a/kernel/common/los_config.c",
+            "models": ["harmonyos/concurrency safety/synchronization primitives.c"],
             "common models": {
               "verifier/common.c": {},
               "verifier/gcc.c": {},
