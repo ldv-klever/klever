@@ -357,3 +357,13 @@ Additional documentation
 
 A lot of usefull documentation for developing Django projects as well as for general using of the PyCharm IDE is
 available at the official `site <https://www.jetbrains.com/pycharm/documentation/>`__.
+
+Error Trace Format
+------------------
+
+TODO
+
+Code Coverage Format
+--------------------
+
+TODO
