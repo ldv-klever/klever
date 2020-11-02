@@ -442,7 +442,7 @@ class UpdateCachesOnMarkPopulate:
 
     def __update_unsafes(self):
         # Filter new_links with automatic associations as just such associations can affect report's cache
-        affected_reports = dict(MarkUnsafeReport.objects.filter(
+        affected_reports = set(MarkUnsafeReport.objects.filter(
             report_id__in=self._new_links, mark=self._mark, type=ASSOCIATION_TYPE[2][0]
         ).values_list('report_id', flat=True))
 
