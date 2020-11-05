@@ -4,6 +4,6 @@
   "targets": ["**"],
   "architecture": "ARM",
   "requirement specifications": [
-    "empty"
+    "concurrency safety"
   ]
 }
