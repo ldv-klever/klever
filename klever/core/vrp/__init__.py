@@ -386,7 +386,7 @@ class RP(klever.core.components.Component):
                                      self.conf['main working directory'])
             self.verdict = 'safe'
         else:
-            witnesses = glob.glob(os.path.join('output', 'witness.*.graphml'))
+            witnesses = sorted(glob.glob(os.path.join('output', 'witness.*.graphml')))
             self.logger.info("Found {} witnesses".format(len(witnesses)))
 
             # Create unsafe reports independently on status. Later we will create unknown report in addition if status
