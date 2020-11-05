@@ -170,6 +170,7 @@ class ErrorTraceParser:
 
             startoffset = None
             endoffset = None
+            startline = None
             control = None
             for data in edge.findall('graphml:data', self.WITNESS_NS):
                 data_key = data.attrib['key']
@@ -177,6 +178,8 @@ class ErrorTraceParser:
                     startoffset = int(data.text)
                 elif data_key == 'endoffset':
                     endoffset = int(data.text)
+                elif data_key == 'startline':
+                    startline = int(data.text)
                 elif data_key == 'enterFunction' or data_key == 'returnFrom' or data_key == 'assumption.scope':
                     self.error_trace.add_function(data.text)
                     if data_key == 'enterFunction':
@@ -208,12 +211,9 @@ class ErrorTraceParser:
                     self._logger.warning('Edge data key {!r} is not supported'.format(data_key))
                     unsupported_edge_data_keys[data_key] = None
 
-            if startoffset and endoffset:
+            if startoffset and endoffset and startline:
                 _edge['source'] = self.error_trace.programfile_content[startoffset:(endoffset + 1)]
-
-                # Calculate the number of lines up to start offset. It is key within line map hash.
-                lines_num = len(re.findall(r'\n', self.error_trace.programfile_content[:startoffset])) + 1
-                _edge['file'], _edge['line'] = self.error_trace.programfile_line_map[lines_num]
+                _edge['file'], _edge['line'] = self.error_trace.programfile_line_map[startline]
                 referred_file_ids.add(_edge['file'])
 
                 if control is not None:
@@ -234,7 +234,7 @@ class ErrorTraceParser:
                         _edge['source'] += ';'
             # TODO: workaround! Here VRP should fail since violation witnesses format is not valid.
             else:
-                self._logger.warning('Edge from {0} to {1} does not have start or/and end offsets'
+                self._logger.warning('Edge from {0} to {1} does not have start or/and end offsets or/and startline'
                                      .format(source_node_id, target_node_id))
                 edges_to_remove.append(_edge)
 
