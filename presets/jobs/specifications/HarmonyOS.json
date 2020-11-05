@@ -16,9 +16,9 @@
               }
             ],
             "translation options": {
+              "entry point": "harmony_main",
               "self parallel processes": false,
               "do not skip signals": true,
-              "direct control functions calls": false,
               "allocate external": false,
               "environment model file": "environment_model.c",
               "additional headers": [
@@ -35,7 +35,6 @@
           "options": {
             "common sets model": "counter",
             "model compiler input file": "kernel/liteos_a/kernel/common/los_config.c",
-            "models": ["harmonyos/concurrency safety/synchronization primitives.c"],
             "common models": {
               "verifier/common.c": {},
               "verifier/gcc.c": {},
@@ -58,6 +57,41 @@
           }
         }
       ]
+    },
+    "concurrency safety for HarmonyOS": {
+      "template": "kernel",
+      "plugins": [
+        {
+          "name": "EMG",
+          "options": {
+            "check final state": false,
+            "translation options": {
+              "self parallel processes": false,
+              "do not skip signals": true,
+              "direct control functions calls": false
+            }
+          }
+        },
+        {
+          "name": "RSG",
+          "options": {"models": ["harmonyos/concurrency safety/synchronization primitives.c"]}
+        },
+        {"name": "Weaver"},
+        {
+          "name": "FVTP",
+          "options": {
+            "verifier profile": "race checking lightweight liteos",
+            "verifier": {
+              "name": "CPAchecker",
+              "version": "CPALockator-combat-mode:34860"
+            },
+            "result processing": {
+              "expect several witnesses": true,
+              "code coverage details": "None"
+            }
+          }
+        }
+      ]
     }
   },
   "requirement specifications": {
@@ -67,6 +101,11 @@
       {
         "identifier": "empty",
         "description": "..."
+      },
+      {
+        "identifier": "concurrency safety",
+        "description": "Harmony requirement specifications",
+        "template": "concurrency safety for HarmonyOS"
       }
     ]
   }

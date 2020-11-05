@@ -99,6 +99,11 @@
       "inherit": "CPALockator races",
       "add options": [{"-lockator-linux": ""}]
     },
+    "CPALockator lightweight liteos": {
+      "description": "CPAchecker for checking races",
+      "inherit": "CPALockator races",
+      "add options": [{"-lockator-liteos": ""}]
+    },
     "CPALockator thread-modular": {
       "description": "CPAchecker for checking races with powerful theory",
       "inherit": "CPALockator races",
@@ -134,6 +139,9 @@
     },
     "race checking lightweight": {
       "CPAchecker": {"CPALockator-combat-mode:34860": {"inherit": "CPALockator lightweight"}}
+    },
+    "race checking lightweight liteos": {
+      "CPAchecker": {"CPALockator-combat-mode:34860": {"inherit": "CPALockator lightweight liteos"}}
     },
     "race checking": {
       "CPAchecker": {"CPALockator-combat-mode:34860": {"inherit": "CPALockator thread-modular"}}
