@@ -18,12 +18,18 @@
 import os
 import re
 import xml.etree.ElementTree as ET
+import collections
 
 from klever.core.vrp.et.error_trace import ErrorTrace
 
 
 class ErrorTraceParser:
     WITNESS_NS = {'graphml': 'http://graphml.graphdrawing.org/xmlns'}
+    # There may be several violation witnesses that refer to the same program file (CIL file), so, it is a good optimization
+    # to parse it once.
+    PROGRAMFILE_LINE_MAP = dict()
+    PROGRAMFILE_CONTENT = ''
+    FILE_NAMES = collections.OrderedDict()
 
     def __init__(self, logger, witness, verification_task_files):
         self._logger = logger
@@ -73,30 +79,43 @@ class ErrorTraceParser:
 
             # TODO: at the moment violation witnesses do not support multiple program files.
             if data.attrib['key'] == 'programfile':
-                with open(self.verification_task_files[os.path.normpath(data.text)]) as fp:
-                    line_num = 1
-                    orig_file_id = None
-                    orig_file_line_num = 0
-                    line_preprocessor_directive = re.compile(r'#line\s+(\d+)\s*(.*)')
-                    # By some reason it takes enormous CPU and wall time to store content of large CIL files into class
-                    # objects iteratively. So use temporary variable for this.
-                    content = ''
-                    for line in fp:
-                        content += line
-                        m = line_preprocessor_directive.match(line)
-                        if m:
-                            orig_file_line_num = int(m.group(1))
-                            if m.group(2):
-                                file_name = m.group(2)[1:-1]
-                                # Do not treat artificial file references. Let's hope that they will disappear one day.
-                                if not os.path.basename(file_name) == '<built-in>':
-                                    orig_file_id = self.error_trace.add_file(file_name)
-                        else:
-                            self.error_trace.programfile_line_map[line_num] = (orig_file_id, orig_file_line_num)
-                            orig_file_line_num += 1
-                        line_num += 1
+                if not ErrorTraceParser.PROGRAMFILE_LINE_MAP:
+                    with open(self.verification_task_files[os.path.normpath(data.text)]) as fp:
+                        line_num = 1
+                        orig_file_id = None
+                        orig_file_line_num = 0
+                        line_preprocessor_directive = re.compile(r'#line\s+(\d+)\s*(.*)')
+                        # By some reason it takes enormous CPU and wall time to store content of large CIL files into
+                        # class objects iteratively. So use temporary variable for this.
+                        content = ''
+                        for line in fp:
+                            content += line
+                            m = line_preprocessor_directive.match(line)
+                            if m:
+                                orig_file_line_num = int(m.group(1))
+                                if m.group(2):
+                                    file_name = m.group(2)[1:-1]
+                                    # Do not treat artificial file references. Let's hope that they will disappear one
+                                    # day.
+                                    if not os.path.basename(file_name) == '<built-in>':
+                                        orig_file_id = self.error_trace.add_file(file_name)
+                                        if file_name not in ErrorTraceParser.FILE_NAMES:
+                                            ErrorTraceParser.FILE_NAMES[file_name] = True
+                            else:
+                                ErrorTraceParser.PROGRAMFILE_LINE_MAP[line_num] = (orig_file_id, orig_file_line_num)
+                                orig_file_line_num += 1
+                            line_num += 1
 
-                    self.error_trace.programfile_content = content
+                        ErrorTraceParser.PROGRAMFILE_CONTENT = content
+                # Add file names to error trace object exactly in the same order in what they were met during the first
+                # parsing of program file (CIL file). This is not necessary for the time of parsing since this is done
+                # above to get file identifiers.
+                else:
+                    for file_name in ErrorTraceParser.FILE_NAMES:
+                        self.error_trace.add_file(file_name)
+
+                self.error_trace.programfile_line_map = ErrorTraceParser.PROGRAMFILE_LINE_MAP
+                self.error_trace.programfile_content = ErrorTraceParser.PROGRAMFILE_CONTENT
 
     def __parse_witness_nodes(self, graph):
         sink_nodes_map = dict()
