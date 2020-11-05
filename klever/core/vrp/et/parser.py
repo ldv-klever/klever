@@ -77,9 +77,13 @@ class ErrorTraceParser:
                     line_num = 1
                     orig_file_id = None
                     orig_file_line_num = 0
+                    line_preprocessor_directive = re.compile(r'#line\s+(\d+)\s*(.*)')
+                    # By some reason it takes enormous CPU and wall time to store content of large CIL files into class
+                    # objects iteratively. So use temporary variable for this.
+                    content = ''
                     for line in fp:
-                        self.error_trace.programfile_content += line
-                        m = re.match(r'#line\s+(\d+)\s*(.*)', line)
+                        content += line
+                        m = line_preprocessor_directive.match(line)
                         if m:
                             orig_file_line_num = int(m.group(1))
                             if m.group(2):
@@ -91,6 +95,8 @@ class ErrorTraceParser:
                             self.error_trace.programfile_line_map[line_num] = (orig_file_id, orig_file_line_num)
                             orig_file_line_num += 1
                         line_num += 1
+
+                    self.error_trace.programfile_content = content
 
     def __parse_witness_nodes(self, graph):
         sink_nodes_map = dict()
