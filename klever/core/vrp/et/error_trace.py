@@ -405,7 +405,8 @@ class ErrorTrace:
     def remove_edge_and_target_node(self, edge):
         # Do not delete edge with a warning
         if 'warn' in edge:
-            raise ValueError('Cannot delete edge with warning: {!r}'.format(edge['source']))
+            raise ValueError('Cannot delete edge with warning{0}'
+                             .format(': {!r}'.format(edge['source']) if 'source' in edge else ''))
 
         source = edge['source node']
         target = edge['target node']
