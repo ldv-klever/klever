@@ -102,7 +102,10 @@
     "CPALockator lightweight liteos": {
       "description": "CPAchecker for checking races",
       "inherit": "CPALockator races",
-      "add options": [{"-lockator-liteos": ""}]
+      "add options": [
+        {"-lockator-liteos": ""},
+        {"-setprop": "parser.readLineDirectives=false"}
+      ]
     },
     "CPALockator thread-modular": {
       "description": "CPAchecker for checking races with powerful theory",
