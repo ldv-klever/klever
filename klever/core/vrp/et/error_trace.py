@@ -102,6 +102,8 @@ class ErrorTrace:
         prev_thread_id = None
         # References to thread function call stacks.
         thread_func_call_stacks = dict()
+        # Node for accumulating current local declarations.
+        declarations_node = None
         for edge in self.trace_iterator():
             # TODO: new witness format will have another marker for global variable declarations.
             if edge['thread'] == 0:
@@ -213,34 +215,51 @@ class ErrorTrace:
                     # return immediately.
                     thread_func_call_stacks[edge['thread']].append(func_call_node)
             else:
-                # Create node representing given statement that is any edge except for function call enter/return.
-                stmt_node = {
+                # Create node representing given declaration or statement that is any edge of original violation
+                # witnesses except for function call enters/returns.
+                decl_or_stmt_node = {
                     'type': 'declaration' if 'declaration' in edge else 'statement',
                     'file': edge['file'],
                     'line': edge['line']
                 }
 
-                stmt_node.update(self.highlight(edge['source']))
+                decl_or_stmt_node.update(self.highlight(edge['source']))
 
                 if 'note' in edge:
-                    stmt_node['note'] = edge['note']
+                    decl_or_stmt_node['note'] = edge['note']
 
                 if 'warn' in edge:
-                    stmt_node['note'] = edge['warn']
-                    stmt_node['violation'] = True
+                    decl_or_stmt_node['note'] = edge['warn']
+                    decl_or_stmt_node['violation'] = True
 
                 if 'condition' in edge:
-                    stmt_node['condition'] = True
+                    decl_or_stmt_node['condition'] = True
 
                 if 'assumption' in edge:
-                    stmt_node['assumption'] = edge['assumption']
+                    decl_or_stmt_node['assumption'] = edge['assumption']
 
-                # Add created statement node to action node of last function call node from corresponding thread
-                # function call stack or to last function call node itself.
-                if 'action' in edge:
-                    thread_func_call_stacks[edge['thread']][-1]['children'][-1]['children'].append(stmt_node)
+                if 'declaration' in edge:
+                    if not declarations_node:
+                        declarations_node = {
+                            'type': 'declarations',
+                            'children': list()
+                        }
+                    declarations_node['children'].append(decl_or_stmt_node)
                 else:
-                    thread_func_call_stacks[edge['thread']][-1]['children'].append(stmt_node)
+                    # Add node corresponding to local declarations before first statement node. It is not clear is it
+                    # possible that some declarations are not followed by at least one statement.
+                    nodes_to_add = []
+                    if declarations_node:
+                        nodes_to_add.append(declarations_node)
+                        declarations_node = None
+                    nodes_to_add.append(decl_or_stmt_node)
+
+                    # Add created statement node and perhaps declarations node to action node of last function call node
+                    # from corresponding thread function call stack or to last function call node itself.
+                    if 'action' in edge:
+                        thread_func_call_stacks[edge['thread']][-1]['children'][-1]['children'].extend(nodes_to_add)
+                    else:
+                        thread_func_call_stacks[edge['thread']][-1]['children'].extend(nodes_to_add)
 
                 if 'return' in edge:
                     # Remove last function call node from corresponding thread function call stack.
