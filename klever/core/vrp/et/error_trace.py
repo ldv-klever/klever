@@ -95,6 +95,8 @@ class ErrorTrace:
 
         # TODO: perhaps it would be easier to operate with such the tree above as well.
         # Convert list of edges to global variable declarations list and to error trace tree.
+        is_first_edge = True
+        is_global_var_decls = False
         global_var_decls = list()
         trace = dict()
         # References to thread nodes for their simple update.
@@ -105,8 +107,13 @@ class ErrorTrace:
         # Node for accumulating current local declarations.
         declarations_node = None
         for edge in self.trace_iterator():
-            # TODO: new witness format will have another marker for global variable declarations.
-            if edge['thread'] == 0:
+            # All declaration edges starting from the firts one correspond to global declarations.
+            if is_first_edge:
+                is_first_edge = False
+                if 'declaration' in edge:
+                    is_global_var_decls = True
+
+            if 'declaration' in edge and is_global_var_decls:
                 global_var_decl = {
                     'line': edge['line'],
                     'file': edge['file']
@@ -114,6 +121,8 @@ class ErrorTrace:
                 global_var_decl.update(self.highlight(edge['source']))
                 global_var_decls.append(global_var_decl)
                 continue
+            else:
+                is_global_var_decls = False
 
             if edge['thread'] not in thread_node_refs:
                 # Create node representing given tread.
