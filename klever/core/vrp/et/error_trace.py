@@ -215,7 +215,7 @@ class ErrorTrace:
             else:
                 # Create node representing given statement that is any edge except for function call enter/return.
                 stmt_node = {
-                    'type': 'statement',
+                    'type': 'declaration' if 'declaration' in edge else 'statement',
                     'file': edge['file'],
                     'line': edge['line']
                 }

@@ -100,6 +100,10 @@ class GetETV:
         return self._curr_scope
 
     def __parse_node(self, node, depth=0, thread=None, has_asc_note=False, scope=0):
+        # TODO: Like in reports.UploadReport.ReportUnsafeSerializer.__check_node().
+        if node['type'] == 'declaration':
+            node['type'] = 'statement'
+
         # Statement
         if node['type'] == 'statement':
             node_data = self.__parse_statement(node, depth, thread, scope)

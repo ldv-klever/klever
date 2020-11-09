@@ -358,6 +358,11 @@ class ReportUnsafeSerializer(UploadLeafBaseSerializer):
     def __check_node(self, node):
         if not isinstance(node, dict):
             self.fail('wrong_format', detail="node is not a dictionary")
+
+        # TODO: Temporarily treat local declarations like statements. This should not be the case always!
+        if node.get('type') == 'declaration':
+            node['type'] = 'statement'
+
         if node.get('type') not in {'function call', 'statement', 'action', 'thread'}:
             self.fail('wrong_format', detail='unsupported node type "{}"'.format(node.get('type')))
         if node['type'] == 'function call':
