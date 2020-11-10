@@ -17,14 +17,7 @@
         "kernel/liteos_a/kernel/base/core/los_process.c",
         "kernel/liteos_a/syscall/ipc_syscall.c",
         "kernel/liteos_a/syscall/vm_syscall.c",
-        "kernel/liteos_a/fs/vfs/operation/fs_other.c",
-
-        "kernel/liteos_a/compat/posix/src/mqueue.c",
-        "kernel/liteos_a/syscall/fs_syscall.c",
-        "kernel/liteos_a/kernel/common/los_seq_buf.c",
-        "kernel/liteos_a/arch/arm/arm/src/los_exc.c",
-        "base/hiviewdfx/frameworks/hilog_lite/featured/hiview_log.c",
-        "kernel/liteos_a/kernel/common/los_printf.c"
+        "kernel/liteos_a/fs/vfs/operation/fs_other.c"
       ]
     }
   }
