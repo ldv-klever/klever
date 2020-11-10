@@ -19,6 +19,7 @@
 {% load i18n %}
 {% load static %}
 {% load compress %}
+{% load tableheader %}
 
 {% block title %}{{ TableData.title }}{% endblock %}
 
@@ -67,15 +68,7 @@
         {% endif %}
         <div id="report_list_table" style="overflow-x:auto;max-height:75vh;overflow-y:auto;">
             <table class="ui compact celled selectable table alternate-color {% if TableData.view.type == '6' %}red{% elif TableData.view.type == '5' %}green{% elif TableData.view.type == '4' %}orange{% endif %} ">
-                <thead>
-                    {% for column_row in TableData.header %}
-                        <tr class="info">
-                        {% for coldata in column_row %}
-                            <th colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.title }}</th>
-                        {% endfor %}
-                        </tr>
-                    {% endfor %}
-                </thead>
+                <thead>{% tableheader TableData.columns TableData.titles %}</thead>
                 <tbody>
                     {% for row_data in TableData.values %}
                         <tr>

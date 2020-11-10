@@ -92,16 +92,19 @@ class Migration(migrations.Migration):
             ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
             ('archive', models.FileField(upload_to='UploadedJobs')),
             ('status', models.CharField(choices=[
-                ('0', 'Pending'), ('1', 'Extracting archive files'), ('2', 'Uploading files'),
-                ('3', 'Uploading job with versions'), ('4', 'Uploading reports'),
-                ('5', 'Associating marks and cache recalculation'), ('6', 'Finished'), ('7', 'Failed')
-            ], default='0', max_length=1)),
+                ('0', 'Pending'), ('1', 'Extracting archive files'), ('2', 'Uploading files'), ('3', 'Uploading job'),
+                ('4', 'Uploading decisions cache'), ('5', 'Uploading original sources'),
+                ('6', 'Uploading reports trees'), ('7', 'Uploading safes'), ('8', 'Uploading unsafes'),
+                ('9', 'Uploading unknowns'), ('10', 'Uploading attributes'), ('11', 'Uploading coverage'),
+                ('12', 'Associating marks and cache recalculation'), ('13', 'Finished'), ('14', 'Failed')
+            ], default='0', max_length=2)),
             ('start_date', models.DateTimeField(auto_now_add=True)),
             ('finish_date', models.DateTimeField(null=True)),
             ('error', models.TextField(null=True)),
             ('author', models.ForeignKey(on_delete=models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
             ('job', models.ForeignKey(null=True, on_delete=models.deletion.SET_NULL, related_name='+', to='jobs.Job')),
             ('name', models.CharField(max_length=128)),
+            ('step_progress', models.PositiveIntegerField(default=0)),
         ], options={'db_table': 'job_uploaded_archives'}),
 
         migrations.CreateModel(name='Scheduler', fields=[
