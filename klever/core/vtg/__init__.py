@@ -364,7 +364,7 @@ class VTG(klever.core.components.Component):
             klever.core.utils.drain_queue(pilot_statuses, self.mqs['prepared verification tasks'])
             # Process them
             for status in pilot_statuses:
-                program_fragment_id, req_spec_id= status
+                program_fragment_id, req_spec_id = status
                 self.logger.info(
                     "Pilot verification task for program fragment {!r} and requirements specification {!r} is prepared".
                     format(program_fragment_id, req_spec_id))
