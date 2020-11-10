@@ -3,11 +3,13 @@
     {
       "uuid": "e36dd467-6715-423e-b2d4-0e9dde752faa",
       "name": "Harmony OS",
+      "production": true,
       "children": [
         {
           "uuid": "e38bef6a-5fb8-4990-9ed9-3a97a69946ee",
           "name": "Harmony OS kernel sample",
-          "directory": "harmonyos/kernel sample"
+          "directory": "harmonyos/kernel sample",
+          "production": true
         }
       ]
     },
