@@ -20,6 +20,7 @@
 {% load tz %}
 {% load static %}
 {% load compress %}
+{% load tableheader %}
 
 {% block title %}{{ tabledata.title }}{% endblock %}
 
@@ -62,15 +63,7 @@
         </div>
         <div style="overflow-x:auto;max-height: 83vh;overflow-y:auto;">
             <table class="ui compact celled selectable sortable structured striped table {% if tabledata.view.type == '7' %}orange{% elif tabledata.view.type == '8' %}green{% elif tabledata.view.type == '9' %}red{% endif %}">
-                <thead>
-                    {% for column_row in tabledata.header %}
-                        <tr>
-                        {% for coldata in column_row %}
-                            <th style="background: {% if tabledata.view.type == '7' %}#fff1df{% elif tabledata.view.type == '8' %}#dcffed{% elif tabledata.view.type == '9' %}#ffd3d5{% endif %}" colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.title }}</th>
-                        {% endfor %}
-                        </tr>
-                    {% endfor %}
-                </thead>
+                <thead>{% tableheader tabledata.columns tabledata.titles %}</thead>
                 <tbody>
                     {% for row_data in tabledata.values %}
                         <tr>

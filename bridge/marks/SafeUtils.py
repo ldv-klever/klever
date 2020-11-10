@@ -78,16 +78,16 @@ class RemoveSafeMark:
         self._mark.delete()
 
         # Find reports that have marks associations when all association are disabled. It can be in 2 cases:
-        # 1) All associations are unconfirmed
+        # 1) All associations are unconfirmed/dissimilar
         # 2) All confirmed associations were with deleted mark
-        # We need to update 2nd case, so auto-associations are counting again
+        # We need to update 2nd case, so automatic associations are counting again
         changed_ids = affected_reports - set(MarkSafeReport.objects.filter(
             report_id__in=affected_reports, associated=True
         ).values_list('report_id', flat=True))
 
-        # Update associations
-        MarkSafeReport.objects.select_related('mark').select_for_update() \
-            .filter(report_id__in=changed_ids).exclude(type=ASSOCIATION_TYPE[2][0]).update(associated=True)
+        # Count automatic associations again
+        MarkSafeReport.objects.filter(report_id__in=changed_ids, type=ASSOCIATION_TYPE[2][0]).update(associated=True)
+
         return affected_reports
 
 
@@ -128,10 +128,10 @@ class ConnectSafeMark:
                 .select_related('cache').only('id', 'cache__marks_confirmed'):
             new_association = MarkSafeReport(
                 mark=self._mark, report_id=report.id, author=author,
-                type=ASSOCIATION_TYPE[0][0], associated=True
+                type=ASSOCIATION_TYPE[2][0], associated=True
             )
             if prime_id and report.id == prime_id:
-                new_association.type = ASSOCIATION_TYPE[1][0]
+                new_association.type = ASSOCIATION_TYPE[3][0]
             elif report.cache.marks_confirmed:
                 # Do not count automatic associations if report has confirmed ones
                 new_association.associated = False
@@ -140,7 +140,8 @@ class ConnectSafeMark:
         MarkSafeReport.objects.bulk_create(associations)
 
         if prime_id:
+            # Disable automatic associations
             MarkSafeReport.objects.filter(
-                report_id=prime_id, associated=True, type=ASSOCIATION_TYPE[0][0]
+                report_id=prime_id, associated=True, type=ASSOCIATION_TYPE[2][0]
             ).update(associated=False)
         return new_links

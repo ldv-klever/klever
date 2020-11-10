@@ -24,7 +24,7 @@ from django.db.models import Count
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 
-from bridge.vars import COMPARE_VERDICT, SAFE_COLOR, UNSAFE_COLOR, DECISION_WEIGHT
+from bridge.vars import COMPARE_VERDICT, DECISION_WEIGHT
 from bridge.utils import BridgeException
 
 from reports.models import (
@@ -32,6 +32,8 @@ from reports.models import (
     ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent
 )
 from marks.models import MarkUnsafeReport, MarkSafeReport, MarkUnknownReport
+
+from reports.verdicts import safe_color, unsafe_color
 
 
 class GetComparisonObjects:
@@ -356,7 +358,7 @@ class SafeMarkBlock(CompareBlock):
         self.href = reverse('marks:safe', args=[mark_report.mark_id])
         self.subtitle = {
             'text': mark_report.mark.get_verdict_display(),
-            'color': SAFE_COLOR[mark_report.mark.verdict]
+            'color': safe_color(mark_report.mark.verdict)
         }
         self.tags = self.get_tags(mark_report.mark)
 
@@ -369,7 +371,7 @@ class UnsafeMarkBlock(CompareBlock):
         self.href = reverse('marks:unsafe', args=[mark_report.mark_id])
         self.subtitle = {
             'text': mark_report.mark.get_verdict_display(),
-            'color': UNSAFE_COLOR[mark_report.mark.verdict]
+            'color': unsafe_color(mark_report.mark.verdict)
         }
         self.tags = self.get_tags(mark_report.mark)
 
@@ -392,7 +394,7 @@ class UnsafeBlock(CompareBlock):
         self.href = reverse('reports:unsafe', args=[report.trace_id])
         self.subtitle = {
             'text': report.cache.get_verdict_display(),
-            'color': UNSAFE_COLOR[report.cache.verdict]
+            'color': unsafe_color(report.cache.verdict)
         }
         self.attrs = self.get_attrs(report)
 
@@ -405,7 +407,7 @@ class SafeBlock(CompareBlock):
         self.href = reverse('reports:safe', args=[report.pk])
         self.subtitle = {
             'text': report.cache.get_verdict_display(),
-            'color': SAFE_COLOR[report.cache.verdict]
+            'color': safe_color(report.cache.verdict)
         }
         self.attrs = self.get_attrs(report)
 
