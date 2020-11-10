@@ -66,7 +66,23 @@ class JobsTree(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, TemplateView)
             'statuses': DECISION_STATUS[1:], 'weights': DECISION_WEIGHT,
             'priorities': list(reversed(PRIORITY)),
             'months': months_choices(), 'years': years_choices(),
-            'TableData': JobsTreeTable(self.get_view(VIEW_TYPES[1]))
+            'TableData': JobsTreeTable(self.get_view(VIEW_TYPES[1])),
+            'test_cols': ['a:1', 'a:2', 'b', 'c:1', 'd:1:x', 'd:1:y', 'd:2:x', 'd:2:y'],
+            'test_titles': {
+                'a': 'A',
+                'a:1': 'One',
+                'a:2': 'Two',
+                'b': 'B',
+                'c': 'C',
+                'c:1': 'One',
+                'd': 'D',
+                'd:1': 'One',
+                'd:2': 'Two',
+                'd:1:x': 'X',
+                'd:1:y': 'Y',
+                'd:2:x': 'X',
+                'd:2:y': 'Y'
+            }
         }
 
 
@@ -76,8 +92,6 @@ class PresetJobPage(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, DetailVi
 
     def get_context_data(self, **kwargs):
         context = super(PresetJobPage, self).get_context_data(**kwargs)
-        if self.object.type != PRESET_JOB_TYPE[1][0]:
-            raise Http404
         context.update({
             'can_create': self.request.user.can_create_jobs,
             'parents': self.object.get_ancestors(),

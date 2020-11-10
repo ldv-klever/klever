@@ -21,7 +21,7 @@ from django.db import models
 from django.contrib.postgres.fields import JSONField
 from django.utils.translation import ugettext_lazy as _
 
-from bridge.vars import SAFE_VERDICTS, UNSAFE_VERDICTS
+from bridge.vars import SAFE_VERDICTS, UNSAFE_VERDICTS, UNSAFE_STATUS
 
 from jobs.models import Decision
 from reports.models import ReportSafe, ReportUnsafe, ReportUnknown
@@ -38,8 +38,9 @@ class ReportSafeCache(models.Model):
     decision = models.ForeignKey(Decision, models.CASCADE, related_name='+')
     report = models.OneToOneField(ReportSafe, models.CASCADE, related_name='cache')
     attrs = JSONField(default=dict)
-    marks_total = models.PositiveIntegerField(default=0)
     marks_confirmed = models.PositiveIntegerField(default=0)
+    marks_automatic = models.PositiveIntegerField(default=0)
+    marks_total = models.PositiveIntegerField(default=0)
     verdict = models.CharField(max_length=1, choices=SAFE_VERDICTS, default=SAFE_VERDICTS[4][0])
     tags = JSONField(default=dict)
 
@@ -51,9 +52,11 @@ class ReportUnsafeCache(models.Model):
     decision = models.ForeignKey(Decision, models.CASCADE, related_name='+')
     report = models.OneToOneField(ReportUnsafe, models.CASCADE, related_name='cache')
     attrs = JSONField(default=dict)
-    marks_total = models.PositiveIntegerField(default=0)
     marks_confirmed = models.PositiveIntegerField(default=0)
+    marks_automatic = models.PositiveIntegerField(default=0)
+    marks_total = models.PositiveIntegerField(default=0)
     verdict = models.CharField(max_length=1, choices=UNSAFE_VERDICTS, default=UNSAFE_VERDICTS[5][0])
+    status = models.CharField(max_length=1, null=True, choices=UNSAFE_STATUS)
     tags = JSONField(default=dict)
 
     class Meta:
@@ -64,8 +67,9 @@ class ReportUnknownCache(models.Model):
     decision = models.ForeignKey(Decision, models.CASCADE, related_name='+')
     report = models.OneToOneField(ReportUnknown, models.CASCADE, related_name='cache')
     attrs = JSONField(default=dict)
-    marks_total = models.PositiveIntegerField(default=0)
     marks_confirmed = models.PositiveIntegerField(default=0)
+    marks_automatic = models.PositiveIntegerField(default=0)
+    marks_total = models.PositiveIntegerField(default=0)
     problems = JSONField(default=dict)
 
     class Meta:
@@ -95,6 +99,8 @@ class UnsafeMarkAssociationChanges(models.Model):
     kind = models.CharField(max_length=1, choices=ASSOCIATION_CHANGE_KIND)
     verdict_old = models.CharField(max_length=1, choices=UNSAFE_VERDICTS)
     verdict_new = models.CharField(max_length=1, choices=UNSAFE_VERDICTS)
+    status_old = models.CharField(max_length=1, choices=UNSAFE_STATUS, null=True)
+    status_new = models.CharField(max_length=1, choices=UNSAFE_STATUS, null=True)
     tags_old = JSONField()
     tags_new = JSONField()
 

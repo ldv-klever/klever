@@ -48,8 +48,8 @@
                 <div>
                     {% for v in data.verdicts %}
                         <div class="ui radio checkbox">
-                            <input id="selected_verdict__{{ v.0 }}" type="radio" name="selected_verdict" value="{{ v.0 }}"{% if v.0 == data.verdict %} checked{% endif %}>
-                            <label for="selected_verdict__{{ v.0 }}" class="{{ data.type }}-verdict-{{ v.0 }}">{{ v.1 }}</label>
+                            <input id="selected_verdict__{{ v.id }}" type="radio" name="selected_verdict" value="{{ v.id }}"{% if v.id == data.verdict %} checked{% endif %}>
+                            <label for="selected_verdict__{{ v.id }}"{% if v.color %} style="color: {{ v.color }};"{% endif %}>{{ v.text }}</label>
                         </div>
                         <br>
                     {% endfor %}
@@ -62,8 +62,8 @@
                     <div style="margin-left: 25px">
                         {% for s in data.statuses %}
                             <div class="ui radio checkbox">
-                                <input id="selected_status__{{ s.0 }}" type="radio" name="selected_status" value="{{ s.0 }}" {% if data.status == s.0 %} checked{% endif %}>
-                                <label for="selected_status__{{ s.0 }}" class="mark-status-{{ s.0 }}">{{ s.1 }}</label>
+                                <input id="selected_status__{{ s.id }}" type="radio" name="selected_status" value="{{ s.id }}" {% if data.status == s.id %} checked{% endif %}>
+                                <label for="selected_status__{{ s.id }}"{% if s.color %} style="color: {{ s.color }};"{% endif %}>{{ s.text }}</label>
                             </div>
                             <br>
                         {% endfor %}
