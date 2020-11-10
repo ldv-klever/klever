@@ -90,6 +90,17 @@ class ErrorTrace:
             'highlight': [[h[0], h[2], h[3]] for h in highlight.highlights]
         }
 
+    def convert_note(self, edge):
+        # Error trace notes are represented by 3 simple attributes rather than by 1 attribute of the dictionary type.
+        if 'note' in edge:
+            return {
+                'note': edge['note']['value'],
+                'level': edge['note']['level'],
+                'hide': edge['note']['hide']
+            }
+        else:
+            return {}
+
     def serialize(self):
         klever.core.utils.capitalize_attr_names(self._attrs)
 
@@ -119,6 +130,7 @@ class ErrorTrace:
                     'file': edge['file']
                 }
                 global_var_decl.update(self.highlight(edge['source']))
+                global_var_decl.update(self.convert_note(edge))
                 global_var_decls.append(global_var_decl)
                 continue
             else:
@@ -189,12 +201,7 @@ class ErrorTrace:
                 else:
                     func_call_node['source'] = 'Unknown'
 
-                if 'note' in edge:
-                    func_call_node['note'] = edge['note']
-
-                if 'warn' in edge:
-                    func_call_node['note'] = edge['warn']
-                    func_call_node['violation'] = True
+                func_call_node.update(self.convert_note(edge))
 
                 if 'entry_point' in edge:
                     func_call_node['display'] = edge['entry_point']
@@ -233,13 +240,7 @@ class ErrorTrace:
                 }
 
                 decl_or_stmt_node.update(self.highlight(edge['source']))
-
-                if 'note' in edge:
-                    decl_or_stmt_node['note'] = edge['note']
-
-                if 'warn' in edge:
-                    decl_or_stmt_node['note'] = edge['warn']
-                    decl_or_stmt_node['violation'] = True
+                decl_or_stmt_node.update(self.convert_note(edge))
 
                 if 'condition' in edge:
                     decl_or_stmt_node['condition'] = True
@@ -432,7 +433,7 @@ class ErrorTrace:
 
     def remove_edge_and_target_node(self, edge):
         # Do not delete edge with a warning
-        if 'warn' in edge:
+        if 'note' in edge and edge['note']['level'] == 0:
             raise ValueError('Cannot delete edge with warning: {!r}'.format(edge['source']))
 
         source = edge['source node']
@@ -687,16 +688,18 @@ class ErrorTrace:
     def _mark_witness(self):
         self._logger.info('Mark witness with model comments')
 
+        # TODO: Perhaps this is obsolete with a new way to provide model comments.
         # Two stages are required since for marking edges with warnings we need to know whether there notes at violation
         # path below.
         warn_edges = list()
+
         for edge in self.trace_iterator():
+            if 'note' in edge and edge['note']['level'] == 0:
+                continue
+
+            line = edge['line']
             file_id = edge['file']
             file = self.resolve_file(file_id)
-
-            if 'warn' in edge:
-                continue
-            line = edge['line']
 
             if 'enter' in edge:
                 func_id = edge['enter']
@@ -717,42 +720,59 @@ class ErrorTrace:
             if file_id in self._notes and line in self._notes[file_id]:
                 note = self._notes[file_id][line]
                 self._logger.debug("Add note {!r} for statement from '{}:{}'".format(note, file, line))
-                edge['note'] = note
-
-        for edge in self.trace_iterator(backward=True):
-            file_id = edge['file']
-            file = self.resolve_file(file_id)
-            line = edge['line']
+                # Model comments are rather essential and they are designed to hide model implementation details.
+                # Unfortunately, some model comments are not perfect yet, but we should fix them rather than make some
+                # workarounds to encourage developers of bad model comments.
+                edge['note'] = {
+                    'value': note,
+                    'level': '1',
+                    'hide': True
+                }
 
             if file_id in self._asserts and line in self._asserts[file_id]:
-                # Add warning just if there are no more edges with notes at violation path below.
-                track_notes = False
-                note_found = False
-                for violation_edge in reversed(self._violation_edges):
-                    if track_notes:
-                        if 'note' in violation_edge:
-                            note_found = True
-                            break
-                    if id(violation_edge) == id(edge):
-                        track_notes = True
+                warn = self._asserts[file_id][line]
+                self._logger.debug("Add warning {!r} for statement from '{}:{}'".format(warn, file, line))
+                edge['note'] = {
+                    'value': warn,
+                    'level': '0',
+                    'hide': True
+                }
 
-                if not note_found:
-                    warn = self._asserts[file_id][line]
-
-                    self._logger.debug("Add warning {!r} for statement from '{}:{}'".format(warn, file, line))
-
-                    warn_edge = edge
-                    warn_edge['warn'] = warn
-                    warn_edges.append(warn_edge)
-
-                    # Do not try to add any warnings any more. We don't know how several violations are encoded in
-                    # witnesses.
-                    break
-
-        # Remove notes from edges marked with warnings. Otherwise error trace visualizer will be confused.
-        for warn_edge in warn_edges:
-            if 'note' in warn_edge:
-                del warn_edge['note']
+        # TODO: it seems to be obsolet as well as _find_violation_path() at all.
+        # for edge in self.trace_iterator(backward=True):
+        #     line = edge['line']
+        #     file_id = edge['file']
+        #     file = self.resolve_file(file_id)
+        #
+        #     if file_id in self._asserts and line in self._asserts[file_id]:
+        #         # Add warning just if there are no more edges with notes at violation path below.
+        #         track_notes = False
+        #         note_found = False
+        #         for violation_edge in reversed(self._violation_edges):
+        #             if track_notes:
+        #                 if 'note' in violation_edge:
+        #                     note_found = True
+        #                     break
+        #             if id(violation_edge) == id(edge):
+        #                 track_notes = True
+        #
+        #         if not note_found:
+        #             warn = self._asserts[file_id][line]
+        #
+        #             self._logger.debug("Add warning {!r} for statement from '{}:{}'".format(warn, file, line))
+        #
+        #             warn_edge = edge
+        #             warn_edge['warn'] = warn
+        #             warn_edges.append(warn_edge)
+        #
+        #             # Do not try to add any warnings any more. We don't know how several violations are encoded in
+        #             # witnesses.
+        #             break
+        #
+        # # Remove notes from edges marked with warnings. Otherwise error trace visualizer will be confused.
+        # for warn_edge in warn_edges:
+        #     if 'note' in warn_edge:
+        #         del warn_edge['note']
 
         del self._violation_edges, self._notes, self._asserts, self.displays
 

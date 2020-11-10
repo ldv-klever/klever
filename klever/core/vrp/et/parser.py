@@ -198,8 +198,16 @@ class ErrorTraceParser:
                     _edge['thread'] = int(data.text)
                 elif data_key == 'declaration':
                     _edge['declaration'] = True
-                elif data_key in ('note', 'warning'):
-                    _edge[data_key if data_key == 'note' else 'warn'] = data.text
+                elif data_key == 'note':
+                    m = re.match(r'level="(\d+)" hide="(false|true)" value="([^"]+)"', data.text)
+                    if m:
+                        _edge['note'] = {
+                            'level': m.group(1),
+                            'hide': False if m.group(2) == 'false' else True,
+                            'value': m.group(3)
+                        }
+                    else:
+                        self._logger.warning('Invalid format of note "{0}"'.format(data.text))
                 elif data_key not in unsupported_edge_data_keys:
                     self._logger.warning('Edge data key {!r} is not supported'.format(data_key))
                     unsupported_edge_data_keys[data_key] = None
