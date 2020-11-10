@@ -15,8 +15,10 @@
  * limitations under the License.
  */
 
-#ifndef __LDV_LINUX_PTHREAD_H
-#define __LDV_LINUX_PTHREAD_H
+/* TODO: It seems that pthread.h is a more appropriate name for this header file. */
+
+#ifndef __LDV_VERIFIER_THREAD_H
+#define __LDV_VERIFIER_THREAD_H
 
 typedef unsigned long int pthread_t;
 
@@ -44,4 +46,4 @@ int pthread_create_N(pthread_t **thread, pthread_attr_t const *attr, void *(*sta
  */
 int pthread_join_N(pthread_t **thread, void *(*start_routine)(void *));
 
-#endif /* __LDV_LINUX_PTHREAD_H */
+#endif /* __LDV_VERIFIER_THREAD_H */
