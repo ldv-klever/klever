@@ -69,11 +69,11 @@
               "additional headers": [
                 "ldv/linux/common.h",
                 "ldv/linux/err.h",
+                "ldv/linux/pthread.h",
                 "ldv/verifier/common.h",
                 "ldv/verifier/gcc.h",
                 "ldv/verifier/nondet.h",
-                "ldv/verifier/memory.h",
-                "ldv/verifier/thread.h"
+                "ldv/verifier/memory.h"
               ]
             }
           }
@@ -145,11 +145,11 @@
                 "linux/user_namespace.h",
                 "ldv/linux/common.h",
                 "ldv/linux/err.h",
+                "ldv/linux/pthread.h",
                 "ldv/verifier/common.h",
                 "ldv/verifier/gcc.h",
                 "ldv/verifier/nondet.h",
-                "ldv/verifier/memory.h",
-                "ldv/verifier/thread.h"
+                "ldv/verifier/memory.h"
               ]
             }
           }
@@ -194,11 +194,11 @@
               "additional headers": [
                 "ldv/linux/common.h",
                 "ldv/linux/err.h",
+                "ldv/linux/pthread.h",
                 "ldv/verifier/common.h",
                 "ldv/verifier/gcc.h",
                 "ldv/verifier/nondet.h",
-                "ldv/verifier/memory.h",
-                "ldv/verifier/thread.h"
+                "ldv/verifier/memory.h"
               ]
             }
           }
