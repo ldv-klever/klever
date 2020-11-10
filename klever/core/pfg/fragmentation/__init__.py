@@ -81,7 +81,8 @@ class FragmentationAlgorythm:
         else:
             self.logger.info("Extract full dependencies between files and functions")
             memory_efficient_mode = False
-        deps = Program(self.logger, self.clade, self.source_paths, memory_efficient_mode=memory_efficient_mode)
+        deps = Program(self.logger, self.clade, self.source_paths, memory_efficient_mode,
+                       self.tactic.get("ignore missing files"))
 
         # Decompose using units
         self.logger.info("Determine units in the target program")
