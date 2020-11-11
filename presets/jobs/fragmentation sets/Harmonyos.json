@@ -15,8 +15,6 @@
 
         "kernel/liteos_a/kernel/extended/vdso/usr/los_vdso_sys.c",
         "kernel/liteos_a/kernel/base/core/los_process.c",
-        "kernel/liteos_a/syscall/ipc_syscall.c",
-        "kernel/liteos_a/syscall/vm_syscall.c",
         "kernel/liteos_a/fs/vfs/operation/fs_other.c"
       ]
     }
