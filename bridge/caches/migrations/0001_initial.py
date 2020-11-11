@@ -34,8 +34,9 @@ class Migration(migrations.Migration):
         migrations.CreateModel(name='ReportSafeCache', fields=[
             ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
             ('attrs', JSONField(default=dict)),
-            ('marks_total', models.PositiveIntegerField(default=0)),
+            ('marks_automatic', models.PositiveIntegerField(default=0)),
             ('marks_confirmed', models.PositiveIntegerField(default=0)),
+            ('marks_total', models.PositiveIntegerField(default=0)),
             ('verdict', models.CharField(choices=[
                 ('0', 'Unknown'), ('1', 'Incorrect proof'), ('2', 'Missed target bug'),
                 ('3', 'Incompatible marks'), ('4', 'Without marks')
@@ -50,8 +51,9 @@ class Migration(migrations.Migration):
         migrations.CreateModel(name='ReportUnknownCache', fields=[
             ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
             ('attrs', JSONField(default=dict)),
-            ('marks_total', models.PositiveIntegerField(default=0)),
+            ('marks_automatic', models.PositiveIntegerField(default=0)),
             ('marks_confirmed', models.PositiveIntegerField(default=0)),
+            ('marks_total', models.PositiveIntegerField(default=0)),
             ('problems', JSONField(default=dict)),
             ('decision', models.ForeignKey(on_delete=models.deletion.CASCADE, related_name='+', to='jobs.Decision')),
             ('report', models.OneToOneField(
@@ -62,12 +64,16 @@ class Migration(migrations.Migration):
         migrations.CreateModel(name='ReportUnsafeCache', fields=[
             ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
             ('attrs', JSONField(default=dict)),
-            ('marks_total', models.PositiveIntegerField(default=0)),
+            ('marks_automatic', models.PositiveIntegerField(default=0)),
             ('marks_confirmed', models.PositiveIntegerField(default=0)),
+            ('marks_total', models.PositiveIntegerField(default=0)),
             ('verdict', models.CharField(choices=[
                 ('0', 'Unknown'), ('1', 'Bug'), ('2', 'Target bug'), ('3', 'False positive'),
                 ('4', 'Incompatible marks'), ('5', 'Without marks')
             ], default='5', max_length=1)),
+            ('status', models.CharField(choices=[
+                ('0', 'Unreported'), ('1', 'Reported'), ('2', 'Fixed'), ('3', 'Rejected'), ('4', 'Incompatible marks')
+            ], max_length=1, null=True)),
             ('tags', JSONField(default=dict)),
             ('decision', models.ForeignKey(on_delete=models.deletion.CASCADE, related_name='+', to='jobs.Decision')),
             ('report', models.OneToOneField(
@@ -117,6 +123,12 @@ class Migration(migrations.Migration):
                 ('0', 'Unknown'), ('1', 'Bug'), ('2', 'Target bug'), ('3', 'False positive'),
                 ('4', 'Incompatible marks'), ('5', 'Without marks')
             ], max_length=1)),
+            ('status_old', models.CharField(choices=[
+                ('0', 'Unreported'), ('1', 'Reported'), ('2', 'Fixed'), ('3', 'Rejected'), ('4', 'Incompatible marks')
+            ], max_length=1, null=True)),
+            ('status_new', models.CharField(choices=[
+                ('0', 'Unreported'), ('1', 'Reported'), ('2', 'Fixed'), ('3', 'Rejected'), ('4', 'Incompatible marks')
+            ], max_length=1, null=True)),
             ('tags_old', JSONField()),
             ('tags_new', JSONField()),
             ('decision', models.ForeignKey(on_delete=models.deletion.CASCADE, to='jobs.Decision')),

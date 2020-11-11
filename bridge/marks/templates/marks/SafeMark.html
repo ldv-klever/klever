@@ -21,6 +21,7 @@
 {% load humanize %}
 {% load static %}
 {% load compress %}
+{% load tableheader %}
 
 {% block title %}{% trans 'Safes mark' %}{% endblock %}
 
@@ -78,7 +79,7 @@
                     </tr>
                     <tr>
                         <th class="right aligned">{% trans 'Verdict' %}</th>
-                        <td><span class="with-shadow safe-verdict-{{ mark_version.verdict }}">{{ mark_version.get_verdict_display }}</span></td>
+                        <td><span class="with-shadow"{% if verdict.color %} style="color: {{ verdict.color }};"{% endif %}>{{ verdict.text }}</span></td>
                     </tr>
                     {% if mark_version.description %}
                         <tr>
@@ -150,15 +151,7 @@
                 </div>
                 <div style="overflow-x: auto;">
                     <table class="ui compact teal celled selectable table alternate-color">
-                        <thead>
-                            {% for column_row in reports.header %}
-                                <tr>
-                                {% for coldata in column_row %}
-                                    <th colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.title }}</th>
-                                {% endfor %}
-                                </tr>
-                            {% endfor %}
-                        </thead>
+                        <thead>{% tableheader reports.columns reports.titles %}</thead>
                         <tbody>
                             {% for row_data in reports.values %}
                                 <tr>

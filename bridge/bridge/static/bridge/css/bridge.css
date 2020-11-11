@@ -149,54 +149,6 @@ body {
     min-width:260px!important;
 }
 
-.mark-status-0 {
-    color: #e81919!important;
-}
-.mark-status-1 {
-    color: #FF8533!important;
-}
-.mark-status-2 {
-    color: #FF8533!important;
-}
-.mark-status-3 {
-    color: #00c600!important;
-}
-
-.safe-verdict-0 {
-    color: #cb58ec!important;
-}
-.safe-verdict-1 {
-    color: #FF8533!important;
-}
-.safe-verdict-2 {
-    color: #e81919!important;
-}
-.safe-verdict-3 {
-    color: #D11919!important;
-}
-.safe-verdict-4 {
-    color: #000000!important;
-}
-
-.unsafe-verdict-0 {
-    color: #cb58ec!important;
-}
-.unsafe-verdict-1 {
-    color: #e81919!important;
-}
-.unsafe-verdict-2 {
-    color: #e81919!important;
-}
-.unsafe-verdict-3 {
-    color: #FF8533!important;
-}
-.unsafe-verdict-4 {
-    color: #D11919!important;
-}
-.unsafe-verdict-5 {
-    color: #000000!important;
-}
-
 input[type=checkbox] {
     margin-right: 3px;
 }
