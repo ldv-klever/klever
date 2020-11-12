@@ -51,7 +51,7 @@ $(document).ready(function () {
                 if (was_opened) show_scope($(this));
             }
             // Triangle should be shown for the opened scope if it exists
-            else if (node_type === 'exit') $(this).show();
+            else if (node_type === 'exit' || node_type === 'declarations') $(this).show();
 
             // Notes, statements and declarations are shown by show_display()
         });
