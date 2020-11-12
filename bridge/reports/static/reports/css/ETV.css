@@ -72,7 +72,6 @@
     position: relative;
     white-space: pre;
     background-color: #ffe6dc;
-    padding-right: 5px;
     cursor: pointer;
 }
 .ETV_LN:hover {
@@ -93,8 +92,13 @@
     font-style: italic;
 }
 
-.ETV_GlobalExpander {
+.ETV_Declarations_Text {
     cursor: pointer;
+    color: #55a778;
+    font-weight: bold;
+}
+.ETV_Declarations_Text:hover {
+    filter: brightness(120%);
 }
 
 .ETV_LINE {
@@ -106,53 +110,26 @@
     color: #a22ff0;
 }
 
-.ETV_LN_Note {
-    background-color: #4aafdd;
+.ETV_LINE_Note {
     border-radius: 2px;
     color: #f7ff3a;
 }
-.ETV_LN_Note:hover {
-    background-color: #4aafdd;
+.ETV_LINE_Note:hover {
+    filter: brightness(120%);
 }
-.ETV_LN_Note_Selected {
-    background-color: #61d1f9;
-}
-.ETV_LN_Note_Selected:hover {
-    background-color: #61d1f9;
+.ETV_LINE_Note_Selected {
+    filter: brightness(120%);
 }
 
-.ETV_LN_Warning {
-    background-color: #dd2222;
-    border-radius: 2px;
-    color: #f7ff3a;
-}
-.ETV_LN_Warning:hover {
-    background-color: #dd2222;
-}
-.ETV_LN_Warning_Selected {
-    background-color: #fb7471;
-}
-.ETV_LN_Warning_Selected:hover {
-    background-color: #fb7471;
-}
-
+/* Notes that hide source under it (hide=true) */
 .ETV_ShowCommentCode {
     font-style: italic;
-    font-weight: bold;
     cursor: pointer;
 }
-.ETV_WarnText {
-    color: #f0828f;
+.ETV_ShowCommentCode:hover {
+    filter: brightness(75%);
 }
-.ETV_WarnText:hover {
-    color: #c8646b;
-}
-.ETV_NoteText {
-    color: #6fb5bd;
-}
-.ETV_NoteText:hover {
-    color: #458599;
-}
+
 .ETV_Fname {
     color: #67238f;
     font-weight: bold;

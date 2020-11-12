@@ -359,18 +359,18 @@ class ReportUnsafeSerializer(UploadLeafBaseSerializer):
         if not isinstance(node, dict):
             self.fail('wrong_format', detail="node is not a dictionary")
 
-        # TODO: Temporarily treat local declarations like statements. This should not be the case always!
-        if node.get('type') == 'declaration':
-            node['type'] = 'statement'
-
-        if node.get('type') not in {'function call', 'statement', 'action', 'thread'}:
+        if node.get('type') not in {'function call', 'statement', 'action', 'thread', 'declaration', 'declarations'}:
             self.fail('wrong_format', detail='unsupported node type "{}"'.format(node.get('type')))
         if node['type'] == 'function call':
             required_fields = ['line', 'file', 'source', 'children', 'display']
         elif node['type'] == 'statement':
             required_fields = ['line', 'file', 'source']
+        elif node['type'] == 'declaration':
+            required_fields = ['line', 'file', 'source']
         elif node['type'] == 'action':
             required_fields = ['line', 'file', 'display']
+        elif node['type'] == 'declarations':
+            required_fields = ['children']
         else:
             required_fields = ['thread']
         for field_name in required_fields:
@@ -379,6 +379,8 @@ class ReportUnsafeSerializer(UploadLeafBaseSerializer):
         if node.get('children'):
             for child in node['children']:
                 self.__check_node(child)
+                if node['type'] == 'declarations' and child['type'] != 'declaration':
+                    self.fail('wrong_format', detail='declarations child has type "{}"'.format(child['type']))
 
     def validate_error_trace(self, archive):
         try:

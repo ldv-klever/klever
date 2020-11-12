@@ -21,8 +21,7 @@ $(document).ready(function () {
 
     function unselect_etv_line() {
         etv_window.find('.ETVSelectedLine').removeClass('ETVSelectedLine');
-        etv_window.find('.ETV_LN_Note_Selected').removeClass('ETV_LN_Note_Selected');
-        etv_window.find('.ETV_LN_Warning_Selected').removeClass('ETV_LN_Warning_Selected');
+        etv_window.find('.ETV_LINE_Note_Selected').removeClass('ETV_LINE_Note_Selected');
         data_window.empty();
     }
 
@@ -34,32 +33,14 @@ $(document).ready(function () {
     if (!etv_window.length) return false;
     source_processor.initialize(unselect_etv_line, $('#source_url').val());
 
-    $('.ETV_GlobalExpander').click(function (event) {
-        event.preventDefault();
-        let global_icon = $(this).find('i').first();
-        if (global_icon.hasClass('unhide')) {
-            global_icon.removeClass('unhide').addClass('hide');
-            etv_window.find('.scope-global:not(.commented)').show();
-        }
-        else {
-            global_icon.removeClass('hide').addClass('unhide');
-            etv_window.find('.scope-global:not([data-type="comment"])').hide();
-        }
-    });
-
     function show_scope(node) {
         if (!node.hasClass('scope_opened')) {
             node.addClass('scope_opened');
             node.find('.ETV_EnterLink').switchClass('right', 'down');
         }
-        let parent_display = node.find('.ETV_OpenEye').hasClass('hide');
         etv_window.find('.scope-' + node.data('scope')).each(function () {
             let node_type = $(this).data('type');
-
-            if (node_type === 'statement') {
-                if (parent_display && !$(this).hasClass('commented')) $(this).show();
-            }
-            else if (node_type === 'function call' || node_type === 'action') {
+            if (node_type === 'function call' || node_type === 'action') {
                 let has_note = $(this).hasClass('commented'),
                     was_opened = $(this).hasClass('scope_opened');
 
@@ -69,7 +50,10 @@ $(document).ready(function () {
                 // Open scope if it was opened earlier
                 if (was_opened) show_scope($(this));
             }
-            else $(this).show();  // note or exit
+            // Triangle should be shown for the opened scope if it exists
+            else if (node_type === 'exit') $(this).show();
+
+            // Notes, statements and declarations are shown by show_display()
         });
         show_display(node);
     }
@@ -96,18 +80,18 @@ $(document).ready(function () {
         }
         etv_window.find('.scope-' + node.data('scope')).each(function () {
             let node_type = $(this).data('type');
-            if (node_type === 'statement') {
-                // Even on shift click statements with notes are not shown
-                if (!$(this).hasClass('commented')) $(this).show();
-            }
-            else if (node_type === 'function call' || node_type === 'action') {
+            if (node_type === 'function call' || node_type === 'action') {
                 $(this).show();
                 show_scope_shift($(this));
             }
-            else $(this).show();  // note or exit
+            // Triangle should be shown for the opened scope if it exists
+            else if (node_type === 'exit') $(this).show();
+
+            // Notes, statements and declarations are shown by show_display()
         });
         show_display(node);
     }
+
     function show_display(node) {
         node.find('.ETV_OpenEye').switchClass('unhide', 'hide');
         node.find('.ETV_Display').hide();
@@ -115,20 +99,47 @@ $(document).ready(function () {
 
         let node_type = node.data('type');
 
-        // Show statements without comments if scope is shown
+        // Show statements/declarations/notes if scope is shown
         if ((node_type === 'function call' || node_type === 'action') && node.hasClass('scope_opened')) {
-            etv_window.find('.scope-' + node.data('scope') + '[data-type="statement"]').not('.commented').show()
+            // If the statement/declaration is commented, then it is shown by its note click
+            etv_window.find('.scope-' + node.data('scope') + '[data-type="statement"]').not('.commented').show();
+            etv_window.find('.scope-' + node.data('scope') + '[data-type="declaration"]').not('.commented').show();
+
+            // All notes should be shown in the scope
+            etv_window.find('.scope-' + node.data('scope') + '[data-type="note"]').show();
+        }
+        // Show notes and not commented declarations
+        else if (node_type === 'declarations') {
+            etv_window.find('.scope-' + node.data('scope')).not('.commented').show()
         }
     }
+
     function hide_display(node) {
         node.find('.ETV_OpenEye').switchClass('hide', 'unhide');
         node.find('.ETV_Display').show();
         node.find('.ETV_Source').hide();
 
         let node_type = node.data('type');
+
         // Hide statements without comments if scope is shown
         if ((node_type === 'function call' || node_type === 'action') && node.hasClass('scope_opened')) {
-            etv_window.find('.scope-' + node.data('scope') + '[data-type="statement"]').not('.commented').hide()
+            let prev_note_shown = false;
+            etv_window.find('.scope-' + node.data('scope')).each(function () {
+                let child_type = $(this).data('type');
+                if (child_type === 'statement' || child_type === 'declaration') {
+                    // Hide statements and declarations without notes or if its notes are hidden
+                    if (!prev_note_shown) $(this).hide();
+                    prev_note_shown = false;
+                }
+                else if (child_type === 'note') {
+                    if ($(this).data('level') > 1) $(this).hide();
+                    else prev_note_shown = true;
+                }
+                else prev_note_shown = false;
+            });
+        }
+        else if (node_type === 'declarations') {
+            etv_window.find('.scope-' + node.data('scope')).hide()
         }
     }
 
@@ -151,6 +162,10 @@ $(document).ready(function () {
         let node = $(this).parent().parent();
         if ($(this).hasClass('hide')) hide_display(node);
         else show_display(node);
+    });
+
+    $('.ETV_Declarations_Text').click(function () {
+        $(this).parent().find('.ETV_OpenEye').click();
     });
 
     $('.ETV_LINE').click(function () {
@@ -214,13 +229,9 @@ $(document).ready(function () {
         }
     });
 
-    $('.ETV_LN_Note').click(function () {
-        $(this).parent().next('span').find('.ETV_LINE').click();
-        $(this).addClass('ETV_LN_Note_Selected');
-    });
-    $('.ETV_LN_Warning').click(function () {
-        $(this).parent().next('span').find('.ETV_LINE').click();
-        $(this).addClass('ETV_LN_Warning_Selected');
+    $('.ETV_LINE_Note').click(function () {
+        $(this).parent().parent().next('span').find('.ETV_LINE').click();
+        $(this).addClass('ETV_LINE_Note_Selected');
     });
 
     etv_window.scroll(function () {
@@ -237,7 +248,7 @@ $(document).ready(function () {
         etv_window.children().each(function () {
             if ($(this).is(':visible')) {
                 let line_link = $(this).find('.ETV_LINE');
-                if (line_link.length) {
+                if (line_link.length && parseInt(line_link.text(), 10)) {
                     etv_window.scrollTop(etv_window.scrollTop() + $(this).position().top - etv_window.height() * 3/10);
                     line_link.click();
                     return false;

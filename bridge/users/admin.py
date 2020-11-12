@@ -29,7 +29,8 @@ class CustomUserAdmin(UserAdmin):
         (_('Permissions'), {'fields': ('role', 'is_active', 'is_staff', 'is_superuser')}),
         (_('Preferences'), {'fields': (
             'accuracy', 'data_format', 'language', 'timezone',
-            'default_threshold', 'assumptions', 'triangles', 'coverage_data'
+            'default_threshold', 'assumptions', 'triangles', 'coverage_data',
+            'declarations_number'
         )}),
         (_('Important dates'), {'fields': ('last_login', 'date_joined')}),
     )

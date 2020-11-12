@@ -24,13 +24,7 @@ from reports.source import SourceLine
 
 
 class GetETV:
-    tab_length = 4
     global_thread = 'global'
-    condition_class = 'SrcHlAssume'
-    THREAD_COLORS = [
-        '#5f54cb', '#85ff47', '#69c8ff', '#ff5de5', '#dfa720',
-        '#0b67bf', '#fa92ff', '#57bfa8', '#bf425a', '#7d909e'
-    ]
 
     def __init__(self, error_trace, user):
         self.user = user
@@ -42,10 +36,13 @@ class GetETV:
         self._scope_assumptions = {}
 
         self._threads = self.__get_threads()
-        self.globals = self.__get_global_vars()
+        self._html_collector = ETVHtml(self._threads, self._max_line_len, self.trace['files'])
+
         self.html_trace = []
+        if 'global variable declarations' in self.trace:
+            self.html_trace.extend(self.__get_global_vars())
         if self.trace['trace']:
-            self.html_trace = self.__parse_node(self.trace['trace'])
+            self.html_trace.extend(self.__parse_node(self.trace['trace'], 0, None, False, 0))
 
     def __get_threads(self):
         threads = []
@@ -72,48 +69,28 @@ class GetETV:
         return threads
 
     def __get_global_vars(self):
-        if 'global variable declarations' not in self.trace:
-            return None
-        global_data = {
-            'thread': self._html_thread['global'],
-            'line': self.__get_line(),
-            'offset': ' ',
-            'source': _('Global variable declarations'),
-            'lines': []
-        }
+        global_scope = 'global'
+        self.shown_scopes.add(global_scope)
+
         assert isinstance(self.trace['global variable declarations'], list), 'Not a list'
-        for node in self.trace['global variable declarations']:
-            global_data['lines'].append({
-                'thread': self._html_thread['global'],
-                'line': self.__get_line(node['line']),
-                'file': self.trace['files'][node['file']],
-                'offset': ' ',
-                'source': self.__parse_source(node),
-                'note': node.get('note'),
-                'display': node.get('display')
-            })
-        return global_data
+
+        # Hack for global variable declarations
+        for decl in self.trace['global variable declarations']:
+            decl['type'] = 'declaration'
+        global_node = {'type': 'declarations', 'children': self.trace['global variable declarations']}
+
+        return self.__parse_node(global_node, 0, self.global_thread, False, global_scope)
 
     @property
     def _new_scope(self):
         self._curr_scope += 1
         return self._curr_scope
 
-    def __parse_node(self, node, depth=0, thread=None, has_asc_note=False, scope=0):
-        # TODO: Like in reports.UploadReport.ReportUnsafeSerializer.__check_node().
-        if node['type'] == 'declaration':
-            node['type'] = 'statement'
+    def __parse_node(self, node, depth, thread, has_asc_note, scope):
 
         # Statement
         if node['type'] == 'statement':
-            node_data = self.__parse_statement(node, depth, thread, scope)
-            if node_data.get('warn'):
-                # If statement has warn, show current scope
-                self.shown_scopes.add(scope)
-            elif node_data.get('note') and not has_asc_note:
-                # If statement has note and there are no notes in ascendants then show current scope
-                self.shown_scopes.add(scope)
-            return [node_data]
+            return self.__parse_statement(node, depth, thread, has_asc_note, scope)
 
         # Thread
         if node['type'] == 'thread':
@@ -124,131 +101,190 @@ class GetETV:
 
             children_trace = []
             for child_node in node['children']:
-                children_trace.extend(self.__parse_node(
-                    child_node, depth=0, thread=node['thread'], has_asc_note=False, scope=thread_scope
-                ))
+                children_trace.extend(self.__parse_node(child_node, 0, node['thread'], False, thread_scope))
             return children_trace
 
         # Function call
         if node['type'] == 'function call':
-            enter_data = self.__parse_function(node, depth, thread, scope)
-            if enter_data.get('warn') or enter_data.get('note') and not has_asc_note:
-                self.shown_scopes.add(scope)
-            return self.__parse_body(enter_data, node, depth, thread, has_asc_note, scope)
+            return self.__parse_function(node, depth, thread, has_asc_note, scope)
 
         # Action
         if node['type'] == 'action':
-            enter_data = self.__parse_action(node, depth, thread, scope)
-            if enter_data['relevant']:
-                # Show all relevant actions
-                self.shown_scopes.add(scope)
-            return self.__parse_body(enter_data, node, depth, thread, has_asc_note, scope)
+            return self.__parse_action(node, depth, thread, has_asc_note, scope)
 
-    def __parse_body(self, enter_data, node, depth, thread, has_asc_note, scope):
-        new_scope = self._new_scope
-        enter_data['inner_scope'] = new_scope
+        # Declarations
+        if node['type'] == 'declarations':
+            return self.__parse_declarations(node, depth, thread, has_asc_note, scope)
 
-        child_depth = depth + 1
-        child_asc_note = has_asc_note or bool(enter_data.get('note')) or bool(enter_data.get('warn'))
-        children_trace = []
-        for child_node in node['children']:
-            children_trace.extend(self.__parse_node(
-                child_node, depth=child_depth, thread=thread, has_asc_note=child_asc_note, scope=new_scope
-            ))
+    def __parse_statement(self, node, depth, thread, has_asc_note, scope):
+        note_data = self.__parse_note(node, depth, thread, has_asc_note, scope)
 
-        # New scope can be added while children parsing
-        if new_scope in self.shown_scopes:
-            # Open scope by default if its scope is shown and show action scope
-            self.shown_scopes.add(scope)
-            enter_data['opened'] = True
-
-        if not self.user.triangles:
-            return [enter_data] + children_trace
-
-        # Closing triangle
-        exit_data = self.__parse_exit(depth, thread, new_scope)
-        return [enter_data] + children_trace + [exit_data]
-
-    def __parse_statement(self, node, depth, thread, scope):
         statement_data = {
             'type': node['type'],
-            'thread': self._html_thread[thread],
-            'line': self.__get_line(node['line']),
-            'file': self.trace['files'][node['file']],
-            'offset': ' ' * (self.tab_length * depth + 1),
-            'source': self.__parse_source(node),
-            'display': node.get('display'),
-            'scope': scope
+            'scope': scope,
+            'has_note': bool(note_data),
+            'LN': self._html_collector.line_number(thread, line=node['line'], file=node['file']),
+            'LC': self._html_collector.statement_content(depth, node),
         }
-
-        # Add note/warn
-        if node.get('note'):
-            if node.get('violation'):
-                statement_data['warn'] = node['note']
-            else:
-                statement_data['note'] = node['note']
+        if note_data and note_data['hide']:
+            statement_data['commented'] = True
 
         # Add assumptions
         if self.user.assumptions:
             statement_data['old_assumptions'], statement_data['new_assumptions'] = self.__get_assumptions(node, scope)
 
-        return statement_data
+        if note_data:
+            return [note_data, statement_data]
+        return [statement_data]
 
-    def __parse_function(self, node, depth, thread, scope):
-        func_data = self.__parse_statement(node, depth, thread, scope)
-        func_data['opened'] = False
-        return func_data
+    def __parse_declaration(self, node, depth, thread, scope, has_asc_note, decl_scope):
+        note_data = self.__parse_note(node, depth, thread, has_asc_note, decl_scope)
 
-    def __parse_action(self, node, depth, thread, scope):
-        return {
+        decl_data = {
             'type': node['type'],
-            'relevant': node.get('relevant', False),
-            'thread': self._html_thread[thread],
-            'line': self.__get_line(node['line']),
-            'file': self.trace['files'][node['file']],
-            'offset': ' ' * (self.tab_length * depth + 1),
-            'display': node['display'],
             'scope': scope,
-            'opened': False
+            'commented': False,
+            'has_note': bool(note_data),
+            'LN': self._html_collector.line_number(thread, line=node['line'], file=node['file']),
+            'LC': self._html_collector.declaration_content(depth, node)
         }
 
-    def __parse_exit(self, depth, thread, scope):
+        if note_data:
+            decl_data['commented'] = note_data['hide']
+
+            # Others are hidden under the "Delarations" eye
+            if note_data['level'] in {0, 1}:
+                # Move declaration with meaningful notes out of the declarations block scope
+                decl_data['scope'] = decl_scope
+            else:
+                # Move notes to the declarations block scope
+                note_data['scope'] = scope
+
+        # Add assumptions
+        if self.user.assumptions:
+            decl_data['old_assumptions'], decl_data['new_assumptions'] = self.__get_assumptions(node, decl_scope)
+
+        if note_data:
+            return [note_data, decl_data]
+        return [decl_data]
+
+    def __parse_function(self, node, depth, thread, has_asc_note, scope):
+        note_data = self.__parse_note(node, depth, thread, has_asc_note, scope)
+
+        func_enter = {
+            'type': node['type'],
+            'scope': scope,
+            'body_scope': self._new_scope,
+            'opened': False,
+            'LN': self._html_collector.line_number(thread, line=node['line'], file=node['file'])
+        }
+        if note_data and note_data['hide']:
+            func_enter['commented'] = True
+
+        # Get function body
+        child_asc_note = has_asc_note or bool(note_data) and note_data['level'] in {0, 1}
+        func_body = []
+        for child_node in node['children']:
+            func_body.extend(self.__parse_node(child_node, depth + 1, thread, child_asc_note, func_enter['body_scope']))
+
+        # New scope can be added while children parsing
+        if func_enter['body_scope'] in self.shown_scopes:
+            # Open scope by default if its scope is shown and show function scope
+            self.shown_scopes.add(scope)
+            func_enter['opened'] = True
+        func_enter['LC'] = self._html_collector.function_content(depth, node, func_enter['opened'])
+
+        # Add assumptions
+        if self.user.assumptions:
+            func_enter['old_assumptions'], func_enter['new_assumptions'] = self.__get_assumptions(node, scope)
+
+        # Collect function trace
+        func_trace = []
+        if note_data:
+            func_trace.append(note_data)
+        func_trace.append(func_enter)
+        func_trace.extend(func_body)
+        if self.user.triangles:
+            # Closing triangle
+            func_trace.append(self.__closing_triangle(depth, thread, func_enter['body_scope']))
+
+        return func_trace
+
+    def __parse_action(self, node, depth, thread, has_asc_note, scope):
+        if node.get('relevant'):
+            # Show all relevant actions
+            self.shown_scopes.add(scope)
+
+        action_enter = {
+            'type': node['type'],
+            'scope': scope,
+            'body_scope': self._new_scope,
+            'opened': False,
+            'LN': self._html_collector.line_number(thread, line=node['line'], file=node['file'])
+        }
+
+        # Get action body
+        action_body = []
+        for child_node in node['children']:
+            action_body.extend(self.__parse_node(
+                child_node, depth + 1, thread, has_asc_note, action_enter['body_scope']
+            ))
+
+        # New scope can be added while children parsing
+        if action_enter['body_scope'] in self.shown_scopes:
+            # Open scope by default if its scope is shown and show action scope
+            self.shown_scopes.add(scope)
+            action_enter['opened'] = True
+        action_enter['LC'] = self._html_collector.action_content(depth, node, action_enter['opened'])
+
+        # Collect action trace
+        action_trace = [action_enter] + action_body
+        if self.user.triangles:
+            # Closing triangle
+            action_trace.append(self.__closing_triangle(depth, thread, action_enter['body_scope']))
+
+        return action_trace
+
+    def __parse_declarations(self, node, depth, thread, has_asc_note, scope):
+        decl_enter = {
+            'type': node['type'],
+            'scope': scope,
+            'body_scope': self._new_scope
+        }
+
+        decl_body = []
+        for child_node in node['children']:
+            if child_node['type'] != 'declaration':
+                # Just declarations are supported inside "declarations" tree
+                continue
+            decl_body.extend(self.__parse_declaration(
+                child_node, depth, thread, decl_enter['body_scope'], has_asc_note, scope
+            ))
+
+        # Count number of declarations inside the declarations block
+        decl_number = 0
+        for child in decl_body:
+            if child['type'] == 'declaration' and child['scope'] == decl_enter['body_scope']:
+                decl_number += 1
+
+        # If there low of them, then move everything outside the declarations scope and return it without header
+        if decl_number <= self.user.declarations_number:
+            for child in decl_body:
+                child['scope'] = scope
+            return decl_body
+
+        decl_enter['LN'] = self._html_collector.line_number(thread)
+        display = _('Declarations') if scope != 'global' else _('Global variable declarations')
+        decl_enter['LC'] = self._html_collector.declarations_content(depth, display)
+        return [decl_enter] + decl_body
+
+    def __closing_triangle(self, depth, thread, scope):
         return {
             'type': 'exit',
-            'line': self.__get_line(),
-            'thread': self._html_thread[thread],
-            'offset': ' ' * (self.tab_length * depth + 1),
-            'scope': scope
+            'scope': scope,
+            'LN': self._html_collector.line_number(thread),
+            'LC': self._html_collector.exit_content(depth, scope in self.shown_scopes)
         }
-
-    def __parse_source(self, node):
-        src_line = SourceLine(node['source'], highlights=node.get('highlight', []), filename='error trace',
-                              line=node['line'])
-        source_html = src_line.html_code
-
-        # Wrap to assume() conditions
-        if node.get('condition'):
-            source_html = '<span class="{}">assume</span>({})'.format(self.condition_class, source_html)
-        return source_html
-
-    def __get_line(self, line=None):
-        line_str = '' if line is None else str(line)
-        line_offset = ' ' * (self._max_line_len - len(line_str))
-        return '{0}{1}'.format(line_offset, line_str)
-
-    @cached_property
-    def _html_thread(self):
-        html_pattern = '{prefix}<span style="background-color:{color};"> </span>{postfix}'
-        threads_num = len(self._threads)
-        threads_html = {}
-        for i, th in enumerate(self._threads):
-            threads_html[th] = html_pattern.format(
-                prefix=' ' * i,
-                color=self.THREAD_COLORS[i % len(self.THREAD_COLORS)],
-                postfix=' ' * (threads_num - i - 1)
-            )
-        threads_html['global'] = ' ' * threads_num
-        return threads_html
 
     def __get_assumptions(self, node, scope):
         if not self.user.assumptions:
@@ -273,3 +309,153 @@ class GetETV:
             new_assumptions = '_'.join(new_assumptions)
 
         return old_assumptions, new_assumptions
+
+    def __parse_note(self, node, depth, thread, has_asc_note, scope):
+        if not node.get('note'):
+            return None
+
+        # TODO: node.get('level', 2)
+        if 'level' in node:
+            note_level = node['level']
+        else:
+            # For old traces format
+            note_level = 0 if node.get('violation') else node.get('level', 1)
+        note_hide = node.get('hide', False)
+
+        if note_level == 0 or note_level == 1 and not has_asc_note:
+            self.shown_scopes.add(scope)
+
+        return {
+            'type': 'note',
+            'scope': scope,
+            'level': note_level,
+            'hide': note_hide,
+            'LN': self._html_collector.line_number(thread, line=node['line'], note_level=note_level),
+            'LC': self._html_collector.note_content(depth, note_level, node['note'], note_hide)
+        }
+
+    def __is_node_shown(self, note_data, has_asc_note):
+        if not note_data:
+            return False
+        # If statement has violation note or meaningful note and there are no meaningful notes in ascendants
+        # then the node should be shown by default
+        return note_data['level'] == 0 or note_data['level'] == 1 and not has_asc_note
+
+
+class ETVHtml:
+    tab_length = 4
+    condition_class = 'SrcHlAssume'
+    global_thread = 'global'
+    THREAD_COLORS = [
+        '#5f54cb', '#85ff47', '#69c8ff', '#ff5de5', '#dfa720',
+        '#0b67bf', '#fa92ff', '#57bfa8', '#bf425a', '#7d909e'
+    ]
+
+    def __init__(self, threads, max_line_len, files):
+        self._threads = threads
+        self._max_line_len = max_line_len
+        self._files = files
+
+    def __parse_source(self, node):
+        src_line = SourceLine(
+            node['source'], highlights=node.get('highlight', []), filename='error trace', line=node['line']
+        )
+        source_html = src_line.html_code
+
+        # Wrap to assume() conditions
+        if node.get('condition'):
+            source_html = '<span class="{}">assume</span>({})'.format(self.condition_class, source_html)
+        return source_html
+
+    @cached_property
+    def _html_thread(self):
+        html_pattern = '<span class="ETV_THREAD">{}</span>'
+        content_pattern = '{pre}<span style="background-color:{color};"> </span>{post}'
+        threads_num = len(self._threads)
+        threads_html = {}
+        for i, th in enumerate(self._threads):
+            content_html = content_pattern.format(
+                pre=' ' * i,
+                color=self.THREAD_COLORS[i % len(self.THREAD_COLORS)],
+                post=' ' * (threads_num - i - 1)
+            )
+            threads_html[th] = html_pattern.format(content_html)
+        threads_html[self.global_thread] = html_pattern.format(' ' * threads_num)
+        return threads_html
+
+    def line_number(self, thread, line=None, file=None, note_level=None):
+        # Get line number with indentations
+        line_str = '' if line is None else str(line)
+        line_offset = ' ' * (self._max_line_len - len(line_str))
+        line_str = ' {0}{1} '.format(line_offset, line_str)
+
+        if note_level is not None:
+            line_html = '<span class="ETV_LINE_Note ETV_Note{note_level}">{line_str}</span>'.format(
+                note_level=note_level, line_str=line_str
+            )
+        elif file is None:
+            line_html = '<span class="ETV_LINE">{line_str}</span>'.format(line_str=line_str)
+        else:
+            line_html = '<span class="ETV_LINE" data-file="{file_str}">{line_str}</span>'.format(
+                file_str=self._files[file], line_str=line_str
+            )
+        return '<span class="ETV_LN">{}{}</span>'.format(self._html_thread[thread], line_html)
+
+    @cached_property
+    def _eye_html(self):
+        return '<i class="ETV_OpenEye link small violet icon unhide"></i>'
+
+    @cached_property
+    def _enter_triangle_html(self):
+        return '<i class="ETV_EnterLink link small icon violet caret right"></i>'
+
+    def __line_content_html(self, depth, *args):
+        return '<span class="ETV_LC">{offset}{display_html}</span>'.format(
+            offset=' ' * (self.tab_length * depth + 1), display_html=''.join(args)
+        )
+
+    def __span_text(self, text_class, text_value, shown=True):
+        return '<span class="{text_class}"{style}>{text_value}</span>'.format(
+            text_class=text_class, text_value=text_value,
+            style='' if shown else ' style="display:none;"'
+        )
+
+    def statement_content(self, depth, node):
+        source = self.__parse_source(node)
+        if not node.get('display'):
+            return self.__line_content_html(depth, source)
+        return self.__line_content_html(
+            depth, self._eye_html,
+            self.__span_text('ETV_Display', node['display']),
+            self.__span_text('ETV_Source', source, shown=False)
+        )
+
+    def declaration_content(self, depth, node):
+        return self.statement_content(depth, node)
+
+    def function_content(self, depth, node, opened):
+        return self.__line_content_html(
+            depth, self._eye_html if opened else self._enter_triangle_html,
+            self.__span_text('ETV_Display', node['display']),
+            self.__span_text('ETV_Source', self.__parse_source(node), shown=False)
+        )
+
+    def exit_content(self, depth, scope_shown):
+        return self.__line_content_html(depth, '<i class="ui small icon caret up {}"></i>'.format(
+            'black' if scope_shown else 'violet link ETV_ExitLink'
+        ))
+
+    def action_content(self, depth, node, opened):
+        return self.__line_content_html(
+            depth, self._eye_html if opened else self._enter_triangle_html,
+            self.__span_text('ETV_RelevantAction' if node.get('relevant') else 'ETV_Action', node['display'])
+        )
+
+    def declarations_content(self, depth, display):
+        return self.__line_content_html(depth, self._eye_html, self.__span_text('ETV_Declarations_Text', display))
+
+    def note_content(self, depth, level, display, hide):
+        note_classes = ['ETV_Note{}_Text'.format(level)]
+        if hide:
+            note_classes.append('ETV_ShowCommentCode')
+        return self.__line_content_html(depth, self.__span_text(' '.join(note_classes), display))

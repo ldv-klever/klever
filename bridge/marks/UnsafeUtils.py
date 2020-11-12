@@ -237,7 +237,7 @@ class ThreadCallForests:
         return list(forest for forest in self._forests_dict.values() if forest)
 
     def __parse_child(self, node, thread=None):
-        if node['type'] == 'statement':
+        if node['type'] in {'statement', 'declaration', 'declarations'}:
             return []
 
         if node['type'] == 'thread':
@@ -257,7 +257,7 @@ class ThreadCallForests:
                 has_body_note |= self.__has_note(child)
                 children_call_trees.extend(self.__parse_child(child, thread))
 
-            if children_call_trees or has_body_note or bool(node.get('note')):
+            if children_call_trees or has_body_note or self.__has_relevant_note(node):
                 return [{node.get('display', node['source']): children_call_trees}]
             # No children and no notes in body and no notes in call
             return []
@@ -282,7 +282,15 @@ class ThreadCallForests:
                 if self.__has_note(child):
                     return True
             return False
-        return bool(node.get('note'))
+        elif node['type'] == 'declarations':
+            for child in node['children']:
+                if self.__has_note(child):
+                    return True
+            return False
+        return self.__has_relevant_note(node)
+
+    def __has_relevant_note(self, node):
+        return bool(node.get('note')) and node.get('level', 2) < 2
 
 
 class RelevantCallForests:
@@ -292,7 +300,7 @@ class RelevantCallForests:
         self.__parse_child(self._trace['trace'])
 
     def __parse_child(self, node):
-        if node['type'] == 'statement':
+        if node['type'] in {'statement', 'declaration', 'declarations'}:
             return []
 
         if node['type'] == 'thread':
@@ -307,7 +315,7 @@ class RelevantCallForests:
                 has_body_note |= self.__has_note(child)
                 children_call_trees.extend(self.__parse_child(child))
 
-            if children_call_trees or has_body_note or bool(node.get('note')):
+            if children_call_trees or has_body_note or self.__has_relevant_note(node):
                 return [{node.get('display', node['source']): children_call_trees}]
             # No children and no notes in body and no notes in call
             return []
@@ -331,7 +339,15 @@ class RelevantCallForests:
                 if self.__has_note(child):
                     return True
             return False
-        return bool(node.get('note'))
+        elif node['type'] == 'declarations':
+            for child in node['children']:
+                if self.__has_note(child):
+                    return True
+            return False
+        return self.__has_relevant_note(node)
+
+    def __has_relevant_note(self, node):
+        return bool(node.get('note')) and node.get('level', 2) < 2
 
 
 class CompareMark:
