@@ -725,7 +725,7 @@ class ErrorTrace:
                 # workarounds to encourage developers of bad model comments.
                 edge['note'] = {
                     'value': note,
-                    'level': '1',
+                    'level': 1,
                     'hide': True
                 }
 
@@ -734,7 +734,7 @@ class ErrorTrace:
                 self._logger.debug("Add warning {!r} for statement from '{}:{}'".format(warn, file, line))
                 edge['note'] = {
                     'value': warn,
-                    'level': '0',
+                    'level': 0,
                     'hide': True
                 }
 

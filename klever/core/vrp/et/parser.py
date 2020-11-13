@@ -202,7 +202,7 @@ class ErrorTraceParser:
                     m = re.match(r'level="(\d+)" hide="(false|true)" value="([^"]+)"', data.text)
                     if m:
                         _edge['note'] = {
-                            'level': m.group(1),
+                            'level': int(m.group(1)),
                             'hide': False if m.group(2) == 'false' else True,
                             'value': m.group(3)
                         }
