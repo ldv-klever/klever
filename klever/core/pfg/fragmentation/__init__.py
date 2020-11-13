@@ -124,7 +124,7 @@ class FragmentationAlgorythm:
 
         # Prepare program fragments
         self.logger.info("Generate program fragments")
-        fragments_files = self.__generate_program_fragments_descriptions(deps, grps)
+        pairs = self.__generate_program_fragments_descriptions(deps, grps)
 
         # Prepare data attributes
         self.logger.info("Prepare data attributes for generated fragments")
@@ -136,7 +136,7 @@ class FragmentationAlgorythm:
             for fragment in deps.fragments:
                 self.__draw_fragment(fragment)
 
-        return attr_data, fragments_files
+        return attr_data, pairs
 
     def _determine_units(self, program):
         """
@@ -341,12 +341,12 @@ class FragmentationAlgorythm:
 
         :param program: Program object.
         :param grps: Dictionary with program fragments with dependecnies.
-        :return: A list of file names.
+        :return: A list of pairs of fragment and related file names.
         """
-        files = list()
+        pairs = list()
         for name, grp in grps.items():
-            files.append(self.__describe_program_fragment(program, name, grp))
-        return files
+            pairs.append((name, self.__describe_program_fragment(program, name, grp)))
+        return pairs
 
     def __describe_program_fragment(self, program, name, grp):
         """

@@ -31,52 +31,55 @@ def merge_files(logger, conf, abstract_task_desc):
     :param abstract_task_desc: Abstract verification task description dictionary.
     :return: A file name of the newly created file.
     """
-    logger.info('Merge source files by means of CIL')
+    if os.path.isfile('cil.i'):
+        logger.info('CIL file exists, we do not need to run CIL again')
+    else:
+        logger.info('Merge source files by means of CIL')
 
-    args = ['toplevel.opt'] + \
-        conf.get('CIL additional opts', []) + \
-        [
-            # This disables searching for add-ons enabled by default. One still is able to load plugins manually.
-            '-no-autoload-plugins', '-no-findlib',
-            # Copy user or internal errors to "problem desc.txt" explicitly since CIL does not output them to STDERR.
-            '-kernel-log', 'e:problem desc.txt',
-            '-machdep', conf['CIL']['machine'],
-            # Compatibility with C11 (ISO/IEC 9899:2011).
-            '-c11',
-            # In our mode this is the only warning resulting to errors by default.
-            '-kernel-warn-key', 'CERT:MSC:38=active',
-            # Removing unused functions helps to reduce CPAchecker computational resources consumption very-very
-            # considerably.
-            '-remove-unused-inline-functions', '-remove-unused-static-functions',
-            # This helps to reduce considerable memory consumption by CIL itself since input files are processed more
-            # sequentially.
-            '-no-annot',
-            # This allows to avoid temporary variables to hold return values for all functions and returns at the end of
-            # functions even when returning in the middle.
-            '-no-single-return',
-            # Avoid temporary variables as much as possible since witnesses will refer them otherwise.
-            '-fold-temp-vars',
-            # Remove redundant zero initializers of global variables that are specified in original sources (rarely) or
-            # added by CIL itself.
-            '-shrink-initializers',
-            # Rest options.
-            '-keep-logical-operators',
-            '-aggressive-merging',
-            '-print', '-print-lines', '-no-print-annot',
-            '-ocode', 'cil.i',
-        ] + \
-        [
-            os.path.join(conf['main working directory'], extra_c_file['C file'])
-            for extra_c_file in abstract_task_desc['extra C files']
-            if 'C file' in extra_c_file
-           ]
+        args = ['toplevel.opt'] + \
+            conf.get('CIL additional opts', []) + \
+            [
+                # This disables searching for add-ons enabled by default. One still is able to load plugins manually.
+                '-no-autoload-plugins', '-no-findlib',
+                # Copy user or internal errors to "problem desc.txt" explicitly since CIL does not output them to STDERR.
+                '-kernel-log', 'e:problem desc.txt',
+                '-machdep', conf['CIL']['machine'],
+                # Compatibility with C11 (ISO/IEC 9899:2011).
+                '-c11',
+                # In our mode this is the only warning resulting to errors by default.
+                '-kernel-warn-key', 'CERT:MSC:38=active',
+                # Removing unused functions helps to reduce CPAchecker computational resources consumption very-very
+                # considerably.
+                '-remove-unused-inline-functions', '-remove-unused-static-functions',
+                # This helps to reduce considerable memory consumption by CIL itself since input files are processed more
+                # sequentially.
+                '-no-annot',
+                # This allows to avoid temporary variables to hold return values for all functions and returns at the end of
+                # functions even when returning in the middle.
+                '-no-single-return',
+                # Avoid temporary variables as much as possible since witnesses will refer them otherwise.
+                '-fold-temp-vars',
+                # Remove redundant zero initializers of global variables that are specified in original sources (rarely) or
+                # added by CIL itself.
+                '-shrink-initializers',
+                # Rest options.
+                '-keep-logical-operators',
+                '-aggressive-merging',
+                '-print', '-print-lines', '-no-print-annot',
+                '-ocode', 'cil.i',
+            ] + \
+            [
+                os.path.join(conf['main working directory'], extra_c_file['C file'])
+                for extra_c_file in abstract_task_desc['extra C files']
+                if 'C file' in extra_c_file
+               ]
 
-    klever.core.utils.execute(logger, args=args, enforce_limitations=True)
-    # There will be empty file if CIL succeeded. Remove it to avoid unknown reports of whole FVTP later.
-    if os.path.isfile('problem desc.txt'):
-        os.unlink('problem desc.txt')
+        klever.core.utils.execute(logger, args=args, enforce_limitations=True)
+        # There will be empty file if CIL succeeded. Remove it to avoid unknown reports of whole FVTP later.
+        if os.path.isfile('problem desc.txt'):
+            os.unlink('problem desc.txt')
 
-    logger.debug('Merged source files was outputted to "cil.i"')
+        logger.debug('Merged source files was outputted to "cil.i"')
 
     return 'cil.i'
 
