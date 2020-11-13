@@ -207,6 +207,9 @@ def __get_common_components_conf(logger, conf):
     # configuration files to jobs.
     if 'architecture' not in components_common_conf:
         components_common_conf['architecture'] = DEFAULT_ARCH
+    if components_common_conf['architecture'] not in DEFAULT_ARCH_OPTS:
+        raise ValueError("Klever does not support architecture {!r} yet, available options are: {}"
+                         .format(components_common_conf['architecture'], ', '.join(DEFAULT_ARCH_OPTS.keys())))
     components_common_conf.update(DEFAULT_ARCH_OPTS[components_common_conf['architecture']])
 
     # Add complete Klever Core configuration itself to components configuration since almost all its attributes will

@@ -48,6 +48,7 @@ from marks.tables import (
 )
 from marks.tags import AllTagsTree, DownloadTags, MarkTagsTree, SelectedTagsTree
 from marks.utils import MarkAccess, CompareMarkVersions
+from reports.verdicts import safe_color, unsafe_color, bug_status_color
 
 
 @register.filter
@@ -91,6 +92,11 @@ class SafeMarkPage(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, DetailVie
             .get(mark=self.object, version=F('mark__version'))
         return {
             'mark': self.object, 'mark_version': mark_version,
+            'verdict': {
+                'id': mark_version.verdict,
+                'text': mark_version.get_verdict_display(),
+                'color': safe_color(mark_version.verdict, inverted=True)
+            },
             'access': MarkAccess(self.request.user, mark=self.object),
             'versions': SMVlistSerializerRO(mark=self.object).data,
             'tags': MarkTagsTree(mark_version),
@@ -110,8 +116,13 @@ class UnsafeMarkPage(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, DetailV
         with self.object.error_trace.file.file as fp:
             error_trace = fp.read().decode('utf-8')
 
-        return {
+        context = {
             'mark': self.object, 'mark_version': mark_version,
+            'verdict': {
+                'id': self.object.verdict,
+                'text': self.object.get_verdict_display(),
+                'color': unsafe_color(self.object.verdict, inverted=True)
+            },
             'access': MarkAccess(self.request.user, mark=self.object),
             'versions': UMVlistSerializerRO(mark=self.object).data,
             'tags': MarkTagsTree(mark_version),
@@ -128,6 +139,13 @@ class UnsafeMarkPage(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, DetailV
                 'desc': CONVERT_FUNCTIONS[COMPARE_FUNCTIONS[self.object.function]['convert']]
             }
         }
+        if self.object.status:
+            context['bug_status'] = {
+                'id': self.object.status,
+                'text': self.object.get_status_display(),
+                'color': bug_status_color(self.object.status)
+            }
+        return context
 
 
 class UnknownMarkPage(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, DetailView):

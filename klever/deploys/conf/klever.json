@@ -1,13 +1,18 @@
 {
   "Klever Addons": {
     "CIF": {
-      "version": "64af3bf",
-      "path": "https://forge.ispras.ru/attachments/download/7914/cif-64af3bf.tar.xz",
+      "version": "7eb76b0",
+      "path": "https://forge.ispras.ru/attachments/download/8056/cif-7eb76b0.tar.xz",
+      "executable path": "bin"
+    },
+    "CIF-ARM": {
+      "version": "79182af",
+      "path": "https://forge.ispras.ru/attachments/download/8074/arm-unknown-eabi-cif-79182af.tar.xz",
       "executable path": "bin"
     },
     "CIL": {
-      "version": "88d3732",
-      "path": "https://forge.ispras.ru/attachments/download/7582/frama-c-cil-88d3732.tar.xz",
+      "version": "0a60360",
+      "path": "https://forge.ispras.ru/attachments/download/8075/frama-c-cil-0a60360.tar.xz",
       "executable path": "."
     },
     "Consul": {
@@ -37,7 +42,7 @@
   },
   "Klever Build Bases": {
     "linux/loadable kernel modules sample": {
-      "path": "https://forge.ispras.ru/attachments/download/7604/build-base-linux-3.14.79-x86_64-sample.tar.xz"
+      "path": "https://forge.ispras.ru/attachments/download/8076/build-base-linux-3.14.79-x86_64-sample.tar.xz"
     }
   }
 }

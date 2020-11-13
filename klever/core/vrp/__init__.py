@@ -70,14 +70,14 @@ class VRP(klever.core.components.Component):
 
         # Do result processing
         klever.core.utils.report(self.logger,
-                          'patch',
-                          {
-                              'identifier': self.id,
-                              'attrs': self.__get_common_attrs()
-                          },
-                          self.mqs['report files'],
-                          self.vals['report id'],
-                          self.conf['main working directory'])
+                                 'patch',
+                                 {
+                                     'identifier': self.id,
+                                     'attrs': self.__get_common_attrs()
+                                 },
+                                 self.mqs['report files'],
+                                 self.vals['report id'],
+                                 self.conf['main working directory'])
 
         subcomponents = [('RPL', self.__result_processing)]
         for i in range(self.__workers):
@@ -264,29 +264,29 @@ class RP(klever.core.components.Component):
         files_list_file = 'files list.txt'
         klever.core.utils.save_program_fragment_description(program_fragment_desc, files_list_file)
         klever.core.utils.report(self.logger,
-                          'patch',
-                          {
-                              'identifier': self.id,
-                              'attrs': [
-                                  {
-                                      "name": "Program fragment",
-                                      "value": self.program_fragment_id,
-                                      "data": files_list_file,
-                                      "compare": True,
-                                      "associate": True
-                                  },
-                                  {
-                                      "name": "Requirements specification",
-                                      "value": req_spec_id,
-                                      "compare": True,
-                                      "associate": True
-                                  }
-                              ]
-                          },
-                          self.mqs['report files'],
-                          self.vals['report id'],
-                          self.conf['main working directory'],
-                          data_files=[files_list_file])
+                                 'patch',
+                                 {
+                                     'identifier': self.id,
+                                     'attrs': [
+                                         {
+                                             "name": "Program fragment",
+                                             "value": self.program_fragment_id,
+                                             "data": files_list_file,
+                                             "compare": True,
+                                             "associate": True
+                                         },
+                                         {
+                                             "name": "Requirements specification",
+                                             "value": req_spec_id,
+                                             "compare": True,
+                                             "associate": True
+                                         }
+                                     ]
+                                 },
+                                 self.mqs['report files'],
+                                 self.vals['report id'],
+                                 self.conf['main working directory'],
+                                 data_files=[files_list_file])
 
         # Update solution status
         data = list(self.vals['task solution triples'][self.results_key])
@@ -332,18 +332,18 @@ class RP(klever.core.components.Component):
 
     def report_unsafe(self, error_trace_file, attrs):
         klever.core.utils.report(self.logger,
-                          'unsafe',
-                          {
-                              'parent': "{}/verification".format(self.id),
-                              'attrs': attrs,
-                              'error_trace': klever.core.utils.ArchiveFiles(
-                                  [error_trace_file],
-                                  arcnames={error_trace_file: 'error trace.json'}
-                              )
-                          },
-                          self.mqs['report files'],
-                          self.vals['report id'],
-                          self.conf['main working directory'])
+                                 'unsafe',
+                                 {
+                                     'parent': "{}/verification".format(self.id),
+                                     'attrs': attrs,
+                                     'error_trace': klever.core.utils.ArchiveFiles(
+                                         [error_trace_file],
+                                         arcnames={error_trace_file: 'error trace.json'}
+                                     )
+                                 },
+                                 self.mqs['report files'],
+                                 self.vals['report id'],
+                                 self.conf['main working directory'])
 
     def process_single_verdict(self, decision_results, opts, log_file):
         """The function has a callback that collects verdicts to compare them with the ideal ones."""
@@ -374,19 +374,19 @@ class RP(klever.core.components.Component):
         # Necessary verificaiton finish report also won't be uploaded causing Bridge to corrupt the whole job.
         if re.search('true', decision_results['status']):
             klever.core.utils.report(self.logger,
-                              'safe',
-                              {
-                                  'parent': "{}/verification".format(self.id),
-                                  'attrs': []
-                                  # TODO: at the moment it is unclear what are verifier proofs.
-                                  # 'proof': None
-                              },
-                              self.mqs['report files'],
-                              self.vals['report id'],
-                              self.conf['main working directory'])
+                                     'safe',
+                                     {
+                                         'parent': "{}/verification".format(self.id),
+                                         'attrs': []
+                                         # TODO: at the moment it is unclear what are verifier proofs.
+                                         # 'proof': None
+                                     },
+                                     self.mqs['report files'],
+                                     self.vals['report id'],
+                                     self.conf['main working directory'])
             self.verdict = 'safe'
         else:
-            witnesses = glob.glob(os.path.join('output', 'witness.*.graphml'))
+            witnesses = sorted(glob.glob(os.path.join('output', 'witness.*.graphml')))
             self.logger.info("Found {} witnesses".format(len(witnesses)))
 
             # Create unsafe reports independently on status. Later we will create unknown report in addition if status
@@ -446,19 +446,19 @@ class RP(klever.core.components.Component):
                     os.symlink(os.path.relpath(log_file, 'verification'), verification_problem_desc)
 
                 klever.core.utils.report(self.logger,
-                                  'unknown',
-                                  {
-                                      'parent': "{}/verification".format(self.id),
-                                      'attrs': [],
-                                      'problem_description': klever.core.utils.ArchiveFiles(
-                                          [verification_problem_desc],
-                                          {verification_problem_desc: 'problem desc.txt'}
-                                      )
-                                  },
-                                  self.mqs['report files'],
-                                  self.vals['report id'],
-                                  self.conf['main working directory'],
-                                  'verification')
+                                         'unknown',
+                                         {
+                                             'parent': "{}/verification".format(self.id),
+                                             'attrs': [],
+                                             'problem_description': klever.core.utils.ArchiveFiles(
+                                                 [verification_problem_desc],
+                                                 {verification_problem_desc: 'problem desc.txt'}
+                                             )
+                                         },
+                                         self.mqs['report files'],
+                                         self.vals['report id'],
+                                         self.conf['main working directory'],
+                                         'verification')
 
     def process_failed_task(self, task_id):
         """The function has a callback at Job module."""
@@ -544,11 +544,11 @@ class RP(klever.core.components.Component):
 
         # todo: This should be checked to guarantee that we can reschedule tasks
         klever.core.utils.report(self.logger,
-                          'verification',
-                          report,
-                          self.mqs['report files'],
-                          self.vals['report id'],
-                          self.conf['main working directory'])
+                                 'verification',
+                                 report,
+                                 self.mqs['report files'],
+                                 self.vals['report id'],
+                                 self.conf['main working directory'])
 
         try:
             # Submit a verdict
@@ -556,11 +556,11 @@ class RP(klever.core.components.Component):
         finally:
             # Submit a closing report
             klever.core.utils.report(self.logger,
-                              'verification finish',
-                              {'identifier': report['identifier']},
-                              self.mqs['report files'],
-                              self.vals['report id'],
-                              self.conf['main working directory'])
+                                     'verification finish',
+                                     {'identifier': report['identifier']},
+                                     self.mqs['report files'],
+                                     self.vals['report id'],
+                                     self.conf['main working directory'])
 
         # Check verdict
         if exception and self.verdict != 'unknown':
