@@ -29,7 +29,7 @@
       "CPAchecker": {
         "name": "CPAchecker",
         "version": "trunk:35003",
-        "path": "https://forge.ispras.ru/attachments/download/7943/CPAchecker-35003.tar.xz",
+        "path": "https://forge.ispras.ru/attachments/download/8142/CPAchecker-35901.tar.xz",
         "executable path": "scripts"
       },
       "CPALockator": {
