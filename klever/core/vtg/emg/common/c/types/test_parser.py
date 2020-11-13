@@ -39,7 +39,9 @@ def test_equality():
         'int *x',
         'void x(void)',
         'void *x(void)',
-        'void *x(void *)'
+        'void *x(void *)',
+        'size_t x',
+        'size_t *x(size_t *)'
     ]
 
     for test in tests:
@@ -95,6 +97,14 @@ def test_arrays():
 def test_tricky_names():
     return [
         'int int_a'
+    ]
+
+
+@parser_test
+def test_var_attributes():
+    return [
+        'int __attribute__(()) word;',
+        'size_t __attribute__((__may_alias__)) word;'
     ]
 
 

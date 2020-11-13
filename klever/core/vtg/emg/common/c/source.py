@@ -22,7 +22,7 @@ import sortedcontainers
 from clade import Clade
 
 from klever.core.vtg.emg.common.c import Function, Variable, Macro, import_declaration
-from klever.core.vtg.emg.common.c.types import import_typedefs, extract_name
+from klever.core.vtg.emg.common.c.types import import_typedefs, extract_name, dump_types
 from klever.core.vtg.utils import find_file_or_dir
 
 
@@ -50,7 +50,10 @@ def create_source_representation(logger, conf, abstract_task):
     collection.c_full_paths = _c_full_paths(collection, cfiles)
 
     _import_code_analysis(logger, conf, clade, files_map, collection)
-
+    if conf.get('dump types'):
+        dump_types('type collection.json')
+    if conf.get('dump source code analysis'):
+        collection.dump('vars.json', 'functions.json', 'macros.json')
     return collection
 
 
@@ -244,6 +247,15 @@ class Source:
         self._macros = sortedcontainers.SortedDict()
 
         self.__function_calls_cache = sortedcontainers.SortedDict()
+
+    def dump(self, var_file, func_file, macro_file):
+        with open(var_file, 'w', encoding='utf-8') as fp:
+            ujson.dump({k: {f: v.declare_with_init() for f, v in fs.items()} for k, fs in self._source_vars.items()},
+                       fp, indent=2, sort_keys=True)
+        with open(func_file, 'w', encoding='utf-8') as fp:
+            ujson.dump({k: {f: v.declare()[0] for f, v in fs.items()} for k, fs in self._source_vars.items()}, fp,
+                       indent=2, sort_keys=True)
+        # todo: dump macros after implementation
 
     @property
     def source_functions(self):

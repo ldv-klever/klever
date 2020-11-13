@@ -34,7 +34,7 @@ def generate_processes(logger, conf, collection, abstract_task_desc, source):
     :param collection: ProcessCollection object.
     :param abstract_task_desc: Description dict.
     :param source: Source collection object.
-    :return: ProcessCollection object.
+    :return: Reports dict.
     """
     # In a specific order start proess generators
     generator_names = ((e, '.vtg.emg.generators.{}'.format(e)) for e in
