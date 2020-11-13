@@ -136,6 +136,15 @@ class ErrorTrace:
             else:
                 is_global_var_decls = False
 
+            if declarations_node and 'declaration' not in edge:
+                # TODO: make a function for this since there are two more similar places below.
+                if 'action' in edge:
+                    thread_func_call_stacks[edge['thread']][-1]['children'][-1]['children'].append(declarations_node)
+                else:
+                    thread_func_call_stacks[edge['thread']][-1]['children'].append(declarations_node)
+
+                declarations_node = None
+
             if edge['thread'] not in thread_node_refs:
                 # Create node representing given tread.
                 thread_node = {
@@ -248,6 +257,7 @@ class ErrorTrace:
                 if 'assumption' in edge:
                     decl_or_stmt_node['assumption'] = edge['assumption']
 
+                # Declarations are added alltogether as a block after it is completely handled.
                 if 'declaration' in edge:
                     if not declarations_node:
                         declarations_node = {
@@ -256,20 +266,13 @@ class ErrorTrace:
                         }
                     declarations_node['children'].append(decl_or_stmt_node)
                 else:
-                    # Add node corresponding to local declarations before first statement node. It is not clear is it
-                    # possible that some declarations are not followed by at least one statement.
-                    nodes_to_add = []
-                    if declarations_node:
-                        nodes_to_add.append(declarations_node)
-                        declarations_node = None
-                    nodes_to_add.append(decl_or_stmt_node)
-
-                    # Add created statement node and perhaps declarations node to action node of last function call node
-                    # from corresponding thread function call stack or to last function call node itself.
+                    # Add created statement node to action node of last function call node from corresponding thread
+                    # function call stack or to last function call node itself.
                     if 'action' in edge:
-                        thread_func_call_stacks[edge['thread']][-1]['children'][-1]['children'].extend(nodes_to_add)
+                        thread_func_call_stacks[edge['thread']][-1]['children'][-1]['children'].append(
+                            decl_or_stmt_node)
                     else:
-                        thread_func_call_stacks[edge['thread']][-1]['children'].extend(nodes_to_add)
+                        thread_func_call_stacks[edge['thread']][-1]['children'].append(decl_or_stmt_node)
 
                 if 'return' in edge:
                     # Remove last function call node from corresponding thread function call stack.
