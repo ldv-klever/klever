@@ -117,6 +117,8 @@ class ErrorTrace:
         thread_func_call_stacks = dict()
         # Node for accumulating current local declarations.
         declarations_node = None
+        # First declaration edge.
+        declarations_edge = None
         for edge in self.trace_iterator():
             # All declaration edges starting from the firts one correspond to global declarations.
             if is_first_edge:
@@ -138,12 +140,14 @@ class ErrorTrace:
 
             if declarations_node and 'declaration' not in edge:
                 # TODO: make a function for this since there are two more similar places below.
-                if 'action' in edge:
-                    thread_func_call_stacks[edge['thread']][-1]['children'][-1]['children'].append(declarations_node)
+                if 'action' in declarations_edge:
+                    thread_func_call_stacks[declarations_edge['thread']][-1]['children'][-1]['children'].append(
+                        declarations_node)
                 else:
-                    thread_func_call_stacks[edge['thread']][-1]['children'].append(declarations_node)
+                    thread_func_call_stacks[declarations_edge['thread']][-1]['children'].append(declarations_node)
 
                 declarations_node = None
+                declarations_edge = None
 
             if edge['thread'] not in thread_node_refs:
                 # Create node representing given tread.
@@ -264,6 +268,7 @@ class ErrorTrace:
                             'type': 'declarations',
                             'children': list()
                         }
+                        declarations_edge = edge;
                     declarations_node['children'].append(decl_or_stmt_node)
                 else:
                     # Add created statement node to action node of last function call node from corresponding thread
