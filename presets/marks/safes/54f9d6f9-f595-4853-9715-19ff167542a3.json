@@ -1,0 +1,18 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "memory safety"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/idle/i7300_idle.ko"
+    }
+  ],
+  "description": "",
+  "is_modifiable": true,
+  "tags": [],
+  "verdict": "0"
+}
