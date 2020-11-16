@@ -370,30 +370,73 @@ class VTG(klever.core.components.Component):
 
         # todo Object to issue resource limitations
         # balancer = Balancer(self.conf, self.logger)
+        max_tasks = int(self.conf['max solving tasks per sub-job'])
+        atask_work_dirs = dict()
+        atask_tasks = dict()
 
         # Statuses
         # Program fragments that should be passed to
         waiting_atasks_cnt = 0
         initial = set()
-        atask_work_dirs = dict()
-        atask_tasks = dict()
-        waiting_tasks_cnt = 0
         # Tasks for plugins
         tasks = set()
         waiting_tasks_cnt = 0
 
         # Get abstract tasks from program fragment descriptions
+        self.logger.info('Generate abstract tasks')
         for atask in self.__get_abstract_tasks():
             initial.add(atask)
 
         # Stage I: submit initial tasks and receive prepared tasks
+        self.logger.info('Go to the main working loop for abstract tasks')
         while initial or waiting_atasks_cnt:
-            self.logger.debug(f'Size of the awaiting tasks set: {len(initial)} and waiting {waiting_atasks_cnt}')
+            self.logger.debug(f'Going to process {len(initial)} abstract tasks and {waiting_atasks_cnt} tasks '
+                              f'are already awaiting')
 
             # Submit more work to do
-            lsize = len(initial)
-            waiting_atasks_cnt += self.__gradual_submit('prepare program fragments', initial)
-            self.logger.debug(f"Sizes {lsize} and {len(initial)}")
+            waiting_atasks_cnt += self.__gradual_submit('prepare program fragments', initial, max_tasks)
+
+            # Get processed abstract tasks.
+            new_items = list()
+            klever.core.utils.drain_queue(new_items, self.mqs['prepared tasks'])
+            for atask, aworkdir, pairs in new_items:
+                atask = Abstract(*atask)
+                waiting_atasks_cnt -= 1
+                atask_work_dirs[atask] = aworkdir
+                atask_tasks[atask] = set()
+
+                # Generate a verification task per a new environment model and rule
+                for env_model, workdir in pairs:
+                    for rule in self.req_spec_classes[atask.rule_class]:
+                        new = Task(atask, rule, workdir)
+                        self.logger.debug(f'Create verification task {new}')
+                        atask_tasks[atask].add(new)
+                        tasks.add(new)
+
+            # Get failed abstract tasks
+            atasks = list()
+            klever.core.utils.drain_queue(atasks, self.mqs['failed emgs'])
+            waiting_atasks_cnt -= len(atasks)
+            time.sleep(0.3)
+
+        # Close the queue
+        self.mqs['prepare program fragments'].put(None)
+        self.mqs['failed emgs'].close()
+        # submit number of tasks to the progress watcher
+        self.mqs['total tasks'].put([self.conf['sub-job identifier'], waiting_tasks_cnt])
+
+        # Now we can cleanup fragment descripti
+        # on files
+        if not self.conf['keep intermediate files']:
+            for file in self.fragment_desc_files.values():
+                os.remove(os.path.join(self.conf['main working directory'], file))
+
+        # Send tasks to really submit them to the Bridge
+        while False:
+            self.logger.debug(f'Going to process {len(tasks)} tasks and {waiting_tasks_cnt} tasks are already awaiting')
+
+            # Submit more work to do
+            waiting_atasks_cnt += self.__gradual_submit('prepare program fragments', initial, max_tasks)
 
             # Get packs of tasks.
             new_items = list()
@@ -415,24 +458,10 @@ class VTG(klever.core.components.Component):
             waiting_atasks_cnt -= len(atasks)
             time.sleep(0.3)
 
-        # Close the queue
-        self.mqs['prepare program fragments'].put(None)
-        self.mqs['failed emgs'].close()
-        #self.mqs['prepared verification tasks'].close()
-        # submit number of tasks to the progress watcher
-        self.mqs['total tasks'].put([self.conf['sub-job identifier'], waiting_tasks_cnt])
-
-        # Now we can cleanup fragment description files
-        if not self.conf['keep intermediate files']:
-            for file in self.fragment_desc_files.values():
-                os.remove(os.path.join(self.conf['main working directory'], file))
-
+        # Now submit tasks
         self.logger.info('THE END')
         while True:
             time.sleep(1)
-
-        # Now submit tasks
-        raise NotImplementedError
 
 
 
@@ -474,7 +503,7 @@ class VTG(klever.core.components.Component):
             self.mqs['prepare program fragments'].put((pf, rlda, rlcl, self.req_spec_classes, resource_limitations,
                                                        rescheduling))
 
-        max_tasks = int(self.conf['max solving tasks per sub-job'])
+
         active_tasks = 0
         while True:
             # Fetch pilot statuses
