@@ -19,9 +19,8 @@ before: file ("$this")
 {
 #include <los_spinlock.h>
 #include <los_mux.h>
+#include <los_cir_buf_pri.h>
 #include <internal.h>
-// Seems is disabled
-// #include <fd_table.h>
 
 #include <ldv/verifier/common.h>
 #include <ldv/verifier/nondet.h>
@@ -39,8 +38,11 @@ extern void __ldv_spin_lock(SPIN_LOCK_S *lock, char *sign);
 extern void __ldv_spin_unlock(SPIN_LOCK_S *lock, char *sign);
 extern void __ldv_spin_trylock(SPIN_LOCK_S *lock, char *sign);
 
-// extern void __ldv_filetable_lock(struct fd_table_s *lock, char *sign);
-// extern void __ldv_filetable_unlock(struct fd_table_s *lock, char *sign);
+extern void __ldv_filetable_lock(struct fd_table_s *lock, char *sign);
+extern void __ldv_filetable_unlock(struct fd_table_s *lock, char *sign);
+
+extern void __ldv_cirbuf_lock(CirBuf *lock, char *sign);
+extern void __ldv_cirbuf_unlock(CirBuf *lock, char *sign);
 }
 
 around: call(UINT32 LOS_MuxLock(LosMux *, UINT32))
@@ -55,11 +57,22 @@ around: call(UINT32 LOS_MuxUnlock(LosMux *))
 	__ldv_mutex_unlock($arg1, "$arg_sign1");
 }
 
+around: define(SYS_ARCH_PROTECT(lev))
+{
+	/* NOTE Lock arch spinlock */
+	__ldv_arch_lock();
+}
 
 around: call(sys_prot_t sys_arch_protect(void))
 {
 	/* NOTE Lock arch spinlock */
 	__ldv_arch_lock();
+}
+
+around: define(SYS_ARCH_UNPROTECT(lev))
+{
+	/* NOTE Unlock arch spinlock */
+	__ldv_arch_unlock();
 }
 
 around: call(void sys_arch_unprotect(sys_prot_t))
@@ -104,20 +117,32 @@ around: call(static inline void LOS_SpinUnlock(SPIN_LOCK_S *))
     __ldv_spin_unlock($arg1, "$arg_sign1");
 }
 
-around: call(static inline INT32 LOS_SpinTrylock(SPIN_LOCK_S *))
+around: call(INT32 LOS_SpinTrylock(SPIN_LOCK_S *))
 {
 	/* NOTE Try to lock spinlock */
 	__ldv_spin_trylock($arg1, "$arg_sign1");
 }
 
-// around: call(void FileTableLock(struct fd_table_s *))
-// {
+around: call(static void FileTableLock(struct fd_table_s *))
+{
 	/* NOTE Lock file table lock */
-// 	__ldv_filetable_lock($arg1, "$arg_sign1");
-// }
+	__ldv_filetable_lock($arg1, "$arg_sign1");
+}
 
-// around: call(void FileTableUnLock(struct fd_table_s *))
-// {
+around: call(static void FileTableUnLock(struct fd_table_s *))
+{
 	/* NOTE Unlock file table lock */
-// 	__ldv_filetable_unlock($arg1, "$arg_sign1");
-// }
+	__ldv_filetable_unlock($arg1, "$arg_sign1");
+}
+
+around: call(static inline void LOS_CirBufLock(CirBuf *, UINT32 *))
+{
+	/* NOTE Lock cir buf lock */
+	__ldv_cirbuf_lock($arg1, "$arg_sign1");
+}
+
+around: call(static inline void LOS_CirBufUnlock(CirBuf *, UINT32 *))
+{
+	/* NOTE Unlock cir buf lock */
+	__ldv_cirbuf_unlock($arg1, "$arg_sign1");
+}
