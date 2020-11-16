@@ -396,7 +396,8 @@ class VTG(klever.core.components.Component):
             klever.core.utils.drain_queue(new_items, self.mqs['prepared'])
             for kind, desc, *other in new_items:
                 waiting -= 1
-                if kind == 'Abstract':
+                self.logger.debug(f'Received item {kind}')
+                if kind == 'AbstractTask':
                     atask = Abstract(*desc)
                     aworkdir, models = other
                     left_abstract_tasks -= 1
