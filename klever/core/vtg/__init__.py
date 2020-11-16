@@ -35,13 +35,11 @@ from klever.core.vtg.scheduling import Balancer
 @klever.core.components.before_callback
 def __launch_sub_job_components(context):
     context.mqs['VTG common attrs'] = multiprocessing.Queue()
-    context.mqs['program fragment desc files'] = multiprocessing.Queue()
 
     # Queues used excusively in VTG
-    context.mqs['prepare program fragments'] = multiprocessing.Queue()
-    context.mqs['failed emgs'] = multiprocessing.Queue()
-    context.mqs['prepared tasks'] = multiprocessing.Queue()
-    context.mqs['failed tasks'] = multiprocessing.Queue()
+    context.mqs['program fragment desc files'] = multiprocessing.Queue()
+    context.mqs['prepare'] = multiprocessing.Queue()
+    context.mqs['prepared'] = multiprocessing.Queue()
 
     # Queues shared by VRP
     context.mqs['pending tasks'] = multiprocessing.Queue()
@@ -62,7 +60,7 @@ def __submit_common_attrs(context):
 
 # Classes for queue transfer
 Abstract = collections.namedtuple('AbstractTask', 'fragment rule_class')
-Task = collections.namedtuple('Task', 'atask rule workdir')
+Task = collections.namedtuple('Task', 'atask envmodel rule workdir')
 
 # Global values to be set once and used by other components running in parallel with the VTG
 REQ_SPEC_CLASSES = None
@@ -82,14 +80,14 @@ class VTG(klever.core.components.Component):
 
     def generate_verification_tasks(self):
         klever.core.utils.report(self.logger,
-            'patch',
-            {
-              'identifier': self.id,
-              'attrs': self.__get_common_attrs()
-            },
-            self.mqs['report files'],
-            self.vals['report id'],
-            self.conf['main working directory'])
+                                 'patch',
+                                 {
+                                   'identifier': self.id,
+                                   'attrs': self.__get_common_attrs()
+                                 },
+                                 self.mqs['report files'],
+                                 self.vals['report id'],
+                                 self.conf['main working directory'])
 
         self.__extract_fragments_descs()
         self.__extract_req_spec_descs()
@@ -107,7 +105,6 @@ class VTG(klever.core.components.Component):
         self.launch_subcomponents(False, *subcomponents)
 
         self.clean_dir = True
-
         self.mqs['pending tasks'].put(None)
         self.mqs['pending tasks'].close()
 
@@ -323,16 +320,15 @@ class VTG(klever.core.components.Component):
 
         self.logger.info("Generated {} requirement classes from given descriptions".format(len(self.req_spec_classes)))
 
-    def __gradual_submit(self, name, items_set, max_items=20):
+    def __gradual_submit(self, items_queue, quota):
         submitted = 0
-        target_queue = self.mqs[name]
-        quota = max_items - int(target_queue.qsize())
-        while 0 < quota and items_set:
+        while 0 < quota and items_queue:
             quota -= 1
             submitted += 1
-            target_queue.put(tuple(items_set.pop()))
+            element = items_queue.pop()
+            self.mqs['prepare'].put((type(element).__name__, tuple(element)))
         if submitted > 0:
-            self.logger.debug(f"Submitted {submitted} items to '{name}' queue")
+            self.logger.debug(f"Submitted {submitted} items")
         return submitted
 
     def __extract_fragments_descs(self):
@@ -375,295 +371,243 @@ class VTG(klever.core.components.Component):
         atask_tasks = dict()
 
         # Statuses
-        # Program fragments that should be passed to
-        waiting_atasks_cnt = 0
-        initial = set()
-        # Tasks for plugins
-        tasks = set()
-        waiting_tasks_cnt = 0
+        waiting = 0
+        prepare = list()
 
         # Get abstract tasks from program fragment descriptions
         self.logger.info('Generate abstract tasks')
         for atask in self.__get_abstract_tasks():
-            initial.add(atask)
+            prepare.append(atask)
 
-        # Stage I: submit initial tasks and receive prepared tasks
+        # Get the number of abstract tasks
+        left_abstract_tasks = len(prepare)
+        total_tasks = 0
+
         self.logger.info('Go to the main working loop for abstract tasks')
-        while initial or waiting_atasks_cnt:
-            self.logger.debug(f'Going to process {len(initial)} abstract tasks and {waiting_atasks_cnt} tasks '
-                              f'are already awaiting')
+        while prepare or waiting:
+            self.logger.debug(f'Going to process {len(prepare)} tasks and abstract tasks and wait for {waiting}')
 
             # Submit more work to do
-            waiting_atasks_cnt += self.__gradual_submit('prepare program fragments', initial, max_tasks)
+            quota = (max_tasks - waiting) if max_tasks > waiting else 0
+            waiting += self.__gradual_submit(prepare, quota)
 
             # Get processed abstract tasks.
             new_items = list()
-            klever.core.utils.drain_queue(new_items, self.mqs['prepared tasks'])
-            for atask, aworkdir, pairs in new_items:
-                atask = Abstract(*atask)
-                waiting_atasks_cnt -= 1
-                atask_work_dirs[atask] = aworkdir
-                atask_tasks[atask] = set()
+            klever.core.utils.drain_queue(new_items, self.mqs['prepared'])
+            for kind, desc, *other in new_items:
+                waiting -= 1
+                if kind == 'Abstract':
+                    atask = Abstract(*desc)
+                    aworkdir, models = other
+                    left_abstract_tasks -= 1
+                    atask_work_dirs[atask] = aworkdir
+                    atask_tasks[atask] = set()
 
-                # Generate a verification task per a new environment model and rule
-                for env_model, workdir in pairs:
-                    for rule in self.req_spec_classes[atask.rule_class]:
-                        new = Task(atask, rule, workdir)
-                        self.logger.debug(f'Create verification task {new}')
-                        atask_tasks[atask].add(new)
-                        tasks.add(new)
+                    # Generate a verification task per a new environment model and rule
+                    for env_model, workdir in models:
+                        for rule in self.req_spec_classes[atask.rule_class]:
+                            new = Task(atask, env_model, rule, workdir)
+                            self.logger.debug(f'Create verification task {new}')
+                            atask_tasks[atask].add(new)
+                            prepare.append(new)
+                            total_tasks += 1
 
-            # Get failed abstract tasks
-            atasks = list()
-            klever.core.utils.drain_queue(atasks, self.mqs['failed emgs'])
-            waiting_atasks_cnt -= len(atasks)
+                    if left_abstract_tasks == 0:
+                        # Submit the number of tasks
+                        self.logger.info(f'Submit the total number of tasks: {total_tasks}')
+                        self.mqs['total tasks'].put([self.conf['sub-job identifier'], total_tasks])
+
+                        # Delete program fragments descriptions
+                        if not self.conf['keep intermediate files']:
+                            for file in self.fragment_desc_files.values():
+                                os.remove(os.path.join(self.conf['main working directory'], file))
+                    else:
+                        self.logger.debug(f'Wait for abstract tasks {left_abstract_tasks}')
+                else:
+                    # todo: Receive task
+                    # todo: Del directories
+                    # todo: Del abstract work directories
+                    # todo: Balancing
+                    pass
+
             time.sleep(0.3)
 
         # Close the queue
-        self.mqs['prepare program fragments'].put(None)
-        self.mqs['failed emgs'].close()
-        # submit number of tasks to the progress watcher
-        self.mqs['total tasks'].put([self.conf['sub-job identifier'], waiting_tasks_cnt])
+        self.mqs['prepare'].put(None)
+        self.mqs['prepared'].close()
+        self.mqs['processed tasks'].put(None)
+        self.mqs['processed tasks'].close()
 
-        # Now we can cleanup fragment descripti
-        # on files
-        if not self.conf['keep intermediate files']:
-            for file in self.fragment_desc_files.values():
-                os.remove(os.path.join(self.conf['main working directory'], file))
-
-        # Send tasks to really submit them to the Bridge
-        while False:
-            self.logger.debug(f'Going to process {len(tasks)} tasks and {waiting_tasks_cnt} tasks are already awaiting')
-
-            # Submit more work to do
-            waiting_atasks_cnt += self.__gradual_submit('prepare program fragments', initial, max_tasks)
-
-            # Get packs of tasks.
-            new_items = list()
-            klever.core.utils.drain_queue(new_items, self.mqs['prepared tasks'])
-            for atask, aworkdir, pairs in new_items:
-                atask = Abstract(*atask)
-                waiting_atasks_cnt -= 1
-                atask_work_dirs[atask] = aworkdir
-                atask_tasks[atask] = set()
-                for env_model, workdir in pairs:
-                    for rule in self.req_spec_classes[atask.rule_class]:
-                        new = Task(atask, rule, workdir)
-                        self.logger.debug(f'Create verification task {new}')
-                        atask_tasks[atask].add(new)
-                        tasks.add(new)
-
-            atasks = list()
-            klever.core.utils.drain_queue(atasks, self.mqs['failed emgs'])
-            waiting_atasks_cnt -= len(atasks)
-            time.sleep(0.3)
-
-        # Now submit tasks
-        self.logger.info('THE END')
-        while True:
-            time.sleep(1)
+        # TODO: read and process queue "processing tasks"
 
 
+        return
 
-        # todo: how to update the number of total tasks?
+        # def submit_task(pf, rlcl, rlda, rescheduling=False):
+        #     resource_limitations = balancer.resource_limitations(pf['id'], rlcl, rlda['identifier'])
+        #     self.mqs['prepare program fragments'].put((pf, rlda, rlcl, self.req_spec_classes, resource_limitations,
+        #                                                rescheduling))
 
-
-
-        # todo: Check status
-        # Tasks that can be cleaned
-        delete_ready = set()
-        # Tasks that are awaiting from EMG
-        initial = set()
-        # Tasks that are being processed by plugins
-        pending = set()
-        # Task which are failed
-        failed = set()
-        # Tasks which are solved
-        solved = set()
-
-
-
-        while True:
-            # todo: Next we wait for generated actual tasks and submit them to plugins
-            pass
-            # todo: After all tasks are iitially solved we may proceed to rescheduling solved
-            # todo: On each iteration check status of solving tasks
-
-        # todo: Drop a line to a progress watcher
-        # total_pf_descs = len(program_fragment_desc_files)
-        # self.mqs['total tasks'].put([self.conf['sub-job identifier'],
-        #                              int(total_pf_descs * len(self.req_spec_descs))])
-
-
-
-
-
-        def submit_task(pf, rlcl, rlda, rescheduling=False):
-            resource_limitations = balancer.resource_limitations(pf['id'], rlcl, rlda['identifier'])
-            self.mqs['prepare program fragments'].put((pf, rlda, rlcl, self.req_spec_classes, resource_limitations,
-                                                       rescheduling))
-
-
-        active_tasks = 0
-        while True:
-            # Fetch pilot statuses
-            pilot_statuses = []
-            # This queue will not inform about the end of tasks generation
-            klever.core.utils.drain_queue(pilot_statuses, self.mqs['prepared verification tasks'])
-            # Process them
-            for status in pilot_statuses:
-                program_fragment_id, req_spec_id = status
-                self.logger.info(
-                    "Pilot verification task for program fragment {!r} and requirements specification {!r} is prepared".
-                    format(program_fragment_id, req_spec_id))
-                req_spec_class = self.__resolve_req_spec_class(req_spec_id)
-                if req_spec_class:
-                    if program_fragment_id in processing_status and \
-                            req_spec_class in processing_status[program_fragment_id] and \
-                            req_spec_id in processing_status[program_fragment_id][req_spec_class]:
-                        processing_status[program_fragment_id][req_spec_class][req_spec_id] = False
-                else:
-                    self.logger.warning("Do nothing with {} since there is no requirement specifications to check"
-                                        .format(program_fragment_id))
-
-            # Fetch solutions
-            solutions = []
-            # This queue will not inform about the end of tasks generation
-            klever.core.utils.drain_queue(solutions, self.mqs['processed tasks'])
-
-            if not self.conf['keep intermediate files']:
-                ready = []
-                klever.core.utils.drain_queue(ready, self.mqs['delete dir'])
-                while len(ready) > 0:
-                    pf, req_spec_desc = ready.pop()
-                    if pf not in delete_ready:
-                        delete_ready[pf] = {req_spec_desc}
-                    else:
-                        delete_ready[pf].add(req_spec_desc)
-
-            # Process them
-            for solution in solutions:
-                program_fragment_id, req_spec_id, status_info = solution
-                self.logger.info("Verification task for program fragment {!r} and requirements specification {!r}"
-                                 " is either finished or failed".format(program_fragment_id, req_spec_id))
-                req_spec_class = self.__resolve_req_spec_class(req_spec_id)
-                if req_spec_class:
-                    final = balancer.add_solution(program_fragment_id, req_spec_class, req_spec_id, status_info)
-                    if final:
-                        self.logger.debug('Confirm that task {!r}:{!r} is {!r}'.
-                                          format(program_fragment_id, req_spec_id, status_info[0]))
-                        self.mqs['finished and failed tasks'].put([self.conf['sub-job identifier'], 'finished'
-                                                                  if status_info[0] == 'finished' else 'failed'])
-                        processing_status[program_fragment_id][req_spec_class][req_spec_id] = True
-                    active_tasks -= 1
-
-            # Submit initial fragments
-            for pf in list(initial.keys()):
-                while len(initial[pf]) > 0:
-                    if active_tasks < max_tasks:
-                        req_spec_class = initial[pf].pop()
-                        program_fragment_id = pf_descriptions[pf]
-                        req_spec_id = self.req_spec_classes[req_spec_class][0]['identifier']
-                        self.logger.info("Prepare initial verification tasks for program fragement {!r} and"
-                                         " requirements specification {!r}".format(pf, req_spec_id))
-                        submit_task(program_fragment_id, req_spec_class, self.req_spec_classes[req_spec_class][0])
-
-                        # Set status
-                        if pf not in processing_status:
-                            processing_status[pf] = {}
-                        processing_status[pf][req_spec_class] = {req_spec_id: None}
-                        active_tasks += 1
-                    else:
-                        break
-                else:
-                    self.logger.info("Triggered all initial tasks for program fragment {!r}".format(pf))
-                    del initial[pf]
-
-            # Check statuses
-            for program_fragment_id in list(processing_status.keys()):
-                for req_spec_class in list(processing_status[program_fragment_id].keys()):
-                    # Check readiness for further tasks generation
-                    pilot_task_status = processing_status[program_fragment_id][req_spec_class][self.req_spec_classes[
-                        req_spec_class][0]['identifier']]
-                    if (pilot_task_status is False or pilot_task_status is True) and active_tasks < max_tasks:
-                        for req_spec_desc in [req_spec_desc
-                                              for req_spec_desc in self.req_spec_classes[req_spec_class][1:]
-                                              if req_spec_desc['identifier'] not in
-                                                 processing_status[program_fragment_id][req_spec_class]]:
-                            if active_tasks < max_tasks:
-                                self.logger.info("Submit next verification task after having cached plugin results for "
-                                                 "program fragment {!r} and requirements specification {!r}".
-                                                 format(program_fragment_id, req_spec_desc['identifier']))
-                                submit_task(pf_descriptions[program_fragment_id], req_spec_class, req_spec_desc)
-                                processing_status[program_fragment_id][req_spec_class][
-                                    req_spec_desc['identifier']] = None
-                                active_tasks += 1
-                            else:
-                                break
-
-                    # Check that we should reschedule tasks
-                    for req_spec_desc in (r for r in self.req_spec_classes[req_spec_class] if
-                                          r['identifier'] in processing_status[program_fragment_id][req_spec_class] and
-                                          not processing_status[program_fragment_id][req_spec_class][r['identifier']] and
-                                          balancer.is_there(program_fragment_id, req_spec_class, r['identifier'])):
-                        if active_tasks < max_tasks:
-                            attempt = balancer.do_rescheduling(program_fragment_id, req_spec_class,
-                                                               req_spec_desc['identifier'])
-                            if attempt:
-                                self.logger.info("Submit task {}:{} to solve it again".
-                                                 format(program_fragment_id, req_spec_desc['id']))
-                                submit_task(pf_descriptions[program_fragment_id], req_spec_class, req_spec_desc,
-                                            rescheduling=attempt)
-                                active_tasks += 1
-                            elif not balancer.need_rescheduling(program_fragment_id, req_spec_class,
-                                                                req_spec_desc['identifier']):
-                                self.logger.info("Mark task {}:{} as solved".format(program_fragment_id,
-                                                                                    req_spec_desc['identifier']))
-                                self.mqs['finished and failed tasks'].put([self.conf['sub-job identifier'], 'finished'])
-                                processing_status[program_fragment_id][req_spec_class][
-                                    req_spec_desc['identifier']] = True
-
-                    # Number of solved tasks
-                    solved = sum((1 if processing_status[program_fragment_id][req_spec_class].get(r['identifier'])
-                                  else 0 for r in self.req_spec_classes[req_spec_class]))
-                    # Number of requirements which are ready to delete
-                    deletable = len([r for r in processing_status[program_fragment_id][req_spec_class]
-                                     if program_fragment_id in delete_ready and r in delete_ready[program_fragment_id]])
-                    # Total tasks for requirements
-                    total = len(self.req_spec_classes[req_spec_class])
-
-                    if solved == total and (self.conf['keep intermediate files'] or
-                                            (program_fragment_id in delete_ready and solved == deletable)):
-                        self.logger.debug("Solved {} tasks for program fragment {!r}"
-                                          .format(solved, program_fragment_id))
-                        if not self.conf['keep intermediate files']:
-                            for req_spec_desc in processing_status[program_fragment_id][req_spec_class]:
-                                deldir = os.path.join(program_fragment_id, req_spec_desc)
-                                klever.core.utils.reliable_rmtree(self.logger, deldir)
-                        del processing_status[program_fragment_id][req_spec_class]
-
-                if len(processing_status[program_fragment_id]) == 0 and program_fragment_id not in initial:
-                    self.logger.info("All tasks for program fragment {!r} are either solved or failed".
-                                     format(program_fragment_id))
-                    # Program fragments is lastly processed
-                    del processing_status[program_fragment_id]
-                    del pf_descriptions[program_fragment_id]
-                    if program_fragment_id in delete_ready:
-                        del delete_ready[program_fragment_id]
-
-            if active_tasks == 0 and len(pf_descriptions) == 0 and len(initial) == 0:
-                self.mqs['prepare program fragments'].put(None)
-                self.mqs['prepared verification tasks'].close()
-                if not self.conf['keep intermediate files']:
-                    self.mqs['delete dir'].close()
-                break
-            else:
-                self.logger.debug("There are {} initial tasks to be generated, {} active tasks, {} program fragment "
-                                  "descriptions".format(len(initial), active_tasks, len(pf_descriptions)))
-
-            time.sleep(3)
-
-        self.logger.info("Stop generating verification tasks")
+        # active_tasks = 0
+        # while True:
+        #     # Fetch pilot statuses
+        #     pilot_statuses = []
+        #     # This queue will not inform about the end of tasks generation
+        #     klever.core.utils.drain_queue(pilot_statuses, self.mqs['prepared verification tasks'])
+        #     # Process them
+        #     for status in pilot_statuses:
+        #         program_fragment_id, req_spec_id = status
+        #         self.logger.info(
+        #             "Pilot verification task for program fragment {!r} and requirements specification {!r} is prepared".
+        #             format(program_fragment_id, req_spec_id))
+        #         req_spec_class = self.__resolve_req_spec_class(req_spec_id)
+        #         if req_spec_class:
+        #             if program_fragment_id in processing_status and \
+        #                     req_spec_class in processing_status[program_fragment_id] and \
+        #                     req_spec_id in processing_status[program_fragment_id][req_spec_class]:
+        #                 processing_status[program_fragment_id][req_spec_class][req_spec_id] = False
+        #         else:
+        #             self.logger.warning("Do nothing with {} since there is no requirement specifications to check"
+        #                                 .format(program_fragment_id))
+        #
+        #     # Fetch solutions
+        #     solutions = []
+        #     # This queue will not inform about the end of tasks generation
+        #     klever.core.utils.drain_queue(solutions, self.mqs['processed tasks'])
+        #
+        #     if not self.conf['keep intermediate files']:
+        #         ready = []
+        #         klever.core.utils.drain_queue(ready, self.mqs['delete dir'])
+        #         while len(ready) > 0:
+        #             pf, req_spec_desc = ready.pop()
+        #             if pf not in delete_ready:
+        #                 delete_ready[pf] = {req_spec_desc}
+        #             else:
+        #                 delete_ready[pf].add(req_spec_desc)
+        #
+        #     # Process them
+        #     for solution in solutions:
+        #         program_fragment_id, req_spec_id, status_info = solution
+        #         self.logger.info("Verification task for program fragment {!r} and requirements specification {!r}"
+        #                          " is either finished or failed".format(program_fragment_id, req_spec_id))
+        #         req_spec_class = self.__resolve_req_spec_class(req_spec_id)
+        #         if req_spec_class:
+        #             final = balancer.add_solution(program_fragment_id, req_spec_class, req_spec_id, status_info)
+        #             if final:
+        #                 self.logger.debug('Confirm that task {!r}:{!r} is {!r}'.
+        #                                   format(program_fragment_id, req_spec_id, status_info[0]))
+        #                 self.mqs['finished and failed tasks'].put([self.conf['sub-job identifier'], 'finished'
+        #                                                           if status_info[0] == 'finished' else 'failed'])
+        #                 processing_status[program_fragment_id][req_spec_class][req_spec_id] = True
+        #             active_tasks -= 1
+        #
+        #     # Submit initial fragments
+        #     for pf in list(initial.keys()):
+        #         while len(initial[pf]) > 0:
+        #             if active_tasks < max_tasks:
+        #                 req_spec_class = initial[pf].pop()
+        #                 program_fragment_id = pf_descriptions[pf]
+        #                 req_spec_id = self.req_spec_classes[req_spec_class][0]['identifier']
+        #                 self.logger.info("Prepare initial verification tasks for program fragement {!r} and"
+        #                                  " requirements specification {!r}".format(pf, req_spec_id))
+        #                 submit_task(program_fragment_id, req_spec_class, self.req_spec_classes[req_spec_class][0])
+        #
+        #                 # Set status
+        #                 if pf not in processing_status:
+        #                     processing_status[pf] = {}
+        #                 processing_status[pf][req_spec_class] = {req_spec_id: None}
+        #                 active_tasks += 1
+        #             else:
+        #                 break
+        #         else:
+        #             self.logger.info("Triggered all initial tasks for program fragment {!r}".format(pf))
+        #             del initial[pf]
+        #
+        #     # Check statuses
+        #     for program_fragment_id in list(processing_status.keys()):
+        #         for req_spec_class in list(processing_status[program_fragment_id].keys()):
+        #             # Check readiness for further tasks generation
+        #             pilot_task_status = processing_status[program_fragment_id][req_spec_class][self.req_spec_classes[
+        #                 req_spec_class][0]['identifier']]
+        #             if (pilot_task_status is False or pilot_task_status is True) and active_tasks < max_tasks:
+        #                 for req_spec_desc in [req_spec_desc
+        #                                       for req_spec_desc in self.req_spec_classes[req_spec_class][1:]
+        #                                       if req_spec_desc['identifier'] not in
+        #                                          processing_status[program_fragment_id][req_spec_class]]:
+        #                     if active_tasks < max_tasks:
+        #                         self.logger.info("Submit next verification task after having cached plugin results for "
+        #                                          "program fragment {!r} and requirements specification {!r}".
+        #                                          format(program_fragment_id, req_spec_desc['identifier']))
+        #                         submit_task(pf_descriptions[program_fragment_id], req_spec_class, req_spec_desc)
+        #                         processing_status[program_fragment_id][req_spec_class][
+        #                             req_spec_desc['identifier']] = None
+        #                         active_tasks += 1
+        #                     else:
+        #                         break
+        #
+        #             # Check that we should reschedule tasks
+        #             for req_spec_desc in (r for r in self.req_spec_classes[req_spec_class] if
+        #                                   r['identifier'] in processing_status[program_fragment_id][req_spec_class] and
+        #                                   not processing_status[program_fragment_id][req_spec_class][r['identifier']] and
+        #                                   balancer.is_there(program_fragment_id, req_spec_class, r['identifier'])):
+        #                 if active_tasks < max_tasks:
+        #                     attempt = balancer.do_rescheduling(program_fragment_id, req_spec_class,
+        #                                                        req_spec_desc['identifier'])
+        #                     if attempt:
+        #                         self.logger.info("Submit task {}:{} to solve it again".
+        #                                          format(program_fragment_id, req_spec_desc['id']))
+        #                         submit_task(pf_descriptions[program_fragment_id], req_spec_class, req_spec_desc,
+        #                                     rescheduling=attempt)
+        #                         active_tasks += 1
+        #                     elif not balancer.need_rescheduling(program_fragment_id, req_spec_class,
+        #                                                         req_spec_desc['identifier']):
+        #                         self.logger.info("Mark task {}:{} as solved".format(program_fragment_id,
+        #                                                                             req_spec_desc['identifier']))
+        #                         self.mqs['finished and failed tasks'].put([self.conf['sub-job identifier'], 'finished'])
+        #                         processing_status[program_fragment_id][req_spec_class][
+        #                             req_spec_desc['identifier']] = True
+        #
+        #             # Number of solved tasks
+        #             solved = sum((1 if processing_status[program_fragment_id][req_spec_class].get(r['identifier'])
+        #                           else 0 for r in self.req_spec_classes[req_spec_class]))
+        #             # Number of requirements which are ready to delete
+        #             deletable = len([r for r in processing_status[program_fragment_id][req_spec_class]
+        #                              if program_fragment_id in delete_ready and r in delete_ready[program_fragment_id]])
+        #             # Total tasks for requirements
+        #             total = len(self.req_spec_classes[req_spec_class])
+        #
+        #             if solved == total and (self.conf['keep intermediate files'] or
+        #                                     (program_fragment_id in delete_ready and solved == deletable)):
+        #                 self.logger.debug("Solved {} tasks for program fragment {!r}"
+        #                                   .format(solved, program_fragment_id))
+        #                 if not self.conf['keep intermediate files']:
+        #                     for req_spec_desc in processing_status[program_fragment_id][req_spec_class]:
+        #                         deldir = os.path.join(program_fragment_id, req_spec_desc)
+        #                         klever.core.utils.reliable_rmtree(self.logger, deldir)
+        #                 del processing_status[program_fragment_id][req_spec_class]
+        #
+        #         if len(processing_status[program_fragment_id]) == 0 and program_fragment_id not in initial:
+        #             self.logger.info("All tasks for program fragment {!r} are either solved or failed".
+        #                              format(program_fragment_id))
+        #             # Program fragments is lastly processed
+        #             del processing_status[program_fragment_id]
+        #             del pf_descriptions[program_fragment_id]
+        #             if program_fragment_id in delete_ready:
+        #                 del delete_ready[program_fragment_id]
+        #
+        #     if active_tasks == 0 and len(pf_descriptions) == 0 and len(initial) == 0:
+        #         self.mqs['prepare program fragments'].put(None)
+        #         self.mqs['prepared verification tasks'].close()
+        #         if not self.conf['keep intermediate files']:
+        #             self.mqs['delete dir'].close()
+        #         break
+        #     else:
+        #         self.logger.debug("There are {} initial tasks to be generated, {} active tasks, {} program fragment "
+        #                           "descriptions".format(len(initial), active_tasks, len(pf_descriptions)))
+        #
+        #     time.sleep(3)
+        #
+        # self.logger.info("Stop generating verification tasks")
 
     def __get_common_attrs(self):
         self.logger.info('Get common atributes')
@@ -686,55 +630,25 @@ class VTGWL(klever.core.components.Component):
         number = klever.core.utils.get_parallel_threads_num(self.logger, self.conf, 'Tasks generation')
 
         self.logger.info("Start EMG workers")
-        klever.core.components.launch_queue_workers(self.logger, self.mqs['prepare program fragments'],
-                                                    self.emg_constructor, number, True)
-        
-        # todo:
-        # self.logger.info("Now we are ready to proceed to the rest plugins")
-        # klever.core.components.launch_queue_workers(self.logger, self.mqs['prepare verification tasks'],
-        #                                             self.vtgw_constructor, number, True)
+        klever.core.components.launch_queue_workers(self.logger, self.mqs['prepare'],
+                                                    self.factory, number, True)
         self.logger.info("Terminate VTGL worker")
 
-    def emg_constructor(self, abstract_task):
-        abstract_task = Abstract(*abstract_task)
-        identifier = "{}/{}/VTGW".format(abstract_task.fragment, abstract_task.rule_class)
-        workdir = os.path.join(abstract_task.fragment, abstract_task.rule_class)
-        return EMGW(self.conf, self.logger, self.parent_id, self.callbacks, self.mqs,
-                    self.vals, identifier, workdir, attrs=[], separate_from_parent=True,
-                    req_spec_classes=self.req_spec_classes, fragment_desc_files=self.fragment_desc_files,
-                    abstract_task=abstract_task)
-
-    def vtgw_constructor(self, element):
-        program_fragment_id = element[0]['id']
-        req_spec_id = element[1]['identifier']
-        req_spec_class = element[2]
-
-        attrs = None
-        # TODO change condition
-        if True:
-            identifier = "{}/{}/VTGW".format(program_fragment_id, req_spec_class)
-            workdir = os.path.join(program_fragment_id, req_spec_class)
-            EMGW(self.conf, self.logger, self.parent_id, self.callbacks, self.mqs,
-                 self.vals, identifier, workdir, attrs=attrs, separate_from_parent=True,
-                 program_fragment_desc=element[0], req_spec_desc=element[1], req_spec_class=req_spec_class)
-        elif element[5]:
-            identifier = "{}/{}/{}/VTGW".format(program_fragment_id, req_spec_id, element[5])
-            workdir = os.path.join(program_fragment_id, req_spec_id, str(element[5]))
-            attrs = [{
-                "name": "Rescheduling attempt",
-                "value": str(element[5]),
-                "compare": False,
-                "associate": False
-            }]
+    def factory(self, item):
+        kind, args = item
+        if kind == 'Task':
+            task = Task(*args)
+            identifier = "{}/{}/{}/{}/VTGW".format(task.atask.fragment, task.atask.rule_class, task.envmodel, task.rule)
+            workdir = os.path.join(task.workdir, task.rule)
+            return PLUGINS(self.conf, self.logger, self.parent_id, self.callbacks, self.mqs, self.vals, identifier,
+                           workdir, [], True, req_spec_classes=self.req_spec_classes, task=task)
         else:
-            identifier = "{}/{}/VTGW".format(program_fragment_id, req_spec_id)
-            workdir = os.path.join(program_fragment_id, req_spec_id)
-
-        return VTGW(self.conf, self.logger, self.parent_id, self.callbacks, self.mqs,
-                    self.vals, identifier, workdir,
-                    attrs=attrs, separate_from_parent=True, program_fragment_desc=element[0], req_spec_desc=element[1],
-                    req_spec_class=element[2], req_spec_classes=element[3], resource_limits=element[4],
-                    rerun=element[5])
+            abstract_task = Abstract(*args)
+            identifier = "{}/{}/EMGW".format(abstract_task.fragment, abstract_task.rule_class)
+            workdir = os.path.join(abstract_task.fragment, abstract_task.rule_class)
+            return EMGW(self.conf, self.logger, self.parent_id, self.callbacks, self.mqs, self.vals, identifier,
+                        workdir, [], True, req_spec_classes=self.req_spec_classes,
+                        fragment_desc_files=self.fragment_desc_files, abstract_task=abstract_task)
 
     main = task_generating_loop
 
@@ -742,13 +656,11 @@ class VTGWL(klever.core.components.Component):
 class VTGW(klever.core.components.Component):
 
     def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, id=None, work_dir=None, attrs=None,
-                 separate_from_parent=False, include_child_resources=False, req_spec_classes=None,
-                 fragment_desc_files=None):
+                 separate_from_parent=False, include_child_resources=False, req_spec_classes=None):
         super(VTGW, self).__init__(conf, logger, parent_id, callbacks, mqs, vals, id, work_dir, attrs,
                                    separate_from_parent, include_child_resources)
-        initial_abstract_task_desc_file = 'initial abstract task.json'
+        self.initial_abstract_task_desc_file = 'initial abstract task.json'
         self.req_spec_classes = req_spec_classes
-        self.fragment_desc_files = fragment_desc_files
         self.session = klever.core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
 
     def tasks_generator_worker(self):
@@ -766,21 +678,16 @@ class VTGW(klever.core.components.Component):
 
     main = tasks_generator_worker
 
-    def plugin_fail_processing(self):
-        """The function has a callback in sub-job processing!"""
-        self.logger.debug("VTGW that processed {!r}, {!r} failed".
-                          format(self.program_fragment_desc['id'], self.req_spec_id))
-        self.mqs['processed tasks'].put((self.program_fragment_desc['id'], self.req_spec_id, [None, None, None]))
-
-    def join(self, timeout=None, stopped=False):
-        try:
-            ret = super(VTGW, self).join(timeout, stopped)
-        finally:
-            if not self.conf['keep intermediate files'] and not self.is_alive():
-                self.logger.debug("Indicate that the working directory can be deleted for: {!r}, {!r}".
-                                  format(self.program_fragment_desc['id'], self.req_spec_id))
-                self.mqs['delete dir'].put([self.program_fragment_desc['id'], self.req_spec_id])
-        return ret
+    # todo: do we need this?
+    # def join(self, timeout=None, stopped=False):
+    #     try:
+    #         ret = super(VTGW, self).join(timeout, stopped)
+    #     finally:
+    #         if not self.conf['keep intermediate files'] and not self.is_alive():
+    #             self.logger.debug("Indicate that the working directory can be deleted for: {!r}, {!r}".
+    #                               format(self.program_fragment_desc['id'], self.req_spec_id))
+    #             self.mqs['delete dir'].put([self.program_fragment_desc['id'], self.req_spec_id])
+    #     return ret
 
     def run_plugin(self, plugin_desc, initial_abstract_task_desc_file, out_abstract_task_desc_file):
         self.logger.info('Launch plugin {0}'.format(plugin_desc['name']))
@@ -889,20 +796,13 @@ class VTGW(klever.core.components.Component):
 class PLUGINS(VTGW):
 
     def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, id=None, work_dir=None, attrs=None,
-                 separate_from_parent=False, include_child_resources=False, program_fragment_desc=None,
-                 req_spec_desc=None, req_spec_class=None, resource_limits=None, environment_model=None):
-        super(VTGW, self).__init__(conf, logger, parent_id, callbacks, mqs, vals, id, work_dir, attrs,
-                                   separate_from_parent, include_child_resources)
-        self.program_fragment_desc = program_fragment_desc
-        self.program_fragment_id = program_fragment_desc['id']
-        self.req_spec_class = req_spec_class
-        self.req_spec_desc = req_spec_desc
-        self.req_spec_id = req_spec_desc['identifier']
-        self.override_limits = resource_limits
-        self.environment_model = environment_model
-        self.session = klever.core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
+                 separate_from_parent=False, include_child_resources=False, req_spec_classes=None, task=None):
+        super(PLUGINS, self).__init__(conf, logger, parent_id, callbacks, mqs, vals, id, work_dir, attrs,
+                                      separate_from_parent, include_child_resources, req_spec_classes)
+        self.task = task
 
     def generate_abstact_verification_task_desc(self):
+        raise NotImplemented
         self.logger.info("Start generating tasks for program fragment {!r} and requirements specification {!r}".
                          format(self.program_fragment_id, self.req_spec_id))
         initial_abstract_task_desc_file = 'initial abstract task.json'
@@ -984,9 +884,10 @@ class EMGW(VTGW):
                  separate_from_parent=False, include_child_resources=False, req_spec_classes=None,
                  fragment_desc_files=None, abstract_task=None):
         super(EMGW, self).__init__(conf, logger, parent_id, callbacks, mqs, vals, id, work_dir, attrs,
-                                   separate_from_parent, include_child_resources, req_spec_classes, fragment_desc_files)
+                                   separate_from_parent, include_child_resources, req_spec_classes)
         # Get tuple and convert it back
         self.abstract_task = abstract_task
+        self.fragment_desc_files = fragment_desc_files
         self.fragment_desc = self.extract_fragment_desc(abstract_task.fragment)
 
     def submit_attrs(self):
@@ -1056,11 +957,15 @@ class EMGW(VTGW):
         try:
             self.run_plugin(options, initial_desc_file, out_desc_file)
         except klever.core.components.ComponentError:
-            self.plugin_fail_processing()
+            self.logger.warning('EMG has failed')
 
         # Now read the final tasks
-        with open(out_desc_file, 'r', encoding="utf-8") as fp:
-            tasks = json.load(fp)
+        if os.path.isfile(out_desc_file):
+            self.logger.info(f'Read file with generated descriptions {out_desc_file}')
+            with open(out_desc_file, 'r', encoding="utf-8") as fp:
+                tasks = json.load(fp)
+        else:
+            tasks = []
 
         # Send tasks to the VTG
         pairs = []
@@ -1074,16 +979,5 @@ class EMGW(VTGW):
             pairs.append([env_model, task_workdir])
 
         # Submit new tasks to the VTG
-        self.logger.debug(f"Signal to VTG that cache prepared for requirements specifications {rule_class} is ready"
-                          " for further use")
-        self.mqs['prepared tasks'].put([tuple(self.abstract_task), work_dir, pairs])
-
-    def plugin_fail_processing(self):
-        """The function has a callback in sub-job processing!"""
-        self.logger.debug(f"EMG that processed {self.abstract_task.fragment}, {self.abstract_task.rule_class} failed")
-        self.mqs['failed emgs'].put(tuple(self.abstract_task))
-
-        # In this case we are not going to proceed and can delete the working dir
-        if not self.conf['keep intermediate files']:
-            deldir = self.workdir
-            klever.core.utils.reliable_rmtree(self.logger, deldir)
+        self.logger.debug(f"Signal to VTG that the abstract task has been processed")
+        self.mqs['prepared'].put((type(self.abstract_task).__name__, tuple(self.abstract_task), work_dir, pairs))
