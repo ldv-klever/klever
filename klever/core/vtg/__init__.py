@@ -60,7 +60,7 @@ def __submit_common_attrs(context):
 
 # Classes for queue transfer
 Abstract = collections.namedtuple('AbstractTask', 'fragment rule_class')
-Task = collections.namedtuple('Task', 'atask envmodel rule workdir')
+Task = collections.namedtuple('Task', 'fragment rule_class envmodel rule workdir')
 
 # Global values to be set once and used by other components running in parallel with the VTG
 REQ_SPEC_CLASSES = None
@@ -397,7 +397,7 @@ class VTG(klever.core.components.Component):
             for kind, desc, *other in new_items:
                 waiting -= 1
                 self.logger.debug(f'Received item {kind}')
-                if kind == 'AbstractTask':
+                if kind == Abstract.__name__:
                     atask = Abstract(*desc)
                     aworkdir, models = other
                     left_abstract_tasks -= 1
@@ -407,7 +407,7 @@ class VTG(klever.core.components.Component):
                     # Generate a verification task per a new environment model and rule
                     for env_model, workdir in models:
                         for rule in self.req_spec_classes[atask.rule_class]:
-                            new = Task(atask, env_model, rule, workdir)
+                            new = Task(atask.fragment, atask.rule_class, env_model, rule, workdir)
                             self.logger.debug(f'Create verification task {new}')
                             atask_tasks[atask].add(new)
                             prepare.append(new)
@@ -637,21 +637,19 @@ class VTGWL(klever.core.components.Component):
 
     def factory(self, item):
         kind, args = item
-        if kind == 'Task':
-            pass
-            # todo: Update
-            # task = Task(*args)
-            # identifier = "{}/{}/{}/{}/VTGW".format(task.atask.fragment, task.atask.rule_class, task.envmodel, task.rule)
-            # workdir = os.path.join(task.workdir, task.rule)
-            # return PLUGINS(self.conf, self.logger, self.parent_id, self.callbacks, self.mqs, self.vals, identifier,
-            #                workdir, [], True, req_spec_classes=self.req_spec_classes, task=task)
+        if kind == Abstract.__name__:
+            task = Abstract(*args)
+            worker_class = EMGW
+            identifier = "{}/{}/EMGW".format(task.fragment, task.rule_class)
+            workdir = os.path.join(task.fragment, task.rule_class)
         else:
-            abstract_task = Abstract(*args)
-            identifier = "{}/{}/EMGW".format(abstract_task.fragment, abstract_task.rule_class)
-            workdir = os.path.join(abstract_task.fragment, abstract_task.rule_class)
-            return EMGW(self.conf, self.logger, self.parent_id, self.callbacks, self.mqs, self.vals, identifier,
-                        workdir, [], True, req_spec_classes=self.req_spec_classes,
-                        fragment_desc_files=self.fragment_desc_files, abstract_task=abstract_task)
+            task = Task(*args)
+            worker_class = PLUGINS
+            identifier = "{}/{}/{}/{}/VTGW".format(task.fragment, task.rule_class, task.envmodel, task.rule)
+            workdir = os.path.join(task.workdir, task.rule)
+        return worker_class(self.conf, self.logger, self.parent_id, self.callbacks, self.mqs, self.vals, identifier,
+                            workdir, [], True, req_spec_classes=self.req_spec_classes,
+                            fragment_desc_files=self.fragment_desc_files, task=task)
 
     main = task_generating_loop
 
@@ -660,7 +658,7 @@ class VTGW(klever.core.components.Component):
 
     def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, id=None, work_dir=None, attrs=None,
                  separate_from_parent=False, include_child_resources=False, req_spec_classes=None,
-                 fragment_desc_files=None, abstract_task=None,):
+                 fragment_desc_files=None, task=None):
         super(VTGW, self).__init__(conf, logger, parent_id, callbacks, mqs, vals, id, work_dir, attrs,
                                    separate_from_parent, include_child_resources)
         self.initial_abstract_task_desc_file = 'initial abstract task.json'
@@ -670,9 +668,9 @@ class VTGW(klever.core.components.Component):
         # Get tuple and convert it back
         self.req_spec_classes = req_spec_classes
         self.fragment_desc_files = fragment_desc_files
-        self.abstract_task = abstract_task
+        self.task = task
 
-        self.fragment_desc = self.__extract_fragment_desc(self.abstract_task.fragment)
+        self.fragment_desc = self.__extract_fragment_desc(self.task.fragment)
         self.session = klever.core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
 
     def tasks_generator_worker(self):
@@ -694,7 +692,7 @@ class VTGW(klever.core.components.Component):
             if not self.is_alive():
                 self.logger.debug("Now send the data to the VTG")
                 if not prepared_data:
-                    prepared_data = (type(self.abstract_task).__name__, tuple(self.abstract_task))
+                    prepared_data = (type(self.task).__name__, tuple(self.task))
                 self.mqs['prepared'].put(prepared_data)
         return ret
 
@@ -774,13 +772,13 @@ class VTGW(klever.core.components.Component):
             [
                 {
                     "name": "Program fragment",
-                    "value": self.abstract_task.fragment,
+                    "value": self.task.fragment,
                     "data": files_list_file,
                     "compare": True
                 },
                 {
                     "name": "Requirements specification class",
-                    "value": self.abstract_task.rule_class,
+                    "value": self.task.rule_class,
                     "compare": True
                 }
             ]
@@ -809,12 +807,6 @@ class VTGW(klever.core.components.Component):
 
 
 class PLUGINS(VTGW):
-
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, id=None, work_dir=None, attrs=None,
-                 separate_from_parent=False, include_child_resources=False, req_spec_classes=None, task=None):
-        super(PLUGINS, self).__init__(conf, logger, parent_id, callbacks, mqs, vals, id, work_dir, attrs,
-                                      separate_from_parent, include_child_resources, req_spec_classes)
-        self.task = task
 
     def _submit_attrs(self, files_list_files=None):
         # todo: Implement
@@ -920,7 +912,7 @@ class EMGW(VTGW):
 
     def join(self, timeout=None, stopped=False, prepared_data=None):
         # Send tasks to the VTG
-        options = self.__get_pligin_conf(self.abstract_task.rule_class)
+        options = self.__get_pligin_conf(self.task.rule_class)
         work_dir = options['name'].lower()
         pairs = []
 
@@ -942,14 +934,13 @@ class EMGW(VTGW):
         #     pairs.append([env_model, task_workdir])
 
         # Submit new tasks to the VTG
-        prepared_data = (type(self.abstract_task).__name__, tuple(self.abstract_task), work_dir, pairs)
+        prepared_data = (type(self.task).__name__, tuple(self.task), work_dir, pairs)
         return super(EMGW, self).join(timeout, stopped, prepared_data)
 
     def _generate_abstact_verification_task_desc(self):
-        fragment = self.abstract_task.fragment
-        rule_class = self.abstract_task.rule_class
+        fragment = self.task.fragment
+        rule_class = self.task.rule_class
         options = self.__get_pligin_conf(rule_class)
-        work_dir = options['name'].lower()
 
         self.logger.info(f"Start generating tasks for {fragment} and requirements specification {rule_class}")
         self.__prepare_initial_abstract_task(fragment, rule_class)
@@ -959,7 +950,6 @@ class EMGW(VTGW):
             self._run_plugin(options)
         except klever.core.components.ComponentError:
             self.logger.warning('EMG has failed')
-
 
     def __get_pligin_conf(self, rule_class):
         return next(iter(self.req_spec_classes[rule_class].values()))['plugins'][0]
