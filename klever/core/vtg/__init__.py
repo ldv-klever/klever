@@ -665,9 +665,9 @@ class VTGW(klever.core.components.Component):
         self.session = klever.core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
 
     def tasks_generator_worker(self):
-        self.submit_attrs()
+        self._submit_attrs()
         try:
-            self.generate_abstact_verification_task_desc()
+            self._generate_abstact_verification_task_desc()
             if not self.vals['task solving flag'].value:
                 with self.vals['task solving flag'].get_lock():
                     self.vals['task solving flag'].value = 1
@@ -679,68 +679,53 @@ class VTGW(klever.core.components.Component):
 
     main = tasks_generator_worker
 
-    # todo: do we need this?
-    # def join(self, timeout=None, stopped=False):
-    #     try:
-    #         ret = super(VTGW, self).join(timeout, stopped)
-    #     finally:
-    #         if not self.conf['keep intermediate files'] and not self.is_alive():
-    #             self.logger.debug("Indicate that the working directory can be deleted for: {!r}, {!r}".
-    #                               format(self.program_fragment_desc['id'], self.req_spec_id))
-    #             self.mqs['delete dir'].put([self.program_fragment_desc['id'], self.req_spec_id])
-    #     return ret
+    def _generate_abstact_verification_task_desc(self):
+        # Implement the method to do the workload
+        pass
 
-    def run_plugin(self, plugin_desc, initial_abstract_task_desc_file, out_abstract_task_desc_file):
-        self.logger.info('Launch plugin {0}'.format(plugin_desc['name']))
+    def _run_plugin(self, plugin_desc, initial_abstract_task_desc_file, out_abstract_task_desc_file):
+        plugin_name = plugin_desc['name']
         plugin_work_dir = plugin_desc['name'].lower()
         plugin_conf = copy.deepcopy(self.conf)
+        plugin_conf_file = '{0} conf.json'.format(plugin_name.lower())
+
+        self.logger.info(f'Launch plugin {plugin_name}')
         if 'options' in plugin_desc:
             plugin_conf.update(plugin_desc['options'])
         plugin_conf['in abstract task desc file'] = os.path.relpath(initial_abstract_task_desc_file,
-                                                                    self.conf[
-                                                                        'main working directory'])
+                                                                    self.conf['main working directory'])
         plugin_conf['out abstract task desc file'] = os.path.relpath(out_abstract_task_desc_file,
-                                                                     self.conf[
-                                                                         'main working directory'])
+                                                                     self.conf['main working directory'])
         # Get plugin configuration on the basis of common configuration, plugin options specific for requirement
         # specification and information on requirement itself. In addition put either initial or
         # current description of abstract verification task into plugin configuration.
-        plugin_conf_file = '{0} conf.json'.format(plugin_desc['name'].lower())
-        self.logger.debug(
-            'Put configuration of plugin "{0}" to file "{1}"'.format(plugin_desc['name'],
-                                                                     plugin_conf_file))
+        self.logger.debug(f'Put configuration of plugin "{plugin_name} to file {plugin_conf_file}')
         with open(plugin_conf_file, 'w', encoding='utf-8') as fp:
             klever.core.utils.json_dump(plugin_conf, fp, self.conf['keep intermediate files'])
 
-        plugin = getattr(importlib.import_module(
-            '.{0}'.format(plugin_desc['name'].lower()), 'klever.core.vtg'),
-            plugin_desc['name'])
+        plugin = getattr(importlib.import_module(f'.{plugin_name.lower()}', 'klever.core.vtg'), plugin_name)
         p = plugin(plugin_conf, self.logger, self.id, self.callbacks, self.mqs, self.vals,
-                   plugin_desc['name'], plugin_work_dir, separate_from_parent=True,
-                   include_child_resources=True)
+                   plugin_name, plugin_work_dir, separate_from_parent=True, include_child_resources=True)
         p.start()
         p.join()
 
-    def submit_task(self, plugin_desc, out_abstract_task_desc_file, rerun=False):
+    def _submit_task(self, plugin_desc, out_abstract_task_desc_file, rerun=False):
         plugin_work_dir = plugin_desc['name'].lower()
         final_abstract_task_desc_file = 'final abstract task.json'
         if not rerun:
-            self.logger.debug(
-                'Put final abstract verification task description to file "{0}"'.format(
-                    final_abstract_task_desc_file))
+            self.logger.debug(f'Put final abstract verification task description to '
+                              f'file "{final_abstract_task_desc_file}"')
             # Final abstract verification task description equals to abstract verification task description received
             # from last plugin.
             os.symlink(os.path.relpath(out_abstract_task_desc_file, os.path.curdir),
                        final_abstract_task_desc_file)
 
         # VTG will consume this abstract verification task description file.
-        self.abstract_task_desc_file = out_abstract_task_desc_file
-
         if os.path.isfile(os.path.join(plugin_work_dir, 'task.json')) and \
                 os.path.isfile(os.path.join(plugin_work_dir, 'task files.zip')):
             task_id = self.session.schedule_task(os.path.join(plugin_work_dir, 'task.json'),
                                                  os.path.join(plugin_work_dir, 'task files.zip'))
-            with open(self.abstract_task_desc_file, 'r', encoding='utf-8') as fp:
+            with open(out_abstract_task_desc_file, 'r', encoding='utf-8') as fp:
                 final_task_data = json.load(fp)
 
             # Plan for checking status
@@ -756,42 +741,20 @@ class VTGW(klever.core.components.Component):
                                 format(os.path.join(plugin_work_dir, 'task.json')))
             self.mqs['processed tasks'].put((self.program_fragment_id, self.req_spec_id, [None, None, None]))
 
-    def submit_attrs(self):
-        files_list_file = 'files list.txt'
-        klever.core.utils.save_program_fragment_description(self.program_fragment_desc, files_list_file)
+    def _submit_attrs(self, files_list_files=None):
+        if not files_list_files:
+            files_list_files = []
         klever.core.utils.report(
             self.logger,
             'patch',
             {
                 'identifier': self.id,
-                'attrs': [
-                    {
-                        "name": "Program fragment",
-                        "value": self.program_fragment_id,
-                        "data": files_list_file,
-                        "compare": True
-                    },
-                    {
-                        "name": "Requirements specification class",
-                        "value": self.req_spec_class,
-                        "compare": True
-                    },
-                    {
-                        "name": "Requirements specification",
-                        "value": self.req_spec_id,
-                        "compare": True
-                    },
-                    {
-                        "name": "Environment model",
-                        "value": self.environment_model,
-                        "compare": True
-                    },
-                ]
+                'attrs': self.attrs
             },
             self.mqs['report files'],
             self.vals['report id'],
             self.conf['main working directory'],
-            data_files=[files_list_file])
+            data_files=files_list_files)
 
 
 class PLUGINS(VTGW):
@@ -802,7 +765,7 @@ class PLUGINS(VTGW):
                                       separate_from_parent, include_child_resources, req_spec_classes)
         self.task = task
 
-    def generate_abstact_verification_task_desc(self):
+    def _generate_abstact_verification_task_desc(self):
         raise NotImplemented
         self.logger.info("Start generating tasks for program fragment {!r} and requirements specification {!r}".
                          format(self.program_fragment_id, self.req_spec_id))
@@ -833,14 +796,14 @@ class PLUGINS(VTGW):
             # plugin_conf['override resource limits'] = self.override_limits
 
             try:
-                self.run_plugin(plugin_desc, cur_abstract_task_desc_file, out_abstract_task_desc_file)
+                self._run_plugin(plugin_desc, cur_abstract_task_desc_file, out_abstract_task_desc_file)
             except klever.core.components.ComponentError:
                 self.plugin_fail_processing()
                 break
 
             cur_abstract_task_desc_file = out_abstract_task_desc_file
         else:
-            self.submit_task(plugin_desc, out_abstract_task_desc_file)
+            self._submit_task(plugin_desc, out_abstract_task_desc_file)
 
 
 class RESCH(VTGW):
@@ -859,7 +822,7 @@ class RESCH(VTGW):
         self.environment_model = environment_model
         self.session = klever.core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
 
-    def generate_abstact_verification_task_desc(self, program_fragment_desc, req_spec_desc):
+    def _generate_abstact_verification_task_desc(self, program_fragment_desc, req_spec_desc):
         self.logger.info("Start rescheduling {!r} and requirements specification {!r}".
                          format(self.program_fragment_id, self.req_spec_id))
 
@@ -873,10 +836,10 @@ class RESCH(VTGW):
                    out_abstract_task_desc_file)
 
         try:
-            self.run_plugin(plugin_desc, cur_abstract_task_desc_file, out_abstract_task_desc_file)
+            self._run_plugin(plugin_desc, cur_abstract_task_desc_file, out_abstract_task_desc_file)
         except klever.core.components.ComponentError:
             self.plugin_fail_processing()
-        self.submit_task(self, plugin_desc, out_abstract_task_desc_file, rerun=True)
+        self._submit_task(self, plugin_desc, out_abstract_task_desc_file, rerun=True)
 
 
 class EMGW(VTGW):
@@ -889,36 +852,30 @@ class EMGW(VTGW):
         # Get tuple and convert it back
         self.abstract_task = abstract_task
         self.fragment_desc_files = fragment_desc_files
-        self.fragment_desc = self.extract_fragment_desc(abstract_task.fragment)
+        self.fragment_desc = self.__extract_fragment_desc(abstract_task.fragment)
 
-    def submit_attrs(self):
+    def _submit_attrs(self, files_list_files=None):
         files_list_file = 'files list.txt'
         klever.core.utils.save_program_fragment_description(self.fragment_desc, files_list_file)
-        klever.core.utils.report(
-            self.logger,
-            'patch',
-            {
-                'identifier': self.id,
-                'attrs': [
-                    {
-                        "name": "Program fragment",
-                        "value": self.abstract_task.fragment,
-                        "data": files_list_file,
-                        "compare": True
-                    },
-                    {
-                        "name": "Requirements specification class",
-                        "value": self.abstract_task.rule_class,
-                        "compare": True
-                    }
-                ]
-            },
-            self.mqs['report files'],
-            self.vals['report id'],
-            self.conf['main working directory'],
-            data_files=[files_list_file])
+        files_list_files = [files_list_file]
+        self.attrs.extend(
+            [
+                {
+                    "name": "Program fragment",
+                    "value": self.abstract_task.fragment,
+                    "data": files_list_file,
+                    "compare": True
+                },
+                {
+                    "name": "Requirements specification class",
+                    "value": self.abstract_task.rule_class,
+                    "compare": True
+                }
+            ]
+        )
+        super(EMGW, self)._submit_attrs(files_list_files)
 
-    def extract_fragment_desc(self, fragment):
+    def __extract_fragment_desc(self, fragment):
         program_fragment_desc_file = self.fragment_desc_files[fragment]
         with open(os.path.join(self.conf['main working directory'], program_fragment_desc_file),
                   encoding='utf-8') as fp:
@@ -926,10 +883,10 @@ class EMGW(VTGW):
 
         return desc
 
-    def get_pligin_conf(self, rule_class):
+    def __get_pligin_conf(self, rule_class):
         return next(iter(self.req_spec_classes[rule_class].values()))['plugins'][0]
 
-    def prepare_initial_abstract_task(self, fragment, rule_class):
+    def __prepare_initial_abstract_task(self, fragment, rule_class):
         fragment_desc = self.fragment_desc
         initial_abstract_task_desc_file = 'initial abstract task.json'
 
@@ -945,18 +902,18 @@ class EMGW(VTGW):
             klever.core.utils.json_dump(initial_abstract_task_desc, fp, self.conf['keep intermediate files'])
         return initial_abstract_task_desc_file, out_abstract_task_desc_file
 
-    def generate_abstact_verification_task_desc(self):
+    def _generate_abstact_verification_task_desc(self):
         fragment = self.abstract_task.fragment
         rule_class = self.abstract_task.rule_class
-        options = self.get_pligin_conf(rule_class)
+        options = self.__get_pligin_conf(rule_class)
         work_dir = options['name'].lower()
 
         self.logger.info(f"Start generating tasks for {fragment} and requirements specification {rule_class}")
-        initial_desc_file, out_desc_file = self.prepare_initial_abstract_task(fragment, rule_class)
+        initial_desc_file, out_desc_file = self.__prepare_initial_abstract_task(fragment, rule_class)
 
         # Here plugin will put modified abstract verification task description.
         try:
-            self.run_plugin(options, initial_desc_file, out_desc_file)
+            self._run_plugin(options, initial_desc_file, out_desc_file)
         except klever.core.components.ComponentError:
             self.logger.warning('EMG has failed')
 
@@ -975,7 +932,7 @@ class EMGW(VTGW):
             task_workdir = os.path.abspath(os.path.join(os.path.curdir, env_model))
             os.makedirs(task_workdir)
             task_file = os.path.join(task_workdir, initial_desc_file)
-            with open(task_file, 'w', encoding='utf8') as fp:
+            with open(task_file, 'w', encoding='utf-8') as fp:
                 klever.core.utils.json_dump(task, fp, self.conf['keep intermediate files'])
             pairs.append([env_model, task_workdir])
 
