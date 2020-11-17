@@ -772,9 +772,8 @@ class VTGW(klever.core.components.Component):
                                 format(os.path.join(plugin_work_dir, 'task.json')))
             self.mqs['processed tasks'].put((self.program_fragment_id, self.req_spec_id, [None, None, None]))
 
-    def _submit_attrs(self, files_list_files=None):
-        if not files_list_files:
-            files_list_files = []
+    def _submit_attrs(self):
+        files_list_files = []
 
         # Prepare program fragment description file
         files_list_file = 'files list.txt'
@@ -822,23 +821,22 @@ class VTGW(klever.core.components.Component):
 
 class PLUGINS(VTGW):
 
-    # def _submit_attrs(self, files_list_files=None):
-    #     # todo: Fix this
-    #     # self.attrs.extend(
-    #     #     [
-    #     #         {
-    #     #             "name": "Environment model",
-    #     #             "value": self.task.envmodel,
-    #     #             "compare": True
-    #     #         },
-    #     #         {
-    #     #             "name": "Requirements specification",
-    #     #             "value": self.task.rule,
-    #     #             "compare": True
-    #     #         }
-    #     #     ]
-    #     # )
-    #     super(PLUGINS, self)._submit_attrs()
+    def _submit_attrs(self):
+        self.attrs.extend(
+            [
+                {
+                    "name": "Environment model",
+                    "value": self.task.envmodel,
+                    "compare": True
+                },
+                {
+                    "name": "Requirements specification",
+                    "value": self.task.rule,
+                    "compare": True
+                }
+            ]
+        )
+        super(PLUGINS, self)._submit_attrs()
 
     def _generate_abstact_verification_task_desc(self):
         return
