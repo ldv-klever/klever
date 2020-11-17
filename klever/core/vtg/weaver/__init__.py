@@ -73,7 +73,7 @@ class Weaver(klever.core.vtg.plugins.Plugin):
                         infile = infile('.c')[0] + '.i'
                 else:
                     with open(os.path.join(self.conf['main working directory'], extra_cc['CC']),
-                              encoding='utf8') as fp:
+                              encoding='utf-8') as fp:
                         cc = json.load(fp)
 
                     infile = cc["in"][0]
@@ -103,9 +103,9 @@ class Weaver(klever.core.vtg.plugins.Plugin):
                             aspects.extend(plugin_aspects['aspects'])
 
                     # Concatenate aspects.
-                    with open(aspect, 'w', encoding='utf8') as fout:
+                    with open(aspect, 'w', encoding='utf-8') as fout:
                         for a in aspects:
-                            with open(os.path.join(self.conf['main working directory'], a), encoding='utf8') as fin:
+                            with open(os.path.join(self.conf['main working directory'], a), encoding='utf-8') as fin:
                                 for line in fin:
                                     fout.write(line)
                                 # Aspects may not terminate with the new line symbol that will cause horrible syntax

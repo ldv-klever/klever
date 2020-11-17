@@ -492,7 +492,7 @@ class ErrorTrace:
 
             self._logger.debug('Parse model comments from {!r}'.format(file))
 
-            with open(file, encoding='utf8') as fp:
+            with open(file, encoding='utf-8') as fp:
                 line = 0
                 for text in fp:
                     line += 1

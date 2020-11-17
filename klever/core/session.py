@@ -71,7 +71,7 @@ class Session:
                         raise BridgeError(
                             'Got error "{0}" when send "{1}" request to "{2}"'.format(self.error, method, url)
                         )
-                    with open('response error.html', 'w', encoding='utf8') as fp:
+                    with open('response error.html', 'w', encoding='utf-8') as fp:
                         fp.write(resp.text)
                     status_code = resp.status_code
                     resp.close()
@@ -89,7 +89,7 @@ class Session:
                                 archive)
 
     def schedule_task(self, task_file, archive):
-        with open(task_file, 'r', encoding='utf8') as fp:
+        with open(task_file, 'r', encoding='utf-8') as fp:
             data = fp.read()
 
         resp = self.__upload_archives('service/tasks/',
@@ -132,7 +132,7 @@ class Session:
         batch_reports = []
         batch_report_file_archives = []
         for report_and_report_file_archives in reports_and_report_file_archives:
-            with open(report_and_report_file_archives['report file'], encoding='utf8') as fp:
+            with open(report_and_report_file_archives['report file'], encoding='utf-8') as fp:
                 batch_reports.append(json.load(fp))
 
             report_file_archives = report_and_report_file_archives.get('report file archives')

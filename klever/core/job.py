@@ -86,7 +86,7 @@ def start_jobs(core_obj, vals):
 
     for configuration_file in NECESSARY_FILES:
         path = klever.core.utils.find_file_or_dir(core_obj.logger, os.path.curdir, configuration_file)
-        with open(path, 'r', encoding='utf8') as fp:
+        with open(path, 'r', encoding='utf-8') as fp:
             try:
                 json.load(fp)
             except json.decoder.JSONDecodeError as err:
@@ -200,7 +200,7 @@ def start_jobs(core_obj, vals):
 def __get_common_components_conf(logger, conf):
     logger.info('Get components common configuration')
 
-    with open(klever.core.utils.find_file_or_dir(logger, os.path.curdir, 'job.json'), encoding='utf8') as fp:
+    with open(klever.core.utils.find_file_or_dir(logger, os.path.curdir, 'job.json'), encoding='utf-8') as fp:
         components_common_conf = json.load(fp)
 
     # Add architecture specific options. At the moment there are only default options but one may add dedicated
@@ -218,7 +218,7 @@ def __get_common_components_conf(logger, conf):
 
     if components_common_conf['keep intermediate files']:
         logger.debug('Create components common configuration file "components common conf.json"')
-        with open('components common conf.json', 'w', encoding='utf8') as fp:
+        with open('components common conf.json', 'w', encoding='utf-8') as fp:
             json.dump(components_common_conf, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
     return components_common_conf
@@ -568,7 +568,7 @@ class Job(klever.core.components.Component):
 
         if self.common_components_conf['keep intermediate files']:
             self.logger.debug('Create components configuration file "conf.json"')
-            with open('conf.json', 'w', encoding='utf8') as fp:
+            with open('conf.json', 'w', encoding='utf-8') as fp:
                 json.dump(self.common_components_conf, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
         self.__get_job_or_sub_job_components()

@@ -325,7 +325,7 @@ class RP(klever.core.components.Component):
             error_trace_file = 'error trace.json'
 
         self.logger.info('Write processed witness to "{0}"'.format(error_trace_file))
-        with open(error_trace_file, 'w', encoding='utf8') as fp:
+        with open(error_trace_file, 'w', encoding='utf-8') as fp:
             klever.core.utils.json_dump(error_trace, fp, self.conf['keep intermediate files'])
 
         return error_trace_file, attrs
@@ -354,7 +354,7 @@ class RP(klever.core.components.Component):
                                     format(len(benchexec_reports)))
 
         # Expect single report file
-        with open(benchexec_reports[0], encoding="utf8") as fp:
+        with open(benchexec_reports[0], encoding="utf-8") as fp:
             result = ElementTree.parse(fp).getroot()
 
             run = result.findall("run")[0]
@@ -436,7 +436,7 @@ class RP(klever.core.components.Component):
                     else:
                         msg = "CPU time exhausted"
 
-                    with open(verification_problem_desc, 'w', encoding='utf8') as fp:
+                    with open(verification_problem_desc, 'w', encoding='utf-8') as fp:
                         fp.write(msg)
 
                     data = list(self.vals['task solution triples'][self.results_key])
@@ -475,7 +475,7 @@ class RP(klever.core.components.Component):
         with zipfile.ZipFile('decision result files.zip') as zfp:
             zfp.extractall()
 
-        with open('decision results.json', encoding='utf8') as fp:
+        with open('decision results.json', encoding='utf-8') as fp:
             decision_results = json.load(fp)
 
         # TODO: specify the computer where the verifier was invoked (this information should be get from BenchExec or VerifierCloud web client.

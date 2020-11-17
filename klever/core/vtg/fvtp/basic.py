@@ -57,7 +57,7 @@ class Basic:
         common.prepare_verification_task_files_archive(files)
         task_description = self._prepare_task_description(resource_limits)
         self.logger.debug('Create verification task description file "task.json"')
-        with open('task.json', 'w', encoding='utf8') as fp:
+        with open('task.json', 'w', encoding='utf-8') as fp:
             utils.json_dump(task_description, fp, self.conf['keep intermediate files'])
 
     def _prepare_benchmark_description(self, resource_limits):
@@ -93,7 +93,7 @@ class Basic:
         files.append("safe-prps.prp")
 
         # Save the benchmark definition
-        with open("benchmark.xml", "w", encoding="utf8") as fp:
+        with open("benchmark.xml", "w", encoding="utf-8") as fp:
             fp.write(minidom.parseString(ElementTree.tostring(benchmark)).toprettyxml(indent="    "))
         files.append("benchmark.xml")
 
@@ -221,7 +221,7 @@ class Basic:
         if not len(safe_prps):
             raise ValueError('Safety properties specification was not prepared since there is no safety properties')
 
-        with open('safe-prps.prp', 'w', encoding='utf8') as fp:
+        with open('safe-prps.prp', 'w', encoding='utf-8') as fp:
             for safe_prp in safe_prps:
                 fp.write(safe_prp.format(entry_point=self.abstract_task_desc['entry points'][0]) + '\n')
 

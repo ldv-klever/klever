@@ -35,7 +35,7 @@ def set_status(logger, st, conf):
 
 def main():
     expect_file = os.environ["CONTROLLER_NODE_CONFIG"]
-    with open(expect_file, encoding="utf8") as fh:
+    with open(expect_file, encoding="utf-8") as fh:
         conf = json.load(fh)
 
     # Sign in

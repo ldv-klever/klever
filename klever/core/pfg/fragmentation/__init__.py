@@ -306,7 +306,7 @@ class FragmentationAlgorythm:
                 "size": str(sum(int(f.size) for f in frags))
             }
 
-        with open('agregations description.json', 'w', encoding='utf8') as fp:
+        with open('agregations description.json', 'w', encoding='utf-8') as fp:
             ujson.dump(data, fp, sort_keys=True, indent=4, ensure_ascii=False,
                        escape_forward_slashes=False)
 
@@ -388,11 +388,11 @@ class FragmentationAlgorythm:
         if os.path.isfile(pf_desc_file):
             raise FileExistsError('Program fragment description file {!r} already exists'.format(pf_desc_file))
         self.logger.debug('Dump program fragment description {!r} to file {!r}'.format(pf_desc['fragment'], pf_desc_file))
-        dir_path = os.path.dirname(pf_desc_file).encode('utf8')
+        dir_path = os.path.dirname(pf_desc_file).encode('utf-8')
         if dir_path:
             os.makedirs(dir_path, exist_ok=True)
 
-        with open(pf_desc_file, 'w', encoding='utf8') as fp:
+        with open(pf_desc_file, 'w', encoding='utf-8') as fp:
             ujson.dump(pf_desc, fp, sort_keys=True, indent=4, ensure_ascii=False, escape_forward_slashes=False)
         return pf_desc_file
 

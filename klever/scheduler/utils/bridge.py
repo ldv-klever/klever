@@ -90,7 +90,7 @@ class Session:
                     raise BridgeError('Got error {!r} when send {!r} request to {!r}'.
                                       format(str(self.error), method, url))
 
-                with open('response error.html', 'w', encoding='utf8') as fp:
+                with open('response error.html', 'w', encoding='utf-8') as fp:
                     fp.write(resp.text)
                 status_code = resp.status_code
                 resp.close()

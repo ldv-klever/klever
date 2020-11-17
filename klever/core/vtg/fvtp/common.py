@@ -152,7 +152,7 @@ def get_verifier_opts_and_safe_prps(logger, resource_limits, conf):
                        'verifiers profiles containing options')
     try:
         verifier_profile_db = klever.core.utils.find_file_or_dir(logger, conf["main working directory"], verifier_profile_db)
-        with open(verifier_profile_db, 'r', encoding='utf8') as fp:
+        with open(verifier_profile_db, 'r', encoding='utf-8') as fp:
             profiles = json.loads(fp.read())
     except FileNotFoundError:
         raise FileNotFoundError("There is no verifier profiles base file: {!r}".format(verifier_profile_db))

@@ -70,7 +70,7 @@ class Core(klever.core.components.CallbacksCaller):
 
             self.mqs['report files'] = multiprocessing.Manager().Queue()
 
-            os.makedirs('child resources'.encode('utf8'))
+            os.makedirs('child resources'.encode('utf-8'))
 
             self.uploading_reports_process = Reporter(self.conf, self.logger, self.ID, self.callbacks, self.mqs,
                                                       {'report id': self.report_id}, session=self.session)
@@ -105,7 +105,7 @@ class Core(klever.core.components.CallbacksCaller):
 
             if self.mqs:
                 try:
-                    with open('problem desc.txt', 'a', encoding='utf8') as fp:
+                    with open('problem desc.txt', 'a', encoding='utf-8') as fp:
                         if fp.tell():
                             fp.write('\n')
                         traceback.print_exc(file=fp)
@@ -196,7 +196,7 @@ class Core(klever.core.components.CallbacksCaller):
         conf_file = vars(parser.parse_args())['conf file']
 
         # Read configuration from file.
-        with open(conf_file, encoding='utf8') as fp:
+        with open(conf_file, encoding='utf-8') as fp:
             self.conf = json.load(fp)
 
     def prepare_work_dir(self):
@@ -221,13 +221,13 @@ class Core(klever.core.components.CallbacksCaller):
         # - occupy working directory.
         shutil.rmtree(self.conf['working directory'], True)
 
-        os.makedirs(self.conf['working directory'].encode('utf8'), exist_ok=True)
+        os.makedirs(self.conf['working directory'].encode('utf-8'), exist_ok=True)
 
         check_another_instance()
 
         # Occupy working directory until the end of operation.
         # Yes there may be race condition, but it won't be.
-        self.is_solving_file_fp = open(self.is_solving_file, 'w', encoding='utf8')
+        self.is_solving_file_fp = open(self.is_solving_file, 'w', encoding='utf-8')
 
         # Create directory where all reports and report files archives will be actually written to.
         os.mkdir(os.path.join(self.conf['working directory'], 'reports'))
@@ -264,7 +264,7 @@ class Core(klever.core.components.CallbacksCaller):
         entities[3]['memory size'] = '{0} GB'.format(int(entities[3]['memory size'] / 10 ** 9))
 
         self.comp = {
-            'identifier': hashlib.sha224(json.dumps(entities).encode('utf8')).hexdigest(),
+            'identifier': hashlib.sha224(json.dumps(entities).encode('utf-8')).hexdigest(),
             'display': entities[0]['node name'],
             'data': entities[1:]
         }

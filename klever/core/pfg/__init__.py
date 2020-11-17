@@ -125,7 +125,7 @@ class PFG(klever.core.components.Component):
                 self.logger.warning('There is no fragmentation sets description file {!r}'.format(file_name))
                 specification = {}
             else:
-                with open(file_name, 'r', encoding='utf8') as fp:
+                with open(file_name, 'r', encoding='utf-8') as fp:
                     specification = json.load(fp)
         else:
             raise ValueError("Require 'project' attribute to be set in job.json to proceed")

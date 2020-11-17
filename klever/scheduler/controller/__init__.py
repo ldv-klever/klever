@@ -92,7 +92,7 @@ def setup_consul(conf, logger):
     consul_work_dir = os.path.join(os.path.abspath(os.path.curdir), "consul-dir")
     logger.info("Setup consul working directory {}".format(consul_work_dir))
     # Make consul working directory
-    os.makedirs(consul_work_dir.encode("utf8"))
+    os.makedirs(consul_work_dir.encode("utf-8"))
 
     # Prepare ndde info
     conf["node configuration"] = prepare_node_info(conf["node configuration"])
@@ -130,7 +130,7 @@ def setup_consul(conf, logger):
 
     consul_config_file = os.path.join(consul_work_dir, "config.json")
     logger.info("Save consul configuration file {}".format(consul_config_file))
-    with open(consul_config_file, "w", encoding="utf8") as fh:
+    with open(consul_config_file, "w", encoding="utf-8") as fh:
         fh.write(json.dumps(consul_config, ensure_ascii=False, sort_keys=True, indent=4))
 
     logger.debug("Extract system information and add it to the node information")
@@ -141,7 +141,7 @@ def setup_consul(conf, logger):
         "node configuration": conf["node configuration"],
         "Klever Bridge": conf["Klever Bridge"]
     }
-    with open(node_configuration, "w", encoding="utf8") as fh:
+    with open(node_configuration, "w", encoding="utf-8") as fh:
         fh.write(json.dumps(data, ensure_ascii=False, sort_keys=True, indent=4))
 
     # Add as an environment variable

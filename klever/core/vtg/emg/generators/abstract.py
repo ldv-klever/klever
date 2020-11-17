@@ -75,14 +75,14 @@ class AbstractGenerator:
         :return:
         """
         specification = specification
-        with open(file_name, 'w', encoding='utf8') as fp:
+        with open(file_name, 'w', encoding='utf-8') as fp:
             self.logger.debug('save specification %s' % file_name)
             json.dump(specification, fp, indent=2, sort_keys=True)
 
     def _merge_specifications(self, specifications_set, files):
         merged_specification = sortedcontainers.SortedDict()
         for file in files:
-            with open(file, 'r', encoding='utf8') as fp:
+            with open(file, 'r', encoding='utf-8') as fp:
                 new_content = json.load(fp)
 
             for spec_set in new_content:

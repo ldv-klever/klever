@@ -146,7 +146,7 @@ class RSG(klever.core.vtg.plugins.Plugin):
 
         # CC extra full description files will be put to this directory as well as corresponding intermediate and final
         # output files.
-        os.makedirs('models'.encode('utf8'))
+        os.makedirs('models'.encode('utf-8'))
 
         self.logger.info('Add aspects to abstract verification task description')
         aspects = []
@@ -223,7 +223,7 @@ class RSG(klever.core.vtg.plugins.Plugin):
                 opts += ['-DLDV_SPECS_SET_{0}'.format(self.conf['specifications set'].replace('.', '_'))]
 
             self.logger.debug('Dump CC full description to file "{0}"'.format(full_desc_file))
-            with open(full_desc_file, 'w', encoding='utf8') as fp:
+            with open(full_desc_file, 'w', encoding='utf-8') as fp:
                 klever.core.utils.json_dump({
                     'cwd': model_compiler_cwd,
                     'in': [os.path.realpath(model_c_file)],

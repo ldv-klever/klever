@@ -159,7 +159,7 @@ class VTG(klever.core.components.Component):
             raise KeyError('Nothing will be verified since requirement specifications to be checked are not specified')
 
         # Read specifications base.
-        with open(self.conf['specifications base'], encoding='utf8') as fp:
+        with open(self.conf['specifications base'], encoding='utf-8') as fp:
             raw_req_spec_descs = json.load(fp)
 
         if 'templates' not in raw_req_spec_descs:
@@ -295,7 +295,7 @@ class VTG(klever.core.components.Component):
         if self.conf['keep intermediate files']:
             self.logger.debug('Create file "{0}" with descriptions of requirement specifications to be checked'
                               .format('checked requirement specifications.json'))
-            with open('checked requirement specifications.json', 'w', encoding='utf8') as fp:
+            with open('checked requirement specifications.json', 'w', encoding='utf-8') as fp:
                 json.dump(self.req_spec_descs, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
     def __classify_req_spec_descs(self):
@@ -338,7 +338,7 @@ class VTG(klever.core.components.Component):
         self.mqs['program fragment desc files'].close()
 
         if os.path.isfile(pf_file):
-            with open(pf_file, 'r', encoding='utf8') as fp:
+            with open(pf_file, 'r', encoding='utf-8') as fp:
                 program_fragment_descs = [pf_file.strip() for pf_file in fp.readlines()]
             if not self.conf['keep intermediate files']:
                 os.remove(pf_file)
@@ -709,7 +709,7 @@ class VTGW(klever.core.components.Component):
         self.logger.debug(
             'Put configuration of plugin "{0}" to file "{1}"'.format(plugin_desc['name'],
                                                                      plugin_conf_file))
-        with open(plugin_conf_file, 'w', encoding='utf8') as fp:
+        with open(plugin_conf_file, 'w', encoding='utf-8') as fp:
             klever.core.utils.json_dump(plugin_conf, fp, self.conf['keep intermediate files'])
 
         plugin = getattr(importlib.import_module(
@@ -740,7 +740,7 @@ class VTGW(klever.core.components.Component):
                 os.path.isfile(os.path.join(plugin_work_dir, 'task files.zip')):
             task_id = self.session.schedule_task(os.path.join(plugin_work_dir, 'task.json'),
                                                  os.path.join(plugin_work_dir, 'task files.zip'))
-            with open(self.abstract_task_desc_file, 'r', encoding='utf8') as fp:
+            with open(self.abstract_task_desc_file, 'r', encoding='utf-8') as fp:
                 final_task_data = json.load(fp)
 
             # Plan for checking status
@@ -818,7 +818,7 @@ class PLUGINS(VTGW):
         self.logger.debug(
             'Put initial abstract verification task description to file "{0}"'.format(
                 initial_abstract_task_desc_file))
-        with open(initial_abstract_task_desc_file, 'w', encoding='utf8') as fp:
+        with open(initial_abstract_task_desc_file, 'w', encoding='utf-8') as fp:
             klever.core.utils.json_dump(initial_abstract_task_desc, fp, self.conf['keep intermediate files'])
 
         # Invoke all plugins one by one.
@@ -921,7 +921,7 @@ class EMGW(VTGW):
     def extract_fragment_desc(self, fragment):
         program_fragment_desc_file = self.fragment_desc_files[fragment]
         with open(os.path.join(self.conf['main working directory'], program_fragment_desc_file),
-                  encoding='utf8') as fp:
+                  encoding='utf-8') as fp:
             desc = json.load(fp)
 
         return desc
@@ -941,7 +941,7 @@ class EMGW(VTGW):
 
         self.logger.debug(
             'Put initial abstract verification task description to file "{0}"'.format(initial_abstract_task_desc_file))
-        with open(initial_abstract_task_desc_file, 'w', encoding='utf8') as fp:
+        with open(initial_abstract_task_desc_file, 'w', encoding='utf-8') as fp:
             klever.core.utils.json_dump(initial_abstract_task_desc, fp, self.conf['keep intermediate files'])
         return initial_abstract_task_desc_file, out_abstract_task_desc_file
 
