@@ -322,7 +322,7 @@ class VTG(klever.core.components.Component):
 
     def __gradual_submit(self, items_queue, quota):
         submitted = 0
-        while 0 < quota and items_queue:
+        while 0 < quota and len(items_queue) > 0:
             quota -= 1
             submitted += 1
             element = items_queue.pop()
@@ -378,6 +378,7 @@ class VTG(klever.core.components.Component):
         self.logger.info('Generate abstract tasks')
         for atask in self.__get_abstract_tasks():
             prepare.append(atask)
+        self.logger.info(f'There are {len(prepare)} abstract tasks in total')
 
         # Get the number of abstract tasks
         left_abstract_tasks = len(prepare)
@@ -405,31 +406,32 @@ class VTG(klever.core.components.Component):
                     atask_tasks[atask] = set()
 
                     # Generate a verification task per a new environment model and rule
-                    for env_model, workdir in models:
-                        for rule in self.req_spec_classes[atask.rule_class]:
-                            new = Task(atask.fragment, atask.rule_class, env_model, rule, workdir)
-                            self.logger.debug(f'Create verification task {new}')
-                            atask_tasks[atask].add(new)
-                            prepare.append(new)
-                            total_tasks += 1
+                    if models:
+                        for env_model, workdir in models:
+                            for rule in self.req_spec_classes[atask.rule_class]:
+                                new = Task(atask.fragment, atask.rule_class, env_model, rule, workdir)
+                                self.logger.debug(f'Create verification task {new}')
+                                atask_tasks[atask].add(new)
+                                prepare.append(new)
+                                total_tasks += 1
+                    else:
+                        self.logger.warning(f'There is no tasks generated for {atask}')
 
                     if left_abstract_tasks == 0:
                         # Submit the number of tasks
+                        # todo: Remove
+                        total_tasks = 0
                         self.logger.info(f'Submit the total number of tasks: {total_tasks}')
                         self.mqs['total tasks'].put([self.conf['sub-job identifier'], total_tasks])
-
-                        # Delete program fragments descriptions
-                        if not self.conf['keep intermediate files']:
-                            for file in self.fragment_desc_files.values():
-                                os.remove(os.path.join(self.conf['main working directory'], file))
                     else:
                         self.logger.debug(f'Wait for abstract tasks {left_abstract_tasks}')
                 else:
-                    # todo: Receive task
+                    task = Task(*desc)
+                    atask = Abstract(task.fragment, task.rule_class)
+                    # atask_tasks[atask].remove(task)
                     # todo: Del directories
                     # todo: Del abstract work directories
                     # todo: Balancing
-                    pass
 
             time.sleep(0.3)
 
@@ -441,6 +443,10 @@ class VTG(klever.core.components.Component):
 
         # TODO: read and process queue "processing tasks"
         # todo: delete program files descriptions
+        # todo Delete program fragments descriptions
+        # if not self.conf['keep intermediate files']:
+        #     for file in self.fragment_desc_files.values():
+        #         os.remove(os.path.join(self.conf['main working directory'], file))
 
         return
 
@@ -645,8 +651,9 @@ class VTGWL(klever.core.components.Component):
         else:
             task = Task(*args)
             worker_class = PLUGINS
-            identifier = "{}/{}/{}/{}/VTGW".format(task.fragment, task.rule_class, task.envmodel, task.rule)
+            identifier = "{}/{}/{}/{}/PLUGINS".format(task.fragment, task.rule_class, task.envmodel, task.rule)
             workdir = os.path.join(task.workdir, task.rule)
+        self.logger.info(f'Create task {task}')
         return worker_class(self.conf, self.logger, self.parent_id, self.callbacks, self.mqs, self.vals, identifier,
                             workdir, [], True, req_spec_classes=self.req_spec_classes,
                             fragment_desc_files=self.fragment_desc_files, task=task)
@@ -664,6 +671,7 @@ class VTGW(klever.core.components.Component):
         self.initial_abstract_task_desc_file = 'initial abstract task.json'
         self.out_abstract_task_desc_file = 'abstract tasks.json'
         self.prepared_data = tuple()
+        self.send_data = True
 
         # Get tuple and convert it back
         self.req_spec_classes = req_spec_classes
@@ -685,20 +693,26 @@ class VTGW(klever.core.components.Component):
 
     main = tasks_generator_worker
 
-    def join(self, timeout=None, stopped=False, prepared_data=None):
+    def join(self, timeout=None, stopped=False):
         try:
             ret = super(VTGW, self).join(timeout, stopped)
         finally:
-            if not self.is_alive():
-                self.logger.debug("Now send the data to the VTG")
-                if not prepared_data:
-                    prepared_data = (type(self.task).__name__, tuple(self.task))
+            if not self.is_alive() and self.send_data:
+                prepared_data = self._get_prepared_data()
+                self.logger.debug(f"Now send the data to the VTG for {self.task}")
                 self.mqs['prepared'].put(prepared_data)
+
+                # Send data only once
+                self.send_data = False
         return ret
 
     def _generate_abstact_verification_task_desc(self):
         # Implement the method to do the workload
         pass
+
+    def _get_prepared_data(self):
+        self.logger.debug(f"There is no data has been prepared for {self.task}")
+        return type(self.task).__name__, tuple(self.task)
 
     def _run_plugin(self, plugin_desc):
         plugin_name = plugin_desc['name']
@@ -808,28 +822,26 @@ class VTGW(klever.core.components.Component):
 
 class PLUGINS(VTGW):
 
-    def _submit_attrs(self, files_list_files=None):
-        # todo: Implement
-        # self.attrs.extend(
-        #     [
-        #         {
-        #             "name": "Program fragment",
-        #             "value": self.abstract_task.fragment,
-        #             "data": files_list_file,
-        #             "compare": True
-        #         },
-        #         {
-        #             "name": "Requirements specification class",
-        #             "value": self.abstract_task.rule_class,
-        #             "compare": True
-        #         }
-        #     ]
-        # )
-        super(PLUGINS, self)._submit_attrs()
-
+    # def _submit_attrs(self, files_list_files=None):
+    #     # todo: Fix this
+    #     # self.attrs.extend(
+    #     #     [
+    #     #         {
+    #     #             "name": "Environment model",
+    #     #             "value": self.task.envmodel,
+    #     #             "compare": True
+    #     #         },
+    #     #         {
+    #     #             "name": "Requirements specification",
+    #     #             "value": self.task.rule,
+    #     #             "compare": True
+    #     #         }
+    #     #     ]
+    #     # )
+    #     super(PLUGINS, self)._submit_attrs()
 
     def _generate_abstact_verification_task_desc(self):
-        raise NotImplemented
+        return
         # todo: Implement
         self.logger.info("Start generating tasks for program fragment {!r} and requirements specification {!r}".
                          format(self.program_fragment_id, self.req_spec_id))
@@ -910,32 +922,33 @@ class RESCH(VTGW):
 
 class EMGW(VTGW):
 
-    def join(self, timeout=None, stopped=False, prepared_data=None):
+    def _get_prepared_data(self):
         # Send tasks to the VTG
-        options = self.__get_pligin_conf(self.task.rule_class)
-        work_dir = options['name'].lower()
+        out_file = os.path.join(self.work_dir, self.out_abstract_task_desc_file)
         pairs = []
 
         # Now read the final tasks
-        if os.path.isfile(self.out_abstract_task_desc_file):
-            self.logger.info(f'Read file with generated descriptions {self.out_abstract_task_desc_file}')
-            with open(self.out_abstract_task_desc_file, 'r', encoding="utf-8") as fp:
+        self.logger.info(f'Read file with generated descriptions {out_file}')
+        if os.path.isfile(out_file):
+            with open(out_file, 'r', encoding="utf-8") as fp:
                 tasks = json.load(fp)
+            self.logger.info(f'Found {len(tasks)} generated tasks')
         else:
+            self.logger.info(f'There is no environment models generated for {self.task}')
             tasks = []
 
-        # for task in tasks:
-        #     env_model = task["environment model identifier"]
-        #     task_workdir = os.path.abspath(os.path.join(os.path.curdir, env_model))
-        #     os.makedirs(task_workdir)
-        #     task_file = os.path.join(task_workdir, self.initial_abstract_task_desc_file)
-        #     with open(task_file, 'w', encoding='utf-8') as fp:
-        #         klever.core.utils.json_dump(task, fp, self.conf['keep intermediate files'])
-        #     pairs.append([env_model, task_workdir])
+        # Generate task descriptions for further tasks
+        for task in tasks:
+            env_model = task["environment model identifier"]
+            task_workdir = os.path.join(self.work_dir, env_model)
+            os.makedirs(task_workdir, exist_ok=True)
+            task_file = os.path.join(task_workdir, self.initial_abstract_task_desc_file)
+            with open(task_file, 'w', encoding='utf-8') as fp:
+                klever.core.utils.json_dump(task, fp, self.conf['keep intermediate files'])
+            pairs.append([env_model, task_workdir])
 
         # Submit new tasks to the VTG
-        prepared_data = (type(self.task).__name__, tuple(self.task), work_dir, pairs)
-        return super(EMGW, self).join(timeout, stopped, prepared_data)
+        return type(self.task).__name__, tuple(self.task), self.work_dir, pairs
 
     def _generate_abstact_verification_task_desc(self):
         fragment = self.task.fragment
