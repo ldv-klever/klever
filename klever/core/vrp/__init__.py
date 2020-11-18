@@ -113,29 +113,20 @@ class VRP(klever.core.components.Component):
             while True:
                 # Get new tasks
                 if receiving:
+                    # Functions below close the queue!
                     if len(pending) > 0:
-                        number = 0
-                        try:
-                            while True:
-                                data = self.mqs['pending tasks'].get_nowait()
-                                if not data:
-                                    receiving = False
-                                    self.logger.info("Expect no tasks to be generated")
-                                else:
-                                    pending[data[0][0]] = data
-                                number += 1
-                        except queue.Empty:
-                            self.logger.debug("Fetched {} tasks".format(number))
+                        data = []
+                        klever.core.utils.drain_queue(data, self.mqs['pending tasks'])
                     else:
-                        try:
-                            data = self.mqs['pending tasks'].get(block=True, timeout=generation_timeout)
-                            if not data:
-                                receiving = False
-                                self.logger.info("Expect no tasks to be generated")
-                            else:
-                                pending[data[0][0]] = data
-                        except queue.Empty:
-                            self.logger.debug("No tasks has come for last 30 seconds")
+                        data = klever.core.utils.get_waiting_first(self.mqs['pending tasks'], generation_timeout)
+
+                    self.logger.info(f'Received {len(data)} items with timeout {generation_timeout}s')
+                    for item in data:
+                        if not item:
+                            receiving = False
+                            self.logger.info("Expect no tasks to be generated")
+                        else:
+                            pending[item[0][0]] = item
 
                 # Plan for processing new tasks
                 if len(pending) > 0:
@@ -155,8 +146,6 @@ class VRP(klever.core.components.Component):
                                 raise NotImplementedError('Unknown task status {!r}'.format(item['status']))
 
                 if not receiving and len(pending) == 0:
-                    # Wait for all rest tasks, no tasks can come currently
-                    self.mqs['pending tasks'].close()
                     for _ in range(self.__workers):
                         self.mqs['processing tasks'].put(None)
                     self.mqs['processing tasks'].close()
@@ -180,12 +169,12 @@ class VRP(klever.core.components.Component):
                 break
 
             status, data, attempt, source_paths = element
-            pf = data[2]['id']
-            requirement = data[3]
+            pf, rule_class, envmodel, requirement, _ = data[1]
+            result_key = f'{pf}:{envmodel}:{requirement}'
             attrs = None
             if attempt:
-                new_id = "{}/{}/{}/RP".format(pf, requirement, attempt)
-                workdir = os.path.join(pf, requirement, str(attempt))
+                new_id = "{}/{}/{}/{}/RP".format(pf, envmodel, requirement, attempt)
+                workdir = os.path.join(pf, envmodel, requirement, str(attempt))
                 attrs = [{
                     "name": "Rescheduling attempt",
                     "value": str(attempt),
@@ -195,7 +184,7 @@ class VRP(klever.core.components.Component):
             else:
                 new_id = "{}/{}/RP".format(pf, requirement)
                 workdir = os.path.join(pf, requirement)
-            self.vals['task solution triples']['{}:{}'.format(pf, requirement)] = [None, None, None]
+            self.vals['task solution triples'][result_key] = [None, None, None]
             try:
                 rp = RP(self.conf, self.logger, self.id, self.callbacks, self.mqs, self.vals, new_id,
                         workdir, attrs, separate_from_parent=True, qos_resource_limits=qos_resource_limits,
@@ -205,9 +194,9 @@ class VRP(klever.core.components.Component):
             except klever.core.components.ComponentError:
                 self.logger.debug("RP that processed {!r}, {!r} failed".format(pf, requirement))
             finally:
-                solution = list(self.vals['task solution triples'].get('{}:{}'.format(pf, requirement)))
-                del self.vals['task solution triples']['{}:{}'.format(pf, requirement)]
-                self.mqs['processed tasks'].put((pf, requirement, solution))
+                solution = tuple(self.vals['task solution triples'].get(result_key))
+                del self.vals['task solution triples'][result_key]
+                self.mqs['processed'].put(('Task', tuple(data[1]), solution))
 
         self.logger.info("VRP fetcher finishes its work")
 
@@ -229,10 +218,14 @@ class RP(klever.core.components.Component):
         # Read this in a callback
         self.element = element
         self.verdict = None
+        self.envmodel = None
         self.req_spec_id = None
         self.program_fragment_id = None
         self.task_error = None
         self.source_paths = source_paths
+        self.results_key = None
+        self.additional_srcs = None
+        self.verification_task_files = None
         self.__exception = None
         self.__qos_resource_limit = qos_resource_limits
         # Common initialization
@@ -253,10 +246,12 @@ class RP(klever.core.components.Component):
         self.logger.info("VRP instance is ready to work")
         element = self.element
         status, data = element
-        task_id, opts, program_fragment_desc, req_spec_id, verifier, additional_srcs, verification_task_files = data
-        self.program_fragment_id = program_fragment_desc['id']
+        task_id, task_desc, opts, program_fragment_desc, verifier, additional_srcs, verification_task_files = data
+        program_fragment_id, _, envmodel, req_spec_id, _ = task_desc
+        self.program_fragment_id = program_fragment_id
+        self.envmodel = envmodel
         self.req_spec_id = req_spec_id
-        self.results_key = '{}:{}'.format(self.program_fragment_id, self.req_spec_id)
+        self.results_key = f'{program_fragment_id}:{envmodel}:{req_spec_id}'
         self.additional_srcs = additional_srcs
         self.verification_task_files = verification_task_files
         self.logger.debug("Process results of task {}".format(task_id))
@@ -272,6 +267,12 @@ class RP(klever.core.components.Component):
                                              "name": "Program fragment",
                                              "value": self.program_fragment_id,
                                              "data": files_list_file,
+                                             "compare": True,
+                                             "associate": True
+                                         },
+                                         {
+                                             "name": "Environment model",
+                                             "value": envmodel,
                                              "compare": True,
                                              "associate": True
                                          },

@@ -709,12 +709,17 @@ def get_waiting_first(given_queue, timeout=None):
     :param timeout: Seconds.
     :return: a list with received items.
     """
+    collection = []
     try:
-        collection = [given_queue.get(True, timeout=timeout)]
+        item = given_queue.get(True, timeout=timeout)
+        collection.append(item)
     except queue.Empty:
         # Timeout!
-        return []
-    drain_queue(collection, given_queue)
+        return collection
+    if item:
+        drain_queue(collection, given_queue)
+    else:
+        given_queue.close()
     return collection
 
 
