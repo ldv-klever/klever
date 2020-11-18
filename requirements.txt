@@ -6,7 +6,7 @@ cchardet==2.1.6
 celery==4.4.2
 certifi==2020.4.5.1
 chardet==3.0.4
-clade==3.2.12
+clade==3.2.14
 consulate==0.6.0
 Django==3.0.6
 django-appconf==1.0.4
