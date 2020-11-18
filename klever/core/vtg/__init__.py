@@ -386,6 +386,7 @@ class VTG(klever.core.components.Component):
 
         self.logger.info('Go to the main working loop for abstract tasks')
         while prepare or waiting or solving:
+            # todo: Distinguish debugging messagess and info ones
             self.logger.debug(f'Going to process {len(prepare)} tasks and abstract tasks and wait for {waiting}')
 
             # Submit more work to do
@@ -401,6 +402,8 @@ class VTG(klever.core.components.Component):
                     atask = Abstract(*desc)
                     aworkdir, models = other
                     left_abstract_tasks -= 1
+
+                    # todo: Track workdirectories and the number of tasks always?
                     atask_work_dirs[atask] = aworkdir
                     atask_tasks[atask] = set()
 
@@ -424,18 +427,33 @@ class VTG(klever.core.components.Component):
                         self.logger.debug(f'Wait for abstract tasks {left_abstract_tasks}')
                 else:
                     task = Task(*desc)
+                    atask = Abstract(task.fragment, task.rule_class)
+
+                    # Check solution
                     if other:
                         self.logger.debug(f'Received solution for {task}')
                         status = 'finished'
                     else:
                         self.logger.debug(f'No solution received for {task}')
                         status = 'failed'
+
+                    # Send status to the progress watcher
                     self.mqs['finished and failed tasks'].put((self.conf['sub-job identifier'], status))
-                    # atask = Abstract(task.fragment, task.rule_class)
-                    # atask_tasks[atask].remove(task)
-                    # todo: Del directories
-                    # todo: Del abstract work directories
-                    # todo: Balancing
+
+                    # Delete task working directory
+                    if not self.conf['keep intermediate files']:
+                        klever.core.utils.reliable_rmtree(self.logger, task.workdir)
+
+                    # Delete abstract task working directory (with EMG dir)
+                    # todo: we may do this optionally
+                    atask_tasks[atask].remove(task)
+                    if not atask_tasks[atask]:
+                        if not self.conf['keep intermediate files']:
+                            klever.core.utils.reliable_rmtree(self.logger, atask_work_dirs[atask])
+                        del atask_tasks[atask]
+                        del atask_work_dirs[atask]
+
+                    # todo: Balancing and rescheduling
 
             time.sleep(0.3)
 
