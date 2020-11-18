@@ -700,16 +700,20 @@ def drain_queue(collection, given_queue):
         return True
 
 
-def get_waiting_first(given_queue, timeout=0):
+def get_waiting_first(given_queue, timeout=None):
     """
     First, wait for the first element, then drain the queue if there are waiting, then return the result. The idea is
     to wait until the queue is full to avoid useless loop iterations but still not wait for elements forever.
 
     :param given_queue: multiprocessing.Queue.
     :param timeout: Seconds.
-    :return: received items.
+    :return: a list with received items.
     """
-    collection = [given_queue.get(True, timeout=timeout)]
+    try:
+        collection = [given_queue.get(True, timeout=timeout)]
+    except queue.Empty:
+        # Timeout!
+        return []
     drain_queue(collection, given_queue)
     return collection
 
