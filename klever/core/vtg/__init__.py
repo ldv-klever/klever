@@ -393,8 +393,7 @@ class VTG(klever.core.components.Component):
             waiting += self.__gradual_submit(prepare, quota)
 
             # Get processed abstract tasks.
-            new_items = list()
-            klever.core.utils.drain_queue(new_items, self.mqs['prepared'])
+            new_items = klever.core.utils.get_waiting_first(self.mqs['prepared'])
             for kind, desc, *other in new_items:
                 waiting -= 1
                 self.logger.debug(f'Received item {kind}')
