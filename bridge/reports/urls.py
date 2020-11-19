@@ -15,13 +15,12 @@
 # limitations under the License.
 #
 
-from django.urls import path
+from django.urls import path, re_path
 from reports import views, api
 
 
 urlpatterns = [
     # ReportComponent page
-    path('component/<int:pk>/', views.ReportComponentView.as_view(), name='component'),
     path('log/<int:report_id>/', views.ComponentLogView.as_view(), name='log'),
     path('logcontent/<int:report_id>/', api.ComponentLogContentView.as_view(), name='log-content'),
     path('attrdata/<int:pk>/', views.AttrDataFileView.as_view(), name='attr-data'),
@@ -33,13 +32,7 @@ urlpatterns = [
     path('component/<int:report_id>/unsafes/', views.UnsafesListView.as_view(), name='unsafes'),
     path('component/<int:report_id>/unknowns/', views.UnknownsListView.as_view(), name='unknowns'),
 
-    # Pages of verdicts
-    path('safe/<int:pk>/', views.ReportSafeView.as_view(), name='safe'),
-    path('unknown/<int:pk>/', views.ReportUnknownView.as_view(), name='unknown'),
-    path('unsafe/<slug:trace_id>/', views.ReportUnsafeView.as_view(), name='unsafe'),
-    path('unsafe/<slug:trace_id>/fullscreen/', views.FullscreenReportUnsafe.as_view(), name='unsafe_fullscreen'),
     path('unsafe/<int:unsafe_id>/download/', views.DownloadErrorTraceView.as_view(), name='unsafe-download'),
-
     path('report/<int:report_id>/source/', api.GetSourceCodeView.as_view(), name='api-get-source'),
 
     # Reports comparison
@@ -59,5 +52,17 @@ urlpatterns = [
     path('api/upload-sources/', api.UploadOriginalSourcesView.as_view()),
     path('api/upload/<uuid:decision_uuid>/', api.UploadReportView.as_view()),
     path('api/clear-verification-files/<int:decision_id>/', api.ClearVerificationFilesView.as_view(),
-         name='clear-verification-files')
+         name='clear-verification-files'),
+
+    # Pages of reports by identifier
+    re_path(r'^(?P<decision>[0-9A-Fa-f-]+)/safe(?P<identifier>.*)$',
+            views.ReportSafeView.as_view(), name='safe'),
+    re_path(r'^(?P<decision>[0-9A-Fa-f-]+)/unsafe-fullscreen(?P<identifier>.*)$',
+            views.FullscreenReportUnsafe.as_view(), name='unsafe-fullscreen'),
+    re_path(r'^(?P<decision>[0-9A-Fa-f-]+)/unsafe(?P<identifier>.*)$',
+            views.ReportUnsafeView.as_view(), name='unsafe'),
+    re_path(r'^(?P<decision>[0-9A-Fa-f-]+)/unknown(?P<identifier>.*)$',
+            views.ReportUnknownView.as_view(), name='unknown'),
+    re_path(r'^(?P<decision>[0-9A-Fa-f-]+)/component(?P<identifier>.*)$',
+            views.ReportComponentView.as_view(), name='component'),
 ]

@@ -169,6 +169,10 @@ class MarkCreateViewBase(LoginRequiredMixin, LoggedCallMixin, DetailView):
     mark_type = None
     template_name = 'marks/MarkForm.html'
 
+    def get_queryset(self):
+        queryset = super(MarkCreateViewBase, self).get_queryset()
+        return queryset.select_related('decision')
+
     def get_context_data(self, **kwargs):
         access = MarkAccess(self.request.user, report=self.object)
         if not access.can_create:
@@ -176,7 +180,9 @@ class MarkCreateViewBase(LoginRequiredMixin, LoggedCallMixin, DetailView):
         context = super().get_context_data(**kwargs)
         context.update({
             'access': access,
-            'cancel_url': reverse('reports:{}'.format(self.mark_type), args=[self.object.id]),
+            'cancel_url': reverse('reports:{}'.format(self.mark_type), args=[
+                self.object.decision.identifier, self.object.identifier
+            ]),
             'save_url': reverse('marks:api-{mtype}-list'.format(mtype=self.mark_type)),
             'save_method': 'POST',
             'data': MarkVersionFormData(self.mark_type),

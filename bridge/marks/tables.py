@@ -727,10 +727,10 @@ class MarkAssociationsBase:
 
     @cached_property
     def type(self):
-        if isinstance(self.mark, MarkUnsafe):
-            return 'unsafe'
-        elif isinstance(self.mark, MarkSafe):
+        if isinstance(self.mark, MarkSafe):
             return 'safe'
+        elif isinstance(self.mark, MarkUnsafe):
+            return 'unsafe'
         elif isinstance(self.mark, MarkUnknown):
             return 'unknown'
         raise ValueError('Wrong argument provided')
@@ -767,12 +767,11 @@ class MarkAssociationsBase:
         ordering = 'id'
 
         view_columns = set(self.view['columns'])
-        select_only = ['id', 'report__decision_id', 'report__decision__title', 'report__decision__start_date']
-        if self.type == 'unsafe':
-            select_only.append('report__trace_id')
-        else:
-            select_only.append('report__id')
-        select_related = ['report__decision']
+        select_related = ['report', 'report__decision']
+        select_only = [
+            'id', 'report__identifier', 'report__decision_id', 'report__decision__identifier',
+            'report__decision__title', 'report__decision__start_date'
+        ]
 
         if 'similarity' in view_columns:
             select_only.append('result')
@@ -831,10 +830,8 @@ class MarkAssociationsBase:
                 if col == 'report':
                     val = cnt
                     if report.decision_id in self.can_view_decisions:
-                        if self.type == 'unsafe':
-                            href = reverse('reports:unsafe', args=[str(report.trace_id)])
-                        else:
-                            href = reverse('reports:%s' % self.type, args=[report.id])
+                        # reports:safe, reports:unsafe, reports:unknown
+                        href = reverse('reports:%s' % self.type, args=[report.decision.identifier, report.identifier])
                 elif col == 'decision':
                     val = report.decision.name
                     if report.decision_id in self.can_view_decisions:
@@ -924,6 +921,16 @@ class AssChangesBase:
             columns.append({'value': col, 'title': MARK_TITLES.get(col, col)})
         return columns
 
+    @cached_property
+    def type(self):
+        if self.model == SafeMarkAssociationChanges:
+            return 'safe'
+        elif self.model == UnsafeMarkAssociationChanges:
+            return 'unsafe'
+        elif self.model == UnknownMarkAssociationChanges:
+            return 'unknown'
+        raise ValueError('Wrong argument provided')
+
     def get_verdict_html(self, verdict, text):
         raise NotImplementedError
 
@@ -979,10 +986,8 @@ class AssChangesBase:
     def get_queryset(self):
         qs_filters = Q(identifier=self._cache_id)
         annotations = {}
-        select_related = []
-        select_only = ['mark_id', 'report_id']
-        if self.model == UnsafeMarkAssociationChanges:
-            select_only.append('report__trace_id')
+        select_related = ['report', 'decision']
+        select_only = ['mark_id', 'report_id', 'report__identifier', 'decision__identifier']
         if 'change_kind' in self.view:
             qs_filters &= Q(kind__in=self.view['change_kind'])
         if 'verdict_old' in self.view:
@@ -994,7 +999,7 @@ class AssChangesBase:
                 'decision__title__{}'.format(self.view['decision_title'][0]): self.view['decision_title'][1]
             })
         if 'attr' in self.view:
-            select_related.extend(['report', 'report__cache'])
+            select_related.extend(['report__cache'])
             annotations['attr_value'] = RawSQL(
                 "\"{}\".\"attrs\"->>%s".format(self.report_cache_table),
                 (self.view['attr'][0],)
@@ -1027,9 +1032,7 @@ class AssChangesBase:
         queryset = self.model.objects
         if annotations:
             queryset = queryset.annotate(**annotations)
-        queryset = queryset.filter(qs_filters)
-        if select_related:
-            queryset = queryset.select_related(*select_related)
+        queryset = queryset.filter(qs_filters).select_related(*select_related)
         return queryset.only(*select_only)
 
     def __get_values(self):
@@ -1061,12 +1064,10 @@ class AssChangesBase:
                     val = attributes[col].get(cache_obj.report_id, '-')
                 elif col == 'report':
                     val = cnt
-                    if self.model == SafeMarkAssociationChanges:
-                        href = reverse('reports:safe', args=[cache_obj.report_id])
-                    elif self.model == UnsafeMarkAssociationChanges:
-                        href = reverse('reports:unsafe', args=[cache_obj.report.trace_id])
-                    else:
-                        href = reverse('reports:unknown', args=[cache_obj.report_id])
+                    # reports:safe, reports:unsafe, reports:unknown
+                    href = reverse('reports:%s' % self.type, args=[
+                        cache_obj.decision.identifier, cache_obj.report.identifier
+                    ])
                 elif col == 'sum_verdict':
                     html = self.get_sum_verdict(cache_obj)
                 elif col == 'sum_status':

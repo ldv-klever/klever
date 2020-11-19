@@ -395,11 +395,6 @@ class ReportUnsafeSerializer(UploadLeafBaseSerializer):
                 self.fail('wrong_format', detail='root error trace node type should be a "thread"')
         return archive
 
-    def validate(self, value):
-        value = super(ReportUnsafeSerializer, self).validate(value)
-        value['trace_id'] = uuid.uuid4()
-        return value
-
     class Meta:
         model = ReportUnsafe
         fields = ('parent', 'error_trace', 'attrs')

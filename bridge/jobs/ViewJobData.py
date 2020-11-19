@@ -406,12 +406,13 @@ class ViewJobData:
         self.user = user
         self.view = view
         self.decision = decision
-        self.report = ReportComponent.objects.filter(decision=decision, parent=None).only('id', 'component').first()
+        self.report = ReportComponent.objects.filter(decision=decision, parent=None)\
+            .only('id', 'identifier', 'component').first()
 
     @cached_property
     def core_link(self):
         if self.report and self.decision.weight == DECISION_WEIGHT[0][0]:
-            return reverse('reports:component', args=[self.report.id])
+            return reverse('reports:component', args=[self.decision.identifier, self.report.identifier])
         return None
 
     @cached_property

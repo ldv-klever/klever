@@ -136,14 +136,22 @@
             <div id="leaf_attributes" style="display: none">
                 <table class="ui celled compact purple table">
                     <tbody>
-                        {% for a_id, a_name, a_value, a_data in SelfAttrsData %}
+                        {% for attr in SelfAttrsData %}
                             <tr>
-                                <th class="collapsing">{{ a_name }}</th>
+                                <th class="collapsing">
+                                    {% if attr.compare %}
+                                        <i class="ui violet link columns icon note-popup" data-content="{% trans 'Used for reports comparison' %}"></i>
+                                    {% endif %}
+                                    {% if attr.associate %}
+                                        <i class="ui violet link bookmark outline icon note-popup" data-content="{% trans 'Used for marks associations by default' %}"></i>
+                                    {% endif %}
+                                    {{ attr.name }}
+                                </th>
                                 <td class="collapsing">
-                                    {% if a_data %}
-                                        <a class="file-content-activator" href="#" data-url="{% url 'reports:attr-data-content' a_id %}" data-download="{% url 'reports:attr-data' a_id %}">{{ a_value }}</a>
+                                    {% if attr.data %}
+                                        <a class="file-content-activator" href="#" data-url="{% url 'reports:attr-data-content' attr.id %}" data-download="{% url 'reports:attr-data' attr.id %}">{{ attr.value }}</a>
                                     {% else %}
-                                        <span>{{ a_value }}</span>
+                                        <span>{{ attr.value }}</span>
                                     {% endif %}
                                 </td>
                             </tr>
