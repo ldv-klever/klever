@@ -28,8 +28,6 @@ import multiprocessing
 import klever.core.components
 import klever.core.utils
 import klever.core.session
-# todo: remove
-import random
 
 from klever.core.vtg.scheduling import Governer
 
@@ -396,7 +394,7 @@ class VTG(klever.core.components.Component):
             waiting += self.__gradual_submit(prepare, quota)
 
             # Get processed abstract tasks.
-            new_items = klever.core.utils.get_waiting_first(self.mqs['processed'])
+            new_items = klever.core.utils.get_waiting_first(self.mqs['processed'], timeout=3)
             for kind, desc, *other in new_items:
                 waiting -= 1
                 self.logger.debug(f'Received item {kind}')
@@ -416,8 +414,7 @@ class VTG(klever.core.components.Component):
                                 new = Task(atask.fragment, atask.rule_class, env_model, rule, workdir)
                                 self.logger.debug(f'Create verification task {new}')
                                 atask_tasks[atask].add(new)
-                                # todo: Fix the call
-                                limitations = governer._qos_limit
+                                limitations = governer.resource_limitations(new)
                                 prepare.append((new, limitations, 0))
                                 total_tasks += 1
                     else:
@@ -427,6 +424,7 @@ class VTG(klever.core.components.Component):
                         # Submit the number of tasks
                         self.logger.info(f'Submit the total number of tasks: {total_tasks}')
                         self.mqs['total tasks'].put([self.conf['sub-job identifier'], total_tasks])
+                        governer.set_total_tasks(total_tasks)
                     else:
                         self.logger.debug(f'Wait for abstract tasks {left_abstract_tasks}')
                 else:
@@ -434,90 +432,49 @@ class VTG(klever.core.components.Component):
                     atask = Abstract(task.fragment, task.rule_class)
 
                     # Check solution
+                    accepted = True
                     if other:
+                        solution_status = other.pop() 
                         self.logger.debug(f'Received solution for {task}')
                         status = 'finished'
 
-                        accepted = random.choice((True, False))
+                        accepted = governer.add_solution(task, solution_status)
                         if not accepted:
-                            self.logger.info(f'Repeate solution for {task}')
-                            # todo: Fix the call
-                            limitations = governer._qos_limit
-                            prepare.append((task, limitations, 1))
-                            continue
+                            self.logger.info(f'Repeate solution for {task} later')
                     else:
                         self.logger.debug(f'No solution received for {task}')
+                        governer.add_solution(task)
                         status = 'failed'
 
-                    # Send status to the progress watcher
-                    self.mqs['finished and failed tasks'].put((self.conf['sub-job identifier'], status))
+                    if status == 'failed' or accepted:
+                        # Send status to the progress watcher
+                        self.mqs['finished and failed tasks'].put((self.conf['sub-job identifier'], status))
 
-                    # Delete task working directory
-                    if not self.conf['keep intermediate files']:
-                        klever.core.utils.reliable_rmtree(self.logger, task.workdir)
-
-                    # Delete abstract task working directory (with EMG dir)
-                    # todo: we may do this optionally
-                    atask_tasks[atask].remove(task)
-                    if not atask_tasks[atask]:
+                        # Delete task working directory
                         if not self.conf['keep intermediate files']:
-                            klever.core.utils.reliable_rmtree(self.logger, atask_work_dirs[atask])
-                        del atask_tasks[atask]
-                        del atask_work_dirs[atask]
+                            klever.core.utils.reliable_rmtree(self.logger, task.workdir)
 
-                    # todo: Balancing and rescheduling
+                        # Delete abstract task working directory (with EMG dir)
+                        # todo: we may do this optionally
+                        atask_tasks[atask].remove(task)
+                        if not atask_tasks[atask]:
+                            if not self.conf['keep intermediate files']:
+                                klever.core.utils.reliable_rmtree(self.logger, atask_work_dirs[atask])
+                            del atask_tasks[atask]
+                            del atask_work_dirs[atask]
 
-            time.sleep(0.3)
+                    # If there are tasks to schedule do this
+                    if governer.rescheduling:
+                        self.logger.info('We can not repeate solution of timeouts')
+                        for task in governer.limitation_tasks:
+                            attempt = governer.do_rescheduling(task)
+                            if attempt:
+                                limitations = governer.resource_limitations(task)
+                                prepare.insert(0, (task, limitations, attempt))
 
         # Close the queue
         self.mqs['prepare'].put(None)
         self.mqs['processed'].close()
-
-        # todo: delete program files descriptions
-        # todo Delete program fragments descriptions
-        # if not self.conf['keep intermediate files']:
-        #     for file in self.fragment_desc_files.values():
-        #         os.remove(os.path.join(self.conf['main working directory'], file))
-        #
-        #     # Process them
-        #     for solution in solutions:
-        #         program_fragment_id, req_spec_id, status_info = solution
-        #         self.logger.info("Verification task for program fragment {!r} and requirements specification {!r}"
-        #                          " is either finished or failed".format(program_fragment_id, req_spec_id))
-        #         req_spec_class = self.__resolve_req_spec_class(req_spec_id)
-        #         if req_spec_class:
-        #             final = balancer.add_solution(program_fragment_id, req_spec_class, req_spec_id, status_info)
-        #             if final:
-        #                 self.logger.debug('Confirm that task {!r}:{!r} is {!r}'.
-        #                                   format(program_fragment_id, req_spec_id, status_info[0]))
-        #                 self.mqs['finished and failed tasks'].put([self.conf['sub-job identifier'], 'finished'
-        #                                                           if status_info[0] == 'finished' else 'failed'])
-        #                 processing_status[program_fragment_id][req_spec_class][req_spec_id] = True
-        #             active_tasks -= 1
-        #
-        #
-        #             # Check that we should reschedule tasks
-        #             for req_spec_desc in (r for r in self.req_spec_classes[req_spec_class] if
-        #                                   r['identifier'] in processing_status[program_fragment_id][req_spec_class] and
-        #                                   not processing_status[program_fragment_id][req_spec_class][r['identifier']] and
-        #                                   balancer.is_there(program_fragment_id, req_spec_class, r['identifier'])):
-        #                 if active_tasks < max_tasks:
-        #                     attempt = balancer.do_rescheduling(program_fragment_id, req_spec_class,
-        #                                                        req_spec_desc['identifier'])
-        #                     if attempt:
-        #                         self.logger.info("Submit task {}:{} to solve it again".
-        #                                          format(program_fragment_id, req_spec_desc['id']))
-        #                         submit_task(pf_descriptions[program_fragment_id], req_spec_class, req_spec_desc,
-        #                                     rescheduling=attempt)
-        #                         active_tasks += 1
-        #                     elif not balancer.need_rescheduling(program_fragment_id, req_spec_class,
-        #                                                         req_spec_desc['identifier']):
-        #                         self.logger.info("Mark task {}:{} as solved".format(program_fragment_id,
-        #                                                                             req_spec_desc['identifier']))
-        #                         self.mqs['finished and failed tasks'].put([self.conf['sub-job identifier'], 'finished'])
-        #                         processing_status[program_fragment_id][req_spec_class][
-        #                             req_spec_desc['identifier']] = True
-        #
 
         self.logger.info("Stop generating verification tasks")
 
