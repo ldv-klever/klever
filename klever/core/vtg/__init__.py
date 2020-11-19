@@ -434,7 +434,7 @@ class VTG(klever.core.components.Component):
                     # Check solution
                     accepted = True
                     if other:
-                        solution_status = other.pop() 
+                        solution_status = other.pop()
                         self.logger.debug(f'Received solution for {task}')
                         status = 'finished'
 
