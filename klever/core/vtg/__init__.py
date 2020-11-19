@@ -29,7 +29,7 @@ import klever.core.components
 import klever.core.utils
 import klever.core.session
 
-from klever.core.vtg.scheduling import Balancer
+from klever.core.vtg.scheduling import Governer
 
 
 @klever.core.components.before_callback
@@ -325,7 +325,8 @@ class VTG(klever.core.components.Component):
             quota -= 1
             submitted += 1
             element = items_queue.pop()
-            self.mqs['prepare'].put((type(element).__name__, tuple(element)))
+            task, *rest = element
+            self.mqs['prepare'].put((type(task).__name__, tuple(task), *rest))
         if submitted > 0:
             self.logger.debug(f"Submitted {submitted} items")
         return submitted
@@ -363,8 +364,7 @@ class VTG(klever.core.components.Component):
     def __generate_all_abstract_verification_task_descs(self):
         self.logger.info('Generate all abstract verification task decriptions')
 
-        # todo Object to issue resource limitations
-        # balancer = Balancer(self.conf, self.logger)
+        governer = Governer(self.conf, self.logger, {})
         max_tasks = int(self.conf['max solving tasks per sub-job'])
         atask_work_dirs = dict()
         atask_tasks = dict()
@@ -377,7 +377,7 @@ class VTG(klever.core.components.Component):
         # Get abstract tasks from program fragment descriptions
         self.logger.info('Generate abstract tasks')
         for atask in self.__get_abstract_tasks():
-            prepare.append(atask)
+            prepare.append((atask,))
         self.logger.info(f'There are {len(prepare)} abstract tasks in total')
 
         # Get the number of abstract tasks
@@ -414,7 +414,9 @@ class VTG(klever.core.components.Component):
                                 new = Task(atask.fragment, atask.rule_class, env_model, rule, workdir)
                                 self.logger.debug(f'Create verification task {new}')
                                 atask_tasks[atask].add(new)
-                                prepare.append(new)
+                                # todo: Fix the call
+                                limitations = governer._qos_limit
+                                prepare.append((new, limitations, False))
                                 total_tasks += 1
                     else:
                         self.logger.warning(f'There is no tasks generated for {atask}')
@@ -535,7 +537,10 @@ class VTGWL(klever.core.components.Component):
         self.logger.info("Terminate VTGL worker")
 
     def factory(self, item):
-        kind, args = item
+        resource_limits = None
+        rescheduling_attempt = None
+
+        kind, args, *other = item
         if kind == Abstract.__name__:
             task = Abstract(*args)
             worker_class = EMGW
@@ -543,13 +548,17 @@ class VTGWL(klever.core.components.Component):
             workdir = os.path.join(task.fragment, task.rule_class)
         else:
             task = Task(*args)
+            # todo: Remove
+            self.logger.debug(str(other))
+            resource_limits, rescheduling_attempt = other
             worker_class = PLUGINS
             identifier = "{}/{}/{}/{}/PLUGINS".format(task.fragment, task.rule_class, task.envmodel, task.rule)
             workdir = os.path.join(task.workdir, task.rule)
         self.logger.info(f'Create task {task}')
         return worker_class(self.conf, self.logger, self.parent_id, self.callbacks, self.mqs, self.vals, identifier,
                             workdir, [], True, req_spec_classes=self.req_spec_classes,
-                            fragment_desc_files=self.fragment_desc_files, task=task)
+                            fragment_desc_files=self.fragment_desc_files, task=task, resource_limits=resource_limits,
+                            rescheduling_attempt=rescheduling_attempt)
 
     main = task_generating_loop
 
@@ -558,7 +567,7 @@ class VTGW(klever.core.components.Component):
 
     def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, id=None, work_dir=None, attrs=None,
                  separate_from_parent=False, include_child_resources=False, req_spec_classes=None,
-                 fragment_desc_files=None, task=None):
+                 fragment_desc_files=None, task=None, resource_limits=None, rescheduling_attempt=None):
         super(VTGW, self).__init__(conf, logger, parent_id, callbacks, mqs, vals, id, work_dir, attrs,
                                    separate_from_parent, include_child_resources)
         self.initial_abstract_task_desc_file = 'initial abstract task.json'
@@ -568,9 +577,11 @@ class VTGW(klever.core.components.Component):
         self.send_data = True
 
         # Get tuple and convert it back
+        self.task = task
+        self.resource_limits = resource_limits
         self.req_spec_classes = req_spec_classes
         self.fragment_desc_files = fragment_desc_files
-        self.task = task
+        self.rescheduling_attempt = rescheduling_attempt
 
         self.fragment_desc = self.__extract_fragment_desc(self.task.fragment)
         self.session = klever.core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
@@ -767,7 +778,10 @@ class PLUGINS(VTGW):
         for plugin_desc in plugins:
             # Here plugin will put modified abstract verification task description.
             out_abstract_task_desc_file = '{0} abstract task.json'.format(plugin_desc['name'].lower())
-            plugin_desc.get('options', {})['solution class'] = self.task.rule
+            plugin_desc.get('options', {}).update({
+                'solution class': self.task.rule,
+                'override resource limits': self.resource_limits
+            })
 
             try:
                 self._run_plugin(plugin_desc, cur_abstract_task_desc_file, out_abstract_task_desc_file)
@@ -877,4 +891,3 @@ class EMGW(VTGW):
                           f'file {self.initial_abstract_task_desc_file}')
         with open(self.initial_abstract_task_desc_file, 'w', encoding='utf-8') as fp:
             klever.core.utils.json_dump(initial_abstract_task_desc, fp, self.conf['keep intermediate files'])
-

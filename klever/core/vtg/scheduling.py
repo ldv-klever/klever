@@ -20,7 +20,7 @@ import time
 from klever.core.utils import read_max_resource_limitations, time_units_converter
 
 
-class Balancer:
+class Governer:
 
     def __init__(self, conf, logger, precessing):
         self.conf = conf
