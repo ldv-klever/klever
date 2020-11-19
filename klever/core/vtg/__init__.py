@@ -28,6 +28,8 @@ import multiprocessing
 import klever.core.components
 import klever.core.utils
 import klever.core.session
+# todo: remove
+import random
 
 from klever.core.vtg.scheduling import Governer
 
@@ -416,7 +418,7 @@ class VTG(klever.core.components.Component):
                                 atask_tasks[atask].add(new)
                                 # todo: Fix the call
                                 limitations = governer._qos_limit
-                                prepare.append((new, limitations, False))
+                                prepare.append((new, limitations, 0))
                                 total_tasks += 1
                     else:
                         self.logger.warning(f'There is no tasks generated for {atask}')
@@ -435,6 +437,14 @@ class VTG(klever.core.components.Component):
                     if other:
                         self.logger.debug(f'Received solution for {task}')
                         status = 'finished'
+
+                        accepted = random.choice((True, False))
+                        if not accepted:
+                            self.logger.info(f'Repeate solution for {task}')
+                            # todo: Fix the call
+                            limitations = governer._qos_limit
+                            prepare.append((task, limitations, 1))
+                            continue
                     else:
                         self.logger.debug(f'No solution received for {task}')
                         status = 'failed'
@@ -548,12 +558,16 @@ class VTGWL(klever.core.components.Component):
             workdir = os.path.join(task.fragment, task.rule_class)
         else:
             task = Task(*args)
-            # todo: Remove
-            self.logger.debug(str(other))
             resource_limits, rescheduling_attempt = other
-            worker_class = PLUGINS
-            identifier = "{}/{}/{}/{}/PLUGINS".format(task.fragment, task.rule_class, task.envmodel, task.rule)
-            workdir = os.path.join(task.workdir, task.rule)
+            if rescheduling_attempt:
+                worker_class = REPEAT
+                identifier = "{}/{}/{}/{}/{}/REPEAT".format(task.fragment, task.rule_class, task.envmodel, task.rule,
+                                                            rescheduling_attempt)
+                workdir = os.path.join(task.workdir, f'{task.rule}/{rescheduling_attempt}')
+            else:
+                worker_class = PLUGINS
+                identifier = "{}/{}/{}/{}/PLUGINS".format(task.fragment, task.rule_class, task.envmodel, task.rule)
+                workdir = os.path.join(task.workdir, task.rule)
         self.logger.info(f'Create task {task}')
         return worker_class(self.conf, self.logger, self.parent_id, self.callbacks, self.mqs, self.vals, identifier,
                             workdir, [], True, req_spec_classes=self.req_spec_classes,
@@ -652,15 +666,14 @@ class VTGW(klever.core.components.Component):
         p.start()
         p.join()
 
-    def _submit_task(self, plugin_desc, out_abstract_task_desc_file, rerun=False):
+    def _submit_task(self, plugin_desc, out_abstract_task_desc_file):
         plugin_work_dir = plugin_desc['name'].lower()
-        if not rerun:
-            self.logger.debug(f'Put final abstract verification task description to '
-                              f'file "{self.final_abstract_task_desc_file}"')
-            # Final abstract verification task description equals to abstract verification task description received
-            # from last plugin.
-            os.symlink(os.path.relpath(out_abstract_task_desc_file, os.path.curdir),
-                       self.final_abstract_task_desc_file)
+        self.logger.debug(f'Put final abstract verification task description to '
+                          f'file "{self.final_abstract_task_desc_file}"')
+        # Final abstract verification task description equals to abstract verification task description received
+        # from last plugin.
+        os.symlink(os.path.relpath(out_abstract_task_desc_file, os.path.curdir),
+                   self.final_abstract_task_desc_file)
 
         # VTG will consume this abstract verification task description file.
         if os.path.isfile(os.path.join(plugin_work_dir, 'task.json')) and \
@@ -674,7 +687,7 @@ class VTGW(klever.core.components.Component):
             self.mqs['pending tasks'].put([
                 [str(task_id), tuple(self.task), final_task_data["result processing"], self.fragment_desc,
                  final_task_data['verifier'], final_task_data['additional sources'],
-                 final_task_data['verification task files']], rerun])
+                 final_task_data['verification task files']], self.rescheduling_attempt])
 
             self.logger.info("Submitted successfully verification task {} for solution".
                              format(os.path.join(plugin_work_dir, 'task.json')))
@@ -727,109 +740,6 @@ class VTGW(klever.core.components.Component):
             desc = json.load(fp)
 
         return desc
-
-
-class PLUGINS(VTGW):
-
-    def _submit_attrs(self):
-        self.attrs.extend(
-            [
-                {
-                    "name": "Environment model",
-                    "value": self.task.envmodel,
-                    "compare": True
-                },
-                {
-                    "name": "Requirements specification",
-                    "value": self.task.rule,
-                    "compare": True
-                }
-            ]
-        )
-        super(PLUGINS, self)._submit_attrs()
-
-    def _get_prepared_data(self):
-        if os.path.isfile(os.path.join(self.work_dir, self.final_abstract_task_desc_file)):
-            self.logger.debug(f"Task {self.task} is submitted to the VRP")
-            return None
-        else:
-            self.logger.debug(f"Cannot find prepared verification task for {self.task}")
-            return type(self.task).__name__, tuple(self.task)
-
-    def _generate_abstact_verification_task_desc(self):
-        self.logger.info(f"Start generating tasks for {self.task}")
-
-        initial_abstract_task_desc_file = os.path.join(os.path.pardir, self.initial_abstract_task_desc_file)
-        # Initial abstract verification task looks like corresponding program fragment.
-        with open(initial_abstract_task_desc_file, 'r', encoding='utf-8') as fp:
-            initial_abstract_task_desc = json.load(fp)
-        initial_abstract_task_desc['id'] = '/'.join((self.task.fragment, self.task.rule_class, self.task.envmodel,
-                                                     self.task.rule))
-        self.logger.debug(f'Put initial abstract verification task description to'
-                          f' {self.initial_abstract_task_desc_file}')
-        with open(self.initial_abstract_task_desc_file, 'w', encoding='utf-8') as fp:
-            klever.core.utils.json_dump(initial_abstract_task_desc, fp, self.conf['keep intermediate files'])
-
-        # Invoke all plugins one by one.
-        cur_abstract_task_desc_file = self.initial_abstract_task_desc_file
-        out_abstract_task_desc_file = self.out_abstract_task_desc_file
-        plugins = self.req_spec_classes[self.task.rule_class][self.task.rule]['plugins'][1:]
-
-        for plugin_desc in plugins:
-            # Here plugin will put modified abstract verification task description.
-            out_abstract_task_desc_file = '{0} abstract task.json'.format(plugin_desc['name'].lower())
-            plugin_desc.get('options', {}).update({
-                'solution class': self.task.rule,
-                'override resource limits': self.resource_limits
-            })
-
-            try:
-                self._run_plugin(plugin_desc, cur_abstract_task_desc_file, out_abstract_task_desc_file)
-            except klever.core.components.ComponentError:
-                self.logger.warning('Plugin {} failed'.format(plugin_desc['name']))
-                break
-
-            cur_abstract_task_desc_file = out_abstract_task_desc_file
-        else:
-            self._submit_task(plugin_desc, out_abstract_task_desc_file)
-
-
-class RESCH(VTGW):
-
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, id=None, work_dir=None, attrs=None,
-                 separate_from_parent=False, include_child_resources=False, program_fragment_desc=None,
-                 req_spec_desc=None, req_spec_class=None, resource_limits=None, environment_model=None):
-        # todo: Implement
-        super(VTGW, self).__init__(conf, logger, parent_id, callbacks, mqs, vals, id, work_dir, attrs,
-                                   separate_from_parent, include_child_resources)
-        self.program_fragment_desc = program_fragment_desc
-        self.program_fragment_id = program_fragment_desc['id']
-        self.req_spec_class = req_spec_class
-        self.req_spec_desc = req_spec_desc
-        self.req_spec_id = req_spec_desc['identifier']
-        self.override_limits = resource_limits
-        self.environment_model = environment_model
-        self.session = klever.core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
-
-    def _generate_abstact_verification_task_desc(self, program_fragment_desc, req_spec_desc):
-        # todo: IMplement
-        self.logger.info("Start rescheduling {!r} and requirements specification {!r}".
-                         format(self.program_fragment_id, self.req_spec_id))
-
-        plugin_desc = req_spec_desc['plugins'][-1]
-        # Here plugin will put modified abstract verification task description.
-        out_abstract_task_desc_file = '{0} abstract task.json'.format(plugin_desc['name'].lower())
-        self.logger.info("Instead of running the {!r} plugin for requirements pecification {!r} obtain "
-                         "results for the original run".format(plugin_desc['name'], self.req_spec_id))
-        cur_abstract_task_desc_file = os.path.join(os.pardir, out_abstract_task_desc_file)
-        os.symlink(os.path.relpath(cur_abstract_task_desc_file, os.path.curdir),
-                   out_abstract_task_desc_file)
-
-        try:
-            self._run_plugin(plugin_desc, cur_abstract_task_desc_file, out_abstract_task_desc_file)
-        except klever.core.components.ComponentError:
-            self.plugin_fail_processing()
-        self._submit_task(self, plugin_desc, out_abstract_task_desc_file, rerun=True)
 
 
 class EMGW(VTGW):
@@ -891,3 +801,100 @@ class EMGW(VTGW):
                           f'file {self.initial_abstract_task_desc_file}')
         with open(self.initial_abstract_task_desc_file, 'w', encoding='utf-8') as fp:
             klever.core.utils.json_dump(initial_abstract_task_desc, fp, self.conf['keep intermediate files'])
+
+
+class PLUGINS(VTGW):
+
+    def _submit_attrs(self):
+        self.attrs.extend(
+            [
+                {
+                    "name": "Environment model",
+                    "value": self.task.envmodel,
+                    "compare": True
+                },
+                {
+                    "name": "Requirements specification",
+                    "value": self.task.rule,
+                    "compare": True
+                }
+            ]
+        )
+        super(PLUGINS, self)._submit_attrs()
+
+    def _get_prepared_data(self):
+        if os.path.isfile(os.path.join(self.work_dir, self.final_abstract_task_desc_file)):
+            self.logger.debug(f"Task {self.task} is submitted to the VRP")
+            return None
+        else:
+            self.logger.debug(f"Cannot find prepared verification task for {self.task}")
+            return type(self.task).__name__, tuple(self.task)
+
+    def _prepare_initial_task_desc(self):
+        initial_abstract_task_desc_file = os.path.join(os.path.pardir, self.initial_abstract_task_desc_file)
+        # Initial abstract verification task looks like corresponding program fragment.
+        with open(initial_abstract_task_desc_file, 'r', encoding='utf-8') as fp:
+            initial_abstract_task_desc = json.load(fp)
+        initial_abstract_task_desc['id'] = '/'.join((self.task.fragment, self.task.rule_class, self.task.envmodel,
+                                                     self.task.rule))
+        self.logger.debug(f'Put initial abstract verification task description to'
+                          f' {self.initial_abstract_task_desc_file}')
+        with open(self.initial_abstract_task_desc_file, 'w', encoding='utf-8') as fp:
+            klever.core.utils.json_dump(initial_abstract_task_desc, fp, self.conf['keep intermediate files'])
+
+    def _get_plugins(self):
+        return self.req_spec_classes[self.task.rule_class][self.task.rule]['plugins'][1:]
+
+    def _generate_abstact_verification_task_desc(self):
+        cur_abstract_task_desc_file = self.initial_abstract_task_desc_file
+        out_abstract_task_desc_file = self.out_abstract_task_desc_file
+        plugins = self._get_plugins()
+
+        # Prepare initial task desc
+        self.logger.info(f"Start generating tasks for {self.task}")
+        self._prepare_initial_task_desc()
+
+        # Invoke all plugins one by one.
+        for plugin_desc in plugins:
+            # Here plugin will put modified abstract verification task description.
+            out_abstract_task_desc_file = '{0} abstract task.json'.format(plugin_desc['name'].lower())
+            plugin_desc.get('options', {}).update({
+                'solution class': self.task.rule,
+                'override resource limits': self.resource_limits
+            })
+
+            try:
+                self._run_plugin(plugin_desc, cur_abstract_task_desc_file, out_abstract_task_desc_file)
+            except klever.core.components.ComponentError:
+                self.logger.warning('Plugin {} failed'.format(plugin_desc['name']))
+                break
+
+            cur_abstract_task_desc_file = out_abstract_task_desc_file
+        else:
+            self._submit_task(plugin_desc, out_abstract_task_desc_file)
+
+
+class REPEAT(PLUGINS):
+
+    def _submit_attrs(self):
+        self.attrs.append(
+            {
+                "name": "Rescheduling attempt",
+                "value": str(self.rescheduling_attempt),
+                "compare": False,
+                "associate": False
+            }
+        )
+        super(REPEAT, self)._submit_attrs()
+
+    def _get_plugins(self):
+        return self.req_spec_classes[self.task.rule_class][self.task.rule]['plugins'][-1:]
+
+    def _prepare_initial_task_desc(self):
+        initial_abstract_task_desc_file = os.path.join(os.path.pardir, self.final_abstract_task_desc_file)
+        plugin_desc = self.req_spec_classes[self.task.rule_class][self.task.rule]['plugins'][-1]
+
+        self.logger.info(f"Prepare repeating solution of {self.task}")
+        self.logger.info("Instead of running the {!r} plugin obtain results for the original run".
+                         format(plugin_desc['name']))
+        os.symlink(initial_abstract_task_desc_file, self.initial_abstract_task_desc_file)
