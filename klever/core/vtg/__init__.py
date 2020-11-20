@@ -362,18 +362,19 @@ class VTG(klever.core.components.Component):
                     yield task
 
     def __generate_all_abstract_verification_task_descs(self):
-        self.logger.info('Generate all abstract verification task decriptions')
-
-        governer = Governer(self.conf, self.logger, {})
-        max_tasks = int(self.conf['max solving tasks per sub-job'])
-        atask_work_dirs = dict()
-        atask_tasks = dict()
-
         # Statuses
         waiting = 0
         solving = 0
         prepare = list()
+        atask_work_dirs = dict()
+        atask_tasks = dict()
 
+        max_tasks = int(self.conf['max solving tasks per sub-job'])
+        keep_dirs = self.conf['keep intermediate files']
+
+        self.logger.info('Generate all abstract verification task decriptions')
+        governer = Governer(self.conf, self.logger, {})
+        
         # Get abstract tasks from program fragment descriptions
         self.logger.info('Generate abstract tasks')
         for atask in self.__get_abstract_tasks():
@@ -403,9 +404,9 @@ class VTG(klever.core.components.Component):
                     aworkdir, models = other
                     left_abstract_tasks -= 1
 
-                    # todo: Track workdirectories and the number of tasks always?
-                    atask_work_dirs[atask] = aworkdir
-                    atask_tasks[atask] = set()
+                    if not keep_dirs:
+                        atask_work_dirs[atask] = aworkdir
+                        atask_tasks[atask] = set()
 
                     # Generate a verification task per a new environment model and rule
                     if models:
@@ -413,7 +414,9 @@ class VTG(klever.core.components.Component):
                             for rule in self.req_spec_classes[atask.rule_class]:
                                 new = Task(atask.fragment, atask.rule_class, env_model, rule, workdir)
                                 self.logger.debug(f'Create verification task {new}')
-                                atask_tasks[atask].add(new)
+                                if not keep_dirs:
+                                    atask_tasks[atask].add(new)
+
                                 limitations = governer.resource_limitations(new)
                                 prepare.append((new, limitations, 0))
                                 total_tasks += 1
@@ -455,13 +458,12 @@ class VTG(klever.core.components.Component):
                             klever.core.utils.reliable_rmtree(self.logger, task.workdir)
 
                         # Delete abstract task working directory (with EMG dir)
-                        # todo: we may do this optionally
-                        atask_tasks[atask].remove(task)
-                        if not atask_tasks[atask]:
-                            if not self.conf['keep intermediate files']:
+                        if not keep_dirs:
+                            atask_tasks[atask].remove(task)
+                            if not atask_tasks[atask]:
                                 klever.core.utils.reliable_rmtree(self.logger, atask_work_dirs[atask])
-                            del atask_tasks[atask]
-                            del atask_work_dirs[atask]
+                                del atask_tasks[atask]
+                                del atask_work_dirs[atask]
 
                     # If there are tasks to schedule do this
                     if governer.rescheduling:

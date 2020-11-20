@@ -126,7 +126,7 @@ class Governer:
     def add_solution(self, task, status_info=None):
         """Save solution and return is this solution is final or not"""
         # Check that it is an error from scheduler
-        if self._walllimit:            
+        if self._walllimit:
             if status_info:
                 status, resources, limit_reason = status_info
                 self.logger.debug(f"Task {task} finished")
