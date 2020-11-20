@@ -466,12 +466,17 @@ class VTG(klever.core.components.Component):
 
                     # If there are tasks to schedule do this
                     if governer.rescheduling:
-                        self.logger.info('We can not repeate solution of timeouts')
+                        self.logger.info('We can repeate solution of timeouts now')
                         for _, task in governer.limitation_tasks:
-                            attempt = governer.do_rescheduling(task)
-                            if attempt:
-                                limitations = governer.resource_limitations(task)
-                                prepare.insert(0, (task, limitations, attempt))
+                            if not governer.is_running(task):
+                                attempt = governer.do_rescheduling(task)
+                                if attempt:
+                                    limitations = governer.resource_limitations(task)
+                                    prepare.insert(0, (task, limitations, attempt))
+                                else:
+                                    # Add a solution and delete the task
+                                    governer.add_solution(task)
+                                    self.mqs['finished and failed tasks'].put((self.conf['sub-job identifier'], 'finished'))
 
         # Close the queue
         self.mqs['prepare'].put(None)
