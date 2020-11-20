@@ -374,7 +374,7 @@ class VTG(klever.core.components.Component):
 
         self.logger.info('Generate all abstract verification task decriptions')
         governer = Governer(self.conf, self.logger, {})
-        
+
         # Get abstract tasks from program fragment descriptions
         self.logger.info('Generate abstract tasks')
         for atask in self.__get_abstract_tasks():
@@ -387,7 +387,6 @@ class VTG(klever.core.components.Component):
 
         self.logger.info('Go to the main working loop for abstract tasks')
         while prepare or waiting or solving:
-            # todo: Distinguish debugging messagess and info ones
             self.logger.debug(f'Going to process {len(prepare)} tasks and abstract tasks and wait for {waiting}')
 
             # Submit more work to do
@@ -438,14 +437,14 @@ class VTG(klever.core.components.Component):
                     accepted = True
                     if other:
                         solution_status = other.pop()
-                        self.logger.debug(f'Received solution for {task}')
+                        self.logger.info(f'Received solution for {task}')
                         status = 'finished'
 
                         accepted = governer.add_solution(task, solution_status)
                         if not accepted:
                             self.logger.info(f'Repeate solution for {task} later')
                     else:
-                        self.logger.debug(f'No solution received for {task}')
+                        self.logger.info(f'No solution received for {task}')
                         governer.add_solution(task)
                         status = 'failed'
 
@@ -527,7 +526,7 @@ class VTGWL(klever.core.components.Component):
                 worker_class = PLUGINS
                 identifier = "{}/{}/{}/{}/PLUGINS".format(task.fragment, task.rule_class, task.envmodel, task.rule)
                 workdir = os.path.join(task.workdir, task.rule)
-        self.logger.info(f'Create task {task}')
+        self.logger.info(f'Create worker for {task}')
         return worker_class(self.conf, self.logger, self.parent_id, self.callbacks, self.mqs, self.vals, identifier,
                             workdir, [], True, req_spec_classes=self.req_spec_classes,
                             fragment_desc_files=self.fragment_desc_files, task=task, resource_limits=resource_limits,
