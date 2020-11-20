@@ -126,29 +126,32 @@ class Governer:
     def add_solution(self, task, status_info=None):
         """Save solution and return is this solution is final or not"""
         # Check that it is an error from scheduler
-        if status_info:
-            status, resources, limit_reason = status_info
-            self.logger.debug(f"Task {task} finished")
-            self._solved += 1
+        if self._walllimit:            
+            if status_info:
+                status, resources, limit_reason = status_info
+                self.logger.debug(f"Task {task} finished")
+                self._solved += 1
 
-            if limit_reason in ('OUT OF MEMORY', 'TIMEOUT'):
-                self.logger.debug(f"Task {task} has been terminated due to limit")
-                element = self._is_there_or_init(task)
-                element['status'] = limit_reason
-                element['running'] = False
-                # We need to check can we solve it again later
-                return False
-            elif self.is_there(task):
-                # Ok ,we solved this timelimit or memory limit
-                del self._problematic[task]
-                del self._issued_limits[task]
+                if limit_reason in ('OUT OF MEMORY', 'TIMEOUT'):
+                    self.logger.debug(f"Task {task} has been terminated due to limit")
+                    element = self._is_there_or_init(task)
+                    element['status'] = limit_reason
+                    element['running'] = False
+                    # We need to check can we solve it again later
+                    return False
+                elif self.is_there(task):
+                    # Ok ,we solved this timelimit or memory limit
+                    del self._problematic[task]
+                    del self._issued_limits[task]
+                else:
+                    del self._issued_limits[task]
             else:
+                self.logger.debug(f"Task {task} failed")
+                if self.is_there(task):
+                    del self._problematic[task]
                 del self._issued_limits[task]
         else:
-            self.logger.debug(f"Task {task} failed")
-            if self.is_there(task):
-                del self._problematic[task]
-            del self._issued_limits[task]
+            self.logger.debug('Accept any solution received if rescheduling is not available already')
 
         return True
 

@@ -466,7 +466,7 @@ class VTG(klever.core.components.Component):
                     # If there are tasks to schedule do this
                     if governer.rescheduling:
                         self.logger.info('We can not repeate solution of timeouts')
-                        for task in governer.limitation_tasks:
+                        for _, task in governer.limitation_tasks:
                             attempt = governer.do_rescheduling(task)
                             if attempt:
                                 limitations = governer.resource_limitations(task)
