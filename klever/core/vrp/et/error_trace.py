@@ -272,7 +272,7 @@ class ErrorTrace:
     def add_node(self, node_id):
         if node_id in self._nodes:
             raise ValueError('There is already added node with an identifier {!r}'.format(node_id))
-        self._nodes[node_id] = {'in': list(), 'out': list()}
+        self._nodes[node_id] = {'id': node_id, 'in': list(), 'out': list()}
         return self._nodes[node_id]
 
     def add_edge(self, source, target):
