@@ -1,0 +1,8 @@
+{
+  "attrs": [],
+  "function": "Exception in thread \"main\" java.lang.AssertionError",
+  "is_modifiable": false,
+  "is_regexp": false,
+  "problem_pattern": "AssertionError",
+  "production": true
+}

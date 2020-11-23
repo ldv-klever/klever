@@ -276,7 +276,7 @@ After getting :ref:`klever_addons` and :ref:`klever_build_bases` the Klever Git 
     │   ├── cif-1517e57.tar.xz
     │   ├── consul
     │   ├── CPAchecker-1.6.1-svn ea117e2ecf-unix.tar.gz
-    │   ├── CPAchecker-1.8-svn 31140-unix.tar.xz
+    │   ├── CPAchecker-35003.tar.xz
     │   ├── toplevel.opt.tar.xz
     │   └── ...
     ├── build bases

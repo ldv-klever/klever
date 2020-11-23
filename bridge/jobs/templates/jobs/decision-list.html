@@ -27,7 +27,7 @@
                 <td>{% if decision.finish_date %}{% if user.data_format == 'hum' %}{{ decision.finish_date|naturaltime }}{% else %}{{ decision.finish_date }}{% endif %}{% else %}-{% endif %}</td>
                 <td>
                     {% if decision.error %}
-                        <div class="ui {{ decision.status_color }} label note-popup" data-html="{{ decision.error|safe }}">{{ decision.get_status_display }}</div>
+                        <div class="ui {{ decision.status_color }} label note-popup" data-html="{{ decision.error }}">{{ decision.get_status_display }}</div>
                     {% else %}
                         <div class="ui {{ decision.status_color }} label">{{ decision.get_status_display }}</div>
                     {% endif %}
