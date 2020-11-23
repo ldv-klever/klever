@@ -375,4 +375,4 @@ TODO: Translate from Russian.
 Code Coverage Format
 --------------------
 
-TODO: Translate from Russian. 
+TODO: Translate from Russian.
