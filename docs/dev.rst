@@ -365,14 +365,14 @@ available at the official `site <https://www.jetbrains.com/pycharm/documentation
 Extended Violation Witness Format
 ---------------------------------
 
-TODO
+TODO: Translate from Russian.
 
 Error Trace Format
 ------------------
 
-TODO
+TODO: Translate from Russian.
 
 Code Coverage Format
 --------------------
 
-TODO
+TODO: Translate from Russian.
