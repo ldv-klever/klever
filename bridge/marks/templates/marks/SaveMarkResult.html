@@ -19,6 +19,7 @@
 {% load i18n %}
 {% load static %}
 {% load compress %}
+{% load tableheader %}
 
 {% block title %}{% trans 'Total expert evaluation changes' %}{% endblock %}
 
@@ -42,15 +43,7 @@
     {% if TableData.values|length %}
         <div style="overflow-x: auto; max-height: 80vh; overflow-y: auto;">
             <table class="ui celled compact pink selectable table alternate-color">
-                <thead>
-                    {% for column_row in TableData.header %}
-                        <tr>
-                        {% for coldata in column_row %}
-                            <th colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.title }}</th>
-                        {% endfor %}
-                        </tr>
-                    {% endfor %}
-                </thead>
+                <thead>{% tableheader TableData.columns TableData.titles %}</thead>
                 <tbody>
                     {% for row_data in TableData.values %}
                         <tr>

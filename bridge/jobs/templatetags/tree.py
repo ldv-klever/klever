@@ -55,8 +55,9 @@ def tree(parser, token):
     try:
         tag_name, tree_items, parent_attr, ordering_attr, icon_class = token.split_contents()
     except ValueError:
-        raise template.TemplateSyntaxError('%r tag requires exactly three arguments: '
-                                           'dict of items, parent attribute and icon class' % token.contents.split()[0])
+        raise template.TemplateSyntaxError('%r tag requires exactly four arguments: '
+                                           'dict of items, parent attribute, '
+                                           'ordering attribute and icon class' % token.contents.split()[0])
     node_list = parser.parse('end' + tag_name)
     parser.delete_first_token()
     return TreeNode(

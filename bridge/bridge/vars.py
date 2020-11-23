@@ -15,7 +15,6 @@
 # limitations under the License.
 #
 
-from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _, pgettext_lazy as __
 
 ETV_FORMAT = 1
@@ -99,31 +98,25 @@ MARK_SOURCE = (
     ('2', _('Uploaded')),
 )
 
-MARK_STATUS = (
-    ('0', _('Unreported')),
-    ('1', _('Reported')),
-    ('2', _('Fixed')),
-    ('3', _('Rejected')),
+MARK_SAFE = (
+    ('0', _('Unknown')),
+    ('1', _('Incorrect proof')),
+    ('2', _('Missed target bug')),
 )
 
-STATUS_COLOR = {
-    '0': '#e81919',
-    '1': '#FF8533',
-    '2': '#FF8533',
-    '3': '#00c600',
-}
+SAFE_VERDICTS = (
+    ('0', _('Unknown')),
+    ('1', _('Incorrect proof')),
+    ('2', _('Missed target bug')),
+    ('3', _('Incompatible marks')),
+    ('4', _('Without marks')),
+)
 
 MARK_UNSAFE = (
     ('0', _('Unknown')),
     ('1', _('Bug')),
     ('2', _('Target bug')),
     ('3', _('False positive')),
-)
-
-MARK_SAFE = (
-    ('0', _('Unknown')),
-    ('1', _('Incorrect proof')),
-    ('2', _('Missed target bug')),
 )
 
 UNSAFE_VERDICTS = (
@@ -135,140 +128,20 @@ UNSAFE_VERDICTS = (
     ('5', _('Without marks')),
 )
 
-# TODO: clear usages
-SAFE_VERDICTS = (
-    ('0', _('Unknown')),
-    ('1', _('Incorrect proof')),
-    ('2', _('Missed target bug')),
-    ('3', _('Incompatible marks')),
-    ('4', _('Without marks')),
+MARK_STATUS = (
+    ('0', _('Unreported')),
+    ('1', _('Reported')),
+    ('2', _('Fixed')),
+    ('3', _('Rejected')),
 )
 
-UNSAFE_COLOR = {
-    '0': '#cb58ec',
-    '1': '#e81919',
-    '2': '#e81919',
-    '3': '#FF8533',
-    '4': '#D11919',  # Incompatible marks
-    '5': '#000000',  # Without marks
-}
-
-SAFE_COLOR = {
-    '0': '#cb58ec',
-    '1': '#FF8533',
-    '2': '#e81919',
-    '3': '#D11919',  # Incompatible marks
-    '4': '#000000',  # Without marks
-}
-
-
-class SafeVerdicts:
-    verdicts = (
-        ('0', _('Unknown')),
-        ('1', _('Incorrect proof')),
-        ('2', _('Missed target bug')),
-        ('3', _('Incompatible marks')),
-        ('4', _('Without marks')),
-    )
-    column_map = {
-        '0': 'safe:unknown',
-        '1': 'safe:incorrect',
-        '2': 'safe:missed_bug',
-        '3': 'safe:inconclusive',
-        '4': 'safe:unassociated'
-    }
-    unassociated = '4'
-    columns_data = (
-        ('safe', _('Safes'), ''),
-        ('safe:missed_bug', _('Missed target bugs'), '#C70646'),  # red
-        ('safe:incorrect', _('Incorrect proof'), '#D05A00'),  # orange
-        ('safe:unknown', _('Unknown'), '#930BBD'),  # purple
-        ('safe:inconclusive', _('Incompatible marks'), '#C70646'),  # red
-        ('safe:unassociated', _('Without marks'), ''),
-        ('safe:total', _('Total'), ''),
-    )
-
-    @cached_property
-    def _verdict_dict(self):
-        return dict(self.verdicts)
-
-    def translate(self, verdict):
-        return self._verdict_dict[verdict]
-
-    def column(self, verdict):
-        return self.column_map[verdict]
-
-    def columns(self, with_root=False):
-        columns = []
-        if with_root:
-            columns.append(self.columns_data[0][0])
-        for col_data in self.columns_data[1:]:
-            columns.append(col_data[0])
-        return columns
-
-    @property
-    def default(self):
-        return self.verdicts[4][0]
-
-
-class UnsafeVerdicts:
-    verdicts = (
-        ('0', _('Unknown')),
-        ('1', _('Bug')),
-        ('2', _('Target bug')),
-        ('3', _('False positive')),
-        ('4', _('Incompatible marks')),
-        ('5', _('Without marks')),
-    )
-    column_map = {
-        '0': 'unsafe:unknown',
-        '1': 'unsafe:bug',
-        '2': 'unsafe:target_bug',
-        '3': 'unsafe:false_positive',
-        '4': 'unsafe:inconclusive',
-        '5': 'unsafe:unassociated'
-    }
-    unassociated = '5'
-    columns_data = (
-        ('unsafe', _('Unsafes'), ''),
-        ('unsafe:unknown', _('Unknown'), '#930BBD'),  # purple
-        ('unsafe:bug', _('Bugs'), '#C70646'),  # red
-        ('unsafe:target_bug', _('Target bugs'), '#C70646'),  # red
-        ('unsafe:false_positive', _('False positives'), '#D05A00'),  # orange
-        ('unsafe:inconclusive', _('Incompatible marks'), '#C70646'),
-        ('unsafe:unassociated', _('Without marks'), ''),
-        ('unsafe:total', _('Total'), ''),
-    )
-
-    @cached_property
-    def _verdict_dict(self):
-        return dict(self.verdicts)
-
-    def translate(self, verdict):
-        return self._verdict_dict[verdict]
-
-    def column(self, verdict):
-        return self.column_map[verdict]
-
-    def color(self, verdict):
-        column = self.column(verdict)
-        for col, n, color in self.columns_data:
-            if col == column:
-                return color or None
-        return None
-
-    def columns(self, with_root=False):
-        columns = []
-        if with_root:
-            columns.append(self.columns_data[0][0])
-        for col_data in self.columns_data[1:]:
-            columns.append(col_data[0])
-        return columns
-
-    @property
-    def default(self):
-        return self.verdicts[4][0]
-
+UNSAFE_STATUS = (
+    ('0', _('Unreported')),
+    ('1', _('Reported')),
+    ('2', _('Fixed')),
+    ('3', _('Rejected')),
+    ('4', _('Incompatible marks'))
+)
 
 VIEW_TYPES = (
     ('0', 'component attributes'),  # Currently unused
@@ -344,9 +217,10 @@ COVERAGE_FILE = 'coverage.json'
 UNKNOWN_ERROR = 'Unknown error'
 
 ASSOCIATION_TYPE = (
-    ('0', _('Automatic')),
-    ('1', _('Confirmed')),
-    ('2', _('Unconfirmed'))
+    ('0', _('Dissimilar')),
+    ('1', _('Unconfirmed')),
+    ('2', _('Automatic')),
+    ('3', _('Confirmed'))
 )
 
 MPTT_FIELDS = ('level', 'lft', 'rght', 'tree_id')

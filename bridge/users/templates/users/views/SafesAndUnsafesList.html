@@ -85,7 +85,7 @@
         <input id="view_data_{{ view.type }}__hidden" value="checkboxes" type="hidden">
         <div class="ui checkbox">
             <input type="checkbox" id="view_{{ view.type }}__hidden__confirmed_marks"{% if 'confirmed_marks' in view.hidden %} checked{% endif %}>
-            <label for="view_{{ view.type }}__hidden__confirmed_marks">{% trans 'Hide confirmed reports number' %}</label>
+            <label for="view_{{ view.type }}__hidden__confirmed_marks">{% trans 'Hide detailed marks number info' %}</label>
         </div>
         <div class="ui divider"></div>
 
@@ -149,6 +149,11 @@
                 <div class="ui radio checkbox">
                     <input id="marks_number_confirmed_{{ view.type }}" name="view_{{ view.type }}__radio_marks_number_type" type="radio" value="confirmed" {% if 'marks_number' in view and view.marks_number.0 == 'confirmed' %} checked{% endif %}>
                     <label for="marks_number_confirmed_{{ view.type }}">{% trans 'Confirmed' %}</label>
+                </div>
+                <br>
+                <div class="ui radio checkbox">
+                    <input id="marks_number_automatic_{{ view.type }}" name="view_{{ view.type }}__radio_marks_number_type" type="radio" value="automatic" {% if 'marks_number' in view and view.marks_number.0 == 'automatic' %} checked{% endif %}>
+                    <label for="marks_number_automatic_{{ view.type }}">{% trans 'Automatic' %}</label>
                 </div>
                 <br>
                 <div class="ui radio checkbox">

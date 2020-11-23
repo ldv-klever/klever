@@ -77,16 +77,16 @@ class RemoveUnknownMark:
         self._mark.delete()
 
         # Find reports that have marks associations when all association are disabled. It can be in 2 cases:
-        # 1) All associations are unconfirmed
+        # 1) All associations are unconfirmed/dissimilar
         # 2) All confirmed associations were with deleted mark
-        # We need to update 2nd case, so auto-associations are counting again
+        # We need to update 2nd case, so automatic associations are counting again
         changed_ids = affected_reports - set(MarkUnknownReport.objects.filter(
             report_id__in=affected_reports, associated=True
         ).values_list('report_id', flat=True))
 
-        # Update associations
-        MarkUnknownReport.objects.filter(report_id__in=changed_ids)\
-            .exclude(type=ASSOCIATION_TYPE[2][0]).update(associated=True)
+        # Count automatic associations again
+        MarkUnknownReport.objects.filter(report_id__in=changed_ids, type=ASSOCIATION_TYPE[2][0]).update(associated=True)
+
         return affected_reports
 
 
@@ -180,10 +180,10 @@ class ConnectUnknownMark:
 
             new_association = MarkUnknownReport(
                 mark=self._mark, report_id=report.id, author=author,
-                type=ASSOCIATION_TYPE[0][0], problem=problem, associated=True
+                type=ASSOCIATION_TYPE[2][0], problem=problem, associated=True
             )
             if prime_id and report.id == prime_id:
-                new_association.type = ASSOCIATION_TYPE[1][0]
+                new_association.type = ASSOCIATION_TYPE[3][0]
             elif report.cache.marks_confirmed:
                 # Do not count automatic associations if report has confirmed ones
                 new_association.associated = False
@@ -192,7 +192,7 @@ class ConnectUnknownMark:
         MarkUnknownReport.objects.bulk_create(associations)
         if prime_id:
             MarkUnknownReport.objects.filter(
-                report_id=prime_id, associated=True, type=ASSOCIATION_TYPE[0][0]
+                report_id=prime_id, associated=True, type=ASSOCIATION_TYPE[2][0]
             ).update(associated=False)
         return new_links
 
@@ -254,22 +254,3 @@ class CheckUnknownFunction:
         else:
             end = len(self._desc)
         return self._desc[start:end]
-
-
-class UpdateAssociatedOnMarksDelete:
-    def __init__(self, affected_reports: set):
-        self._reports_ids = affected_reports
-        self.__update()
-
-    def __update(self):
-        # Find reports that has marks associations when all association are disabled. It can be in 2 cases:
-        # 1) All marks are unconfirmed
-        # 2) All confirmed associations were with deleted marks
-        # We need to update 2nd case, so auto-associations are counting again
-        has_associated = set(MarkUnknownReport.objects.filter(
-            report_id__in=self._reports_ids, associated=True,
-        ).values_list('report_id', flat=True))
-        without_associated = self._reports_ids - has_associated
-        if without_associated:
-            MarkUnknownReport.objects.filter(report_id__in=without_associated)\
-                .exclude(type=ASSOCIATION_TYPE[2][0]).update(associated=True)
