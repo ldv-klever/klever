@@ -850,9 +850,7 @@ class REPEAT(PLUGINS):
         self.attrs.append(
             {
                 "name": "Rescheduling attempt",
-                "value": str(self.rescheduling_attempt),
-                "compare": False,
-                "associate": False
+                "value": str(self.rescheduling_attempt)
             }
         )
         super(REPEAT, self)._submit_attrs()
