@@ -269,25 +269,26 @@ class RP(klever.core.components.Component):
             }]
         else:
             attrs = []
+        attrs.extend([
+             {
+                 "name": "Program fragment",
+                 "value": self.program_fragment_id,
+                 "data": files_list_file,
+                 "compare": True,
+                 "associate": True
+             },
+             {
+                 "name": "Requirements specification",
+                 "value": req_spec_id,
+                 "compare": True,
+                 "associate": True
+             }
+         ])
         klever.core.utils.report(self.logger,
                                  'patch',
                                  {
                                      'identifier': self.id,
-                                     'attrs': [
-                                         {
-                                             "name": "Program fragment",
-                                             "value": self.program_fragment_id,
-                                             "data": files_list_file,
-                                             "compare": True,
-                                             "associate": True
-                                         },
-                                         {
-                                             "name": "Requirements specification",
-                                             "value": req_spec_id,
-                                             "compare": True,
-                                             "associate": True
-                                         }
-                                     ]
+                                     'attrs': attrs
                                  },
                                  self.mqs['report files'],
                                  self.vals['report id'],
