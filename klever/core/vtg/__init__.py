@@ -518,19 +518,19 @@ class VTGWL(klever.core.components.Component):
         if kind == Abstract.__name__:
             task = Abstract(*args)
             worker_class = EMGW
-            identifier = "{}/{}/EMGW".format(task.fragment, task.rule_class)
+            identifier = "EMGW/{}/{}".format(task.fragment, task.rule_class)
             workdir = os.path.join(task.fragment, task.rule_class)
         else:
             task = Task(*args)
             resource_limits, rescheduling_attempt = other
             if rescheduling_attempt:
                 worker_class = REPEAT
-                identifier = "{}/{}/{}/{}/{}/REPEAT".format(task.fragment, task.rule_class, task.envmodel, task.rule,
+                identifier = "REPEAT/{}/{}/{}/{}/{}".format(task.fragment, task.rule_class, task.envmodel, task.rule,
                                                             rescheduling_attempt)
                 workdir = os.path.join(task.workdir, f'{task.rule}/{rescheduling_attempt}')
             else:
                 worker_class = PLUGINS
-                identifier = "{}/{}/{}/{}/PLUGINS".format(task.fragment, task.rule_class, task.envmodel, task.rule)
+                identifier = "PLUGINS/{}/{}/{}/{}".format(task.fragment, task.rule_class, task.envmodel, task.rule)
                 workdir = os.path.join(task.workdir, task.rule)
         self.logger.info(f'Create worker for {task}')
         return worker_class(self.conf, self.logger, self.parent_id, self.callbacks, self.mqs, self.vals, identifier,
