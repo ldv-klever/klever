@@ -330,10 +330,12 @@ class RP(klever.core.components.Component):
 
         return error_trace_file, attrs
 
-    def report_unsafe(self, error_trace_file, attrs):
+    def report_unsafe(self, error_trace_file, attrs, identifier=''):
         klever.core.utils.report(self.logger,
                                  'unsafe',
                                  {
+                                     # To distinguish several Unsafes specific identifiers should be used.
+                                     'identifier': "{}/verification/{}".format(self.id, identifier),
                                      'parent': "{}/verification".format(self.id),
                                      'attrs': attrs,
                                      'error_trace': klever.core.utils.ArchiveFiles(
@@ -376,6 +378,8 @@ class RP(klever.core.components.Component):
             klever.core.utils.report(self.logger,
                                      'safe',
                                      {
+                                         # There may be the only Safe, so, "/" uniquely distinguishes it.
+                                         'identifier': "{}/verification/".format(self.id),
                                          'parent': "{}/verification".format(self.id),
                                          'attrs': []
                                          # TODO: at the moment it is unclear what are verifier proofs.
@@ -393,10 +397,11 @@ class RP(klever.core.components.Component):
             # is not "unsafe".
             if "expect several witnesses" in opts and opts["expect several witnesses"] and len(witnesses) != 0:
                 self.verdict = 'unsafe'
+                identifier = 1
                 for witness in witnesses:
                     try:
                         error_trace_file, attrs = self.process_witness(witness)
-                        self.report_unsafe(error_trace_file, attrs)
+                        self.report_unsafe(error_trace_file, attrs, identifier)
                     except Exception as e:
                         self.logger.warning('Failed to process a witness:\n{}'.format(traceback.format_exc().rstrip()))
                         self.verdict = 'non-verifier unknown'
@@ -408,6 +413,9 @@ class RP(klever.core.components.Component):
                                 self.__exception = e
                         else:
                             self.__exception = e
+                    finally:
+                        identifier += 1
+
             if re.search('false', decision_results['status']) and \
                     ("expect several witnesses" not in opts or not opts["expect several witnesses"]):
                 self.verdict = 'unsafe'
@@ -448,6 +456,8 @@ class RP(klever.core.components.Component):
                 klever.core.utils.report(self.logger,
                                          'unknown',
                                          {
+                                             # There may be the only Unknown, so, "/" uniquely distinguishes it.
+                                             'identifier': "{}/verification/".format(self.id),
                                              'parent': "{}/verification".format(self.id),
                                              'attrs': [],
                                              'problem_description': klever.core.utils.ArchiveFiles(
