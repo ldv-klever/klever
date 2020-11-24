@@ -345,8 +345,8 @@ class ReportUnknownView(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, Deta
 
 class FullscreenReportUnsafe(LoginRequiredMixin, LoggedCallMixin, DetailView):
     template_name = 'reports/etv_fullscreen.html'
-    slug_url_kwarg = 'identfiier'
-    slug_field = 'identfiier'
+    slug_url_kwarg = 'identifier'
+    slug_field = 'identifier'
 
     def get_queryset(self):
         return ReportUnsafe.objects.filter(decision__identifier=self.kwargs['decision']).select_related('decision')
