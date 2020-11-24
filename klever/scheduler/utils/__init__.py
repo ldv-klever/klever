@@ -425,9 +425,9 @@ def process_task_results(logger):
                     match = re.search(r"^(\d+\.\d+)s$", value)
                     if match:
                         decision_results["resources"]["wall time"] = int(float(match.groups()[0]) * 1000)
-                elif name == "memUsage":
-                    decision_results["resources"]["memory size"] = int(value)
-                elif name == "exitcode":
+                elif name == "memory":
+                    decision_results["resources"]["memory size"] = int(value[:-1])
+                elif name == "returnvalue":
                     decision_results["exit code"] = int(value)
                 elif name == "status":
                     decision_results["status"] = str(value)

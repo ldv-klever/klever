@@ -480,7 +480,7 @@ class Native(runners.Speculative):
                         errors = f.readlines()
                     if self.conf["scheduler"].get("ignore BenchExec warnings"):
                         for msg in list(errors):
-                            match = re.search(r'WARNING - (.*)', msg)
+                            match = re.search(r'\w+ - (.*)', msg)
                             if match and (self.conf["scheduler"]["ignore BenchExec warnings"] is True or
                                   (isinstance(self.conf["scheduler"]["ignore BenchExec warnings"], list) and
                                    any(True for t in self.conf["scheduler"]["ignore BenchExec warnings"] if t in msg))):
