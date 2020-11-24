@@ -18,7 +18,6 @@
 import glob
 import json
 import os
-import queue
 import re
 import time
 import traceback
@@ -45,6 +44,9 @@ def __launch_sub_job_components(context):
 @klever.core.components.after_callback
 def __submit_common_attrs(context):
     context.mqs['VRP common attrs'].put(context.common_attrs)
+
+
+SINGLE_ENV_NAME = 'single'
 
 
 class VRP(klever.core.components.Component):
@@ -258,6 +260,15 @@ class RP(klever.core.components.Component):
 
         files_list_file = 'files list.txt'
         klever.core.utils.save_program_fragment_description(program_fragment_desc, files_list_file)
+        if envmodel == SINGLE_ENV_NAME:
+            attrs = [{
+                "name": "Environment model",
+                "value": envmodel,
+                "compare": True,
+                "associate": True
+            }]
+        else:
+            attrs = []
         klever.core.utils.report(self.logger,
                                  'patch',
                                  {
@@ -267,12 +278,6 @@ class RP(klever.core.components.Component):
                                              "name": "Program fragment",
                                              "value": self.program_fragment_id,
                                              "data": files_list_file,
-                                             "compare": True,
-                                             "associate": True
-                                         },
-                                         {
-                                             "name": "Environment model",
-                                             "value": envmodel,
                                              "compare": True,
                                              "associate": True
                                          },
