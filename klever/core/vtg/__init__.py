@@ -566,13 +566,10 @@ class VTGW(klever.core.components.Component):
 
     def tasks_generator_worker(self):
         self._submit_attrs()
-        try:
-            self._generate_abstact_verification_task_desc()
-            if not self.vals['task solving flag'].value:
-                with self.vals['task solving flag'].get_lock():
-                    self.vals['task solving flag'].value = 1
-        finally:
-            self.session.sign_out()
+        self._generate_abstact_verification_task_desc()
+        if not self.vals['task solving flag'].value:
+            with self.vals['task solving flag'].get_lock():
+                self.vals['task solving flag'].value = 1
 
     main = tasks_generator_worker
 

@@ -111,51 +111,49 @@ class VRP(klever.core.components.Component):
 
         receiving = True
         session = klever.core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
-        try:
-            while True:
-                # Get new tasks
-                if receiving:
-                    # Functions below close the queue!
-                    if len(pending) > 0:
-                        data = []
-                        klever.core.utils.drain_queue(data, self.mqs['pending tasks'])
-                    else:
-                        data = klever.core.utils.get_waiting_first(self.mqs['pending tasks'], generation_timeout)
-
-                    self.logger.info(f'Received {len(data)} items with timeout {generation_timeout}s')
-                    for item in data:
-                        if not item:
-                            receiving = False
-                            self.logger.info("Expect no tasks to be generated")
-                        else:
-                            pending[item[0][0]] = item
-
-                # Plan for processing new tasks
+        while True:
+            # Get new tasks
+            if receiving:
+                # Functions below close the queue!
                 if len(pending) > 0:
-                    tasks_statuses = session.get_tasks_statuses()
-                    for item in tasks_statuses:
-                        task = str(item['id'])
-                        if task in pending.keys():
-                            if item['status'] == 'FINISHED':
-                                submit_processing_task('FINISHED', task)
-                                del pending[task]
-                            elif item['status'] == 'ERROR':
-                                submit_processing_task('error', task)
-                                del pending[task]
-                            elif item['status'] in ('PENDING', 'PROCESSING'):
-                                pass
-                            else:
-                                raise NotImplementedError('Unknown task status {!r}'.format(item['status']))
+                    data = []
+                    klever.core.utils.drain_queue(data, self.mqs['pending tasks'])
+                else:
+                    data = klever.core.utils.get_waiting_first(self.mqs['pending tasks'], generation_timeout)
 
-                if not receiving and len(pending) == 0:
-                    for _ in range(self.__workers):
-                        self.mqs['processing tasks'].put(None)
-                    self.mqs['processing tasks'].close()
-                    break
+                self.logger.info(f'Received {len(data)} items with timeout {generation_timeout}s')
+                for item in data:
+                    if not item:
+                        receiving = False
+                        self.logger.info("Expect no tasks to be generated")
+                    else:
+                        pending[item[0][0]] = item
 
-                time.sleep(solution_timeout)
-        finally:
-            session.sign_out()
+            # Plan for processing new tasks
+            if len(pending) > 0:
+                tasks_statuses = session.get_tasks_statuses()
+                for item in tasks_statuses:
+                    task = str(item['id'])
+                    if task in pending.keys():
+                        if item['status'] == 'FINISHED':
+                            submit_processing_task('FINISHED', task)
+                            del pending[task]
+                        elif item['status'] == 'ERROR':
+                            submit_processing_task('error', task)
+                            del pending[task]
+                        elif item['status'] in ('PENDING', 'PROCESSING'):
+                            pass
+                        else:
+                            raise NotImplementedError('Unknown task status {!r}'.format(item['status']))
+
+            if not receiving and len(pending) == 0:
+                for _ in range(self.__workers):
+                    self.mqs['processing tasks'].put(None)
+                self.mqs['processing tasks'].close()
+                break
+
+            time.sleep(solution_timeout)
+
         self.logger.debug("Shutting down result processing gracefully")
 
     def __loop_worker(self):
@@ -300,21 +298,18 @@ class RP(klever.core.components.Component):
         data[0] = status
         self.vals['task solution triples'][self.results_key] = data
 
-        try:
-            if status == 'finished':
-                self.process_finished_task(task_id, opts, verifier)
-                # Raise exception just here sinse the method above has callbacks.
-                if self.__exception:
-                    self.logger.warning("Raising the saved exception")
-                    raise self.__exception
-            elif status == 'error':
-                self.process_failed_task(task_id)
-                # Raise exception just here sinse the method above has callbacks.
-                raise RuntimeError('Failed to decide verification task: {0}'.format(self.task_error))
-            else:
-                raise ValueError("Unknown task {!r} status {!r}".format(task_id, status))
-        finally:
-            self.session.sign_out()
+        if status == 'finished':
+            self.process_finished_task(task_id, opts, verifier)
+            # Raise exception just here sinse the method above has callbacks.
+            if self.__exception:
+                self.logger.warning("Raising the saved exception")
+                raise self.__exception
+        elif status == 'error':
+            self.process_failed_task(task_id)
+            # Raise exception just here sinse the method above has callbacks.
+            raise RuntimeError('Failed to decide verification task: {0}'.format(self.task_error))
+        else:
+            raise ValueError("Unknown task {!r} status {!r}".format(task_id, status))
 
     main = fetcher
 

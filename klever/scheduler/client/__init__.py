@@ -107,8 +107,6 @@ def run_benchexec(mode, file=None, configuration=None):
         logger.warning(traceback.format_exc().rstrip())
         exit_code = 1
     finally:
-        if srv:
-            srv.stop()
         if not isinstance(exit_code, int):
             exit_code = 1
         logger.info("Exiting with exit code {}".format(str(exit_code)))

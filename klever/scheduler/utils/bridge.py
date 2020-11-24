@@ -194,12 +194,3 @@ class Session:
             return response.json()
         else:
             return None
-
-    def sign_out(self):
-        """
-        Stop current session.
-
-        :return: Nothing
-        """
-        self.logger.info('Finish session at {}'.format(self.name))
-

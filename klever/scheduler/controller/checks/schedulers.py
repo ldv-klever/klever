@@ -30,8 +30,6 @@ def set_status(logger, st, conf):
     for scheduler, status in st.items():
         session.json_exchange("service/scheduler/{0}/".format(scheduler), data={'status': status}, method='PATCH')
 
-    session.sign_out()
-
 
 def main():
     expect_file = os.environ["CONTROLLER_NODE_CONFIG"]

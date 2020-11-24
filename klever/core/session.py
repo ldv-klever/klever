@@ -30,6 +30,7 @@ class BridgeError(IOError):
     pass
 
 
+# TODO: it would be better to name it BridgeRequests. This is the case for Scheduler and CLI.
 class Session:
     def __init__(self, logger, bridge, job_id):
         logger.info('Create session for user "{0}" at Klever Bridge "{1}"'.format(bridge['user'], bridge['name']))
@@ -48,6 +49,7 @@ class Session:
         # Sign in.
         self.__signin()
 
+    # TODO: It is not signing in anymore. It is getting token. This is the case for Scheduler and CLI.
     def __signin(self):
         self.session = requests.Session()
         resp = self.__request('service/get_token/', 'POST', data=self.__parameters)
@@ -119,9 +121,6 @@ class Session:
 
     def remove_task(self, task_id):
         self.__request('service/tasks/{}/'.format(task_id), method='DELETE')
-
-    def sign_out(self):
-        self.logger.info('Finish session')
 
     def upload_original_sources(self, src_id, src_archive):
         self.__upload_archives('reports/api/upload-sources/',

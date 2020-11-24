@@ -163,9 +163,6 @@ class Core(klever.core.components.CallbacksCaller):
                     # Do not override exit code of main program with the one of auxiliary process uploading reports.
                     if not self.exit_code:
                         self.exit_code = self.uploading_reports_process.exitcode
-
-                if self.session:
-                    self.session.sign_out()
             except Exception:
                 self.process_exception()
 
