@@ -20,6 +20,7 @@ import json
 import time
 import uuid
 import zipfile
+from collections import OrderedDict
 
 from django.core.files import File
 from django.db import transaction
@@ -117,6 +118,7 @@ class UploadBaseSerializer(serializers.ModelSerializer):
 
     def __init__(self, *args, **kwargs):
         self.decision = kwargs.pop('decision')
+        self.allow_attrs_redefine = kwargs.pop('allow_attrs_redefine', False)
         custom_fields = kwargs.pop('fields', None)
         super().__init__(*args, **kwargs)
         if custom_fields:
@@ -183,7 +185,7 @@ class UploadBaseSerializer(serializers.ModelSerializer):
             if old_attrs_set & new_attrs_set:
                 self.fail('redefine')
 
-        if parent:
+        if parent and not self.allow_attrs_redefine:
             ancestors_attrs = self.parent_attributes(parent, select_fields=['name'])
             ancestors_attrs_set = set(p_attr['name'] for p_attr in ancestors_attrs)
             if ancestors_attrs_set & new_attrs_set:
@@ -285,14 +287,32 @@ class ReportVerificationSerializer(UploadBaseSerializer):
 
 
 class UploadLeafBaseSerializer(UploadBaseSerializer):
+    def __init__(self, *args, **kwargs):
+        super(UploadLeafBaseSerializer, self).__init__(*args, allow_attrs_redefine=True, **kwargs)
+
     def get_cache_object(self, decision):
-        raise NotImplementedError('Wrong serialzier usage')
+        raise NotImplementedError('Wrong serializer usage')
+
+    def merge_attributes(self, parent, attrs):
+        merged_attrs = OrderedDict()
+        for attr in self.parent_attributes(parent):
+            merged_attrs[attr['name']] = attr
+
+        for attr in attrs:
+            if attr['name'] in merged_attrs:
+                if attr['value'] != merged_attrs[attr['name']]['value']:
+                    self.fail('redefine')
+                merged_attrs[attr['name']]['compare'] = attr['compare']
+                merged_attrs[attr['name']]['associate'] = attr['associate']
+            else:
+                merged_attrs[attr['name']] = attr
+        return list(merged_attrs.values())
 
     def validate(self, value):
         value = super().validate(value)
         # Random identifier
         value['identifier'] = '{0}/leaf/{1}'.format(value['parent'].identifier, uuid.uuid4())[-255:]
-        value['attrs'] = self.parent_attributes(value['parent']) + value['attrs']
+        value['attrs'] = self.merge_attributes(value['parent'], value['attrs'])
         return value
 
     def create(self, validated_data):
