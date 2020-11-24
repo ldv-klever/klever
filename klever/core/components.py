@@ -416,7 +416,7 @@ class Component(multiprocessing.Process, CallbacksCaller):
                         self.logger,
                         'unknown',
                         {
-                            'identifier': self.id + '/unknown',
+                            'identifier': self.id + '/',
                             'parent': self.id,
                             'problem_description': klever.core.utils.ArchiveFiles(['problem desc.txt'])
                         },

@@ -115,7 +115,7 @@ class Core(klever.core.components.CallbacksCaller):
                             self.logger,
                             'unknown',
                             {
-                                'identifier': self.ID + '/unknown',
+                                'identifier': self.ID + '/',
                                 'parent': self.ID,
                                 'problem_description': klever.core.utils.ArchiveFiles(['problem desc.txt'])
                             },
