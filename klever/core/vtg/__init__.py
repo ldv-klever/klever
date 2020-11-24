@@ -548,9 +548,7 @@ class VTGWL(klever.core.components.Component):
             workdir = os.path.join(program_fragment_id, req_spec_id, str(element[5]))
             attrs = [{
                 "name": "Rescheduling attempt",
-                "value": str(element[5]),
-                "compare": False,
-                "associate": False
+                "value": str(element[5])
             }]
         else:
             identifier = "{}/{}/VTGW".format(program_fragment_id, req_spec_id)
