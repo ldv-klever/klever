@@ -260,7 +260,7 @@ class RP(klever.core.components.Component):
 
         files_list_file = 'files list.txt'
         klever.core.utils.save_program_fragment_description(program_fragment_desc, files_list_file)
-        if envmodel == SINGLE_ENV_NAME:
+        if envmodel != SINGLE_ENV_NAME:
             attrs = [{
                 "name": "Environment model",
                 "value": envmodel,
