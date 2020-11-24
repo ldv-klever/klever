@@ -239,6 +239,7 @@ class RP(klever.core.components.Component):
             raise RuntimeError('Build base is not OK')
 
         self.search_dirs = klever.core.utils.get_search_dirs(self.conf['main working directory'], abs_paths=True)
+        self.verification_report_id = None
 
     def fetcher(self):
         self.logger.info("VRP instance is ready to work")
@@ -335,8 +336,8 @@ class RP(klever.core.components.Component):
                                  'unsafe',
                                  {
                                      # To distinguish several Unsafes specific identifiers should be used.
-                                     'identifier': "{}/verification/{}".format(self.id, identifier),
-                                     'parent': "{}/verification".format(self.id),
+                                     'identifier': self.verification_report_id + '/' + identifier,
+                                     'parent': self.verification_report_id,
                                      'attrs': attrs,
                                      'error_trace': klever.core.utils.ArchiveFiles(
                                          [error_trace_file],
@@ -379,8 +380,8 @@ class RP(klever.core.components.Component):
                                      'safe',
                                      {
                                          # There may be the only Safe, so, "/" uniquely distinguishes it.
-                                         'identifier': "{}/verification/".format(self.id),
-                                         'parent': "{}/verification".format(self.id),
+                                         'identifier': self.verification_report_id + '/',
+                                         'parent': self.verification_report_id,
                                          'attrs': []
                                          # TODO: at the moment it is unclear what are verifier proofs.
                                          # 'proof': None
@@ -457,8 +458,8 @@ class RP(klever.core.components.Component):
                                          'unknown',
                                          {
                                              # There may be the only Unknown, so, "/" uniquely distinguishes it.
-                                             'identifier': "{}/verification/".format(self.id),
-                                             'parent': "{}/verification".format(self.id),
+                                             'identifier': self.verification_report_id + '/',
+                                             'parent': self.verification_report_id,
                                              'attrs': [],
                                              'problem_description': klever.core.utils.ArchiveFiles(
                                                  [verification_problem_desc],
@@ -498,9 +499,10 @@ class RP(klever.core.components.Component):
 
         log_file = os.path.join(log_files_dir, log_files[0])
 
+        self.verification_report_id = "{}/{}".format(self.id, verifier)
         # Send an initial report
         report = {
-            'identifier': "{}/verification".format(self.id),
+            'identifier': self.verification_report_id,
             'parent': self.id,
             # TODO: replace with something meaningful, e.g. tool name + tool version + tool configuration.
             'attrs': [],
@@ -567,7 +569,7 @@ class RP(klever.core.components.Component):
             # Submit a closing report
             klever.core.utils.report(self.logger,
                                      'verification finish',
-                                     {'identifier': report['identifier']},
+                                     {'identifier': self.verification_report_id},
                                      self.mqs['report files'],
                                      self.vals['report id'],
                                      self.conf['main working directory'])
