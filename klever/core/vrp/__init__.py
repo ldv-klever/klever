@@ -460,7 +460,20 @@ class RP(klever.core.components.Component):
                                              # There may be the only Unknown, so, "/" uniquely distinguishes it.
                                              'identifier': self.verification_report_id + '/',
                                              'parent': self.verification_report_id,
-                                             'attrs': [],
+                                             'attrs': [
+                                                 {
+                                                     "name": "Program fragment",
+                                                     "value": self.program_fragment_id,
+                                                     "associate": False,
+                                                     "compare": True
+                                                 },
+                                                 {
+                                                     "name": "Requirements specification",
+                                                     "value": self.req_spec_id,
+                                                     "associate": False,
+                                                     "compare": True
+                                                 }
+                                             ],
                                              'problem_description': klever.core.utils.ArchiveFiles(
                                                  [verification_problem_desc],
                                                  {verification_problem_desc: 'problem desc.txt'}
