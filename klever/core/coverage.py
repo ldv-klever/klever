@@ -189,7 +189,7 @@ class JCR(klever.core.components.Component):
                     total_coverage_dirs = []
 
                     # This is ugly. But this should disappear after implementing TODO at klever.core.job.start_jobs.
-                    sub_job_dir = 'job' if sub_job_id == '-' else 'sub-job {0}'.format(sub_job_id)
+                    sub_job_dir = sub_job_id.lower()
 
                     for req_spec_id in counters[sub_job_id]:
                         self.__read_data(total_coverage_infos, sub_job_id, req_spec_id)

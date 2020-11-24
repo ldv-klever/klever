@@ -172,7 +172,7 @@ def start_jobs(core_obj, vals):
             job = Job(
                 core_obj.conf, core_obj.logger, core_obj.ID, core_obj.callbacks, core_obj.mqs,
                 vals,
-                id='-',
+                id='Job',
                 work_dir=os.path.join(os.path.curdir, 'job'),
                 separate_from_parent=True,
                 include_child_resources=False,
@@ -235,8 +235,8 @@ def __solve_sub_jobs(core_obj, vals, components_common_conf, subcomponents):
         job = SubJob(
             core_obj.conf, core_obj.logger, core_obj.ID, core_obj.callbacks, core_obj.mqs,
             vals,
-            id=str(number),
-            work_dir='sub-job {0}'.format(number),
+            id='Sub-job-{0}'.format(number),
+            work_dir='sub-job-{0}'.format(number),
             attrs=[{
                 'name': 'Sub-job identifier',
                 'value': str(number),
