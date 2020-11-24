@@ -310,8 +310,6 @@ class UploadLeafBaseSerializer(UploadBaseSerializer):
 
     def validate(self, value):
         value = super().validate(value)
-        # Random identifier
-        value['identifier'] = '{0}/leaf/{1}'.format(value['parent'].identifier, uuid.uuid4())[-255:]
         value['attrs'] = self.merge_attributes(value['parent'], value['attrs'])
         return value
 
@@ -340,7 +338,7 @@ class ReportUnknownSerializer(UploadLeafBaseSerializer):
 
     class Meta:
         model = ReportUnknown
-        fields = ('parent', 'attrs', 'problem_description')
+        fields = ('parent', 'identifier', 'attrs', 'problem_description')
 
 
 class ReportSafeSerializer(UploadLeafBaseSerializer):
@@ -354,7 +352,7 @@ class ReportSafeSerializer(UploadLeafBaseSerializer):
 
     class Meta:
         model = ReportSafe
-        fields = ('parent', 'attrs')
+        fields = ('parent', 'identifier', 'attrs')
 
 
 class ReportUnsafeSerializer(UploadLeafBaseSerializer):
@@ -407,7 +405,7 @@ class ReportUnsafeSerializer(UploadLeafBaseSerializer):
 
     class Meta:
         model = ReportUnsafe
-        fields = ('parent', 'error_trace', 'attrs')
+        fields = ('parent', 'identifier', 'error_trace', 'attrs')
 
 
 class UploadReports:
