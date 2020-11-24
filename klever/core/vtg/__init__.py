@@ -675,8 +675,7 @@ class VTGW(klever.core.components.Component):
                 },
                 {
                     "name": "Requirements specification class",
-                    "value": self.task.rule_class,
-                    "compare": True
+                    "value": self.task.rule_class
                 }
             ]
         )
