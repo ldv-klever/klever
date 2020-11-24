@@ -123,7 +123,7 @@ def start_jobs(core_obj, vals):
         queues_to_terminate = []
 
         pc = PW(core_obj.conf, core_obj.logger, core_obj.ID, core_obj.callbacks, core_obj.mqs, vals,
-                separate_from_parent=False, include_child_resources=True, session=core_obj.session,
+                separate_from_parent=False, include_child_resources=True,
                 total_subjobs=(len(common_components_conf['sub-jobs']) if 'sub-jobs' in common_components_conf else 0))
         pc.start()
         subcomponents.append(pc)

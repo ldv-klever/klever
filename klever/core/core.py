@@ -73,7 +73,7 @@ class Core(klever.core.components.CallbacksCaller):
             os.makedirs('child resources'.encode('utf-8'))
 
             self.uploading_reports_process = Reporter(self.conf, self.logger, self.ID, self.callbacks, self.mqs,
-                                                      {'report id': self.report_id}, session=self.session)
+                                                      {'report id': self.report_id})
             self.uploading_reports_process.start()
 
             self.get_comp_desc()
@@ -154,8 +154,7 @@ class Core(klever.core.components.CallbacksCaller):
                     # Do not try to upload Core finish report if uploading of other reports already failed.
                     if not self.uploading_reports_process.exitcode:
                         self.uploading_reports_process = Reporter(self.conf, self.logger, self.ID, self.callbacks,
-                                                                  self.mqs, {'report id': self.report_id},
-                                                                  session=self.session)
+                                                                  self.mqs, {'report id': self.report_id})
                         self.uploading_reports_process.start()
                         self.logger.info('Wait for uploading Core finish report')
                         self.uploading_reports_process.join()
@@ -278,12 +277,12 @@ class Core(klever.core.components.CallbacksCaller):
 class Reporter(klever.core.components.Component):
 
     def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, id=None, work_dir=None, attrs=None,
-                 separate_from_parent=False, include_child_resources=False, session=None):
+                 separate_from_parent=False, include_child_resources=False):
         super(Reporter, self).__init__(conf, logger, parent_id, callbacks, mqs, vals, id, work_dir, attrs,
                                        separate_from_parent, include_child_resources)
-        self.session = session
 
     def send_reports(self):
+        session = klever.core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
         issleep = True
         while True:
             # Report batches of reports each 3 seconds. This reduces the number of requests quite considerably.
@@ -324,7 +323,7 @@ class Reporter(klever.core.components.Component):
                         .format('\n'.join(['  {0}'.format(archive) for archive in report_file_archives]))
                         if report_file_archives else ''))
 
-                self.session.upload_reports_and_report_file_archives(reports_and_report_file_archives)
+                session.upload_reports_and_report_file_archives(reports_and_report_file_archives)
 
                 # Remove reports and report file archives if needed.
                 if not self.conf['keep intermediate files']:
