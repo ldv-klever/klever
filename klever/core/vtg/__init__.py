@@ -64,6 +64,7 @@ Task = collections.namedtuple('Task', 'fragment rule_class envmodel rule workdir
 # Global values to be set once and used by other components running in parallel with the VTG
 REQ_SPEC_CLASSES = None
 FRAGMENT_DESC_FIELS = None
+SINGLE_ENV_NAME = 'single'
 
 
 class VTG(klever.core.components.Component):
@@ -460,6 +461,7 @@ class VTG(klever.core.components.Component):
                         if not keep_dirs:
                             atask_tasks[atask].remove(task)
                             if not atask_tasks[atask]:
+                                self.logger.debug(f'Delete working directories related to {atask}')
                                 klever.core.utils.reliable_rmtree(self.logger, atask_work_dirs[atask])
                                 del atask_tasks[atask]
                                 del atask_work_dirs[atask]
@@ -708,9 +710,18 @@ class VTGW(klever.core.components.Component):
 class EMGW(VTGW):
 
     def _get_prepared_data(self):
+        pairs = []
+
+        def create_task(task, model):
+            task_workdir = os.path.join(self.work_dir, model)
+            os.makedirs(task_workdir, exist_ok=True)
+            task_file = os.path.join(task_workdir, self.initial_abstract_task_desc_file)
+            with open(task_file, 'w', encoding='utf-8') as fp:
+                klever.core.utils.json_dump(task, fp, self.conf['keep intermediate files'])
+            pairs.append([model, task_workdir])
+
         # Send tasks to the VTG
         out_file = os.path.join(self.work_dir, self.out_abstract_task_desc_file)
-        pairs = []
 
         # Now read the final tasks
         self.logger.info(f'Read file with generated descriptions {out_file}')
@@ -723,14 +734,14 @@ class EMGW(VTGW):
             tasks = []
 
         # Generate task descriptions for further tasks
-        for task in tasks:
-            env_model = task["environment model identifier"]
-            task_workdir = os.path.join(self.work_dir, env_model)
-            os.makedirs(task_workdir, exist_ok=True)
-            task_file = os.path.join(task_workdir, self.initial_abstract_task_desc_file)
-            with open(task_file, 'w', encoding='utf-8') as fp:
-                klever.core.utils.json_dump(task, fp, self.conf['keep intermediate files'])
-            pairs.append([env_model, task_workdir])
+        if len(tasks) == 1:
+            env_model = SINGLE_ENV_NAME
+            task_desc = tasks.pop()
+            create_task(task_desc, env_model)
+        else:
+            for task_desc in tasks:
+                env_model = task_desc["environment model identifier"]
+                create_task(task_desc, env_model)
 
         # Submit new tasks to the VTG
         return type(self.task).__name__, tuple(self.task), self.work_dir, pairs
@@ -769,19 +780,20 @@ class EMGW(VTGW):
 class PLUGINS(VTGW):
 
     def _submit_attrs(self):
-        self.attrs.extend(
-            [
+        if self.task.envmodel != SINGLE_ENV_NAME:
+            self.attrs.append(
                 {
                     "name": "Environment model",
                     "value": self.task.envmodel,
                     "compare": True
-                },
-                {
-                    "name": "Requirements specification",
-                    "value": self.task.rule,
-                    "compare": True
                 }
-            ]
+            )
+        self.attrs.append(
+            {
+                "name": "Requirements specification",
+                "value": self.task.rule,
+                "compare": True
+            }
         )
         super(PLUGINS, self)._submit_attrs()
 
