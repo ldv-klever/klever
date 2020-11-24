@@ -16,10 +16,13 @@
 #
 
 import json
+import os
 
+from django.conf import settings
 from django.http import HttpResponse
 from django.template import loader
 from django.urls import reverse
+from django.utils.timezone import now
 from django.utils.translation import ugettext as _
 
 from rest_framework import exceptions
@@ -116,6 +119,8 @@ class UploadReportView(LoggedCallMixin, APIView):
             try:
                 reports_uploader.validate_archives(json.loads(request.POST['archives']), request.FILES)
             except CheckArchiveError as e:
+                with open(os.path.join(settings.LOGS_DIR, 'ZIP.log'), mode='a+', encoding='utf-8') as fp:
+                    fp.write("{}: {}\n".format(now(), e))
                 return Response({'ZIP error': str(e)}, status=HTTP_403_FORBIDDEN)
         reports_uploader.upload_all(json.loads(request.POST['reports']))
         return Response({})

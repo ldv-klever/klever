@@ -80,7 +80,7 @@ class Run:
             self.cpu_model = None
 
         # Parse Benchmark XML
-        with open(os.path.join(work_dir, 'benchmark.xml'), encoding="utf8") as fp:
+        with open(os.path.join(work_dir, 'benchmark.xml'), encoding="utf-8") as fp:
             result = ET.parse(fp).getroot()
             # Expect single run definition
             if len(result.findall("rundefinition")) != 1:
@@ -105,7 +105,7 @@ class Run:
         for item in result.findall('tasks')[0].findall('include'):
             if item.text.endswith('.yml'):
                 file = os.path.join(work_dir, item.text)
-                with open(file, 'r', encoding="utf8") as stream:
+                with open(file, 'r', encoding="utf-8") as stream:
                     data = yaml.safe_load(stream)
                     input_files = data.get('input_files')
                     if input_files:
@@ -228,7 +228,7 @@ class VerifierCloud(runners.Runner):
         job_id = description['job id']
 
         self.logger.debug("Make directory for the task to solve {!r}".format(task_data_dir))
-        os.makedirs(task_data_dir.encode("utf8"), exist_ok=True)
+        os.makedirs(task_data_dir.encode("utf-8"), exist_ok=True)
 
         # This method can be called several times to adjust resource limitations but we should avoid extra downloads
         # from the server
@@ -248,7 +248,7 @@ class VerifierCloud(runners.Runner):
 
         # TODO: Add more exceptions handling to make code more reliable
         with open(os.path.join(os.path.join(self.work_dir, "tasks", identifier), "task.json"), "w",
-                  encoding="utf8") as fp:
+                  encoding="utf-8") as fp:
             json.dump(description, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
         # Prepare command to submit
@@ -339,13 +339,13 @@ class VerifierCloud(runners.Runner):
         # Unpack results
         task_solution_dir = os.path.join(task_work_dir, "solution")
         self.logger.debug("Make directory for the solution to extract {0}".format(task_solution_dir))
-        os.makedirs(task_solution_dir.encode("utf8"), exist_ok=True)
+        os.makedirs(task_solution_dir.encode("utf-8"), exist_ok=True)
         self.logger.debug("Extract results from {} to {}".format(solution_file, task_solution_dir))
         shutil.unpack_archive(solution_file, task_solution_dir)
         # Process results and convert RunExec output to result description
         # TODO: what will happen if there will be several input files?
         # Simulate BenchExec behaviour when one input file is provided.
-        os.makedirs(os.path.join(task_solution_dir, "output", "benchmark.logfiles").encode("utf8"), exist_ok=True)
+        os.makedirs(os.path.join(task_solution_dir, "output", "benchmark.logfiles").encode("utf-8"), exist_ok=True)
         shutil.move(os.path.join(task_solution_dir, 'output.log'),
                     os.path.join(task_solution_dir, "output", "benchmark.logfiles",
                                  "{}.log".format(os.path.basename(run.run.sourcefiles[0]))))
@@ -460,7 +460,7 @@ class VerifierCloud(runners.Runner):
         self.logger.debug("Import description from the file {}".format(desc_file))
         description["desc"] = ""
         if os.path.isfile(desc_file):
-            with open(desc_file, encoding="utf8") as di:
+            with open(desc_file, encoding="utf-8") as di:
                 for line in di:
                     key, value = line.strip().split("=")
                     if key == "tool":
@@ -476,7 +476,7 @@ class VerifierCloud(runners.Runner):
         termination_reason = None
         number = re.compile(r'(\d.*\d)')
         if os.path.isfile(general_file):
-            with open(general_file, encoding="utf8") as gi:
+            with open(general_file, encoding="utf-8") as gi:
                 for line in gi:
                     key, value = line.strip().split("=", maxsplit=1)
                     if key == "terminationreason":
@@ -544,7 +544,7 @@ class VerifierCloud(runners.Runner):
         self.logger.debug("Import host information from the file {}".format(host_file))
         lv_re = re.compile(r'Linux\s(\d.*)')
         if os.path.isfile(host_file):
-            with open(host_file, encoding="utf8") as hi:
+            with open(host_file, encoding="utf-8") as hi:
                 for line in hi:
                     key, value = line.strip().split("=", maxsplit=1)
                     if key == "name":
@@ -622,5 +622,5 @@ class VerifierCloud(runners.Runner):
             'value': str(description['return value']) if 'return value' in description else None
         })
 
-        with open(path, "w", encoding="utf8") as fp:
+        with open(path, "w", encoding="utf-8") as fp:
             fp.write(minidom.parseString(ET.tostring(result)).toprettyxml(indent="    "))

@@ -70,10 +70,10 @@ class Core(klever.core.components.CallbacksCaller):
 
             self.mqs['report files'] = multiprocessing.Manager().Queue()
 
-            os.makedirs('child resources'.encode('utf8'))
+            os.makedirs('child resources'.encode('utf-8'))
 
             self.uploading_reports_process = Reporter(self.conf, self.logger, self.ID, self.callbacks, self.mqs,
-                                                      {'report id': self.report_id}, session=self.session)
+                                                      {'report id': self.report_id})
             self.uploading_reports_process.start()
 
             self.get_comp_desc()
@@ -105,7 +105,7 @@ class Core(klever.core.components.CallbacksCaller):
 
             if self.mqs:
                 try:
-                    with open('problem desc.txt', 'a', encoding='utf8') as fp:
+                    with open('problem desc.txt', 'a', encoding='utf-8') as fp:
                         if fp.tell():
                             fp.write('\n')
                         traceback.print_exc(file=fp)
@@ -154,8 +154,7 @@ class Core(klever.core.components.CallbacksCaller):
                     # Do not try to upload Core finish report if uploading of other reports already failed.
                     if not self.uploading_reports_process.exitcode:
                         self.uploading_reports_process = Reporter(self.conf, self.logger, self.ID, self.callbacks,
-                                                                  self.mqs, {'report id': self.report_id},
-                                                                  session=self.session)
+                                                                  self.mqs, {'report id': self.report_id})
                         self.uploading_reports_process.start()
                         self.logger.info('Wait for uploading Core finish report')
                         self.uploading_reports_process.join()
@@ -163,9 +162,6 @@ class Core(klever.core.components.CallbacksCaller):
                     # Do not override exit code of main program with the one of auxiliary process uploading reports.
                     if not self.exit_code:
                         self.exit_code = self.uploading_reports_process.exitcode
-
-                if self.session:
-                    self.session.sign_out()
             except Exception:
                 self.process_exception()
 
@@ -196,7 +192,7 @@ class Core(klever.core.components.CallbacksCaller):
         conf_file = vars(parser.parse_args())['conf file']
 
         # Read configuration from file.
-        with open(conf_file, encoding='utf8') as fp:
+        with open(conf_file, encoding='utf-8') as fp:
             self.conf = json.load(fp)
 
     def prepare_work_dir(self):
@@ -221,13 +217,13 @@ class Core(klever.core.components.CallbacksCaller):
         # - occupy working directory.
         shutil.rmtree(self.conf['working directory'], True)
 
-        os.makedirs(self.conf['working directory'].encode('utf8'), exist_ok=True)
+        os.makedirs(self.conf['working directory'].encode('utf-8'), exist_ok=True)
 
         check_another_instance()
 
         # Occupy working directory until the end of operation.
         # Yes there may be race condition, but it won't be.
-        self.is_solving_file_fp = open(self.is_solving_file, 'w', encoding='utf8')
+        self.is_solving_file_fp = open(self.is_solving_file, 'w', encoding='utf-8')
 
         # Create directory where all reports and report files archives will be actually written to.
         os.mkdir(os.path.join(self.conf['working directory'], 'reports'))
@@ -264,7 +260,7 @@ class Core(klever.core.components.CallbacksCaller):
         entities[3]['memory size'] = '{0} GB'.format(int(entities[3]['memory size'] / 10 ** 9))
 
         self.comp = {
-            'identifier': hashlib.sha224(json.dumps(entities).encode('utf8')).hexdigest(),
+            'identifier': hashlib.sha224(json.dumps(entities).encode('utf-8')).hexdigest(),
             'display': entities[0]['node name'],
             'data': entities[1:]
         }
@@ -281,12 +277,12 @@ class Core(klever.core.components.CallbacksCaller):
 class Reporter(klever.core.components.Component):
 
     def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, id=None, work_dir=None, attrs=None,
-                 separate_from_parent=False, include_child_resources=False, session=None):
+                 separate_from_parent=False, include_child_resources=False):
         super(Reporter, self).__init__(conf, logger, parent_id, callbacks, mqs, vals, id, work_dir, attrs,
                                        separate_from_parent, include_child_resources)
-        self.session = session
 
     def send_reports(self):
+        session = klever.core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
         issleep = True
         while True:
             # Report batches of reports each 3 seconds. This reduces the number of requests quite considerably.
@@ -327,7 +323,7 @@ class Reporter(klever.core.components.Component):
                         .format('\n'.join(['  {0}'.format(archive) for archive in report_file_archives]))
                         if report_file_archives else ''))
 
-                self.session.upload_reports_and_report_file_archives(reports_and_report_file_archives)
+                session.upload_reports_and_report_file_archives(reports_and_report_file_archives)
 
                 # Remove reports and report file archives if needed.
                 if not self.conf['keep intermediate files']:

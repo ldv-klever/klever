@@ -107,7 +107,7 @@ def translate_intermediate_model(logger, conf, avt, source, collection):
             elif isinstance(item, str):
                 # Replace file contents
                 pth = find_file_or_dir(logger, conf['main working directory'], item)
-                with open(pth, 'r', encoding='utf8') as fp:
+                with open(pth, 'r', encoding='utf-8') as fp:
                     additional_code[file]['definitions'].extend(fp.readlines() + ["\n"])
             else:
                 raise ValueError("Expect either a list of string as a definition in intermediate model specification of"

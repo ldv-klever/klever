@@ -26,10 +26,6 @@ from klever.deploys.utils import execute_cmd, get_logger
 
 
 def install_deps(logger, deploy_conf, prev_deploy_info, non_interactive, update_pckgs):
-    if non_interactive:
-        # Do not require users input.
-        os.environ['DEBIAN_FRONTEND'] = 'noninteractive'
-
     # Get packages to be installed/updated.
     pckgs_to_install = []
     pckgs_to_update = []
@@ -45,6 +41,10 @@ def install_deps(logger, deploy_conf, prev_deploy_info, non_interactive, update_
     else:
         # All packages should be installed.
         pckgs_to_install = deploy_conf['Packages']
+
+    if non_interactive:
+        # Do not require users input.
+        os.environ['DEBIAN_FRONTEND'] = 'noninteractive'
 
     if pckgs_to_install or (pckgs_to_update and update_pckgs):
         logger.info('Update packages list')
@@ -88,6 +88,7 @@ def install_deps(logger, deploy_conf, prev_deploy_info, non_interactive, update_
         logger.info('Update packages:\n  {0}'.format('\n  '.join(pckgs_to_update)))
         for util in ('apt-get', 'dnf', 'zypper', 'yum'):
             if shutil.which(util):
+                args = []
                 if util in ('apt-get', 'dnf'):
                     args = [util, 'upgrade']
                 elif util in ('yum', 'zypper'):

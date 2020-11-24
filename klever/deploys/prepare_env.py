@@ -96,7 +96,7 @@ def prepare_env(logger, deploy_dir):
     execute_cmd(logger, 'psql', '-c', "CREATE USER klever WITH CREATEDB PASSWORD 'klever'", username='postgres')
 
     logger.info('Create PostgreSQL database')
-    execute_cmd(logger, 'createdb', '-T', 'template0', '-E', 'utf8', 'klever', username='postgres')
+    execute_cmd(logger, 'createdb', '-T', 'template0', '-E', 'utf-8', 'klever', username='postgres')
 
     logger.info('Start and enable RabbitMQ server service')
     execute_cmd(logger, 'systemctl', 'start', 'rabbitmq-server.service')
