@@ -84,11 +84,11 @@ def get_parents(report, include_self=False):
 
     parents_data = []
     reports_qs = ReportComponent.objects.filter(id__in=parents_ids).select_related('decision')\
-        .order_by('id').only('id', 'identifier', 'component', 'decision__identifier')
+        .order_by('id').only('id', 'identifier', 'component', 'decision_id', 'decision__identifier')
     for report in reports_qs:
         parents_data.append({
-            'component': report.component,
-            'url': reverse('report:component', args=[report.decision.identifier, report.identifier])
+            'id': report.id, 'component': report.component,
+            'url': reverse('reports:component', args=[report.decision.identifier, report.identifier])
         })
 
     # Get attributes for all parents
@@ -1064,7 +1064,7 @@ class ReportChildrenTable:
         if annotations:
             queryset = queryset.values('id').annotate(**annotations)
         return queryset.filter(**qs_filters).order_by(ordering).select_related('decision')\
-            .only('id', 'identifier', 'decision__identifier', 'component')
+            .only('id', 'identifier', 'decision_id', 'decision__identifier', 'component')
 
     def __component_data(self):
         report_ids = list(report.id for report in self.page)
@@ -1213,7 +1213,8 @@ class ReportStatus:
             self.name = _('Finished')
             self.color = '#4ce215'
         try:
-            unknown_obj = ReportUnknown.objects.select_related('decision').only('identifier', 'decision__identifier')\
+            unknown_obj = ReportUnknown.objects.select_related('decision')\
+                .only('identifier', 'decision_id', 'decision__identifier')\
                 .get(parent=report, component=report.component)
             self.href = reverse('reports:unknown', args=[unknown_obj.decision.identifier, unknown_obj.identifier])
             self.name = _('Failed')
