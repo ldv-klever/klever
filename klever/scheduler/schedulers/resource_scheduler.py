@@ -34,7 +34,7 @@ class ResourceManager:
     any specific actions to prepare, start or cancel jobs or tasks.
     """
 
-    def __init__(self, logger, max_jobs=1):
+    def __init__(self, logger, max_jobs=1, pool_size=2):
         """
         Initiaize the manager of resources.
 
@@ -46,6 +46,10 @@ class ResourceManager:
         self.__cached_system_status = None
         self.__jobs_config = {}
         self.__tasks_config = {}
+        self.__pool_size = pool_size
+
+        if max_jobs and pool_size:
+            assert max_jobs < pool_size
 
         self.__logger.info("Resource manager is live now with max running jobs limitation is {}".format(max_jobs))
 
@@ -228,6 +232,8 @@ class ResourceManager:
 
         jobs_to_run = []
         tasks_to_run = []
+        if self.__pool_size == len(self.__processing_tasks) + len(self.__processing_jobs):
+            return [], []
 
         # Prepare copy of current system status
         status = self.__create_system_status(delete_jobs=False, delete_tasks=False)
@@ -245,7 +251,12 @@ class ResourceManager:
         schedule_jobs(filtered_jobs)
 
         # Schedule all posible tasks
+        processing_tasks = self.__processing_tasks
         for task in reversed(pending_tasks):
+            if (self.__pool_size - (len(running_jobs) + len(jobs_to_run))
+                    - (len(processing_tasks) + len(tasks_to_run))) <= 0:
+                self.__logger.debug(f'We cannot run more tasks since the pool limit {self.__pool_size} is exceeded')
+                break
             node = self.__schedule_task(task, status=status)
             if node:
                 tasks_to_run.append([task, node])
