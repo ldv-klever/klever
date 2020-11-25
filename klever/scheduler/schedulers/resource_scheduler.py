@@ -14,11 +14,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import requests
-import consulate
+
 import json
 import copy
 import time
+import requests
+import consulate
+
 from klever.scheduler.utils import higher_priority, sort_priority
 from klever.scheduler.schedulers import SchedulerException
 
@@ -282,7 +284,15 @@ class ResourceManager:
             conf = conf['resource limits']
 
         self.__reserve_resources(self.__system_status, conf, node)
+        name = 'job' if job else 'task'
+        self.__logger.debug(f"Reserve resources to run a new {name}")
+        for reserved, value, available, unit in self.__iterate_over_resources():
+            if conf[value]:
+                self.__logger.debug(
+                    f"Node {node}: claim {conf[value]}{unit} of {available} {self.__system_status[node][available]}{unit}"
+                    f" and have totally reserved {self.__system_status[node][reserved]}{unit}")
         self.__system_status[node][tag].append(identifier)
+        self.__logger.debug(f"Now have running totally {len(self.__system_status[node][tag])} {name}s")
 
     def release_resources(self, identifier, node, job=False, keep_disk=0):
         """
@@ -309,11 +319,18 @@ class ResourceManager:
 
         # Minus resources
         self.__release_resources(self.__system_status, conf, node)
+        name = 'job' if job else 'task'
+        self.__logger.debug(f"Free resources after solution of a {name}")
+        for reserved, value, available, unit in self.__iterate_over_resources():
+            if conf[value]:
+                self.__logger.debug(
+                    f"Node {node}: freed {conf[value]}{unit} of {available} {self.__system_status[node][available]}{unit}"
+                    f" and have totally reserved now {self.__system_status[node][reserved]}{unit}")
 
         # Remove running task or job and delete config of task or job
         del collection[identifier]
         self.__system_status[node][tag].remove(identifier)
-
+        self.__logger.debug(f"Now have running totally {len(self.__system_status[node][tag])} {name}s")
         if keep_disk:
             diff = self.__system_status[node]["available disk memory"] - \
                    self.__system_status[node]["reserved disk memory"]
@@ -661,8 +678,7 @@ class ResourceManager:
         else:
             return False
 
-    @staticmethod
-    def __reserve_resources(system_status, amount, node=None):
+    def __reserve_resources(self, system_status, amount, node=None):
         """
         Reserve given amount of resources in given system status.
 
@@ -674,18 +690,14 @@ class ResourceManager:
             raise KeyError("There is no node {!r} in the system".format(node))
 
         # Minus resources
-        for st, vt, at in [["reserved CPU number", "number of CPU cores", "available CPU number"],
-                           ["reserved RAM memory", "memory size", "available RAM memory"],
-                           ["reserved disk memory", "disk memory size", "available disk memory"]]:
-            system_status[node][st] += amount[vt]
-            if system_status[node][st] > system_status[node][at]:
-                raise ValueError("{}, equal to {}, cannot be more than {} which is {}".
-                                 format(st.capitalize(), system_status[node][st], at, system_status[node][at]))
-
+        for reserved, value, available, unit in self.__iterate_over_resources():
+            system_status[node][reserved] += amount[value]
+            if system_status[node][reserved] > system_status[node][available]:
+                raise ValueError(f"{reserved.capitalize()}, equal to {system_status[node][reserved]}, cannot be more "
+                                 f"than {available} which is {system_status[node][available]}")
         return
 
-    @staticmethod
-    def __release_resources(system_status, amount, node):
+    def __release_resources(self, system_status, amount, node):
         """
         Release a reserved amount of resources in given system status.
 
@@ -697,15 +709,19 @@ class ResourceManager:
             raise KeyError("There is no node {!r} in the system".format(node))
 
         # Plus resources
-        for st, vt, at in [["reserved CPU number", "number of CPU cores", "available CPU number"],
-                           ["reserved RAM memory", "memory size", "available RAM memory"],
-                           ["reserved disk memory", "disk memory size", "available disk memory"]]:
-            system_status[node][st] -= amount[vt]
-            if system_status[node][st] < 0:
-                raise ValueError("{} cannot be negative {}".
-                                 format(st.capitalize(), system_status[node][st]))
+        for reserved, value, available, unit in self.__iterate_over_resources():
+            system_status[node][reserved] -= amount[value]
+            if system_status[node][reserved] < 0:
+                raise ValueError(f"{reserved.capitalize()} cannot be negative {system_status[node][reserved]}")
 
         return
+
+    @staticmethod
+    def __iterate_over_resources():
+        for st, vt, at, unit in [["reserved CPU number", "number of CPU cores", "available CPU number", " Cores"],
+                                 ["reserved RAM memory", "memory size", "available RAM memory", "B"],
+                                 ["reserved disk memory", "disk memory size", "available disk memory", "B"]]:
+            yield st, vt, at, unit
 
     @staticmethod
     def __free_resources(conf):
