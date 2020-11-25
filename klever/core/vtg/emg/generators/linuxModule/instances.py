@@ -80,7 +80,7 @@ def generate_instances(logger, conf, sa, interfaces, model, instance_maps):
 
     # Save processes
     data = json.dumps(model, cls=CollectionEncoder, sort_keys=True, indent=2)
-    with open(filename, mode='w', encoding='utf8') as fp:
+    with open(filename, mode='w', encoding='utf-8') as fp:
         fp.write(data)
 
     return instance_maps, data

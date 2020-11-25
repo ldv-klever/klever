@@ -81,7 +81,7 @@ class ScenarioModelgenerator(AbstractGenerator):
         # Dump to disk instance map
         instance_map_file = 'instance map.json'
         self.logger.info("Dump information on chosen instances to file '{}'".format(instance_map_file))
-        with open(instance_map_file, "w", encoding="utf8") as fd:
+        with open(instance_map_file, "w", encoding="utf-8") as fd:
             fd.writelines(ujson.dumps(instance_maps, ensure_ascii=False, sort_keys=True, indent=4,
                                       escape_forward_slashes=False))
 
@@ -96,7 +96,7 @@ class ScenarioModelgenerator(AbstractGenerator):
     def _merge_specifications(self, specifications_set, files):
         merged_specification = sortedcontainers.SortedDict()
         for file in files:
-            with open(file, 'r', encoding='utf8') as fp:
+            with open(file, 'r', encoding='utf-8') as fp:
                 new_content = ujson.load(fp)
 
             # This preprocessing helps if only a single function in specification is replaced

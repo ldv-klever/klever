@@ -34,7 +34,7 @@ def main():
     logging.info("Configuration file: {}".format(expect_file))
 
     # Read node configuration
-    with open(expect_file, encoding="utf8") as fh:
+    with open(expect_file, encoding="utf-8") as fh:
         node_conf = json.load(fh)
 
     # Check content

@@ -83,8 +83,13 @@ def get_parents(report, include_self=False):
     parents_ids = list(r.pk for r in report.get_ancestors(include_self=include_self).only('id'))
 
     parents_data = []
-    for report in ReportComponent.objects.filter(id__in=parents_ids).order_by('id').only('id', 'component'):
-        parents_data.append({'id': report.id, 'component': report.component})
+    reports_qs = ReportComponent.objects.filter(id__in=parents_ids).select_related('decision')\
+        .order_by('id').only('id', 'identifier', 'component', 'decision_id', 'decision__identifier')
+    for report in reports_qs:
+        parents_data.append({
+            'id': report.id, 'component': report.component,
+            'url': reverse('reports:component', args=[report.decision.identifier, report.identifier])
+        })
 
     # Get attributes for all parents
     attrs = {}
@@ -195,7 +200,9 @@ class SafesTable:
         self.paginator, self.page = self.__get_queryset(report)
 
         if not self.view['is_unsaved'] and self.paginator.count == 1:
-            self.redirect = reverse('reports:safe', args=[self.paginator.object_list.first().pk])
+            safe_obj = self.paginator.object_list.first()
+            self.redirect = reverse('reports:safe', args=[safe_obj.decision.identifier, safe_obj.identifier])
+
             # Do not collect reports' values if page will be redirected
             return
 
@@ -335,7 +342,8 @@ class SafesTable:
         queryset = ReportSafe.objects
         if annotations:
             queryset = queryset.annotate(**annotations)
-        queryset = queryset.filter(**qs_filters).exclude(cache=None).order_by(ordering).select_related('cache')
+        queryset = queryset.filter(**qs_filters).exclude(cache=None)\
+            .order_by(ordering).select_related('cache', 'decision')
         num_per_page = self.view['elements'][0] if self.view['elements'] else None
         return paginate_queryset(queryset, self._params.get('page', 1), num_per_page)
 
@@ -420,7 +428,7 @@ class SafesTable:
                     val = self._attributes[col].get(report.pk, '-')
                 elif col == 'number':
                     val = cnt
-                    href = reverse('reports:safe', args=[report.pk])
+                    href = reverse('reports:safe', args=[report.decision.identifier, report.identifier])
                 elif col == 'marks_number':
                     val = str(report.cache.marks_total)
                 elif col == self.confirmed_col:
@@ -467,7 +475,8 @@ class UnsafesTable:
         self.paginator, self.page = self.__get_queryset(report)
 
         if not self.view['is_unsaved'] and self.paginator.count == 1:
-            self.redirect = reverse('reports:unsafe', args=[self.paginator.object_list.first().trace_id])
+            unsafe_obj = self.paginator.object_list.first()
+            self.redirect = reverse('reports:unsafe', args=[unsafe_obj.decision.identifier, unsafe_obj.identifier])
             # Do not collect reports' values if page will be redirected
             return
 
@@ -606,7 +615,8 @@ class UnsafesTable:
         queryset = ReportUnsafe.objects
         if annotations:
             queryset = queryset.annotate(**annotations)
-        queryset = queryset.filter(**qs_filters).exclude(cache=None).order_by(ordering).select_related('cache')
+        queryset = queryset.filter(**qs_filters).exclude(cache=None).order_by(ordering)\
+            .select_related('cache', 'decision')
         num_per_page = self.view['elements'][0] if self.view['elements'] else None
         return paginate_queryset(queryset, self._params.get('page', 1), num_per_page)
 
@@ -692,7 +702,7 @@ class UnsafesTable:
                     val = self._attributes[col].get(report.pk, '-')
                 elif col == 'number':
                     val = cnt
-                    href = reverse('reports:unsafe', args=[report.trace_id])
+                    href = reverse('reports:unsafe', args=[report.decision.identifier, report.identifier])
                 elif col == 'marks_number':
                     val = str(report.cache.marks_total)
                 elif col == self.confirmed_col:
@@ -740,7 +750,8 @@ class UnknownsTable:
         self.paginator, self.page = self.__get_queryset(report)
 
         if not self.view['is_unsaved'] and self.paginator.count == 1:
-            self.redirect = reverse('reports:unknown', args=[self.paginator.object_list.first().pk])
+            unknown_obj = self.paginator.object_list.first()
+            self.redirect = reverse('reports:unknown', args=[unknown_obj.decision.identifier, unknown_obj.identifier])
             # Do not collect reports' values if page will be redirected
             return
 
@@ -877,7 +888,8 @@ class UnknownsTable:
         queryset = ReportUnknown.objects
         if annotations:
             queryset = queryset.annotate(**annotations)
-        queryset = queryset.filter(**qs_filters).exclude(cache=None).order_by(ordering).select_related('cache')
+        queryset = queryset.filter(**qs_filters).exclude(cache=None).order_by(ordering)\
+            .select_related('cache', 'decision')
         num_per_page = self.view['elements'][0] if self.view['elements'] else None
         return paginate_queryset(queryset, self._params.get('page', 1), num_per_page)
 
@@ -959,7 +971,7 @@ class UnknownsTable:
                     val = self._attributes[col].get(report.pk, '-')
                 elif col == 'number':
                     val = cnt
-                    href = reverse('reports:unknown', args=[report.pk])
+                    href = reverse('reports:unknown', args=[report.decision.identifier, report.identifier])
                 elif col == 'component':
                     val = report.component
                 elif col == 'marks_number':
@@ -1051,14 +1063,17 @@ class ReportChildrenTable:
         queryset = ReportComponent.objects
         if annotations:
             queryset = queryset.values('id').annotate(**annotations)
-        return queryset.filter(**qs_filters).order_by(ordering).only('id', 'component')
+        return queryset.filter(**qs_filters).order_by(ordering).select_related('decision')\
+            .only('id', 'identifier', 'decision_id', 'decision__identifier', 'component')
 
     def __component_data(self):
         report_ids = list(report.id for report in self.page)
 
         columns = ['component']
         reports_data = dict((report.id, {
-            'component': {'value': report.component, 'href': reverse('reports:component', args=[report.id])}
+            'component': {
+                'value': report.component,
+                'href': reverse('reports:component', args=[report.decision.identifier, report.identifier])}
         }) for report in self.page)
 
         for r_id, name, value in ReportAttr.objects.filter(report_id__in=report_ids).order_by('id') \
@@ -1198,9 +1213,10 @@ class ReportStatus:
             self.name = _('Finished')
             self.color = '#4ce215'
         try:
-            self.href = reverse('reports:unknown', args=[
-                ReportUnknown.objects.get(parent=report, component=report.component).id
-            ])
+            unknown_obj = ReportUnknown.objects.select_related('decision')\
+                .only('identifier', 'decision_id', 'decision__identifier')\
+                .get(parent=report, component=report.component)
+            self.href = reverse('reports:unknown', args=[unknown_obj.decision.identifier, unknown_obj.identifier])
             self.name = _('Failed')
             self.color = None
         except ReportUnknown.DoesNotExist:

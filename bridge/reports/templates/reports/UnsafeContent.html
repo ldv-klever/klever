@@ -21,9 +21,9 @@
         <div class="ui mini buttons">
             <a class="ui icon violet button" href="{% url 'reports:unsafe-download' report.pk %}"><i class="ui download icon"></i></a>
             {% if fullscreen %}
-                <a class="ui icon violet button" href="{% url 'reports:unsafe' report.trace_id %}"><i class="remove icon"></i></a>
+                <a class="ui icon violet button" href="{% url 'reports:unsafe' report.decision.identifier report.identifier %}"><i class="remove icon"></i></a>
             {% else %}
-                <a class="ui icon violet button" href="{% url 'reports:unsafe_fullscreen' report.trace_id %}"><i class="expand arrows alternate icon"></i></a>
+                <a class="ui icon violet button" href="{% url 'reports:unsafe-fullscreen' report.decision.identifier report.identifier %}"><i class="expand arrows alternate icon"></i></a>
             {% endif %}
         </div>
     </div>

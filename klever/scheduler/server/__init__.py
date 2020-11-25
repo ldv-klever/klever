@@ -217,12 +217,6 @@ class Server:
         data = {'scheduler': self.scheduler_type, 'tools': tools_list}
         self.session.json_exchange("service/update-tools/", data, looping=looping)
 
-    def stop(self):
-        """
-        Log out if necessary.
-        """
-        self.session.sign_out()
-
     def _tolerate_error(self):
         if isinstance(self.session.error, dict) and \
             (('detail' in self.session.error and self.session.error['detail'] == 'Not found.') or

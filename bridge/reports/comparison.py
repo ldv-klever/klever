@@ -381,7 +381,7 @@ class UnknownBlock(CompareBlock):
         super().__init__("f_{}".format(report.pk), block_class='unknown_{}'.format(report.component))
         self.type = 'unknown'
         self.title = _('Unknown')
-        self.href = reverse('reports:unknown', args=[report.pk])
+        self.href = reverse('reports:unknown', args=[report.decision.identifier, report.identifier])
         self.subtitle = {'text': report.component}
         self.attrs = self.get_attrs(report)
 
@@ -391,7 +391,7 @@ class UnsafeBlock(CompareBlock):
         super().__init__("u_{}".format(report.pk), block_class='unsafe')
         self.type = 'unsafe'
         self.title = _('Unsafe')
-        self.href = reverse('reports:unsafe', args=[report.trace_id])
+        self.href = reverse('reports:unsafe', args=[report.decision.identifier, report.identifier])
         self.subtitle = {
             'text': report.cache.get_verdict_display(),
             'color': unsafe_color(report.cache.verdict)
@@ -404,7 +404,7 @@ class SafeBlock(CompareBlock):
         super().__init__("s_{}".format(report.pk), block_class='safe')
         self.type = 'safe'
         self.title = _('Safe')
-        self.href = reverse('reports:safe', args=[report.pk])
+        self.href = reverse('reports:safe', args=[report.decision.identifier, report.identifier])
         self.subtitle = {
             'text': report.cache.get_verdict_display(),
             'color': safe_color(report.cache.verdict)
@@ -417,7 +417,7 @@ class ComponentBlock(CompareBlock):
         super().__init__("c_{}".format(report.pk), block_class=report.component)
         self.type = 'component'
         self.title = report.component
-        self.href = reverse('reports:component', args=[report.pk])
+        self.href = reverse('reports:component', args=[report.decision.identifier, report.identifier])
         self.attrs = self.get_attrs(report)
 
 
