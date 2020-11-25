@@ -149,7 +149,9 @@ class CoverageStatisticsBase:
                 'details_url': construct_url('reports:coverage', cov.report_id, coverage_id=cov.id)
             }
             if self.with_report_link:
-                cov_data['report'] = (cov.name, construct_url('reports:component', cov.report_id))
+                cov_data['report'] = (cov.name, construct_url(
+                    'reports:component', cov.report.decision.identifier, cov.report.identifier
+                ))
             coverages_list.append(cov_data)
         return coverages_list
 
@@ -176,7 +178,7 @@ class DecisionCoverageStatistics(CoverageStatisticsBase):
     def coverage_queryset(self):
         qs = CoverageArchive.objects.filter(report__decision_id=self._decision.id).exclude(identifier='')
         if self.with_report_link:
-            return qs.select_related('report')
+            return qs.select_related('report', 'report__decision')
         return qs
 
     def coverage_api(self, coverage_id):

@@ -95,7 +95,7 @@ class ScenarioModelgenerator(AbstractGenerator):
     def _merge_specifications(self, specifications_set, files):
         merged_specification = list()
         for file in files:
-            with open(file, 'r', encoding='utf8') as fp:
+            with open(file, 'r', encoding='utf-8') as fp:
                 new_content = json.load(fp)
 
             for spec_set in new_content:

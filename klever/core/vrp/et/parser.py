@@ -59,7 +59,7 @@ class ErrorTraceParser:
     def _parse_witness(self, witness):
         self._logger.info('Parse witness {!r}'.format(witness))
 
-        with open(witness, encoding='utf8') as fp:
+        with open(witness, encoding='utf-8') as fp:
             tree = ET.parse(fp)
 
         root = tree.getroot()

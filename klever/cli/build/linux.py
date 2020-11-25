@@ -136,7 +136,7 @@ class Linux(MakeProgram):
             tmp_dir = tempfile.mkdtemp()
             self.tmp_dirs.append(tmp_dir)
 
-            with open(os.path.join(tmp_dir, 'extra-headers.c'), 'w', encoding='utf8') as fp:
+            with open(os.path.join(tmp_dir, 'extra-headers.c'), 'w', encoding='utf-8') as fp:
                 for header in self.target_program_desc['extra headers']:
                     if header not in self.target_program_desc.get('exclude extra headers', []):
                         fp.write(f'#include <{header}>\n')
@@ -173,7 +173,7 @@ class Linux(MakeProgram):
             distutils.dir_util.copy_tree(ext_modules, work_src_tree)
         elif os.path.isfile(ext_modules):
             self.logger.debug('External loadable Linux kernel modules source code is provided in form of archive')
-            with tarfile.open(ext_modules, encoding='utf8') as TarFile:
+            with tarfile.open(ext_modules, encoding='utf-8') as TarFile:
                 TarFile.extractall(work_src_tree)
 
         self.logger.info('Make canonical working source tree of external loadable Linux kernel modules')

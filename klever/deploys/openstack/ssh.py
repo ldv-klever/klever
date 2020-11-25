@@ -96,7 +96,7 @@ class SSH:
         while not chan.exit_status_ready():
             stderr = ''
             while chan.recv_stderr_ready():
-                stderr += chan.recv_stderr(self.COMMAND_EXECUTION_STREAM_BUF_SIZE).decode(encoding='utf8')
+                stderr += chan.recv_stderr(self.COMMAND_EXECUTION_STREAM_BUF_SIZE).decode(encoding='utf-8')
             stderr = stderr.rstrip()
 
             if stderr:
@@ -104,7 +104,7 @@ class SSH:
 
             stdout = ''
             while chan.recv_ready():
-                stdout += chan.recv(self.COMMAND_EXECUTION_STREAM_BUF_SIZE).decode(encoding='utf8')
+                stdout += chan.recv(self.COMMAND_EXECUTION_STREAM_BUF_SIZE).decode(encoding='utf-8')
             stdout = stdout.rstrip()
 
             if stdout:

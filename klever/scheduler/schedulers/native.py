@@ -73,7 +73,7 @@ class Native(runners.Speculative):
         self._kv_url = self.conf["scheduler"]["controller address"]
 
         # Import job configuration prototype
-        with open(self.conf["scheduler"]["job client configuration"], encoding="utf8") as fh:
+        with open(self.conf["scheduler"]["job client configuration"], encoding="utf-8") as fh:
             self._job_conf_prototype = json.loads(fh.read())
         # Try to get configuration just to be sure that it exists
         self._get_task_configuration()
@@ -386,10 +386,10 @@ class Native(runners.Speculative):
                     len(client_conf["resource limits"]["CPU cores"])
 
             # Save Klever Core configuration to default configuration file
-            with open(os.path.join(work_dir, "core.json"), "w", encoding="utf8") as fh:
+            with open(os.path.join(work_dir, "core.json"), "w", encoding="utf-8") as fh:
                 json.dump(client_conf["Klever Core conf"], fh, ensure_ascii=False, sort_keys=True, indent=4)
 
-        with open(file_name, 'w', encoding="utf8") as fp:
+        with open(file_name, 'w', encoding="utf-8") as fp:
             json.dump(client_conf, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
     def _check_solution(self, identifier, future, mode='task'):
@@ -469,14 +469,14 @@ class Native(runners.Speculative):
 
                 logfile = "{}/client-log.log".format(work_dir)
                 if os.path.isfile(logfile):
-                    with open(logfile, mode='r', encoding="utf8") as f:
+                    with open(logfile, mode='r', encoding="utf-8") as f:
                         self.logger.debug("Scheduler client log: {}".format(f.read()))
                 else:
                     self.logger.warning("Cannot find Scheduler client file with logs: {!r}".format(logfile))
 
                 errors_file = "{}/client-critical.log".format(work_dir)
                 if os.path.isfile(errors_file):
-                    with open(errors_file, mode='r', encoding="utf8") as f:
+                    with open(errors_file, mode='r', encoding="utf-8") as f:
                         errors = f.readlines()
                     if self.conf["scheduler"].get("ignore BenchExec warnings"):
                         for msg in list(errors):
@@ -598,11 +598,11 @@ class Native(runners.Speculative):
         work_dir = os.path.join(self.work_dir, entities, identifier)
         self.logger.debug("Create working directory {}/{}".format(entities, identifier))
         if "keep working directory" in self.conf["scheduler"] and self.conf["scheduler"]["keep working directory"]:
-            os.makedirs(work_dir.encode("utf8"), exist_ok=True)
+            os.makedirs(work_dir.encode("utf-8"), exist_ok=True)
         else:
-            if os.path.isdir(work_dir.encode("utf8")):
+            if os.path.isdir(work_dir.encode("utf-8")):
                 shutil.rmtree(work_dir, ignore_errors=True)
-            os.makedirs(work_dir.encode("utf8"), exist_ok=False)
+            os.makedirs(work_dir.encode("utf-8"), exist_ok=False)
 
     def _get_task_configuration(self):
         """
@@ -611,7 +611,7 @@ class Native(runners.Speculative):
         :return: Dictionary with the updated configuration.
         """
         name = self.conf["scheduler"]["task client configuration"]
-        with open(name, encoding="utf8") as fh:
+        with open(name, encoding="utf-8") as fh:
             data = json.loads(fh.read())
 
         # Do checks

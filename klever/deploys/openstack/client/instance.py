@@ -205,7 +205,7 @@ class OSInstance:
             self.logger.info('Specified keypair "{}" is not found and will be created'
                              .format(self.args.os_keypair_name))
 
-            self.client.nova.keypairs.create(self.args.os_keypair_name, public_key=public_key.decode('utf8'))
+            self.client.nova.keypairs.create(self.args.os_keypair_name, public_key=public_key.decode('utf-8'))
 
     def create_image(self):
         self.logger.info(f'Create image "{self.name}"')

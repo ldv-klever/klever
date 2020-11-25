@@ -57,7 +57,7 @@ def execute_cmd(logger, *args, stdin=None, stderr=None, get_output=False, userna
         kwargs['preexec_fn'] = demote(pw_record.pw_uid, pw_record.pw_gid)
 
     if get_output:
-        return subprocess.check_output(args, **kwargs).decode('utf8')
+        return subprocess.check_output(args, **kwargs).decode('utf-8')
     else:
         subprocess.check_call(args, **kwargs)
 
