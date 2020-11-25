@@ -18,7 +18,6 @@
 import os
 import json
 import time
-import uuid
 import zipfile
 from collections import OrderedDict
 
