@@ -179,7 +179,6 @@ def solve_task(logger, conf, srv):
         # To keep the last warning exit without any exception
         if not isinstance(exit_code, int):
             exit_code = 1
-        srv.stop()
         os._exit(exit_code)
 
     # Move tasks collected in container mode to expected place
