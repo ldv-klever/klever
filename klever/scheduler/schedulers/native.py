@@ -477,16 +477,24 @@ class Native(runners.Speculative):
                 errors_file = "{}/client-critical.log".format(work_dir)
                 if os.path.isfile(errors_file):
                     with open(errors_file, mode='r', encoding="utf-8") as f:
-                        errors = f.readlines()
-                    if self.conf["scheduler"].get("ignore BenchExec warnings"):
-                        for msg in list(errors):
-                            match = re.search(r'\w+ - (.*)', msg)
-                            if match and (self.conf["scheduler"]["ignore BenchExec warnings"] is True or
-                                  (isinstance(self.conf["scheduler"]["ignore BenchExec warnings"], list) and
-                                   any(True for t in self.conf["scheduler"]["ignore BenchExec warnings"] if t in msg))):
-                                errors.remove(msg)
-                            elif re.search(r'benchexec(.*) outputted to STDERR', msg):
-                                errors.remove(msg)
+                        errors = [l.strip() for l in f.readlines()]
+
+                    new_errors = []
+                    for msg in list(errors):
+                        if not msg:
+                            continue
+
+                        match = re.search(r'WARNING - (.*)', msg)
+                        if not match:
+                            continue
+                        elif self.conf["scheduler"].get("ignore BenchExec warnings") is True or \
+                            (isinstance(self.conf["scheduler"].get("ignore BenchExec warnings"), list) and
+                             any(True for t in self.conf["scheduler"].get("ignore BenchExec warnings") if t in msg)):
+                            continue
+                        elif re.search(r'benchexec(.*) outputted to STDERR', msg):
+                            continue
+                        new_errors.append(msg)
+                    errors = new_errors
                 else:
                     errors = []
 
