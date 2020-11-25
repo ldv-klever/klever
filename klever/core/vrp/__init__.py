@@ -402,7 +402,7 @@ class RP(klever.core.components.Component):
                 for witness in witnesses:
                     try:
                         error_trace_file, attrs = self.process_witness(witness)
-                        self.report_unsafe(error_trace_file, attrs, identifier)
+                        self.report_unsafe(error_trace_file, attrs, str(identifier))
                     except Exception as e:
                         self.logger.warning('Failed to process a witness:\n{}'.format(traceback.format_exc().rstrip()))
                         self.verdict = 'non-verifier unknown'
