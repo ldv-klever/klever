@@ -88,6 +88,24 @@ class Native(runners.Speculative):
         else:
             self.logger.debug("Use provided in configuration prototype 'common' settings for jobs")
 
+        # Check node first time
+        self._manager = resource_scheduler.ResourceManager(
+            self.logger, max_jobs=self.conf["scheduler"].get("concurrent jobs", 1))
+
+        self.update_nodes(self.conf["scheduler"].get("wait controller initialization", False))
+        nodes = self._manager.active_nodes
+        if len(nodes) != 1:
+            raise ValueError(f'Expect strictly single active connected node but {len(nodes)} given')
+        else:
+            self._node_name = nodes[0]
+            data = self._manager.node_info(self._node_name)
+            self._cpu_cores = data["CPU number"]
+
+        # init process pull
+        if "processes" not in self.conf["scheduler"]:
+            raise KeyError("Provide configuration property 'scheduler''processes' to set "
+                           "available number of parallel processes")
+
         if "disable CPU cores account" in self.conf["scheduler"] and \
                 self.conf["scheduler"]["disable CPU cores account"]:
             max_processes = self.conf["scheduler"]["processes"]
@@ -101,36 +119,13 @@ class Native(runners.Speculative):
             if isinstance(max_processes, float):
                 max_processes = max(2, int(max_processes * self._cpu_cores))
         if max_processes < 2:
-            raise KeyError(
-                "The number of parallel processes should be greater than 2 ({} is given)".format(max_processes))
+            raise KeyError(f"The number of parallel processes should be greater than 2 ({max_processes} is given)")
 
-        # Check node first time
-        if "concurrent jobs" in self.conf["scheduler"]:
-            concurrent_jobs = self.conf["scheduler"]["concurrent jobs"]
-        else:
-            concurrent_jobs = 1
-        self._manager = resource_scheduler.ResourceManager(self.logger, concurrent_jobs, max_processes)
+        # Limit the total number of running jobs and tasks by the number of executors in the pool
+        self._manager.set_pool_limit(max_processes)
 
-        if "wait controller initialization" in self.conf["scheduler"]:
-            wc = self.conf["scheduler"]["wait controller initialization"]
-        else:
-            wc = False
-        self.update_nodes(wc)
-        nodes = self._manager.active_nodes
-        if len(nodes) != 1:
-            raise ValueError('Expect strictly single active connected node but {} given'.format(len(nodes)))
-        else:
-            self._node_name = nodes[0]
-            data = self._manager.node_info(self._node_name)
-            self._cpu_cores = data["CPU number"]
-
-        # init process pull
-        if "processes" not in self.conf["scheduler"]:
-            raise KeyError("Provide configuration property 'scheduler''processes' to set "
-                           "available number of parallel processes")
-
-        self.logger.info("Initialize pool with {} processes to run tasks and jobs".format(max_processes))
-        if "process pool" in self.conf["scheduler"] and self.conf["scheduler"]["process pool"]:
+        self.logger.info(f"Initialize pool with {max_processes} processes to run tasks and jobs")
+        if self.conf["scheduler"].get("process pool"):
             self._pool = concurrent.futures.ProcessPoolExecutor(max_processes)
         else:
             self._pool = concurrent.futures.ThreadPoolExecutor(max_processes)
