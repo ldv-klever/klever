@@ -227,12 +227,12 @@ class ErrorTraceParser:
                 elif data_key == 'declaration':
                     _edge['declaration'] = True
                 elif data_key == 'note':
-                    m = re.match(r'level="(\d+)" hide="(false|true)" value="([^"]+)"', data.text)
+                    m = re.match(r'level="(\d+)" hide="(false|true)" value="(.+)"$', data.text)
                     if m:
                         _edge['note'] = {
                             'level': int(m.group(1)),
                             'hide': False if m.group(2) == 'false' else True,
-                            'value': m.group(3)
+                            'value': m.group(3).replace('\\\"', '\"')
                         }
                     else:
                         self._logger.warning('Invalid format of note "{0}"'.format(data.text))
