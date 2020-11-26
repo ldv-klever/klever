@@ -382,7 +382,7 @@ def run(selflogger, args, conf, logger=None):
             with open('runexec stdout.log', 'r', encoding="utf-8") as fp:
                 for line in fp.readlines():
                     key, value = line.split('=')
-                    if key and value and key == 'exitcode':
+                    if key and value and key == 'returnvalue':
                         job_exit = int(value)
                         if job_exit > 255:
                             # Be cool as Unix is

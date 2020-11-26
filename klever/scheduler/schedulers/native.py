@@ -88,12 +88,28 @@ class Native(runners.Speculative):
         else:
             self.logger.debug("Use provided in configuration prototype 'common' settings for jobs")
 
+        if "disable CPU cores account" in self.conf["scheduler"] and \
+                self.conf["scheduler"]["disable CPU cores account"]:
+            max_processes = self.conf["scheduler"]["processes"]
+            if isinstance(max_processes, float):
+                data = utils.extract_cpu_cores_info()
+                # Evaluate as a number of virtual cores. Allow 2 processes at least that hits when there is the only
+                # CPU core.
+                max_processes = max(2, int(max_processes * sum((len(data[a]) for a in data))))
+        else:
+            max_processes = self.conf["scheduler"]["processes"]
+            if isinstance(max_processes, float):
+                max_processes = max(2, int(max_processes * self._cpu_cores))
+        if max_processes < 2:
+            raise KeyError(
+                "The number of parallel processes should be greater than 2 ({} is given)".format(max_processes))
+
         # Check node first time
         if "concurrent jobs" in self.conf["scheduler"]:
             concurrent_jobs = self.conf["scheduler"]["concurrent jobs"]
         else:
             concurrent_jobs = 1
-        self._manager = resource_scheduler.ResourceManager(self.logger, concurrent_jobs)
+        self._manager = resource_scheduler.ResourceManager(self.logger, concurrent_jobs, max_processes)
 
         if "wait controller initialization" in self.conf["scheduler"]:
             wc = self.conf["scheduler"]["wait controller initialization"]
@@ -113,21 +129,6 @@ class Native(runners.Speculative):
             raise KeyError("Provide configuration property 'scheduler''processes' to set "
                            "available number of parallel processes")
 
-        if "disable CPU cores account" in self.conf["scheduler"] and \
-                self.conf["scheduler"]["disable CPU cores account"]:
-            max_processes = self.conf["scheduler"]["processes"]
-            if isinstance(max_processes, float):
-                data = utils.extract_cpu_cores_info()
-                # Evaluate as a number of virtual cores. Allow 2 processes at least that hits when there is the only
-                # CPU core.
-                max_processes = max(2, int(max_processes * sum((len(data[a]) for a in data))))
-        else:
-            max_processes = self.conf["scheduler"]["processes"]
-            if isinstance(max_processes, float):
-                max_processes = max(2, int(max_processes * self._cpu_cores))
-        if max_processes < 2:
-            raise KeyError(
-                "The number of parallel processes should be greater than 2 ({} is given)".format(max_processes))
         self.logger.info("Initialize pool with {} processes to run tasks and jobs".format(max_processes))
         if "process pool" in self.conf["scheduler"] and self.conf["scheduler"]["process pool"]:
             self._pool = concurrent.futures.ProcessPoolExecutor(max_processes)
@@ -477,16 +478,24 @@ class Native(runners.Speculative):
                 errors_file = "{}/client-critical.log".format(work_dir)
                 if os.path.isfile(errors_file):
                     with open(errors_file, mode='r', encoding="utf-8") as f:
-                        errors = f.readlines()
-                    if self.conf["scheduler"].get("ignore BenchExec warnings"):
-                        for msg in list(errors):
-                            match = re.search(r'WARNING - (.*)', msg)
-                            if match and (self.conf["scheduler"]["ignore BenchExec warnings"] is True or
-                                  (isinstance(self.conf["scheduler"]["ignore BenchExec warnings"], list) and
-                                   any(True for t in self.conf["scheduler"]["ignore BenchExec warnings"] if t in msg))):
-                                errors.remove(msg)
-                            elif re.search(r'benchexec(.*) outputted to STDERR', msg):
-                                errors.remove(msg)
+                        errors = [l.strip() for l in f.readlines()]
+
+                    new_errors = []
+                    for msg in list(errors):
+                        if not msg:
+                            continue
+
+                        match = re.search(r'WARNING - (.*)', msg)
+                        if not match:
+                            continue
+                        elif self.conf["scheduler"].get("ignore BenchExec warnings") is True or \
+                            (isinstance(self.conf["scheduler"].get("ignore BenchExec warnings"), list) and
+                             any(True for t in self.conf["scheduler"].get("ignore BenchExec warnings") if t in msg)):
+                            continue
+                        elif re.search(r'benchexec(.*) outputted to STDERR', msg):
+                            continue
+                        new_errors.append(msg)
+                    errors = new_errors
                 else:
                     errors = []
 

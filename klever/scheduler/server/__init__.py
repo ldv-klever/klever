@@ -178,7 +178,10 @@ class Server:
         """
         self.logger.debug(f'Request a list of all running jobs')
         ret = self.session.json_exchange("jobs/api/decision-status/", method='GET')
-        return ((item['identifier'], item['status']) for item in ret)
+        if ret:
+            return ((item['identifier'], item['status']) for item in ret)
+        else:
+            return ret
 
     def get_all_tasks(self):
         """
