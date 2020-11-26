@@ -34,8 +34,8 @@
       },
       "CPALockator": {
         "name": "CPAchecker",
-        "version": "CPALockator-combat-mode:34860",
-        "path": "https://forge.ispras.ru/attachments/download/7881/CPAchecker-1.8-svn-34860-unix.tar.xz",
+        "version": "CPALockator:36137",
+        "path": "https://forge.ispras.ru/attachments/download/8188/CPALockator-36137.tar.xz",
         "executable path": "scripts"
       }
     }

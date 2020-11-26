@@ -217,11 +217,10 @@
             "verifier profile": "race checking",
             "verifier": {
               "name": "CPAchecker",
-              "version": "CPALockator-combat-mode:34860"
+              "version": "CPALockator:36137"
             },
             "result processing": {
-              "expect several witnesses": true,
-              "code coverage details": "None"
+              "expect several witnesses": true
             }
           }
         }
