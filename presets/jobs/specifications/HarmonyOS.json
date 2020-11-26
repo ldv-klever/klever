@@ -188,7 +188,8 @@
             }
           }
         },
-        {"name": "Weaver"},
+        {"name": "Weaver",
+         "options": {"LDV inline Assembler header file": "ldv/common/inline_asm.h"}},
         {
           "name": "FVTP",
           "options": {
@@ -222,8 +223,7 @@
           "options": {"models": ["harmonyos/concurrency safety/synchronization primitives.c"]}
         },
         {
-          "name": "Weaver",
-          "options": {"LDV inline Assembler header file": "ldv/common/inline_asm.h"}
+          "name": "Weaver"
         },
         {
           "name": "FVTP",
