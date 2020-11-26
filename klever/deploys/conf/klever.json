@@ -28,8 +28,8 @@
     "Verification Backends": {
       "CPAchecker": {
         "name": "CPAchecker",
-        "version": "trunk:36103",
-        "path": "https://forge.ispras.ru/attachments/download/8177/CPAchecker-36103.tar.xz",
+        "version": "trunk:36126",
+        "path": "https://forge.ispras.ru/attachments/download/8186/CPAchecker-36126.tar.xz",
         "executable path": "scripts"
       },
       "CPALockator": {
