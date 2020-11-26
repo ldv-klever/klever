@@ -81,7 +81,7 @@ setuptools.setup(
     install_requires=[
         "Django==3.0.6",
         "BenchExec==1.18",
-        "clade==3.2.14",
+        "clade==3.2.15",
         "psycopg2",
         "graphviz",
         "celery",
