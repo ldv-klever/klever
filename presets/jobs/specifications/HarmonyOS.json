@@ -234,8 +234,7 @@
               "version": "CPALockator-combat-mode:34860"
             },
             "result processing": {
-              "expect several witnesses": true,
-              "code coverage details": "None"
+              "expect several witnesses": true
             }
           }
         }
