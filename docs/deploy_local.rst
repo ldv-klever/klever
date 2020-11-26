@@ -39,6 +39,16 @@ installed :ref:`klever_addons` and :ref:`klever_build_bases`:
 
     $ sudo venv/bin/klever-deploy-local --deployment-directory :term:`$KLEVER_DEPLOY_DIR` update production
 
+If it is also required to update Klever Python package itself, then one additional command must be executed:
+
+.. parsed-literal::
+
+    $ pip install --upgrade .
+    $ sudo venv/bin/klever-deploy-local --deployment-directory :term:`$KLEVER_DEPLOY_DIR` update production
+
+This additional command, however, should be skipped if Klever Python package was
+installed in *editable* mode (with -e flag).
+
 To *uninstall* Klever you need to run:
 
 .. parsed-literal::

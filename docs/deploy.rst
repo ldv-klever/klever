@@ -85,8 +85,9 @@ Then you need to install Python packages including the Klever one:
 
     $ pip install --upgrade .
 
-* If one is going to develop Klever (see :ref:`dev_deploy` in addition), one should run the following command within
-  :term:`$KLEVER_SRC`::
+* If one is going to develop Klever (see :ref:`dev_deploy` in addition), one should
+  install Klever Python package in *editable* mode (with -e flag). To do it, run the
+  following command within :term:`$KLEVER_SRC`::
 
     $ pip install -r requirements.txt -e .
 
