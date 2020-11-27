@@ -16,7 +16,6 @@
         "third_party/zlib/**",
         "third_party/FatFs/**",
 
-        "kernel/liteos_a/kernel/extended/vdso/usr/los_vdso_sys.c",
         "kernel/liteos_a/kernel/base/core/los_process.c"
       ]
     }
