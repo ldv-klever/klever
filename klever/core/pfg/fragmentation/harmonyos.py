@@ -15,6 +15,7 @@
 # limitations under the License.
 #
 
+from klever.core.utils import make_relative_path
 from klever.core.pfg.fragmentation import FragmentationAlgorythm
 
 
@@ -29,8 +30,11 @@ class Harmonyos(FragmentationAlgorythm):
         :param program: Program object.
         """
         # Get all C files
-        program.create_fragment('harmonyos', program.files, add=True)
-        self.logger.info('Created harmonyos fragment')
+        decompostion_map = program.cmnds_recursive_tree_traversing('CC', ('Objcopy',))
+        for program_identifier, files in decompostion_map.items():
+            name = make_relative_path(self.source_paths, program_identifier)
+            program.create_fragment(name, files, add=True)
+            self.logger.info(f'Created harmonyos fragment {name}')
 
     def __init__(self, logger, conf, tactic, pf_dir):
         super().__init__(logger, conf, tactic, pf_dir)
