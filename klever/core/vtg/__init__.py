@@ -411,7 +411,8 @@ class VTG(klever.core.components.Component):
                     if models:
                         for env_model, workdir in models:
                             for rule in self.req_spec_classes[atask.rule_class]:
-                                new = Task(atask.fragment, atask.rule_class, env_model, rule, workdir)
+                                new_workdir = os.path.join(workdir, rule)
+                                new = Task(atask.fragment, atask.rule_class, env_model, rule, new_workdir)
                                 self.logger.debug(f'Create verification task {new}')
                                 if not keep_dirs:
                                     atask_tasks[atask].add(new)
@@ -454,13 +455,15 @@ class VTG(klever.core.components.Component):
 
                         # Delete task working directory
                         if not self.conf['keep intermediate files']:
+                            self.logger.debug(f'Delete task working directory {task.workdir}')
                             klever.core.utils.reliable_rmtree(self.logger, task.workdir)
 
                         # Delete abstract task working directory (with EMG dir)
                         if not keep_dirs:
                             atask_tasks[atask].remove(task)
                             if not atask_tasks[atask]:
-                                self.logger.debug(f'Delete working directories related to {atask}')
+                                self.logger.debug(f'Delete working directories related to {atask}: '
+                                                  f'{atask_work_dirs[atask]}')
                                 klever.core.utils.reliable_rmtree(self.logger, atask_work_dirs[atask])
                                 del atask_tasks[atask]
                                 del atask_work_dirs[atask]
@@ -531,7 +534,7 @@ class VTGWL(klever.core.components.Component):
             else:
                 worker_class = PLUGINS
                 identifier = "PLUGINS/{}/{}/{}/{}".format(task.fragment, task.rule_class, task.envmodel, task.rule)
-                workdir = os.path.join(task.workdir, task.rule)
+                workdir = task.workdir
         self.logger.info(f'Create worker for {task}')
         return worker_class(self.conf, self.logger, self.parent_id, self.callbacks, self.mqs, self.vals, identifier,
                             workdir, [], True, req_spec_classes=self.req_spec_classes,
