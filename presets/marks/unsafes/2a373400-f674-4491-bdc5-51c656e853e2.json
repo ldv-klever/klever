@@ -20,6 +20,21 @@
             {
               "LDV model 'init'": [
                 {
+                  "Instrumented function 'kzalloc'": [
+                    {
+                      "LDV model 'kzalloc'": [
+                        {
+                          "LDV model 'zalloc'": [
+                            {
+                              "LDV model 'reference_zalloc'": []
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
                   "Instrumented function 'kfree'": [
                     {
                       "LDV model 'free'": [
