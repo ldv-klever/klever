@@ -34,11 +34,12 @@ class ResourceManager:
     any specific actions to prepare, start or cancel jobs or tasks.
     """
 
-    def __init__(self, logger, max_jobs=1, pool_size=2):
+    def __init__(self, logger, max_jobs=1, pool_size=1000):
         """
         Initiaize the manager of resources.
 
         :param max_jobs: The maximum number of running jobs with the same or higher priority.
+        :param pool_size: The total number of running tasks and jobs if it is limited. By default it should be very high.
         """
         self.__logger = logger
         self.__max_running_jobs = max_jobs
@@ -46,11 +47,9 @@ class ResourceManager:
         self.__cached_system_status = None
         self.__jobs_config = {}
         self.__tasks_config = {}
-        self.__pool_size = pool_size
+        self.__pool_size = 1000
 
-        if max_jobs and pool_size:
-            assert max_jobs < pool_size
-
+        self.set_pool_limit(pool_size)
         self.__logger.info("Resource manager is live now with max running jobs limitation is {}".format(max_jobs))
 
     def update_system_status(self, address, wait_controller=False):
@@ -152,6 +151,16 @@ class ResourceManager:
                 node["status"] = "HEALTHY"
 
         return cancel_jobs, cancel_tasks
+
+    def set_pool_limit(self, number: int):
+        """
+        Restrict the number of running tasks and jobs simultaneously.
+
+        :param number: int
+        :return: None
+        """
+        self.__pool_size = number
+        assert self.__max_running_jobs < number
 
     def submit_status(self, server):
         """
