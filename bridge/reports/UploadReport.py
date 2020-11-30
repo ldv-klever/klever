@@ -389,7 +389,7 @@ class ReportUnsafeSerializer(UploadLeafBaseSerializer):
             for note in node['notes']:
                 if not isinstance(note, dict):
                     self.fail('wrong_format', detail='note should be a dict')
-                if 'text' not in note or not isinstance(note['text'], str) or note['text']:
+                if 'text' not in note or not isinstance(note['text'], str) or not note['text']:
                     self.fail('wrong_format', detail='note should have a text')
                 if 'level' not in note or not isinstance(note['level'], int) or note['level'] < 0:
                     self.fail('wrong_format', detail='note should have an unsigned int level')
