@@ -3,12 +3,12 @@
     {
       "is_compare": true,
       "name": "Requirements specification",
-      "value": "memory safety"
+      "value": "concurrency safety rcu"
     },
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/linux/memory-safety/buffer_overread.ko"
+      "value": "ext-modules/linux/concurrency-safety/rcu/reader_writer-fields-true-no-datarace.ko"
     }
   ],
   "description": "",
@@ -16,11 +16,18 @@
     [
       [
         {
-          "EMG wrapper": [
+          "writer": [
             {
-              "LDV model 'init'": []
+              "Instrumented function 'mutex_lock'": []
             }
           ]
+        }
+      ]
+    ],
+    [
+      [
+        {
+          "reader": []
         }
       ]
     ]
@@ -30,5 +37,5 @@
   "status": null,
   "tags": [],
   "threshold": 100,
-  "verdict": "2"
+  "verdict": "3"
 }

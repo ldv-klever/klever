@@ -3,12 +3,12 @@
     {
       "is_compare": true,
       "name": "Requirements specification",
-      "value": "memory safety"
+      "value": "concurrency safety"
     },
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/linux/memory-safety/buffer_overread.ko"
+      "value": "ext-modules/linux/concurrency-safety/ldv-races/race-2_5-container_of_false-unreach-call.ko"
     }
   ],
   "description": "",
@@ -16,11 +16,14 @@
     [
       [
         {
-          "EMG wrapper": [
-            {
-              "LDV model 'init'": []
-            }
-          ]
+          "my_callback": []
+        }
+      ]
+    ],
+    [
+      [
+        {
+          "my_callback": []
         }
       ]
     ]
@@ -30,5 +33,5 @@
   "status": null,
   "tags": [],
   "threshold": 100,
-  "verdict": "2"
+  "verdict": "3"
 }

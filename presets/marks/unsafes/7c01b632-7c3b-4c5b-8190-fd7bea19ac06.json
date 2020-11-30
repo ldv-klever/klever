@@ -3,12 +3,12 @@
     {
       "is_compare": true,
       "name": "Requirements specification",
-      "value": "memory safety"
+      "value": "concurrency safety"
     },
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/linux/memory-safety/ext_alloc_double_free.ko"
+      "value": "ext-modules/linux/concurrency-safety/unsorted/RaceTest4-unsafe.ko"
     }
   ],
   "description": "",
@@ -20,17 +20,24 @@
             {
               "LDV model 'init'": [
                 {
-                  "Instrumented function 'kfree'": [
+                  "LDV model 'main'": [
                     {
-                      "LDV model 'free'": [
-                        {
-                          "LDV model 'reference_free'": []
-                        }
-                      ]
+                      "LDV model 'func2'": []
                     }
                   ]
                 }
               ]
+            }
+          ]
+        }
+      ]
+    ],
+    [
+      [
+        {
+          "LDV model 'main'": [
+            {
+              "LDV model 'func2'": []
             }
           ]
         }

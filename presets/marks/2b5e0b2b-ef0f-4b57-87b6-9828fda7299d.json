@@ -8,7 +8,7 @@
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/linux/memory-safety/buffer_overread.ko"
+      "value": "drivers/uwb/hwa-rc.ko"
     }
   ],
   "description": "",
@@ -18,7 +18,7 @@
         {
           "EMG wrapper": [
             {
-              "LDV model 'init'": []
+              "hwarc_probe": []
             }
           ]
         }
@@ -26,9 +26,9 @@
     ]
   ],
   "function": "thread_call_forests",
-  "is_modifiable": false,
+  "is_modifiable": true,
   "status": null,
   "tags": [],
-  "threshold": 100,
-  "verdict": "2"
+  "threshold": 0,
+  "verdict": "0"
 }

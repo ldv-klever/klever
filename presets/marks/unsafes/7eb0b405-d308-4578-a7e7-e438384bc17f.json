@@ -20,49 +20,7 @@
             {
               "EMG wrapper": [
                 {
-                  "wall_main": [
-                    {
-                      "xmalloc_read": [
-                        {
-                          "xrealloc": [
-                            {
-                              "Instrumented function 'realloc'": [
-                                {
-                                  "LDV model 'realloc'": [
-                                    {
-                                      "LDV model 'reference_realloc'": []
-                                    }
-                                  ]
-                                }
-                              ]
-                            }
-                          ]
-                        },
-                        {
-                          "full_read": [
-                            {
-                              "safe_read": []
-                            }
-                          ]
-                        },
-                        {
-                          "xrealloc": [
-                            {
-                              "Instrumented function 'realloc'": [
-                                {
-                                  "LDV model 'realloc'": [
-                                    {
-                                      "LDV model 'reference_realloc'": []
-                                    }
-                                  ]
-                                }
-                              ]
-                            }
-                          ]
-                        }
-                      ]
-                    }
-                  ]
+                  "wall_main": []
                 }
               ]
             }

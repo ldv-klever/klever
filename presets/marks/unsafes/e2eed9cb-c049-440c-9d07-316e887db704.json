@@ -3,7 +3,7 @@
     {
       "is_compare": true,
       "name": "Declaration",
-      "value": "cif_free::void *cif_free::*ldv_func_arg1"
+      "value": "char **char *"
     },
     {
       "is_compare": true,
@@ -24,12 +24,6 @@
           "writer": [
             {
               "Instrumented function 'mutex_lock'": []
-            },
-            {
-              "Instrumented function 'mutex_unlock'": []
-            },
-            {
-              "Instrumented function 'free'": []
             }
           ]
         }
@@ -38,23 +32,13 @@
     [
       [
         {
-          "writer": [
-            {
-              "Instrumented function 'mutex_lock'": []
-            },
-            {
-              "Instrumented function 'mutex_unlock'": []
-            },
-            {
-              "Instrumented function 'free'": []
-            }
-          ]
+          "reader": []
         }
       ]
     ]
   ],
   "function": "thread_call_forests",
-  "is_modifiable": true,
+  "is_modifiable": false,
   "status": null,
   "tags": [],
   "threshold": 100,
