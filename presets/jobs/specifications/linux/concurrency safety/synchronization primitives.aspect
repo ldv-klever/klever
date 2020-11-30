@@ -67,7 +67,6 @@ mutex_lock(lock)
 
 around: call(void mutex_lock(struct mutex *)) || call(void mutex_lock_nested(struct mutex *, unsigned int))
 {
-	/* NOTE Lock mutex */
 	ldv_mutex_model_lock($arg1, "$arg_sign1");
 }
 
@@ -77,8 +76,8 @@ around: call(int mutex_lock_interruptible(struct mutex *)) || call(int mutex_loc
 
 	if(nondetermined)
 	{
-		/* NOTE Finish with success */
 		ldv_mutex_model_lock($arg1, "$arg_sign1");
+		/* NOTE Finish with success */
 		return 0;
 	}
 	else
@@ -104,8 +103,8 @@ around: call(int mutex_trylock(struct mutex *))
 	}
 	else
 	{
-		/* NOTE Finish with success */
 		ldv_mutex_model_lock($arg1, "$arg_sign1");
+		/* NOTE Finish with success */
 		return 1;
 	}
 }
@@ -127,7 +126,6 @@ around: call(int atomic_dec_and_mutex_lock(atomic_t *, struct mutex *))
 
 around: call(void mutex_unlock(struct mutex *))
 {
-	/* NOTE Lock mutex */
 	ldv_mutex_model_unlock($arg1, "$arg_sign1");
 }
 
@@ -172,7 +170,6 @@ before: call(static inline void spin_lock(..)) ||
         call(static inline void spin_lock_irq(..)) ||
         call(void __ldv_spin_lock(..))
 {
-	/* NOTE Lock spinlock */
 	ldv_spin_model_lock("$arg_sign1");
 }
 
@@ -202,7 +199,6 @@ before: call(static inline void spin_unlock(..)) ||
         call(static inline void spin_unlock_irqrestore(..)) ||
         call(void __ldv_spin_unlock(..))
 {
-	/* NOTE Unlock spinlock */
 	ldv_spin_model_unlock("$arg_sign1");
 }
 
@@ -238,7 +234,6 @@ after: call(static inline int spin_trylock(..)) ||
 		/* NOTE Spin was not locked. Finish with fail */
 		return 0;
 	} else {
-		/* NOTE Lock spin */
 		ldv_spin_model_lock("$arg_sign1");
 		/* NOTE Finish with success */
 		return 1;
@@ -301,7 +296,6 @@ after: call(int __ldv_atomic_dec_and_lock(..))
 
 	if (atomic_value_after_dec == 0)
 	{
-		/* NOTE Lock spinlock */
 		ldv_spin_model_lock( "$arg_sign1" );
 		/* NOTE Finish with success */
 		return 1;
