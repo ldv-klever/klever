@@ -383,6 +383,16 @@ class ReportUnsafeSerializer(UploadLeafBaseSerializer):
         for field_name in required_fields:
             if field_name not in node or node[field_name] is None:
                 self.fail('wrong_format', detail='node field "{}" is required'.format(field_name))
+        if node.get('notes'):
+            if not isinstance(node['notes'], list):
+                self.fail('wrong_format', detail='notes should be a list')
+            for note in node['notes']:
+                if not isinstance(note, dict):
+                    self.fail('wrong_format', detail='note should be a dict')
+                if 'text' not in note or not isinstance(note['text'], str) or note['text']:
+                    self.fail('wrong_format', detail='note should have a text')
+                if 'level' not in note or not isinstance(note['level'], int) or note['level'] < 0:
+                    self.fail('wrong_format', detail='note should have an unsigned int level')
         if node.get('children'):
             for child in node['children']:
                 self.__check_node(child)

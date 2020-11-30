@@ -24,7 +24,7 @@
                 {{ n.LN|safe }}{{ n.LC|safe }}<br>
             </span>
         {% elif n.type == 'note' %}
-            <span class="scope-{{ n.scope }}" data-type="{{ n.type }}" data-level="{{ n.level }}" data-hide="{% if n.hide %}true{% else %}false{% endif %}"{% if n.scope not in etv.shown_scopes %} style="display: none"{% endif %}>
+            <span class="scope-{{ n.scope }}" data-type="{{ n.type }}" data-level="{{ n.level }}" data-hide="{% if n.hide %}true{% else %}false{% endif %}"{% if n.scope not in etv.shown_scopes or not n.relevant %} style="display: none"{% endif %}>
                 {{ n.LN|safe }}{{ n.LC|safe }}<br>
             </span>
         {% elif n.type == 'statement' %}

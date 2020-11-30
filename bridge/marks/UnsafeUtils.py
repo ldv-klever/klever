@@ -290,7 +290,7 @@ class ThreadCallForests:
         return self.__has_relevant_note(node)
 
     def __has_relevant_note(self, node):
-        return bool(node.get('note')) and node.get('level', 2) < 2
+        return bool(node.get('notes')) and any(note['level'] < 2 for note in node['notes'])
 
 
 class RelevantCallForests:
@@ -347,7 +347,7 @@ class RelevantCallForests:
         return self.__has_relevant_note(node)
 
     def __has_relevant_note(self, node):
-        return bool(node.get('note')) and node.get('level', 2) < 2
+        return bool(node.get('notes')) and any(note['level'] < 2 for note in node['notes'])
 
 
 class CompareMark:

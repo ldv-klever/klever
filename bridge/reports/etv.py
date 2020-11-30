@@ -117,59 +117,61 @@ class GetETV:
             return self.__parse_declarations(node, depth, thread, has_asc_note, scope)
 
     def __parse_statement(self, node, depth, thread, has_asc_note, scope):
-        note_data = self.__parse_note(node, depth, thread, has_asc_note, scope)
+        notes_data = self.__parse_notes(node, depth, thread, has_asc_note, scope)
 
         statement_data = {
             'type': node['type'],
             'scope': scope,
-            'has_note': bool(note_data),
+            'has_note': len(notes_data) > 0,
             'LN': self._html_collector.line_number(thread, line=node['line'], file=node['file']),
             'LC': self._html_collector.statement_content(depth, node),
         }
-        if note_data and note_data['hide']:
+        if len(notes_data) and notes_data[-1]['hide']:
             statement_data['commented'] = True
 
         # Add assumptions
         if self.user.assumptions:
             statement_data['old_assumptions'], statement_data['new_assumptions'] = self.__get_assumptions(node, scope)
 
-        if note_data:
-            return [note_data, statement_data]
+        if notes_data:
+            return notes_data + [statement_data]
         return [statement_data]
 
     def __parse_declaration(self, node, depth, thread, scope, has_asc_note, decl_scope):
-        note_data = self.__parse_note(node, depth, thread, has_asc_note, decl_scope)
+        notes_data = self.__parse_notes(node, depth, thread, has_asc_note, decl_scope)
 
         decl_data = {
             'type': node['type'],
             'scope': scope,
             'commented': False,
-            'has_note': bool(note_data),
+            'has_note': len(notes_data) > 0,
             'LN': self._html_collector.line_number(thread, line=node['line'], file=node['file']),
             'LC': self._html_collector.declaration_content(depth, node)
         }
 
-        if note_data:
-            decl_data['commented'] = note_data['hide']
+        if len(notes_data):
+            decl_data['commented'] = notes_data[-1]['hide']
+
+            # Move all non-relevant notes to the declarations block
+            for i in range(len(notes_data)):
+                if notes_data[-1]['level'] > 1:
+                    notes_data[i]['scope'] = decl_scope
 
             # Others are hidden under the "Delarations" eye
-            if note_data['level'] in {0, 1}:
-                # Move declaration with meaningful notes out of the declarations block scope
+            if notes_data[-1]['level'] in {0, 1}:
+                # Move declaration with relevant note out of the declarations block scope
                 decl_data['scope'] = decl_scope
-            else:
-                # Move notes to the declarations block scope
-                note_data['scope'] = scope
 
         # Add assumptions
         if self.user.assumptions:
             decl_data['old_assumptions'], decl_data['new_assumptions'] = self.__get_assumptions(node, decl_scope)
 
-        if note_data:
-            return [note_data, decl_data]
+        if notes_data:
+            return notes_data + [decl_data]
         return [decl_data]
 
     def __parse_function(self, node, depth, thread, has_asc_note, scope):
-        note_data = self.__parse_note(node, depth, thread, has_asc_note, scope)
+        notes_data = self.__parse_notes(node, depth, thread, has_asc_note, scope)
 
         func_enter = {
             'type': node['type'],
@@ -178,11 +180,11 @@ class GetETV:
             'opened': False,
             'LN': self._html_collector.line_number(thread, line=node['line'], file=node['file'])
         }
-        if note_data and note_data['hide']:
+        if len(notes_data) and notes_data[-1]['hide']:
             func_enter['commented'] = True
 
         # Get function body
-        child_asc_note = has_asc_note or bool(note_data) and note_data['level'] in {0, 1}
+        child_asc_note = has_asc_note or len(notes_data) and notes_data[-1]['level'] in {0, 1}
         func_body = []
         for child_node in node['children']:
             func_body.extend(self.__parse_node(child_node, depth + 1, thread, child_asc_note, func_enter['body_scope']))
@@ -199,9 +201,7 @@ class GetETV:
             func_enter['old_assumptions'], func_enter['new_assumptions'] = self.__get_assumptions(node, scope)
 
         # Collect function trace
-        func_trace = []
-        if note_data:
-            func_trace.append(note_data)
+        func_trace = notes_data
         func_trace.append(func_enter)
         func_trace.extend(func_body)
         if self.user.triangles:
@@ -310,36 +310,39 @@ class GetETV:
 
         return old_assumptions, new_assumptions
 
-    def __parse_note(self, node, depth, thread, has_asc_note, scope):
-        if not node.get('note'):
-            return None
+    def __parse_notes(self, node, depth, thread, has_asc_note, scope):
+        if not node.get('notes'):
+            return []
 
-        # TODO: node.get('level', 2)
-        if 'level' in node:
-            note_level = node['level']
-        else:
-            # For old traces format
-            note_level = 0 if node.get('violation') else node.get('level', 1)
+        notes_data = []
+        for note in node['notes'][:-1]:
+            # Get note level and show current scope if needed
+            if note['level'] == 0 or note['level'] == 1 and not has_asc_note:
+                self.shown_scopes.add(scope)
+            notes_data.append({
+                'type': 'note',
+                'scope': scope,
+                'level': note['level'],
+                'relevant': note['level'] < 2,
+                'hide': False,
+                'LN': self._html_collector.line_number(thread, line=node['line'], note_level=note['level']),
+                'LC': self._html_collector.note_content(depth, note['level'], note['text'], False)
+            })
+
+        last_note = node['notes'][-1]
         note_hide = node.get('hide', False)
-
-        if note_level == 0 or note_level == 1 and not has_asc_note:
+        if last_note['level'] == 0 or last_note['level'] == 1 and not has_asc_note:
             self.shown_scopes.add(scope)
-
-        return {
+        notes_data.append({
             'type': 'note',
             'scope': scope,
-            'level': note_level,
+            'level': last_note['level'],
+            'relevant': last_note['level'] < 2,
             'hide': note_hide,
-            'LN': self._html_collector.line_number(thread, line=node['line'], note_level=note_level),
-            'LC': self._html_collector.note_content(depth, note_level, node['note'], note_hide)
-        }
-
-    def __is_node_shown(self, note_data, has_asc_note):
-        if not note_data:
-            return False
-        # If statement has violation note or meaningful note and there are no meaningful notes in ascendants
-        # then the node should be shown by default
-        return note_data['level'] == 0 or note_data['level'] == 1 and not has_asc_note
+            'LN': self._html_collector.line_number(thread, line=node['line'], note_level=last_note['level']),
+            'LC': self._html_collector.note_content(depth, last_note['level'], last_note['text'], note_hide)
+        })
+        return notes_data
 
 
 class ETVHtml:
