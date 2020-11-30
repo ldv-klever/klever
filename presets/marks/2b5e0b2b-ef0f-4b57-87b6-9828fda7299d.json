@@ -1,0 +1,34 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "memory safety"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/uwb/hwa-rc.ko"
+    }
+  ],
+  "description": "",
+  "error_trace": [
+    [
+      [
+        {
+          "EMG wrapper": [
+            {
+              "hwarc_probe": []
+            }
+          ]
+        }
+      ]
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": true,
+  "status": null,
+  "tags": [],
+  "threshold": 0,
+  "verdict": "0"
+}
