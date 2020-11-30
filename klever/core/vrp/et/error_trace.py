@@ -24,8 +24,9 @@ from klever.core.highlight import Highlight
 
 
 class ErrorTrace:
-    MODEL_COMMENT_TYPES = 'NOTE|ASSERT|CIF|EMG_WRAPPER'
     ERROR_TRACE_FORMAT_VERSION = 1
+    MODEL_COMMENT_TYPES = 'NOTE|ASSERT|CIF|EMG_WRAPPER'
+    MAX_NOTE_LEVEl = 3
 
     def __init__(self, logger):
         self._attrs = list()
@@ -90,13 +91,52 @@ class ErrorTrace:
             'highlight': [[h[0], h[2], h[3]] for h in highlight.highlights]
         }
 
-    def convert_note(self, edge):
-        # Error trace notes are represented by 3 simple attributes rather than by 1 attribute of the dictionary type.
-        if 'note' in edge:
+    def convert_notes(self, edge):
+        # Error trace notes should be ordered in the descending order of levels so that the most important notes will be
+        # shown on the bottom, closely to related sources. Moreover, we should select one note among the most important
+        # notes that hides sources if so.
+        if 'notes' in edge:
+            level_notes = {}
+            min_notes_level = self.MAX_NOTE_LEVEl
+            notes = []
+            hide = False
+
+            # Split all notes into backets with appropriate levels.
+            for note_level in range(self.MAX_NOTE_LEVEl, -1, -1):
+                level_notes[note_level] = []
+            for note in edge['notes']:
+                level_notes[note['level']].append(note)
+                min_notes_level = min(note['level'], min_notes_level)
+
+            # Add notes from backets according to comment above.
+            for note_level in range(self.MAX_NOTE_LEVEl, -1, -1):
+                # Try to find note that hides sources. If there are several such notes than it is not defined what
+                # note will be choosen.
+                note_with_hide = None
+                if note_level == min_notes_level:
+                    for note in level_notes[note_level]:
+                        if note['hide']:
+                            note_with_hide = note
+                            break
+
+                for note in level_notes[note_level]:
+                    if note != note_with_hide:
+                        notes.append({
+                            'text': note['text'],
+                            'level': note_level
+                        })
+
+                if note_with_hide:
+                    notes.append({
+                        'text': note_with_hide['text'],
+                        'level': note_level
+                    })
+                    hide = True
+                    # There is no more notes, so, we can break the loop.
+                    break
             return {
-                'note': edge['note']['value'],
-                'level': edge['note']['level'],
-                'hide': edge['note']['hide']
+                'notes': notes,
+                'hide': hide
             }
         else:
             return {}
@@ -132,7 +172,7 @@ class ErrorTrace:
                     'file': edge['file']
                 }
                 global_var_decl.update(self.highlight(edge['source']))
-                global_var_decl.update(self.convert_note(edge))
+                global_var_decl.update(self.convert_notes(edge))
                 global_var_decls.append(global_var_decl)
                 continue
             else:
@@ -214,7 +254,7 @@ class ErrorTrace:
                 else:
                     func_call_node['source'] = 'Unknown'
 
-                func_call_node.update(self.convert_note(edge))
+                func_call_node.update(self.convert_notes(edge))
 
                 if 'entry_point' in edge:
                     func_call_node['display'] = edge['entry_point']
@@ -253,7 +293,7 @@ class ErrorTrace:
                 }
 
                 decl_or_stmt_node.update(self.highlight(edge['source']))
-                decl_or_stmt_node.update(self.convert_note(edge))
+                decl_or_stmt_node.update(self.convert_notes(edge))
 
                 if 'condition' in edge:
                     decl_or_stmt_node['condition'] = True
@@ -268,7 +308,7 @@ class ErrorTrace:
                             'type': 'declarations',
                             'children': list()
                         }
-                        declarations_edge = edge;
+                        declarations_edge = edge
                     declarations_node['children'].append(decl_or_stmt_node)
                 else:
                     # Add created statement node to action node of last function call node from corresponding thread
@@ -439,9 +479,13 @@ class ErrorTrace:
 
         return new_edge
 
+    def is_warning(self, edge):
+        if 'notes' in edge:
+            return any(note['level'] == 0 for note in edge['notes'])
+
     def remove_edge_and_target_node(self, edge):
         # Do not delete edge with a warning
-        if 'note' in edge and edge['note']['level'] == 0:
+        if self.is_warning(edge):
             raise ValueError('Cannot delete edge with warning: {!r}'.format(edge['source']))
 
         source = edge['source node']
@@ -702,7 +746,7 @@ class ErrorTrace:
         # path above.
         for edge in self.trace_iterator():
             # Do not add notes when finding warnings.
-            if 'note' in edge and edge['note']['level'] == 0:
+            if self.is_warning(edge):
                 continue
 
             line = edge['line']
@@ -731,11 +775,13 @@ class ErrorTrace:
                 # Model comments are rather essential and they are designed to hide model implementation details.
                 # Unfortunately, some model comments are not perfect yet, but we should fix them rather than make some
                 # workarounds to encourage developers of bad model comments.
-                edge['note'] = {
-                    'value': note,
+                if 'notes' not in edge:
+                    edge['notes'] = []
+                edge['notes'].append({
+                    'text': note,
                     'level': 1,
                     'hide': True
-                }
+                })
 
         for edge in self.trace_iterator(backward=True):
             line = edge['line']
@@ -748,7 +794,7 @@ class ErrorTrace:
                 note_found = False
                 for violation_edge in reversed(self._violation_edges):
                     if track_notes:
-                        if 'note' in violation_edge:
+                        if 'notes' in violation_edge:
                             note_found = True
                             break
                     if id(violation_edge) == id(edge):
@@ -757,11 +803,13 @@ class ErrorTrace:
                 if not note_found:
                     warn = self._asserts[file_id][line]
                     self._logger.debug("Add warning {!r} for statement from '{}:{}'".format(warn, file, line))
-                    edge['note'] = {
-                        'value': warn,
+                    if 'notes' not in edge:
+                        edge['notes'] = []
+                    edge['notes'].append({
+                        'text': warn,
                         'level': 0,
                         'hide': True
-                    }
+                    })
 
                     # Do not try to add any warnings any more. We don't know how several violations are encoded in
                     # witnesses.

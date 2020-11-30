@@ -229,11 +229,13 @@ class ErrorTraceParser:
                 elif data_key == 'note':
                     m = re.match(r'level="(\d+)" hide="(false|true)" value="(.+)"$', data.text)
                     if m:
-                        _edge['note'] = {
+                        if 'notes' not in _edge:
+                            _edge['notes'] = []
+                        _edge['notes'].append({
                             'level': int(m.group(1)),
                             'hide': False if m.group(2) == 'false' else True,
-                            'value': m.group(3).replace('\\\"', '\"')
-                        }
+                            'text': m.group(3).replace('\\\"', '\"')
+                        })
                     else:
                         self._logger.warning('Invalid format of note "{0}"'.format(data.text))
                 elif data_key not in unsupported_edge_data_keys:
