@@ -396,34 +396,45 @@ class RP(klever.core.components.Component):
 
             # Create unsafe reports independently on status. Later we will create unknown report in addition if status
             # is not "unsafe".
-            if "expect several witnesses" in opts and opts["expect several witnesses"] and len(witnesses) != 0:
+            if "expect several witnesses" in opts and opts["expect several witnesses"]:
                 self.verdict = 'unsafe'
                 identifier = 1
-                for witness in witnesses:
-                    try:
-                        error_trace_file, attrs = self.process_witness(witness)
-                        self.report_unsafe(error_trace_file, attrs, str(identifier))
-                    except Exception as e:
-                        self.logger.warning('Failed to process a witness:\n{}'.format(traceback.format_exc().rstrip()))
-                        self.verdict = 'non-verifier unknown'
 
-                        if self.__exception:
-                            try:
-                                raise e from self.__exception
-                            except Exception as e:
+                # Suprisingly there may be no witnesses at all even when verifier reported unsafe.
+                if not len(witnesses):
+                    try:
+                        raise RuntimeError('Verifier reported false without violation witnesses')
+                    except Exception as e:
+                        self.logger.warning('Failed to process witnesses:\n{}'.format(traceback.format_exc().rstrip()))
+                        self.verdict = 'non-verifier unknown'
+                        self.__exception = e
+                else:
+                    for witness in witnesses:
+                        try:
+                            error_trace_file, attrs = self.process_witness(witness)
+                            self.report_unsafe(error_trace_file, attrs, str(identifier))
+                        except Exception as e:
+                            self.logger.warning('Failed to process a witness:\n{}'
+                                                .format(traceback.format_exc().rstrip()))
+                            self.verdict = 'non-verifier unknown'
+
+                            if self.__exception:
+                                try:
+                                    raise e from self.__exception
+                                except Exception as e:
+                                    self.__exception = e
+                            else:
                                 self.__exception = e
-                        else:
-                            self.__exception = e
-                    finally:
-                        identifier += 1
+                        finally:
+                            identifier += 1
 
             if re.search('false', decision_results['status']) and \
                     ("expect several witnesses" not in opts or not opts["expect several witnesses"]):
                 self.verdict = 'unsafe'
                 try:
                     if len(witnesses) != 1:
-                        NotImplementedError('Just one witness is supported (but "{0}" are given)'.
-                                            format(len(witnesses)))
+                        raise NotImplementedError('Just one witness is supported (but "{0}" are given)'.
+                                                  format(len(witnesses)))
 
                     error_trace_file, attrs = self.process_witness(witnesses[0])
                     self.report_unsafe(error_trace_file, attrs)
