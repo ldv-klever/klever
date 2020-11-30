@@ -11,8 +11,6 @@
       "exclude from all fragments": [
         "kernel/liteos_a/lib/libc/**",
         "kernel/liteos_a/bsd/**",
-        "third_party/lwip/**",   
-        "third_party/bounds_checking_function/**",
         "third_party/zlib/**",
         "third_party/FatFs/**",
 
