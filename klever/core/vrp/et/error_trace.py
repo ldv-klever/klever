@@ -326,6 +326,14 @@ class ErrorTrace:
             # Remember current thread identifier to track thread switches.
             prev_thread_id = edge['thread']
 
+        # Add remaining declarations. This can happen when last edges in violation witnesses correspond to declarations.
+        if declarations_node:
+            if 'action' in declarations_edge:
+                thread_func_call_stacks[declarations_edge['thread']][-1]['children'][-1]['children'].append(
+                    declarations_node)
+            else:
+                thread_func_call_stacks[declarations_edge['thread']][-1]['children'].append(declarations_node)
+
         data = {
             'format': self.ERROR_TRACE_FORMAT_VERSION,
             'files': self._files,
