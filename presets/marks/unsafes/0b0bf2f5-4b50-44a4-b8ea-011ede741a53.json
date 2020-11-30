@@ -20,38 +20,7 @@
             {
               "LDV model 'init'": [
                 {
-                  "leak": [
-                    {
-                      "Instrumented function 'kmalloc'": [
-                        {
-                          "LDV model 'kmalloc'": [
-                            {
-                              "LDV model 'malloc'": [
-                                {
-                                  "LDV model 'reference_malloc'": []
-                                }
-                              ]
-                            }
-                          ]
-                        }
-                      ]
-                    },
-                    {
-                      "Instrumented function 'kmalloc'": [
-                        {
-                          "LDV model 'kmalloc'": [
-                            {
-                              "LDV model 'malloc'": [
-                                {
-                                  "LDV model 'reference_malloc'": []
-                                }
-                              ]
-                            }
-                          ]
-                        }
-                      ]
-                    }
-                  ]
+                  "leak": []
                 }
               ]
             }
