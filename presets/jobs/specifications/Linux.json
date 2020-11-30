@@ -217,7 +217,7 @@
             "verifier profile": "race checking",
             "verifier": {
               "name": "CPAchecker",
-              "version": "CPALockator:36184"
+              "version": "CPALockator:36189"
             },
             "result processing": {
               "expect several witnesses": true
