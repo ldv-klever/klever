@@ -47,102 +47,85 @@ extern void __ldv_cirbuf_unlock(CirBuf *lock, char *sign);
 
 around: call(UINT32 LOS_MuxLock(LosMux *, UINT32))
 {
-	/* NOTE Lock mutex */
 	__ldv_mutex_lock($arg1, "$arg_sign1");
 }
 
 around: call(UINT32 LOS_MuxUnlock(LosMux *))
 {
-	/* NOTE Unlock mutex */
 	__ldv_mutex_unlock($arg1, "$arg_sign1");
 }
 
 around: define(SYS_ARCH_PROTECT(lev))
 {
-	/* NOTE Lock arch spinlock */
 	__ldv_arch_lock();
 }
 
 around: call(sys_prot_t sys_arch_protect(void))
 {
-	/* NOTE Lock arch spinlock */
 	__ldv_arch_lock();
 }
 
 around: define(SYS_ARCH_UNPROTECT(lev))
 {
-	/* NOTE Unlock arch spinlock */
 	__ldv_arch_unlock();
 }
 
 around: call(void sys_arch_unprotect(sys_prot_t))
 {
-	/* NOTE Unlock arch spinlock */
 	__ldv_arch_unlock();
 }
 
 around: call(static inline UINT32 LOS_IntLock(void))
 {
-	/* NOTE Disable interrupts */
 	__ldv_int_lock();
 }
 
 around: call(static inline void LOS_IntRestore(UINT32))
 {
-	/* NOTE Enable interrupts */
 	__ldv_int_unlock();
 }
 
 around: call(static inline void LOS_SpinLock(SPIN_LOCK_S *))
 {
-	/* NOTE Lock spinlock */
-    __ldv_spin_lock($arg1, "$arg_sign1");
+	__ldv_spin_lock($arg1, "$arg_sign1");
 }
 
 around: call(static inline void LOS_SpinLockSave(SPIN_LOCK_S *, UINT32 *))
 {
-	/* NOTE Lock spinlock */
-    __ldv_spin_lock($arg1, "$arg_sign1");
+	__ldv_spin_lock($arg1, "$arg_sign1");
 }
 
 around: call(static inline void LOS_SpinUnlockRestore(SPIN_LOCK_S *, UINT32))
 {
-	/* NOTE Unlock spinlock */
-    __ldv_spin_unlock($arg1, "$arg_sign1");
+	__ldv_spin_unlock($arg1, "$arg_sign1");
 }
 
 around: call(static inline void LOS_SpinUnlock(SPIN_LOCK_S *))
 {
-	/* NOTE Unlock spinlock */
-    __ldv_spin_unlock($arg1, "$arg_sign1");
+	__ldv_spin_unlock($arg1, "$arg_sign1");
 }
 
 around: call(INT32 LOS_SpinTrylock(SPIN_LOCK_S *))
 {
-	/* NOTE Try to lock spinlock */
 	__ldv_spin_trylock($arg1, "$arg_sign1");
 }
 
 around: call(static void FileTableLock(struct fd_table_s *))
 {
-	/* NOTE Lock file table lock */
 	__ldv_filetable_lock($arg1, "$arg_sign1");
 }
 
 around: call(static void FileTableUnLock(struct fd_table_s *))
 {
-	/* NOTE Unlock file table lock */
 	__ldv_filetable_unlock($arg1, "$arg_sign1");
 }
 
 around: call(static inline void LOS_CirBufLock(CirBuf *, UINT32 *))
 {
-	/* NOTE Lock cir buf lock */
 	__ldv_cirbuf_lock($arg1, "$arg_sign1");
 }
 
 around: call(static inline void LOS_CirBufUnlock(CirBuf *, UINT32 *))
 {
-	/* NOTE Unlock cir buf lock */
 	__ldv_cirbuf_unlock($arg1, "$arg_sign1");
 }
