@@ -50,17 +50,17 @@
             <div class="twelve wide field">
                 <div class="ui radio checkbox">
                     <input id="order_by_parent_cpu__{{ view.type }}" type="radio" name="view_{{ view.type }}__radio_order" value="parent_cpu"{% if view.order.1 == 'parent_cpu' %} checked{% endif %}>
-                    <label for="order_by_parent_cpu__{{ view.type }}">{% trans 'Order by verifiers CPU time' %}</label>
+                    <label for="order_by_parent_cpu__{{ view.type }}">{% trans 'Order by verifier CPU time' %}</label>
                 </div>
                 <br>
                 <div class="ui radio checkbox">
                     <input id="order_by_parent_wall__{{ view.type }}" type="radio" name="view_{{ view.type }}__radio_order" value="parent_wall"{% if view.order.1 == 'parent_wall' %} checked{% endif %}>
-                    <label for="order_by_parent_wall__{{ view.type }}">{% trans 'Order by verifiers Wall time' %}</label>
+                    <label for="order_by_parent_wall__{{ view.type }}">{% trans 'Order by verifier wall time' %}</label>
                 </div>
                 <br>
                 <div class="ui radio checkbox">
                     <input id="order_by_parent_memory__{{ view.type }}" type="radio" name="view_{{ view.type }}__radio_order" value="parent_memory"{% if view.order.1 == 'parent_memory' %} checked{% endif %}>
-                    <label for="order_by_parent_memory__{{ view.type }}">{% trans 'Order by verifiers RAM' %}</label>
+                    <label for="order_by_parent_memory__{{ view.type }}">{% trans 'Order by verifier memory' %}</label>
                 </div>
                 <br>
                 <div class="ui radio checkbox">
@@ -191,11 +191,11 @@
 
         <div class="ui divider"></div>
 
-        {# Verifiers cpu time #}
+        {# Verifier CPU time #}
         <input id="view_data_{{ view.type }}__parent_cpu" value="list_if_parent_cpu" data-list="parent_cpu_operator__parent_cpu_value__parent_cpu_measure" type="hidden">
         <div class="ui checkbox">
             <input type="checkbox" id="view_condition_{{ view.type }}__parent_cpu"{% if 'parent_cpu' in view %} checked{% endif %}>
-            <label for="view_condition_{{ view.type }}__parent_cpu">{% trans 'Verifiers CPU time' %}</label>
+            <label for="view_condition_{{ view.type }}__parent_cpu">{% trans 'Verifier CPU time' %}</label>
         </div>
         <br><br>
         <div class="inline fields" style="margin-left: 15px;">
@@ -220,11 +220,11 @@
             </div>
         </div>
 
-        {# Verifiers wall time #}
+        {# Verifier wall time #}
         <input id="view_data_{{ view.type }}__parent_wall" value="list_if_parent_wall" data-list="parent_wall_operator__parent_wall_value__parent_wall_measure" type="hidden">
         <div class="ui checkbox">
             <input type="checkbox" id="view_condition_{{ view.type }}__parent_wall"{% if 'parent_wall' in view %} checked{% endif %}>
-            <label for="view_condition_{{ view.type }}__parent_wall">{% trans 'Verifiers Wall time' %}</label>
+            <label for="view_condition_{{ view.type }}__parent_wall">{% trans 'Verifier wall time' %}</label>
         </div>
         <br><br>
         <div class="inline fields" style="margin-left: 15px;">
@@ -249,11 +249,11 @@
             </div>
         </div>
 
-        {# Verifiers memory #}
+        {# Verifier memory #}
         <input id="view_data_{{ view.type }}__parent_memory" value="list_if_parent_memory" data-list="parent_memory_operator__parent_memory_value__parent_memory_measure" type="hidden">
         <div class="ui checkbox">
             <input type="checkbox" id="view_condition_{{ view.type }}__parent_memory"{% if 'parent_memory' in view %} checked{% endif %}>
-            <label for="view_condition_{{ view.type }}__parent_memory">{% trans 'Verifiers RAM' %}</label>
+            <label for="view_condition_{{ view.type }}__parent_memory">{% trans 'Verifier memory' %}</label>
         </div>
         <br><br>
         <div class="inline fields" style="margin-left: 15px;">

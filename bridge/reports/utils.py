@@ -55,10 +55,10 @@ REP_MARK_TITLES = {
     'report_status': _("Total status"),
 
     'tags': _('Tags'),
-    'verifiers': _('Verifiers'),
-    'verifiers:cpu': _('CPU time'),
-    'verifiers:wall': _('Wall time'),
-    'verifiers:memory': _('RAM'),
+    'verifier': _('Verifier'),
+    'verifier:cpu': _('CPU time'),
+    'verifier:wall': _('Wall time'),
+    'verifier:memory': _('Memory'),
     'problems': _('Problems')
 }
 
@@ -189,7 +189,7 @@ class ReportAttrsTable:
 
 
 class SafesTable:
-    columns_list = ['marks_number', 'report_verdict', 'tags', 'verifiers:cpu', 'verifiers:wall', 'verifiers:memory']
+    columns_list = ['marks_number', 'report_verdict', 'tags', 'verifier:cpu', 'verifier:wall', 'verifier:memory']
     confirmed_col = 'marks_number:confirmed'
     automatic_col = 'marks_number:automatic'
 
@@ -447,11 +447,11 @@ class SafesTable:
                             else:
                                 tags_values.append(tag)
                         val = ', '.join(tags_values)
-                elif col == 'verifiers:cpu':
+                elif col == 'verifier:cpu':
                     val = HumanizedValue(report.cpu_time, user=self.user).timedelta
-                elif col == 'verifiers:wall':
+                elif col == 'verifier:wall':
                     val = HumanizedValue(report.wall_time, user=self.user).timedelta
-                elif col == 'verifiers:memory':
+                elif col == 'verifier:memory':
                     val = HumanizedValue(report.memory, user=self.user).memory
                 values_row.append({'value': val, 'color': color, 'href': href})
             values_data.append(values_row)
@@ -463,7 +463,7 @@ class SafesTable:
 class UnsafesTable:
     columns_list = [
         'marks_number', 'report_verdict', 'report_status', 'tags',
-        'verifiers:cpu', 'verifiers:wall', 'verifiers:memory'
+        'verifier:cpu', 'verifier:wall', 'verifier:memory'
     ]
     confirmed_col = 'marks_number:confirmed'
     automatic_col = 'marks_number:automatic'
@@ -725,11 +725,11 @@ class UnsafesTable:
                             else:
                                 tags_values.append(tag)
                         val = ', '.join(tags_values)
-                elif col == 'verifiers:cpu':
+                elif col == 'verifier:cpu':
                     val = HumanizedValue(report.cpu_time, user=self.user).timedelta
-                elif col == 'verifiers:wall':
+                elif col == 'verifier:wall':
                     val = HumanizedValue(report.wall_time, user=self.user).timedelta
-                elif col == 'verifiers:memory':
+                elif col == 'verifier:memory':
                     val = HumanizedValue(report.memory, user=self.user).memory
                 values_row.append({'value': val, 'color': color, 'href': href})
             values_data.append(values_row)
@@ -739,7 +739,7 @@ class UnsafesTable:
 
 
 class UnknownsTable:
-    columns_list = ['component', 'marks_number', 'problems', 'verifiers:cpu', 'verifiers:wall', 'verifiers:memory']
+    columns_list = ['component', 'marks_number', 'problems', 'verifier:cpu', 'verifier:wall', 'verifier:memory']
     confirmed_col = 'marks_number:confirmed'
     automatic_col = 'marks_number:automatic'
 
@@ -989,11 +989,11 @@ class UnknownsTable:
                             else:
                                 tags_values.append(tag)
                         val = ', '.join(tags_values)
-                elif col == 'verifiers:cpu':
+                elif col == 'verifier:cpu':
                     val = HumanizedValue(report.cpu_time, user=self.user).timedelta
-                elif col == 'verifiers:wall':
+                elif col == 'verifier:wall':
                     val = HumanizedValue(report.wall_time, user=self.user).timedelta
-                elif col == 'verifiers:memory':
+                elif col == 'verifier:memory':
                     val = HumanizedValue(report.memory, user=self.user).memory
                 elif col == 'problems':
                     if len(report.cache.problems):

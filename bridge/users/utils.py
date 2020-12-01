@@ -96,7 +96,7 @@ UNSAFES_VIEW = {
     'elements': [DEF_NUMBER_OF_ELEMENTS],
     'columns': [
         'marks_number', 'report_verdict', 'report_status', 'tags',
-        'verifiers:cpu', 'verifiers:wall', 'verifiers:memory'
+        'verifier:cpu', 'verifier:wall', 'verifier:memory'
     ],
     # order: [up|down, attr|parent_cpu|parent_wall|parent_memory, <any text, not empty for attr only>]
     # 'order': ['down', 'attr', 'Requirement'],
@@ -111,7 +111,7 @@ UNSAFES_VIEW = {
 }
 
 SAFES_VIEW = {
-    'columns': ['marks_number', 'report_verdict', 'tags', 'verifiers:cpu', 'verifiers:wall', 'verifiers:memory'],
+    'columns': ['marks_number', 'report_verdict', 'tags', 'verifier:cpu', 'verifier:wall', 'verifier:memory'],
     'elements': [DEF_NUMBER_OF_ELEMENTS],
     # order: [up|down, attr|parent_cpu|parent_wall|parent_memory, <any text, not empty for attr only>]
     # 'order': ['down', 'attr', 'Requirement'],
@@ -126,7 +126,7 @@ SAFES_VIEW = {
 }
 
 UNKNOWNS_VIEW = {
-    'columns': ['component', 'marks_number', 'problems', 'verifiers:cpu', 'verifiers:wall', 'verifiers:memory'],
+    'columns': ['component', 'marks_number', 'problems', 'verifier:cpu', 'verifier:wall', 'verifier:memory'],
     'elements': [DEF_NUMBER_OF_ELEMENTS],
     # order: [up|down, component|attr|parent_cpu|parent_wall|parent_memory, <any text, not empty for attr only>]
     'order': ['down', 'component', ''],
