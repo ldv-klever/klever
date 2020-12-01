@@ -378,7 +378,9 @@ class TableTree:
             elif col == 'status':
                 status_url = None
                 if not decision.is_lightweight and decision.id in self._core:
-                    status_url = reverse('reports:component', args=[self._core[decision.id]])
+                    status_url = reverse('reports:component', args=[
+                        decision.identifier, self._core_identifiers[decision.id]
+                    ])
                 value = cell_value(decision.get_status_display(), url=status_url)
             elif col == 'identifier':
                 value = cell_value(decision.identifier)
@@ -434,6 +436,13 @@ class TableTree:
             decision_id__in=self._decisions_ids, parent=None
         ).values_list('id', 'decision_id')
         return dict((decision_id, report_id) for report_id, decision_id in cores_qs)
+
+    @cached_property
+    def _core_identifiers(self):
+        cores_qs = ReportComponent.objects.filter(
+            decision_id__in=self._decisions_ids, parent=None
+        ).values_list('identifier', 'decision_id')
+        return dict((decision_id, identifier) for identifier, decision_id in cores_qs)
 
     def __get_columns(self):
         extend_action = {

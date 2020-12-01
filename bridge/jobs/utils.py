@@ -130,10 +130,10 @@ def decisions_with_view_access(user: User, queryset):
 def get_core_link(decision):
     if decision.weight == DECISION_WEIGHT[1][0]:
         return None
-    core = ReportComponent.objects.filter(parent=None, decision=decision).only('id').first()
+    core = ReportComponent.objects.filter(parent=None, decision=decision).only('identifier').first()
     if not core:
         return None
-    return reverse('reports:component', args=[core.id])
+    return reverse('reports:component', args=[decision.identifier, core.identifier])
 
 
 def get_roles_form_data(job=None):
@@ -306,10 +306,10 @@ class DecisionProgressData:
     def core_link(self):
         if self._decision.weight == DECISION_WEIGHT[1][0]:
             return None
-        core = ReportComponent.objects.filter(parent=None, decision=self._decision).only('id').first()
+        core = ReportComponent.objects.filter(parent=None, decision=self._decision).only('identifier').first()
         if not core:
             return None
-        return reverse('reports:component', args=[core.id])
+        return reverse('reports:component', args=[self._decision.identifier, core.identifier])
 
 
 class CompareFileSet:

@@ -20,13 +20,6 @@
             {
               "LDV model 'init'": [
                 {
-                  "LDV model 'malloc_unknown_size'": [
-                    {
-                      "LDV model 'reference_malloc_unknown_size'": []
-                    }
-                  ]
-                },
-                {
                   "Instrumented function 'kfree'": [
                     {
                       "LDV model 'free'": [

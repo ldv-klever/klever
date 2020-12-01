@@ -24,8 +24,9 @@ from klever.core.highlight import Highlight
 
 
 class ErrorTrace:
-    MODEL_COMMENT_TYPES = 'NOTE|ASSERT|CIF|EMG_WRAPPER'
     ERROR_TRACE_FORMAT_VERSION = 1
+    MODEL_COMMENT_TYPES = 'NOTE|ASSERT|CIF|EMG_WRAPPER'
+    MAX_NOTE_LEVEl = 3
 
     def __init__(self, logger):
         self._attrs = list()
@@ -90,11 +91,63 @@ class ErrorTrace:
             'highlight': [[h[0], h[2], h[3]] for h in highlight.highlights]
         }
 
+    def convert_notes(self, edge):
+        # Error trace notes should be ordered in the descending order of levels so that the most important notes will be
+        # shown on the bottom, closely to related sources. Moreover, we should select one note among the most important
+        # notes that hides sources if so.
+        if 'notes' in edge:
+            level_notes = {}
+            min_notes_level = self.MAX_NOTE_LEVEl
+            notes = []
+            hide = False
+
+            # Split all notes into backets with appropriate levels.
+            for note_level in range(self.MAX_NOTE_LEVEl, -1, -1):
+                level_notes[note_level] = []
+            for note in edge['notes']:
+                level_notes[note['level']].append(note)
+                min_notes_level = min(note['level'], min_notes_level)
+
+            # Add notes from backets according to comment above.
+            for note_level in range(self.MAX_NOTE_LEVEl, -1, -1):
+                # Try to find note that hides sources. If there are several such notes than it is not defined what
+                # note will be choosen.
+                note_with_hide = None
+                if note_level == min_notes_level:
+                    for note in level_notes[note_level]:
+                        if note['hide']:
+                            note_with_hide = note
+                            break
+
+                for note in level_notes[note_level]:
+                    if note != note_with_hide:
+                        notes.append({
+                            'text': note['text'],
+                            'level': note_level
+                        })
+
+                if note_with_hide:
+                    notes.append({
+                        'text': note_with_hide['text'],
+                        'level': note_level
+                    })
+                    hide = True
+                    # There is no more notes, so, we can break the loop.
+                    break
+            return {
+                'notes': notes,
+                'hide': hide
+            }
+        else:
+            return {}
+
     def serialize(self):
         klever.core.utils.capitalize_attr_names(self._attrs)
 
         # TODO: perhaps it would be easier to operate with such the tree above as well.
         # Convert list of edges to global variable declarations list and to error trace tree.
+        is_first_edge = True
+        is_global_var_decls = False
         global_var_decls = list()
         trace = dict()
         # References to thread nodes for their simple update.
@@ -102,16 +155,39 @@ class ErrorTrace:
         prev_thread_id = None
         # References to thread function call stacks.
         thread_func_call_stacks = dict()
+        # Node for accumulating current local declarations.
+        declarations_node = None
+        # First declaration edge.
+        declarations_edge = None
         for edge in self.trace_iterator():
-            # TODO: new witness format will have another marker for global variable declarations.
-            if edge['thread'] == 0:
+            # All declaration edges starting from the firts one correspond to global declarations.
+            if is_first_edge:
+                is_first_edge = False
+                if 'declaration' in edge:
+                    is_global_var_decls = True
+
+            if 'declaration' in edge and is_global_var_decls:
                 global_var_decl = {
                     'line': edge['line'],
                     'file': edge['file']
                 }
                 global_var_decl.update(self.highlight(edge['source']))
+                global_var_decl.update(self.convert_notes(edge))
                 global_var_decls.append(global_var_decl)
                 continue
+            else:
+                is_global_var_decls = False
+
+            if declarations_node and 'declaration' not in edge:
+                # TODO: make a function for this since there are two more similar places below.
+                if 'action' in declarations_edge:
+                    thread_func_call_stacks[declarations_edge['thread']][-1]['children'][-1]['children'].append(
+                        declarations_node)
+                else:
+                    thread_func_call_stacks[declarations_edge['thread']][-1]['children'].append(declarations_node)
+
+                declarations_node = None
+                declarations_edge = None
 
             if edge['thread'] not in thread_node_refs:
                 # Create node representing given tread.
@@ -178,12 +254,7 @@ class ErrorTrace:
                 else:
                     func_call_node['source'] = 'Unknown'
 
-                if 'note' in edge:
-                    func_call_node['note'] = edge['note']
-
-                if 'warn' in edge:
-                    func_call_node['note'] = edge['warn']
-                    func_call_node['violation'] = True
+                func_call_node.update(self.convert_notes(edge))
 
                 if 'entry_point' in edge:
                     func_call_node['display'] = edge['entry_point']
@@ -213,34 +284,40 @@ class ErrorTrace:
                     # return immediately.
                     thread_func_call_stacks[edge['thread']].append(func_call_node)
             else:
-                # Create node representing given statement that is any edge except for function call enter/return.
-                stmt_node = {
-                    'type': 'statement',
+                # Create node representing given declaration or statement that is any edge of original violation
+                # witnesses except for function call enters/returns.
+                decl_or_stmt_node = {
+                    'type': 'declaration' if 'declaration' in edge else 'statement',
                     'file': edge['file'],
                     'line': edge['line']
                 }
 
-                stmt_node.update(self.highlight(edge['source']))
-
-                if 'note' in edge:
-                    stmt_node['note'] = edge['note']
-
-                if 'warn' in edge:
-                    stmt_node['note'] = edge['warn']
-                    stmt_node['violation'] = True
+                decl_or_stmt_node.update(self.highlight(edge['source']))
+                decl_or_stmt_node.update(self.convert_notes(edge))
 
                 if 'condition' in edge:
-                    stmt_node['condition'] = True
+                    decl_or_stmt_node['condition'] = True
 
                 if 'assumption' in edge:
-                    stmt_node['assumption'] = edge['assumption']
+                    decl_or_stmt_node['assumption'] = edge['assumption']
 
-                # Add created statement node to action node of last function call node from corresponding thread
-                # function call stack or to last function call node itself.
-                if 'action' in edge:
-                    thread_func_call_stacks[edge['thread']][-1]['children'][-1]['children'].append(stmt_node)
+                # Declarations are added alltogether as a block after it is completely handled.
+                if 'declaration' in edge:
+                    if not declarations_node:
+                        declarations_node = {
+                            'type': 'declarations',
+                            'children': list()
+                        }
+                        declarations_edge = edge
+                    declarations_node['children'].append(decl_or_stmt_node)
                 else:
-                    thread_func_call_stacks[edge['thread']][-1]['children'].append(stmt_node)
+                    # Add created statement node to action node of last function call node from corresponding thread
+                    # function call stack or to last function call node itself.
+                    if 'action' in edge:
+                        thread_func_call_stacks[edge['thread']][-1]['children'][-1]['children'].append(
+                            decl_or_stmt_node)
+                    else:
+                        thread_func_call_stacks[edge['thread']][-1]['children'].append(decl_or_stmt_node)
 
                 if 'return' in edge:
                     # Remove last function call node from corresponding thread function call stack.
@@ -248,6 +325,14 @@ class ErrorTrace:
 
             # Remember current thread identifier to track thread switches.
             prev_thread_id = edge['thread']
+
+        # Add remaining declarations. This can happen when last edges in violation witnesses correspond to declarations.
+        if declarations_node:
+            if 'action' in declarations_edge:
+                thread_func_call_stacks[declarations_edge['thread']][-1]['children'][-1]['children'].append(
+                    declarations_node)
+            else:
+                thread_func_call_stacks[declarations_edge['thread']][-1]['children'].append(declarations_node)
 
         data = {
             'format': self.ERROR_TRACE_FORMAT_VERSION,
@@ -272,7 +357,7 @@ class ErrorTrace:
     def add_node(self, node_id):
         if node_id in self._nodes:
             raise ValueError('There is already added node with an identifier {!r}'.format(node_id))
-        self._nodes[node_id] = {'in': list(), 'out': list()}
+        self._nodes[node_id] = {'id': node_id, 'in': list(), 'out': list()}
         return self._nodes[node_id]
 
     def add_edge(self, source, target):
@@ -402,11 +487,14 @@ class ErrorTrace:
 
         return new_edge
 
+    def is_warning(self, edge):
+        if 'notes' in edge:
+            return any(note['level'] == 0 for note in edge['notes'])
+
     def remove_edge_and_target_node(self, edge):
         # Do not delete edge with a warning
-        if 'warn' in edge:
-            raise ValueError('Cannot delete edge with warning{0}'
-                             .format(': {!r}'.format(edge['source']) if 'source' in edge else ''))
+        if self.is_warning(edge):
+            raise ValueError('Cannot delete edge with warning: {!r}'.format(edge['source']))
 
         source = edge['source node']
         target = edge['target node']
@@ -492,7 +580,7 @@ class ErrorTrace:
 
             self._logger.debug('Parse model comments from {!r}'.format(file))
 
-            with open(file, encoding='utf8') as fp:
+            with open(file, encoding='utf-8') as fp:
                 line = 0
                 for text in fp:
                     line += 1
@@ -660,16 +748,18 @@ class ErrorTrace:
     def _mark_witness(self):
         self._logger.info('Mark witness with model comments')
 
+        # TODO: This should not be necessary when ldv_assert() and corresponding model comments will be used properly,
+        #       in particular, when ldv_assert() will not be invoked with positive conditions (not an error).
         # Two stages are required since for marking edges with warnings we need to know whether there notes at violation
-        # path below.
-        warn_edges = list()
+        # path above.
         for edge in self.trace_iterator():
+            # Do not add notes when finding warnings.
+            if self.is_warning(edge):
+                continue
+
+            line = edge['line']
             file_id = edge['file']
             file = self.resolve_file(file_id)
-
-            if 'warn' in edge:
-                continue
-            line = edge['line']
 
             if 'enter' in edge:
                 func_id = edge['enter']
@@ -690,12 +780,21 @@ class ErrorTrace:
             if file_id in self._notes and line in self._notes[file_id]:
                 note = self._notes[file_id][line]
                 self._logger.debug("Add note {!r} for statement from '{}:{}'".format(note, file, line))
-                edge['note'] = note
+                # Model comments are rather essential and they are designed to hide model implementation details.
+                # Unfortunately, some model comments are not perfect yet, but we should fix them rather than make some
+                # workarounds to encourage developers of bad model comments.
+                if 'notes' not in edge:
+                    edge['notes'] = []
+                edge['notes'].append({
+                    'text': note,
+                    'level': 1,
+                    'hide': True
+                })
 
         for edge in self.trace_iterator(backward=True):
+            line = edge['line']
             file_id = edge['file']
             file = self.resolve_file(file_id)
-            line = edge['line']
 
             if file_id in self._asserts and line in self._asserts[file_id]:
                 # Add warning just if there are no more edges with notes at violation path below.
@@ -703,7 +802,7 @@ class ErrorTrace:
                 note_found = False
                 for violation_edge in reversed(self._violation_edges):
                     if track_notes:
-                        if 'note' in violation_edge:
+                        if 'notes' in violation_edge:
                             note_found = True
                             break
                     if id(violation_edge) == id(edge):
@@ -711,21 +810,18 @@ class ErrorTrace:
 
                 if not note_found:
                     warn = self._asserts[file_id][line]
-
                     self._logger.debug("Add warning {!r} for statement from '{}:{}'".format(warn, file, line))
-
-                    warn_edge = edge
-                    warn_edge['warn'] = warn
-                    warn_edges.append(warn_edge)
+                    if 'notes' not in edge:
+                        edge['notes'] = []
+                    edge['notes'].append({
+                        'text': warn,
+                        'level': 0,
+                        'hide': True
+                    })
 
                     # Do not try to add any warnings any more. We don't know how several violations are encoded in
                     # witnesses.
                     break
-
-        # Remove notes from edges marked with warnings. Otherwise error trace visualizer will be confused.
-        for warn_edge in warn_edges:
-            if 'note' in warn_edge:
-                del warn_edge['note']
 
         del self._violation_edges, self._notes, self._asserts, self.displays
 

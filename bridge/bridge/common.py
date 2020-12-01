@@ -137,7 +137,8 @@ DEF_USER = {
     'accuracy': 2,  # 0 - 10
     'assumptions': False,
     'triangles': False,
-    'coverage_data': False
+    'coverage_data': False,
+    'declarations_number': 3
 }
 
 LOGS_DIR = os.path.join(BASE_DIR, 'logs')

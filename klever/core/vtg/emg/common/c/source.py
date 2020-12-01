@@ -188,7 +188,7 @@ def _import_code_analysis(logger, conf, clade, dependencies, collection):
     macros_file = conf.get('macros white list')
     if macros_file:
         macros_file = find_file_or_dir(logger, conf['main working directory'], macros_file)
-        with open(macros_file, 'r', encoding='utf8') as fp:
+        with open(macros_file, 'r', encoding='utf-8') as fp:
             white_list = sorted(ujson.load(fp))
         if white_list:
             macros = clade.get_macros_expansions(sorted(collection.cfiles), white_list)

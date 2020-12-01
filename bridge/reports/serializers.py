@@ -320,3 +320,12 @@ class OriginalSourcesSerializer(serializers.ModelSerializer):
     class Meta:
         model = OriginalSources
         fields = '__all__'
+
+
+class PatchReportAttrSerializer(serializers.ModelSerializer):
+    def create(self, validated_data):
+        raise NotImplementedError('Attribute creation is not supported here')
+
+    class Meta:
+        model = ReportAttr
+        fields = ('compare', 'associate')

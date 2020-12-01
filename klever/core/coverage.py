@@ -158,7 +158,7 @@ class JCR(klever.core.components.Component):
                     arcfiles[sub_job_id].setdefault(req_spec_id, {})
 
                     if os.path.isfile(coverage_info['coverage info file']):
-                        with open(coverage_info['coverage info file'], encoding='utf8') as fp:
+                        with open(coverage_info['coverage info file'], encoding='utf-8') as fp:
                             loaded_coverage_info = json.load(fp)
 
                         # Clean if needed
@@ -189,7 +189,7 @@ class JCR(klever.core.components.Component):
                     total_coverage_dirs = []
 
                     # This is ugly. But this should disappear after implementing TODO at klever.core.job.start_jobs.
-                    sub_job_dir = 'job' if sub_job_id == '-' else 'sub-job {0}'.format(sub_job_id)
+                    sub_job_dir = sub_job_id.lower()
 
                     for req_spec_id in counters[sub_job_id]:
                         self.__read_data(total_coverage_infos, sub_job_id, req_spec_id)
@@ -271,7 +271,7 @@ class JCR(klever.core.components.Component):
         file_name = os.path.join(self.__get_total_cov_dir(sub_job_id, requirement), self.COVERAGE_FILE_NAME)
 
         if os.path.isfile(file_name):
-            with open(file_name, 'r', encoding='utf8') as fp:
+            with open(file_name, 'r', encoding='utf-8') as fp:
                 large_cache = json.load(fp)
         else:
             large_cache = dict()
@@ -301,7 +301,7 @@ class JCR(klever.core.components.Component):
         file_name = os.path.join(self.__get_total_cov_dir(sub_job_id, requirement), self.COVERAGE_FILE_NAME)
         cache.setdefault(sub_job_id, dict())
         cache[sub_job_id].setdefault(requirement, dict())
-        with open(file_name, 'w', encoding='utf8') as fp:
+        with open(file_name, 'w', encoding='utf-8') as fp:
             json.dump(cache[sub_job_id][requirement], fp)
 
     def __clean_data(self, cache, job_id, requirement):

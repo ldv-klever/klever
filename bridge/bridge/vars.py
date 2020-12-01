@@ -230,8 +230,6 @@ SUBJOB_NAME = 'Subjob'
 # Attribute name for coverages table on job page
 NAME_ATTR = 'Sub-job identifier'
 
-UNKNOWN_ATTRS_NOT_ASSOCIATE = {'Verification object', 'Program fragment'}
-
 COMPARE_FUNCTIONS = {
     'relevant_call_forests': {
         'desc': 'Jaccard index of "relevant_call_forests" convertion.',

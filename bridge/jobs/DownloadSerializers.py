@@ -176,14 +176,14 @@ class DownloadReportUnsafeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ReportUnsafe
-        exclude = ('id', 'trace_id', *MPTT_FIELDS)
+        exclude = ('id', *MPTT_FIELDS)
         extra_kwargs = {'decision': {'read_only': True}, 'error_trace': {'read_only': True}}
 
 
 class UploadReportUnsafeSerializer(serializers.ModelSerializer):
     class Meta:
         model = ReportUnsafe
-        exclude = ('id', 'identifier', 'parent', 'trace_id', 'error_trace', 'decision', *MPTT_FIELDS)
+        exclude = ('id', 'identifier', 'parent', 'error_trace', 'decision', *MPTT_FIELDS)
 
 
 class DownloadReportUnknownSerializer(serializers.ModelSerializer):

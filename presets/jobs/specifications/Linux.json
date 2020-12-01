@@ -115,7 +115,7 @@
             "verifier profile": "reachability",
             "verifier": {
               "name": "CPAchecker",
-              "version": "trunk:31140"
+              "version": "trunk:36126"
             }
           }
         }
@@ -172,7 +172,7 @@
             "verifier profile": "memory checking",
             "verifier": {
               "name": "CPAchecker",
-              "version": "trunk:31140"
+              "version": "trunk:36126"
             }
           }
         }
@@ -217,11 +217,10 @@
             "verifier profile": "race checking",
             "verifier": {
               "name": "CPAchecker",
-              "version": "CPALockator-combat-mode:34860"
+              "version": "CPALockator:36189"
             },
             "result processing": {
-              "expect several witnesses": true,
-              "code coverage details": "None"
+              "expect several witnesses": true
             }
           }
         }
@@ -429,7 +428,7 @@
                           "verifier profile": "reachability with heap arrays",
                           "verifier": {
                             "name": "CPAchecker",
-                            "version": "trunk:31140"
+                            "version": "trunk:36126"
                           }
                         }
                       }
@@ -756,7 +755,7 @@
                   "verifier profile": "reachability with function pointers",
                   "verifier": {
                     "name": "CPAchecker",
-                    "version": "trunk:31140"
+                    "version": "trunk:36126"
                   }
                 }
               }
@@ -784,7 +783,7 @@
                   "verifier profile": "reachability with heap arrays",
                   "verifier": {
                     "name": "CPAchecker",
-                    "version": "trunk:31140"
+                    "version": "trunk:36126"
                   }
                 }
               }

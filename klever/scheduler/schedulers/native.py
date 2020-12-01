@@ -73,7 +73,7 @@ class Native(runners.Speculative):
         self._kv_url = self.conf["scheduler"]["controller address"]
 
         # Import job configuration prototype
-        with open(self.conf["scheduler"]["job client configuration"], encoding="utf8") as fh:
+        with open(self.conf["scheduler"]["job client configuration"], encoding="utf-8") as fh:
             self._job_conf_prototype = json.loads(fh.read())
         # Try to get configuration just to be sure that it exists
         self._get_task_configuration()
@@ -89,20 +89,13 @@ class Native(runners.Speculative):
             self.logger.debug("Use provided in configuration prototype 'common' settings for jobs")
 
         # Check node first time
-        if "concurrent jobs" in self.conf["scheduler"]:
-            concurrent_jobs = self.conf["scheduler"]["concurrent jobs"]
-        else:
-            concurrent_jobs = 1
-        self._manager = resource_scheduler.ResourceManager(self.logger, concurrent_jobs)
+        self._manager = resource_scheduler.ResourceManager(
+            self.logger, max_jobs=self.conf["scheduler"].get("concurrent jobs", 1))
 
-        if "wait controller initialization" in self.conf["scheduler"]:
-            wc = self.conf["scheduler"]["wait controller initialization"]
-        else:
-            wc = False
-        self.update_nodes(wc)
+        self.update_nodes(self.conf["scheduler"].get("wait controller initialization", False))
         nodes = self._manager.active_nodes
         if len(nodes) != 1:
-            raise ValueError('Expect strictly single active connected node but {} given'.format(len(nodes)))
+            raise ValueError(f'Expect strictly single active connected node but {len(nodes)} given')
         else:
             self._node_name = nodes[0]
             data = self._manager.node_info(self._node_name)
@@ -126,10 +119,13 @@ class Native(runners.Speculative):
             if isinstance(max_processes, float):
                 max_processes = max(2, int(max_processes * self._cpu_cores))
         if max_processes < 2:
-            raise KeyError(
-                "The number of parallel processes should be greater than 2 ({} is given)".format(max_processes))
-        self.logger.info("Initialize pool with {} processes to run tasks and jobs".format(max_processes))
-        if "process pool" in self.conf["scheduler"] and self.conf["scheduler"]["process pool"]:
+            raise KeyError(f"The number of parallel processes should be greater than 2 ({max_processes} is given)")
+
+        # Limit the total number of running jobs and tasks by the number of executors in the pool
+        self._manager.set_pool_limit(max_processes)
+
+        self.logger.info(f"Initialize pool with {max_processes} processes to run tasks and jobs")
+        if self.conf["scheduler"].get("process pool"):
             self._pool = concurrent.futures.ProcessPoolExecutor(max_processes)
         else:
             self._pool = concurrent.futures.ThreadPoolExecutor(max_processes)
@@ -386,10 +382,10 @@ class Native(runners.Speculative):
                     len(client_conf["resource limits"]["CPU cores"])
 
             # Save Klever Core configuration to default configuration file
-            with open(os.path.join(work_dir, "core.json"), "w", encoding="utf8") as fh:
+            with open(os.path.join(work_dir, "core.json"), "w", encoding="utf-8") as fh:
                 json.dump(client_conf["Klever Core conf"], fh, ensure_ascii=False, sort_keys=True, indent=4)
 
-        with open(file_name, 'w', encoding="utf8") as fp:
+        with open(file_name, 'w', encoding="utf-8") as fp:
             json.dump(client_conf, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
     def _check_solution(self, identifier, future, mode='task'):
@@ -469,24 +465,32 @@ class Native(runners.Speculative):
 
                 logfile = "{}/client-log.log".format(work_dir)
                 if os.path.isfile(logfile):
-                    with open(logfile, mode='r', encoding="utf8") as f:
+                    with open(logfile, mode='r', encoding="utf-8") as f:
                         self.logger.debug("Scheduler client log: {}".format(f.read()))
                 else:
                     self.logger.warning("Cannot find Scheduler client file with logs: {!r}".format(logfile))
 
                 errors_file = "{}/client-critical.log".format(work_dir)
                 if os.path.isfile(errors_file):
-                    with open(errors_file, mode='r', encoding="utf8") as f:
-                        errors = f.readlines()
-                    if self.conf["scheduler"].get("ignore BenchExec warnings"):
-                        for msg in list(errors):
-                            match = re.search(r'WARNING - (.*)', msg)
-                            if match and (self.conf["scheduler"]["ignore BenchExec warnings"] is True or
-                                  (isinstance(self.conf["scheduler"]["ignore BenchExec warnings"], list) and
-                                   any(True for t in self.conf["scheduler"]["ignore BenchExec warnings"] if t in msg))):
-                                errors.remove(msg)
-                            elif re.search(r'benchexec(.*) outputted to STDERR', msg):
-                                errors.remove(msg)
+                    with open(errors_file, mode='r', encoding="utf-8") as f:
+                        errors = [l.strip() for l in f.readlines()]
+
+                    new_errors = []
+                    for msg in list(errors):
+                        if not msg:
+                            continue
+
+                        match = re.search(r'WARNING - (.*)', msg)
+                        if not match:
+                            continue
+                        elif self.conf["scheduler"].get("ignore BenchExec warnings") is True or \
+                            (isinstance(self.conf["scheduler"].get("ignore BenchExec warnings"), list) and
+                             any(True for t in self.conf["scheduler"].get("ignore BenchExec warnings") if t in msg)):
+                            continue
+                        elif re.search(r'benchexec(.*) outputted to STDERR', msg):
+                            continue
+                        new_errors.append(msg)
+                    errors = new_errors
                 else:
                     errors = []
 
@@ -598,11 +602,11 @@ class Native(runners.Speculative):
         work_dir = os.path.join(self.work_dir, entities, identifier)
         self.logger.debug("Create working directory {}/{}".format(entities, identifier))
         if "keep working directory" in self.conf["scheduler"] and self.conf["scheduler"]["keep working directory"]:
-            os.makedirs(work_dir.encode("utf8"), exist_ok=True)
+            os.makedirs(work_dir.encode("utf-8"), exist_ok=True)
         else:
-            if os.path.isdir(work_dir.encode("utf8")):
+            if os.path.isdir(work_dir.encode("utf-8")):
                 shutil.rmtree(work_dir, ignore_errors=True)
-            os.makedirs(work_dir.encode("utf8"), exist_ok=False)
+            os.makedirs(work_dir.encode("utf-8"), exist_ok=False)
 
     def _get_task_configuration(self):
         """
@@ -611,7 +615,7 @@ class Native(runners.Speculative):
         :return: Dictionary with the updated configuration.
         """
         name = self.conf["scheduler"]["task client configuration"]
-        with open(name, encoding="utf8") as fh:
+        with open(name, encoding="utf-8") as fh:
             data = json.loads(fh.read())
 
         # Do checks

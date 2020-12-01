@@ -59,7 +59,7 @@ class ErrorTraceParser:
     def _parse_witness(self, witness):
         self._logger.info('Parse witness {!r}'.format(witness))
 
-        with open(witness, encoding='utf8') as fp:
+        with open(witness, encoding='utf-8') as fp:
             tree = ET.parse(fp)
 
         root = tree.getroot()
@@ -224,8 +224,20 @@ class ErrorTraceParser:
                 elif data_key == 'threadId':
                     # TODO: SV-COMP states that thread identifiers should unique, they may be non-numbers as we want.
                     _edge['thread'] = int(data.text)
-                elif data_key in ('note', 'warning'):
-                    _edge[data_key if data_key == 'note' else 'warn'] = data.text
+                elif data_key == 'declaration':
+                    _edge['declaration'] = True
+                elif data_key == 'note':
+                    m = re.match(r'level="(\d+)" hide="(false|true)" value="(.+)"$', data.text)
+                    if m:
+                        if 'notes' not in _edge:
+                            _edge['notes'] = []
+                        _edge['notes'].append({
+                            'level': int(m.group(1)),
+                            'hide': False if m.group(2) == 'false' else True,
+                            'text': m.group(3).replace('\\\"', '\"')
+                        })
+                    else:
+                        self._logger.warning('Invalid format of note "{0}"'.format(data.text))
                 elif data_key not in unsupported_edge_data_keys:
                     self._logger.warning('Edge data key {!r} is not supported'.format(data_key))
                     unsupported_edge_data_keys[data_key] = None

@@ -385,7 +385,6 @@ class Scheduler:
             except KeyboardInterrupt:
                 self.logger.error("Scheduler execution is interrupted, cancel all running threads")
                 self.terminate()
-                self.server.stop()
                 self._listening_thread.stop()
                 self._listening_thread.join()
                 exit(137)
@@ -395,7 +394,6 @@ class Scheduler:
                 self.terminate()
                 self._listening_thread.stop()
                 self._listening_thread.join()
-                self.server.stop()
                 if self.production:
                     self.logger.info("Reinitialize scheduler and try to proceed execution in 30 seconds...")
                     time.sleep(30)

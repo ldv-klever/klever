@@ -1,19 +1,2 @@
 [
-  {
-    "description": "Active environment model contains inaccuracies",
-    "name": "EMG"
-  },
-  {
-    "description": "Specification for EMG is incomplete",
-    "name": "EnvSpec",
-    "parent": "EMG"
-  },
-  {
-    "description": "Kernel model is inaccurate or absent",
-    "name": "KernelModel"
-  },
-  {
-    "description": "The implementation of the requirement is inaccurate",
-    "name": "Requirement"
-  }
 ]

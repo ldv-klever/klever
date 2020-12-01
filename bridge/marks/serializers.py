@@ -348,6 +348,7 @@ class UnsafeMarkSerializer(DynamicFieldsModelSerializer):
             validated_data['author'] = self.context['request'].user
 
         validated_data['status'] = version_data['status']
+        validated_data['threshold'] = version_data['threshold']
 
         instance = super().create(validated_data)
         create_mark_version(instance, **version_data)
@@ -360,6 +361,7 @@ class UnsafeMarkSerializer(DynamicFieldsModelSerializer):
             version_data['author'] = self.context['request'].user
         validated_data['version'] = instance.version + 1
         validated_data['status'] = version_data['status']
+        validated_data['threshold'] = version_data['threshold']
 
         instance = super().update(instance, validated_data)
         create_mark_version(instance, **version_data)

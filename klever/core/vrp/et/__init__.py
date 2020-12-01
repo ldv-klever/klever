@@ -57,5 +57,5 @@ if __name__ == '__main__':
 
     et, attrs = import_error_trace(gl_logger, 'witness.graphml', {'cil.i': 'cil.i'})
 
-    with open('error trace.json', 'w', encoding='utf8') as fp:
+    with open('error trace.json', 'w', encoding='utf-8') as fp:
         json.dump(et, fp, ensure_ascii=False, sort_keys=True, indent=4)
