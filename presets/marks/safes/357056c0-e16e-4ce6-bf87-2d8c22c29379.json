@@ -13,9 +13,6 @@
   ],
   "description": "Workqueues support (feature #6822).",
   "is_modifiable": false,
-  "tags": [
-    "EMG",
-    "EnvSpec"
-  ],
+  "tags": [],
   "verdict": "1"
 }
