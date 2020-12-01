@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-12-01 09:38+0000\n"
+"POT-Creation-Date: 2020-12-01 11:53+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -26,13 +26,11 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
-"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 
 #: bridge/serializers.py:47
 msgid "Timestamp format is wrong (float number is expected)"
-msgstr ""
-"Неправильный формат временной метки (ожидается число с плавающей точкой)"
+msgstr "Неправильный формат временной метки (ожидается число с плавающей точкой)"
 
 #: bridge/templates/bridge/400.html:22 bridge/templates/bridge/400.html:25
 msgid "Bad request"
@@ -290,9 +288,7 @@ msgstr "Подтверждение"
 #: bridge/utils.py:117
 #, python-brace-format
 msgid "Please keep the file size under {0} (the current file size is {1})"
-msgstr ""
-"Пожалуйста, не загружайте файлы размером больше {0} (текущий размер файла - "
-"{1})"
+msgstr "Пожалуйста, не загружайте файлы размером больше {0} (текущий размер файла - {1})"
 
 #: bridge/utils.py:130
 #, fuzzy
@@ -938,9 +934,7 @@ msgstr "У Вас нет прав начать решение данного з�
 #, fuzzy
 #| msgid "No versions to delete (you can't remove first and last versions)"
 msgid "You can't remove this decision"
-msgstr ""
-"Нет версий, которые можно удалить (Вы не можете удалить первую и последнюю "
-"версии)"
+msgstr "Нет версий, которые можно удалить (Вы не можете удалить первую и последнюю версии)"
 
 #: jobs/api.py:278
 #, fuzzy
@@ -1058,12 +1052,8 @@ msgstr "Файл не является корректным JSON: {exc}"
 
 #: jobs/serializers.py:154
 #, python-brace-format
-msgid ""
-"Please keep the file size under {max_size} (the current file size is "
-"{curr_size})"
-msgstr ""
-"Пожалуйста, не загружайте файлы размером больше {max_size} (текущий размер "
-"файла - {curr_size})"
+msgid "Please keep the file size under {max_size} (the current file size is {curr_size})"
+msgstr "Пожалуйста, не загружайте файлы размером больше {max_size} (текущий размер файла - {curr_size})"
 
 #: jobs/templates/jobs/DecisionResults.html:23
 #, fuzzy
@@ -1267,18 +1257,12 @@ msgstr "Текущая версия"
 
 #: jobs/templates/jobs/decisionCreateForm.html:119
 #: jobs/templates/jobs/restartDecision.html:42
-msgid ""
-"VerifierCloud credentials were successfully saved (you can change them in "
-"your settings)"
-msgstr ""
-"Идентификационная информация для VerifierCloud была успешно сохранена (Вы "
-"можете изменить ее в Ваших настройках)"
+msgid "VerifierCloud credentials were successfully saved (you can change them in your settings)"
+msgstr "Идентификационная информация для VerifierCloud была успешно сохранена (Вы можете изменить ее в Ваших настройках)"
 
 #: jobs/templates/jobs/decisionCreateForm.html:128
 msgid "Names with non-ASCII characters must be less than 30 characters"
-msgstr ""
-"Названия, в которых используются не ASCII символы, должны быть меньше 30 "
-"символов"
+msgstr "Названия, в которых используются не ASCII символы, должны быть меньше 30 символов"
 
 #: jobs/templates/jobs/decisionCreateForm.html:129
 msgid "Title is required"
@@ -1444,9 +1428,7 @@ msgid "dedent the current line or selection by one indent unit"
 msgstr ""
 
 #: jobs/templates/jobs/fileEditor.html:43
-msgid ""
-"if something is selected, indent it by one indent unit; if nothing is "
-"selected, insert a tab character"
+msgid "if something is selected, indent it by one indent unit; if nothing is selected, insert a tab character"
 msgstr ""
 
 #: jobs/templates/jobs/fileEditor.html:45
@@ -1474,8 +1456,7 @@ msgstr "Приоритет задания"
 #, fuzzy
 #| msgid "Please select exactly two jobs which reports you want to compare"
 msgid "Please select exactly two decisions you want to compare"
-msgstr ""
-"Пожалуйста, отметьте ровно два задания, у которых Вы хотите сравнить отчеты"
+msgstr "Пожалуйста, отметьте ровно два задания, у которых Вы хотите сравнить отчеты"
 
 #: jobs/templates/jobs/jobPage.html:33
 #, fuzzy
@@ -1745,12 +1726,8 @@ msgid "CPU model"
 msgstr "Модель процессора"
 
 #: jobs/templates/jobs/startDecision.html:152
-msgid ""
-"You can specify any substring of the target CPU model. The empty value means "
-"any model."
-msgstr ""
-"Вы можете указать любую подстроку целевой модели процессора. Пустое значение "
-"означает любую модель."
+msgid "You can specify any substring of the target CPU model. The empty value means any model."
+msgstr "Вы можете указать любую подстроку целевой модели процессора. Пустое значение означает любую модель."
 
 #: jobs/templates/jobs/startDecision.html:159
 msgid "Logging"
@@ -2033,9 +2010,7 @@ msgid "Choose filters"
 msgstr "Переместить файл"
 
 #: jobs/templates/jobs/viewDecision/main.html:171
-msgid ""
-"If you don't choose unknowns' problems then all unknowns files will be "
-"downloaded"
+msgid "If you don't choose unknowns' problems then all unknowns files will be downloaded"
 msgstr ""
 
 #: jobs/templates/jobs/viewDecision/main.html:197
@@ -2057,9 +2032,7 @@ msgstr ""
 #: jobs/templates/jobs/viewDecision/main.html:229
 #, fuzzy
 #| msgid "All existing reports of this job will be deleted"
-msgid ""
-"All existing reports and previous decision results of this decision will be "
-"deleted"
+msgid "All existing reports and previous decision results of this decision will be deleted"
 msgstr "Все существующие отчеты задания будут удалены"
 
 #: jobs/templates/jobs/viewDecision/main.html:236
@@ -2321,12 +2294,8 @@ msgid "Wrong status value"
 msgstr "Некорректное значение статуса"
 
 #: marks/serializers.py:397
-msgid ""
-"The pattern is wrong, please refer to documentation on the standard Python "
-"library for processing reqular expressions"
-msgstr ""
-"Шаблон некорректный, пожалуйста, обратитесь к документации на стандартную "
-"библиотеку Python для работы с регулярными выражениями"
+msgid "The pattern is wrong, please refer to documentation on the standard Python library for processing reqular expressions"
+msgstr "Шаблон некорректный, пожалуйста, обратитесь к документации на стандартную библиотеку Python для работы с регулярными выражениями"
 
 #: marks/serializers.py:492
 msgid "Current version"
@@ -2598,12 +2567,8 @@ msgid "Page %(n1)s of %(n2)s"
 msgstr ""
 
 #: marks/templates/marks/MarkList.html:91
-msgid ""
-"List of marks of the given type is empty, please create them or change the "
-"view"
-msgstr ""
-"Список оценок данного типа пустой, пожалуйста, создайте их или измените "
-"представление"
+msgid "List of marks of the given type is empty, please create them or change the view"
+msgstr "Список оценок данного типа пустой, пожалуйста, создайте их или измените представление"
 
 #: marks/templates/marks/MarkList.html:103
 msgid "All versions and all data of the selected marks will be deleted"
@@ -2652,9 +2617,7 @@ msgstr "Привязанные листовые отчеты"
 #: marks/templates/marks/SafeMark.html:179
 #: marks/templates/marks/UnknownMark.html:188
 #: marks/templates/marks/UnsafeMark.html:209
-msgid ""
-"The list of associated reports is empty. Maybe it is because of the selected "
-"view."
+msgid "The list of associated reports is empty. Maybe it is because of the selected view."
 msgstr ""
 
 #: marks/templates/marks/SaveMarkResult.html:24
@@ -2668,8 +2631,7 @@ msgid "Show mark"
 msgstr "Нет оценок"
 
 #: marks/templates/marks/SaveMarkResult.html:67
-msgid ""
-"No changes with total expert evaluations or the view has filtered all results"
+msgid "No changes with total expert evaluations or the view has filtered all results"
 msgstr ""
 
 #: marks/templates/marks/TagPopup.html:23
@@ -2843,9 +2805,7 @@ msgstr "Компьютер"
 #, fuzzy
 #| msgid "No versions to delete (you can't remove first and last versions)"
 msgid "You can't remove first and last versions"
-msgstr ""
-"Нет версий, которые можно удалить (Вы не можете удалить первую и последнюю "
-"версии)"
+msgstr "Нет версий, которые можно удалить (Вы не можете удалить первую и последнюю версии)"
 
 #: marks/templates/marks/versions.html:47
 msgid "You won't be able to restore deleted versions"
@@ -2859,8 +2819,7 @@ msgstr "Нечего удалять"
 #, fuzzy
 #| msgid "Please select exactly two jobs which reports you want to compare"
 msgid "Please select exactly two versions to compare"
-msgstr ""
-"Пожалуйста, отметьте ровно два задания, у которых Вы хотите сравнить отчеты"
+msgstr "Пожалуйста, отметьте ровно два задания, у которых Вы хотите сравнить отчеты"
 
 #: marks/utils.py:263
 msgid "You can't confirm dissimilar mark"
@@ -2906,11 +2865,9 @@ msgstr "Формат атрибутов некорректный"
 
 #: reports/api.py:208
 #, fuzzy
-#| msgid ""
-#| "The component log is huge and can not be showed but you can download it"
+#| msgid "The component log is huge and can not be showed but you can download it"
 msgid "The attribute data is huge and can not be shown but you can download it"
-msgstr ""
-"Лог компонента большой и не может быть показан, но Вы можете загрузить его"
+msgstr "Лог компонента большой и не может быть показан, но Вы можете загрузить его"
 
 #: reports/api.py:225 reports/utils.py:1329
 #, fuzzy
@@ -2920,11 +2877,9 @@ msgstr "Компонент не был найден"
 
 #: reports/api.py:229
 #, fuzzy
-#| msgid ""
-#| "The component log is huge and can not be showed but you can download it"
+#| msgid "The component log is huge and can not be showed but you can download it"
 msgid "The component log is huge and can not be shown but you can download it"
-msgstr ""
-"Лог компонента большой и не может быть показан, но Вы можете загрузить его"
+msgstr "Лог компонента большой и не может быть показан, но Вы можете загрузить его"
 
 #: reports/comparison.py:84
 msgid "Jobs with different sets of attributes to compare can't be compared"
@@ -2997,9 +2952,7 @@ msgid "Unconfirm"
 msgstr ""
 
 #: reports/templates/reports/AssociatedMarksTable.html:123
-msgid ""
-"The list of associated marks is empty. Maybe it is because of the selected "
-"view."
+msgid "The list of associated marks is empty. Maybe it is because of the selected view."
 msgstr ""
 
 #: reports/templates/reports/ReportData.html:23
@@ -3247,9 +3200,7 @@ msgid "Fullweight"
 msgstr ""
 
 #: reports/templates/reports/ReportUnsafe.html:96
-msgid ""
-"You can try another level of code coverage details when starting decision to "
-"get code coverage for the given source file"
+msgid "You can try another level of code coverage details when starting decision to get code coverage for the given source file"
 msgstr ""
 
 #: reports/templates/reports/SourceCode.html:39
@@ -3257,9 +3208,7 @@ msgid "References"
 msgstr ""
 
 #: reports/templates/reports/SourceCode.html:68
-msgid ""
-"You can try another level of code coverage details when starting decision to "
-"get the given source file"
+msgid "You can try another level of code coverage details when starting decision to get the given source file"
 msgstr ""
 
 #: reports/templates/reports/comparison.html:23
@@ -4088,9 +4037,7 @@ msgid "Data format"
 msgstr "Формат данных"
 
 #: users/models.py:38
-msgid ""
-"Most of dates are not updated automatically, so human-readable dates could "
-"become outdated until you reload page by hand"
+msgid "Most of dates are not updated automatically, so human-readable dates could become outdated until you reload page by hand"
 msgstr ""
 
 #: users/models.py:42 users/templates/users/showProfile.html:43
@@ -4106,12 +4053,8 @@ msgid "Error trace assumptions"
 msgstr "Предположения трасс ошибок"
 
 #: users/models.py:48
-msgid ""
-"This setting turns on visualization of error trace assumptions. This can "
-"take very much time for big error traces."
-msgstr ""
-"Данная настройка включает визуализацию предположений трасс ошибок. Это может "
-"потребовать очень много времени для больших трасс ошибок."
+msgid "This setting turns on visualization of error trace assumptions. This can take very much time for big error traces."
+msgstr "Данная настройка включает визуализацию предположений трасс ошибок. Это может потребовать очень много времени для больших трасс ошибок."
 
 #: users/models.py:52
 #, fuzzy
@@ -4121,15 +4064,9 @@ msgstr "Преобразование трассы ошибки провалил�
 
 #: users/models.py:53
 #, fuzzy
-#| msgid ""
-#| "This setting turns on visualization of error trace assumptions. This can "
-#| "take very much time for big error traces."
-msgid ""
-"This setting turns on visualization of error trace closing triangles at the "
-"end of each thread."
-msgstr ""
-"Данная настройка включает визуализацию предположений трасс ошибок. Это может "
-"потребовать очень много времени для больших трасс ошибок."
+#| msgid "This setting turns on visualization of error trace assumptions. This can take very much time for big error traces."
+msgid "This setting turns on visualization of error trace closing triangles at the end of each thread."
+msgstr "Данная настройка включает визуализацию предположений трасс ошибок. Это может потребовать очень много времени для больших трасс ошибок."
 
 #: users/models.py:56
 msgid "Coverage data"
@@ -4137,13 +4074,9 @@ msgstr ""
 
 #: users/models.py:57
 #, fuzzy
-#| msgid ""
-#| "This setting turns on visualization of error trace assumptions. This can "
-#| "take very much time for big error traces."
+#| msgid "This setting turns on visualization of error trace assumptions. This can take very much time for big error traces."
 msgid "This setting turns on visualization of coverage data and its statistic."
-msgstr ""
-"Данная настройка включает визуализацию предположений трасс ошибок. Это может "
-"потребовать очень много времени для больших трасс ошибок."
+msgstr "Данная настройка включает визуализацию предположений трасс ошибок. Это может потребовать очень много времени для больших трасс ошибок."
 
 #: users/models.py:64
 #, fuzzy
@@ -4152,8 +4085,7 @@ msgid "Number of declarations in error trace"
 msgstr "Количество решений задач"
 
 #: users/models.py:65
-msgid ""
-"Error trace declarations number threshold that should be opened by default"
+msgid "Error trace declarations number threshold that should be opened by default"
 msgstr ""
 
 #: users/notifications.py:33
@@ -4212,17 +4144,13 @@ msgstr "Пользователь %(user)s создал задание с иде�
 
 #: users/notifications.py:52
 #, python-format
-msgid ""
-"The job <a href=\"%(url)s\">%(id)s</a> was changed by %(user)s: %(comm)s"
-msgstr ""
-"Пользователь %(user)s изменил задание <a href=\"%(url)s\">%(id)s</a>: "
-"%(comm)s"
+msgid "The job <a href=\"%(url)s\">%(id)s</a> was changed by %(user)s: %(comm)s"
+msgstr "Пользователь %(user)s изменил задание <a href=\"%(url)s\">%(id)s</a>: %(comm)s"
 
 #: users/notifications.py:54
 #, python-format
 msgid "The job with identifier %(id)s was changed by %(user)s: %(comm)s"
-msgstr ""
-"Пользователь %(user)s изменил задание с идентификатором %(id)s: %(comm)s"
+msgstr "Пользователь %(user)s изменил задание с идентификатором %(id)s: %(comm)s"
 
 #: users/notifications.py:56
 #, python-format
@@ -4242,15 +4170,12 @@ msgstr "Завершилось решение заданиея с идентиф
 #: users/notifications.py:59
 #, python-format
 msgid "Found the new unsafe for the job with identifier %(id)s"
-msgstr ""
-"Обнаружено новое предупреждение об ошибке для задания с идентификатором "
-"%(id)s"
+msgstr "Обнаружено новое предупреждение об ошибке для задания с идентификатором %(id)s"
 
 #: users/notifications.py:60
 #, python-format
 msgid "Found the new unknown for the job with identifier %(id)s"
-msgstr ""
-"Обнаружена новая проблема в компоненте для задания с идентификатором %(id)s"
+msgstr "Обнаружена новая проблема в компоненте для задания с идентификатором %(id)s"
 
 #: users/notifications.py:218
 msgid "Jobs creation"
@@ -4968,8 +4893,7 @@ msgstr "Представление было успешно сохранено"
 
 #: users/templates/users/views/viewCreateForm.html:34
 msgid "You can't edit the default view"
-msgstr ""
-"Вы не можете редактировать представление, которое используется по умолчанию"
+msgstr "Вы не можете редактировать представление, которое используется по умолчанию"
 
 #: users/templates/users/views/viewCreateForm.html:35
 msgid "The view was successfully removed"
@@ -5011,17 +4935,9 @@ msgstr "ч"
 #~ msgstr "Загрузить задания на сервер"
 
 #, fuzzy
-#~| msgid ""
-#~| "Set parent identifier (keep in mind that job class will be inherited "
-#~| "from parent). All file or folder names with non-ASCII characters will be "
-#~| "truncated to 30 characters."
-#~ msgid ""
-#~ "Set parent identifier. All file or folder names with non-ASCII characters "
-#~ "will be truncated to 30 characters."
-#~ msgstr ""
-#~ "Задайте идентификатор родителя (помните, что класс задания будет "
-#~ "унаследован от родителя). Все названия файлов и папок, в которых "
-#~ "используются не ASCII символы, будут обрезаны до 30 символов."
+#~| msgid "Set parent identifier (keep in mind that job class will be inherited from parent). All file or folder names with non-ASCII characters will be truncated to 30 characters."
+#~ msgid "Set parent identifier. All file or folder names with non-ASCII characters will be truncated to 30 characters."
+#~ msgstr "Задайте идентификатор родителя (помните, что класс задания будет унаследован от родителя). Все названия файлов и папок, в которых используются не ASCII символы, будут обрезаны до 30 символов."
 
 #, fuzzy
 #~| msgid "One of the selected jobs was not found"
@@ -5078,15 +4994,9 @@ msgstr "ч"
 #~ msgstr "Родитель с указанным идентификатором не был найден"
 
 #, fuzzy
-#~| msgid ""
-#~| "Several parents match the specified identifier, please increase the "
-#~| "length of the parent identifier"
-#~ msgid ""
-#~ "Several jobs match the specified identifier, please increase the length "
-#~ "of the job identifier"
-#~ msgstr ""
-#~ "Указанному идентификатору соответствуют несколько родителей, пожалуйста, "
-#~ "увеличьте длину идентификатора родителя"
+#~| msgid "Several parents match the specified identifier, please increase the length of the parent identifier"
+#~ msgid "Several jobs match the specified identifier, please increase the length of the job identifier"
+#~ msgstr "Указанному идентификатору соответствуют несколько родителей, пожалуйста, увеличьте длину идентификатора родителя"
 
 #, fuzzy
 #~| msgid "Jobs do not have files"
@@ -5108,12 +5018,8 @@ msgstr "ч"
 
 #, fuzzy
 #~| msgid "Wall time, CPU time and maximum memory size"
-#~ msgid ""
-#~ "Component (Finished instances/Total instances): Wall time, CPU time and "
-#~ "maximum memory size"
-#~ msgstr ""
-#~ "Астрономическое время, процессорное время и максимальный объем "
-#~ "оперативной памяти"
+#~ msgid "Component (Finished instances/Total instances): Wall time, CPU time and maximum memory size"
+#~ msgstr "Астрономическое время, процессорное время и максимальный объем оперативной памяти"
 
 #~ msgid "Job Copying"
 #~ msgstr "Копирование задания"
@@ -5153,8 +5059,7 @@ msgstr "ч"
 #~ msgstr "Конфигурация узлов"
 
 #~ msgid "Upload input files of static verifiers"
-#~ msgstr ""
-#~ "Загружать на сервер входные файлы инструментов статической верификации"
+#~ msgstr "Загружать на сервер входные файлы инструментов статической верификации"
 
 #~ msgid "Fields with red background are required"
 #~ msgstr "Требуется заполнить поля с красным фоном"
@@ -5173,17 +5078,13 @@ msgstr "ч"
 #~ msgstr "Загрузить файлы"
 
 #~ msgid "Please select exactly two jobs which reports you want to compare"
-#~ msgstr ""
-#~ "Пожалуйста, отметьте ровно два задания, у которых Вы хотите сравнить "
-#~ "отчеты"
+#~ msgstr "Пожалуйста, отметьте ровно два задания, у которых Вы хотите сравнить отчеты"
 
 #~ msgid "All for checked"
 #~ msgstr "Всего для отмеченных"
 
 #~ msgid "List of jobs is empty, please populate them or change the view"
-#~ msgstr ""
-#~ "Список заданий пустой, пожалуйста, наполните базу данных или измените "
-#~ "представление"
+#~ msgstr "Список заданий пустой, пожалуйста, наполните базу данных или измените представление"
 
 #, fuzzy
 #~| msgid "The job solving progress does not exist"
@@ -5238,8 +5139,7 @@ msgstr "ч"
 #, fuzzy
 #~| msgid "Upload input files of static verifiers"
 #~ msgid "Download input files of static verifiers"
-#~ msgstr ""
-#~ "Загружать на сервер входные файлы инструментов статической верификации"
+#~ msgstr "Загружать на сервер входные файлы инструментов статической верификации"
 
 #~ msgid "Comparison of reports of jobs"
 #~ msgstr "Сравнение отчетов заданий"
@@ -5376,9 +5276,7 @@ msgstr "ч"
 #~ msgstr "Комментарий к изменению"
 
 #~ msgid "Can't populate without Manager and service user"
-#~ msgstr ""
-#~ "Наполнение базы данных невозможно без Руководителя и служебного "
-#~ "пользователя"
+#~ msgstr "Наполнение базы данных невозможно без Руководителя и служебного пользователя"
 
 #~ msgid "The comparison cache was not found or was corrupted"
 #~ msgstr "Кэш сравнения не был найден или был поврежден"
@@ -5450,9 +5348,7 @@ msgstr "ч"
 #~ msgstr "Папка не может быть заменена на файл"
 
 #~ msgid "You can't move folders, please choose the file you want to move"
-#~ msgstr ""
-#~ "Вы не можете переместить папки, пожалуйста, укажите файл, который Вы "
-#~ "хотите переместить"
+#~ msgstr "Вы не можете переместить папки, пожалуйста, укажите файл, который Вы хотите переместить"
 
 #~ msgid "Please choose the file you want to move"
 #~ msgstr "Пожалуйста, укажите файл, который Вы хотите переместить"
@@ -5524,21 +5420,16 @@ msgstr "ч"
 #~ msgstr "Требуется автор изменения"
 
 #~ msgid "The default view was made preferred"
-#~ msgstr ""
-#~ "Представление, которое используется по умолчанию, было сделано "
-#~ "предпочитаемым"
+#~ msgstr "Представление, которое используется по умолчанию, было сделано предпочитаемым"
 
 #~ msgid "The default view is already preferred"
-#~ msgstr ""
-#~ "Представление, которое используется по умолчанию, уже является "
-#~ "предпочитаемым"
+#~ msgstr "Представление, которое используется по умолчанию, уже является предпочитаемым"
 
 #~ msgid "The view name is required"
 #~ msgstr "Требуется указать название представления"
 
 #~ msgid "You can't remove the default view"
-#~ msgstr ""
-#~ "Вы не можете удалить представление, которое используется по умолчанию"
+#~ msgstr "Вы не можете удалить представление, которое используется по умолчанию"
 
 #~ msgid "You don't have access to delete versions"
 #~ msgstr "У Вас нет прав удалить версии"
@@ -5562,8 +5453,7 @@ msgstr "ч"
 #~ msgstr "Слишком много заданий начинаются с указанного идентификатора"
 
 #~ msgid "One of the selected jobs was not found, please reload page"
-#~ msgstr ""
-#~ "Одно из отмеченных заданий не было найдено, пожалуйста, обновите страницу"
+#~ msgstr "Одно из отмеченных заданий не было найдено, пожалуйста, обновите страницу"
 
 #~ msgid "You can't compare the selected jobs"
 #~ msgstr "Вы не можете сравнить отмеченные задания"
@@ -5599,22 +5489,16 @@ msgstr "ч"
 #~ msgstr "Функция сравнения трасс ошибок не была найдена"
 
 #~ msgid "Could not create a new mark since the similar mark exists already"
-#~ msgstr ""
-#~ "Не удалось создать новую оценку, поскольку существует похожая оценка"
+#~ msgstr "Не удалось создать новую оценку, поскольку существует похожая оценка"
 
-#~ msgid ""
-#~ "Could not change the mark since it would be similar to the existing mark"
-#~ msgstr ""
-#~ "Не удалось изменить оценку, поскольку она стала бы похожа на существую "
-#~ "оценку"
+#~ msgid "Could not change the mark since it would be similar to the existing mark"
+#~ msgstr "Не удалось изменить оценку, поскольку она стала бы похожа на существую оценку"
 
 #~ msgid "The mark format is not supported"
 #~ msgstr "Формат оценки не поддерживается"
 
-#~ msgid ""
-#~ "Could not upload the mark archive since the similar mark exists already"
-#~ msgstr ""
-#~ "Не удалось загрузить архив с оценкой, поскольку существует похожая оценка"
+#~ msgid "Could not upload the mark archive since the similar mark exists already"
+#~ msgstr "Не удалось загрузить архив с оценкой, поскольку существует похожая оценка"
 
 #~ msgid "You don't have an access to this mark"
 #~ msgstr "У Вас нет прав на данную оценку"
@@ -5664,12 +5548,8 @@ msgstr "ч"
 #~ msgid "seconds per a line"
 #~ msgstr "секунды на строку"
 
-#~ msgid ""
-#~ "Error trace assumptions are disabled (you can enable them in your "
-#~ "settings)"
-#~ msgstr ""
-#~ "Предположения трассы ошибок отключены (Вы можете включить их в Ваших "
-#~ "настройках)"
+#~ msgid "Error trace assumptions are disabled (you can enable them in your settings)"
+#~ msgstr "Предположения трассы ошибок отключены (Вы можете включить их в Ваших настройках)"
 
 #~ msgid "Play of the error trace was completed"
 #~ msgstr "Проигрывание трассы ошибки завершено"
@@ -5695,18 +5575,14 @@ msgstr "ч"
 #~ msgid "A new Manager was created"
 #~ msgstr "Был создан новый Руководитель"
 
-#~ msgid ""
-#~ "Please save this data and give it to the user who will be the Manager"
-#~ msgstr ""
-#~ "Пожалуйста, сохранить эти данные и передайте их пользователю, который "
-#~ "будет Руководителем"
+#~ msgid "Please save this data and give it to the user who will be the Manager"
+#~ msgstr "Пожалуйста, сохранить эти данные и передайте их пользователю, который будет Руководителем"
 
 #~ msgid "A new service user was created"
 #~ msgstr "Был создан новый служебный пользователь"
 
 #~ msgid "Please save this data and give it to the service user"
-#~ msgstr ""
-#~ "Пожалуйста, сохранить эти данные и передайте их служебному пользователю"
+#~ msgstr "Пожалуйста, сохранить эти данные и передайте их служебному пользователю"
 
 #~ msgid "Error traces conversion and comparison functions were updated"
 #~ msgstr "Были обновлены функции преобразования и сравнения трасс ошибок"
@@ -5720,12 +5596,8 @@ msgstr "ч"
 #~ msgid "Welcome to Klever Bridge!"
 #~ msgstr "Добро пожаловать!"
 
-#~ msgid ""
-#~ "Create the Manager with the specified username and jobs of all classes on "
-#~ "behalf of that Manager"
-#~ msgstr ""
-#~ "Создать Руководителя с указанным именем и задания всех классов от имени "
-#~ "данного Руководителя"
+#~ msgid "Create the Manager with the specified username and jobs of all classes on behalf of that Manager"
+#~ msgstr "Создать Руководителя с указанным именем и задания всех классов от имени данного Руководителя"
 
 #~ msgid "Manager username"
 #~ msgstr "Имя Руководителя"
@@ -5779,8 +5651,7 @@ msgstr "ч"
 #~ msgstr "Компонент был успешно переименован"
 
 #~ msgid "All unused components were deleted, please reload the page"
-#~ msgstr ""
-#~ "Все неиспользуемые компоненты были удалены, пожалуйста, обновите страницу"
+#~ msgstr "Все неиспользуемые компоненты были удалены, пожалуйста, обновите страницу"
 
 #~ msgid "The problem is used and can't be deleted"
 #~ msgstr "Проблема используется и не может быть удалена"
@@ -5789,8 +5660,7 @@ msgstr "ч"
 #~ msgstr "Проблема была успешно удалена"
 
 #~ msgid "All unused problems were deleted, please reload the page"
-#~ msgstr ""
-#~ "Все неиспользуемые проблемы были удалены, пожалуйста, обновите страницу"
+#~ msgstr "Все неиспользуемые проблемы были удалены, пожалуйста, обновите страницу"
 
 #~ msgid "Account has been disabled"
 #~ msgstr "Учетная запись заблокирована"
