@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-12-01 09:05+0000\n"
+"POT-Creation-Date: 2020-12-01 09:14+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -35,33 +35,27 @@ msgstr ""
 
 #: bridge/templates/bridge/400.html:22 bridge/templates/bridge/400.html:25
 msgid "Bad request"
-msgstr ""
+msgstr "Неправильный запрос"
 
 #: bridge/templates/bridge/403.html:22
-msgid "Permisson denied"
-msgstr ""
+msgid "Permission denied"
+msgstr "Доступ запрещен"
 
 #: bridge/templates/bridge/403.html:25
 msgid "You don't have an access to this page"
-msgstr "У Вас нет прав на данную страницу"
+msgstr "У Вас нет доступа к данной странице"
 
 #: bridge/templates/bridge/404.html:22
-#, fuzzy
-#| msgid "Not solved"
 msgid "Not found"
-msgstr "Не решено"
+msgstr "Не найдено"
 
 #: bridge/templates/bridge/404.html:25
-#, fuzzy
-#| msgid "The tag was not found"
 msgid "The page wasn't found"
-msgstr "Тег не был найден"
+msgstr "Страница не обнаружена"
 
 #: bridge/templates/bridge/500.html:22
-#, fuzzy
-#| msgid "Service user"
 msgid "Server error"
-msgstr "Служебный пользователь"
+msgstr "Ошибка сервера"
 
 #: bridge/templates/bridge/500.html:25
 msgid "Unknown error"
