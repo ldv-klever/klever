@@ -95,6 +95,9 @@ class Program:
                     self.logger.warning("You should implement more strict filters to reject {!r} commands with such "
                                         "input files as {!r}".format(cmd_type, in_file))
                     continue
+                if in_file not in self._files:
+                    self.logger.warning(f"File {in_file} was not imported")
+                    continue
 
                 if not parent_dir or (parent_dir and os.path.dirname(in_file) == parent_dir):
                     file = self._files[in_file]
@@ -127,6 +130,38 @@ class Program:
             self.logger.warning('Cannot find C files for linker command {!r}'.format(name))
         fragment = self.create_fragment(name, files, add=add)
         return fragment
+
+    def cmnds_recursive_tree_traversing(self, compilation_kind, root_kinds):
+        # Build a dict out -> cmd
+        roots = {kind: {desc['out'][0]: desc for desc in self.clade.get_all_cmds_by_type(kind) if desc['out']}
+                 for kind in root_kinds}
+
+        # Go over roots
+        result = dict()
+        for root_kind in root_kinds:
+            for root_id, root_desc in roots[root_kind].items():
+                leafs = set()
+                non_leafs = [root_desc]
+                self.logger.debug(f'Get {root_kind} command {root_desc["id"]}')
+
+                # Search for leafs traversing commands
+                while non_leafs:
+                    desc = non_leafs.pop()
+
+                    using = self.clade.get_root_cmds(desc['id'])
+                    if using:
+                        self.logger.debug(f'Cmd {desc["out"][0]} has {len(using)} children')
+                        non_leafs.extend([self.clade.get_cmd(identifier) for identifier in using])
+                    else:
+                        # This is likely a compilation out
+                        self.logger.debug(f'No children {desc["out"][0]}')
+                        files = self.collect_files_from_commands(compilation_kind, (desc,))
+                        leafs.update(files)
+
+                # Save the result
+                result[root_id] = leafs
+
+        return result
 
     def remove_fragment(self, fragment):
         """
