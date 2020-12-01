@@ -405,7 +405,7 @@ class ReportUnsafeSerializer(UploadLeafBaseSerializer):
                 error_trace = json.loads(zfp.read(ERROR_TRACE_FILE).decode('utf8'))
         except Exception as e:
             logger.exception(e)
-            self.fail('wrong_format', detail='file does not exist or it is wrong json')
+            self.fail('wrong_format', detail='file does not exist or it is wrong JSON')
         archive.seek(0)
         if not isinstance(error_trace, dict):
             self.fail('wrong_format', detail='error trace is not a dictionary')

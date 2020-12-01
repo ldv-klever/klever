@@ -126,8 +126,8 @@ def file_get_or_create(fp, filename, model, check_size=False, **kwargs):
         try:
             json.loads(file_content)
         except Exception as e:
-            logger.error("{} is wrong json: {}".format(filename, e))
-            raise BridgeException(_('The file is wrong json'))
+            logger.error("{} is wrong JSON: {}".format(filename, e))
+            raise BridgeException(_('The file is wrong JSON'))
 
     fp.seek(0)
     hash_sum = file_checksum(fp)

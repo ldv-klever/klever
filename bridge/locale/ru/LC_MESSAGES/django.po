@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-12-01 09:14+0000\n"
+"POT-Creation-Date: 2020-12-01 09:38+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -30,8 +30,9 @@ msgstr ""
 "%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 
 #: bridge/serializers.py:47
-msgid "Timastamp format is wrong. Float expected."
+msgid "Timestamp format is wrong (float number is expected)"
 msgstr ""
+"Неправильный формат временной метки (ожидается число с плавающей точкой)"
 
 #: bridge/templates/bridge/400.html:22 bridge/templates/bridge/400.html:25
 msgid "Bad request"
@@ -296,7 +297,7 @@ msgstr ""
 #: bridge/utils.py:130
 #, fuzzy
 #| msgid "The file was not found"
-msgid "The file is wrong json"
+msgid "The file is wrong JSON"
 msgstr "Файл не был найден"
 
 #: bridge/vars.py:23
@@ -722,10 +723,8 @@ msgid "You don't have an access to one of the selected decisions"
 msgstr "У Вас нет прав для одного из отмеченных заданий"
 
 #: jobs/DownloadSerializers.py:53
-#, fuzzy
-#| msgid "The job format is not supported"
 msgid "The job archive format is not supported"
-msgstr "Формат задания не поддерживается"
+msgstr "Формат архива задания не поддерживается"
 
 #: jobs/JobTableProperties.py:43
 msgid "Your role"
@@ -1045,31 +1044,26 @@ msgid "Preset job"
 msgstr "Предустановленная"
 
 #: jobs/serializers.py:98
-#, fuzzy
-#| msgid "The attributes have wrong format"
 msgid "The configuration has wrong format"
-msgstr "Формат атрибутов некорректный"
+msgstr "Формат конфигурации некорректный"
 
 #: jobs/serializers.py:124
-#, fuzzy
-#| msgid "The attributes have wrong format"
 msgid "The files tree has wrong format"
-msgstr "Формат атрибутов некорректный"
+msgstr "Формат дерева файлов некорректный"
 
 #: jobs/serializers.py:153
 #, python-brace-format
-msgid "The file is wrong json: {exc}"
-msgstr ""
+msgid "The file is wrong JSON: {exc}"
+msgstr "Файл не является корректным JSON: {exc}"
 
 #: jobs/serializers.py:154
-#, fuzzy, python-brace-format
-#| msgid "Please keep the file size under {0} (the current file size is {1})"
+#, python-brace-format
 msgid ""
 "Please keep the file size under {max_size} (the current file size is "
 "{curr_size})"
 msgstr ""
-"Пожалуйста, не загружайте файлы размером больше {0} (текущий размер файла - "
-"{1})"
+"Пожалуйста, не загружайте файлы размером больше {max_size} (текущий размер "
+"файла - {curr_size})"
 
 #: jobs/templates/jobs/DecisionResults.html:23
 #, fuzzy
@@ -2315,18 +2309,16 @@ msgid "Root"
 msgstr "Корневая папка"
 
 #: marks/serializers.py:156
-#, fuzzy
-#| msgid "The tag was not found"
 msgid "One of tags was not found"
-msgstr "Тег не был найден"
+msgstr "Один из тегов не был найден"
 
 #: marks/serializers.py:281
-msgid "Wrong error trace json provided"
-msgstr ""
+msgid "Wrong error trace is provided"
+msgstr "Предоставлена некорректная трасса ошибки"
 
 #: marks/serializers.py:286
 msgid "Wrong status value"
-msgstr ""
+msgstr "Некорректное значение статуса"
 
 #: marks/serializers.py:397
 msgid ""
@@ -2973,30 +2965,26 @@ msgstr ""
 
 #: reports/serializers.py:237
 #, python-brace-format
-msgid "Expected a list of items but got type \"{input_type}\"."
-msgstr ""
+msgid "Expected a list of items but got type \"{input_type}\""
+msgstr "Ожидался список элементов, но получен тип \"{input_type}\""
 
 #: reports/serializers.py:238
-msgid "Computer property has wrong format."
-msgstr ""
+msgid "Computer data has wrong format"
+msgstr "Некорректный формат данных о компьютере"
 
 #: reports/serializers.py:301
-#, fuzzy
-#| msgid "The pattern is required"
-msgid "Report decision is required"
-msgstr "Требуется шаблон"
+msgid "Report decision attribute is required"
+msgstr "Для отчета требуется атрибут решение"
 
 #: reports/serializers.py:302
 #, fuzzy
 #| msgid "The pattern is required"
-msgid "Report computer is required"
-msgstr "Требуется шаблон"
+msgid "Report computer attribute is required"
+msgstr "Для отчета требуется атрибут компьютер"
 
 #: reports/serializers.py:303
-#, fuzzy
-#| msgid "The pattern is required"
-msgid "Report parent is required"
-msgstr "Требуется шаблон"
+msgid "Report parent attribute is required"
+msgstr "Для отчета требуется атрибут родитель"
 
 #: reports/source.py:331
 #, fuzzy
@@ -3446,17 +3434,15 @@ msgstr "Одно из отмеченных заданий не было найд
 
 #: service/serializers.py:335 service/serializers.py:342
 msgid "Estimating the number"
-msgstr ""
+msgstr "Оценка количества"
 
 #: service/serializers.py:355
 msgid "Estimating time"
-msgstr ""
+msgstr "Оценка времени"
 
 #: service/serializers.py:361 service/serializers.py:379
-#, fuzzy
-#| msgid "In progress"
 msgid "Estimating progress"
-msgstr "Выполняется"
+msgstr "Оценка прогресса"
 
 #: service/templates/service/scheduler.html:75
 msgid "Verification tools"
