@@ -15,7 +15,6 @@
 # limitations under the License.
 #
 
-import fileinput
 import glob
 import json
 import os
@@ -74,16 +73,16 @@ class Weaver(klever.core.vtg.plugins.Plugin):
                         infile = infile('.c')[0] + '.i'
                 else:
                     with open(os.path.join(self.conf['main working directory'], extra_cc['CC']),
-                              encoding='utf8') as fp:
+                              encoding='utf-8') as fp:
                         cc = json.load(fp)
 
                     infile = cc["in"][0]
 
                 # Distinguish source files having the same names.
-                outfile_unique = '{0}.c'.format(
-                    klever.core.utils.unique_file_name(os.path.splitext(os.path.basename(infile))[0], '.c'))
+                outfile_unique = '{0}.i'.format(
+                    klever.core.utils.unique_file_name(os.path.splitext(os.path.basename(infile))[0], '.i'))
                 # This is used for storing/getting to/from cache where uniqueness is guaranteed by other means.
-                outfile = '{0}.c'.format(os.path.splitext(os.path.basename(infile))[0])
+                outfile = '{0}.i'.format(os.path.splitext(os.path.basename(infile))[0])
                 self.logger.info('Weave in C file "{0}"'.format(infile))
 
                 # Produce aspect to be weaved in.
@@ -104,11 +103,16 @@ class Weaver(klever.core.vtg.plugins.Plugin):
                             aspects.extend(plugin_aspects['aspects'])
 
                     # Concatenate aspects.
-                    with open(aspect, 'w', encoding='utf8') as fout, fileinput.input(
-                            [os.path.join(self.conf['main working directory'], aspect) for aspect in aspects],
-                            openhook=fileinput.hook_encoded('utf8')) as fin:
-                        for line in fin:
-                            fout.write(line)
+                    with open(aspect, 'w', encoding='utf-8') as fout:
+                        for a in aspects:
+                            with open(os.path.join(self.conf['main working directory'], a), encoding='utf-8') as fin:
+                                for line in fin:
+                                    fout.write(line)
+                                # Aspects may not terminate with the new line symbol that will cause horrible syntax
+                                # errors when parsing the concatenated aspect, e.g. when the last line of some aspect is
+                                # a one-line comment "//" that will truncate the first line of the next aspect.
+                                if not line.endswith('\n'):
+                                    fout.write('\n')
                 else:
                     # Instrumentation is not required when there is no aspects. But we will still pass source files
                     # through C-backend to make resulting code to look similarly and thus to avoid different issues
@@ -230,7 +234,7 @@ class Weaver(klever.core.vtg.plugins.Plugin):
                 ] +
                 (['--keep'] if self.conf['keep intermediate files'] else []) +
                 (['--aspect', os.path.realpath(aspect)] if aspect else ['--stage', 'C-backend']) +
-                ['--', '-include', 'ldv/common/inline_asm.h'] +
+                ['--', '-include', self.conf['LDV inline Assembler header file']] +
                 klever.core.vtg.utils.prepare_cif_opts(opts, clade, is_model) +
                 [aspectator_search_dir] +
                 ['-I' + clade.get_storage_path(p) for p in self.conf['working source trees']]

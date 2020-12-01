@@ -108,7 +108,7 @@ class StreamQueue:
             # This will put lines from stream to queue until stream will be closed. For instance it will happen when
             # execution of command will be completed.
             for line in self.stream:
-                line = line.decode('utf8').rstrip()
+                line = line.decode('utf-8').rstrip()
                 self.queue.put(line)
                 if self.collect_all_output:
                     self.output.append(line)
@@ -176,7 +176,7 @@ def execute(logger, args, env=None, cwd=None, timeout=0.1, collect_all_stdout=Fa
 
     if p.poll():
         logger.error('"{0}" exitted with "{1}"'.format(cmd, p.poll()))
-        with open('problem desc.txt', 'a', encoding='utf8') as fp:
+        with open('problem desc.txt', 'a', encoding='utf-8') as fp:
             out = filter(filter_func, err_q.output) if filter_func else err_q.output
             fp.write('\n'.join(out))
         sys.exit(1)
@@ -328,7 +328,7 @@ def get_logger(name, conf):
             handler = logging.StreamHandler(sys.stdout)
         elif handler_conf['name'] == 'file':
             # Always print log to file "log" in working directory.
-            handler = logging.FileHandler('log.txt', encoding='utf8')
+            handler = logging.FileHandler('log.txt', encoding='utf-8')
         else:
             raise KeyError(
                 'Handler "{0}" (logger "{1}") is not supported, please use either "console" or "file"'.format(
@@ -546,7 +546,7 @@ def report(logger, kind, report_data, mq, report_id, main_work_dir, report_dir='
 
     # Create report file in reports directory.
     report_file = os.path.join(main_work_dir, 'reports', '{0}.json'.format(cur_report_id))
-    with open(report_file, 'w', encoding='utf8') as fp:
+    with open(report_file, 'w', encoding='utf-8') as fp:
         json.dump(report_data, fp, cls=ExtendedJSONEncoder, ensure_ascii=False, sort_keys=True, indent=4)
 
     # Create symlink to report file in current working directory.
@@ -670,7 +670,7 @@ def read_max_resource_limitations(logger, conf):
     """
     # Read max restrictions for tasks
     restrictions_file = find_file_or_dir(logger, conf["main working directory"], "tasks.json")
-    with open(restrictions_file, 'r', encoding='utf8') as fp:
+    with open(restrictions_file, 'r', encoding='utf-8') as fp:
         restrictions = json.loads(fp.read())
 
     # Make unit translation
@@ -700,6 +700,29 @@ def drain_queue(collection, given_queue):
         return True
 
 
+def get_waiting_first(given_queue, timeout=None):
+    """
+    First, wait for the first element, then drain the queue if there are waiting, then return the result. The idea is
+    to wait until the queue is full to avoid useless loop iterations but still not wait for elements forever.
+
+    :param given_queue: multiprocessing.Queue.
+    :param timeout: Seconds.
+    :return: a list with received items.
+    """
+    collection = []
+    try:
+        item = given_queue.get(True, timeout=timeout)
+        collection.append(item)
+    except queue.Empty:
+        # Timeout!
+        return collection
+    if item:
+        drain_queue(collection, given_queue)
+    else:
+        given_queue.close()
+    return collection
+
+
 def json_dump(obj, fp, pretty=True):
     """
     Save JSON file.
@@ -721,7 +744,7 @@ def save_program_fragment_description(program_fragment_desc, file_name):
     :param program_fragment_desc: Program fragment description dict.
     :param file_name: File name to save values.
     """
-    with open(file_name, 'w', encoding='utf8') as fp:
+    with open(file_name, 'w', encoding='utf-8') as fp:
         fp.writelines(['Lines of code: {}\n'.format(program_fragment_desc['size']), 'Files:\n'])
         fp.writelines('\n'.join(sorted(f for grp in program_fragment_desc['grps'] for f in grp['files'])))
 

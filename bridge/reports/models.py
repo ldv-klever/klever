@@ -305,7 +305,6 @@ class CoverageDataStatistics(models.Model):
 
 
 class ReportUnsafe(WithFilesMixin, Report):
-    trace_id = models.UUIDField(unique=True, db_index=True, default=uuid.uuid4)
     error_trace = models.FileField(upload_to='Unsafes/%Y/%m')
     leaves = GenericRelation(ReportComponentLeaf, related_query_name='unsafes')
 

@@ -11,22 +11,41 @@
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
+ * ee the License for the specific language governing permissions and
  * limitations under the License.
  */
 
-#ifndef __LDV_COMMON_TEST_H
-#define __LDV_COMMON_TEST_H
+/* Note level 0 */
+.ETV_Note0 {
+    background-color: #dd2222;
+}
+.ETV_Note0_Text {
+    color: #f0828f;
+    font-weight: bold;
+}
 
-#include <ldv/verifier/common.h>
-#include <ldv/verifier/gcc.h>
-#include <ldv/verifier/map.h>
-#include <ldv/verifier/memory.h>
-#include <ldv/verifier/nondet.h>
+/* Note level 1 */
+.ETV_Note1 {
+    background-color: #51acb8;
+}
+.ETV_Note1_Text {
+    color: #5dacb7;
+    font-weight: bold;
+}
 
-extern void ldv_expected_error(void);
-extern void ldv_unexpected_error(void);
-extern void ldv_expected_memory_safety_error(void);
-extern void ldv_unexpected_memory_safety_error(void);
+/* Note level 2 */
+.ETV_Note2 {
+    background-color: #60cddb;
+}
+.ETV_Note2_Text {
+    color: #64bac6;
+    font-weight: bold;
+}
 
-#endif /* __LDV_COMMON_TEST_H */
+/* Note level 3 */
+.ETV_Note3 {
+    background-color: #60cddb;
+}
+.ETV_Note3_Text {
+    color: #64bac6;
+}

@@ -99,6 +99,9 @@ def configure_controller_and_schedulers(logger, development, src_dir, deploy_dir
     if development:
         native_scheduler_conf['scheduler']['keep working directory'] = True
 
+    if 'KLEVER_NATIVESCHEDULER_CONCURRENT_JOBS' in os.environ:
+        native_scheduler_conf['scheduler']['concurrent jobs'] = os.environ['KLEVER_NATIVESCHEDULER_CONCURRENT_JOBS']
+
     with open(os.path.join(deploy_dir, 'klever-conf/native-scheduler.json'), 'w') as fp:
         json.dump(native_scheduler_conf, fp, sort_keys=True, indent=4)
 

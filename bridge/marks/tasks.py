@@ -17,7 +17,7 @@
 
 from celery import shared_task
 
-from bridge.vars import PROBLEM_DESC_FILE
+from bridge.vars import PROBLEM_DESC_FILE, ASSOCIATION_TYPE
 from bridge.utils import BridgeException, ArchiveFileContent
 
 from reports.models import ReportSafe, ReportUnsafe, ReportUnknown
@@ -33,7 +33,7 @@ def connect_safe_report(report_id):
     report = ReportSafe.objects.select_related('cache').get(pk=report_id)
     marks_qs = MarkSafe.objects.filter(cache_attrs__contained_by=report.cache.attrs)
     MarkSafeReport.objects.bulk_create(list(
-        MarkSafeReport(mark_id=m_id, report=report, associated=True)
+        MarkSafeReport(mark_id=m_id, report=report, associated=True, type=ASSOCIATION_TYPE[2][0])
         for m_id in marks_qs.values_list('id', flat=True)
     ))
     RecalculateSafeCache(report.id)
@@ -63,6 +63,8 @@ def connect_unknown_report(report_id):
         problem = MatchUnknown(problem_desc, mark.function, mark.problem_pattern, mark.is_regexp).problem
         if not problem:
             continue
-        new_markreports.append(MarkUnknownReport(mark_id=mark.id, report=report, problem=problem, associated=True))
+        new_markreports.append(MarkUnknownReport(
+            mark_id=mark.id, report=report, problem=problem, associated=True, type=ASSOCIATION_TYPE[2][0]
+        ))
     MarkUnknownReport.objects.bulk_create(new_markreports)
     RecalculateUnknownCache(report.id)

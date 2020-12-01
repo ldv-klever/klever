@@ -30,6 +30,7 @@ class BridgeError(IOError):
     pass
 
 
+# TODO: it would be better to name it BridgeRequests. This is the case for Scheduler and CLI.
 class Session:
     def __init__(self, logger, bridge, job_id):
         logger.info('Create session for user "{0}" at Klever Bridge "{1}"'.format(bridge['user'], bridge['name']))
@@ -48,6 +49,7 @@ class Session:
         # Sign in.
         self.__signin()
 
+    # TODO: It is not signing in anymore. It is getting token. This is the case for Scheduler and CLI.
     def __signin(self):
         self.session = requests.Session()
         resp = self.__request('service/get_token/', 'POST', data=self.__parameters)
@@ -71,7 +73,7 @@ class Session:
                         raise BridgeError(
                             'Got error "{0}" when send "{1}" request to "{2}"'.format(self.error, method, url)
                         )
-                    with open('response error.html', 'w', encoding='utf8') as fp:
+                    with open('response error.html', 'w', encoding='utf-8') as fp:
                         fp.write(resp.text)
                     status_code = resp.status_code
                     resp.close()
@@ -89,7 +91,7 @@ class Session:
                                 archive)
 
     def schedule_task(self, task_file, archive):
-        with open(task_file, 'r', encoding='utf8') as fp:
+        with open(task_file, 'r', encoding='utf-8') as fp:
             data = fp.read()
 
         resp = self.__upload_archives('service/tasks/',
@@ -120,9 +122,6 @@ class Session:
     def remove_task(self, task_id):
         self.__request('service/tasks/{}/'.format(task_id), method='DELETE')
 
-    def sign_out(self):
-        self.logger.info('Finish session')
-
     def upload_original_sources(self, src_id, src_archive):
         self.__upload_archives('reports/api/upload-sources/',
                                {'identifier': src_id},
@@ -132,7 +131,7 @@ class Session:
         batch_reports = []
         batch_report_file_archives = []
         for report_and_report_file_archives in reports_and_report_file_archives:
-            with open(report_and_report_file_archives['report file'], encoding='utf8') as fp:
+            with open(report_and_report_file_archives['report file'], encoding='utf-8') as fp:
                 batch_reports.append(json.load(fp))
 
             report_file_archives = report_and_report_file_archives.get('report file archives')

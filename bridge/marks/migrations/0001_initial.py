@@ -92,7 +92,7 @@ class Migration(migrations.Migration):
         migrations.CreateModel(name='MarkSafeReport', fields=[
             ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
             ('type', models.CharField(choices=[
-                ('0', 'Automatic'), ('1', 'Confirmed'), ('2', 'Unconfirmed')
+                ('0', 'Dissimilar'), ('1', 'Unconfirmed'), ('2', 'Automatic'), ('3', 'Confirmed')
             ], default='0', max_length=1)),
             ('author', models.ForeignKey(null=True, on_delete=models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
             ('mark', models.ForeignKey(
@@ -182,7 +182,7 @@ class Migration(migrations.Migration):
             ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
             ('problem', models.CharField(db_index=True, max_length=20)),
             ('type', models.CharField(choices=[
-                ('0', 'Automatic'), ('1', 'Confirmed'), ('2', 'Unconfirmed')
+                ('0', 'Dissimilar'), ('1', 'Unconfirmed'), ('2', 'Automatic'), ('3', 'Confirmed')
             ], default='0', max_length=1)),
             ('author', models.ForeignKey(null=True, on_delete=models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
             ('mark', models.ForeignKey(
@@ -255,7 +255,7 @@ class Migration(migrations.Migration):
         migrations.CreateModel(name='MarkUnsafeReport', fields=[
             ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
             ('type', models.CharField(choices=[
-                ('0', 'Automatic'), ('1', 'Confirmed'), ('2', 'Unconfirmed')
+                ('0', 'Dissimilar'), ('1', 'Unconfirmed'), ('2', 'Automatic'), ('3', 'Confirmed')
             ], default='0', max_length=1)),
             ('result', models.FloatField()),
             ('error', models.TextField(null=True)),

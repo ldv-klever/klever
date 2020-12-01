@@ -17,13 +17,13 @@
 
 import copy
 import uuid
+from collections import defaultdict
 
 from django.db import transaction
-from django.db.models import F
+from django.db.models import Q, F, Count
 from django.utils.functional import cached_property
 
 from bridge.vars import SAFE_VERDICTS, UNSAFE_VERDICTS, ASSOCIATION_TYPE
-from bridge.utils import require_lock
 
 from marks.models import (
     MarkSafe, MarkSafeHistory, MarkUnsafe, MarkUnsafeHistory, MarkUnknown,
@@ -34,6 +34,7 @@ from caches.models import (
     ASSOCIATION_CHANGE_KIND, ReportSafeCache, ReportUnsafeCache, ReportUnknownCache,
     SafeMarkAssociationChanges, UnsafeMarkAssociationChanges, UnknownMarkAssociationChanges
 )
+from reports.verdicts import safe_verdicts_sum, unsafe_verdicts_sum, BugStatusCollector
 
 
 @transaction.atomic
@@ -86,12 +87,20 @@ class UpdateSafeCachesOnMarkChange:
             self._new_data[cache_obj.report_id]['tags'] = {}
             self._new_data[cache_obj.report_id]['marks_total'] = 0
             self._new_data[cache_obj.report_id]['marks_confirmed'] = 0
+            self._new_data[cache_obj.report_id]['marks_automatic'] = 0
+
+        # Count automatic associations
+        automatic_qs = MarkSafeReport.objects\
+            .filter(report_id__in=self._affected_reports, type=ASSOCIATION_TYPE[2][0]).values('report_id')\
+            .annotate(number=Count('report_id')).values_list('report_id', 'number')
+        for report_id, automatic_num in automatic_qs:
+            self._new_data[report_id]['marks_automatic'] = automatic_num
 
         for mr in self._markreport_qs:
             self.__add_verdict(mr.report_id, mr.mark.verdict)
             self.__add_tags(mr.report_id, mr.mark.cache_tags)
             self._new_data[mr.report_id]['marks_total'] += 1
-            self._new_data[mr.report_id]['marks_confirmed'] += int(mr.type == ASSOCIATION_TYPE[1][0])
+            self._new_data[mr.report_id]['marks_confirmed'] += int(mr.type == ASSOCIATION_TYPE[3][0])
 
         self._collected.add('verdicts')
         self._collected.add('tags')
@@ -133,19 +142,7 @@ class UpdateSafeCachesOnMarkChange:
         return dict((report_id, self.__get_change_kind(report_id)) for report_id in self._affected_reports)
 
     def __add_verdict(self, report_id, verdict):
-        old_verdict = self._new_data[report_id]['verdict']
-        if old_verdict == SAFE_VERDICTS[4][0]:
-            # No marks + V = V
-            self._new_data[report_id]['verdict'] = verdict
-        elif old_verdict == SAFE_VERDICTS[3][0]:
-            # Incompatible + V = Incompatible
-            return
-        elif old_verdict != verdict:
-            # V1 + V2 = Incompatible
-            self._new_data[report_id]['verdict'] = SAFE_VERDICTS[3][0]
-        else:
-            # V + V = V
-            return
+        self._new_data[report_id]['verdict'] = safe_verdicts_sum(self._new_data[report_id]['verdict'], verdict)
 
     def __add_tags(self, report_id, tags_list):
         for tag in tags_list:
@@ -200,6 +197,7 @@ class UpdateUnsafeCachesOnMarkChange:
             old_data[cache_obj.report_id] = {
                 'decision_id': cache_obj.decision_id,
                 'verdict': cache_obj.verdict,
+                'status': cache_obj.status,
                 'tags': cache_obj.tags
             }
         return old_data
@@ -213,17 +211,32 @@ class UpdateUnsafeCachesOnMarkChange:
 
         for cache_obj in self._cache_queryset:
             self._new_data[cache_obj.report_id]['verdict'] = UNSAFE_VERDICTS[5][0]
+            self._new_data[cache_obj.report_id]['status'] = None
             self._new_data[cache_obj.report_id]['tags'] = {}
             self._new_data[cache_obj.report_id]['marks_total'] = 0
             self._new_data[cache_obj.report_id]['marks_confirmed'] = 0
+            self._new_data[cache_obj.report_id]['marks_automatic'] = 0
 
+        # Count automatic associations
+        automatic_qs = MarkUnsafeReport.objects \
+            .filter(report_id__in=self._affected_reports, type=ASSOCIATION_TYPE[2][0]).values('report_id') \
+            .annotate(number=Count('report_id')).values_list('report_id', 'number')
+        for report_id, automatic_num in automatic_qs:
+            self._new_data[report_id]['marks_automatic'] = automatic_num
+
+        statuses_collector = BugStatusCollector()
         for mr in self._markreport_qs:
             self.__add_verdict(mr.report_id, mr.mark.verdict)
+            statuses_collector.add(mr.report_id, mr.mark.verdict, mr.mark.status)
             self.__add_tags(mr.report_id, mr.mark.cache_tags)
             self._new_data[mr.report_id]['marks_total'] += 1
-            self._new_data[mr.report_id]['marks_confirmed'] += int(mr.type == ASSOCIATION_TYPE[1][0])
+            self._new_data[mr.report_id]['marks_confirmed'] += int(mr.type == ASSOCIATION_TYPE[3][0])
+
+        for report_id, status in statuses_collector.result.items():
+            self._new_data[report_id]['status'] = status
 
         self._collected.add('verdicts')
+        self._collected.add('statuses')
         self._collected.add('tags')
 
     def update_verdicts(self):
@@ -237,6 +250,20 @@ class UpdateUnsafeCachesOnMarkChange:
             self.__add_verdict(mr.report_id, mr.mark.verdict)
 
         self._collected.add('verdicts')
+
+    def update_statuses(self):
+        if 'statuses' in self._collected:
+            return
+        for cache_obj in self._cache_queryset:
+            self._new_data[cache_obj.report_id]['status'] = None
+
+        statuses_collector = BugStatusCollector()
+        for mr in self._markreport_qs:
+            statuses_collector.add(mr.report_id, mr.mark.verdict, mr.mark.status)
+        for report_id, status in statuses_collector.result.items():
+            self._new_data[report_id]['status'] = status
+
+        self._collected.add('statuses')
 
     def update_tags(self):
         if 'tags' in self._collected:
@@ -263,19 +290,7 @@ class UpdateUnsafeCachesOnMarkChange:
         return dict((report_id, self.__get_change_kind(report_id)) for report_id in self._affected_reports)
 
     def __add_verdict(self, report_id, verdict):
-        old_verdict = self._new_data[report_id]['verdict']
-        if old_verdict == UNSAFE_VERDICTS[5][0]:
-            # No marks + V = V
-            self._new_data[report_id]['verdict'] = verdict
-        elif old_verdict == UNSAFE_VERDICTS[4][0]:
-            # Incompatible + V = Incompatible
-            return
-        elif old_verdict != verdict:
-            # V1 + V2 = Incompatible
-            self._new_data[report_id]['verdict'] = UNSAFE_VERDICTS[4][0]
-        else:
-            # V + V = V
-            return
+        self._new_data[report_id]['verdict'] = unsafe_verdicts_sum(self._new_data[report_id]['verdict'], verdict)
 
     def __add_tags(self, report_id, tags_list):
         for tag in tags_list:
@@ -292,6 +307,8 @@ class UpdateUnsafeCachesOnMarkChange:
         for report_id in self._affected_reports:
             verdict_old = self._old_data[report_id]['verdict']
             verdict_new = self._new_data[report_id].get('verdict', verdict_old)
+            status_old = self._old_data[report_id]['status']
+            status_new = self._new_data[report_id].get('status', verdict_old)
             tags_old = self._old_data[report_id]['tags']
             tags_new = self._new_data[report_id].get('tags', tags_old)
             changes_objects.append(UnsafeMarkAssociationChanges(
@@ -299,7 +316,8 @@ class UpdateUnsafeCachesOnMarkChange:
                 decision_id=self._old_data[report_id]['decision_id'], report_id=report_id,
                 kind=self._change_kinds[report_id],
                 verdict_old=verdict_old, verdict_new=verdict_new,
-                tags_old=tags_old, tags_new=tags_new
+                tags_old=tags_old, tags_new=tags_new,
+                status_old=status_old, status_new=status_new
             ))
         UnsafeMarkAssociationChanges.objects.bulk_create(changes_objects)
         return str(identifier)
@@ -339,16 +357,23 @@ class UpdateUnknownCachesOnMarkChange:
 
     def update_all(self):
         for cache_obj in self._cache_queryset:
+            self._new_data[cache_obj.report_id]['problems'] = {}
             self._new_data[cache_obj.report_id]['marks_total'] = 0
             self._new_data[cache_obj.report_id]['marks_confirmed'] = 0
-            self._new_data[cache_obj.report_id]['problems'] = {}
+            self._new_data[cache_obj.report_id]['marks_automatic'] = 0
+
+        # Count automatic associations
+        automatic_qs = MarkUnknownReport.objects \
+            .filter(report_id__in=self._affected_reports, type=ASSOCIATION_TYPE[2][0]).values('report_id') \
+            .annotate(number=Count('report_id')).values_list('report_id', 'number')
+        for report_id, automatic_num in automatic_qs:
+            self._new_data[report_id]['marks_automatic'] = automatic_num
 
         for mr in self._markreport_qs:
             self._new_data[mr.report_id]['problems'].setdefault(mr.problem, 0)
             self._new_data[mr.report_id]['problems'][mr.problem] += 1
-
             self._new_data[mr.report_id]['marks_total'] += 1
-            self._new_data[mr.report_id]['marks_confirmed'] += int(mr.type == ASSOCIATION_TYPE[1][0])
+            self._new_data[mr.report_id]['marks_confirmed'] += int(mr.type == ASSOCIATION_TYPE[3][0])
 
         self._collected = True
 
@@ -402,69 +427,55 @@ class UpdateCachesOnMarkPopulate:
 
     @transaction.atomic
     def __update_safes(self):
-        # If report has confirmed mark, then new populated mark can't affect its cache
-        for cache_obj in ReportSafeCache.objects.filter(report_id__in=self._new_links, marks_confirmed=0)\
-                .select_for_update():
+        for cache_obj in ReportSafeCache.objects.filter(report_id__in=self._new_links).select_for_update():
+            # All safe links after the population are automatic
+            cache_obj.marks_automatic += 1
+
+            if cache_obj.marks_confirmed == 0:
+                # If report has confirmed mark, then new populated mark can't affect its cache
+                cache_obj.verdict = safe_verdicts_sum(cache_obj.verdict, self._mark.verdict)
+                cache_obj.tags = self.__sum_tags(cache_obj.tags)
+                cache_obj.marks_total += 1
+
             # Populated mark can't be confirmed, so we don't need to update confirmed number
-            cache_obj.marks_total += 1
-            cache_obj.verdict = self.__sum_safe_verdict(cache_obj.verdict)
-            cache_obj.tags = self.__sum_tags(cache_obj.tags)
             cache_obj.save()
 
     def __update_unsafes(self):
-        # Filter new_links with associations where associated flag is True
+        # Filter new_links with automatic associations as just such associations can affect report's cache
         affected_reports = set(MarkUnsafeReport.objects.filter(
-            report_id__in=self._new_links, mark=self._mark, associated=True
+            report_id__in=self._new_links, mark=self._mark, type=ASSOCIATION_TYPE[2][0]
         ).values_list('report_id', flat=True))
 
         with transaction.atomic():
             for cache_obj in ReportUnsafeCache.objects.filter(report_id__in=affected_reports).select_for_update():
+                cache_obj.marks_automatic += 1
+                if cache_obj.marks_confirmed == 0:
+                    # If report has confirmed mark, then new populated mark can't affect its cache
+                    cache_obj.verdict = unsafe_verdicts_sum(cache_obj.verdict, self._mark.verdict)
+                    cache_obj.status = BugStatusCollector.sum(cache_obj.status, self._mark.status, cache_obj.verdict)
+                    cache_obj.tags = self.__sum_tags(cache_obj.tags)
+                    cache_obj.marks_total += 1
                 # Populated mark can't be confirmed, so we don't need to update confirmed number
-                cache_obj.marks_total += 1
-                cache_obj.verdict = self.__sum_unsafe_verdict(cache_obj.verdict)
-                cache_obj.tags = self.__sum_tags(cache_obj.tags)
                 cache_obj.save()
 
     def __update_unknowns(self):
         new_problems = dict(MarkUnknownReport.objects.filter(mark=self._mark).values_list('report_id', 'problem'))
 
         with transaction.atomic():
-            # If report has confirmed mark, then new populated mark can't affect its cache
-            for cache_obj in ReportUnknownCache.objects.filter(report_id__in=self._new_links, marks_confirmed=0)\
+            for cache_obj in ReportUnknownCache.objects.filter(report_id__in=self._new_links)\
                     .select_for_update():
-                # Populated mark can't be confirmed, so we don't need to update confirmed number
-                cache_obj.marks_total += 1
-                if cache_obj.report_id in new_problems:
+                # All unknown links after the population are automatic
+                cache_obj.marks_automatic += 1
+
+                # If report has confirmed mark, then new populated mark can't affect its cache
+                if cache_obj.marks_confirmed == 0 and cache_obj.report_id in new_problems:
                     problem = new_problems[cache_obj.report_id]
                     cache_obj.problems.setdefault(problem, 0)
                     cache_obj.problems[problem] += 1
+                    cache_obj.marks_total += 1
+
+                # Populated mark can't be confirmed, so we don't need to update confirmed number
                 cache_obj.save()
-
-    def __sum_safe_verdict(self, old_verdict):
-        if self._mark.verdict == old_verdict:
-            # V + V = V
-            return old_verdict
-        elif old_verdict == SAFE_VERDICTS[4][0]:
-            # Without marks + V = V
-            return self._mark.verdict
-        elif old_verdict == SAFE_VERDICTS[3][0]:
-            # Incompatible + V = Incompatible
-            return SAFE_VERDICTS[3][0]
-        # V1 + V2 = Incompatible
-        return SAFE_VERDICTS[3][0]
-
-    def __sum_unsafe_verdict(self, old_verdict):
-        if self._mark.verdict == old_verdict:
-            # V + V = V
-            return old_verdict
-        elif old_verdict == UNSAFE_VERDICTS[5][0]:
-            # Without marks + V = V
-            return self._mark.verdict
-        elif old_verdict == UNSAFE_VERDICTS[4][0]:
-            # Incompatible + V = Incompatible
-            return UNSAFE_VERDICTS[4][0]
-        # V1 + V2 = Incompatible
-        return UNSAFE_VERDICTS[4][0]
 
     def __sum_tags(self, old_tags):
         old_tags = copy.deepcopy(old_tags)
@@ -477,122 +488,129 @@ class UpdateCachesOnMarkPopulate:
 class RecalculateSafeCache:
     def __init__(self, report_s):
         if isinstance(report_s, int):
-            self.__recalculate(report_id=report_s)
+            self._qs_filter = Q(report_id=report_s)
         else:
-            self.__recalculate(report_id__in=report_s)
+            self._qs_filter = Q(report_id__in=report_s)
+        self.__recalculate()
 
-    @require_lock(MarkSafeReport)
-    def __recalculate(self, **kwargs):
-        caches = {}
-        for cache_obj in ReportSafeCache.objects.select_for_update().filter(**kwargs):
-            self.__reset_cache_obj(cache_obj)
-            caches[cache_obj.report_id] = cache_obj
-        for mr in MarkSafeReport.objects.filter(associated=True, **kwargs).select_related('mark')\
-                .only('type', 'mark__verdict', 'mark__cache_tags', 'report_id'):
-            self.__update_cache_obj(caches[mr.report_id], mr)
-        for cache_obj in caches.values():
-            cache_obj.save()
+    def __recalculate(self):
+        cache_queryset = ReportSafeCache.objects.filter(self._qs_filter)
 
-    def __reset_cache_obj(self, cache_obj):
-        cache_obj.marks_total = cache_obj.marks_confirmed = 0
-        cache_obj.tags = {}
-        cache_obj.verdict = SAFE_VERDICTS[4][0]
+        # Initialize default values
+        new_data = {}
+        for cache_obj in cache_queryset:
+            new_data[cache_obj.report_id] = {
+                'tags': {},
+                'verdict': SAFE_VERDICTS[4][0],
+                'marks_total': 0,
+                'marks_automatic': 0,
+                'marks_confirmed': 0
+            }
 
-    def __update_cache_obj(self, cache_obj, mr):
-        cache_obj.marks_total += 1
-        cache_obj.marks_confirmed += int(mr.type == ASSOCIATION_TYPE[1][0])
-        cache_obj.verdict = self.__sum_verdict(cache_obj.verdict, mr.mark.verdict)
-        for tag in mr.mark.cache_tags:
-            cache_obj.tags.setdefault(tag, 0)
-            cache_obj.tags[tag] += 1
+        # Collect safes cache (just automatic and confirmed associations can affect the cache)
+        markreport_qs = MarkSafeReport.objects.filter(
+            Q(type__in=[ASSOCIATION_TYPE[2][0], ASSOCIATION_TYPE[3][0]]) & self._qs_filter
+        ).select_related('mark').only('type', 'mark__verdict', 'mark__cache_tags', 'report_id', 'associated')
+        for mr in markreport_qs:
+            new_data[mr.report_id]['marks_automatic'] += int(mr.type == ASSOCIATION_TYPE[2][0])
+            if not mr.associated:
+                continue
+            new_data[mr.report_id]['marks_total'] += 1
+            new_data[mr.report_id]['marks_confirmed'] += int(mr.type == ASSOCIATION_TYPE[3][0])
+            new_data[mr.report_id]['verdict'] = safe_verdicts_sum(
+                new_data[mr.report_id]['verdict'], mr.mark.verdict
+            )
+            for tag in mr.mark.cache_tags:
+                new_data[mr.report_id]['tags'].setdefault(tag, 0)
+                new_data[mr.report_id]['tags'][tag] += 1
 
-    def __sum_verdict(self, old_verdict, new_verdict):
-        if old_verdict == SAFE_VERDICTS[4][0]:
-            # No marks + V = V
-            return new_verdict
-        elif old_verdict == SAFE_VERDICTS[3][0]:
-            # Incompatible + V = Incompatible
-            return old_verdict
-        elif old_verdict != new_verdict:
-            # V1 + V2 = Incompatible
-            return SAFE_VERDICTS[3][0]
-        # V + V = V
-        return new_verdict
+        update_cache_atomic(cache_queryset, new_data)
 
 
 class RecalculateUnsafeCache:
     def __init__(self, report_s):
         if isinstance(report_s, int):
-            self.__recalculate(report_id=report_s)
+            self._qs_filter = Q(report_id=report_s)
         else:
-            self.__recalculate(report_id__in=report_s)
+            self._qs_filter = Q(report_id__in=report_s)
+        self.__recalculate()
 
-    @require_lock(MarkUnsafeReport)
-    def __recalculate(self, **kwargs):
-        caches = {}
-        for cache_obj in ReportUnsafeCache.objects.select_for_update().filter(**kwargs):
-            self.__reset_cache_obj(cache_obj)
-            caches[cache_obj.report_id] = cache_obj
-        for mr in MarkUnsafeReport.objects.filter(associated=True, **kwargs).select_related('mark')\
-                .only('type', 'mark__verdict', 'mark__cache_tags', 'report_id'):
-            self.__update_cache_obj(caches[mr.report_id], mr)
-        for cache_obj in caches.values():
-            cache_obj.save()
+    def __recalculate(self):
+        cache_queryset = ReportUnsafeCache.objects.filter(self._qs_filter)
 
-    def __reset_cache_obj(self, cache_obj):
-        cache_obj.marks_total = cache_obj.marks_confirmed = 0
-        cache_obj.tags = {}
-        cache_obj.verdict = UNSAFE_VERDICTS[5][0]
+        # Initialize default values
+        new_data = {}
+        for cache_obj in cache_queryset:
+            new_data[cache_obj.report_id] = {
+                'tags': {},
+                'verdict': UNSAFE_VERDICTS[5][0],
+                'status': None,
+                'marks_total': 0,
+                'marks_automatic': 0,
+                'marks_confirmed': 0
+            }
 
-    def __update_cache_obj(self, cache_obj, mr):
-        cache_obj.marks_total += 1
-        cache_obj.marks_confirmed += int(mr.type == ASSOCIATION_TYPE[1][0])
-        cache_obj.verdict = self.__sum_verdict(cache_obj.verdict, mr.mark.verdict)
-        for tag in mr.mark.cache_tags:
-            cache_obj.tags.setdefault(tag, 0)
-            cache_obj.tags[tag] += 1
+        statuses_collector = BugStatusCollector()
 
-    def __sum_verdict(self, old_verdict, new_verdict):
-        if old_verdict == UNSAFE_VERDICTS[5][0]:
-            # No marks + V = V
-            return new_verdict
-        elif old_verdict == UNSAFE_VERDICTS[4][0]:
-            # Incompatible + V = Incompatible
-            return old_verdict
-        elif old_verdict != new_verdict:
-            # V1 + V2 = Incompatible
-            return UNSAFE_VERDICTS[4][0]
-        # V + V = V
-        return new_verdict
+        # Collect unsafes cache (just automatic and confirmed associations can affect the cache)
+        markreport_qs = MarkUnsafeReport.objects.filter(
+            Q(type__in=[ASSOCIATION_TYPE[2][0], ASSOCIATION_TYPE[3][0]]) & self._qs_filter
+        ).select_related('mark').only('type', 'mark__verdict', 'mark__cache_tags', 'report_id', 'associated')
+        for mr in markreport_qs:
+            new_data[mr.report_id]['marks_automatic'] += int(mr.type == ASSOCIATION_TYPE[2][0])
+            if not mr.associated:
+                continue
+            new_data[mr.report_id]['marks_total'] += 1
+            new_data[mr.report_id]['marks_confirmed'] += int(mr.type == ASSOCIATION_TYPE[3][0])
+            new_data[mr.report_id]['verdict'] = unsafe_verdicts_sum(
+                new_data[mr.report_id]['verdict'], mr.mark.verdict
+            )
+            statuses_collector.add(mr.report_id, mr.mark.verdict, mr.mark.status)
+            for tag in mr.mark.cache_tags:
+                new_data[mr.report_id]['tags'].setdefault(tag, 0)
+                new_data[mr.report_id]['tags'][tag] += 1
+
+        for report_id, status in statuses_collector.result.items():
+            new_data[report_id]['status'] = status
+
+        update_cache_atomic(cache_queryset, new_data)
 
 
 class RecalculateUnknownCache:
     def __init__(self, report_s):
         if isinstance(report_s, int):
-            self.__recalculate(report_id=report_s)
+            self._qs_filter = Q(report_id=report_s)
         else:
-            self.__recalculate(report_id__in=report_s)
+            self._qs_filter = Q(report_id__in=report_s)
+        self.__recalculate()
 
-    @require_lock(MarkUnknownReport)
-    def __recalculate(self, **kwargs):
-        caches = {}
-        for cache_obj in ReportUnknownCache.objects.select_for_update().filter(**kwargs):
-            self.__reset_cache_obj(cache_obj)
-            caches[cache_obj.report_id] = cache_obj
-        for mr in MarkUnknownReport.objects.filter(associated=True, **kwargs).only('type', 'problem', 'report_id'):
-            self.__update_cache_obj(caches[mr.report_id], mr)
-        for cache_obj in caches.values():
-            cache_obj.save()
+    def __recalculate(self):
+        cache_queryset = ReportUnknownCache.objects.filter(self._qs_filter)
 
-    def __reset_cache_obj(self, cache_obj):
-        cache_obj.marks_total = cache_obj.marks_confirmed = 0
-        cache_obj.problems = {}
+        # Initialize default values
+        new_data = {}
+        for cache_obj in cache_queryset:
+            new_data[cache_obj.report_id] = {
+                'problems': {},
+                'marks_total': 0,
+                'marks_automatic': 0,
+                'marks_confirmed': 0
+            }
 
-    def __update_cache_obj(self, cache_obj, mr):
-        cache_obj.marks_total += 1
-        cache_obj.marks_confirmed += int(mr.type == ASSOCIATION_TYPE[1][0])
-        cache_obj.problems.setdefault(mr.problem, 0)
-        cache_obj.problems[mr.problem] += 1
+        # Collect unsafes cache (just automatic and confirmed associations can affect the cache)
+        markreport_qs = MarkUnknownReport.objects.filter(
+            Q(type__in=[ASSOCIATION_TYPE[2][0], ASSOCIATION_TYPE[3][0]]) & self._qs_filter
+        ).only('type', 'problem', 'report_id', 'associated')
+        for mr in markreport_qs:
+            new_data[mr.report_id]['marks_automatic'] += int(mr.type == ASSOCIATION_TYPE[2][0])
+            if not mr.associated:
+                continue
+            new_data[mr.report_id]['marks_total'] += 1
+            new_data[mr.report_id]['marks_confirmed'] += int(mr.type == ASSOCIATION_TYPE[3][0])
+            new_data[mr.report_id]['problems'].setdefault(mr.problem, 0)
+            new_data[mr.report_id]['problems'][mr.problem] += 1
+
+        update_cache_atomic(cache_queryset, new_data)
 
 
 class UpdateSafeMarksTags:
@@ -614,9 +632,8 @@ class UpdateSafeMarksTags:
 
     def __update_marks(self):
         # Update only last versions
-        version_tags = {}
+        version_tags = defaultdict(set)
         for marktag in MarkSafeTag.objects.filter(mark_version__version=F('mark_version__mark__version')):
-            version_tags.setdefault(marktag.mark_version_id, set())
             version_tags[marktag.mark_version_id].add(marktag.tag_id)
 
         changed_versions = {}
@@ -639,9 +656,8 @@ class UpdateSafeMarksTags:
 
     @cached_property
     def _mark_links(self):
-        data = {}
+        data = defaultdict(set)
         for mark_id, report_id in MarkSafeReport.objects.values_list('mark_id', 'report_id'):
-            data.setdefault(mark_id, set())
             data[mark_id].add(report_id)
         return data
 
@@ -665,9 +681,8 @@ class UpdateUnsafeMarksTags:
 
     def __update_marks(self):
         # Update only last versions
-        version_tags = {}
+        version_tags = defaultdict(set)
         for marktag in MarkUnsafeTag.objects.filter(mark_version__version=F('mark_version__mark__version')):
-            version_tags.setdefault(marktag.mark_version_id, set())
             version_tags[marktag.mark_version_id].add(marktag.tag_id)
 
         changed_versions = {}
@@ -690,8 +705,7 @@ class UpdateUnsafeMarksTags:
 
     @cached_property
     def _mark_links(self):
-        data = {}
+        data = defaultdict(set)
         for mark_id, report_id in MarkUnsafeReport.objects.values_list('mark_id', 'report_id'):
-            data.setdefault(mark_id, set())
             data[mark_id].add(report_id)
         return data

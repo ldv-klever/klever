@@ -104,7 +104,7 @@ class Session:
             if resp.headers['content-type'] == 'application/json':
                 raise BridgeError('Got error "{0}" when send "{1}" request to "{2}"'
                                   .format(resp.json(), method, url))
-            with open('response error.html', 'w', encoding='utf8') as fp:
+            with open('response error.html', 'w', encoding='utf-8') as fp:
                 fp.write(resp.text)
             status_code = resp.status_code
             if resp.headers['content-type'] == 'application/json':
@@ -141,7 +141,7 @@ class Session:
 
     def __parse_replacement(self, replacement):
         if os.path.exists(replacement):
-            with open(replacement, mode='r', encoding='utf8') as fp:
+            with open(replacement, mode='r', encoding='utf-8') as fp:
                 new_files = json.load(fp)
         else:
             new_files = json.loads(replacement)
@@ -176,7 +176,7 @@ class Session:
         :return: None
         """
         resp = self.__request('service/progress/{}/'.format(identifier))
-        with open(filename, mode='w', encoding='utf8') as fp:
+        with open(filename, mode='w', encoding='utf-8') as fp:
             json.dump(resp.json(), fp, ensure_ascii=False, sort_keys=True, indent=4)
 
     def decision_results(self, identifier, filename):
@@ -187,7 +187,7 @@ class Session:
         :return: None
         """
         resp = self.__request('jobs/api/decision-results/{0}/'.format(identifier))
-        with open(filename, mode='w', encoding='utf8') as fp:
+        with open(filename, mode='w', encoding='utf-8') as fp:
             json.dump(resp.json(), fp, ensure_ascii=False, sort_keys=True, indent=4)
 
     def create_job(self, preset_uuid):
@@ -249,7 +249,7 @@ def execute_cmd(logger, *args, **kwargs):
     get_output = kwargs.pop('get_output') if 'get_output' in kwargs else False
 
     if get_output:
-        return subprocess.check_output(args, **kwargs).decode('utf8').rstrip().split('\n')
+        return subprocess.check_output(args, **kwargs).decode('utf-8').rstrip().split('\n')
     else:
         subprocess.check_call(args, **kwargs)
 

@@ -60,6 +60,10 @@ class User(AbstractUser):
         verbose_name=_('Default unsafe marks threshold'), default=0,
         help_text=_('This setting sets default unsafe marks threshold on its creation')
     )
+    declarations_number = models.PositiveIntegerField(
+        verbose_name=_('Number of declarations in error trace'), default=settings.DEF_USER['declarations_number'],
+        help_text=_('Error trace declarations number threshold that should be opened by default')
+    )
 
     # Do not include remote fields here
     REQUIRED_FIELDS = ['email', 'first_name', 'last_name']

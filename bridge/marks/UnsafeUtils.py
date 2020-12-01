@@ -22,10 +22,7 @@ import hashlib
 from collections import OrderedDict
 
 from django.core.files import File
-from django.db.models import Case, When, Value, Q, F
-from django.utils.translation import ugettext as _
-
-from rest_framework.exceptions import APIException
+from django.db.models import Count, Case, When, Q
 
 from bridge.vars import ASSOCIATION_TYPE, UNKNOWN_ERROR, ERROR_TRACE_FILE, COMPARE_FUNCTIONS, CONVERT_FUNCTIONS
 from bridge.utils import logger, BridgeException, ArchiveFileContent, file_checksum, require_lock
@@ -66,6 +63,7 @@ def perform_unsafe_mark_update(user, serializer):
         'attrs': copy.deepcopy(mark.cache_attrs),
         'tags': copy.deepcopy(mark.cache_tags),
         'verdict': mark.verdict,
+        'status': mark.status,
         'threshold': mark.threshold
     }
 
@@ -94,7 +92,10 @@ def perform_unsafe_mark_update(user, serializer):
         if old_cache['verdict'] != mark.verdict:
             cache_upd.update_verdicts()
 
-    # Reutrn association changes cache identifier
+        if old_cache['status'] != mark.status:
+            cache_upd.update_statuses()
+
+    # Returns association changes cache identifier
     return cache_upd.save()
 
 
@@ -155,27 +156,21 @@ class RemoveUnsafeMark:
         self._mark.delete()
 
         # Find reports that have marks associations when all association are disabled. It can be in 2 cases:
-        # 1) All associations are unconfirmed
+        # 1) All associations are unconfirmed/dissimilar
         # 2) All confirmed associations were with deleted mark
-        # We need to update 2nd case, so auto-associations are counting again
+        # We need to update 2nd case, so automatic associations are counting again
         changed_ids = affected_reports - set(MarkUnsafeReport.objects.filter(
             report_id__in=affected_reports, associated=True
         ).values_list('report_id', flat=True))
 
-        # Update associations
-        for mr in MarkUnsafeReport.objects.select_related('mark').select_for_update()\
-                .filter(report_id__in=changed_ids).exclude(type=ASSOCIATION_TYPE[2][0]):
-            mr.associated = bool(mr.result > 0 and mr.result >= mr.mark.threshold)
-            mr.save()
+        # Count automatic associations again
+        MarkUnsafeReport.objects.filter(report_id__in=changed_ids, type=ASSOCIATION_TYPE[2][0]).update(associated=True)
+
         return affected_reports
 
 
 class ConfirmUnsafeMark(ConfirmAssociationBase):
     model = MarkUnsafeReport
-
-    def can_confirm_validation(self):
-        if not self.association.result:
-            raise APIException(_("You can't confirm mark with zero similarity"))
 
     def recalculate_cache(self, report_id):
         RecalculateUnsafeCache(report_id)
@@ -183,10 +178,6 @@ class ConfirmUnsafeMark(ConfirmAssociationBase):
 
 class UnconfirmUnsafeMark(UnconfirmAssociationBase):
     model = MarkUnsafeReport
-
-    def get_automatically_associated_qs(self):
-        queryset = super(UnconfirmUnsafeMark, self).get_automatically_associated_qs()
-        return queryset.filter(error=None, result__gte=F('mark__threshold'), result__gt=0)
 
     def recalculate_cache(self, report_id):
         RecalculateUnsafeCache(report_id)
@@ -216,11 +207,10 @@ class ConnectUnsafeMark:
         associations = []
         for report in reports_qs:
             new_association = MarkUnsafeReport(
-                mark=self._mark, report_id=report.id, author=author,
-                type=ASSOCIATION_TYPE[0][0], **compare_results[report.id]
+                mark=self._mark, report_id=report.id, author=author, **compare_results[report.id]
             )
             if prime_id and report.id == prime_id:
-                new_association.type = ASSOCIATION_TYPE[1][0]
+                new_association.type = ASSOCIATION_TYPE[3][0]
             elif report.cache.marks_confirmed:
                 # Do not count automatic associations if report has confirmed ones
                 new_association.associated = False
@@ -229,8 +219,9 @@ class ConnectUnsafeMark:
         MarkUnsafeReport.objects.bulk_create(associations)
 
         if prime_id:
+            # Disable automatic associations
             MarkUnsafeReport.objects.filter(
-                report_id=prime_id, associated=True, type=ASSOCIATION_TYPE[0][0]
+                report_id=prime_id, associated=True, type=ASSOCIATION_TYPE[2][0]
             ).update(associated=False)
         return new_links
 
@@ -246,7 +237,7 @@ class ThreadCallForests:
         return list(forest for forest in self._forests_dict.values() if forest)
 
     def __parse_child(self, node, thread=None):
-        if node['type'] == 'statement':
+        if node['type'] in {'statement', 'declaration', 'declarations'}:
             return []
 
         if node['type'] == 'thread':
@@ -266,7 +257,7 @@ class ThreadCallForests:
                 has_body_note |= self.__has_note(child)
                 children_call_trees.extend(self.__parse_child(child, thread))
 
-            if children_call_trees or has_body_note or bool(node.get('note')):
+            if children_call_trees or has_body_note or self.__has_relevant_note(node):
                 return [{node.get('display', node['source']): children_call_trees}]
             # No children and no notes in body and no notes in call
             return []
@@ -291,7 +282,15 @@ class ThreadCallForests:
                 if self.__has_note(child):
                     return True
             return False
-        return bool(node.get('note'))
+        elif node['type'] == 'declarations':
+            for child in node['children']:
+                if self.__has_note(child):
+                    return True
+            return False
+        return self.__has_relevant_note(node)
+
+    def __has_relevant_note(self, node):
+        return bool(node.get('notes')) and any(note['level'] < 2 for note in node['notes'])
 
 
 class RelevantCallForests:
@@ -301,7 +300,7 @@ class RelevantCallForests:
         self.__parse_child(self._trace['trace'])
 
     def __parse_child(self, node):
-        if node['type'] == 'statement':
+        if node['type'] in {'statement', 'declaration', 'declarations'}:
             return []
 
         if node['type'] == 'thread':
@@ -316,7 +315,7 @@ class RelevantCallForests:
                 has_body_note |= self.__has_note(child)
                 children_call_trees.extend(self.__parse_child(child))
 
-            if children_call_trees or has_body_note or bool(node.get('note')):
+            if children_call_trees or has_body_note or self.__has_relevant_note(node):
                 return [{node.get('display', node['source']): children_call_trees}]
             # No children and no notes in body and no notes in call
             return []
@@ -340,7 +339,15 @@ class RelevantCallForests:
                 if self.__has_note(child):
                     return True
             return False
-        return bool(node.get('note'))
+        elif node['type'] == 'declarations':
+            for child in node['children']:
+                if self.__has_note(child):
+                    return True
+            return False
+        return self.__has_relevant_note(node)
+
+    def __has_relevant_note(self, node):
+        return bool(node.get('notes')) and any(note['level'] < 2 for note in node['notes'])
 
 
 class CompareMark:
@@ -380,13 +387,14 @@ class CompareMark:
         for report_id in reports_cache:
             if reports_cache[report_id] is None:
                 results[report_id] = {
-                    'result': 0, 'error': str(UNKNOWN_ERROR), 'associated': False
+                    'type': ASSOCIATION_TYPE[0][0], 'result': 0, 'error': str(UNKNOWN_ERROR), 'associated': False
                 }
             else:
                 res = jaccard(self._mark_cache, reports_cache[report_id])
+                is_associated = bool(res > 0 and res >= self._mark.threshold)
                 results[report_id] = {
-                    'result': res, 'error': None,
-                    'associated': bool(res > 0 and res >= self._mark.threshold)
+                    'type': is_associated and ASSOCIATION_TYPE[2][0] or ASSOCIATION_TYPE[0][0],
+                    'result': res, 'error': None, 'associated': is_associated
                 }
         return results
 
@@ -435,13 +443,14 @@ class CompareReport:
             rep_cache_set = report_cache[marks_cache[mark_id]['function']]
             if rep_cache_set is None:
                 results[mark_id] = {
-                    'result': 0, 'error': str(UNKNOWN_ERROR), 'associated': False
+                    'type': ASSOCIATION_TYPE[0][0], 'result': 0, 'error': str(UNKNOWN_ERROR), 'associated': False
                 }
             else:
                 res = jaccard(marks_cache[mark_id]['cache'], rep_cache_set)
+                is_associated = bool(res > 0 and res >= marks_cache[mark_id]['threshold'])
                 results[mark_id] = {
-                    'result': res, 'error': None,
-                    'associated': bool(res > 0 and res >= marks_cache[mark_id]['threshold'])
+                    'type': is_associated and ASSOCIATION_TYPE[2][0] or ASSOCIATION_TYPE[0][0],
+                    'result': res, 'error': None, 'associated': is_associated
                 }
         return results
 
@@ -451,18 +460,33 @@ class UpdateAssociated:
         self._mark = mark
         self.__update()
 
+    @require_lock(MarkUnsafeReport)
     def __update(self):
         queryset = MarkUnsafeReport.objects.filter(mark=self._mark)
-        has_confirmed = queryset.filter(type=ASSOCIATION_TYPE[1][0]).exists()
-
-        if has_confirmed:
-            # Because of the mark threshold some associations can't be confirmed already
-            queryset.filter(
-                result__lt=self._mark.threshold, type=ASSOCIATION_TYPE[1][0]
-            ).update(type=ASSOCIATION_TYPE[0][0])
 
         associate_condition = Q(result__gte=self._mark.threshold, result__gt=0)
-        if has_confirmed:
-            associate_condition &= Q(type=ASSOCIATION_TYPE[1][0])
 
-        queryset.update(associated=Case(When(condition=associate_condition, then=Value(True)), default=Value(False)))
+        # If the mark threshold increased then some associations will become dissimilar
+        res = queryset.filter(~associate_condition & ~Q(type=ASSOCIATION_TYPE[0][0]))\
+            .update(type=ASSOCIATION_TYPE[0][0], associated=False)
+
+        # If mark threshold decreased then some dissimilar associations can become automatic again
+        res += queryset.filter(associate_condition & Q(type=ASSOCIATION_TYPE[0][0]))\
+            .update(type=ASSOCIATION_TYPE[2][0])
+
+        if not res:
+            # Nothing changed due to new mark threshold
+            return
+
+        # Collect reports that don't have any confirmed associations
+        # that have associations with the current mark
+        without_confirmed = set(MarkUnsafeReport.objects.values('report_id').annotate(
+            confirmed=Count(Case(When(type=ASSOCIATION_TYPE[3][0], then=1)))
+        ).filter(
+            confirmed=0, report_id__in=set(queryset.values_list('report_id', flat=True))
+        ).values_list('report_id', flat=True))
+
+        # Associate all automatic associations of reports without any confirmed marks
+        MarkUnsafeReport.objects.filter(
+            report_id__in=without_confirmed, type=ASSOCIATION_TYPE[2][0], associated=False
+        ).update(associated=True)

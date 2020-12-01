@@ -1,43 +1,48 @@
 {
   "Klever Addons": {
     "CIF": {
-      "version": "64af3bf",
-      "path": "https://forge.ispras.ru/attachments/download/7914/cif-64af3bf.tar.xz",
+      "version": "7eb76b0",
+      "path": "https://forge.ispras.ru/attachments/download/8056/cif-7eb76b0.tar.xz",
+      "executable path": "bin"
+    },
+    "CIF-ARM": {
+      "version": "79182af",
+      "path": "https://forge.ispras.ru/attachments/download/8074/arm-unknown-eabi-cif-79182af.tar.xz",
       "executable path": "bin"
     },
     "CIL": {
-      "version": "88d3732",
-      "path": "https://forge.ispras.ru/attachments/download/7582/frama-c-cil-88d3732.tar.xz",
+      "version": "0a60360",
+      "path": "https://forge.ispras.ru/attachments/download/8075/frama-c-cil-0a60360.tar.xz",
       "executable path": "."
     },
     "Consul": {
       "version": "0.9.2",
-      "path": "https://releases.hashicorp.com/consul/0.9.2/consul_0.9.2_linux_amd64.zip",
+      "path": "https://forge.ispras.ru/attachments/download/8143/consul_0.9.2_linux_amd64.zip",
       "executable path": "consul"
     },
     "JRE": {
       "version": "11.0.7+10",
-      "path": "https://github.com/AdoptOpenJDK/openjdk11-binaries/releases/download/jdk-11.0.7%2B10/OpenJDK11U-jre_x64_linux_hotspot_11.0.7_10.tar.gz",
+      "path": "https://forge.ispras.ru/attachments/download/8144/OpenJDK11U-jre_x64_linux_hotspot_11.0.7_10.tar.gz",
       "executable path": "jdk-11.0.7+10-jre/bin/"
     },
     "Verification Backends": {
       "CPAchecker": {
         "name": "CPAchecker",
-        "version": "trunk:35003",
-        "path": "https://forge.ispras.ru/attachments/download/7943/CPAchecker-35003.tar.xz",
+        "version": "trunk:36126",
+        "path": "https://forge.ispras.ru/attachments/download/8186/CPAchecker-36126.tar.xz",
         "executable path": "scripts"
       },
       "CPALockator": {
         "name": "CPAchecker",
-        "version": "CPALockator-combat-mode:34860",
-        "path": "https://forge.ispras.ru/attachments/download/7881/CPAchecker-1.8-svn-34860-unix.tar.xz",
+        "version": "CPALockator:36189",
+        "path": "https://forge.ispras.ru/attachments/download/8195/CPALockator-36189.tar.xz",
         "executable path": "scripts"
       }
     }
   },
   "Klever Build Bases": {
     "linux/loadable kernel modules sample": {
-      "path": "https://forge.ispras.ru/attachments/download/7604/build-base-linux-3.14.79-x86_64-sample.tar.xz"
+      "path": "https://forge.ispras.ru/attachments/download/8076/build-base-linux-3.14.79-x86_64-sample.tar.xz"
     }
   }
 }

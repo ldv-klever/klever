@@ -102,7 +102,11 @@ class Migration(migrations.Migration):
             ('default_threshold', models.FloatField(
                 default=0, verbose_name='Default unsafe marks threshold',
                 help_text='This setting sets default unsafe marks threshold on its creation'
-             )),
+            )),
+            ('declarations_number', models.PositiveIntegerField(
+                default=3, verbose_name='Number of declarations in error trace',
+                help_text='Error trace declarations number threshold that should be opened by default'
+            )),
         ], options={
             'verbose_name': 'user',
             'verbose_name_plural': 'users',

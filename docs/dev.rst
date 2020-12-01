@@ -152,6 +152,10 @@ to specify command-line option *--allow-symbolic-links*.
 How to generate build bases for testing Klever
 ----------------------------------------------
 
+Most likely you can get actual, prepared in advance build bases for testing Klever from
+*ldvuser@ldvdev:/var/lib/klever/workspace/Branches-and-Tags-Processing/build-bases.tar.gz* (this works just within the
+ISP RAS local network).
+
 To generate build bases for testing Klever you need to perform following preliminary steps:
 
 #. Install Klever locally for development purposes according to the user documentation (see :ref:`dev_deploy`).
@@ -357,3 +361,18 @@ Additional documentation
 
 A lot of usefull documentation for developing Django projects as well as for general using of the PyCharm IDE is
 available at the official `site <https://www.jetbrains.com/pycharm/documentation/>`__.
+
+Extended Violation Witness Format
+---------------------------------
+
+TODO: Translate from Russian.
+
+Error Trace Format
+------------------
+
+TODO: Translate from Russian.
+
+Code Coverage Format
+--------------------
+
+TODO: Translate from Russian. 

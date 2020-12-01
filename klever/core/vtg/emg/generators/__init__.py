@@ -34,7 +34,7 @@ def generate_processes(logger, conf, collection, abstract_task_desc, source):
     :param collection: ProcessCollection object.
     :param abstract_task_desc: Description dict.
     :param source: Source collection object.
-    :return: ProcessCollection object.
+    :return: Reports dict.
     """
     # In a specific order start proess generators
     generator_names = ((e, '.vtg.emg.generators.{}'.format(e)) for e in
@@ -66,7 +66,7 @@ def generate_processes(logger, conf, collection, abstract_task_desc, source):
                 generator.save_specification(specifications[kind], file_name)
 
             # Save processes
-            with open('%s intermediate model.json' % str(shortname), mode='w', encoding='utf8') as fp:
+            with open('%s intermediate model.json' % str(shortname), mode='w', encoding='utf-8') as fp:
                 json.dump(collection, fp, cls=CollectionEncoder, sort_keys=True, indent=2)
 
             # Save images of processes

@@ -22,7 +22,7 @@ import sortedcontainers
 from clade import Clade
 
 from klever.core.vtg.emg.common.c import Function, Variable, Macro, import_declaration
-from klever.core.vtg.emg.common.c.types import import_typedefs, extract_name
+from klever.core.vtg.emg.common.c.types import import_typedefs, extract_name, dump_types
 from klever.core.vtg.utils import find_file_or_dir
 
 
@@ -50,7 +50,10 @@ def create_source_representation(logger, conf, abstract_task):
     collection.c_full_paths = _c_full_paths(collection, cfiles)
 
     _import_code_analysis(logger, conf, clade, files_map, collection)
-
+    if conf.get('dump types'):
+        dump_types('type collection.json')
+    if conf.get('dump source code analysis'):
+        collection.dump('vars.json', 'functions.json', 'macros.json')
     return collection
 
 
@@ -185,7 +188,7 @@ def _import_code_analysis(logger, conf, clade, dependencies, collection):
     macros_file = conf.get('macros white list')
     if macros_file:
         macros_file = find_file_or_dir(logger, conf['main working directory'], macros_file)
-        with open(macros_file, 'r', encoding='utf8') as fp:
+        with open(macros_file, 'r', encoding='utf-8') as fp:
             white_list = sorted(ujson.load(fp))
         if white_list:
             macros = clade.get_macros_expansions(sorted(collection.cfiles), white_list)
@@ -244,6 +247,15 @@ class Source:
         self._macros = sortedcontainers.SortedDict()
 
         self.__function_calls_cache = sortedcontainers.SortedDict()
+
+    def dump(self, var_file, func_file, macro_file):
+        with open(var_file, 'w', encoding='utf-8') as fp:
+            ujson.dump({k: {f: v.declare_with_init() for f, v in fs.items()} for k, fs in self._source_vars.items()},
+                       fp, indent=2, sort_keys=True)
+        with open(func_file, 'w', encoding='utf-8') as fp:
+            ujson.dump({k: {f: v.declare()[0] for f, v in fs.items()} for k, fs in self._source_vars.items()}, fp,
+                       indent=2, sort_keys=True)
+        # todo: dump macros after implementation
 
     @property
     def source_functions(self):

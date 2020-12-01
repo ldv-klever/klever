@@ -41,7 +41,7 @@ JOB_TREE_VIEW = {
     'decisions_order': ['up', 'start_date'],
 
     # FILTERS:
-    # hidden: list with values: 'without_decision', 'confirmed_marks'
+    # hidden: list with values: 'without_decision', 'detailed_verdicts'
     # title: [iexact|istartswith|icontains, <any text>]
     # author: [is|isnot, <id from User model>]
     # creation_date: [gt|lt, <int number>, weeks|days|hours|minutes]
@@ -61,12 +61,12 @@ JOB_TREE_VIEW = {
     # 'problem_component': ['iexact', 'BLAST'],
     # 'priority': ['me', 'LOW'],
     # 'finish_date': ['is', '1', '2016'],
-    # 'hidden': ['confirmed_marks']
+    # 'hidden': ['detailed_verdicts']
 }
 
 JOB_DATA_VIEW = {
     'data': ['unsafes', 'safes', 'unknowns', 'resources', 'tags_safe', 'tags_unsafe', 'attr_stat'],
-    # 'hidden': ['unknowns_nomark', 'unknowns_total', 'resource_total', 'confirmed_marks'],
+    # 'hidden': ['unknowns_nomark', 'unknowns_total', 'resource_total', 'detailed_verdicts'],
     'attr_stat': ['Requirements specification']
 
     # FILTERS:
@@ -94,7 +94,10 @@ REPORT_CHILDREN_VIEW = {
 
 UNSAFES_VIEW = {
     'elements': [DEF_NUMBER_OF_ELEMENTS],
-    'columns': ['marks_number', 'report_verdict', 'tags', 'verifiers:cpu', 'verifiers:wall', 'verifiers:memory'],
+    'columns': [
+        'marks_number', 'report_verdict', 'report_status', 'tags',
+        'verifiers:cpu', 'verifiers:wall', 'verifiers:memory'
+    ],
     # order: [up|down, attr|parent_cpu|parent_wall|parent_memory, <any text, not empty for attr only>]
     # 'order': ['down', 'attr', 'Requirement'],
     # 'attr': ['LKVOG strategy:Name', 'istartswith', 'Separate']
@@ -201,10 +204,7 @@ UNKNOWN_MARKS_VIEW = {
 }
 
 UNSAFE_ASS_MARKS_VIEW = {
-    'columns': [
-        'verdict', 'similarity', 'status', 'associated', 'source',
-        'tags', 'ass_type', 'ass_author', 'description'
-    ],
+    'columns': ['verdict', 'similarity', 'status', 'tags', 'ass_author', 'description'],
 
     # FILTERS:
     # verdict: <list of identifiers from MARK_UNSAFE>
@@ -222,7 +222,7 @@ UNSAFE_ASS_MARKS_VIEW = {
 }
 
 SAFE_ASS_MARKS_VIEW = {
-    'columns': ['verdict', 'associated', 'source', 'tags', 'ass_type', 'ass_author', 'description'],
+    'columns': ['verdict', 'tags', 'ass_author', 'description'],
 
     # FILTERS:
     # verdict: <list of identifiers from MARK_UNSAFE>
@@ -236,7 +236,7 @@ SAFE_ASS_MARKS_VIEW = {
 }
 
 UNKNOWN_ASS_MARKS_VIEW = {
-    'columns': ['associated', 'source', 'ass_type', 'ass_author', 'description'],
+    'columns': ['ass_author', 'description'],
 
     # FILTERS:
     # ass_type: <list of identifiers from ASSOCIATION_TYPE>
@@ -299,7 +299,7 @@ SAFE_ASSOCIATION_CHANGES_VIEW = {
     # attr: [<Attr name>, iexact|istartswith, <Attr value>]
 }
 UNSAFE_ASSOCIATION_CHANGES_VIEW = {
-    'columns': ['change_kind', 'sum_verdict', 'tags', 'decision'],
+    'columns': ['change_kind', 'sum_verdict', 'sum_status', 'tags', 'decision'],
     # FILTERS:
     'hidden': ['unchanged']
     # change_kind: <sublist from ['changed', 'new', 'deleted']>

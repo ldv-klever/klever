@@ -25,7 +25,7 @@ import klever.core.components
 class PW(klever.core.components.Component):
 
     def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, id=None, work_dir=None, attrs=None,
-                 separate_from_parent=True, include_child_resources=False, session=None, total_subjobs=None):
+                 separate_from_parent=True, include_child_resources=False, total_subjobs=None):
         super(PW, self).__init__(conf, logger, parent_id, callbacks, mqs, vals, id, work_dir, attrs,
                                  separate_from_parent, include_child_resources)
         # Initialize shared values and queues
@@ -35,8 +35,7 @@ class PW(klever.core.components.Component):
         self.vals['task solving flag'] = self.first_task_flag
         self.subjobs = multiprocessing.Manager().dict()
         self.vals['subjobs progress'] = self.subjobs
-
-        self.session = session
+        self.session = klever.core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
         if total_subjobs:
             self.subjobs_number = total_subjobs
             self.job_mode = False

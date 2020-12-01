@@ -57,7 +57,10 @@
             }
           }
         },
-        {"name": "Weaver"},
+        {
+          "name": "Weaver",
+          "options": {"LDV inline Assembler header file": "ldv/common/inline_asm.h"}
+        },
         {
           "name": "FVTP",
           "options": {
@@ -65,7 +68,7 @@
             "verifier profile": "reachability",
             "verifier": {
               "name": "CPAchecker",
-              "version": "trunk:35003"
+              "version": "trunk:36126"
             }
           }
         }

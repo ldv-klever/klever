@@ -78,9 +78,12 @@ def sort_bugs_list(value):
 
 class ReportComponentView(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, DetailView):
     template_name = 'reports/ReportMain.html'
+    slug_field = 'identifier'
+    slug_url_kwarg = 'identifier'
 
     def get_queryset(self):
-        return ReportComponent.objects.select_related('decision__operator')
+        return ReportComponent.objects.select_related('decision', 'decision__operator')\
+            .filter(decision__identifier=self.kwargs['decision'])
 
     def get_context_data(self, **kwargs):
         if not JobAccess(self.request.user, self.object.decision.job).can_view:
@@ -149,7 +152,7 @@ class SafesListView(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, DetailVi
         super().__init__(*args, **kwargs)
 
     def get_queryset(self):
-        return ReportComponent.objects.select_related('decision__operator')
+        return ReportComponent.objects.select_related('decision', 'decision__operator')
 
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
@@ -181,7 +184,7 @@ class UnsafesListView(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, Detail
         super().__init__(*args, **kwargs)
 
     def get_queryset(self):
-        return ReportComponent.objects.select_related('decision__operator')
+        return ReportComponent.objects.select_related('decision', 'decision__operator')
 
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
@@ -213,7 +216,7 @@ class UnknownsListView(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, Detai
         super().__init__(*args, **kwargs)
 
     def get_queryset(self):
-        return ReportComponent.objects.select_related('decision__operator')
+        return ReportComponent.objects.select_related('decision', 'decision__operator')
 
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
@@ -238,10 +241,12 @@ class UnknownsListView(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, Detai
 
 class ReportSafeView(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, DetailView):
     template_name = 'reports/ReportSafe.html'
-    model = ReportSafe
+    slug_field = 'identifier'
+    slug_url_kwarg = 'identifier'
 
     def get_queryset(self):
-        return ReportSafe.objects.select_related('decision__operator')
+        return ReportSafe.objects.select_related('decision', 'decision__operator')\
+            .filter(decision__identifier=self.kwargs['decision'])
 
     def get_context_data(self, **kwargs):
         if not JobAccess(self.request.user, self.object.decision.job).can_view:
@@ -253,7 +258,7 @@ class ReportSafeView(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, DetailV
         context['verifier_files_url'] = leaf_verifier_files_url(self.object)
         context.update({
             'report': self.object, 'resources': report_resources(self.request.user, self.object),
-            'SelfAttrsData': self.object.attrs.order_by('id').values_list('id', 'name', 'value', 'data'),
+            'SelfAttrsData': self.object.attrs.order_by('id'),
             'MarkTable': SafeReportMarksTable(self.request.user, self.object, self.get_view(VIEW_TYPES[11]))
         })
 
@@ -267,9 +272,12 @@ class ReportSafeView(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, DetailV
 
 class ReportUnsafeView(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, DetailView):
     template_name = 'reports/ReportUnsafe.html'
-    model = ReportUnsafe
-    slug_url_kwarg = 'trace_id'
-    slug_field = 'trace_id'
+    slug_url_kwarg = 'identifier'
+    slug_field = 'identifier'
+
+    def get_queryset(self):
+        return ReportUnsafe.objects.select_related('decision', 'decision__operator')\
+            .filter(decision__identifier=self.kwargs['decision'])
 
     def get_context_data(self, **kwargs):
         if not JobAccess(self.request.user, self.object.decision.job).can_view:
@@ -286,7 +294,7 @@ class ReportUnsafeView(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, Detai
         context['verifier_files_url'] = leaf_verifier_files_url(self.object)
         context.update({
             'include_jquery_ui': True, 'report': self.object, 'etv': etv,
-            'SelfAttrsData': self.object.attrs.order_by('id').values_list('id', 'name', 'value', 'data'),
+            'SelfAttrsData': self.object.attrs.order_by('id'),
             'MarkTable': UnsafeReportMarksTable(self.request.user, self.object, self.get_view(VIEW_TYPES[10])),
             'resources': report_resources(self.request.user, self.object)
         })
@@ -303,7 +311,12 @@ class ReportUnsafeView(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, Detai
 
 class ReportUnknownView(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, DetailView):
     template_name = 'reports/ReportUnknown.html'
-    model = ReportUnknown
+    slug_url_kwarg = 'identifier'
+    slug_field = 'identifier'
+
+    def get_queryset(self):
+        return ReportUnknown.objects.select_related('decision', 'decision__operator')\
+            .filter(decision__identifier=self.kwargs['decision'])
 
     def get_context_data(self, **kwargs):
         if not JobAccess(self.request.user, self.object.decision.job).can_view:
@@ -311,7 +324,7 @@ class ReportUnknownView(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, Deta
         context = super().get_context_data(**kwargs)
         context.update({
             'report': self.object, 'resources': report_resources(self.request.user, self.object),
-            'SelfAttrsData': self.object.attrs.order_by('id').values_list('id', 'name', 'value', 'data'),
+            'SelfAttrsData': self.object.attrs.order_by('id'),
             'main_content': ArchiveFileContent(
                 self.object, 'problem_description', PROBLEM_DESC_FILE).content.decode('utf8'),
             'MarkTable': UnknownReportMarksTable(self.request.user, self.object, self.get_view(VIEW_TYPES[12]))
@@ -332,9 +345,11 @@ class ReportUnknownView(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, Deta
 
 class FullscreenReportUnsafe(LoginRequiredMixin, LoggedCallMixin, DetailView):
     template_name = 'reports/etv_fullscreen.html'
-    model = ReportUnsafe
-    slug_url_kwarg = 'trace_id'
-    slug_field = 'trace_id'
+    slug_url_kwarg = 'identifier'
+    slug_field = 'identifier'
+
+    def get_queryset(self):
+        return ReportUnsafe.objects.filter(decision__identifier=self.kwargs['decision']).select_related('decision')
 
     def get_context_data(self, **kwargs):
         if not JobAccess(self.request.user, self.object.decision.job).can_view:

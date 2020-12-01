@@ -24,7 +24,7 @@ from django.db.models import Count
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 
-from bridge.vars import COMPARE_VERDICT, SAFE_COLOR, UNSAFE_COLOR, DECISION_WEIGHT
+from bridge.vars import COMPARE_VERDICT, DECISION_WEIGHT
 from bridge.utils import BridgeException
 
 from reports.models import (
@@ -32,6 +32,8 @@ from reports.models import (
     ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent
 )
 from marks.models import MarkUnsafeReport, MarkSafeReport, MarkUnknownReport
+
+from reports.verdicts import safe_color, unsafe_color
 
 
 class GetComparisonObjects:
@@ -356,7 +358,7 @@ class SafeMarkBlock(CompareBlock):
         self.href = reverse('marks:safe', args=[mark_report.mark_id])
         self.subtitle = {
             'text': mark_report.mark.get_verdict_display(),
-            'color': SAFE_COLOR[mark_report.mark.verdict]
+            'color': safe_color(mark_report.mark.verdict)
         }
         self.tags = self.get_tags(mark_report.mark)
 
@@ -369,7 +371,7 @@ class UnsafeMarkBlock(CompareBlock):
         self.href = reverse('marks:unsafe', args=[mark_report.mark_id])
         self.subtitle = {
             'text': mark_report.mark.get_verdict_display(),
-            'color': UNSAFE_COLOR[mark_report.mark.verdict]
+            'color': unsafe_color(mark_report.mark.verdict)
         }
         self.tags = self.get_tags(mark_report.mark)
 
@@ -379,7 +381,7 @@ class UnknownBlock(CompareBlock):
         super().__init__("f_{}".format(report.pk), block_class='unknown_{}'.format(report.component))
         self.type = 'unknown'
         self.title = _('Unknown')
-        self.href = reverse('reports:unknown', args=[report.pk])
+        self.href = reverse('reports:unknown', args=[report.decision.identifier, report.identifier])
         self.subtitle = {'text': report.component}
         self.attrs = self.get_attrs(report)
 
@@ -389,10 +391,10 @@ class UnsafeBlock(CompareBlock):
         super().__init__("u_{}".format(report.pk), block_class='unsafe')
         self.type = 'unsafe'
         self.title = _('Unsafe')
-        self.href = reverse('reports:unsafe', args=[report.trace_id])
+        self.href = reverse('reports:unsafe', args=[report.decision.identifier, report.identifier])
         self.subtitle = {
             'text': report.cache.get_verdict_display(),
-            'color': UNSAFE_COLOR[report.cache.verdict]
+            'color': unsafe_color(report.cache.verdict)
         }
         self.attrs = self.get_attrs(report)
 
@@ -402,10 +404,10 @@ class SafeBlock(CompareBlock):
         super().__init__("s_{}".format(report.pk), block_class='safe')
         self.type = 'safe'
         self.title = _('Safe')
-        self.href = reverse('reports:safe', args=[report.pk])
+        self.href = reverse('reports:safe', args=[report.decision.identifier, report.identifier])
         self.subtitle = {
             'text': report.cache.get_verdict_display(),
-            'color': SAFE_COLOR[report.cache.verdict]
+            'color': safe_color(report.cache.verdict)
         }
         self.attrs = self.get_attrs(report)
 
@@ -415,7 +417,7 @@ class ComponentBlock(CompareBlock):
         super().__init__("c_{}".format(report.pk), block_class=report.component)
         self.type = 'component'
         self.title = report.component
-        self.href = reverse('reports:component', args=[report.pk])
+        self.href = reverse('reports:component', args=[report.decision.identifier, report.identifier])
         self.attrs = self.get_attrs(report)
 
 
