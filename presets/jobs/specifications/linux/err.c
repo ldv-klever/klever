@@ -24,7 +24,7 @@
 
 long ldv_is_err(const void *ptr)
 {
-	if ((unsigned long)ptr > LDV_PTR_MAX)
+	if ((unsigned long)ptr >= LDV_PTR_MAX)
 		return 1;
 	else
 		return 0;
@@ -37,7 +37,7 @@ void *ldv_err_ptr(long error)
 	ldv_assume(error < 0);
 	ldv_assume(error >= -MAX_ERRNO);
 	result = LDV_PTR_MAX - error;
-	ldv_assume(result > LDV_PTR_MAX);
+	ldv_assume(result >= LDV_PTR_MAX);
 
 	return (void *)result;
 }
