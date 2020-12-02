@@ -223,12 +223,12 @@ class FillCoverageStatistics:
         try:
             res = ArchiveFileContent(self.coverage_obj, 'archive', COVERAGE_FILE)
         except Exception as e:
-            raise BridgeException(_("Error while extracting source: %(error)s") % {'error': str(e)})
+            raise BridgeException(_("Error while extracting source file: %(error)s") % {'error': str(e)})
         data = json.loads(res.content.decode('utf8'))
         if data.get('format') != ETV_FORMAT:
-            raise BridgeException(_('Sources coverage format is not supported'))
+            raise BridgeException(_('Code coverage format is not supported'))
         if 'coverage statistics' not in data:
-            raise BridgeException(_('Common coverage file does not contain statistics'))
+            raise BridgeException(_('Common code coverage file does not contain statistics'))
         return data['coverage statistics'], data['data statistics']
 
     def __save_statistics(self):
@@ -331,12 +331,12 @@ class GetCoverageData:
         try:
             res = ArchiveFileContent(self._coverage, 'archive', self._file_name, not_exists_ok=True)
         except Exception as e:
-            raise BridgeException(_("Error while extracting source: %(error)s") % {'error': str(e)})
+            raise BridgeException(_("Error while extracting source file: %(error)s") % {'error': str(e)})
         if res.content is None:
             return None
         data = json.loads(res.content.decode('utf8'))
         if data.get('format') != ETV_FORMAT:
-            raise BridgeException(_('Sources coverage format is not supported'))
+            raise BridgeException(_('Code coverage format is not supported'))
         if not data.get('data'):
             return None
         if not data['data'].get(self._line):

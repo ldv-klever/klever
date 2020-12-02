@@ -46,7 +46,7 @@
                                                 <button class="ui green icon button note-popup confirm-mark-btn" data-position="top right" data-content="{% trans 'Confirm' %}" data-url="{{ v.value.confirm }}" data-method="POST"><i class="legal icon"></i></button>
                                             {% endif %}
                                             {% if v.value.unconfirm %}
-                                                <button class="ui red icon button note-popup confirm-mark-btn" data-position="top right" data-content="{% trans 'Unconfirm' %}" data-url="{{ v.value.unconfirm }}" data-method="DELETE"><i class="trash icon"></i></button>
+                                                <button class="ui red icon button note-popup confirm-mark-btn" data-position="top right" data-content="{% trans 'Reject' %}" data-url="{{ v.value.unconfirm }}" data-method="DELETE"><i class="trash icon"></i></button>
                                             {% endif %}
                                             <button class="ui blue icon button note-popup mark-inline-form" data-position="top right" data-content="{% trans 'Edit' %}" data-url="{{ v.value.edit }}"><i class="edit icon"></i></button>
                                             <button class="ui red icon button note-popup mark-inline-delete" data-position="top right" data-content="{% trans 'Remove' %}" data-url="{{ v.value.delete }}"><i class="remove icon"></i></button>

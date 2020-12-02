@@ -44,7 +44,7 @@
                 {# Preset job menu #}
                 <div class="ui violet inverted menu top attached">
                     {% if object.type == '1' %}
-                        <a id="create_preset_dir_btn" class="item"><i class="plus icon"></i> {% trans 'Add preset directory' %}</a>
+                        <a id="create_preset_dir_btn" class="item"><i class="plus icon"></i> {% trans 'Add jobs directory' %}</a>
                     {% endif %}
                     {% if can_create %}
                         <a href="{% url 'jobs:job-create-form' object.id %}" class="item"><i class="copy icon"></i> {% trans 'Create new job' %}</a>
@@ -99,7 +99,7 @@
     </div>
 
     {% if object.type == '1' %}
-        {# Create preset directory name modal #}
+        {# Create jobs directory name modal #}
         <div id="create_preset_dir_modal" class="ui modal">
             <div class="header">{% trans 'Please, set the unique name for the new jobs directory' %}</div>
             <div class="content">
@@ -113,7 +113,7 @@
             </div>
         </div>
     {% elif object.type == '2' %}
-        {# Change preset directory name modal #}
+        {# Change jobs directory name modal #}
         <div id="change_preset_dir_modal" class="ui modal">
             <div class="header">{% trans 'Please, set the unique name for the new jobs directory' %}</div>
             <div class="content">
@@ -134,7 +134,7 @@
                 {% trans 'Are you sure' %}?
             </div>
             <div class="content">
-                <div class="ui center aligned grid">{% trans 'If the preset directory has jobs it will be deleted' %}</div>
+                <div class="ui center aligned grid">{% trans 'If the jobs directory has jobs they will be deleted' %}</div>
             </div>
             <div class="actions">
                 <div class="ui center aligned grid">

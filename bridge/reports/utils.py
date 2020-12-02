@@ -58,7 +58,7 @@ REP_MARK_TITLES = {
     'verifier': _('Verifier'),
     'verifier:cpu': _('CPU time'),
     'verifier:wall': _('Wall time'),
-    'verifier:memory': _('Memory'),
+    'verifier:memory': _('Memory size'),
     'problems': _('Problems')
 }
 

@@ -295,7 +295,7 @@ class UnconfirmAssociationBase:
 
     def __unconfirm(self):
         if self._object.type == ASSOCIATION_TYPE[0][0]:
-            raise APIException(_("You can't unconfirm dissimilar mark"))
+            raise APIException(_("You can't reject dissimilar mark"))
 
         # Already unconfirmed
         if self._object.type == ASSOCIATION_TYPE[1][0]:

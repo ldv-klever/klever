@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-12-01 11:53+0000\n"
+"POT-Creation-Date: 2020-12-02 11:54+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -96,10 +96,8 @@ msgid "Upload jobs"
 msgstr "Загрузить задания на сервер"
 
 #: bridge/templates/bridge/base.html:81
-#, fuzzy
-#| msgid "Upload marks"
 msgid "Uploading status"
-msgstr "Загрузить оценки на сервер"
+msgstr "Статус загрузки на сервер"
 
 #: bridge/templates/bridge/base.html:85
 #: tools/templates/tools/ManagerPanel.html:124
@@ -247,8 +245,8 @@ msgid "No file is chosen"
 msgstr "Не выбран ни один файл"
 
 #: bridge/templates/bridge/base.html:169
-msgid "Ajax request error. Maybe connection refused."
-msgstr ""
+msgid "Ajax request error (maybe connection refused)"
+msgstr "Ошибка Ajax запроса (возможно, отказано в соединении)"
 
 #: bridge/templates/bridge/error.html:21 bridge/vars.py:197
 #: jobs/JobTableProperties.py:71 jobs/templates/jobs/UploadingStatus.html:33
@@ -280,21 +278,17 @@ msgstr "Вы уверены"
 #: jobs/templates/jobs/presetJob.html:142
 #: reports/templates/reports/AssociatedMarksTable.html:46
 #: tools/templates/tools/ManagerPanel.html:272
-#, fuzzy
-#| msgid "Confirmation"
 msgid "Confirm"
-msgstr "Подтверждение"
+msgstr "Подтвердить"
 
 #: bridge/utils.py:117
 #, python-brace-format
 msgid "Please keep the file size under {0} (the current file size is {1})"
-msgstr "Пожалуйста, не загружайте файлы размером больше {0} (текущий размер файла - {1})"
+msgstr "Пожалуйста, не загружайте на сервер файлы размером больше {0} (текущий размер файла - {1})"
 
 #: bridge/utils.py:130
-#, fuzzy
-#| msgid "The file was not found"
 msgid "The file is wrong JSON"
-msgstr "Файл не был найден"
+msgstr "Файл не является корректным JSON файлом"
 
 #: bridge/vars.py:23
 msgid "Raw"
@@ -304,7 +298,7 @@ msgstr "Без обработки"
 msgid "Human-readable"
 msgstr "Удобочитаемый"
 
-#: bridge/vars.py:29
+#: bridge/vars.py:29 reports/api.py:202
 msgid "You don't have an access to this job"
 msgstr "У Вас нет прав на данное задание"
 
@@ -321,16 +315,12 @@ msgid "One of the selected jobs was not found"
 msgstr "Одно из отмеченных заданий не было найдено"
 
 #: bridge/vars.py:33
-#, fuzzy
-#| msgid "You don't have an access to create new marks"
-msgid "You don't have an access to create new job"
-msgstr "У Вас нет прав создавать новые оценки"
+msgid "You don't have an access to create new jobs"
+msgstr "У Вас нет прав создавать новые задания"
 
 #: bridge/vars.py:34
-#, fuzzy
-#| msgid "You don't have an access to download one of the selected jobs"
 msgid "You don't have an access to download the job with selected decisions"
-msgstr "У Вас нет прав загрузить одно из отмеченных заданий"
+msgstr "У Вас нет прав скачать задание с отмеченными решениями"
 
 #: bridge/vars.py:35
 msgid "The report was not found"
@@ -345,10 +335,8 @@ msgid "The mark was not found"
 msgstr "Оценка не была найдена"
 
 #: bridge/vars.py:38
-#, fuzzy
-#| msgid "Mark was deleted"
 msgid "The mark is being deleted"
-msgstr "Оценка была удалена"
+msgstr "Оценка удаляется"
 
 #: bridge/vars.py:47 bridge/vars.py:65
 msgid "No access"
@@ -395,7 +383,7 @@ msgstr "Нет соответствия"
 
 #: bridge/vars.py:61
 msgid "Broken"
-msgstr ""
+msgstr "Нарушенный"
 
 #: bridge/vars.py:66 users/notifications.py:230
 msgid "Observer"
@@ -411,7 +399,7 @@ msgstr "Эксперт и оператор"
 
 #: bridge/vars.py:73
 msgid "Hidden"
-msgstr ""
+msgstr "Скрытый"
 
 #: bridge/vars.py:74 bridge/vars.py:194 bridge/vars.py:265
 #: jobs/JobTableProperties.py:68
@@ -437,10 +425,8 @@ msgid "Corrupted"
 msgstr "Повреждено"
 
 #: bridge/vars.py:79
-#, fuzzy
-#| msgid "Cancel"
 msgid "Cancelling"
-msgstr "Отменить"
+msgstr "Отмена"
 
 #: bridge/vars.py:80 bridge/vars.py:198 jobs/JobTableProperties.py:72
 msgid "Cancelled"
@@ -448,33 +434,31 @@ msgstr "Отменено"
 
 #: bridge/vars.py:81
 msgid "Terminated"
-msgstr ""
+msgstr "Прекращенный"
 
-#: bridge/vars.py:85
+#: bridge/vars.py:85 reports/templates/reports/ReportSafe.html:176
+#: reports/templates/reports/ReportUnknown.html:178
+#: reports/templates/reports/ReportUnsafe.html:173
 msgid "Full-weight"
-msgstr ""
+msgstr "Полновесный"
 
 #: bridge/vars.py:86 reports/templates/reports/ReportSafe.html:175
 #: reports/templates/reports/ReportUnknown.html:177
 #: reports/templates/reports/ReportUnsafe.html:172
 msgid "Lightweight"
-msgstr ""
+msgstr "Легковесный"
 
 #: bridge/vars.py:90
 msgid "Original C source files"
-msgstr ""
+msgstr "Оригинальные файлы с исходным кодом на Си"
 
 #: bridge/vars.py:91
-#, fuzzy
-#| msgid "The file was not found"
 msgid "C source files including models"
-msgstr "Файл не был найден"
+msgstr "Файлы с исходным кодом на Си включая модели"
 
 #: bridge/vars.py:92
-#, fuzzy
-#| msgid "All safes"
 msgid "All source files"
-msgstr "Все доказательства корректности"
+msgstr "Все файлы с исходным кодом"
 
 #: bridge/vars.py:96
 msgid "Created"
@@ -575,117 +559,88 @@ msgid "Processing"
 msgstr "Решается"
 
 #: bridge/vars.py:220
-#, fuzzy
-#| msgid "Similarity"
 msgid "Dissimilar"
-msgstr "Похожесть"
+msgstr "Непохожий"
 
 #: bridge/vars.py:221
 msgid "Unconfirmed"
-msgstr ""
+msgstr "Отклоненный"
 
 #: bridge/vars.py:222 reports/utils.py:53
 #: users/templates/users/views/SafesAndUnsafesList.html:156
 #: users/templates/users/views/UnknownsList.html:136
-#, fuzzy
-#| msgid "Automatic association"
 msgid "Automatic"
-msgstr "Автоматическая привязка"
+msgstr "Автоматический"
 
 #: bridge/vars.py:223 reports/utils.py:52
 #: users/templates/users/views/SafesAndUnsafesList.html:151
 #: users/templates/users/views/UnknownsList.html:131
-#, fuzzy
-#| msgid "Confirmation"
 msgid "Confirmed"
-msgstr "Подтверждение"
+msgstr "Подтвержденный"
 
 #: bridge/vars.py:266
 msgid "Extracting archive files"
-msgstr ""
+msgstr "Распаковка архивов"
 
 #: bridge/vars.py:267
-#, fuzzy
-#| msgid "File uploading failed"
 msgid "Uploading files"
-msgstr "Загрузка файла на сервер провалилась"
+msgstr "Загрузка файлов на сервер"
 
 #: bridge/vars.py:268
-#, fuzzy
-#| msgid "Upload jobs"
 msgid "Uploading job"
-msgstr "Загрузить задания на сервер"
+msgstr "Загрузка задания задания на сервер"
 
 #: bridge/vars.py:269
-#, fuzzy
-#| msgid "Finish date"
 msgid "Uploading decisions cache"
-msgstr "Дата завершения работы"
+msgstr "Загрузка кэша решений на сервер"
 
 #: bridge/vars.py:270
 msgid "Uploading original sources"
-msgstr ""
+msgstr "Загрузка оригинальных файлов с исходным кодом на сервер"
 
 #: bridge/vars.py:271
-#, fuzzy
-#| msgid "Upload jobs"
 msgid "Uploading reports trees"
-msgstr "Загрузить задания на сервер"
+msgstr "Загрузка деревьев отчетов на сервер"
 
 #: bridge/vars.py:272
-#, fuzzy
-#| msgid "Upload marks"
 msgid "Uploading safes"
-msgstr "Загрузить оценки на сервер"
+msgstr "Загрузка доказательств корректности на сервер"
 
 #: bridge/vars.py:273
-#, fuzzy
-#| msgid "All unsafes"
 msgid "Uploading unsafes"
-msgstr "Все предупрeждения об ошибках"
+msgstr "Загрузка предупрeждений об ошибках на сервер"
 
 #: bridge/vars.py:274
-#, fuzzy
-#| msgid "All unknowns"
 msgid "Uploading unknowns"
-msgstr "Все проблемы в компонентах"
+msgstr "Загрузка проблем в компонентах на сервер"
 
 #: bridge/vars.py:275
-#, fuzzy
-#| msgid "Order by attribute"
 msgid "Uploading attributes"
-msgstr "Упорядочить по атрибуту"
+msgstr "Загрузка атрибутов на сервер"
 
 #: bridge/vars.py:276
-#, fuzzy
-#| msgid "Download files"
 msgid "Uploading coverage"
-msgstr "Загрузить файлы"
+msgstr "Загрузка покрытия кода на сервер"
 
 #: bridge/vars.py:277
-#, fuzzy
-#| msgid "Recalculate"
 msgid "Associating marks and cache recalculation"
-msgstr "Пересчитать"
+msgstr "Ассоциация оценок и пересчет кэша"
 
 #: bridge/vars.py:278 jobs/JobTableProperties.py:70 reports/utils.py:1213
-#, fuzzy
-#| msgctxt "component status"
-#| msgid "Finished"
 msgid "Finished"
-msgstr "Завершился"
+msgstr "Завершенный"
 
-#: bridge/vars.py:283
+#: bridge/vars.py:283 jobs/templates/jobs/decisionCreateForm.html:136
 msgid "Directory"
-msgstr ""
+msgstr "Директория"
 
 #: bridge/vars.py:284
 msgid "Leaf"
-msgstr ""
+msgstr "Лист"
 
 #: bridge/vars.py:285
 msgid "Custom directory"
-msgstr ""
+msgstr "Пользовательская директория"
 
 #: caches/models.py:31 users/templates/users/views/AssociationChanges.html:54
 msgid "Changed"
@@ -701,22 +656,16 @@ msgid "Deleted"
 msgstr "Удалена"
 
 #: jobs/Download.py:58 jobs/templates/jobs/tree.html:108
-#, fuzzy
-#| msgid "Please select jobs you want to download"
 msgid "Please select jobs or/and decisions you want to download"
-msgstr "Пожалуйста, отметьте задание, которые Вы хотите загрузить"
+msgstr "Пожалуйста, отметьте задания и/или решения, которые Вы хотите скачать"
 
 #: jobs/Download.py:66
-#, fuzzy
-#| msgid "The job was not found"
 msgid "Jobs were not found"
-msgstr "Задание не было найдено"
+msgstr "Задания не были обнаружены"
 
 #: jobs/Download.py:76
-#, fuzzy
-#| msgid "You don't have an access to one of the selected jobs"
 msgid "You don't have an access to one of the selected decisions"
-msgstr "У Вас нет прав для одного из отмеченных заданий"
+msgstr "У Вас нет прав для одного из отмеченных решений"
 
 #: jobs/DownloadSerializers.py:53
 msgid "The job archive format is not supported"
@@ -753,14 +702,12 @@ msgid "Decision status"
 msgstr "Статус решения"
 
 #: jobs/JobTableProperties.py:49
-#, fuzzy
-#| msgid "Verification tools"
 msgid "Verification tasks"
-msgstr "Инструменты верификации"
+msgstr "Верификационные задачи"
 
 #: jobs/JobTableProperties.py:50
 msgid "Subjobs"
-msgstr ""
+msgstr "Подзадания"
 
 #: jobs/JobTableProperties.py:52 jobs/JobTableProperties.py:54
 #: jobs/JobTableProperties.py:73 jobs/JobTableProperties.py:340
@@ -818,46 +765,36 @@ msgid "Operator"
 msgstr "Оператор"
 
 #: jobs/JobTableProperties.py:74
-#, fuzzy
-#| msgid "Number of task decisions"
 msgid "Number of decisions"
-msgstr "Количество решений задач"
+msgstr "Количество решений"
 
 #: jobs/JobTableProperties.py:75 jobs/JobTableProperties.py:83
-#, fuzzy
-#| msgid "Not solved"
 msgid "Total to be solved"
-msgstr "Не решено"
+msgstr "Всего решить"
 
 #: jobs/JobTableProperties.py:76 jobs/JobTableProperties.py:84
 #: jobs/templates/jobs/viewDecision/progress.html:76
 #: jobs/templates/jobs/viewDecision/progress.html:126
-#, fuzzy
-#| msgid "Start date"
 msgid "Start solution date"
-msgstr "Дата начала работы"
+msgstr "Дата начала решения"
 
 #: jobs/JobTableProperties.py:77 jobs/JobTableProperties.py:85
 #: jobs/templates/jobs/viewDecision/progress.html:99
 #: jobs/templates/jobs/viewDecision/progress.html:149
-#, fuzzy
-#| msgid "Finish date"
 msgid "Finish solution date"
-msgstr "Дата завершения работы"
+msgstr "Дата завершения решения"
 
 #: jobs/JobTableProperties.py:78 jobs/JobTableProperties.py:86
 #: jobs/templates/jobs/viewDecision/progress.html:83
 #: jobs/templates/jobs/viewDecision/progress.html:133
-#, fuzzy
-#| msgid "In progress"
 msgid "Solution progress"
-msgstr "Выполняется"
+msgstr "Прогресс решения"
 
 #: jobs/JobTableProperties.py:79 jobs/JobTableProperties.py:87
 #: jobs/templates/jobs/viewDecision/progress.html:91
 #: jobs/templates/jobs/viewDecision/progress.html:141
 msgid "Expected solution time"
-msgstr ""
+msgstr "Ожидаемое время решения"
 
 #: jobs/JobTableProperties.py:363 jobs/templates/jobs/jobForm.html:37
 #: jobs/templates/jobs/jobForm.html:72
@@ -866,32 +803,24 @@ msgid "Title"
 msgstr "Название"
 
 #: jobs/Upload.py:133
-#, fuzzy
-#| msgid "The attributes have wrong format"
 msgid "Preset info has wrong format"
-msgstr "Формат атрибутов некорректный"
+msgstr "Формат предустанавливаемых данных некорректный"
 
 #: jobs/Upload.py:137
-#, fuzzy
-#| msgid "The job was not found"
 msgid "Preset job was not found"
-msgstr "Задание не было найдено"
+msgstr "Предустанавливаемое задание не было найдено"
 
 #: jobs/Upload.py:142 jobs/Upload.py:146
-#, fuzzy
-#| msgid "The job archive is corrupted"
 msgid "Preset info is corrupted"
-msgstr "Архив задания поврежден"
+msgstr "Предустанавливаемые данные повреждены"
 
 #: jobs/Upload.py:183 jobs/Upload.py:199 jobs/Upload.py:204
-#, fuzzy
-#| msgid "The job archive is corrupted"
 msgid "Decision data is corrupted"
-msgstr "Архив задания поврежден"
+msgstr "Дата решения повреждена"
 
 #: jobs/Upload.py:243
 msgid "Reports data was corrupted"
-msgstr ""
+msgstr "Данные отчетов повреждены"
 
 #: jobs/Upload.py:507
 msgid "The job archive is corrupted"
@@ -900,53 +829,39 @@ msgstr "Архив задания поврежден"
 #: jobs/Upload.py:540 jobs/Upload.py:551
 #, python-format
 msgid "Required file was not found in job archive: %(filename)s"
-msgstr ""
+msgstr "Необходимый файл не был найден в архиве задания: %(filename)s"
 
 #: jobs/api.py:101
-#, fuzzy
-#| msgid "You don't have an access to edit this job"
 msgid "You don't have an access to decide the job"
-msgstr "У Вас нет прав редактировать данное задание"
+msgstr "У Вас нет прав решать данное задание"
 
 #: jobs/api.py:116
-#, fuzzy
-#| msgid "You don't have an access to remove this job"
 msgid "You don't have an access to rename the decision"
-msgstr "У Вас нет прав удалить данное задание"
+msgstr "У Вас нет прав переименовать данное решение"
 
 #: jobs/api.py:129
-#, fuzzy
-#| msgid "You don't have an access to start decision of this job"
 msgid "You don't have an access to restart the decision"
-msgstr "У Вас нет прав начать решение данного задания"
+msgstr "У Вас нет прав повторно решать данное задание"
 
 #: jobs/api.py:151
-#, fuzzy
-#| msgid "Use configuration from file"
 msgid "Wrong configuration format"
-msgstr "Использовать конфигурацию из файла"
+msgstr "Некорректный формат конфигурации"
 
 #: jobs/api.py:165
 msgid "You don't have an access to start decision of this job"
 msgstr "У Вас нет прав начать решение данного задания"
 
 #: jobs/api.py:267
-#, fuzzy
-#| msgid "No versions to delete (you can't remove first and last versions)"
 msgid "You can't remove this decision"
-msgstr "Нет версий, которые можно удалить (Вы не можете удалить первую и последнюю версии)"
+msgstr "Вы не можете удалить данное решение"
 
 #: jobs/api.py:278
-#, fuzzy
-#| msgid "You don't have an access to this job"
 msgid "You don't have an access to stop this decision"
-msgstr "У Вас нет прав на данное задание"
+msgstr "У Вас нет прав остановить данное решение"
 
 #: jobs/api.py:293
-#, fuzzy
-#| msgid "You don't have an access to create new jobs"
-msgid "You don't have an access to collapse reports"
-msgstr "У Вас нет прав создавать новые задания"
+msgid "You don't have an access to collapse the reports tree"
+msgstr "У Вас нет прав схлопнуть дерево отчетов"
 
 #: jobs/configuration.py:58
 msgid "Briefly"
@@ -989,20 +904,16 @@ msgid "Paranoid development"
 msgstr "Параноидальная разработка"
 
 #: jobs/configuration.py:228
-#, fuzzy
-#| msgid "Node configurations"
-msgid "The file configuration is wrong"
-msgstr "Конфигурации узлов"
+msgid "The configuration file is wrong"
+msgstr "Конфигурационный файл некорректный"
 
 #: jobs/configuration.py:318
-#, fuzzy
-#| msgid "The attributes have wrong format"
 msgid "Configuration has wrong format"
-msgstr "Формат атрибутов некорректный"
+msgstr "Формат конфигурации некорректный"
 
 #: jobs/configuration.py:337 jobs/configuration.py:341
 msgid "Population has to be done first"
-msgstr ""
+msgstr "Сначала необходимо наполнить базу данных"
 
 #: jobs/configuration.py:343
 msgid "The Klever scheduler is ailing"
@@ -1013,10 +924,8 @@ msgid "The Klever scheduler is disconnected"
 msgstr "Планировщик Klever отключен"
 
 #: jobs/configuration.py:354
-#, fuzzy
-#| msgid "The Klever scheduler is disconnected"
 msgid "The scheduler for tasks is disconnected"
-msgstr "Планировщик Klever отключен"
+msgstr "Планировщик задач отключен"
 
 #: jobs/models.py:52 jobs/templates/jobs/decision-list.html:8
 #: jobs/templates/jobs/fileTreeEdit.html:28
@@ -1032,10 +941,8 @@ msgid "Name"
 msgstr "Название"
 
 #: jobs/models.py:60 jobs/templates/jobs/presetJob.html:36
-#, fuzzy
-#| msgid "Preset"
 msgid "Preset job"
-msgstr "Предустановленная"
+msgstr "Предустановленное задание"
 
 #: jobs/serializers.py:98
 msgid "The configuration has wrong format"
@@ -1056,30 +963,22 @@ msgid "Please keep the file size under {max_size} (the current file size is {cur
 msgstr "Пожалуйста, не загружайте файлы размером больше {max_size} (текущий размер файла - {curr_size})"
 
 #: jobs/templates/jobs/DecisionResults.html:23
-#, fuzzy
-#| msgid "Verdict"
 msgid "Verdicts"
-msgstr "Вердикт"
+msgstr "Вердикты"
 
 #: jobs/templates/jobs/DecisionResults.html:142 marks/views.py:340
 #: tools/templates/tools/ManagerPanel.html:162
-#, fuzzy
-#| msgid "Unsafe tag"
 msgid "Unsafe tags"
-msgstr "Тег предупреждения об ошибке"
+msgstr "Теги предупреждений об ошибках"
 
 #: jobs/templates/jobs/DecisionResults.html:145 marks/views.py:340
 #: tools/templates/tools/ManagerPanel.html:156
-#, fuzzy
-#| msgid "Safe tag"
 msgid "Safe tags"
-msgstr "Тег доказательства корректности"
+msgstr "Теги доказательств корректности"
 
 #: jobs/templates/jobs/DecisionResults.html:173
-#, fuzzy
-#| msgid "Value of attribute"
-msgid "Statistics of attribute"
-msgstr "Значение атрибута"
+msgid "Statistics by attribute"
+msgstr "Статистика по атрибуту"
 
 #: jobs/templates/jobs/DecisionResults.html:177
 #: users/templates/users/views/AssociationChanges.html:149
@@ -1087,10 +986,8 @@ msgstr "Значение атрибута"
 #: users/templates/users/views/UnknownsList.html:197
 #: users/templates/users/views/marksList.html:279
 #: users/templates/users/views/reportChildren.html:114
-#, fuzzy
-#| msgid "Attribute"
 msgid "Attribute value"
-msgstr "Атрибут"
+msgstr "Значение атрибута"
 
 #: jobs/templates/jobs/DecisionResults.html:219 marks/tables.py:68
 #: marks/templates/marks/UnknownMark.html:63 reports/utils.py:49
@@ -1100,10 +997,8 @@ msgid "Component"
 msgstr "Компонент"
 
 #: jobs/templates/jobs/DecisionResults.html:220
-#, fuzzy
-#| msgid "For instance,"
 msgid "Instances"
-msgstr "Например,"
+msgstr "Экземпляры"
 
 #: jobs/templates/jobs/DecisionResults.html:221
 #: reports/templates/reports/ReportMain.html:117
@@ -1111,17 +1006,15 @@ msgstr "Например,"
 #: reports/templates/reports/ReportUnknown.html:97
 #: reports/templates/reports/ReportUnsafe.html:119 reports/utils.py:60
 msgid "Wall time"
-msgstr ""
+msgstr "Время работы"
 
 #: jobs/templates/jobs/DecisionResults.html:222
 #: reports/templates/reports/ReportMain.html:118
 #: reports/templates/reports/ReportSafe.html:97
 #: reports/templates/reports/ReportUnknown.html:98
 #: reports/templates/reports/ReportUnsafe.html:120 reports/utils.py:59
-#, fuzzy
-#| msgid "CPU model"
 msgid "CPU time"
-msgstr "Модель процессора"
+msgstr "Процессорное время"
 
 #: jobs/templates/jobs/DecisionResults.html:223
 #: reports/templates/reports/ReportMain.html:119
@@ -1130,13 +1023,11 @@ msgstr "Максимальный объем оперативной памяти"
 
 #: jobs/templates/jobs/UploadingStatus.html:21
 msgid "Jobs uploading status"
-msgstr ""
+msgstr "Статус загрузки заданий на сервер"
 
 #: jobs/templates/jobs/UploadingStatus.html:28
-#, fuzzy
-#| msgid "Attribute"
 msgid "Archive name"
-msgstr "Атрибут"
+msgstr "Название атрибута"
 
 #: jobs/templates/jobs/UploadingStatus.html:29
 #: jobs/templates/jobs/decision-list.html:11 marks/tables.py:58
@@ -1168,20 +1059,16 @@ msgid "Finish date"
 msgstr "Дата завершения работы"
 
 #: jobs/templates/jobs/UploadingStatus.html:32
-#, fuzzy
-#| msgid "Upload jobs"
 msgid "Uploaded job"
-msgstr "Загрузить задания на сервер"
+msgstr "Загрузенное задание"
 
 #: jobs/templates/jobs/comparison.html:30
 msgid "Job files comparison"
 msgstr "Сравнение файлов заданий"
 
 #: jobs/templates/jobs/comparison.html:34
-#, fuzzy
-#| msgid "Comparison of files of jobs"
-msgid "Comparison of files of decisions"
-msgstr "Сравнение файлов заданий"
+msgid "Comparison of decision files"
+msgstr "Сравнение файлов решений"
 
 #: jobs/templates/jobs/comparison.html:38
 msgid "Files without differences"
@@ -1196,41 +1083,29 @@ msgid "Unmatched files"
 msgstr "Несоответствующие файлы"
 
 #: jobs/templates/jobs/comparison.html:105
-#, fuzzy
-#| msgid "Jobs do not have files"
 msgid "Jobs don't have files"
 msgstr "У заданий нет файлов"
 
 #: jobs/templates/jobs/decision-list.html:35
-#, fuzzy
-#| msgid "Confirmation"
 msgid "Configuration"
-msgstr "Подтверждение"
+msgstr "Конфигурация"
 
 #: jobs/templates/jobs/decisionCreateForm.html:23
 #: jobs/templates/jobs/restartDecision.html:23
-#, fuzzy
-#| msgid "Jobs creation"
 msgid "Job version creating"
-msgstr "Создание заданий"
+msgstr "Создание версии задания"
 
 #: jobs/templates/jobs/decisionCreateForm.html:69
-#, fuzzy
-#| msgid "Delete versions"
 msgid "Job version name"
-msgstr "Удалить версии"
+msgstr "Название версии задания"
 
 #: jobs/templates/jobs/decisionCreateForm.html:81
-#, fuzzy
-#| msgid "Nodes configuration"
 msgid "Create and start decision with default configuration"
-msgstr "Конфигурация узлов"
+msgstr "Создать и начать решение с конфигурацией по умолчанию"
 
 #: jobs/templates/jobs/decisionCreateForm.html:82
-#, fuzzy
-#| msgid "Nodes configuration"
 msgid "Create and start decision with custom configuration"
-msgstr "Конфигурация узлов"
+msgstr "Создать и начать решение с пользовательской конфигурацией"
 
 #: jobs/templates/jobs/decisionCreateForm.html:99
 #: jobs/templates/jobs/restartDecision.html:39
@@ -1238,22 +1113,16 @@ msgid "Start"
 msgstr "Начать"
 
 #: jobs/templates/jobs/decisionCreateForm.html:110
-#, fuzzy
-#| msgid "The file was not uploaded"
 msgid "The file you changed is not saved"
-msgstr "Файл не был загружен на сервер"
+msgstr "Файл, который Вы изменили, не был сохранен"
 
 #: jobs/templates/jobs/decisionCreateForm.html:114
-#, fuzzy
-#| msgid "Marks creation"
 msgid "Cancel version creation"
-msgstr "Создание оценок"
+msgstr "Отменить создание версии"
 
 #: jobs/templates/jobs/decisionCreateForm.html:115
-#, fuzzy
-#| msgid "Current version"
 msgid "Create the version anyway"
-msgstr "Текущая версия"
+msgstr "Создать версию в любом случае"
 
 #: jobs/templates/jobs/decisionCreateForm.html:119
 #: jobs/templates/jobs/restartDecision.html:42
@@ -1269,26 +1138,16 @@ msgid "Title is required"
 msgstr "Требуется указать название"
 
 #: jobs/templates/jobs/decisionCreateForm.html:130
-#, fuzzy
-#| msgid "The file was not found"
-msgid "The file was commited"
-msgstr "Файл не был найден"
+msgid "The file was committed"
+msgstr "Файл был зафиксирован"
 
 #: jobs/templates/jobs/decisionCreateForm.html:131
-#, fuzzy
-#| msgid "The file was not found"
-msgid "The file was not commited"
-msgstr "Файл не был найден"
+msgid "The file was not committed"
+msgstr "Файл не был зафиксирован"
 
 #: jobs/templates/jobs/decisionCreateForm.html:132
 msgid "Please choose the file"
-msgstr "Пожалуйста, выберете файл"
-
-#: jobs/templates/jobs/decisionCreateForm.html:136
-#, fuzzy
-#| msgid "older"
-msgid "Folder"
-msgstr "не ранее"
+msgstr "Пожалуйста, выберите файл"
 
 #: jobs/templates/jobs/decisionCreateForm.html:137
 #: jobs/templates/jobs/startDecision.html:176
@@ -1344,98 +1203,88 @@ msgid "unsaved"
 msgstr "не сохранено"
 
 #: jobs/templates/jobs/fileEditor.html:23
-msgid "The editor must be focused for commands below"
-msgstr ""
+msgid "The editor must be focused on for commands below"
+msgstr "Необходимо сфокусироваться на редакторе для следующих команд"
 
 #: jobs/templates/jobs/fileEditor.html:25
 msgid "save the file changes (it doesn't save the job)"
-msgstr ""
+msgstr "сохраните изменения в файле (это не сохраняет задание)"
 
 #: jobs/templates/jobs/fileEditor.html:26
-#, fuzzy
-#| msgid "Replace file"
 msgid "search in file"
-msgstr "Заменить файл"
+msgstr "поиск в файле"
 
 #: jobs/templates/jobs/fileEditor.html:27
 msgid "find next"
-msgstr ""
+msgstr "найти следующее"
 
 #: jobs/templates/jobs/fileEditor.html:28
 msgid "find previous"
-msgstr ""
+msgstr "найти предыдущее"
 
 #: jobs/templates/jobs/fileEditor.html:29
-#, fuzzy
-#| msgid "Replace"
 msgid "replace"
-msgstr "Заменить"
+msgstr "заменить"
 
 #: jobs/templates/jobs/fileEditor.html:30
-#, fuzzy
-#| msgid "Replace file"
 msgid "replace all"
-msgstr "Заменить файл"
+msgstr "заменить все"
 
 #: jobs/templates/jobs/fileEditor.html:31
 msgid "deletes the whole line under the cursor"
-msgstr ""
+msgstr "удалить всю строку под курсором"
 
 #: jobs/templates/jobs/fileEditor.html:32
-#, fuzzy
-#| msgid "Last change"
 msgid "undo the last change"
-msgstr "Последнее изменение"
+msgstr "отменить последнее изменение"
 
 #: jobs/templates/jobs/fileEditor.html:33
 msgid "redo the last undone change"
-msgstr ""
+msgstr "повторить последнее отмененное изменение"
 
 #: jobs/templates/jobs/fileEditor.html:34
 msgid "move the cursor to the start of the file"
-msgstr ""
+msgstr "переместить курсор в начало файла"
 
 #: jobs/templates/jobs/fileEditor.html:35
 msgid "move the cursor to the end of the file"
-msgstr ""
+msgstr "переместить курсор в конец файла"
 
 #: jobs/templates/jobs/fileEditor.html:36
 msgid "move the cursor to the start of the line"
-msgstr ""
+msgstr "переместить курсор в начало строки"
 
 #: jobs/templates/jobs/fileEditor.html:37
 msgid "move the cursor to the end of the line"
-msgstr ""
+msgstr "переместить курсор в конец строки"
 
 #: jobs/templates/jobs/fileEditor.html:38
 msgid "delete to the left of the group before the cursor"
-msgstr ""
+msgstr "удалить слева от группы перед курсором"
 
 #: jobs/templates/jobs/fileEditor.html:39
 msgid "delete to the start of the group after the cursor"
-msgstr ""
+msgstr "удалить до начала группы после курсора"
 
 #: jobs/templates/jobs/fileEditor.html:40
 msgid "auto-indent the current line or selection"
-msgstr ""
+msgstr "автоматически сделать отступы для текущей строки или выделения"
 
 #: jobs/templates/jobs/fileEditor.html:41
 msgid "indent the current line or selection by one indent unit"
-msgstr ""
+msgstr "увеличить отступ для текущей строки или выделения на одну единицу"
 
 #: jobs/templates/jobs/fileEditor.html:42
 msgid "dedent the current line or selection by one indent unit"
-msgstr ""
+msgstr "уменьшить отступ для текущей строки или выделения на одну единицу"
 
 #: jobs/templates/jobs/fileEditor.html:43
 msgid "if something is selected, indent it by one indent unit; if nothing is selected, insert a tab character"
-msgstr ""
+msgstr "если что-то выбрано, сделать для этого отступ на одну единицу; если ничего не выбрано, вставить символ табуляции"
 
 #: jobs/templates/jobs/fileEditor.html:45
-#, fuzzy
-#| msgid "Other settings"
 msgid "Other key bindings"
-msgstr "Другие настройки"
+msgstr "Другие комбинации клавиш"
 
 #: jobs/templates/jobs/fileTreeEdit.html:23
 msgid "New file"
@@ -1447,28 +1296,20 @@ msgid "View"
 msgstr "Представление"
 
 #: jobs/templates/jobs/jobForm.html:42 jobs/templates/jobs/jobForm.html:73
-#, fuzzy
-#| msgid "Job priority"
 msgid "Job directory"
-msgstr "Приоритет задания"
+msgstr "Директория заданий"
 
 #: jobs/templates/jobs/jobPage.html:32 jobs/templates/jobs/tree.html:110
-#, fuzzy
-#| msgid "Please select exactly two jobs which reports you want to compare"
 msgid "Please select exactly two decisions you want to compare"
-msgstr "Пожалуйста, отметьте ровно два задания, у которых Вы хотите сравнить отчеты"
+msgstr "Пожалуйста, отметьте ровно два решения, которые Вы хотите сравнить"
 
 #: jobs/templates/jobs/jobPage.html:33
-#, fuzzy
-#| msgid "Please select jobs you want to download"
 msgid "Please select decisions you want to download"
-msgstr "Пожалуйста, отметьте задание, которые Вы хотите загрузить"
+msgstr "Пожалуйста, отметьте решения, которые Вы хотите скачать"
 
 #: jobs/templates/jobs/jobPage.html:34
-#, fuzzy
-#| msgid "Please select jobs you want to delete"
 msgid "Please select decisions you want to remove"
-msgstr "Пожалуйста, отметьте задания, которые Вы хотите удалить"
+msgstr "Пожалуйста, отметьте решения, которые Вы хотите удалить"
 
 #: jobs/templates/jobs/jobPage.html:39 jobs/templates/jobs/jobPage.html:49
 #: tools/templates/tools/ManagerPanel.html:44
@@ -1486,10 +1327,8 @@ msgid "Edit"
 msgstr "Редактировать"
 
 #: jobs/templates/jobs/jobPage.html:53
-#, fuzzy
-#| msgid "Current version"
 msgid "Create new version"
-msgstr "Текущая версия"
+msgstr "Создать новую версию"
 
 #: jobs/templates/jobs/jobPage.html:59
 #: jobs/templates/jobs/viewDecision/main.html:63
@@ -1501,107 +1340,81 @@ msgstr "Текущая версия"
 #: reports/templates/reports/ReportUnsafe.html:58
 #: reports/templates/reports/coverage/coverage.html:42
 #: reports/templates/reports/report_list.html:37
-#, fuzzy
-#| msgid "Decision status"
 msgid "Decision"
-msgstr "Статус решения"
+msgstr "Решение"
 
 #: jobs/templates/jobs/jobPage.html:61
-#, fuzzy
-#| msgid "Start decision with default values"
-msgid "Start with preset files and default values"
-msgstr "Начать решение с настройками по умолчанию"
+msgid "Start decision with preset files and default values"
+msgstr "Начать решение с предустановленными файлами и настройками по умолчанию"
 
 #: jobs/templates/jobs/jobPage.html:73
-#, fuzzy
-#| msgid "Job was changed"
 msgid "Preset files for this job were changed"
-msgstr "Задание было изменено"
+msgstr "Предустановленные файлы для данного задания были изменены"
 
 #: jobs/templates/jobs/jobPage.html:81
 msgid "Created by"
 msgstr "Создано"
 
 #: jobs/templates/jobs/jobPage.html:91
-#, fuzzy
-#| msgid "Parents"
 msgid "Job parents"
-msgstr "Родители"
+msgstr "Родители задания"
 
 #: jobs/templates/jobs/jobPage.html:101
-#, fuzzy
-#| msgid "No access"
 msgid "Job access"
-msgstr "Нет доступа"
+msgstr "Доступ к заданию"
 
 #: jobs/templates/jobs/jobPage.html:106
-#, fuzzy
-#| msgid "or change the job"
 msgid "Your role for the job"
-msgstr "или изменить задание"
+msgstr "Ваша роль для задания"
 
 #: jobs/templates/jobs/jobPage.html:113
 #, python-format
 msgid "Other users have role \"%(global_role)s\" for this job"
-msgstr ""
+msgstr "Другие пользователи имеют роль \"%(global_role)s\" для этого задания"
 
 #: jobs/templates/jobs/jobPage.html:121
-#, fuzzy
-#| msgid "Delete versions"
 msgid "Job versions"
-msgstr "Удалить версии"
+msgstr "Версии задания"
 
 #: jobs/templates/jobs/jobPage.html:125 jobs/templates/jobs/tree.html:36
 msgid "Compare reports"
 msgstr "Сравнить отчеты"
 
 #: jobs/templates/jobs/jobPage.html:126 jobs/templates/jobs/tree.html:37
-#, fuzzy
-#| msgid "Comparison failed"
 msgid "Compare files"
-msgstr "Сравнение провалилось"
+msgstr "Сравнить файлы"
 
 #: jobs/templates/jobs/jobPage.html:132
-#, fuzzy
-#| msgid "The job solving progress does not exist"
 msgid "The job don't have decisions yet"
-msgstr "Прогресс решения задания не существует"
+msgstr "У задания еще нет решений"
 
 #: jobs/templates/jobs/jobPage.html:144 jobs/templates/jobs/jobPage.html:161
 #: marks/templates/marks/SafeMark.html:192
 #: marks/templates/marks/UnknownMark.html:201
 #: marks/templates/marks/UnsafeMark.html:222
 #: reports/templates/reports/AssociatedMarksTable.html:87
-#, fuzzy
-#| msgid "The pattern is required"
 msgid "The action is irreversible"
-msgstr "Требуется шаблон"
+msgstr "Действие необратимо"
 
-#: jobs/templates/jobs/presetJob.html:47
-msgid "Add preset directory"
-msgstr ""
+#: jobs/templates/jobs/presetJob.html:47 jobs/templates/jobs/treeTable.html:43
+msgid "Add jobs directory"
+msgstr "Добавить директорию заданий"
 
 #: jobs/templates/jobs/presetJob.html:50 jobs/templates/jobs/treeTable.html:48
-#, fuzzy
-#| msgid "Created by"
 msgid "Create new job"
-msgstr "Создано"
+msgstr "Создать новое задание"
 
 #: jobs/templates/jobs/presetJob.html:68
-#, fuzzy
-#| msgid "Finish date"
 msgid "Files check date"
-msgstr "Дата завершения работы"
+msgstr "Дата проверки файлов"
 
 #: jobs/templates/jobs/presetJob.html:75
 msgid "Preset job parents"
-msgstr ""
+msgstr "Родители предустановленного задания"
 
 #: jobs/templates/jobs/presetJob.html:75
-#, fuzzy
-#| msgid "Job reports comparison"
 msgid "Job directory parents"
-msgstr "Сравнение отчетов заданий"
+msgstr "Родители директории заданий"
 
 #: jobs/templates/jobs/presetJob.html:81
 #: reports/templates/reports/ReportMain.html:166
@@ -1611,7 +1424,7 @@ msgstr "Потомки"
 #: jobs/templates/jobs/presetJob.html:104
 #: jobs/templates/jobs/presetJob.html:118 jobs/templates/jobs/tree.html:95
 msgid "Please, set the unique name for the new jobs directory"
-msgstr ""
+msgstr "Пожалуйста, укажите уникальное имя для новой директории заданий"
 
 #: jobs/templates/jobs/presetJob.html:111
 #: jobs/templates/jobs/presetJob.html:125 jobs/templates/jobs/tree.html:103
@@ -1626,16 +1439,12 @@ msgid "Save"
 msgstr "Сохранить"
 
 #: jobs/templates/jobs/presetJob.html:137
-#, fuzzy
-#| msgid "All existing reports of this job will be deleted"
-msgid "If the preset directory has jobs it will be deleted"
-msgstr "Все существующие отчеты задания будут удалены"
+msgid "If the jobs directory has jobs they will be deleted"
+msgstr "Если в директории заданий есть задания, они будут удалены"
 
 #: jobs/templates/jobs/startDecision.html:40
-#, fuzzy
-#| msgid "Nodes configuration"
 msgid "Other decision's configuration"
-msgstr "Конфигурация узлов"
+msgstr "Конфигурации других решений"
 
 #: jobs/templates/jobs/startDecision.html:42
 msgid "Use configuration from file"
@@ -1655,7 +1464,7 @@ msgstr "Планировщик задач"
 
 #: jobs/templates/jobs/startDecision.html:72
 msgid "Max solving tasks per a sub-job"
-msgstr ""
+msgstr "Максимальное количество решающихся задач на подзадание"
 
 #: jobs/templates/jobs/startDecision.html:79
 #: jobs/templates/jobs/startDecision.html:119
@@ -1669,26 +1478,25 @@ msgid "Operations parallelism"
 msgstr "Параллелизм операций"
 
 #: jobs/templates/jobs/startDecision.html:87
-#, fuzzy
-#| msgid "Processing"
 msgid "Sub-jobs processing"
-msgstr "Решается"
+msgstr "Обработка подзаданий"
 
 #: jobs/templates/jobs/startDecision.html:93
 msgid "Tasks generation"
 msgstr "Генерация задач"
 
 #: jobs/templates/jobs/startDecision.html:99
-#, fuzzy
-#| msgid "Processing"
 msgid "Results processing"
-msgstr "Решается"
+msgstr "Обработка результатов"
 
 #: jobs/templates/jobs/startDecision.html:111
 msgid "Resource limits for Klever Core"
 msgstr "Ограничения на ресурсы для Klever Core"
 
 #: jobs/templates/jobs/startDecision.html:112
+#: reports/templates/reports/ReportSafe.html:98
+#: reports/templates/reports/ReportUnknown.html:99
+#: reports/templates/reports/ReportUnsafe.html:121 reports/utils.py:61
 #: service/templates/service/scheduler.html:111
 #: service/templates/service/scheduler.html:158
 #: service/templates/service/scheduler.html:176
@@ -1756,10 +1564,8 @@ msgid "Keep intermediate files inside the working directory of Klever Core"
 msgstr "Сохранять промежуточные файлы в рабочей директории Klever Core"
 
 #: jobs/templates/jobs/startDecision.html:202
-#, fuzzy
-#| msgid "Upload other intermediate files"
 msgid "Upload verifier input files"
-msgstr "Загружать на сервер другие промежуточные файлы"
+msgstr "Загрузить входные файлы для верификатора"
 
 #: jobs/templates/jobs/startDecision.html:207
 msgid "Upload other intermediate files"
@@ -1771,27 +1577,23 @@ msgstr "Игнорировать другие экземпляры Klever Core"
 
 #: jobs/templates/jobs/startDecision.html:217
 msgid "Ignore failed sub-jobs"
-msgstr ""
+msgstr "Игнорировать подзадания, завершившиеся неуспешно"
 
 #: jobs/templates/jobs/startDecision.html:222
 msgid "Collect total code coverage"
-msgstr ""
+msgstr "Собрать общее покрытие кода"
 
 #: jobs/templates/jobs/startDecision.html:225
 msgid "Code coverage details"
-msgstr ""
+msgstr "Детальность покрытия кода"
 
 #: jobs/templates/jobs/startDecision.html:234
-#, fuzzy
-#| msgid "Upload jobs"
 msgid "Job reports"
-msgstr "Загрузить задания на сервер"
+msgstr "Отчеты задания"
 
 #: jobs/templates/jobs/startDecision.html:246
-#, fuzzy
-#| msgid "The scheduler was not found"
 msgid "Add scheduler user to proceed"
-msgstr "Планировщик не был найден"
+msgstr "Добавить пользователя планировщика, чтобы продолжить"
 
 #: jobs/templates/jobs/startDecision.html:251 users/forms.py:106
 #: users/forms.py:217 users/models.py:128
@@ -1824,51 +1626,35 @@ msgstr "Создать"
 
 #: jobs/templates/jobs/startDecision.html:308
 msgid "Proceed without scheduler user"
-msgstr ""
+msgstr "Продолжить без пользователя планировщика"
 
 #: jobs/templates/jobs/tree.html:63
-#, fuzzy
-#| msgid "All versions and all data of the selected jobs will be deleted"
 msgid "All data of the selected objects will be deleted"
-msgstr "Все версии и все данные отмеченных заданий будут удалены"
+msgstr "Все данные отмеченных объектов будут удалены"
 
 #: jobs/templates/jobs/tree.html:82
-#, fuzzy
-#| msgid "All versions and all data of the selected jobs will be deleted"
-msgid "All data and children of the preset directory will be deleted"
-msgstr "Все версии и все данные отмеченных заданий будут удалены"
+msgid "All data and children of the jobs directory will be deleted"
+msgstr "Все данные и потомки директории заданий будут удалены"
 
 #: jobs/templates/jobs/tree.html:109
-#, fuzzy
-#| msgid "Please select jobs you want to delete"
 msgid "Please select objects you want to delete"
-msgstr "Пожалуйста, отметьте задания, которые Вы хотите удалить"
-
-#: jobs/templates/jobs/treeTable.html:43
-#, fuzzy
-#| msgid "Add order by"
-msgid "Add jobs directory"
-msgstr "Добавить сортировку по"
+msgstr "Пожалуйста, отметьте объекты, которые Вы хотите удалить"
 
 #: jobs/templates/jobs/treeTable.html:45
 msgid "Rename jobs directory"
-msgstr ""
+msgstr "Переименовать директорию заданий"
 
 #: jobs/templates/jobs/treeTable.html:46
 msgid "Remove jobs directory"
-msgstr ""
+msgstr "Удалить директорию заданий"
 
 #: jobs/templates/jobs/treeTable.html:66
-#, fuzzy
-#| msgid "Current version"
 msgid "Latest version"
-msgstr "Текущая версия"
+msgstr "Последняя версия"
 
 #: jobs/templates/jobs/treeTable.html:95
-#, fuzzy
-#| msgid "Please, select the line first"
 msgid "Please populate preset jobs"
-msgstr "Пожалуйста, сначала выберете строку"
+msgstr "Пожалуйста, сначала наполните базу данных предустанавливаемыми заданиями"
 
 #: jobs/templates/jobs/userRolesForm.html:21
 msgid "Role for all users"
@@ -1885,36 +1671,32 @@ msgstr "Добавить"
 #: jobs/templates/jobs/viewDecision/coverage.html:22
 #: reports/templates/reports/ReportMain.html:144
 #: reports/templates/reports/coverage/coverage.html:24
-msgid "Coverage"
-msgstr ""
+msgid "Code coverage"
+msgstr "Покрытие кода"
 
 #: jobs/templates/jobs/viewDecision/coverage.html:28 marks/tables.py:62
 msgid "Report"
 msgstr "Отчет"
 
 #: jobs/templates/jobs/viewDecision/coverage.html:30
-#, fuzzy
-#| msgid "Requirements"
 msgid "Requirements specification"
-msgstr "Требования"
+msgstr "Спецификация требований"
 
 #: jobs/templates/jobs/viewDecision/coverage.html:31
 #: jobs/templates/jobs/viewDecision/coverageTable.html:24
 #: reports/templates/reports/coverage/CoverageStatistics.html:25
 msgid "Line coverage"
-msgstr ""
+msgstr "Покрытие строк"
 
 #: jobs/templates/jobs/viewDecision/coverage.html:32
 #: jobs/templates/jobs/viewDecision/coverageTable.html:25
 #: reports/templates/reports/coverage/CoverageStatistics.html:26
 msgid "Function coverage"
-msgstr ""
+msgstr "Покрытие функций"
 
 #: jobs/templates/jobs/viewDecision/coverage.html:33
-#, fuzzy
-#| msgid "In detail"
 msgid "Details"
-msgstr "Детально"
+msgstr "Подробнее"
 
 #: jobs/templates/jobs/viewDecision/coverageTable.html:23
 #: reports/templates/reports/coverage/CoverageStatistics.html:24
@@ -1923,68 +1705,54 @@ msgstr "Файлы"
 
 #: jobs/templates/jobs/viewDecision/main.html:43
 #: jobs/templates/jobs/viewDecision/main.html:53
-#, fuzzy
-#| msgid "Delete versions"
 msgid "Job version"
-msgstr "Удалить версии"
+msgstr "Версия задания"
 
 #: jobs/templates/jobs/viewDecision/main.html:56
 msgid "Copy"
-msgstr ""
+msgstr "Копировать"
 
 #: jobs/templates/jobs/viewDecision/main.html:57
-#, fuzzy
-#| msgid "Change comment"
 msgid "Change name"
-msgstr "Комментарий к изменению"
+msgstr "Изменить название"
 
 #: jobs/templates/jobs/viewDecision/main.html:65
-#, fuzzy
-#| msgid "Download configuration file"
 msgid "Download configuration"
-msgstr "Загрузить конфигурационный файл"
+msgstr "Загрузить конфигурацию"
 
 #: jobs/templates/jobs/viewDecision/main.html:66
-#, fuzzy
-#| msgid "Start"
 msgid "Restart"
-msgstr "Начать"
+msgstr "Перезапустить"
 
 #: jobs/templates/jobs/viewDecision/main.html:67
 #: tools/templates/tools/ReportsLogging.html:52
 msgid "Stop"
-msgstr ""
+msgstr "Остановить"
 
 #: jobs/templates/jobs/viewDecision/main.html:72
-#, fuzzy
-#| msgid "Report"
 msgid "Reports"
-msgstr "Отчет"
+msgstr "Отчеты"
 
 #: jobs/templates/jobs/viewDecision/main.html:74
 msgid "Collapse"
-msgstr ""
+msgstr "Схлопнуть"
 
 #: jobs/templates/jobs/viewDecision/main.html:75
 #: reports/templates/reports/ReportMain.html:155
 #: reports/templates/reports/ReportSafe.html:109
 #: reports/templates/reports/ReportUnknown.html:110
 #: reports/templates/reports/ReportUnsafe.html:132
-#, fuzzy
-#| msgid "Download configuration file"
 msgid "Download verifier input files"
-msgstr "Загрузить конфигурационный файл"
+msgstr "Скачать входные файлы верификатора"
 
 #: jobs/templates/jobs/viewDecision/main.html:76
-#, fuzzy
-#| msgid "Verification tools"
 msgid "Clear verifier input files"
-msgstr "Инструменты верификации"
+msgstr "Удалить входные файлы верификатора"
 
 #: jobs/templates/jobs/viewDecision/main.html:81
 #: jobs/templates/jobs/viewDecision/main.html:214
 msgid "Stop page autorefresh"
-msgstr ""
+msgstr "Остановить автообновление страницы"
 
 #: jobs/templates/jobs/viewDecision/main.html:96
 #: service/templates/service/scheduler.html:42
@@ -1992,106 +1760,82 @@ msgid "Scheduler"
 msgstr "Планировщик"
 
 #: jobs/templates/jobs/viewDecision/main.html:105
-#, fuzzy
-#| msgid "Delete versions"
 msgid "Job version parents"
-msgstr "Удалить версии"
+msgstr "Родители версии задания"
 
 #: jobs/templates/jobs/viewDecision/main.html:123
-#, fuzzy
-#| msgid "Delete versions"
 msgid "Other job versions"
-msgstr "Удалить версии"
+msgstr "Другие версии задания"
 
 #: jobs/templates/jobs/viewDecision/main.html:143
-#, fuzzy
-#| msgid "Move file"
 msgid "Choose filters"
-msgstr "Переместить файл"
+msgstr "Выберети фильтры"
 
 #: jobs/templates/jobs/viewDecision/main.html:171
-msgid "If you don't choose unknowns' problems then all unknowns files will be downloaded"
-msgstr ""
+msgid "If you will not choose unknown problems then all verifier input files corresponding to unknowns will be downloaded"
+msgstr "Если вы не выберете проблемы в компонентах, то все входные файлы верификатора, соответствующие проблемам в компонентах, будут скачены"
 
 #: jobs/templates/jobs/viewDecision/main.html:197
-#, fuzzy
-#| msgid "Choose the file you want to replace"
 msgid "Choose at least one type of reports"
-msgstr "Укажите файл, который Вы хотите заменить"
+msgstr "Выберите хотя бы один тип отчетов"
 
 #: jobs/templates/jobs/viewDecision/main.html:215
-#, fuzzy
-#| msgid "Last change author"
 msgid "Start page autorefresh"
-msgstr "Автор последнего изменения"
+msgstr "Запустить автообновление страницы"
 
 #: jobs/templates/jobs/viewDecision/main.html:216
 msgid "Page autoupdate is turned off"
-msgstr ""
+msgstr "Автообновление страницы отключено"
 
 #: jobs/templates/jobs/viewDecision/main.html:229
-#, fuzzy
-#| msgid "All existing reports of this job will be deleted"
 msgid "All existing reports and previous decision results of this decision will be deleted"
-msgstr "Все существующие отчеты задания будут удалены"
+msgstr "Все существующие отчеты и предыдущие результаты данного решения будут удалены"
 
 #: jobs/templates/jobs/viewDecision/main.html:236
-#, fuzzy
-#| msgid "All existing reports of this job will be deleted"
 msgid "All verification results of this decision will be deleted"
-msgstr "Все существующие отчеты задания будут удалены"
+msgstr "Все верификационные результаты данного решения будут удалены"
 
 #: jobs/templates/jobs/viewDecision/main.html:249
 msgid "There is no reverse of this action"
-msgstr ""
+msgstr "Данное нействие необратимо"
 
 #: jobs/templates/jobs/viewDecision/main.html:258
-#, fuzzy
-#| msgid "All existing reports of this job will be deleted"
 msgid "Files of verification reports will be deleted"
-msgstr "Все существующие отчеты задания будут удалены"
+msgstr "Файлы верификационных отчетов будут удалены"
 
 #: jobs/templates/jobs/viewDecision/main.html:270
 msgid "The decision will be cancelled"
-msgstr ""
+msgstr "Решение будет отменено"
 
 #: jobs/templates/jobs/viewDecision/progress.html:39
 #: users/templates/users/views/jobTree.html:275
-#, fuzzy
-#| msgid "Start decision"
 msgid "Start decision date"
-msgstr "Начать решение"
+msgstr "Дата начала решения"
 
 #: jobs/templates/jobs/viewDecision/progress.html:50
 #: users/templates/users/views/jobTree.html:309
-#, fuzzy
-#| msgid "Finish date"
 msgid "Finish decision date"
-msgstr "Дата завершения работы"
+msgstr "Дата завершения решения"
 
 #: jobs/templates/jobs/viewDecision/progress.html:61
 msgid "Tasks decision progress"
-msgstr ""
+msgstr "Прогресс решения задач"
 
 #: jobs/templates/jobs/viewDecision/progress.html:67
-#, fuzzy
-#| msgid "Total tasks"
 msgid "Total tasks to be solved"
-msgstr "Всего задач"
+msgstr "Всего задач, которые необходимо решить"
 
 #: jobs/templates/jobs/viewDecision/progress.html:111
 msgid "Subjobs decision progress"
-msgstr ""
+msgstr "Прогресс решения подзаданий"
 
 #: jobs/templates/jobs/viewDecision/progress.html:117
 msgid "Total subjobs to be solved"
-msgstr ""
+msgstr "Всего подзаданий, которые необходимо решить"
 
 #: jobs/utils.py:183
-#, fuzzy
-#| msgid "The scheduler was not found"
 msgid "The task scheduler was not found"
-msgstr "Планировщик не был найден"
+msgstr "Планировщик задач не был найден"
 
 #: jobs/utils.py:186
 msgid "The VerifierCloud scheduler is disconnected"
@@ -2099,63 +1843,47 @@ msgstr "Планировщик VerifierCloud отключен"
 
 #: jobs/utils.py:191
 msgid "Schedulers weren't populated"
-msgstr ""
+msgstr "База данных не была наполнена информацией о планировщиках"
 
 #: jobs/utils.py:404
-#, fuzzy
-#| msgid "There are no problems yet"
 msgid "There are not uploaded files"
-msgstr "Проблем еще нет"
+msgstr "На сервер не загружены файлы"
 
 #: jobs/utils.py:431
-msgid "The file/folder name can't be empty"
-msgstr ""
+msgid "The file/directory name can't be empty"
+msgstr "Имя файла/директории не может быть пустым"
 
 #: jobs/views.py:114
-#, fuzzy
-#| msgid "Jobs creation"
 msgid "Job Creating"
-msgstr "Создание заданий"
+msgstr "Создание задания"
 
 #: jobs/views.py:132
-#, fuzzy
-#| msgid "Job Copying"
 msgid "Job Editing"
-msgstr "Копирование задания"
+msgstr "Редактирование задания"
 
 #: jobs/views.py:177 jobs/views.py:202
-#, fuzzy
-#| msgid "You don't have an access to remove this job"
 msgid "You don't have an access to create job version"
-msgstr "У Вас нет прав удалить данное задание"
+msgstr "У Вас нет прав создать версию задания"
 
 #: jobs/views.py:230
-#, fuzzy
-#| msgid "You don't have an access to this page"
 msgid "You don't have an access to restart this decision"
-msgstr "У Вас нет прав на данную страницу"
+msgstr "У Вас нет прав перезапустить данное решение"
 
 #: jobs/views.py:255
-#, fuzzy
-#| msgid "You don't have an access to this job"
 msgid "You don't have an access to this decision"
-msgstr "У Вас нет прав на данное задание"
+msgstr "У Вас нет прав на данное решение"
 
 #: marks/Download.py:397
 msgid "The mark archive is corrupted"
 msgstr "Архив оценки поврежден"
 
 #: marks/Download.py:400
-#, fuzzy
-#| msgid "The mark archive is corrupted: the pattern error trace is not found"
 msgid "The mark archive is corrupted: it doesn't contain necessary data"
-msgstr "Архив оценки поврежден: не найдена шаблонная трасса ошибки"
+msgstr "Архив оценки поврежден: он не содержит необходимых данных"
 
 #: marks/UnknownUtils.py:214
-#, fuzzy
-#| msgid "The problem length must be less than 15 characters"
 msgid "The problem length must be less than 20 characters"
-msgstr "Длина проблемы должна быть не более 15 символов"
+msgstr "Длина проблемы должна быть не более 20 символов"
 
 #: marks/api.py:86 marks/api.py:133 marks/api.py:180 marks/api.py:453
 msgid "You don't have an access to create new marks"
@@ -2167,56 +1895,41 @@ msgid "You don't have an access to edit this mark"
 msgstr "У Вас нет прав редактировать данную оценку"
 
 #: marks/api.py:115 marks/api.py:162 marks/api.py:209
-#, fuzzy
-#| msgid "You don't have an access to remove this job"
 msgid "You don't have an access to remove this mark"
-msgstr "У Вас нет прав удалить данное задание"
-
-#: marks/api.py:226 marks/api.py:254
-#, fuzzy
-#| msgid "You don't have an access to this page"
-msgid "You don't have an access to create this tag"
-msgstr "У Вас нет прав на данную страницу"
-
-#: marks/api.py:231 marks/api.py:259
-#, fuzzy
-#| msgid "You don't have an access to edit this mark"
-msgid "You don't have an access to edit this tag"
-msgstr "У Вас нет прав редактировать данную оценку"
-
-#: marks/api.py:237 marks/api.py:265
-#, fuzzy
-#| msgid "You don't have an access to delete this mark"
-msgid "You don't have an access to delete this tag"
 msgstr "У Вас нет прав удалить данную оценку"
 
+#: marks/api.py:226 marks/api.py:254
+msgid "You don't have an access to create this tag"
+msgstr "У Вас нет прав создать данный тег"
+
+#: marks/api.py:231 marks/api.py:259
+msgid "You don't have an access to edit this tag"
+msgstr "У Вас нет прав редактировать данный тег"
+
+#: marks/api.py:237 marks/api.py:265
+msgid "You don't have an access to delete this tag"
+msgstr "У Вас нет прав удалить данный тег"
+
 #: marks/api.py:289
-#, fuzzy
-#| msgid "The file was not uploaded"
 msgid "The file with tags was not provided"
-msgstr "Файл не был загружен на сервер"
+msgstr "Файл с тегами не предоставлен"
 
 #: marks/api.py:305
-#, fuzzy
-#| msgid "Nothing to delete"
 msgid "There is nothing to delete"
 msgstr "Нечего удалять"
 
 #: marks/api.py:307
-#, fuzzy
-#| msgid "You don't have an access to remove one of the selected jobs"
 msgid "You don't have an access to remove one of the selected version"
-msgstr "У Вас нет прав удалить одно из отмеченных заданий"
+msgstr "У Вас нет прав удалить одну из отмеченных версий"
 
 #: marks/api.py:310
 msgid "Selected versions were successfully deleted"
 msgstr "Отмеченные версии были успешно удалены"
 
 #: marks/api.py:470
-#, fuzzy, python-format
-#| msgid "Number of associated marks"
+#, python-format
 msgid "Number of created marks: %(number)s"
-msgstr "Количество привязанных оценок"
+msgstr "Количество созданных оценок: %(number)s"
 
 #: marks/markversion.py:36 marks/models.py:90
 #: marks/templates/marks/SafeMark.html:26 reports/comparison.py:357
@@ -2237,44 +1950,36 @@ msgid "Unknowns mark"
 msgstr "Оценка проблем в компонентах"
 
 #: marks/models.py:99
-#, fuzzy
-#| msgid "Safes mark"
 msgid "Safes mark version"
-msgstr "Оценка доказательств корректности"
+msgstr "Версия оценки доказательств корректности"
 
 #: marks/models.py:163
-#, fuzzy
-#| msgid "Unsafes mark"
 msgid "Unsafes mark version"
-msgstr "Оценка предупреждений об ошибках"
+msgstr "Версия оценки предупреждений об ошибках"
 
 #: marks/models.py:271
-#, fuzzy
-#| msgid "Unknowns mark"
 msgid "Unknowns mark version"
-msgstr "Оценка проблем в компонентах"
+msgstr "Версия оценки проблем в компонентах"
 
 #: marks/population.py:83
 msgid "Corrupted preset safe mark: wrong format"
-msgstr ""
+msgstr "Предустановливаемая оценка доказательств корректности повреждена: неправильный формат"
 
 #: marks/population.py:134
 msgid "Corrupted preset unsafe mark: wrong format"
-msgstr ""
+msgstr "Предустановливаемая оценка предупреждений об ошибках повреждена: неправильный формат"
 
 #: marks/population.py:186
 msgid "Corrupted preset unknown mark: wrong format"
-msgstr ""
+msgstr "Предустановливаемая оценка проблем в компонентах повреждена: неправильный формат"
 
 #: marks/population.py:219 marks/population.py:251
-#, fuzzy
-#| msgid "Name is required"
 msgid "Tag name is required"
-msgstr "Требуется указать название"
+msgstr "Требуется указать название тега"
 
 #: marks/population.py:223 marks/population.py:255
 msgid "Tag parent should be defined before its children"
-msgstr ""
+msgstr "Родительский тег должен быть определен до его потомков"
 
 #: marks/serializers.py:95 marks/serializers.py:114
 #: marks/templates/marks/TagsTree.html:90
@@ -2303,13 +2008,11 @@ msgstr "Текущая версия"
 
 #: marks/tables.py:52 marks/tables.py:64 reports/utils.py:48
 msgid "#"
-msgstr ""
+msgstr "№"
 
 #: marks/tables.py:53
-#, fuzzy
-#| msgid "Nothing changed"
 msgid "Association change kind"
-msgstr "Ничего не изменилось"
+msgstr "Вид изменения ассоциации"
 
 #: marks/tables.py:54 marks/templates/marks/InlineMarkForm.html:47
 #: marks/templates/marks/MarkForm.html:92
@@ -2328,10 +2031,8 @@ msgid "Total verdict"
 msgstr "Итоговый вердикт"
 
 #: marks/tables.py:56 reports/utils.py:55
-#, fuzzy
-#| msgid "Total safe"
 msgid "Total status"
-msgstr "Доказана корректность"
+msgstr "Суммарный статус"
 
 #: marks/tables.py:57 reports/utils.py:46
 #: users/templates/users/views/UnsafeAssReports.html:45
@@ -2347,14 +2048,12 @@ msgid "Last change date"
 msgstr "Дата последнего изменения"
 
 #: marks/tables.py:61
-#, fuzzy
-#| msgid "Associated marks"
 msgid "Association author"
-msgstr "Привязанные оценки"
+msgstr "Автор ассоциации"
 
 #: marks/tables.py:65
 msgid "Number of associated leaf reports"
-msgstr "Количество привязанных листовых отчетов"
+msgstr "Количество ассоциированных листовых отчетов"
 
 #: marks/tables.py:66 marks/templates/marks/InlineMarkForm.html:33
 #: marks/templates/marks/MarkForm.html:62
@@ -2385,19 +2084,19 @@ msgstr "Источник"
 #: users/templates/users/views/UnsafeAssMarks.html:92
 #: users/templates/users/views/UnsafeAssReports.html:69
 msgid "Association type"
-msgstr ""
+msgstr "Тип ассоциации"
 
 #: marks/tables.py:73
 msgid "Automatic association"
-msgstr "Автоматическая привязка"
+msgstr "Автоматическая ассоциация"
 
 #: marks/tables.py:75
 msgid "Likes"
-msgstr ""
+msgstr "Понравилось"
 
 #: marks/tables.py:75
 msgid "Dislikes"
-msgstr ""
+msgstr "Не понравилось"
 
 #: marks/tables.py:77 marks/templates/marks/InlineMarkForm.html:80
 #: marks/templates/marks/MarkForm.html:134
@@ -2414,51 +2113,39 @@ msgstr "Описание"
 #: marks/tables.py:79 marks/templates/marks/MarkForm.html:163
 #: marks/templates/marks/UnsafeMark.html:95
 msgid "Association threshold"
-msgstr ""
+msgstr "Порог ассоциации"
 
 #: marks/tables.py:80
-#, fuzzy
-#| msgid "Associated marks"
 msgid "Is associated"
-msgstr "Привязанные оценки"
+msgstr "Ассоциирована?"
 
 #: marks/tables.py:107 marks/tables.py:384
-#, fuzzy
-#| msgid "Associated marks"
 msgid "Dissimilar marks"
-msgstr "Привязанные оценки"
+msgstr "Непохожие оценки"
 
 #: marks/tables.py:108
-#, fuzzy
-#| msgid "Automatic association"
-msgid "Marks with unconfirmed associations"
-msgstr "Автоматическая привязка"
+msgid "Marks with rejected associations"
+msgstr "Оценки с отклоненными ассоциациями"
 
 #: marks/tables.py:109
-#, fuzzy
-#| msgid "Has non-automatic association"
 msgid "Marks with automatic associations"
-msgstr "Имеется неавтоматическая привязка"
+msgstr "Оценки с автоматическими ассоциациями"
 
 #: marks/tables.py:110
-#, fuzzy
-#| msgid "Automatic association"
 msgid "Marks with confirmed associations"
-msgstr "Автоматическая привязка"
+msgstr "Оценки с подтвержденными ассоциациями"
 
 #: marks/tables.py:385
-msgid "Similar marks with unconfirmed associations"
-msgstr ""
+msgid "Similar marks with rejected associations"
+msgstr "Похожие оценки с отклоненными ассоциациями"
 
 #: marks/tables.py:386
-#, fuzzy
-#| msgid "Has non-automatic association"
 msgid "Similar marks with automatic associations"
-msgstr "Имеется неавтоматическая привязка"
+msgstr "Похожие оценки с автоматическими ассоциациями"
 
 #: marks/tables.py:387
 msgid "Similar marks with confirmed associations"
-msgstr ""
+msgstr "Похожие оценки с подтвержденными ассоциациями"
 
 #: marks/tables.py:631 tools/templates/tools/ManagerPanel.html:130
 msgid "Safe marks"
@@ -2473,21 +2160,17 @@ msgid "Unknown marks"
 msgstr "Оценки проблем в компонентах"
 
 #: marks/tags.py:380 marks/tags.py:383
-#, fuzzy
-#| msgid "Data format"
 msgid "Wrong tags format"
-msgstr "Формат данных"
+msgstr "Некорректный формат тегов"
 
 #: marks/tags.py:387
-#, fuzzy
-#| msgid "The job solving progress does not exist"
 msgid "Tag parent does not exist"
-msgstr "Прогресс решения задания не существует"
+msgstr "Родитель тега не существует"
 
 #: marks/templates/marks/InlineMarkForm.html:25
 #: marks/templates/marks/MarkForm.html:54
 msgid "Regular expression"
-msgstr ""
+msgstr "Регулярное выражение"
 
 #: marks/templates/marks/InlineMarkForm.html:28
 #: marks/templates/marks/InlineMarkForm.html:30
@@ -2515,20 +2198,16 @@ msgid "You can choose one of the previous versions"
 msgstr "Вы можете выбрать оду из предыдущих версий"
 
 #: marks/templates/marks/MarkForm.html:73
-#, fuzzy
-#| msgid "Problem pattern"
 msgid "Test pattern"
-msgstr "Шаблон проблемы"
+msgstr "Проверить шаблон"
 
 #: marks/templates/marks/MarkForm.html:77
 msgid "Matched text"
-msgstr ""
+msgstr "Соответствующий текст"
 
 #: marks/templates/marks/MarkForm.html:81
-#, fuzzy
-#| msgid "New unsafe was found"
 msgid "No matches found"
-msgstr "Обнаружено новое предупреждение об ошибке"
+msgstr "Соответствий не обнаружено"
 
 #: marks/templates/marks/MarkForm.html:146
 msgid "Editable"
@@ -2540,10 +2219,8 @@ msgstr "Функция сравнения трасс ошибок"
 
 #: marks/templates/marks/MarkForm.html:194
 #: marks/templates/marks/UnsafeMark.html:125
-#, fuzzy
-#| msgid "Couldn't visualize the error trace"
 msgid "Converted error trace"
-msgstr "Не удалось визуализировать трассу ошибки"
+msgstr "Сконвертированная трасса ошибки"
 
 #: marks/templates/marks/MarkForm.html:209
 #: marks/templates/marks/SafeMark.html:105
@@ -2564,7 +2241,7 @@ msgstr "Атрибуты"
 #: reports/templates/reports/report_list.html:63
 #, python-format
 msgid "Page %(n1)s of %(n2)s"
-msgstr ""
+msgstr "Страница %(n1)s из %(n2)s"
 
 #: marks/templates/marks/MarkList.html:91
 msgid "List of marks of the given type is empty, please create them or change the view"
@@ -2575,18 +2252,16 @@ msgid "All versions and all data of the selected marks will be deleted"
 msgstr "Все версии и все данные отмеченных оценок будут удалены"
 
 #: marks/templates/marks/MarkList.html:113
-#, fuzzy
-#| msgid "Please, select the line first"
-msgid "Please select at least onw mark"
-msgstr "Пожалуйста, сначала выберете строку"
+msgid "Please select at least one mark"
+msgstr "Пожалуйста, выберите по крайней мере одну оценку"
 
 #: marks/templates/marks/MarkTagsForm.html:31
 msgid "Select the tag to add"
-msgstr ""
+msgstr "Выберите тег для добавления"
 
 #: marks/templates/marks/MarkTagsForm.html:37
 msgid "No results found"
-msgstr ""
+msgstr "Никаких результатов не найдено"
 
 #: marks/templates/marks/SafeMark.html:44
 #: marks/templates/marks/UnknownMark.html:44
@@ -2597,10 +2272,8 @@ msgstr "Оценка"
 #: marks/templates/marks/SafeMark.html:47
 #: marks/templates/marks/UnknownMark.html:47
 #: marks/templates/marks/UnsafeMark.html:47
-#, fuzzy
-#| msgid "Download files"
 msgid "Download in preset format"
-msgstr "Загрузить файлы"
+msgstr "Скачать в предустанавливаемом формате"
 
 #: marks/templates/marks/SafeMark.html:69
 #: marks/templates/marks/UnknownMark.html:73
@@ -2612,74 +2285,61 @@ msgstr "Последнее изменение"
 #: marks/templates/marks/UnknownMark.html:145
 #: marks/templates/marks/UnsafeMark.html:166
 msgid "Associated leaf reports"
-msgstr "Привязанные листовые отчеты"
+msgstr "Ассоциированные листовые отчеты"
 
 #: marks/templates/marks/SafeMark.html:179
 #: marks/templates/marks/UnknownMark.html:188
 #: marks/templates/marks/UnsafeMark.html:209
 msgid "The list of associated reports is empty. Maybe it is because of the selected view."
-msgstr ""
+msgstr "Список ассоциированных отчетов пуст. Возможно, это из-за выбранного представления."
 
 #: marks/templates/marks/SaveMarkResult.html:24
 msgid "Total expert evaluation changes"
-msgstr ""
+msgstr "Суммарные изменения в экспертной оценке"
 
 #: marks/templates/marks/SaveMarkResult.html:36
-#, fuzzy
-#| msgid "Without marks"
 msgid "Show mark"
-msgstr "Нет оценок"
+msgstr "Показать оценку"
 
 #: marks/templates/marks/SaveMarkResult.html:67
 msgid "No changes with total expert evaluations or the view has filtered all results"
-msgstr ""
+msgstr "Никаких изменений с суммарными экспертными оценками или представление отфильтровало все результаты"
 
 #: marks/templates/marks/TagPopup.html:23
-#, fuzzy
-#| msgid "Change comment"
 msgid "Change access"
-msgstr "Комментарий к изменению"
+msgstr "Изменить доступ"
 
 #: marks/templates/marks/TagPopup.html:24
-#, fuzzy
-#| msgid "Created"
 msgid "Create child"
-msgstr "Созданная"
+msgstr "Создать потомка"
 
 #: marks/templates/marks/TagPopup.html:26
 #: marks/templates/marks/TagsTree.html:157
 #: reports/templates/reports/AssociatedMarksTable.html:52
 msgid "Remove"
-msgstr ""
+msgstr "Удалить"
 
 #: marks/templates/marks/TagsTree.html:38
 #: marks/templates/marks/TagsTree.html:42
-#, fuzzy
-#| msgid "Download"
 msgid "Download tags"
-msgstr "Загрузить"
+msgstr "Скачать теги"
 
 #: marks/templates/marks/TagsTree.html:39
-#, fuzzy
-#| msgid "Upload marks"
+#: marks/templates/marks/TagsTree.html:162
 msgid "Upload tags"
-msgstr "Загрузить оценки на сервер"
+msgstr "Загрузить теги на сервер"
 
 #: marks/templates/marks/TagsTree.html:44
 msgid "Create new root tag"
-msgstr ""
+msgstr "Создать новый корневой тег"
 
 #: marks/templates/marks/TagsTree.html:47
-#, fuzzy
-#| msgid "Populate"
-msgid "Populated tags"
-msgstr "Наполнить базу данных"
+msgid "Preset tags"
+msgstr "Предустановленные теги"
 
 #: marks/templates/marks/TagsTree.html:77
-#, fuzzy
-#| msgid "Enter tag"
 msgid "Edit tag"
-msgstr "Введите тег"
+msgstr "Редактировать тег"
 
 #: marks/templates/marks/TagsTree.html:88
 #: marks/templates/marks/TagsTree.html:124
@@ -2687,40 +2347,28 @@ msgid "Parent"
 msgstr "Родитель"
 
 #: marks/templates/marks/TagsTree.html:113
-#, fuzzy
-#| msgid "Create mark"
 msgid "Create tag"
-msgstr "Создать оценку"
+msgstr "Создать тег"
 
 #: marks/templates/marks/TagsTree.html:151
-#, fuzzy
-#| msgid "All versions and all data of the selected marks will be deleted"
 msgid "All children of the selected tag will be also removed"
-msgstr "Все версии и все данные отмеченных оценок будут удалены"
-
-#: marks/templates/marks/TagsTree.html:162
-#, fuzzy
-#| msgid "Upload marks"
-msgid "Upload Tags"
-msgstr "Загрузить оценки на сервер"
+msgstr "Все потомки отмеченнго тега также будут удалены"
 
 #: marks/templates/marks/TagsTree.html:179
 msgid "Edit users access"
-msgstr ""
+msgstr "Редактировать пользовательский доступ"
 
 #: marks/templates/marks/TagsTree.html:183
 msgid "Users can modify"
-msgstr ""
+msgstr "Пользователи могут изменять"
 
 #: marks/templates/marks/TagsTree.html:187
 msgid "Users can create children"
-msgstr ""
+msgstr "Пользователи могут создавать потомков"
 
 #: marks/templates/marks/TagsTree.html:203
-#, fuzzy
-#| msgid "Service user"
 msgid "Select users"
-msgstr "Служебный пользователь"
+msgstr "Выберите пользователей"
 
 #: marks/templates/marks/TagsTree.html:204
 msgid "Saved"
@@ -2728,84 +2376,60 @@ msgstr "Сохранено"
 
 #: marks/templates/marks/UnknownMark.html:141
 #: marks/templates/marks/versions.html:21
-#, fuzzy
-#| msgid "Marks creation"
 msgid "Mark versions"
-msgstr "Создание оценок"
+msgstr "Версии оценок"
 
 #: marks/templates/marks/UnsafeMark.html:117
-#, fuzzy
-#| msgid "Error traces comparison function"
 msgid "Error traces comparison function and converted error trace"
-msgstr "Функция сравнения трасс ошибок"
+msgstr "Функция сравнения трасс ошибок и сконвертированная трасса ошибки"
 
 #: marks/templates/marks/markVCmp.html:21
-#, fuzzy
-#| msgid "Job reports comparison"
 msgid "Versions comparison"
-msgstr "Сравнение отчетов заданий"
+msgstr "Сравнение версий"
 
 #: marks/templates/marks/markVCmp.html:45
-#, fuzzy
-#| msgid "Mark was changed"
 msgid "Verdict was changed"
-msgstr "Оценка была изменена"
+msgstr "Вердикт был изменен"
 
 #: marks/templates/marks/markVCmp.html:55
-#, fuzzy
-#| msgid "Mark was changed"
 msgid "Status was changed"
-msgstr "Оценка была изменена"
+msgstr "Статус был изменен"
 
 #: marks/templates/marks/markVCmp.html:75
-#, fuzzy
-#| msgid "Mark was changed"
 msgid "Tags were changed"
-msgstr "Оценка была изменена"
+msgstr "Теги были изменены"
 
 #: marks/templates/marks/markVCmp.html:85
-#, fuzzy
-#| msgid "Error traces comparison function"
 msgid "Error trace comparison function was changed"
-msgstr "Функция сравнения трасс ошибок"
+msgstr "Функция сравнения трасс ошибок была изменена"
 
 #: marks/templates/marks/markVCmp.html:102
-#, fuzzy
-#| msgid "Job was changed"
 msgid "Error trace was changed"
-msgstr "Задание было изменено"
+msgstr "Трасса ошибки была изменена"
 
 #: marks/templates/marks/markVCmp.html:108
 msgid "Attributes to compare were changed"
-msgstr ""
+msgstr "Атрибуты для сравнения были изменены"
 
 #: marks/templates/marks/markVCmp.html:135
-#, fuzzy
-#| msgid "Mark was changed"
 msgid "Pattern was changed"
-msgstr "Оценка была изменена"
+msgstr "Шаблон был изменен"
 
 #: marks/templates/marks/markVCmp.html:147
 msgid "Problem or/and its link were changed"
-msgstr ""
+msgstr "Проблема или/и ее ссылка были изменены"
 
 #: marks/templates/marks/markVCmp.html:156
-#, fuzzy
-#| msgid "Job was changed"
 msgid "Description was changed"
-msgstr "Задание было изменено"
+msgstr "Описание было изменено"
 
 #: marks/templates/marks/versions.html:33
-#, fuzzy
-#| msgid "Computer"
 msgid "Compare"
-msgstr "Компьютер"
+msgstr "Сравнить"
 
 #: marks/templates/marks/versions.html:36
-#, fuzzy
-#| msgid "No versions to delete (you can't remove first and last versions)"
 msgid "You can't remove first and last versions"
-msgstr "Нет версий, которые можно удалить (Вы не можете удалить первую и последнюю версии)"
+msgstr "Вы не можете удалить первую и последнюю версии"
 
 #: marks/templates/marks/versions.html:47
 msgid "You won't be able to restore deleted versions"
@@ -2816,74 +2440,52 @@ msgid "Nothing to delete"
 msgstr "Нечего удалять"
 
 #: marks/templates/marks/versions.html:65
-#, fuzzy
-#| msgid "Please select exactly two jobs which reports you want to compare"
 msgid "Please select exactly two versions to compare"
-msgstr "Пожалуйста, отметьте ровно два задания, у которых Вы хотите сравнить отчеты"
+msgstr "Пожалуйста, отметьте ровно две версии, которые Вы хотите сравнить"
 
 #: marks/utils.py:263
 msgid "You can't confirm dissimilar mark"
-msgstr ""
+msgstr "Вы не можете подтвердить непохожую оценку"
 
 #: marks/utils.py:298
-msgid "You can't unconfirm dissimilar mark"
-msgstr ""
+msgid "You can't reject dissimilar mark"
+msgstr "Вы не можете отклонить непохожую оценку"
 
 #: marks/views.py:179
-#, fuzzy
-#| msgid "You don't have an access to create new marks"
 msgid "You don't have an access to create new mark"
-msgstr "У Вас нет прав создавать новые оценки"
+msgstr "У Вас нет прав создавать новую оценку"
 
 #: marks/views.py:316
 msgid "The page is outdated, reload it please"
-msgstr ""
+msgstr "Страница устарела, перезагрузите ее, пожалуйста"
 
 #: reports/api.py:63
-#, fuzzy
-#| msgid "One of the selected jobs was not found"
 msgid "One of the decisions was not found"
-msgstr "Одно из отмеченных заданий не было найдено"
+msgstr "Одно из решений не было найдено"
 
 #: reports/api.py:149
-#, fuzzy
-#| msgid "You don't have an access to this job"
 msgid "You can't clear verifier input files of this decision"
-msgstr "У Вас нет прав на данное задание"
-
-#: reports/api.py:202
-#, fuzzy
-#| msgid "You don't have an access to this job"
-msgid "You don't have an access to the job"
-msgstr "У Вас нет прав на данное задание"
+msgstr "Вы не можете удалить входные файлы верификатора для данного решения"
 
 #: reports/api.py:204 reports/utils.py:1338
-#, fuzzy
-#| msgid "The attributes have wrong format"
 msgid "The attribute doesn't have data"
-msgstr "Формат атрибутов некорректный"
+msgstr "У атрибута отсутствуют данные"
 
 #: reports/api.py:208
-#, fuzzy
-#| msgid "The component log is huge and can not be showed but you can download it"
 msgid "The attribute data is huge and can not be shown but you can download it"
-msgstr "Лог компонента большой и не может быть показан, но Вы можете загрузить его"
+msgstr "Данные атрибута слишком большие и не могут быть показаны, но Вы можете скачать их"
 
 #: reports/api.py:225 reports/utils.py:1329
-#, fuzzy
-#| msgid "The component was not found"
 msgid "The component doesn't have log"
-msgstr "Компонент не был найден"
+msgstr "У компонента отстутсвует лог"
 
 #: reports/api.py:229
-#, fuzzy
-#| msgid "The component log is huge and can not be showed but you can download it"
 msgid "The component log is huge and can not be shown but you can download it"
 msgstr "Лог компонента большой и не может быть показан, но Вы можете загрузить его"
 
 #: reports/comparison.py:84
 msgid "Jobs with different sets of attributes to compare can't be compared"
-msgstr ""
+msgstr "Нельзя сравнить задания с разными наборами атрибутов для сравнения"
 
 #: reports/comparison.py:163
 msgid "The comparison cache was not found"
@@ -2895,28 +2497,24 @@ msgstr "Требуемые отчеты не были найдены"
 
 #: reports/coverage.py:226 reports/coverage.py:334 reports/source.py:309
 #, python-format
-msgid "Error while extracting source: %(error)s"
-msgstr ""
+msgid "Error while extracting source file: %(error)s"
+msgstr "Во время распаковки файла с исходным кодом возникла ошибка: %(error)s"
 
 #: reports/coverage.py:229 reports/coverage.py:339 reports/source.py:344
-#, fuzzy
-#| msgid "The job format is not supported"
-msgid "Sources coverage format is not supported"
-msgstr "Формат задания не поддерживается"
+msgid "Code coverage format is not supported"
+msgstr "Формат покрытия кода не поддерживается"
 
 #: reports/coverage.py:231
-msgid "Common coverage file does not contain statistics"
-msgstr ""
+msgid "Common code coverage file does not contain statistics"
+msgstr "Файл с общим покрытием кода не содержит статистики"
 
 #: reports/etv.py:277 reports/templates/reports/SourceCode.html:43
-#, fuzzy
-#| msgid "Duration"
 msgid "Declarations"
-msgstr "Продолжительность"
+msgstr "Декларации"
 
 #: reports/etv.py:277
 msgid "Global variable declarations"
-msgstr ""
+msgstr "Декларации глобальных переменных"
 
 #: reports/serializers.py:237
 #, python-brace-format
@@ -2932,8 +2530,6 @@ msgid "Report decision attribute is required"
 msgstr "Для отчета требуется атрибут решение"
 
 #: reports/serializers.py:302
-#, fuzzy
-#| msgid "The pattern is required"
 msgid "Report computer attribute is required"
 msgstr "Для отчета требуется атрибут компьютер"
 
@@ -2942,64 +2538,50 @@ msgid "Report parent attribute is required"
 msgstr "Для отчета требуется атрибут родитель"
 
 #: reports/source.py:331
-#, fuzzy
-#| msgid "The job format is not supported"
 msgid "Sources indexing format is not supported"
-msgstr "Формат задания не поддерживается"
+msgstr "Формат идексирования файлов с исходным кодом не поддерживается"
 
 #: reports/templates/reports/AssociatedMarksTable.html:49
-msgid "Unconfirm"
-msgstr ""
+msgid "Reject"
+msgstr "Отклонить"
 
 #: reports/templates/reports/AssociatedMarksTable.html:123
 msgid "The list of associated marks is empty. Maybe it is because of the selected view."
-msgstr ""
+msgstr "Список ассоциированных оценок пуст. Возможно, это из-за выбранного представления."
 
 #: reports/templates/reports/ReportData.html:23
-#, fuzzy
-#| msgid "Validation results"
 msgid "Testing results"
-msgstr "Результаты валидации"
+msgstr "Результаты тестирования"
 
 #: reports/templates/reports/ReportData.html:26
-#, fuzzy
-#| msgid "Missed target bugs"
 msgid "Passed tests"
-msgstr "Пропуски целевых ошибок"
+msgstr "Пройденные тесты"
 
 #: reports/templates/reports/ReportData.html:30
-#, fuzzy
-#| msgid "Failed"
 msgid "Failed tests"
-msgstr "Провалено"
+msgstr "Проваленные тесты"
 
 #: reports/templates/reports/ReportData.html:34
-#, fuzzy
-#| msgid "Number of reports"
 msgid "Total number of tests"
-msgstr "Количество отчетов"
+msgstr "Общее количество тестов"
 
 #: reports/templates/reports/ReportData.html:38
 #: reports/templates/reports/ReportData.html:98
-#, fuzzy
-#| msgid "Change comment"
 msgid "Missed comments"
-msgstr "Комментарий к изменению"
+msgstr "Пропущенные комментарии"
 
 #: reports/templates/reports/ReportData.html:42
 #: reports/templates/reports/ReportData.html:102
 msgid "Excessive comments"
-msgstr ""
+msgstr "Избыточные комментарии"
 
 #: reports/templates/reports/ReportData.html:49
 msgid "Test"
-msgstr ""
+msgstr "Тест"
 
 #: reports/templates/reports/ReportData.html:63
-#, fuzzy
-#| msgid "Password"
 msgid "Passed"
-msgstr "Пароль"
+msgstr "Пройден"
 
 #: reports/templates/reports/ReportData.html:75
 msgid "Validation results"
@@ -3007,23 +2589,23 @@ msgstr "Результаты валидации"
 
 #: reports/templates/reports/ReportData.html:78
 msgid "Found bug before fix and safe after fix"
-msgstr ""
+msgstr "Обнаружена ошибка до исправления и доказана корректность после него"
 
 #: reports/templates/reports/ReportData.html:82
 msgid "Found bug before fix and non-safe after fix"
-msgstr ""
+msgstr "Обнаружена ошибка до исправления, но не доказана корректность после него"
 
 #: reports/templates/reports/ReportData.html:86
 msgid "Found non-bug before fix and safe after fix"
-msgstr ""
+msgstr "Не обнаружена ошибка до исправления и доказана корректность после него"
 
 #: reports/templates/reports/ReportData.html:90
 msgid "Found non-bug before fix and non-safe after fix"
-msgstr ""
+msgstr "Не обнаружена ошибка до исправления и не доказана корректность после него"
 
 #: reports/templates/reports/ReportData.html:94
 msgid "Total number of bugs"
-msgstr ""
+msgstr "Общее количество ошибок"
 
 #: reports/templates/reports/ReportData.html:110
 msgid "Before fix"
@@ -3034,10 +2616,8 @@ msgid "After fix"
 msgstr "После исправления"
 
 #: reports/templates/reports/ReportData.html:145
-#, fuzzy
-#| msgid "Program fragments"
 msgid "Program fragment contents and sizes"
-msgstr "Фрагменты программ"
+msgstr "Содержание и размеры фрагментов программы"
 
 #: reports/templates/reports/ReportData.html:149
 msgid "Program fragments"
@@ -3045,13 +2625,11 @@ msgstr "Фрагменты программ"
 
 #: reports/templates/reports/ReportData.html:150
 msgid "Lines of code"
-msgstr ""
+msgstr "Строки кода"
 
 #: reports/templates/reports/ReportData.html:151
-#, fuzzy
-#| msgid "Comparison failed"
 msgid "Source files"
-msgstr "Сравнение провалилось"
+msgstr "Файлы с исходным кодом"
 
 #: reports/templates/reports/ReportMain.html:71
 msgid "Computer"
@@ -3087,105 +2665,85 @@ msgstr "Статистика по компоненту и его потомка�
 #: reports/templates/reports/ReportUnknown.html:69
 #: reports/templates/reports/ReportUnsafe.html:71
 #: reports/templates/reports/coverage/coverage.html:50
-#, fuzzy
-#| msgid "Download files"
-msgid "Download coverage"
-msgstr "Загрузить файлы"
+msgid "Download code coverage"
+msgstr "Скачать покрытие кода"
 
 #: reports/templates/reports/ReportSafe.html:71
 #: reports/templates/reports/ReportUnknown.html:71
 #: reports/templates/reports/ReportUnsafe.html:73
 #: reports/templates/reports/coverage/coverage.html:53
-#, fuzzy
-#| msgid "Error traces conversion function"
 msgid "Previous covered function"
-msgstr "Функция преобразования трасс ошибок"
+msgstr "Предыдущая покрытая функция"
 
 #: reports/templates/reports/ReportSafe.html:72
 #: reports/templates/reports/ReportUnknown.html:72
 #: reports/templates/reports/ReportUnsafe.html:74
 #: reports/templates/reports/coverage/coverage.html:54
-#, fuzzy
-#| msgid "Error traces conversion function"
 msgid "Next covered function"
-msgstr "Функция преобразования трасс ошибок"
+msgstr "Следующая покрытая функция"
 
 #: reports/templates/reports/ReportSafe.html:73
 #: reports/templates/reports/ReportUnknown.html:73
 #: reports/templates/reports/ReportUnsafe.html:75
 #: reports/templates/reports/coverage/coverage.html:55
-#, fuzzy
-#| msgid "Error traces conversion function"
 msgid "Previous uncovered function"
-msgstr "Функция преобразования трасс ошибок"
+msgstr "Предыдущая непокрытая функция"
 
 #: reports/templates/reports/ReportSafe.html:74
 #: reports/templates/reports/ReportUnknown.html:74
 #: reports/templates/reports/ReportUnsafe.html:76
 #: reports/templates/reports/coverage/coverage.html:56
 msgid "Next uncovered function"
-msgstr ""
+msgstr "Следующая непокрытая функция"
 
 #: reports/templates/reports/ReportSafe.html:75
 #: reports/templates/reports/ReportUnknown.html:75
 #: reports/templates/reports/ReportUnsafe.html:77
 #: reports/templates/reports/coverage/coverage.html:57
 msgid "Previous covered function sorted by number of calls"
-msgstr ""
+msgstr "Предыдущая покрытая функция с сортировкой по количеству вызов"
 
 #: reports/templates/reports/ReportSafe.html:76
 #: reports/templates/reports/ReportUnknown.html:76
 #: reports/templates/reports/ReportUnsafe.html:78
 #: reports/templates/reports/coverage/coverage.html:58
 msgid "Next covered function sorted by number of calls"
-msgstr ""
+msgstr "Следующая покрытая функция с сортировкой по количеству вызов"
 
 #: reports/templates/reports/ReportSafe.html:88
-#, fuzzy
-#| msgid "The component was not found"
-msgid "The report does not have coverage"
-msgstr "Компонент не был найден"
-
-#: reports/templates/reports/ReportSafe.html:98
-#: reports/templates/reports/ReportUnknown.html:99
-#: reports/templates/reports/ReportUnsafe.html:121 reports/utils.py:61
-#, fuzzy
-#| msgid "Memory size"
-msgid "Memory"
-msgstr "Объем оперативной памяти"
+msgid "The report does not have code coverage"
+msgstr "У отчета отсутствует покрытие кода"
 
 #: reports/templates/reports/ReportSafe.html:106
 #: reports/templates/reports/ReportUnknown.html:107
 #: reports/templates/reports/ReportUnsafe.html:129
-msgid "Coverage data statistics"
-msgstr ""
+msgid "Code coverage data statistics"
+msgstr "Статистика по данным для покрытия кода"
 
 #: reports/templates/reports/ReportSafe.html:121
 #: reports/templates/reports/ReportUnknown.html:122
 #: reports/templates/reports/ReportUnsafe.html:144
-#, fuzzy
-#| msgid "Job reports comparison"
 msgid "Used for reports comparison"
-msgstr "Сравнение отчетов заданий"
+msgstr "Используется для сравнения отчетов"
 
 #: reports/templates/reports/ReportSafe.html:124
 #: reports/templates/reports/ReportUnknown.html:125
 #: reports/templates/reports/ReportUnsafe.html:147
-msgid "Used for marks associations by default"
-msgstr ""
+msgid "Used for mark associations by default"
+msgstr "Используется для ассоциаций оценок по умолчанию"
 
 #: reports/templates/reports/ReportSafe.html:156
 #: reports/templates/reports/ReportUnknown.html:157
 #: reports/templates/reports/ReportUnsafe.html:103
 #: reports/templates/reports/coverage/coverage.html:101
 msgid "Legend"
-msgstr ""
+msgstr "Легенда"
 
 #: reports/templates/reports/ReportSafe.html:169
 #: reports/templates/reports/ReportUnknown.html:171
 #: reports/templates/reports/ReportUnsafe.html:166
 msgid "Associated marks"
-msgstr "Привязанные оценки"
+msgstr "Ассоциированные оценки"
 
 #: reports/templates/reports/ReportSafe.html:174
 #: reports/templates/reports/ReportUnknown.html:176
@@ -3193,39 +2751,29 @@ msgstr "Привязанные оценки"
 msgid "Create mark"
 msgstr "Создать оценку"
 
-#: reports/templates/reports/ReportSafe.html:176
-#: reports/templates/reports/ReportUnknown.html:178
-#: reports/templates/reports/ReportUnsafe.html:173
-msgid "Fullweight"
-msgstr ""
-
 #: reports/templates/reports/ReportUnsafe.html:96
 msgid "You can try another level of code coverage details when starting decision to get code coverage for the given source file"
-msgstr ""
+msgstr "Вы можете попробовать другой уровень детализации покрытия кода при запуске решения, чтобы получить покрытие кода для данного файла с исходным кодом"
 
 #: reports/templates/reports/SourceCode.html:39
 msgid "References"
-msgstr ""
+msgstr "Ссылки"
 
 #: reports/templates/reports/SourceCode.html:68
 msgid "You can try another level of code coverage details when starting decision to get the given source file"
-msgstr ""
+msgstr "Вы можете попробовать другой уровень детализации покрытия кода при запуске решения, чтобы получить данный файл с исходным кодом"
 
 #: reports/templates/reports/comparison.html:23
-#, fuzzy
-#| msgid "Job reports comparison"
 msgid "Decision reports comparison"
-msgstr "Сравнение отчетов заданий"
+msgstr "Сравнение отчетов решений"
 
 #: reports/templates/reports/comparison.html:35
-#, fuzzy
-#| msgid "History of decisions"
 msgid "Comparison of decisions"
-msgstr "История решений"
+msgstr "Сравнение решений"
 
 #: reports/templates/reports/comparison.html:62
 msgid "Any"
-msgstr ""
+msgstr "Любой"
 
 #: reports/templates/reports/comparison.html:75
 msgid "Show all (sub)components"
@@ -3241,86 +2789,74 @@ msgstr "Найти"
 
 #: reports/templates/reports/comparison.html:94
 msgid "Please select to show all attributes"
-msgstr "Пожалуйста, выберете показ всех атрибутов"
+msgstr "Пожалуйста, выберите показ всех атрибутов"
 
 #: reports/templates/reports/coverage/CoverageStatistics.html:28
-#, fuzzy
-#| msgid "Download files"
 msgid "Total line coverage"
-msgstr "Загрузить файлы"
+msgstr "Общее покрытие строк"
 
 #: reports/templates/reports/coverage/CoverageStatistics.html:29
-#, fuzzy
-#| msgid "Download files"
 msgid "Total function coverage"
-msgstr "Загрузить файлы"
+msgstr "Общее покрытие функций"
 
 #: reports/templates/reports/coverage/CoverageStatistics.html:56
-#, fuzzy
-#| msgid "List of associated leaf reports is empty"
 msgid "List of files is empty"
-msgstr "Список привязанных листовых отчетов пустой"
+msgstr "Список файлов пустой"
 
 #: reports/templates/reports/coverage/cov_legend.html:22
 msgid "Line coverage legend"
-msgstr ""
+msgstr "Легенда покрытия строк"
 
 #: reports/templates/reports/coverage/cov_legend.html:33
 msgid "Function coverage legend"
-msgstr ""
+msgstr "Легенда покрытия функций"
 
 #: reports/templates/reports/coverage/coverage.html:69
-#, fuzzy
-#| msgid "Order by attribute"
 msgid "Report attributes"
-msgstr "Упорядочить по атрибуту"
+msgstr "Атрибуты отчета"
 
 #: reports/templates/reports/coverage/coverage.html:70
 #: reports/templates/reports/coverage/coverageDataStatisticsModal.html:21
 msgid "Data statistics"
-msgstr ""
+msgstr "Статистика по данным"
 
 #: reports/templates/reports/coverage/coverageDataStatisticsModal.html:33
 msgid "There is no data statistics"
-msgstr ""
+msgstr "Статиска по данным отсутствует"
 
 #: reports/templates/reports/etv_fullscreen.html:23
 msgid "Error Trace Fullscreen"
-msgstr "Полноэкранная Трасса ошибки"
+msgstr "Полноэкранная трасса ошибки"
 
 #: reports/templates/reports/report_list.html:92
 msgid "The list of reports is empty. Maybe it is because of the selected view."
-msgstr ""
+msgstr "Список отчетов пуст. Возможно, это из-за выбранного представления."
 
 #: reports/utils.py:51
-#, fuzzy
-#| msgid "Automatic association"
 msgid "Similar marks associations"
-msgstr "Автоматическая привязка"
+msgstr "Ассоциации похожих оценок"
 
 #: reports/utils.py:58
-#, fuzzy
-#| msgid "Identifier"
 msgid "Verifier"
-msgstr "Идентификатор"
+msgstr "Верификатор"
 
 #: reports/utils.py:357 reports/utils.py:630 reports/utils.py:905
 msgid "manually assessed"
-msgstr ""
+msgstr "оценены вручную"
 
 #: reports/utils.py:359 reports/utils.py:632 reports/utils.py:907
 msgid "automatically assessed"
-msgstr ""
+msgstr "оценены автоматически"
 
 #: reports/utils.py:365
 #, python-format
 msgid "Safes where %(a_name)s is %(a_val)s"
-msgstr ""
+msgstr "Доказательства корректности, для которых %(a_name)s - %(a_val)s"
 
 #: reports/utils.py:638
 #, python-format
 msgid "Unsafes where %(a_name)s is %(a_val)s"
-msgstr ""
+msgstr "Предупреждения об ошибках, для которых %(a_name)s - %(a_val)s"
 
 #: reports/utils.py:903
 msgid "Unknowns without marks"
@@ -3329,17 +2865,15 @@ msgstr "Проблемы в компонентах без оценок"
 #: reports/utils.py:911
 #, python-format
 msgid "Unknowns where %(a_name)s is %(a_val)s"
-msgstr ""
+msgstr "Проблемы в компонентах, для которых %(a_name)s - %(a_val)s"
 
 #: reports/utils.py:1204
 msgid "In progress"
 msgstr "Выполняется"
 
 #: reports/utils.py:1347
-#, fuzzy
-#| msgid "Upload input files of static verifiers"
 msgid "The report doesn't have verifier input files"
-msgstr "Загружать на сервер входные файлы инструментов статической верификации"
+msgstr "У отчета отсутствуют входные файлы верификатора"
 
 #: reports/verdicts.py:189
 msgid "Missed target bugs"
@@ -3347,17 +2881,15 @@ msgstr "Пропуски целевых ошибок"
 
 #: reports/verdicts.py:192 reports/verdicts.py:252
 msgid "To be assessed"
-msgstr ""
+msgstr "Требуется оценить"
 
 #: reports/verdicts.py:199 reports/verdicts.py:259
 msgid "Manually assessed"
-msgstr ""
+msgstr "Оценены вручную"
 
 #: reports/verdicts.py:200 reports/verdicts.py:260
-#, fuzzy
-#| msgid "Automatic association"
 msgid "Automatically assessed"
-msgstr "Автоматическая привязка"
+msgstr "Оценены автоматически"
 
 #: reports/verdicts.py:248
 msgid "Bugs"
@@ -3372,14 +2904,12 @@ msgid "False positives"
 msgstr "Ложные сообщения об ошибках"
 
 #: reports/views.py:92
-msgid "Reports pages for lightweight decisions are closed"
-msgstr ""
+msgid "Report pages for lightweight decisions are not available"
+msgstr "Страницы отчетов для легковесных решений недоступны"
 
 #: reports/views.py:379
-#, fuzzy
-#| msgid "One of the selected jobs was not found"
 msgid "One of the selected decisions wasn't found"
-msgstr "Одно из отмеченных заданий не было найдено"
+msgstr "Одно из отмеченных решений не было найдено"
 
 #: service/serializers.py:335 service/serializers.py:342
 msgid "Estimating the number"
@@ -3459,41 +2989,33 @@ msgid "Available"
 msgstr "Доступно"
 
 #: service/utils.py:38
-#, fuzzy
-#| msgid "Only pending and processing jobs can be stopped"
 msgid "Only pending and processing decisions can be stopped"
-msgstr "Только ожидающие и решающиеся задания могут быть остановлены"
+msgstr "Только ожидающие и выполняющиеся решения могут быть остановлены"
 
 #: tools/templates/tools/CallLogs.html:32
 msgid "Call logs"
-msgstr ""
+msgstr "Логи вызовов"
 
 #: tools/templates/tools/CallLogs.html:38
 #: tools/templates/tools/CallLogs.html:75
 msgid "Get"
-msgstr ""
+msgstr "Получить"
 
 #: tools/templates/tools/CallLogs.html:40
-#, fuzzy
-#| msgid "Log"
 msgid "log"
-msgstr "Лог"
+msgstr "лог"
 
 #: tools/templates/tools/CallLogs.html:41
 msgid "statistic"
-msgstr ""
+msgstr "статистика"
 
 #: tools/templates/tools/CallLogs.html:47
-#, fuzzy
-#| msgid "Creation date"
 msgid "between dates"
-msgstr "Дата создания"
+msgstr "между датами"
 
 #: tools/templates/tools/CallLogs.html:48
-#, fuzzy
-#| msgid "Start date"
 msgid "around the date"
-msgstr "Дата начала работы"
+msgstr "приблизительно"
 
 #: tools/templates/tools/CallLogs.html:55
 #: tools/templates/tools/CallLogs.html:63
@@ -3504,70 +3026,62 @@ msgstr "Дата"
 #: tools/templates/tools/CallLogs.html:55
 #: tools/templates/tools/CallLogs.html:63
 #: tools/templates/tools/ReportsLogging.html:59
-#, fuzzy
-#| msgid "Time zone"
 msgid "Time"
-msgstr "Часовой пояс"
+msgstr "Время"
 
 #: tools/templates/tools/CallLogs.html:68
 msgid "Seconds"
-msgstr ""
+msgstr "Секунды"
 
 #: tools/templates/tools/CallLogs.html:71
 msgid "for"
-msgstr ""
+msgstr "для"
 
 #: tools/templates/tools/CallLogs.html:72
 msgid "function name"
-msgstr ""
+msgstr "название функции"
 
 #: tools/templates/tools/CallLogs.html:86
 msgid "Call statistic"
-msgstr ""
+msgstr "Статистика по вызовам"
 
 #: tools/templates/tools/CallStatistic.html:24
 #: tools/templates/tools/LogList.html:24
 #: tools/templates/tools/ProcessingRequests.html:28
-#, fuzzy
-#| msgid "First name"
 msgid "Function name"
-msgstr "Имя"
+msgstr "Название функции"
 
 #: tools/templates/tools/CallStatistic.html:25
 msgid "Average execution time"
-msgstr ""
+msgstr "Среднее время выполнения"
 
 #: tools/templates/tools/CallStatistic.html:26
 msgid "Max execution time"
-msgstr ""
+msgstr "Максимальное время выполнения"
 
 #: tools/templates/tools/CallStatistic.html:27
 msgid "Total execution time"
-msgstr ""
+msgstr "Суммарное время выполнения"
 
 #: tools/templates/tools/CallStatistic.html:28
 msgid "Total waiting time"
-msgstr ""
+msgstr "Суммарное время ожидания"
 
 #: tools/templates/tools/CallStatistic.html:29
 msgid "Max waiting lock"
-msgstr ""
+msgstr "Максимальное время ожидания"
 
 #: tools/templates/tools/CallStatistic.html:30
 msgid "Max try lock"
-msgstr ""
+msgstr "Максимальное время захвата блокировки"
 
 #: tools/templates/tools/CallStatistic.html:31
-#, fuzzy
-#| msgid "Number of nodes"
 msgid "Number of calls"
-msgstr "Количество узлов"
+msgstr "Количество вызовов"
 
 #: tools/templates/tools/CallStatistic.html:32
-#, fuzzy
-#| msgid "Number of nodes"
 msgid "Number of fails"
-msgstr "Количество узлов"
+msgstr "Количество неудачных вызовов"
 
 #: tools/templates/tools/CallStatistic.html:39
 #: tools/templates/tools/CallStatistic.html:40
@@ -3584,181 +3098,139 @@ msgstr "с"
 
 #: tools/templates/tools/LogList.html:25
 msgid "Successfully finished"
-msgstr ""
+msgstr "Завершилось успешно"
 
 #: tools/templates/tools/LogList.html:26
 #: tools/templates/tools/ProcessingRequests.html:29
-#, fuzzy
-#| msgid "Enter tag"
 msgid "Enter"
-msgstr "Введите тег"
+msgstr "Вход"
 
 #: tools/templates/tools/LogList.html:27
 #: tools/templates/tools/ProcessingRequests.html:30
 msgid "Waiting lock"
-msgstr ""
+msgstr "Время ожидания"
 
 #: tools/templates/tools/LogList.html:28
 #: tools/templates/tools/ProcessingRequests.html:31
 msgid "Try lock"
-msgstr ""
+msgstr "Время захвата блокировки"
 
 #: tools/templates/tools/LogList.html:29
 #: tools/templates/tools/ProcessingRequests.html:32
-#, fuzzy
-#| msgid "Description"
 msgid "Execution"
-msgstr "Описание"
+msgstr "Выполнение"
 
 #: tools/templates/tools/LogList.html:30
-#, fuzzy
-#| msgid "Decision wall time"
 msgid "Execution time"
-msgstr "Астрономическое время решения"
+msgstr "Время выполнения"
 
 #: tools/templates/tools/LogList.html:31
 msgid "Return"
-msgstr ""
+msgstr "Выход"
 
 #: tools/templates/tools/Logs.html:7
-#, fuzzy
-#| msgid "Upload jobs"
 msgid "Upload Log"
-msgstr "Загрузить задания на сервер"
+msgstr "Загрузить лог на сервер"
 
 #: tools/templates/tools/Logs.html:28
 msgid "Clear"
-msgstr ""
+msgstr "Очистить"
 
 #: tools/templates/tools/ManagerPanel.html:36
-#, fuzzy
-#| msgid "Decision status"
 msgid "Decisions"
-msgstr "Статус решения"
+msgstr "Решения"
 
 #: tools/templates/tools/ManagerPanel.html:65
-#, fuzzy
-#| msgid "Recalculate"
 msgid "Cache recalculation"
-msgstr "Пересчитать"
+msgstr "Пересчет кэша"
 
 #: tools/templates/tools/ManagerPanel.html:67
-#, fuzzy
-#| msgid "Reported"
-msgid "Reports leaves"
-msgstr "Сообщена"
+msgid "Report leaves"
+msgstr "Листья отчетов"
 
 #: tools/templates/tools/ManagerPanel.html:68
-#, fuzzy
-#| msgid "Automatic association"
 msgid "Safe associations"
-msgstr "Автоматическая привязка"
+msgstr "Ассоциации доказательств корректности"
 
 #: tools/templates/tools/ManagerPanel.html:69
-#, fuzzy
-#| msgid "Automatic association"
 msgid "Unsafe associations"
-msgstr "Автоматическая привязка"
+msgstr "Ассоциации предупреждений об ошибках"
 
 #: tools/templates/tools/ManagerPanel.html:70
-#, fuzzy
-#| msgid "Automatic association"
 msgid "Unknown associations"
-msgstr "Автоматическая привязка"
+msgstr "Ассоциации проблем в компонентах"
 
 #: tools/templates/tools/ManagerPanel.html:71
-#, fuzzy
-#| msgid "Compare reports"
 msgid "Safe reports"
-msgstr "Сравнить отчеты"
+msgstr "Отчеты доказательств корректности"
 
 #: tools/templates/tools/ManagerPanel.html:72
-#, fuzzy
-#| msgid "Unsafe marks"
 msgid "Unsafe reports"
-msgstr "Оценки предупреждений об ошибках"
+msgstr "Отчеты предупреждений об ошибках"
 
 #: tools/templates/tools/ManagerPanel.html:73
-#, fuzzy
-#| msgid "Unknown error"
 msgid "Unknown reports"
-msgstr "Неизвестная ошибка"
+msgstr "Отчеты проблем в компонентах"
 
 #: tools/templates/tools/ManagerPanel.html:74
-#, fuzzy
-#| msgid "For instance,"
 msgid "Resources and instances"
-msgstr "Например,"
+msgstr "Ресурсы и экземпляры"
 
 #: tools/templates/tools/ManagerPanel.html:75
-msgid "Coverage cache"
-msgstr ""
+msgid "Code coverage cache"
+msgstr "Кэш покрытия кода"
 
 #: tools/templates/tools/ManagerPanel.html:76
 msgid "All caches"
 msgstr "Все кэши"
 
 #: tools/templates/tools/ManagerPanel.html:81
-#, fuzzy
-#| msgid "Unsafe marks cache"
 msgid "Recalculate safe marks cache"
-msgstr "Кэш оценок предупреждений об ошибках"
+msgstr "Пересчитать кэш доказательств корректности"
 
 #: tools/templates/tools/ManagerPanel.html:82
-#, fuzzy
-#| msgid "Unsafe marks cache"
 msgid "Recalculate unsafe marks cache"
-msgstr "Кэш оценок предупреждений об ошибках"
+msgstr "Пересчитать кэш предупреждений об ошибках"
 
 #: tools/templates/tools/ManagerPanel.html:83
-#, fuzzy
-#| msgid "Unknown marks cache"
 msgid "Recalculate unknown marks cache"
-msgstr "Кэш оценок проблем в компонентах"
+msgstr "Пересчитать кэш кэш оценок проблем в компонентах"
 
 #: tools/templates/tools/ManagerPanel.html:84
-#, fuzzy
-#| msgid "Download files"
 msgid "Download all marks"
-msgstr "Загрузить файлы"
+msgstr "Скачать все оценки"
 
 #: tools/templates/tools/ManagerPanel.html:85
-#, fuzzy
-#| msgid "Upload marks"
 msgid "Upload all marks"
-msgstr "Загрузить оценки на сервер"
+msgstr "Загрузить все оценки на сервер"
 
 #: tools/templates/tools/ManagerPanel.html:86
 msgid "Remove unused files and DB rows"
 msgstr "Удалить неиспользуемые файлы и строки БД"
 
 #: tools/templates/tools/ManagerPanel.html:87
-#, fuzzy
-#| msgid "Number of solving jobs"
-msgid "Remove tasks for not solving decisions"
-msgstr "Количество решаемых задания"
+msgid "Remove tasks for non-solving decisions"
+msgstr "Удалить задачи для нерешаемых решений"
 
 #: tools/templates/tools/ManagerPanel.html:88
-#, fuzzy
-#| msgid "Processing tasks"
 msgid "View processing requests"
-msgstr "Решающиеся задачи"
+msgstr "Посмотреть обрабатывающиеся запросы"
 
 #: tools/templates/tools/ManagerPanel.html:89
 msgid "View function call logs"
-msgstr ""
+msgstr "Посмотреть логи вызовов функций"
 
 #: tools/templates/tools/ManagerPanel.html:90
-msgid "View db logs statistics"
-msgstr ""
+msgid "View DB log statistics"
+msgstr "Посмотреть статистику по логам БД"
 
 #: tools/templates/tools/ManagerPanel.html:91
 msgid "Analyze reports uploading logs"
-msgstr ""
+msgstr "Анализ логов загрузки отчетов на сервер"
 
 #: tools/templates/tools/ManagerPanel.html:92
 msgid "View raw logs"
-msgstr ""
+msgstr "Просмотр необработанных логов"
 
 #: tools/templates/tools/ManagerPanel.html:100
 msgid "Population"
@@ -3771,10 +3243,8 @@ msgid "All"
 msgstr "Всего"
 
 #: tools/templates/tools/ManagerPanel.html:112
-#, fuzzy
-#| msgid "Preset"
 msgid "Preset jobs"
-msgstr "Предустановленная"
+msgstr "Предустановленные задания"
 
 #: tools/templates/tools/ManagerPanel.html:170
 msgid "Populate"
@@ -3782,117 +3252,87 @@ msgstr "Наполнить базу данных"
 
 #: tools/templates/tools/ManagerPanel.html:174
 msgid "Original sources"
-msgstr ""
+msgstr "Оригинальные файлы с исходным кодом"
 
 #: tools/templates/tools/ManagerPanel.html:180
-#, fuzzy
-#| msgid "Number of task decisions"
 msgid "Number of linked decisions"
-msgstr "Количество решений задач"
+msgstr "Количество связанных решений"
 
 #: tools/templates/tools/ManagerPanel.html:193
-#, fuzzy
-#| msgid "There are no problems yet"
-msgid "There are no original sources archives"
-msgstr "Проблем еще нет"
+msgid "There are no archives with original sources"
+msgstr "Архивов с оригинальными файлами с исходным кодом нет"
 
 #: tools/templates/tools/ManagerPanel.html:197
-#, fuzzy
-#| msgid "Comparison failed"
 msgid "Comparison caches"
-msgstr "Сравнение провалилось"
+msgstr "Кэши сравнения"
 
 #: tools/templates/tools/ManagerPanel.html:202
-#, fuzzy
-#| msgid "Username"
 msgid "User"
-msgstr "Имя пользователя"
+msgstr "Пользователь"
 
 #: tools/templates/tools/ManagerPanel.html:220
-#, fuzzy
-#| msgid "There are no components yet"
 msgid "There are no comparison cache objects yet"
-msgstr "Компонентов еще нет"
+msgstr "В кэше сравнения еще нет объектов"
 
 #: tools/templates/tools/ManagerPanel.html:230
-#, fuzzy
-#| msgid "New unknown marks were uploaded"
 msgid "Delete all marks before upload"
-msgstr "Были загружены новые оценки проблем в компонентах"
+msgstr "Удалите все оценки перед загрузкой на сервер"
 
 #: tools/templates/tools/ManagerPanel.html:249
-#, fuzzy
-#| msgid "Upload marks"
 msgid "Uploaded marks"
-msgstr "Загрузить оценки на сервер"
+msgstr "Загруженные на сервер оценки"
 
 #: tools/templates/tools/ManagerPanel.html:285
-#, fuzzy
-#| msgid "Please, select the line first"
-msgid "Please select at least one decision"
-msgstr "Пожалуйста, сначала выберете строку"
+msgid "Please, select at least one decision"
+msgstr "Пожалуйста, выберите по крайней мере одно решение"
 
 #: tools/templates/tools/ManagerPanel.html:296
 msgid "Caches were successfully recalculated"
 msgstr "Кэши были успешно пересчитаны"
 
 #: tools/templates/tools/ManagerPanel.html:310
-#, fuzzy
-#| msgid "Caches were successfully recalculated"
-msgid "Marks caches were successfully recalculated"
-msgstr "Кэши были успешно пересчитаны"
+msgid "Mark caches were successfully recalculated"
+msgstr "Кэши оценок были успешно пересчитаны"
 
 #: tools/templates/tools/ProcessingRequests.html:21
-#, fuzzy
-#| msgid "Processing tasks"
 msgid "Processing requests"
-msgstr "Решающиеся задачи"
+msgstr "Обрабатывающиеся запросы"
 
 #: tools/templates/tools/ProcessingRequests.html:48
 msgid "Locked tables"
-msgstr ""
+msgstr "Заблокированные таблицы"
 
 #: tools/templates/tools/ProcessingRequests.html:56
-#, fuzzy
-#| msgid "In progress"
 msgid "Nothing is in progress"
-msgstr "Выполняется"
+msgstr "Ничего не выполняется"
 
 #: tools/templates/tools/ReportsLogging.html:7
-#, fuzzy
-#| msgid "Reported"
-msgid "Reports logs"
-msgstr "Сообщена"
+msgid "Report logs"
+msgstr "Логи отчетов"
 
 #: tools/templates/tools/ReportsLogging.html:29
-#, fuzzy
-#| msgid "Decision status"
 msgid "Decision id"
-msgstr "Статус решения"
+msgstr "Идентификатор решения"
 
 #: tools/templates/tools/ReportsLogging.html:32
-#, fuzzy
-#| msgid "Leave empty for order by creation date"
 msgid "Leave empty for the first found decision id"
-msgstr "Оставьте пустым для упорядочивания по дате создания"
+msgstr "Оставьте пустым для первого найденного идентификатора решения"
 
 #: tools/templates/tools/ReportsLogging.html:36
 msgid "Parse logs"
-msgstr ""
+msgstr "Разобрать логи"
 
 #: tools/templates/tools/ReportsLogging.html:39
-#, fuzzy
-#| msgid "Number of nodes"
 msgid "Number of steps"
-msgstr "Количество узлов"
+msgstr "Количество шагов"
 
 #: tools/templates/tools/ReportsLogging.html:41
 msgid "Next step"
-msgstr ""
+msgstr "Следующий шаг"
 
 #: tools/templates/tools/ReportsLogging.html:42
 msgid "Refresh"
-msgstr ""
+msgstr "Обновить"
 
 #: tools/templates/tools/ReportsLogging.html:46
 #: tools/templates/tools/ReportsLogging.html:47
@@ -3900,80 +3340,60 @@ msgstr ""
 #: tools/templates/tools/ReportsLogging.html:49
 #: tools/templates/tools/ReportsLogging.html:50
 #: tools/templates/tools/ReportsLogging.html:51
-#, fuzzy
-#| msgid "Automatic association"
 msgid "Auto"
-msgstr "Автоматическая привязка"
+msgstr "Автоматический"
 
 #: tools/templates/tools/ReportsLogging.html:60
-#, fuzzy
-#| msgid "Reported"
 msgid "Report type"
-msgstr "Сообщена"
+msgstr "Тип отчета"
 
 #: tools/templates/tools/ReportsLogging.html:61
-#, fuzzy
-#| msgid "Action Kind"
 msgid "Action"
-msgstr "Вид действия"
+msgstr "Действие"
 
 #: tools/templates/tools/ReportsLogging.html:62
 msgid "PK"
-msgstr ""
+msgstr "ПК"
 
 #: tools/templates/tools/ReportsLogging.html:72
-#, fuzzy
-#| msgid "Title is required"
 msgid "Title search"
-msgstr "Требуется указать название"
+msgstr "Поиск по названию"
 
 #: tools/templates/tools/ReportsLogging.html:79
-#, fuzzy
-#| msgid "Decision status"
 msgid "Node status"
-msgstr "Статус решения"
+msgstr "Статус вычислительного узла"
 
 #: tools/utils.py:188
-#, fuzzy
-#| msgid "One of the selected jobs was not found"
 msgid "One of the selected decisions was not found"
-msgstr "Одно из отмеченных заданий не было найдено"
+msgstr "Одно из отмеченных решений не было найдено"
 
 #: tools/utils.py:190
-#, fuzzy
-#| msgid "Please select jobs to recalculate caches for them"
 msgid "Please select decisions to recalculate caches for them"
-msgstr "Пожалуйста, отметьте задания, для которых Вы хотите пересчитать кэши"
+msgstr "Пожалуйста, отметьте решения, для которых Вы хотите пересчитать кэши"
 
 #: tools/views.py:81
 msgid "All unused files and DB rows were deleted"
 msgstr "Все неиспользуемые файлы и строки БД были удалены"
 
 #: tools/views.py:187
-#, fuzzy
-#| msgid "Caches were successfully recalculated"
 msgid "Tasks were successfully deleted"
-msgstr "Кэши были успешно пересчитаны"
+msgstr "Задачи были успешно удалены"
 
 #: users/admin.py:28
 msgid "Personal info"
-msgstr ""
+msgstr "Персональные данные"
 
 #: users/admin.py:29
-#, fuzzy
-#| msgid "Version"
 msgid "Permissions"
-msgstr "Версия"
+msgstr "Права доступа"
 
 #: users/admin.py:30
 msgid "Preferences"
-msgstr ""
+msgstr "Предпочтения"
 
 #: users/admin.py:35
-#, fuzzy
-#| msgid "Start date"
 msgid "Important dates"
-msgstr "Дата начала работы"
+msgstr "Важные даты"
 
 #: users/forms.py:121 users/forms.py:159 users/models.py:45
 #: users/templates/users/showProfile.html:42
@@ -3989,40 +3409,32 @@ msgid "Last name"
 msgstr "Фамилия"
 
 #: users/forms.py:146 users/forms.py:215
-#, fuzzy
-#| msgid "Passwords don't match"
 msgid "Passwords don't match."
-msgstr "Пароли не совпадают"
+msgstr "Пароли не совпадают."
 
 #: users/forms.py:147 users/forms.py:213
-#, fuzzy
-#| msgid "Service username"
 msgid "Specify username"
-msgstr "Имя служебного пользователя"
+msgstr "Задайте имя пользователя"
 
 #: users/forms.py:151
 msgid "New password"
 msgstr "Новый пароль"
 
 #: users/forms.py:155
-#, fuzzy
-#| msgid "Node configurations"
 msgid "New password confirmation"
-msgstr "Конфигурации узлов"
+msgstr "Подтверждение нового пароля"
 
 #: users/forms.py:163 users/models.py:60
 msgid "Default unsafe marks threshold"
-msgstr ""
+msgstr "Порог оценок предупреждений ошибок по умолчанию"
 
 #: users/forms.py:164 users/models.py:61
 msgid "This setting sets default unsafe marks threshold on its creation"
-msgstr ""
+msgstr "Этот параметр устанавливает порог оценок предупреждений ошибок, который будет использоваться по умолчанию при их создании"
 
 #: users/forms.py:214
-#, fuzzy
-#| msgid "New password"
 msgid "Specify password"
-msgstr "Новый пароль"
+msgstr "Задайте пароль"
 
 #: users/models.py:33
 msgid "The number of significant figures"
@@ -4038,7 +3450,7 @@ msgstr "Формат данных"
 
 #: users/models.py:38
 msgid "Most of dates are not updated automatically, so human-readable dates could become outdated until you reload page by hand"
-msgstr ""
+msgstr "Большинство дат не обновляются автоматически, поэтому удобочитаемые даты могут устареть до тех пор, пока Вы не перезагрузите страницу вручную"
 
 #: users/models.py:42 users/templates/users/showProfile.html:43
 msgid "Language"
@@ -4057,36 +3469,28 @@ msgid "This setting turns on visualization of error trace assumptions. This can 
 msgstr "Данная настройка включает визуализацию предположений трасс ошибок. Это может потребовать очень много времени для больших трасс ошибок."
 
 #: users/models.py:52
-#, fuzzy
-#| msgid "Error trace converting failed"
 msgid "Error trace closing triangles"
-msgstr "Преобразование трассы ошибки провалилось"
+msgstr "Закрывающие треугольники трасс ошибок"
 
 #: users/models.py:53
-#, fuzzy
-#| msgid "This setting turns on visualization of error trace assumptions. This can take very much time for big error traces."
 msgid "This setting turns on visualization of error trace closing triangles at the end of each thread."
-msgstr "Данная настройка включает визуализацию предположений трасс ошибок. Это может потребовать очень много времени для больших трасс ошибок."
+msgstr "Данная настройка включает визуализацию закрывающих треугольников в конце каждого потока для трасс ошибок."
 
 #: users/models.py:56
 msgid "Coverage data"
-msgstr ""
+msgstr "Данные покрытия кода"
 
 #: users/models.py:57
-#, fuzzy
-#| msgid "This setting turns on visualization of error trace assumptions. This can take very much time for big error traces."
 msgid "This setting turns on visualization of coverage data and its statistic."
-msgstr "Данная настройка включает визуализацию предположений трасс ошибок. Это может потребовать очень много времени для больших трасс ошибок."
+msgstr "Данная настройка включает визуализацию данных покрытия кода и их статистики."
 
 #: users/models.py:64
-#, fuzzy
-#| msgid "Number of task decisions"
 msgid "Number of declarations in error trace"
-msgstr "Количество решений задач"
+msgstr "Количество деклараций в трассе ошибок"
 
 #: users/models.py:65
 msgid "Error trace declarations number threshold that should be opened by default"
-msgstr ""
+msgstr "Количество деклараций трасс ошибок, которые должны быть показаны по умолчанию"
 
 #: users/notifications.py:33
 msgid "New job was created"
@@ -4118,7 +3522,7 @@ msgstr "Обнаружена новая проблема в компоненте
 
 #: users/notifications.py:40 users/notifications.py:61
 msgid "Mark was associated with leaf report"
-msgstr "Оценка были привязана к листовому отчету"
+msgstr "Оценка были ассоциирована с листовым отчетом"
 
 #: users/notifications.py:41 users/notifications.py:62
 msgid "New mark was created"
@@ -4231,7 +3635,7 @@ msgstr "Уведомлять о моих изменениях"
 
 #: users/serializers.py:72
 msgid "Please choose another view name"
-msgstr "Пожалуйста, выберете другое название представления"
+msgstr "Пожалуйста, выберите другое название представления"
 
 #: users/serializers.py:76 users/templates/users/views/viewButtons.html:23
 #: users/utils.py:400
@@ -4332,29 +3736,23 @@ msgstr "Фильтры"
 
 #: users/templates/users/views/AssociationChanges.html:38
 msgid "Hide associations that don't affect total expert evaluation"
-msgstr ""
+msgstr "Скрыть ассоциации, которые не влияют на общую экспертную оценку"
 
 #: users/templates/users/views/AssociationChanges.html:48
 msgid "Change kind"
 msgstr "Тип изменения"
 
 #: users/templates/users/views/AssociationChanges.html:74
-#, fuzzy
-#| msgid "Total verdict"
 msgid "Old verdict"
-msgstr "Итоговый вердикт"
+msgstr "Старый вердикт"
 
 #: users/templates/users/views/AssociationChanges.html:89
-#, fuzzy
-#| msgid "Total verdict"
 msgid "New verdict"
-msgstr "Итоговый вердикт"
+msgstr "Новый вердикт"
 
 #: users/templates/users/views/AssociationChanges.html:105
-#, fuzzy
-#| msgid "Decision status"
 msgid "Decision title"
-msgstr "Статус решения"
+msgstr "Название решения"
 
 #: users/templates/users/views/AssociationChanges.html:112
 #: users/templates/users/views/AssociationChanges.html:141
@@ -4437,10 +3835,8 @@ msgstr "Атрибут"
 #: users/templates/users/views/marksList.html:264
 #: users/templates/users/views/reportChildren.html:63
 #: users/templates/users/views/reportChildren.html:102
-#, fuzzy
-#| msgid "Attribute"
 msgid "Attribute name"
-msgstr "Атрибут"
+msgstr "Название атрибута"
 
 #: users/templates/users/views/AssociationChanges.html:137
 #: users/templates/users/views/SafesAndUnsafesList.html:77
@@ -4468,45 +3864,35 @@ msgstr "например,"
 
 #: users/templates/users/views/DecisionResults.html:68
 msgid "Statistic attribute name"
-msgstr ""
+msgstr "Название атрибута для статистики"
 
 #: users/templates/users/views/DecisionResults.html:84
 msgid "Hide problems without marks"
 msgstr "Не показывать проблемы без оценок"
 
 #: users/templates/users/views/DecisionResults.html:89
-#, fuzzy
-#| msgid "Hide total"
 msgid "Hide total of unknowns"
-msgstr "Не показывать суммарное количество"
+msgstr "Спрятать суммарное количество проблем в компонентах"
 
 #: users/templates/users/views/DecisionResults.html:94
-#, fuzzy
-#| msgid "Consumed resources"
 msgid "Hide total of consumed resources"
-msgstr "Потребленные ресурсы"
+msgstr "Спрятать суммарные потребленные ресурсы"
 
 #: users/templates/users/views/DecisionResults.html:99
 msgid "Hide detailed verdicts statistics"
-msgstr ""
+msgstr "Спрятать детализацию статистики по вердиктам"
 
 #: users/templates/users/views/DecisionResults.html:107
-#, fuzzy
-#| msgid "Component name"
 msgid "Unknown component name"
-msgstr "Название компонента"
+msgstr "Название компонента с проблемами"
 
 #: users/templates/users/views/DecisionResults.html:130
-#, fuzzy
-#| msgid "Problem name"
 msgid "Unknown problem name"
-msgstr "Название проблемы"
+msgstr "Название проблемы компонента"
 
 #: users/templates/users/views/DecisionResults.html:153
-#, fuzzy
-#| msgid "Consumed resources"
 msgid "Consumed resources component name"
-msgstr "Потребленные ресурсы"
+msgstr "Название компонента, потребившего ресурсы"
 
 #: users/templates/users/views/DecisionResults.html:176
 msgid "Safe tag"
@@ -4518,7 +3904,7 @@ msgstr "Тег предупреждения об ошибке"
 
 #: users/templates/users/views/DecisionResults.html:222
 msgid "Calculate statistic just if attribute value"
-msgstr ""
+msgstr "Вычислить статистику, только если значение атрибута"
 
 #: users/templates/users/views/SafeAndUnknownAssReports.html:27
 #: users/templates/users/views/SafesAndUnsafesList.html:25
@@ -4526,10 +3912,8 @@ msgstr ""
 #: users/templates/users/views/UnsafeAssReports.html:27
 #: users/templates/users/views/marksList.html:25
 #: users/templates/users/views/reportChildren.html:26
-#, fuzzy
-#| msgid "Number of reports"
 msgid "Number of rows"
-msgstr "Количество отчетов"
+msgstr "Количество строк"
 
 #: users/templates/users/views/SafeAndUnknownAssReports.html:63
 #: users/templates/users/views/SafeAssMarks.html:55
@@ -4537,7 +3921,7 @@ msgstr "Количество отчетов"
 #: users/templates/users/views/UnsafeAssMarks.html:83
 #: users/templates/users/views/UnsafeAssReports.html:87
 msgid "Only associated"
-msgstr ""
+msgstr "Только ассоциированные"
 
 #: users/templates/users/views/SafesAndUnsafesList.html:36
 #: users/templates/users/views/UnknownsList.html:36
@@ -4570,25 +3954,24 @@ msgstr "Упорядочить по атрибуту"
 #: users/templates/users/views/SafesAndUnsafesList.html:88
 #: users/templates/users/views/UnknownsList.html:93
 msgid "Hide detailed marks number info"
-msgstr ""
+msgstr "Спрятать детализацию о количестве оценок"
 
 #: users/templates/users/views/SafesAndUnsafesList.html:110
 #: users/templates/users/views/UnknownsList.html:191
 #: users/templates/users/views/marksList.html:272
-#, fuzzy
-#| msgid "starts with"
 msgid "ends with"
-msgstr "начинается с"
+msgstr "заканчивается на"
 
 #: users/templates/users/views/SafesAndUnsafesList.html:144
 #: users/templates/users/views/UnknownsList.html:124
 msgid "Number of associated marks"
-msgstr "Количество привязанных оценок"
+msgstr "Количество ассоциированных оценок"
 
 #: users/templates/users/views/SafesAndUnsafesList.html:167
 #: users/templates/users/views/UnknownsList.html:147
+#: users/templates/users/views/UnsafeAssReports.html:52
 msgid "equal to"
-msgstr ""
+msgstr "равно"
 
 #: users/templates/users/views/SafesAndUnsafesList.html:168
 #: users/templates/users/views/UnknownsList.html:148
@@ -4604,24 +3987,18 @@ msgstr "не меньше чем"
 
 #: users/templates/users/views/SafesAndUnsafesList.html:183
 #: users/templates/users/views/marksList.html:242
-#, fuzzy
-#| msgid "Without marks"
 msgid "With tags"
-msgstr "Нет оценок"
+msgstr "С тегами"
 
 #: users/templates/users/views/SafesAndUnsafesList.html:189
 #: users/templates/users/views/marksList.html:248
-#, fuzzy
-#| msgid "Enter the full name of the attribute"
 msgid "Enter full names of tags separated by semicolon"
-msgstr "Введите полное название атрибута"
+msgstr "Введите полные названия тегов, разделенные точкой с запятой"
 
 #: users/templates/users/views/SafesAndUnsafesList.html:198
 #: users/templates/users/views/UnknownsList.html:206
-#, fuzzy
-#| msgid "Decision wall time"
 msgid "Verifier CPU time"
-msgstr "Астрономическое время решения"
+msgstr "Процессорное время верификатора"
 
 #: users/templates/users/views/SafesAndUnsafesList.html:204
 #: users/templates/users/views/SafesAndUnsafesList.html:233
@@ -4630,10 +4007,8 @@ msgstr "Астрономическое время решения"
 #: users/templates/users/views/UnknownsList.html:241
 #: users/templates/users/views/UnknownsList.html:270
 #: users/templates/users/views/UnsafeAssReports.html:53
-#, fuzzy
-#| msgid "not less than"
 msgid "less than"
-msgstr "не меньше чем"
+msgstr "меньше чем"
 
 #: users/templates/users/views/SafesAndUnsafesList.html:205
 #: users/templates/users/views/SafesAndUnsafesList.html:234
@@ -4642,10 +4017,8 @@ msgstr "не меньше чем"
 #: users/templates/users/views/UnknownsList.html:242
 #: users/templates/users/views/UnknownsList.html:271
 #: users/templates/users/views/UnsafeAssReports.html:54
-#, fuzzy
-#| msgid "not greater than"
 msgid "greater than"
-msgstr "не больше чем"
+msgstr "больше чем"
 
 #: users/templates/users/views/SafesAndUnsafesList.html:215
 #: users/templates/users/views/SafesAndUnsafesList.html:244
@@ -4661,28 +4034,24 @@ msgstr "минут"
 #: users/templates/users/views/UnknownsList.html:224
 #: users/templates/users/views/UnknownsList.html:253
 msgid "seconds"
-msgstr ""
+msgstr "секунд"
 
 #: users/templates/users/views/SafesAndUnsafesList.html:217
 #: users/templates/users/views/SafesAndUnsafesList.html:246
 #: users/templates/users/views/UnknownsList.html:225
 #: users/templates/users/views/UnknownsList.html:254
 msgid "milliseconds"
-msgstr ""
+msgstr "миллисекунд"
 
 #: users/templates/users/views/SafesAndUnsafesList.html:227
 #: users/templates/users/views/UnknownsList.html:235
-#, fuzzy
-#| msgid "Decision wall time"
 msgid "Verifier wall time"
-msgstr "Астрономическое время решения"
+msgstr "Время работы верификатора"
 
 #: users/templates/users/views/SafesAndUnsafesList.html:256
 #: users/templates/users/views/UnknownsList.html:264
-#, fuzzy
-#| msgid "Identifier"
 msgid "Verifier memory"
-msgstr "Идентификатор"
+msgstr "Максимальный объем оперативной памяти верификатора"
 
 #: users/templates/users/views/SafesAndUnsafesList.html:274
 #: users/templates/users/views/UnknownsList.html:282 users/utils.py:412
@@ -4701,10 +4070,8 @@ msgstr "Б"
 
 #: users/templates/users/views/UnknownsList.html:53
 #: users/templates/users/views/marksList.html:65
-#, fuzzy
-#| msgid "Component name"
 msgid "Order by component name"
-msgstr "Название компонента"
+msgstr "Упорядочить по названию компонента"
 
 #: users/templates/users/views/UnknownsList.html:101
 #: users/templates/users/views/jobTree.html:202
@@ -4714,10 +4081,8 @@ msgid "Component name"
 msgstr "Название компонента"
 
 #: users/templates/users/views/UnknownsList.html:163
-#, fuzzy
-#| msgid "Problem"
 msgid "Has problem"
-msgstr "Проблема"
+msgstr "Имеется проблема"
 
 #: users/templates/users/views/UnknownsList.html:167
 msgid "Problem name"
@@ -4725,50 +4090,36 @@ msgstr "Название проблемы"
 
 #: users/templates/users/views/UnknownsList.html:170
 msgid "Filter works only if column \"Problems\" is enabled"
-msgstr ""
+msgstr "Фильтр работает только в том случае, если показывается столбец \"Проблемы в компонентах\""
 
 #: users/templates/users/views/UnsafeAssMarks.html:55
 #: users/templates/users/views/marksList.html:109
-#, fuzzy
-#| msgid "Only finished children will be shown"
 msgid "only bugs will be shown"
-msgstr "Будут показаны только завершенные потомки"
+msgstr "будут показаны только ошибки"
 
 #: users/templates/users/views/UnsafeAssMarks.html:73
-#, fuzzy
-#| msgid "not greater than"
 msgid "Similarity is greater than"
-msgstr "не больше чем"
-
-#: users/templates/users/views/UnsafeAssReports.html:52
-msgid "equals to"
-msgstr ""
+msgstr "Похождеть больше чем"
 
 #: users/templates/users/views/jobTree.html:30
-#, fuzzy
-#| msgid "Jobs Tree"
 msgid "Jobs order"
-msgstr "Дерево заданий"
+msgstr "Порядок заданий"
 
 #: users/templates/users/views/jobTree.html:58
-#, fuzzy
-#| msgid "Delete versions"
 msgid "Job versions order"
-msgstr "Удалить версии"
+msgstr "Порядок версий заданий"
 
 #: users/templates/users/views/jobTree.html:94
-#, fuzzy
-#| msgid "Hide problems without marks"
 msgid "Hide jobs without decisions"
-msgstr "Не показывать проблемы без оценок"
+msgstr "Спратать задания без решений"
 
 #: users/templates/users/views/jobTree.html:99
 msgid "Hide detailed verdicts number"
-msgstr ""
+msgstr "Спрятать детализацию количества вердиктов"
 
 #: users/templates/users/views/jobTree.html:107
 msgid "Job title"
-msgstr ""
+msgstr "Название задания"
 
 #: users/templates/users/views/jobTree.html:138
 msgid "is not"
@@ -4806,39 +4157,33 @@ msgstr "недель"
 
 #: users/templates/users/views/jobTree.html:282
 #: users/templates/users/views/jobTree.html:316
-#, fuzzy
-#| msgid "not greater than"
 msgid "not later"
-msgstr "не больше чем"
+msgstr "не позднее чем"
 
 #: users/templates/users/views/jobTree.html:284
 #: users/templates/users/views/jobTree.html:318
 msgid "not before"
-msgstr ""
+msgstr "не ранее чем"
 
 #: users/templates/users/views/jobTree.html:343
-#, fuzzy
-#| msgid "Decision status"
 msgid "Decision weight"
-msgstr "Статус решения"
+msgstr "Вес решения"
 
 #: users/templates/users/views/marksList.html:36
 msgid "Sorting only works when sorted column is shown"
-msgstr ""
+msgstr "Сортировка работает только тогда, когда сортируемый столбец отображается"
 
 #: users/templates/users/views/marksList.html:54
-#, fuzzy
-#| msgid "Last change date"
 msgid "Order by last change date"
-msgstr "Дата последнего изменения"
+msgstr "Упорядочить по дате последнего изменения"
 
 #: users/templates/users/views/marksList.html:59
 msgid "Order by the number of associated leaf reports"
-msgstr "Упорядочить по количеству привязанных листовых отчетов"
+msgstr "Упорядочить по количеству ассоциированных листовых отчетов"
 
 #: users/templates/users/views/marksList.html:83
 msgid "Filtering only works when filtered column is shown"
-msgstr ""
+msgstr "Фильтрация работает только тогда, когда фильтруемый столбец отображается"
 
 #: users/templates/users/views/reportChildren.html:67
 msgid "Only finished children will be shown"
@@ -4846,7 +4191,7 @@ msgstr "Будут показаны только завершенные пото
 
 #: users/templates/users/views/viewButtons.html:26
 msgid "shared"
-msgstr ""
+msgstr "общедоступный"
 
 #: users/templates/users/views/viewButtons.html:31
 #: users/templates/users/views/viewCreateForm.html:29
@@ -4863,17 +4208,15 @@ msgstr "Обновить"
 
 #: users/templates/users/views/viewButtons.html:34
 msgid "Share"
-msgstr ""
+msgstr "Сделать общедоступным"
 
 #: users/templates/users/views/viewButtons.html:34
 msgid "Hide"
-msgstr ""
+msgstr "Спрятать"
 
 #: users/templates/users/views/viewButtons.html:36
-#, fuzzy
-#| msgid "Make preferred"
 msgid "Show preferred view"
-msgstr "Сделать предпочитаемым"
+msgstr "Показать предпочитаемое представление"
 
 #: users/templates/users/views/viewColumns.html:23
 msgid "Selected columns"
@@ -4900,16 +4243,12 @@ msgid "The view was successfully removed"
 msgstr "Представление было успешно удалено"
 
 #: users/templates/users/views/viewCreateForm.html:36
-#, fuzzy
-#| msgid "The view was successfully saved"
 msgid "The view was successfully shared"
-msgstr "Представление было успешно сохранено"
+msgstr "Был открыт доступ к представлению"
 
 #: users/templates/users/views/viewCreateForm.html:37
-#, fuzzy
-#| msgid "The view was not found"
 msgid "The view was hidden from other users"
-msgstr "Представление не было найдено"
+msgstr "Представление было спрятано от других пользователей"
 
 #: users/templates/users/views/viewCreateForm.html:38
 msgid "The preferred view was successfully changed"
@@ -4920,750 +4259,9 @@ msgid "ms"
 msgstr "мс"
 
 #: users/utils.py:408
-#, fuzzy
-#| msgid "minutes"
 msgid "min"
-msgstr "минут"
+msgstr "мин"
 
 #: users/utils.py:408
 msgid "h"
 msgstr "ч"
-
-#, fuzzy
-#~| msgid "Upload jobs"
-#~ msgid "Upload jobs tree"
-#~ msgstr "Загрузить задания на сервер"
-
-#, fuzzy
-#~| msgid "Set parent identifier (keep in mind that job class will be inherited from parent). All file or folder names with non-ASCII characters will be truncated to 30 characters."
-#~ msgid "Set parent identifier. All file or folder names with non-ASCII characters will be truncated to 30 characters."
-#~ msgstr "Задайте идентификатор родителя (помните, что класс задания будет унаследован от родителя). Все названия файлов и папок, в которых используются не ASCII символы, будут обрезаны до 30 символов."
-
-#, fuzzy
-#~| msgid "One of the selected jobs was not found"
-#~ msgid "One of the selected jobs wasn't found or wasn't decided"
-#~ msgstr "Одно из отмеченных заданий не было найдено"
-
-#~ msgid "Not solved"
-#~ msgstr "Не решено"
-
-#~ msgid "The job format is not supported"
-#~ msgstr "Формат задания не поддерживается"
-
-#, fuzzy
-#~| msgid "The file was not found"
-#~ msgid "The file with tree structure was not found"
-#~ msgstr "Файл не был найден"
-
-#, fuzzy
-#~| msgid "One of the selected jobs was not found"
-#~ msgid "One of the job archives was not found"
-#~ msgstr "Одно из отмеченных заданий не было найдено"
-
-#, fuzzy
-#~| msgid "This field is required"
-#~ msgid "Field {field} is required"
-#~ msgstr "Обязательное поле"
-
-#, fuzzy
-#~| msgid "Saving folder failed"
-#~ msgid "Creating the jobs tree failed: %(message)s"
-#~ msgstr "Сохранение папки провалилось"
-
-#, fuzzy
-#~| msgid "The job was not found"
-#~ msgid "The job was not decided before"
-#~ msgstr "Задание не было найдено"
-
-#~ msgid "You don't have an access to stop decision of this job"
-#~ msgstr "У Вас нет прав остановить решение данного задания"
-
-#, fuzzy
-#~| msgid "The job was not found"
-#~ msgid "The job was not provided"
-#~ msgstr "Задание не было найдено"
-
-#, fuzzy
-#~| msgid "The file was not uploaded"
-#~ msgid "The job field name was not provided"
-#~ msgstr "Файл не был загружен на сервер"
-
-#, fuzzy
-#~| msgid "The parent with the specified identifier was not found"
-#~ msgid "The job with specified identifier or name was not found"
-#~ msgstr "Родитель с указанным идентификатором не был найден"
-
-#, fuzzy
-#~| msgid "Several parents match the specified identifier, please increase the length of the parent identifier"
-#~ msgid "Several jobs match the specified identifier, please increase the length of the job identifier"
-#~ msgstr "Указанному идентификатору соответствуют несколько родителей, пожалуйста, увеличьте длину идентификатора родителя"
-
-#, fuzzy
-#~| msgid "Jobs do not have files"
-#~ msgid "The job does not have attribute %(field)s"
-#~ msgstr "У заданий нет файлов"
-
-#, fuzzy
-#~| msgid "You don't have an access to remove this job"
-#~ msgid "You don't have an access to upload reports for this job"
-#~ msgstr "У Вас нет прав удалить данное задание"
-
-#, fuzzy
-#~| msgid "The file was not uploaded"
-#~ msgid "The file with hashsum \"{hash_sum}\" was not uploaded before"
-#~ msgstr "Файл не был загружен на сервер"
-
-#~ msgid "Your version is expired, please reload the page"
-#~ msgstr "Ваша версия устарела, пожалуйста, обновите страницу"
-
-#, fuzzy
-#~| msgid "Wall time, CPU time and maximum memory size"
-#~ msgid "Component (Finished instances/Total instances): Wall time, CPU time and maximum memory size"
-#~ msgstr "Астрономическое время, процессорное время и максимальный объем оперативной памяти"
-
-#~ msgid "Job Copying"
-#~ msgstr "Копирование задания"
-
-#, fuzzy
-#~| msgid "Delete versions"
-#~ msgid "Previous versions"
-#~ msgstr "Удалить версии"
-
-#~ msgid "Parent identifier"
-#~ msgstr "Идентификатор родителя"
-
-#~ msgid "Change comment"
-#~ msgstr "Комментарий к изменению"
-
-#, fuzzy
-#~| msgid "Job was changed"
-#~ msgid "Title was changed"
-#~ msgstr "Задание было изменено"
-
-#, fuzzy
-#~| msgid "Mark was changed"
-#~ msgid "Parent was changed"
-#~ msgstr "Оценка была изменена"
-
-#, fuzzy
-#~| msgid "Job was changed"
-#~ msgid "Global role was changed"
-#~ msgstr "Задание было изменено"
-
-#~ msgid "Start decision of job"
-#~ msgstr "Начать решение задания"
-
-#, fuzzy
-#~| msgid "Nodes configuration"
-#~ msgid "Last run configuration"
-#~ msgstr "Конфигурация узлов"
-
-#~ msgid "Upload input files of static verifiers"
-#~ msgstr "Загружать на сервер входные файлы инструментов статической верификации"
-
-#~ msgid "Fields with red background are required"
-#~ msgstr "Требуется заполнить поля с красным фоном"
-
-#~ msgid "Fields with red background must be numeric"
-#~ msgstr "Поля с красным фоном должны быть числовыми"
-
-#, fuzzy
-#~| msgid "Selected columns"
-#~ msgid "Selected jobs"
-#~ msgstr "Выбранные столбцы"
-
-#, fuzzy
-#~| msgid "Download files"
-#~ msgid "Download with children"
-#~ msgstr "Загрузить файлы"
-
-#~ msgid "Please select exactly two jobs which reports you want to compare"
-#~ msgstr "Пожалуйста, отметьте ровно два задания, у которых Вы хотите сравнить отчеты"
-
-#~ msgid "All for checked"
-#~ msgstr "Всего для отмеченных"
-
-#~ msgid "List of jobs is empty, please populate them or change the view"
-#~ msgstr "Список заданий пустой, пожалуйста, наполните базу данных или измените представление"
-
-#, fuzzy
-#~| msgid "The job solving progress does not exist"
-#~ msgid "The decision does not exists"
-#~ msgstr "Прогресс решения задания не существует"
-
-#, fuzzy
-#~| msgid "Download files"
-#~ msgid "Download files for competition"
-#~ msgstr "Загрузить файлы"
-
-#~ msgid "Format"
-#~ msgstr "Формат"
-
-#~ msgid "All versions and all data of this job will be deleted"
-#~ msgstr "Все версии и все данные задания будут удалены"
-
-#, fuzzy
-#~| msgid "All versions and all data of this mark will be deleted"
-#~ msgid "The job has children, and all of them will be deleted"
-#~ msgstr "Все версии и все данные оценки будут удалены"
-
-#, fuzzy
-#~| msgid "The parent with the specified identifier was not found"
-#~ msgid "The job with specified identifier was not found"
-#~ msgstr "Родитель с указанным идентификатором не был найден"
-
-#~ msgid "The file was not found"
-#~ msgstr "Файл не был найден"
-
-#, fuzzy
-#~| msgid "Delete selected marks"
-#~ msgid "Selected marks"
-#~ msgstr "Удалить отмеченные оценки"
-
-#~ msgid "Please select marks you want to delete"
-#~ msgstr "Пожалуйста, отметьте оценки, которые Вы хотите удалить"
-
-#, fuzzy
-#~| msgid "One of the reports was not uploaded"
-#~ msgid "One of the jobs is not decided yet"
-#~ msgstr "Один из отчетов не был загружен на сервер"
-
-#, fuzzy
-#~| msgid "The pattern is required"
-#~ msgid "Report root is required"
-#~ msgstr "Требуется шаблон"
-
-#~ msgid "Class"
-#~ msgstr "Класс"
-
-#, fuzzy
-#~| msgid "Upload input files of static verifiers"
-#~ msgid "Download input files of static verifiers"
-#~ msgstr "Загружать на сервер входные файлы инструментов статической верификации"
-
-#~ msgid "Comparison of reports of jobs"
-#~ msgstr "Сравнение отчетов заданий"
-
-#, fuzzy
-#~| msgid "The job was not found"
-#~ msgid "The job is not decided"
-#~ msgstr "Задание не было найдено"
-
-#, fuzzy
-#~| msgid "Resources cache"
-#~ msgid "Resources"
-#~ msgstr "Кэш ресурсов"
-
-#, fuzzy
-#~| msgid "Component name"
-#~ msgid "Components instances"
-#~ msgstr "Название компонента"
-
-#, fuzzy
-#~| msgid "Number of solving jobs"
-#~ msgid "Number of linked jobs"
-#~ msgstr "Количество решаемых задания"
-
-#, fuzzy
-#~| msgid "Caches were successfully recalculated"
-#~ msgid "Logs were successfully cleared"
-#~ msgstr "Кэши были успешно пересчитаны"
-
-#, fuzzy
-#~| msgid "Status"
-#~ msgid "Statistics"
-#~ msgstr "Статус"
-
-#, fuzzy
-#~| msgid "Modification"
-#~ msgid "Syndication"
-#~ msgstr "Изменение"
-
-#, fuzzy
-#~| msgid "Changed"
-#~ msgid "and"
-#~ msgstr "Изменена"
-
-#, fuzzy
-#~| msgid "File"
-#~ msgid "File path"
-#~ msgstr "Файл"
-
-#, fuzzy
-#~| msgid "This field is required"
-#~ msgid "This field is required."
-#~ msgstr "Обязательное поле"
-
-#, fuzzy
-#~| msgid "No file is chosen"
-#~ msgid "No file was submitted."
-#~ msgstr "Не выбран ни один файл"
-
-#, fuzzy
-#~| msgid "Changed"
-#~ msgid "Change"
-#~ msgstr "Изменена"
-
-#, fuzzy
-#~| msgid "Start"
-#~ msgid "Sat"
-#~ msgstr "Начать"
-
-#, fuzzy
-#~| msgid "Search"
-#~ msgid "March"
-#~ msgstr "Найти"
-
-#, fuzzy
-#~| msgid "Bug"
-#~ msgid "aug"
-#~ msgstr "Ошибка"
-
-#, fuzzy
-#~| msgid "Search"
-#~ msgctxt "abbrev. month"
-#~ msgid "March"
-#~ msgstr "Найти"
-
-#, fuzzy
-#~| msgid "Search"
-#~ msgctxt "alt. month"
-#~ msgid "March"
-#~ msgstr "Найти"
-
-#, fuzzy
-#~| msgid "weeks"
-#~ msgid "%d week"
-#~ msgid_plural "%d weeks"
-#~ msgstr[0] "недель"
-#~ msgstr[1] "недель"
-#~ msgstr[2] "недель"
-
-#, fuzzy
-#~| msgid "hours"
-#~ msgid "%d hour"
-#~ msgid_plural "%d hours"
-#~ msgstr[0] "часов"
-#~ msgstr[1] "часов"
-#~ msgstr[2] "часов"
-
-#, fuzzy
-#~| msgid "minutes"
-#~ msgid "%d minute"
-#~ msgid_plural "%d minutes"
-#~ msgstr[0] "минут"
-#~ msgstr[1] "минут"
-#~ msgstr[2] "минут"
-
-#, fuzzy
-#~| msgid "minutes"
-#~ msgid "0 minutes"
-#~ msgstr "минут"
-
-#, fuzzy
-#~| msgid "Could not find the specified line"
-#~ msgid "No month specified"
-#~ msgstr "Не удалось найти указанную строку"
-
-#, fuzzy
-#~| msgid "Caches were successfully recalculated"
-#~ msgid "The install worked successfully! Congratulations!"
-#~ msgstr "Кэши были успешно пересчитаны"
-
-#, fuzzy
-#~| msgid "Change Comment"
-#~ msgid "Django Community"
-#~ msgstr "Комментарий к изменению"
-
-#~ msgid "Can't populate without Manager and service user"
-#~ msgstr "Наполнение базы данных невозможно без Руководителя и служебного пользователя"
-
-#~ msgid "The comparison cache was not found or was corrupted"
-#~ msgstr "Кэш сравнения не был найден или был поврежден"
-
-#~ msgid "You don't have an access to compare these jobs"
-#~ msgstr "У Вас нет прав сравнивать данные задания"
-
-#~ msgid "The problem was not found"
-#~ msgstr "Проблема не была найдена"
-
-#~ msgid "Verification of Linux kernel modules"
-#~ msgstr "Верификация модулей ядра Linux"
-
-#~ msgid "Validation on Linux kernel modules"
-#~ msgstr "Валидация на модулях ядра Linux"
-
-#~ msgid "Verification of commits in Linux kernel Git repositories"
-#~ msgstr "Верификация коммитов в Git-репозиториях ядра Linux"
-
-#~ msgid "Validation on commits in Linux kernel Git repositories"
-#~ msgstr "Валидация на коммитах в Git-репозиториях ядра Linux"
-
-#~ msgid "Verification of C programs"
-#~ msgstr "Верификация Си-программ"
-
-#~ msgid "Validation on C programs"
-#~ msgstr "Валидация на Си-программах"
-
-#~ msgid "Balance"
-#~ msgstr "Баланс"
-
-#~ msgid "The job class does not equal to the parent class"
-#~ msgstr "Класс задания не совпадает с классом родителя"
-
-#~ msgid "The job status is wrong"
-#~ msgstr "Статус задания некорректный"
-
-#~ msgid "Change comment is required"
-#~ msgstr "Требуется написать комментарий к изменению"
-
-#~ msgid "New folder"
-#~ msgstr "Новая папка"
-
-#~ msgid "Folder name"
-#~ msgstr "Название папки"
-
-#~ msgid "Subfolder of"
-#~ msgstr "Подпапка"
-
-#~ msgid "New name"
-#~ msgstr "Новое название"
-
-#~ msgid "Move"
-#~ msgstr "Переместить"
-
-#~ msgid "to"
-#~ msgstr "в"
-
-#~ msgid "will be deleted. Do you want to continue?"
-#~ msgstr "будет удален(а). Вы хотите продолжить?"
-
-#~ msgid "Upload to folder"
-#~ msgstr "Загрузить в папку"
-
-#~ msgid "One of the files was not uploaded"
-#~ msgstr "Один из файлов не был загружен на сервер"
-
-#~ msgid "The folder can't be replaced with the file"
-#~ msgstr "Папка не может быть заменена на файл"
-
-#~ msgid "You can't move folders, please choose the file you want to move"
-#~ msgstr "Вы не можете переместить папки, пожалуйста, укажите файл, который Вы хотите переместить"
-
-#~ msgid "Please choose the file you want to move"
-#~ msgstr "Пожалуйста, укажите файл, который Вы хотите переместить"
-
-#~ msgid "Please choose the file or the folder you want to rename"
-#~ msgstr "Пожалуйста, укажите файл или папку, которую Вы хотите переименовать"
-
-#~ msgid "Please choose the file or the folder you want to delete"
-#~ msgstr "Пожалуйста, укажите файл или папку, которую Вы хотите удалить"
-
-#~ msgid "Abstract tasks generation priority"
-#~ msgstr "Приоритет генерации абстрактных задач"
-
-#~ msgid "Build"
-#~ msgstr "Сборка"
-
-#~ msgid "Allow use of local source directories"
-#~ msgstr "Разрешить использовать локальные директории с исходным кодом"
-
-#~ msgid "Add filter by"
-#~ msgstr "Добавить фильтр по"
-
-#~ msgid "Download selected jobs"
-#~ msgstr "Загрузить отмеченные задания"
-
-#~ msgid "Delete selected jobs"
-#~ msgstr "Удалить отмеченные задания"
-
-#~ msgid "Make copy"
-#~ msgstr "Создать копию"
-
-#~ msgid "Stop decision"
-#~ msgstr "Остановить решение"
-
-#~ msgid "Pending tasks"
-#~ msgstr "Ожидающие задачи"
-
-#~ msgid "Finished tasks"
-#~ msgstr "Решенные задачи"
-
-#~ msgid "Error tasks"
-#~ msgstr "Проваленные задачи"
-
-#~ msgid "Cancelled tasks"
-#~ msgstr "Отмененные задачи"
-
-#~ msgid "Progress of job decision"
-#~ msgstr "Прогресс решения задания"
-
-#~ msgid "Saving folder failed"
-#~ msgstr "Сохранение папки провалилось"
-
-#~ msgid "You can't specify an empty name"
-#~ msgstr "Вы не можете указать пустое имя"
-
-#~ msgid "You can't use the same names in one folder"
-#~ msgstr "Вы не можете использовать одни и те же имена в одной папке"
-
-#~ msgid "The job title is required"
-#~ msgstr "Требуется название задания"
-
-#~ msgid "The job author is required"
-#~ msgstr "Требуется автор задания"
-
-#~ msgid "The parent or the job class is required"
-#~ msgstr "Требуется родитель или класс задания"
-
-#~ msgid "Change author is required"
-#~ msgstr "Требуется автор изменения"
-
-#~ msgid "The default view was made preferred"
-#~ msgstr "Представление, которое используется по умолчанию, было сделано предпочитаемым"
-
-#~ msgid "The default view is already preferred"
-#~ msgstr "Представление, которое используется по умолчанию, уже является предпочитаемым"
-
-#~ msgid "The view name is required"
-#~ msgstr "Требуется указать название представления"
-
-#~ msgid "You can't remove the default view"
-#~ msgstr "Вы не можете удалить представление, которое используется по умолчанию"
-
-#~ msgid "You don't have access to delete versions"
-#~ msgstr "У Вас нет прав удалить версии"
-
-#~ msgid "The job parent was not found"
-#~ msgstr "Родитель задания не был найден"
-
-#~ msgid "Parent can't be specified for root jobs"
-#~ msgstr "Нельзя указывать родителя для корневых заданий"
-
-#~ msgid "The specified parent can't be set for this job"
-#~ msgstr "Для этого задания не может быть установлен указанный родитель"
-
-#~ msgid "The parent identifier is required for this job"
-#~ msgstr "Для этого задания требуется идентификатор родителя"
-
-#~ msgid "The parent identifier was not got"
-#~ msgstr "Не был получен идентификатор родителя"
-
-#~ msgid "Too many jobs starts with the specified identifier"
-#~ msgstr "Слишком много заданий начинаются с указанного идентификатора"
-
-#~ msgid "One of the selected jobs was not found, please reload page"
-#~ msgstr "Одно из отмеченных заданий не было найдено, пожалуйста, обновите страницу"
-
-#~ msgid "You can't compare the selected jobs"
-#~ msgstr "Вы не можете сравнить отмеченные задания"
-
-#~ msgid "%(all)s (%(broken)s are broken)"
-#~ msgstr "%(all)s (%(broken)s сломаны)"
-
-#~ msgid "The problem is required"
-#~ msgstr "Требуется проблема"
-
-#~ msgid "Changes in associations of marks with leaf reports"
-#~ msgstr "Изменения привязки оценок к листовым отчетам"
-
-#~ msgid "No changes in associations of marks with leaf reports"
-#~ msgstr "Изменения привязки оценок к листовым отчетам отсутствуют"
-
-#~ msgid "Continue editing"
-#~ msgstr "Продолжить редактирование"
-
-#~ msgid "No tags to display"
-#~ msgstr "Теги отсутствуют"
-
-#~ msgid "The tag length must be not more than 15 characters"
-#~ msgstr "Длина тега должна быть не более 15 символов"
-
-#~ msgid "The number of associated leaf reports"
-#~ msgstr "Количество привязанных листовых отчетов"
-
-#~ msgid "The error traces conversion function was not found"
-#~ msgstr "Функция преобразования трасс ошибок не была найдена"
-
-#~ msgid "The error traces comparison function was not found"
-#~ msgstr "Функция сравнения трасс ошибок не была найдена"
-
-#~ msgid "Could not create a new mark since the similar mark exists already"
-#~ msgstr "Не удалось создать новую оценку, поскольку существует похожая оценка"
-
-#~ msgid "Could not change the mark since it would be similar to the existing mark"
-#~ msgstr "Не удалось изменить оценку, поскольку она стала бы похожа на существую оценку"
-
-#~ msgid "The mark format is not supported"
-#~ msgstr "Формат оценки не поддерживается"
-
-#~ msgid "Could not upload the mark archive since the similar mark exists already"
-#~ msgstr "Не удалось загрузить архив с оценкой, поскольку существует похожая оценка"
-
-#~ msgid "You don't have an access to this mark"
-#~ msgstr "У Вас нет прав на данную оценку"
-
-#~ msgid "You don't have access to create new marks"
-#~ msgstr "У Вас нет прав создавать новые оценки"
-
-#~ msgid "You can't delete one of the selected mark"
-#~ msgstr "Вы не можете удалить одну из отмеченных оценок"
-
-#~ msgid "The report was not found, please recalculate the comparison cache"
-#~ msgstr "Отчет не был найден, пожалуйста, пересчитайте кэш сравнения"
-
-#~ msgid "Could not find the corresponding unsafe"
-#~ msgstr "Не удалось найти соответствующие предупреждение об ошибке"
-
-#~ msgid "Could not get the source file"
-#~ msgstr "Не удалось получить файл с исходным кодом"
-
-#~ msgid "Order by"
-#~ msgstr "Упорядочить по"
-
-#~ msgid "Play"
-#~ msgstr "Играть"
-
-#~ msgid "Play from the selected line"
-#~ msgstr "Играть с выбранной строки"
-
-#~ msgid "Play backward"
-#~ msgstr "Играть назад"
-
-#~ msgid "Play backward from the selected line"
-#~ msgstr "Играть назад с выбранной строки"
-
-#~ msgid "Play one line forward"
-#~ msgstr "Играть одну строку вперед"
-
-#~ msgid "Play one line backward"
-#~ msgstr "Играть одну строку назад"
-
-#~ msgid "Pause"
-#~ msgstr "Остановить"
-
-#~ msgid "second per a line"
-#~ msgstr "секунда на строку"
-
-#~ msgid "seconds per a line"
-#~ msgstr "секунды на строку"
-
-#~ msgid "Error trace assumptions are disabled (you can enable them in your settings)"
-#~ msgstr "Предположения трассы ошибок отключены (Вы можете включить их в Ваших настройках)"
-
-#~ msgid "Play of the error trace was completed"
-#~ msgstr "Проигрывание трассы ошибки завершено"
-
-#~ msgid "Error trace"
-#~ msgstr "Трасса ошибки"
-
-#~ msgid "Leave empty for order by component"
-#~ msgstr "Оставьте пустым для упорядочивания по компоненту"
-
-#~ msgid "Safes marked by"
-#~ msgstr "Доказательства корректности с оценкой"
-
-#~ msgid "Unsafes marked by"
-#~ msgstr "Предупреждения об ошибках с оценкой"
-
-#~ msgid "Unknowns marked by"
-#~ msgstr "Проблемы в компонентах с оценкой"
-
-#~ msgid "You didn't specify credentials for VerifierCloud"
-#~ msgstr "Вы не указали идентификационную информацию для VerifierCloud"
-
-#~ msgid "A new Manager was created"
-#~ msgstr "Был создан новый Руководитель"
-
-#~ msgid "Please save this data and give it to the user who will be the Manager"
-#~ msgstr "Пожалуйста, сохранить эти данные и передайте их пользователю, который будет Руководителем"
-
-#~ msgid "A new service user was created"
-#~ msgstr "Был создан новый служебный пользователь"
-
-#~ msgid "Please save this data and give it to the service user"
-#~ msgstr "Пожалуйста, сохранить эти данные и передайте их служебному пользователю"
-
-#~ msgid "Error traces conversion and comparison functions were updated"
-#~ msgstr "Были обновлены функции преобразования и сравнения трасс ошибок"
-
-#~ msgid "New root jobs were uploaded"
-#~ msgstr "Были загружены новые корневые задания"
-
-#~ msgid "New preset jobs were uploaded"
-#~ msgstr "Были загружены новые предустановленные задания"
-
-#~ msgid "Welcome to Klever Bridge!"
-#~ msgstr "Добро пожаловать!"
-
-#~ msgid "Create the Manager with the specified username and jobs of all classes on behalf of that Manager"
-#~ msgstr "Создать Руководителя с указанным именем и задания всех классов от имени данного Руководителя"
-
-#~ msgid "Manager username"
-#~ msgstr "Имя Руководителя"
-
-#~ msgid "Create the service user with the specified username"
-#~ msgstr "Создать служебного пользователя с указанным именем"
-
-#~ msgid "Manager and service usernames must be different"
-#~ msgstr "Имена Руководителя и служебного пользователя должны быть разными"
-
-#~ msgid "Manager and service usernames are required"
-#~ msgstr "Требуется заполнить имена Руководителя и служебного пользователя"
-
-#~ msgid "The parent identifier is required"
-#~ msgstr "Требуется идентификатор родителя"
-
-#~ msgid "Components"
-#~ msgstr "Компоненты"
-
-#~ msgid "Delete all unused components"
-#~ msgstr "Удалить все неиспользуемые компоненты"
-
-#~ msgid "Delete all unused problems"
-#~ msgstr "Удалить все неиспользуемые проблемы"
-
-#~ msgid "All jobs"
-#~ msgstr "Все задания"
-
-#~ msgid "Leaf reports cache"
-#~ msgstr "Кэш листовых отчетов"
-
-#~ msgid "Safe marks cache"
-#~ msgstr "Кэш оценок доказательств корректности"
-
-#~ msgid "Verdicts cache"
-#~ msgstr "Кэш вердиктов"
-
-#~ msgid "The component is used and can't be deleted"
-#~ msgstr "Компонент используется и не может быть удален"
-
-#~ msgid "The component was successfully deleted"
-#~ msgstr "Компонент был успешно удален"
-
-#~ msgid "The component name should be greater than 0 and less than 16 symbols"
-#~ msgstr "Название компонента должно быть больше 0 и меньше 16 символов"
-
-#~ msgid "The specified component name is used already"
-#~ msgstr "Указанное название компонента уже используется"
-
-#~ msgid "The component was successfully renamed"
-#~ msgstr "Компонент был успешно переименован"
-
-#~ msgid "All unused components were deleted, please reload the page"
-#~ msgstr "Все неиспользуемые компоненты были удалены, пожалуйста, обновите страницу"
-
-#~ msgid "The problem is used and can't be deleted"
-#~ msgstr "Проблема используется и не может быть удалена"
-
-#~ msgid "The problem was successfully deleted"
-#~ msgstr "Проблема была успешно удалена"
-
-#~ msgid "All unused problems were deleted, please reload the page"
-#~ msgstr "Все неиспользуемые проблемы были удалены, пожалуйста, обновите страницу"
-
-#~ msgid "Account has been disabled"
-#~ msgstr "Учетная запись заблокирована"
-
-#~ msgid "Incorrect username or password"
-#~ msgstr "Неправильное имя пользователя или пароль"

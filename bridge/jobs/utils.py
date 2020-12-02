@@ -428,7 +428,7 @@ class JSTreeConverter:
     def __get_children_data(self, obj_p, prefix=None):
         assert isinstance(obj_p, dict)
         if not obj_p['text']:
-            raise BridgeException(_("The file/folder name can't be empty"))
+            raise BridgeException(_("The file/directory name can't be empty"))
         files = []
         name = ((prefix + self.file_sep) if prefix else '') + obj_p['text']
         if obj_p['type'] == 'file':

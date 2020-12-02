@@ -324,7 +324,7 @@ class PresetChildrenTree:
 
     def __get_jobs_tree(self):
         jobs_tree = []
-        # Collect jobs without custom preset directory first
+        # Collect jobs without custom jobs directory first
         for job in self._jobs_qs:
             if job.preset_id == self._preset_job.id:
                 jobs_tree.append(self.__get_job_value(job))

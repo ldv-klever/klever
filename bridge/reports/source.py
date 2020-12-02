@@ -306,7 +306,7 @@ class ParseSource:
         try:
             res = ArchiveFileContent(obj, field_name, name, not_exists_ok=True)
         except Exception as e:
-            raise BridgeException(_("Error while extracting source: %(error)s") % {'error': str(e)})
+            raise BridgeException(_("Error while extracting source file: %(error)s") % {'error': str(e)})
         if res.content is None:
             return None
         return res.content.decode('utf8')
@@ -341,7 +341,7 @@ class ParseSource:
                 continue
             coverage_data = json.loads(content)
             if coverage_data.get('format') != ETV_FORMAT:
-                raise BridgeException(_('Sources coverage format is not supported'))
+                raise BridgeException(_('Code coverage format is not supported'))
             self.coverage_id = cov_obj.id
             return coverage_data
         return None
