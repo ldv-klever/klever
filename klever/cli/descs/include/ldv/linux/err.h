@@ -18,12 +18,6 @@
 #ifndef __LDV_LINUX_ERR_H
 #define __LDV_LINUX_ERR_H
 
-/* Pointers greater then this number correspond to errors. We can't use
- * original value defined in linux/err.h ((unsigned long)-4095) since it is
- * too hard for verifiers.
- */
-#define LDV_PTR_MAX ((unsigned int)-1)
-
 long ldv_is_err(const void *ptr);
 long ldv_is_err_or_null(const void *ptr);
 void *ldv_err_ptr(long error);
