@@ -143,7 +143,7 @@
       "CPAchecker": {"CPALockator:36189": {"inherit": "CPALockator lightweight"}}
     },
     "race checking lightweight liteos": {
-      "CPAchecker": {"CPALockator-combat-mode:34860": {"inherit": "CPALockator lightweight liteos"}}
+      "CPAchecker": {"CPALockator:36189": {"inherit": "CPALockator lightweight liteos"}}
     },
     "race checking": {
       "CPAchecker": {"CPALockator:36189": {"inherit": "CPALockator thread-modular"}}

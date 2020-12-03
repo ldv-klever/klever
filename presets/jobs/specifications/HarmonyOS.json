@@ -231,7 +231,7 @@
             "verifier profile": "race checking lightweight liteos",
             "verifier": {
               "name": "CPAchecker",
-              "version": "CPALockator-combat-mode:34860"
+              "version": "CPALockator:36189"
             },
             "result processing": {
               "expect several witnesses": true
