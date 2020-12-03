@@ -13,6 +13,7 @@
   ],
   "description": "",
   "is_modifiable": true,
+  "production": true,
   "tags": [],
   "verdict": "0"
 }
