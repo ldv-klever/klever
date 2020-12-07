@@ -130,15 +130,10 @@ $(document).ready(function () {
             let prev_note_shown = false;
             etv_window.find('.scope-' + node.data('scope')).each(function () {
                 let child_type = $(this).data('type');
-                if (child_type === 'statement') {
-                    // Hide statement without note or if its note was hidden
+                if (child_type === 'statement' || child_type === 'declaration') {
+                    // Hide statement/declaration without note or if its note was hidden
                     if (!prev_note_shown) $(this).hide();
-                    prev_note_shown = null;
-                }
-                else if (child_type === 'declaration') {
-                    // Hide declaration if its note was hidden
-                    if (prev_note_shown === false) $(this).hide();
-                    prev_note_shown = null;
+                    prev_note_shown = false;
                 }
                 else if (child_type === 'note') {
                     if ($(this).data('level') > 1) {
@@ -147,7 +142,7 @@ $(document).ready(function () {
                     }
                     else prev_note_shown = true;
                 }
-                else prev_note_shown = null;
+                else prev_note_shown = false;
             });
         }
         else if (node_type === 'declarations') {
