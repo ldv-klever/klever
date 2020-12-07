@@ -388,7 +388,7 @@ class VTG(klever.core.components.Component):
         # Check that we can generate a variable number of environment models
         single_model = self.conf.get('single environment model per fragment', True)
         if single_model:
-            total_tasks = len(prepare) * len([1 for cl in self.req_spec_classes 
+            total_tasks = len(self.fragment_desc_files) * len([1 for cl in self.req_spec_classes
                                               for rule in self.req_spec_classes[cl]])
             # Submit the number of tasks
             self.logger.info(f'Submit the total number of tasks expecting a single environment model per a fragment: {total_tasks}')
