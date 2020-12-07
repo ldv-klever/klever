@@ -123,7 +123,7 @@ class OSKleverBaseImage:
         ssh.execute_cmd('rm python-3.7.6.tar.xz')
 
     def __install_python_packages(self, ssh):
-        ssh.execute_cmd(f'sudo {PYTHON} -m pip install --upgrade pip==20.1 setuptools wheel', timeout=1)
+        ssh.execute_cmd(f'sudo {PYTHON} -m pip install --upgrade pip setuptools wheel', timeout=1)
         ssh.execute_cmd(f'sudo {PYTHON} -m pip install --upgrade -r klever/requirements.txt', timeout=3)
 
     def __overwrite_default_base_image_name(self, klever_base_image_name):

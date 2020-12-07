@@ -23,7 +23,7 @@ Additional Software Requirements
 
 To install additional packages required only by OpenStack deployment scripts you need to execute the following command::
 
-    $ pip install ".[openstack]"
+    $ pip install -r requirements-openstack.txt ".[openstack]"
 
 .. note:: If in the previous step you installed Klever package with the `-e` argument, then you should use it here as
           well (i.e. execute `pip install -e ".[openstack]"`).
