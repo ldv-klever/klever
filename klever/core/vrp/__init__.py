@@ -330,26 +330,27 @@ class RP(klever.core.components.Component):
         return error_trace_file, attrs
 
     def report_unsafe(self, error_trace_file, attrs, identifier=''):
+        attrs.extend([
+            {
+                "name": "Program fragment",
+                "value": self.program_fragment_id,
+                "associate": True,
+                "compare": True
+            },
+            {
+                "name": "Requirements specification",
+                "value": self.req_spec_id,
+                "associate": True,
+                "compare": True
+            }
+        ])
         klever.core.utils.report(self.logger,
                                  'unsafe',
                                  {
                                      # To distinguish several Unsafes specific identifiers should be used.
                                      'identifier': self.verification_report_id + '/' + identifier,
                                      'parent': self.verification_report_id,
-                                     'attrs': attrs.extend([
-                                         {
-                                             "name": "Program fragment",
-                                             "value": self.program_fragment_id,
-                                             "associate": True,
-                                             "compare": True
-                                         },
-                                         {
-                                             "name": "Requirements specification",
-                                             "value": self.req_spec_id,
-                                             "associate": True,
-                                             "compare": True
-                                         }
-                                     ]),
+                                     'attrs': attrs,
                                      'error_trace': klever.core.utils.ArchiveFiles(
                                          [error_trace_file],
                                          arcnames={error_trace_file: 'error trace.json'}
