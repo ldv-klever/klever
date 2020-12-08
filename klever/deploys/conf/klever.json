@@ -10,6 +10,11 @@
       "path": "https://forge.ispras.ru/attachments/download/8074/arm-unknown-eabi-cif-79182af.tar.xz",
       "executable path": "bin"
     },
+    "CIF-ARM-LINUX-GNUEABI": {
+      "version": "79182af",
+      "path": "https://forge.ispras.ru/attachments/download/8209/arm-unknown-linux-gnueabi-cif-79182af.tar.xz",
+      "executable path": "bin"
+    },
     "CIL": {
       "version": "0a60360",
       "path": "https://forge.ispras.ru/attachments/download/8075/frama-c-cil-0a60360.tar.xz",
@@ -43,6 +48,9 @@
   "Klever Build Bases": {
     "linux/loadable kernel modules sample": {
       "path": "https://forge.ispras.ru/attachments/download/8076/build-base-linux-3.14.79-x86_64-sample.tar.xz"
+    },
+    "linux/android loadable kernel modules": {
+      "path": "https://forge.ispras.ru/attachments/download/8222/build-base-android-kernel-4.19-stable-07-12-20-arm-allmodconfig.tar.xz"
     }
   }
 }

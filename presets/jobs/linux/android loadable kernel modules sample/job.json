@@ -1,0 +1,13 @@
+{
+  "project": "Linux",
+  "build base": "linux/android loadable kernel modules",
+  "architecture": "ARM",
+  "cross compile prefix": "arm-unknown-linux-gnueabi-",
+  "targets": [
+    "drivers/uwb/umc.ko"
+  ],
+  "specifications set": "4.17",
+  "requirement specifications": [
+    "concurrency safety"
+  ]
+}

@@ -37,6 +37,12 @@
           "production": true
         },
         {
+          "uuid": "4875d03e-e7e0-4fda-9611-9d74487afdec",
+          "name": "Android loadable kernel modules sample",
+          "directory": "linux/android loadable kernel modules sample",
+          "production": true
+        },
+        {
           "uuid": "38c96aee-77e8-4964-8d76-564173226c3a",
           "name": "Kernel subsystems sample",
           "directory": "linux/kernel subsystems sample"
