@@ -211,6 +211,8 @@ def __get_common_components_conf(logger, conf):
         raise ValueError("Klever does not support architecture {!r} yet, available options are: {}"
                          .format(components_common_conf['architecture'], ', '.join(DEFAULT_ARCH_OPTS.keys())))
     components_common_conf.update(DEFAULT_ARCH_OPTS[components_common_conf['architecture']])
+    if 'cross compile prefix' in components_common_conf:
+        components_common_conf['CIF']['cross compile prefix'] = components_common_conf['cross compile prefix']
 
     # Add complete Klever Core configuration itself to components configuration since almost all its attributes will
     # be used somewhere in components.
