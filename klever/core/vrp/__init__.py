@@ -407,26 +407,26 @@ class RP(klever.core.components.Component):
                         self.logger.warning('Failed to process witnesses:\n{}'.format(traceback.format_exc().rstrip()))
                         self.verdict = 'non-verifier unknown'
                         self.__exception = e
-                else:
-                    identifier = 1
-                    for witness in witnesses:
-                        try:
-                            error_trace_file, attrs = self.process_witness(witness)
-                            self.report_unsafe(error_trace_file, attrs, str(identifier))
-                        except Exception as e:
-                            self.logger.warning('Failed to process a witness:\n{}'
-                                                .format(traceback.format_exc().rstrip()))
-                            self.verdict = 'non-verifier unknown'
 
-                            if self.__exception:
-                                try:
-                                    raise e from self.__exception
-                                except Exception as e:
-                                    self.__exception = e
-                            else:
+                identifier = 1
+                for witness in witnesses:
+                    try:
+                        error_trace_file, attrs = self.process_witness(witness)
+                        self.report_unsafe(error_trace_file, attrs, str(identifier))
+                    except Exception as e:
+                        self.logger.warning('Failed to process a witness:\n{}'
+                                            .format(traceback.format_exc().rstrip()))
+                        self.verdict = 'non-verifier unknown'
+
+                        if self.__exception:
+                            try:
+                                raise e from self.__exception
+                            except Exception as e:
                                 self.__exception = e
-                        finally:
-                            identifier += 1
+                        else:
+                            self.__exception = e
+                    finally:
+                        identifier += 1
 
             if re.search('false', decision_results['status']) and \
                     ("expect several witnesses" not in opts or not opts["expect several witnesses"]):
