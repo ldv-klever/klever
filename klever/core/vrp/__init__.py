@@ -336,7 +336,7 @@ class RP(klever.core.components.Component):
                                      # To distinguish several Unsafes specific identifiers should be used.
                                      'identifier': self.verification_report_id + '/' + identifier,
                                      'parent': self.verification_report_id,
-                                     'attrs': attrs.update(
+                                     'attrs': attrs.extend([
                                          {
                                              "name": "Program fragment",
                                              "value": self.program_fragment_id,
@@ -349,7 +349,7 @@ class RP(klever.core.components.Component):
                                              "associate": True,
                                              "compare": True
                                          }
-                                     ),
+                                     ]),
                                      'error_trace': klever.core.utils.ArchiveFiles(
                                          [error_trace_file],
                                          arcnames={error_trace_file: 'error trace.json'}
