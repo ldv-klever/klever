@@ -215,13 +215,10 @@ class RSG(klever.core.vtg.plugins.Plugin):
             full_desc_file = '{0}{1}.json'.format(base_name, ext)
             out_file = '{0}.c'.format(base_name)
 
-            # Some stuff, e.g. size_t definition, may be architecture dependent.
-            opts = ['-DLDV_{0}'.format(self.conf['architecture'])]
-
             # Always specify either specific model sets model or common one.
-            opts += ['-DLDV_SETS_MODEL_' + (model['options']['sets model']
-                                            if isinstance(model, dict) and 'sets model' in model['options']
-                                            else self.conf['common sets model']).upper()]
+            opts = ['-DLDV_SETS_MODEL_' + (model['options']['sets model']
+                                           if isinstance(model, dict) and 'sets model' in model['options']
+                                           else self.conf['common sets model']).upper()]
             if 'specifications set' in self.conf:
                 opts += ['-DLDV_SPECS_SET_{0}'.format(self.conf['specifications set'].replace('.', '_'))]
 
