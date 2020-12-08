@@ -278,7 +278,7 @@ class UnsafeMarkVersionSerializer(WithTagsMixin, serializers.ModelSerializer):
             except Exception as e:
                 logger.exception(e)
                 raise exceptions.ValidationError(detail={
-                    'error_trace': _('Wrong error trace json provided')
+                    'error_trace': _('Wrong error trace is provided')
                 })
         if res['verdict'] != UNSAFE_VERDICTS[1][0]:
             res['status'] = None

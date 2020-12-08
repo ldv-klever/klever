@@ -234,8 +234,8 @@ class DecisionResultsSerializerRO(serializers.ModelSerializer):
 class ComputerDataField(fields.Field):
     initial = []
     default_error_messages = {
-        'not_a_list': _('Expected a list of items but got type "{input_type}".'),
-        'prop_wrong': _('Computer property has wrong format.'),
+        'not_a_list': _('Expected a list of items but got type "{input_type}"'),
+        'prop_wrong': _('Computer data has wrong format'),
     }
 
     def get_value(self, dictionary):
@@ -298,9 +298,9 @@ class ReportComponentSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         # Decision, computer, parent must be specified in save() method
-        assert 'decision' in validated_data, _('Report decision is required')
-        assert 'computer' in validated_data, _('Report computer is required')
-        assert 'parent' in validated_data, _('Report parent is required')
+        assert 'decision' in validated_data, _('Report decision attribute is required')
+        assert 'computer' in validated_data, _('Report computer attribute is required')
+        assert 'parent' in validated_data, _('Report parent attribute is required')
         return super().create(validated_data)
 
     class Meta:

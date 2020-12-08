@@ -199,7 +199,7 @@ class AttrDataContentView(LoggedCallMixin, GenericAPIView):
         assert pk
         instance = self.get_object()
         if not JobAccess(self.request.user, instance.report.decision.job).can_view:
-            raise exceptions.PermissionDenied(_("You don't have an access to the job"))
+            raise exceptions.PermissionDenied(_("You don't have an access to this job"))
         if not instance.data:
             raise BridgeException(_("The attribute doesn't have data"))
 

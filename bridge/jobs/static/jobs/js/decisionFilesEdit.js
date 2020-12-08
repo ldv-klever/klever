@@ -39,14 +39,14 @@ function FilesTree(tree_id, editor_id) {
     this.messages = {
         not_ascii: 'File name is not ascii',
         filename_required: 'File name is required',
-        file_commited: 'The file was commited',
-        file_not_commited: 'The file was not commited',
+        file_commited: 'The file was committed',
+        file_not_commited: 'The file was not committed',
         file_required: 'Please select the file',
         commit_required: 'Please commit the changed file'
     };
     this.labels = {
         'new': 'New',
-        'folder': 'Folder',
+        'folder': 'Directory',
         'file': 'File',
         'upload': 'Upload',
         'rename': 'Rename',

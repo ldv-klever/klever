@@ -89,7 +89,7 @@ class ReportComponentView(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, De
         if not JobAccess(self.request.user, self.object.decision.job).can_view:
             raise BridgeException(code=400)
         if self.object.decision.weight == DECISION_WEIGHT[1][0]:
-            raise BridgeException(_('Reports pages for lightweight decisions are closed'))
+            raise BridgeException(_('Report pages for lightweight decisions are not available'))
 
         context = super().get_context_data(**kwargs)
         context.update({

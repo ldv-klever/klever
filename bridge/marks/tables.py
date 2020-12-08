@@ -105,7 +105,7 @@ class ReportMarksTableBase:
     ordering = ('-markreport_set__id',)
     ass_type_block_titles = {
         ASSOCIATION_TYPE[0][0]: _('Dissimilar marks'),
-        ASSOCIATION_TYPE[1][0]: _('Marks with unconfirmed associations'),
+        ASSOCIATION_TYPE[1][0]: _('Marks with rejected associations'),
         ASSOCIATION_TYPE[2][0]: _('Marks with automatic associations'),
         ASSOCIATION_TYPE[3][0]: _('Marks with confirmed associations')
     }
@@ -382,7 +382,7 @@ class UnsafeReportMarksTable(ReportMarksTableBase):
     ordering = ('-markreport_set__result', '-markreport_set__id')
     ass_type_block_titles = {
         ASSOCIATION_TYPE[0][0]: _('Dissimilar marks'),
-        ASSOCIATION_TYPE[1][0]: _('Similar marks with unconfirmed associations'),
+        ASSOCIATION_TYPE[1][0]: _('Similar marks with rejected associations'),
         ASSOCIATION_TYPE[2][0]: _('Similar marks with automatic associations'),
         ASSOCIATION_TYPE[3][0]: _('Similar marks with confirmed associations')
     }

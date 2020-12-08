@@ -30,7 +30,7 @@ ERRORS = {
     401: _("You don't have an access to one of the selected jobs"),
     404: _('The job was not found'),
     405: _('One of the selected jobs was not found'),
-    407: _("You don't have an access to create new job"),
+    407: _("You don't have an access to create new jobs"),
     408: _("You don't have an access to download the job with selected decisions"),
     504: _('The report was not found'),
     505: _("Couldn't visualize the error trace"),

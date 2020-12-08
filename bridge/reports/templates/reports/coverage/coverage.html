@@ -21,7 +21,7 @@
 {% load static %}
 {% load compress %}
 
-{% block title %}{% trans 'Coverage' %}{% endblock %}
+{% block title %}{% trans 'Code coverage' %}{% endblock %}
 
 {% block head_block %}
     {% compress js file coverage %}
@@ -47,7 +47,7 @@
         </div>
         <div class="six wide column right aligned">
             {% if statistics.coverage %}
-                <a class="ui icon mini basic button" href="{% url 'reports:coverage-download' statistics.coverage.id %}" style="float:left;">{% trans 'Download coverage' %}</a>
+                <a class="ui icon mini basic button" href="{% url 'reports:coverage-download' statistics.coverage.id %}" style="float:left;">{% trans 'Download code coverage' %}</a>
             {% endif %}
             <div class="ui mini icon buttons">
                 <button id="prev_cov_btn" class="ui green button note-popup" data-content="{% trans 'Previous covered function' %}"><i class="step backward icon"></i></button>

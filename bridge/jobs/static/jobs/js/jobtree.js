@@ -174,7 +174,7 @@ $(document).ready(function () {
         });
     });
 
-    // Remove preset directory
+    // Remove jobs directory
     let remove_presetdir_modal = $('#remove_presetdir_modal');
     remove_presetdir_modal.modal({transition: 'fly up', autofocus: false, closable: false});
     $('.remove-preset-dir-link').click(function () {

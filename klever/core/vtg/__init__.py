@@ -385,6 +385,16 @@ class VTG(klever.core.components.Component):
         left_abstract_tasks = len(prepare)
         total_tasks = 0
 
+        # Check that we can generate a variable number of environment models
+        single_model = self.conf.get('single environment model per fragment', True)
+        if single_model:
+            total_tasks = len(self.fragment_desc_files) * len([1 for cl in self.req_spec_classes
+                                              for rule in self.req_spec_classes[cl]])
+            # Submit the number of tasks
+            self.logger.info(f'Submit the total number of tasks expecting a single environment model per a fragment: {total_tasks}')
+            self.mqs['total tasks'].put([self.conf['sub-job identifier'], total_tasks])
+            governer.set_total_tasks(total_tasks)
+
         self.logger.info('Go to the main working loop for abstract tasks')
         while prepare or waiting or solving:
             self.logger.debug(f'Going to process {len(prepare)} tasks and abstract tasks and wait for {waiting}')
@@ -419,16 +429,18 @@ class VTG(klever.core.components.Component):
 
                                 limitations = governer.resource_limitations(new)
                                 prepare.append((new, limitations, 0))
-                                total_tasks += 1
+                                if not single_model:
+                                    total_tasks += 1
                     else:
                         self.logger.warning(f'There is no tasks generated for {atask}')
+                        self.mqs['finished and failed tasks'].put((self.conf['sub-job identifier'], 'failed'))
 
-                    if left_abstract_tasks == 0:
+                    if not single_model and left_abstract_tasks == 0:
                         # Submit the number of tasks
                         self.logger.info(f'Submit the total number of tasks: {total_tasks}')
                         self.mqs['total tasks'].put([self.conf['sub-job identifier'], total_tasks])
                         governer.set_total_tasks(total_tasks)
-                    else:
+                    elif not single_model:
                         self.logger.debug(f'Wait for abstract tasks {left_abstract_tasks}')
                 else:
                     task = Task(*desc)

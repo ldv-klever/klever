@@ -225,7 +225,7 @@ class GetConfiguration:
         filedata = json.loads(file.read().decode('utf8'))
 
         if not isinstance(filedata, dict):
-            raise BridgeException(_('The file configuration is wrong'))
+            raise BridgeException(_('The configuration file is wrong'))
 
         # Get logging arguments
         formatters = {}

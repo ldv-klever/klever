@@ -31,7 +31,7 @@
 {% endblock %}
 
 {% block body_block %}
-    <h2>{% trans 'Comparison of files of decisions' %}: <a href="{% url 'jobs:decision' decision1.id %}">{{ decision1.name }}</a> and <a href="{% url 'jobs:decision' decision2.id %}">{{ decision2.name }}</a></h2>
+    <h2>{% trans 'Comparison of decision files' %}: <a href="{% url 'jobs:decision' decision1.id %}">{{ decision1.name }}</a> and <a href="{% url 'jobs:decision' decision2.id %}">{{ decision2.name }}</a></h2>
     <div class="ui grid">
         {% if data.same|length > 0 %}
             <div class="five wide column">

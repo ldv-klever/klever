@@ -141,7 +141,7 @@
             {% include 'jobs/viewDecision/coverage.html' with Coverage=Coverage %}
         {% elif VerificationCoverage and VerificationCoverage.statistics|length %}
             <div class="ui violet segment">
-                <div class="ui top left attached violet label">{% trans 'Coverage' %}</div>
+                <div class="ui top left attached violet label">{% trans 'Code coverage' %}</div>
                 {% include 'jobs/viewDecision/coverageTable.html' with statistics=VerificationCoverage.statistics %}
             </div>
         {% endif %}

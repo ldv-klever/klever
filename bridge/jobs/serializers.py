@@ -150,7 +150,7 @@ class DecisionFilesField(fields.Field):
 
 class JobFileSerializer(serializers.ModelSerializer):
     default_error_messages = {
-        'wrong_json': _('The file is wrong json: {exc}'),
+        'wrong_json': _('The file is wrong JSON: {exc}'),
         'max_size': _('Please keep the file size under {max_size} (the current file size is {curr_size})')
     }
 
