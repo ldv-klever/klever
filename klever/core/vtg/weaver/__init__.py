@@ -126,7 +126,7 @@ class Weaver(klever.core.vtg.plugins.Plugin):
 
                 opts = cc['opts']
                 # Some stuff, e.g. size_t definition, may be architecture dependent.
-                opts.append('-DLDV_{0}'.format(self.conf['architecture']))
+                opts.append(klever.core.vtg.utils.define_arch_dependent_macro(self.conf))
 
                 cwd = clade.get_storage_path(cc['cwd'])
 
