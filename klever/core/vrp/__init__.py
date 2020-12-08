@@ -271,14 +271,12 @@ class RP(klever.core.components.Component):
                  "name": "Program fragment",
                  "value": self.program_fragment_id,
                  "data": files_list_file,
-                 "compare": True,
-                 "associate": True
+                 "compare": True
              },
              {
                  "name": "Requirements specification",
                  "value": req_spec_id,
-                 "compare": True,
-                 "associate": True
+                 "compare": True
              }
          ])
         klever.core.utils.report(self.logger,
@@ -338,7 +336,20 @@ class RP(klever.core.components.Component):
                                      # To distinguish several Unsafes specific identifiers should be used.
                                      'identifier': self.verification_report_id + '/' + identifier,
                                      'parent': self.verification_report_id,
-                                     'attrs': attrs,
+                                     'attrs': attrs.update(
+                                         {
+                                             "name": "Program fragment",
+                                             "value": self.program_fragment_id,
+                                             "associate": True,
+                                             "compare": True
+                                         },
+                                         {
+                                             "name": "Requirements specification",
+                                             "value": self.req_spec_id,
+                                             "associate": True,
+                                             "compare": True
+                                         }
+                                     ),
                                      'error_trace': klever.core.utils.ArchiveFiles(
                                          [error_trace_file],
                                          arcnames={error_trace_file: 'error trace.json'}
@@ -382,7 +393,20 @@ class RP(klever.core.components.Component):
                                          # There may be the only Safe, so, "/" uniquely distinguishes it.
                                          'identifier': self.verification_report_id + '/',
                                          'parent': self.verification_report_id,
-                                         'attrs': []
+                                         'attrs': [
+                                             {
+                                                 "name": "Program fragment",
+                                                 "value": self.program_fragment_id,
+                                                 "associate": True,
+                                                 "compare": True
+                                             },
+                                             {
+                                                 "name": "Requirements specification",
+                                                 "value": self.req_spec_id,
+                                                 "associate": True,
+                                                 "compare": True
+                                             }
+                                         ]
                                          # TODO: at the moment it is unclear what are verifier proofs.
                                          # 'proof': None
                                      },
@@ -471,20 +495,7 @@ class RP(klever.core.components.Component):
                                              # There may be the only Unknown, so, "/" uniquely distinguishes it.
                                              'identifier': self.verification_report_id + '/',
                                              'parent': self.verification_report_id,
-                                             'attrs': [
-                                                 {
-                                                     "name": "Program fragment",
-                                                     "value": self.program_fragment_id,
-                                                     "associate": False,
-                                                     "compare": True
-                                                 },
-                                                 {
-                                                     "name": "Requirements specification",
-                                                     "value": self.req_spec_id,
-                                                     "associate": False,
-                                                     "compare": True
-                                                 }
-                                             ],
+                                             'attrs': [],
                                              'problem_description': klever.core.utils.ArchiveFiles(
                                                  [verification_problem_desc],
                                                  {verification_problem_desc: 'problem desc.txt'}
