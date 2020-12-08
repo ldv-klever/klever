@@ -398,10 +398,9 @@ class RP(klever.core.components.Component):
             # is not "unsafe".
             if "expect several witnesses" in opts and opts["expect several witnesses"]:
                 self.verdict = 'unsafe'
-                identifier = 1
 
                 # Suprisingly there may be no witnesses at all even when verifier reported unsafe.
-                if not len(witnesses):
+                if not len(witnesses) and re.search('false', decision_results['status']):
                     try:
                         raise RuntimeError('Verifier reported false without violation witnesses')
                     except Exception as e:
@@ -409,6 +408,7 @@ class RP(klever.core.components.Component):
                         self.verdict = 'non-verifier unknown'
                         self.__exception = e
                 else:
+                    identifier = 1
                     for witness in witnesses:
                         try:
                             error_trace_file, attrs = self.process_witness(witness)
