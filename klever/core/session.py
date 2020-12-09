@@ -61,8 +61,6 @@ class Session:
 
         kwargs.setdefault('allow_redirects', True)
 
-        self.logger.debug('Send "{0}" request to "{1}"'.format(method, url))
-
         while True:
             try:
                 resp = self.session.request(method, url, **kwargs)

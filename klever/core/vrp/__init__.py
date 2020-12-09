@@ -97,6 +97,7 @@ class VRP(klever.core.components.Component):
     main = process_results
 
     def __result_processing(self):
+        self.logger.info('Start waiting messages from VTG to track their statuses')
         pending = dict()
         # todo: implement them in GUI
         solution_timeout = 1
@@ -107,6 +108,7 @@ class VRP(klever.core.components.Component):
 
         def submit_processing_task(status, t):
             task_data, tryattempt = pending[t]
+            self.logger.info(f'Track processing task {str(task_data[1])}')
             self.mqs['processing tasks'].put([status.lower(), task_data, tryattempt, source_paths])
 
         receiving = True
@@ -121,7 +123,8 @@ class VRP(klever.core.components.Component):
                 else:
                     data = klever.core.utils.get_waiting_first(self.mqs['pending tasks'], generation_timeout)
 
-                self.logger.info(f'Received {len(data)} items with timeout {generation_timeout}s')
+                if data:
+                    self.logger.info(f'Received {len(data)} items with timeout {generation_timeout}s')
                 for item in data:
                     if not item:
                         receiving = False
@@ -171,8 +174,10 @@ class VRP(klever.core.components.Component):
             status, data, attempt, source_paths = element
             pf, rule_class, envmodel, requirement, _ = data[1]
             result_key = f'{pf}:{envmodel}:{requirement}'
+            self.logger.info(f'Receive solution {result_key}')
             attrs = None
             if attempt:
+                self.logger.info(f'Rescheduling attempt {attempt}')
                 new_id = "RP/{}/{}/{}/{}".format(pf, envmodel, requirement, attempt)
                 workdir = os.path.join(pf, envmodel, requirement, str(attempt))
                 attrs = [{
@@ -189,12 +194,15 @@ class VRP(klever.core.components.Component):
                         source_paths=source_paths, element=[status, data])
                 rp.start()
                 rp.join()
+                self.logger.info(f'Successfully processed {result_key}')
             except klever.core.components.ComponentError:
                 self.logger.debug("RP that processed {!r}, {!r} failed".format(pf, requirement))
             finally:
+                self.logger.info(f'Submit solution for {result_key}')
                 solution = tuple(self.vals['task solution triples'].get(result_key))
                 del self.vals['task solution triples'][result_key]
                 self.mqs['processed'].put(('Task', tuple(data[1]), solution))
+            self.logger.debug(f'Continue fetching items after processing {result_key}')
 
         self.logger.info("VRP fetcher finishes its work")
 
