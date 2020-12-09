@@ -110,9 +110,7 @@ class OSKleverInstance:
                 return instance
 
     def __install_or_update_klever(self, ssh):
-        # This version of PIP does not spend much time during processing files that are not required for installation,
-        # but that are stored within Klever source tree, e.g. within "bridge/media".
-        ssh.execute_cmd(f'sudo {PYTHON} -m pip install --upgrade pip==20.1 setuptools wheel')
+        ssh.execute_cmd(f'sudo {PYTHON} -m pip install --upgrade pip setuptools wheel')
 
         ssh.execute_cmd(f'sudo {PYTHON} -m pip install --upgrade -r klever/requirements.txt ./klever')
 

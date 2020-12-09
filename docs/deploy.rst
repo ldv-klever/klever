@@ -69,9 +69,9 @@ For instance, you can run following commands within :term:`$KLEVER_SRC`::
     $ /usr/local/python3-klever/bin/python3 -m venv venv
     $ source venv/bin/activate
 
-To avoid some unpleasant issues during installation we recommend to upgrade PIP::
+To avoid some unpleasant issues during installation we recommend to upgrade PIP and associated packages::
 
-    $ pip install --upgrade pip
+    $ pip install --upgrade pip wheel setuptools
 
 .. note:: Later we assume that you are using the Klever Python virtual environment created in the way described above.
 

@@ -18,7 +18,11 @@
 #ifndef __LDV_VERIFIER_MEMORY_H
 #define __LDV_VERIFIER_MEMORY_H
 
+#ifdef LDV_X86_64
 typedef unsigned long size_t;
+#else
+typedef unsigned int size_t;
+#endif
 
 extern void *memcpy(void *dest, const void *src, size_t n);
 

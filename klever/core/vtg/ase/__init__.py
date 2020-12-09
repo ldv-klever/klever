@@ -132,6 +132,10 @@ class ASE(klever.core.vtg.plugins.Plugin):
                             'klever-core-work-dir' not in storage_path:
                         storage_path = storage_path.split('.c')[0] + '.i'
 
+                    opts = cc['opts']
+                    # Like in Weaver.
+                    opts.append(klever.core.vtg.utils.define_arch_dependent_macro(self.conf))
+
                     klever.core.utils.execute(
                         self.logger,
                         tuple(
@@ -146,7 +150,7 @@ class ASE(klever.core.vtg.plugins.Plugin):
                             ] +
                             (['--keep'] if self.conf['keep intermediate files'] else []) +
                             ['--'] +
-                            klever.core.vtg.utils.prepare_cif_opts(cc['opts'], clade) +
+                            klever.core.vtg.utils.prepare_cif_opts(opts, clade) +
                             [
                                 # Like in Weaver.
                                 '-I' + os.path.join(os.path.dirname(self.conf['specifications base']), 'include'),
