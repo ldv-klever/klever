@@ -53,7 +53,7 @@
                     {% if cell and cell.type == 'link' %}
                         <div style="display: table-cell" class="tag-tree-link" data-links="{{ cell.value }}">&nbsp;</div>
                     {% elif cell and cell.type == 'tag' %}
-                        <div style="display: table-cell" id="tag__{{ cell.value.id }}" class="edit-tag-cell {{ tree.type }}">{{ cell.value.name }}</div>
+                        <div style="display: table-cell" id="tag__{{ cell.value.id }}" class="edit-tag-cell {{ tree.type }}">{{ cell.value.shortname }}</div>
                     {% else %}
                         <div style="display: table-cell">&nbsp;</div>
                     {% endif %}
@@ -62,8 +62,6 @@
             {% endfor %}
         </div>
     </div>
-
-    <span id="tags_type" hidden>{{ tree.type }}</span>
 
     {% for row in tree.table %}
         {% for cell in row %}
@@ -202,4 +200,11 @@
     </div>
     <span id="user_access_placeholder" hidden>{% trans 'Select users' %}</span>
     <span id="api_success_message" hidden>{% trans 'Saved' %}!</span>
+
+    <script type="application/javascript">
+    jQuery(function (){
+        let tags_tree = new TagsTree("{{ list_url }}", "{{ upload_url }}");
+        tags_tree.Initialize();
+    });
+    </script>
 {% endblock %}

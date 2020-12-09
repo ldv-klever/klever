@@ -48,7 +48,7 @@ from tools.profiling import ProfileData, ExecLocker, LoggedCallMixin, DBLogsAnal
 
 from jobs.preset import PopulatePresets
 from marks.population import (
-    PopulateSafeTags, PopulateUnsafeTags, PopulateSafeMarks, PopulateUnsafeMarks, PopulateUnknownMarks
+    PopulateSafeMarks, PopulateUnsafeMarks, PopulateUnknownMarks, populate_safe_tags, populate_unsafe_tags
 )
 from service.population import populuate_schedulers
 
@@ -214,11 +214,11 @@ class PopulationAPIView(LoggedCallMixin, APIView):
             populuate_schedulers()
             messages.append('Schedulers were populated!')
         if 'safe-tags' in data:
-            res = PopulateSafeTags()
-            messages.append("{} of {} safe tags were populated".format(res.created, res.total))
+            created, total = populate_safe_tags()
+            messages.append("{} of {} safe tags were populated".format(created, total))
         if 'unsafe-tags' in data:
-            res = PopulateUnsafeTags()
-            messages.append("{} of {} unsafe tags were populated".format(res.created, res.total))
+            created, total = populate_unsafe_tags()
+            messages.append("{} of {} unsafe tags were populated".format(created, total))
         if 'safe-marks' in data:
             res = PopulateSafeMarks()
             messages.append("{} of {} safe marks were populated".format(res.created, res.total))

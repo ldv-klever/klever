@@ -17,7 +17,7 @@
 
 {% load i18n %}
 
-<div class="ui popup tag-popup" data-tag="{{ tag.id }}">
+<div class="ui popup tag-popup" data-tag="{{ tag.id }}" data-url="{{ tag.url }}" data-access="{{ tag.access_url }}">
     {% if tag.populated %}<i class="ui gift purple icon"></i>{% endif %}
     {% if access.edit %}<span class="icon-text" style="display: inline">&nbsp;</span>{% endif %}
     {% if access.change_access %}<span class="icon-text icon-text-change-access">{% trans 'Change access' %}</span>{% endif %}

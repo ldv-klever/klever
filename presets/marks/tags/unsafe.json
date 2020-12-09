@@ -1,2 +1,176 @@
 [
+  {
+    "description": "Active environment model contains inaccuracies",
+    "name": "EMG",
+    "children": [
+      {
+        "description": "Specification for EMG is incomplete",
+        "name": "EnvSpec",
+        "children": [
+          {
+            "name": "debugfs"
+          },
+          {
+            "name": "MODULE_DEVICE_TABLE"
+          },
+          {
+            "name": "runtime PM"
+          },
+          {
+            "name": "I2C probe_new"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "description": "Kernel model is inaccurate or absent",
+    "name": "KernelModel",
+    "children": [
+      {
+        "name": "match_string"
+      },
+      {
+        "name": "v4l2_device_register"
+      },
+      {
+        "name": "kmemdup"
+      },
+      {
+        "name": "usb_find_common_endpoints_revers"
+      },
+      {
+        "name": "usb_kill_urb"
+      },
+      {
+        "name": "kref"
+      },
+      {
+        "name": "request_firmware"
+      },
+      {
+        "name": "wmi_evaluate_method"
+      },
+      {
+        "name": "v4l2_i2c_subdev_init"
+      },
+      {
+        "name": "framebuffer_release"
+      },
+      {
+        "name": "input_ff_create_memless"
+      },
+      {
+        "name": "list_add"
+      },
+      {
+        "name": "device_register"
+      },
+      {
+        "name": "mtd_device_register"
+      },
+      {
+        "name": "i2c_new_device"
+      },
+      {
+        "name": "mantis_pci_init"
+      },
+      {
+        "name": "i2c_smbus_read_block_data"
+      },
+      {
+        "name": "pci_get_device"
+      },
+      {
+        "name": "imx_media_dev_init"
+      },
+      {
+        "name": "v4l2_device_register_subdev"
+      },
+      {
+        "name": "ioremap_wc"
+      },
+      {
+        "name": "devm_kzalloc"
+      },
+      {
+        "name": "pci_ioremap_bar"
+      },
+      {
+        "name": "ioremap_uc"
+      },
+      {
+        "name": "dma_map_single_attrs"
+      },
+      {
+        "name": "alloc_etherdev_mqs"
+      },
+      {
+        "name": "vzalloc"
+      },
+      {
+        "name": "pci_map_single"
+      },
+      {
+        "name": "of_iomap"
+      },
+      {
+        "name": "dvb_usb_device_init"
+      },
+      {
+        "name": "v4l2_device_set_name"
+      },
+      {
+        "name": "of_device_get_match_data"
+      },
+      {
+        "name": "__builtin_mul_overflow"
+      },
+      {
+        "name": "dmi_first_match("
+      },
+      {
+        "name": "of_match_device"
+      },
+      {
+        "name": "of_match_node"
+      }
+    ]
+  },
+  {
+    "description": "The implementation of the requirement is inaccurate",
+    "name": "Requirement"
+  },
+  {
+    "name": "Verifier",
+    "children": [
+      {
+        "name": "Predicate"
+      },
+      {
+        "name": "Strings"
+      },
+      {
+        "name": "Type attributes"
+      },
+      {
+        "name": "Arrays"
+      },
+      {
+        "name": "SMGCPA",
+        "children": [
+          {
+            "description": "Problem with list abstraction created from regions of memory on-demand.\nhttps://gitlab.com/sosy-lab/software/cpachecker/-/issues/755",
+            "name": "Abstraction"
+          }
+        ]
+      },
+      {
+        "name": "DEVICE_CHOISE"
+      }
+    ]
+  },
+  {
+    "name": "CIF"
+  }
 ]

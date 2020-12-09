@@ -51,7 +51,7 @@ from marks.serializers import (
     SafeMarkSerializer, UnsafeMarkSerializer, UnknownMarkSerializer,
     SafeTagSerializer, UnsafeTagSerializer, UpdatedPresetUnsafeMarkSerializer
 )
-from marks.tags import TagAccess, ChangeTagsAccess, UploadTags
+from marks.tags import TagAccess, ChangeTagsAccess, UploadTagsTree
 from marks.utils import MarkAccess
 
 from marks.SafeUtils import (
@@ -217,6 +217,14 @@ class SafeTagViewSet(LoggedCallMixin, ModelViewSet):
     queryset = SafeTag.objects.all()
     serializer_class = SafeTagSerializer
 
+    def get_serializer(self, *args, **kwargs):
+        fields = None
+        if self.request.method == 'GET':
+            fields = self.request.query_params.getlist('fields')
+        elif self.request.method in {'POST', 'PUT', 'PATCH'}:
+            fields = {'parent', 'shortname', 'description'}
+        return super().get_serializer(*args, fields=fields, **kwargs)
+
     def get_unparallel(self, request):
         return [SafeTag] if request.method in {'POST', 'PUT', 'PATCH', 'DELETE'} else []
 
@@ -244,6 +252,14 @@ class UnsafeTagViewSet(LoggedCallMixin, ModelViewSet):
     permission_classes = (IsAuthenticated,)
     queryset = UnsafeTag.objects.all()
     serializer_class = UnsafeTagSerializer
+
+    def get_serializer(self, *args, **kwargs):
+        fields = None
+        if self.request.method == 'GET':
+            fields = self.request.query_params.getlist('fields')
+        elif self.request.method in {'POST', 'PUT', 'PATCH'}:
+            fields = {'parent', 'shortname', 'description'}
+        return super().get_serializer(*args, fields=fields, **kwargs)
 
     def get_unparallel(self, request):
         return [UnsafeTag] if request.method in {'POST', 'PUT', 'PATCH', 'DELETE'} else []
@@ -287,7 +303,9 @@ class UploadTagsView(LoggedCallMixin, APIView):
     def post(self, request, tag_type):
         if 'file' not in request.data:
             raise exceptions.APIException(_('The file with tags was not provided'))
-        UploadTags(request.user, tag_type, request.data['file'])
+        tags_tree = json.loads(request.data['file'].read().decode('utf8'))
+        tags_model = SafeTag if tag_type == 'safe' else UnsafeTag
+        UploadTagsTree(tags_model, request.user, tags_tree)
         return Response({})
 
 

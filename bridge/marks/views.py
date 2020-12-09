@@ -339,6 +339,8 @@ class TagsTreeView(LoginRequiredMixin, LoggedCallMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         context['title'] = _('Safe tags') if self.kwargs['type'] == 'safe' else _('Unsafe tags')
         context['tree'] = AllTagsTree(self.request.user, self.kwargs['type'])
+        context['list_url'] = reverse("marks:api-tags-{}-list".format(self.kwargs['type']))
+        context['upload_url'] = reverse("marks:tags-upload", args=[self.kwargs['type']])
         return context
 
 

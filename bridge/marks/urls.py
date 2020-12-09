@@ -68,7 +68,8 @@ urlpatterns = [
     path('api/check-unknown-function/<int:report_id>/', api.CheckUnknownFuncView.as_view(), name='api-check-problem'),
 
     # Tags
-    re_path(r'^api/tags-access/(?P<tag_type>safe|unsafe)/(?P<tag_id>[0-9]+)/$', api.TagAccessView.as_view()),
+    re_path(r'^api/tags-access/(?P<tag_type>safe|unsafe)/(?P<tag_id>[0-9]+)/$',
+            api.TagAccessView.as_view(), name='api-tag-access'),
     re_path(r'^api/tags-upload/(?P<tag_type>safe|unsafe)/$', api.UploadTagsView.as_view(), name='tags-upload'),
     re_path(r'^api/tags-data/(?P<tag_type>unsafe|safe)/$', views.MarkTagsView.as_view(), name='api-tags-data'),
     re_path(r'^tags-download/(?P<tag_type>unsafe|safe)/$', views.DownloadTagsView.as_view(), name='tags-download'),

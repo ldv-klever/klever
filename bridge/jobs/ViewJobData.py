@@ -292,6 +292,7 @@ class TagsInfo:
             db_tags[tag.id] = {
                 'parent': tag.parent_id,
                 'name': tag.name,
+                'shortname': tag.shortname,
                 'description': tag.description
             }
         return db_tags
@@ -313,7 +314,7 @@ class TagsInfo:
                         break
                     tags_data[parent_id] = {
                         'parent': self._db_tags[parent_id]['parent'],
-                        'name': self._db_tags[parent_id]['name'],
+                        'name': self._db_tags[parent_id]['shortname'],
                         'description': self._db_tags[parent_id]['description'],
                         'value': 0,
                         'url': '{}?tag={}'.format(self._base_url, quote(self._db_tags[parent_id]['name']))

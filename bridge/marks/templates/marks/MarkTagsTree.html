@@ -17,21 +17,21 @@
 
 {% load i18n %}
 
-<table>
+<div style="display: table">
     {% for row in tags.table %}
-        <tr>
+        <div style="display: table-row">
         {% for cell in row %}
             {% if cell and cell.type == 'link' %}
-                <td class="tag-tree-link" data-links="{{ cell.value }}">&nbsp;</td>
+                <div class="tag-tree-link" data-links="{{ cell.value }}" style="display: table-cell">&nbsp;</div>
             {% elif cell and cell.type == 'tag' %}
-                <td id="tag__{{ cell.value.id }}" class="mark-tag {{ tags.type }}">{{ cell.value.name }}{% if not view_only %}<i data-tag="{{ cell.value.id }}" class="ui icon link remove remove-mark-tag"></i>{% endif %}</td>
+                <div id="tag__{{ cell.value.id }}" class="mark-tag {{ tags.type }}" style="display: table-cell">{{ cell.value.shortname }}{% if not view_only %}<i data-tag="{{ cell.value.id }}" class="ui icon link remove remove-mark-tag"></i>{% endif %}</div>
             {% else %}
-                <td>&nbsp;</td>
+                <div style="display: table-cell">&nbsp;</div>
             {% endif %}
         {% endfor %}
-        </tr>
+        </div>
     {% endfor %}
-</table>
+</div>
 <input id="tags_type" type="hidden" value="{{ tags.type }}">
 
 <div class="popups">

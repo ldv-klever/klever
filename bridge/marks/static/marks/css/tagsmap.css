@@ -65,6 +65,7 @@
 
 .mark-tag {
     white-space: nowrap;
+    cursor: pointer;
     font-weight: 700;
     color: #ffffff;
     padding: 3px 10px 3px 10px;

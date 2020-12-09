@@ -18,7 +18,7 @@
 import re
 import json
 
-from django.db.models import F
+from django.db.models import F, Q
 from django.utils.translation import ugettext_lazy as _
 
 from rest_framework import fields, serializers, exceptions
@@ -84,39 +84,50 @@ def create_mark_version(mark, cache=True, **kwargs):
     return mark_version
 
 
-class SafeTagSerializer(serializers.ModelSerializer):
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        if isinstance(instance, SafeTag):
-            if data['parent'] is None:
-                data['parent'] = 0
+class TagSerializerBase(DynamicFieldsModelSerializer):
+    default_error_messages = {
+        'parent_required': 'Tag serializer parent field is required to validate short name',
+        'name_unique': _('Tag name is not unique in the current branch level')
+    }
+    shortname = fields.CharField(max_length=MAX_TAG_LEN)
+    parents = serializers.SerializerMethodField()
 
-            unavailable = set(instance.get_descendants(include_self=True).values_list('id', flat=True))
-            data['parents'] = [{'id': 0, 'name': str(_('Root'))}]
-            for t in SafeTag.objects.order_by('name'):
-                if t.id not in unavailable:
-                    data['parents'].append({'id': t.id, 'name': t.name})
-        return data
+    def get_parents(self, obj):
+        unavailable = set(obj.get_descendants(include_self=True).values_list('id', flat=True))
+        parents = [{'id': 0, 'name': str(_('Root'))}]
+        model = getattr(obj, '_meta').model
+        for t in model.objects.order_by('name'):
+            if t.id not in unavailable:
+                parents.append({'id': t.id, 'name': t.name})
+        return parents
 
+    def validate_name(self, value):
+        qs_filter = Q(name=value)
+        if self.instance:
+            qs_filter &= ~Q(id=self.instance.id)
+        model = getattr(self, 'Meta').model
+        if model.objects.filter(qs_filter).count():
+            self.fail('name_unique')
+        return value
+
+    def validate(self, attrs):
+        if 'shortname' in attrs:
+            if 'parent' not in attrs:
+                self.fail('parent_required')
+            full_name = attrs.pop('shortname')
+            if attrs['parent'] is not None:
+                full_name = '{} - {}'.format(attrs['parent'].name, full_name)
+            attrs['name'] = self.validate_name(full_name)
+        return attrs
+
+
+class SafeTagSerializer(TagSerializerBase):
     class Meta:
         model = SafeTag
         exclude = MPTT_FIELDS
 
 
-class UnsafeTagSerializer(serializers.ModelSerializer):
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        if isinstance(instance, UnsafeTag):
-            if data['parent'] is None:
-                data['parent'] = 0
-
-            unavailable = set(instance.get_descendants(include_self=True).values_list('id', flat=True))
-            data['parents'] = [{'id': 0, 'name': str(_('Root'))}]
-            for t in UnsafeTag.objects.order_by('name'):
-                if t.id not in unavailable:
-                    data['parents'].append({'id': t.id, 'name': t.name})
-        return data
-
+class UnsafeTagSerializer(TagSerializerBase):
     class Meta:
         model = UnsafeTag
         exclude = MPTT_FIELDS
@@ -181,7 +192,7 @@ class UnknownMarkAttrSerializer(serializers.ModelSerializer):
 
 
 class SafeMarkVersionSerializer(WithTagsMixin, serializers.ModelSerializer):
-    tags = fields.ListField(child=fields.CharField(max_length=MAX_TAG_LEN), allow_empty=True, write_only=True)
+    tags = fields.ListField(child=fields.CharField(), allow_empty=True, write_only=True)
     attrs = fields.ListField(child=SafeMarkAttrSerializer(), allow_empty=True, write_only=True)
 
     def validate_tags(self, tags):
@@ -253,7 +264,7 @@ class SafeMarkSerializer(DynamicFieldsModelSerializer):
 
 
 class UnsafeMarkVersionSerializer(WithTagsMixin, serializers.ModelSerializer):
-    tags = fields.ListField(child=fields.CharField(max_length=MAX_TAG_LEN), allow_empty=True, write_only=True)
+    tags = fields.ListField(child=fields.CharField(), allow_empty=True, write_only=True)
     attrs = fields.ListField(child=UnsafeMarkAttrSerializer(), allow_empty=True, write_only=True)
     error_trace = fields.CharField(write_only=True, required=False)
     threshold = fields.IntegerField(min_value=0, max_value=100, write_only=True, default=0)
@@ -377,10 +388,7 @@ class UnsafeMarkSerializer(DynamicFieldsModelSerializer):
 
     class Meta:
         model = MarkUnsafe
-        fields = (
-            'id', 'identifier', 'is_modifiable', 'verdict',
-            'status', 'mark_version', 'function', 'threshold'
-        )
+        fields = ('id', 'identifier', 'is_modifiable', 'verdict', 'status', 'mark_version', 'function', 'threshold')
 
 
 class UnknownMarkVersionSerializer(serializers.ModelSerializer):

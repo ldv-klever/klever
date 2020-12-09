@@ -321,7 +321,7 @@ class ReportMarksTableBase:
                     val = source_dict[mark_data['source']]
                 elif col == 'tags':
                     if mark_data['cache_tags']:
-                        val = '; '.join(sorted(mark_data['cache_tags']))
+                        val = '; '.join(x.split(' - ')[-1] for x in sorted(mark_data['cache_tags']))
                 elif col == 'ass_author':
                     if mark_data['ass_author'] and mark_data['ass_author'] in self.authors:
                         val = self.authors[mark_data['ass_author']].get_full_name()
@@ -478,9 +478,6 @@ class MarksTableBase:
                 (self.view['attr'][0],)
             )
             qs_filters['attr_value__{}'.format(self.view['attr'][1])] = self.view['attr'][2]
-        if 'tags' in self.view:
-            tags_values = list(t.strip() for t in self.view['tags'][0].split(';') if t.strip())
-            qs_filters['mark__cache_tags__contains'] = tags_values
         if 'change_date' in self.view:
             value = now() - timedelta(**{self.view['change_date'][2]: int(self.view['change_date'][1])})
             qs_filters['change_date__{}'.format(self.view['change_date'][0])] = value
@@ -594,7 +591,7 @@ class MarksTableBase:
                     val = mark_version.num_of_links
                 elif col == 'tags':
                     if mark_version.mark.cache_tags:
-                        val = ','.join(mark_version.mark.cache_tags)
+                        val = ', '.join(x.split(' - ')[-1] for x in mark_version.mark.cache_tags)
                 elif col == 'author' and mark_version.author:
                     val = mark_version.author.get_full_name()
                     href = reverse('users:show-profile', args=[mark_version.author_id])
@@ -959,7 +956,7 @@ class AssChangesBase:
             statuses_html.append(get_status_html(cache_obj.status_new, cache_obj.get_status_new_display()))
         return '<i class="ui long arrow right icon"></i>'.join(statuses_html)
 
-    def __get_tags_or_problems(self, data_old, data_new):
+    def __get_problems(self, problems_old, problems_new):
         context = {}
         if self.model == SafeMarkAssociationChanges:
             context['type'] = 'safe'
@@ -968,14 +965,33 @@ class AssChangesBase:
         else:
             context['type'] = 'unknown'
         changes = {}
-        for name, num in data_old.items():
+        for problem, num in problems_old.items():
+            changes[problem] = [num, 0]
+        for problem, num in problems_new.items():
+            if problem in changes:
+                changes[problem][1] = num
+            else:
+                changes[problem] = [0, num]
+        context['changes'] = list((problem, changes[problem][0], changes[problem][1]) for problem in sorted(changes))
+        return loader.get_template('marks/tags-problems-changes.html').render(context)
+
+    def __get_tags(self, tags_old, tags_new):
+        context = {}
+        if self.model == SafeMarkAssociationChanges:
+            context['type'] = 'safe'
+        elif self.model == UnsafeMarkAssociationChanges:
+            context['type'] = 'unsafe'
+        else:
+            context['type'] = 'unknown'
+        changes = {}
+        for name, num in tags_old.items():
             changes[name] = [num, 0]
-        for name, num in data_new.items():
+        for name, num in tags_new.items():
             if name in changes:
                 changes[name][1] = num
             else:
                 changes[name] = [0, num]
-        context['changes'] = list((name, changes[name][0], changes[name][1]) for name in sorted(changes))
+        context['changes'] = list((t.split(' - ')[-1], changes[t][0], changes[t][1]) for t in sorted(changes))
         return loader.get_template('marks/tags-problems-changes.html').render(context)
 
     def __get_kind_html(self, cache_obj):
@@ -1078,9 +1094,9 @@ class AssChangesBase:
                     val = cache_obj.decision.name
                     href = reverse('jobs:decision', args=[cache_obj.decision.id])
                 elif col == 'tags':
-                    html = self.__get_tags_or_problems(cache_obj.tags_old, cache_obj.tags_new)
+                    html = self.__get_tags(cache_obj.tags_old, cache_obj.tags_new)
                 elif col == 'problems':
-                    html = self.__get_tags_or_problems(cache_obj.problems_old, cache_obj.problems_new)
+                    html = self.__get_problems(cache_obj.problems_old, cache_obj.problems_new)
                 values_str.append({'value': str(val), 'href': href, 'html': html})
             values.append(values_str)
         return columns, values

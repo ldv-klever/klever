@@ -20,7 +20,7 @@ from django.core.management.base import BaseCommand, CommandError
 from bridge.utils import logger
 from jobs.preset import PopulatePresets
 from marks.population import (
-    PopulateSafeMarks, PopulateUnsafeMarks, PopulateUnknownMarks, PopulateSafeTags, PopulateUnsafeTags
+    PopulateSafeMarks, PopulateUnsafeMarks, PopulateUnknownMarks, populate_safe_tags, populate_unsafe_tags
 )
 from service.population import populuate_schedulers
 
@@ -56,21 +56,21 @@ class Command(BaseCommand):
         if options['all'] or options['tags'] or options['tags_s']:
             self.stdout.write('Safe tags population started')
             try:
-                res = PopulateSafeTags()
+                created, total = populate_safe_tags()
             except Exception as e:
                 logger.exception(e)
                 raise CommandError('Safe tags population failed: %s' % e)
-            self.stdout.write("{} of {} safe tags were populated".format(res.created, res.total))
+            self.stdout.write("{} of {} safe tags were populated".format(created, total))
 
         # Unsafe tags
         if options['all'] or options['tags'] or options['tags_u']:
             self.stdout.write('Unsafe tags population started')
             try:
-                res = PopulateUnsafeTags()
+                created, total = populate_unsafe_tags()
             except Exception as e:
                 logger.exception(e)
                 raise CommandError('Unsafe tags population failed: %s' % e)
-            self.stdout.write("{} of {} unsafe tags were populated".format(res.created, res.total))
+            self.stdout.write("{} of {} unsafe tags were populated".format(created, total))
 
         # Safe marks
         if options['all'] or options['marks'] or options['marks_s']:

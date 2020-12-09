@@ -39,6 +39,8 @@ window.activate_tags = function () {
             popup: $(this),
             hoverable: true,
             delay: {show: 100, hide: 300},
+            position: 'top left',
+            exclusive: true,
             variation: 'very wide'
         })
     });

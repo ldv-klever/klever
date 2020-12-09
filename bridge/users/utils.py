@@ -73,8 +73,6 @@ JOB_DATA_VIEW = {
     # unknown_component: [iexact|istartswith|icontains, <any text>]
     # unknown_problem: [iexact|istartswith|icontains, <any text>]
     # resource_component: [iexact|istartswith|icontains, <any text>]
-    # safe_tag: [iexact|istartswith|icontains, <any text>]
-    # unsafe_tag: [iexact|istartswith|icontains, <any text>]
     # attr_stat_filter: [iexact|istartswith|icontains, <any text>]
 }
 
@@ -104,7 +102,6 @@ UNSAFES_VIEW = {
     # 'verdict': [<ids from UNSAFE_VERDICTS>]
     # 'hidden': ['confirmed_marks']
     # 'marks_number': [confirmed|total, iexact|lte|gte, <positive integer number>]
-    # 'tags': [<string of tags separated with ';'>]
     # 'parent_cpu': [lt|gt, <number>, m|s|ms]
     # 'parent_wall': [lt|gt, <number>, m|s|ms]
     # 'parent_memory': [lt|gt, <number>, b|Kb|Mb|Gb]
@@ -119,7 +116,6 @@ SAFES_VIEW = {
     # 'verdict': [<ids from SAFE_VERDICTS>]
     # 'hidden': ['confirmed_marks']
     # 'marks_number': [confirmed|total, iexact|lte|gte, <positive integer number>]
-    # 'tags': [<string of tags separated with ';'>]
     # 'parent_cpu': [lt|gt, <number>, m|s|ms]
     # 'parent_wall': [lt|gt, <number>, m|s|ms]
     # 'parent_memory': [lt|gt, <number>, b|Kb|Mb|Gb]

@@ -16,10 +16,11 @@
 #
 
 import json
+from collections import OrderedDict
 
-from django.utils.translation import ugettext_lazy as _
 from django.utils.functional import cached_property
 
+from rest_framework import fields
 from rest_framework.generics import get_object_or_404
 
 from bridge.vars import USER_ROLES
@@ -28,8 +29,7 @@ from bridge.utils import logger, BridgeException
 from users.models import User
 from marks.models import SafeTag, UnsafeTag, SafeTagAccess, UnsafeTagAccess, MarkSafeHistory, MarkUnsafeHistory
 
-from marks.serializers import SafeTagSerializer, UnsafeTagSerializer
-from caches.utils import UpdateSafeMarksTags, UpdateUnsafeMarksTags
+from marks.models import MAX_TAG_LEN
 
 
 class TagsTree:
@@ -281,7 +281,7 @@ class TagAccess:
 
 
 class ChangeTagsAccess:
-    def __init__(self, tags_type, tag_id, ):
+    def __init__(self, tags_type, tag_id):
         self._type = tags_type
         self.tag = self.__get_tag(tag_id)
 
@@ -330,77 +330,82 @@ class ChangeTagsAccess:
 class DownloadTags:
     def __init__(self, tags_type):
         self._type = tags_type
-        self._data = self.__get_tags_data()
+        self._data = json.dumps(self.__get_children(None), ensure_ascii=False, sort_keys=True, indent=2).encode('utf8')
         self.name = 'Tags-{}.json'.format(self._type)
         self.size = len(self._data)
 
     def __iter__(self):
         yield self._data
 
-    def __get_tags_data(self):
+    @cached_property
+    def _db_tags(self):
+        db_tags = OrderedDict()
         if self._type == 'safe':
             tags_model = SafeTag
         elif self._type == 'unsafe':
             tags_model = UnsafeTag
         else:
-            return b''
-        tags_data = []
-        for tag in tags_model.objects.select_related('parent').order_by('id'):
-            tag_data = {'name': tag.name, 'description': tag.description}
-            if tag.parent is not None:
-                tag_data['parent'] = tag.parent.name
-            tags_data.append(tag_data)
-        return json.dumps(tags_data, ensure_ascii=False, sort_keys=True, indent=2).encode('utf8')
+            return {}
+        for tag in tags_model.objects.order_by('name'):
+            db_tags[tag.id] = {
+                'parent': tag.parent_id,
+                'name': tag.shortname
+            }
+            if tag.description:
+                db_tags[tag.id]['description'] = tag.description
+        return db_tags
 
-
-class UploadTags:
-    def __init__(self, user, tags_type, file):
-        self.user = user
-        self._type = tags_type
-        self._data = json.loads(file.read().decode('utf8'))
-        self._db_tags = self.__get_db_tags()
-        self.number = self.__create_tags()
-        self.__update_caches()
-
-    def __get_serialiser(self, data):
-        if self._type == 'safe':
-            return SafeTagSerializer(data=data)
-        return UnsafeTagSerializer(data=data)
-
-    def __get_db_tags(self):
-        if self._type == 'safe':
-            queryset = SafeTag.objects.all()
-        else:
-            queryset = UnsafeTag.objects.all()
-        return dict((t.name, t.id) for t in queryset)
-
-    def __create_tags(self):
-        number = 0
-        if not isinstance(self._data, list):
-            raise BridgeException(_('Wrong tags format'))
-        for tag_data in self._data:
-            if not isinstance(tag_data, dict):
-                raise BridgeException(_('Wrong tags format'))
-            parent = None
-            if 'parent' in tag_data:
-                if tag_data['parent'] not in self._db_tags:
-                    raise BridgeException(_('Tag parent does not exist'))
-                parent = self._db_tags[tag_data.pop('parent')]
-            serializer = self.__get_serialiser(tag_data)
-            serializer.is_valid(raise_exception=True)
-            if serializer.validated_data['name'] in self._db_tags:
-                # Already exists
+    def __get_children(self, parent_id):
+        children = []
+        for t_id in self._db_tags:
+            if self._db_tags[t_id]['parent'] != parent_id:
                 continue
-            new_tag = serializer.save(parent_id=parent, author=self.user, populated=False)
-            self._db_tags[new_tag.name] = new_tag.id
-            number += 1
-        return number
+            child = {'name': self._db_tags[t_id]['name']}
+            if 'description' in self._db_tags[t_id]:
+                child['description'] = self._db_tags[t_id]['description']
+            child_children = self.__get_children(t_id)
+            if child_children:
+                child['children'] = child_children
+            children.append(child)
+        return children
 
-    def __update_caches(self):
-        if self.number == 0:
-            # Nothing was uploaded
-            return
-        if self._type == 'safe':
-            UpdateSafeMarksTags()
-        else:
-            UpdateUnsafeMarksTags()
+
+class UploadTagsTree:
+    def __init__(self, tags_model, user, tags_tree, populated=False):
+        self.user = user
+        self.total = 0
+        self.created = 0
+        self._populated = populated
+        self._model = tags_model
+        self.__upload_tags(None, tags_tree)
+
+    @cached_property
+    def _db_tags(self):
+        return dict((t.name, t) for t in self._model.objects.all())
+
+    def __upload_tags(self, parent, tags):
+        assert isinstance(tags, list), 'Not a list'
+        for tag_data in tags:
+            assert isinstance(tag_data, dict), 'Not a dict'
+            tag = self.__create_tag(parent, tag_data)
+
+            if 'children' in tag_data:
+                # Recursively create all children
+                self.__upload_tags(tag, tag_data['children'])
+
+    def __create_tag(self, parent, tag_data):
+        self.total += 1
+        name = fields.CharField(max_length=MAX_TAG_LEN).run_validation(tag_data.get('name', ''))
+        if parent is not None:
+            name = '{} - {}'.format(parent.name, name)
+        if name in self._db_tags:
+            # The tag already exists
+            return self._db_tags[name]
+        description = fields.CharField(allow_blank=True).run_validation(tag_data.get('description', ''))
+
+        new_tag = self._model.objects.create(
+            parent=parent, name=name, description=description, author=self.user, populated=self._populated
+        )
+        self.created += 1
+        self._db_tags[new_tag.name] = new_tag
+        return new_tag
