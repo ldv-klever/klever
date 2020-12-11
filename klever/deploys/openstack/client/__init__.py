@@ -79,7 +79,7 @@ class OSClient:
         return images
 
     def show_instance(self, instance):
-        return f'{instance.name} (status: {instance.status}, IP: {self.get_instance_floating_ip(instance)})'
+        return f'{instance.name} (status: {instance.status}, IP: {self.get_instance_floating_ip(instance, exit_on_error=False)})'
 
     def instance_exists(self, instance_name):
         return self.get_instances(instance_name) != []
@@ -110,7 +110,7 @@ class OSClient:
 
         return instances
 
-    def get_instance_floating_ip(self, instance):
+    def get_instance_floating_ip(self, instance, exit_on_error=True):
         floating_ip = None
         for network_addresses in instance.addresses.values():
             for address in network_addresses:
@@ -120,9 +120,11 @@ class OSClient:
             if floating_ip:
                 break
 
-        if not floating_ip:
-            self.logger.error('There are no floating IPs, please, resolve this manually')
+        if not floating_ip and exit_on_error:
+            self.logger.error('There are no floating IPs for instance {instance.name}, please, resolve this manually')
             sys.exit(errno.EINVAL)
+        elif not floating_ip:
+            return "NOT FOUND"
 
         return floating_ip
 
