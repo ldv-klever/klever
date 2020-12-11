@@ -41,11 +41,11 @@ class OSKleverInstance:
             instance_info = self.client.show_instance(instances[0])
             self.logger.info(f'There is Klever instance "{instance_info}" matching "{self.name}"')
         elif len(instances) > 1:
-            self.logger.info(f'There are {len(instances)} Klever instances matching "{self.name}":\n')
+            self.logger.info(f'There are {len(instances)} Klever instances matching "{self.name}":')
 
             for instance in instances:
                 print(
-                    f'\t * "{self.client.show_instance(instance)}"'
+                    f'\t * {self.client.show_instance(instance)}'
                 )
         else:
             self.logger.info(f'There are no Klever instances matching "{self.name}"')
