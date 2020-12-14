@@ -136,18 +136,16 @@ class SSH:
         self.execute_cmd(f'mkdir -p "{instance_path}"')
 
         if os.path.isfile(host_path) and (tarfile.is_tarfile(host_path) or zipfile.is_zipfile(host_path)):
-            rsync_flags = '-as'
+            rsync_flags = '-ars'
         else:
             # with '-z' rsync compresses the transmitted data
-            rsync_flags = '-asz'
+            rsync_flags = '-arsz'
 
         # stderr=subprocess.DEVNULL is required to suppress WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!
         # maybe there is a better way to fix it
         execute_cmd(
             self.logger,
-            'rsync',
-            rsync_flags,
-            '--del',
+            'rsync', rsync_flags,
             '-e', f'ssh -o StrictHostKeyChecking=no -i {self.args.ssh_rsa_private_key_file}',
             host_path,
             f'{OS_USER}@{self.floating_ip}:{instance_path}',
