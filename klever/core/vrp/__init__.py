@@ -97,6 +97,7 @@ class VRP(klever.core.components.Component):
     main = process_results
 
     def __result_processing(self):
+        self.logger.info('Start waiting messages from VTG to track their statuses')
         pending = dict()
         # todo: implement them in GUI
         solution_timeout = 1
@@ -107,6 +108,7 @@ class VRP(klever.core.components.Component):
 
         def submit_processing_task(status, t):
             task_data, tryattempt = pending[t]
+            self.logger.info(f'Track processing task {str(task_data[1])}')
             self.mqs['processing tasks'].put([status.lower(), task_data, tryattempt, source_paths])
 
         receiving = True
@@ -121,7 +123,8 @@ class VRP(klever.core.components.Component):
                 else:
                     data = klever.core.utils.get_waiting_first(self.mqs['pending tasks'], generation_timeout)
 
-                self.logger.info(f'Received {len(data)} items with timeout {generation_timeout}s')
+                if data:
+                    self.logger.info(f'Received {len(data)} items with timeout {generation_timeout}s')
                 for item in data:
                     if not item:
                         receiving = False
@@ -171,8 +174,10 @@ class VRP(klever.core.components.Component):
             status, data, attempt, source_paths = element
             pf, rule_class, envmodel, requirement, _ = data[1]
             result_key = f'{pf}:{envmodel}:{requirement}'
+            self.logger.info(f'Receive solution {result_key}')
             attrs = None
             if attempt:
+                self.logger.info(f'Rescheduling attempt {attempt}')
                 new_id = "RP/{}/{}/{}/{}".format(pf, envmodel, requirement, attempt)
                 workdir = os.path.join(pf, envmodel, requirement, str(attempt))
                 attrs = [{
@@ -189,12 +194,15 @@ class VRP(klever.core.components.Component):
                         source_paths=source_paths, element=[status, data])
                 rp.start()
                 rp.join()
+                self.logger.info(f'Successfully processed {result_key}')
             except klever.core.components.ComponentError:
                 self.logger.debug("RP that processed {!r}, {!r} failed".format(pf, requirement))
             finally:
+                self.logger.info(f'Submit solution for {result_key}')
                 solution = tuple(self.vals['task solution triples'].get(result_key))
                 del self.vals['task solution triples'][result_key]
                 self.mqs['processed'].put(('Task', tuple(data[1]), solution))
+            self.logger.debug(f'Continue fetching items after processing {result_key}')
 
         self.logger.info("VRP fetcher finishes its work")
 
@@ -271,14 +279,12 @@ class RP(klever.core.components.Component):
                  "name": "Program fragment",
                  "value": self.program_fragment_id,
                  "data": files_list_file,
-                 "compare": True,
-                 "associate": True
+                 "compare": True
              },
              {
                  "name": "Requirements specification",
                  "value": req_spec_id,
-                 "compare": True,
-                 "associate": True
+                 "compare": True
              }
          ])
         klever.core.utils.report(self.logger,
@@ -332,6 +338,20 @@ class RP(klever.core.components.Component):
         return error_trace_file, attrs
 
     def report_unsafe(self, error_trace_file, attrs, identifier=''):
+        attrs.extend([
+            {
+                "name": "Program fragment",
+                "value": self.program_fragment_id,
+                "associate": True,
+                "compare": True
+            },
+            {
+                "name": "Requirements specification",
+                "value": self.req_spec_id,
+                "associate": True,
+                "compare": True
+            }
+        ])
         klever.core.utils.report(self.logger,
                                  'unsafe',
                                  {
@@ -382,7 +402,20 @@ class RP(klever.core.components.Component):
                                          # There may be the only Safe, so, "/" uniquely distinguishes it.
                                          'identifier': self.verification_report_id + '/',
                                          'parent': self.verification_report_id,
-                                         'attrs': []
+                                         'attrs': [
+                                             {
+                                                 "name": "Program fragment",
+                                                 "value": self.program_fragment_id,
+                                                 "associate": True,
+                                                 "compare": True
+                                             },
+                                             {
+                                                 "name": "Requirements specification",
+                                                 "value": self.req_spec_id,
+                                                 "associate": True,
+                                                 "compare": True
+                                             }
+                                         ]
                                          # TODO: at the moment it is unclear what are verifier proofs.
                                          # 'proof': None
                                      },
@@ -398,35 +431,35 @@ class RP(klever.core.components.Component):
             # is not "unsafe".
             if "expect several witnesses" in opts and opts["expect several witnesses"]:
                 self.verdict = 'unsafe'
-                identifier = 1
 
                 # Suprisingly there may be no witnesses at all even when verifier reported unsafe.
-                if not len(witnesses):
+                if not len(witnesses) and re.search('false', decision_results['status']):
                     try:
                         raise RuntimeError('Verifier reported false without violation witnesses')
                     except Exception as e:
                         self.logger.warning('Failed to process witnesses:\n{}'.format(traceback.format_exc().rstrip()))
                         self.verdict = 'non-verifier unknown'
                         self.__exception = e
-                else:
-                    for witness in witnesses:
-                        try:
-                            error_trace_file, attrs = self.process_witness(witness)
-                            self.report_unsafe(error_trace_file, attrs, str(identifier))
-                        except Exception as e:
-                            self.logger.warning('Failed to process a witness:\n{}'
-                                                .format(traceback.format_exc().rstrip()))
-                            self.verdict = 'non-verifier unknown'
 
-                            if self.__exception:
-                                try:
-                                    raise e from self.__exception
-                                except Exception as e:
-                                    self.__exception = e
-                            else:
+                identifier = 1
+                for witness in witnesses:
+                    try:
+                        error_trace_file, attrs = self.process_witness(witness)
+                        self.report_unsafe(error_trace_file, attrs, str(identifier))
+                    except Exception as e:
+                        self.logger.warning('Failed to process a witness:\n{}'
+                                            .format(traceback.format_exc().rstrip()))
+                        self.verdict = 'non-verifier unknown'
+
+                        if self.__exception:
+                            try:
+                                raise e from self.__exception
+                            except Exception as e:
                                 self.__exception = e
-                        finally:
-                            identifier += 1
+                        else:
+                            self.__exception = e
+                    finally:
+                        identifier += 1
 
             if re.search('false', decision_results['status']) and \
                     ("expect several witnesses" not in opts or not opts["expect several witnesses"]):
@@ -471,20 +504,7 @@ class RP(klever.core.components.Component):
                                              # There may be the only Unknown, so, "/" uniquely distinguishes it.
                                              'identifier': self.verification_report_id + '/',
                                              'parent': self.verification_report_id,
-                                             'attrs': [
-                                                 {
-                                                     "name": "Program fragment",
-                                                     "value": self.program_fragment_id,
-                                                     "associate": False,
-                                                     "compare": True
-                                                 },
-                                                 {
-                                                     "name": "Requirements specification",
-                                                     "value": self.req_spec_id,
-                                                     "associate": False,
-                                                     "compare": True
-                                                 }
-                                             ],
+                                             'attrs': [],
                                              'problem_description': klever.core.utils.ArchiveFiles(
                                                  [verification_problem_desc],
                                                  {verification_problem_desc: 'problem desc.txt'}
