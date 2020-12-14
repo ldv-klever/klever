@@ -63,9 +63,7 @@
   "function": "thread_call_forests",
   "is_modifiable": false,
   "status": null,
-  "tags": [
-    "KernelModel"
-  ],
+  "tags": [],
   "threshold": 100,
   "verdict": "3"
 }

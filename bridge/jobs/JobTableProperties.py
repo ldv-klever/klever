@@ -27,48 +27,85 @@ from django.utils.translation import ugettext_lazy as _
 
 from mptt.utils import tree_item_iterator
 
-from bridge.vars import PRIORITY, SafeVerdicts, UnsafeVerdicts, JOB_ROLES, DECISION_STATUS
+from bridge.vars import PRIORITY, JOB_ROLES, DECISION_STATUS
 from bridge.utils import construct_url
-from bridge.tableHead import ComplexHeaderMixin
 
 from jobs.models import UserRole, PresetJob, Job, Decision
 from reports.models import ReportComponent, DecisionCache
 from caches.models import ReportSafeCache, ReportUnsafeCache, ReportUnknownCache
 
 from users.utils import HumanizedValue, JOB_TREE_VIEW
-from jobs.utils import SAFES, UNSAFES, TITLES
+from reports.verdicts import SafeColumns, UnsafeColumns
 from service.serializers import ProgressSerializerRO
 
 
-TASKS_COLUMNS = [
-    'tasks', 'tasks:pending', 'tasks:processing', 'tasks:finished', 'tasks:error', 'tasks:cancelled',
-    'tasks:total', 'tasks:solutions', 'tasks:total_ts', 'tasks:start_ts', 'tasks:finish_ts',
-    'tasks:progress_ts', 'tasks:expected_time_ts'
-]
+JOBS_TREE_COLUMNS = OrderedDict([
+    ('role', _('Your role')),
+    ('author', _('Author')),
+    ('creation_date', _('Creation date')),
+    ('status', _('Decision status')),
+    ('unsafe', _('Unsafes')),
+    ('safe', _('Safes')),
+    ('tasks', _('Verification tasks')),
+    ('subjobs', _('Subjobs')),
+    ('problem', _('Unknowns')),
+    ('problem:total', _('Total')),
+    ('resource', _('Consumed resources')),
+    ('resource:total', _('Total')),
+    ('tag', _('Tags')),
+    ('tag:safe', _('Safes')),
+    ('tag:unsafe', _('Unsafes')),
+    ('identifier', _('Identifier')),
+    ('version', _('Version')),
+    ('priority', _('Priority')),
+    ('start_date', _('Decision start date')),
+    ('finish_date', _('Decision finish date')),
+    ('solution_wall_time', _('Decision wall time')),
+    ('operator', _('Operator'))
+])
 
-SUBJOBS_COLUMNS = [
-    'subjobs', 'subjobs:total_sj', 'subjobs:start_sj', 'subjobs:finish_sj',
-    'subjobs:progress_sj', 'subjobs:expected_time_sj'
-]
+TASKS_COLUMNS = OrderedDict([
+    ('tasks:pending', _('Pending')),
+    ('tasks:processing', _('Processing')),
+    ('tasks:finished', _('Finished')),
+    ('tasks:error', _('Error')),
+    ('tasks:cancelled', _('Cancelled')),
+    ('tasks:total', _('Total')),
+    ('tasks:solutions', _('Number of decisions')),
+    ('tasks:total_ts', _('Total to be solved')),
+    ('tasks:start_ts', _('Start solution date')),
+    ('tasks:finish_ts', _('Finish solution date')),
+    ('tasks:progress_ts', _('Solution progress')),
+    ('tasks:expected_time_ts', _('Expected solution time'))
+])
+
+SUBJOBS_COLUMNS = OrderedDict([
+    ('subjobs:total_sj', _('Total to be solved')),
+    ('subjobs:start_sj', _('Start solution date')),
+    ('subjobs:finish_sj', _('Finish solution date')),
+    ('subjobs:progress_sj', _('Solution progress')),
+    ('subjobs:expected_time_sj', _('Expected solution time'))
+])
 
 
 def tree_supported_columns():
-    return ['role', 'author', 'creation_date', 'status', 'unsafe'] + \
-           list("unsafe:{0}".format(u) for u in UNSAFES) + \
-           ['safe'] + list("safe:{0}".format(s) for s in SAFES) + \
-           TASKS_COLUMNS + SUBJOBS_COLUMNS + [
-               'problem', 'problem:total', 'resource', 'tag', 'tag:safe', 'tag:unsafe', 'identifier',
-               'version', 'priority', 'start_date', 'finish_date', 'solution_wall_time', 'operator'
-           ]
-
-
-def html_link(url, text):
-    return '<a href="{0}">{1}</a>'.format(url, text)
+    columns = []
+    for column in JOBS_TREE_COLUMNS:
+        columns.append(column)
+        if column == 'unsafe':
+            columns += UnsafeColumns(detailed=False).available
+        elif column == 'safe':
+            columns += SafeColumns(detailed=False).available
+        elif column == 'tasks':
+            columns += list(TASKS_COLUMNS)
+        elif column == 'subjobs':
+            columns += list(SUBJOBS_COLUMNS)
+    return columns
 
 
 def cell_value(value, url=None):
     if url:
-        return {'html': html_link(url, value)}
+        return {'html': '<a href="{0}">{1}</a>'.format(url, value)}
     return {'text': '-' if value is None else str(value)}
 
 
@@ -185,20 +222,17 @@ def decisions_view_queryset(view, qs_filter=None):
     return Decision.objects.filter(qs_filter).select_related('operator', 'job').order_by(*qs_order)
 
 
-class JobsTreeTable(ComplexHeaderMixin):
+class JobsTreeTable:
     def __init__(self, view):
         self.view = view
         self._jobs_qs = jobs_view_queryset(view)
         self._decisions_qs = decisions_view_queryset(view)
-        self._values_collector = TableTree(view, self._decisions_qs, tree_supported_columns())
+        self._values_collector = TableTree(view, self._decisions_qs)
+        self.columns = ['checkbox', 'name'] + self._values_collector.columns
         self.columns_num_range = range(len(self._values_collector.columns))
         self.selected_columns = self._values_collector.selected_columns
         self.available_columns = self._values_collector.available_columns
-
-        # Get table header
-        self.header = self.head_struct(
-            ['checkbox', 'name'] + self._values_collector.columns, self._values_collector.titles
-        )
+        self.titles = self._values_collector.titles
         self.content = self.__get_table_content()
 
     def __get_table_content(self):
@@ -286,11 +320,11 @@ class PresetChildrenTree:
             if job.preset_id != preset.id:
                 continue
             jobs_list.append(self.__get_job_value(job))
-        return {'name': preset.name, 'children': jobs_list}
+        return {'name': preset.name, 'children': jobs_list, 'url': reverse('jobs:preset', args=[preset.id])}
 
     def __get_jobs_tree(self):
         jobs_tree = []
-        # Collect jobs without custom preset directory first
+        # Collect jobs without custom jobs directory first
         for job in self._jobs_qs:
             if job.preset_id == self._preset_job.id:
                 jobs_tree.append(self.__get_job_value(job))
@@ -305,24 +339,33 @@ class TableTree:
     no_mark = _('Without marks')
     total = _('Total')
 
-    def __init__(self, view, queryset, supported_columns):
+    def __init__(self, view, queryset):
         self.view = view
         self._decisions_qs = queryset
-        self.all_columns = supported_columns
+        self.all_columns = tree_supported_columns()
 
         self._slugs = {}
 
         # Get core reports
         self._core = self.__get_core_reports()
 
-        # Some titles are collected during __get_columns()
-        self.titles = TITLES.copy()
-        self.titles['checkbox'] = ''
+        self.titles = self.__collect_titles()
+        # Some titles are collected during self.__get_columns()
         self.columns = self.__get_columns()
 
         # Collecting values data
         self._values_data = {}
         self.__fill_values_data()
+
+    def __collect_titles(self):
+        titles = dict(JOBS_TREE_COLUMNS)
+        titles['checkbox'] = ''
+        titles['name'] = _('Title')
+        titles.update(self._safes_columns.titles)
+        titles.update(self._unsafes_columns.titles)
+        titles.update(TASKS_COLUMNS)
+        titles.update(SUBJOBS_COLUMNS)
+        return titles
 
     def get_decision_values_row(self, decision):
         if decision.pk not in self._values_data:
@@ -335,7 +378,9 @@ class TableTree:
             elif col == 'status':
                 status_url = None
                 if not decision.is_lightweight and decision.id in self._core:
-                    status_url = reverse('reports:component', args=[self._core[decision.id]])
+                    status_url = reverse('reports:component', args=[
+                        decision.identifier, self._core_identifiers[decision.id]
+                    ])
                 value = cell_value(decision.get_status_display(), url=status_url)
             elif col == 'identifier':
                 value = cell_value(decision.identifier)
@@ -352,12 +397,12 @@ class TableTree:
         return self._slugs[source]
 
     @cached_property
+    def detailed_verdicts(self):
+        return 'hidden' not in self.view or 'detailed_verdicts' not in self.view['hidden']
+
+    @cached_property
     def _all_columns_set(self):
         return set(self.all_columns)
-
-    @property
-    def columns_num_range(self):
-        return range(len(self.columns))
 
     @property
     def selected_columns(self):
@@ -382,7 +427,7 @@ class TableTree:
         for i in range(len(col_parts)):
             column_starts.append(':'.join(col_parts[:(i + 1)]))
 
-        titles = list(TITLES.get(col_st, col_st) for col_st in column_starts)
+        titles = list(self.titles.get(col_st, col_st) for col_st in column_starts)
         title_pattern = '/'.join(list('{%s}' % i for i in range(len(titles))))
         return title_pattern.format(*titles)
 
@@ -392,23 +437,36 @@ class TableTree:
         ).values_list('id', 'decision_id')
         return dict((decision_id, report_id) for report_id, decision_id in cores_qs)
 
+    @cached_property
+    def _core_identifiers(self):
+        cores_qs = ReportComponent.objects.filter(
+            decision_id__in=self._decisions_ids, parent=None
+        ).values_list('identifier', 'decision_id')
+        return dict((decision_id, identifier) for identifier, decision_id in cores_qs)
+
     def __get_columns(self):
         extend_action = {
-            'safe': lambda: ['safe:' + postfix for postfix in SAFES],
-            'unsafe': lambda: ['unsafe:' + postfix for postfix in UNSAFES],
             'tag': lambda: self.__safe_tags_columns() + self.__unsafe_tags_columns(),
             'tag:safe': self.__safe_tags_columns,
             'tag:unsafe': self.__unsafe_tags_columns,
             'resource': self.__resource_columns,
             'problem': self.__unknowns_columns,
-            'tasks': lambda: TASKS_COLUMNS[1:],
-            'subjobs': lambda: SUBJOBS_COLUMNS[1:]
+            'tasks': lambda: list(TASKS_COLUMNS),
+            'subjobs': lambda: list(SUBJOBS_COLUMNS)
         }
         columns = []
         for col in self.view['columns']:
             if col in self._all_columns_set:
                 if col in extend_action:
                     columns.extend(extend_action[col]())
+                elif col == 'safe':
+                    columns.extend(self._safes_columns.available)
+                elif col.startswith('safe:'):
+                    columns.extend(self._safes_columns.extend_column(col))
+                elif col == 'unsafe':
+                    columns.extend(self._unsafes_columns.available)
+                elif col.startswith('unsafe:'):
+                    columns.extend(self._unsafes_columns.extend_column(col))
                 else:
                     columns.append(col)
         return columns
@@ -459,6 +517,14 @@ class TableTree:
         resource_columns.append('resource:total')
         return resource_columns
 
+    @cached_property
+    def _safes_columns(self):
+        return SafeColumns(detailed=self.detailed_verdicts)
+
+    @cached_property
+    def _unsafes_columns(self):
+        return UnsafeColumns(detailed=self.detailed_verdicts)
+
     def __unknowns_columns(self):
         component_problems = {}
         qs_filters = {'report__decision_id__in': self._decisions_ids}
@@ -490,7 +556,18 @@ class TableTree:
     def __fill_values_data(self):
         self._values_data = dict((decision.pk, {}) for decision in self._decisions_qs)
 
-        self.__collect_verdicts()
+        if any(col.startswith('safe:') for col in self.columns):
+            if self.detailed_verdicts:
+                self.__collect_detailed_safes()
+            else:
+                self.__collect_simple_safes()
+
+        if any(col.startswith('unsafe:') for col in self.columns):
+            if self.detailed_verdicts:
+                self.__collect_detailed_unsafes()
+            else:
+                self.__collect_simple_unsafes()
+
         if any(x.startswith('problem:') for x in self.columns):
             self.__collect_unknowns()
         if any(x.startswith('tag:safe:') for x in self.columns):
@@ -505,136 +582,131 @@ class TableTree:
         if any(x in progress_columns for x in self.columns):
             self.__collect_decision_data()
 
-    def __get_safes_without_confirmed(self):
+    def __collect_simple_safes(self):
+        queryset = ReportSafeCache.objects.filter(report__decision_id__in=self._decisions_ids) \
+            .values('report__decision_id', 'verdict').annotate(number=Count('id')) \
+            .values_list('report__decision_id', 'verdict', 'number')
+
         total_safes = {}
-        verdicts = SafeVerdicts()
-        for d_id, v, number in ReportSafeCache.objects.filter(report__decision_id__in=self._decisions_ids)\
-                .values('report__decision_id', 'verdict').annotate(number=Count('id'))\
-                .values_list('report__decision_id', 'verdict', 'number'):
+        for d_id, v, number in queryset:
+            # Collect total number
+            total_safes.setdefault(d_id, 0)
+            total_safes[d_id] += number
 
             safes_url = None
             if number > 0:
                 safes_url = construct_url('reports:safes', self._core[d_id], verdict=v)
-            self._values_data[d_id][verdicts.column(v)] = cell_value(number, url=safes_url)
-
-            # Collect total number
-            total_safes.setdefault(d_id, 0)
-            total_safes[d_id] += number
+            self._values_data[d_id][self._safes_columns.get_verdict_column(v)] = cell_value(number, url=safes_url)
 
         # Add numbers of total safes of the decision
         for d_id, number in total_safes.items():
             safes_url = None
             if number > 0:
                 safes_url = construct_url('reports:safes', self._core[d_id])
-            self._values_data[d_id]['safe:total'] = cell_value(number, url=safes_url)
+            self._values_data[d_id][self._safes_columns.get_verdict_column()] = cell_value(number, url=safes_url)
 
-    def __get_unsafes_without_confirmed(self):
+    def __collect_simple_unsafes(self):
+        queryset = ReportUnsafeCache.objects.filter(report__decision_id__in=self._decisions_ids)\
+            .values('report__decision_id', 'verdict').annotate(number=Count('id'))\
+            .values_list('report__decision_id', 'verdict', 'number')
+
         total_unsafes = {}
-        verdicts = UnsafeVerdicts()
-        for d_id, v, number in ReportUnsafeCache.objects.filter(report__decision_id__in=self._decisions_ids)\
-                .values('report__decision_id', 'verdict').annotate(number=Count('id'))\
-                .values_list('report__decision_id', 'verdict', 'number'):
+        for d_id, v, number in queryset:
+            # Collect total number
+            total_unsafes.setdefault(d_id, 0)
+            total_unsafes[d_id] += number
 
             unsafes_url = None
             if number > 0:
                 unsafes_url = construct_url('reports:unsafes', self._core[d_id], verdict=v)
-            self._values_data[d_id][verdicts.column(v)] = cell_value(number, url=unsafes_url)
-
-            # Collect total number
-            total_unsafes.setdefault(d_id, 0)
-            total_unsafes[d_id] += number
+            self._values_data[d_id][self._unsafes_columns.get_verdict_column(v)] = cell_value(number, url=unsafes_url)
 
         # Add numbers of total unsafes of the decision
         for d_id, number in total_unsafes.items():
             unsafes_url = None
             if number > 0:
                 unsafes_url = construct_url('reports:unsafes', self._core[d_id])
-            self._values_data[d_id]['unsafe:total'] = cell_value(number, url=unsafes_url)
+            self._values_data[d_id][self._unsafes_columns.get_verdict_column()] = cell_value(number, url=unsafes_url)
 
-    def __get_safes_with_confirmed(self):
+    def __collect_detailed_safes(self):
+        queryset = ReportSafeCache.objects \
+            .filter(report__decision_id__in=self._decisions_ids).values('report__decision_id', 'verdict') \
+            .annotate(total=Count('id'), manual=Count(Case(When(marks_confirmed__gt=0, then=1)))) \
+            .values_list('report__decision_id', 'verdict', 'total', 'manual')
+
         total_safes = {}
-        verdicts = SafeVerdicts()
-
-        # Collect safes data
-        for d_id, v, total, confirmed in ReportSafeCache.objects\
-                .filter(report__decision_id__in=self._decisions_ids).values('report__decision_id', 'verdict')\
-                .annotate(total=Count('id'), confirmed=Count(Case(When(marks_confirmed__gt=0, then=1))))\
-                .values_list('report__decision_id', 'verdict', 'total', 'confirmed'):
+        for d_id, v, total, manual in queryset:
 
             # Collect total number
-            total_safes.setdefault(d_id, {'total': 0, 'confirmed': 0})
-            total_safes[d_id]['total'] += total
-            total_safes[d_id]['confirmed'] += confirmed
+            total_safes.setdefault(d_id, 0)
+            total_safes[d_id] += total
 
-            if total > 0:
-                total = html_link(construct_url('reports:safes', self._core[d_id], verdict=v), total)
+            if self._safes_columns.is_detailed(v):
+                # Get manual value
+                manual_url = None
+                if manual > 0:
+                    manual_url = construct_url('reports:safes', self._core[d_id], verdict=v, manual=1)
+                manual_column = self._safes_columns.get_verdict_column(v, manual=True)
+                self._values_data[d_id][manual_column] = cell_value(manual, url=manual_url)
 
-            if v == verdicts.unassociated:
-                html_value = str(total)
-            elif confirmed > 0:
-                confirmed_url = construct_url('reports:safes', self._core[d_id], verdict=v, confirmed=1)
-                html_value = '{} ({})'.format(html_link(confirmed_url, confirmed), total)
+                # Get automatic value
+                automatic_url = None
+                if manual < total:
+                    automatic_url = construct_url('reports:safes', self._core[d_id], verdict=v, manual=0)
+                automatic_column = self._safes_columns.get_verdict_column(v, manual=False)
+                self._values_data[d_id][automatic_column] = cell_value(total - manual, url=automatic_url)
             else:
-                html_value = '0 ({})'.format(total)
-            self._values_data[d_id][verdicts.column(v)] = {'html': html_value}
+                total_link = None
+                if total > 0:
+                    total_link = construct_url('reports:safes', self._core[d_id], verdict=v)
+                self._values_data[d_id][self._safes_columns.get_verdict_column(v)] = cell_value(total, url=total_link)
 
-        # Add numbers of total safes of the deicision
-        for d_id, total_data in total_safes.items():
-            total, confirmed = total_data['total'], total_data['confirmed']
+        # Add number of total safes of the decision
+        for d_id, total in total_safes.items():
+            total_url = None
             if total > 0:
-                total = html_link(construct_url('reports:safes', self._core[d_id]), total)
-            if confirmed > 0:
-                confirmed = html_link(construct_url('reports:safes', self._core[d_id], confirmed=1), confirmed)
-            self._values_data[d_id]['safe:total'] = {'html': '{} ({})'.format(confirmed, total)}
+                total_url = construct_url('reports:safes', self._core[d_id])
+            self._values_data[d_id][self._safes_columns.get_verdict_column()] = cell_value(total, url=total_url)
 
-    def __get_unsafes_with_confirmed(self):
+    def __collect_detailed_unsafes(self):
+        queryset = ReportUnsafeCache.objects\
+            .filter(report__decision_id__in=self._decisions_ids).values('report__decision_id', 'verdict')\
+            .annotate(total=Count('id'), manual=Count(Case(When(marks_confirmed__gt=0, then=1))))\
+            .values_list('report__decision_id', 'verdict', 'total', 'manual')
+
         total_unsafes = {}
-        verdicts = UnsafeVerdicts()
-
-        # Collect unsafes
-        for d_id, v, total, confirmed in ReportUnsafeCache.objects\
-                .filter(report__decision_id__in=self._decisions_ids).values('report__decision_id', 'verdict')\
-                .annotate(total=Count('id'), confirmed=Count(Case(When(marks_confirmed__gt=0, then=1))))\
-                .values_list('report__decision_id', 'verdict', 'total', 'confirmed'):
+        for d_id, v, total, manual in queryset:
 
             # Collect total number
-            total_unsafes.setdefault(d_id, {'total': 0, 'confirmed': 0})
-            total_unsafes[d_id]['total'] += total
-            total_unsafes[d_id]['confirmed'] += confirmed
+            total_unsafes.setdefault(d_id, 0)
+            total_unsafes[d_id] += total
 
+            if self._unsafes_columns.is_detailed(v):
+                # Get manual value
+                manual_url = None
+                if manual > 0:
+                    manual_url = construct_url('reports:unsafes', self._core[d_id], verdict=v, manual=1)
+                manual_column = self._unsafes_columns.get_verdict_column(v, manual=True)
+                self._values_data[d_id][manual_column] = cell_value(manual, url=manual_url)
+
+                # Get automatic value
+                automatic_url = None
+                if manual < total:
+                    automatic_url = construct_url('reports:unsafes', self._core[d_id], verdict=v, manual=0)
+                automatic_column = self._unsafes_columns.get_verdict_column(v, manual=False)
+                self._values_data[d_id][automatic_column] = cell_value(total - manual, url=automatic_url)
+            else:
+                total_link = None
+                if total > 0:
+                    total_link = construct_url('reports:unsafes', self._core[d_id], verdict=v)
+                self._values_data[d_id][self._unsafes_columns.get_verdict_column(v)] = cell_value(total, url=total_link)
+
+        # Add number of total unsafes of the decision
+        for d_id, total in total_unsafes.items():
+            total_url = None
             if total > 0:
-                total = html_link(construct_url('reports:unsafes', self._core[d_id], verdict=v), total)
-
-            if v == verdicts.unassociated:
-                html_value = str(total)
-            elif confirmed > 0:
-                confirmed_url = construct_url('reports:unsafes', self._core[d_id], verdict=v, confirmed=1)
-                html_value = '{} ({})'.format(html_link(confirmed_url, confirmed), total)
-            else:
-                html_value = '0 ({})'.format(total)
-            self._values_data[d_id][verdicts.column(v)] = {'html': html_value}
-
-        # Add numbers of total safes of the decision
-        for d_id, total_data in total_unsafes.items():
-            total, confirmed = total_data['total'], total_data['confirmed']
-            if total > 0:
-                total = html_link(construct_url('reports:unsafes', self._core[d_id]), total)
-            if confirmed > 0:
-                confirmed = html_link(construct_url('reports:unsafes', self._core[d_id], confirmed=1), confirmed)
-            self._values_data[d_id]['unsafe:total'] = {'html': '{} ({})'.format(confirmed, total)}
-
-    def __collect_verdicts(self):
-        if any(col.startswith('safe:') for col in self.columns):
-            if 'hidden' in self.view and 'confirmed_marks' in self.view['hidden']:
-                self.__get_safes_without_confirmed()
-            else:
-                self.__get_safes_with_confirmed()
-
-        if any(col.startswith('unsafe:') for col in self.columns):
-            if 'hidden' in self.view and 'confirmed_marks' in self.view['hidden']:
-                self.__get_unsafes_without_confirmed()
-            else:
-                self.__get_unsafes_with_confirmed()
+                total_url = construct_url('reports:unsafes', self._core[d_id])
+            self._values_data[d_id][self._unsafes_columns.get_verdict_column()] = cell_value(total, url=total_url)
 
     def __collect_unknowns(self):
         numbers = {}

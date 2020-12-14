@@ -96,7 +96,7 @@ class SSH:
         while not chan.exit_status_ready():
             stderr = ''
             while chan.recv_stderr_ready():
-                stderr += chan.recv_stderr(self.COMMAND_EXECUTION_STREAM_BUF_SIZE).decode(encoding='utf8')
+                stderr += chan.recv_stderr(self.COMMAND_EXECUTION_STREAM_BUF_SIZE).decode(encoding='utf-8')
             stderr = stderr.rstrip()
 
             if stderr:
@@ -104,7 +104,7 @@ class SSH:
 
             stdout = ''
             while chan.recv_ready():
-                stdout += chan.recv(self.COMMAND_EXECUTION_STREAM_BUF_SIZE).decode(encoding='utf8')
+                stdout += chan.recv(self.COMMAND_EXECUTION_STREAM_BUF_SIZE).decode(encoding='utf-8')
             stdout = stdout.rstrip()
 
             if stdout:
@@ -136,16 +136,18 @@ class SSH:
         self.execute_cmd(f'mkdir -p "{instance_path}"')
 
         if os.path.isfile(host_path) and (tarfile.is_tarfile(host_path) or zipfile.is_zipfile(host_path)):
-            rsync_flags = '-ars'
+            rsync_flags = '-as'
         else:
             # with '-z' rsync compresses the transmitted data
-            rsync_flags = '-arsz'
+            rsync_flags = '-asz'
 
         # stderr=subprocess.DEVNULL is required to suppress WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!
         # maybe there is a better way to fix it
         execute_cmd(
             self.logger,
-            'rsync', rsync_flags,
+            'rsync',
+            rsync_flags,
+            '--del',
             '-e', f'ssh -o StrictHostKeyChecking=no -i {self.args.ssh_rsa_private_key_file}',
             host_path,
             f'{OS_USER}@{self.floating_ip}:{instance_path}',

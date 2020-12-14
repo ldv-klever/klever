@@ -69,9 +69,9 @@ For instance, you can run following commands within :term:`$KLEVER_SRC`::
     $ /usr/local/python3-klever/bin/python3 -m venv venv
     $ source venv/bin/activate
 
-To avoid some unpleasant issues during installation we recommend to upgrade PIP::
+To avoid some unpleasant issues during installation we recommend to upgrade PIP and associated packages::
 
-    $ pip install --upgrade pip
+    $ pip install --upgrade pip wheel setuptools
 
 .. note:: Later we assume that you are using the Klever Python virtual environment created in the way described above.
 
@@ -85,8 +85,9 @@ Then you need to install Python packages including the Klever one:
 
     $ pip install --upgrade .
 
-* If one is going to develop Klever (see :ref:`dev_deploy` in addition), one should run the following command within
-  :term:`$KLEVER_SRC`::
+* If one is going to develop Klever (see :ref:`dev_deploy` in addition), one should install Klever Python package in
+  *editable* mode (with -e flag).
+  To do it, run the following command within :term:`$KLEVER_SRC`::
 
     $ pip install -r requirements.txt -e .
 
@@ -276,7 +277,7 @@ After getting :ref:`klever_addons` and :ref:`klever_build_bases` the Klever Git 
     │   ├── cif-1517e57.tar.xz
     │   ├── consul
     │   ├── CPAchecker-1.6.1-svn ea117e2ecf-unix.tar.gz
-    │   ├── CPAchecker-1.8-svn 31140-unix.tar.xz
+    │   ├── CPAchecker-35003.tar.xz
     │   ├── toplevel.opt.tar.xz
     │   └── ...
     ├── build bases

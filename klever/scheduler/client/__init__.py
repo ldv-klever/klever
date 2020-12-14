@@ -44,7 +44,7 @@ def run_benchexec(mode, file=None, configuration=None):
     if configuration and file:
         raise ValueError('Provide either file or configuration string')
     elif file:
-        with open(file, encoding="utf8") as fh:
+        with open(file, encoding="utf-8") as fh:
             conf = json.loads(fh.read())
     else:
         conf = configuration
@@ -67,8 +67,8 @@ def run_benchexec(mode, file=None, configuration=None):
 
     # create console handler and set level to debug
     ch = logging.StreamHandler(sys.stdout)
-    fh = logging.FileHandler("client-log.log", mode='w', encoding='utf8')
-    eh = logging.FileHandler("client-critical.log", mode='w', encoding='utf8')
+    fh = logging.FileHandler("client-log.log", mode='w', encoding='utf-8')
+    eh = logging.FileHandler("client-critical.log", mode='w', encoding='utf-8')
 
     ch.setLevel(logging.INFO)
     fh.setLevel(logging.DEBUG)
@@ -107,8 +107,6 @@ def run_benchexec(mode, file=None, configuration=None):
         logger.warning(traceback.format_exc().rstrip())
         exit_code = 1
     finally:
-        if srv:
-            srv.stop()
         if not isinstance(exit_code, int):
             exit_code = 1
         logger.info("Exiting with exit code {}".format(str(exit_code)))
@@ -126,7 +124,7 @@ def solve(logger, conf, mode='job', srv=None):
     :return: Exit code of BenchExec or RunExec.
     """
     logger.debug("Create configuration file \"conf.json\"")
-    with open("conf.json", "w", encoding="utf8") as fp:
+    with open("conf.json", "w", encoding="utf-8") as fp:
         json.dump(conf, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
     if "resource limits" not in conf:
@@ -168,7 +166,7 @@ def solve_task(logger, conf, srv):
     with zipfile.ZipFile('task files.zip') as zfp:
         zfp.extractall()
 
-    os.makedirs("output".encode("utf8"), exist_ok=True)
+    os.makedirs("output".encode("utf-8"), exist_ok=True)
 
     # Replace benchmark.xml
     adjust_options('benchmark.xml', conf)
@@ -181,7 +179,6 @@ def solve_task(logger, conf, srv):
         # To keep the last warning exit without any exception
         if not isinstance(exit_code, int):
             exit_code = 1
-        srv.stop()
         os._exit(exit_code)
 
     # Move tasks collected in container mode to expected place
@@ -219,7 +216,7 @@ def solve_job(logger, conf):
 
     # Do this for deterministic python in job
     os.environ['PYTHONHASHSEED'] = "0"
-    os.environ['PYTHONIOENCODING'] = "utf8"
+    os.environ['PYTHONIOENCODING'] = "utf-8"
     os.environ['LC_LANG'] = "en_US"
     os.environ['LC_ALL'] = "en_US.UTF8"
     os.environ['LC_C'] = "en_US.UTF8"
@@ -363,14 +360,14 @@ def run(selflogger, args, conf, logger=None):
             selflogger.info("Executor exited with non-zero exit code {}".format(ec))
         return ec
     else:
-        with open('client-log.log', 'a', encoding="utf8") as ste, \
-                open('runexec stdout.log', 'w', encoding="utf8") as sto:
+        with open('client-log.log', 'a', encoding="utf-8") as ste, \
+                open('runexec stdout.log', 'w', encoding="utf-8") as sto:
             ec = execute(args, logger=logger, disk_limitation=dl, disk_checking_period=dcp, stderr=ste, stdout=sto)
 
         # Runexec prints its warnings and ordinary log to STDERR, thus lets try to find warnings there and move them
         # to critical log file
         if os.path.isfile('client-log.log'):
-            with open('client-log.log', encoding="utf8") as log:
+            with open('client-log.log', encoding="utf-8") as log:
                 for line in log.readlines():
                     # Warnings can be added to the file only from RunExec
                     if re.search(r'WARNING - (.*)', line):
@@ -382,10 +379,10 @@ def run(selflogger, args, conf, logger=None):
         if ec == 0 and os.path.isfile('runexec stdout.log'):
             reason = None
             selflogger.info("Get return code of the job since runexec successfully exited")
-            with open('runexec stdout.log', 'r', encoding="utf8") as fp:
+            with open('runexec stdout.log', 'r', encoding="utf-8") as fp:
                 for line in fp.readlines():
                     key, value = line.split('=')
-                    if key and value and key == 'exitcode':
+                    if key and value and key == 'returnvalue':
                         job_exit = int(value)
                         if job_exit > 255:
                             # Be cool as Unix is

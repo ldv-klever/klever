@@ -44,7 +44,7 @@ def bridge_exception_handler(exc, context):
 
 
 class TimeStampField(fields.Field):
-    default_error_messages = {'invalid': _('Timastamp format is wrong. Float expected.')}
+    default_error_messages = {'invalid': _('Timestamp format is wrong (float number is expected)')}
 
     def __init__(self, *args, **kwargs):
         self.timezone = kwargs.pop('timezone', 'UTC')

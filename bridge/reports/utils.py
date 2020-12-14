@@ -17,6 +17,7 @@
 
 import json
 import os
+from collections import OrderedDict
 from io import BytesIO
 from urllib.parse import unquote
 from wsgiref.util import FileWrapper
@@ -27,17 +28,16 @@ from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 from django.utils.functional import cached_property
 
-from bridge.vars import (
-    UNSAFE_VERDICTS, SAFE_VERDICTS, DECISION_WEIGHT, ERROR_TRACE_FILE, SAFE_COLOR, UNSAFE_COLOR, SUBJOB_NAME
-)
-from bridge.tableHead import Header
+from bridge.vars import UNSAFE_VERDICTS, UNSAFE_STATUS, SAFE_VERDICTS, DECISION_WEIGHT, ERROR_TRACE_FILE, SUBJOB_NAME
 from bridge.utils import BridgeException, ArchiveFileContent
 from bridge.ZipGenerator import ZipStream
 
 from jobs.models import PresetJob, Job, Decision
 from reports.models import Report, ReportComponent, ReportAttr, ReportUnsafe, ReportSafe, ReportUnknown, CoverageArchive
+from caches.models import ReportSafeCache, ReportUnsafeCache, ReportUnknownCache
 
 from users.utils import HumanizedValue, paginate_queryset
+from reports.verdicts import safe_color, unsafe_color, bug_status_color
 
 
 REP_MARK_TITLES = {
@@ -47,13 +47,18 @@ REP_MARK_TITLES = {
     'mark_status': _('Status'),
     'number': _('#'),
     'component': _('Component'),
-    'marks_number': _("Number of associated marks"),
+
+    'marks_number': _("Similar marks associations"),
+    'marks_number:confirmed': _("Confirmed"),
+    'marks_number:automatic': _("Automatic"),
     'report_verdict': _("Total verdict"),
+    'report_status': _("Total status"),
+
     'tags': _('Tags'),
-    'verifiers': _('Verifiers'),
-    'verifiers:cpu': _('CPU time'),
-    'verifiers:wall': _('Wall time'),
-    'verifiers:memory': _('RAM'),
+    'verifier': _('Verifier'),
+    'verifier:cpu': _('CPU time'),
+    'verifier:wall': _('Wall time'),
+    'verifier:memory': _('Memory size'),
     'problems': _('Problems')
 }
 
@@ -78,8 +83,13 @@ def get_parents(report, include_self=False):
     parents_ids = list(r.pk for r in report.get_ancestors(include_self=include_self).only('id'))
 
     parents_data = []
-    for report in ReportComponent.objects.filter(id__in=parents_ids).order_by('id').only('id', 'component'):
-        parents_data.append({'id': report.id, 'component': report.component})
+    reports_qs = ReportComponent.objects.filter(id__in=parents_ids).select_related('decision')\
+        .order_by('id').only('id', 'identifier', 'component', 'decision_id', 'decision__identifier')
+    for report in reports_qs:
+        parents_data.append({
+            'id': report.id, 'component': report.component,
+            'url': reverse('reports:component', args=[report.decision.identifier, report.identifier])
+        })
 
     # Get attributes for all parents
     attrs = {}
@@ -167,7 +177,7 @@ def get_report_data_type(component, data):
 class ReportAttrsTable:
     def __init__(self, report):
         self._report = report
-        self.header, self.values = self.__self_data()
+        self.columns, self.values = self.__self_data()
 
     def __self_data(self):
         columns = []
@@ -175,31 +185,53 @@ class ReportAttrsTable:
         for ra in self._report.attrs.order_by('id'):
             columns.append(ra.name)
             values.append((ra.value, ra.id if ra.data else None))
-        return Header(columns, {}).struct, values
+        return columns, values
 
 
 class SafesTable:
-    cache_table = 'cache_safe'
-    columns_list = ['marks_number', 'report_verdict', 'tags', 'verifiers:cpu', 'verifiers:wall', 'verifiers:memory']
-    columns_set = set(columns_list)
+    columns_list = ['marks_number', 'report_verdict', 'tags', 'verifier:cpu', 'verifier:wall', 'verifier:memory']
+    confirmed_col = 'marks_number:confirmed'
+    automatic_col = 'marks_number:automatic'
 
     def __init__(self, user, report, view, query_params):
         self.user = user
         self.view = view
-        self.paginator, self.page = self.__get_queryset(report, query_params)
+        self._params = query_params
+        self.paginator, self.page = self.__get_queryset(report)
 
         if not self.view['is_unsaved'] and self.paginator.count == 1:
-            self.redirect = reverse('reports:safe', args=[self.paginator.object_list.first().pk])
+            safe_obj = self.paginator.object_list.first()
+            self.redirect = reverse('reports:safe', args=[safe_obj.decision.identifier, safe_obj.identifier])
+
             # Do not collect reports' values if page will be redirected
             return
 
         self.verdicts = SAFE_VERDICTS
-        self.title = self.__get_title(query_params)
+        self.title = self.__get_title()
         self.parents = None
         if report.decision.weight == DECISION_WEIGHT[0][0]:
             self.parents = get_parents(report, include_self=True)
 
-        self.header, self.values = self.__safes_data()
+        self.titles = REP_MARK_TITLES
+        self.columns, self.values = self.__safes_data()
+
+    @cached_property
+    def _confirmed(self):
+        if 'confirmed' not in self._params:
+            return None
+        return bool(int(self._params['confirmed']))
+
+    @cached_property
+    def _detailed(self):
+        return 'hidden' not in self.view or 'confirmed_marks' not in self.view['hidden']
+
+    @cached_property
+    def _cache_db_table(self):
+        return getattr(ReportSafeCache, '_meta').db_table
+
+    @cached_property
+    def _columns_set(self):
+        return set(self.columns_list)
 
     def __get_ms(self, value, measure):
         if isinstance(value, str):
@@ -210,14 +242,14 @@ class SafesTable:
             return value * 60000
         return value
 
-    def __get_queryset(self, report, query_params):
+    def __get_queryset(self, report):
         qs_filters = {'leaves__report': report}
         annotations = {}
         ordering = 'id'
 
         # Filter by verdict
-        if 'verdict' in query_params:
-            qs_filters['cache__verdict'] = query_params['verdict']
+        if 'verdict' in self._params:
+            qs_filters['cache__verdict'] = self._params['verdict']
         elif 'verdict' in self.view and len(self.view['verdict']):
             qs_filters['cache__verdict__in'] = self.view['verdict']
 
@@ -255,18 +287,23 @@ class SafesTable:
             ordering = 'memory'
 
         # Filter by marks number
-        if 'confirmed' in query_params:
+        if self._confirmed is True:
             qs_filters['cache__marks_confirmed__gt'] = 0
+        elif self._confirmed is False:
+            qs_filters['cache__marks_confirmed'] = 0
+            qs_filters['cache__marks_automatic__gt'] = 0
         elif 'marks_number' in self.view:
             if self.view['marks_number'][0] == 'confirmed':
                 field = 'cache__marks_confirmed'
+            elif self.view['marks_number'][0] == 'automatic':
+                field = 'cache__marks_automatic'
             else:
                 field = 'cache__marks_total'
             qs_filters["{0}__{1}".format(field, self.view['marks_number'][1])] = int(self.view['marks_number'][2])
 
         # Filter by tags
-        if 'tag' in query_params:
-            qs_filters['cache__tags__has_key'] = unquote(query_params['tag'])
+        if 'tag' in self._params:
+            qs_filters['cache__tags__has_key'] = unquote(self._params['tag'])
         elif 'tags' in self.view:
             view_tags = set(x.strip() for x in self.view['tags'][0].split(';'))
             if '' in view_tags:
@@ -275,17 +312,17 @@ class SafesTable:
                 qs_filters['cache__tags__has_any_keys'] = list(view_tags)
 
         # Filter by attribute(s)
-        if 'attr_name' in query_params and 'attr_value' in query_params:
-            attr_name = unquote(query_params['attr_name'])
-            attr_value = unquote(query_params['attr_value'])
+        if 'attr_name' in self._params and 'attr_value' in self._params:
+            attr_name = unquote(self._params['attr_name'])
+            attr_value = unquote(self._params['attr_value'])
             annotations['attr_value'] = RawSQL(
-                "\"{}\".\"attrs\"->>%s".format(self.cache_table),
+                "\"{}\".\"attrs\"->>%s".format(self._cache_db_table),
                 (attr_name,)
             )
             qs_filters['attr_value'] = attr_value
         elif 'attr' in self.view:
             annotations['attr_value'] = RawSQL(
-                "\"{}\".\"attrs\"->>%s".format(self.cache_table),
+                "\"{}\".\"attrs\"->>%s".format(self._cache_db_table),
                 (self.view['attr'][0],)
             )
             qs_filters['attr_value__{}'.format(self.view['attr'][1])] = self.view['attr'][2]
@@ -293,7 +330,7 @@ class SafesTable:
         # Sorting by attribute value
         if 'order' in self.view and self.view['order'][1] == 'attr':
             annotations['ordering_attr'] = RawSQL(
-                "\"{}\".\"attrs\"->>%s".format(self.cache_table),
+                "\"{}\".\"attrs\"->>%s".format(self._cache_db_table),
                 (self.view['order'][2],)
             )
             ordering = 'ordering_attr'
@@ -305,27 +342,29 @@ class SafesTable:
         queryset = ReportSafe.objects
         if annotations:
             queryset = queryset.annotate(**annotations)
-        queryset = queryset.filter(**qs_filters).exclude(cache=None).order_by(ordering).select_related('cache')
+        queryset = queryset.filter(**qs_filters).exclude(cache=None)\
+            .order_by(ordering).select_related('cache', 'decision')
         num_per_page = self.view['elements'][0] if self.view['elements'] else None
-        return paginate_queryset(queryset, query_params.get('page', 1), num_per_page)
+        return paginate_queryset(queryset, self._params.get('page', 1), num_per_page)
 
-    def __get_title(self, query_params):
+    def __get_title(self):
         title = _('Safes')
-        if 'confirmed' in query_params:
-            title = '{0}: {1}'.format(_("Safes"), _('confirmed'))
 
         # Either verdict, tag or attr is supported in kwargs
-        if 'verdict' in query_params:
-            verdict_title = dict(SAFE_VERDICTS)[query_params['verdict']]
-            if 'confirmed' in query_params:
-                title = '{0}: {1} {2}'.format(_("Safes"), _('confirmed'), verdict_title)
+        if 'verdict' in self._params:
+            verdict_title = dict(SAFE_VERDICTS)[self._params['verdict']]
+            if self._confirmed is True:
+                title = '{}: {} {}'.format(_("Safes"), _('manually assessed'), verdict_title)
+            elif self._confirmed is False:
+                title = '{}: {} {}'.format(_("Safes"), _('automatically assessed'), verdict_title)
             else:
-                title = '{0}: {1}'.format(_("Safes"), verdict_title)
-        elif 'tag' in query_params:
-            title = '{0}: {1}'.format(_("Safes"), unquote(query_params['tag']))
-        elif 'attr_name' in query_params and 'attr_value' in query_params:
+                title = '{}: {}'.format(_("Safes"), verdict_title)
+        elif 'tag' in self._params:
+            title = '{0}: {1}'.format(_("Safes"), unquote(self._params['tag']))
+        elif 'attr_name' in self._params and 'attr_value' in self._params:
             title = _('Safes where %(a_name)s is %(a_val)s') % {
-                'a_name': unquote(query_params['attr_name']), 'a_val': unquote(query_params['attr_value'])
+                'a_name': unquote(self._params['attr_name']),
+                'a_val': unquote(self._params['attr_value'])
             }
         return title
 
@@ -333,7 +372,7 @@ class SafesTable:
     def selected_columns(self):
         columns = []
         for col in self.view['columns']:
-            if col not in self.columns_set:
+            if col not in self._columns_set:
                 return []
             if ':' in col:
                 col_title = get_column_title(col)
@@ -353,22 +392,30 @@ class SafesTable:
             columns.append({'value': col, 'title': col_title})
         return columns
 
-    def __safes_data(self):
-        safes_ids = list(report.pk for report in self.page)
-        cnt = (self.page.number - 1) * self.paginator.per_page + 1
-
-        columns = ['number']
-        columns.extend(self.view['columns'])
-        attributes = {}
-        for r_id, a_name, a_value in ReportAttr.objects.filter(report_id__in=safes_ids).order_by('id')\
-                .values_list('report_id', 'name', 'value'):
+    @cached_property
+    def _attributes(self):
+        queryset = ReportAttr.objects.filter(report_id__in=list(report.pk for report in self.page))\
+            .order_by('id').values_list('report_id', 'name', 'value')
+        attributes = OrderedDict()
+        for r_id, a_name, a_value in queryset:
             if a_name not in attributes:
-                columns.append(a_name)
                 attributes[a_name] = {}
             attributes[a_name][r_id] = a_value
+        return attributes
+
+    def __safes_data(self):
+        cnt = (self.page.number - 1) * self.paginator.per_page + 1
+
+        # Collect columns
+        columns = ['number']
+        for view_col in self.view['columns']:
+            if view_col == 'marks_number' and self._detailed:
+                columns.extend([self.confirmed_col, self.automatic_col])
+            else:
+                columns.append(view_col)
+        columns.extend(list(self._attributes))
 
         verdicts_dict = dict(SAFE_VERDICTS)
-        with_confirmed = 'hidden' not in self.view or 'confirmed_marks' not in self.view['hidden']
 
         values_data = []
         for report in self.page:
@@ -377,19 +424,20 @@ class SafesTable:
                 val = '-'
                 href = None
                 color = None
-                if col in attributes:
-                    val = attributes[col].get(report.pk, '-')
+                if col in self._attributes:
+                    val = self._attributes[col].get(report.pk, '-')
                 elif col == 'number':
                     val = cnt
-                    href = reverse('reports:safe', args=[report.pk])
+                    href = reverse('reports:safe', args=[report.decision.identifier, report.identifier])
                 elif col == 'marks_number':
-                    if with_confirmed:
-                        val = '{0} ({1})'.format(report.cache.marks_confirmed, report.cache.marks_total)
-                    else:
-                        val = str(report.cache.marks_total)
+                    val = str(report.cache.marks_total)
+                elif col == self.confirmed_col:
+                    val = str(report.cache.marks_confirmed)
+                elif col == self.automatic_col:
+                    val = str(report.cache.marks_automatic)
                 elif col == 'report_verdict':
                     val = verdicts_dict[report.cache.verdict]
-                    color = SAFE_COLOR[report.cache.verdict]
+                    color = safe_color(report.cache.verdict)
                 elif col == 'tags':
                     if len(report.cache.tags):
                         tags_values = []
@@ -399,42 +447,66 @@ class SafesTable:
                             else:
                                 tags_values.append(tag)
                         val = ', '.join(tags_values)
-                elif col == 'verifiers:cpu':
+                elif col == 'verifier:cpu':
                     val = HumanizedValue(report.cpu_time, user=self.user).timedelta
-                elif col == 'verifiers:wall':
+                elif col == 'verifier:wall':
                     val = HumanizedValue(report.wall_time, user=self.user).timedelta
-                elif col == 'verifiers:memory':
+                elif col == 'verifier:memory':
                     val = HumanizedValue(report.memory, user=self.user).memory
                 values_row.append({'value': val, 'color': color, 'href': href})
             values_data.append(values_row)
             cnt += 1
 
-        return Header(columns, REP_MARK_TITLES).struct, values_data
+        return columns, values_data
 
 
 class UnsafesTable:
-    cache_table = 'cache_unsafe'
-    columns_list = ['marks_number', 'report_verdict', 'tags', 'verifiers:cpu', 'verifiers:wall', 'verifiers:memory']
-    columns_set = set(columns_list)
+    columns_list = [
+        'marks_number', 'report_verdict', 'report_status', 'tags',
+        'verifier:cpu', 'verifier:wall', 'verifier:memory'
+    ]
+    confirmed_col = 'marks_number:confirmed'
+    automatic_col = 'marks_number:automatic'
 
     def __init__(self, user, report, view, query_params):
         self.user = user
         self.view = view
-        self.paginator, self.page = self.__get_queryset(report, query_params)
+        self._params = query_params
+        self.paginator, self.page = self.__get_queryset(report)
 
         if not self.view['is_unsaved'] and self.paginator.count == 1:
-            self.redirect = reverse('reports:unsafe', args=[self.paginator.object_list.first().trace_id])
+            unsafe_obj = self.paginator.object_list.first()
+            self.redirect = reverse('reports:unsafe', args=[unsafe_obj.decision.identifier, unsafe_obj.identifier])
             # Do not collect reports' values if page will be redirected
             return
 
         self.verdicts = UNSAFE_VERDICTS
 
-        self.title = self.__get_title(query_params)
+        self.title = self.__get_title()
         self.parents = None
         if report.decision.weight == DECISION_WEIGHT[0][0]:
             self.parents = get_parents(report, include_self=True)
 
-        self.header, self.values = self.__unsafes_data()
+        self.titles = REP_MARK_TITLES
+        self.columns, self.values = self.__unsafes_data()
+
+    @cached_property
+    def _confirmed(self):
+        if 'confirmed' not in self._params:
+            return None
+        return bool(int(self._params['confirmed']))
+
+    @cached_property
+    def _detailed(self):
+        return 'hidden' not in self.view or 'confirmed_marks' not in self.view['hidden']
+
+    @cached_property
+    def _cache_db_table(self):
+        return getattr(ReportUnsafeCache, '_meta').db_table
+
+    @cached_property
+    def _columns_set(self):
+        return set(self.columns_list)
 
     def __get_ms(self, value, measure):
         if isinstance(value, str):
@@ -445,14 +517,14 @@ class UnsafesTable:
             return value * 60000
         return value
 
-    def __get_queryset(self, report, query_params):
+    def __get_queryset(self, report):
         qs_filters = {'leaves__report': report}
         annotations = {}
         ordering = 'id'
 
         # Filter by verdict
-        if 'verdict' in query_params:
-            qs_filters['cache__verdict'] = query_params['verdict']
+        if 'verdict' in self._params:
+            qs_filters['cache__verdict'] = self._params['verdict']
         elif 'verdict' in self.view and len(self.view['verdict']):
             qs_filters['cache__verdict__in'] = self.view['verdict']
 
@@ -490,18 +562,23 @@ class UnsafesTable:
             ordering = 'memory'
 
         # Filter by marks number
-        if 'confirmed' in query_params:
+        if self._confirmed is True:
             qs_filters['cache__marks_confirmed__gt'] = 0
+        elif self._confirmed is False:
+            qs_filters['cache__marks_confirmed'] = 0
+            qs_filters['cache__marks_automatic__gt'] = 0
         elif 'marks_number' in self.view:
             if self.view['marks_number'][0] == 'confirmed':
                 field = 'cache__marks_confirmed'
+            elif self.view['marks_number'][0] == 'automatic':
+                field = 'cache__marks_automatic'
             else:
                 field = 'cache__marks_total'
             qs_filters["{0}__{1}".format(field, self.view['marks_number'][1])] = int(self.view['marks_number'][2])
 
         # Filter by tags
-        if 'tag' in query_params:
-            qs_filters['cache__tags__has_key'] = unquote(query_params['tag'])
+        if 'tag' in self._params:
+            qs_filters['cache__tags__has_key'] = unquote(self._params['tag'])
         elif 'tags' in self.view:
             view_tags = set(x.strip() for x in self.view['tags'][0].split(';'))
             if '' in view_tags:
@@ -510,15 +587,15 @@ class UnsafesTable:
                 qs_filters['cache__tags__has_any_keys'] = list(view_tags)
 
         # Filter by attribute(s)
-        if 'attr_name' in query_params and 'attr_value' in query_params:
+        if 'attr_name' in self._params and 'attr_value' in self._params:
             annotations['attr_value'] = RawSQL(
-                "\"{}\".\"attrs\"->>%s".format(self.cache_table),
-                (unquote(query_params['attr_name']),)
+                "\"{}\".\"attrs\"->>%s".format(self._cache_db_table),
+                (unquote(self._params['attr_name']),)
             )
-            qs_filters['attr_value'] = unquote(query_params['attr_value'])
+            qs_filters['attr_value'] = unquote(self._params['attr_value'])
         elif 'attr' in self.view:
             annotations['attr_value'] = RawSQL(
-                "\"{}\".\"attrs\"->>%s".format(self.cache_table),
+                "\"{}\".\"attrs\"->>%s".format(self._cache_db_table),
                 (self.view['attr'][0],)
             )
             qs_filters['attr_value__{}'.format(self.view['attr'][1])] = self.view['attr'][2]
@@ -526,7 +603,7 @@ class UnsafesTable:
         # Order by attribute value
         if 'order' in self.view and self.view['order'][1] == 'attr':
             annotations['ordering_attr'] = RawSQL(
-                "\"{}\".\"attrs\"->>%s".format(self.cache_table),
+                "\"{}\".\"attrs\"->>%s".format(self._cache_db_table),
                 (self.view['order'][2],)
             )
             ordering = 'ordering_attr'
@@ -538,27 +615,29 @@ class UnsafesTable:
         queryset = ReportUnsafe.objects
         if annotations:
             queryset = queryset.annotate(**annotations)
-        queryset = queryset.filter(**qs_filters).exclude(cache=None).order_by(ordering).select_related('cache')
+        queryset = queryset.filter(**qs_filters).exclude(cache=None).order_by(ordering)\
+            .select_related('cache', 'decision')
         num_per_page = self.view['elements'][0] if self.view['elements'] else None
-        return paginate_queryset(queryset, query_params.get('page', 1), num_per_page)
+        return paginate_queryset(queryset, self._params.get('page', 1), num_per_page)
 
-    def __get_title(self, query_params):
+    def __get_title(self):
         title = _('Unsafes')
-        if 'confirmed' in query_params:
-            title = '{0}: {1}'.format(_("Unsafes"), _('confirmed'))
 
         # Either verdict, tag or attr is supported in kwargs
-        if 'verdict' in query_params:
-            verdict_title = dict(UNSAFE_VERDICTS)[query_params['verdict']]
-            if 'confirmed' in query_params:
-                title = '{0}: {1} {2}'.format(_("Unsafes"), _('confirmed'), verdict_title)
+        if 'verdict' in self._params:
+            verdict_title = dict(UNSAFE_VERDICTS)[self._params['verdict']]
+            if self._confirmed is True:
+                title = '{}: {} {}'.format(_("Unsafes"), _('manually assessed'), verdict_title)
+            elif self._confirmed is False:
+                title = '{}: {} {}'.format(_("Unsafes"), _('automatically assessed'), verdict_title)
             else:
-                title = '{0}: {1}'.format(_("Unsafes"), verdict_title)
-        elif 'tag' in query_params:
-            title = '{0}: {1}'.format(_("Unsafes"), unquote(query_params['tag']))
-        elif 'attr_name' in query_params and 'attr_value' in query_params:
+                title = '{}: {}'.format(_("Unsafes"), verdict_title)
+        elif 'tag' in self._params:
+            title = '{0}: {1}'.format(_("Unsafes"), unquote(self._params['tag']))
+        elif 'attr_name' in self._params and 'attr_value' in self._params:
             title = _('Unsafes where %(a_name)s is %(a_val)s') % {
-                'a_name': unquote(query_params['attr_name']), 'a_val': unquote(query_params['attr_value'])
+                'a_name': unquote(self._params['attr_name']),
+                'a_val': unquote(self._params['attr_value'])
             }
         return title
 
@@ -566,7 +645,7 @@ class UnsafesTable:
     def selected_columns(self):
         columns = []
         for col in self.view['columns']:
-            if col not in self.columns_set:
+            if col not in self._columns_set:
                 return []
             if ':' in col:
                 col_title = get_column_title(col)
@@ -586,22 +665,31 @@ class UnsafesTable:
             columns.append({'value': col, 'title': col_title})
         return columns
 
-    def __unsafes_data(self):
-        unsafes_ids = list(report.pk for report in self.page)
-        cnt = (self.page.number - 1) * self.paginator.per_page + 1
-
-        columns = ['number']
-        columns.extend(self.view['columns'])
-        attributes = {}
-        for r_id, a_name, a_value in ReportAttr.objects.filter(report_id__in=unsafes_ids).order_by('id')\
-                .values_list('report_id', 'name', 'value'):
+    @cached_property
+    def _attributes(self):
+        queryset = ReportAttr.objects.filter(report_id__in=list(report.pk for report in self.page)) \
+            .order_by('id').values_list('report_id', 'name', 'value')
+        attributes = OrderedDict()
+        for r_id, a_name, a_value in queryset:
             if a_name not in attributes:
-                columns.append(a_name)
                 attributes[a_name] = {}
             attributes[a_name][r_id] = a_value
+        return attributes
+
+    def __unsafes_data(self):
+        cnt = (self.page.number - 1) * self.paginator.per_page + 1
+
+        # Collect columns
+        columns = ['number']
+        for view_col in self.view['columns']:
+            if view_col == 'marks_number' and self._detailed:
+                columns.extend([self.confirmed_col, self.automatic_col])
+            else:
+                columns.append(view_col)
+        columns.extend(list(self._attributes))
 
         verdicts_dict = dict(UNSAFE_VERDICTS)
-        with_confirmed = 'hidden' not in self.view or 'confirmed_marks' not in self.view['hidden']
+        statuses_dict = dict(UNSAFE_STATUS)
 
         values_data = []
         for report in self.page:
@@ -610,19 +698,24 @@ class UnsafesTable:
                 val = '-'
                 href = None
                 color = None
-                if col in attributes:
-                    val = attributes[col].get(report.pk, '-')
+                if col in self._attributes:
+                    val = self._attributes[col].get(report.pk, '-')
                 elif col == 'number':
                     val = cnt
-                    href = reverse('reports:unsafe', args=[report.trace_id])
+                    href = reverse('reports:unsafe', args=[report.decision.identifier, report.identifier])
                 elif col == 'marks_number':
-                    if with_confirmed:
-                        val = '{0} ({1})'.format(report.cache.marks_confirmed, report.cache.marks_total)
-                    else:
-                        val = str(report.cache.marks_total)
+                    val = str(report.cache.marks_total)
+                elif col == self.confirmed_col:
+                    val = str(report.cache.marks_confirmed)
+                elif col == self.automatic_col:
+                    val = str(report.cache.marks_automatic)
                 elif col == 'report_verdict':
                     val = verdicts_dict[report.cache.verdict]
-                    color = UNSAFE_COLOR[report.cache.verdict]
+                    color = unsafe_color(report.cache.verdict)
+                elif col == 'report_status':
+                    if report.cache.status:
+                        val = statuses_dict[report.cache.status]
+                        color = bug_status_color(report.cache.status)
                 elif col == 'tags':
                     if len(report.cache.tags):
                         tags_values = []
@@ -632,40 +725,61 @@ class UnsafesTable:
                             else:
                                 tags_values.append(tag)
                         val = ', '.join(tags_values)
-                elif col == 'verifiers:cpu':
+                elif col == 'verifier:cpu':
                     val = HumanizedValue(report.cpu_time, user=self.user).timedelta
-                elif col == 'verifiers:wall':
+                elif col == 'verifier:wall':
                     val = HumanizedValue(report.wall_time, user=self.user).timedelta
-                elif col == 'verifiers:memory':
+                elif col == 'verifier:memory':
                     val = HumanizedValue(report.memory, user=self.user).memory
                 values_row.append({'value': val, 'color': color, 'href': href})
             values_data.append(values_row)
             cnt += 1
 
-        return Header(columns, REP_MARK_TITLES).struct, values_data
+        return columns, values_data
 
 
 class UnknownsTable:
-    cache_table = 'cache_unknown'
-    columns_list = ['component', 'marks_number', 'problems', 'verifiers:cpu', 'verifiers:wall', 'verifiers:memory']
-    columns_set = set(columns_list)
+    columns_list = ['component', 'marks_number', 'problems', 'verifier:cpu', 'verifier:wall', 'verifier:memory']
+    confirmed_col = 'marks_number:confirmed'
+    automatic_col = 'marks_number:automatic'
 
     def __init__(self, user, report, view, query_params):
         self.user = user
         self.view = view
-        self.paginator, self.page = self.__get_queryset(report, query_params)
+        self._params = query_params
+        self.paginator, self.page = self.__get_queryset(report)
 
         if not self.view['is_unsaved'] and self.paginator.count == 1:
-            self.redirect = reverse('reports:unknown', args=[self.paginator.object_list.first().pk])
+            unknown_obj = self.paginator.object_list.first()
+            self.redirect = reverse('reports:unknown', args=[unknown_obj.decision.identifier, unknown_obj.identifier])
             # Do not collect reports' values if page will be redirected
             return
 
-        self.title = self.__get_title(query_params)
+        self.title = self.__get_title()
         self.parents = None
         if report.decision.weight == DECISION_WEIGHT[0][0]:
             self.parents = get_parents(report, include_self=True)
 
-        self.header, self.values = self.__unknowns_data()
+        self.titles = REP_MARK_TITLES
+        self.columns, self.values = self.__unknowns_data()
+
+    @cached_property
+    def _confirmed(self):
+        if 'confirmed' not in self._params:
+            return None
+        return bool(int(self._params['confirmed']))
+
+    @cached_property
+    def _detailed(self):
+        return 'hidden' not in self.view or 'confirmed_marks' not in self.view['hidden']
+
+    @cached_property
+    def _cache_db_table(self):
+        return getattr(ReportUnknownCache, '_meta').db_table
+
+    @cached_property
+    def _columns_set(self):
+        return set(self.columns_list)
 
     def __get_ms(self, value, measure):
         if isinstance(value, str):
@@ -676,7 +790,7 @@ class UnknownsTable:
             return value * 60000
         return value
 
-    def __get_queryset(self, report, query_params):
+    def __get_queryset(self, report):
         qs_filters = {'leaves__report': report}
         annotations = {}
         ordering = 'id'
@@ -715,25 +829,30 @@ class UnknownsTable:
             ordering = 'memory'
 
         # Filter by marks number
-        if 'confirmed' in query_params:
+        if self._confirmed is True:
             qs_filters['cache__marks_confirmed__gt'] = 0
+        elif self._confirmed is False:
+            qs_filters['cache__marks_confirmed'] = 0
+            qs_filters['cache__marks_automatic__gt'] = 0
         elif 'marks_number' in self.view:
             if self.view['marks_number'][0] == 'confirmed':
                 field = 'cache__marks_confirmed'
+            elif self.view['marks_number'][0] == 'automatic':
+                field = 'cache__marks_automatic'
             else:
                 field = 'cache__marks_total'
             qs_filters["{0}__{1}".format(field, self.view['marks_number'][1])] = int(self.view['marks_number'][2])
 
         # Filter by attribute(s)
-        if 'attr_name' in query_params and 'attr_value' in query_params:
+        if 'attr_name' in self._params and 'attr_value' in self._params:
             annotations['attr_value'] = RawSQL(
-                "\"{}\".\"attrs\"->>%s".format(self.cache_table),
-                (unquote(query_params['attr_name']),)
+                "\"{}\".\"attrs\"->>%s".format(self._cache_db_table),
+                (unquote(self._params['attr_name']),)
             )
-            qs_filters['attr_value'] = unquote(query_params['attr_value'])
+            qs_filters['attr_value'] = unquote(self._params['attr_value'])
         elif 'attr' in self.view:
             annotations['attr_value'] = RawSQL(
-                "\"{}\".\"attrs\"->>%s".format(self.cache_table),
+                "\"{}\".\"attrs\"->>%s".format(self._cache_db_table),
                 (self.view['attr'][0],)
             )
             qs_filters['attr_value__{}'.format(self.view['attr'][1])] = self.view['attr'][2]
@@ -741,20 +860,20 @@ class UnknownsTable:
         # Order by attribute value
         if 'order' in self.view and self.view['order'][1] == 'attr':
             annotations['ordering_attr'] = RawSQL(
-                "\"{}\".\"attrs\"->>%s".format(self.cache_table),
+                "\"{}\".\"attrs\"->>%s".format(self._cache_db_table),
                 (self.view['order'][2],)
             )
             ordering = 'ordering_attr'
 
         # Filter by component
-        if 'component' in query_params:
-            qs_filters['component'] = unquote(query_params['component'])
+        if 'component' in self._params:
+            qs_filters['component'] = unquote(self._params['component'])
         elif 'component' in self.view:
             qs_filters['component__{}'.format(self.view['component'][0])] = self.view['component'][1]
 
         # Filter by problem
-        if 'problem' in query_params:
-            problem = unquote(query_params['problem'])
+        if 'problem' in self._params:
+            problem = unquote(self._params['problem'])
             if problem == 'null':
                 qs_filters['cache__problems'] = {}
             else:
@@ -769,23 +888,28 @@ class UnknownsTable:
         queryset = ReportUnknown.objects
         if annotations:
             queryset = queryset.annotate(**annotations)
-        queryset = queryset.filter(**qs_filters).exclude(cache=None).order_by(ordering).select_related('cache')
+        queryset = queryset.filter(**qs_filters).exclude(cache=None).order_by(ordering)\
+            .select_related('cache', 'decision')
         num_per_page = self.view['elements'][0] if self.view['elements'] else None
-        return paginate_queryset(queryset, query_params.get('page', 1), num_per_page)
+        return paginate_queryset(queryset, self._params.get('page', 1), num_per_page)
 
-    def __get_title(self, query_params):
+    def __get_title(self):
         title = _('Unknowns')
 
         # Either problem or attr is supported in kwargs
-        if 'problem' in query_params:
-            problem = unquote(query_params['problem'])
+        if 'problem' in self._params:
+            problem = unquote(self._params['problem'])
             if problem == 'null':
                 title = _("Unknowns without marks")
+            elif self._confirmed is True:
+                title = '{}: {} {}'.format(_("Unknowns"), _('manually assessed'), problem)
+            elif self._confirmed is False:
+                title = '{}: {} {}'.format(_("Unknowns"), _('automatically assessed'), problem)
             else:
-                title = '{0}: {1}'.format(_("Unknowns"), problem)
-        elif 'attr_name' in query_params and 'attr_value' in query_params:
+                title = '{}: {}'.format(_("Unknowns"), problem)
+        elif 'attr_name' in self._params and 'attr_value' in self._params:
             title = _('Unknowns where %(a_name)s is %(a_val)s') % {
-                'a_name': unquote(query_params['attr_name']), 'a_val': unquote(query_params['attr_value'])
+                'a_name': unquote(self._params['attr_name']), 'a_val': unquote(self._params['attr_value'])
             }
         return title
 
@@ -793,7 +917,7 @@ class UnknownsTable:
     def selected_columns(self):
         columns = []
         for col in self.view['columns']:
-            if col not in self.columns_set:
+            if col not in self._columns_set:
                 return []
             if ':' in col:
                 col_title = get_column_title(col)
@@ -813,21 +937,28 @@ class UnknownsTable:
             columns.append({'value': col, 'title': col_title})
         return columns
 
-    def __unknowns_data(self):
-        unknowns_ids = list(report.pk for report in self.page)
-        cnt = (self.page.number - 1) * self.paginator.per_page + 1
-
-        columns = ['number']
-        columns.extend(self.view['columns'])
-        attributes = {}
-        for r_id, a_name, a_value in ReportAttr.objects.filter(report_id__in=unknowns_ids).order_by('id')\
-                .values_list('report_id', 'name', 'value'):
+    @cached_property
+    def _attributes(self):
+        queryset = ReportAttr.objects.filter(report_id__in=list(report.pk for report in self.page)) \
+            .order_by('id').values_list('report_id', 'name', 'value')
+        attributes = OrderedDict()
+        for r_id, a_name, a_value in queryset:
             if a_name not in attributes:
-                columns.append(a_name)
                 attributes[a_name] = {}
             attributes[a_name][r_id] = a_value
+        return attributes
 
-        with_confirmed = 'hidden' not in self.view or 'confirmed_marks' not in self.view['hidden']
+    def __unknowns_data(self):
+        cnt = (self.page.number - 1) * self.paginator.per_page + 1
+
+        # Collect columns
+        columns = ['number']
+        for view_col in self.view['columns']:
+            if view_col == 'marks_number' and self._detailed:
+                columns.extend([self.confirmed_col, self.automatic_col])
+            else:
+                columns.append(view_col)
+        columns.extend(list(self._attributes))
 
         values_data = []
         for report in self.page:
@@ -836,18 +967,19 @@ class UnknownsTable:
                 val = '-'
                 href = None
                 color = None
-                if col in attributes:
-                    val = attributes[col].get(report.pk, '-')
+                if col in self._attributes:
+                    val = self._attributes[col].get(report.pk, '-')
                 elif col == 'number':
                     val = cnt
-                    href = reverse('reports:unknown', args=[report.pk])
+                    href = reverse('reports:unknown', args=[report.decision.identifier, report.identifier])
                 elif col == 'component':
                     val = report.component
                 elif col == 'marks_number':
-                    if with_confirmed:
-                        val = '{0} ({1})'.format(report.cache.marks_confirmed, report.cache.marks_total)
-                    else:
-                        val = str(report.cache.marks_total)
+                    val = str(report.cache.marks_total)
+                elif col == self.confirmed_col:
+                    val = str(report.cache.marks_confirmed)
+                elif col == self.automatic_col:
+                    val = str(report.cache.marks_automatic)
                 elif col == 'tags':
                     if len(report.cache.tags):
                         tags_values = []
@@ -857,11 +989,11 @@ class UnknownsTable:
                             else:
                                 tags_values.append(tag)
                         val = ', '.join(tags_values)
-                elif col == 'verifiers:cpu':
+                elif col == 'verifier:cpu':
                     val = HumanizedValue(report.cpu_time, user=self.user).timedelta
-                elif col == 'verifiers:wall':
+                elif col == 'verifier:wall':
                     val = HumanizedValue(report.wall_time, user=self.user).timedelta
-                elif col == 'verifiers:memory':
+                elif col == 'verifier:memory':
                     val = HumanizedValue(report.memory, user=self.user).memory
                 elif col == 'problems':
                     if len(report.cache.problems):
@@ -877,7 +1009,7 @@ class UnknownsTable:
             values_data.append(values_row)
             cnt += 1
 
-        return Header(columns, REP_MARK_TITLES).struct, values_data
+        return columns, values_data
 
 
 class ReportChildrenTable:
@@ -889,7 +1021,8 @@ class ReportChildrenTable:
         num_per_page = view['elements'][0] if view['elements'] else None
         self.paginator, self.page = paginate_queryset(self.__get_queryset(), page, num_per_page)
 
-        self.header, self.values = self.__component_data()
+        self.titles = REP_MARK_TITLES
+        self.columns, self.values = self.__component_data()
 
     def __get_queryset(self):
         annotations = {}
@@ -930,14 +1063,17 @@ class ReportChildrenTable:
         queryset = ReportComponent.objects
         if annotations:
             queryset = queryset.values('id').annotate(**annotations)
-        return queryset.filter(**qs_filters).order_by(ordering).only('id', 'component')
+        return queryset.filter(**qs_filters).order_by(ordering).select_related('decision')\
+            .only('id', 'identifier', 'decision_id', 'decision__identifier', 'component')
 
     def __component_data(self):
         report_ids = list(report.id for report in self.page)
 
         columns = ['component']
         reports_data = dict((report.id, {
-            'component': {'value': report.component, 'href': reverse('reports:component', args=[report.id])}
+            'component': {
+                'value': report.component,
+                'href': reverse('reports:component', args=[report.decision.identifier, report.identifier])}
         }) for report in self.page)
 
         for r_id, name, value in ReportAttr.objects.filter(report_id__in=report_ids).order_by('id') \
@@ -951,7 +1087,7 @@ class ReportChildrenTable:
                 reports_data[report.id].get(col, '-') for col in columns
             ) for report in self.page
         )
-        return Header(columns, REP_MARK_TITLES).struct, values_data
+        return columns, values_data
 
 
 class VerifierFilesArchive:
@@ -1077,9 +1213,10 @@ class ReportStatus:
             self.name = _('Finished')
             self.color = '#4ce215'
         try:
-            self.href = reverse('reports:unknown', args=[
-                ReportUnknown.objects.get(parent=report, component=report.component).id
-            ])
+            unknown_obj = ReportUnknown.objects.select_related('decision')\
+                .only('identifier', 'decision_id', 'decision__identifier')\
+                .get(parent=report, component=report.component)
+            self.href = reverse('reports:unknown', args=[unknown_obj.decision.identifier, unknown_obj.identifier])
             self.name = _('Failed')
             self.color = None
         except ReportUnknown.DoesNotExist:

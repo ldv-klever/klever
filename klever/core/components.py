@@ -101,7 +101,7 @@ def remove_component_callbacks(logger, component):
 def all_child_resources():
     total_child_resources = {}
     for child_resources_file in glob.glob(os.path.join('child resources', '*')):
-        with open(child_resources_file, encoding='utf8') as fp:
+        with open(child_resources_file, encoding='utf-8') as fp:
             child_resources = json.load(fp)
         total_child_resources[
             os.path.splitext(os.path.basename(child_resources_file))[0]] = child_resources
@@ -346,7 +346,7 @@ class Component(multiprocessing.Process, CallbacksCaller):
         if self.separate_from_parent and not os.path.isdir(self.work_dir):
             self.logger.info(
                 'Create working directory "{0}" for component "{1}"'.format(self.work_dir, self.name))
-            os.makedirs(self.work_dir.encode('utf8'))
+            os.makedirs(self.work_dir.encode('utf-8'))
 
         # Actually start process.
         multiprocessing.Process.start(self)
@@ -380,7 +380,7 @@ class Component(multiprocessing.Process, CallbacksCaller):
             if self.separate_from_parent:
                 # Create special directory where child resources of processes separated from parents will be printed.
                 self.logger.info('Create child resources directory "child resources"')
-                os.makedirs('child resources'.encode('utf8'))
+                os.makedirs('child resources'.encode('utf-8'))
 
                 report = {
                     'identifier': self.id,
@@ -400,7 +400,7 @@ class Component(multiprocessing.Process, CallbacksCaller):
             exception_info = '{0}Raise exception:\n{1}'.format(self.__get_subcomponent_name(),
                                                                traceback.format_exc().rstrip())
             self.logger.error(exception_info)
-            with open('problem desc.txt', 'a', encoding='utf8') as fp:
+            with open('problem desc.txt', 'a', encoding='utf-8') as fp:
                 if fp.tell():
                     fp.write('\n')
                 fp.write(exception_info)
@@ -416,7 +416,7 @@ class Component(multiprocessing.Process, CallbacksCaller):
                         self.logger,
                         'unknown',
                         {
-                            'identifier': self.id + '/unknown',
+                            'identifier': self.id + '/',
                             'parent': self.id,
                             'problem_description': klever.core.utils.ArchiveFiles(['problem desc.txt'])
                         },
@@ -439,7 +439,7 @@ class Component(multiprocessing.Process, CallbacksCaller):
                 klever.core.utils.report(self.logger, 'finish', report, self.mqs['report files'],
                                          self.vals['report id'], self.conf['main working directory'])
             else:
-                with open(os.path.join('child resources', self.name + '.json'), 'w', encoding='utf8') as fp:
+                with open(os.path.join('child resources', self.name + '.json'), 'w', encoding='utf-8') as fp:
                     klever.core.utils.json_dump(count_consumed_resources(self.logger, self.tasks_start_time,
                                                                          self.include_child_resources),
                                                 fp, self.conf['keep intermediate files'])

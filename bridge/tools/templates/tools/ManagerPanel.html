@@ -35,7 +35,7 @@
                 <input id="recalc_for_all_decisions" type="checkbox">
                 <label for="recalc_for_all_decisions"><b>{% trans 'Decisions' %}</b></label>
             </div>
-            <div style="overflow: auto;margin-top: 15px;">
+            <div style="overflow: auto;margin-top: 15px;max-height: 40vh;">
                 <table class="ui compact violet table celled">
                     <thead>
                         <tr>
@@ -64,7 +64,7 @@
         <div class="four wide column">
             <p><b>{% trans 'Cache recalculation' %}:</b></p>
             <div class="ui vertical buttons">
-                <button class="ui orange button recalc-button" data-value="leaves">{% trans 'Reports leaves' %}</button>
+                <button class="ui orange button recalc-button" data-value="leaves">{% trans 'Report leaves' %}</button>
                 <button class="ui orange button recalc-button" data-value="safe_links">{% trans 'Safe associations' %}</button>
                 <button class="ui orange button recalc-button" data-value="unsafe_links">{% trans 'Unsafe associations' %}</button>
                 <button class="ui orange button recalc-button" data-value="unknown_links">{% trans 'Unknown associations' %}</button>
@@ -72,7 +72,7 @@
                 <button class="ui orange button recalc-button" data-value="unsafe_reports">{% trans 'Unsafe reports' %}</button>
                 <button class="ui orange button recalc-button" data-value="unknown_reports">{% trans 'Unknown reports' %}</button>
                 <button class="ui orange button recalc-button" data-value="decision_cache">{% trans 'Resources and instances' %}</button>
-                <button class="ui orange button recalc-button" data-value="coverage">{% trans 'Coverage cache' %}</button>
+                <button class="ui orange button recalc-button" data-value="coverage">{% trans 'Code coverage cache' %}</button>
                 <button class="ui red button recalc-button" data-value="all">{% trans 'All caches' %}</button>
             </div>
         </div>
@@ -84,10 +84,10 @@
                 <a href="{% url 'marks:api-download-all' %}" class="ui teal button">{% trans 'Download all marks' %}</a>
                 <button id="upload_all_marks" class="ui teal button">{% trans 'Upload all marks' %}</button>
                 <button class="ui red button api-request-btn" data-url="{% url 'tools:api-clear-system' %}" data-method="POST">{% trans 'Remove unused files and DB rows' %}</button>
-                <button class="ui red button api-request-btn" data-url="{% url 'tools:api-clear-tasks' %}" data-method="DELETE">{% trans 'Remove tasks for not solving decisions' %}</button>
+                <button class="ui red button api-request-btn" data-url="{% url 'tools:api-clear-tasks' %}" data-method="DELETE">{% trans 'Remove tasks for non-solving decisions' %}</button>
                 <a href="{% url 'tools:processing-list' %}" class="ui yellow button">{% trans 'View processing requests' %}</a>
                 <a href="{% url 'tools:call-logs' %}" class="ui yellow button">{% trans 'View function call logs' %}</a>
-                <a href="{% url 'tools:db-statistics' %}" class="ui yellow button">{% trans 'View db logs statistics' %}</a>
+                <a href="{% url 'tools:db-statistics' %}" class="ui yellow button">{% trans 'View DB log statistics' %}</a>
                 <a href="{% url 'tools:reports-logging' %}" class="ui yellow button">{% trans 'Analyze reports uploading logs' %}</a>
                 <a href="{% url 'tools:logs' %}" class="ui yellow button">{% trans 'View raw logs' %}</a>
             </div>
@@ -190,7 +190,7 @@
                     </tbody>
                 </table>
             {% else %}
-                <h5>{% trans 'There are no original sources archives' %}</h5>
+                <h5>{% trans 'There are no archives with original sources' %}</h5>
             {% endif %}
         </div>
         <div class="six wide column">
@@ -282,7 +282,7 @@
                 $('input[name="decision"]:checked').each(function () {
                     data['decisions'].push($(this).val());
                 });
-                if (!data['decisions'].length) return err_notify("{% trans 'Please select at least one decision' %}");
+                if (!data['decisions'].length) return err_notify("{% trans 'Please, select at least one decision' %}");
 
                 $('#dimmer_of_page').addClass('active');
                 $.ajax({
@@ -307,7 +307,7 @@
                     data: {"type": $(this).data('value')},
                     success: function () {
                         $('#dimmer_of_page').removeClass('active');
-                        success_notify("{% trans 'Marks caches were successfully recalculated' %}");
+                        success_notify("{% trans 'Mark caches were successfully recalculated' %}");
                     }
                 });
             });

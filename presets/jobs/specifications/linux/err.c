@@ -15,24 +15,43 @@
  * limitations under the License.
  */
 
+#include <linux/err.h>
 #include <ldv/linux/err.h>
 #include <ldv/verifier/common.h>
 
+/* Pointers greater then this number correspond to errors. */
+#define LDV_PTR_MAX ((unsigned long)-MAX_ERRNO)
+
 long ldv_is_err(const void *ptr)
 {
-	return ((unsigned long)ptr > LDV_PTR_MAX);
+	if ((unsigned long)ptr >= LDV_PTR_MAX)
+		return 1;
+	else
+		return 0;
 }
 
 void *ldv_err_ptr(long error)
 {
+	unsigned long result;
+
 	ldv_assume(error < 0);
-	return (void *)(LDV_PTR_MAX - error);
+	ldv_assume(error >= -MAX_ERRNO);
+	result = (LDV_PTR_MAX - 1) - error;
+	ldv_assume(result >= LDV_PTR_MAX);
+
+	return (void *)result;
 }
 
 long ldv_ptr_err(const void *ptr)
 {
-	ldv_assume((unsigned long) ptr > LDV_PTR_MAX);
-	return (long)(LDV_PTR_MAX - (unsigned long)ptr);
+	long result;
+
+	ldv_assume((unsigned long) ptr >= LDV_PTR_MAX);
+	result = (LDV_PTR_MAX - 1) - (unsigned long)ptr;
+	ldv_assume(result < 0);
+	ldv_assume(result >= -MAX_ERRNO);
+
+	return result;
 }
 
 long ldv_is_err_or_null(const void *ptr)

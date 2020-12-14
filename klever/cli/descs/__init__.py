@@ -21,7 +21,6 @@ common_target_program_descs = {
         'git repository version': 'v3.14.79',
         'configuration': 'allmodconfig',
         'architecture': 'x86_64',
-        'model CC options file': 'scripts/mod/empty.c',
         'external modules header files search directory': os.path.join(os.path.dirname(__file__), 'include'),
         'loadable kernel modules': ['all'],
         'generate makefiles': True,
@@ -67,8 +66,7 @@ common_target_program_descs = {
         'source code': 'busybox',
         'git repository version': '1_30_1',
         'configuration': 'defconfig',
-        'architecture': 'x86_64',
-        'model CC options file': 'applets/applets.c',
+        'architecture': 'x86_64'
     }
 }
 

@@ -63,4 +63,8 @@ class EMG(Plugin):
         translate_intermediate_model(self.logger, self.conf, self.abstract_task_desc, sa, collection)
         self.logger.info("An environment model has been generated successfully")
 
+        # todo: complete this feature
+        self.abstract_task_desc["environment model identifier"] = "default"
+        self.abstract_task_desc = [self.abstract_task_desc]
+
     main = generate_environment

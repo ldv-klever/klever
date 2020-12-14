@@ -3,16 +3,17 @@
     {
       "is_compare": true,
       "name": "Requirements specification",
-      "value": "test:common"
+      "value": "memory safety"
     },
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/linux/err/ptr-max.ko"
+      "value": "drivers/idle/i7300_idle.ko"
     }
   ],
   "description": "",
-  "is_modifiable": false,
+  "is_modifiable": true,
+  "production": true,
   "tags": [],
-  "verdict": "2"
+  "verdict": "0"
 }

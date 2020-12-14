@@ -80,6 +80,13 @@ class SemanticPercentInput(Input):
         return context
 
 
+class SchedulerUsernameField(UsernameField):
+    def widget_attrs(self, widget):
+        attrs = super().widget_attrs(widget)
+        attrs['autocomplete'] = 'off'
+        return attrs
+
+
 class FormColumnsMixin:
     form_columns = ()
 
@@ -132,7 +139,7 @@ class EditProfileForm(FormColumnsMixin, forms.ModelForm):
         ('new_password1', 'new_password2', 'email', 'first_name', 'last_name'),
         (
             'accuracy', 'data_format', 'language', 'timezone', 'assumptions',
-            'triangles', 'coverage_data', 'default_threshold'
+            'triangles', 'coverage_data', 'default_threshold', 'declarations_number'
         )
     )
     error_messages = {
@@ -140,8 +147,14 @@ class EditProfileForm(FormColumnsMixin, forms.ModelForm):
         'sch_login_required': _('Specify username')
     }
 
-    new_password1 = forms.CharField(label=_("New password"), widget=forms.PasswordInput, required=False)
-    new_password2 = forms.CharField(label=_("New password confirmation"), required=False, widget=forms.PasswordInput)
+    new_password1 = forms.CharField(
+        label=_("New password"), required=False,
+        widget=forms.PasswordInput(attrs={'autocomplete': "new-password"})
+    )
+    new_password2 = forms.CharField(
+        label=_("New password confirmation"), required=False,
+        widget=forms.PasswordInput(attrs={'autocomplete': "new-password"})
+    )
     timezone = forms.ChoiceField(
         label=_('Time zone'), widget=SematicUISelect(attrs={'class': 'search'}),
         choices=list((x, x) for x in pytz.common_timezones), initial=settings.DEF_USER['timezone']
@@ -183,7 +196,8 @@ class EditProfileForm(FormColumnsMixin, forms.ModelForm):
         model = User
         fields = (
             'email', 'first_name', 'last_name', 'data_format', 'language',
-            'accuracy', 'assumptions', 'triangles', 'coverage_data', 'default_threshold'
+            'accuracy', 'assumptions', 'triangles', 'coverage_data',
+            'default_threshold', 'declarations_number'
         )
         widgets = {
             'data_format': SematicUISelect(),
@@ -200,7 +214,7 @@ class SchedulerUserForm(forms.ModelForm):
         'password_required': _('Specify password'),
         'password_mismatch': _("Passwords don't match."),
     }
-    login = UsernameField(label=_('Username'), max_length=128, required=False)
+    login = SchedulerUsernameField(label=_('Username'), max_length=128, required=False)
     password1 = forms.CharField(label=_("Password"), widget=forms.PasswordInput, required=False)
     password2 = forms.CharField(label=_("Confirmation"), required=False, widget=forms.PasswordInput)
 

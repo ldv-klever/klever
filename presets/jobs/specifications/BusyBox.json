@@ -50,7 +50,10 @@
             }
           }
         },
-        {"name": "Weaver"},
+        {
+          "name": "Weaver",
+          "options": {"LDV inline Assembler header file": "ldv/common/inline_asm.h"}
+        },
         {
           "name": "FVTP",
           "options": {
@@ -58,7 +61,7 @@
             "verifier profile": "CPAchecker BAM BusyBox",
             "verifier": {
               "name": "CPAchecker",
-              "version": "trunk:31140"
+              "version": "trunk:36126"
             }
           }
         }
@@ -87,7 +90,7 @@
               "verifier profile": "memory checking",
               "verifier": {
                 "name": "CPAchecker",
-                "version": "trunk:31140"
+                "version": "trunk:36126"
               }
             }
           }

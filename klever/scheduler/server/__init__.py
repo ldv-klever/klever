@@ -178,7 +178,10 @@ class Server:
         """
         self.logger.debug(f'Request a list of all running jobs')
         ret = self.session.json_exchange("jobs/api/decision-status/", method='GET')
-        return ((item['identifier'], item['status']) for item in ret)
+        if ret:
+            return ((item['identifier'], item['status']) for item in ret)
+        else:
+            return ret
 
     def get_all_tasks(self):
         """
@@ -213,12 +216,6 @@ class Server:
 
         data = {'scheduler': self.scheduler_type, 'tools': tools_list}
         self.session.json_exchange("service/update-tools/", data, looping=looping)
-
-    def stop(self):
-        """
-        Log out if necessary.
-        """
-        self.session.sign_out()
 
     def _tolerate_error(self):
         if isinstance(self.session.error, dict) and \

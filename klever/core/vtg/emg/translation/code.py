@@ -243,7 +243,7 @@ class CModel:
         """
         aspect_dir = "aspects"
         self._logger.info("Create directory for aspect files {}".format("aspects"))
-        os.makedirs(aspect_dir.encode('utf8'), exist_ok=True)
+        os.makedirs(aspect_dir.encode('utf-8'), exist_ok=True)
 
         if self._conf["translation options"].get("propogate headers to instrumented files", True):
             for file in (f for f in self.files if f in additional_lines):
@@ -319,7 +319,7 @@ class CModel:
                 addictions[file] = path
             else:
                 name = self.entry_file
-            with open(name, "w", encoding="utf8") as fh:
+            with open(name, "w", encoding="utf-8") as fh:
                 fh.writelines(lines)
 
         return addictions

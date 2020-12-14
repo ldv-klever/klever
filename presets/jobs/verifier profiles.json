@@ -3,6 +3,8 @@
     "CPAchecker common": {
       "description": "Common options for the CPAchecker tool",
       "add options": [
+        {"-setprop": "cpa.callstack.unsupportedFunctions=__VERIFIER_nonexisting_dummy_function"},
+        {"-setprop": "cpa.predicate.allowedUnsupportedFunctions=memset,memcpy,__builtin_add_overflow,__builtin_mul_overflow,__builtin_va_arg"},
         {"-setprop": "counterexample.export.extendedWitnessFile=witness.%d.graphml"},
         {"-setprop": "counterexample.export.exportExtendedWitness=true"},
         {"-setprop": "counterexample.export.compressWitness=false"},
@@ -113,36 +115,33 @@
   "profiles": {
     "reachability": {
       "CPAchecker": {
-        "trunk:31140": {"inherit": "CPAchecker BAM reachability"}
+        "trunk:36126": {"inherit": "CPAchecker BAM reachability"}
       },
       "UltimateAutomizer": {"v0.1.20": {"inherit": "Ultimate common"}}
     },
     "reachability with function pointers": {
-      "CPAchecker": {"trunk:31140": {"inherit": "CPAchecker BAM reachability FP"}}
+      "CPAchecker": {"trunk:36126": {"inherit": "CPAchecker BAM reachability FP"}}
     },
     "reachability with bit precision": {
-      "CPAchecker": {
-        "trunk:31140": {"inherit": "CPAchecker BAM reachability bit-precise"},
-        "trunk:31503": {"inherit": "CPAchecker BAM reachability bit-precise"}
-      }
+      "CPAchecker": {"trunk:36126": {"inherit": "CPAchecker BAM reachability bit-precise"}}
     },
     "reachability with heap arrays": {
-      "CPAchecker": {"trunk:31140": {"inherit": "CPAchecker BAM reachability heap arrays"}}
+      "CPAchecker": {"trunk:36126": {"inherit": "CPAchecker BAM reachability heap arrays"}}
     },
     "CPAchecker BAM BusyBox": {
-      "CPAchecker": {"trunk:31140": {"inherit": "CPAchecker BAM BusyBox"}}
+      "CPAchecker": {"trunk:36126": {"inherit": "CPAchecker BAM BusyBox"}}
     },
     "race checking lightweight": {
-      "CPAchecker": {"CPALockator-combat-mode:34860": {"inherit": "CPALockator lightweight"}}
+      "CPAchecker": {"CPALockator:36189": {"inherit": "CPALockator lightweight"}}
     },
     "race checking": {
-      "CPAchecker": {"CPALockator-combat-mode:34860": {"inherit": "CPALockator thread-modular"}}
+      "CPAchecker": {"CPALockator:36189": {"inherit": "CPALockator thread-modular"}}
     },
     "race checking rcu": {
-      "CPAchecker": {"CPALockator-combat-mode:34860": {"inherit": "CPALockator rcu"}}
+      "CPAchecker": {"CPALockator:36189": {"inherit": "CPALockator rcu"}}
     },
     "memory checking": {
-      "CPAchecker": {"trunk:31140": {"inherit": "CPAchecker SMG memory checking"}}
+      "CPAchecker": {"trunk:36126": {"inherit": "CPAchecker SMG memory checking"}}
     }
   }
 }

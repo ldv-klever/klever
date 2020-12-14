@@ -24,7 +24,6 @@ from datetime import datetime
 from django.db.models import Q
 from django.urls import reverse
 from django.utils.functional import cached_property
-from django.utils.text import format_lazy
 from django.utils.translation import ugettext_lazy as _
 
 from bridge.vars import (
@@ -57,71 +56,6 @@ UNSAFES = [
     'unassociated',
     'total'
 ]
-
-# Dictionary of titles of static columns
-TITLES = {
-    'name': _('Title'),
-    'author': _('Author'),
-    # 'date': _('Last change date'),
-    'creation_date': _('Creation date'),
-    'status': _('Decision status'),
-
-    'safe': _('Safes'),
-    'safe:missed_bug': _('Missed target bugs'),
-    'safe:incorrect': _('Incorrect proof'),
-    'safe:unknown': _('Unknown'),
-    'safe:inconclusive': _('Incompatible marks'),
-    'safe:unassociated': _('Without marks'),
-    'safe:total': _('Total'),
-
-    'unsafe': _('Unsafes'),
-    'unsafe:bug': _('Bugs'),
-    'unsafe:target_bug': _('Target bugs'),
-    'unsafe:false_positive': _('False positives'),
-    'unsafe:unknown': _('Unknown'),
-    'unsafe:inconclusive': _('Incompatible marks'),
-    'unsafe:unassociated': _('Without marks'),
-    'unsafe:total': _('Total'),
-
-    'problem': _('Unknowns'),
-    'problem:total': _('Total'),
-
-    'resource': _('Consumed resources'),
-    'resource:total': _('Total'),
-    'tag': _('Tags'),
-    'tag:safe': _('Safes'),
-    'tag:unsafe': _('Unsafes'),
-    'identifier': _('Identifier'),
-    'version': _('Version'),
-    'parent_id': format_lazy('{0}/{1}', _('Parent'), _('Identifier')),
-    'role': _('Your role'),
-    'priority': _('Priority'),
-    'start_date': _('Decision start date'),
-    'finish_date': _('Decision finish date'),
-    'solution_wall_time': _('Decision wall time'),
-    'operator': _('Operator'),
-
-    'tasks': _('Verification tasks'),
-    'tasks:pending': _('Pending'),
-    'tasks:processing': _('Processing'),
-    'tasks:finished': _('Finished'),
-    'tasks:error': _('Error'),
-    'tasks:cancelled': _('Cancelled'),
-    'tasks:total': _('Total'),
-    'tasks:solutions': _('Number of decisions'),
-    'tasks:total_ts': _('Total to be solved'),
-    'tasks:start_ts': _('Start solution date'),
-    'tasks:finish_ts': _('Finish solution date'),
-    'tasks:progress_ts': _('Solution progress'),
-    'tasks:expected_time_ts': _('Expected solution time'),
-
-    'subjobs': _('Subjobs'),
-    'subjobs:total_sj': _('Total to be solved'),
-    'subjobs:start_sj': _('Start solution date'),
-    'subjobs:finish_sj': _('Finish solution date'),
-    'subjobs:progress_sj': _('Solution progress'),
-    'subjobs:expected_time_sj': _('Expected solution time'),
-}
 
 
 def months_choices():
@@ -196,10 +130,10 @@ def decisions_with_view_access(user: User, queryset):
 def get_core_link(decision):
     if decision.weight == DECISION_WEIGHT[1][0]:
         return None
-    core = ReportComponent.objects.filter(parent=None, decision=decision).only('id').first()
+    core = ReportComponent.objects.filter(parent=None, decision=decision).only('identifier').first()
     if not core:
         return None
-    return reverse('reports:component', args=[core.id])
+    return reverse('reports:component', args=[decision.identifier, core.identifier])
 
 
 def get_roles_form_data(job=None):
@@ -372,10 +306,10 @@ class DecisionProgressData:
     def core_link(self):
         if self._decision.weight == DECISION_WEIGHT[1][0]:
             return None
-        core = ReportComponent.objects.filter(parent=None, decision=self._decision).only('id').first()
+        core = ReportComponent.objects.filter(parent=None, decision=self._decision).only('identifier').first()
         if not core:
             return None
-        return reverse('reports:component', args=[core.id])
+        return reverse('reports:component', args=[self._decision.identifier, core.identifier])
 
 
 class CompareFileSet:
@@ -494,7 +428,7 @@ class JSTreeConverter:
     def __get_children_data(self, obj_p, prefix=None):
         assert isinstance(obj_p, dict)
         if not obj_p['text']:
-            raise BridgeException(_("The file/folder name can't be empty"))
+            raise BridgeException(_("The file/directory name can't be empty"))
         files = []
         name = ((prefix + self.file_sep) if prefix else '') + obj_p['text']
         if obj_p['type'] == 'file':

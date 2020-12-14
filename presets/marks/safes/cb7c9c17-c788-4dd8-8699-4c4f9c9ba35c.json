@@ -12,8 +12,7 @@
     }
   ],
   "description": "",
-  "function": "Error: Error in recursive analysis",
-  "is_modifiable": false,
-  "is_regexp": false,
-  "problem_pattern": "Recursion"
+  "is_modifiable": true,
+  "tags": [],
+  "verdict": "0"
 }

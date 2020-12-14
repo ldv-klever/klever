@@ -39,16 +39,18 @@
     <div class="ui grid">
         <div class="eight wide column">
 
-            {# Preset job menu #}
-            <div class="ui violet inverted menu top attached">
-                {# Check PRESET_JOB_TYPE #}
-                {% if object.type == '1' %}
-                    <a id="create_preset_dir_btn" class="item"><i class="plus icon"></i> {% trans 'Add preset directory' %}</a>
-                {% endif %}
-                {% if can_create %}
-                    <a href="{% url 'jobs:job-create-form' object.id %}" class="item"><i class="copy icon"></i> {% trans 'Create new job' %}</a>
-                {% endif %}
-            </div>
+            {# Check PRESET_JOB_TYPE #}
+            {% if object.type != '0' %}
+                {# Preset job menu #}
+                <div class="ui violet inverted menu top attached">
+                    {% if object.type == '1' %}
+                        <a id="create_preset_dir_btn" class="item"><i class="plus icon"></i> {% trans 'Add jobs directory' %}</a>
+                    {% endif %}
+                    {% if can_create %}
+                        <a href="{% url 'jobs:job-create-form' object.id %}" class="item"><i class="copy icon"></i> {% trans 'Create new job' %}</a>
+                    {% endif %}
+                </div>
+            {% endif %}
 
             {# Job data table #}
             <table class="ui selectable compact inverted violet table attached">
@@ -62,14 +64,15 @@
                 <tbody>
                     {% if object.identifier %}
                         <tr><th class="right aligned">{% trans 'Identifier' %}</th><td>{{ object.identifier }}</td></tr>
+                        <tr>
+                            <th class="right aligned">{% trans 'Files check date' %}</th>
+                            <td>{% if user.data_format == 'hum' %}{{ object.check_date|naturaltime }}{% else %}{{ object.check_date }}{% endif %}</td>
+                        </tr>
                     {% endif %}
-                    <tr>
-                        <th class="right aligned">{% trans 'Files check date' %}</th>
-                        <td>{% if user.data_format == 'hum' %}{{ object.check_date|naturaltime }}{% else %}{{ object.check_date }}{% endif %}</td>
-                    </tr>
+
                     {% if parents|length %}
                         <tr>
-                            <th class="right aligned">{% if object.type == '2' %}{% trans 'Job directory parents' %}{% else %}{% trans 'Preset job parents' %}{% endif %}</th>
+                            <th class="right aligned">{% if object.type == '1' %}{% trans 'Preset job parents' %}{% else %}{% trans 'Job directory parents' %}{% endif %}</th>
                             <td>{% include 'jobs/parents.html' with parents=parents %}</td>
                         </tr>
                     {% endif %}
@@ -82,8 +85,10 @@
                 </tbody>
             </table>
 
-            {# Files tree #}
-            {% include 'jobs/filesTree.html' with data=files div_id='filestree_container' %}
+            {% if files %}
+                {# Files tree #}
+                {% include 'jobs/filesTree.html' with data=files div_id='filestree_container' %}
+            {% endif %}
         </div>
         <div class="eight wide column"></div>
     </div>
@@ -94,7 +99,7 @@
     </div>
 
     {% if object.type == '1' %}
-        {# Create preset directory name modal #}
+        {# Create jobs directory name modal #}
         <div id="create_preset_dir_modal" class="ui modal">
             <div class="header">{% trans 'Please, set the unique name for the new jobs directory' %}</div>
             <div class="content">
@@ -108,7 +113,7 @@
             </div>
         </div>
     {% elif object.type == '2' %}
-        {# Change preset directory name modal #}
+        {# Change jobs directory name modal #}
         <div id="change_preset_dir_modal" class="ui modal">
             <div class="header">{% trans 'Please, set the unique name for the new jobs directory' %}</div>
             <div class="content">
@@ -129,7 +134,7 @@
                 {% trans 'Are you sure' %}?
             </div>
             <div class="content">
-                <div class="ui center aligned grid">{% trans 'If the preset directory has jobs it will be deleted' %}</div>
+                <div class="ui center aligned grid">{% trans 'If the jobs directory has jobs they will be deleted' %}</div>
             </div>
             <div class="actions">
                 <div class="ui center aligned grid">

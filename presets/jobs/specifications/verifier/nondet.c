@@ -16,10 +16,10 @@
  */
 
 #include <ldv/verifier/common.h>
+#include <ldv/verifier/memory.h>
 #include <ldv/verifier/nondet.h>
-#include <stddef.h>
 
-typedef void* loff_t;
+typedef void *loff_t;
 typedef long u32;
 typedef int u16;
 typedef short u8;
@@ -118,7 +118,7 @@ void *ldv_undef_ptr_non_null(void)
 {
 	void *ret = ldv_undef_ptr();
 
-	ldv_assume(ret != NULL);
+	ldv_assume(ret);
 
 	return ret;
 }

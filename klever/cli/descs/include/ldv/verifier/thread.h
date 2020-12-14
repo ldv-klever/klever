@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+/* TODO: It seems that pthread.h is a more appropriate name for this header file. */
+
 #ifndef __LDV_VERIFIER_THREAD_H
 #define __LDV_VERIFIER_THREAD_H
 

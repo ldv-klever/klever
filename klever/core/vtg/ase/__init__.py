@@ -46,7 +46,7 @@ class ASE(klever.core.vtg.plugins.Plugin):
             if os.path.isfile(arg_signs_file):
                 self.logger.info('Process obtained argument signatures from file "{0}"'.format(arg_signs_file))
                 # We could obtain the same argument signatures, so remove duplicates.
-                with open(arg_signs_file, encoding='utf8') as fp:
+                with open(arg_signs_file, encoding='utf-8') as fp:
                     arg_signs = set(fp.read().splitlines())
                 self.logger.debug('Obtain following argument signatures "{0}"'.format(arg_signs))
 
@@ -119,9 +119,9 @@ class ASE(klever.core.vtg.plugins.Plugin):
                             aspects.extend(plugin_aspects['aspects'])
 
                         # Concatenate aspects.
-                        with open(aspect, 'w', encoding='utf8') as fout, fileinput.input(
+                        with open(aspect, 'w', encoding='utf-8') as fout, fileinput.input(
                                 [os.path.join(self.conf['main working directory'], aspect) for aspect in aspects],
-                                openhook=fileinput.hook_encoded('utf8')) as fin:
+                                openhook=fileinput.hook_encoded('utf-8')) as fin:
                             for line in fin:
                                 fout.write(line)
                     else:
@@ -131,6 +131,10 @@ class ASE(klever.core.vtg.plugins.Plugin):
                     if meta['conf'].get('Compiler.preprocess_cmds', False) and \
                             'klever-core-work-dir' not in storage_path:
                         storage_path = storage_path.split('.c')[0] + '.i'
+
+                    opts = cc['opts']
+                    # Like in Weaver.
+                    opts.append(klever.core.vtg.utils.define_arch_dependent_macro(self.conf))
 
                     klever.core.utils.execute(
                         self.logger,
@@ -146,7 +150,7 @@ class ASE(klever.core.vtg.plugins.Plugin):
                             ] +
                             (['--keep'] if self.conf['keep intermediate files'] else []) +
                             ['--'] +
-                            klever.core.vtg.utils.prepare_cif_opts(cc['opts'], clade) +
+                            klever.core.vtg.utils.prepare_cif_opts(opts, clade) +
                             [
                                 # Like in Weaver.
                                 '-I' + os.path.join(os.path.dirname(self.conf['specifications base']), 'include'),

@@ -16,13 +16,13 @@
 #
 
 from collections import OrderedDict, Mapping
-from django.db.models import F, Count, Case, When, BooleanField
+from django.db.models import F, Count, Case, When
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 
 from rest_framework import serializers, fields, exceptions
 
-from bridge.vars import ASSOCIATION_TYPE, SAFE_VERDICTS, UNSAFE_VERDICTS
+from bridge.vars import SAFE_VERDICTS, UNSAFE_VERDICTS
 from bridge.serializers import TimeStampField
 
 from jobs.models import Decision
@@ -59,32 +59,28 @@ class VerdictsSerializerRO(serializers.ModelSerializer):
 
     def get_unknowns(self, instance):
         unknowns_data = {}
+        total_unknowns = {}
 
-        # Marked/Unmarked unknowns
-        unconfirmed_annotation = Case(
-            When(markreport_set__type=ASSOCIATION_TYPE[2][0], then=True),
-            default=False, output_field=BooleanField()
-        )
-        queryset = ReportUnknown.objects.filter(decision=instance) \
-            .values('component', 'markreport_set__problem') \
-            .annotate(number=Count('id', distinct=True), unconfirmed=unconfirmed_annotation) \
-            .values_list('component', 'markreport_set__problem', 'number', 'unconfirmed')
-        for component, problem, number, unconfirmed in queryset:
-            data_key = (component, 'Without marks' if problem is None or unconfirmed else problem)
-            unknowns_data.setdefault(data_key, 0)
-            unknowns_data[data_key] += number
-        unknowns_list = list({
+        queryset = ReportUnknown.objects.filter(decision=instance).values_list('component', 'cache__problems')
+        for component, problems_data in queryset:
+            total_unknowns.setdefault(component, 0)
+            total_unknowns[component] += 1
+
+            if problems_data:
+                for problem in problems_data:
+                    data_key = (component, problem)
+                    unknowns_data.setdefault(data_key, 0)
+                    unknowns_data[data_key] += 1
+            else:
+                data_key = (component, 'Without marks')
+                unknowns_data.setdefault(data_key, 0)
+                unknowns_data[data_key] += 1
+        return list({
             'component': component, 'problem': problem,
             'number': unknowns_data[component, problem]
-        } for component, problem in sorted(unknowns_data))
-
-        # Total unknowns for each component
-        queryset = ReportUnknown.objects.filter(decision=instance) \
-            .values('component').annotate(number=Count('id')) \
-            .values_list('component', 'number').order_by('component')
-        totals_list = list({'component': component, 'problem': 'Total', 'number': number}
-                           for component, number in queryset)
-        return unknowns_list + totals_list
+        } for component, problem in sorted(unknowns_data)) + list({
+            'component': component, 'problem': 'Total', 'number': total_unknowns[component]
+        } for component in sorted(total_unknowns))
 
     class Meta:
         model = Decision
@@ -238,8 +234,8 @@ class DecisionResultsSerializerRO(serializers.ModelSerializer):
 class ComputerDataField(fields.Field):
     initial = []
     default_error_messages = {
-        'not_a_list': _('Expected a list of items but got type "{input_type}".'),
-        'prop_wrong': _('Computer property has wrong format.'),
+        'not_a_list': _('Expected a list of items but got type "{input_type}"'),
+        'prop_wrong': _('Computer data has wrong format'),
     }
 
     def get_value(self, dictionary):
@@ -302,9 +298,9 @@ class ReportComponentSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         # Decision, computer, parent must be specified in save() method
-        assert 'decision' in validated_data, _('Report decision is required')
-        assert 'computer' in validated_data, _('Report computer is required')
-        assert 'parent' in validated_data, _('Report parent is required')
+        assert 'decision' in validated_data, _('Report decision attribute is required')
+        assert 'computer' in validated_data, _('Report computer attribute is required')
+        assert 'parent' in validated_data, _('Report parent attribute is required')
         return super().create(validated_data)
 
     class Meta:
@@ -324,3 +320,12 @@ class OriginalSourcesSerializer(serializers.ModelSerializer):
     class Meta:
         model = OriginalSources
         fields = '__all__'
+
+
+class PatchReportAttrSerializer(serializers.ModelSerializer):
+    def create(self, validated_data):
+        raise NotImplementedError('Attribute creation is not supported here')
+
+    class Meta:
+        model = ReportAttr
+        fields = ('compare', 'associate')

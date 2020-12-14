@@ -168,7 +168,7 @@
                     </div>
                     <div id="download_verifier_files_problems" class="ten wide column">
                         {% if reportdata.problems|length %}
-                            <p><small>{% trans "If you don't choose unknowns' problems then all unknowns files will be downloaded" %}</small></p>
+                            <p><small>{% trans "If you will not choose unknown problems then all verifier input files corresponding to unknowns will be downloaded" %}</small></p>
                         {% endif %}
                         {% for p in reportdata.problems %}
                             <div class="ui checkbox">

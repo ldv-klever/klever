@@ -81,7 +81,8 @@ class FragmentationAlgorythm:
         else:
             self.logger.info("Extract full dependencies between files and functions")
             memory_efficient_mode = False
-        deps = Program(self.logger, self.clade, self.source_paths, memory_efficient_mode=memory_efficient_mode)
+        deps = Program(self.logger, self.clade, self.source_paths, memory_efficient_mode,
+                       self.tactic.get("ignore missing files"))
 
         # Decompose using units
         self.logger.info("Determine units in the target program")
@@ -123,7 +124,7 @@ class FragmentationAlgorythm:
 
         # Prepare program fragments
         self.logger.info("Generate program fragments")
-        fragments_files = self.__generate_program_fragments_descriptions(deps, grps)
+        pairs = self.__generate_program_fragments_descriptions(deps, grps)
 
         # Prepare data attributes
         self.logger.info("Prepare data attributes for generated fragments")
@@ -135,7 +136,7 @@ class FragmentationAlgorythm:
             for fragment in deps.fragments:
                 self.__draw_fragment(fragment)
 
-        return attr_data, fragments_files
+        return attr_data, pairs
 
     def _determine_units(self, program):
         """
@@ -305,7 +306,7 @@ class FragmentationAlgorythm:
                 "size": str(sum(int(f.size) for f in frags))
             }
 
-        with open('agregations description.json', 'w', encoding='utf8') as fp:
+        with open('agregations description.json', 'w', encoding='utf-8') as fp:
             ujson.dump(data, fp, sort_keys=True, indent=4, ensure_ascii=False,
                        escape_forward_slashes=False)
 
@@ -340,12 +341,12 @@ class FragmentationAlgorythm:
 
         :param program: Program object.
         :param grps: Dictionary with program fragments with dependecnies.
-        :return: A list of file names.
+        :return: A list of pairs of fragment and related file names.
         """
-        files = list()
+        pairs = list()
         for name, grp in grps.items():
-            files.append(self.__describe_program_fragment(program, name, grp))
-        return files
+            pairs.append((name, self.__describe_program_fragment(program, name, grp)))
+        return pairs
 
     def __describe_program_fragment(self, program, name, grp):
         """
@@ -387,11 +388,11 @@ class FragmentationAlgorythm:
         if os.path.isfile(pf_desc_file):
             raise FileExistsError('Program fragment description file {!r} already exists'.format(pf_desc_file))
         self.logger.debug('Dump program fragment description {!r} to file {!r}'.format(pf_desc['fragment'], pf_desc_file))
-        dir_path = os.path.dirname(pf_desc_file).encode('utf8')
+        dir_path = os.path.dirname(pf_desc_file).encode('utf-8')
         if dir_path:
             os.makedirs(dir_path, exist_ok=True)
 
-        with open(pf_desc_file, 'w', encoding='utf8') as fp:
+        with open(pf_desc_file, 'w', encoding='utf-8') as fp:
             ujson.dump(pf_desc, fp, sort_keys=True, indent=4, ensure_ascii=False, escape_forward_slashes=False)
         return pf_desc_file
 

@@ -15,7 +15,6 @@
 # limitations under the License.
 #
 
-import fileinput
 import glob
 import json
 import os
@@ -74,16 +73,16 @@ class Weaver(klever.core.vtg.plugins.Plugin):
                         infile = infile('.c')[0] + '.i'
                 else:
                     with open(os.path.join(self.conf['main working directory'], extra_cc['CC']),
-                              encoding='utf8') as fp:
+                              encoding='utf-8') as fp:
                         cc = json.load(fp)
 
                     infile = cc["in"][0]
 
                 # Distinguish source files having the same names.
-                outfile_unique = '{0}.c'.format(
-                    klever.core.utils.unique_file_name(os.path.splitext(os.path.basename(infile))[0], '.c'))
+                outfile_unique = '{0}.i'.format(
+                    klever.core.utils.unique_file_name(os.path.splitext(os.path.basename(infile))[0], '.i'))
                 # This is used for storing/getting to/from cache where uniqueness is guaranteed by other means.
-                outfile = '{0}.c'.format(os.path.splitext(os.path.basename(infile))[0])
+                outfile = '{0}.i'.format(os.path.splitext(os.path.basename(infile))[0])
                 self.logger.info('Weave in C file "{0}"'.format(infile))
 
                 # Produce aspect to be weaved in.
@@ -104,11 +103,16 @@ class Weaver(klever.core.vtg.plugins.Plugin):
                             aspects.extend(plugin_aspects['aspects'])
 
                     # Concatenate aspects.
-                    with open(aspect, 'w', encoding='utf8') as fout, fileinput.input(
-                            [os.path.join(self.conf['main working directory'], aspect) for aspect in aspects],
-                            openhook=fileinput.hook_encoded('utf8')) as fin:
-                        for line in fin:
-                            fout.write(line)
+                    with open(aspect, 'w', encoding='utf-8') as fout:
+                        for a in aspects:
+                            with open(os.path.join(self.conf['main working directory'], a), encoding='utf-8') as fin:
+                                for line in fin:
+                                    fout.write(line)
+                                # Aspects may not terminate with the new line symbol that will cause horrible syntax
+                                # errors when parsing the concatenated aspect, e.g. when the last line of some aspect is
+                                # a one-line comment "//" that will truncate the first line of the next aspect.
+                                if not line.endswith('\n'):
+                                    fout.write('\n')
                 else:
                     # Instrumentation is not required when there is no aspects. But we will still pass source files
                     # through C-backend to make resulting code to look similarly and thus to avoid different issues
@@ -120,6 +124,10 @@ class Weaver(klever.core.vtg.plugins.Plugin):
                 else:
                     self.logger.info('C file will be passed through C Back-end only')
 
+                opts = cc['opts']
+                # Some stuff, e.g. size_t definition, may be architecture dependent.
+                opts.append(klever.core.vtg.utils.define_arch_dependent_macro(self.conf))
+
                 cwd = clade.get_storage_path(cc['cwd'])
 
                 is_model = (grp['id'] == 'models')
@@ -127,16 +135,13 @@ class Weaver(klever.core.vtg.plugins.Plugin):
                 # Original sources should be woven in and we do not need to get cross references for them since this
                 # was already done before.
                 if not is_model:
-                    self.__weave(infile, cc['opts'], aspect, outfile_unique, clade, env, cwd,
-                                 aspectator_search_dir, is_model)
+                    self.__weave(infile, opts, aspect, outfile_unique, clade, env, cwd, aspectator_search_dir, is_model)
                 # For generated models we need to weave them in (actually, just pass through C Back-end) and to get
                 # cross references always since most likely they all are different.
                 elif 'generated' in extra_cc:
-                    self.__weave(infile, cc['opts'], aspect, outfile_unique, clade, env, cwd,
-                                 aspectator_search_dir, is_model)
+                    self.__weave(infile, opts, aspect, outfile_unique, clade, env, cwd, aspectator_search_dir, is_model)
                     if self.conf['code coverage details'] != 'Original C source files':
-                        self.__get_cross_refs(infile, cc['opts'], outfile_unique, clade, cwd,
-                                              aspectator_search_dir)
+                        self.__get_cross_refs(infile, opts, outfile_unique, clade, cwd, aspectator_search_dir)
                 # For non-generated models use results cache in addition.
                 else:
                     cache_dir = os.path.join(self.conf['cache directory'],
@@ -152,14 +157,13 @@ class Weaver(klever.core.vtg.plugins.Plugin):
                                 self.__merge_additional_srcs(os.path.join(cache_dir, 'additional sources'))
                         else:
                             os.makedirs(cache_dir)
-                            self.__weave(infile, cc['opts'], aspect, outfile_unique, clade, env, cwd,
-                                         aspectator_search_dir, is_model)
+                            self.__weave(infile, opts, aspect, outfile_unique, clade, env, cwd, aspectator_search_dir,
+                                         is_model)
                             self.logger.info('Store woven in C file to cache')
                             shutil.copy(outfile_unique, os.path.join(cache_dir, outfile))
 
                             if self.conf['code coverage details'] != 'Original C source files':
-                                self.__get_cross_refs(infile, cc['opts'], outfile_unique, clade, cwd,
-                                                      aspectator_search_dir)
+                                self.__get_cross_refs(infile, opts, outfile_unique, clade, cwd, aspectator_search_dir)
                                 self.logger.info('Store cross references to cache')
                                 shutil.copytree(outfile_unique + ' additional sources',
                                                 os.path.join(cache_dir, 'additional sources'))
@@ -230,7 +234,7 @@ class Weaver(klever.core.vtg.plugins.Plugin):
                 ] +
                 (['--keep'] if self.conf['keep intermediate files'] else []) +
                 (['--aspect', os.path.realpath(aspect)] if aspect else ['--stage', 'C-backend']) +
-                ['--', '-include', 'ldv/common/inline_asm.h'] +
+                ['--', '-include', self.conf['LDV inline Assembler header file']] +
                 klever.core.vtg.utils.prepare_cif_opts(opts, clade, is_model) +
                 [aspectator_search_dir] +
                 ['-I' + clade.get_storage_path(p) for p in self.conf['working source trees']]

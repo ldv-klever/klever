@@ -16,7 +16,7 @@
     "wait controller initialization": true,
     "disable CPU cores account": false,
     "concurrent jobs": 1,
-    "processes": 1.0,
+    "processes": 1.3,
     "controller address": "http://localhost:8500",
     "keep working directory": false,
     "job client configuration": "/abs/path/to/job-client.json",
@@ -24,7 +24,8 @@
     "ignore BenchExec warnings": [
       "CPU throttled itself during benchmarking due to overheating",
       "Cputime measured by wait was",
-      "System has swapped during benchmarking. Benchmark results are unreliable!"
+      "System has swapped during benchmarking. Benchmark results are unreliable!",
+      "Unable to find pqos_wrapper"
     ]
   },
   "common": {
@@ -55,7 +56,7 @@
           "filename": "info.log",
           "maxBytes": 10485760,
           "backupCount": 20,
-          "encoding": "utf8"
+          "encoding": "utf-8"
         },
         "error_file_handler": {
           "class": "logging.handlers.RotatingFileHandler",
@@ -64,7 +65,7 @@
           "filename": "errors.log",
           "maxBytes": 10485760,
           "backupCount": 20,
-          "encoding": "utf8"
+          "encoding": "utf-8"
         }
       },
       "loggers": {

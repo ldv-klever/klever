@@ -21,6 +21,7 @@
 {% load tz %}
 {% load static %}
 {% load compress %}
+{% load tableheader %}
 
 {% block title %}{{ report.component }}{% endblock %}
 
@@ -76,15 +77,7 @@
             <h4 class="header ui violet">{% trans 'Attributes' %}</h4>
             <div style="overflow-x: auto">
                 <table class="ui violet celled table">
-                    <thead>
-                        {% for column_row in SelfAttrsData.header %}
-                            <tr class="info">
-                            {% for coldata in column_row %}
-                                <th colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.title }}</th>
-                            {% endfor %}
-                            </tr>
-                        {% endfor %}
-                    </thead>
+                    <thead>{% tableheader SelfAttrsData.columns 0 %}</thead>
                     <tbody>
                     <tr>
                         {% for v, attr_id in SelfAttrsData.values %}
@@ -148,7 +141,7 @@
             {% include 'jobs/viewDecision/coverage.html' with Coverage=Coverage %}
         {% elif VerificationCoverage and VerificationCoverage.statistics|length %}
             <div class="ui violet segment">
-                <div class="ui top left attached violet label">{% trans 'Coverage' %}</div>
+                <div class="ui top left attached violet label">{% trans 'Code coverage' %}</div>
                 {% include 'jobs/viewDecision/coverageTable.html' with statistics=VerificationCoverage.statistics %}
             </div>
         {% endif %}
@@ -184,15 +177,7 @@
                 </div>
                 <div style="overflow: auto;max-height: 40vh;">
                     <table class="ui celled compact teal table selectable alternate-color">
-                        <thead>
-                            {% for column_row in TableData.header %}
-                                <tr>
-                                {% for coldata in column_row %}
-                                    <th colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.title }}</th>
-                                {% endfor %}
-                                </tr>
-                            {% endfor %}
-                        </thead>
+                        <thead>{% tableheader TableData.columns TableData.titles %}</thead>
                         <tbody>
                             {% for row in TableData.values %}
                                 <tr>

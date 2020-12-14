@@ -48,6 +48,7 @@
 
     {% compress css file etv %}
         <link href="{% static 'reports/css/ETV.css' %}" rel="stylesheet">
+        <link href="{% static 'reports/css/ETV_Note.css' %}" rel="stylesheet">
     {% endcompress %}
 {% endblock %}
 
@@ -67,7 +68,7 @@
         </div>
         <div class="seven wide column right aligned">
             {% if coverage %}
-                <a class="ui icon mini basic button" href="{% url 'reports:coverage-download' coverage.coverage.id %}" style="float:left;">{% trans 'Download coverage' %}</a>
+                <a class="ui icon mini basic button" href="{% url 'reports:coverage-download' coverage.coverage.id %}" style="float:left;">{% trans 'Download code coverage' %}</a>
                 <div class="ui mini icon buttons">
                     <button id="prev_cov_btn" class="ui green button note-popup" data-content="{% trans 'Previous covered function' %}"><i class="step backward icon"></i></button>
                     <button id="next_cov_btn" class="ui green button note-popup" data-content="{% trans 'Next covered function' %}"><i class="step forward icon"></i></button>
@@ -117,7 +118,7 @@
                     <div class="content">
                         <span class="purple-subtitle">{% trans 'Wall time' %}: </span>{{ resources.wall_time }}<br>
                         <span class="purple-subtitle">{% trans 'CPU time' %}: </span>{{ resources.cpu_time }}<br>
-                        <span class="purple-subtitle">{% trans 'Memory' %}: </span>{{ resources.memory }}<br>
+                        <span class="purple-subtitle">{% trans 'Memory size' %}: </span>{{ resources.memory }}<br>
                     </div>
                 </div>
             {% endif %}
@@ -125,7 +126,7 @@
             <div class="ui tiny buttons" style="float: right;">
                 <button id="show_leaf_attributes" class="ui violet button">{% trans 'Attributes' %}</button>
                 {% if coverage %}
-                    <button id="get_data_statistic" class="ui purple button">{% trans 'Coverage data statistics' %}</button>
+                    <button id="get_data_statistic" class="ui purple button">{% trans 'Code coverage data statistics' %}</button>
                 {% endif %}
                 {% if verifier_files_url %}
                     <a href="{{ verifier_files_url }}" class="ui violet button">{% trans 'Download verifier input files' %}</a>
@@ -136,14 +137,22 @@
             <div id="leaf_attributes" style="display: none">
                 <table class="ui celled compact purple table">
                     <tbody>
-                        {% for a_id, a_name, a_value, a_data in SelfAttrsData %}
+                        {% for attr in SelfAttrsData %}
                             <tr>
-                                <th class="collapsing">{{ a_name }}</th>
+                                <th class="collapsing">
+                                    {% if attr.compare %}
+                                        <i class="ui violet link columns icon note-popup" data-content="{% trans 'Used for reports comparison' %}"></i>
+                                    {% endif %}
+                                    {% if attr.associate %}
+                                        <i class="ui violet link bookmark outline icon note-popup" data-content="{% trans 'Used for mark associations by default' %}"></i>
+                                    {% endif %}
+                                    {{ attr.name }}
+                                </th>
                                 <td class="collapsing">
-                                    {% if a_data %}
-                                        <a class="file-content-activator" href="#" data-url="{% url 'reports:attr-data-content' a_id %}" data-download="{% url 'reports:attr-data' a_id %}">{{ a_value }}</a>
+                                    {% if attr.data %}
+                                        <a class="file-content-activator" href="#" data-url="{% url 'reports:attr-data-content' attr.id %}" data-download="{% url 'reports:attr-data' attr.id %}">{{ attr.value }}</a>
                                     {% else %}
-                                        <span>{{ a_value }}</span>
+                                        <span>{{ attr.value }}</span>
                                     {% endif %}
                                 </td>
                             </tr>
@@ -161,7 +170,7 @@
                             <div class="ui menu">
                                 <div class="header">{% trans 'Create mark' %}</div>
                                 <a class="item mark-inline-form" data-url="{% url 'marks:unsafe-create-inl' report.id %}"><i class="star outline icon"></i> {% trans 'Lightweight' %}</a>
-                                <a href="{% url 'marks:unsafe-create' report.pk %}" class="item"><i class="star icon"></i> {% trans 'Fullweight' %}</a>
+                                <a href="{% url 'marks:unsafe-create' report.pk %}" class="item"><i class="star icon"></i> {% trans 'Full-weight' %}</a>
                             </div>
                         </div>
                     {% endif %}
@@ -185,7 +194,7 @@
     <br>
 
     {% if coverage %}
-        {# Coverage data statistics modal #}
+        {# Code coverage data statistics modal #}
         {% include 'reports/coverage/coverageDataStatisticsModal.html' with DataStatistics=coverage.data_statistic %}
     {% endif %}
 {% endblock %}

@@ -62,10 +62,12 @@ def preset_job_files_tree_json(preset_job):
     # Get preset files
     if preset_job.type == PRESET_JOB_TYPE[1][0]:
         preset_files_qs = PresetFile.objects.filter(preset=preset_job).values_list('name', 'file__hash_sum')
-    else:
+    elif preset_job.type == PRESET_JOB_TYPE[2][0]:
         # Get files from parent for custom preset job
         preset_files_qs = PresetFile.objects.filter(preset_id=preset_job.parent_id) \
             .values_list('name', 'file__hash_sum')
+    else:
+        return None
     preset_files_hashsums = list((name, hash_sum) for name, hash_sum in preset_files_qs)
     return json.dumps(JSTreeConverter().make_tree(preset_files_hashsums), ensure_ascii=False)
 

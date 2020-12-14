@@ -44,7 +44,7 @@
         {% if tree.can_create %}<button id="create_root_tag" class="ui tiny basic blue button"><i class="ui add icon"></i>{% trans 'Create new root tag' %}</button>{% endif %}
 
         <br><br>
-        <p style="margin-left: 10px"><i class="ui large gift purple icon"></i> <span style="color: #808080" class="italic">- {% trans 'Populated tags' %}</span></p>
+        <p style="margin-left: 10px"><i class="ui large gift purple icon"></i> <span style="color: #808080" class="italic">- {% trans 'Preset tags' %}</span></p>
 
         <div style="display: table">
             {% for row in tree.table %}
@@ -159,7 +159,7 @@
         </div>
     </div>
     <div id="upload_tags_modal" class="ui modal">
-        <div class="header">{% trans 'Upload Tags' %}</div>
+        <div class="header">{% trans 'Upload tags' %}</div>
         <div class="content">
             <div class="ui grid">
                 <div class="four wide column right aligned">

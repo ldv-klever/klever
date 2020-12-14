@@ -25,22 +25,23 @@ from klever.core.pfg.abstractions.fragments_repr import Fragment
 
 class Program:
 
-    def __init__(self, logger, clade, source_paths, memory_efficient_mode=False):
+    def __init__(self, logger, clade, source_paths, memory_efficient_mode=False, skip_missing_files=False):
         """
         The class that represents a program as different data structures: graphs of files or units. Also, it provides
         common methods to extract, modify or delete fragments and other information.
 
-        :param logger:
-        :param clade:
-        :param source_paths:
-        :param memory_efficient_mode:
+        :param logger: Logger object.
+        :param clade: Clade object.
+        :param source_paths: Iterable with paths to source code.
+        :param memory_efficient_mode: Can we build a call graph?
+        :param skip_missing_files: Tolerate errors when a CC input file is missing.
         """
         self.logger = logger
         self.clade = clade
         self.source_paths = source_paths
         self._files = dict()
         self._fragments = dict()
-        self.__divide()
+        self.__divide(skip_missing_files)
         if not memory_efficient_mode:
             self.logger.info("Extract dependencies between files from the program callgraph")
             # This is very memory unefficient operation, so for Linux this is an optional step to prevent consuming
@@ -76,6 +77,37 @@ class Program:
             else:
                 raise ValueError("Cannot create a duplicate fragment {!r}".format(fragment.name))
 
+    def collect_files_from_commands(self, cmd_type, cmds, parent_dir=None):
+        """
+        Create a fragment from the linker command. It adds to the fragment all files from commands of specified type
+        that finally provide sources to this linking command.
+
+        :param cmd_type: Type of the compiling command.
+        :param cmds: command descriptions.
+        :param parent_dir: Ignore files that placed in other directories than given.
+
+        :return: A set of files (paths).
+        """
+        files = set()
+        for desc in cmds:
+            for in_file in desc['in']:
+                if not in_file.endswith('.c'):
+                    self.logger.warning("You should implement more strict filters to reject {!r} commands with such "
+                                        "input files as {!r}".format(cmd_type, in_file))
+                    continue
+                if in_file not in self._files:
+                    self.logger.warning(f"File {in_file} was not imported")
+                    continue
+
+                if not parent_dir or (parent_dir and os.path.dirname(in_file) == parent_dir):
+                    file = self._files[in_file]
+                    files.add(file)
+
+        if len(files) == 0:
+            self.logger.warning("Cannot find C files for {} commands".format(cmd_type))
+
+        return files
+
     def create_fragment_from_linker_cmds(self, identifier, fragmentation_set_conf, name, sep_nestd=False, add=False,
                                          cmd_type='CC'):
         """
@@ -91,28 +123,45 @@ class Program:
         :return: Fragment object.
         """
         cmds = self.clade.get_root_cmds_by_type(identifier, cmd_type)
-
-        files = set()
-        for cmd in cmds:
-            desc = self.clade.get_cmd(cmd)
-
-            for in_file in desc['in']:
-                if not in_file.endswith('.c'):
-                    self.logger.warning("You should implement more strict filters to reject {!r} commands with such "
-                                        "input files as {!r}".format(cmd_type, in_file))
-                    continue
-
-                if not sep_nestd or \
-                        (sep_nestd and os.path.dirname(in_file) == os.path.dirname(fragmentation_set_conf['out'][0])):
-                    file = self._files[in_file]
-                    files.add(file)
-
-        if len(files) == 0:
+        files = self.collect_files_from_commands(cmd_type, map(self.clade.get_cmd, cmds),
+                                                 os.path.dirname(fragmentation_set_conf['out'][0]) if sep_nestd
+                                                 else None)
+        if not files:
             self.logger.warning('Cannot find C files for linker command {!r}'.format(name))
-
         fragment = self.create_fragment(name, files, add=add)
-
         return fragment
+
+    def cmnds_recursive_tree_traversing(self, compilation_kind, root_kinds):
+        # Build a dict out -> cmd
+        roots = {kind: {desc['out'][0]: desc for desc in self.clade.get_all_cmds_by_type(kind) if desc['out']}
+                 for kind in root_kinds}
+
+        # Go over roots
+        result = dict()
+        for root_kind in root_kinds:
+            for root_id, root_desc in roots[root_kind].items():
+                leafs = set()
+                non_leafs = [root_desc]
+                self.logger.debug(f'Get {root_kind} command {root_desc["id"]}')
+
+                # Search for leafs traversing commands
+                while non_leafs:
+                    desc = non_leafs.pop()
+
+                    using = self.clade.get_root_cmds(desc['id'])
+                    if using:
+                        self.logger.debug(f'Cmd {desc["out"][0]} has {len(using)} children')
+                        non_leafs.extend([self.clade.get_cmd(identifier) for identifier in using])
+                    else:
+                        # This is likely a compilation out
+                        self.logger.debug(f'No children {desc["out"][0]}')
+                        files = self.collect_files_from_commands(compilation_kind, (desc,))
+                        leafs.update(files)
+
+                # Save the result
+                result[root_id] = leafs
+
+        return result
 
     def remove_fragment(self, fragment):
         """
@@ -347,7 +396,7 @@ class Program:
 
         return deps
 
-    def __divide(self):
+    def __divide(self, skip_missing_files=False):
         """Analyze CC commands and add all found .c files for further program decomposition."""
         # Out file is used just to get an identifier for the fragment, thus it is Ok to use a random first. Later we
         # check that all fragments have unique names
@@ -367,7 +416,12 @@ class Program:
                             file.abs_path = abs_file
                             break
                     else:
-                        raise RuntimeError('Cannot calculate path to existing file {!r}'.format(file.name))
+                        msg = 'Cannot calculate path to existing file {!r}'.format(file.name)
+                        if skip_missing_files:
+                            self.logger.warning(msg)
+                            continue
+                        else:
+                            raise RuntimeError(msg)
 
                     file.cmd_id = identifier
                     file.cmd_type = desc['type']

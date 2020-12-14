@@ -20,7 +20,6 @@ from django.contrib.postgres.fields import JSONField, ArrayField
 from django.db import migrations, models
 from django.utils.timezone import now
 
-import uuid
 import mptt.fields
 import bridge.utils
 import reports.models
@@ -202,7 +201,6 @@ class Migration(migrations.Migration):
                 auto_created=True, on_delete=models.deletion.CASCADE, parent_link=True,
                 primary_key=True, serialize=False, to='reports.Report'
             )),
-            ('trace_id', models.UUIDField(db_index=True, default=uuid.uuid4, unique=True)),
             ('error_trace', models.FileField(upload_to='Unsafes/%Y/%m')),
         ], options={'db_table': 'report_unsafe'}, bases=(bridge.utils.WithFilesMixin, 'reports.report')),
 
@@ -231,6 +229,13 @@ class Migration(migrations.Migration):
             ('lines_covered_extra', models.PositiveIntegerField(default=0)),
             ('lines_total_extra', models.PositiveIntegerField(default=0)),
         ], options={'db_table': 'report_coverage_statistics'}),
+
+        migrations.CreateModel(name='SourceCodeCache', fields=[
+            ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+            ('identifier', models.CharField(db_index=True, max_length=256)),
+            ('file', models.FileField(upload_to=reports.models.source_code_path)),
+            ('access_date', models.DateTimeField(auto_now=True)),
+        ], options={'db_table': 'cache_source_code'}, bases=(bridge.utils.WithFilesMixin, models.Model)),
 
         migrations.AddIndex(
             model_name='reportattr', index=models.Index(fields=['name', 'value'], name='report_attr_name_e431b9_idx'),

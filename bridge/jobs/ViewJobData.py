@@ -22,70 +22,146 @@ from django.urls import reverse
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 
-from bridge.vars import ASSOCIATION_TYPE, SafeVerdicts, UnsafeVerdicts, DECISION_WEIGHT
+from bridge.vars import DECISION_WEIGHT
 
 from reports.models import ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent, Report, DecisionCache
 from marks.models import MarkUnknownReport, SafeTag, UnsafeTag
 from caches.models import ReportSafeCache, ReportUnsafeCache
 
 from users.utils import HumanizedValue
-from jobs.utils import TITLES
+from reports.verdicts import safe_color, unsafe_color, SafeColumns, UnsafeColumns
 
 
 def get_leaves_totals(**qs_kwargs):
     data = {}
-    data.update(ReportSafe.objects.filter(**qs_kwargs).aggregate(
-        safes=Count('id'),
-        safes_confirmed=Count(Case(When(cache__marks_confirmed__gt=0, then=1))),
-    ))
-    data.update(ReportUnsafe.objects.filter(**qs_kwargs).aggregate(
-        unsafes=Count('id'),
-        unsafes_confirmed=Count(Case(When(cache__marks_confirmed__gt=0, then=1))),
-    ))
-    data.update(ReportUnknown.objects.filter(**qs_kwargs).aggregate(
-        unknowns=Count('id'),
-        unknowns_confirmed=Count(Case(When(cache__marks_confirmed__gt=0, then=1))),
-    ))
+    data.update(ReportSafe.objects.filter(**qs_kwargs).aggregate(safes=Count('id', distinct=True)))
+    data.update(ReportUnsafe.objects.filter(**qs_kwargs).aggregate(unsafes=Count('id', distinct=True)))
+    data.update(ReportUnknown.objects.filter(**qs_kwargs).aggregate(unknowns=Count('id', distinct=True)))
     return data
 
 
-class VerdictsInfo:
-    def __init__(self, view, base_url, queryset, verdicts):
+class SafesInfo:
+    def __init__(self, view, base_url):
         self._base_url = base_url
-        self._verdicts = verdicts
-        self._queryset = queryset
-        self._with_confirmed = 'hidden' not in view or 'confirmed_marks' not in view['hidden']
+        self._detailed = 'hidden' not in view or 'detailed_verdicts' not in view['hidden']
 
-        self.info = self.__get_verdicts_info()
-
-    def __get_verdicts_info(self):
-        verdicts_qs = self._queryset.values('cache__verdict').annotate(
-            total=Count('id'), confirmed=Count(Case(When(cache__marks_confirmed__gt=0, then=1)))
-        ).values_list('cache__verdict', 'confirmed', 'total')
-
-        verdicts_numbers = {}
-        for verdict, confirmed, total in verdicts_qs:
-            if total == 0 or verdict is None:
-                continue
-            column = self._verdicts.column(verdict)
-            if column not in verdicts_numbers:
-                verdicts_numbers[column] = {
-                    'title': TITLES.get(column, column),
-                    'verdict': verdict,
-                    'url': self._base_url,
-                    'total': 0
-                }
-                if self._with_confirmed:
-                    verdicts_numbers[column]['confirmed'] = 0
-            verdicts_numbers[column]['total'] += total
-            if self._with_confirmed:
-                verdicts_numbers[column]['confirmed'] += confirmed
+    def __collect_detailed_info(self, **kwargs):
+        columns = SafeColumns(detailed=True)
+        queryset = ReportSafe.objects.filter(**kwargs).values('cache__verdict').annotate(
+            total=Count('id', distinct=True),
+            manual=Count(Case(When(cache__marks_confirmed__gt=0, then=F('id')), default=None), distinct=True)
+        ).order_by('cache__verdict').values_list('cache__verdict', 'manual', 'total')
 
         info_data = []
-        for column in self._verdicts.columns():
-            if column in verdicts_numbers and verdicts_numbers[column]['total']:
-                info_data.append(verdicts_numbers[column])
+        for verdict, manual_num, total_num in queryset:
+            column = columns.get_verdict_column(verdict)
+            verdict_url = "{}?verdict={}".format(self._base_url, verdict)
+            verdict_data = {
+                'title': columns.titles.get(column, column),
+                'url': verdict_url,
+                'color': safe_color(verdict),
+                'value': total_num
+            }
+
+            is_detailed = columns.is_detailed(verdict)
+            if is_detailed:
+                manual_col = columns.get_verdict_column(verdict, manual=True)
+                verdict_data['manual'] = {
+                    'title': columns.titles.get(manual_col, manual_col),
+                    'url': "{}&manual=1".format(verdict_url), 'value': manual_num
+                }
+                automatic_col = columns.get_verdict_column(verdict, manual=False)
+                verdict_data['automatic'] = {
+                    'title': columns.titles.get(automatic_col, automatic_col),
+                    'url': "{}&manual=0".format(verdict_url),
+                    'value': total_num - manual_num
+                }
+            info_data.append(verdict_data)
         return info_data
+
+    def __collect_simple_info(self, **kwargs):
+        columns = SafeColumns()
+        queryset = ReportSafe.objects.filter(**kwargs).values('cache__verdict').annotate(
+            total=Count('id', distinct=True)
+        ).order_by('cache__verdict').values_list('cache__verdict', 'total')
+
+        info_data = []
+        for verdict, total_num in queryset:
+            column = columns.get_verdict_column(verdict)
+            info_data.append({
+                'title': columns.titles.get(column, column),
+                'url': "{}?verdict={}".format(self._base_url, verdict),
+                'color': safe_color(verdict),
+                'value': total_num
+            })
+        return info_data
+
+    def collect_info(self, **kwargs):
+        if self._detailed:
+            return self.__collect_detailed_info(**kwargs)
+        return self.__collect_simple_info(**kwargs)
+
+
+class UnsafesInfo:
+    def __init__(self, view, base_url):
+        self._base_url = base_url
+        self._detailed = 'hidden' not in view or 'detailed_verdicts' not in view['hidden']
+
+    def __collect_detailed_info(self, **kwargs):
+        columns = UnsafeColumns(detailed=True)
+        queryset = ReportUnsafe.objects.filter(**kwargs).values('cache__verdict').annotate(
+            total=Count('id', distinct=True),
+            manual=Count(Case(When(cache__marks_confirmed__gt=0, then=F('id')), default=None), distinct=True)
+        ).order_by('cache__verdict').values_list('cache__verdict', 'manual', 'total')
+
+        info_data = []
+        for verdict, manual_num, total_num in queryset:
+            column = columns.get_verdict_column(verdict)
+            verdict_url = "{}?verdict={}".format(self._base_url, verdict)
+            verdict_data = {
+                'title': columns.titles.get(column, column),
+                'url': verdict_url,
+                'color': unsafe_color(verdict),
+                'value': total_num
+            }
+
+            is_detailed = columns.is_detailed(verdict)
+            if is_detailed:
+                manual_col = columns.get_verdict_column(verdict, manual=True)
+                verdict_data['manual'] = {
+                    'title': columns.titles.get(manual_col, manual_col),
+                    'url': "{}&manual=1".format(verdict_url), 'value': manual_num
+                }
+                automatic_col = columns.get_verdict_column(verdict, manual=False)
+                verdict_data['automatic'] = {
+                    'title': columns.titles.get(automatic_col, automatic_col),
+                    'url': "{}&manual=0".format(verdict_url),
+                    'value': total_num - manual_num
+                }
+            info_data.append(verdict_data)
+        return info_data
+
+    def __collect_simple_info(self, **kwargs):
+        columns = UnsafeColumns()
+        queryset = ReportUnsafe.objects.filter(**kwargs).values('cache__verdict').annotate(
+            total=Count('id', distinct=True)
+        ).order_by('cache__verdict').values_list('cache__verdict', 'total')
+
+        info_data = []
+        for verdict, total_num in queryset:
+            column = columns.get_verdict_column(verdict)
+            info_data.append({
+                'title': columns.titles.get(column, column),
+                'url': "{}?verdict={}".format(self._base_url, verdict),
+                'color': unsafe_color(verdict),
+                'value': total_num
+            })
+        return info_data
+
+    def collect_info(self, **kwargs):
+        if self._detailed:
+            return self.__collect_detailed_info(**kwargs)
+        return self.__collect_simple_info(**kwargs)
 
 
 class UnknownsInfo:
@@ -330,12 +406,13 @@ class ViewJobData:
         self.user = user
         self.view = view
         self.decision = decision
-        self.report = ReportComponent.objects.filter(decision=decision, parent=None).only('id', 'component').first()
+        self.report = ReportComponent.objects.filter(decision=decision, parent=None)\
+            .only('id', 'identifier', 'component').first()
 
     @cached_property
     def core_link(self):
         if self.report and self.decision.weight == DECISION_WEIGHT[0][0]:
-            return reverse('reports:component', args=[self.report.id])
+            return reverse('reports:component', args=[self.decision.identifier, self.report.identifier])
         return None
 
     @cached_property
@@ -364,7 +441,7 @@ class ViewJobData:
     @cached_property
     def problems(self):
         queryset = MarkUnknownReport.objects\
-            .filter(report__decision=self.decision).exclude(type=ASSOCIATION_TYPE[2][0])\
+            .filter(report__decision=self.decision, associated=True)\
             .values_list('report__component', 'problem').distinct().order_by('report__component', 'problem')
 
         cnt = 0
@@ -419,18 +496,14 @@ class ViewJobData:
     def __safes_info(self):
         if not self.report:
             return []
-        return VerdictsInfo(
-            self.view, reverse('reports:safes', args=[self.report.pk]),
-            ReportSafe.objects.filter(decision=self.decision), SafeVerdicts()
-        ).info
+        verdicts_collector = SafesInfo(self.view, reverse('reports:safes', args=[self.report.pk]))
+        return verdicts_collector.collect_info(decision=self.decision)
 
     def __unsafes_info(self):
         if not self.report:
             return []
-        return VerdictsInfo(
-            self.view, reverse('reports:unsafes', args=[self.report.id]),
-            ReportUnsafe.objects.filter(decision=self.decision), UnsafeVerdicts()
-        ).info
+        verdicts_collector = UnsafesInfo(self.view, reverse('reports:unsafes', args=[self.report.pk]))
+        return verdicts_collector.collect_info(decision=self.decision)
 
     def __attr_statistic(self):
         if not self.report:
@@ -513,16 +586,12 @@ class ViewReportData:
         ).info
 
     def __safes_info(self):
-        return VerdictsInfo(
-            self.view, reverse('reports:safes', args=[self.report.pk]),
-            ReportSafe.objects.filter(leaves__report=self.report), SafeVerdicts()
-        ).info
+        verdicts_collector = SafesInfo(self.view, reverse('reports:safes', args=[self.report.pk]))
+        return verdicts_collector.collect_info(leaves__report=self.report)
 
     def __unsafes_info(self):
-        return VerdictsInfo(
-            self.view, reverse('reports:unsafes', args=[self.report.id]),
-            ReportUnsafe.objects.filter(leaves__report=self.report), UnsafeVerdicts()
-        ).info
+        verdicts_collector = UnsafesInfo(self.view, reverse('reports:unsafes', args=[self.report.pk]))
+        return verdicts_collector.collect_info(leaves__report=self.report)
 
     def __attr_statistic(self):
         return AttrStatisticsInfo(self.view, leaves__report=self.report).info

@@ -290,7 +290,7 @@ class CollapseReportsView(LoggedCallMixin, APIView):
     def post(self, request, **kwargs):
         decision = get_object_or_404(Decision, **kwargs)
         if not DecisionAccess(request.user, decision).can_collapse:
-            raise exceptions.PermissionDenied(_("You don't have an access to collapse reports"))
+            raise exceptions.PermissionDenied(_("You don't have an access to collapse the reports tree"))
         collapse_reports(decision)
         return Response({})
 

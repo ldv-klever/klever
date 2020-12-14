@@ -25,7 +25,7 @@ import klever.core.utils
 
 class PFG(klever.core.components.Component):
 
-    PF_FILE = 'program_fragments.json'
+    PF_FILE = 'program fragments.txt'
     PF_DIR = 'program fragments'
 
     def generate_program_fragments(self):
@@ -46,7 +46,7 @@ class PFG(klever.core.components.Component):
 
         # Fragmentation
         strategy = strategy(self.logger, self.conf, tactic, self.PF_DIR)
-        attr_data, fragments_files = strategy.fragmentation(fset, tactic_name, fset_name)
+        attr_data, pairs = strategy.fragmentation(fset, tactic_name, fset_name)
 
         # Prepare attributes
         self.source_paths = strategy.source_paths
@@ -68,7 +68,7 @@ class PFG(klever.core.components.Component):
             self.vals['report id'],
             self.conf['main working directory'])
 
-        self.prepare_descriptions_file(fragments_files)
+        self.prepare_descriptions_file(pairs)
         self.excluded_clean = [self.PF_DIR, self.PF_FILE]
         self.excluded_clean.append(attr_data[1])
         self.logger.debug("Excluded {}".format(', '.join(self.excluded_clean)))
@@ -85,24 +85,25 @@ class PFG(klever.core.components.Component):
         :param dfiles: Fiels to attach as data attribute values.
         """
         klever.core.utils.report(self.logger,
-                          'patch',
-                          {
-                              'identifier': self.id,
-                              'attrs': attrs
-                          },
-                          self.mqs['report files'],
-                          self.vals['report id'],
-                          self.conf['main working directory'])
+                                 'patch',
+                                 {
+                                   'identifier': self.id,
+                                   'attrs': attrs
+                                 },
+                                 self.mqs['report files'],
+                                 self.vals['report id'],
+                                 self.conf['main working directory'])
 
-    def prepare_descriptions_file(self, files):
+    def prepare_descriptions_file(self, pairs):
         """
         Get the list of file with program fragments descriptions and save it to the file to provide it to VTG.
 
-        :param files: The list of program fragment description files.
+        :param pairs: The list of name and program fragment description files pairs.
         """
         self.logger.info("Save file with program fragments descriptions {!r}".format(self.PF_FILE))
         with open(self.PF_FILE, 'w') as fp:
-            fp.writelines((os.path.relpath(f, self.conf['main working directory']) + '\n' for f in files))
+            fp.writelines((name + ':=' + os.path.relpath(file, self.conf['main working directory']) + '\n'
+                          for name, file in pairs))
 
     def _merge_configurations(self, db, program):
         """
@@ -124,7 +125,7 @@ class PFG(klever.core.components.Component):
                 self.logger.warning('There is no fragmentation sets description file {!r}'.format(file_name))
                 specification = {}
             else:
-                with open(file_name, 'r', encoding='utf8') as fp:
+                with open(file_name, 'r', encoding='utf-8') as fp:
                     specification = json.load(fp)
         else:
             raise ValueError("Require 'project' attribute to be set in job.json to proceed")

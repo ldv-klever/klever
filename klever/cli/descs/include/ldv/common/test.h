@@ -23,7 +23,6 @@
 #include <ldv/verifier/map.h>
 #include <ldv/verifier/memory.h>
 #include <ldv/verifier/nondet.h>
-#include <ldv/verifier/thread.h>
 
 extern void ldv_expected_error(void);
 extern void ldv_unexpected_error(void);
