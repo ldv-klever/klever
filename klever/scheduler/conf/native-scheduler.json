@@ -16,7 +16,7 @@
     "wait controller initialization": true,
     "disable CPU cores account": false,
     "concurrent jobs": 1,
-    "processes": 2.0,
+    "processes": 1.3,
     "controller address": "http://localhost:8500",
     "keep working directory": false,
     "job client configuration": "/abs/path/to/job-client.json",

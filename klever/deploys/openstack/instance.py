@@ -41,11 +41,11 @@ class OSKleverInstance:
             instance_info = self.client.show_instance(instances[0])
             self.logger.info(f'There is Klever instance "{instance_info}" matching "{self.name}"')
         elif len(instances) > 1:
-            self.logger.info(f'There are {len(instances)} Klever instances matching "{self.name}":\n')
+            self.logger.info(f'There are {len(instances)} Klever instances matching "{self.name}":')
 
             for instance in instances:
                 print(
-                    f'\t * "{self.client.show_instance(instance)}"'
+                    f'\t * {self.client.show_instance(instance)}'
                 )
         else:
             self.logger.info(f'There are no Klever instances matching "{self.name}"')
@@ -110,9 +110,7 @@ class OSKleverInstance:
                 return instance
 
     def __install_or_update_klever(self, ssh):
-        # This version of PIP does not spend much time during processing files that are not required for installation,
-        # but that are stored within Klever source tree, e.g. within "bridge/media".
-        ssh.execute_cmd(f'sudo {PYTHON} -m pip install --upgrade pip==20.1 setuptools wheel')
+        ssh.execute_cmd(f'sudo {PYTHON} -m pip install --upgrade pip setuptools wheel')
 
         ssh.execute_cmd(f'sudo {PYTHON} -m pip install --upgrade -r klever/requirements.txt ./klever')
 
