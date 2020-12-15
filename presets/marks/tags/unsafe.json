@@ -1,2 +1,354 @@
 [
+  {
+    "name": "EMG",
+    "description": "Tags related to generation of environment models",
+    "children": [
+      {
+        "name": "Specs",
+        "description": "Tags related to environment model specifications"
+      },
+      {
+        "name": "Check final state",
+        "description": "Checking final state is redundant and should be avoided"
+      }
+    ]
+  },
+  {
+    "name": "API models",
+    "description": "Tags related to API models",
+    "children": [
+      {
+        "name": "match_string",
+        "description": "Function match_string() needs a model"
+      },
+      {
+        "name": "v4l2_device_register",
+        "description": "Function v4l2_device_register() needs a model"
+      },
+      {
+        "name": "usb_find_common_endpoints",
+        "description": "Function usb_find_common_endpoints() needs a model"
+      },
+      {
+        "name": "kref*",
+        "description": "Functions kref*() need a model"
+      },
+      {
+        "name": "wmi_evaluate_method",
+        "description": "Function wmi_evaluate_method() needs a model"
+      },
+      {
+        "name": "input_ff_create_memless",
+        "description": "Function input_ff_create_memless() needs a model"
+      },
+      {
+        "name": "list*",
+        "description": "Functions list*() need a model"
+      },
+      {
+        "name": "device_register",
+        "description": "Function device_register() needs a model"
+      },
+      {
+        "name": "mtd_device_parse_register",
+        "description": "Function mtd_device_parse_register() needs a model"
+      },
+      {
+        "name": "i2c_new_device",
+        "description": "Function i2c_new_device() needs a model"
+      },
+      {
+        "name": "mantis_pci_init",
+        "description": "Function mantis_pci_init() needs a model"
+      },
+      {
+        "name": "pci_get_device",
+        "description": "Function pci_get_device() needs a model"
+      },
+      {
+        "name": "imx_media_dev_init",
+        "description": "Function imx_media_dev_init() needs a model"
+      },
+      {
+        "name": "v4l2_device_register_subdev",
+        "description": "Function v4l2_device_register_subdev() needs a model"
+      },
+      {
+        "name": "pci_map_single",
+        "description": "Function pci_map_single() needs a model"
+      },
+      {
+        "name": "dvb_usb_device_init",
+        "description": "Function dvb_usb_device_init() needs a model"
+      },
+      {
+        "name": "v4l2_device_set_name",
+        "description": "Function v4l2_device_set_name() needs a model"
+      },
+      {
+        "name": "of_device_get_match_data",
+        "description": "Function of_device_get_match_data() needs a model"
+      },
+      {
+        "name": "dmi_first_match",
+        "description": "Function dmi_first_match() needs a model"
+      },
+      {
+        "name": "of_match_device",
+        "description": "Function of_match_device() needs a model"
+      },
+      {
+        "name": "of_match_node",
+        "description": "Function of_match_node() needs a model"
+      }
+    ]
+  },
+  {
+    "name": "ReqSpecs",
+    "description": "Tags related to requirement specifications",
+    "children": [
+      {
+        "name": "Argument signatures",
+        "description": "Using argument signatures to distinguish objects is not accurate",
+        "children": [
+          {
+            "name": "Different objects",
+            "description": "Different objects are not considered as the same"
+          },
+          {
+            "name": "Same objects",
+            "description": "The same objects are considered different"
+          },
+          {
+            "name": "Nested locks",
+            "description": "Different objects are considered the same but it is possible to distinguish one lock from another one by considering second parameter of \"nested\" functions"
+          }
+        ]
+      },
+      {
+        "name": "API models",
+        "description": "API models are not accurate enough or absent at all. These models are important just for checked requirements in contrast to common API models that are necessary for many different requirements",
+        "children": [
+          {
+            "name": "device_lock",
+            "description": "Function device_lock() needs a model"
+          }
+        ]
+      },
+      {
+        "name": "Bit precision",
+        "description": "Bit precise modeling is required"
+      },
+      {
+        "name": "Sets/maps model",
+        "description": "The model uses flags, counters and so on that does not allow to distinguih one object from another one"
+      },
+      {
+        "name": "Nowayout",
+        "description": "The module cannot be unloaded by default (there is no need to check final state)"
+      }
+    ]
+  },
+  {
+    "name": "CIF",
+    "description": "CIF related tags"
+  },
+  {
+    "name": "CIL",
+    "description": "CIL (Frama-C) related tags"
+  },
+  {
+    "name": "Verifier",
+    "description": "Verifier related tags",
+    "children": [
+      {
+        "name": "CPAchecker",
+        "description": "CPAchecker related tags",
+        "children": [
+          {
+            "name": "Predicate analysis",
+            "description": "Tags related to predicate analysis in CPAchecker",
+            "children": [
+              {
+                "name": "Arrays",
+                "description": "CPAchecker predicate analysis tracks only first array elements by default in uf encoding"
+              },
+              {
+                "name": "Unallocated memory",
+                "description": "CPAchecker predicate analysis considers initialized, but unallocated memory as having any value"
+              },
+              {
+                "name": "Dynamic structures",
+                "description": "CPAchecker predicate analysis has certain troubles considering lists and other dynamic structures"
+              },
+              {
+                "name": "Memory functions",
+                "description": "CPAchecker does not support memset, memcpy, etc."
+              },
+              {
+                "name": "Bit precision",
+                "description": "CPAchecker does not support bit operations by default"
+              }
+            ]
+          },
+          {
+            "name": "Function pointer analysis",
+            "description": "Tags related to function pointer analysis in CPAchecker"
+          },
+          {
+            "name": "BAM",
+            "description": "Tags related to block-abstraction memoization in CPAchecker"
+          },
+          {
+            "name": "Value analysis",
+            "description": "Tags related to value analysis in CPAchecker"
+          },
+          {
+            "name": "Assembler code",
+            "description": "Verifier does not interpret assembler code"
+          },
+          {
+            "name": "String library",
+            "description": "Verifier does not support functions like strlen, strcpy, etc."
+          }
+        ]
+      },
+      {
+        "name": "CPAchecker SMG",
+        "description": "Tags related to CPAchecker SMG",
+        "children": [
+          {
+            "name": "Predicate analysis",
+            "description": "Tags related to predicate analysis in CPAchecker SMG",
+            "children": [
+              {
+                "name": "Arithmetics",
+                "description": "In CPAchecker SMG arithmetics and assignments of nonexplicit values produces unknown symbolic value, which could result in false overflow report"
+              }
+            ]
+          },
+          {
+            "name": "Packed/alligned",
+            "description": "CPAchecker SMG does not calculate sizes of packed/alligned structures properly"
+          },
+          {
+            "name": "Abstraction",
+            "description": "CPAchecker SMG incorrectly reports memory leaks of abstracted list segments"
+          },
+          {
+            "name": "Dynamic allocation",
+            "description": "If CPAchecker SMG cannot calculate explicit sizes for allocations, it assumes that size is 3 byte"
+          }
+        ]
+      },
+      {
+        "name": "CPALockator",
+        "description": "CPALockator related tags",
+        "children": [
+          {
+            "name": "Predicate analysis",
+            "description": "Tags related to predicate analysis in CPALockator",
+            "children": [
+              {
+                "name": "Memory model",
+                "description": "Problems with simple memory model in CPALockator",
+                "children": [
+                  {
+                    "name": "Different structures",
+                    "description": "Two different instances of the same structure type is considered to be the same object"
+                  },
+                  {
+                    "name": "List operations",
+                    "description": "Operations with list elements usually should considered as operations with the whole list"
+                  },
+                  {
+                    "name": "Shared data",
+                    "description": "Shared data may be considered to have arbitrary values to guarantee soundness of analysis without effects"
+                  }
+                ]
+              },
+              {
+                "name": "Global infeasibility",
+                "description": "Two racy paths are feasible one by one, but contradicts each other in parallel"
+              }
+            ]
+          },
+          {
+            "name": "Lock analysis",
+            "description": "Problems with LockCPA",
+            "children": [
+              {
+                "name": "Ad-hoc synchronization",
+                "description": "Custom synchronization via variables"
+              },
+              {
+                "name": "Missed synchronization",
+                "description": "The locking function is absent in configuration"
+              },
+              {
+                "name": "Interrupts",
+                "description": "Specifics of interrupts is not considered"
+              },
+              {
+                "name": "Signals",
+                "description": "Specifics of signals is not considered"
+              },
+              {
+                "name": "Conditional locking",
+                "description": "Lock/Unlock operations are conditional, it leads to a set of infeasible paths"
+              },
+              {
+                "name": "Protected get",
+                "description": "Atomic extraction of a data from shared container, and access to it without locking as to a local one"
+              }
+            ]
+          },
+          {
+            "name": "BAM",
+            "description": "Problems with BAM CPA"
+          },
+          {
+            "name": "Thread analysis",
+            "description": "Problems with ThreadCPA"
+          },
+          {
+            "name": "Shared analysis",
+            "description": "Problems with LocalCPA",
+            "children": [
+              {
+                "name": "Missed allocation",
+                "description": "The allocation function is absent in configuration"
+              },
+              {
+                "name": "Shared merge",
+                "description": "Shared analysis is path insensitive, it may miss precise information about locality"
+              }
+            ]
+          },
+          {
+            "name": "Lightweight mode",
+            "description": "Predicate analysis is absent in lightweight mode"
+          },
+          {
+            "name": "Auxiliary variables",
+            "description": "The race is found for auxiliary variable in non-target code"
+          },
+          {
+            "name": "RCU analysis",
+            "description": "Problems with RCU analysis",
+            "children": [
+              {
+                "name": "Alias analysis",
+                "description": "Alias analysis is not precise enough"
+              },
+              {
+                "name": "RCU lists",
+                "description": "RCU operations over lists are not completely supported"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
 ]
