@@ -87,7 +87,7 @@ class TagsTree:
         if isinstance(self._tags_ids, (list, set)):
             tags_qs = tags_qs.filter(id__in=self._tags_ids)
 
-        data = {}
+        data = OrderedDict()
         for tag in tags_qs.select_related('author').order_by('id'):
             data[tag.pk] = {
                 'object': tag,
@@ -109,7 +109,7 @@ class TagsTree:
             if self._tree[t_id]['parent'] is None:
                 root_tags.append((t_id, self._tree[t_id]['object'].name))
         tag_row = 0
-        for t_id, __ in sorted(root_tags, key=lambda x: x[1]):
+        for t_id, __ in sorted(root_tags, key=lambda x: x[0]):
             last_row = self.__add_tag(t_id, row=tag_row)
             tag_row = last_row + 2
 
