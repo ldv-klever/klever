@@ -216,10 +216,10 @@ class SafesTable:
         self.columns, self.values = self.__safes_data()
 
     @cached_property
-    def _confirmed(self):
-        if 'confirmed' not in self._params:
+    def _manual(self):
+        if 'manual' not in self._params:
             return None
-        return bool(int(self._params['confirmed']))
+        return bool(int(self._params['manual']))
 
     @cached_property
     def _detailed(self):
@@ -287,9 +287,9 @@ class SafesTable:
             ordering = 'memory'
 
         # Filter by marks number
-        if self._confirmed is True:
+        if self._manual is True:
             qs_filters['cache__marks_confirmed__gt'] = 0
-        elif self._confirmed is False:
+        elif self._manual is False:
             qs_filters['cache__marks_confirmed'] = 0
             qs_filters['cache__marks_automatic__gt'] = 0
         elif 'marks_number' in self.view:
@@ -347,9 +347,9 @@ class SafesTable:
         # Either verdict, tag or attr is supported in kwargs
         if 'verdict' in self._params:
             verdict_title = dict(SAFE_VERDICTS)[self._params['verdict']]
-            if self._confirmed is True:
+            if self._manual is True:
                 title = '{}: {} {}'.format(_("Safes"), _('manually assessed'), verdict_title)
-            elif self._confirmed is False:
+            elif self._manual is False:
                 title = '{}: {} {}'.format(_("Safes"), _('automatically assessed'), verdict_title)
             else:
                 title = '{}: {}'.format(_("Safes"), verdict_title)
@@ -486,10 +486,10 @@ class UnsafesTable:
         self.columns, self.values = self.__unsafes_data()
 
     @cached_property
-    def _confirmed(self):
-        if 'confirmed' not in self._params:
+    def _manual(self):
+        if 'manual' not in self._params:
             return None
-        return bool(int(self._params['confirmed']))
+        return bool(int(self._params['manual']))
 
     @cached_property
     def _detailed(self):
@@ -557,9 +557,9 @@ class UnsafesTable:
             ordering = 'memory'
 
         # Filter by marks number
-        if self._confirmed is True:
+        if self._manual is True:
             qs_filters['cache__marks_confirmed__gt'] = 0
-        elif self._confirmed is False:
+        elif self._manual is False:
             qs_filters['cache__marks_confirmed'] = 0
             qs_filters['cache__marks_automatic__gt'] = 0
         elif 'marks_number' in self.view:
@@ -615,9 +615,9 @@ class UnsafesTable:
         # Either verdict, tag or attr is supported in kwargs
         if 'verdict' in self._params:
             verdict_title = dict(UNSAFE_VERDICTS)[self._params['verdict']]
-            if self._confirmed is True:
+            if self._manual is True:
                 title = '{}: {} {}'.format(_("Unsafes"), _('manually assessed'), verdict_title)
-            elif self._confirmed is False:
+            elif self._manual is False:
                 title = '{}: {} {}'.format(_("Unsafes"), _('automatically assessed'), verdict_title)
             else:
                 title = '{}: {}'.format(_("Unsafes"), verdict_title)
@@ -754,10 +754,10 @@ class UnknownsTable:
         self.columns, self.values = self.__unknowns_data()
 
     @cached_property
-    def _confirmed(self):
-        if 'confirmed' not in self._params:
+    def _manual(self):
+        if 'manual' not in self._params:
             return None
-        return bool(int(self._params['confirmed']))
+        return bool(int(self._params['manual']))
 
     @cached_property
     def _detailed(self):
@@ -819,9 +819,9 @@ class UnknownsTable:
             ordering = 'memory'
 
         # Filter by marks number
-        if self._confirmed is True:
+        if self._manual is True:
             qs_filters['cache__marks_confirmed__gt'] = 0
-        elif self._confirmed is False:
+        elif self._manual is False:
             qs_filters['cache__marks_confirmed'] = 0
             qs_filters['cache__marks_automatic__gt'] = 0
         elif 'marks_number' in self.view:
@@ -891,9 +891,9 @@ class UnknownsTable:
             problem = unquote(self._params['problem'])
             if problem == 'null':
                 title = _("Unknowns without marks")
-            elif self._confirmed is True:
+            elif self._manual is True:
                 title = '{}: {} {}'.format(_("Unknowns"), _('manually assessed'), problem)
-            elif self._confirmed is False:
+            elif self._manual is False:
                 title = '{}: {} {}'.format(_("Unknowns"), _('automatically assessed'), problem)
             else:
                 title = '{}: {}'.format(_("Unknowns"), problem)
