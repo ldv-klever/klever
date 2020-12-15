@@ -160,19 +160,6 @@
                     </tbody>
                 </table>
             </div>
-
-            <div class="ui grid bottom-attached">
-                <div class="four wide column bottom aligned header-row"><span>{% trans 'Associated marks' %}</span></div>
-                <div class="twelve wide column">
-                    <div class="ui tiny buttons" style="float: right">
-                        {% if MarkTable.can_mark %}
-                            <a class="ui tiny pink basic button mark-inline-form" data-url="{% url 'marks:unsafe-create-inl' report.id %}">{% trans 'Create lightweight mark' %}</a>
-                            <a href="{% url 'marks:unsafe-create' report.pk %}" class="ui tiny pink button">{% trans 'Create full-weight mark' %}</a>
-                        {% endif %}
-                        <button id="view_show_form_btn_{{ MarkTable.view.type }}" class="ui tiny violet right labeled icon button">{{ MarkTable.view.viewtitle }}<i class="right chevron icon"></i></button>
-                    </div>
-                </div>
-            </div>
         </div>
         <div class="nine wide column">
             {% if MarkTable.can_mark %}
@@ -183,6 +170,19 @@
             </div>
         </div>
     </div>
+    <div class="ui grid">
+        <div class="four wide column bottom aligned"><h4>{% trans 'Associated marks' %}</h4></div>
+        <div class="twelve wide column right aligned">
+            <div class="ui tiny buttons">
+                {% if MarkTable.can_mark %}
+                    <a class="ui tiny pink basic button mark-inline-form" data-url="{% url 'marks:unsafe-create-inl' report.id %}">{% trans 'Create lightweight mark' %}</a>
+                    <a href="{% url 'marks:unsafe-create' report.pk %}" class="ui tiny pink button">{% trans 'Create full-weight mark' %}</a>
+                {% endif %}
+                <button id="view_show_form_btn_{{ MarkTable.view.type }}" class="ui tiny violet right labeled icon button">{{ MarkTable.view.viewtitle }} <i class="up chevron icon"></i></button>
+            </div>
+        </div>
+    </div>
+    <br>
     <input id="source_url" type="hidden" value="{% url 'reports:api-get-source' report.id %}">
     {% include 'reports/AssociatedMarksTable.html' with MarkTable=MarkTable %}
     <br>
