@@ -13,6 +13,6 @@
   ],
   "description": "Workqueues support (feature #6822).",
   "is_modifiable": false,
-  "tags": [],
+  "tags": ["EMG - Specs"],
   "verdict": "1"
 }

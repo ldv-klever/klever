@@ -13,6 +13,6 @@
   ],
   "description": "Target function uncovered and to fix it it is necessary to support catching of structures initalized as local variables and then find a way to call function pointer hw-&gt;get_synth_voice.",
   "is_modifiable": false,
-  "tags": [],
+  "tags": ["EMG"],
   "verdict": "1"
 }

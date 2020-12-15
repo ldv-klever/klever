@@ -13,6 +13,6 @@
   ],
   "description": "Model for function __list_add() is missed. It is wondering but target bug was found by LDV Tools.",
   "is_modifiable": false,
-  "tags": [],
+  "tags": ["API models"],
   "verdict": "1"
 }

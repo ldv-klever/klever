@@ -13,6 +13,6 @@
   ],
   "description": "Relevant function \"svc_handle_xprt\" is uncovered, since it is called in export function svc_recv.",
   "is_modifiable": false,
-  "tags": [],
+  "tags": ["EMG - Specs"],
   "verdict": "1"
 }

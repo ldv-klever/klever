@@ -13,6 +13,6 @@
   ],
   "description": "Function nfs_lock_and_join_requests is not covered. There is no required EMG specifications (for instance address_space_operations). However, it is a complex driver and environment model would be too complicated for a verification tool.",
   "is_modifiable": false,
-  "tags": [],
+  "tags": ["EMG - Specs"],
   "verdict": "1"
 }
