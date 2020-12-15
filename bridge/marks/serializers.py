@@ -87,7 +87,8 @@ def create_mark_version(mark, cache=True, **kwargs):
 class TagSerializerBase(DynamicFieldsModelSerializer):
     default_error_messages = {
         'parent_required': 'Tag serializer parent field is required to validate short name',
-        'name_unique': _('Tag name is not unique in the current branch level')
+        'name_unique': _('Tag name is not unique in the current branch level'),
+        'name_invalid': _("Tag name can't contain ' - '")
     }
     shortname = fields.CharField(max_length=MAX_TAG_LEN)
     parents = serializers.SerializerMethodField()
@@ -102,6 +103,8 @@ class TagSerializerBase(DynamicFieldsModelSerializer):
         return parents
 
     def validate_name(self, value):
+        if value.__contains__(" - "):
+            self.fail('name_invalid')
         qs_filter = Q(name=value)
         if self.instance:
             qs_filter &= ~Q(id=self.instance.id)
