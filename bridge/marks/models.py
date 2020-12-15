@@ -215,9 +215,6 @@ class SafeTag(MPTTModel):
     def shortname(self):
         return self.name.split(' - ')[-1]
 
-    class MPTTMeta:
-        order_insertion_by = ['name']
-
     class Meta:
         db_table = "mark_safe_tag"
 
@@ -240,9 +237,6 @@ class UnsafeTag(MPTTModel):
     @property
     def shortname(self):
         return self.name.split(' - ')[-1]
-
-    class MPTTMeta:
-        order_insertion_by = ['name']
 
     class Meta:
         db_table = "mark_unsafe_tag"
