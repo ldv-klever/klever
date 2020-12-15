@@ -18,88 +18,94 @@
     "description": "Tags related to API models",
     "children": [
       {
-        "name": "match_string",
-        "description": "Function match_string() needs a model"
-      },
-      {
-        "name": "v4l2_device_register",
-        "description": "Function v4l2_device_register() needs a model"
-      },
-      {
-        "name": "usb_find_common_endpoints",
-        "description": "Function usb_find_common_endpoints() needs a model"
-      },
-      {
-        "name": "kref*",
-        "description": "Functions kref*() need a model"
-      },
-      {
-        "name": "wmi_evaluate_method",
-        "description": "Function wmi_evaluate_method() needs a model"
-      },
-      {
-        "name": "input_ff_create_memless",
-        "description": "Function input_ff_create_memless() needs a model"
-      },
-      {
-        "name": "list*",
-        "description": "Functions list*() need a model"
-      },
-      {
-        "name": "device_register",
-        "description": "Function device_register() needs a model"
-      },
-      {
-        "name": "mtd_device_parse_register",
-        "description": "Function mtd_device_parse_register() needs a model"
-      },
-      {
-        "name": "i2c_new_device",
-        "description": "Function i2c_new_device() needs a model"
-      },
-      {
-        "name": "mantis_pci_init",
-        "description": "Function mantis_pci_init() needs a model"
-      },
-      {
-        "name": "pci_get_device",
-        "description": "Function pci_get_device() needs a model"
-      },
-      {
-        "name": "imx_media_dev_init",
-        "description": "Function imx_media_dev_init() needs a model"
-      },
-      {
-        "name": "v4l2_device_register_subdev",
-        "description": "Function v4l2_device_register_subdev() needs a model"
-      },
-      {
-        "name": "pci_map_single",
-        "description": "Function pci_map_single() needs a model"
-      },
-      {
-        "name": "dvb_usb_device_init",
-        "description": "Function dvb_usb_device_init() needs a model"
-      },
-      {
-        "name": "v4l2_device_set_name",
-        "description": "Function v4l2_device_set_name() needs a model"
-      },
-      {
-        "name": "of_device_get_match_data",
-        "description": "Function of_device_get_match_data() needs a model"
-      },
-      {
-        "name": "dmi_first_match",
-        "description": "Function dmi_first_match() needs a model"
-      },
-      {
-        "name": "of_match_device",
-        "description": "Function of_match_device() needs a model"
-      },
-      {
-        "name": "of_match_node",
-        "description": "Function of_match_node() needs a model"
+        "name": "Linux kernel",
+        "description": "Tags related to Linux kernel API models",
+        "children": [
+          {
+            "name": "match_string",
+            "description": "Function match_string() needs a model"
+          },
+          {
+            "name": "v4l2_device_register",
+            "description": "Function v4l2_device_register() needs a model"
+          },
+          {
+            "name": "usb_find_common_endpoints",
+            "description": "Function usb_find_common_endpoints() needs a model"
+          },
+          {
+            "name": "kref*",
+            "description": "Functions kref*() need a model"
+          },
+          {
+            "name": "wmi_evaluate_method",
+            "description": "Function wmi_evaluate_method() needs a model"
+          },
+          {
+            "name": "input_ff_create_memless",
+            "description": "Function input_ff_create_memless() needs a model"
+          },
+          {
+            "name": "list*",
+            "description": "Functions list*() need a model"
+          },
+          {
+            "name": "device_register",
+            "description": "Function device_register() needs a model"
+          },
+          {
+            "name": "mtd_device_parse_register",
+            "description": "Function mtd_device_parse_register() needs a model"
+          },
+          {
+            "name": "i2c_new_device",
+            "description": "Function i2c_new_device() needs a model"
+          },
+          {
+            "name": "mantis_pci_init",
+            "description": "Function mantis_pci_init() needs a model"
+          },
+          {
+            "name": "pci_get_device",
+            "description": "Function pci_get_device() needs a model"
+          },
+          {
+            "name": "imx_media_dev_init",
+            "description": "Function imx_media_dev_init() needs a model"
+          },
+          {
+            "name": "v4l2_device_register_subdev",
+            "description": "Function v4l2_device_register_subdev() needs a model"
+          },
+          {
+            "name": "pci_map_single",
+            "description": "Function pci_map_single() needs a model"
+          },
+          {
+            "name": "dvb_usb_device_init",
+            "description": "Function dvb_usb_device_init() needs a model"
+          },
+          {
+            "name": "v4l2_device_set_name",
+            "description": "Function v4l2_device_set_name() needs a model"
+          },
+          {
+            "name": "of_device_get_match_data",
+            "description": "Function of_device_get_match_data() needs a model"
+          },
+          {
+            "name": "dmi_first_match",
+            "description": "Function dmi_first_match() needs a model"
+          },
+          {
+            "name": "of_match_device",
+            "description": "Function of_match_device() needs a model"
+          },
+          {
+            "name": "of_match_node",
+            "description": "Function of_match_node() needs a model"
+          }
+        ]
       }
     ]
   },
@@ -130,8 +136,14 @@
         "description": "API models are not accurate enough or absent at all. These models are important just for checked requirements in contrast to common API models that are necessary for many different requirements",
         "children": [
           {
-            "name": "device_lock",
-            "description": "Function device_lock() needs a model"
+            "name": "Linux kernel",
+            "description": "Tags related to Linux kernel API models",
+            "children": [
+              {
+                "name": "device_lock",
+                "description": "Function device_lock() needs a model"
+              }
+            ]
           }
         ]
       },
@@ -144,8 +156,8 @@
         "description": "The model uses flags, counters and so on that does not allow to distinguih one object from another one"
       },
       {
-        "name": "Nowayout",
-        "description": "The module cannot be unloaded by default (there is no need to check final state)"
+        "name": "Check final state",
+        "description": "Checking final state is redundant and should be avoided. It may be more specific in comparison with disabling this in EMG"
       }
     ]
   },
