@@ -55,7 +55,7 @@ class Migration(migrations.Migration):
             ('verdict', models.CharField(choices=[
                 ('0', 'Unknown'), ('1', 'Incorrect proof'), ('2', 'Missed target bug')
             ], max_length=1)),
-            ('cache_tags', ArrayField(base_field=models.CharField(max_length=32), default=list, size=None)),
+            ('cache_tags', ArrayField(base_field=models.CharField(max_length=1024), default=list, size=None)),
             ('author', models.ForeignKey(
                 null=True, on_delete=models.deletion.SET_NULL, related_name='+', to=settings.AUTH_USER_MODEL
             )),
@@ -106,7 +106,7 @@ class Migration(migrations.Migration):
 
         migrations.CreateModel(name='SafeTag', fields=[
             ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-            ('name', models.CharField(db_index=True, max_length=32)),
+            ('name', models.CharField(db_index=True, max_length=1024, unique=True)),
             ('description', models.TextField(blank=True, default='')),
             ('populated', models.BooleanField(default=False)),
             ('lft', models.PositiveIntegerField(editable=False)),
@@ -207,7 +207,7 @@ class Migration(migrations.Migration):
             ('verdict', models.CharField(choices=[
                 ('0', 'Unknown'), ('1', 'Bug'), ('2', 'Target bug'), ('3', 'False positive')
             ], max_length=1)),
-            ('cache_tags', ArrayField(base_field=models.CharField(max_length=32), default=list, size=None)),
+            ('cache_tags', ArrayField(base_field=models.CharField(max_length=1024), default=list, size=None)),
             ('author', models.ForeignKey(
                 null=True, on_delete=models.deletion.SET_NULL, related_name='+', to=settings.AUTH_USER_MODEL
             )),
@@ -306,7 +306,7 @@ class Migration(migrations.Migration):
 
         migrations.CreateModel(name='UnsafeTag', fields=[
             ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-            ('name', models.CharField(db_index=True, max_length=32)),
+            ('name', models.CharField(db_index=True, max_length=1024, unique=True)),
             ('description', models.TextField(blank=True, default='')),
             ('populated', models.BooleanField(default=False)),
             ('lft', models.PositiveIntegerField(editable=False)),
