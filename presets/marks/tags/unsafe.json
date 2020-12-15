@@ -5,7 +5,33 @@
     "children": [
       {
         "name": "Specs",
-        "description": "Tags related to environment model specifications"
+        "description": "Tags related to environment model specifications",
+        "children": [
+          {
+            "name": "Missed category",
+            "description": "There is no corresponding environment model specification at all"
+          },
+          {
+            "name": "Missed trigger",
+            "description": "Require to model register or deregister function to trigger entry points invocation scenario"
+          },
+          {
+            "name": "Missed entry point",
+            "description": "An entry point is not called at all"
+          },
+          {
+            "name": "Bad parameters",
+            "description": "An infeasible entry point parameters initialization"
+          },
+          {
+            "name": "Bad sequence",
+            "description": "An infeasible sequence of entry point calls"
+          },
+          {
+            "name": "Bad composition",
+            "description": "An incorrect model of a composition of several entry points invocation scenarios"
+          }
+        ]
       },
       {
         "name": "Check final state",
