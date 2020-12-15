@@ -167,21 +167,15 @@
     <div class="ui grid">
         <div class="seven wide column">
             <div class="ui grid bottom-attached">
-                <div class="eight wide column bottom aligned header-row">
-                    <span>{% trans 'Associated marks' %}</span>
-                    {% if MarkTable.can_mark %}
-                        <div class="ui dropdown">
-                            <i class="plus blue icon"></i>
-                            <div class="ui menu">
-                                <div class="header">{% trans 'Create mark' %}</div>
-                                <a class="item mark-inline-form" data-url="{% url 'marks:unknown-create-inl' report.id %}"><i class="star outline icon"></i> {% trans 'Lightweight' %}</a>
-                                <a href="{% url 'marks:unknown-create' report.pk %}" class="item"><i class="star icon"></i> {% trans 'Full-weight' %}</a>
-                            </div>
-                        </div>
-                    {% endif %}
-                </div>
-                <div class="eight wide column right aligned">
-                    <button id="view_show_form_btn_{{ MarkTable.view.type }}" class="ui tiny violet right labeled icon button">{{ MarkTable.view.viewtitle }}<i class="right chevron icon"></i></button>
+                <div class="four wide column bottom aligned header-row"><span>{% trans 'Associated marks' %}</span></div>
+                <div class="twelve wide column">
+                    <div class="ui tiny buttons" style="float: right">
+                        {% if MarkTable.can_mark %}
+                            <a class="ui tiny pink basic button mark-inline-form" data-url="{% url 'marks:unknown-create-inl' report.id %}">{% trans 'Create lightweight mark' %}</a>
+                            <a href="{% url 'marks:unknown-create' report.pk %}" class="ui tiny pink button">{% trans 'Create full-weight mark' %}</a>
+                        {% endif %}
+                        <button id="view_show_form_btn_{{ MarkTable.view.type }}" class="ui tiny violet right labeled icon button">{{ MarkTable.view.viewtitle }}<i class="right chevron icon"></i></button>
+                    </div>
                 </div>
             </div>
         </div>
