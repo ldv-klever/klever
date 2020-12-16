@@ -43,6 +43,21 @@ class Migration(migrations.Migration):
             ('trace_cache', JSONField()),
         ], options={'db_table': 'cache_marks_trace'}, bases=(bridge.utils.WithFilesMixin, models.Model)),
 
+        migrations.CreateModel(name='Tag', fields=[
+            ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+            ('name', models.CharField(db_index=True, max_length=1024, unique=True)),
+            ('description', models.TextField(blank=True, default='')),
+            ('populated', models.BooleanField(default=False)),
+            ('lft', models.PositiveIntegerField(editable=False)),
+            ('rght', models.PositiveIntegerField(editable=False)),
+            ('tree_id', models.PositiveIntegerField(db_index=True, editable=False)),
+            ('level', models.PositiveIntegerField(editable=False)),
+            ('author', models.ForeignKey(null=True, on_delete=models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
+            ('parent', mptt.fields.TreeForeignKey(
+                null=True, on_delete=models.deletion.CASCADE, related_name='children', to='marks.Tag'
+            )),
+        ], options={'db_table': 'mark_tag'}),
+
         migrations.CreateModel(name='MarkSafe', fields=[
             ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
             ('identifier', models.UUIDField(default=uuid.uuid4, unique=True)),
@@ -280,21 +295,6 @@ class Migration(migrations.Migration):
             ('converted', models.ForeignKey(on_delete=models.deletion.CASCADE, to='marks.ConvertedTrace')),
             ('unsafe', models.ForeignKey(on_delete=models.deletion.CASCADE, to='reports.ReportUnsafe')),
         ], options={'db_table': 'cache_error_trace_converted'}),
-
-        migrations.CreateModel(name='Tag', fields=[
-            ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-            ('name', models.CharField(db_index=True, max_length=1024, unique=True)),
-            ('description', models.TextField(blank=True, default='')),
-            ('populated', models.BooleanField(default=False)),
-            ('lft', models.PositiveIntegerField(editable=False)),
-            ('rght', models.PositiveIntegerField(editable=False)),
-            ('tree_id', models.PositiveIntegerField(db_index=True, editable=False)),
-            ('level', models.PositiveIntegerField(editable=False)),
-            ('author', models.ForeignKey(null=True, on_delete=models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
-            ('parent', mptt.fields.TreeForeignKey(
-                null=True, on_delete=models.deletion.CASCADE, related_name='children', to='marks.Tag'
-            )),
-        ], options={'db_table': 'mark_tag'}),
 
         migrations.CreateModel(name='MarkUnsafeTag', fields=[
             ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
