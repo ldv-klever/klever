@@ -27,14 +27,20 @@ from bridge.vars import USER_ROLES
 from bridge.utils import logger, BridgeException
 
 from users.models import User
-from marks.models import SafeTag, UnsafeTag, SafeTagAccess, UnsafeTagAccess, MarkSafeHistory, MarkUnsafeHistory
+from marks.models import MAX_TAG_LEN, Tag, TagAccess
 
-from marks.models import MAX_TAG_LEN
+
+def get_all_tags():
+    tags_tree = {}
+    tags_names = {}
+    for t_id, parent_id, t_name in Tag.objects.values_list('id', 'parent_id', 'name'):
+        tags_tree[t_id] = parent_id
+        tags_names[t_name] = t_id
+    return tags_tree, tags_names
 
 
 class TagsTree:
-    def __init__(self, tags_type, tags_ids=None):
-        self.type = tags_type
+    def __init__(self, tags_ids=None):
         self._tags_ids = tags_ids
         self._data = {}
         self._tree = self.__get_tree()
@@ -64,12 +70,7 @@ class TagsTree:
 
     @cached_property
     def available_tags(self):
-        if self.type == 'safe':
-            tags_qs = SafeTag.objects
-        elif self.type == 'unsafe':
-            tags_qs = UnsafeTag.objects
-        else:
-            raise BridgeException()
+        tags_qs = Tag.objects
         if self.selected_tags:
             tags_qs = tags_qs.exclude(id__in=self.selected_tags)
         return list({'id': t.id, 'name': t.name} for t in tags_qs.only('id', 'name'))
@@ -78,12 +79,7 @@ class TagsTree:
         return {'type': 'tag', 'value': tag}
 
     def __get_tree(self):
-        if self.type == 'safe':
-            tags_qs = SafeTag.objects
-        elif self.type == 'unsafe':
-            tags_qs = UnsafeTag.objects
-        else:
-            raise BridgeException()
+        tags_qs = Tag.objects
         if isinstance(self._tags_ids, (list, set)):
             tags_qs = tags_qs.filter(id__in=self._tags_ids)
 
@@ -151,8 +147,8 @@ class TagsTree:
 
 
 class AllTagsTree(TagsTree):
-    def __init__(self, user, tags_type):
-        super().__init__(tags_type)
+    def __init__(self, user):
+        super().__init__()
         self.user = user
         self.can_create = self._is_manager
 
@@ -179,12 +175,8 @@ class AllTagsTree(TagsTree):
 
     @cached_property
     def _access_data(self):
-        if self.type == 'safe':
-            access_qs = SafeTagAccess.objects
-        else:
-            access_qs = UnsafeTagAccess.objects
         data = {}
-        for tag_access in access_qs.filter(user=self.user):
+        for tag_access in TagAccess.objects.filter(user=self.user):
             data[tag_access.tag_id] = {
                 'edit': tag_access.modification,
                 'add_child': tag_access.child_creation,
@@ -198,42 +190,31 @@ class AllTagsTree(TagsTree):
 
 class MarkTagsTree(TagsTree):
     def __init__(self, mark_version):
-        if isinstance(mark_version, MarkSafeHistory):
-            tags_type = 'safe'
-        elif isinstance(mark_version, MarkUnsafeHistory):
-            tags_type = 'unsafe'
-        else:
-            raise ValueError('Wrong mark version type')
-        super().__init__(tags_type, tags_ids=list(mark_version.tags.values_list('tag_id', flat=True)))
+        super().__init__(tags_ids=list(mark_version.tags.values_list('tag_id', flat=True)))
 
 
 class SelectedTagsTree(TagsTree):
-    def __init__(self, tags_type, selected, deleted, added):
-        super().__init__(tags_type, tags_ids=self.__get_ids(tags_type, selected, deleted, added))
+    def __init__(self, selected, deleted, added):
+        super().__init__(tags_ids=self.__get_ids(selected, deleted, added))
 
-    def __get_ids(self, tags_type, selected, deleted, added):
-        selected_tags = set(int(x) for x in selected)
-
-        if tags_type == 'safe':
-            tag_qs = SafeTag.objects
-        else:
-            tag_qs = UnsafeTag.objects
+    def __get_ids(self, selected, deleted, added):
+        tags_ids = set(int(x) for x in selected)
 
         if deleted:
-            selected_tags -= set(tag_qs.get(id=deleted).get_descendants(include_self=True).values_list('id', flat=True))
+            tags_ids -= set(Tag.objects.get(id=deleted).get_descendants(include_self=True).values_list('id', flat=True))
         elif added:
-            selected_tags |= set(tag_qs.get(id=added).get_ancestors(include_self=True).values_list('id', flat=True))
-        return selected_tags
+            tags_ids |= set(Tag.objects.get(id=added).get_ancestors(include_self=True).values_list('id', flat=True))
+        return tags_ids
 
 
-class TagAccess:
+class TagAccessInfo:
     def __init__(self, user, tag):
         self.user = user
         self.tag = tag
 
     @cached_property
     def _args_valid(self):
-        return isinstance(self.user, User) and isinstance(self.tag, (SafeTag, UnsafeTag))
+        return isinstance(self.user, User) and isinstance(self.tag, Tag)
 
     @cached_property
     def _is_manager(self):
@@ -243,21 +224,13 @@ class TagAccess:
     def _has_edit_access(self):
         if not self._args_valid:
             return False
-        if isinstance(self.tag, SafeTag):
-            access_qs = SafeTagAccess.objects
-        else:
-            access_qs = UnsafeTagAccess.objects
-        return access_qs.filter(tag=self.tag, user=self.user, modification=True).exists()
+        return TagAccess.objects.filter(tag=self.tag, user=self.user, modification=True).exists()
 
     @cached_property
     def _has_child_access(self):
         if not self._args_valid:
             return False
-        if isinstance(self.tag, SafeTag):
-            access_qs = SafeTagAccess.objects
-        else:
-            access_qs = UnsafeTagAccess.objects
-        return access_qs.filter(tag=self.tag, user=self.user, child_creation=True).exists()
+        return TagAccess.objects.filter(tag=self.tag, user=self.user, child_creation=True).exists()
 
     @cached_property
     def _is_leaf(self):
@@ -281,39 +254,30 @@ class TagAccess:
 
 
 class ChangeTagsAccess:
-    def __init__(self, tags_type, tag_id):
-        self._type = tags_type
+    def __init__(self, tag_id):
         self.tag = self.__get_tag(tag_id)
 
     def __get_tag(self, tag_id):
-        return get_object_or_404(SafeTag if self._type == 'safe' else UnsafeTag, id=tag_id)
+        return get_object_or_404(Tag, id=tag_id)
 
     def save(self, data):
-        if self._type == 'safe':
-            access_model = SafeTagAccess
-        else:
-            access_model = UnsafeTagAccess
-
         can_edit = set()
         if data.get('can_edit'):
             can_edit = set(int(x) for x in data['can_edit'])
         can_create = set()
         if data.get('can_create'):
             can_create = set(int(x) for x in data['can_create'])
-        new_access_objects = list(access_model(
+        new_access_objects = list(TagAccess(
             user=user, tag=self.tag,
             modification=(user.id in can_edit),
             child_creation=(user.id in can_create)
         ) for user in User.objects.filter(id__in=can_edit | can_create))
-        access_model.objects.filter(tag=self.tag).delete()
-        access_model.objects.bulk_create(new_access_objects)
+        TagAccess.objects.filter(tag=self.tag).delete()
+        TagAccess.objects.bulk_create(new_access_objects)
 
     @property
     def data(self):
-        if self._type == 'safe':
-            access_qs = SafeTagAccess.objects.filter(tag=self.tag)
-        else:
-            access_qs = UnsafeTagAccess.objects.filter(tag=self.tag)
+        access_qs = TagAccess.objects.filter(tag=self.tag)
         can_edit = set(obj.user_id for obj in access_qs if obj.modification)
         can_create = set(obj.user_id for obj in access_qs if obj.child_creation)
         all_users = []
@@ -328,10 +292,9 @@ class ChangeTagsAccess:
 
 
 class DownloadTags:
-    def __init__(self, tags_type):
-        self._type = tags_type
+    def __init__(self):
         self._data = json.dumps(self.__get_children(None), ensure_ascii=False, sort_keys=True, indent=2).encode('utf8')
-        self.name = 'Tags-{}.json'.format(self._type)
+        self.name = 'Tags.json'
         self.size = len(self._data)
 
     def __iter__(self):
@@ -340,13 +303,7 @@ class DownloadTags:
     @cached_property
     def _db_tags(self):
         db_tags = OrderedDict()
-        if self._type == 'safe':
-            tags_model = SafeTag
-        elif self._type == 'unsafe':
-            tags_model = UnsafeTag
-        else:
-            return {}
-        for tag in tags_model.objects.order_by('name'):
+        for tag in Tag.objects.order_by('name'):
             db_tags[tag.id] = {
                 'parent': tag.parent_id,
                 'name': tag.shortname
@@ -371,17 +328,16 @@ class DownloadTags:
 
 
 class UploadTagsTree:
-    def __init__(self, tags_model, user, tags_tree, populated=False):
+    def __init__(self, user, tags_tree, populated=False):
         self.user = user
         self.total = 0
         self.created = 0
         self._populated = populated
-        self._model = tags_model
         self.__upload_tags(None, tags_tree)
 
     @cached_property
     def _db_tags(self):
-        return dict((t.name, t) for t in self._model.objects.all())
+        return dict((t.name, t) for t in Tag.objects.all())
 
     def __upload_tags(self, parent, tags):
         assert isinstance(tags, list), 'Not a list'
@@ -403,7 +359,7 @@ class UploadTagsTree:
             return self._db_tags[name]
         description = fields.CharField(allow_blank=True).run_validation(tag_data.get('description', ''))
 
-        new_tag = self._model.objects.create(
+        new_tag = Tag.objects.create(
             parent=parent, name=name, description=description, author=self.user, populated=self._populated
         )
         self.created += 1

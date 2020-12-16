@@ -40,7 +40,7 @@ from tools.profiling import LoggedCallMixin
 
 from reports.models import ReportSafe, ReportUnsafe, ReportUnknown
 from marks.models import (
-    MarkSafe, MarkUnsafe, MarkUnknown, SafeTag, UnsafeTag, MarkSafeReport, MarkUnsafeReport,
+    MarkSafe, MarkUnsafe, MarkUnknown, Tag, MarkSafeReport, MarkUnsafeReport,
     MarkUnknownReport, SafeAssociationLike, UnsafeAssociationLike, UnknownAssociationLike,
     MarkSafeHistory, MarkUnsafeHistory, MarkUnknownHistory
 )
@@ -48,10 +48,9 @@ from marks.models import (
 from marks.Download import AllMarksGenerator, MarksUploader, UploadAllMarks
 from marks.markversion import MarkVersionFormData
 from marks.serializers import (
-    SafeMarkSerializer, UnsafeMarkSerializer, UnknownMarkSerializer,
-    SafeTagSerializer, UnsafeTagSerializer, UpdatedPresetUnsafeMarkSerializer
+    SafeMarkSerializer, UnsafeMarkSerializer, UnknownMarkSerializer, TagSerializer, UpdatedPresetUnsafeMarkSerializer
 )
-from marks.tags import TagAccess, ChangeTagsAccess, UploadTagsTree
+from marks.tags import TagAccessInfo, ChangeTagsAccess, UploadTagsTree
 from marks.utils import MarkAccess
 
 from marks.SafeUtils import (
@@ -65,9 +64,7 @@ from marks.UnknownUtils import (
     RemoveUnknownMark, ConfirmUnknownMark, UnconfirmUnknownMark
 )
 
-from caches.utils import (
-    UpdateSafeMarksTags, UpdateUnsafeMarksTags, RecalculateSafeCache, RecalculateUnsafeCache, RecalculateUnknownCache
-)
+from caches.utils import UpdateMarksTags, RecalculateSafeCache, RecalculateUnsafeCache, RecalculateUnknownCache
 
 
 class MarkSafeViewSet(LoggedCallMixin, ModelViewSet):
@@ -211,11 +208,11 @@ class MarkUnknownViewSet(LoggedCallMixin, ModelViewSet):
         RecalculateUnknownCache(reports_ids)
 
 
-class SafeTagViewSet(LoggedCallMixin, ModelViewSet):
+class TagViewSet(LoggedCallMixin, ModelViewSet):
     parser_classes = (JSONParser,)
     permission_classes = (IsAuthenticated,)
-    queryset = SafeTag.objects.all()
-    serializer_class = SafeTagSerializer
+    queryset = Tag.objects.all()
+    serializer_class = TagSerializer
 
     def get_serializer(self, *args, **kwargs):
         fields = None
@@ -226,86 +223,49 @@ class SafeTagViewSet(LoggedCallMixin, ModelViewSet):
         return super().get_serializer(*args, fields=fields, **kwargs)
 
     def get_unparallel(self, request):
-        return [SafeTag] if request.method in {'POST', 'PUT', 'PATCH', 'DELETE'} else []
+        return [Tag] if request.method in {'POST', 'PUT', 'PATCH', 'DELETE'} else []
 
     def perform_create(self, serializer):
         parent = serializer.validated_data.get('parent')
-        if not TagAccess(self.request.user, parent).create:
+        if not TagAccessInfo(self.request.user, parent).create:
             raise exceptions.PermissionDenied(_("You don't have an access to create this tag"))
         serializer.save(author=self.request.user)
 
     def perform_update(self, serializer):
-        if not TagAccess(self.request.user, serializer.instance).edit:
+        if not TagAccessInfo(self.request.user, serializer.instance).edit:
             raise exceptions.PermissionDenied(_("You don't have an access to edit this tag"))
         serializer.save(author=self.request.user)
-        UpdateSafeMarksTags()
+        UpdateMarksTags()
 
     def perform_destroy(self, instance):
-        if not TagAccess(self.request.user, instance).delete:
+        if not TagAccessInfo(self.request.user, instance).delete:
             raise exceptions.PermissionDenied(_("You don't have an access to delete this tag"))
         super().perform_destroy(instance)
-        UpdateSafeMarksTags()
-
-
-class UnsafeTagViewSet(LoggedCallMixin, ModelViewSet):
-    parser_classes = (JSONParser,)
-    permission_classes = (IsAuthenticated,)
-    queryset = UnsafeTag.objects.all()
-    serializer_class = UnsafeTagSerializer
-
-    def get_serializer(self, *args, **kwargs):
-        fields = None
-        if self.request.method == 'GET':
-            fields = self.request.query_params.getlist('fields')
-        elif self.request.method in {'POST', 'PUT', 'PATCH'}:
-            fields = {'parent', 'shortname', 'description'}
-        return super().get_serializer(*args, fields=fields, **kwargs)
-
-    def get_unparallel(self, request):
-        return [UnsafeTag] if request.method in {'POST', 'PUT', 'PATCH', 'DELETE'} else []
-
-    def perform_create(self, serializer):
-        parent = serializer.validated_data.get('parent')
-        if not TagAccess(self.request.user, parent).create:
-            raise exceptions.PermissionDenied(_("You don't have an access to create this tag"))
-        serializer.save(author=self.request.user)
-
-    def perform_update(self, serializer):
-        if not TagAccess(self.request.user, serializer.instance).edit:
-            raise exceptions.PermissionDenied(_("You don't have an access to edit this tag"))
-        serializer.save(author=self.request.user)
-        UpdateUnsafeMarksTags()
-
-    def perform_destroy(self, instance):
-        if not TagAccess(self.request.user, instance).delete:
-            raise exceptions.PermissionDenied(_("You don't have an access to delete this tag"))
-        super().perform_destroy(instance)
-        UpdateUnsafeMarksTags()
+        UpdateMarksTags()
 
 
 class TagAccessView(LoggedCallMixin, APIView):
     parser_classes = (JSONParser,)
     permission_classes = (ManagerPermission,)
 
-    def post(self, request, tag_type, tag_id):
-        ChangeTagsAccess(tag_type, tag_id).save(request.data)
+    def post(self, request, tag_id):
+        ChangeTagsAccess(tag_id).save(request.data)
         return Response({})
 
-    def get(self, request, tag_type, tag_id):
+    def get(self, request, tag_id):
         assert request.user.role == USER_ROLES[2][0]
-        return Response(ChangeTagsAccess(tag_type, tag_id).data)
+        return Response(ChangeTagsAccess(tag_id).data)
 
 
 class UploadTagsView(LoggedCallMixin, APIView):
     parser_classes = (MultiPartParser,)
     permission_classes = (ManagerPermission,)
 
-    def post(self, request, tag_type):
+    def post(self, request):
         if 'file' not in request.data:
             raise exceptions.APIException(_('The file with tags was not provided'))
         tags_tree = json.loads(request.data['file'].read().decode('utf8'))
-        tags_model = SafeTag if tag_type == 'safe' else UnsafeTag
-        UploadTagsTree(tags_model, request.user, tags_tree)
+        UploadTagsTree(request.user, tags_tree)
         return Response({})
 
 

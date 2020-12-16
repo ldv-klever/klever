@@ -47,7 +47,8 @@ window.activate_tags = function () {
 
     function update_tags(deleted, added) {
         $.ajax({
-            url: '/marks/api/tags-data/' + $('#tags_type').val() + '/',
+            // reverse('marks:api-tags-data')
+            url: '/marks/api/tags-data/',
             type: 'GET',
             traditional: true,
             data: {
@@ -65,7 +66,7 @@ window.activate_tags = function () {
     $('#tag_list').dropdown({
         useLabels: false,
         className: {
-            label: 'ui label ' + $('#tag_label_color').text()
+            label: 'ui teal label'
         },
         message: {
             noResults: $('#error__no_results').text(),

@@ -28,10 +28,11 @@ from bridge.utils import logger
 from bridge.serializers import DynamicFieldsModelSerializer
 
 from marks.models import (
-    MAX_TAG_LEN, SafeTag, MarkSafe, MarkSafeHistory, MarkSafeAttr, MarkSafeTag,
-    UnsafeTag, MarkUnsafe, MarkUnsafeHistory, MarkUnsafeAttr, MarkUnsafeTag,
-    ConvertedTrace, MarkUnknown, MarkUnknownHistory, MarkUnknownAttr, MarkUnsafeReport, UnsafeConvertionCache
+    MAX_TAG_LEN, Tag, MarkSafe, MarkSafeHistory, MarkSafeAttr, MarkSafeTag,
+    MarkUnsafe, MarkUnsafeHistory, MarkUnsafeAttr, MarkUnsafeTag, ConvertedTrace, UnsafeConvertionCache,
+    MarkUnknown, MarkUnknownHistory, MarkUnknownAttr, MarkUnsafeReport
 )
+from marks.tags import get_all_tags
 from marks.UnsafeUtils import save_converted_trace, convert_error_trace
 
 
@@ -57,7 +58,7 @@ def create_mark_version(mark, cache=True, **kwargs):
         MarkSafeAttr.objects.bulk_create(list(MarkSafeAttr(mark_version=mark_version, **attr) for attr in attrs))
 
         if cache:
-            mark.cache_tags = list(SafeTag.objects.filter(id__in=tags).order_by('name').values_list('name', flat=True))
+            mark.cache_tags = list(Tag.objects.filter(id__in=tags).order_by('name').values_list('name', flat=True))
             mark.cache_attrs = dict((attr['name'], attr['value']) for attr in attrs if attr['is_compare'])
             mark.save()
     elif isinstance(mark, MarkUnsafe):
@@ -70,8 +71,7 @@ def create_mark_version(mark, cache=True, **kwargs):
 
         if cache:
             mark.error_trace = mark_version.error_trace
-            mark.cache_tags = list(UnsafeTag.objects.filter(id__in=tags).order_by('name')
-                                   .values_list('name', flat=True))
+            mark.cache_tags = list(Tag.objects.filter(id__in=tags).order_by('name').values_list('name', flat=True))
             mark.cache_attrs = dict((attr['name'], attr['value']) for attr in attrs if attr['is_compare'])
             mark.save()
     elif isinstance(mark, MarkUnknown):
@@ -84,7 +84,7 @@ def create_mark_version(mark, cache=True, **kwargs):
     return mark_version
 
 
-class TagSerializerBase(DynamicFieldsModelSerializer):
+class TagSerializer(DynamicFieldsModelSerializer):
     default_error_messages = {
         'parent_required': 'Tag serializer parent field is required to validate short name',
         'name_unique': _('Tag name is not unique in the current branch level'),
@@ -96,8 +96,7 @@ class TagSerializerBase(DynamicFieldsModelSerializer):
     def get_parents(self, obj):
         unavailable = set(obj.get_descendants(include_self=True).values_list('id', flat=True))
         parents = [{'id': 0, 'name': str(_('Root'))}]
-        model = getattr(obj, '_meta').model
-        for t in model.objects.order_by('name'):
+        for t in Tag.objects.order_by('name'):
             if t.id not in unavailable:
                 parents.append({'id': t.id, 'name': t.name})
         return parents
@@ -108,8 +107,7 @@ class TagSerializerBase(DynamicFieldsModelSerializer):
         qs_filter = Q(name=value)
         if self.instance:
             qs_filter &= ~Q(id=self.instance.id)
-        model = getattr(self, 'Meta').model
-        if model.objects.filter(qs_filter).count():
+        if Tag.objects.filter(qs_filter).count():
             self.fail('name_unique')
         return value
 
@@ -123,21 +121,13 @@ class TagSerializerBase(DynamicFieldsModelSerializer):
             attrs['name'] = self.validate_name(full_name)
         return attrs
 
-
-class SafeTagSerializer(TagSerializerBase):
     class Meta:
-        model = SafeTag
-        exclude = MPTT_FIELDS
-
-
-class UnsafeTagSerializer(TagSerializerBase):
-    class Meta:
-        model = UnsafeTag
+        model = Tag
         exclude = MPTT_FIELDS
 
 
 class WithTagsMixin:
-    def get_tags_ids(self, tags, tags_qs):
+    def get_tags_ids(self, tags):
         if not hasattr(self, 'Meta'):
             raise RuntimeError('Incorrect mixin usage')
 
@@ -150,14 +140,11 @@ class WithTagsMixin:
             pass
 
         context = getattr(self, 'context')
-        if 'tags_tree' in context:
+        if 'tags_tree' not in context or 'tags_names' not in context:
+            tags_tree, tags_names = get_all_tags()
+        else:
             tags_tree = context['tags_tree']
-        else:
-            tags_tree = dict((t.id, t.parent_id) for t in tags_qs)
-        if 'tags_names' in context:
             tags_names = context['tags_names']
-        else:
-            tags_names = dict((t.name, t.id) for t in tags_qs)
 
         # Collect tags with all ascendants
         mark_tags = set()
@@ -199,7 +186,7 @@ class SafeMarkVersionSerializer(WithTagsMixin, serializers.ModelSerializer):
     attrs = fields.ListField(child=SafeMarkAttrSerializer(), allow_empty=True, write_only=True)
 
     def validate_tags(self, tags):
-        return self.get_tags_ids(tags, SafeTag.objects.all())
+        return self.get_tags_ids(tags)
 
     def get_value(self, dictionary):
         return dictionary
@@ -273,7 +260,7 @@ class UnsafeMarkVersionSerializer(WithTagsMixin, serializers.ModelSerializer):
     threshold = fields.IntegerField(min_value=0, max_value=100, write_only=True, default=0)
 
     def validate_tags(self, tags):
-        return self.get_tags_ids(tags, UnsafeTag.objects.all())
+        return self.get_tags_ids(tags)
 
     def validate_threshold(self, value):
         return value / 100

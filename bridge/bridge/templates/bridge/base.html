@@ -69,7 +69,7 @@
         {% if user.is_authenticated %}
             <a class="browse item">{% trans 'Menu' %}<i class="dropdown icon"></i></a>
             <div class="ui fluid inverted popup bottom left transition hidden" style="max-width: 70%;">
-                <div class="ui three column relaxed equeal height divided grid">
+                <div class="ui two column relaxed equeal height divided grid">
                     <div class="column">
                         <h3 class="ui purple header">{% trans 'Jobs' %}</h3>
                         <a class="item" href="{% url 'jobs:tree' %}">{% trans 'Jobs Tree' %}</a>
@@ -87,11 +87,7 @@
                         <a class="item" href="{% url 'marks:unknown-list' %}">{% trans 'Unknowns' %}</a>
                         <a class="item" href="{% url 'marks:safe-list' %}">{% trans 'Safes' %}</a>
                         <a class="item" id="upload_marks_modal_show">{% trans 'Upload' %}</a>
-                    </div>
-                    <div class="column">
-                        <h3 class="ui purple header">{% trans 'Tags' %}</h3>
-                        <a class="item" href="{% url 'marks:tags' 'unsafe' %}">{% trans 'Unsafe' %}</a>
-                        <a class="item" href="{% url 'marks:tags' 'safe' %}">{% trans 'Safe' %}</a>
+                        <a class="item" href="{% url 'marks:tags' %}">{% trans 'Tags' %}</a>
                     </div>
                 </div>
             </div>

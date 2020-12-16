@@ -15,7 +15,7 @@
 # limitations under the License.
 #
 
-from django.urls import path, re_path, include
+from django.urls import path, include
 from rest_framework import routers
 from marks import views, api
 
@@ -23,8 +23,7 @@ router = routers.DefaultRouter()
 router.register('safe', api.MarkSafeViewSet, 'api-safe')
 router.register('unsafe', api.MarkUnsafeViewSet, 'api-unsafe')
 router.register('unknown', api.MarkUnknownViewSet, 'api-unknown')
-router.register('tags/safe', api.SafeTagViewSet, 'api-tags-safe')
-router.register('tags/unsafe', api.UnsafeTagViewSet, 'api-tags-unsafe')
+router.register('tags', api.TagViewSet, 'api-tags')
 
 
 urlpatterns = [
@@ -68,11 +67,11 @@ urlpatterns = [
     path('api/check-unknown-function/<int:report_id>/', api.CheckUnknownFuncView.as_view(), name='api-check-problem'),
 
     # Tags
-    re_path(r'^api/tags-access/(?P<tag_type>safe|unsafe)/(?P<tag_id>[0-9]+)/$',
-            api.TagAccessView.as_view(), name='api-tag-access'),
-    re_path(r'^api/tags-upload/(?P<tag_type>safe|unsafe)/$', api.UploadTagsView.as_view(), name='tags-upload'),
-    re_path(r'^api/tags-data/(?P<tag_type>unsafe|safe)/$', views.MarkTagsView.as_view(), name='api-tags-data'),
-    re_path(r'^tags-download/(?P<tag_type>unsafe|safe)/$', views.DownloadTagsView.as_view(), name='tags-download'),
+    path('tags/', views.TagsTreeView.as_view(), name='tags'),
+    path('tags/download/', views.DownloadTagsView.as_view(), name='tags-download'),
+    path('api/tags-access/<int:tag_id>/', api.TagAccessView.as_view(), name='api-tags-access'),
+    path('api/tags-upload/', api.UploadTagsView.as_view(), name='api-tags-upload'),
+    path('api/tags-data/', views.MarkTagsView.as_view(), name='api-tags-data'),
 
     # Mark versions views
     path('safe/<int:pk>/compare-versions/<int:v1>/<int:v2>/', views.SafeCompareVersionsView.as_view()),
@@ -94,9 +93,6 @@ urlpatterns = [
     path('api/download-all/', api.DownloadAllMarksView.as_view(), name='api-download-all'),
     path('upload/', api.UploadMarksView.as_view(), name='upload'),
     path('upload-all/', api.UploadAllMarksView.as_view(), name='upload-all'),
-
-    # Tags
-    re_path(r'^tags/(?P<type>unsafe|safe)/$', views.TagsTreeView.as_view(), name='tags'),
 
     # Actions with associations
     path('api/ass-confirmation/safe/<int:pk>/', api.ConfirmSafeMarkView.as_view(), name='api-confirm-safe'),

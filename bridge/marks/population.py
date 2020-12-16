@@ -25,13 +25,13 @@ from django.utils.translation import ugettext as _
 from bridge.vars import MARK_SOURCE
 from bridge.utils import BridgeException
 
-from marks.models import SafeTag, MarkSafe, UnsafeTag, MarkUnsafe, MarkUnknown
+from marks.models import MarkSafe, MarkUnsafe, MarkUnknown
 
 from marks.serializers import SafeMarkSerializer, UnsafeMarkSerializer, UnknownMarkSerializer
 from marks.SafeUtils import ConnectSafeMark
 from marks.UnsafeUtils import ConnectUnsafeMark
 from marks.UnknownUtils import ConnectUnknownMark
-from marks.tags import UploadTagsTree
+from marks.tags import get_all_tags, UploadTagsTree
 from caches.utils import UpdateCachesOnMarkPopulate
 
 
@@ -44,21 +44,20 @@ def get_presets_dir():
     return os.path.abspath(os.path.join(settings.BASE_DIR, 'marks', presets_path))
 
 
+def populate_tags():
+    preset_tags = os.path.join(get_presets_dir(), 'tags.json')
+    with open(preset_tags, mode='r', encoding='utf-8') as fp:
+        res = UploadTagsTree(None, json.load(fp), populated=True)
+    return res.created, res.total
+
+
 class PopulateSafeMarks:
     def __init__(self, user=None):
         self.created = 0
         self.total = 0
         self._author = user
-        self._tags_tree, self._tags_names = self.__get_all_tags()
+        self._tags_tree, self._tags_names = get_all_tags()
         self.__populate()
-
-    def __get_all_tags(self):
-        tags_tree = {}
-        tags_names = {}
-        for t_id, parent_id, t_name in SafeTag.objects.values_list('id', 'parent_id', 'name'):
-            tags_tree[t_id] = parent_id
-            tags_names[t_name] = t_id
-        return tags_tree, tags_names
 
     def __populate(self):
         presets_dir = os.path.join(get_presets_dir(), 'safes')
@@ -100,16 +99,8 @@ class PopulateUnsafeMarks:
         self.created = 0
         self.total = 0
         self._author = user
-        self._tags_tree, self._tags_names = self.__get_all_tags()
+        self._tags_tree, self._tags_names = get_all_tags()
         self.__populate()
-
-    def __get_all_tags(self):
-        tags_tree = {}
-        tags_names = {}
-        for t_id, parent_id, t_name in UnsafeTag.objects.values_list('id', 'parent_id', 'name'):
-            tags_tree[t_id] = parent_id
-            tags_names[t_name] = t_id
-        return tags_tree, tags_names
 
     def __populate(self):
         presets_dir = os.path.join(get_presets_dir(), 'unsafes')
@@ -197,17 +188,3 @@ class PopulateUnknownMarks:
                 res = ConnectUnknownMark(mark)
                 UpdateCachesOnMarkPopulate(mark, res.new_links).update()
                 self.created += 1
-
-
-def populate_safe_tags():
-    preset_tags = os.path.join(get_presets_dir(), 'tags', 'safe.json')
-    with open(preset_tags, mode='r', encoding='utf-8') as fp:
-        res = UploadTagsTree(SafeTag, None, json.load(fp), populated=True)
-    return res.created, res.total
-
-
-def populate_unsafe_tags():
-    preset_tags = os.path.join(get_presets_dir(), 'tags', 'unsafe.json')
-    with open(preset_tags, mode='r', encoding='utf-8') as fp:
-        res = UploadTagsTree(UnsafeTag, None, json.load(fp), populated=True)
-    return res.created, res.total

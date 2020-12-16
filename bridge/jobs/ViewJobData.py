@@ -25,7 +25,7 @@ from django.utils.translation import ugettext_lazy as _
 from bridge.vars import DECISION_WEIGHT
 
 from reports.models import ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent, Report, DecisionCache
-from marks.models import MarkUnknownReport, SafeTag, UnsafeTag
+from marks.models import MarkUnknownReport, Tag
 from caches.models import ReportSafeCache, ReportUnsafeCache
 
 from users.utils import HumanizedValue
@@ -256,9 +256,8 @@ class UnknownsInfo:
 
 
 class TagsInfo:
-    def __init__(self, base_url, cache_qs, tags_model, tags_filter):
+    def __init__(self, base_url, cache_qs, tags_filter):
         self._tags_filter = tags_filter
-        self._tags_model = tags_model
 
         # Values:
         # reverse('reports:unsafes', args=[self.report.id])
@@ -283,8 +282,7 @@ class TagsInfo:
         qs_filter = {}
         if self._tags_filter:
             qs_filter['name__{}'.format(self._tags_filter[0])] = self._tags_filter[1]
-        db_tags_qs = self._tags_model.objects.filter(**qs_filter).order_by('level')\
-            .only('id', 'parent_id', 'name', 'description')
+        db_tags_qs = Tag.objects.filter(**qs_filter).order_by('level').only('id', 'parent_id', 'name', 'description')
         db_tags = {}
         for tag in db_tags_qs:
             if tag.parent_id and tag.parent_id not in db_tags:
@@ -462,7 +460,7 @@ class ViewJobData:
         return TagsInfo(
             reverse('reports:safes', args=[self.report.id]),
             ReportSafeCache.objects.filter(report__decision=self.decision),
-            SafeTag, self.view['safe_tag']
+            self.view['safe_tag']
         ).info
 
     def __unsafe_tags_info(self):
@@ -471,7 +469,7 @@ class ViewJobData:
         return TagsInfo(
             reverse('reports:unsafes', args=[self.report.id]),
             ReportUnsafeCache.objects.filter(report__decision=self.decision),
-            UnsafeTag, self.view['unsafe_tag']
+            self.view['unsafe_tag']
         ).info
 
     def __resource_info(self):
@@ -542,14 +540,14 @@ class ViewReportData:
         return TagsInfo(
             reverse('reports:safes', args=[self.report.id]),
             ReportSafeCache.objects.filter(report__leaves__report=self.report),
-            SafeTag, self.view['safe_tag']
+            self.view['safe_tag']
         ).info
 
     def __unsafe_tags_info(self):
         return TagsInfo(
             reverse('reports:unsafes', args=[self.report.id]),
             ReportUnsafeCache.objects.filter(report__leaves__report=self.report),
-            UnsafeTag, self.view['unsafe_tag']
+            self.view['unsafe_tag']
         ).info
 
     def __resource_info(self):

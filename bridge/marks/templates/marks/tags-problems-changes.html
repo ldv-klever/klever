@@ -20,14 +20,14 @@
 {% if changes %}
     {% for change in changes %}
         <p>
+            <span class="{{ type }}">{{ change.0 }}</span>:
             {% if change.1 == 0 and change.2 > 0 %}
-                <span class="mark-tag {{ type }}">{{ change.0 }}</span>: <i class="ui green plus icon"></i>
+                <i class="ui green plus icon"></i>
             {% elif change.1 > 0 and change.2 == 0 %}
-                <span class="mark-tag {{ type }}">{{ change.0 }}</span>: <i class="ui red minus icon"></i>
+                <i class="ui red minus icon"></i>
             {% elif change.1 == change.2 %}
-                <span class="mark-tag {{ type }}">{{ change.0 }}</span>: <span class="ui mini label">{{ change.1 }}</span>
+                <span class="ui mini label">{{ change.1 }}</span>
             {% else %}
-                <span class="mark-tag {{ type }}">{{ change.0 }}</span>:
                 <span class="ui mini label">{{ change.1 }}</span>
                 <i class="ui long arrow right {% if change.1 < change.2 %}green{% else %}red{% endif %} icon"></i>
                 <span class="ui mini label">{{ change.2 }}</span>

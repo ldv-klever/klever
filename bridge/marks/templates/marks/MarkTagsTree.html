@@ -24,7 +24,7 @@
             {% if cell and cell.type == 'link' %}
                 <div class="tag-tree-link" data-links="{{ cell.value }}" style="display: table-cell">&nbsp;</div>
             {% elif cell and cell.type == 'tag' %}
-                <div id="tag__{{ cell.value.id }}" class="mark-tag {{ tags.type }}" style="display: table-cell">{{ cell.value.shortname }}{% if not view_only %}<i data-tag="{{ cell.value.id }}" class="ui icon link remove remove-mark-tag"></i>{% endif %}</div>
+                <div id="tag__{{ cell.value.id }}" class="mark-tag" style="display: table-cell">{{ cell.value.shortname }}{% if not view_only %}<i data-tag="{{ cell.value.id }}" class="ui icon link remove remove-mark-tag"></i>{% endif %}</div>
             {% else %}
                 <div style="display: table-cell">&nbsp;</div>
             {% endif %}
@@ -32,7 +32,6 @@
         </div>
     {% endfor %}
 </div>
-<input id="tags_type" type="hidden" value="{{ tags.type }}">
 
 <div class="popups">
     {% for row in tags.table %}

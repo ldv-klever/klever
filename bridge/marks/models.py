@@ -196,7 +196,7 @@ class UnsafeAssociationLike(models.Model):
 
 
 # Tags tables
-class SafeTag(MPTTModel):
+class Tag(MPTTModel):
     author = models.ForeignKey(User, models.SET_NULL, null=True)
     parent = TreeForeignKey('self', models.CASCADE, null=True, related_name='children')
     name = models.CharField(max_length=1024, db_index=True, unique=True)
@@ -205,46 +205,23 @@ class SafeTag(MPTTModel):
 
     @property
     def url(self):
-        return reverse("marks:api-tags-safe-detail", args=[self.id])
+        return reverse("marks:api-tags-detail", args=[self.id])
 
     @property
     def access_url(self):
-        return reverse("marks:api-tag-access", args=['safe', self.id])
+        return reverse("marks:api-tags-access", args=[self.id])
 
     @property
     def shortname(self):
         return self.name.split(' - ')[-1]
 
     class Meta:
-        db_table = "mark_safe_tag"
-
-
-class UnsafeTag(MPTTModel):
-    author = models.ForeignKey(User, models.SET_NULL, null=True)
-    parent = TreeForeignKey('self', models.CASCADE, null=True, related_name='children')
-    name = models.CharField(max_length=1024, db_index=True, unique=True)
-    description = models.TextField(default='', blank=True)
-    populated = models.BooleanField(default=False)
-
-    @property
-    def url(self):
-        return reverse("marks:api-tags-unsafe-detail", args=[self.id])
-
-    @property
-    def access_url(self):
-        return reverse("marks:api-tag-access", args=['unsafe', self.id])
-
-    @property
-    def shortname(self):
-        return self.name.split(' - ')[-1]
-
-    class Meta:
-        db_table = "mark_unsafe_tag"
+        db_table = "mark_tag"
 
 
 class MarkSafeTag(models.Model):
     mark_version = models.ForeignKey(MarkSafeHistory, models.CASCADE, related_name='tags')
-    tag = models.ForeignKey(SafeTag, models.CASCADE, related_name='+')
+    tag = models.ForeignKey(Tag, models.CASCADE, related_name='+')
 
     def __str__(self):
         return self.tag.name
@@ -255,7 +232,7 @@ class MarkSafeTag(models.Model):
 
 class MarkUnsafeTag(models.Model):
     mark_version = models.ForeignKey(MarkUnsafeHistory, models.CASCADE, related_name='tags')
-    tag = models.ForeignKey(UnsafeTag, models.CASCADE, related_name='+')
+    tag = models.ForeignKey(Tag, models.CASCADE, related_name='+')
 
     def __str__(self):
         return self.tag.name
@@ -327,24 +304,14 @@ class UnsafeConvertionCache(models.Model):
         db_table = 'cache_error_trace_converted'
 
 
-class SafeTagAccess(models.Model):
+class TagAccess(models.Model):
     user = models.ForeignKey(User, models.CASCADE)
-    tag = models.ForeignKey(SafeTag, models.CASCADE)
+    tag = models.ForeignKey(Tag, models.CASCADE)
     modification = models.BooleanField(default=False)
     child_creation = models.BooleanField(default=False)
 
     class Meta:
-        db_table = 'marks_safe_tag_access'
-
-
-class UnsafeTagAccess(models.Model):
-    user = models.ForeignKey(User, models.CASCADE)
-    tag = models.ForeignKey(UnsafeTag, models.CASCADE)
-    modification = models.BooleanField(default=False)
-    child_creation = models.BooleanField(default=False)
-
-    class Meta:
-        db_table = 'marks_unsafe_tag_access'
+        db_table = 'mark_tag_access'
 
 
 post_delete.connect(remove_instance_files, sender=ConvertedTrace)

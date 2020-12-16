@@ -299,8 +299,7 @@ class MarkTagsView(LoggedCallMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['tags'] = SelectedTagsTree(
-            self.kwargs['tag_type'], self.request.GET.getlist('selected'),
-            self.request.GET.get('deleted'), self.request.GET.get('added')
+            self.request.GET.getlist('selected'), self.request.GET.get('deleted'), self.request.GET.get('added')
         )
         return context
 
@@ -334,19 +333,14 @@ class TagsTreeView(LoginRequiredMixin, LoggedCallMixin, TemplateView):
     template_name = 'marks/TagsTree.html'
 
     def get_context_data(self, **kwargs):
-        if self.kwargs['type'] not in {'safe', 'unsafe'}:
-            raise BridgeException()
         context = super().get_context_data(**kwargs)
-        context['title'] = _('Safe tags') if self.kwargs['type'] == 'safe' else _('Unsafe tags')
-        context['tree'] = AllTagsTree(self.request.user, self.kwargs['type'])
-        context['list_url'] = reverse("marks:api-tags-{}-list".format(self.kwargs['type']))
-        context['upload_url'] = reverse("marks:tags-upload", args=[self.kwargs['type']])
+        context['tree'] = AllTagsTree(self.request.user)
         return context
 
 
 class DownloadTagsView(LoginRequiredMixin, StreamingResponseView):
     def get_generator(self):
-        return DownloadTags(self.kwargs['tag_type'])
+        return DownloadTags()
 
 
 class DownloadSafeMarkView(LoginRequiredMixin, LoggedCallMixin, SingleObjectMixin, StreamingResponseView):

@@ -96,7 +96,7 @@ SELECT R0.id AS report_id, ARRAY_AGG(T0.name ORDER BY T0.level) AS tags
         ) AS MM ON MM.mark_version_id = MT.mark_version_id
     ) AS MT ON MT.mark_id = MR.mark_id
     INNER JOIN cache_report_component_leaf AS RL ON R0.id = RL.object_id AND RL.content_type_id = %s
-    INNER JOIN mark_safe_tag AS T0 ON T0.id = MT.tag_id
+    INNER JOIN mark_tag AS T0 ON T0.id = MT.tag_id
     WHERE RL.report_id = %s GROUP BY R0.id;
 """
 
@@ -112,6 +112,6 @@ SELECT R0.id AS report_id, ARRAY_AGG(T0.name ORDER BY T0.level) AS tags
         ) AS MM ON MM.mark_version_id = MT.mark_version_id
     ) AS MT ON MT.mark_id = MR.mark_id
     INNER JOIN cache_report_component_leaf AS RL ON R0.id = RL.object_id AND RL.content_type_id = %s
-    INNER JOIN mark_unsafe_tag AS T0 ON T0.id = MT.tag_id
+    INNER JOIN mark_tag AS T0 ON T0.id = MT.tag_id
     WHERE RL.report_id = %s GROUP BY R0.id;
 """

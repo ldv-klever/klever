@@ -957,13 +957,7 @@ class AssChangesBase:
         return '<i class="ui long arrow right icon"></i>'.join(statuses_html)
 
     def __get_problems(self, problems_old, problems_new):
-        context = {}
-        if self.model == SafeMarkAssociationChanges:
-            context['type'] = 'safe'
-        elif self.model == UnsafeMarkAssociationChanges:
-            context['type'] = 'unsafe'
-        else:
-            context['type'] = 'unknown'
+        context = {'type': 'mark-problem'}
         changes = {}
         for problem, num in problems_old.items():
             changes[problem] = [num, 0]
@@ -976,13 +970,7 @@ class AssChangesBase:
         return loader.get_template('marks/tags-problems-changes.html').render(context)
 
     def __get_tags(self, tags_old, tags_new):
-        context = {}
-        if self.model == SafeMarkAssociationChanges:
-            context['type'] = 'safe'
-        elif self.model == UnsafeMarkAssociationChanges:
-            context['type'] = 'unsafe'
-        else:
-            context['type'] = 'unknown'
+        context = {'type': 'mark-tag'}
         changes = {}
         for name, num in tags_old.items():
             changes[name] = [num, 0]
