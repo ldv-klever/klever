@@ -293,7 +293,7 @@ class ChangeTagsAccess:
 
 class DownloadTags:
     def __init__(self):
-        self._data = json.dumps(self.__get_children(None), ensure_ascii=False, sort_keys=True, indent=2).encode('utf8')
+        self._data = json.dumps(self.__get_children(None), ensure_ascii=False, indent=2).encode('utf8')
         self.name = 'Tags.json'
         self.size = len(self._data)
 
@@ -317,7 +317,8 @@ class DownloadTags:
         for t_id in self._db_tags:
             if self._db_tags[t_id]['parent'] != parent_id:
                 continue
-            child = {'name': self._db_tags[t_id]['name']}
+            child = OrderedDict()
+            child['name'] = self._db_tags[t_id]['name']
             if 'description' in self._db_tags[t_id]:
                 child['description'] = self._db_tags[t_id]['description']
             child_children = self.__get_children(t_id)
