@@ -303,7 +303,7 @@ class DownloadTags:
     @cached_property
     def _db_tags(self):
         db_tags = OrderedDict()
-        for tag in Tag.objects.order_by('name'):
+        for tag in Tag.objects.order_by('id'):
             db_tags[tag.id] = {
                 'parent': tag.parent_id,
                 'name': tag.shortname
