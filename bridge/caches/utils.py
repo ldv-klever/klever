@@ -27,8 +27,7 @@ from bridge.vars import SAFE_VERDICTS, UNSAFE_VERDICTS, ASSOCIATION_TYPE
 
 from marks.models import (
     MarkSafe, MarkSafeHistory, MarkUnsafe, MarkUnsafeHistory, MarkUnknown,
-    MarkSafeReport, MarkUnsafeReport, MarkUnknownReport,
-    MarkSafeTag, MarkUnsafeTag, SafeTag, UnsafeTag
+    MarkSafeReport, MarkUnsafeReport, MarkUnknownReport, MarkSafeTag, MarkUnsafeTag, Tag
 )
 from caches.models import (
     ASSOCIATION_CHANGE_KIND, ReportSafeCache, ReportUnsafeCache, ReportUnknownCache,
@@ -613,12 +612,13 @@ class RecalculateUnknownCache:
         update_cache_atomic(cache_queryset, new_data)
 
 
-class UpdateSafeMarksTags:
+class UpdateMarksTags:
     def __init__(self):
-        queryset = SafeTag.objects.all()
+        queryset = Tag.objects.all()
         self._db_tags = dict((t.id, t.parent_id) for t in queryset)
         self._names = dict((t.id, t.name) for t in queryset)
-        self.__update_marks()
+        self.__update_safe_marks()
+        self.__update_unsafe_marks()
 
     def __new_tags(self, tags):
         new_tags = set()
@@ -630,7 +630,7 @@ class UpdateSafeMarksTags:
                 parent = self._db_tags[parent]
         return new_tags
 
-    def __update_marks(self):
+    def __update_safe_marks(self):
         # Update only last versions
         version_tags = defaultdict(set)
         for marktag in MarkSafeTag.objects.filter(mark_version__version=F('mark_version__mark__version')):
@@ -642,6 +642,10 @@ class UpdateSafeMarksTags:
             if new_tags:
                 changed_versions[version_id] = new_tags
 
+        mark_links = defaultdict(set)
+        for mark_id, report_id in MarkSafeReport.objects.values_list('mark_id', 'report_id'):
+            mark_links[mark_id].add(report_id)
+
         for mark_version in MarkSafeHistory.objects.filter(id__in=changed_versions).select_related('mark'):
             old_tags = set(mark_version.mark.cache_tags)
             mark_tags_ids = version_tags[mark_version.id] | changed_versions[mark_version.id]
@@ -649,37 +653,12 @@ class UpdateSafeMarksTags:
             if old_tags != new_tags:
                 mark_version.mark.cache_tags = list(sorted(new_tags))
                 mark_version.mark.save()
-                report_links = self._mark_links[mark_version.mark_id]
+                report_links = mark_links[mark_version.mark_id]
                 markcache = UpdateSafeCachesOnMarkChange(mark_version.mark, report_links, report_links)
                 markcache.update_tags()
                 markcache.save()
 
-    @cached_property
-    def _mark_links(self):
-        data = defaultdict(set)
-        for mark_id, report_id in MarkSafeReport.objects.values_list('mark_id', 'report_id'):
-            data[mark_id].add(report_id)
-        return data
-
-
-class UpdateUnsafeMarksTags:
-    def __init__(self):
-        queryset = UnsafeTag.objects.all()
-        self._db_tags = dict((t.id, t.parent_id) for t in queryset)
-        self._names = dict((t.id, t.name) for t in queryset)
-        self.__update_marks()
-
-    def __new_tags(self, tags):
-        new_tags = set()
-        for t_id in tags:
-            parent = self._db_tags[t_id]
-            while parent:
-                if parent not in tags:
-                    new_tags.add(parent)
-                parent = self._db_tags[parent]
-        return new_tags
-
-    def __update_marks(self):
+    def __update_unsafe_marks(self):
         # Update only last versions
         version_tags = defaultdict(set)
         for marktag in MarkUnsafeTag.objects.filter(mark_version__version=F('mark_version__mark__version')):
@@ -691,6 +670,10 @@ class UpdateUnsafeMarksTags:
             if new_tags:
                 changed_versions[version_id] = new_tags
 
+        mark_links = defaultdict(set)
+        for mark_id, report_id in MarkUnsafeReport.objects.values_list('mark_id', 'report_id'):
+            mark_links[mark_id].add(report_id)
+
         for mark_version in MarkUnsafeHistory.objects.filter(id__in=changed_versions).select_related('mark'):
             old_tags = set(mark_version.mark.cache_tags)
             mark_tags_ids = version_tags[mark_version.id] | changed_versions[mark_version.id]
@@ -698,14 +681,7 @@ class UpdateUnsafeMarksTags:
             if old_tags != new_tags:
                 mark_version.mark.cache_tags = list(sorted(new_tags))
                 mark_version.mark.save()
-                report_links = self._mark_links[mark_version.mark_id]
+                report_links = mark_links[mark_version.mark_id]
                 markcache = UpdateUnsafeCachesOnMarkChange(mark_version.mark, report_links, report_links)
                 markcache.update_tags()
                 markcache.save()
-
-    @cached_property
-    def _mark_links(self):
-        data = defaultdict(set)
-        for mark_id, report_id in MarkUnsafeReport.objects.values_list('mark_id', 'report_id'):
-            data[mark_id].add(report_id)
-        return data

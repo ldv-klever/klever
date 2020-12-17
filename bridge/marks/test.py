@@ -32,7 +32,7 @@ from jobs.models import Job
 from reports.models import ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent
 from marks.models import (
     MarkSafe, MarkUnsafe, MarkUnknown, MarkSafeHistory, MarkUnsafeHistory, MarkUnknownHistory,
-    SafeTag, UnsafeTag, MarkSafeTag, MarkUnsafeTag, MarkSafeReport, MarkUnsafeReport, MarkUnknownReport,
+    MarkSafeTag, MarkUnsafeTag, MarkSafeReport, MarkUnsafeReport, MarkUnknownReport,
     SafeAssociationLike, UnsafeAssociationLike, UnknownAssociationLike
 )
 

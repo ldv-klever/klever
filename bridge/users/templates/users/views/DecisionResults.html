@@ -169,52 +169,6 @@
                 </div>
                 <div class="ui divider"></div>
 
-                {# Safe tags #}
-                <input id="view_data_{{ view.type }}__safe_tag" value="list_if_safe_tag" data-list="safe_tag_type__safe_tag_name" type="hidden">
-                <div class="ui checkbox">
-                    <input type="checkbox" id="view_condition_{{ view.type }}__safe_tag"{% if 'safe_tag' in view %} checked{% endif %}>
-                    <label for="view_condition_{{ view.type }}__safe_tag">{% trans 'Safe tag' %}</label>
-                </div>
-                <br><br>
-                <div class="inline fields" style="margin-left: 15px;">
-                    <div class="field">
-                        <select id="view_{{ view.type }}__safe_tag_type" class="ui dropdown">
-                            <option value="iexact"{% if 'safe_tag' in view and view.safe_tag.0 == 'iexact' %} selected{% endif %}>{% trans 'is' %}</option>
-                            <option value="istartswith"{% if 'safe_tag' in view and view.safe_tag.0 == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
-                            <option value="icontains"{% if 'safe_tag' in view and view.safe_tag.0 == 'icontains' %} selected{% endif %}>{% trans 'contains' %}</option>
-                        </select>
-                        <label for="view_{{ view.type }}__safe_tag_type"></label>
-                    </div>
-                    <div class="field">
-                        <input id="view_{{ view.type }}__safe_tag_name" type="text"{% if 'safe_tag' in view %} value="{{ view.safe_tag.1 }}"{% endif %}>
-                        <label for="view_{{ view.type }}__safe_tag_name"></label>
-                    </div>
-                </div>
-                <div class="ui divider"></div>
-
-                {# Filters for unsafe tags #}
-                <input id="view_data_{{ view.type }}__unsafe_tag" value="list_if_unsafe_tag" data-list="unsafe_tag_type__unsafe_tag_name" type="hidden">
-                <div class="ui checkbox">
-                    <input type="checkbox" id="view_condition_{{ view.type }}__unsafe_tag"{% if 'unsafe_tag' in view %} checked{% endif %}>
-                    <label for="view_condition_{{ view.type }}__unsafe_tag">{% trans 'Unsafe tag' %}</label>
-                </div>
-                <br><br>
-                <div class="inline fields" style="margin-left: 15px;">
-                    <div class="field">
-                        <select id="view_{{ view.type }}__unsafe_tag_type" class="ui dropdown">
-                            <option value="iexact"{% if 'unsafe_tag' in view and view.unsafe_tag.0 == 'iexact' %} selected{% endif %}>{% trans 'is' %}</option>
-                            <option value="istartswith"{% if 'unsafe_tag' in view and view.unsafe_tag.0 == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
-                            <option value="icontains"{% if 'unsafe_tag' in view and view.unsafe_tag.0 == 'icontains' %} selected{% endif %}>{% trans 'contains' %}</option>
-                        </select>
-                        <label for="view_{{ view.type }}__unsafe_tag_type"></label>
-                    </div>
-                    <div class="field">
-                        <input id="view_{{ view.type }}__unsafe_tag_name" type="text"{% if 'unsafe_tag' in view %} value="{{ view.unsafe_tag.1 }}"{% endif %}>
-                        <label for="view_{{ view.type }}__unsafe_tag_name"></label>
-                    </div>
-                </div>
-                <div class="ui divider"></div>
-
                 {# Filter for attributes statistic #}
                 <input id="view_data_{{ view.type }}__attr_stat_filter" value="list_if_attr_stat_enable" data-list="attr_stat_type__attr_stat_value" type="hidden">
                 <div class="ui checkbox">

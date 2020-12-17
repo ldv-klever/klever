@@ -176,21 +176,6 @@
         </div>
         <div class="ui divider"></div>
 
-        {# Tags #}
-        <input id="view_data_{{ view.type }}__tags" value="list_if_tags" data-list="tags_value" type="hidden">
-        <div class="ui checkbox">
-            <input type="checkbox" id="view_condition_{{ view.type }}__tags"{% if 'tags' in view %} checked{% endif %}>
-            <label for="view_condition_{{ view.type }}__tags">{% trans 'With tags' %}</label>
-        </div>
-        <br><br>
-        <div class="field fluid" style="margin-left: 15px;">
-            <input id="view_{{ view.type }}__tags_value" type="text"{% if 'tags' in view %} value="{{ view.tags.0 }}"{% endif %}>
-            <label for="view_{{ view.type }}__tags_value"></label>
-            <small style="color: #656565">{% trans 'Enter full names of tags separated by semicolon' %}</small>
-        </div>
-
-        <div class="ui divider"></div>
-
         {# Verifier CPU time #}
         <input id="view_data_{{ view.type }}__parent_cpu" value="list_if_parent_cpu" data-list="parent_cpu_operator__parent_cpu_value__parent_cpu_measure" type="hidden">
         <div class="ui checkbox">

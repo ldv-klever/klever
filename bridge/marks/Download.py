@@ -31,11 +31,11 @@ from bridge.utils import logger, BridgeException
 from bridge.ZipGenerator import ZipStream, CHUNK_SIZE
 
 from marks.models import (
-    MarkSafe, MarkUnsafe, MarkUnknown, SafeTag, UnsafeTag, MarkSafeTag, MarkUnsafeTag,
-    MarkSafeAttr, MarkUnsafeAttr, MarkUnknownAttr
+    MarkSafe, MarkUnsafe, MarkUnknown, MarkSafeTag, MarkUnsafeTag, MarkSafeAttr, MarkUnsafeAttr, MarkUnknownAttr
 )
 from caches.models import ReportSafeCache, ReportUnsafeCache, ReportUnknownCache
 
+from marks.tags import get_all_tags
 from marks.serializers import SafeMarkSerializer, UnsafeMarkSerializer, UnknownMarkSerializer
 from marks.SafeUtils import ConnectSafeMark
 from marks.UnsafeUtils import ConnectUnsafeMark
@@ -292,20 +292,11 @@ class AllMarksGenerator:
 class MarksUploader:
     def __init__(self, user):
         self._user = user
-        self._safe_tags_names = self._safe_tags_tree = None
-        self._unsafe_tags_names = self._unsafe_tags_tree = None
-
-    def get_tags(self, tags_model):
-        tags_tree = {}
-        tags_names = {}
-        for t_id, parent_id, t_name in tags_model.objects.values_list('id', 'parent_id', 'name'):
-            tags_tree[t_id] = parent_id
-            tags_names[t_name] = t_id
-        return tags_tree, tags_names
+        self._tags_names = self._tags_tree = None
 
     def __create_safe_mark(self, mark_data, versions_data):
-        if self._safe_tags_names is None or self._safe_tags_tree is None:
-            self._safe_tags_tree, self._safe_tags_names = self.get_tags(SafeTag)
+        if self._tags_names is None or self._tags_tree is None:
+            self._tags_tree, self._tags_names = get_all_tags()
 
         mark = None
         for version_number in sorted(versions_data):
@@ -320,7 +311,7 @@ class MarksUploader:
                 save_kwargs = {}
 
             serializer = SafeMarkSerializer(instance=mark, data=mark_version, context={
-                'tags_names': self._safe_tags_names, 'tags_tree': self._safe_tags_tree
+                'tags_names': self._tags_names, 'tags_tree': self._tags_tree
             }, fields=serializer_fields)
             serializer.is_valid(raise_exception=True)
             mark = serializer.save(**save_kwargs)
@@ -331,8 +322,8 @@ class MarksUploader:
         return reverse('marks:safe', args=[mark.id])
 
     def __create_unsafe_mark(self, mark_data, versions_data):
-        if self._unsafe_tags_names is None or self._unsafe_tags_tree is None:
-            self._unsafe_tags_tree, self._unsafe_tags_names = self.get_tags(UnsafeTag)
+        if self._tags_names is None or self._tags_tree is None:
+            self._tags_tree, self._tags_names = get_all_tags()
 
         mark = None
         for version_number in sorted(versions_data):
@@ -347,7 +338,7 @@ class MarksUploader:
                 save_kwargs = {}
 
             serializer = UnsafeMarkSerializer(instance=mark, data=mark_version, context={
-                'tags_names': self._unsafe_tags_names, 'tags_tree': self._unsafe_tags_tree
+                'tags_names': self._tags_names, 'tags_tree': self._tags_tree
             }, fields=serializer_fields)
             serializer.is_valid(raise_exception=True)
             mark = serializer.save(**save_kwargs)

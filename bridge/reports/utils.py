@@ -216,10 +216,10 @@ class SafesTable:
         self.columns, self.values = self.__safes_data()
 
     @cached_property
-    def _confirmed(self):
-        if 'confirmed' not in self._params:
+    def _manual(self):
+        if 'manual' not in self._params:
             return None
-        return bool(int(self._params['confirmed']))
+        return bool(int(self._params['manual']))
 
     @cached_property
     def _detailed(self):
@@ -287,9 +287,9 @@ class SafesTable:
             ordering = 'memory'
 
         # Filter by marks number
-        if self._confirmed is True:
+        if self._manual is True:
             qs_filters['cache__marks_confirmed__gt'] = 0
-        elif self._confirmed is False:
+        elif self._manual is False:
             qs_filters['cache__marks_confirmed'] = 0
             qs_filters['cache__marks_automatic__gt'] = 0
         elif 'marks_number' in self.view:
@@ -304,12 +304,6 @@ class SafesTable:
         # Filter by tags
         if 'tag' in self._params:
             qs_filters['cache__tags__has_key'] = unquote(self._params['tag'])
-        elif 'tags' in self.view:
-            view_tags = set(x.strip() for x in self.view['tags'][0].split(';'))
-            if '' in view_tags:
-                view_tags.remove('')
-            if len(view_tags):
-                qs_filters['cache__tags__has_any_keys'] = list(view_tags)
 
         # Filter by attribute(s)
         if 'attr_name' in self._params and 'attr_value' in self._params:
@@ -353,9 +347,9 @@ class SafesTable:
         # Either verdict, tag or attr is supported in kwargs
         if 'verdict' in self._params:
             verdict_title = dict(SAFE_VERDICTS)[self._params['verdict']]
-            if self._confirmed is True:
+            if self._manual is True:
                 title = '{}: {} {}'.format(_("Safes"), _('manually assessed'), verdict_title)
-            elif self._confirmed is False:
+            elif self._manual is False:
                 title = '{}: {} {}'.format(_("Safes"), _('automatically assessed'), verdict_title)
             else:
                 title = '{}: {}'.format(_("Safes"), verdict_title)
@@ -442,10 +436,11 @@ class SafesTable:
                     if len(report.cache.tags):
                         tags_values = []
                         for tag in sorted(report.cache.tags):
+                            shortname = tag.split(' - ')[-1]
                             if report.cache.tags[tag] > 1:
-                                tags_values.append('{0} ({1})'.format(tag, report.cache.tags[tag]))
+                                tags_values.append('{0} ({1})'.format(shortname, report.cache.tags[tag]))
                             else:
-                                tags_values.append(tag)
+                                tags_values.append(shortname)
                         val = ', '.join(tags_values)
                 elif col == 'verifier:cpu':
                     val = HumanizedValue(report.cpu_time, user=self.user).timedelta
@@ -491,10 +486,10 @@ class UnsafesTable:
         self.columns, self.values = self.__unsafes_data()
 
     @cached_property
-    def _confirmed(self):
-        if 'confirmed' not in self._params:
+    def _manual(self):
+        if 'manual' not in self._params:
             return None
-        return bool(int(self._params['confirmed']))
+        return bool(int(self._params['manual']))
 
     @cached_property
     def _detailed(self):
@@ -562,9 +557,9 @@ class UnsafesTable:
             ordering = 'memory'
 
         # Filter by marks number
-        if self._confirmed is True:
+        if self._manual is True:
             qs_filters['cache__marks_confirmed__gt'] = 0
-        elif self._confirmed is False:
+        elif self._manual is False:
             qs_filters['cache__marks_confirmed'] = 0
             qs_filters['cache__marks_automatic__gt'] = 0
         elif 'marks_number' in self.view:
@@ -579,12 +574,6 @@ class UnsafesTable:
         # Filter by tags
         if 'tag' in self._params:
             qs_filters['cache__tags__has_key'] = unquote(self._params['tag'])
-        elif 'tags' in self.view:
-            view_tags = set(x.strip() for x in self.view['tags'][0].split(';'))
-            if '' in view_tags:
-                view_tags.remove('')
-            if len(view_tags):
-                qs_filters['cache__tags__has_any_keys'] = list(view_tags)
 
         # Filter by attribute(s)
         if 'attr_name' in self._params and 'attr_value' in self._params:
@@ -626,9 +615,9 @@ class UnsafesTable:
         # Either verdict, tag or attr is supported in kwargs
         if 'verdict' in self._params:
             verdict_title = dict(UNSAFE_VERDICTS)[self._params['verdict']]
-            if self._confirmed is True:
+            if self._manual is True:
                 title = '{}: {} {}'.format(_("Unsafes"), _('manually assessed'), verdict_title)
-            elif self._confirmed is False:
+            elif self._manual is False:
                 title = '{}: {} {}'.format(_("Unsafes"), _('automatically assessed'), verdict_title)
             else:
                 title = '{}: {}'.format(_("Unsafes"), verdict_title)
@@ -720,10 +709,11 @@ class UnsafesTable:
                     if len(report.cache.tags):
                         tags_values = []
                         for tag in sorted(report.cache.tags):
+                            shortname = tag.split(' - ')[-1]
                             if report.cache.tags[tag] > 1:
-                                tags_values.append('{0} ({1})'.format(tag, report.cache.tags[tag]))
+                                tags_values.append('{0} ({1})'.format(shortname, report.cache.tags[tag]))
                             else:
-                                tags_values.append(tag)
+                                tags_values.append(shortname)
                         val = ', '.join(tags_values)
                 elif col == 'verifier:cpu':
                     val = HumanizedValue(report.cpu_time, user=self.user).timedelta
@@ -764,10 +754,10 @@ class UnknownsTable:
         self.columns, self.values = self.__unknowns_data()
 
     @cached_property
-    def _confirmed(self):
-        if 'confirmed' not in self._params:
+    def _manual(self):
+        if 'manual' not in self._params:
             return None
-        return bool(int(self._params['confirmed']))
+        return bool(int(self._params['manual']))
 
     @cached_property
     def _detailed(self):
@@ -829,9 +819,9 @@ class UnknownsTable:
             ordering = 'memory'
 
         # Filter by marks number
-        if self._confirmed is True:
+        if self._manual is True:
             qs_filters['cache__marks_confirmed__gt'] = 0
-        elif self._confirmed is False:
+        elif self._manual is False:
             qs_filters['cache__marks_confirmed'] = 0
             qs_filters['cache__marks_automatic__gt'] = 0
         elif 'marks_number' in self.view:
@@ -901,9 +891,9 @@ class UnknownsTable:
             problem = unquote(self._params['problem'])
             if problem == 'null':
                 title = _("Unknowns without marks")
-            elif self._confirmed is True:
+            elif self._manual is True:
                 title = '{}: {} {}'.format(_("Unknowns"), _('manually assessed'), problem)
-            elif self._confirmed is False:
+            elif self._manual is False:
                 title = '{}: {} {}'.format(_("Unknowns"), _('automatically assessed'), problem)
             else:
                 title = '{}: {}'.format(_("Unknowns"), problem)
@@ -980,15 +970,6 @@ class UnknownsTable:
                     val = str(report.cache.marks_confirmed)
                 elif col == self.automatic_col:
                     val = str(report.cache.marks_automatic)
-                elif col == 'tags':
-                    if len(report.cache.tags):
-                        tags_values = []
-                        for tag in sorted(report.cache.tags):
-                            if report.cache.tags[tag] > 1:
-                                tags_values.append('{0} ({1})'.format(tag, report.cache.tags[tag]))
-                            else:
-                                tags_values.append(tag)
-                        val = ', '.join(tags_values)
                 elif col == 'verifier:cpu':
                     val = HumanizedValue(report.cpu_time, user=self.user).timedelta
                 elif col == 'verifier:wall':

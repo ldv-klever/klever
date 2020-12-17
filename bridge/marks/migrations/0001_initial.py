@@ -43,6 +43,21 @@ class Migration(migrations.Migration):
             ('trace_cache', JSONField()),
         ], options={'db_table': 'cache_marks_trace'}, bases=(bridge.utils.WithFilesMixin, models.Model)),
 
+        migrations.CreateModel(name='Tag', fields=[
+            ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+            ('name', models.CharField(db_index=True, max_length=1024, unique=True)),
+            ('description', models.TextField(blank=True, default='')),
+            ('populated', models.BooleanField(default=False)),
+            ('lft', models.PositiveIntegerField(editable=False)),
+            ('rght', models.PositiveIntegerField(editable=False)),
+            ('tree_id', models.PositiveIntegerField(db_index=True, editable=False)),
+            ('level', models.PositiveIntegerField(editable=False)),
+            ('author', models.ForeignKey(null=True, on_delete=models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
+            ('parent', mptt.fields.TreeForeignKey(
+                null=True, on_delete=models.deletion.CASCADE, related_name='children', to='marks.Tag'
+            )),
+        ], options={'db_table': 'mark_tag'}),
+
         migrations.CreateModel(name='MarkSafe', fields=[
             ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
             ('identifier', models.UUIDField(default=uuid.uuid4, unique=True)),
@@ -55,7 +70,7 @@ class Migration(migrations.Migration):
             ('verdict', models.CharField(choices=[
                 ('0', 'Unknown'), ('1', 'Incorrect proof'), ('2', 'Missed target bug')
             ], max_length=1)),
-            ('cache_tags', ArrayField(base_field=models.CharField(max_length=32), default=list, size=None)),
+            ('cache_tags', ArrayField(base_field=models.CharField(max_length=1024), default=list, size=None)),
             ('author', models.ForeignKey(
                 null=True, on_delete=models.deletion.SET_NULL, related_name='+', to=settings.AUTH_USER_MODEL
             )),
@@ -104,27 +119,12 @@ class Migration(migrations.Migration):
             ('associated', models.BooleanField(default=True)),
         ], options={'db_table': 'cache_mark_safe_report'}),
 
-        migrations.CreateModel(name='SafeTag', fields=[
-            ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-            ('name', models.CharField(db_index=True, max_length=32)),
-            ('description', models.TextField(blank=True, default='')),
-            ('populated', models.BooleanField(default=False)),
-            ('lft', models.PositiveIntegerField(editable=False)),
-            ('rght', models.PositiveIntegerField(editable=False)),
-            ('tree_id', models.PositiveIntegerField(db_index=True, editable=False)),
-            ('level', models.PositiveIntegerField(editable=False)),
-            ('author', models.ForeignKey(null=True, on_delete=models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
-            ('parent', mptt.fields.TreeForeignKey(
-                null=True, on_delete=models.deletion.CASCADE, related_name='children', to='marks.SafeTag'
-            )),
-        ], options={'db_table': 'mark_safe_tag'}),
-
         migrations.CreateModel(name='MarkSafeTag', fields=[
             ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
             ('mark_version', models.ForeignKey(
                 on_delete=models.deletion.CASCADE, related_name='tags', to='marks.MarkSafeHistory'
             )),
-            ('tag', models.ForeignKey(on_delete=models.deletion.CASCADE, related_name='+', to='marks.SafeTag')),
+            ('tag', models.ForeignKey(on_delete=models.deletion.CASCADE, related_name='+', to='marks.Tag')),
         ], options={'db_table': 'cache_mark_safe_tag'}),
 
         migrations.CreateModel(name='MarkUnknown', fields=[
@@ -207,7 +207,7 @@ class Migration(migrations.Migration):
             ('verdict', models.CharField(choices=[
                 ('0', 'Unknown'), ('1', 'Bug'), ('2', 'Target bug'), ('3', 'False positive')
             ], max_length=1)),
-            ('cache_tags', ArrayField(base_field=models.CharField(max_length=32), default=list, size=None)),
+            ('cache_tags', ArrayField(base_field=models.CharField(max_length=1024), default=list, size=None)),
             ('author', models.ForeignKey(
                 null=True, on_delete=models.deletion.SET_NULL, related_name='+', to=settings.AUTH_USER_MODEL
             )),
@@ -276,14 +276,6 @@ class Migration(migrations.Migration):
             ('author', models.ForeignKey(on_delete=models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
         ], options={'db_table': 'mark_safe_association_like'}),
 
-        migrations.CreateModel(name='SafeTagAccess', fields=[
-            ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-            ('modification', models.BooleanField(default=False)),
-            ('child_creation', models.BooleanField(default=False)),
-            ('tag', models.ForeignKey(on_delete=models.deletion.CASCADE, to='marks.SafeTag')),
-            ('user', models.ForeignKey(on_delete=models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
-        ], options={'db_table': 'marks_safe_tag_access'}),
-
         migrations.CreateModel(name='UnknownAssociationLike', fields=[
             ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
             ('dislike', models.BooleanField(default=False)),
@@ -304,34 +296,19 @@ class Migration(migrations.Migration):
             ('unsafe', models.ForeignKey(on_delete=models.deletion.CASCADE, to='reports.ReportUnsafe')),
         ], options={'db_table': 'cache_error_trace_converted'}),
 
-        migrations.CreateModel(name='UnsafeTag', fields=[
-            ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-            ('name', models.CharField(db_index=True, max_length=32)),
-            ('description', models.TextField(blank=True, default='')),
-            ('populated', models.BooleanField(default=False)),
-            ('lft', models.PositiveIntegerField(editable=False)),
-            ('rght', models.PositiveIntegerField(editable=False)),
-            ('tree_id', models.PositiveIntegerField(db_index=True, editable=False)),
-            ('level', models.PositiveIntegerField(editable=False)),
-            ('author', models.ForeignKey(null=True, on_delete=models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
-            ('parent', mptt.fields.TreeForeignKey(
-                null=True, on_delete=models.deletion.CASCADE, related_name='children', to='marks.UnsafeTag'
-            )),
-        ], options={'db_table': 'mark_unsafe_tag'}),
-
         migrations.CreateModel(name='MarkUnsafeTag', fields=[
             ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
             ('mark_version', models.ForeignKey(
                 on_delete=models.deletion.CASCADE, related_name='tags', to='marks.MarkUnsafeHistory'
             )),
-            ('tag', models.ForeignKey(on_delete=models.deletion.CASCADE, related_name='+', to='marks.UnsafeTag')),
+            ('tag', models.ForeignKey(on_delete=models.deletion.CASCADE, related_name='+', to='marks.Tag')),
         ], options={'db_table': 'cache_mark_unsafe_tag'}),
 
-        migrations.CreateModel(name='UnsafeTagAccess', fields=[
+        migrations.CreateModel(name='TagAccess', fields=[
             ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
             ('modification', models.BooleanField(default=False)),
             ('child_creation', models.BooleanField(default=False)),
-            ('tag', models.ForeignKey(on_delete=models.deletion.CASCADE, to='marks.UnsafeTag')),
+            ('tag', models.ForeignKey(on_delete=models.deletion.CASCADE, to='marks.Tag')),
             ('user', models.ForeignKey(on_delete=models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
-        ], options={'db_table': 'marks_unsafe_tag_access'}),
+        ], options={'db_table': 'mark_tag_access'}),
     ]

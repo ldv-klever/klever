@@ -134,7 +134,7 @@ class MarkVersionFormData:
             return None
         if self.object:
             return MarkTagsTree(self.object)
-        return TagsTree(self.type, tags_ids=[])
+        return TagsTree(tags_ids=[])
 
     @cached_property
     def error_trace(self):

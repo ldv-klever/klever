@@ -47,9 +47,7 @@ from tools.utils import objects_without_relations, ClearFiles, Recalculation, Re
 from tools.profiling import ProfileData, ExecLocker, LoggedCallMixin, DBLogsAnalizer
 
 from jobs.preset import PopulatePresets
-from marks.population import (
-    PopulateSafeTags, PopulateUnsafeTags, PopulateSafeMarks, PopulateUnsafeMarks, PopulateUnknownMarks
-)
+from marks.population import PopulateSafeMarks, PopulateUnsafeMarks, PopulateUnknownMarks, populate_tags
 from service.population import populuate_schedulers
 
 
@@ -202,7 +200,7 @@ class ManualUnlockAPIView(LoggedCallMixin, APIView):
 
 class PopulationAPIView(LoggedCallMixin, APIView):
     permission_classes = (ManagerPermission,)
-    unparallel = ['PresetJob', 'MarkSafe', 'MarkUnsafe', 'MarkUnknown', 'SafeTag', 'UnsafeTag', 'Scheduler']
+    unparallel = ['PresetJob', 'MarkSafe', 'MarkUnsafe', 'MarkUnknown', 'Tag', 'Scheduler']
 
     def post(self, request):
         data = json.loads(request.data['data'])
@@ -213,12 +211,9 @@ class PopulationAPIView(LoggedCallMixin, APIView):
         if 'schedulers' in data:
             populuate_schedulers()
             messages.append('Schedulers were populated!')
-        if 'safe-tags' in data:
-            res = PopulateSafeTags()
-            messages.append("{} of {} safe tags were populated".format(res.created, res.total))
-        if 'unsafe-tags' in data:
-            res = PopulateUnsafeTags()
-            messages.append("{} of {} unsafe tags were populated".format(res.created, res.total))
+        if 'tags' in data:
+            created, total = populate_tags()
+            messages.append("{} of {} tags were populated".format(created, total))
         if 'safe-marks' in data:
             res = PopulateSafeMarks()
             messages.append("{} of {} safe marks were populated".format(res.created, res.total))

@@ -48,23 +48,16 @@
 	border-radius: 5px;
 	-moz-border-radius: 5px;
 	-webkit-border-radius: 5px;
+    background: linear-gradient(to top, #00a7a0, #00d7d7);
 }
 
-.edit-tag-cell.unsafe {
-    background: linear-gradient(to top, #e17c3f, #ffad4f);
-}
-.edit-tag-cell.unsafe:hover {
-    background: #ffad4f;
-}
-.edit-tag-cell.safe {
-    background: linear-gradient(to top, #27ab5c, #2ce884);
-}
-.edit-tag-cell.safe:hover {
-    background: #2ce07c;
+.edit-tag-cell:hover {
+    background: #00d7d7;
 }
 
 .mark-tag {
     white-space: nowrap;
+    cursor: pointer;
     font-weight: 700;
     color: #ffffff;
     padding: 3px 10px 3px 10px;
@@ -72,15 +65,19 @@
 	border-radius: 5px;
 	-moz-border-radius: 5px;
 	-webkit-border-radius: 5px;
+    background: linear-gradient(to top, #00a7a0, #00d7d7);
 }
 
-.mark-tag.unsafe {
-    background: linear-gradient(to top, #e17c3f, #ffad4f);
-}
-.mark-tag.safe {
-    background: linear-gradient(to top, #27ab5c, #2ce884);
-}
-.mark-tag.unknown {
+.mark-problem {
+    white-space: nowrap;
+    cursor: pointer;
+    font-weight: 700;
+    color: #ffffff;
+    padding: 3px 10px 3px 10px;
+    text-align: center;
+	border-radius: 5px;
+	-moz-border-radius: 5px;
+	-webkit-border-radius: 5px;
     background: linear-gradient(to top, #ea78eb, #ffa8ff);
 }
 

@@ -32,7 +32,7 @@
   "function": "thread_call_forests",
   "is_modifiable": true,
   "status": "3",
-  "tags": [],
+  "tags": ["EMG"],
   "threshold": 100,
   "verdict": "1"
 }

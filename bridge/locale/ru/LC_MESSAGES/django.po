@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-12-02 11:54+0000\n"
+"POT-Creation-Date: 2020-12-15 18:52+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -105,30 +105,30 @@ msgid "Marks"
 msgstr "Оценки"
 
 #: bridge/templates/bridge/base.html:86 jobs/JobTableProperties.py:47
-#: jobs/JobTableProperties.py:57 jobs/templates/jobs/DecisionResults.html:30
+#: jobs/templates/jobs/DecisionResults.html:30
 #: jobs/templates/jobs/DecisionResults.html:178
-#: jobs/templates/jobs/viewDecision/main.html:149 reports/utils.py:624
-#: reports/utils.py:630 reports/utils.py:632 reports/utils.py:634
-#: reports/utils.py:636 users/templates/users/views/DecisionResults.html:35
+#: jobs/templates/jobs/viewDecision/main.html:149 reports/utils.py:613
+#: reports/utils.py:619 reports/utils.py:621 reports/utils.py:623
+#: reports/utils.py:625 users/templates/users/views/DecisionResults.html:35
 msgid "Unsafes"
 msgstr "Предупреждения об ошибках"
 
 #: bridge/templates/bridge/base.html:87 jobs/JobTableProperties.py:51
 #: jobs/templates/jobs/DecisionResults.html:40
 #: jobs/templates/jobs/DecisionResults.html:180
-#: jobs/templates/jobs/viewDecision/main.html:163 reports/utils.py:897
-#: reports/utils.py:905 reports/utils.py:907 reports/utils.py:909
+#: jobs/templates/jobs/viewDecision/main.html:163 reports/utils.py:887
+#: reports/utils.py:895 reports/utils.py:897 reports/utils.py:899
 #: users/templates/users/views/DecisionResults.html:45
 #: users/templates/users/views/jobTree.html:225
 msgid "Unknowns"
 msgstr "Проблемы в компонентах"
 
 #: bridge/templates/bridge/base.html:88 jobs/JobTableProperties.py:48
-#: jobs/JobTableProperties.py:56 jobs/templates/jobs/DecisionResults.html:35
+#: jobs/templates/jobs/DecisionResults.html:35
 #: jobs/templates/jobs/DecisionResults.html:179
-#: jobs/templates/jobs/viewDecision/main.html:156 reports/utils.py:351
-#: reports/utils.py:357 reports/utils.py:359 reports/utils.py:361
-#: reports/utils.py:363 users/templates/users/views/DecisionResults.html:40
+#: jobs/templates/jobs/viewDecision/main.html:156 reports/utils.py:345
+#: reports/utils.py:351 reports/utils.py:353 reports/utils.py:355
+#: reports/utils.py:357 users/templates/users/views/DecisionResults.html:40
 msgid "Safes"
 msgstr "Доказательства корректности"
 
@@ -136,12 +136,12 @@ msgstr "Доказательства корректности"
 #: bridge/templates/bridge/base.html:150
 #: jobs/templates/jobs/decisionCreateForm.html:138
 #: jobs/templates/jobs/fileTreeEdit.html:38
-#: marks/templates/marks/TagsTree.html:174
+#: marks/templates/marks/TagsTree.html:172
 #: tools/templates/tools/ManagerPanel.html:243
 msgid "Upload"
 msgstr "Загрузить на сервер"
 
-#: bridge/templates/bridge/base.html:92 jobs/JobTableProperties.py:55
+#: bridge/templates/bridge/base.html:92
 #: jobs/templates/jobs/DecisionResults.html:137 marks/tables.py:74
 #: marks/templates/marks/InlineMarkForm.html:74
 #: marks/templates/marks/MarkForm.html:125
@@ -198,7 +198,7 @@ msgstr "Войти"
 #: jobs/templates/jobs/fileTreeEdit.html:27
 #: jobs/templates/jobs/fileTreeEdit.html:50
 #: jobs/templates/jobs/startDecision.html:23
-#: marks/templates/marks/TagsTree.html:166
+#: marks/templates/marks/TagsTree.html:164
 #: tools/templates/tools/ManagerPanel.html:235
 #: tools/templates/tools/ReportsLogging.html:34
 msgid "Browse"
@@ -221,11 +221,11 @@ msgstr "Выбрать файл"
 #: marks/templates/marks/MarkForm.html:155
 #: marks/templates/marks/MarkList.html:108
 #: marks/templates/marks/SafeMark.html:197
-#: marks/templates/marks/TagsTree.html:106
-#: marks/templates/marks/TagsTree.html:139
-#: marks/templates/marks/TagsTree.html:156
-#: marks/templates/marks/TagsTree.html:175
-#: marks/templates/marks/TagsTree.html:198
+#: marks/templates/marks/TagsTree.html:104
+#: marks/templates/marks/TagsTree.html:137
+#: marks/templates/marks/TagsTree.html:154
+#: marks/templates/marks/TagsTree.html:173
+#: marks/templates/marks/TagsTree.html:196
 #: marks/templates/marks/UnknownMark.html:206
 #: marks/templates/marks/UnsafeMark.html:227
 #: marks/templates/marks/versions.html:52
@@ -249,7 +249,7 @@ msgid "Ajax request error (maybe connection refused)"
 msgstr "Ошибка Ajax запроса (возможно, отказано в соединении)"
 
 #: bridge/templates/bridge/error.html:21 bridge/vars.py:197
-#: jobs/JobTableProperties.py:71 jobs/templates/jobs/UploadingStatus.html:33
+#: jobs/JobTableProperties.py:68 jobs/templates/jobs/UploadingStatus.html:33
 msgid "Error"
 msgstr "Ошибка"
 
@@ -264,7 +264,7 @@ msgstr "Хорошо"
 #: jobs/templates/jobs/presetJob.html:134 jobs/templates/jobs/tree.html:59
 #: jobs/templates/jobs/tree.html:78 marks/templates/marks/MarkList.html:99
 #: marks/templates/marks/SafeMark.html:188
-#: marks/templates/marks/TagsTree.html:147
+#: marks/templates/marks/TagsTree.html:145
 #: marks/templates/marks/UnknownMark.html:197
 #: marks/templates/marks/UnsafeMark.html:218
 #: marks/templates/marks/versions.html:43
@@ -402,7 +402,7 @@ msgid "Hidden"
 msgstr "Скрытый"
 
 #: bridge/vars.py:74 bridge/vars.py:194 bridge/vars.py:265
-#: jobs/JobTableProperties.py:68
+#: jobs/JobTableProperties.py:65
 msgid "Pending"
 msgstr "Ожидает"
 
@@ -415,7 +415,7 @@ msgid "Solved"
 msgstr "Решено"
 
 #: bridge/vars.py:77 bridge/vars.py:279
-#: reports/templates/reports/ReportData.html:61 reports/utils.py:1220
+#: reports/templates/reports/ReportData.html:61 reports/utils.py:1201
 #: tools/templates/tools/ManagerPanel.html:254
 msgid "Failed"
 msgstr "Провалено"
@@ -428,7 +428,7 @@ msgstr "Повреждено"
 msgid "Cancelling"
 msgstr "Отмена"
 
-#: bridge/vars.py:80 bridge/vars.py:198 jobs/JobTableProperties.py:72
+#: bridge/vars.py:80 bridge/vars.py:198 jobs/JobTableProperties.py:69
 msgid "Cancelled"
 msgstr "Отменено"
 
@@ -436,15 +436,11 @@ msgstr "Отменено"
 msgid "Terminated"
 msgstr "Прекращенный"
 
-#: bridge/vars.py:85 reports/templates/reports/ReportSafe.html:176
-#: reports/templates/reports/ReportUnknown.html:178
-#: reports/templates/reports/ReportUnsafe.html:173
+#: bridge/vars.py:85
 msgid "Full-weight"
 msgstr "Полновесный"
 
-#: bridge/vars.py:86 reports/templates/reports/ReportSafe.html:175
-#: reports/templates/reports/ReportUnknown.html:177
-#: reports/templates/reports/ReportUnsafe.html:172
+#: bridge/vars.py:86
 msgid "Lightweight"
 msgstr "Легковесный"
 
@@ -485,7 +481,7 @@ msgstr "Пропуск целевой ошибки"
 msgid "Incompatible marks"
 msgstr "Несовместимые оценки"
 
-#: bridge/vars.py:112 bridge/vars.py:128 jobs/JobTableProperties.py:339
+#: bridge/vars.py:112 bridge/vars.py:128 jobs/JobTableProperties.py:336
 #: jobs/ViewJobData.py:244 jobs/templates/jobs/viewDecision/main.html:182
 msgid "Without marks"
 msgstr "Нет оценок"
@@ -554,7 +550,7 @@ msgstr "Незанятый"
 msgid "User occupied"
 msgstr "Занятый пользователем"
 
-#: bridge/vars.py:195 jobs/JobTableProperties.py:69
+#: bridge/vars.py:195 jobs/JobTableProperties.py:66
 msgid "Processing"
 msgstr "Решается"
 
@@ -626,7 +622,7 @@ msgstr "Загрузка покрытия кода на сервер"
 msgid "Associating marks and cache recalculation"
 msgstr "Ассоциация оценок и пересчет кэша"
 
-#: bridge/vars.py:278 jobs/JobTableProperties.py:70 reports/utils.py:1213
+#: bridge/vars.py:278 jobs/JobTableProperties.py:67 reports/utils.py:1194
 msgid "Finished"
 msgstr "Завершенный"
 
@@ -675,7 +671,7 @@ msgstr "Формат архива задания не поддерживаетс
 msgid "Your role"
 msgstr "Ваша роль"
 
-#: jobs/JobTableProperties.py:44 jobs/JobTableProperties.py:292
+#: jobs/JobTableProperties.py:44 jobs/JobTableProperties.py:289
 #: marks/templates/marks/SafeMark.html:64
 #: marks/templates/marks/TagPopup.html:33
 #: marks/templates/marks/UnknownMark.html:68
@@ -710,7 +706,7 @@ msgid "Subjobs"
 msgstr "Подзадания"
 
 #: jobs/JobTableProperties.py:52 jobs/JobTableProperties.py:54
-#: jobs/JobTableProperties.py:73 jobs/JobTableProperties.py:340
+#: jobs/JobTableProperties.py:70 jobs/JobTableProperties.py:337
 #: jobs/templates/jobs/DecisionResults.html:231 reports/verdicts.py:193
 #: reports/verdicts.py:253 service/templates/service/scheduler.html:132
 msgid "Total"
@@ -725,7 +721,7 @@ msgstr "Всего"
 msgid "Consumed resources"
 msgstr "Потребленные ресурсы"
 
-#: jobs/JobTableProperties.py:58 jobs/templates/jobs/jobPage.html:78
+#: jobs/JobTableProperties.py:55 jobs/templates/jobs/jobPage.html:78
 #: jobs/templates/jobs/presetJob.html:66
 #: jobs/templates/jobs/viewDecision/main.html:95 marks/tables.py:78
 #: marks/templates/marks/SafeMark.html:55
@@ -738,65 +734,65 @@ msgstr "Потребленные ресурсы"
 msgid "Identifier"
 msgstr "Идентификатор"
 
-#: jobs/JobTableProperties.py:59 service/templates/service/scheduler.html:85
+#: jobs/JobTableProperties.py:56 service/templates/service/scheduler.html:85
 msgid "Version"
 msgstr "Версия"
 
-#: jobs/JobTableProperties.py:60 jobs/templates/jobs/viewDecision/main.html:97
+#: jobs/JobTableProperties.py:57 jobs/templates/jobs/viewDecision/main.html:97
 #: users/templates/users/views/jobTree.html:248
 msgid "Priority"
 msgstr "Приоритет"
 
-#: jobs/JobTableProperties.py:61
+#: jobs/JobTableProperties.py:58
 msgid "Decision start date"
 msgstr "Дата начала решения"
 
-#: jobs/JobTableProperties.py:62
+#: jobs/JobTableProperties.py:59
 msgid "Decision finish date"
 msgstr "Дата завершения решения"
 
-#: jobs/JobTableProperties.py:63
+#: jobs/JobTableProperties.py:60
 msgid "Decision wall time"
 msgstr "Астрономическое время решения"
 
-#: jobs/JobTableProperties.py:64 jobs/templates/jobs/viewDecision/main.html:100
+#: jobs/JobTableProperties.py:61 jobs/templates/jobs/viewDecision/main.html:100
 #: users/notifications.py:230
 msgid "Operator"
 msgstr "Оператор"
 
-#: jobs/JobTableProperties.py:74
+#: jobs/JobTableProperties.py:71
 msgid "Number of decisions"
 msgstr "Количество решений"
 
-#: jobs/JobTableProperties.py:75 jobs/JobTableProperties.py:83
+#: jobs/JobTableProperties.py:72 jobs/JobTableProperties.py:80
 msgid "Total to be solved"
 msgstr "Всего решить"
 
-#: jobs/JobTableProperties.py:76 jobs/JobTableProperties.py:84
+#: jobs/JobTableProperties.py:73 jobs/JobTableProperties.py:81
 #: jobs/templates/jobs/viewDecision/progress.html:76
 #: jobs/templates/jobs/viewDecision/progress.html:126
 msgid "Start solution date"
 msgstr "Дата начала решения"
 
-#: jobs/JobTableProperties.py:77 jobs/JobTableProperties.py:85
+#: jobs/JobTableProperties.py:74 jobs/JobTableProperties.py:82
 #: jobs/templates/jobs/viewDecision/progress.html:99
 #: jobs/templates/jobs/viewDecision/progress.html:149
 msgid "Finish solution date"
 msgstr "Дата завершения решения"
 
-#: jobs/JobTableProperties.py:78 jobs/JobTableProperties.py:86
+#: jobs/JobTableProperties.py:75 jobs/JobTableProperties.py:83
 #: jobs/templates/jobs/viewDecision/progress.html:83
 #: jobs/templates/jobs/viewDecision/progress.html:133
 msgid "Solution progress"
 msgstr "Прогресс решения"
 
-#: jobs/JobTableProperties.py:79 jobs/JobTableProperties.py:87
+#: jobs/JobTableProperties.py:76 jobs/JobTableProperties.py:84
 #: jobs/templates/jobs/viewDecision/progress.html:91
 #: jobs/templates/jobs/viewDecision/progress.html:141
 msgid "Expected solution time"
 msgstr "Ожидаемое время решения"
 
-#: jobs/JobTableProperties.py:363 jobs/templates/jobs/jobForm.html:37
+#: jobs/JobTableProperties.py:360 jobs/templates/jobs/jobForm.html:37
 #: jobs/templates/jobs/jobForm.html:72
 #: users/templates/users/views/jobTree.html:48
 msgid "Title"
@@ -933,8 +929,8 @@ msgstr "Планировщик задач отключен"
 #: jobs/templates/jobs/presetJob.html:107
 #: jobs/templates/jobs/presetJob.html:121 jobs/templates/jobs/tree.html:99
 #: jobs/templates/jobs/viewDecision/main.html:203
-#: marks/templates/marks/TagsTree.html:82
-#: marks/templates/marks/TagsTree.html:118
+#: marks/templates/marks/TagsTree.html:80
+#: marks/templates/marks/TagsTree.html:116
 #: service/templates/service/scheduler.html:84
 #: tools/templates/tools/ManagerPanel.html:42
 msgid "Name"
@@ -984,7 +980,7 @@ msgstr "Статистика по атрибуту"
 #: users/templates/users/views/AssociationChanges.html:149
 #: users/templates/users/views/SafesAndUnsafesList.html:117
 #: users/templates/users/views/UnknownsList.html:197
-#: users/templates/users/views/marksList.html:279
+#: users/templates/users/views/marksList.html:261
 #: users/templates/users/views/reportChildren.html:114
 msgid "Attribute value"
 msgstr "Значение атрибута"
@@ -1198,7 +1194,7 @@ msgstr "Заменить"
 msgid "Download"
 msgstr "Загрузить"
 
-#: jobs/templates/jobs/fileEditor.html:20 users/utils.py:386
+#: jobs/templates/jobs/fileEditor.html:20 users/utils.py:382
 msgid "unsaved"
 msgstr "не сохранено"
 
@@ -1291,7 +1287,7 @@ msgid "New file"
 msgstr "Новый файл"
 
 #: jobs/templates/jobs/filesTree.html:43 jobs/templates/jobs/presetJob.html:97
-#: users/utils.py:346
+#: users/utils.py:342
 msgid "View"
 msgstr "Представление"
 
@@ -1428,10 +1424,10 @@ msgstr "Пожалуйста, укажите уникальное имя для 
 
 #: jobs/templates/jobs/presetJob.html:111
 #: jobs/templates/jobs/presetJob.html:125 jobs/templates/jobs/tree.html:103
-#: jobs/views.py:134 marks/templates/marks/InlineMarkForm.html:89
+#: jobs/views.py:118 marks/templates/marks/InlineMarkForm.html:89
 #: marks/templates/marks/MarkForm.html:156
-#: marks/templates/marks/TagsTree.html:103
-#: marks/templates/marks/TagsTree.html:195
+#: marks/templates/marks/TagsTree.html:101
+#: marks/templates/marks/TagsTree.html:193
 #: users/templates/users/edit-profile.html:47
 #: users/templates/users/notifications.html:52
 #: users/templates/users/views/viewCreateForm.html:25
@@ -1508,8 +1504,8 @@ msgstr "Объем оперативной памяти"
 #: service/templates/service/scheduler.html:158
 #: service/templates/service/scheduler.html:159
 #: service/templates/service/scheduler.html:226
-#: users/templates/users/views/SafesAndUnsafesList.html:273
-#: users/templates/users/views/UnknownsList.html:281 users/utils.py:412
+#: users/templates/users/views/SafesAndUnsafesList.html:258
+#: users/templates/users/views/UnknownsList.html:281 users/utils.py:408
 msgid "GB"
 msgstr "ГБ"
 
@@ -1619,8 +1615,8 @@ msgstr "Подтверждение"
 msgid "Passwords don't match"
 msgstr "Пароли не совпадают"
 
-#: jobs/templates/jobs/startDecision.html:307 jobs/views.py:115
-#: marks/templates/marks/TagsTree.html:136
+#: jobs/templates/jobs/startDecision.html:307 jobs/views.py:99
+#: marks/templates/marks/TagsTree.html:134
 msgid "Create"
 msgstr "Создать"
 
@@ -1853,23 +1849,23 @@ msgstr "На сервер не загружены файлы"
 msgid "The file/directory name can't be empty"
 msgstr "Имя файла/директории не может быть пустым"
 
-#: jobs/views.py:114
+#: jobs/views.py:98
 msgid "Job Creating"
 msgstr "Создание задания"
 
-#: jobs/views.py:132
+#: jobs/views.py:116
 msgid "Job Editing"
 msgstr "Редактирование задания"
 
-#: jobs/views.py:177 jobs/views.py:202
+#: jobs/views.py:161 jobs/views.py:186
 msgid "You don't have an access to create job version"
 msgstr "У Вас нет прав создать версию задания"
 
-#: jobs/views.py:230
+#: jobs/views.py:214
 msgid "You don't have an access to restart this decision"
 msgstr "У Вас нет прав перезапустить данное решение"
 
-#: jobs/views.py:255
+#: jobs/views.py:239
 msgid "You don't have an access to this decision"
 msgstr "У Вас нет прав на данное решение"
 
@@ -1885,11 +1881,11 @@ msgstr "Архив оценки поврежден: он не содержит �
 msgid "The problem length must be less than 20 characters"
 msgstr "Длина проблемы должна быть не более 20 символов"
 
-#: marks/api.py:86 marks/api.py:133 marks/api.py:180 marks/api.py:453
+#: marks/api.py:86 marks/api.py:133 marks/api.py:180 marks/api.py:471
 msgid "You don't have an access to create new marks"
 msgstr "У Вас нет прав создавать новые оценки"
 
-#: marks/api.py:100 marks/api.py:147 marks/api.py:194 marks/api.py:301
+#: marks/api.py:100 marks/api.py:147 marks/api.py:194 marks/api.py:319
 #: marks/views.py:226
 msgid "You don't have an access to edit this mark"
 msgstr "У Вас нет прав редактировать данную оценку"
@@ -1898,111 +1894,106 @@ msgstr "У Вас нет прав редактировать данную оце
 msgid "You don't have an access to remove this mark"
 msgstr "У Вас нет прав удалить данную оценку"
 
-#: marks/api.py:226 marks/api.py:254
+#: marks/api.py:234 marks/api.py:270
 msgid "You don't have an access to create this tag"
 msgstr "У Вас нет прав создать данный тег"
 
-#: marks/api.py:231 marks/api.py:259
+#: marks/api.py:239 marks/api.py:275
 msgid "You don't have an access to edit this tag"
 msgstr "У Вас нет прав редактировать данный тег"
 
-#: marks/api.py:237 marks/api.py:265
+#: marks/api.py:245 marks/api.py:281
 msgid "You don't have an access to delete this tag"
 msgstr "У Вас нет прав удалить данный тег"
 
-#: marks/api.py:289
+#: marks/api.py:305
 msgid "The file with tags was not provided"
 msgstr "Файл с тегами не предоставлен"
 
-#: marks/api.py:305
+#: marks/api.py:323
 msgid "There is nothing to delete"
 msgstr "Нечего удалять"
 
-#: marks/api.py:307
+#: marks/api.py:325
 msgid "You don't have an access to remove one of the selected version"
 msgstr "У Вас нет прав удалить одну из отмеченных версий"
 
-#: marks/api.py:310
+#: marks/api.py:328
 msgid "Selected versions were successfully deleted"
 msgstr "Отмеченные версии были успешно удалены"
 
-#: marks/api.py:470
+#: marks/api.py:488
 #, python-format
 msgid "Number of created marks: %(number)s"
 msgstr "Количество созданных оценок: %(number)s"
 
-#: marks/markversion.py:36 marks/models.py:90
+#: marks/markversion.py:36 marks/models.py:91
 #: marks/templates/marks/SafeMark.html:26 reports/comparison.py:357
-#: users/utils.py:534
+#: users/utils.py:530
 msgid "Safes mark"
 msgstr "Оценка доказательств корректности"
 
-#: marks/markversion.py:38 marks/models.py:146
+#: marks/markversion.py:38 marks/models.py:147
 #: marks/templates/marks/UnsafeMark.html:26 reports/comparison.py:370
-#: users/utils.py:557
+#: users/utils.py:553
 msgid "Unsafes mark"
 msgstr "Оценка предупреждений об ошибках"
 
-#: marks/markversion.py:39 marks/models.py:259
+#: marks/markversion.py:39 marks/models.py:278
 #: marks/templates/marks/UnknownMark.html:26 reports/comparison.py:348
-#: users/utils.py:580
+#: users/utils.py:576
 msgid "Unknowns mark"
 msgstr "Оценка проблем в компонентах"
 
-#: marks/models.py:99
+#: marks/models.py:100
 msgid "Safes mark version"
 msgstr "Версия оценки доказательств корректности"
 
-#: marks/models.py:163
+#: marks/models.py:164
 msgid "Unsafes mark version"
 msgstr "Версия оценки предупреждений об ошибках"
 
-#: marks/models.py:271
+#: marks/models.py:290
 msgid "Unknowns mark version"
 msgstr "Версия оценки проблем в компонентах"
 
-#: marks/population.py:83
+#: marks/population.py:82
 msgid "Corrupted preset safe mark: wrong format"
 msgstr "Предустановливаемая оценка доказательств корректности повреждена: неправильный формат"
 
-#: marks/population.py:134
+#: marks/population.py:133
 msgid "Corrupted preset unsafe mark: wrong format"
 msgstr "Предустановливаемая оценка предупреждений об ошибках повреждена: неправильный формат"
 
-#: marks/population.py:186
+#: marks/population.py:185
 msgid "Corrupted preset unknown mark: wrong format"
 msgstr "Предустановливаемая оценка проблем в компонентах повреждена: неправильный формат"
 
-#: marks/population.py:219 marks/population.py:251
-msgid "Tag name is required"
-msgstr "Требуется указать название тега"
+#: marks/serializers.py:90
+msgid "Tag name is not unique in the current branch level"
+msgstr "Название тега должно быть уникальным для текущего уровня ветвления"
 
-#: marks/population.py:223 marks/population.py:255
-msgid "Tag parent should be defined before its children"
-msgstr "Родительский тег должен быть определен до его потомков"
-
-#: marks/serializers.py:95 marks/serializers.py:114
-#: marks/templates/marks/TagsTree.html:90
+#: marks/serializers.py:97 marks/templates/marks/TagsTree.html:88
 msgid "Root"
 msgstr "Корневая папка"
 
-#: marks/serializers.py:156
+#: marks/serializers.py:167
 msgid "One of tags was not found"
 msgstr "Один из тегов не был найден"
 
-#: marks/serializers.py:281
+#: marks/serializers.py:292
 msgid "Wrong error trace is provided"
 msgstr "Предоставлена некорректная трасса ошибки"
 
-#: marks/serializers.py:286
+#: marks/serializers.py:297
 msgid "Wrong status value"
 msgstr "Некорректное значение статуса"
 
-#: marks/serializers.py:397
+#: marks/serializers.py:405
 msgid "The pattern is wrong, please refer to documentation on the standard Python library for processing reqular expressions"
 msgstr "Шаблон некорректный, пожалуйста, обратитесь к документации на стандартную библиотеку Python для работы с регулярными выражениями"
 
-#: marks/serializers.py:492
+#: marks/serializers.py:500
 msgid "Current version"
 msgstr "Текущая версия"
 
@@ -2101,10 +2092,10 @@ msgstr "Не понравилось"
 #: marks/tables.py:77 marks/templates/marks/InlineMarkForm.html:80
 #: marks/templates/marks/MarkForm.html:134
 #: marks/templates/marks/SafeMark.html:86
-#: marks/templates/marks/TagsTree.html:95
-#: marks/templates/marks/TagsTree.html:96
-#: marks/templates/marks/TagsTree.html:128
-#: marks/templates/marks/TagsTree.html:129
+#: marks/templates/marks/TagsTree.html:93
+#: marks/templates/marks/TagsTree.html:94
+#: marks/templates/marks/TagsTree.html:126
+#: marks/templates/marks/TagsTree.html:127
 #: marks/templates/marks/UnknownMark.html:96
 #: marks/templates/marks/UnsafeMark.html:100
 msgid "Description"
@@ -2147,25 +2138,17 @@ msgstr "Похожие оценки с автоматическими ассоц
 msgid "Similar marks with confirmed associations"
 msgstr "Похожие оценки с подтвержденными ассоциациями"
 
-#: marks/tables.py:631 tools/templates/tools/ManagerPanel.html:130
+#: marks/tables.py:628 tools/templates/tools/ManagerPanel.html:130
 msgid "Safe marks"
 msgstr "Оценки доказательств корректности"
 
-#: marks/tables.py:657 tools/templates/tools/ManagerPanel.html:136
+#: marks/tables.py:654 tools/templates/tools/ManagerPanel.html:136
 msgid "Unsafe marks"
 msgstr "Оценки предупреждений об ошибках"
 
-#: marks/tables.py:696 tools/templates/tools/ManagerPanel.html:142
+#: marks/tables.py:693 tools/templates/tools/ManagerPanel.html:142
 msgid "Unknown marks"
 msgstr "Оценки проблем в компонентах"
-
-#: marks/tags.py:380 marks/tags.py:383
-msgid "Wrong tags format"
-msgstr "Некорректный формат тегов"
-
-#: marks/tags.py:387
-msgid "Tag parent does not exist"
-msgstr "Родитель тега не существует"
 
 #: marks/templates/marks/InlineMarkForm.html:25
 #: marks/templates/marks/MarkForm.html:54
@@ -2314,7 +2297,7 @@ msgid "Create child"
 msgstr "Создать потомка"
 
 #: marks/templates/marks/TagPopup.html:26
-#: marks/templates/marks/TagsTree.html:157
+#: marks/templates/marks/TagsTree.html:155
 #: reports/templates/reports/AssociatedMarksTable.html:52
 msgid "Remove"
 msgstr "Удалить"
@@ -2325,7 +2308,7 @@ msgid "Download tags"
 msgstr "Скачать теги"
 
 #: marks/templates/marks/TagsTree.html:39
-#: marks/templates/marks/TagsTree.html:162
+#: marks/templates/marks/TagsTree.html:160
 msgid "Upload tags"
 msgstr "Загрузить теги на сервер"
 
@@ -2337,40 +2320,40 @@ msgstr "Создать новый корневой тег"
 msgid "Preset tags"
 msgstr "Предустановленные теги"
 
-#: marks/templates/marks/TagsTree.html:77
+#: marks/templates/marks/TagsTree.html:75
 msgid "Edit tag"
 msgstr "Редактировать тег"
 
-#: marks/templates/marks/TagsTree.html:88
-#: marks/templates/marks/TagsTree.html:124
+#: marks/templates/marks/TagsTree.html:86
+#: marks/templates/marks/TagsTree.html:122
 msgid "Parent"
 msgstr "Родитель"
 
-#: marks/templates/marks/TagsTree.html:113
+#: marks/templates/marks/TagsTree.html:111
 msgid "Create tag"
 msgstr "Создать тег"
 
-#: marks/templates/marks/TagsTree.html:151
+#: marks/templates/marks/TagsTree.html:149
 msgid "All children of the selected tag will be also removed"
 msgstr "Все потомки отмеченнго тега также будут удалены"
 
-#: marks/templates/marks/TagsTree.html:179
+#: marks/templates/marks/TagsTree.html:177
 msgid "Edit users access"
 msgstr "Редактировать пользовательский доступ"
 
-#: marks/templates/marks/TagsTree.html:183
+#: marks/templates/marks/TagsTree.html:181
 msgid "Users can modify"
 msgstr "Пользователи могут изменять"
 
-#: marks/templates/marks/TagsTree.html:187
+#: marks/templates/marks/TagsTree.html:185
 msgid "Users can create children"
 msgstr "Пользователи могут создавать потомков"
 
-#: marks/templates/marks/TagsTree.html:203
+#: marks/templates/marks/TagsTree.html:201
 msgid "Select users"
 msgstr "Выберите пользователей"
 
-#: marks/templates/marks/TagsTree.html:204
+#: marks/templates/marks/TagsTree.html:202
 msgid "Saved"
 msgstr "Сохранено"
 
@@ -2467,7 +2450,7 @@ msgstr "Одно из решений не было найдено"
 msgid "You can't clear verifier input files of this decision"
 msgstr "Вы не можете удалить входные файлы верификатора для данного решения"
 
-#: reports/api.py:204 reports/utils.py:1338
+#: reports/api.py:204 reports/utils.py:1319
 msgid "The attribute doesn't have data"
 msgstr "У атрибута отсутствуют данные"
 
@@ -2475,7 +2458,7 @@ msgstr "У атрибута отсутствуют данные"
 msgid "The attribute data is huge and can not be shown but you can download it"
 msgstr "Данные атрибута слишком большие и не могут быть показаны, но Вы можете скачать их"
 
-#: reports/api.py:225 reports/utils.py:1329
+#: reports/api.py:225 reports/utils.py:1310
 msgid "The component doesn't have log"
 msgstr "У компонента отстутсвует лог"
 
@@ -2739,17 +2722,23 @@ msgstr "Используется для ассоциаций оценок по �
 msgid "Legend"
 msgstr "Легенда"
 
-#: reports/templates/reports/ReportSafe.html:169
-#: reports/templates/reports/ReportUnknown.html:171
-#: reports/templates/reports/ReportUnsafe.html:166
+#: reports/templates/reports/ReportSafe.html:168
+#: reports/templates/reports/ReportUnknown.html:170
+#: reports/templates/reports/ReportUnsafe.html:165
 msgid "Associated marks"
 msgstr "Ассоциированные оценки"
 
-#: reports/templates/reports/ReportSafe.html:174
-#: reports/templates/reports/ReportUnknown.html:176
-#: reports/templates/reports/ReportUnsafe.html:171
-msgid "Create mark"
-msgstr "Создать оценку"
+#: reports/templates/reports/ReportSafe.html:172
+#: reports/templates/reports/ReportUnknown.html:174
+#: reports/templates/reports/ReportUnsafe.html:169
+msgid "Create lightweight mark"
+msgstr "Создать легковесную оценку"
+
+#: reports/templates/reports/ReportSafe.html:173
+#: reports/templates/reports/ReportUnknown.html:175
+#: reports/templates/reports/ReportUnsafe.html:170
+msgid "Create full-weight mark"
+msgstr "Создать полновесную оценку"
 
 #: reports/templates/reports/ReportUnsafe.html:96
 msgid "You can try another level of code coverage details when starting decision to get code coverage for the given source file"
@@ -2840,38 +2829,38 @@ msgstr "Ассоциации похожих оценок"
 msgid "Verifier"
 msgstr "Верификатор"
 
-#: reports/utils.py:357 reports/utils.py:630 reports/utils.py:905
+#: reports/utils.py:351 reports/utils.py:619 reports/utils.py:895
 msgid "manually assessed"
 msgstr "оценены вручную"
 
-#: reports/utils.py:359 reports/utils.py:632 reports/utils.py:907
+#: reports/utils.py:353 reports/utils.py:621 reports/utils.py:897
 msgid "automatically assessed"
 msgstr "оценены автоматически"
 
-#: reports/utils.py:365
+#: reports/utils.py:359
 #, python-format
 msgid "Safes where %(a_name)s is %(a_val)s"
 msgstr "Доказательства корректности, для которых %(a_name)s - %(a_val)s"
 
-#: reports/utils.py:638
+#: reports/utils.py:627
 #, python-format
 msgid "Unsafes where %(a_name)s is %(a_val)s"
 msgstr "Предупреждения об ошибках, для которых %(a_name)s - %(a_val)s"
 
-#: reports/utils.py:903
+#: reports/utils.py:893
 msgid "Unknowns without marks"
 msgstr "Проблемы в компонентах без оценок"
 
-#: reports/utils.py:911
+#: reports/utils.py:901
 #, python-format
 msgid "Unknowns where %(a_name)s is %(a_val)s"
 msgstr "Проблемы в компонентах, для которых %(a_name)s - %(a_val)s"
 
-#: reports/utils.py:1204
+#: reports/utils.py:1185
 msgid "In progress"
 msgstr "Выполняется"
 
-#: reports/utils.py:1347
+#: reports/utils.py:1328
 msgid "The report doesn't have verifier input files"
 msgstr "У отчета отсутствуют входные файлы верификатора"
 
@@ -3092,7 +3081,7 @@ msgstr "Количество неудачных вызовов"
 #: tools/templates/tools/LogList.html:50 tools/templates/tools/LogList.html:57
 #: tools/templates/tools/LogList.html:61
 #: tools/templates/tools/ProcessingRequests.html:40
-#: tools/templates/tools/ProcessingRequests.html:41 users/utils.py:408
+#: tools/templates/tools/ProcessingRequests.html:41 users/utils.py:404
 msgid "s"
 msgstr "с"
 
@@ -3638,7 +3627,7 @@ msgid "Please choose another view name"
 msgstr "Пожалуйста, выберите другое название представления"
 
 #: users/serializers.py:76 users/templates/users/views/viewButtons.html:23
-#: users/utils.py:400
+#: users/utils.py:396
 msgid "Default"
 msgstr "По умолчанию"
 
@@ -3760,8 +3749,6 @@ msgstr "Название решения"
 #: users/templates/users/views/DecisionResults.html:136
 #: users/templates/users/views/DecisionResults.html:159
 #: users/templates/users/views/DecisionResults.html:182
-#: users/templates/users/views/DecisionResults.html:205
-#: users/templates/users/views/DecisionResults.html:228
 #: users/templates/users/views/SafesAndUnsafesList.html:108
 #: users/templates/users/views/UnknownsList.html:108
 #: users/templates/users/views/UnknownsList.html:189
@@ -3775,7 +3762,7 @@ msgstr "Название решения"
 #: users/templates/users/views/marksList.html:95
 #: users/templates/users/views/marksList.html:134
 #: users/templates/users/views/marksList.html:175
-#: users/templates/users/views/marksList.html:270
+#: users/templates/users/views/marksList.html:252
 #: users/templates/users/views/reportChildren.html:81
 #: users/templates/users/views/reportChildren.html:108
 msgid "is"
@@ -3787,8 +3774,6 @@ msgstr "совпадает с"
 #: users/templates/users/views/DecisionResults.html:137
 #: users/templates/users/views/DecisionResults.html:160
 #: users/templates/users/views/DecisionResults.html:183
-#: users/templates/users/views/DecisionResults.html:206
-#: users/templates/users/views/DecisionResults.html:229
 #: users/templates/users/views/SafesAndUnsafesList.html:109
 #: users/templates/users/views/UnknownsList.html:109
 #: users/templates/users/views/UnknownsList.html:190
@@ -3796,7 +3781,7 @@ msgstr "совпадает с"
 #: users/templates/users/views/jobTree.html:210
 #: users/templates/users/views/jobTree.html:233
 #: users/templates/users/views/marksList.html:135
-#: users/templates/users/views/marksList.html:271
+#: users/templates/users/views/marksList.html:253
 #: users/templates/users/views/reportChildren.html:82
 #: users/templates/users/views/reportChildren.html:109
 msgid "starts with"
@@ -3808,14 +3793,12 @@ msgstr "начинается с"
 #: users/templates/users/views/DecisionResults.html:138
 #: users/templates/users/views/DecisionResults.html:161
 #: users/templates/users/views/DecisionResults.html:184
-#: users/templates/users/views/DecisionResults.html:207
-#: users/templates/users/views/DecisionResults.html:230
 #: users/templates/users/views/SafesAndUnsafesList.html:111
 #: users/templates/users/views/UnknownsList.html:110
 #: users/templates/users/views/jobTree.html:116
 #: users/templates/users/views/jobTree.html:211
 #: users/templates/users/views/jobTree.html:234
-#: users/templates/users/views/marksList.html:273
+#: users/templates/users/views/marksList.html:255
 #: users/templates/users/views/reportChildren.html:83
 msgid "contains"
 msgstr "содержит"
@@ -3823,7 +3806,7 @@ msgstr "содержит"
 #: users/templates/users/views/AssociationChanges.html:129
 #: users/templates/users/views/SafesAndUnsafesList.html:96
 #: users/templates/users/views/UnknownsList.html:177
-#: users/templates/users/views/marksList.html:258
+#: users/templates/users/views/marksList.html:240
 #: users/templates/users/views/reportChildren.html:54
 #: users/templates/users/views/reportChildren.html:97
 msgid "Attribute"
@@ -3832,7 +3815,7 @@ msgstr "Атрибут"
 #: users/templates/users/views/AssociationChanges.html:135
 #: users/templates/users/views/SafesAndUnsafesList.html:102
 #: users/templates/users/views/UnknownsList.html:183
-#: users/templates/users/views/marksList.html:264
+#: users/templates/users/views/marksList.html:246
 #: users/templates/users/views/reportChildren.html:63
 #: users/templates/users/views/reportChildren.html:102
 msgid "Attribute name"
@@ -3844,7 +3827,7 @@ msgstr "Название атрибута"
 #: users/templates/users/views/UnknownsList.html:82
 #: users/templates/users/views/UnknownsList.html:185
 #: users/templates/users/views/marksList.html:79
-#: users/templates/users/views/marksList.html:266
+#: users/templates/users/views/marksList.html:248
 #: users/templates/users/views/reportChildren.html:64
 #: users/templates/users/views/reportChildren.html:104
 msgid "Enter the full name of the attribute"
@@ -3856,7 +3839,7 @@ msgstr "Введите полное название атрибута"
 #: users/templates/users/views/UnknownsList.html:82
 #: users/templates/users/views/UnknownsList.html:185
 #: users/templates/users/views/marksList.html:79
-#: users/templates/users/views/marksList.html:266
+#: users/templates/users/views/marksList.html:248
 #: users/templates/users/views/reportChildren.html:64
 #: users/templates/users/views/reportChildren.html:104
 msgid "e.g."
@@ -3895,14 +3878,6 @@ msgid "Consumed resources component name"
 msgstr "Название компонента, потребившего ресурсы"
 
 #: users/templates/users/views/DecisionResults.html:176
-msgid "Safe tag"
-msgstr "Тег доказательства корректности"
-
-#: users/templates/users/views/DecisionResults.html:199
-msgid "Unsafe tag"
-msgstr "Тег предупреждения об ошибке"
-
-#: users/templates/users/views/DecisionResults.html:222
 msgid "Calculate statistic just if attribute value"
 msgstr "Вычислить статистику, только если значение атрибута"
 
@@ -3958,7 +3933,7 @@ msgstr "Спрятать детализацию о количестве оцен
 
 #: users/templates/users/views/SafesAndUnsafesList.html:110
 #: users/templates/users/views/UnknownsList.html:191
-#: users/templates/users/views/marksList.html:272
+#: users/templates/users/views/marksList.html:254
 msgid "ends with"
 msgstr "заканчивается на"
 
@@ -3986,23 +3961,13 @@ msgid "not less than"
 msgstr "не меньше чем"
 
 #: users/templates/users/views/SafesAndUnsafesList.html:183
-#: users/templates/users/views/marksList.html:242
-msgid "With tags"
-msgstr "С тегами"
-
-#: users/templates/users/views/SafesAndUnsafesList.html:189
-#: users/templates/users/views/marksList.html:248
-msgid "Enter full names of tags separated by semicolon"
-msgstr "Введите полные названия тегов, разделенные точкой с запятой"
-
-#: users/templates/users/views/SafesAndUnsafesList.html:198
 #: users/templates/users/views/UnknownsList.html:206
 msgid "Verifier CPU time"
 msgstr "Процессорное время верификатора"
 
-#: users/templates/users/views/SafesAndUnsafesList.html:204
-#: users/templates/users/views/SafesAndUnsafesList.html:233
-#: users/templates/users/views/SafesAndUnsafesList.html:262
+#: users/templates/users/views/SafesAndUnsafesList.html:189
+#: users/templates/users/views/SafesAndUnsafesList.html:218
+#: users/templates/users/views/SafesAndUnsafesList.html:247
 #: users/templates/users/views/UnknownsList.html:212
 #: users/templates/users/views/UnknownsList.html:241
 #: users/templates/users/views/UnknownsList.html:270
@@ -4010,9 +3975,9 @@ msgstr "Процессорное время верификатора"
 msgid "less than"
 msgstr "меньше чем"
 
-#: users/templates/users/views/SafesAndUnsafesList.html:205
-#: users/templates/users/views/SafesAndUnsafesList.html:234
-#: users/templates/users/views/SafesAndUnsafesList.html:263
+#: users/templates/users/views/SafesAndUnsafesList.html:190
+#: users/templates/users/views/SafesAndUnsafesList.html:219
+#: users/templates/users/views/SafesAndUnsafesList.html:248
 #: users/templates/users/views/UnknownsList.html:213
 #: users/templates/users/views/UnknownsList.html:242
 #: users/templates/users/views/UnknownsList.html:271
@@ -4020,8 +3985,8 @@ msgstr "меньше чем"
 msgid "greater than"
 msgstr "больше чем"
 
-#: users/templates/users/views/SafesAndUnsafesList.html:215
-#: users/templates/users/views/SafesAndUnsafesList.html:244
+#: users/templates/users/views/SafesAndUnsafesList.html:200
+#: users/templates/users/views/SafesAndUnsafesList.html:229
 #: users/templates/users/views/UnknownsList.html:223
 #: users/templates/users/views/UnknownsList.html:252
 #: users/templates/users/views/jobTree.html:174
@@ -4029,42 +3994,42 @@ msgstr "больше чем"
 msgid "minutes"
 msgstr "минут"
 
-#: users/templates/users/views/SafesAndUnsafesList.html:216
-#: users/templates/users/views/SafesAndUnsafesList.html:245
+#: users/templates/users/views/SafesAndUnsafesList.html:201
+#: users/templates/users/views/SafesAndUnsafesList.html:230
 #: users/templates/users/views/UnknownsList.html:224
 #: users/templates/users/views/UnknownsList.html:253
 msgid "seconds"
 msgstr "секунд"
 
-#: users/templates/users/views/SafesAndUnsafesList.html:217
-#: users/templates/users/views/SafesAndUnsafesList.html:246
+#: users/templates/users/views/SafesAndUnsafesList.html:202
+#: users/templates/users/views/SafesAndUnsafesList.html:231
 #: users/templates/users/views/UnknownsList.html:225
 #: users/templates/users/views/UnknownsList.html:254
 msgid "milliseconds"
 msgstr "миллисекунд"
 
-#: users/templates/users/views/SafesAndUnsafesList.html:227
+#: users/templates/users/views/SafesAndUnsafesList.html:212
 #: users/templates/users/views/UnknownsList.html:235
 msgid "Verifier wall time"
 msgstr "Время работы верификатора"
 
-#: users/templates/users/views/SafesAndUnsafesList.html:256
+#: users/templates/users/views/SafesAndUnsafesList.html:241
 #: users/templates/users/views/UnknownsList.html:264
 msgid "Verifier memory"
 msgstr "Максимальный объем оперативной памяти верификатора"
 
-#: users/templates/users/views/SafesAndUnsafesList.html:274
-#: users/templates/users/views/UnknownsList.html:282 users/utils.py:412
+#: users/templates/users/views/SafesAndUnsafesList.html:259
+#: users/templates/users/views/UnknownsList.html:282 users/utils.py:408
 msgid "MB"
 msgstr "МБ"
 
-#: users/templates/users/views/SafesAndUnsafesList.html:275
-#: users/templates/users/views/UnknownsList.html:283 users/utils.py:412
+#: users/templates/users/views/SafesAndUnsafesList.html:260
+#: users/templates/users/views/UnknownsList.html:283 users/utils.py:408
 msgid "KB"
 msgstr "КБ"
 
-#: users/templates/users/views/SafesAndUnsafesList.html:276
-#: users/templates/users/views/UnknownsList.html:284 users/utils.py:411
+#: users/templates/users/views/SafesAndUnsafesList.html:261
+#: users/templates/users/views/UnknownsList.html:284 users/utils.py:407
 msgid "B"
 msgstr "Б"
 
@@ -4254,14 +4219,14 @@ msgstr "Представление было спрятано от других �
 msgid "The preferred view was successfully changed"
 msgstr "Предпочитаемое представление было успешно изменено"
 
-#: users/utils.py:407
+#: users/utils.py:403
 msgid "ms"
 msgstr "мс"
 
-#: users/utils.py:408
+#: users/utils.py:404
 msgid "min"
 msgstr "мин"
 
-#: users/utils.py:408
+#: users/utils.py:404
 msgid "h"
 msgstr "ч"

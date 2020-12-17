@@ -25,14 +25,13 @@ from django.utils.translation import ugettext as _
 from bridge.vars import MARK_SOURCE
 from bridge.utils import BridgeException
 
-from marks.models import SafeTag, MarkSafe, UnsafeTag, MarkUnsafe, MarkUnknown
+from marks.models import MarkSafe, MarkUnsafe, MarkUnknown
 
-from marks.serializers import (
-    SafeMarkSerializer, UnsafeMarkSerializer, UnknownMarkSerializer, SafeTagSerializer, UnsafeTagSerializer
-)
+from marks.serializers import SafeMarkSerializer, UnsafeMarkSerializer, UnknownMarkSerializer
 from marks.SafeUtils import ConnectSafeMark
 from marks.UnsafeUtils import ConnectUnsafeMark
 from marks.UnknownUtils import ConnectUnknownMark
+from marks.tags import get_all_tags, UploadTagsTree
 from caches.utils import UpdateCachesOnMarkPopulate
 
 
@@ -45,21 +44,20 @@ def get_presets_dir():
     return os.path.abspath(os.path.join(settings.BASE_DIR, 'marks', presets_path))
 
 
+def populate_tags():
+    preset_tags = os.path.join(get_presets_dir(), 'tags.json')
+    with open(preset_tags, mode='r', encoding='utf-8') as fp:
+        res = UploadTagsTree(None, json.load(fp), populated=True)
+    return res.created, res.total
+
+
 class PopulateSafeMarks:
     def __init__(self, user=None):
         self.created = 0
         self.total = 0
         self._author = user
-        self._tags_tree, self._tags_names = self.__get_all_tags()
+        self._tags_tree, self._tags_names = get_all_tags()
         self.__populate()
-
-    def __get_all_tags(self):
-        tags_tree = {}
-        tags_names = {}
-        for t_id, parent_id, t_name in SafeTag.objects.values_list('id', 'parent_id', 'name'):
-            tags_tree[t_id] = parent_id
-            tags_names[t_name] = t_id
-        return tags_tree, tags_names
 
     def __populate(self):
         presets_dir = os.path.join(get_presets_dir(), 'safes')
@@ -101,16 +99,8 @@ class PopulateUnsafeMarks:
         self.created = 0
         self.total = 0
         self._author = user
-        self._tags_tree, self._tags_names = self.__get_all_tags()
+        self._tags_tree, self._tags_names = get_all_tags()
         self.__populate()
-
-    def __get_all_tags(self):
-        tags_tree = {}
-        tags_names = {}
-        for t_id, parent_id, t_name in UnsafeTag.objects.values_list('id', 'parent_id', 'name'):
-            tags_tree[t_id] = parent_id
-            tags_names[t_name] = t_id
-        return tags_tree, tags_names
 
     def __populate(self):
         presets_dir = os.path.join(get_presets_dir(), 'unsafes')
@@ -197,68 +187,4 @@ class PopulateUnknownMarks:
                 mark = serializer.save(identifier=identifier, author=self._author, source=MARK_SOURCE[1][0])
                 res = ConnectUnknownMark(mark)
                 UpdateCachesOnMarkPopulate(mark, res.new_links).update()
-                self.created += 1
-
-
-class PopulateSafeTags:
-    def __init__(self, user=None):
-        self.user = user
-        self.created = 0
-        self.total = 0
-        self.__create_tags()
-
-    def __create_tags(self):
-        db_tags = dict((t.name, t) for t in SafeTag.objects.all())
-        preset_tags = os.path.join(get_presets_dir(), 'tags', 'safe.json')
-        with open(preset_tags, mode='r', encoding='utf-8') as fp:
-            list_of_tags = json.load(fp)
-            assert isinstance(list_of_tags, list), 'Not a list'
-            for data in list_of_tags:
-                self.total += 1
-                assert isinstance(data, dict), 'Not a dict'
-                assert 'name' in data and isinstance(data['name'], str), _('Tag name is required')
-                parent = None
-                if 'parent' in data:
-                    if data['parent'] not in db_tags:
-                        raise BridgeException(_('Tag parent should be defined before its children'))
-                    parent = db_tags[data.pop('parent')]
-                serializer = SafeTagSerializer(data=data)
-                serializer.is_valid(raise_exception=True)
-                if serializer.validated_data['name'] in db_tags:
-                    # Already exists
-                    continue
-                new_tag = serializer.save(parent=parent, author=self.user, populated=True)
-                db_tags[serializer.validated_data['name']] = new_tag
-                self.created += 1
-
-
-class PopulateUnsafeTags:
-    def __init__(self, user=None):
-        self.user = user
-        self.created = 0
-        self.total = 0
-        self.__create_tags()
-
-    def __create_tags(self):
-        db_tags = dict((t.name, t) for t in UnsafeTag.objects.all())
-        preset_tags = os.path.join(get_presets_dir(), 'tags', 'unsafe.json')
-        with open(preset_tags, mode='r', encoding='utf-8') as fp:
-            list_of_tags = json.load(fp)
-            assert isinstance(list_of_tags, list), 'Not a list'
-            for data in list_of_tags:
-                self.total += 1
-                assert isinstance(data, dict), 'Not a dict'
-                assert 'name' in data and isinstance(data['name'], str), _('Tag name is required')
-                parent = None
-                if 'parent' in data:
-                    if data['parent'] not in db_tags:
-                        raise BridgeException(_('Tag parent should be defined before its children'))
-                    parent = db_tags[data.pop('parent')]
-                serializer = UnsafeTagSerializer(data=data)
-                serializer.is_valid(raise_exception=True)
-                if serializer.validated_data['name'] in db_tags:
-                    # Already exists
-                    continue
-                new_tag = serializer.save(parent=parent, author=self.user, populated=True)
-                db_tags[serializer.validated_data['name']] = new_tag
                 self.created += 1

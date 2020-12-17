@@ -33,5 +33,4 @@
         <option value="{{ tag.id }}">{{ tag.name }}</option>
     {% endfor %}
 </select>
-<span id="tag_label_color" hidden>{% if tags.type == 'safe' %}green{% elif tags.type == 'unsafe' %}orange{% endif %}</span>
 <span id="error__no_results" hidden>{% trans 'No results found' %}</span>

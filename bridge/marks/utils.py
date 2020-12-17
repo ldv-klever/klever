@@ -189,7 +189,10 @@ class CompareMarkVersions:
         tags2 = set(t for t, in self.v2.tags.values_list('tag__name'))
         if tags1 == tags2:
             return None
-        return ['; '.join(sorted(tags1)), '; '.join(sorted(tags2))]
+        return [
+            ', '.join(list(x.split(' - ')[-1] for x in sorted(tags1))),
+            ', '.join(list(x.split(' - ')[-1] for x in sorted(tags2)))
+        ]
 
     @cached_property
     def unsafe_func(self):

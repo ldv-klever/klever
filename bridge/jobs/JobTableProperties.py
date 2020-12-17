@@ -52,9 +52,6 @@ JOBS_TREE_COLUMNS = OrderedDict([
     ('problem:total', _('Total')),
     ('resource', _('Consumed resources')),
     ('resource:total', _('Total')),
-    ('tag', _('Tags')),
-    ('tag:safe', _('Safes')),
-    ('tag:unsafe', _('Unsafes')),
     ('identifier', _('Identifier')),
     ('version', _('Version')),
     ('priority', _('Priority')),
@@ -446,9 +443,6 @@ class TableTree:
 
     def __get_columns(self):
         extend_action = {
-            'tag': lambda: self.__safe_tags_columns() + self.__unsafe_tags_columns(),
-            'tag:safe': self.__safe_tags_columns,
-            'tag:unsafe': self.__unsafe_tags_columns,
             'resource': self.__resource_columns,
             'problem': self.__unknowns_columns,
             'tasks': lambda: list(TASKS_COLUMNS),
@@ -469,28 +463,6 @@ class TableTree:
                     columns.extend(self._unsafes_columns.extend_column(col))
                 else:
                     columns.append(col)
-        return columns
-
-    def __safe_tags_columns(self):
-        all_tags = set()
-        for s_tags in ReportSafeCache.objects.filter(report__decision_id__in=self._decisions_ids)\
-                .values_list('tags', flat=True):
-            all_tags |= set(s_tags)
-
-        columns = []
-        for tag in sorted(all_tags):
-            columns.append('tag:safe:{}'.format(self.slugify(tag)))
-        return columns
-
-    def __unsafe_tags_columns(self):
-        all_tags = set()
-        for s_tags in ReportUnsafeCache.objects.filter(report__decision_id__in=self._decisions_ids)\
-                .values_list('tags', flat=True):
-            all_tags |= set(s_tags)
-
-        columns = []
-        for tag in sorted(all_tags):
-            columns.append('tag:unsafe:{}'.format(self.slugify(tag)))
         return columns
 
     def __filter_component(self, component):
@@ -570,10 +542,6 @@ class TableTree:
 
         if any(x.startswith('problem:') for x in self.columns):
             self.__collect_unknowns()
-        if any(x.startswith('tag:safe:') for x in self.columns):
-            self.__collect_safe_tags()
-        if any(x.startswith('tag:unsafe:') for x in self.columns):
-            self.__collect_unsafe_tags()
         if any(x.startswith('resource:') for x in self.columns):
             self.__collect_resources()
 
@@ -757,35 +725,6 @@ class TableTree:
             self._values_data[d_id]['problem:total'] = cell_value(
                 total_number, url=reverse('reports:unknowns', args=[self._core[d_id]])
             )
-
-    def __collect_safe_tags(self):
-        self.__collect_tags(ReportSafeCache, 'safe')
-
-    def __collect_unsafe_tags(self):
-        self.__collect_tags(ReportUnsafeCache, 'unsafe')
-
-    def __collect_tags(self, cache_model, tags_type):
-        """
-        Collect tags data for decisions.
-        :param cache_model: ReportSafeCache or ReportUnsafeCache
-        :param tags_type: "safe" or "unsafe"
-        :return: nothing
-        """
-        tags_qs = cache_model.objects\
-            .filter(report__decision_id__in=self._decisions_ids)\
-            .values_list('report__decision_id', 'tags')
-        numbers = {}
-        for d_id, tags in tags_qs:
-            numbers.setdefault(d_id, {})
-            for tag, number in tags.items():
-                numbers[d_id].setdefault(tag, 0)
-                numbers[d_id][tag] += 1
-
-        for d_id in numbers:
-            for tag, num in numbers[d_id].items():
-                column = 'tag:{}:{}'.format(tags_type, self.slugify(tag))
-                url = construct_url('reports:{}s'.format(tags_type), self._core[d_id], tag=tag)
-                self._values_data[d_id][column] = cell_value(num, url=url)
 
     def __collect_resources(self):
         total_resources = {}

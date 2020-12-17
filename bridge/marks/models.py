@@ -20,6 +20,7 @@ import uuid
 from django.db import models
 from django.db.models.signals import post_delete
 from django.contrib.postgres.fields import ArrayField, JSONField
+from django.urls import reverse
 from django.utils.timezone import now
 from django.utils.translation import ugettext_lazy as _
 from mptt.models import MPTTModel, TreeForeignKey
@@ -83,7 +84,7 @@ class MarkHistory(models.Model):
 # Safes tables
 class MarkSafe(Mark):
     verdict = models.CharField(max_length=1, choices=MARK_SAFE)
-    cache_tags = ArrayField(models.CharField(max_length=MAX_TAG_LEN), default=list)
+    cache_tags = ArrayField(models.CharField(max_length=1024), default=list)
 
     class Meta:
         db_table = 'mark_safe'
@@ -134,7 +135,7 @@ class MarkUnsafe(Mark):
     error_trace = models.ForeignKey(ConvertedTrace, models.CASCADE)
     verdict = models.CharField(max_length=1, choices=MARK_UNSAFE)
     status = models.CharField(max_length=1, choices=MARK_STATUS, null=True)
-    cache_tags = ArrayField(models.CharField(max_length=MAX_TAG_LEN), default=list)
+    cache_tags = ArrayField(models.CharField(max_length=1024), default=list)
     threshold = models.FloatField(default=0)
 
     @property
@@ -195,37 +196,32 @@ class UnsafeAssociationLike(models.Model):
 
 
 # Tags tables
-class SafeTag(MPTTModel):
+class Tag(MPTTModel):
     author = models.ForeignKey(User, models.SET_NULL, null=True)
     parent = TreeForeignKey('self', models.CASCADE, null=True, related_name='children')
-    name = models.CharField(max_length=MAX_TAG_LEN, db_index=True)
+    name = models.CharField(max_length=1024, db_index=True, unique=True)
     description = models.TextField(default='', blank=True)
     populated = models.BooleanField(default=False)
 
-    class MPTTMeta:
-        order_insertion_by = ['name']
+    @property
+    def url(self):
+        return reverse("marks:api-tags-detail", args=[self.id])
+
+    @property
+    def access_url(self):
+        return reverse("marks:api-tags-access", args=[self.id])
+
+    @property
+    def shortname(self):
+        return self.name.split(' - ')[-1]
 
     class Meta:
-        db_table = "mark_safe_tag"
-
-
-class UnsafeTag(MPTTModel):
-    author = models.ForeignKey(User, models.SET_NULL, null=True)
-    parent = TreeForeignKey('self', models.CASCADE, null=True, related_name='children')
-    name = models.CharField(max_length=MAX_TAG_LEN, db_index=True)
-    description = models.TextField(default='', blank=True)
-    populated = models.BooleanField(default=False)
-
-    class MPTTMeta:
-        order_insertion_by = ['name']
-
-    class Meta:
-        db_table = "mark_unsafe_tag"
+        db_table = "mark_tag"
 
 
 class MarkSafeTag(models.Model):
     mark_version = models.ForeignKey(MarkSafeHistory, models.CASCADE, related_name='tags')
-    tag = models.ForeignKey(SafeTag, models.CASCADE, related_name='+')
+    tag = models.ForeignKey(Tag, models.CASCADE, related_name='+')
 
     def __str__(self):
         return self.tag.name
@@ -236,7 +232,7 @@ class MarkSafeTag(models.Model):
 
 class MarkUnsafeTag(models.Model):
     mark_version = models.ForeignKey(MarkUnsafeHistory, models.CASCADE, related_name='tags')
-    tag = models.ForeignKey(UnsafeTag, models.CASCADE, related_name='+')
+    tag = models.ForeignKey(Tag, models.CASCADE, related_name='+')
 
     def __str__(self):
         return self.tag.name
@@ -308,24 +304,14 @@ class UnsafeConvertionCache(models.Model):
         db_table = 'cache_error_trace_converted'
 
 
-class SafeTagAccess(models.Model):
+class TagAccess(models.Model):
     user = models.ForeignKey(User, models.CASCADE)
-    tag = models.ForeignKey(SafeTag, models.CASCADE)
+    tag = models.ForeignKey(Tag, models.CASCADE)
     modification = models.BooleanField(default=False)
     child_creation = models.BooleanField(default=False)
 
     class Meta:
-        db_table = 'marks_safe_tag_access'
-
-
-class UnsafeTagAccess(models.Model):
-    user = models.ForeignKey(User, models.CASCADE)
-    tag = models.ForeignKey(UnsafeTag, models.CASCADE)
-    modification = models.BooleanField(default=False)
-    child_creation = models.BooleanField(default=False)
-
-    class Meta:
-        db_table = 'marks_unsafe_tag_access'
+        db_table = 'mark_tag_access'
 
 
 post_delete.connect(remove_instance_files, sender=ConvertedTrace)

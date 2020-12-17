@@ -19,9 +19,7 @@ from django.core.management.base import BaseCommand, CommandError
 
 from bridge.utils import logger
 from jobs.preset import PopulatePresets
-from marks.population import (
-    PopulateSafeMarks, PopulateUnsafeMarks, PopulateUnknownMarks, PopulateSafeTags, PopulateUnsafeTags
-)
+from marks.population import PopulateSafeMarks, PopulateUnsafeMarks, PopulateUnknownMarks, populate_tags
 from service.population import populuate_schedulers
 
 
@@ -35,9 +33,7 @@ class Command(BaseCommand):
         parser.add_argument('--safe-marks', dest='marks_s', action='store_true', help='Populate safe marks?')
         parser.add_argument('--unsafe-marks', dest='marks_u', action='store_true', help='Populate unsafe marks?')
         parser.add_argument('--unknown-marks', dest='marks_f', action='store_true', help='Populate unknown marks?')
-        parser.add_argument('--tags', dest='tags', action='store_true', help='Populate all tags?')
-        parser.add_argument('--safe-tags', dest='tags_s', action='store_true', help='Populate safe tags?')
-        parser.add_argument('--unsafe-tags', dest='tags_u', action='store_true', help='Populate unsafe tags?')
+        parser.add_argument('--tags', dest='tags', action='store_true', help='Populate tags?')
         parser.add_argument('--schedulers', dest='schedulers', action='store_true', help='Populate schedulers?')
         parser.add_argument('--preset-jobs', dest='presets', action='store_true', help='Populate preset jobs?')
 
@@ -52,25 +48,15 @@ class Command(BaseCommand):
                 raise CommandError('Preset jobs population failed: %s' % e)
             self.stdout.write("Preset jobs were populated")
 
-        # Safe tags
-        if options['all'] or options['tags'] or options['tags_s']:
-            self.stdout.write('Safe tags population started')
+        # Tags
+        if options['all'] or options['tags']:
+            self.stdout.write('Tags population started')
             try:
-                res = PopulateSafeTags()
+                created, total = populate_tags()
             except Exception as e:
                 logger.exception(e)
-                raise CommandError('Safe tags population failed: %s' % e)
-            self.stdout.write("{} of {} safe tags were populated".format(res.created, res.total))
-
-        # Unsafe tags
-        if options['all'] or options['tags'] or options['tags_u']:
-            self.stdout.write('Unsafe tags population started')
-            try:
-                res = PopulateUnsafeTags()
-            except Exception as e:
-                logger.exception(e)
-                raise CommandError('Unsafe tags population failed: %s' % e)
-            self.stdout.write("{} of {} unsafe tags were populated".format(res.created, res.total))
+                raise CommandError('Tags population failed: %s' % e)
+            self.stdout.write("{} of {} tags were populated".format(created, total))
 
         # Safe marks
         if options['all'] or options['marks'] or options['marks_s']:
