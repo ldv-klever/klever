@@ -389,7 +389,7 @@ class VTG(klever.core.components.Component):
         single_model = self.conf.get('single environment model per fragment', True)
         if single_model:
             total_tasks = len(self.fragment_desc_files) * len([1 for cl in self.req_spec_classes
-                                              for rule in self.req_spec_classes[cl]])
+                                                               for _ in self.req_spec_classes[cl]])
             # Submit the number of tasks
             self.logger.info(f'Submit the total number of tasks expecting a single environment model per a fragment: {total_tasks}')
             self.mqs['total tasks'].put([self.conf['sub-job identifier'], total_tasks])
@@ -433,7 +433,9 @@ class VTG(klever.core.components.Component):
                                     total_tasks += 1
                     else:
                         self.logger.warning(f'There is no tasks generated for {atask}')
-                        self.mqs['finished and failed tasks'].put((self.conf['sub-job identifier'], 'failed'))
+                        if single_model:
+                            for _ in self.req_spec_classes[atask.rule_class]:
+                                self.mqs['finished and failed tasks'].put((self.conf['sub-job identifier'], 'failed'))
 
                     if not single_model and left_abstract_tasks == 0:
                         # Submit the number of tasks
