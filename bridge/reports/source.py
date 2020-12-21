@@ -562,13 +562,13 @@ class GetSource:
 
     @transaction.atomic
     def get_html(self):
-        try:
-            src_code = SourceCodeCache.objects.select_for_update().get(identifier=self.identifier)
+        src_code = SourceCodeCache.objects.filter(identifier=self.identifier).select_for_update().first()
+        if src_code:
             with open(src_code.file.path, mode='rb') as fp:
                 html_content_b = fp.read()
             src_code.access_date = now()
             src_code.save()
-        except SourceCodeCache.DoesNotExist:
+        else:
             html_content_b = self.__render_html().encode('utf8')
             fp = io.BytesIO(html_content_b)
             fp.seek(0)
