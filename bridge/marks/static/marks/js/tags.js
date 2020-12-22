@@ -68,6 +68,7 @@ window.activate_tags = function () {
         className: {
             label: 'ui teal label'
         },
+        fullTextSearch: "exact",
         message: {
             noResults: $('#error__no_results').text(),
             count: ''
