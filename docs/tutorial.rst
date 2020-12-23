@@ -69,7 +69,7 @@ Then you will be automatically redirected to a *job tree* page presented in the 
 Starting Verification
 ---------------------
 
-As an example we consider checking usage of clocks in device drivers.
+As an example we consider checking usage of clocks in USB drivers.
 To start up verification you need to do as follows:
 
 #. Start the creation of a new *job* (:numref:`tutorial_starting_creation_new_job`).
@@ -78,7 +78,7 @@ To start up verification you need to do as follows:
    (:numref:`tutorial_configuring_first_job_version_and_starting_its_decision`):
 
    * The path to the prepared build base that is **/home/debian/build-base-linux-3.14.79-x86_64-allmodconfig**.
-   * Targets, e.g. device drivers, i.e. all modules from directory **drivers** in our example.
+   * Targets, e.g. USB drivers, i.e. all modules from directory **drivers/usb** in our example.
    * Requirement specifications to be checked, e.g. **drivers:clk1** and **drivers:clk2** in our example (you can see a
      complete list of supported requirement specifications at the end of this section).
 
@@ -368,7 +368,7 @@ execution, perhaps, within called functions.
 .. _tutorial_error_trace_note:
 .. figure:: ./media/tutorial/error-trace-note.png
 
-   The error trace warning
+   The error trace note
 
 .. _tutorial_error_trace_warning:
 .. figure:: ./media/tutorial/error-trace-warning.png
@@ -384,21 +384,19 @@ directly in the source code under verification but also when checking something 
 functions.
 For instance, this is the case for the considered error trace (:numref:`tutorial_error_trace_warning`).
 
+Creating Marks
+--------------
+
 The analyzed unsafe corresponds to the fault that was fixed in commit
 `374a1020d21b <https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/drivers/usb/gadget/udc/mv_u3d_core.c?id=374a1020d21b>`__
 to the Linux kernel.
 To finalize assessment you need to create a new *mark*
-(:numref:`tutorial_starting_creation_of_new_mark`-:numref:`tutorial_creation_of_new_lightweight_mark`):
+(:numref:`tutorial_starting_creation_of_new_lightweight_mark`-:numref:`tutorial_creation_of_new_lightweight_mark`):
 
 #. Specify a verdict (**Bug** in our example).
 #. Specify a status (**Fixed**).
 #. Provide a description.
 #. Save the mark.
-
-.. _tutorial_starting_creation_of_new_mark:
-.. figure:: ./media/tutorial/starting-creation-of-new-mark.png
-
-   Starting the creation of a new mark
 
 .. _tutorial_starting_creation_of_new_lightweight_mark:
 .. figure:: ./media/tutorial/starting-creation-of-new-lightweight-mark.png
@@ -437,15 +435,40 @@ traces and marks and by (un)confirming their associations
 
    Opening the error trace of the unsafe with automatic assessment
 
-.. _tutorial_starting_changing_association_type:
-.. figure:: ./media/tutorial/starting-changing-association-type.png
-
-   Starting changing the association type
-
 .. _tutorial_confirming_automatic_association:
 .. figure:: ./media/tutorial/confirming-automatic-association.png
 
    Confirming the automatic association
+
+False alarms can happen due to different reasons.
+There are corresponding *tags* for most common of them.
+You can find a complete tree of tags at :menuselection:`Menu --> Marks --> Tags` (:numref:`tutorial_opening_tags_page`).
+
+.. _tutorial_opening_tags_page:
+.. figure:: ./media/tutorial/opening-tags-page.png
+
+   Opening the tags page
+
+Each tag has a description that is shown when covering a tag name (:numref:`tutorial_showing_tag_description`).
+
+.. _tutorial_showing_tag_description:
+.. figure:: ./media/tutorial/showing-tag-description.png
+
+   Showing tag description
+
+You can choose appropriate tags during creation of marks from the dropdown list
+(:numref:`tutorial_choosing_tag_dropdown_list`).
+This list can be filtered out by entering parts of tag names (:numref:`tutorial_entering_tag_name_part`).
+
+.. _tutorial_choosing_tag_dropdown_list:
+.. figure:: ./media/tutorial/choosing-tag-dropdown-list.png
+
+   Choosing tag from the dropdown list
+
+.. _tutorial_entering_tag_name_part:
+.. figure:: ./media/tutorial/entering-tag-name-part.png
+
+   Entering tag name part
 
 What’s Next?
 ------------
