@@ -27,15 +27,8 @@
             <span class="scope-{{ n.scope }}" data-type="{{ n.type }}" data-level="{{ n.level }}" data-hide="{% if n.hide %}true{% else %}false{% endif %}"{% if n.scope not in etv.shown_scopes or not n.relevant %} style="display: none"{% endif %}>
                 {{ n.LN|safe }}{{ n.LC|safe }}<br>
             </span>
-        {% elif n.type == 'statement' %}
+        {% elif n.type == 'statement' or n.type == 'declaration' %}
             <span class="scope-{{ n.scope }}{% if n.commented %} commented{% endif %}" data-type="{{ n.type }}"{% if n.scope not in etv.shown_scopes or not n.has_note or n.commented %} style="display:none;"{% endif %}>
-                {{ n.LN|safe }}{{ n.LC|safe }}
-                {% if n.old_assumptions %}<span class="ETV_OldAssumptions" hidden>{{ n.old_assumptions }}</span>{% endif %}
-                {% if n.new_assumptions %}<span class="ETV_NewAssumptions" hidden>{{ n.new_assumptions }}</span>{% endif %}
-                <br>
-            </span>
-        {% elif n.type == 'declaration' %}
-            <span class="scope-{{ n.scope }}{% if n.commented %} commented{% endif %}" data-type="{{ n.type }}"{% if n.scope not in etv.shown_scopes or n.commented %} style="display:none;"{% endif %}>
                 {{ n.LN|safe }}{{ n.LC|safe }}
                 {% if n.old_assumptions %}<span class="ETV_OldAssumptions" hidden>{{ n.old_assumptions }}</span>{% endif %}
                 {% if n.new_assumptions %}<span class="ETV_NewAssumptions" hidden>{{ n.new_assumptions }}</span>{% endif %}
