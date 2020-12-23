@@ -69,7 +69,7 @@ Then you will be automatically redirected to a *job tree* page presented in the 
 Starting Verification
 ---------------------
 
-As an example we consider checking usage of clocks in device drivers.
+As an example we consider checking usage of clocks in USB drivers.
 To start up verification you need to do as follows:
 
 #. Start the creation of a new *job* (:numref:`tutorial_starting_creation_new_job`).
@@ -78,7 +78,7 @@ To start up verification you need to do as follows:
    (:numref:`tutorial_configuring_first_job_version_and_starting_its_decision`):
 
    * The path to the prepared build base that is **/home/debian/build-base-linux-3.14.79-x86_64-allmodconfig**.
-   * Targets, e.g. device drivers, i.e. all modules from directory **drivers** in our example.
+   * Targets, e.g. USB drivers, i.e. all modules from directory **drivers/usb** in our example.
    * Requirement specifications to be checked, e.g. **drivers:clk1** and **drivers:clk2** in our example (you can see a
      complete list of supported requirement specifications at the end of this section).
 
@@ -368,7 +368,7 @@ execution, perhaps, within called functions.
 .. _tutorial_error_trace_note:
 .. figure:: ./media/tutorial/error-trace-note.png
 
-   The error trace warning
+   The error trace note
 
 .. _tutorial_error_trace_warning:
 .. figure:: ./media/tutorial/error-trace-warning.png
@@ -388,17 +388,12 @@ The analyzed unsafe corresponds to the fault that was fixed in commit
 `374a1020d21b <https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/drivers/usb/gadget/udc/mv_u3d_core.c?id=374a1020d21b>`__
 to the Linux kernel.
 To finalize assessment you need to create a new *mark*
-(:numref:`tutorial_starting_creation_of_new_mark`-:numref:`tutorial_creation_of_new_lightweight_mark`):
+(:numref:`tutorial_starting_creation_of_new_lightweight_mark`-:numref:`tutorial_creation_of_new_lightweight_mark`):
 
 #. Specify a verdict (**Bug** in our example).
 #. Specify a status (**Fixed**).
 #. Provide a description.
 #. Save the mark.
-
-.. _tutorial_starting_creation_of_new_mark:
-.. figure:: ./media/tutorial/starting-creation-of-new-mark.png
-
-   Starting the creation of a new mark
 
 .. _tutorial_starting_creation_of_new_lightweight_mark:
 .. figure:: ./media/tutorial/starting-creation-of-new-lightweight-mark.png
@@ -436,11 +431,6 @@ traces and marks and by (un)confirming their associations
 .. figure:: ./media/tutorial/opening-error-trace-of-unsafe-with-automatic-assessment.png
 
    Opening the error trace of the unsafe with automatic assessment
-
-.. _tutorial_starting_changing_association_type:
-.. figure:: ./media/tutorial/starting-changing-association-type.png
-
-   Starting changing the association type
 
 .. _tutorial_confirming_automatic_association:
 .. figure:: ./media/tutorial/confirming-automatic-association.png
