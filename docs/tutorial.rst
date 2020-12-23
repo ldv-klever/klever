@@ -384,6 +384,9 @@ directly in the source code under verification but also when checking something 
 functions.
 For instance, this is the case for the considered error trace (:numref:`tutorial_error_trace_warning`).
 
+Creating Marks
+--------------
+
 The analyzed unsafe corresponds to the fault that was fixed in commit
 `374a1020d21b <https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/drivers/usb/gadget/udc/mv_u3d_core.c?id=374a1020d21b>`__
 to the Linux kernel.
@@ -436,6 +439,36 @@ traces and marks and by (un)confirming their associations
 .. figure:: ./media/tutorial/confirming-automatic-association.png
 
    Confirming the automatic association
+
+False alarms can happen due to different reasons.
+There are corresponding *tags* for most common of them.
+You can find a complete tree of tags at :menuselection:`Menu --> Marks --> Tags` (:numref:`tutorial_opening_tags_page`).
+
+.. _tutorial_opening_tags_page:
+.. figure:: ./media/tutorial/opening-tags-page.png
+
+   Opening the tags page
+
+Each tag has a description that is shown when covering a tag name (:numref:`tutorial_showing_tag_description`).
+
+.. _tutorial_showing_tag_description:
+.. figure:: ./media/tutorial/showing-tag-description.png
+
+   Showing tag description
+
+You can choose appropriate tags during creation of marks from the dropdown list
+(:numref:`tutorial_choosing_tag_dropdown_list`).
+This list can be filtered out by entering parts of tag names (:numref:`tutorial_entering_tag_name_part`).
+
+.. _tutorial_choosing_tag_dropdown_list:
+.. figure:: ./media/tutorial/choosing-tag-dropdown-list.png
+
+   Choosing tag from the dropdown list
+
+.. _tutorial_entering_tag_name_part:
+.. figure:: ./media/tutorial/entering-tag-name-part.png
+
+   Entering tag name part
 
 What’s Next?
 ------------
