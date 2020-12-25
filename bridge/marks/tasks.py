@@ -28,7 +28,7 @@ from marks.UnknownUtils import MatchUnknown
 from caches.utils import RecalculateSafeCache, RecalculateUnsafeCache, RecalculateUnknownCache
 
 
-@shared_task()
+@shared_task
 def connect_safe_report(report_id):
     report = ReportSafe.objects.select_related('cache').get(pk=report_id)
     marks_qs = MarkSafe.objects.filter(cache_attrs__contained_by=report.cache.attrs)
