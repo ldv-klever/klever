@@ -55,6 +55,18 @@ DEFAULT_ARCH_OPTS = {
       'preset': 'klever_linux_kernel_arm'
     }
   },
+  'ARM64': {
+    'CIF': {
+      'cross compile prefix': 'aarch64-unknown-linux-gnu-'
+    },
+    # As above.
+    'CIL': {
+      'machine': 'gcc_x86_64'
+    },
+    'Clade': {
+      'preset': 'klever_linux_kernel_arm'
+    }
+  },
   'x86-64': {
     'CIF': {
       'cross compile prefix': ''
