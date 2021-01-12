@@ -70,13 +70,32 @@ class ScenarioModelgenerator(AbstractGenerator):
             objs = source.get_source_functions(func)
             suits = []
             for obj in objs:
-                if (not strict or strict and not obj.called_at) and \
-                        (obj.declaration.static and statics or not obj.declaration.static) and obj.definition_file:
-                    for file_expr, func_expr in expressions:
-                        if func_expr.fullmatch(func) and (not file_expr or file_expr.fullmatch(obj.definition_file)):
-                            self.logger.debug('Add function {!r} from {!r}'.format(func, obj.definition_file))
+                for file_expr, func_expr in expressions:
+                    if func_expr.fullmatch(func):
+                        self.logger.debug(f'Function {func} suits for expression {str(func_expr)}')
+
+                        if not file_expr or file_expr.fullmatch(obj.definition_file):
+                            if strict and obj.called_at:
+                                self.logger.debug("Function is not an entry point, it is called. To ignore the filter "
+                                                  "set the option 'prefer not called' to False")
+                                continue
+
+                            if obj.declaration.static and not statics:
+                                self.logger.debug("Function is ignored as it is static. To ignore the filter set the"
+                                                  " option 'call static' to True")
+                                continue
+
+                            if not obj.definition_file:
+                                self.logger.debug("The function is ignored as its definition file is unknown."
+                                                  " Inspect the build base for more details.")
+                                continue
+
+                            self.logger.debug(f'Add function {func} from {obj.definition_file}')
                             suits.append(obj)
                             break
+                        else:
+                            self.logger.debug(f'But its definition file {obj.definition_file} does not match file '
+                                              f'expression {str(file_expr)}')
 
             if suits:
                 functions_collection[func] = suits
