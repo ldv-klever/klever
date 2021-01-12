@@ -8,6 +8,7 @@
             "generators options": [
               {
                 "genericFunctions": {
+                  "call static": true,
                   "infinite calls sequence": false,
                   "initialize strings as null terminated": false,
                   "process per call": true,
