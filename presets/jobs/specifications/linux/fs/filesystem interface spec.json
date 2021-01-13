@@ -101,26 +101,11 @@
               "mount": "%filesystem.mount%",
               "kill_sb": "%filesystem.kill_sb%"
             }
-          },
-          "super_block": {
-            "declaration": "struct super_block ops",
-            "header": "linux/fs.h",
-            "fields": {
-              "s_op": "*%filesystem.super_operations%",
-              "s_type": "*%filesystem.file_system_type%"
-            }
-          },
-          "super_operations": {
-            "declaration": "struct super_operations ops",
-            "header": "linux/fs.h",
-            "fields": {
-              "put_super": "%filesystem.put_super%"
-            }
           }
         },
         "resources": {
-          "inode": {
-            "declaration": "struct inode *i",
+          "super_block": {
+            "declaration": "struct super_block ops",
             "header": "linux/fs.h"
           }
         },
@@ -130,9 +115,6 @@
           },
           "kill_sb": {
             "declaration": "void (*kill_sb) (*%filesystem.super_block%)"
-          },
-          "put_super": {
-            "declaration": "void (*put_super) (*%filesystem.super_block%)"
           }
         },
         "reference": true

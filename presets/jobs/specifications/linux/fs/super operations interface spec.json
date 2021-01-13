@@ -1,0 +1,25 @@
+{
+  "3.14": {
+    "functions models": {},
+    "categories": {
+      "super_operations": {
+        "containers": {
+          "super_operations": {
+            "declaration": "struct super_operations ops",
+            "header": "linux/fs.h",
+            "fields": {
+              "put_super": "%super_operations.put_super%"
+            }
+          }
+        },
+        "resources": {},
+        "callbacks": {
+          "put_super": {
+            "declaration": "void (*put_super) (*%filesystem.super_block%)"
+          }
+        },
+        "reference": true
+      }
+    }
+  }
+}
