@@ -258,6 +258,11 @@
       "mount_bdev": {
         "comment": "Call fill_super implementation.",
         "reference": true,
+        "declarations": {
+          "environment model": {
+            "ldv_super_block": "struct super_block *ldv_super_block;\n"
+          }
+        },
         "labels": {
           "file_system_type": {
             "container": true,
@@ -292,6 +297,7 @@
               "    ldv_free(%super_block%);",
               "    ldv_ptr_err(ret);",
               "}",
+              "ldv_super_block = %super_block%;",
               "return dentry;"
             ]
           }
@@ -396,21 +402,17 @@
               "filesystem.super_block"
             ]
           },
-          "resource": {
-            "resource": true,
-            "interface": [
-              "filesystem.inode"
-            ]
-          },
-          "callback": {
-            "callback": true
-          },
           "ret": {
             "declaration": "struct dentry *a",
             "value": "ldv_undef_ptr()"
           }
         },
         "process": "(!register).{main}",
+        "declarations": {
+          "environment model": {
+            "ldv_super_block": "struct super_block *ldv_super_block;\n"
+          }
+        },
         "actions": {
           "main": {
             "comment": "Going to initialize super block.",
@@ -418,7 +420,7 @@
           },
           "call": {
             "comment": "Super block is created.",
-            "process": "[callback].{call} | [put_super].[kill_sb].{main}"
+            "process": "[kill_sb].{main}"
           },
           "register": {
             "parameters": [
@@ -431,19 +433,6 @@
             ],
             "parameters": [
               "%file_system_type%"
-            ]
-          },
-          "callback": {
-            "callback": "%callback%",
-            "parameters": [
-              "%resource%"
-            ]
-          },
-          "put_super": {
-            "comment": "Put super block.",
-            "callback": "%super_ops.put_super%",
-            "parameters": [
-              "%super_block%"
             ]
           },
           "kill_sb": {
@@ -466,7 +455,7 @@
             ],
             "trace relevant": true,
             "statements": [
-              "%super_block% = container_of(%file_system_type%, struct super_block, s_type);",
+              "%super_block% = ldv_super_block;",
               "%super_ops% = %super_block%->s_op;"
             ]
           },
