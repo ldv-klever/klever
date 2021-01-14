@@ -105,7 +105,7 @@
         },
         "resources": {
           "super_block": {
-            "declaration": "struct super_block ops",
+            "declaration": "struct super_block *ops",
             "header": "linux/fs.h"
           }
         },

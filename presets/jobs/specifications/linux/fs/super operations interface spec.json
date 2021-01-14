@@ -12,10 +12,15 @@
             }
           }
         },
-        "resources": {},
+        "resources": {
+          "super_block": {
+            "declaration": "struct super_block *ops",
+            "header": "linux/fs.h"
+          }
+        },
         "callbacks": {
           "put_super": {
-            "declaration": "void (*put_super) (*%filesystem.super_block%)"
+            "declaration": "void (*put_super) (*%super_operations.super_block%)"
           }
         },
         "reference": true

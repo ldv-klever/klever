@@ -389,13 +389,6 @@
               "filesystem.file_system_type"
             ]
           },
-          "super_ops": {
-            "container": true,
-            "pointer": true,
-            "interface": [
-              "filesystem.super_operations"
-            ]
-          },
           "super_block": {
             "container": true,
             "interface": [
@@ -416,11 +409,7 @@
         "actions": {
           "main": {
             "comment": "Going to initialize super block.",
-            "process": "[mount].(<mount_success>.{call} | <mount_fail>.{main}) | (deregister)"
-          },
-          "call": {
-            "comment": "Super block is created.",
-            "process": "[kill_sb].{main}"
+            "process": "[mount].(<mount_success>.[super_operations_register].[super_operations_deregister].[kill_sb] | <mount_fail>).({main} | (deregister))"
           },
           "register": {
             "parameters": [
@@ -434,6 +423,15 @@
             "parameters": [
               "%file_system_type%"
             ]
+          },
+          "super_operations_register": {
+            "comment": "Expect super operations callbacks.",
+            "parameters": []
+          },
+          "super_operations_deregister": {
+            "comment": "Finish calling super operations callbacks.",
+            "condition": [],
+            "parameters": []
           },
           "kill_sb": {
             "comment": "Release super block.",
@@ -454,10 +452,7 @@
               "!ldv_is_err(%ret%)"
             ],
             "trace relevant": true,
-            "statements": [
-              "%super_block% = ldv_super_block;",
-              "%super_ops% = %super_block%->s_op;"
-            ]
+            "statements": []
           },
           "mount_fail": {
             "comment": "Failed to mount a new filesystem.",
