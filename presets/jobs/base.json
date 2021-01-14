@@ -24,6 +24,12 @@
           "production": true
         },
         {
+          "uuid": "d8d5d104-5651-11eb-ae93-0242ac130002",
+          "name": "File systems sample",
+          "directory": "linux/filesystems sample",
+          "production": true
+        },
+        {
           "uuid": "38c96aee-77e8-4964-8d76-564173226c3a",
           "name": "Kernel subsystems sample",
           "directory": "linux/kernel subsystems sample"
