@@ -4,7 +4,6 @@
   "specifications set": "4.6.7",
   "targets": [
     "fs/bfs/bfs.ko",
-    "fs/efs/efs.ko",
     "fs/romfs/romfs.ko"
   ],
   "requirement specifications": [
