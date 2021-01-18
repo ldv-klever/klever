@@ -287,15 +287,15 @@
             "statements": [
               "struct dentry *dentry;",
               "int ret;",
-              "dentry = ldv_undef_ptr();",
-              "if (ldv_is_err(dentry))",
-              "    return dentry;",
+              "dentry = ldv_xzalloc(sizeof(struct dentry));",
               "%super_block% = ldv_xzalloc(sizeof(struct super_block));",
               "%super_block%->s_type = %file_system_type%;",
+              "%super_block%->s_root = dentry;",
               "ret = $ARG5(%super_block%, $ARG4, 1);",
               "if (ret != 0) {",
+              "    ldv_free(dentry);",
               "    ldv_free(%super_block%);",
-              "    ldv_ptr_err(ret);",
+              "    return ldv_ptr_err(ret);",
               "}",
               "ldv_super_block = %super_block%;",
               "return dentry;"
@@ -409,7 +409,7 @@
         "actions": {
           "main": {
             "comment": "Going to initialize super block.",
-            "process": "[mount].(<mount_success>.[super_operations_register].[super_operations_deregister].[kill_sb] | <mount_fail>).({main} | (deregister))"
+            "process": "[mount].(<mount_success>.[super_operations_register].[super_operations_deregister].[kill_sb].<free> | <mount_fail>).({main} | (deregister))"
           },
           "register": {
             "parameters": [
@@ -458,6 +458,13 @@
             "comment": "Failed to mount a new filesystem.",
             "condition": [
               "ldv_is_err(%ret%)"
+            ]
+          },
+          "free": {
+            "comment": "Free resources allocated in model after the successful mount",
+            "statements": [
+              "ldv_free(%super_block%->s_root);",
+              "ldv_free(%super_block%);"
             ]
           }
         }
