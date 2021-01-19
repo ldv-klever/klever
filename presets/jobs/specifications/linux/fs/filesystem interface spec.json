@@ -89,6 +89,11 @@
         "declaration": "struct dentry *mount_bdev(*%filesystem.file_system_type%, int flags, const char *dev_name, void *data, int (*fill_super)(struct super_block *, void *, int))",
         "header": "linux/fs.h",
         "reference": true
+      },
+      "mount_mtd": {
+        "declaration": "struct dentry *mount_mtd(*%filesystem.file_system_type%, int flags, const char *dev_name, void *data, int (*fill_super)(struct super_block *, void *, int))",
+        "header": "linux/fs.h",
+        "reference": true
       }
     },
     "categories": {

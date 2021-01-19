@@ -255,8 +255,11 @@
   },
   "3.14": {
     "functions models": {
-      "mount_bdev": {
+      "mount_bdev, mount_mtd": {
         "comment": "Call fill_super implementation.",
+        "headers": [
+          "linux/mtd/mtd.h"
+        ],
         "reference": true,
         "declarations": {
           "environment model": {
@@ -285,20 +288,18 @@
             "comment": "Alloc memory for super block and fill it.",
             "trace relevant": true,
             "statements": [
-              "struct dentry *dentry;",
               "int ret;",
-              "dentry = ldv_xzalloc(sizeof(struct dentry));",
               "%super_block% = ldv_xzalloc(sizeof(struct super_block));",
               "%super_block%->s_type = %file_system_type%;",
-              "%super_block%->s_root = dentry;",
+              "%super_block%->s_mtd = ldv_xzalloc(sizeof(struct mtd_info));",
               "ret = $ARG5(%super_block%, $ARG4, 1);",
               "if (ret != 0) {",
-              "    ldv_free(dentry);",
+              "    ldv_free(%super_block%->s_mtd);",
               "    ldv_free(%super_block%);",
-              "    return ldv_ptr_err(ret);",
+              "    return ldv_err_ptr(ret);",
               "}",
               "ldv_super_block = %super_block%;",
-              "return dentry;"
+              "return %super_block%->s_root;"
             ]
           }
         }
@@ -396,8 +397,7 @@
             ]
           },
           "ret": {
-            "declaration": "struct dentry *a",
-            "value": "ldv_undef_ptr()"
+            "declaration": "struct dentry *a"
           }
         },
         "process": "(!register).{main}",
@@ -409,7 +409,7 @@
         "actions": {
           "main": {
             "comment": "Going to initialize super block.",
-            "process": "[mount].(<mount_success>.[super_operations_register].[super_operations_deregister].[kill_sb].<free> | <mount_fail>).({main} | (deregister))"
+            "process": "[mount].(<mount_success>.[super_operations_register].[super_operations_deregister].[kill_sb] | <mount_fail>).({main} | (deregister))"
           },
           "register": {
             "parameters": [
@@ -458,13 +458,6 @@
             "comment": "Failed to mount a new filesystem.",
             "condition": [
               "ldv_is_err(%ret%)"
-            ]
-          },
-          "free": {
-            "comment": "Free resources allocated in model after the successful mount",
-            "statements": [
-              "ldv_free(%super_block%->s_root);",
-              "ldv_free(%super_block%);"
             ]
           }
         }
