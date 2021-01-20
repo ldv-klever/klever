@@ -27,8 +27,8 @@ from klever.deploys.utils import check_deployment_configuration_file, get_logger
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('action', choices=['install', 'update', 'uninstall'], help='Action to be executed.')
-    parser.add_argument('mode', choices=['development', 'production', 'testing'],
-                        help='Mode for which action to be executed.')
+    parser.add_argument('mode', choices=['development', 'production', 'testing'], nargs='?', default='production',
+                        help='Mode for which action to be executed (default: "%(default)s").')
     parser.add_argument('--non-interactive', default=False, action='store_true',
                         help='Install/update packages non-interactively (default: "%(default)s"). ' +
                              'This option has no effect for mode "testing".')
