@@ -46,7 +46,7 @@
         "actions": {
           "main": {
             "comment": "Going to initialize super block.",
-            "process": "([alloc_inode].[evict_inode].[destroy_inode] | [statfs]).[put_super].(super_operations_deregister)"
+            "process": "([alloc_inode].(<alloc_success>.[evict_inode].[destroy_inode] | <alloc_fail>) | [statfs]).[put_super].(super_operations_deregister)"
           },
           "get_superblock": {
             "comment": "Use the already initialized super block.",
@@ -77,6 +77,20 @@
               "%super_block%"
             ],
             "callback return value": "%inode%"
+          },
+          "alloc_success": {
+            "comment": "Successfully allocated an inode.",
+            "condition": [
+              "%inode% != 0"
+            ],
+            "trace relevant": true,
+            "statements": []
+          },
+          "alloc_fail": {
+            "comment": "Failed to allocate a new inode.",
+            "condition": [
+              "%inode% == 0"
+            ]
           },
           "evict_inode": {
             "comment": "There is no links to the inode and we can prepare the inode for deleting.",
