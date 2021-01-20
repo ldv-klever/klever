@@ -8,7 +8,11 @@
             "declaration": "struct super_operations ops",
             "header": "linux/fs.h",
             "fields": {
-              "put_super": "%super_operations.put_super%"
+              "put_super": "%super_operations.put_super%",
+              "alloc_inode": "%super_operations.alloc_inode%",
+              "destroy_inode": "%super_operations.destroy_inode%",
+              "statfs": "%super_operations.statfs%",
+              "evict_inode": "%super_operations.evict_inode%"
             }
           }
         },
@@ -16,11 +20,35 @@
           "super_block": {
             "declaration": "struct super_block *ops",
             "header": "linux/fs.h"
+          },
+          "inode": {
+            "declaration": "struct inode *inode",
+            "header": "linux/fs.h"
+          },
+          "dentry": {
+            "declaration": "struct dentry *dentry",
+            "header": "linux/fs.h"
+          },
+          "kstatfs": {
+            "declaration": "struct kstatfs *kstatfs",
+            "header": "linux/statfs.h"
           }
         },
         "callbacks": {
           "put_super": {
-            "declaration": "void (*put_super) (*%super_operations.super_block%)"
+            "declaration": "void (*put_super) (%super_operations.super_block%)"
+          },
+          "alloc_inode": {
+            "declaration": "%super_operations.inode% (*alloc_inode)(%super_operations.super_block%)"
+          },
+          "destroy_inode": {
+            "declaration": "void (*destroy_inode)(%super_operations.inode%)"
+          },
+          "statfs": {
+            "declaration": "int (*statfs) (%super_operations.dentry%, %super_operations.kstatfs%)"
+          },
+          "evict_inode": {
+            "declaration": "void (*evict_inode) (%super_operations.inode%)"
           }
         },
         "reference": true

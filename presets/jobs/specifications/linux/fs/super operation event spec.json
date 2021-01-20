@@ -20,6 +20,21 @@
             "interface": [
               "super_operations.super_block"
             ]
+          },
+          "inode": {
+            "interface": [
+              "super_operations.inode"
+            ]
+          },
+          "dentry": {
+            "interface": [
+              "super_operations.dentry"
+            ]
+          },
+          "kstatfs": {
+            "interface": [
+              "super_operations.kstatfs"
+            ]
           }
         },
         "process": "(!super_operations_register).<get_superblock>.{main}",
@@ -31,7 +46,7 @@
         "actions": {
           "main": {
             "comment": "Going to initialize super block.",
-            "process": "[put_super].(super_operations_deregister)"
+            "process": "([alloc_inode].[evict_inode].[destroy_inode] | [statfs]).[put_super].(super_operations_deregister)"
           },
           "get_superblock": {
             "comment": "Use the already initialized super block.",
@@ -53,6 +68,44 @@
             "callback": "%super_ops.put_super%",
             "parameters": [
               "%super_block%"
+            ]
+          },
+          "alloc_inode": {
+            "comment": "Allocate a new inode and all relevant auxiliary structures.",
+            "callback": "%super_ops.alloc_inode%",
+            "parameters": [
+              "%super_block%"
+            ],
+            "callback return value": "%inode%"
+          },
+          "evict_inode": {
+            "comment": "There is no links to the inode and we can prepare the inode for deleting.",
+            "callback": "%super_ops.evict_inode%",
+            "parameters": [
+              "%inode%"
+            ]
+          },
+          "destroy_inode": {
+            "comment": "Delete the inode and relevant auxiliary structures.",
+            "callback": "%super_ops.destroy_inode%",
+            "parameters": [
+              "%inode%"
+            ]
+          },
+          "statfs": {
+            "comment": "Get filesystem statistics.",
+            "callback": "%super_ops.statfs%",
+            "parameters": [
+              "%dentry%", "%kstatfs%"
+            ],
+            "pre-call": [
+              "%dentry% = ldv_xzalloc(sizeof(struct dentry));",
+              "%kstatfs% = ldv_xzalloc(sizeof(struct kstatfs));",
+              "%dentry%->d_sb = %super_block%;"
+            ],
+            "post-call": [
+              "ldv_free(%dentry%);",
+              "ldv_free(%kstatfs%);"
             ]
           }
         }
