@@ -20,7 +20,7 @@ import errno
 import os
 import sys
 
-from klever.deploys.local.local import KleverDevelopment, KleverProduction, KleverTesting
+from klever.deploys.local.local import Klever, KleverDevelopment, KleverProduction, KleverTesting
 from klever.deploys.utils import check_deployment_configuration_file, get_logger, get_cgroup_version
 
 
@@ -61,6 +61,9 @@ def main():
         logger.error('To revert the systemd configuration to use cgroup v1 run the following command and reboot:')
         logger.error('\tsudo grubby --update-kernel=ALL --args="systemd.unified_cgroup_hierarchy=0"')
         sys.exit(-1)
+
+    # Returns either mode of previous deployment or unchanged value of args.mode
+    args.mode = Klever(args, logger).get_deployment_mode()
 
     logger.info('Start execution of action "{0}" for Klever "{1}"'.format(args.action, args.mode))
 

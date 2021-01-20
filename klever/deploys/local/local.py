@@ -48,7 +48,10 @@ class Klever:
             with open(self.prev_deploy_info_file) as fp:
                 self.prev_deploy_info = json.load(fp)
         else:
-            self.prev_deploy_info = {}
+            self.prev_deploy_info = {"mode": self.args.mode}
+
+    def get_deployment_mode(self):
+        return self.prev_deploy_info.get("mode", self.args.mode)
 
     def __getattr__(self, name):
         self.logger.error('Action "{0}" is not supported for Klever "{1}"'.format(name, self.args.mode))
@@ -283,7 +286,7 @@ class Klever:
         self._dump_cur_deploy_info(self.prev_deploy_info)
 
     def _pre_install(self):
-        if self.prev_deploy_info:
+        if os.path.exists(self.prev_deploy_info_file):
             self.logger.error(
                 'There is information on previous deployment (perhaps you try to install Klever second time)')
             sys.exit(errno.EINVAL)
@@ -339,8 +342,8 @@ class Klever:
                              self.prev_deploy_info['Klever Addons']['JRE']['executable path'], 'java')))
 
     def _pre_update(self):
-        if not self.prev_deploy_info:
-            self.logger.error('There is not information on previous deployment ({0})'
+        if not os.path.exists(self.prev_deploy_info_file):
+            self.logger.error('There is no information on previous deployment ({0})'
                               .format('perhaps you try to update Klever without previous installation'))
             sys.exit(errno.EINVAL)
 
