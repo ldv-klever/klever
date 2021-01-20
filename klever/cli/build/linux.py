@@ -194,9 +194,12 @@ class Linux(MakeProgram):
                         fp.write('obj-m += $(patsubst %, %/, $(notdir $(patsubst %/, %, {0})))\n'
                                  .format('$(filter %/, $(wildcard $(src)/*/))'))
                         fp.write('obj-m += $(notdir $(patsubst %.c, %.o, $(wildcard $(src)/*.c)))\n')
-                        # Specify additional directory to search for model headers.
-                        fp.write('ccflags-y += -I' + os.path.realpath(
-                            self.target_program_desc['external modules header files search directory']))
+                        fp.write('ccflags-y += '
+                                 # Specify additional directory to search for model headers.
+                                 '-I' + os.path.realpath(
+                                        self.target_program_desc['external modules header files search directory']) +
+                                 # Like in klever.core.vtg.weaver.Weaver.weave.
+                                 ' -DLDV_{0}'.format(self.architecture.upper().replace('-', '_')))
             elif ismakefile:
                 work_src_tree_root = dirpath
                 break
