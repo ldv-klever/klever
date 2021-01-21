@@ -16,6 +16,7 @@
 #
 
 import io
+import json
 import os
 import re
 from collections import OrderedDict
@@ -165,7 +166,8 @@ def copy_files_with_replace(request, decision_id, files_qs):
 
     # Upload provided files first
     if request.data.get('files'):
-        for fname, fkey in request.data['files'].items():
+        files_map = json.loads(request.data['files'])
+        for fname, fkey in files_map.items():
             if fkey in request.FILES:
                 files_to_replace[fname] = request.FILES[fkey]
                 new_file = file_get_or_create(files_to_replace[fname], fname, JobFile)
