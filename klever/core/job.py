@@ -23,6 +23,7 @@ import os
 import shutil
 import tarfile
 import time
+import traceback
 import zipfile
 
 from clade import Clade
@@ -597,13 +598,17 @@ class Job(klever.core.components.Component):
         # Try to find specified build base either in normal way or additionally in directory "build bases" that is
         # convenient to use when working with many build bases.
         try:
-            build_base = klever.core.utils.find_file_or_dir(self.logger, os.path.curdir,
+            build_base = klever.core.utils.find_file_or_dir(self.logger,
+                                                            self.common_components_conf['main working directory'],
                                                             self.common_components_conf['build base'])
-        except FileNotFoundError:
+        except FileNotFoundError as e:
+            self.logger.warning('Failed to find build base:\n{}'.format(traceback.format_exc().rstrip()))
             try:
                 build_base = klever.core.utils.find_file_or_dir(
-                    self.logger, os.path.curdir, os.path.join('build bases', self.common_components_conf['build base']))
-            except FileNotFoundError:
+                    self.logger, self.common_components_conf['main working directory'],
+                    os.path.join('build bases', self.common_components_conf['build base']))
+            except FileNotFoundError as e:
+                self.logger.warning('Failed to find build base:\n{}'.format(traceback.format_exc().rstrip()))
                 raise FileNotFoundError(
                     'Specified build base "{0}" does not exist, {1}'.format(self.common_components_conf['build base'],
                                                                             common_advice)) from None
