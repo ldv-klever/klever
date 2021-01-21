@@ -160,19 +160,22 @@ def get_roles_form_data(job=None):
 
 
 def copy_files_with_replace(request, decision_id, files_qs):
+    new_job_files = []
     files_to_replace = {}
+
+    # Upload provided files first
     if request.data.get('files'):
         for fname, fkey in request.data['files'].items():
             if fkey in request.FILES:
                 files_to_replace[fname] = request.FILES[fkey]
+                new_file = file_get_or_create(files_to_replace[fname], fname, JobFile)
+                new_job_files.append(FileSystem(decision_id=decision_id, file_id=new_file.id, name=fname))
 
-    new_job_files = []
+    # Copy other files
     for f_id, f_name in files_qs:
-        fs_kwargs = {'decision_id': decision_id, 'file_id': f_id, 'name': f_name}
         if f_name in files_to_replace:
-            new_file = file_get_or_create(files_to_replace[f_name], f_name, JobFile)
-            fs_kwargs['file_id'] = new_file.id
-        new_job_files.append(FileSystem(**fs_kwargs))
+            continue
+        new_job_files.append(FileSystem(decision_id=decision_id, file_id=f_id, name=f_name))
     FileSystem.objects.bulk_create(new_job_files)
 
 
