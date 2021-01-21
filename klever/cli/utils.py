@@ -61,7 +61,7 @@ class RequestFilesProcessor:
         return list(self._files.items())
 
     def get_map(self):
-        return self._files_map
+        return json.dumps(self._files_map)
 
 
 class Session:
