@@ -166,8 +166,6 @@ class CollectionDecoder:
             for name_list, process_desc in raw["functions models"].items():
                 names = name_list.split(", ")
                 for name in names:
-                    self.logger.debug("Import process which models {!r}".format(name))
-
                     # Set some default values
                     category = "functions models"
                     try:
@@ -179,8 +177,6 @@ class CollectionDecoder:
         if "environment processes" in raw:
             self.logger.info("Import processes from 'environment processes'")
             for name, process_desc in raw["environment processes"].items():
-                self.logger.debug("Import environment process {!r}".format(name))
-
                 # This simplifies parsing of event specifications for Linux but actually this can be avoided by adding
                 # categories to corresponding specifications.
                 if '/' in name:
@@ -212,6 +208,9 @@ class CollectionDecoder:
         if raise_exc:
             raise RuntimeError("Some specifications cannot be parsed, inspect log to find problems with: {}".
                                format(', '.join(raise_exc)))
+
+        self.logger.debug(f'Imported function models: {", ".join(collection.models.keys())}')
+        self.logger.debug(f'Imported environment processes: {", ".join(collection.environment.keys())}')
 
         return collection
 
