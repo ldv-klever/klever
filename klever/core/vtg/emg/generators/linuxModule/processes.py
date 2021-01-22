@@ -178,14 +178,6 @@ def __choose_processes(logger, conf, interfaces, category, chosen, collection):
 
     for process in (collection.environment[name] for name in estimations):
         label_map = estimations[str(process)]
-        logger.info("Matching process {!r} for category {!r}, it has:".format(process.name, category))
-        logger.info("Matching labels: {!r}".format(str(label_map["matched labels"])))
-        logger.info("Unmatched labels: {!r}".format(str(label_map["unmatched labels"])))
-        logger.info("Matched callbacks: {!r}".format(str(label_map["matched callbacks"])))
-        logger.info("Unmatched callbacks: {!r}".format(str(label_map["unmatched callbacks"])))
-        logger.info("Matched calls: {!r}".format(str(label_map["matched calls"])))
-        logger.info("Native interfaces: {!r}".format(str(label_map["native interfaces"])))
-
         do = False
         if label_map["native interfaces"] > best_map["native interfaces"]:
             do = True
@@ -205,8 +197,6 @@ def __choose_processes(logger, conf, interfaces, category, chosen, collection):
         if do:
             best_map = label_map
             best_process = process
-            logger.debug("Set process {!r} for category {!r} as the best one at the moment".
-                         format(process.name, category))
 
     if not best_process:
         raise RuntimeError("Cannot find suitable process in event categories specification for category {!r}"
@@ -216,6 +206,15 @@ def __choose_processes(logger, conf, interfaces, category, chosen, collection):
         new.category = category
         logger.debug("Finally choose process {!r} for category {!r} as the best one".
                      format(best_process.name, category))
+        for tag in best_map:
+            if isinstance(best_map[tag], list) and best_map[tag]:
+                value = ', '.join(best_map[tag])
+            elif isinstance(best_map[tag], list):
+                value = None
+            else:
+                value = str(best_map[tag])
+            if value is not None:
+                logger.debug(f"{tag.capitalize()}: {value}")
         return new
 
 
@@ -259,7 +258,6 @@ def __establish_signal_peers(logger, conf, interfaces, process, chosen, collecti
 
 
 def __match_labels(logger, interfaces, process, category):
-    logger.info("Try match process {!r} with interfaces of category {!r}".format(process.name, category))
     label_map = {
         "matched labels": {},
         "unmatched labels": [],
@@ -278,13 +276,11 @@ def __match_labels(logger, interfaces, process, category):
 
         if (intf in interfaces.interfaces or interfaces.is_removed_intf(intf)) and intf_category == category:
             ni.add(intf)
-            __add_label_match(logger, interfaces, label_map, label, interfaces.get_or_restore_intf(intf))
+            __add_label_match(label_map, label, interfaces.get_or_restore_intf(intf))
     label_map["native interfaces"] = len(ni)
 
     # Stop analysis if process tied with another category
     if len(nc) > 0 and len(ni) == 0:
-        logger.debug("Process {} is intended to be matched with a category from the list: {}".
-                     format(process.name, str(nc)))
         return None
 
     # todo: Code below is a bit greedy and it doesn't support arrays in access sequences
@@ -305,12 +301,12 @@ def __match_labels(logger, interfaces, process, category):
                     interface_obj = interfaces.get_intf(interface)
 
                     if interface_obj.category == category:
-                        __add_label_match(logger, interfaces, label_map, label, interface_obj)
+                        __add_label_match(label_map, label, interface_obj)
             elif not label.interfaces and not label.declaration and tail and label.container and \
                     label.name not in label_map["matched labels"]:
                 for cn in (c for c in interfaces.containers(category)
                            if __resolve_interface(logger, interfaces, c, tail)):
-                    __add_label_match(logger, interfaces, label_map, label, cn)
+                    __add_label_match(label_map, label, cn)
 
             # Try to match callback itself
             callbacks = []
@@ -343,7 +339,7 @@ def __match_labels(logger, interfaces, process, category):
                         for cn in interfaces.containers(category):
                             intfs = __resolve_interface(logger, interfaces, cn, p_tail)
                             if intfs:
-                                __add_label_match(logger, interfaces, label_map, p_label, cn)
+                                __add_label_match(label_map, p_label, cn)
                                 pre_matched_intfs.add(str(intfs[-1]))
 
                     labels_tails.append([p_label, p_tail])
@@ -356,7 +352,7 @@ def __match_labels(logger, interfaces, process, category):
                                      if not tail and label.name not in label_map['matched labels']]
                         if unmatched:
                             # todo: This is nasty to get the first one
-                            __add_label_match(logger, interfaces, label_map, unmatched[0], par_intf)
+                            __add_label_match(label_map, unmatched[0], par_intf)
                         else:
                             # Check that the interface is not already matched
                             matched_interfaces = {i for x in label_map['matched labels'].values() for i in x}
@@ -365,13 +361,13 @@ def __match_labels(logger, interfaces, process, category):
 
                             rsrs = [label[0] for label in labels_tails if label[0].resource]
                             if rsrs:
-                                __add_label_match(logger, interfaces, label_map, rsrs[0], par_intf)
+                                __add_label_match(label_map, rsrs[0], par_intf)
 
         unmatched_callbacks = [cl for cl in process.callbacks if cl.name not in label_map["matched labels"]]
         for cl in unmatched_callbacks:
             for intf in [intf for intf in interfaces.callbacks(category)
                          if not intf.called and str(intf) not in label_map['matched callbacks']]:
-                __add_label_match(logger, interfaces, label_map, cl, intf)
+                __add_label_match(label_map, cl, intf)
 
         # Discard unmatched labels
         label_map["unmatched labels"] = [str(label) for label in process.labels.values()
@@ -438,30 +434,24 @@ def __match_labels(logger, interfaces, process, category):
         containers = interfaces.containers(category)
         if "%{}%".format(label) not in acceses and containers:
             # Try to match with random container
-            __add_label_match(logger, interfaces, label_map, process.labels[label], containers[0])
+            __add_label_match(label_map, process.labels[label], containers[0])
             label_map["unmatched labels"].remove(label)
 
-    logger.info("Matched labels and interfaces:")
-    logger.info("Number of native interfaces: {}".format(label_map["native interfaces"]))
-    logger.info("Matched labels:")
-    for label in label_map["matched labels"]:
-        logger.info("{} --- {}".format(label, str(label_map["matched labels"][label])))
-    logger.info("Unmatched labels:")
-    for label in label_map["unmatched labels"]:
-        logger.info(label)
-    logger.info("Matched callbacks:")
-    for cl in label_map["matched callbacks"]:
-        logger.info(cl)
-    logger.info("Uncalled callbacks:")
-    for cl in label_map["uncalled callbacks"]:
-        logger.info(cl)
+    # todo: This is not useful at this moment
+    # logger.info("Matched labels and interfaces:")
+    # logger.info("The number of native interfaces: {}".format(label_map["native interfaces"]))
+    # logger.info("Matched labels: {}".format(', '.join("{}-{}".format(label, str(label_map["matched labels"][label]))
+    #                                                   for label in label_map["matched labels"])))
+    # for tag in ("unmatched labels", "matched callbacks", "uncalled callbacks"):
+    #     logger.info("{}: {}".format(tag.capitalize(), ', '.join(label_map[tag])))
 
     return label_map
 
 
-def __add_label_match(logger, interfaces, label_map, label, interface):
+def __add_label_match(label_map, label, interface):
     if label.name not in label_map["matched labels"]:
-        logger.debug("Match label {!r} with interface {!r}".format(label.name, str(interface)))
+        # todo: Comment this out until we do not debug interface matching
+        # logger.debug("Match label {!r} with interface {!r}".format(label.name, str(interface)))
         label_map["matched labels"][label.name] = {str(interface)}
     else:
         label_map["matched labels"][label.name].add(str(interface))
@@ -521,7 +511,6 @@ def __add_process(logger, conf, interfaces, process, chosen, category=None, mode
     new.instance_number += len(chosen.models) + len(chosen.environment) + 1
     logger.info("Finally add process {!r} to the model".format(process.name))
 
-    logger.debug("Set interfaces for given labels")
     if label_map:
         for label in label_map["matched labels"]:
             for interface in [interfaces.get_or_restore_intf(name) for name
@@ -547,16 +536,13 @@ def __add_process(logger, conf, interfaces, process, chosen, category=None, mode
         logger.debug("Match signals with signals of process {!r}".format(str(peer)))
         new.establish_peers(peer)
 
-    logger.info("Check is there exist any dispatches or receives after process addiction to tie".format(str(process)))
     __normalize_model(logger, chosen, interfaces)
     return new
 
 
 def __normalize_model(logger, chosen, interfaces):
     # Peer processes with models
-    logger.info("Try to establish connections between process dispatches and receivings")
     for process, model in ((p, m) for p in chosen.environment for m in chosen.models):
-        logger.debug("Analyze signals of processes {} and {}".format(str(model), str(process)))
         model.establish_peers(process)
 
     # Peer processes with each other
@@ -564,13 +550,10 @@ def __normalize_model(logger, chosen, interfaces):
     for index1, p1 in enumerate(processes):
         for index2 in range(index1 + 1, len(processes)):
             p2 = processes[index2]
-            logger.debug("Analyze signals of processes {} and {}".format(p1.name, p2.name))
             p1.establish_peers(p2)
 
     logger.info("Check which callbacks can be called in the intermediate environment model")
     for process in chosen.processes:
-        logger.debug("Check process callback calls at process {!r}".format(str(process)))
-
         for action in process.calls:
             # todo: refactoring #6565
             label, tail = process.extract_label_with_tail(action.callback)
@@ -588,7 +571,6 @@ def __normalize_model(logger, chosen, interfaces):
                             logger.warning("Cannot resolve callback {!r} in description of process {!r}".
                                            format(action.callback, str(process)))
                     elif isinstance(interface_obj, Callback):
-                        logger.debug("Callback {!r} can be called in the model".format(str(interface_obj)))
                         interface_obj.called = True
                         resolved = True
                 if not resolved:
@@ -653,12 +635,14 @@ def __resolve_accesses(logger, chosen, interfaces):
                                 new.interface = intfs[-1]
                                 if len(intfs) > 1:
                                     new.base_interface = intfs[0]
-                                    logger.debug(f'Match {str(new)} with base interface {str(new.base_interface)}')
-                                logger.debug(f'Match {str(new)} with {str(new.interface)}')
+                                # todo: This log is too verbose
+                                #     logger.debug(f'Match {str(new)} with base interface {str(new.base_interface)}')
+                                # logger.debug(f'Match {str(new)} with {str(new.interface)}')
                         else:
                             logger.warning(f'Cannot determine interface of tail {str(tail)} of access {str(new)}')
                     elif interfaces.get_intf(interface):
-                        logger.debug(f'Trying to match {str(new)} with interface {interface}')
+                        # todo: disable logging
+                        # logger.debug(f'Trying to match {str(new)} with interface {interface}')
                         new.interface = interfaces.get_intf(interface)
                         new.list_access = [label.name]
                     else:
@@ -726,7 +710,8 @@ def __resolve_interface(logger, interfaces, interface, tail_string):
         else:
             return None
 
-    logger.debug("Resolve string '{}' as '{}'".format(tail_string, ', '.join([str(m) for m in matched])))
+    # todo: comment out this until we will do not need to debug interface matching
+    # logger.debug("Resolve string '{}' as '{}'".format(tail_string, ', '.join(map(str, matched))))
     return matched
 
 
