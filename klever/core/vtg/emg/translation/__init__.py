@@ -24,6 +24,8 @@ from klever.core.vtg.emg.translation.code import CModel
 from klever.core.vtg.emg.translation.automaton import Automaton
 from klever.core.vtg.emg.translation.fsa_translator.label_fsa_translator import LabelTranslator
 from klever.core.vtg.emg.translation.fsa_translator.state_fsa_translator import StateTranslator
+from klever.core.vtg.emg.translation.fsa_translator.simplest_fsa_translator import SimplestTranslator
+
 
 
 def translate_intermediate_model(logger, conf, avt, source, collection):
@@ -152,7 +154,9 @@ def translate_intermediate_model(logger, conf, avt, source, collection):
 
     # Prepare code on each automaton
     logger.info("Translate finite state machines into C code")
-    if get_or_die(conf['translation options'], "nested automata"):
+    if conf['translation options'].get("simple control functions calls"):
+        SimplestTranslator(logger, conf['translation options'], source, cmodel, entry_fsa, model_fsa, main_fsa)
+    elif get_or_die(conf['translation options'], "nested automata"):
         LabelTranslator(logger, conf['translation options'], source, cmodel, entry_fsa, model_fsa, main_fsa)
     else:
         StateTranslator(logger, conf['translation options'], source, cmodel, entry_fsa, model_fsa, main_fsa)
