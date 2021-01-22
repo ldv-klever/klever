@@ -33,7 +33,7 @@
             "comment": "Allocate memory of common callback parameters.",
             "trace relevant": true,
             "statements": [
-              "%resource% = $ALLOC(%resource%);"
+              "$ALLOC(%resource%);"
             ]
           },
           "main": {
@@ -192,7 +192,7 @@
             "comment": "Alloc memory for common callback arguments.",
             "trace relevant": true,
             "statements": [
-              "%resource% = $ALLOC(%resource%);"
+              "$ALLOC(%resource%);"
             ]
           },
           "main": {
@@ -364,7 +364,7 @@
             "comment": "Allocate memory of common callback parameters.",
             "trace relevant": true,
             "statements": [
-              "%resource% = $ALLOC(%resource%);"
+              "$ALLOC(%resource%);"
             ]
           },
           "register": {

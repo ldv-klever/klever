@@ -6,7 +6,7 @@
           "alloc_device": {
             "comment": "Allocate memory and initialize new hid device.",
             "statements": [
-              "%resource% = $ALLOC(%resource%);",
+              "$ALLOC(%resource%);",
               "%choice% = ldv_random_int(0, $SIZE(%ids%));",
               "%hid_id% = & %hid_driver%->id_table[%choice%];"
             ]
@@ -123,7 +123,7 @@
           "alloc_device": {
             "comment": "Allocate memory and initialize new hid device.",
             "statements": [
-              "%resource% = $ALLOC(%resource%);",
+              "$ALLOC(%resource%);",
               "%choice% = ldv_random_int(0, $SIZE(%ids%));",
               "%hid_id% = & %hid_driver%->id_table[%choice%];"
             ]

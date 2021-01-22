@@ -111,7 +111,7 @@
             "comment": "Get disk from arguments.",
             "trace relevant": true,
             "statements": [
-              "%block% = $ALLOC(%block%);",
+              "$ALLOC(%block%);",
               "%disk% = $ARG1;",
               "%block%->bd_disk = %disk%;",
               "ldv_add_disk();"

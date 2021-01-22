@@ -113,13 +113,13 @@
               "%dentry%", "%kstatfs%"
             ],
             "pre-call": [
-              "%dentry% = ldv_xzalloc(sizeof(struct dentry));",
-              "%kstatfs% = ldv_xzalloc(sizeof(struct kstatfs));",
+              "$ZALLOC(%dentry%);",
+              "$ZALLOC(%kstatfs%);",
               "%dentry%->d_sb = %super_block%;"
             ],
             "post-call": [
-              "ldv_free(%dentry%);",
-              "ldv_free(%kstatfs%);"
+              "$FREE(%dentry%);",
+              "$FREE(%kstatfs%);"
             ]
           }
         }

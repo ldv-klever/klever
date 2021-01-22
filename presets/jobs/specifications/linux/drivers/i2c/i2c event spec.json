@@ -6,7 +6,7 @@
           "alloc_device": {
             "comment": "Allocate memory and initialize new i2c client.",
             "statements": [
-              "%i2c_client% = $ALLOC(%i2c_client%);",
+              "$ALLOC(%i2c_client%);",
               "%choice% = ldv_random_int(0, $SIZE(%ids%));",
               "%i2c_id% = & %i2c_driver%->id_table[%choice%];"
             ]
