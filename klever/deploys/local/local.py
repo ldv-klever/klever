@@ -35,7 +35,7 @@ from klever.deploys.install_deps import install_deps
 from klever.deploys.install_klever_bridge import install_klever_bridge_development, install_klever_bridge_production
 from klever.deploys.prepare_env import prepare_env
 from klever.deploys.utils import execute_cmd, need_verifiercloud_scheduler, start_services, stop_services, \
-    get_media_user, replace_media_user, make_canonical_path
+    get_media_user, replace_media_user, make_canonical_path, get_klever_version
 
 
 class Klever:
@@ -43,6 +43,7 @@ class Klever:
         self.args = args
         self.logger = logger
 
+        self.version_file = os.path.join(self.args.deployment_directory, 'version')
         self.prev_deploy_info_file = os.path.join(self.args.deployment_directory, 'klever.json')
         if os.path.exists(self.prev_deploy_info_file):
             with open(self.prev_deploy_info_file) as fp:
@@ -77,6 +78,9 @@ class Klever:
     def _dump_cur_deploy_info(self, cur_deploy_info):
         with open(self.prev_deploy_info_file, 'w') as fp:
             json.dump(cur_deploy_info, fp, sort_keys=True, indent=4)
+
+        with open(self.version_file, 'w') as fp:
+            fp.write(get_klever_version())
 
     def _pre_install_or_update(self):
         self._install_klever_addons(self.args.source_directory, self.args.deployment_directory)
