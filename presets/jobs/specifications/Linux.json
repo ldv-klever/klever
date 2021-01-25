@@ -85,6 +85,7 @@
             "common sets model": "counter",
             "model compiler input file": "scripts/mod/empty.c",
             "common models": [
+              "linux/fs/dcache/dcache.c",
               "linux/arch/asm/atomic.c",
               "linux/drivers/base/dd.c",
               "linux/drivers/base/devres.c",
