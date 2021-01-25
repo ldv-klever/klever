@@ -65,6 +65,7 @@
             ],
             "translation options": {
               "allocate external": false,
+              "simple control functions calls": true,
               "environment model file": "environment_model.c",
               "additional headers": [
                 "ldv/linux/common.h",
