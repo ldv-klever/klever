@@ -268,7 +268,7 @@ class GetETV:
                 decl_number += 1
 
         # If there low of them, then move everything outside the declarations scope and return it without header
-        if decl_number <= self.user.declarations_number:
+        if decl_number <= self.user.declarations_number and scope != 'global':
             for child in decl_body:
                 child['scope'] = scope
             return decl_body
