@@ -298,10 +298,13 @@
               "    $FREE(%super_block%->s_mtd);",
               "    $FREE(%super_block%->s_bdev);",
               "    $FREE(%super_block%);",
-              "    return ldv_err_ptr(ret);",
+              "    return 0;",
               "}",
-              "ldv_super_block = %super_block%;",
-              "return %super_block%->s_root;"
+              "else {",
+              "    ldv_super_block = %super_block%;",
+              "    %super_block%->s_root->d_sb = %super_block%;",
+              "    return %super_block%->s_root;",
+              "}"
             ]
           }
         }
@@ -451,7 +454,7 @@
           "mount_success": {
             "comment": "Filesystem is mounted successfully.",
             "condition": [
-              "!ldv_is_err(%ret%)"
+              "%ret% != 0"
             ],
             "trace relevant": true,
             "statements": []
@@ -459,7 +462,7 @@
           "mount_fail": {
             "comment": "Failed to mount a new filesystem.",
             "condition": [
-              "ldv_is_err(%ret%)"
+              "%ret% == 0"
             ]
           }
         }
