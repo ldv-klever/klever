@@ -12,7 +12,7 @@
     },
     "CIF-ARM64": {
       "version": "746d8be",
-      "path": "https://forge.ispras.ru/attachments/download/8321/aarch64_be-unknown-linux-gnu-cif-746d8be.tar.xz",
+      "path": "https://forge.ispras.ru/attachments/download/8324/aarch64_be-unknown-linux-gnu-cif-746d8be.tar.xz",
       "executable path": "bin"
     },
     "CIL": {
