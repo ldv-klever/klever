@@ -3,6 +3,11 @@
     "functions models": {
       "get_sb_nodev, get_sb_single, get_sb_ns": {
         "comment": "Call fill_super implementation.",
+        "declarations": {
+          "environment model": {
+            "ldv_super_block": "struct super_block *ldv_super_block;\n"
+          }
+        },
         "labels": {
           "file_system_type": {
             "container": true,
@@ -26,11 +31,13 @@
             "trace relevant": true,
             "statements": [
               "int ret;",
-              "%super_block% = ldv_xzalloc(sizeof(struct super_block));",
+              "$ZALLOC(%super_block%);",
               "%super_block%->s_type = %file_system_type%;",
               "ret = $ARG4(%super_block%, $ARG3, 1);",
               "if (ret != 0) ",
               "   ldv_free(%super_block%);",
+              "else",
+              "   ldv_super_block = %super_block%;",
               "return ret;"
             ]
           }
@@ -38,6 +45,11 @@
       },
       "get_sb_bdev": {
         "comment": "Call fill_super implementation.",
+        "declarations": {
+          "environment model": {
+            "ldv_super_block": "struct super_block *ldv_super_block;\n"
+          }
+        },
         "labels": {
           "file_system_type": {
             "container": true,
@@ -61,11 +73,13 @@
             "trace relevant": true,
             "statements": [
               "int ret;",
-              "%super_block% = ldv_xzalloc(sizeof(struct super_block));",
+              "$ZALLOC(%super_block%);",
               "%super_block%->s_type = %file_system_type%;",
               "ret = $ARG5(%super_block%, $ARG4, $ARG2 & MS_SILENT ? 1 : 0);",
               "if (ret != 0) ",
               "    ldv_free(%super_block%);",
+              "else",
+              "   ldv_super_block = %super_block%;",
               "return ret;"
             ]
           }
@@ -153,27 +167,17 @@
               "filesystem.file_system_type"
             ]
           },
-          "super_ops": {
-            "container": true,
-            "pointer": true,
-            "interface": [
-              "filesystem.super_operations"
-            ]
-          },
           "super_block": {
             "container": true,
             "interface": [
               "filesystem.super_block"
             ]
           },
-          "resource": {
-            "resource": true,
+          "mount": {
+            "callback": true,
             "interface": [
-              "filesystem.inode"
+              "filesystem.mount"
             ]
-          },
-          "callback": {
-            "callback": true
           },
           "ret": {
             "declaration": "int a",
@@ -181,14 +185,15 @@
           }
         },
         "process": "(!register).{main}",
+        "declarations": {
+          "environment model": {
+            "ldv_super_block": "struct super_block *ldv_super_block;\n"
+          }
+        },
         "actions": {
           "main": {
             "comment": "Going to initialize super block.",
-            "process": "[get_sb].(<get_sb_success>.{call} | <get_sb_fail>.{main}) | (deregister)"
-          },
-          "call": {
-            "comment": "Super block is created.",
-            "process": "[callback].{call} | [put_super].[kill_sb].{main}"
+            "process": "[mount].(<mount_success>.[kill_sb] | <mount_fail>).({main} | (deregister))"
           },
           "register": {
             "parameters": [
@@ -203,19 +208,6 @@
               "%file_system_type%"
             ]
           },
-          "callback": {
-            "callback": "%callback%",
-            "parameters": [
-              "%resource%"
-            ]
-          },
-          "put_super": {
-            "comment": "Put super block.",
-            "callback": "%super_ops.put_super%",
-            "parameters": [
-              "%super_block%"
-            ]
-          },
           "kill_sb": {
             "comment": "Release super block.",
             "callback": "%file_system_type.kill_sb%",
@@ -223,27 +215,23 @@
               "%super_block%"
             ]
           },
-          "get_sb": {
+          "mount": {
             "comment": "Mount a new filesystem.",
-            "callback": "%file_system_type.get_sb%",
+            "callback": "%mount%",
             "parameters": [],
             "callback return value": "%ret%",
             "post-call": [
               "%ret% = ldv_filter_err_code(%ret%);"
             ]
           },
-          "get_sb_success": {
+          "mount_success": {
             "comment": "Filesystem is mounted successfully.",
             "condition": [
               "%ret% == 0"
             ],
-            "trace relevant": true,
-            "statements": [
-              "%super_block% = container_of(%file_system_type%, struct super_block, s_type);",
-              "%super_ops% = %super_block%->s_op;"
-            ]
+            "trace relevant": true
           },
-          "get_sb_fail": {
+          "mount_fail": {
             "comment": "Failed to mount a new filesystem.",
             "condition": [
               "%ret% != 0"
@@ -395,6 +383,12 @@
               "filesystem.file_system_type"
             ]
           },
+          "mount": {
+            "callback": true,
+            "interface": [
+              "filesystem.mount"
+            ]
+          },
           "super_block": {
             "container": true,
             "interface": [
@@ -447,7 +441,7 @@
           },
           "mount": {
             "comment": "Mount a new filesystem.",
-            "callback": "%file_system_type.mount%",
+            "callback": "%mount%",
             "parameters": [],
             "callback return value": "%ret%"
           },
@@ -456,8 +450,7 @@
             "condition": [
               "%ret% != 0"
             ],
-            "trace relevant": true,
-            "statements": []
+            "trace relevant": true
           },
           "mount_fail": {
             "comment": "Failed to mount a new filesystem.",

@@ -33,41 +33,23 @@
             "declaration": "struct file_system_type ops",
             "header": "linux/fs.h",
             "fields": {
-              "get_sb": "%filesystem.get_sb%",
+              "get_sb": "%filesystem.mount%",
               "kill_sb": "%filesystem.kill_sb%"
-            }
-          },
-          "super_block": {
-            "declaration": "struct super_block ops",
-            "header": "linux/fs.h",
-            "fields": {
-              "s_op": "*%filesystem.super_operations%",
-              "s_type": "*%filesystem.file_system_type%"
-            }
-          },
-          "super_operations": {
-            "declaration": "struct super_operations ops",
-            "header": "linux/fs.h",
-            "fields": {
-              "put_super": "%filesystem.put_super%"
             }
           }
         },
         "resources": {
-          "inode": {
-            "declaration": "struct inode *i",
+          "super_block": {
+            "declaration": "struct super_block *ops",
             "header": "linux/fs.h"
           }
         },
         "callbacks": {
-          "get_sb": {
-            "declaration": "int (*get_sb) (*%filesystem.file_system_type%, int, const char *, void *, struct vfsmount *)"
+          "mount": {
+            "declaration": "int (*mount) (*%filesystem.file_system_type%, int, const char *, void *, struct vfsmount *)"
           },
           "kill_sb": {
             "declaration": "void (*kill_sb) (*%filesystem.super_block%)"
-          },
-          "put_super": {
-            "declaration": "void (*put_super) (*%filesystem.super_block%)"
           }
         }
       }

@@ -24,3 +24,8 @@ around: call(struct dentry *d_make_root(..))
 {
 	return ldv_d_make_root($arg1);
 }
+
+around: call(struct dentry *d_alloc_root(..))
+{
+	return ldv_d_make_root($arg1);
+}
