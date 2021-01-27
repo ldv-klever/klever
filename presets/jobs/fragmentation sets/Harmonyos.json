@@ -12,7 +12,6 @@
         "kernel/liteos_a/lib/libc/**",
         "kernel/liteos_a/bsd/**",
         "third_party/zlib/**",
-        "third_party/FatFs/**",
 
         "kernel/liteos_a/kernel/base/core/los_process.c"
       ]
