@@ -117,21 +117,21 @@
   "profiles": {
     "reachability": {
       "CPAchecker": {
-        "trunk:36447": {"inherit": "CPAchecker BAM reachability"}
+        "klever_fixes:36704": {"inherit": "CPAchecker BAM reachability"}
       },
       "UltimateAutomizer": {"v0.1.20": {"inherit": "Ultimate common"}}
     },
     "reachability with function pointers": {
-      "CPAchecker": {"trunk:36447": {"inherit": "CPAchecker BAM reachability FP"}}
+      "CPAchecker": {"klever_fixes:36704": {"inherit": "CPAchecker BAM reachability FP"}}
     },
     "reachability with bit precision": {
-      "CPAchecker": {"trunk:36447": {"inherit": "CPAchecker BAM reachability bit-precise"}}
+      "CPAchecker": {"klever_fixes:36704": {"inherit": "CPAchecker BAM reachability bit-precise"}}
     },
     "reachability with heap arrays": {
-      "CPAchecker": {"trunk:36447": {"inherit": "CPAchecker BAM reachability heap arrays"}}
+      "CPAchecker": {"klever_fixes:36704": {"inherit": "CPAchecker BAM reachability heap arrays"}}
     },
     "CPAchecker BAM BusyBox": {
-      "CPAchecker": {"trunk:36447": {"inherit": "CPAchecker BAM BusyBox"}}
+      "CPAchecker": {"klever_fixes:36704": {"inherit": "CPAchecker BAM BusyBox"}}
     },
     "race checking lightweight": {
       "CPAchecker": {"CPALockator:36189": {"inherit": "CPALockator lightweight"}}
@@ -143,7 +143,7 @@
       "CPAchecker": {"CPALockator:36189": {"inherit": "CPALockator rcu"}}
     },
     "memory checking": {
-      "CPAchecker": {"trunk:36447": {"inherit": "CPAchecker SMG memory checking"}}
+      "CPAchecker": {"klever_fixes:36704": {"inherit": "CPAchecker SMG memory checking"}}
     }
   }
 }
