@@ -62,6 +62,8 @@ class CollectionEncoder(json.JSONEncoder):
                 d['condition'] = action.condition
             if action.trace_relevant:
                 d['trace relevant'] = action.trace_relevant
+            if action.savepoint_statements:
+                d['savepoint statements'] = action.savepoint_statements
 
             if isinstance(action, Subprocess):
                 d['process'] = CollectionEncoder._serialize_fsa(action.action)
@@ -137,7 +139,8 @@ class CollectionDecoder:
         'peers': None,
         'pre-call': 'pre_call',
         'post-call': 'post_call',
-        'trace relevant': 'trace_relevant'
+        'trace relevant': 'trace_relevant',
+        'savepoint statements': 'savepoint_statements'
     }
     LABEL_CONSTRUCTOR = Label
     LABEL_ATTRIBUTES = {
