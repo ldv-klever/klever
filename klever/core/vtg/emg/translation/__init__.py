@@ -193,3 +193,4 @@ def translate_intermediate_model(logger, conf, avt, source, collection):
         {"C file": os.path.realpath(find_file_or_dir(logger,
                                                      get_or_die(conf, "main working directory"), f))}
         for f in extra_c_files])
+    return avt
