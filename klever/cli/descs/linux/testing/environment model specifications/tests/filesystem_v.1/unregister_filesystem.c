@@ -18,12 +18,25 @@
 #include <linux/module.h>
 #include <linux/fs.h>
 #include <ldv/linux/emg/test_model.h>
+#include <ldv/verifier/common.h>
 #include <ldv/verifier/nondet.h>
+
+
+static int ldv_fill_super(struct super_block *s, void *data, int silent)
+{
+	struct inode *inode = ldv_undef_ptr();
+	
+	s->s_root = d_alloc_root(inode);
+	if (!s->s_root) {
+		return -ENOMEM;
+	}
+	return 0;
+}
 
 static int ldv_get_sb(struct file_system_type *fs_type, int flags, const char *dev_name, void *data, struct vfsmount *mnt)
 {
 	ldv_invoke_callback();
-	return 0;
+	return get_sb_bdev(fs_type, flags, dev_name, data, ldv_fill_super, mnt);
 }
 
 static void ldv_kill_sb(struct super_block *sb)

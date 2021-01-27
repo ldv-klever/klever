@@ -58,6 +58,10 @@ common_target_program_descs = {
             'linux/spi/spi.h',
             'linux/fb.h',
             'linux/firmware.h',
+            'linux/dcache.h',
+            "linux/statfs.h",
+            "linux/mount.h",
+            "linux/mtd/mtd.h",
             'media/v4l2-common.h',
             'media/v4l2-device.h'
         ]

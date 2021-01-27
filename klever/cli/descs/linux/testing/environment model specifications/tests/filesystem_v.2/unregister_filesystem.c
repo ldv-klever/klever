@@ -21,15 +21,22 @@
 #include <ldv/verifier/common.h>
 #include <ldv/verifier/nondet.h>
 
+
+static int ldv_fill_super(struct super_block *s, void *data, int silent)
+{
+	struct inode *inode = ldv_undef_ptr();
+	
+	s->s_root = d_make_root(inode);
+	if (!s->s_root) {
+		return -ENOMEM;
+	}
+	return 0;
+}
+
 static struct dentry *ldv_mount(struct file_system_type *fs_type, int flags, const char *dev_name, void *data)
 {
-	struct dentry *dentry;
-
 	ldv_invoke_callback();
-	dentry = ldv_undef_ptr();
-	ldv_assume(!IS_ERR(dentry));
-
-	return dentry;
+	return mount_bdev(fs_type, flags, dev_name, data, ldv_fill_super);
 }
 
 static void ldv_kill_sb(struct super_block *sb)
