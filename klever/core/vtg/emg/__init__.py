@@ -60,13 +60,10 @@ class EMG(Plugin):
                self.vals['report id'], get_or_die(self.conf, "main working directory"))
         self.logger.info("An intermediate environment model has been prepared")
 
-        # Decompose the model into several simplified ones
-        models = decompose_intermediate_model(self.logger, self.conf, sa, collection)
-
         # Import additional aspect files
         abstract_task = self.abstract_task_desc
         self.abstract_task_desc = list()
-        for identifier, model in enumerate(models):
+        for identifier, model in enumerate(decompose_intermediate_model(self.logger, self.conf, sa, collection)):
             new_description = translate_intermediate_model(self.logger, self.conf, copy.deepcopy(abstract_task), sa,
                                                            model)
             new_description["environment model identifier"] = identifier
