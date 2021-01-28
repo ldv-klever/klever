@@ -10,10 +10,7 @@
       "reference": true,
       "exclude from all fragments": [
         "kernel/liteos_a/lib/libc/**",
-        "kernel/liteos_a/bsd/**",
-        "third_party/zlib/**",
-
-        "kernel/liteos_a/kernel/base/core/los_process.c"
+        "third_party/zlib/**"
       ]
     }
   }
