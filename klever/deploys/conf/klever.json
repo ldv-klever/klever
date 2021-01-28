@@ -53,12 +53,6 @@
   "Klever Build Bases": {
     "linux/loadable kernel modules sample": {
       "path": "https://forge.ispras.ru/attachments/download/8076/build-base-linux-3.14.79-x86_64-sample.tar.xz"
-    },
-    "linux/android loadable kernel modules": {
-      "path": "https://forge.ispras.ru/attachments/download/8222/build-base-android-kernel-4.19-stable-07-12-20-arm-allmodconfig.tar.xz"
-    },
-    "harmonyos": {
-      "path": "https://forge.ispras.ru/attachments/download/8164/harmonyos.tar.xz"
     }
   }
 }
