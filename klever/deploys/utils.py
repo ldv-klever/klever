@@ -153,6 +153,8 @@ def get_media_user(logger):
         media_user = 'www-data'
     elif 'apache' in user_names:
         media_user = 'apache'
+    elif 'nginx' in user_names:
+        media_user = 'nginx'
     else:
         logger.error('Your Linux distribution is not supported')
         sys.exit(errno.EINVAL)
