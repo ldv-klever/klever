@@ -1,13 +1,18 @@
 {
   "Klever Addons": {
     "CIF": {
-      "version": "7eb76b0",
-      "path": "https://forge.ispras.ru/attachments/download/8056/cif-7eb76b0.tar.xz",
+      "version": "746d8be",
+      "path": "https://forge.ispras.ru/attachments/download/8316/cif-746d8be.tar.xz",
       "executable path": "bin"
     },
     "CIF-ARM": {
-      "version": "79182af",
-      "path": "https://forge.ispras.ru/attachments/download/8074/arm-unknown-eabi-cif-79182af.tar.xz",
+      "version": "746d8be",
+      "path": "https://forge.ispras.ru/attachments/download/8317/arm-unknown-eabi-cif-746d8be.tar.xz",
+      "executable path": "bin"
+    },
+    "CIF-ARM64": {
+      "version": "746d8be",
+      "path": "https://forge.ispras.ru/attachments/download/8321/aarch64_be-unknown-linux-gnu-cif-746d8be.tar.xz",
       "executable path": "bin"
     },
     "CIF-ARM-LINUX-GNUEABI": {
@@ -16,8 +21,8 @@
       "executable path": "bin"
     },
     "CIL": {
-      "version": "0a60360",
-      "path": "https://forge.ispras.ru/attachments/download/8075/frama-c-cil-0a60360.tar.xz",
+      "version": "7fceefb",
+      "path": "https://forge.ispras.ru/attachments/download/8312/frama-c-cil-7fceefb.tar.xz",
       "executable path": "."
     },
     "Consul": {
@@ -33,8 +38,8 @@
     "Verification Backends": {
       "CPAchecker": {
         "name": "CPAchecker",
-        "version": "trunk:36447",
-        "path": "https://forge.ispras.ru/attachments/download/8254/CPAchecker-36447.tar.xz",
+        "version": "klever_fixes:36704",
+        "path": "https://forge.ispras.ru/attachments/download/8315/CPAchecker-36704.tar.xz",
         "executable path": "scripts"
       },
       "CPALockator": {
