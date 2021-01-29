@@ -57,7 +57,7 @@ DEFAULT_ARCH_OPTS = {
   },
   'ARM64': {
     'CIF': {
-      'cross compile prefix': 'aarch64-unknown-linux-gnu-'
+      'cross compile prefix': 'aarch64_be-unknown-linux-gnu-'
     },
     # As above.
     'CIL': {
