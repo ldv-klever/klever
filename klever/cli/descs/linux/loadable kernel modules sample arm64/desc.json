@@ -6,7 +6,6 @@
         "git repository version": "v3.14.79",
         "loadable kernel modules": [
             "drivers/ata/pata_arasan_cf.ko",
-            "drivers/idle/i7300_idle.ko",
             "drivers/uwb/hwa-rc.ko"
         ]
     }

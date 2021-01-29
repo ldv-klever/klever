@@ -4,13 +4,10 @@
   "architecture": "ARM",
   "targets": [
     "drivers/ata/pata_arasan_cf.ko",
-    "drivers/idle/i7300_idle.ko",
     "drivers/uwb/hwa-rc.ko"
   ],
   "requirement specifications": [
-    "arch:mm:ioremap",
     "drivers:clk1",
-    "kernel:locking:mutex",
     "memory safety"
   ]
 }
