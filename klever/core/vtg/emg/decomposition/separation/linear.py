@@ -17,5 +17,5 @@
 from klever.core.vtg.emg.decomposition.separation import SeparationStrategy
 
 
-class GranularStrategy(SeparationStrategy):
+class LinearStrategy(SeparationStrategy):
     pass

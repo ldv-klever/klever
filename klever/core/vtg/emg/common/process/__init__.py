@@ -461,6 +461,9 @@ class Actions(collections.UserDict):
         else:
             return self.data[item]
 
+    def __hash__(self):
+        return '_'.join(map(str, sorted(self.keys())))
+
     def __copy__(self):
         new = Actions()
 
@@ -565,6 +568,7 @@ class BaseAction:
 
     @property
     def my_operator(self):
+        """Returns the operator that joins this actiosn with the others in the process."""
         return self._my_operator
 
     @my_operator.setter
@@ -589,7 +593,7 @@ class Action(BaseAction):
         super(Action, self).__init__()
         self.condition = []
         self.trace_relevant = False
-        self.savepoint_statements = []
+        self.savepoint_initializations = []
         self.comment = ''
 
 
@@ -904,3 +908,16 @@ class ProcessCollection:
                     new_peers.append(peer)
 
             action.peers = new_peers
+
+
+class Savepoint:
+
+    def __init__(self, name, statements):
+        self.name = name
+        self.statements = statements
+
+    def __str__(self):
+        return str(self.name)
+
+    def __hash__(self):
+        return str(self)

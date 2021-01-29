@@ -19,7 +19,8 @@
 class SeparationStrategy:
 
     def __init__(self, logger, conf):
-        pass
+        self.logger = logger
+        self.conf = conf
 
     def split_into_scenarios(self, process):
         return []

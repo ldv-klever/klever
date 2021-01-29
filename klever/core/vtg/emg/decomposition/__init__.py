@@ -18,8 +18,8 @@
 from logging import Logger
 from klever.core.vtg.emg.common.c.source import Source
 from klever.core.vtg.emg.common.process import ProcessCollection
-from klever.core.vtg.emg.decomposition.separation.granular import GranularStrategy
-from klever.core.vtg.emg.decomposition.composition.linear import LinearStrategy
+from klever.core.vtg.emg.decomposition.separation import SeparationStrategy
+from klever.core.vtg.emg.decomposition.separation.linear import LinearStrategy
 from klever.core.vtg.emg.decomposition.modelfactory.isolated import IsolatedFactory
 
 
@@ -27,9 +27,11 @@ from klever.core.vtg.emg.decomposition.modelfactory.isolated import IsolatedFact
 #TODO: Add Annotations
 #TODO: Remove SA if it is not required
 def decompose_intermediate_model(logger: Logger, conf: dict, sa: Source, model: ProcessCollection):
+    # Restrict the access to other sections
+    conf = conf.get('decomposition', {})
+
     algorythm = Decomposition(logger, conf,
                               separator=_choose_separator(logger, conf),
-                              composer=_choose_composer(logger, conf),
                               modelfactory=_choose_factory(logger, conf))
     # todo: At this moment do not forward the result
     for new_model in algorythm.decompose(model):
@@ -38,13 +40,12 @@ def decompose_intermediate_model(logger: Logger, conf: dict, sa: Source, model: 
 
 
 def _choose_separator(logger, conf):
-    # todo: At the moment this is the only option
-    return GranularStrategy(logger, conf)
-
-
-def _choose_composer(logger, conf):
-    # todo: At the moment this is the only option
-    return LinearStrategy(logger, conf)
+    if conf.get('scenario separation') == 'linear':
+        logger.info('Split processes into lienar sequences of actions')
+        return LinearStrategy(logger, conf)
+    else:
+        logger.info('Do not split processes at separation stage of model decomposition')
+        return SeparationStrategy(logger, conf)
 
 
 def _choose_factory(logger, conf):
@@ -54,11 +55,10 @@ def _choose_factory(logger, conf):
 
 class Decomposition:
 
-    def __init__(self, logger, conf, separator, composer, modelfactory):
+    def __init__(self, logger, conf, separator, modelfactory):
         self.logger = logger
         self.conf = conf
         self.separator = separator
-        self.composer = composer
         self.modelfactory = modelfactory
 
     def decompose(self, model: ProcessCollection):
@@ -70,8 +70,7 @@ class Decomposition:
         processes_to_scenarios = dict()
         for process in processes:
             scenarios = self.separator.split_into_scenarios(process)
-            merged_scenarios = self.composer.merge_scenarios(process, scenarios)
-            processes_to_scenarios[process] = merged_scenarios
+            processes_to_scenarios[process] = scenarios
 
         for model in self.modelfactory.generate_models(processes_to_scenarios):
             yield model

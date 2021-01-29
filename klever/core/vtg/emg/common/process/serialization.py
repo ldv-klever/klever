@@ -21,7 +21,7 @@ import sortedcontainers
 from klever.core.vtg.emg.common.c.types import import_declaration
 from klever.core.vtg.emg.common.process.parser import parse_process
 from klever.core.vtg.emg.common.process import Receive, Dispatch, Subprocess, Block, Label, Process, Action, Choice, \
-    Concatenation, Parentheses, ProcessCollection
+    Concatenation, Parentheses, ProcessCollection, Savepoint
 
 
 class CollectionEncoder(json.JSONEncoder):
@@ -62,8 +62,8 @@ class CollectionEncoder(json.JSONEncoder):
                 d['condition'] = action.condition
             if action.trace_relevant:
                 d['trace relevant'] = action.trace_relevant
-            if action.savepoint_statements:
-                d['savepoint statements'] = action.savepoint_statements
+            if action.savepoints:
+                d['savepoints'] = {str(point): point.statements for point in action.savepoints}
 
             if isinstance(action, Subprocess):
                 d['process'] = CollectionEncoder._serialize_fsa(action.action)
@@ -139,8 +139,7 @@ class CollectionDecoder:
         'peers': None,
         'pre-call': 'pre_call',
         'post-call': 'post_call',
-        'trace relevant': 'trace_relevant',
-        'savepoint statements': 'savepoint_statements'
+        'trace relevant': 'trace_relevant'
     }
     LABEL_CONSTRUCTOR = Label
     LABEL_ATTRIBUTES = {
@@ -300,6 +299,11 @@ class CollectionDecoder:
             else:
                 attname = att
             setattr(act, attname, dic[att])
+
+        if 'savepoints' in dic:
+            for name in dic['savepoints']:
+                savepoint = Savepoint(name, dic['savepoints'][name])
+                act.savepoints.add(savepoint)
 
     def _import_label(self, name, dic):
         label = self.LABEL_CONSTRUCTOR(name)
