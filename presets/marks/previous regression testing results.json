@@ -24,49 +24,15 @@
         }
     },
     "573d4ea2-574b-4f7b-b86c-79182d9e1502": {
-        "current verdicts": {
-            "unknowns": {
-                "fd560131-1b49-42f2-aba3-f82ea3fa4431": 1
-            }
-        },
         "ideal verdicts": {
-            "safes": {
-                "4d2018c8-ce2f-4c6a-9cd8-1e9da951c73a": 1,
-                "31c04265-e2e7-46be-baaf-450bde2da161": 1,
-                "fe212d72-9365-4b48-9815-2deb7852c3cb": 1,
-                "98c1127e-efc1-455e-877a-fc642d830a73": 1,
-                "318338c3-6d40-4ee9-86c0-1b2b3c776e1f": 1,
-                "5b5ae8ba-20be-4921-bc44-bec1f2e0f9d1": 1,
-                "ce9ec66b-7b74-4d7e-b8f8-f8d8535f6441": 1,
-                "54f9d6f9-f595-4853-9715-19ff167542a3": 1
-            },
             "unsafes": {
-                "8d115800-be33-41a7-812c-fff8dde347d4": 1.0,
-                "1a6238b2-98c0-4265-8b96-81ff3668d1ee": 1.0,
                 "d9bcb5ed-b805-42f3-af5a-24ad4d75733f": 1.0
             }
         }
     },
     "019debae-9991-421c-bfd8-53e3c38b4b37": {
-        "current verdicts": {
-            "unknowns": {
-                "fd560131-1b49-42f2-aba3-f82ea3fa4431": 1
-            }
-        },
         "ideal verdicts": {
-            "safes": {
-                "4d2018c8-ce2f-4c6a-9cd8-1e9da951c73a": 1,
-                "31c04265-e2e7-46be-baaf-450bde2da161": 1,
-                "fe212d72-9365-4b48-9815-2deb7852c3cb": 1,
-                "98c1127e-efc1-455e-877a-fc642d830a73": 1,
-                "318338c3-6d40-4ee9-86c0-1b2b3c776e1f": 1,
-                "5b5ae8ba-20be-4921-bc44-bec1f2e0f9d1": 1,
-                "ce9ec66b-7b74-4d7e-b8f8-f8d8535f6441": 1,
-                "54f9d6f9-f595-4853-9715-19ff167542a3": 1
-            },
             "unsafes": {
-                "8d115800-be33-41a7-812c-fff8dde347d4": 1.0,
-                "1a6238b2-98c0-4265-8b96-81ff3668d1ee": 1.0,
                 "d9bcb5ed-b805-42f3-af5a-24ad4d75733f": 1.0
             }
         }
