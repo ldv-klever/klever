@@ -1,6 +1,6 @@
 {
   "project": "Linux",
-  "build base": "linux/loadable kernel modules sample",
+  "build base": "linux/loadable kernel modules sample arm",
   "architecture": "ARM",
   "targets": [
     "drivers/ata/pata_arasan_cf.ko",
