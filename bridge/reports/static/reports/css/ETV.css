@@ -178,3 +178,8 @@
 .ETV_NewAssumption {
     color: red;
 }
+
+.ETV_SourceTooLong {
+    color: #b14848;
+    font-style: italic;
+}

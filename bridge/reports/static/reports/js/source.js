@@ -104,35 +104,46 @@ SourceProcessor.prototype.refresh = function() {
         instance.get_source(parseInt($(this).data('line')), file_name);
     });
 
-    this.container.find('.SrcRefToDeclLink').popup({
-        popup: this.source_declarations,
-        onShow: function (activator) {
-            instance.init_references($(activator).data('declaration'), source_declarations_popup)
-        },
-        position: 'bottom left',
-        lastResort: 'bottom left',
-        hoverable: true,
-        inline: true,
-        delay: {
-            show: 100,
-            hide: 300
+    this.container.find('.SrcRefToDeclLink').hover(function () {
+        if (!$(this).hasClass('PopupActivated')) {
+            $(this).addClass('PopupActivated');
+            $(this).popup({
+                popup: instance.source_declarations,
+                onShow: function (activator) {
+                    instance.init_references($(activator).data('declaration'), source_declarations_popup)
+                },
+                position: 'bottom left',
+                lastResort: 'bottom left',
+                hoverable: true,
+                inline: true,
+                delay: {
+                    show: 100,
+                    hide: 300
+                }
+            }).popup('show');
         }
     });
 
-    this.container.find('.SrcRefFromLink').popup({
-        popup: this.source_references,
-        onShow: function (activator) {
-            instance.init_references($(activator).data('id'), source_references_div)
-        },
-        position: 'bottom left',
-        lastResort: 'bottom left',
-        hoverable: true,
-        inline: true,
-        delay: {
-            show: 100,
-            hide: 300
+    this.container.find('.SrcRefFromLink').hover(function () {
+        if (!$(this).hasClass('PopupActivated')) {
+            $(this).addClass('PopupActivated');
+            $(this).popup({
+                popup: instance.source_references,
+                onShow: function (activator) {
+                    instance.init_references($(activator).data('id'), source_references_div)
+                },
+                position: 'bottom left',
+                lastResort: 'bottom left',
+                hoverable: true,
+                inline: true,
+                delay: {
+                    show: 100,
+                    hide: 300
+                }
+            }).popup("show");
         }
     });
+
     this.container.find('.SrcCovDataLink').click(function () {
         let selected_src_line = $(this).parent();
 
@@ -205,6 +216,11 @@ SourceProcessor.prototype.get_source = function(line, filename, save_history=tru
         }
     }
     else {
+        $('#source_code_dimmer').addClass('active');
+        let empty_container = new Promise((c, _) => {
+            instance.container.empty();
+            c();
+        })
         $.ajax({
             url: instance.url,
             type: 'GET',
@@ -213,14 +229,17 @@ SourceProcessor.prototype.get_source = function(line, filename, save_history=tru
                 with_legend: !!instance.legend_container.length
             },
             success: function (resp) {
-                instance.container.html(resp);
                 instance.selected_line = null;
                 instance.title_container.text(filename);
                 instance.title_container.popup({content: filename});
-                if (!instance.container.find('#source_not_found').length) {
-                    instance.select_line(line);
-                    instance.refresh();
-                }
+                empty_container.then(function () {
+                    $('#source_code_dimmer').removeClass('active');
+                    instance.container.html(resp);
+                    if (!instance.container.find('#source_not_found').length) {
+                        instance.select_line(line);
+                        instance.refresh();
+                    }
+                });
             }
         });
     }
