@@ -83,11 +83,11 @@ def _test_indexes():
 @parse_assert
 def test_subprocess():
     return [
-        "(!instance_register).<alloc>.<init>.[probe].(ret_probe).(<probe_success>.((usb_reset).[pre].(ret_pre).[post]."
-        "(ret_post) | [suspend].(ret_suspend).[resume].(ret_resume) | <null>).[release].(ret_release)|<failed_probe>)."
-        "[callback].{call}|<positive_probe>.[release].<after_release>.{call}| <positive_probe>.[suspend].(ret_suspend)."
-        "(<suspended>.[resume].(ret_resume)|<not_suspended>).{call}|<negative_probe>.(<free>.(deregister)|[probe]."
-        "(ret_probe).{call})"
+        "(!instance_register).<alloc>.<init>.[probe1].(ret_probe1).(<probe_success>.((usb_reset).[pre].(ret_pre).[post]."
+        "(ret_post) | [suspend1].(ret_suspend1).[resume1].(ret_resume1) | <null>).[release1].(ret_release)|<failed_probe>)."
+        "[callback].{call}|<positive_probe1>.[release2].<after_release>.{call}| <positive_probe2>.[suspend2].(ret_suspend2)."
+        "(<suspended>.[resume2].(ret_resume2)|<not_suspended>).{call}|<negative_probe>.(<free>.(deregister)|[probe2]."
+        "(ret_probe2).{call})"
     ]
 
 
