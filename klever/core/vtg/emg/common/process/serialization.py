@@ -66,7 +66,10 @@ class CollectionEncoder(json.JSONEncoder):
                 d['savepoints'] = {str(point): point.statements for point in action.savepoints}
 
             if isinstance(action, Subprocess):
-                d['process'] = CollectionEncoder._serialize_fsa(action.action)
+                if action.action:
+                    d['process'] = CollectionEncoder._serialize_fsa(action.action)
+                else:
+                    d['process'] = ''
             elif isinstance(action, Dispatch) or isinstance(action, Receive):
                 d['parameters'] = action.parameters
 
