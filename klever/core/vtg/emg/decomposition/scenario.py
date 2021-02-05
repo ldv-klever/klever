@@ -17,7 +17,7 @@
 
 import copy
 
-from klever.core.vtg.emg.common.process import Actions, Subprocess, Concatenation, Choice, Parentheses
+from klever.core.vtg.emg.common.process import Actions, Subprocess, Concatenation, Choice, Parentheses, Operator
 
 
 class Scenario:
@@ -29,19 +29,18 @@ class Scenario:
 
     def set_initial_action(self, action):
         if not self.__initial_action:
-            new_copy = copy.copy(action)
-            self.actions[new_copy] = new_copy
+            new = self._add_action_copy(action)
+            self.__initial_action = new
         else:
             raise ValueError(f'An initial action {str(self.__initial_action)} is already set')
 
     def add_action_copy(self, action, operator):
-        assert operator in self.actions
+        assert operator in self.actions.values()
 
-        new_copy = copy.copy(action)
-        self.actions[new_copy] = new_copy
-        new_copy.my_operator = operator
+        new_copy = self._add_action_copy(action)
 
         if isinstance(operator, Parentheses):
+            assert not operator.action, 'Parent already has a child'
             operator.action = new_copy
         elif isinstance(operator, Choice):
             operator.add_action(new_copy)
@@ -49,6 +48,16 @@ class Scenario:
             operator.add_action(new_copy)
         else:
             raise RuntimeError(f'Unknown operator {type(action).__name__} at copying action {str(action)}')
+
+        return new_copy
+
+    def _add_action_copy(self, action):
+        new_copy = copy.deepcopy(action)
+        self.actions[str(new_copy)] = new_copy
+        new_copy.my_operator = None
+
+        if isinstance(new_copy, Operator):
+            new_copy.clean()
 
         return new_copy
 
@@ -124,7 +133,7 @@ class ScenarioExtractor:
         if hasattr(action, 'action'):
             self._fill_top_down(scenario, action.action, parent)
         elif hasattr(action, 'actions'):
-            for child in action.actions:
+            for child in action.actions.values():
                 self._fill_top_down(scenario, child, parent)
         else:
             raise ValueError(f'Operator {type(action).__name__} {str(action)} has not childen')
