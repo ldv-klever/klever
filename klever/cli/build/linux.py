@@ -50,8 +50,8 @@ class Linux(MakeProgram):
         if not self.version:
             self.version = self._make('kernelversion', get_output=True)[0]
 
-        if 'CROSS_COMPILE' in self._ARCH_OPTS[self.architecture]:
-            self._CLADE_CONF['Info.cif'] = self._ARCH_OPTS[self.architecture]['CROSS_COMPILE'] + 'cif'
+        # Always specify CIF to be used by Clade since this variable is global and it can be accidentally reused.
+        self._CLADE_CONF['Info.cif'] = self._ARCH_OPTS[self.architecture].get('CROSS_COMPILE', '') + 'cif'
 
     def _clean(self):
         self._make('mrproper')
