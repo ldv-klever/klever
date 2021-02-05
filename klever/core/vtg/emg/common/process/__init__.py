@@ -369,6 +369,9 @@ class Process:
                 index = operator.actions.index(old)
                 operator.remove_action(old)
                 operator.add_action(new, position=index)
+            elif isinstance(operator, Operator):
+                operator.remove_action(old)
+                operator.add_action(new)
             else:
                 raise RuntimeError('unsupported operator')
         else:
@@ -482,7 +485,7 @@ class Actions(collections.UserDict):
             elif isinstance(action, Concatenation):
                 action._actions = collections.deque()
             elif isinstance(action, Choice):
-                action._actions = sortedcontainers.SortedSet()
+                action._actions = collections.deque()
 
         # Set new references
         for action in self.data.values():
@@ -646,6 +649,7 @@ class Dispatch(Action):
         self.broadcast = broadcast
         self.trace_relevant = True
         self.parameters = []
+        # todo: Add a new class (Namedtuple) to implement peers
         self.peers = []
 
     def __repr__(self):
@@ -690,6 +694,55 @@ class Block(Action):
         return '<%s>' % str(self)
 
 
+class Operator(BaseAction):
+    # todo: Use it in more places
+    """
+    The class represents an abstract operator with actions.
+    """
+
+    def __init__(self, name):
+        super(Operator, self).__init__()
+        self._actions = collections.deque()
+
+    @property
+    def actions(self):
+        return set(self._actions)
+
+    @property
+    def filled(self):
+        return True if self._actions else False
+
+    def clean(self):
+        for action in self.actions:
+            self.remove_action(action)
+        self.actions = collections.deque()
+
+    @actions.setter
+    def actions(self, actions):
+        if self._actions and actions:
+            raise RuntimeError('First clean actions before setting new ones')
+        for item in list(self._actions):
+            self.remove_action(item)
+        if actions:
+            for item in actions:
+                self.add_action(item)
+        else:
+            self._actions = collections.deque()
+
+    def add_action(self, action):
+        if action in self._actions:
+            raise RuntimeError('An action already present')
+        action.my_operator = self
+        self._actions.append(action)
+
+    def remove_action(self, action):
+        if action in self._actions:
+            self._actions.remove(action)
+            action.my_operator = None
+        else:
+            raise ValueError('There is no such action')
+
+
 class Parentheses(BaseAction):
     """
     This class represent an open parenthese symbol to simplify serialization and import.
@@ -714,34 +767,11 @@ class Parentheses(BaseAction):
         else:
             raise RuntimeError('Explicitly clean first operator field')
 
-    def __repr__(self):
-        return '{%s}' % str(self.reference_name if self.reference_name else self.name)
 
-
-class Concatenation(BaseAction):
+class Concatenation(Operator):
     """
     The class represents a sequence of actions.
     """
-
-    def __init__(self, name):
-        super(Concatenation, self).__init__()
-        self._actions = collections.deque()
-
-    @property
-    def actions(self):
-        return list(self._actions)
-
-    @actions.setter
-    def actions(self, actions):
-        if self._actions and actions:
-            raise RuntimeError('First clean actions before setting new ones')
-        for item in list(self._actions):
-            self.remove_action(item)
-        if actions:
-            for item in actions:
-                self.add_action(item)
-        else:
-            self._actions = collections.deque()
 
     def add_action(self, action, position=None):
         if action in self._actions:
@@ -752,51 +782,9 @@ class Concatenation(BaseAction):
         else:
             self._actions.insert(position, action)
 
-    def remove_action(self, action):
-        if action in self._actions:
-            self._actions.remove(action)
-            action.my_operator = None
-        else:
-            raise ValueError('There is no such action')
 
-
-class Choice(BaseAction):
-    """
-    The class represents a choice between actions.
-    """
-
-    def __init__(self, name):
-        super(Choice, self).__init__()
-        self._actions = sortedcontainers.SortedSet()
-
-    @property
-    def actions(self):
-        return set(self._actions)
-
-    @actions.setter
-    def actions(self, actions):
-        if self._actions and actions:
-            raise RuntimeError('First clean actions before setting new ones')
-        for item in list(self._actions):
-            self.remove_action(item)
-        if actions:
-            for item in actions:
-                self.add_action(item)
-        else:
-            self._actions = collections.deque()
-
-    def add_action(self, action):
-        if action in self._actions:
-            raise RuntimeError('An action already present')
-        action.my_operator = self
-        self._actions.add(action)
-
-    def remove_action(self, action):
-        if action in self._actions:
-            self._actions.remove(action)
-            action.my_operator = None
-        else:
-            raise ValueError('There is no such action')
+class Choice(Operator):
+    pass
 
 
 class ProcessCollection:
