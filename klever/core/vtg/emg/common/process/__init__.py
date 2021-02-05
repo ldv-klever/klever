@@ -593,7 +593,7 @@ class Action(BaseAction):
         super(Action, self).__init__()
         self.condition = []
         self.trace_relevant = False
-        self.savepoint_initializations = []
+        self.savepoints = []
         self.comment = ''
 
 
