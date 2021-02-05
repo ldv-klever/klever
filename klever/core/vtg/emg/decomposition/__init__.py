@@ -63,8 +63,9 @@ class Decomposition:
 
     def decompose(self, model: ProcessCollection):
         processes = set()
+        # We do not add kernel models to reduce the number of resulted models and scenarios but in general it should
+        # be possible
         processes.add(model.entry)
-        processes.update(model.models)
         processes.update(model.environment)
 
         processes_to_scenarios = dict()
