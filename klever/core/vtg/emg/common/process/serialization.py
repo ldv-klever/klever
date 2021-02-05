@@ -114,7 +114,7 @@ class CollectionEncoder(json.JSONEncoder):
             elif isinstance(action, Parentheses):
                 return '(%s)' % _serialize_action(action.action)
             else:
-                raise NotImplementedError
+                raise NotImplementedError(f'There is not operator such as {type(action).__name__}')
 
         return _serialize_action(initial)
 
