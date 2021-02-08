@@ -16,12 +16,15 @@
 #
 
 import json
+import traceback
 import sortedcontainers
 
+from klever.core.vtg.emg.common.process.labels import Label
 from klever.core.vtg.emg.common.c.types import import_declaration
 from klever.core.vtg.emg.common.process.parser import parse_process
-from klever.core.vtg.emg.common.process import Receive, Dispatch, Subprocess, Block, Label, Process, Action, Choice, \
-    Concatenation, Parentheses, ProcessCollection, Savepoint
+from klever.core.vtg.emg.common.process import Process, ProcessCollection
+from klever.core.vtg.emg.common.process.actions import Receive, Dispatch, Subprocess, Block, Action, Choice, \
+    Concatenation, Parentheses, Savepoint
 
 
 class CollectionEncoder(json.JSONEncoder):
@@ -195,8 +198,8 @@ class CollectionDecoder:
                         raise ValueError("There is an already imported process {!r} in intermediate environment model".
                                          format(str(process)))
                     collection.environment[str(process)] = process
-                except Exception as err:
-                    self.logger.warning("Cannot parse {!r}: {}".format(name, str(err)))
+                except Exception:
+                    self.logger.warning("Cannot parse {!r}: {}".format(name, traceback.format_exc()))
                     raise_exc.append(name)
 
         if "main process" in raw and isinstance(raw["main process"], dict):
