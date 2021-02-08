@@ -15,12 +15,14 @@
 Development of Requirement Specifications
 =========================================
 
-To check specific requirements like rules of correct usage of a specific API it is necessary to develop requirement
-specifications.
-This part of user documentation describes how to do that.
+To check requirements with Klever it is necessary to develop *requirement specifications*.
+This part of the user documentation describes how to do that.
 It will help to fix both existing requirement specifications and to develop new ones.
+At the moment this section touches just rules of correct usage of a specific API while some things are the same for
+other requirements.
 
 .. TODO: the paragraph below is common for development of all specifications and configurations in Klever.
+.. TODO: perhaps population will be redundant if development Bridge will do it implicitly.
 
 If you are going to develop requirement specifications we recommend you to deploy Klever in the development mode.
 In this case you will get much more debug information that can help you to identify various issues.
@@ -35,7 +37,7 @@ To further reduce manual efforts using such the workflow, you can temporarily mo
 e.g. to specify requirement specifications and program fragments of interest within :file:`job.json`.
 Do not forget to not commit these temporarily changes to the repository!
 
-In ideal development of any specification of requirements should include the following steps:
+In ideal development of any requirements specification should include the following steps:
 
 #. Analysis and description of checked requirements.
 #. Development of the requirements specification itself.
@@ -77,7 +79,7 @@ Let's consider rules of correct usage of the module reference counter API in the
 For brevity we will not consider some parts of this API.
 
 Linux loadable kernel modules can be unloaded just when there is no more processes using them.
-To notify the Linux kernel that module is necessary one should call :c:data:`try_module_get()`.
+To notify the Linux kernel that module is necessary one should call :c:func:`try_module_get()`.
 
 .. c:function:: bool try_module_get(struct module *module)
 
@@ -86,7 +88,7 @@ To notify the Linux kernel that module is necessary one should call :c:data:`try
     :param module: The pointer to the target module. Often this the given module itself.
     :return: True in case when the module reference counter was increased successfully and False otherwise.
 
-To give the module back one should call :c:data:`module_put()`.
+To give the module back one should call :c:func:`module_put()`.
 
 .. c:function:: void module_put(struct module *module)
 
@@ -111,6 +113,9 @@ Development of each requirements specification includes the following steps:
 #. Developing an API model.
 #. Binding the model with original API elements.
 #. Description of the new requirements specification.
+
+We recommend to develop new requirement specifications on the basis of existing ones to avoid various tricky issues and
+to speed up the whole process considerably.
 
 Developing API Model
 ^^^^^^^^^^^^^^^^^^^^
@@ -184,6 +189,8 @@ It tracks that modules should decrement the reference counter to its initial val
 It is worth noting that model functions do not refer their parameter **module**, i.e. they consider all modules the
 same.
 This is an underapproximation and you can imagine both false alarms and missed bugs due to it.
+Nevertheless, often it does have sense to do such trics to avoid too complicated models for verification, e.g. accurate
+tracking of dynamically created objects of interest using lists.
 Another important thing is modelling of nondeterminism in **ldv_try_module_get()** by invoking **ldv_undef_int()**.
 Thanks to it a software model checker will cover paths when **try_module_get()** can successfully increment the module
 reference counter and when this is not the case.
@@ -224,8 +231,64 @@ functions **ldv_try_module_get()** and **ldv_module_put()**.
         ldv_module_put(module);
     }
 
-.. TODO: Description of New Requirements Specification
+Description of New Requirements Specification
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Bases of requirement specifications are located in JSON files corresponding to projects, e.g. :file:`Linux.json`, within
+directory :term:`$KLEVER_SRC`:file:`/presets/jobs/specifications`.
+Also, after population there is exactly the same directory :file:`specifications` in all new verification jobs.
+Each requirement specification can consist one or more C source files with API models.
+We suggest to place these files according to the hierarchy of files and directories with implementation of the
+corresponding API elements.
+For example, you can place the C source file from the example above into
+:term:`$KLEVER_SRC`:file:`/presets/jobs/specifications/linux/kernel/module.c` as the module reference counter API is
+implemented in :file:`kernel/module.c` in the Linux kernel.
+
+As a rule identifiers of requirement specifications are chosen according to relative paths of C source files with main
+API models.
+For example, for the considered example it is **linux:kernel:module**.
+Requirement specification bases represent these identifiers in the tree form.
+Additional files such as aspect files should be placed in the same way as C source files but using appropriate
+extensions, e.g. :term:`$KLEVER_SRC`:file:`/presets/jobs/specifications/linux/kernel/module.aspect`.
+You should not specify aspect files within the base since they are found automatically.
+
+Testing of Requirements Specification
+-------------------------------------
+
+We recommended to carry out different types of testing to check syntactic and semantic correctness of requirement
+specifications during their development and maintenance:
+
+#. Developing a set of rather simple test programs, e.g. external Linux loadable kernel modules, using the modelled API
+   incorrectly and correctly.
+   The verification tool should report Unsafes and Safes respectively unless you will develop such the test programs
+   that do not fit your models.
+#. Validating whether known violations of checked requirements can be found.
+   Ideally the verification tool should detect violations before their fixes and it should not report them after that.
+   In practice, the verification tool can find other bugs or report false alarms, e.g. due to inaccurate environment
+   models.
+#. Checking target programs against requirement specifications.
+   For example, you can check all loadable kernel modules of one or several versions or configurations of the Linux
+   kernel or consider some relevant subset of them, e.g. USB device drivers when developing appropriate requirement
+   specifications.
+   In ideal, a few false alarms should be caused by incorrectness or incompleteness of requirement specifications.
+
+For items 1 and 2 you should consider existing test cases and their descriptions in the following places:
+
+* :term:`$KLEVER_SRC`:file:`/klever/cli/descs/linux/testing/requirement specifications/tests/linux/kernel/module`
+* :term:`$KLEVER_SRC`:file:`/klever/cli/descs/linux/testing/requirement specifications/desc.json`
+* :term:`$KLEVER_SRC`:file:`/presets/jobs/linux/testing/requirement specifications`
+
+In addition, you should refer :ref:`test_build_bases_generation` to obtain build bases necessary for testing and
+validation.
+
+Requirement specifications can be incorrect and/or incomplete.
+In this case test results will not correspond to expected ones.
+It is necessary to fix and improve the requirements specification until you will have appropriate resources.
+Also, you should take into account that non-ideal results can be caused by other factors, for example:
+
+* Incorrectness and/or incompleteness of environment models.
+* Inaccurate algorithms of the verification tool.
+* Generic restrictions of approaches to development of requirement specifications, e.g. when using model counters rather
+  than accurate representations of objects, etc.
 
 .. TODO: Syntactic distinction of objects
-
-.. TODO: Testing of Requirements Specification
