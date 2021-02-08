@@ -142,11 +142,19 @@ class Session:
     def __parse_replacement(self, replacement):
         if os.path.exists(replacement):
             with open(replacement, mode='r', encoding='utf-8') as fp:
-                new_files = json.load(fp)
+                try:
+                    new_files = json.load(fp)
+                except Exception as e:
+                    logging.exception(e)
+                    raise ValueError("Wrong json file with replacement was provided: {}".format(replacement))
         else:
-            new_files = json.loads(replacement)
+            try:
+                new_files = json.loads(replacement)
+            except Exception as e:
+                logging.exception(e)
+                raise ValueError("Wrong json data with replacement was provided: {}".format(replacement))
         if not isinstance(new_files, dict):
-            raise ValueError('Dictionary expected')
+            raise ValueError('Json with replacement data should be a dictionary')
         return new_files
 
     def download_job(self, job_uuid, archive):
@@ -225,7 +233,13 @@ class Session:
 
             resp = self.__request('jobs/api/decide-uuid/{}/'.format(job_uuid), **request_kwargs)
 
-        resp_json = resp.json()
+        try:
+            resp_json = resp.json()
+        except Exception as e:
+            logging.exception(
+                "Can't parse json response of starting decision request (code {}): {}".format(resp.status_code, e)
+            )
+            raise BridgeError("Decision wasn't started")
         return resp_json['id'], resp_json['identifier']
 
     def download_all_marks(self, archive):
