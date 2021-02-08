@@ -16,7 +16,6 @@
 #
 
 import os
-import uuid
 
 from django.conf import settings
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation

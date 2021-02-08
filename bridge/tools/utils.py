@@ -40,7 +40,7 @@ from marks.models import (
 )
 from reports.models import (
     ReportComponent, ReportSafe, ReportUnsafe, ReportUnknown, ReportComponentLeaf,
-    CoverageArchive, OriginalSources, DecisionCache, ORIGINAL_SOURCES_DIR
+    CoverageArchive, OriginalSources, DecisionCache, SourceCodeCache, ORIGINAL_SOURCES_DIR
 )
 from marks.tasks import connect_safe_report, connect_unsafe_report, connect_unknown_report
 
@@ -411,6 +411,11 @@ class RemoveDuplicates:
         ids_to_delete = self.__collect_ids_to_remove(qs)
         UnsafeConvertionCache.objects.filter(id__in=ids_to_delete).delete()
 
+        # Clear converted traces cache
+        qs = self.__source_code_cache_qs()
+        ids_to_delete = self.__collect_ids_to_remove(qs)
+        SourceCodeCache.objects.filter(id__in=ids_to_delete).delete()
+
     def __collect_ids_to_remove(self, qs):
         ids_to_delete = set()
         for obj in qs:
@@ -423,4 +428,9 @@ class RemoveDuplicates:
     def __unsafe_converted_cache_qs(self):
         return UnsafeConvertionCache.objects.values('unsafe', 'converted__function')\
             .annotate(duplicates=Count('id'), ids_list=ArrayAgg('id'))\
-            .filter(duplicates__gt=1).values('duplicates', 'ids_list')
+            .filter(duplicates__gt=1).values('ids_list')
+
+    def __source_code_cache_qs(self):
+        return SourceCodeCache.objects.values('identifier')\
+            .annotate(duplicates=Count('id'), ids_list=ArrayAgg('id'))\
+            .filter(duplicates__gt=1).values('ids_list')
