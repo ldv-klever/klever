@@ -421,6 +421,6 @@ class RemoveDuplicates:
         return ids_to_delete
 
     def __unsafe_converted_cache_qs(self):
-        return UnsafeConvertionCache.objects.values('id', 'unsafe', 'converted__function')\
+        return UnsafeConvertionCache.objects.values('unsafe', 'converted__function')\
             .annotate(duplicates=Count('id'), ids_list=ArrayAgg('id'))\
             .filter(duplicates__gt=1).values('duplicates', 'ids_list')
