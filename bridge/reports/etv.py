@@ -268,7 +268,7 @@ class GetETV:
                 decl_number += 1
 
         # If there low of them, then move everything outside the declarations scope and return it without header
-        if decl_number <= self.user.declarations_number:
+        if decl_number <= self.user.declarations_number and scope != 'global':
             for child in decl_body:
                 child['scope'] = scope
             return decl_body
@@ -346,6 +346,7 @@ class GetETV:
 
 
 class ETVHtml:
+    max_source_length = 500
     tab_length = 4
     condition_class = 'SrcHlAssume'
     global_thread = 'global'
@@ -360,10 +361,14 @@ class ETVHtml:
         self._files = files
 
     def __parse_source(self, node):
-        src_line = SourceLine(
-            node['source'], highlights=node.get('highlight', []), filename='error trace', line=node['line']
-        )
-        source_html = src_line.html_code
+        if len(node['source']) > self.max_source_length:
+            source_html = '{}... (<span class="ETV_SourceTooLong">Source code is too long to visualize</span>)'\
+                .format(node['source'][:50])
+        else:
+            src_line = SourceLine(
+                node['source'], highlights=node.get('highlight', []), filename='error trace', line=node['line']
+            )
+            source_html = src_line.html_code
 
         # Wrap to assume() conditions
         if node.get('condition'):
