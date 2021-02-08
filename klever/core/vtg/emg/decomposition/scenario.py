@@ -61,14 +61,6 @@ class Scenario:
 
         return new_copy
 
-    def __hash__(self):
-        if self.savepoint:
-            prefix = str(self.savepoint)
-        else:
-            prefix = ''
-
-        return prefix + str(hash(self.actions))
-
 
 class ScenarioExtractor:
 

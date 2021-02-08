@@ -16,7 +16,11 @@
 #
 
 from klever.core.vtg.emg.decomposition.scenario import Scenario, ScenarioExtractor
-from klever.core.vtg.emg.common.process import Action, Actions, Block, Concatenation, Choice, Parentheses
+from klever.core.vtg.emg.common.process import Process, Action, Actions, Block, Concatenation, Choice, Parentheses
+
+TEST1 = {
+    ''
+}
 
 
 def test_set_initial_action():
@@ -63,10 +67,6 @@ def test_add_action_copy():
         assert ret2 == test2 and ret2 is not test2 and ret2 is not test1, 'Copy is not successful'
 
 
-
-def test_hashing():
-    pass
-
-
 def test_scenario_extraction():
-    pass
+    test1 = Process('test1', 'test1')
+    #test1.actions.
