@@ -30,7 +30,7 @@ from django.utils.translation import ugettext_lazy as _
 from bridge.vars import (
     DECISION_STATUS, USER_ROLES, JOB_ROLES, SUBJOB_NAME, DECISION_WEIGHT, SCHEDULER_TYPE, SCHEDULER_STATUS
 )
-from bridge.utils import file_get_or_create, BridgeException
+from bridge.utils import file_get_or_create, logger, BridgeException
 
 from users.models import User
 from jobs.models import PRESET_JOB_TYPE, Job, JobFile, FileSystem, UserRole, PresetJob, Scheduler
@@ -166,7 +166,17 @@ def copy_files_with_replace(request, decision_id, files_qs):
 
     # Upload provided files first
     if request.data.get('files'):
-        files_map = json.loads(request.data['files'])
+        if isinstance(request.data['files'], str):
+            try:
+                files_map = json.loads(request.data['files'])
+            except Exception as e:
+                logger.error("Can't decode files data: {}".format(request.data['files']))
+                raise BridgeException("Can't decode files data: {}".format(e))
+        elif isinstance(request.data['files'], dict):
+            files_map = request.data['files']
+        else:
+            raise BridgeException('Wrong files data: "{}" ({})'
+                                  .format(request.data['files'], type(request.data['files'])))
         for fname, fkey in files_map.items():
             if fkey in request.FILES:
                 files_to_replace[fname] = request.FILES[fkey]
