@@ -45,7 +45,7 @@ from jobs.Download import (
     get_jobs_to_download, JobFileGenerator, DecisionConfGenerator, JobArchiveGenerator, JobsArchivesGen
 )
 from jobs.JobTableProperties import get_decisions_order, JobsTreeTable, PresetChildrenTree
-from jobs.preset import get_preset_dir_list, preset_job_files_tree_json
+from jobs.preset import get_preset_dir_list, preset_job_files_tree_json, PopulatePresets
 from jobs.utils import (
     months_choices, years_choices, is_preset_changed, get_roles_form_data, get_core_link,
     get_unique_job_name, get_unique_decision_name, JobAccess, DecisionAccess, CompareFileSet, JSTreeConverter
@@ -94,6 +94,17 @@ class CreateJobFormPage(LoginRequiredMixin, LoggedCallMixin, TemplateView):
         preset_job = get_object_or_404(
             PresetJob.objects.exclude(type=PRESET_JOB_TYPE[0][0]), pk=self.kwargs['preset_id']
         )
+
+        if settings.DEBUG:
+            # Populate preset job first
+            preset_population = PopulatePresets()
+            if preset_job.type == PRESET_JOB_TYPE[2][0]:
+                preset_population.populate_preset(preset_job.parent)
+            else:
+                if preset_population.populate_preset(preset_job):
+                    # Reload preset job from DB if it has changed
+                    preset_job = PresetJob.objects.get(id=preset_job.id)
+
         return {
             'title': _('Job Creating'), 'job_roles': JOB_ROLES, 'cancel_url': reverse('jobs:tree'),
             'confirm': {'title': _('Create'), 'url': reverse('jobs:api-create-job'), 'method': 'POST'},

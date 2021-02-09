@@ -18,7 +18,7 @@
 #ifndef __LDV_VERIFIER_MEMORY_H
 #define __LDV_VERIFIER_MEMORY_H
 
-#ifdef LDV_X86_64
+#if defined(LDV_X86_64) || defined(LDV_ARM64)
 typedef unsigned long size_t;
 #else
 typedef unsigned int size_t;

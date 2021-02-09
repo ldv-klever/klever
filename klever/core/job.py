@@ -49,9 +49,20 @@ DEFAULT_ARCH_OPTS = {
     'CIF': {
       'cross compile prefix': 'arm-unknown-eabi-'
     },
-    # Currently CIL does not support ARM (https://forge.ispras.ru/issues/10471).
     'CIL': {
-      'machine': 'gcc_x86_64'
+      'machine': 'gcc_arm_32'
+    },
+    'Clade': {
+      'preset': 'klever_linux_kernel_arm'
+    }
+  },
+  'ARM64': {
+    'CIF': {
+      'cross compile prefix': 'aarch64_be-unknown-linux-gnu-'
+    },
+    # As above.
+    'CIL': {
+      'machine': 'gcc_arm_64'
     },
     'Clade': {
       'preset': 'klever_linux_kernel_arm'

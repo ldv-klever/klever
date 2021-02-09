@@ -24,6 +24,7 @@ from django.utils.functional import cached_property
 from django.utils.timezone import now
 
 from bridge.vars import PRESET_JOB_TYPE
+from bridge.utils import logger
 
 from jobs.models import PresetJob, PresetFile
 
@@ -79,6 +80,35 @@ class PopulatePresets:
     def populate(self):
         self.__populate_presets(self._presets_data['jobs'])
 
+    def populate_preset(self, preset_job: PresetJob):
+        if not preset_job:
+            return False
+        if len(self._presets_data['jobs']) == 0:
+            return False
+
+        # Find preset data
+        preset_data = self.__find_preset_data(str(preset_job.identifier), self._presets_data['jobs'])
+        if not preset_data:
+            logger.error("Preset job with identifier '{}' was not found".format(preset_job.identifier))
+            return False
+
+        # Update just name and files
+        if 'children' in preset_data:
+            return self.__update_preset_dir(preset_job, name=preset_data['name'])
+        elif 'directory' in preset_data:
+            return self.__update_preset_leaf(preset_job, preset_data['directory'], name=preset_data['name'])
+        return False
+
+    def __find_preset_data(self, identifier, children):
+        for data in children:
+            if data['uuid'] == identifier:
+                return data
+            if 'children' in data:
+                res = self.__find_preset_data(identifier, data['children'])
+                if res:
+                    return res
+        return None
+
     @cached_property
     def _presets_data(self):
         with open(os.path.join(self._presets_dir, BASE_FILE), mode='r', encoding='utf-8') as fp:
@@ -128,6 +158,7 @@ class PopulatePresets:
 
         if changed:
             preset_job.save()
+        return changed
 
     def __update_preset_leaf(self, preset_job, files_dir, **kwargs):
         changed = False
@@ -165,6 +196,7 @@ class PopulatePresets:
 
         if changed:
             preset_job.save()
+        return changed
 
     def _job_files(self, job_directory):
         # Get specific preset files
