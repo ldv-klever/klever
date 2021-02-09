@@ -28,14 +28,14 @@ from klever.core.vtg.emg.decomposition.modelfactory.isolated import IsolatedFact
 #TODO: Remove SA if it is not required
 def decompose_intermediate_model(logger: Logger, conf: dict, sa: Source, model: ProcessCollection):
     # Restrict the access to other sections
-    conf = conf.get('decomposition', {})
-
-    algorythm = Decomposition(logger, conf,
-                              separator=_choose_separator(logger, conf),
-                              modelfactory=_choose_factory(logger, conf))
-    # todo: At this moment do not forward the result
-    for new_model in algorythm.decompose(model):
-        logger.info('Generated a new model')
+    # conf = conf.get('decomposition', {})
+    #
+    # algorythm = Decomposition(logger, conf,
+    #                           separator=_choose_separator(logger, conf),
+    #                           modelfactory=_choose_factory(logger, conf))
+    # # todo: At this moment do not forward the result
+    # for new_model in algorythm.decompose(model):
+    #     logger.info('Generated a new model')
     return [model]
 
 

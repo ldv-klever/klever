@@ -23,13 +23,12 @@ from klever.core.vtg.emg.common.process import Dispatch
 # todo: What about deterministic choices from sets?
 class ModelFactory:
 
-    def __init__(self, logger, conf, model):
+    def __init__(self, logger, conf):
         self.conf = conf
         self.logger = logger
-        self.origin_model = model
 
-    def generate_models(self, processes_to_scenarios):
-        return []
+    def __call__(self, processes_to_scenarios, model):
+        return [model]
 
     def _choose_scenarios_for_model(self, processes_to_scenarios):
         root_process = self.origin_model.entry
