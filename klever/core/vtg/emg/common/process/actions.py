@@ -22,14 +22,14 @@ import collections
 class Savepoint:
 
     def __init__(self, name, statements):
-        self.name = name
-        self.statements = statements
+        self._name = name
+        self.statements = list(statements)
 
     def __str__(self):
-        return str(self.name)
+        return str(self._name)
 
     def __hash__(self):
-        return str(self)
+        return hash(str(self))
 
 
 class BaseAction:
@@ -38,12 +38,59 @@ class BaseAction:
     one after another. All they are executed in the same context (depending on chosen translator).
     """
 
-    def __new__(cls, name: str, **kwards):
+    def __new__(cls, *args, **kwards):
         # This is required to do deepcopy
         self = super().__new__(cls)
-        self.name = name
         self._my_operator = None
         return self
+
+    def copy(self):
+        new = copy.copy(self)
+        new.my_operator = None
+        return new
+
+    def __deepcopy__(self, memo={}):
+        cls = self.__class__
+        result = cls.__new__(cls)
+        memo[id(self)] = result
+        for k, v in self.__dict__.items():
+            if k != '_my_operator':
+                setattr(result, k, copy.deepcopy(v, memo))
+        return result
+
+    @property
+    def my_operator(self):
+        """Returns the operator that joins this actiosn with the others in the process."""
+        return self._my_operator
+
+    @my_operator.setter
+    def my_operator(self, new):
+        if self._my_operator and new:
+            raise RuntimeError('Explicitly clean first operator field')
+
+        if self._my_operator and self in self._my_operator:
+            raise RuntimeError('Explicitly remove the action from the operator')
+
+        if isinstance(new, Operator) or new is None:
+            self._my_operator = new
+        else:
+            raise RuntimeError(
+                "Cannot set action {!r} as operator for {!r}".format(str(type(new).__name__), str(self)))
+
+
+class Action(BaseAction):
+    """
+    Base class for actions which can be executed in terms of a Process. Each action of a process is executed strictly
+    one after another. All they are executed in the same context (depending on chosen translator).
+    """
+
+    def __init__(self, name):
+        super(Action, self).__init__()
+        self.name = name
+        self.condition = []
+        self.trace_relevant = False
+        self.savepoints = []
+        self.comment = ''
 
     def __getnewargs__(self):
         # Return the arguments that *must* be passed to __new__ (required for deepcopy)
@@ -56,40 +103,10 @@ class BaseAction:
         return hash(self.name)
 
     def __eq__(self, other):
-        return self.name == other.name
+        return str(self) == str(other)
 
     def __lt__(self, other):
         return str(self) < str(other)
-
-    @property
-    def my_operator(self):
-        """Returns the operator that joins this actiosn with the others in the process."""
-        return self._my_operator
-
-    @my_operator.setter
-    def my_operator(self, new):
-        if (not self._my_operator and new) or (self._my_operator and not new):
-            if not isinstance(new, Action):
-                self._my_operator = new
-            else:
-                raise RuntimeError(
-                    "Cannot set action {!r} as operator for {!r}".format(str(type(new).__name__), str(self)))
-        elif self._my_operator and new:
-            raise RuntimeError('Explicitly clean first operator field')
-
-
-class Action(BaseAction):
-    """
-    Base class for actions which can be executed in terms of a Process. Each action of a process is executed strictly
-    one after another. All they are executed in the same context (depending on chosen translator).
-    """
-
-    def __init__(self, name):
-        super(Action, self).__init__()
-        self.condition = []
-        self.trace_relevant = False
-        self.savepoints = []
-        self.comment = ''
 
 
 class Subprocess(Action):
@@ -102,11 +119,19 @@ class Subprocess(Action):
     An example of action string: "{mynewsequence}".
     """
 
-    def __init__(self, name, reference_name=None):
+    def __init__(self, name):
         super(Subprocess, self).__init__(name)
         self.process = None
-        self.reference_name = reference_name
         self._action = None
+
+    def __str__(self):
+        return str(id(self))
+
+    def __hash__(self):
+        return hash(str(self))
+
+    def __eq__(self, other):
+        return str(self) == str(other)
 
     @property
     def action(self):
@@ -122,7 +147,7 @@ class Subprocess(Action):
             raise RuntimeError('Explicitly clean first operator field')
 
     def __repr__(self):
-        return '{%s}' % str(self.reference_name if self.reference_name else self.name)
+        return '{%s}' % self.name
 
 
 class Dispatch(Action):
@@ -185,78 +210,100 @@ class Block(Action):
         return '<%s>' % str(self)
 
 
-class Operator(BaseAction):
-    # todo: Use it in more places
+class Operator(BaseAction, collections.UserList):
     """
     The class represents an abstract operator with actions.
     """
 
-    def __init__(self, name):
+    def __init__(self):
         super(Operator, self).__init__()
-        self._actions = collections.deque()
+        self.data = []
 
-    @property
-    def actions(self):
-        return copy.copy(self._actions)
+    def __str__(self):
+        return str(id(self))
 
-    @property
-    def filled(self):
-        return True if self._actions else False
+    def __hash__(self):
+        return hash(str(self))
 
-    def clean(self):
-        for action in self.actions:
-            self.remove_action(action)
-        self.actions = collections.deque()
+    def __getitem__(self, position):
+        return self.data[position]
 
-    @actions.setter
-    def actions(self, actions):
-        if self._actions and actions:
-            raise RuntimeError('First clean actions before setting new ones')
-        for item in list(self._actions):
-            self.remove_action(item)
-        if actions:
-            for item in actions:
-                self.add_action(item)
-        else:
-            self._actions = collections.deque()
+    def __setitem__(self, position, value):
+        assert isinstance(value, BaseAction), f'Only actions can be added but got {type(value).__name__}'
+        assert value not in self.data, f'Attempt to add an existing object {repr(value)}'
 
-    def add_action(self, action):
-        if action in self._actions:
-            raise RuntimeError('An action already present')
-        action.my_operator = self
-        self._actions.append(action)
+        # First clean the existing action
+        if self.data[position]:
+            old = self.data[position]
+            assert old.my_operator
+            self.data[position] = None
+            self._unpair(old)
 
-    def remove_action(self, action):
-        if action in self._actions:
-            self._actions.remove(action)
-            action.my_operator = None
-        else:
-            raise ValueError('There is no such action')
+        # Chain the actions
+        self._pair(value)
+
+        self.data[position] = value
+
+    def __delitem__(self, position):
+        old = self.data[position]
+        assert old.my_operator
+        del self.data[position]
+        self._unpair(old)
+
+    def __len__(self):
+        return len(self.data)
+
+    def insert(self, position, value):
+        self._pair(value)
+        self.data.insert(position, value)
+
+    def remove(self, value):
+        assert value in self.data, f'There is no {repr(value)} in {repr(self)}'
+        index = self.data.index(value)
+        del self[index]
+
+    def replace(self, old, value):
+        assert old in self.data, f'There is no {repr(old)} in {repr(self)}'
+        index = self.data.index(old)
+        self[index] = value
+
+    def index(self, value, **kwargs):
+        return self.data.index(value)
+
+    def append(self, value):
+        assert not value.my_operator
+
+        self._pair(value)
+        self.data.append(value)
+
+    def _pair(self, action):
+        assert not action.my_operator or action.my_operator is self
+        if not action.my_operator:
+            action.my_operator = self
+
+    def _unpair(self, action):
+        action.my_operator = None
 
 
-class Parentheses(BaseAction):
+class Parentheses(Operator):
     """
     This class represent an open parenthese symbol to simplify serialization and import.
     """
 
-    def __init__(self, name):
-        super(Parentheses, self).__init__()
-        self._action = None
+    def __repr__(self):
+        return type(self).__name__ + ('()' if not self.data else f'({repr(self.data[0])})')
 
-    @property
-    def action(self):
-        return self._action
+    def __setitem__(self, position, value):
+        assert position == 0, 'Allowed a single action'
+        super().__setitem__(position, value)
 
-    @action.setter
-    def action(self, new):
-        if (not self._action and new) or (self._action and not new):
-            if self._action:
-                self._action.my_operator = None
-            if new:
-                new.my_operator = self
-            self._action = new
-        else:
-            raise RuntimeError('Explicitly clean first operator field')
+    def __getitem__(self, position):
+        assert position == 0, 'Allowed a single action'
+        super().__getitem__(position)
+
+    def __delitem__(self, position):
+        assert position == 0, 'Allowed a single action'
+        super().__delitem__(position)
 
 
 class Concatenation(Operator):
@@ -264,18 +311,14 @@ class Concatenation(Operator):
     The class represents a sequence of actions.
     """
 
-    def add_action(self, action, position=None):
-        if action in self._actions:
-            raise RuntimeError('An action already present')
-        action.my_operator = self
-        if not isinstance(position, int):
-            self._actions.append(action)
-        else:
-            self._actions.insert(position, action)
+    def __repr__(self):
+        return "{}({})".format(type(self).__name__, '.'.join(map(repr, self.data)))
 
 
 class Choice(Operator):
-    pass
+
+    def __repr__(self):
+        return "{}({})".format(type(self).__name__, '|'.join(map(repr, self.data)))
 
 
 class Actions(collections.UserDict):
@@ -352,7 +395,7 @@ class Actions(collections.UserDict):
         acts = {s for s in self.data.values() if not s.my_operator}
         acts.difference_update({s.action for s in self.filter(include={Subprocess}) if s.action})
         if len(acts) != 1:
-            raise ValueError('Process %s contains more than one action'.format(str(self)))
+            raise ValueError('There are more than one initial action: {}'.format(', '.join(map(repr, acts))))
         act, *_ = acts
         return act
 
