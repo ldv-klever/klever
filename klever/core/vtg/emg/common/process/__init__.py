@@ -21,8 +21,7 @@ import graphviz
 import sortedcontainers
 
 from klever.core.vtg.emg.common.process.labels import Label, Access
-from klever.core.vtg.emg.common.process.actions import Actions, Subprocess, Action, Dispatch, Receive, Parentheses, \
-    Concatenation, Choice, Block, Operator
+from klever.core.vtg.emg.common.process.actions import Actions, Subprocess, Action, Dispatch, Receive, Block, Operator
 
 
 class Process:

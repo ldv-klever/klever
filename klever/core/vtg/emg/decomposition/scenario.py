@@ -17,7 +17,7 @@
 
 import copy
 
-from klever.core.vtg.emg.common.process import Actions, Subprocess, Concatenation, Choice, Parentheses, Operator
+from klever.core.vtg.emg.common.process.actions import Actions, Subprocess, Concatenation, Choice, Parentheses, Operator
 
 
 class Scenario:
@@ -68,7 +68,8 @@ class ScenarioExtractor:
         self._actions = actions
         self._roots = {self._actions.initial_action}
 
-        self.scenarios = self.__create_scenarios()
+    def __call__(self, model):
+        return self.__create_scenarios()
 
     def _process_subprocess(self, scenario, action, operator=None):
         self.__process_operator(scenario, action, operator)

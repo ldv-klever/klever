@@ -16,7 +16,7 @@
 #
 
 from klever.core.vtg.emg.common import model_comment
-from klever.core.vtg.emg.common.process import Subprocess, Parentheses, Choice, Concatenation, Action
+from klever.core.vtg.emg.common.process.actions import Subprocess, Parentheses, Choice, Concatenation, Action
 from klever.core.vtg.emg.translation.code import control_function_comment_begin, control_function_comment_end
 from klever.core.vtg.emg.translation.fsa_translator.common import initialize_automaton_variables
 

@@ -18,8 +18,8 @@
 import ply.lex as lex
 import ply.yacc as yacc
 
-from klever.core.vtg.emg.common import id_generator
-from klever.core.vtg.emg.common.process import Receive, Dispatch, Subprocess, Block, Concatenation, Choice, Parentheses
+from klever.core.vtg.emg.common.process.actions import Receive, Dispatch, Subprocess, Block, Concatenation, Choice, \
+    Parentheses
 
 __parser = None
 __lexer = None

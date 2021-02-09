@@ -19,7 +19,8 @@ import sortedcontainers
 
 from klever.core.vtg.emg.common import get_or_die, model_comment
 from klever.core.vtg.emg.common.c.types import import_declaration
-from klever.core.vtg.emg.common.process import Action, Receive, Dispatch, Block, Subprocess, Choice, Concatenation
+from klever.core.vtg.emg.common.process.actions import Action, Receive, Dispatch, Block, Subprocess, Choice, \
+    Concatenation
 from klever.core.vtg.emg.common.c import Function
 from klever.core.vtg.emg.translation.code import action_model_comment
 from klever.core.vtg.emg.translation.fsa_translator.common import extract_relevant_automata
