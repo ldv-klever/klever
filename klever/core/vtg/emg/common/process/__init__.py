@@ -305,25 +305,14 @@ class Process:
         :param purge: Delete an object from collection.
         :return: None
         """
+        assert isinstance(old, Action), f'Expect strictly an Action to replace but got {repr(old)}'
+        assert isinstance(new, Action), f'Expect strictly an Action to replace with {repr(new)}'
+
         operator = old.my_operator
-        if operator:
-            if isinstance(operator, Parentheses):
-                operator.action = None
-                operator.action = new
-            elif isinstance(operator, Choice):
-                operator.remove_action(old)
-                operator.add_action(new)
-            elif isinstance(operator, Concatenation):
-                index = operator.actions.index(old)
-                operator.remove_action(old)
-                operator.add_action(new, position=index)
-            elif isinstance(operator, Operator):
-                operator.remove_action(old)
-                operator.add_action(new)
-            else:
-                raise RuntimeError('unsupported operator')
+        if operator and isinstance(operator, Operator):
+            operator.replace(old, new)
         else:
-            raise RuntimeError('Expect operator')
+            raise ValueError(f'Expect operator but got instead {repr(operator)}')
 
         if purge:
             del self.actions[str(old)]
@@ -338,31 +327,10 @@ class Process:
         :param before: True if append left ot append to  the right end.
         """
         operator = target.my_operator
-        if isinstance(operator, Concatenation):
-            position = operator.actions.index(target)
-            if before:
-                operator.add_action(new, position=position)
-            else:
-                operator.add_action(new, position=position+1)
-        elif isinstance(operator, Parentheses):
-            conc = Concatenation(str(len(self.actions.keys()) + 1))
-            operator.action = None
-            if before:
-                conc.actions = [new, target]
-            else:
-                conc.actions = [target, new]
-            operator.action = conc
-        elif isinstance(operator, Choice):
-            operator.remove_action(target)
-            if before:
-                actions = [new, target]
-            else:
-                actions = [target, new]
-            conc = Concatenation(str(len(self.actions.keys()) + 1))
-            conc.actions = actions
-            operator.add_action(conc)
-        else:
-            raise ValueError("Unknown operator {!r}".format(str(type(operator).__name__)))
+        position = operator.actions.index(target)
+        if not before:
+            position += 1
+        operator[position] = new
 
     def insert_alternative_action(self, new, target):
         """
@@ -372,23 +340,7 @@ class Process:
         :param target: Action object.
         """
         operator = target.my_operator
-        if isinstance(operator, Concatenation):
-            index = operator.actions.index(target)
-            operator.remove_action(target)
-            new_par = Parentheses(str(len(self.actions.keys()) + 1))
-            choice = Choice(str(len(self.actions.keys()) + 2))
-            new_par.action = choice
-            choice.actions = {new, target}
-            operator.add_action(new_par, position=index)
-        elif isinstance(operator, Parentheses):
-            choice = Choice(str(len(self.actions.keys()) + 1))
-            operator.action = None
-            choice.actions = {target, new}
-            operator.action = choice
-        elif isinstance(operator, Choice):
-            operator.add_action(new)
-        else:
-            raise ValueError("Unknown operator {!r}".format(str(type(operator).__name__)))
+        operator.replace(target, new)
 
 
 class ProcessCollection:
@@ -439,22 +391,14 @@ class ProcessCollection:
                 for prev in prevs:
                     graph.edge(str(prev), str(action))
                 return {action}
-            if isinstance(action, Choice):
-                new_prevs = set()
-                for act in action.actions:
-                    new_prevs.update(process_next(prevs, act))
-                return new_prevs
-            elif isinstance(action, Concatenation):
-                for act in action.actions:
+            elif isinstance(action, Operator):
+                for act in action:
                     if isinstance(act, Action):
                         for prev in prevs:
                             graph.edge(str(prev), str(act))
                         prevs = {act}
                     else:
                         prevs = process_next(prevs, act)
-                return prevs
-            elif isinstance(action, Parentheses):
-                process_next(prevs, action.action)
                 return prevs
             else:
                 raise NotImplementedError

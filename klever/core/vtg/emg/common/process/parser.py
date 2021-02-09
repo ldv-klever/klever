@@ -23,7 +23,6 @@ from klever.core.vtg.emg.common.process.actions import Receive, Dispatch, Subpro
 
 __parser = None
 __lexer = None
-_aux_identifier = id_generator()
 
 tokens = (
     'DOT',
@@ -139,16 +138,15 @@ def p_concatenation_list(p):
     """
     _, action, *concatenation_list = p
     if concatenation_list:
-        concatenation_list = concatenation_list[-1]
-        assert isinstance(concatenation_list, Concatenation)
-        concatenation_list.add_action(action, position=0)
-        p[0] = concatenation_list
+        operator = concatenation_list[-1]
+        assert isinstance(operator, Concatenation)
+        operator.insert(0, action)
     else:
-        new_action = Concatenation(next(_aux_identifier))
-        _check_action(p.parser.process, new_action)
-        p.parser.process.actions[str(new_action)] = new_action
-        new_action.add_action(action)
-        p[0] = new_action
+        operator = Concatenation()
+        _check_action(p.parser.process, operator)
+        p.parser.process.actions[str(operator)] = operator
+        operator.append(action)
+    p[0] = operator
 
 
 def p_choice_list(p):
@@ -158,16 +156,15 @@ def p_choice_list(p):
     """
     _, concatenation_list, *choice_list = p
     if choice_list:
-        choice_list = choice_list[-1]
-        assert isinstance(choice_list, Choice)
-        choice_list.add_action(concatenation_list)
-        p[0] = choice_list
+        choice = choice_list[-1]
+        assert isinstance(choice, Choice)
+        choice_list.append(concatenation_list)
     else:
-        new_action = Choice(next(_aux_identifier))
-        _check_action(p.parser.process, new_action)
-        p.parser.process.actions[str(new_action)] = new_action
-        new_action.add_action(concatenation_list)
-        p[0] = new_action
+        choice = Choice()
+        _check_action(p.parser.process, choice)
+        p.parser.process.actions[str(choice)] = choice
+        choice.append(concatenation_list)
+    p[0] = choice
 
 
 def p_bracket(p):
@@ -176,8 +173,8 @@ def p_bracket(p):
     """
     # todo: support numbers to implement loops
     _, _, action_list, _ = p
-    par = Parentheses(next(_aux_identifier))
-    par.action = action_list
+    par = Parentheses()
+    par.append(action_list)
     _check_action(p.parser.process, par)
     p.parser.process.actions[str(par)] = par
     p[0] = par
@@ -263,14 +260,14 @@ def p_subprocess(p):
     """
     name, *number = p[2:-1]
     number = number[-1] if number else 1
-    action = Subprocess(next(_aux_identifier), reference_name=name)
+    action = Subprocess(name)
     _check_action(p.parser.process, action)
     p.parser.process.actions[str(action)] = action
     p[0] = action
 
 
 def _check_action(process, action):
-    if action.name in process.actions:
+    if str(action) in process.actions:
         raise ValueError('Do not use actions twice, remove second use of {!r} in {!r}'.
                          format(str(action), str(process)))
 
