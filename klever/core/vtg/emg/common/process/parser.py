@@ -107,7 +107,13 @@ def p_process(p):
     process : action_list
     """
     _, action_list = p
-    p[0] = action_list
+
+    # Here we create an additional concatenation action to always prevent cases with several initial states
+    if isinstance(action_list, Choice):
+        new = Concatenation()
+        new.append(action_list)
+        p.parser.process.actions[str(new)] = new
+    p[0] = new
 
 
 def p_action_list(p):
@@ -158,12 +164,11 @@ def p_choice_list(p):
     if choice_list:
         choice = choice_list[-1]
         assert isinstance(choice, Choice)
-        choice_list.append(concatenation_list)
     else:
         choice = Choice()
         _check_action(p.parser.process, choice)
         p.parser.process.actions[str(choice)] = choice
-        choice.append(concatenation_list)
+    choice.append(concatenation_list)
     p[0] = choice
 
 
