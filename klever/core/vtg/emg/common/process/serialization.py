@@ -110,6 +110,8 @@ class CollectionEncoder(json.JSONEncoder):
 
     @staticmethod
     def _serialize_fsa(initial):
+        # todo: Update this
+        raise NotImplementedError
         def _serialize_action(action):
             if isinstance(action, Action):
                 return repr(action)

@@ -91,14 +91,150 @@ class BaseAction:
         self._my_operator = new
 
 
-class Action(BaseAction):
+class BehAction(BaseAction):
+
+    def __init__(self, name):
+        super().__init__()
+        self._name = name
+        self._description = None
+
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def description(self):
+        return self._description
+
+    @description.setter
+    def description(self, item):
+        assert isinstance(item, Action)
+        assert str(item) == self.name
+        self._description = item
+
+
+class Operator(BaseAction, collections.UserList):
+    """
+    The class represents an abstract operator with actions.
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.data = []
+
+    def __str__(self):
+        return str(id(self))
+
+    def __hash__(self):
+        return hash(str(self))
+
+    def __getitem__(self, position):
+        return self.data[position]
+
+    def __setitem__(self, position, value):
+        assert isinstance(value, BaseAction), f'Only actions can be added but got {type(value).__name__}'
+        assert value not in self.data, f'Attempt to add an existing object {repr(value)}'
+
+        # First clean the existing action
+        if self.data[position]:
+            old = self.data[position]
+            assert old.my_operator
+            self.data[position] = None
+            self._unpair(old)
+
+        # Chain the actions
+        self._pair(value)
+
+        self.data[position] = value
+
+    def __delitem__(self, position):
+        old = self.data[position]
+        assert old.my_operator
+        del self.data[position]
+        self._unpair(old)
+
+    def __len__(self):
+        return len(self.data)
+
+    def insert(self, position, value):
+        self._pair(value)
+        self.data.insert(position, value)
+
+    def remove(self, value):
+        assert value in self.data, f'There is no {repr(value)} in {repr(self)}'
+        index = self.data.index(value)
+        del self[index]
+
+    def replace(self, old, value):
+        assert old in self.data, f'There is no {repr(old)} in {repr(self)}'
+        index = self.data.index(old)
+        self[index] = value
+
+    def index(self, value, **kwargs):
+        return self.data.index(value)
+
+    def append(self, value):
+        assert not value.my_operator
+
+        self._pair(value)
+        self.data.append(value)
+
+    def _pair(self, action):
+        assert not action.my_operator or action.my_operator is self
+        if not action.my_operator:
+            action.my_operator = self
+
+    def _unpair(self, action):
+        action.my_operator = None
+
+
+class Parentheses(Operator):
+    """
+    This class represent an open parenthese symbol to simplify serialization and import.
+    """
+
+    def __repr__(self):
+        return type(self).__name__ + ('()' if not self.data else f'({repr(self.data[0])})')
+
+    def __setitem__(self, position, value):
+        assert position == 0 and len(self) > 0
+        super().__setitem__(position, value)
+
+    def __delitem__(self, position):
+        assert position == 0 and len(self) > 0
+        super().__delitem__(position)
+
+    def insert(self, position, value):
+        assert position == 0 and len(self) == 0
+        super().insert(position, value)
+
+    def append(self, value):
+        assert len(self) == 0
+        super().append(value)
+
+
+class Concatenation(Operator):
+    """
+    The class represents a sequence of actions.
+    """
+
+    def __repr__(self):
+        return "{}({})".format(type(self).__name__, '.'.join(map(repr, self.data)))
+
+
+class Choice(Operator):
+
+    def __repr__(self):
+        return "{}({})".format(type(self).__name__, '|'.join(map(repr, self.data)))
+
+
+class Action:
     """
     Base class for actions which can be executed in terms of a Process. Each action of a process is executed strictly
     one after another. All they are executed in the same context (depending on chosen translator).
     """
 
     def __init__(self, name):
-        super(Action, self).__init__()
         self.name = name
         self.condition = []
         self.trace_relevant = False
@@ -223,146 +359,43 @@ class Block(Action):
         return '<%s>' % str(self)
 
 
-class Operator(BaseAction, collections.UserList):
-    """
-    The class represents an abstract operator with actions.
-    """
-
-    def __init__(self):
-        super(Operator, self).__init__()
-        self.data = []
-
-    def __str__(self):
-        return str(id(self))
-
-    def __hash__(self):
-        return hash(str(self))
-
-    def __getitem__(self, position):
-        return self.data[position]
-
-    def __setitem__(self, position, value):
-        assert isinstance(value, BaseAction), f'Only actions can be added but got {type(value).__name__}'
-        assert value not in self.data, f'Attempt to add an existing object {repr(value)}'
-
-        # First clean the existing action
-        if self.data[position]:
-            old = self.data[position]
-            assert old.my_operator
-            self.data[position] = None
-            self._unpair(old)
-
-        # Chain the actions
-        self._pair(value)
-
-        self.data[position] = value
-
-    def __delitem__(self, position):
-        old = self.data[position]
-        assert old.my_operator
-        del self.data[position]
-        self._unpair(old)
-
-    def __len__(self):
-        return len(self.data)
-
-    def insert(self, position, value):
-        self._pair(value)
-        self.data.insert(position, value)
-
-    def remove(self, value):
-        assert value in self.data, f'There is no {repr(value)} in {repr(self)}'
-        index = self.data.index(value)
-        del self[index]
-
-    def replace(self, old, value):
-        assert old in self.data, f'There is no {repr(old)} in {repr(self)}'
-        index = self.data.index(old)
-        self[index] = value
-
-    def index(self, value, **kwargs):
-        return self.data.index(value)
-
-    def append(self, value):
-        assert not value.my_operator
-
-        self._pair(value)
-        self.data.append(value)
-
-    def _pair(self, action):
-        assert not action.my_operator or action.my_operator is self
-        if not action.my_operator:
-            action.my_operator = self
-
-    def _unpair(self, action):
-        action.my_operator = None
-
-
-class Parentheses(Operator):
-    """
-    This class represent an open parenthese symbol to simplify serialization and import.
-    """
-
-    def __repr__(self):
-        return type(self).__name__ + ('()' if not self.data else f'({repr(self.data[0])})')
-
-    def __setitem__(self, position, value):
-        assert position == 0 and len(self) > 0
-        super().__setitem__(position, value)
-
-    def __delitem__(self, position):
-        assert position == 0 and len(self) > 0
-        super().__delitem__(position)
-
-    def insert(self, position, value):
-        assert position == 0 and len(self) == 0
-        super().insert(position, value)
-
-    def append(self, value):
-        assert len(self) == 0
-        super().append(value)
-
-
-class Concatenation(Operator):
-    """
-    The class represents a sequence of actions.
-    """
-
-    def __repr__(self):
-        return "{}({})".format(type(self).__name__, '.'.join(map(repr, self.data)))
-
-
-class Choice(Operator):
-
-    def __repr__(self):
-        return "{}({})".format(type(self).__name__, '|'.join(map(repr, self.data)))
-
-
 class Actions(collections.UserDict):
 
-    def __setitem__(self, key, value):
-        if isinstance(key, BaseAction):
-            key = str(key)
-        elif isinstance(key, str):
-            pass
-        else:
-            raise KeyError('Do not provide any other type than string or {}'.format(BaseAction.__name__))
+    def __init__(self):
+        super(Actions, self).__init__()
+        self._process_actions = dict()
 
-        if not isinstance(value, BaseAction):
-            raise ValueError('Accept only actions as values but got {}'.format(type(value).__name__))
+    def __setitem__(self, key, value):
+        assert isinstance(key, str) or isinstance(key, Action), f'Do not expect {type(key).__name__}'
+        assert isinstance(value, Action), f'Accept only actions as values but got {type(value).__name__}'
+        if isinstance(key, Action):
+            key = str(key)
 
         self.data[key] = value
+        for item in self._process_actions.get(key, set()):
+            item.description = item
 
-    def __getitem__(self, item):
-        if isinstance(item, BaseAction):
-            return self.data[str(item)]
-        else:
-            return self.data[item]
+    def __getitem__(self, key):
+        assert isinstance(key, str) or isinstance(key, Action), f'Do not expect {type(key).__name__}'
+        return self.data[str(key)]
 
-    def __hash__(self):
-        return '_'.join(map(str, sorted(self.keys())))
+    def __delitem__(self, key):
+        raise NotImplementedError
+
+    def add_process_action(self, name, item):
+        assert isinstance(item, BaseAction)
+        self._process_actions.setdefault(name, set())
+        self._process_actions[name].add(item)
+
+        if not isinstance(item, Operator) and self.data.get(name):
+            item.description = self.data[name]
+
+    def remove_process_action(self, obj):
+        raise NotImplementedError
 
     def __copy__(self):
+        # todo: Update this!
+        raise NotImplementedError
         new = Actions()
 
         # Copy items
@@ -414,7 +447,8 @@ class Actions(collections.UserDict):
         assert not (len(self.data) > 0 and len(acts) == 0),\
             'Ther is no any initial action. There are actions in total: {}'.\
             format('\n'.join(f"{repr(a)} parent: {repr(a.my_operator)}" for a in self.data.values()))
-        assert len(acts) == 1, 'There are more than one initial action: {}'.format(', '.join(map(repr, acts)))
+        assert len(acts) == 1, 'There are more than one initial action: {}'.\
+            format('\n'.join(f"{repr(a)} parent: {repr(a.my_operator)}" for a in acts))
         act, *_ = acts
         return act
 

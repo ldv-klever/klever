@@ -23,12 +23,12 @@ from klever.core.vtg.emg.common.process.actions import *
 
 @pytest.fixture
 def action1():
-    return Action('test1')
+    return BehAction('test1')
 
 
 @pytest.fixture
 def action2():
-    return Action('test11')
+    return BehAction('test11')
 
 
 @pytest.fixture
@@ -56,21 +56,6 @@ def test_savepoint():
     # Test hashing
     new = {pnt}
     assert pnt in new
-
-
-def test_base_action(action1, action2, operator):
-    assert action1.name == str(action1)
-    assert {action1}
-    assert action1 == copy.deepcopy(action1)
-    assert action1 < action2
-
-    operator.append(action1)
-    assert action1.my_operator is operator
-    clone = copy.deepcopy(action1)
-    assert clone.condition is not action1.condition
-    assert clone.savepoints is not action1.savepoints
-    assert clone.my_operator is None
-    assert action1.my_operator is operator
 
 
 def test_my_operator(action1, action2, operator):
@@ -131,3 +116,19 @@ def test_operator(operator, action1, action2):
     assert action2.my_operator is operator
     assert operator[0] is action2
     assert operator[1] is action1
+
+
+def test_actions():
+    # todo: Implement
+    raise NotImplementedError
+    # assert {action1}
+    # assert action1 == copy.deepcopy(action1)
+    # assert action1 < action2
+    #
+    # operator.append(action1)
+    # assert action1.my_operator is operator
+    # clone = copy.deepcopy(action1)
+    # assert clone.condition is not action1.condition
+    # assert clone.savepoints is not action1.savepoints
+    # assert clone.my_operator is None
+    # assert action1.my_operator is operator
