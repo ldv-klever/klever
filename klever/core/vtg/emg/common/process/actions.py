@@ -65,17 +65,11 @@ class BaseAction:
 
     @my_operator.setter
     def my_operator(self, new):
-        if self._my_operator and new:
-            raise RuntimeError('Explicitly clean first operator field')
-
-        if self._my_operator and self in self._my_operator:
-            raise RuntimeError('Explicitly remove the action from the operator')
-
-        if isinstance(new, Operator) or new is None:
-            self._my_operator = new
-        else:
-            raise RuntimeError(
-                "Cannot set action {!r} as operator for {!r}".format(str(type(new).__name__), str(self)))
+        assert new is not self, 'Prevent recursive operator dependency'
+        assert isinstance(new, Operator) or new is None, f'Cannot set as operator a non-operator object {repr(new)}'
+        assert not new or not self._my_operator,\
+            f'Has operator {repr(self._my_operator)} at {repr(self)} before setting {repr(new)}'
+        self._my_operator = new
 
 
 class Action(BaseAction):
@@ -294,16 +288,20 @@ class Parentheses(Operator):
         return type(self).__name__ + ('()' if not self.data else f'({repr(self.data[0])})')
 
     def __setitem__(self, position, value):
-        assert position == 0, 'Allowed a single action'
+        assert position == 0 and len(self) > 0
         super().__setitem__(position, value)
 
-    def __getitem__(self, position):
-        assert position == 0, 'Allowed a single action'
-        super().__getitem__(position)
-
     def __delitem__(self, position):
-        assert position == 0, 'Allowed a single action'
+        assert position == 0 and len(self) > 0
         super().__delitem__(position)
+
+    def insert(self, position, value):
+        assert position == 0 and len(self) == 0
+        super().insert(position, value)
+
+    def append(self, value):
+        assert len(self) == 0
+        super().append(value)
 
 
 class Concatenation(Operator):
@@ -394,8 +392,10 @@ class Actions(collections.UserDict):
         """
         acts = {s for s in self.data.values() if not s.my_operator}
         acts.difference_update({s.action for s in self.filter(include={Subprocess}) if s.action})
-        if len(acts) != 1:
-            raise ValueError('There are more than one initial action: {}'.format(', '.join(map(repr, acts))))
+        assert not (len(self.data) > 0 and len(acts) == 0),\
+            'Ther is no any initial action. There are actions in total: {}'.\
+            format('\n'.join(f"{repr(a)} parent: {repr(a.my_operator)}" for a in self.data.values()))
+        assert len(acts) == 1, 'There are more than one initial action: {}'.format(', '.join(map(repr, acts)))
         act, *_ = acts
         return act
 
