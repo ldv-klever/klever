@@ -25,6 +25,7 @@ Contents
 
    deploy
    tutorial
+   cli
    dev_req_specs
    dev
    glossary

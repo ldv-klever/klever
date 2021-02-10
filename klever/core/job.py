@@ -23,6 +23,7 @@ import os
 import shutil
 import tarfile
 import time
+import traceback
 import zipfile
 
 from clade import Clade
@@ -48,9 +49,20 @@ DEFAULT_ARCH_OPTS = {
     'CIF': {
       'cross compile prefix': 'arm-unknown-eabi-'
     },
-    # Currently CIL does not support ARM (https://forge.ispras.ru/issues/10471).
     'CIL': {
-      'machine': 'gcc_x86_64'
+      'machine': 'gcc_arm_32'
+    },
+    'Clade': {
+      'preset': 'klever_linux_kernel_arm'
+    }
+  },
+  'ARM64': {
+    'CIF': {
+      'cross compile prefix': 'aarch64_be-unknown-linux-gnu-'
+    },
+    # As above.
+    'CIL': {
+      'machine': 'gcc_arm_64'
     },
     'Clade': {
       'preset': 'klever_linux_kernel_arm'
@@ -597,13 +609,17 @@ class Job(klever.core.components.Component):
         # Try to find specified build base either in normal way or additionally in directory "build bases" that is
         # convenient to use when working with many build bases.
         try:
-            build_base = klever.core.utils.find_file_or_dir(self.logger, os.path.curdir,
+            build_base = klever.core.utils.find_file_or_dir(self.logger,
+                                                            self.common_components_conf['main working directory'],
                                                             self.common_components_conf['build base'])
-        except FileNotFoundError:
+        except FileNotFoundError as e:
+            self.logger.warning('Failed to find build base:\n{}'.format(traceback.format_exc().rstrip()))
             try:
                 build_base = klever.core.utils.find_file_or_dir(
-                    self.logger, os.path.curdir, os.path.join('build bases', self.common_components_conf['build base']))
-            except FileNotFoundError:
+                    self.logger, self.common_components_conf['main working directory'],
+                    os.path.join('build bases', self.common_components_conf['build base']))
+            except FileNotFoundError as e:
+                self.logger.warning('Failed to find build base:\n{}'.format(traceback.format_exc().rstrip()))
                 raise FileNotFoundError(
                     'Specified build base "{0}" does not exist, {1}'.format(self.common_components_conf['build base'],
                                                                             common_advice)) from None

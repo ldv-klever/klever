@@ -43,7 +43,7 @@ from marks.models import ConvertedTrace
 from service.models import Task
 from tools.models import LockTable
 
-from tools.utils import objects_without_relations, ClearFiles, Recalculation, RecalculateMarksCache
+from tools.utils import objects_without_relations, ClearFiles, Recalculation, RecalculateMarksCache, RemoveDuplicates
 from tools.profiling import ProfileData, ExecLocker, LoggedCallMixin, DBLogsAnalizer
 
 from jobs.preset import PopulatePresets
@@ -76,6 +76,7 @@ class ClearSystemAPIView(LoggedCallMixin, APIView):
         assert request.user.role == USER_ROLES[2][0]
         ClearFiles()
         objects_without_relations(Computer).delete()
+        RemoveDuplicates()
         return Response({'message': _("All unused files and DB rows were deleted")})
 
 
