@@ -32,16 +32,35 @@ class Savepoint:
         return hash(str(self))
 
 
+class OperatorDescriptor:
+
+    def __init__(self):
+        self._my_operator = None
+
+    def __set__(self, obj, value):
+        assert value is not self, 'Prevent recursive operator dependency'
+        assert isinstance(value, Operator) or value is None,\
+            f'Cannot set as operator a non-operator object {repr(value)}'
+        assert not value or not self._my_operator, \
+            f'Has operator {repr(self._my_operator)} at {repr(obj)} before setting {repr(value)}'
+        self._my_operator = value
+
+    def __get__(self, obj, objtype):
+        return self._my_operator
+
+
 class BaseAction:
     """
     Base class for actions which can be executed in terms of a Process. Each action of a process is executed strictly
     one after another. All they are executed in the same context (depending on chosen translator).
     """
 
+    my_operator = OperatorDescriptor()
+
     def __new__(cls, *args, **kwards):
         # This is required to do deepcopy
         self = super().__new__(cls)
-        self._my_operator = None
+        self.my_operator = None
         return self
 
     def copy(self):
@@ -54,8 +73,8 @@ class BaseAction:
         result = cls.__new__(cls)
         memo[id(self)] = result
         for k, v in self.__dict__.items():
-            if k != '_my_operator':
-                setattr(result, k, copy.deepcopy(v, memo))
+            setattr(result, k, copy.deepcopy(v, memo))
+        result.my_operator = None
         return result
 
     @property
