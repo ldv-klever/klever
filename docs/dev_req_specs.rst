@@ -22,7 +22,6 @@ At the moment this section touches just rules of correct usage of a specific API
 other requirements.
 
 .. TODO: the paragraph below is common for development of all specifications and configurations in Klever.
-.. TODO: perhaps population will be redundant if development Bridge will do it implicitly.
 
 If you are going to develop requirement specifications we recommend you to deploy Klever in the development mode.
 In this case you will get much more debug information that can help you to identify various issues.
@@ -30,9 +29,6 @@ Moreover, you will not even need to update your Klever installation.
 Though Web UI supports rich means for creating, editing and other operations with verification job files including
 specifications, we recommend you to develop requirement specifications directly within :term:`$KLEVER_SRC` by means of
 some IDE.
-To make these changes available for creation of new verification jobs you should update preset verification jobs, e.g.
-by opening :menuselection:`Manager Tools`, selecting *Preset jobs* in section *Population* and pressing
-:guilabel:`Populate`.
 To further reduce manual efforts using such the workflow, you can temporarily modify necessary preset verification jobs,
 e.g. to specify requirement specifications and program fragments of interest within :file:`job.json`.
 Do not forget to not commit these temporarily changes to the repository!
@@ -189,7 +185,7 @@ It tracks that modules should decrement the reference counter to its initial val
 It is worth noting that model functions do not refer their parameter **module**, i.e. they consider all modules the
 same.
 This is an underapproximation and you can imagine both false alarms and missed bugs due to it.
-Nevertheless, often it does have sense to do such trics to avoid too complicated models for verification, e.g. accurate
+Nevertheless, often it does have sense to do such tricks to avoid too complicated models for verification, e.g. accurate
 tracking of dynamically created objects of interest using lists.
 Another important thing is modelling of nondeterminism in **ldv_try_module_get()** by invoking **ldv_undef_int()**.
 Thanks to it a software model checker will cover paths when **try_module_get()** can successfully increment the module
@@ -197,7 +193,7 @@ reference counter and when this is not the case.
 
 In the example above you can see comments starting with words **NOTE** and **ASSERT**.
 These comments are so called *model comments*.
-They emphasize expressions and statements that make some important actions, e.g. chanding a model state.
+They emphasize expressions and statements that make some important actions, e.g. changing a model state.
 Later these comments will be used during visualization and expert assessment of verification results.
 You should place model comments just before corresponding expressions and statements.
 Each model comment has to occupy the only line.
@@ -291,4 +287,93 @@ Also, you should take into account that non-ideal results can be caused by other
 * Generic restrictions of approaches to development of requirement specifications, e.g. when using model counters rather
   than accurate representations of objects, etc.
 
-.. TODO: Syntactic distinction of objects
+Using Argument Signatures to Distinguish Objects
+------------------------------------------------
+
+As it was specified above, it may be too hard for the verification tool to accurately distinguish different objects like
+modules and mutexes since this can involve complicated data structures.
+From the other side treating all objects the same, e.g. by using integer counters when modeling operations on them, can
+result in a large number of false alarms as well as missed bugs.
+For instance, if a Linux loadable kernel module acquires two different mutexes sequentially, the verification tool will
+detect that the same mutex can be acquired twice that is an error from the point of view of the inaccurate model.
+
+To distinguish objects we suggest using so-called *argument signatures* — identifiers of objects which are calculated
+syntactically on the basis of the expressions passed as corresponding actual parameters.
+Generally speaking different objects can have identical argument signatures and it is impossible to distinguish them
+thus in this way.
+Ditto the same object can have different argument signatures, e.g. when using aliases.
+Nevertheless, our observation shows that in most cases the offered approach allows to distinguish objects rather
+precisely.
+
+Requirement specifications with argument signatures differ from requirement specifications which were considered
+earlier.
+You need to specify different model variables, model functions and preconditions for each calculated argument signature.
+For the example considered above it is necessary to replace:
+
+.. code-block:: c
+
+    /* NOTE Initialize module reference counter at the beginning */
+    static int ldv_module_refcounter = 1;
+
+    int ldv_try_module_get(struct module *module)
+    {
+        /* NOTE Nondeterministically increment module reference counter */
+        if (ldv_undef_int() == 1) {
+            /* NOTE Increment module reference counter */
+            ldv_module_refcounter++;
+            /* NOTE Successfully incremented module reference counter */
+            return 1;
+        }
+        else
+            /* NOTE Could not increment module reference counter */
+            return 0;
+    }
+
+with:
+
+.. code-block:: c
+
+    // for arg_sign in arg_signs
+    /* NOTE Initialize module reference counter{{ arg_sign.text }} at the beginning */
+    static int ldv_module_refcounter{{ arg_sign.id }} = 1;
+
+    int ldv_try_module_get{{ arg_sign.id }}(struct module *module)
+    {
+        /* NOTE Nondeterministically increment module reference counter{{ arg_sign.text }} */
+        if (ldv_undef_int() == 1) {
+            /* NOTE Increment module reference counter{{ arg_sign.text }} */
+            ldv_module_refcounter{{ arg_sign.id }}++;
+            /* NOTE Successfully incremented module reference counter{{ arg_sign.text }} */
+            return 1;
+        }
+        else
+            /* NOTE Could not increment module reference counter{{ arg_sign.text }} */
+            return 0;
+    }
+    // endfor
+
+In bindings of model functions with original API elements it is necessary to specify for what function arguments it i
+necessary to calculate argument signatures.
+For instance, it is necessary to replace:
+
+.. code-block:: c
+
+    around: call(bool try_module_get(struct module *module))
+    {
+        return ldv_try_module_get(module);
+    }
+
+with:
+
+.. code-block:: c
+
+    around: call(bool try_module_get(struct module *module))
+    {
+        return ldv_try_module_get_$arg_sign1(module);
+    }
+
+You can find more details about the considered approach in [N13]_.
+
+.. [N13] Novikov E.M. Building Programming Interface Specifications in the Open System of Componentwise Verification of
+         the Linux Kernel. Proceedings of the Institute for System Programming of the RAS (Proceedings of ISP RAS),
+         volume 24, pp. 293-316. 2013. https://doi.org/10.15514/ISPRAS-2013-24-13. (In Russian)
