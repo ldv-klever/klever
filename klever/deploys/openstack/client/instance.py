@@ -84,7 +84,8 @@ class OSInstance:
                     name=self.name,
                     image=self.base_image,
                     flavor=flavor,
-                    key_name=self.args.os_keypair_name
+                    key_name=self.args.os_keypair_name,
+                    nics=[{'net-id': '2a733728-5666-44de-bd54-7d02a7a39176'}]  # TODO: Figure out proper value, move to self.args
                 )
 
                 timeout = self.CREATION_TIMEOUT

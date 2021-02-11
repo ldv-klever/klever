@@ -40,7 +40,7 @@ class OSClient:
         session = self.__get_session()
 
         self.logger.info('Initialize OpenStack clients')
-        self.glance = glanceclient.client.Client('1', session=session)
+        self.glance = glanceclient.client.Client('2', session=session)
         self.nova = novaclient.client.Client('2', session=session)
         self.neutron = neutronclient.v2_0.client.Client(session=session)
         self.cinder = cinderclient.client.Client('3', session=session)
@@ -190,11 +190,13 @@ class OSClient:
 
     def __get_session(self):
         self.logger.info('Sign in to OpenStack')
-        auth = keystoneauth1.identity.v2.Password(
+        auth = keystoneauth1.identity.v3.Password(
             auth_url=self.args.os_auth_url,
             username=self.args.os_username,
             password=get_password(self.logger, 'OpenStack password for authentication: '),
-            tenant_name=self.args.os_tenant_name
+            user_domain_name=self.args.os_domain_name,
+            project_domain_name=self.args.os_domain_name,
+            project_name=self.args.os_tenant_name,
         )
         session = keystoneauth1.session.Session(auth=auth)
 
