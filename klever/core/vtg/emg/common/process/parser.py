@@ -18,8 +18,8 @@
 import ply.lex as lex
 import ply.yacc as yacc
 
-from klever.core.vtg.emg.common.process.actions import Receive, Dispatch, Subprocess, Block, Concatenation, Choice, \
-    Parentheses
+from klever.core.vtg.emg.common.process.actions import Behaviour, Receive, Dispatch, Subprocess, Block, Concatenation,\
+    Choice, Parentheses
 
 __parser = None
 __lexer = None
@@ -112,8 +112,10 @@ def p_process(p):
     if isinstance(action_list, Choice):
         new = Concatenation()
         new.append(action_list)
-        p.parser.process.actions[str(new)] = new
-    p[0] = new
+        p.parser.process.actions.add_process_action(new)
+        p[0] = new
+    else:
+        p[0] = action_list
 
 
 def p_action_list(p):
@@ -149,8 +151,7 @@ def p_concatenation_list(p):
         operator.insert(0, action)
     else:
         operator = Concatenation()
-        _check_action(p.parser.process, operator)
-        p.parser.process.actions[str(operator)] = operator
+        p.parser.process.actions.add_process_action(operator)
         operator.append(action)
     p[0] = operator
 
@@ -166,8 +167,7 @@ def p_choice_list(p):
         assert isinstance(choice, Choice)
     else:
         choice = Choice()
-        _check_action(p.parser.process, choice)
-        p.parser.process.actions[str(choice)] = choice
+        p.parser.process.actions.add_process_action(choice)
     choice.append(concatenation_list)
     p[0] = choice
 
@@ -180,8 +180,7 @@ def p_bracket(p):
     _, _, action_list, _ = p
     par = Parentheses()
     par.append(action_list)
-    _check_action(p.parser.process, par)
-    p.parser.process.actions[str(par)] = par
+    p.parser.process.actions.add_process_action(par)
     p[0] = par
 
 
@@ -216,9 +215,8 @@ def p_dispatch(p):
         broadcast = False
     number = number[-1] if number else 1
 
-    action = Dispatch(name, broadcast=broadcast)
-    _check_action(p.parser.process, action)
-    p.parser.process.actions[str(action)] = action
+    action = Behaviour(name, Dispatch)
+    p.parser.process.actions.add_process_action(action, name)
     p[0] = action
 
 
@@ -239,9 +237,8 @@ def p_receive(p):
         name, *number = context
         replicative = False
     number = number[-1] if number else 1
-    action = Receive(name, repliative=replicative)
-    _check_action(p.parser.process, action)
-    p.parser.process.actions[str(action)] = action
+    action = Behaviour(name, Receive)
+    p.parser.process.actions.add_process_action(action, name)
     p[0] = action
 
 
@@ -252,9 +249,8 @@ def p_condition(p):
     """
     name, *number = p[2:-1]
     number = number[-1] if number else 1
-    action = Block(name)
-    _check_action(p.parser.process, action)
-    p.parser.process.actions[str(action)] = action
+    action = Behaviour(name, Block)
+    p.parser.process.actions.add_process_action(action, name)
     p[0] = action
 
 
@@ -265,16 +261,9 @@ def p_subprocess(p):
     """
     name, *number = p[2:-1]
     number = number[-1] if number else 1
-    action = Subprocess(name)
-    _check_action(p.parser.process, action)
-    p.parser.process.actions[str(action)] = action
+    action = Behaviour(name, Subprocess)
+    p.parser.process.actions.add_process_action(action, name)
     p[0] = action
-
-
-def _check_action(process, action):
-    if str(action) in process.actions:
-        raise ValueError('Do not use actions twice, remove second use of {!r} in {!r}'.
-                         format(str(action), str(process)))
 
 
 def setup_parser():

@@ -49,6 +49,7 @@ class Process:
         self.cfiles = sortedcontainers.SortedSet()
         self.headers = list()
         self.actions = Actions()
+        self.peers = set()
         self.labels = sortedcontainers.SortedDict()
         self.declarations = sortedcontainers.SortedDict()
         self.definitions = sortedcontainers.SortedDict()

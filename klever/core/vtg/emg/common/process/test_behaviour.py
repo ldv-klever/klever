@@ -15,7 +15,6 @@
 # limitations under the License.
 #
 
-import copy
 import pytest
 
 from klever.core.vtg.emg.common.process.actions import *
@@ -23,12 +22,12 @@ from klever.core.vtg.emg.common.process.actions import *
 
 @pytest.fixture
 def action1():
-    return BehAction('test1')
+    return Behaviour('test1', Block)
 
 
 @pytest.fixture
 def action2():
-    return BehAction('test11')
+    return Behaviour('test11', Block)
 
 
 @pytest.fixture
@@ -118,17 +117,17 @@ def test_operator(operator, action1, action2):
     assert operator[1] is action1
 
 
-def test_actions():
-    # todo: Implement
-    raise NotImplementedError
-    # assert {action1}
-    # assert action1 == copy.deepcopy(action1)
-    # assert action1 < action2
-    #
-    # operator.append(action1)
-    # assert action1.my_operator is operator
-    # clone = copy.deepcopy(action1)
-    # assert clone.condition is not action1.condition
-    # assert clone.savepoints is not action1.savepoints
-    # assert clone.my_operator is None
-    # assert action1.my_operator is operator
+# def test_actions():
+#     # todo: Implement
+#     raise NotImplementedError
+#     # assert {action1}
+#     # assert action1 == copy.deepcopy(action1)
+#     # assert action1 < action2
+#     #
+#     # operator.append(action1)
+#     # assert action1.my_operator is operator
+#     # clone = copy.deepcopy(action1)
+#     # assert clone.condition is not action1.condition
+#     # assert clone.savepoints is not action1.savepoints
+#     # assert clone.my_operator is None
+#     # assert action1.my_operator is operator

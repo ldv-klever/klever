@@ -63,19 +63,18 @@ class BaseAction:
         self.my_operator = None
         return self
 
-    def copy(self):
-        new = copy.copy(self)
-        new.my_operator = None
-        return new
+    def __str__(self):
+        return str(id(self))
 
-    def __deepcopy__(self, memo={}):
-        cls = self.__class__
-        result = cls.__new__(cls)
-        memo[id(self)] = result
-        for k, v in self.__dict__.items():
-            setattr(result, k, copy.deepcopy(v, memo))
-        result.my_operator = None
-        return result
+    def __hash__(self):
+        return hash(str(self))
+
+    def clone(self):
+        tmp = self.my_operator
+        self.my_operator = None
+        new = copy.copy(self)
+        self.my_operator = tmp
+        return new
 
     @property
     def my_operator(self):
@@ -91,12 +90,29 @@ class BaseAction:
         self._my_operator = new
 
 
-class BehAction(BaseAction):
+class Behaviour(BaseAction):
 
-    def __init__(self, name):
+    def __init__(self, name, accepted_class):
+        assert accepted_class is not None
         super().__init__()
         self._name = name
         self._description = None
+        self._accepted_class = accepted_class
+
+    def __repr__(self):
+        if self.description:
+            return repr(self.description)
+        else:
+            return repr(self._accepted_class(self.name))
+
+    def clone(self):
+        new = super().clone()
+        new._description = None
+        return new
+
+    @property
+    def kind(self):
+        return self._accepted_class
 
     @property
     def name(self):
@@ -108,7 +124,7 @@ class BehAction(BaseAction):
 
     @description.setter
     def description(self, item):
-        assert isinstance(item, Action)
+        assert isinstance(item, self.kind), f'Got {type(item).__name__} instead of {self.kind.__name__}'
         assert str(item) == self.name
         self._description = item
 
@@ -121,12 +137,6 @@ class Operator(BaseAction, collections.UserList):
     def __init__(self):
         super().__init__()
         self.data = []
-
-    def __str__(self):
-        return str(id(self))
-
-    def __hash__(self):
-        return hash(str(self))
 
     def __getitem__(self, position):
         return self.data[position]
@@ -179,6 +189,11 @@ class Operator(BaseAction, collections.UserList):
         self._pair(value)
         self.data.append(value)
 
+    def clone(self):
+        new = super().clone()
+        new.data = []
+        return new
+
     def _pair(self, action):
         assert not action.my_operator or action.my_operator is self
         if not action.my_operator:
@@ -192,9 +207,8 @@ class Parentheses(Operator):
     """
     This class represent an open parenthese symbol to simplify serialization and import.
     """
-
     def __repr__(self):
-        return type(self).__name__ + ('()' if not self.data else f'({repr(self.data[0])})')
+        return '()' if not self.data else f'({repr(self.data[0])})'
 
     def __setitem__(self, position, value):
         assert position == 0 and len(self) > 0
@@ -219,13 +233,13 @@ class Concatenation(Operator):
     """
 
     def __repr__(self):
-        return "{}({})".format(type(self).__name__, '.'.join(map(repr, self.data)))
+        return '.'.join(map(repr, self.data))
 
 
 class Choice(Operator):
 
     def __repr__(self):
-        return "{}({})".format(type(self).__name__, '|'.join(map(repr, self.data)))
+        return '|'.join(map(repr, self.data))
 
 
 class Action:
@@ -269,37 +283,23 @@ class Subprocess(Action):
     """
 
     def __init__(self, name):
-        super(Subprocess, self).__init__(name)
-        self.process = None
-        self._action = None
-
-    def __str__(self):
-        return str(id(self))
-
-    def __hash__(self):
-        return hash(str(self))
-
-    def __eq__(self, other):
-        return str(self) == str(other)
-
-    @property
-    def action(self):
-        return self._action
-
-    @action.setter
-    def action(self, new):
-        if (not self._action and new) or (self._action and not new):
-            if new:
-                new.my_operator = None
-            self._action = new
-        else:
-            raise RuntimeError('Explicitly clean first operator field')
+        super().__init__(name)
+        self.action = None
 
     def __repr__(self):
         return '{%s}' % self.name
 
 
-class Dispatch(Action):
+class Signal(Action):
+    # todo: Write doc
+
+    def __init__(self, name):
+        super().__init__(name)
+        self.trace_relevant = True
+        self.parameters = []
+
+
+class Dispatch(Signal):
     """
     An action that implies to send a signal to an another environmental process. It allows to save values from labels
     of the dispatcher in labels of the receiver via parameters. If there is no peer receivers then the signal will not
@@ -314,14 +314,12 @@ class Dispatch(Action):
         self.broadcast = broadcast
         self.trace_relevant = True
         self.parameters = []
-        # todo: Add a new class (Namedtuple) to implement peers
-        self.peers = []
 
     def __repr__(self):
         return '[%s%s]' % ('@' if self.broadcast else '', str(self))
 
 
-class Receive(Action):
+class Receive(Signal):
     """
     Class to represent receiver actions. Semantics of receiving is instant. If there is no sender at the moment then
     the action is skipped. If there is no sender at the moment then the process will sleep or do an another possible
@@ -330,11 +328,10 @@ class Receive(Action):
     An example of action string: "(mysend)".
     """
 
-    def __init__(self, name, repliative=False):
+    def __init__(self, name, repliative=True):
         super(Receive, self).__init__(name)
         self.replicative = repliative
         self.parameters = []
-        self.peers = []
 
     def __repr__(self):
         return '(%s%s)' % ('!' if self.replicative else '', str(self))
@@ -372,18 +369,26 @@ class Actions(collections.UserDict):
             key = str(key)
 
         self.data[key] = value
-        for item in self._process_actions.get(key, set()):
-            item.description = item
+        if key != 'operator':
+            for item in self._process_actions.get(key, set()):
+                item.description = value
 
     def __getitem__(self, key):
         assert isinstance(key, str) or isinstance(key, Action), f'Do not expect {type(key).__name__}'
         return self.data[str(key)]
 
     def __delitem__(self, key):
-        raise NotImplementedError
+        assert isinstance(key, str) or isinstance(key, Action), f'Do not expect {type(key).__name__}'
+        if self._process_actions.get(key):
+            for action in self._process_actions[key]:
+                action.my_operator.remove(action)
+                del self._process_actions[key]
+        del self.data[key]
 
-    def add_process_action(self, name, item):
+    def add_process_action(self, item, name='operator'):
         assert isinstance(item, BaseAction)
+        assert name
+        assert not isinstance(item, Operator) or name == 'operator'
         self._process_actions.setdefault(name, set())
         self._process_actions[name].add(item)
 
@@ -391,40 +396,28 @@ class Actions(collections.UserDict):
             item.description = self.data[name]
 
     def remove_process_action(self, obj):
-        raise NotImplementedError
+        for key in self._process_actions:
+            if obj in self._process_actions[key]:
+                self._process_actions[key].remove(obj)
 
-    def __copy__(self):
-        # todo: Update this!
-        raise NotImplementedError
+    def clone(self):
         new = Actions()
 
-        # Copy items
-        new.data = {n: copy.copy(v) for n, v in self.data.items()}
+        # Clone actions
+        new.data = copy.deepcopy(self.data)
 
-        # Explicitly clear operators (replacement forbidden by the API)
-        # todo: Avoid using private methods. But now this is the simplest wat to clean values
-        for action in new.data.values():
-            action.my_operator = None
-            if isinstance(action, Receive) or isinstance(action, Dispatch):
-                # They contain references to other processes in peers
-                action.parameters = copy.copy(action.parameters)
-            elif isinstance(action, Parentheses) or isinstance(action, Subprocess):
-                action._action = None
-            elif isinstance(action, Concatenation):
-                action._actions = collections.deque()
-            elif isinstance(action, Choice):
-                action._actions = collections.deque()
+        # Copy BehActions
+        actions_map = dict()
+        for key in self._process_actions:
+            for item in self._process_actions[key]:
+                new = item.clone()
+                actions_map[item] = new
+                new.add_process_action(new, key)
 
-        # Set new references
-        for action in self.data.values():
-            if isinstance(action, Parentheses) or isinstance(action, Subprocess):
-                new.data[action.name].action = new.data[action.action.name]
-            elif isinstance(action, Concatenation):
-                new.data[action.name].actions = [new.data[act.name] for i, act in enumerate(action.actions)]
-            elif isinstance(action, Choice):
-                new.data[action.name].actions = {new.data[act.name] for act in action.actions}
-
-        return new
+        # Replace operators
+        for operator in filter(lambda x: isinstance(x, Operator), actions_map.keys()):
+            for child in operator:
+                actions_map[operator].append(actions_map[child])
 
     def filter(self, include=None, exclude=None):
         if not include:
@@ -435,6 +428,12 @@ class Actions(collections.UserDict):
         return sorted([x for x in self.data.values() if (not include or any(isinstance(x, t) for t in include)) and
                        (not exclude or all(not isinstance(x, t) for t in exclude))])
 
+    def behaviour(self, name=None):
+        if not name:
+            return {a for k in self._process_actions for a in self._process_actions[k]}
+        else:
+            return {a for a in self._process_actions.get(name, set())}
+
     @property
     def initial_action(self):
         """
@@ -442,11 +441,11 @@ class Actions(collections.UserDict):
 
         :return: Sorted list with starting process State objects.
         """
-        acts = {s for s in self.data.values() if not s.my_operator}
-        acts.difference_update({s.action for s in self.filter(include={Subprocess}) if s.action})
-        assert not (len(self.data) > 0 and len(acts) == 0),\
+        exclude = {a.action for a in self.filter(include={Subprocess})}
+        acts = {a for a in self.behaviour() if not a.my_operator and isinstance(a, Operator) and a not in exclude}
+        assert not (len(self.behaviour()) > 0 and len(acts) == 0),\
             'Ther is no any initial action. There are actions in total: {}'.\
-            format('\n'.join(f"{repr(a)} parent: {repr(a.my_operator)}" for a in self.data.values()))
+            format('\n'.join(f"{repr(a)} parent: {repr(a.my_operator)}" for a in self.behaviour()))
         assert len(acts) == 1, 'There are more than one initial action: {}'.\
             format('\n'.join(f"{repr(a)} parent: {repr(a.my_operator)}" for a in acts))
         act, *_ = acts
@@ -454,22 +453,5 @@ class Actions(collections.UserDict):
 
     @property
     def final_actions(self):
-        return list(filter(lambda x: isinstance(x, Action) and not isinstance(x, Subprocess), self.data.values()))
-
-    @property
-    def unmatched_receives(self):
-        """
-        Returns Receive actions that do not have peers.
-
-        :return: A list of Action objects.
-        """
-        return (act for act in self.filter(include={Receive}) if not act.peers)
-
-    @property
-    def unmatched_dispatches(self):
-        """
-        Returns Dispatch actions that do not have peers.
-
-        :return: A list of Action objects.
-        """
-        return (act for act in self.filter(include={Dispatch}) if not act.peers)
+        return set(filter(lambda x: not isinstance(x, Operator) and not isinstance(x.kind, Subprocess),
+                          self.behaviour()))
