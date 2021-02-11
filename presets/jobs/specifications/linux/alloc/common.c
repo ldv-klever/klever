@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+ * Copyright (c) 2021 ISP RAS (http://www.ispras.ru)
  * Ivannikov Institute for System Programming of the Russian Academy of Sciences
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,30 +15,33 @@
  * limitations under the License.
  */
 
-before: file ("$this")
+#include <linux/types.h>
+#include <ldv/linux/common.h>
+#include <ldv/linux/err.h>
+#include <ldv/verifier/common.h>
+#include <ldv/verifier/memory.h>
+#include <ldv/verifier/nondet.h>
+
+void *ldv_common_alloc(gfp_t flags)
 {
-extern void ldv_usb_lock_device(void);
-extern void ldv_usb_unlock_device(void);
-extern int ldv_usb_trylock_device(void);
-extern int ldv_usb_lock_device_for_reset(void);
+	ldv_check_alloc_flags(flags);
+	return ldv_malloc_unknown_size();
 }
 
-around: call(int usb_lock_device_for_reset(..))
+int ldv_common_alloc_return_int(gfp_t flags)
 {
-	return ldv_usb_lock_device_for_reset();
+	ldv_check_alloc_flags(flags);
+	return ldv_undef_int();
 }
 
-around: define(usb_lock_device(udev))
+void *ldv_common_alloc_without_flags(void)
 {
-	ldv_usb_lock_device()
+	ldv_check_alloc_nonatomic();
+	return ldv_malloc_unknown_size();
 }
 
-around: define(usb_unlock_device(udev))
+void *ldv_common_zalloc(gfp_t flags)
 {
-	ldv_usb_unlock_device()
-}
-
-around: define(usb_trylock_device(udev))
-{
-	ldv_usb_trylock_device()
+	ldv_check_alloc_flags(flags);
+	return ldv_zalloc_unknown_size();
 }
