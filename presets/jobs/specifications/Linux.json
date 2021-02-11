@@ -161,6 +161,7 @@
           "name": "RSG",
           "options": {"models": [
             "common/list.c",
+            "linux/alloc/common.c",
             "linux/drivers/usb/core/usb/message.c",
             "linux/memory safety/memory.c"
           ]}
@@ -805,6 +806,7 @@
               "options": {"models": [
                 "common/list.c",
                 "common/test.c",
+                "linux/alloc/common.c",
                 "linux/drivers/usb/core/usb/message.c",
                 "linux/memory safety/memory.c"
               ]}
