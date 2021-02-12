@@ -159,7 +159,7 @@ class CollectionDecoder:
                     category = "functions models"
                     try:
                         process = self._import_process(source, name, category, process_desc)
-                        collection.models[str(process)] = process
+                        collection.models[process.name] = process
                     except Exception as err:
                         self.logger.warning("Cannot parse {!r}: {}".format(name, str(err)))
                         raise_exc.append(name)

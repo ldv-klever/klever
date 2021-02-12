@@ -346,6 +346,16 @@ def test_import_model(raw_model, model):
     _compare_models(raw_model, raw2)
 
 
+def test_imported_names(raw_model, model):
+    assert 'entry' == model.entry.name
+
+    for name in raw_model['functions models']:
+        assert name in model.models, 'There are models: {}'.format(', '.join(sorted(model.models.keys())))
+
+    for name in raw_model['environment processes']:
+        assert name in model.environment, 'There are models: {}'.format(', '.join(sorted(model.environment.keys())))
+
+
 def test_export_model(source, model):
     raw1 = json.dumps(model, cls=CollectionEncoder)
     new_model = CollectionDecoder(logging, dict()).parse_event_specification(source, json.loads(raw1))
@@ -393,4 +403,47 @@ def _compare_actions(one, two):
 
     if 'process' in one:
         assert 'process' in two
+
+
+def test_compare_peers(model):
+    def _check_peers(p1, p2, actions):
+        assert str(p1) in p2.peers, 'Peers are {}'.format(', ', p2.peers.keys())
+        assert str(p2) in p1.peers, 'Peers are {}'.format(', ', p1.peers.keys())
+        for action in actions:
+            assert action in p1.peers[str(p2)], 'Peer actions are: {}'.format(', '.join(sorted(p1.peers[str(p2)])))
+            assert action in p2.peers[str(p1)], 'Peer actions are: {}'.format(', '.join(sorted(p2.peers[str(p1)])))
+        assert len(actions) == len(p1.peers[str(p2)]), 'Peers are {}'.format(', '.join(sorted(p2.peers[str(p1)])))
+        assert len(actions) == len(p2.peers[str(p1)]), 'Peers are {}'.format(', '.join(sorted(p1.peers[str(p2)])))
+            
+    def expect_peers(p1, length):
+        assert len(p1.peers) == length, 'Peers are {}'.format(', ', p1.peers.keys())
+    
+    model.establish_peers()
+    
+    # register_c1, deregister_c1
+    _check_peers(model.models['register_c1'], model.environment['c1/p1'], {'register_c1p1'})
+    _check_peers(model.models['deregister_c1'], model.environment['c1/p1'], {'deregister_c1p1'})
+    expect_peers(model.models['register_c1'], 1)
+    expect_peers(model.models['deregister_c1'], 1)
+    
+    # register_c2, deregister_c2
+    _check_peers(model.models['register_c2'], model.environment['c2/p1'], {'register_c2p1'})
+    _check_peers(model.models['deregister_c2'], model.environment['c2/p1'], {'deregister_c2p1'})
+    expect_peers(model.models['register_c2'], 1)
+    expect_peers(model.models['deregister_c2'], 1)
+    
+    # c1/p1
+    _check_peers(model.environment['c1/p1'], model.environment['c1/p2'], {'register_c1p2', 'deregister_c1p2'})
+    expect_peers(model.environment['c1/p1'], 3)
+    
+    # c1/p2
+    expect_peers(model.environment['c1/p2'], 1)
+    
+    # c2/p2
+    expect_peers(model.environment['c1/p1'], 3)
+    
+    # main
+    expect_peers(model.entry, 0)
+
+    # todo: Check that peers are correctly exported and imported back
 

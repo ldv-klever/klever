@@ -21,7 +21,8 @@ import graphviz
 import sortedcontainers
 
 from klever.core.vtg.emg.common.process.labels import Label, Access
-from klever.core.vtg.emg.common.process.actions import Actions, Subprocess, Action, Dispatch, Receive, Block, Operator
+from klever.core.vtg.emg.common.process.actions import Actions, Subprocess, Action, Dispatch, Receive, Block, Operator,\
+    Signal, Behaviour
 
 
 class Process:
@@ -49,7 +50,7 @@ class Process:
         self.cfiles = sortedcontainers.SortedSet()
         self.headers = list()
         self.actions = Actions()
-        self.peers = set()
+        self.peers = dict()
         self.labels = sortedcontainers.SortedDict()
         self.declarations = sortedcontainers.SortedDict()
         self.definitions = sortedcontainers.SortedDict()
@@ -115,7 +116,7 @@ class Process:
                 used_labels.add(self.labels[m.group(1)])
 
         for action in (a for a in self.actions.values() if isinstance(a, Action)):
-            if isinstance(action, Receive) or isinstance(action, Dispatch):
+            if isinstance(action, Signal):
                 for param in action.parameters:
                     extract_labels(param)
             if isinstance(action, Block):
@@ -185,14 +186,19 @@ class Process:
         :param process: Process object
         :return: None
         """
+        if str(self) in process.peers:
+            del process.peers[str(self)]
+        if str(process) in self.peers:
+            del self.peers[str(process)]
+
         # Find suitable peers
-        for action in (a for a in self.actions
-                       if isinstance(self.actions[a], Receive) or isinstance(self.actions[a], Dispatch)):
+        for action in self.actions.filter(include={Signal}):
             if action in process.actions and \
-                    (isinstance(process.actions[action], Receive) or isinstance(process.actions[action], Dispatch)) and\
+                    isinstance(process.actions[action], Signal) and\
                     not isinstance(process.actions[action], type(self.actions[action])) and \
                     len(process.actions[action].parameters) == len(self.actions[action].parameters) and \
-                    self._name not in (p['process'] for p in process.actions[action].peers):
+                    str(action) not in self.peers.get(str(process), set()):
+
                 # Compare signatures of parameters
                 for num, p in enumerate(self.actions[action].parameters):
                     access1 = self.resolve_access(p)
@@ -205,8 +211,9 @@ class Process:
                         break
                 else:
                     # All parameters match each other
-                    self.actions[action].peers.append({'process': process, 'action': process.actions[action]})
-                    process.actions[action].peers.append({'process': self, 'action': self.actions[action]})
+                    for p1, p2 in ((self, process), (process, self)):
+                        p1.peers.setdefault(str(p2), set())
+                        p1.peers[str(p2)].add(str(action))
 
     def resolve_access(self, access):
         """
@@ -365,7 +372,7 @@ class ProcessCollection:
     def process_map(self):
         return {str(p): p for p in self.processes}
 
-    def establish_peers(self, strict=False):
+    def establish_peers(self):
         """
         Get processes and guarantee that all peers are correctly set for both receivers and dispatchers. The function
         replaces dispatches expressed by strings to object references as it is expected in translation.
@@ -373,9 +380,15 @@ class ProcessCollection:
         :param strict: Raise exception if a peer process identifier is unknown (True) or just ignore it (False).
         :return: None
         """
-        # Then check peers. This is because in generated processes there no peers set for manually written processes
-        for process in self.processes:
-            self.__establist_peers_of_process(process, strict)
+        # Fisrt check models
+        for model in self.models.values():
+            for process in list(self.environment.values()) + [self.entry]:
+                model.establish_peers(process)
+
+        processes = list(self.environment.values()) + [self.entry]
+        for i, process in enumerate(processes):
+            for pair in processes[i+1:]:
+                process.establish_peers(pair)
 
     def save_digraphs(self, directory):
         """
