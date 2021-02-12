@@ -74,15 +74,17 @@ class Process:
         else:
             return False
 
-    def __copy__(self):
-        inst = type(self)(self.name, self.category)
+    def clone(self):
+        inst = copy.copy(self)
 
         # Set simple attributes
         for att, val in self.__dict__.items():
-            if isinstance(val, list) or isinstance(val, dict) or isinstance(val, Actions):
+            if isinstance(val, list) or isinstance(val, dict):
                 setattr(inst, att, copy.copy(val))
             else:
                 setattr(inst, att, val)
+
+        inst.actions = self.actions.clone()
 
         # Change declarations and definition keys
         for collection in (self.declarations, self.definitions):

@@ -410,14 +410,16 @@ class Actions(collections.UserDict):
         actions_map = dict()
         for key in self._process_actions:
             for item in self._process_actions[key]:
-                new = item.clone()
-                actions_map[item] = new
-                new.add_process_action(new, key)
+                new_item = item.clone()
+                actions_map[item] = new_item
+                new.add_process_action(new_item, key)
 
         # Replace operators
         for operator in filter(lambda x: isinstance(x, Operator), actions_map.keys()):
             for child in operator:
                 actions_map[operator].append(actions_map[child])
+
+        return new
 
     def filter(self, include=None, exclude=None):
         if not include:
