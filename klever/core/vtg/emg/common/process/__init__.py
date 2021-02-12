@@ -315,12 +315,14 @@ class Process:
         """
         assert isinstance(old, Action), f'Expect strictly an Action to replace but got {repr(old)}'
         assert isinstance(new, Action), f'Expect strictly an Action to replace with {repr(new)}'
+        self.actions[str(new)] = new
 
-        operator = old.my_operator
-        if operator and isinstance(operator, Operator):
-            operator.replace(old, new)
-        else:
-            raise ValueError(f'Expect operator but got instead {repr(operator)}')
+        for entry in self.actions.behaviour(str(old)):
+            new_entry = Behaviour(str(new), type(new))
+            self.actions.add_process_action(new_entry, str(new))
+            operator = entry.my_operator
+            operator.replace(entry, new_entry)
+            self.actions.remove_process_action(entry)
 
         if purge:
             del self.actions[str(old)]
@@ -334,21 +336,19 @@ class Process:
         :param target: Action object.
         :param before: True if append left ot append to  the right end.
         """
-        operator = target.my_operator
-        position = operator.actions.index(target)
-        if not before:
-            position += 1
-        operator[position] = new
+        assert isinstance(new, Action), f'Got non-action object {str(new)}'
+        assert isinstance(target, Action), f'Got non-action object {str(target)}'
+        if str(new) not in self.actions:
+            self.actions[str(new)] = new
 
-    def insert_alternative_action(self, new, target):
-        """
-        Insert an existing action as an alternative choice for a given one.
-
-        :param new: Action object.
-        :param target: Action object.
-        """
-        operator = target.my_operator
-        operator.replace(target, new)
+        for entry in self.actions.behaviour(str(target)):
+            new_entry = Behaviour(str(new), type(new))
+            self.actions.add_process_action(new_entry, str(new))
+            operator = entry.my_operator
+            position = operator.index(entry)
+            if not before:
+                position += 1
+            operator.insert(position, new_entry)
 
 
 class ProcessCollection:
@@ -401,16 +401,19 @@ class ProcessCollection:
         :return: None
         """
         def process_next(prevs, action):
-            if isinstance(action, Action):
+            if isinstance(action, Behaviour):
                 for prev in prevs:
                     graph.edge(str(prev), str(action))
                 return {action}
             elif isinstance(action, Operator):
                 for act in action:
-                    if isinstance(act, Action):
+                    if isinstance(act, Behaviour):
                         for prev in prevs:
-                            graph.edge(str(prev), str(act))
+                            graph.edge(hash(prev), label=r'{}\l'.format(repr(a)))
                         prevs = {act}
+
+                        if isinstance(act.kind, Subprocess):
+                            process_next(prevs, act.description.action)
                     else:
                         prevs = process_next(prevs, act)
                 return prevs
@@ -426,8 +429,8 @@ class ProcessCollection:
                 format="png"
             )
 
-            for a in process.actions.filter(include={Action}, exclude={Subprocess}):
-                graph.node(str(a), r'{}\l'.format(repr(a)))
+            for a in process.actions.final_actions:
+                graph.node(hash(a), r'{}\l'.format(repr(a)))
             process_next(set(), process.actions.initial_action)
 
             # Save to dg_file
