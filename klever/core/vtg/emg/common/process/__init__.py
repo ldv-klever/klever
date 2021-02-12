@@ -209,7 +209,7 @@ class Process:
                         raise RuntimeError("Strange accesses {!r} and {!r} in {!r} and {!r}".
                                            format(p, process.actions[action].parameters[num], process.pretty_id,
                                                   process.pretty_id))
-                    if not access1.label.declaration.compare(access2.label.declaration):
+                    if access1.label.declaration != access2.label.declaration:
                         break
                 else:
                     # All parameters match each other
@@ -328,7 +328,6 @@ class Process:
 
         if purge:
             del self.actions[str(old)]
-            self.actions[str(new)] = new
 
     def insert_action(self, new, target, before=False):
         """
@@ -438,31 +437,3 @@ class ProcessCollection:
             # Save to dg_file
             graph.save(dg_file)
             graph.render()
-
-    def __establist_peers_of_process(self, process, strict=False):
-        # Then check peers. This is because in generated processes there no peers set for manually written processes
-        process_map = self.process_map
-        for action in [process.actions[a] for a in process.actions.filter(include={Receive, Dispatch})
-                       if process.actions[a].peers]:
-            new_peers = list()
-            for peer in action.peers:
-                if isinstance(peer, str):
-                    if peer in process_map:
-                        target = process_map[peer]
-                        new_peer = {'process': target, 'action': target.actions[action.name]}
-                        new_peers.append(new_peer)
-
-                        opposite_peers = [str(p['process']) if isinstance(p, dict) else p
-                                          for p in target.actions[action.name].peers]
-                        if str(process) not in opposite_peers:
-                            target.actions[action.name].peers.append({'process': process, 'action': action})
-                    elif strict:
-                        raise KeyError("Process {!r} tries to send a signal {!r} to {!r} but there is no such "
-                                       "process in the model".format(str(process), str(action), peer))
-                else:
-                    new_peers.append(peer)
-
-            action.peers = new_peers
-
-
-
