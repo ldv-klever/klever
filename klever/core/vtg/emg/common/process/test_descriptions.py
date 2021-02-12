@@ -15,8 +15,52 @@
 # limitations under the License.
 #
 
-def test_automatic_assignments():
-    raise NotImplementedError
-    # Test that before and after setting a description the behaviout action will receive it
-    # Test that removal works
-    # Test that replacement works   
+import pytest
+
+from klever.core.vtg.emg.common.process import Process
+from klever.core.vtg.emg.common.process.parser import parse_process
+from klever.core.vtg.emg.common.process.actions import Dispatch
+
+
+@pytest.fixture
+def new():
+    return Dispatch('d')
+
+
+@pytest.fixture
+def process():
+    return Process('test')
+
+
+def _prepare_empty_process(process):
+    test = "(((a).<b> | [c]) . [d]) | [e]"
+    assert parse_process(process, test)
+
+
+def test_before_assignment(new, process):
+    process.actions[str(new)] = new
+    _prepare_empty_process(process)
+    bvs = process.actions.behaviour(str(new))
+
+    assert len(bvs) == 1
+    assert bvs.pop().description is new
+
+
+def test_after_assignment(new, process):
+    _prepare_empty_process(process)
+    process.actions[str(new)] = new
+    bvs = process.actions.behaviour(str(new))
+
+    assert len(bvs) == 1
+    assert bvs.pop().description is new
+
+
+def test_replacement(new, process):
+    process.actions[str(new)] = new
+    _prepare_empty_process(process)
+    newest = Dispatch('d')
+    process.actions[str(new)] = newest
+    bvs = process.actions.behaviour(str(new))
+
+    assert len(bvs) == 1
+    assert bvs.pop().description is newest
