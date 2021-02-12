@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
+# Copyright (c) 2021 ISP RAS (http://www.ispras.ru)
 # Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -115,19 +115,3 @@ def test_operator(operator, action1, action2):
     assert action2.my_operator is operator
     assert operator[0] is action2
     assert operator[1] is action1
-
-
-# def test_actions():
-#     # todo: Implement
-#     raise NotImplementedError
-#     # assert {action1}
-#     # assert action1 == copy.deepcopy(action1)
-#     # assert action1 < action2
-#     #
-#     # operator.append(action1)
-#     # assert action1.my_operator is operator
-#     # clone = copy.deepcopy(action1)
-#     # assert clone.condition is not action1.condition
-#     # assert clone.savepoints is not action1.savepoints
-#     # assert clone.my_operator is None
-#     # assert action1.my_operator is operator

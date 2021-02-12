@@ -15,5 +15,22 @@
 # limitations under the License.
 #
 
-def test_process():
+
+def test_clone_behaviours():
+    raise NotImplementedError
+
+
+def test_clone_action():
+    raise NotImplementedError
+
+
+def test_clone_actions():
+    raise NotImplementedError
+
+
+def test_clone_process():
+    raise NotImplementedError
+
+
+def test_cloning_peers():
     raise NotImplementedError

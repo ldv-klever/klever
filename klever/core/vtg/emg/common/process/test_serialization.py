@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
+# Copyright (c) 2021 ISP RAS (http://www.ispras.ru)
 # Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -444,6 +444,3 @@ def test_compare_peers(model):
     
     # main
     expect_peers(model.entry, 0)
-
-    # todo: Check that peers are correctly exported and imported back
-
