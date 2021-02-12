@@ -15,22 +15,59 @@
 # limitations under the License.
 #
 
+import pytest
 
-def test_clone_behaviours():
-    raise NotImplementedError
-
-
-def test_clone_action():
-    raise NotImplementedError
-
-
-def test_clone_actions():
-    raise NotImplementedError
+from klever.core.vtg.emg.common.process import Process
+from klever.core.vtg.emg.common.process.labels import Label
+from klever.core.vtg.emg.common.process.parser import parse_process
+from klever.core.vtg.emg.common.process.actions import Receive, Dispatch, Block
 
 
-def test_clone_process():
-    raise NotImplementedError
+@pytest.fixture
+def process():
+    process = Process('test')
+    test = "(((a).<b> | [c]) . [d]) | [e]"
+
+    # Parse
+    assert parse_process(process, test)
+    process.actions['a'] = Receive('a')
+    process.actions['b'] = Block('b')
+    for name in 'cde':
+        process.actions[name] = Dispatch(name)
+
+    for name in ('l1', 'l2'):
+        process.labels[name] = Label(name)
+
+    return process
 
 
-def test_cloning_peers():
-    raise NotImplementedError
+@pytest.fixture
+def clone(process):
+    return process.clone()
+
+
+def test_labels(process, clone):
+    assert process.labels['l1'] is not clone.labels['l2']
+    process.labels['l3'] = Label('l3')
+    assert 'l3' not in clone.labels
+
+
+def test_clone_action(process, clone):
+    assert process.actions['d'] is not clone.actions['d']
+    assert process.actions.behaviour('d').pop().description is process.actions['d']
+    assert clone.actions.behaviour('d').pop().description is clone.actions['d']
+
+
+def test_clone_actions(process, clone):
+    assert process.actions is not clone.actions
+    for i in process.actions.behaviour():
+        assert i not in clone.actions.behaviour()
+
+
+def test_clone_behaviours(process, clone):
+    operator = process.actions.behaviour('d').pop().my_operator
+    del process.actions['d']
+
+    assert clone.actions['d']
+    assert clone.actions.behaviour('d').pop()
+    assert len(clone.actions.behaviour('d').pop().my_operator) == len(operator) + 1
