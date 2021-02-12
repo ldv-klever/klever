@@ -453,5 +453,4 @@ class Actions(collections.UserDict):
 
     @property
     def final_actions(self):
-        return set(filter(lambda x: not isinstance(x, Operator) and not isinstance(x.kind, Subprocess),
-                          self.behaviour()))
+        return set(filter(lambda x: not isinstance(x, Operator), self.behaviour()))
