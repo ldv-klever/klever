@@ -38,20 +38,26 @@ class Linux(FragmentationAlgorythm):
 
         :param program: Program object.
         """
-        for desc in program.clade.get_all_cmds_by_type("LD"):
+        self._search_for_modules(program)
+        if self.kernel:
+            self.logger.info('Inspect AR comands in addition')
+            self._search_for_modules(program, 'AR', 'built-in.a')
+
+    def _search_for_modules(self, program, linking_command='LD', suffix='built-in.o'):
+        for desc in program.clade.get_all_cmds_by_type(linking_command):
             identifier = desc['id']
             # This shouldn't happen ever, but let's fail otherwise.
             if len(desc['out']) != 1:
-                self.logger.warning("LD commands with several out files are not supported, skip commands: {!r}".
-                                    format(identifier))
+                self.logger.warning("{} commands with several out files are not supported, skip commands: {!r}".
+                                    format(linking_command, identifier))
                 continue
 
             out = desc['out'][0]
-            if out.endswith('.ko') or out.endswith('built-in.o'):
+            if out.endswith('.ko') or out.endswith(suffix):
                 rel_object_path = make_relative_path(self.source_paths, out)
                 name = rel_object_path
                 fragment = program.create_fragment_from_linker_cmds(identifier, desc, name,
-                                                                    out.endswith('built-in.o') and self._separate_nested)
+                                                                    out.endswith(suffix) and self._separate_nested)
                 if (not self._max_size or fragment.size <= self._max_size) and len(fragment.files) != 0:
                     program.add_fragment(fragment)
                 else:
@@ -65,6 +71,11 @@ class Linux(FragmentationAlgorythm):
 
         :param program: Program object.
         """
+        if self.kernel:
+            self.logger.info('Searching for kernel parts instead of kernel objects')
+        else:
+            self.logger.info('Searching for kernel objects instead of statically linked parts')
+
         super()._determine_targets(program)
         for fragment in program.target_fragments:
             if fragment.name.endswith('built-in.o') and not self.kernel:
