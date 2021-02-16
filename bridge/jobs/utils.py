@@ -16,6 +16,7 @@
 #
 
 import io
+import json
 import os
 import re
 from collections import OrderedDict
@@ -29,7 +30,7 @@ from django.utils.translation import ugettext_lazy as _
 from bridge.vars import (
     DECISION_STATUS, USER_ROLES, JOB_ROLES, SUBJOB_NAME, DECISION_WEIGHT, SCHEDULER_TYPE, SCHEDULER_STATUS
 )
-from bridge.utils import file_get_or_create, BridgeException
+from bridge.utils import file_get_or_create, logger, BridgeException
 
 from users.models import User
 from jobs.models import PRESET_JOB_TYPE, Job, JobFile, FileSystem, UserRole, PresetJob, Scheduler
@@ -160,19 +161,33 @@ def get_roles_form_data(job=None):
 
 
 def copy_files_with_replace(request, decision_id, files_qs):
+    new_job_files = []
     files_to_replace = {}
+
+    # Upload provided files first
     if request.data.get('files'):
-        for fname, fkey in request.data['files'].items():
+        if isinstance(request.data['files'], str):
+            try:
+                files_map = json.loads(request.data['files'])
+            except Exception as e:
+                logger.error("Can't decode files data: {}".format(request.data['files']))
+                raise BridgeException("Can't decode files data: {}".format(e))
+        elif isinstance(request.data['files'], dict):
+            files_map = request.data['files']
+        else:
+            raise BridgeException('Wrong files data: "{}" ({})'
+                                  .format(request.data['files'], type(request.data['files'])))
+        for fname, fkey in files_map.items():
             if fkey in request.FILES:
                 files_to_replace[fname] = request.FILES[fkey]
+                new_file = file_get_or_create(files_to_replace[fname], fname, JobFile)
+                new_job_files.append(FileSystem(decision_id=decision_id, file_id=new_file.id, name=fname))
 
-    new_job_files = []
+    # Copy other files
     for f_id, f_name in files_qs:
-        fs_kwargs = {'decision_id': decision_id, 'file_id': f_id, 'name': f_name}
         if f_name in files_to_replace:
-            new_file = file_get_or_create(files_to_replace[f_name], f_name, JobFile)
-            fs_kwargs['file_id'] = new_file.id
-        new_job_files.append(FileSystem(**fs_kwargs))
+            continue
+        new_job_files.append(FileSystem(decision_id=decision_id, file_id=f_id, name=f_name))
     FileSystem.objects.bulk_create(new_job_files)
 
 

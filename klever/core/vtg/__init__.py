@@ -617,7 +617,7 @@ class VTGW(klever.core.components.Component):
     def _run_plugin(self, plugin_desc, initial_abstract_task_desc_file=None, out_abstract_task_desc_file=None):
         plugin_name = plugin_desc['name']
         plugin_work_dir = plugin_desc['name'].lower()
-        plugin_conf = copy.deepcopy(self.conf)
+        plugin_conf = copy.deepcopy(plugin_desc['options'])
         plugin_conf_file = f'{plugin_name.lower()} conf.json'
         initial_abstract_task_desc_file = initial_abstract_task_desc_file if initial_abstract_task_desc_file else \
             self.initial_abstract_task_desc_file
@@ -626,7 +626,7 @@ class VTGW(klever.core.components.Component):
 
         self.logger.info(f'Launch plugin {plugin_name}')
         if 'options' in plugin_desc:
-            plugin_conf.update(plugin_desc['options'])
+            plugin_conf.update(self.conf)
         plugin_conf['in abstract task desc file'] = os.path.relpath(initial_abstract_task_desc_file,
                                                                     self.conf['main working directory'])
         plugin_conf['out abstract task desc file'] = os.path.relpath(out_abstract_task_desc_file,
