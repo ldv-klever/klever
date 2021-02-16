@@ -149,6 +149,8 @@ Deployment for Development Purposes
 To deploy Klever for development purposes in addition to using mode *development* (see :ref:`local_deploy`) one needs
 to specify command-line option *--allow-symbolic-links*.
 
+.. _test_build_bases_generation:
+
 How to generate build bases for testing Klever
 ----------------------------------------------
 
@@ -236,8 +238,8 @@ In contrast to other test suites this one likely corresponds to the most industr
 One can (re-)generate bare CPAchecker benchmarks almost automatically.
 To do this it is recommended to follow next steps:
 
-#. Clone https://gitlab.com/sosy-lab/software/ldv-klever-benchmarks.git or
-   git@gitlab.com:sosy-lab/software/ldv-klever-benchmarks.git once.
+#. Clone `<https://gitlab.com/sosy-lab/software/ldv-klever-benchmarks.git>`__ or
+   `<git@gitlab.com:sosy-lab/software/ldv-klever-benchmarks.git>`__ once.
 #. After some changes within Klever specifications, configurations and test cases you need to solve appropriate
    verification jobs.
    To avoid some non-determinism it is better to use the same machine, e.g. LDV Dev, to do this.

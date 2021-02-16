@@ -16,7 +16,7 @@ OpenStack Deployment
 ====================
 
 .. note:: Althouth we would like to support different `OpenStack <https://www.openstack.org/>`__ environments, we
-          tested :ref:`openstack_deploy` just for the `ISP RAS one <http://www.bigdataopenlab.ru/about.html>`__.
+          tested :ref:`openstack_deploy` just for the `ISP RAS one <https://cloud.ispras.ru>`__.
 
 Additional Software Requirements
 --------------------------------

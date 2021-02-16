@@ -1,0 +1,11 @@
+{
+  "project": "Linux",
+  "build base": "linux/loadable kernel modules sample arm64",
+  "architecture": "ARM64",
+  "targets": [
+    "drivers/ata/pata_arasan_cf.ko"
+  ],
+  "requirement specifications": [
+    "drivers:clk1"
+  ]
+}
