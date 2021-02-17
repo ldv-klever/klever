@@ -116,6 +116,11 @@ class Linux(FragmentationAlgorythm):
             # Save before creating a fragment
             out = desc['out'][0]
             rel_object_path = make_relative_path(self.source_paths, out)
+            # todo: this is a corner case
+            if os.path.isabs(rel_object_path) and rel_object_path[0] == '/':
+                rel_object_path = rel_object_path[1:]
+            elif os.path.isabs(rel_object_path):
+                raise ValueError(f'Cannot get relative path from {rel_object_path} for {out}')
             name = os.path.join(os.path.dirname(rel_object_path), name)
             modules.setdefault(name, set())
             modules[name].update(files)
