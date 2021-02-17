@@ -414,6 +414,13 @@ def test_compare_peers(model):
             assert action in p2.peers[str(p1)], 'Peer actions are: {}'.format(', '.join(sorted(p2.peers[str(p1)])))
         assert len(actions) == len(p1.peers[str(p2)]), 'Peers are {}'.format(', '.join(sorted(p2.peers[str(p1)])))
         assert len(actions) == len(p2.peers[str(p1)]), 'Peers are {}'.format(', '.join(sorted(p1.peers[str(p2)])))
+
+        peers1 = model.peers(p1, list(map(str, actions)), [str(p2)])
+        assert len(peers1) == len(actions), 'Peer actions are: {}, but got: {}'.\
+                                            format(', '.join(sorted(p1.peers[str(p2)])), ', '.join(map(str, peers1)))
+        peers2 = model.peers(p2, list(map(str, actions)), [str(p1)])
+        assert len(peers2) == len(actions), 'Peer actions are: {}, but got: {}'. \
+                                            format(', '.join(sorted(p2.peers[str(p1)])), ', '.join(map(str, peers2)))
             
     def expect_peers(p1, length):
         assert len(p1.peers) == length, 'Peers are {}'.format(', ', p1.peers.keys())

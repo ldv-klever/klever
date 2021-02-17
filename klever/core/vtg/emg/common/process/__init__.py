@@ -18,11 +18,16 @@
 import re
 import copy
 import graphviz
+import collections
 import sortedcontainers
 
 from klever.core.vtg.emg.common.process.labels import Label, Access
 from klever.core.vtg.emg.common.process.actions import Actions, Subprocess, Action, Dispatch, Receive, Block, Operator,\
     Signal, Behaviour
+
+
+Peer = collections.namedtuple('Peer', 'process action')
+# todo: write docs
 
 
 class Process:
@@ -372,6 +377,28 @@ class ProcessCollection:
     @property
     def process_map(self):
         return {str(p): p for p in self.processes}
+
+    def find_process(self, identifier):
+        if str(self.entry) == identifier:
+            return self.entry
+        elif identifier in self.models:
+            return self.models[identifier]
+        elif identifier.split('/')[-1] in self.models:
+            return self.models[identifier.split('/')[-1]]
+        elif identifier in self.environment:
+            return self.environment[identifier]
+        else:
+            raise KeyError(f'Cannot find process with the identifier: {identifier}')
+
+    def peers(self, process, signals=None, processes=None):
+        peers = []
+        for agent_name in (n for n in process.peers if processes is None or n in processes):
+            agent = self.find_process(agent_name)
+
+            for action_name in (n for n in process.peers[agent_name] if signals is None or n in signals):
+                peers.append(Peer(agent, agent.actions[action_name]))
+
+        return peers
 
     def establish_peers(self):
         """
