@@ -138,16 +138,15 @@ class CollectionDecoder:
         self.logger = logger
         self.conf = conf
 
-    def parse_event_specification(self, source, raw):
+    def parse_event_specification(self, source, raw, collection):
         """
         Parse process descriptions and create corresponding objects to populate the collection.
 
         :param source: Source code collection.
         :param raw: Dictionary with content of JSON file.
+        :param collection: ProcessCollection.
         :return: ProcessCollection
         """
-        collection = ProcessCollection()
-
         self.logger.info("Import processes from provided event categories specification")
         raise_exc = []
         if "functions models" in raw:
@@ -262,7 +261,7 @@ class CollectionDecoder:
                 # Update object to be sure that changes are saved there
                 setattr(process, att, dic_copy)
 
-        unused_labels = {str(l) for l in process.unused_labels}
+        unused_labels = {str(label) for label in process.unused_labels}
         if unused_labels:
             raise RuntimeError("Found unused labels in process {!r}: {}".format(str(process), ', '.join(unused_labels)))
         if process.file != 'entry point':

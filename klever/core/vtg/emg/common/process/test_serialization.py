@@ -21,6 +21,7 @@ import logging
 
 from klever.core.vtg.emg.common.c import Function
 from klever.core.vtg.emg.common.c.source import Source
+from klever.core.vtg.emg.common.process import ProcessCollection
 from klever.core.vtg.emg.common.process.serialization import CollectionDecoder, CollectionEncoder
 
 
@@ -338,7 +339,7 @@ def raw_model():
 @pytest.fixture()
 def model(source, raw_model):
     parser = CollectionDecoder(logging, dict())
-    return parser.parse_event_specification(source, raw_model)
+    return parser.parse_event_specification(source, raw_model, ProcessCollection())
 
 
 def test_import_model(raw_model, model):
@@ -358,7 +359,8 @@ def test_imported_names(raw_model, model):
 
 def test_export_model(source, model):
     raw1 = json.dumps(model, cls=CollectionEncoder)
-    new_model = CollectionDecoder(logging, dict()).parse_event_specification(source, json.loads(raw1))
+    new_model = CollectionDecoder(logging, dict()).parse_event_specification(source, json.loads(raw1),
+                                                                             ProcessCollection())
     raw2 = json.dumps(new_model, cls=CollectionEncoder)
 
     raw1 = json.loads(raw1)
