@@ -104,10 +104,8 @@ class Linux(FragmentationAlgorythm):
                         name += '.ko'
                         break
 
-                    raise ValueError(f"Cannot parse the option: '{option}'")
+                    self.logger.warning(f"Cannot parse the option: '{option}'. Skip command {identifier}.")
             else:
-                # We do not expect a command to be a module part
-                self.logger.debug(f'No match for {identifier}')
                 continue
 
             # Get C files
