@@ -42,10 +42,11 @@ class Linux(FragmentationAlgorythm):
 
         :param program: Program object.
         """
-        self._search_for_modules(program)
         if self._statically_linked:
             self.logger.info("Search for modules that are linked to the kernel")
             self.search_for_statically_linked_modules(program)
+        else:
+            self._search_for_modules(program)
         if self.kernel:
             self.logger.info('Inspect AR comands in addition')
             self._search_for_modules(program, 'AR', 'built-in.a')
@@ -74,7 +75,9 @@ class Linux(FragmentationAlgorythm):
     def search_for_statically_linked_modules(self, program):
         """Search for CC commands that are linked to a single kernel object usually but linked to the kernel now."""
         modules = dict()
-        module_re = re.compile(r'(?:(?:KBUILD_MODNAME)|(?:-DKBUILD_MODNAME))=\"(\w+)\"')
+        kbuiltstr_re = re.compile(r'KBUILD_STR\((\w+)\)')
+        value_re = re.compile(r'\"(\w+)\"')
+        valid_re = re.compile('\w+')
         for desc in program.clade.get_all_cmds_by_type('CC'):
             identifier = desc['id']
             if not desc['out']:
@@ -83,11 +86,25 @@ class Linux(FragmentationAlgorythm):
 
             opts = program.clade.get_cmd_opts(identifier)
             for option in opts:
-                match = module_re.match(option)
-                if match:
-                    # Save the name of the module
-                    name = match.group(1) + '.ko'
-                    break
+                name = None
+                if option.startswith('KBUILD_MODNAME='):
+                    name = option.replace('KBUILD_MODNAME=', '')
+                elif option.startswith('-DKBUILD_MODNAME'):
+                    name = option.replace('-DKBUILD_MODNAME=', '')
+
+                if name:
+                    match1 = value_re.match(name)
+                    match2 = kbuiltstr_re.match(name)
+                    if match1:
+                        name = match1.group(1)
+                    elif match2:
+                        name = match2.group(1)
+
+                    if valid_re.match(name):
+                        name += '.ko'
+                        break
+
+                    raise ValueError(f"Cannot parse the option: '{option}'")
             else:
                 # We do not expect a command to be a module part
                 self.logger.debug(f'No match for {identifier}')
