@@ -22,11 +22,12 @@ import sortedcontainers
 
 import klever.core.vtg.emg.common.c as c
 from klever.core.vtg.emg.common import get_or_die, id_generator
-from klever.core.vtg.emg.common.process import Dispatch, Receive, Block
+from klever.core.vtg.emg.common.process import Process
+from klever.core.vtg.emg.common.process.actions import Dispatch, Receive, Block, Signal
 from klever.core.vtg.emg.common.process.serialization import CollectionEncoder
 from klever.core.vtg.emg.common.c.types import Structure, Primitive, Pointer, Array, Function, import_declaration
 from klever.core.vtg.emg.generators.linuxModule.interface import Implementation, Resource, Container, Callback
-from klever.core.vtg.emg.generators.linuxModule.process import get_common_parameter, CallRetval, Call, ExtendedAccess, Action
+from klever.core.vtg.emg.generators.linuxModule.process import get_common_parameter, CallRetval, Call, ExtendedAccess
 
 
 _declarations = {'environment model': list()}
@@ -158,7 +159,7 @@ def _simplify_process(logger, conf, sa, interfaces, process):
                 action.statements[pos] = statement.replace(whole, str(size))
 
     # Then replace accesses in parameters with simplified expressions
-    for action in process.actions.filter(include={Dispatch, Receive}):
+    for action in process.actions.filter(include={Signal}, exclude={CallRetval, Call}):
         if action.peers:
             guards = []
 
@@ -253,7 +254,7 @@ def _simplify_process(logger, conf, sa, interfaces, process):
 
         return final
 
-    for action in process.actions.filter(include={Action}):
+    for action in process.actions.values():
         if isinstance(action, Block):
             # Implement statements processing
             action.statements = code_replacment(action.statements)
@@ -655,7 +656,7 @@ def _yield_instances(logger, conf, sa, interfaces, model, instance_maps):
 
     # According to new identifiers change signals peers
     for process in model_fsa + callback_fsa:
-        for action in process.actions.filter(include={Dispatch, Receive}):
+        for action in process.actions.filter(include={Signal}, exclude={CallRetval, Call}):
             new_peers = []
             for peer in action.peers:
                 if str(peer['process']) in identifiers_map:

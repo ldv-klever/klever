@@ -15,12 +15,12 @@
 # limitations under the License.
 #
 
-import copy
 import sortedcontainers
 
 from klever.core.vtg.emg.common import get_or_die
-from klever.core.vtg.emg.common.process import Dispatch, Receive, ProcessCollection
-from klever.core.vtg.emg.generators.linuxModule.process import ExtendedAccess, Call, Action
+from klever.core.vtg.emg.common.process import ProcessCollection
+from klever.core.vtg.emg.common.process.actions import Dispatch, Receive, Signal
+from klever.core.vtg.emg.generators.linuxModule.process import ExtendedAccess, Call, CallRetval
 from klever.core.vtg.emg.generators.linuxModule.interface import Interface, Callback, Container, StructureContainer
 
 
@@ -150,13 +150,13 @@ def __choose_processes(logger, conf, interfaces, category, chosen, collection):
     # Filter by send relationships
     signal_maps = {}
     for process in (collection.environment[name] for name in estimations):
-        for sending in process.actions.filter(include=[Dispatch]):
+        for sending in process.actions.filter(include=[Dispatch], exclude={Call}):
             params = str(len(sending.parameters))
             logger.debug(f'Found dispatch {str(sending)} with {params}')
             nname = str(sending) + '_' + params
             signal_maps.setdefault(nname, {'send': set(), 'receive': set()})
             signal_maps[nname]['send'].add(str(process))
-        for receive in process.actions.filter(include=[Receive]):
+        for receive in process.actions.filter(include=[Receive], exclude={CallRetval}):
             params = str(len(receive.parameters))
             logger.debug(f'Found dispatch {str(receive)} with {params}')
             nname = str(receive) + '_' + str(len(receive.parameters))
@@ -224,8 +224,8 @@ def __establish_signal_peers(logger, conf, interfaces, process, chosen, collecti
 
         # Be sure that process have not been added yet
         peered_processes = set()
-        for action in [a for a in process.actions.filter(include={Receive, Dispatch}) if a.peers]:
-            peered_processes.update({str(p["process"]) for p in action.peers if p["process"].name == candidate.name})
+        if process.peers.get(str(chosen)):
+            peered_processes.add(str(chosen))
 
         # Try to add process
         if peers and not peered_processes:
@@ -472,7 +472,7 @@ def __find_native_categories(process):
 def __add_process(logger, conf, interfaces, process, chosen, category=None, model=False, label_map=None, peer=None):
     logger.info("Add process {!r} to the model".format(process.name))
     logger.debug("Make copy of process {!r} before adding it to the model".format(process.name))
-    new = copy.copy(process)
+    new = process.clone()
     if not category:
         new.category = 'functions models'
         if not new.comment:
@@ -485,7 +485,7 @@ def __add_process(logger, conf, interfaces, process, chosen, category=None, mode
 
     # Add comments
     comments_by_type = get_or_die(conf, 'action comments')
-    for action in (a for a in new.actions.filter(include={Action}) if not a.comment):
+    for action in (a for a in new.actions.values() if not a.comment):
         tag = type(action).__name__.lower()
         if tag in comments_by_type and isinstance(comments_by_type[tag], str):
             action.comment = comments_by_type[tag]
@@ -724,13 +724,13 @@ def __refine_processes(logger, chosen):
 
         for process in chosen.environment:
             # Check replicative signals
-            replicative = [a for a in process.actions.filter(include={Receive}) if a.replicative]
+            replicative = [a for a in process.actions.filter(include={Receive}, exclude={CallRetval}) if a.replicative]
             if replicative and any([a for a in replicative if not a.peers]):
                 # Remove the process from the collection
                 delete.append(process)
 
                 # Remove it from all the peers
-                for action in process.actions.filter(include={Receive, Dispatch}):
+                for action in process.actions.filter(include={Signal}, exclude={CallRetval, Call}):
                     for peer in action.peers:
                         peer_action = peer['action']
                         indexes = []

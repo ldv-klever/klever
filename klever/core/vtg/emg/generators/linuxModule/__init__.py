@@ -18,10 +18,12 @@
 import ujson
 import sortedcontainers
 
+from klever.core.vtg.emg.common.process import ProcessCollection
 from klever.core.vtg.emg.generators.abstract import AbstractGenerator
 from klever.core.vtg.emg.common.process.serialization import CollectionDecoder
 from klever.core.vtg.emg.generators.linuxModule.instances import generate_instances
 from klever.core.vtg.emg.generators.linuxModule.processes import process_specifications
+from klever.core.vtg.emg.generators.linuxModule.process import ExtendedProcessCollection
 from klever.core.vtg.emg.generators.linuxModule.interface.analysis import import_specification
 from klever.core.vtg.emg.generators.linuxModule.interface.collection import InterfaceCollection
 from klever.core.vtg.emg.generators.linuxModule.process.serialization import ExtendedProcessDecoder
@@ -63,7 +65,8 @@ class ScenarioModelgenerator(AbstractGenerator):
 
         self.logger.info("Import event categories specification")
         decoder = ExtendedProcessDecoder(self.logger, self.conf)
-        abstract_processes = decoder.parse_event_specification(source, specifications["event specifications"])
+        abstract_processes = decoder.parse_event_specification(source, specifications["event specifications"],
+                                                               ExtendedProcessCollection())
 
         # Now check that we have all necessary interface specifications
         unspecified_functions = [func for func in abstract_processes.models if func in source.source_functions and
@@ -86,7 +89,7 @@ class ScenarioModelgenerator(AbstractGenerator):
                                       escape_forward_slashes=False))
 
         puredecoder = CollectionDecoder(self.logger, self.conf)
-        new_pure_collection = puredecoder.parse_event_specification(source, ujson.loads(data))
+        new_pure_collection = puredecoder.parse_event_specification(source, ujson.loads(data), ProcessCollection())
         collection.environment.update(new_pure_collection.environment)
         collection.models.update(new_pure_collection.models)
         collection.establish_peers()

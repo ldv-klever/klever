@@ -87,7 +87,7 @@ class ScenarioModelgenerator(AbstractGenerator):
                     current.update(manual)
 
             collection.entry = or_entry
-            collection.establish_peers(strict=True)
+            collection.establish_peers()
         else:
             self.logger.info("There is no specification for {!r} or it has invalid format".format(fragment_name))
 
