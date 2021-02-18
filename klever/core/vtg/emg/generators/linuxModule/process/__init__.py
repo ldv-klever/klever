@@ -21,9 +21,9 @@ import sortedcontainers
 
 from klever.core.vtg.emg.common.process.labels import Label
 from klever.core.vtg.emg.common.c.types import Array, Structure, Pointer
-from klever.core.vtg.emg.common.process.actions import Block, Dispatch, Receive
 from klever.core.vtg.emg.common.process import Process, Access, ProcessCollection
 from klever.core.vtg.emg.generators.linuxModule.interface import Interface, Container
+from klever.core.vtg.emg.common.process.actions import Block, Dispatch, Receive, Signal
 
 
 Peer = collections.namedtuple('Peer', 'process action interfaces')
@@ -308,6 +308,9 @@ class ExtendedProcess(Process):
             raise ValueError('Cannot extract label from access {} in process {}'.format(string, format(string)))
 
     def establish_peers(self, process):
+        assert isinstance(process, ExtendedProcess), \
+            f'Got a {type(process).__name__} instead of a {type(self).__name__}'
+
         peers = self.get_available_peers(process)
         for signals in peers:
             for index in range(len(self.actions[signals[0]].parameters)):
@@ -337,6 +340,8 @@ class ExtendedProcess(Process):
             process.peers[str(self)].add(str(signals[0]))
 
     def get_available_peers(self, process):
+        assert isinstance(process, ExtendedProcess), \
+            f'Got a {type(process).__name__} instead of a {type(self).__name__}'
         ret = []
 
         # Match dispatches
