@@ -542,15 +542,7 @@ def __add_process(logger, conf, interfaces, process, chosen, category=None, mode
 
 def __normalize_model(logger, chosen, interfaces):
     # Peer processes with models
-    for process, model in ((p, m) for p in chosen.environment for m in chosen.models):
-        model.establish_peers(process)
-
-    # Peer processes with each other
-    processes = list(chosen.environment.values())
-    for index1, p1 in enumerate(processes):
-        for index2 in range(index1 + 1, len(processes)):
-            p2 = processes[index2]
-            p1.establish_peers(p2)
+    chosen.establish_peers()
 
     logger.info("Check which callbacks can be called in the intermediate environment model")
     for process in chosen.processes:
