@@ -196,7 +196,6 @@ class ScenarioModelgenerator(AbstractGenerator):
 
         # Generate process
         ep = Process("main")
-        ep._category = 'generic'
         ep.comment = "Call exported functions."
         ep.pretty_id = 'generic'
         ep.process = ''
