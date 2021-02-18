@@ -287,6 +287,11 @@ class ExtendedProcess(Process):
     def resources(self):
         return [self.labels[name] for name in self.labels if self.labels[name].resource]
 
+    def unmatched_signals(self, kind=Signal):
+        receives = map(str, self.actions.filter(include={kind}, exclude={CallRetval, Call}))
+        matched = {r for r in receives for group in self.peers.values() if r in group}
+        return set(receives).difference(matched)
+
     def extract_label(self, string):
         name, tail = self.extract_label_with_tail(string)
         return name
