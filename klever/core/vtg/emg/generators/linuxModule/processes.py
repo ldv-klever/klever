@@ -526,9 +526,9 @@ def __add_process(logger, conf, interfaces, process, chosen, category=None, mode
                 return None
 
     if model and not category:
-        chosen.models[new] = new
+        chosen.models[new.name] = new
     elif not model and category:
-        chosen.environment[new] = new
+        chosen.environment[str(new)] = new
     else:
         raise ValueError('Provide either model or category arguments but not simultaneously')
 
