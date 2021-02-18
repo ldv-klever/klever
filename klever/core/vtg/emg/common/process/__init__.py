@@ -211,9 +211,8 @@ class Process:
                     access1 = self.resolve_access(p)
                     access2 = process.resolve_access(process.actions[action].parameters[num])
                     if not access1 or not access2 or not access1.label or not access2.label:
-                        raise RuntimeError("Strange accesses {!r} and {!r} in {!r} and {!r}".
-                                           format(p, process.actions[action].parameters[num], process.pretty_id,
-                                                  process.pretty_id))
+                        raise RuntimeError("Strange accesses {!r} and {!r} in {!r}".
+                                           format(p, process.actions[action].parameters[num], str(process)))
                     if access1.label.declaration != access2.label.declaration:
                         break
                 else:
