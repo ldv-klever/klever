@@ -141,14 +141,6 @@ After confirming that Klever works as expected, you should run the following com
 
 Updated list of requirements will be saved and should be committed to the repository afterwards.
 
-.. _dev_deploy:
-
-Deployment for Development Purposes
------------------------------------
-
-To deploy Klever for development purposes in addition to using mode *development* (see :ref:`local_deploy`) one needs
-to specify command-line option *--allow-symbolic-links*.
-
 .. _test_build_bases_generation:
 
 How to generate build bases for testing Klever
@@ -160,7 +152,7 @@ ISP RAS local network).
 
 To generate build bases for testing Klever you need to perform following preliminary steps:
 
-#. Install Klever locally for development purposes according to the user documentation (see :ref:`dev_deploy`).
+#. Install Klever locally for development purposes according to the user documentation (see :ref:`deploy`).
 #. Create a dedicated directory for sources and build bases and move to it.
    Note that there should be quite much free space.
    We recommend at least 100 GB.
@@ -175,12 +167,6 @@ To generate build bases for testing Klever you need to perform following prelimi
 
    #. https://kernel.googlesource.com/pub/scm/linux/kernel/git/stable/linux-stable
    #. https://github.com/gregkh/linux
-
-#. Make CIF executables to be available through the PATH environment variable, e.g.::
-
-    $ export PATH=$KLEVER_DEPLOY_DIR/klever-addons/CIF/bin/:$PATH
-
-   where the KLEVER_DEPLOY_DIR environment variable is explained at :term:`$KLEVER_DEPLOY_DIR`.
 
 #. Read notes regarding the compiler after the end of this list.
 #. Run the following command to find out available descriptions of build bases for testing Klever::
@@ -219,6 +205,8 @@ The simplest way to get GCC 4.8 on Ubuntu is to execute the following commands::
 
     $ sudo apt update
     $ sudo apt install gcc-4.8
+    $ sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 70
+    $ sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.8 48
     $ sudo update-alternatives --config gcc
 
 (after executing the last command you need to select GCC 4.8; do not forget to make v.v. after preparing build bases!)
