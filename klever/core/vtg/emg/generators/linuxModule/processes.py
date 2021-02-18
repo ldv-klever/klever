@@ -253,7 +253,7 @@ def __establish_signal_peers(logger, conf, interfaces, process, chosen, collecti
                 for intf in uncalled_callbacks:
                     callback_labels[-1].set_interface(intf)
 
-            if new and (new.actions.unmatched_receives or new.actions.unmatched_dispatches):
+            if new and new.unmatched_signals():
                 __establish_signal_peers(logger, conf, interfaces, new, chosen, collection)
 
 
