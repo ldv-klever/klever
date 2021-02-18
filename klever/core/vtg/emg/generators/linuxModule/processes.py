@@ -729,20 +729,9 @@ def __refine_processes(logger, chosen):
                 # Remove the process from the collection
                 delete.append(process)
 
-                # Remove it from all the peers
-                for action in process.actions.filter(include={Signal}, exclude={CallRetval, Call}):
-                    for peer in action.peers:
-                        peer_action = peer['action']
-                        indexes = []
-                        for index, pr in enumerate(peer_action.peers):
-                            if pr['process'].instance_number == process.instance_number:
-                                indexes.append(index)
-
-                        for index in reversed(indexes):
-                            del peer_action.peers[index]
-
         for p in delete:
             logger.info("Remove process {!r} as it cannot be registered".format(str(p)))
             del chosen.environment[p]
+        chosen.establish_peers()
 
     return
