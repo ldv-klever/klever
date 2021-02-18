@@ -15,8 +15,6 @@
  * limitations under the License.
  */
 
-@include <../linux/alloc/common.aspect>
-
 before: file ("$this")
 {
 extern void ldv_usb_lock_device(void);
