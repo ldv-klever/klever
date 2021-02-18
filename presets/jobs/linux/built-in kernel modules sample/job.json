@@ -1,7 +1,6 @@
 {
   "project": "Linux",
-  "build base": "linux/built-in kernel modules sample",
-  "fragmentation tactic": "statically linked modules",
+  "build base": "linux/loadable kernel modules sample",
   "targets": [
     "drivers/ata/pata_arasan_cf.ko",
     "drivers/idle/i7300_idle.ko",
