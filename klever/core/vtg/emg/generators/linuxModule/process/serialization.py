@@ -91,3 +91,23 @@ class ExtendedProcessDecoder(CollectionDecoder):
                 TypeError('Expect list or string with interface identifier')
 
         return label
+
+    def _import_process(self, source, name, category, dic):
+        process = super()._import_process(source, name, category, dic)
+
+        # Now we need to extract category from labels
+        if not process.category:
+            labels = filter(lambda x: x.interfaces, process.labels.values())
+            popular = dict()
+            for interface in (i for l in labels for i in l.interfaces):
+                category, _ = interface.split('.')
+                popular.setdefault(category, 0)
+                popular[category] += 1
+
+            popular = list(reversed(sorted(popular.keys(), key=lambda x: popular[x])))
+            if not popular:
+                self.logger.warning(f'Cannot determine category of the process {process.name}')
+                process.category = 'undefined'
+            else:
+                process.category = popular[0]
+        return process
