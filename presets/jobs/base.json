@@ -36,11 +36,6 @@
           "production": true
         },
         {
-          "uuid": "30faa5fc-746c-4942-9a2c-089780e700c4",
-          "name": "Built-in kernel modules sample",
-          "directory": "linux/built-in kernel modules sample"
-        },
-        {
           "uuid": "38c96aee-77e8-4964-8d76-564173226c3a",
           "name": "Kernel subsystems sample",
           "directory": "linux/kernel subsystems sample"
