@@ -185,10 +185,10 @@ class CollectionDecoder:
         if "main process" in raw and isinstance(raw["main process"], dict):
             self.logger.info("Import main process")
             try:
-                entry_process = self._import_process(source, "entry", "entry process", raw["main process"])
+                entry_process = self._import_process(source, "entry", "main", raw["main process"])
                 collection.entry = entry_process
             except Exception as err:
-                self.logger.warning("Cannot main process: {}".format(str(err)))
+                self.logger.warning("Cannot parse the main process: {}".format(str(err)))
                 raise_exc.append('entry')
         else:
             collection.entry = None
