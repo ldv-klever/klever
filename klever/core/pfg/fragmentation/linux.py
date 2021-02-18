@@ -15,9 +15,6 @@
 # limitations under the License.
 #
 
-import re
-import os
-
 from klever.core.utils import make_relative_path
 from klever.core.pfg.fragmentation import FragmentationAlgorythm
 from klever.core.pfg.abstractions.strategies.callgraph import Callgraph
@@ -33,7 +30,6 @@ class Linux(FragmentationAlgorythm):
         self._max_size = tactic.get("maximum fragment size")
         self._separate_nested = tactic.get("separate nested subsystems", True)
         self.kernel = tactic.get("kernel", False)
-        self._statically_linked = tactic.get("search by options")
 
     def _determine_units(self, program):
         """
@@ -43,9 +39,6 @@ class Linux(FragmentationAlgorythm):
         :param program: Program object.
         """
         self._search_for_modules(program)
-        if self._statically_linked:
-            self.logger.info("Search for modules that are linked to the kernel")
-            self.search_for_statically_linked_modules(program)
         if self.kernel:
             self.logger.info('Inspect AR comands in addition')
             self._search_for_modules(program, 'AR', 'built-in.a')
@@ -70,50 +63,6 @@ class Linux(FragmentationAlgorythm):
                 else:
                     self.logger.debug('Fragment {!r} is rejected since it exceeds maximum size or does not contain '
                                       'files {!r}'.format(fragment.name, fragment.size))
-
-    def search_for_statically_linked_modules(self, program):
-        """Search for CC commands that are linked to a single kernel object usually but linked to the kernel now."""
-        modules = dict()
-        module_re = re.compile(r'(?:(?:KBUILD_MODNAME)|(?:-DKBUILD_MODNAME))=\"(\w+)\"')
-        for desc in program.clade.get_all_cmds_by_type('CC'):
-            identifier = desc['id']
-            if not desc['out']:
-                self.logger.warning(f'Ignore command {identifier} without out file')
-                continue
-
-            opts = program.clade.get_cmd_opts(identifier)
-            for option in opts:
-                match = module_re.match(option)
-                if match:
-                    # Save the name of the module
-                    name = match.group(1) + '.ko'
-                    break
-            else:
-                # We do not expect a command to be a module part
-                self.logger.debug(f'No match for {identifier}')
-                continue
-
-            # Get C files
-            files = program.collect_files_from_commands('CC', [desc])
-
-            # Save before creating a fragment
-            out = desc['out'][0]
-            rel_object_path = make_relative_path(self.source_paths, out)
-            name = os.path.join(os.path.dirname(rel_object_path), name)
-            modules.setdefault(name, set())
-            modules[name].update(files)
-
-        # Finally create modules
-        for name, files in modules.items():
-            if not files:
-                self.logger.warning(f'Cannot find C files for linker command {name}')
-
-            fragment = program.create_fragment(name, files)
-            if (not self._max_size or fragment.size <= self._max_size) and len(fragment.files) != 0:
-                program.add_fragment(fragment)
-            else:
-                self.logger.debug('Fragment {!r} is rejected since it exceeds maximum size or does not contain '
-                                  'files {!r}'.format(fragment.name, fragment.size))
 
     def _determine_targets(self, program):
         """
