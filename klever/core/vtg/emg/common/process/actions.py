@@ -408,7 +408,9 @@ class Actions(collections.UserDict):
         new = Actions()
 
         # Clone actions
-        new.data = copy.deepcopy(self.data)
+        new.data = copy.copy(self.data)
+        for action in self.data:
+            new.data[action] = copy.copy(self.data[action])
 
         # Copy BehActions
         actions_map = dict()
