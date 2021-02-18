@@ -722,10 +722,13 @@ def __refine_processes(logger, chosen):
         del_flag = False
         delete = []
 
-        for process in chosen.environment:
+        for process in chosen.environment.values():
             # Check replicative signals
             replicative = [a for a in process.actions.filter(include={Receive}, exclude={CallRetval}) if a.replicative]
-            if replicative and any([a for a in replicative if not a.peers]):
+            assert len(replicative) == 1, f"Process {str(process)} should have a single replicative signal but has" \
+                                          f" the following: {', '.join(map(str, replicative))}"
+            signal = replicative.pop()
+            if str(signal) in process.unmatched_signals(Receive):
                 # Remove the process from the collection
                 delete.append(process)
 
