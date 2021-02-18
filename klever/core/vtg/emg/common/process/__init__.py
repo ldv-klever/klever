@@ -356,6 +356,41 @@ class Process:
             operator.insert(position, new_entry)
 
 
+class ProcessDescriptor:
+
+    EXPECTED_CATEGORY = 'entry point'
+
+    def __set__(self, obj, value):
+        assert isinstance(value, Process) or value is None, f'Got {type(value).__name__} instead of a process'
+        if value:
+            # Warning: this is becouse there is no setter in the class and this is normal
+            value._category = self.EXPECTED_CATEGORY
+        obj._entry = value
+
+    def __get__(self, obj, objtype):
+        return obj._entry
+
+
+class ProcessDict(sortedcontainers.SortedDict):
+
+    def __setitem__(self, key, value):
+        assert isinstance(value, Process), f'Expect a Process as a value bug got {type(value).__name__}'
+        if value.category and value.category == 'functions models':
+            assert key == value.name, f'Function models should be assigned by its name ({value.name}) but got {key}'
+        else:
+            assert key == str(value), f'Environment processes should be saved by its string representation' \
+                                      f' ({str(value)}) but got {key}'
+        super().__setitem__(key, value)
+
+    def __getitem__(self, item):
+        if isinstance(item, Process):
+            if item.category and item.category == 'functions models':
+                item = item.name
+            else:
+                item = str(item)
+        return super().__getitem__(item)
+
+
 class ProcessCollection:
     """
     This class represents collection of processes for an environment model generators. Also it contains methods to
@@ -363,10 +398,12 @@ class ProcessCollection:
     environment model processes that acts as soon as they receives replicative signals and a main process.
     """
 
+    entry = ProcessDescriptor()
+
     def __init__(self):
-        self.entry = None
-        self.models = sortedcontainers.SortedDict()
-        self.environment = sortedcontainers.SortedDict()
+        self._entry = None
+        self.models = ProcessDict()
+        self.environment = ProcessDict()
 
     @property
     def processes(self):
@@ -409,10 +446,10 @@ class ProcessCollection:
         """
         # Fisrt check models
         for model in self.models.values():
-            for process in list(self.environment.values()) + [self.entry]:
+            for process in list(self.environment.values()) + [self.entry] if self.entry else []:
                 model.establish_peers(process)
 
-        processes = list(self.environment.values()) + [self.entry]
+        processes = list(self.environment.values()) + [self.entry] if self.entry else []
         for i, process in enumerate(processes):
             for pair in processes[i+1:]:
                 process.establish_peers(pair)
