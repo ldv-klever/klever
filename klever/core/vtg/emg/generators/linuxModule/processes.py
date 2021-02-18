@@ -224,8 +224,8 @@ def __establish_signal_peers(logger, conf, interfaces, process, chosen, collecti
 
         # Be sure that process have not been added yet
         peered_processes = set()
-        if process.peers.get(str(chosen)):
-            peered_processes.add(str(chosen))
+        if process.peers.get(str(candidate)):
+            peered_processes.add(str(candidate))
 
         # Try to add process
         if peers and not peered_processes:
