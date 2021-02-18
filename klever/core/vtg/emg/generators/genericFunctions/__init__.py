@@ -114,7 +114,7 @@ class ScenarioModelgenerator(AbstractGenerator):
         processes = dict()
 
         # Make a process
-        main_process = Process("main", "main")
+        main_process = Process("main")
         main_process.comment = "Main entry point."
         main_process.self_parallelism = False
 

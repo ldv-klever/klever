@@ -137,7 +137,7 @@ class ScenarioModelgenerator(AbstractGenerator):
 
     def __generate_insmod_process(self, source, inits, exits, kernel_initializations):
         self.logger.info("Generate artificial process description to call Init and Exit module functions 'insmod'")
-        ep = Process("insmod", "linux")
+        ep = Process("insmod")
         ep.comment = "Initialize or exit module."
         ep.self_parallelism = False
 
