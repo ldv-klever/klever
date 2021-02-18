@@ -216,6 +216,7 @@ def p_dispatch(p):
     number = number[-1] if number else 1
 
     action = Behaviour(name, Dispatch)
+    action.specific_attributes.append(('broadcast', broadcast))
     p.parser.process.actions.add_process_action(action, name)
     p[0] = action
 
@@ -238,6 +239,7 @@ def p_receive(p):
         replicative = False
     number = number[-1] if number else 1
     action = Behaviour(name, Receive)
+    action.specific_attributes.append(('replicative', replicative))
     p.parser.process.actions.add_process_action(action, name)
     p[0] = action
 

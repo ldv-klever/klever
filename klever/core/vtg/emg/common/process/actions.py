@@ -97,6 +97,7 @@ class Behaviour(BaseAction):
         super().__init__()
         self._name = name
         self._description = None
+        self.specific_attributes = []
         self._accepted_class = accepted_class
 
     def __repr__(self):
@@ -126,6 +127,9 @@ class Behaviour(BaseAction):
     def description(self, item):
         assert isinstance(item, self.kind), f'Got {type(item).__name__} instead of {self.kind.__name__}'
         assert str(item) == self.name
+
+        for name, value in self.specific_attributes:
+            setattr(item, name, value)
         self._description = item
 
 
@@ -328,7 +332,7 @@ class Receive(Signal):
     An example of action string: "(mysend)".
     """
 
-    def __init__(self, name, repliative=True):
+    def __init__(self, name, repliative=False):
         super(Receive, self).__init__(name)
         self.replicative = repliative
         self.parameters = []
