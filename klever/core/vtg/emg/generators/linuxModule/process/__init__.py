@@ -316,6 +316,11 @@ class ExtendedProcess(Process):
         assert isinstance(process, ExtendedProcess), \
             f'Got a {type(process).__name__} instead of a {type(self).__name__}'
 
+        if str(self) in process.peers:
+            del process.peers[str(self)]
+        if str(process) in self.peers:
+            del self.peers[str(process)]
+
         peers = self.get_available_peers(process)
         for signals in peers:
             for index in range(len(self.actions[signals[0]].parameters)):
