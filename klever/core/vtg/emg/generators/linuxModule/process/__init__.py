@@ -454,15 +454,6 @@ class ExtendedProcess(Process):
         self._accesses[acc.expression] = [acc]
         return lb
 
-    def add_condition(self, name, condition, statements, comment):
-        new = Block(name)
-        self.actions[name] = new
-
-        new.condition = condition
-        new.statements = statements
-        new.comment = comment
-        return new
-
     def __compare_signals(self, process, first, second):
         if first.name == second.name and len(first.parameters) == len(second.parameters):
             match = True
