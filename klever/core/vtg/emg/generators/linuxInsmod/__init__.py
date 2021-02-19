@@ -170,6 +170,7 @@ class ScenarioModelgenerator(AbstractGenerator):
 
         # This populates all actions
         parse_process(ep, process)
+        ep.actions.populate_with_empty_descriptions()
 
         if len(kernel_initializations) > 0:
             body = [

@@ -389,6 +389,12 @@ class Actions(collections.UserDict):
                 del self._process_actions[key]
         del self.data[key]
 
+    def populate_with_empty_descriptions(self):
+        for baction in self.behaviour():
+            if isinstance(baction, Behaviour) and not baction.description:
+                desc = baction.kind(baction.name)
+                self[baction.name] = desc
+
     def add_process_action(self, item, name='operator'):
         assert isinstance(item, BaseAction)
         assert name

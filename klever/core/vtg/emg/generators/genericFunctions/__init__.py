@@ -138,6 +138,7 @@ class ScenarioModelgenerator(AbstractGenerator):
 
         process = ".".join(reg_list + dereg_list)
         parse_process(main_process, process)
+        main_process.actions.populate_with_empty_descriptions()
 
         # Now establish peers
         for child in processes.values():
@@ -168,6 +169,7 @@ class ScenarioModelgenerator(AbstractGenerator):
 
         # Populate actions
         parse_process(child_proc, process)
+        child_proc.actions.populate_with_empty_descriptions()
 
         # Set up Call action
         call = child_proc.actions['call']
