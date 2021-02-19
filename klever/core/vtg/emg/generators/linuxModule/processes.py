@@ -18,10 +18,10 @@
 import sortedcontainers
 
 from klever.core.vtg.emg.common import get_or_die
-from klever.core.vtg.emg.common.process import ProcessCollection
-from klever.core.vtg.emg.common.process.actions import Dispatch, Receive, Signal
-from klever.core.vtg.emg.generators.linuxModule.process import ExtendedAccess, Call, CallRetval
+from klever.core.vtg.emg.common.process.actions import Dispatch, Receive
 from klever.core.vtg.emg.generators.linuxModule.interface import Interface, Callback, Container, StructureContainer
+from klever.core.vtg.emg.generators.linuxModule.process import ExtendedAccess, Call, CallRetval, \
+    ExtendedProcessCollection
 
 
 def process_specifications(logger, conf, interfaces, original):
@@ -44,7 +44,7 @@ def process_specifications(logger, conf, interfaces, original):
 
 
 def __select_processes_and_models(logger, conf, interfaces, collection):
-    chosen = ProcessCollection()
+    chosen = ExtendedProcessCollection()
 
     # Import necessary kernel models
     logger.info("First, add relevant models of kernel functions")
@@ -222,13 +222,12 @@ def __establish_signal_peers(logger, conf, interfaces, process, chosen, collecti
     for candidate in collection.environment.values():
         peers = process.get_available_peers(candidate)
 
-        # Be sure that process have not been added yet
-        peered_processes = set()
-        if process.peers.get(str(candidate)):
-            peered_processes.add(str(candidate))
+        # This is becouse category can be changed after adding to the model
+        valid_peers = chosen.peers(process, {s for p in peers for s in p})
+        names = {p.process.name for p in valid_peers}
 
         # Try to add process
-        if peers and not peered_processes:
+        if peers and candidate.name not in names:
             logger.debug("Establish signal references between process {!r} and process {!r}".
                          format(str(process), str(candidate)))
             categories = __find_native_categories(candidate)
@@ -242,6 +241,8 @@ def __establish_signal_peers(logger, conf, interfaces, process, chosen, collecti
             elif len(categories) == 0:
                 category = process.category
                 label_map = __match_labels(logger, interfaces, candidate, category)
+            else:
+                raise NotImplementedError
             new = __add_process(logger, conf, interfaces, candidate, chosen, category, model=False, label_map=label_map,
                                 peer=process)
 
