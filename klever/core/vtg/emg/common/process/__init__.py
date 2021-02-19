@@ -355,6 +355,39 @@ class Process:
                 position += 1
             operator.insert(position, new_entry)
 
+    def insert_alternative_action(self, new, target):
+        """
+        Insert an existing action as an alternative choice for a given one.
+
+        :param new: Action object.
+        :param target: Action object.
+        """
+        assert isinstance(new, Action), f'Got non-action object {str(new)}'
+        assert isinstance(target, Action), f'Got non-action object {str(target)}'
+        if str(new) not in self.actions:
+            self.actions[str(new)] = new
+
+        for entry in self.actions.behaviour(str(target)):
+            operator = entry.my_operator
+            newb = Behaviour(str(new), type(new))
+            self.actions.add_process_action(newb, str(new))
+            if isinstance(operator, Concatenation):
+                new_par = Parentheses()
+                operator.replace(entry, new_par)
+                choice = Choice()
+                new_par.append(choice)
+                choice.append(newb)
+                choice.append(entry)
+            elif isinstance(operator, Parentheses):
+                choice = Choice()
+                operator.replace(entry, choice)
+                choice.append(newb)
+                choice.append(entry)
+            elif isinstance(operator, Choice):
+                operator.append(newb)
+            else:
+                raise ValueError("Unknown operator {!r}".format(type(operator).__name__))
+
 
 class ProcessDescriptor:
 
