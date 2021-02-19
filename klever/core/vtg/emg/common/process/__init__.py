@@ -391,7 +391,7 @@ class Process:
 
 class ProcessDescriptor:
 
-    EXPECTED_CATEGORY = 'entry point'
+    EXPECTED_CATEGORY = 'entry_point'
 
     def __set__(self, obj, value):
         assert isinstance(value, Process) or value is None, f'Got {type(value).__name__} instead of a process'
