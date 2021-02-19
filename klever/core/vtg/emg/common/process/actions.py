@@ -425,6 +425,11 @@ class Actions(collections.UserDict):
             for child in operator:
                 actions_map[operator].append(actions_map[child])
 
+        # Replace subprocesses
+        for name, obj in new.items():
+            if isinstance(obj, Subprocess):
+                obj.action = actions_map[self.data[name].action]
+
         return new
 
     def filter(self, include=None, exclude=None):
