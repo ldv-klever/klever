@@ -424,7 +424,8 @@ class ProcessCollection:
         elif identifier in self.environment:
             return self.environment[identifier]
         else:
-            raise KeyError(f'Cannot find process with the identifier: {identifier}')
+            raise KeyError('Cannot find process {!r} \nwhere there are processes: {}\n and models: {}'.
+                           format(identifier, ', '.join(self.models.keys()), ', '.join(self.environment.keys())))
 
     def peers(self, process, signals=None, processes=None):
         peers = []
@@ -444,6 +445,10 @@ class ProcessCollection:
         :param strict: Raise exception if a peer process identifier is unknown (True) or just ignore it (False).
         :return: None
         """
+        # Delete all previous peers to avoid keeping the old deleted processes
+        for process in self.processes:
+            process.peers.clear()
+
         # Fisrt check models
         for model in self.models.values():
             for process in list(self.environment.values()) + [self.entry] if self.entry else []:
