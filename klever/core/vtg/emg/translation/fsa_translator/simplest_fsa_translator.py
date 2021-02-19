@@ -49,10 +49,11 @@ class SimplestTranslator(FSATranslator):
 
         # Determine peers to receive the signal
         automata_peers = sortedcontainers.SortedDict()
-        if len(action.peers) > 0:
+        action_peers = self._collection.peers(automaton.process, {str(action)})
+        if len(action_peers) > 0:
             # Do call only if model which can be called will not hang
             extract_relevant_automata(self._logger, self._event_fsa + self._model_fsa + [self._entry_fsa],
-                                      automata_peers, action.peers, Receive)
+                                      automata_peers, action_peers, Receive)
         else:
             # Generate comment
             code.append("/* Dispatch {!r} is not expected by any process, skipping the action */".
@@ -180,10 +181,11 @@ class SimplestTranslator(FSATranslator):
         code, v_code, conditions, comments = super(SimplestTranslator, self)._receive(action, automaton)
 
         automata_peers = {}
-        if len(action.peers) > 0:
+        action_peers = self._collection.peers(automaton.process, {str(action)})
+        if len(action_peers) > 0:
             # Do call only if model which can be called will not hang
             extract_relevant_automata(self._logger, self._event_fsa + self._model_fsa + [self._entry_fsa],
-                                      automata_peers, action.peers, Dispatch)
+                                      automata_peers, action_peers, Dispatch)
 
             # Add additional condition
             if action.replicative:

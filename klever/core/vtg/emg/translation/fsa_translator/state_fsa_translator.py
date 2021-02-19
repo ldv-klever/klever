@@ -26,7 +26,7 @@ from klever.core.vtg.emg.translation.fsa_translator.label_control_function impor
 
 class StateTranslator(FSATranslator):
 
-    def __init__(self, logger, conf, source, cmodel, entry_fsa, model_fsa, event_fsa):
+    def __init__(self, logger, conf, source, collection, cmodel, entry_fsa, model_fsa, event_fsa):
         raise NotImplementedError('State translator requires update to the newst API which has not been done')
 
         self.__state_variables = dict()

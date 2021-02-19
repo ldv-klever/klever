@@ -16,7 +16,7 @@
 #
 
 from klever.core.vtg.emg.common import model_comment
-from klever.core.vtg.emg.common.process.actions import Subprocess, Parentheses, Choice, Concatenation, Action
+from klever.core.vtg.emg.common.process.actions import Subprocess, Parentheses, Choice, Concatenation, Behaviour
 from klever.core.vtg.emg.translation.code import control_function_comment_begin, control_function_comment_end
 from klever.core.vtg.emg.translation.fsa_translator.common import initialize_automaton_variables
 
@@ -56,21 +56,21 @@ def label_based_function(conf, analysis, automaton, cf, model=True):
 
     processed = set()
     for subp in automaton.process.actions.filter(include={Subprocess}):
-        if subp.reference_name not in processed:
+        if subp.name not in processed:
             first_actual_state = subp.action
             sp_v_code, sp_f_code = __subprocess_code(automaton, first_actual_state, ret_expression)
 
             v_code.extend(sp_v_code)
             f_code.extend([
                 '',
-                '/* Sbprocess {} */'.format(subp.action.name),
-                'emg_{}_{}:'.format(str(subp.reference_name), str(automaton))
+                '/* Sbprocess {} */'.format(subp.name),
+                'emg_{}_{}:'.format(str(subp.name), str(automaton))
             ])
             f_code.extend(sp_f_code)
-            f_code.append("/* End of the subprocess '{}' */".format(subp.action.name))
+            f_code.append("/* End of the subprocess '{}' */".format(subp.name))
             if ret_expression:
                 f_code.append(ret_expression)
-            processed.add(subp.reference_name)
+            processed.add(subp.name)
 
     comment_data = {'name': 'aux_variables_declaration'}
     v_code = [model_comment('ACTION_BEGIN', 'Declare auxiliary variables.', comment_data)] + \
@@ -90,39 +90,39 @@ def label_based_function(conf, analysis, automaton, cf, model=True):
 
 def __subprocess_code(automaton, initial_action, ret_expression):
 
-    def _serialize_action(action, tab):
+    def _serialize_action(behaviour, tab):
         v, f = [], []
 
-        if isinstance(action, Subprocess):
+        if isinstance(behaviour, Behaviour) and behaviour.kind is Subprocess:
             f += [
-                '\t' * tab + '/* Jump to a subprocess {!r} initial state */'.format(action.name),
-                '\t' * tab + 'goto emg_{}_{};'.format(action.reference_name, str(automaton))
+                '\t' * tab + '/* Jump to a subprocess {!r} initial state */'.format(behaviour.name),
+                '\t' * tab + 'goto emg_{}_{};'.format(behaviour.name, str(automaton))
             ]
-        elif isinstance(action, Action):
-            my_v, my_f = automaton.code[action]
+        if isinstance(behaviour, Behaviour):
+            my_v, my_f = automaton.code[hash(behaviour)]
             v += my_v
             f += ['\t' * tab + stm for stm in my_f]
-        elif isinstance(action, Choice):
-            if len(action.actions) == 2:
-                act1, act2 = action.actions
+        elif isinstance(behaviour, Choice):
+            if len(behaviour) == 2:
+                act1, act2 = behaviour
                 act1_v, act1_f = _serialize_action(act1, tab + 1)
                 act2_v, act2_f = _serialize_action(act2, tab + 1)
 
                 v += act1_v + act2_v
                 f += ['\t' * tab + 'if (ldv_undef_int()) {'] + act1_f + ['\t' * tab + '} else {'] + \
                      act2_f + ['\t' * tab + '}']
-            elif len(action.actions) > 2:
+            elif len(behaviour) > 2:
                 f += ['\t' * tab + 'switch (ldv_undef_int()) {']
-                for case, branch in enumerate(action.actions):
+                for case, branch in enumerate(behaviour):
                     branch_v, branch_f = _serialize_action(branch, tab + 2)
                     v += branch_v
                     f += ['\t' * (tab + 1) + 'case {}: '.format(case) + '{'] + branch_f + \
                          ['\t' * (tab + 2) + 'break;', '\t' * (tab + 1) + '}']
                 f += ['\t' * (tab + 1) + 'default: ldv_assume(0);', '\t' * tab + '}']
             else:
-                raise ValueError('Invalid number of conditions in %s: %d' % (str(action), len(action.actions)))
-        elif isinstance(action, Concatenation):
-            for itm in action.actions:
+                raise ValueError('Invalid number of conditions in %s: %d' % (str(behaviour), len(behaviour)))
+        elif isinstance(behaviour, Concatenation):
+            for itm in behaviour:
                 itm_v, itm_f = _serialize_action(itm, tab)
                 v += itm_v
                 f += [''] + itm_f
@@ -130,8 +130,8 @@ def __subprocess_code(automaton, initial_action, ret_expression):
             # Remove the first empty string
             if f:
                 f.pop(0)
-        elif isinstance(action, Parentheses):
-            return _serialize_action(action.action, tab)
+        elif isinstance(behaviour, Parentheses):
+            return _serialize_action(behaviour[0], tab)
         else:
             raise NotImplementedError
 

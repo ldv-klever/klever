@@ -27,7 +27,6 @@ from klever.core.vtg.emg.translation.fsa_translator.state_fsa_translator import 
 from klever.core.vtg.emg.translation.fsa_translator.simplest_fsa_translator import SimplestTranslator
 
 
-
 def translate_intermediate_model(logger, conf, avt, source, collection):
     """
     This is the main translator function. It generates automata first for all given processes of the environment model
@@ -63,11 +62,7 @@ def translate_intermediate_model(logger, conf, avt, source, collection):
 
     # If necessary match peers
     if conf['translation options'].get('implicit signal peers'):
-        process_list = list(collection.processes)
-        for i, first in enumerate(process_list):
-            if i + 1 < len(process_list):
-                for second in process_list[i+1:]:
-                    first.establish_peers(second)
+        collection.establish_peers()
 
     # Determine entry point file and function
     logger.info("Determine entry point file and function name")
@@ -155,11 +150,11 @@ def translate_intermediate_model(logger, conf, avt, source, collection):
     # Prepare code on each automaton
     logger.info("Translate finite state machines into C code")
     if conf['translation options'].get("simple control functions calls"):
-        SimplestTranslator(logger, conf['translation options'], source, cmodel, entry_fsa, model_fsa, main_fsa)
+        SimplestTranslator(logger, conf['translation options'], source, collection, cmodel, entry_fsa, model_fsa, main_fsa)
     elif get_or_die(conf['translation options'], "nested automata"):
-        LabelTranslator(logger, conf['translation options'], source, cmodel, entry_fsa, model_fsa, main_fsa)
+        LabelTranslator(logger, conf['translation options'], source, collection, cmodel, entry_fsa, model_fsa, main_fsa)
     else:
-        StateTranslator(logger, conf['translation options'], source, cmodel, entry_fsa, model_fsa, main_fsa)
+        StateTranslator(logger, conf['translation options'], source, collection, cmodel, entry_fsa, model_fsa, main_fsa)
 
     logger.info("Print generated source code")
     addictions = cmodel.print_source_code(additional_code)

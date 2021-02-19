@@ -29,14 +29,13 @@ def extract_relevant_automata(logger, automata, automata_peers, peers, sb_type=N
     :param automata: List with Automaton objects.
     :param automata_peers: Dictionary {'Automaton.identfier string' -> {'states': ['relevant State objects'],
                                                                         'automaton': 'Automaton object'}
-    :param peers: List of relevant Process objects: [{'process': 'Process obj',
-                                                     'action': 'Receive or Dispatch obj'}]
+    :param peers: List of relevant Peer objects.
     :param sb_type: Receive or Dispatch class to choose only those automata that reseive or send signals to the
                     given one
     :return: None, since it modifies the first argument.
     """
     for peer in peers:
-        relevant_automata = [a for a in automata if a.process == peer["process"]]
+        relevant_automata = [a for a in automata if a.process == peer.process]
         if relevant_automata:
             for automaton in relevant_automata:
                 if automaton not in automata_peers:
@@ -44,12 +43,12 @@ def extract_relevant_automata(logger, automata, automata_peers, peers, sb_type=N
                         "automaton": automaton,
                         "actions": sortedcontainers.SortedSet()
                     }
-                for action in [n for n in automaton.process.actions.filter(include={Action}) if n == peer["action"]]:
+                for action in [n for n in automaton.process.actions.filter(include={Action}) if n == peer.action]:
                     if not sb_type or isinstance(action, sb_type):
                         automata_peers[automaton]["actions"].add(action)
         else:
             logger.debug("No automata peers found for {!r}, total available: {}".
-                         format(str(peer["process"]), ', '.join({str(a.process) for a in automata})))
+                         format(str(peer.process), ', '.join({str(a.process) for a in automata})))
 
 
 def initialize_automaton_variables(conf, automaton):

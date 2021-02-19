@@ -27,9 +27,9 @@ from klever.core.vtg.emg.translation.fsa_translator.label_control_function impor
 
 class LabelTranslator(FSATranslator):
 
-    def __init__(self, logger, conf, source, cmodel, entry_fsa, model_fsa, event_fsa):
+    def __init__(self, logger, conf, source, collection, cmodel, entry_fsa, model_fsa, event_fsa):
         self.__thread_variables = sortedcontainers.SortedDict()
-        super(LabelTranslator, self).__init__(logger, conf, source, cmodel, entry_fsa, model_fsa, event_fsa)
+        super(LabelTranslator, self).__init__(logger, conf, source, collection, cmodel, entry_fsa, model_fsa, event_fsa)
 
     def _relevant_checks(self, relevant_automata):
         return list()
@@ -132,10 +132,11 @@ class LabelTranslator(FSATranslator):
         code, v_code, conditions, comments = super(LabelTranslator, self)._receive(action, automaton)
 
         automata_peers = {}
-        if len(action.peers) > 0:
+        action_peers = self._collection.peers(automaton.process, {str(action)})
+        if len(action_peers) > 0:
             # Do call only if model which can be called will not hang
             extract_relevant_automata(self._logger, self._event_fsa + self._model_fsa + [self._entry_fsa],
-                                      automata_peers, action.peers, Dispatch)
+                                      automata_peers, action_peers, Dispatch)
 
             # Add additional condition
             if action.replicative:
