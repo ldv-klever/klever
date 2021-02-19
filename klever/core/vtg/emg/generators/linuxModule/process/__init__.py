@@ -29,23 +29,6 @@ from klever.core.vtg.emg.common.process.actions import Block, Dispatch, Receive,
 Peer = collections.namedtuple('Peer', 'process action interfaces')
 
 
-def get_common_parameter(action, process, position):
-    interfaces = [access.interface for access in process.resolve_access(action.parameters[position])
-                  if access.interface]
-
-    for peer in action.peers:
-        candidates = [access.interface for access
-                      in peer['process'].resolve_access(peer['action'].parameters[position])
-                      if access.interface]
-        interfaces = set(interfaces) & set(candidates)
-
-    if len(interfaces) == 0:
-        raise RuntimeError('Need at least one common interface to send a signal')
-    else:
-        # Todo how to choose between several ones?
-        return list(interfaces)[0]
-
-
 class Call(Dispatch):
 
     def __init__(self, name):
@@ -288,9 +271,12 @@ class ExtendedProcess(Process):
         return [self.labels[name] for name in self.labels if self.labels[name].resource]
 
     def unmatched_signals(self, kind=Signal):
-        receives = map(str, self.actions.filter(include={kind}, exclude={CallRetval, Call}))
-        matched = {r for r in receives for group in self.peers.values() if r in group}
-        return set(receives).difference(matched)
+        signals = set(map(str, self.actions.filter(include={kind}, exclude={CallRetval, Call})))
+        matched = set()
+        for peered in self.peers.values():
+            matched.update(peered)
+        signals.difference_update(matched)
+        return signals
 
     def extract_label(self, string):
         name, tail = self.extract_label_with_tail(string)
@@ -321,8 +307,7 @@ class ExtendedProcess(Process):
         if str(process) in self.peers:
             del self.peers[str(process)]
 
-        peers = self.get_available_peers(process)
-        for signals in peers:
+        for signals in self.get_available_peers(process):
             for index in range(len(self.actions[signals[0]].parameters)):
                 label1 = self.extract_label(self.actions[signals[0]].parameters[index])
                 label2 = process.extract_label(process.actions[signals[1]].parameters[index])
@@ -350,8 +335,7 @@ class ExtendedProcess(Process):
             process.peers[str(self)].add(str(signals[0]))
 
     def get_available_peers(self, process):
-        assert isinstance(process, ExtendedProcess), \
-            f'Got a {type(process).__name__} instead of a {type(self).__name__}'
+        assert isinstance(process, ExtendedProcess), f'Got a {type(process).__name__} instead of {type(self).__name__}'
         ret = []
 
         # Match dispatches
@@ -359,14 +343,14 @@ class ExtendedProcess(Process):
                                   for r in process.actions.filter(include={Receive}, exclude={CallRetval})):
             match = self.__compare_signals(process, dispatch, receive)
             if match:
-                ret.append([dispatch.name, receive.name])
+                ret.append((dispatch.name, receive.name))
 
         # Match receives
         for receive, dispatch in ((r, d) for r in self.actions.filter(include={Receive}, exclude={CallRetval})
                                   for d in process.actions.filter(include={Dispatch}, exclude={Call})):
             match = self.__compare_signals(process, receive, dispatch)
             if match:
-                ret.append([receive.name, dispatch.name])
+                ret.append((receive.name, dispatch.name))
         return ret
 
     def accesses(self, accesses=None, exclude=None, no_labels=False):
@@ -481,3 +465,24 @@ class ExtendedProcessCollection(ProcessCollection):
         """Add an extra field interfaces in addition to the process and action."""
         peers = super().peers(process, signals, processes)
         return [Peer(*p, []) for p in peers]
+
+    def get_common_parameter(self, action, process, position):
+        assert isinstance(action, Signal)
+        assert isinstance(process, ExtendedProcess)
+        assert isinstance(position, int)
+
+        interfaces = [access.interface for access in process.resolve_access(action.parameters[position])
+                      if access.interface]
+
+        for peer in self.peers(process, {action.name}):
+            candidates = [access.interface for access
+                          in peer.process.resolve_access(peer.action.parameters[position])
+                          if access.interface]
+            interfaces = set(interfaces) & set(candidates)
+
+        if len(interfaces) == 0:
+            raise RuntimeError('Need at least one common interface to send a signal')
+        else:
+            # Todo how to choose between several ones?
+            return list(interfaces)[0]
+
