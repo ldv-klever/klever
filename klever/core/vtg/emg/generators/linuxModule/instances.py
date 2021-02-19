@@ -22,12 +22,12 @@ import sortedcontainers
 
 import klever.core.vtg.emg.common.c as c
 from klever.core.vtg.emg.common import get_or_die, id_generator
-from klever.core.vtg.emg.common.process import Process
-from klever.core.vtg.emg.common.process.actions import Dispatch, Receive, Block, Signal
+from klever.core.vtg.emg.common.process.actions import Receive, Block, Signal
 from klever.core.vtg.emg.common.process.serialization import CollectionEncoder
 from klever.core.vtg.emg.common.c.types import Structure, Primitive, Pointer, Array, Function, import_declaration
 from klever.core.vtg.emg.generators.linuxModule.interface import Implementation, Resource, Container, Callback
-from klever.core.vtg.emg.generators.linuxModule.process import get_common_parameter, CallRetval, Call, ExtendedAccess
+from klever.core.vtg.emg.generators.linuxModule.process import get_common_parameter, CallRetval, Call, ExtendedAccess, \
+    ExtendedProcessCollection
 
 
 _declarations = {'environment model': list()}
@@ -43,11 +43,11 @@ def generate_instances(logger, conf, sa, interfaces, model, instance_maps):
 
     :param logger: Logger object.
     :param conf: Configuration dictionary.
-    :param sa:
-    :param interfaces:
-    :param model:
-    :param instance_maps:
-    :return:
+    :param sa: Source.
+    :param interfaces: Inerfaces collection.
+    :param model: ProcessCollection.
+    :param instance_maps: Dict
+    :return: instance_maps, data.
     """
 
     # todo: This should be done completely in another way. First we can prepare instance maps with implementations then
@@ -210,7 +210,7 @@ def _simplify_process(logger, conf, sa, interfaces, process):
                     action.condition = guards
         else:
             # Replace it with a stub
-            new = process.add_condition(action.name, [],
+            new = process.add_condition(action.name + '_replacement', [],
                                         ["/* Skip signal {!r} as it has no peers */".format(action.name)],
                                         "Stub instead of the {!r} signal.".format(action.name))
             process.replace_action(action, new)
@@ -998,7 +998,7 @@ def _copy_process(process, instances_left):
     :param instances_left: Number of instances which EMG is still allowed to generate.
     :return: Process object copy.
     """
-    inst = copy.copy(process)
+    inst = process.clone()
 
     if instances_left == 0:
         raise RuntimeError('EMG tries to generate more instances than it is allowed by configuration')
@@ -1101,7 +1101,7 @@ def _split_into_instances(sa, interfaces, process, resource_new_insts, simplifie
                         # If values are repeated just choose random one
                         suits = sorted(
                                 [value for value in interface_to_value[interface]
-                                 if not interface_to_value[interface][value]or
+                                 if not interface_to_value[interface][value] or
                                  chosen_values.intersection(interface_to_value[interface][value]) or
                                  ([cv for cv in interface_to_value[interface][value]
                                    if cv not in value_to_implementation and cv not in chosen_values])])
