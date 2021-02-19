@@ -23,7 +23,7 @@ import sortedcontainers
 
 from klever.core.vtg.emg.common.process.labels import Label, Access
 from klever.core.vtg.emg.common.process.actions import Actions, Subprocess, Action, Dispatch, Receive, Block, Operator,\
-    Signal, Behaviour
+    Signal, Behaviour, Parentheses, Choice, Concatenation
 
 
 Peer = collections.namedtuple('Peer', 'process action')
@@ -464,22 +464,32 @@ class ProcessCollection:
         :parameter directory: Name of the directory to save graphs of processes.
         :return: None
         """
+        covered_subprocesses = set()
+
         def process_next(prevs, action):
             if isinstance(action, Behaviour):
                 for prev in prevs:
-                    graph.edge(str(prev), str(action))
-                return {action}
-            elif isinstance(action, Operator):
-                for act in action:
-                    if isinstance(act, Behaviour):
-                        for prev in prevs:
-                            graph.edge(hash(prev), label=r'{}\l'.format(repr(a)))
-                        prevs = {act}
+                    graph.edge(str(hash(prev)), str(hash(action)))
 
-                        if isinstance(act.kind, Subprocess):
-                            process_next(prevs, act.description.action)
-                    else:
-                        prevs = process_next(prevs, act)
+                if action.kind is Subprocess:
+                    if action.description.action not in covered_subprocesses:
+                        graph.node(str(hash(action.description)), r'Begin subprocess {}\l'.format(repr(a)))
+                        covered_subprocesses.add(action.description.action)
+                        process_next({action.description}, action.description.action)
+                    graph.edge(str(hash(action)), str(hash(action.description)))
+                    return {}
+                else:
+                    return {action}
+            elif isinstance(action, Parentheses):
+                return process_next(prevs, action[0])
+            elif isinstance(action, Choice):
+                new_prevs = set()
+                for act in action:
+                    new_prevs.update(process_next(prevs, act))
+                return new_prevs
+            elif isinstance(action, Concatenation):
+                for act in action:
+                    prevs = process_next(prevs, act)
                 return prevs
             else:
                 raise NotImplementedError
@@ -494,7 +504,7 @@ class ProcessCollection:
             )
 
             for a in process.actions.final_actions:
-                graph.node(hash(a), r'{}\l'.format(repr(a)))
+                graph.node(str(hash(a)), r'{}\l'.format(repr(a)))
             process_next(set(), process.actions.initial_action)
 
             # Save to dg_file
