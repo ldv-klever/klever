@@ -428,6 +428,14 @@ class ProcessCollection:
                            format(identifier, ', '.join(self.models.keys()), ', '.join(self.environment.keys())))
 
     def peers(self, process, signals=None, processes=None):
+        assert isinstance(process, Process), f'Got {type(process).__name__}'
+        if signals:
+            for signal in signals:
+                assert isinstance(signal, str), f'Signal {str(signal)} has type {type(process).__name__} instead of str'
+        if processes:
+            for name in processes:
+                assert isinstance(name, str), f'Process name {str(name)} has type {type(process).__name__}'
+
         peers = []
         for agent_name in (n for n in process.peers if processes is None or n in processes):
             agent = self.find_process(agent_name)
@@ -442,7 +450,6 @@ class ProcessCollection:
         Get processes and guarantee that all peers are correctly set for both receivers and dispatchers. The function
         replaces dispatches expressed by strings to object references as it is expected in translation.
 
-        :param strict: Raise exception if a peer process identifier is unknown (True) or just ignore it (False).
         :return: None
         """
         # Delete all previous peers to avoid keeping the old deleted processes
@@ -451,10 +458,10 @@ class ProcessCollection:
 
         # Fisrt check models
         for model in self.models.values():
-            for process in list(self.environment.values()) + [self.entry] if self.entry else []:
+            for process in list(self.environment.values()) + ([self.entry] if self.entry else []):
                 model.establish_peers(process)
 
-        processes = list(self.environment.values()) + [self.entry] if self.entry else []
+        processes = list(self.environment.values()) + ([self.entry] if self.entry else [])
         for i, process in enumerate(processes):
             for pair in processes[i+1:]:
                 process.establish_peers(pair)
