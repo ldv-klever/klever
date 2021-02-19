@@ -23,7 +23,7 @@ from klever.core.vtg.emg.common.process.labels import Label
 from klever.core.vtg.emg.common.c.types import import_declaration
 from klever.core.vtg.emg.common.process.parser import parse_process
 from klever.core.vtg.emg.common.process import Process, ProcessCollection
-from klever.core.vtg.emg.common.process.actions import Receive, Dispatch, Subprocess, Block, Action, Savepoint, Signal
+from klever.core.vtg.emg.common.process.actions import Receive, Dispatch, Subprocess, Block, Savepoint, Signal
 
 
 class CollectionEncoder(json.JSONEncoder):
@@ -89,7 +89,7 @@ class CollectionEncoder(json.JSONEncoder):
             'process': CollectionEncoder._serialize_fsa(process.actions.initial_action),
             'labels': {str(l): convert_label(l) for l in process.labels.values()},
             'actions': {str(a): convert_action(a) for a in process.actions.values()},
-            'peers': list(process.peers)
+            'peers': {k: list(sorted(v)) for k, v in process.peers.items()}
         }
 
         if len(process.headers) > 0:
