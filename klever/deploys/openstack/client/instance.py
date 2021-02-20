@@ -85,7 +85,8 @@ class OSInstance:
                     image=self.base_image,
                     flavor=flavor,
                     key_name=self.args.os_keypair_name,
-                    nics=[{'net-id': self.args.os_network_id}]
+                    nics=[{'net-id': self.args.os_network_id}],
+                    security_groups=[self.args.os_sec_group]
                 )
 
                 timeout = self.CREATION_TIMEOUT

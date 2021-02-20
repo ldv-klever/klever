@@ -52,6 +52,8 @@ def parse_args(args, logger):
                         help='OpenStack network type. Can be "internal" or "external" (default: "%(default)s").')
     parser.add_argument('--os-network-id', default='2a733728-5666-44de-bd54-7d02a7a39176',
                         help='OpenStack network id (default: "%(default)s").')
+    parser.add_argument('--os-sec-group', default='ldv-sec',
+                        help='OpenStack security group (default: "%(default)s").')
     parser.add_argument('--os-keypair-name', default='ldv',
                         help='OpenStack keypair name (default: "%(default)s").')
     parser.add_argument('--ssh-username', default=OS_USER,
