@@ -723,7 +723,7 @@ def __refine_processes(logger, chosen):
             signal = replicative.pop()
             if str(signal) in process.unmatched_signals(Receive):
                 # Remove the process from the collection
-                delete.append(process)
+                delete.append(str(process))
 
         for p in delete:
             logger.info("Remove process {!r} as it cannot be registered".format(str(p)))
