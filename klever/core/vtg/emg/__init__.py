@@ -15,14 +15,13 @@
 # limitations under the License.
 #
 
-import copy
+
 from klever.core.utils import report
 from klever.core.vtg.plugins import Plugin
 from klever.core.vtg.emg.common import get_or_die
 from klever.core.vtg.emg.generators import generate_processes
 from klever.core.vtg.emg.common.process import ProcessCollection
 from klever.core.vtg.emg.translation import translate_intermediate_model
-from klever.core.vtg.emg.decomposition import decompose_intermediate_model
 from klever.core.vtg.emg.common.c.source import create_source_representation
 
 
@@ -61,13 +60,11 @@ class EMG(Plugin):
         self.logger.info("An intermediate environment model has been prepared")
 
         # Import additional aspect files
-        abstract_task = self.abstract_task_desc
-        self.abstract_task_desc = list()
-        for identifier, model in enumerate(decompose_intermediate_model(self.logger, self.conf, sa, collection)):
-            new_description = translate_intermediate_model(self.logger, self.conf, copy.deepcopy(abstract_task), sa,
-                                                           model)
-            new_description["environment model identifier"] = identifier
-            self.abstract_task_desc.append(new_description)
-            self.logger.info(f"An environment model {identifier} has been generated successfully")
+        translate_intermediate_model(self.logger, self.conf, self.abstract_task_desc, sa, collection)
+        self.logger.info("An environment model has been generated successfully")
+
+        # todo: complete this feature
+        self.abstract_task_desc["environment model identifier"] = "default"
+        self.abstract_task_desc = [self.abstract_task_desc]
 
     main = generate_environment
