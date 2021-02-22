@@ -40,6 +40,7 @@ common_target_program_descs = {
             'linux/mod_devicetable.h',
             'linux/device.h',
             'linux/pm.h',
+            'linux/pm_runtime.h',
             'linux/fs.h',
             'linux/rtnetlink.h',
             'net/mac80211.h',
