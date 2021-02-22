@@ -184,13 +184,12 @@ def _simplify_process(logger, conf, sa, interfaces, process, peers_cache, new_co
                 try:
                     interface = str(new_collection.get_common_parameter(action, process, index))
                 except RuntimeError:
-                    suts = [peer.interfaces[index]
-                            for peer in peers_cache.get(str(process), dict()).get(str(action), [])
-                            if peer.interfaces and len(peer.interfaces) > index]
-                    if suts:
-                        interface = suts[0]
+                    suits = peers_cache[str(process)].setdefault(action.name, list())
+                    if len(suits) > index:
+                        interface = suits[index]
                     else:
-                        raise
+                        cache_repr = {p: {a: [(str(r.process), r.action.name, r.interfaces) for r in peers_cache[p][a]] for a in peers_cache[p]} for p in peers_cache}
+                        raise RuntimeError(f'Cannot find peers for {str(process)} and {str(action)} in {str(cache_repr)}')
 
                 # Determine dispatch parameter
                 access = process.resolve_access(action.parameters[index], interface)
@@ -210,20 +209,19 @@ def _simplify_process(logger, conf, sa, interfaces, process, peers_cache, new_co
 
                 # Go through peers and set proper interfaces
                 for peer in peers:
-                    if len(peer.interfaces) == index:
-                        peer.interfaces.append(interface)
+                    peers_cache.setdefault(str(peer.process), dict())
+                    peers_cache[str(peer.process)].setdefault(action.name, list())
 
-                    contr_peers = new_collection.peers(peer.process, str(action))
+                    if len(peers_cache[str(peer.process)][action.name]) == index:
+                        peers_cache[str(peer.process)][action.name].append(interface)
+
+                    contr_peers = new_collection.peers(peer.process, action.name)
                     for pr in contr_peers:
-                        if len(pr.interfaces) == index:
-                            pr.interfaces.append(interface)
-                        peers_cache.setdefault(str(peer.process), dict())
-                        peers_cache[str(peer.process)].setdefault(str(action), list())
-                        peers_cache[str(peer.process)][str(action)].append(pr)
+                        peers_cache.setdefault(str(pr.process), dict())
+                        peers_cache[str(pr.process)].setdefault(action.name, list())
 
-                    peers_cache.setdefault(str(process), dict())
-                    peers_cache[str(process)].setdefault(str(action), list())
-                    peers_cache[str(process)][str(action)].append(peer)
+                        if len(peers_cache[str(pr.process)][action.name]) == index:
+                            peers_cache[str(pr.process)][action.name].append(interface)
 
             if guards:
                 if action.condition:
