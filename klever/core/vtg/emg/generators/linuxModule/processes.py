@@ -724,6 +724,21 @@ def __refine_processes(logger, chosen):
             if str(signal) in process.unmatched_signals(Receive):
                 # Remove the process from the collection
                 delete.append(str(process))
+            else:
+                # Check that processses are not send and required by anybody
+                unrelevant_dispatches = process.unmatched_signals(kind=Dispatch)
+                models = list(map(str, chosen.models.values()))
+                model_senders = [p for p in process.peers if p in models and str(signal) in process.peers[p]]
+                if len(model_senders) == 0 and \
+                        len(unrelevant_dispatches) == len(process.actions.filter(include={Dispatch}, exclude={Call})):
+                    logger.debug(f'Process {str(process)} do not have dispatches to anybody else in the model')
+                    # Then check that there is no any interface implementations which are relevant to the the process
+                    accesses = [a for many in process.accesses().values() for a in many if a.interface]
+                    implemented = [a for a in accesses if a.interface.implementations]
+                    if not implemented:
+                        logger.debug(f'Delete process {str(process)} as it does not have any relevant implemented '
+                                     f'interfaces')
+                        delete.append(str(process))
 
         for p in delete:
             logger.info("Remove process {!r} as it cannot be registered".format(str(p)))
