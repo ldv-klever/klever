@@ -462,7 +462,8 @@ class Actions(collections.UserDict):
         """
         exclude = {a.action for a in self.filter(include={Subprocess})}
         acts = {a for a in self.behaviour() if not a.my_operator and isinstance(a, Operator) and a not in exclude}
-        assert not (len(self.behaviour()) > 0 and len(acts) == 0),\
+        assert len(self.behaviour()) > 0, "There is no any actions in the prcess"
+        assert len(acts) != 0,\
             'Ther is no any initial action. There are actions in total: {}'.\
             format('\n'.join(f"{repr(a)} parent: {repr(a.my_operator)}" for a in self.behaviour()))
         assert len(acts) == 1, 'There are more than one initial action: {}'.\
