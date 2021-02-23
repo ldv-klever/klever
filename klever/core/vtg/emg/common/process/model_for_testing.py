@@ -71,10 +71,18 @@ def raw_model_preset():
         "actions": {
             "activate": {
                 "comment": "Activate the second process.",
-                "process": "([register_c1p2].[deregister_c1p2]).({activate} | (deregister_c1p1))"
+                "process": "([register_c1p2].[deregister_c1p2]).({activate} | (deregister_c1p1))",
+                "savepoints": {
+                    'p1s3': ["$ALLOC(%container%);"],
+                    'p1s4': ["$ALLOC(%container%);"]
+                }
             },
             "register_c1p1": {
-                "parameters": ['%container%']
+                "parameters": ['%container%'],
+                "savepoints": {
+                    'p1s1': ["$ALLOC(%container%);"],
+                    'p1s2': ["$ALLOC(%container%);"]
+                }
             },
             "deregister_c1p1": {
                 "parameters": ['%container%']
@@ -117,7 +125,11 @@ def raw_model_preset():
             },
             "register_c1p2": {
                 "condition": ["$ARG1 == global_var"],
-                "parameters": ['%container%']
+                "parameters": ['%container%'],
+                "savepoints": {
+                    'p2s1': ["$ALLOC(%container%);"],
+                    'p2s2': ["$ALLOC(%container%);"]
+                }
             },
             "alloc": {
                 "comment": "Alloc memory for the container.",

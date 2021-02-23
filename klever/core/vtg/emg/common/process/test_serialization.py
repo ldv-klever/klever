@@ -92,16 +92,32 @@ def _compare_actions_collections(one, two):
     assert len(one) == len(two)
     for action in one:
         _compare_actions(one[action], two[action])
+    _compare_savepoints(one, two)
 
 
 def _compare_actions(one, two):
     # todo: we do not test attribute 'trace relevant' as it is unnecessary
-    for attr in ('comment', 'statements', 'condition', 'parameters', 'savepoints',
+    for attr in ('comment', 'statements', 'condition', 'parameters',
                  'peers', 'pre-call', 'post-call'):
         assert str(one.get(attr)) == str(two.get(attr)), f"{attr}"
 
     if 'process' in one:
         assert 'process' in two
+
+
+def _compare_savepoints(desc1, desc2):
+    for action in desc1:
+        if 'savepoints' in action and len(action['savepoints']):
+            assert desc2[action]['savepoints'], f"Expect {len(action['savepoints'])} savepoints"
+            names = set(desc2[action]['savepoints'].keys())
+            keys = set(action['savepoints'].keys())
+            assert names == keys, 'Savepoints do not match: {} and {}'.format(', '.join(names), ', '.join(keys))
+
+            for name in desc1[action]['savepoints']:
+                for i, line1 in enumerate(desc1[action]['savepoints'][name]):
+                    line2 = desc2[action]['savepoints'][name][i]
+                    assert line1 == line2, f"Line '{line1}' does not match '{line2}' at position {i} of action " \
+                                           f"{action} savepoint {name}"
 
 
 def test_compare_peers(model):

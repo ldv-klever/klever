@@ -256,7 +256,7 @@ class Action:
         self.name = name
         self.condition = []
         self.trace_relevant = False
-        self.savepoints = []
+        self.savepoints = set()
         self.comment = ''
 
     def __getnewargs__(self):
