@@ -15,58 +15,82 @@
 # limitations under the License.
 #
 
+import pytest
+
+from klever.core.vtg.emg.common.process.model_for_testing import model_preset
 from klever.core.vtg.emg.decomposition.scenario import Scenario, ScenarioExtractor
-from klever.core.vtg.emg.common.process import Process, Action, Actions, Block, Concatenation, Choice, Parentheses
-
-TEST1 = {
-    ''
-}
+from klever.core.vtg.emg.common.process.actions import Concatenation, Subprocess
 
 
-def test_set_initial_action():
-    test1 = Action('test1')
-    test2 = Action('test2')
-    test3 = Action('test3')
+@pytest.fixture
+def model():
+    return model_preset()
+
+
+def test_set_initial_action(model):
+    c1p1 = model.environment['c1/p1']
+    b1 = c1p1.actions.initial_action
 
     scenario = Scenario()
-
-    scenario.set_initial_action(test1)
-    assert scenario.actions.initial_action == test1, 'Initial action was not set'
-    assert not (scenario.actions.initial_action is test2), 'Initial action does not differ from another object'
-
-    try:
-        scenario.set_initial_action(test3)
-    except ValueError:
-        pass
-    else:
-        assert False, "Expect ValueError"
+    assert scenario.initial_action is None
+    scenario.initial_action = b1
+    assert scenario.initial_action is not None, repr(scenario.initial_action)
+    assert scenario.initial_action is not b1
+    assert scenario.actions.initial_action is not None
+    assert scenario.actions.initial_action is scenario.initial_action
 
 
-def test_add_action_copy():
-    test1, test2 = Block('block1'), Block('block2')
+def test_add_action_copy(model):
+    c1p2 = model.environment['c1/p2']
+    b1 = c1p2.actions.behaviour('read').pop()
+    b2 = c1p2.actions.behaviour('write').pop()
+    op = Concatenation()
 
-    operator1 = Parentheses('1')
     inst1 = Scenario()
-    inst1.set_initial_action(operator1)
-    ret = inst1.add_action_copy(test1, operator1)
-    assert ret == test1 and ret is not test1, 'Copy is not successful'
-    try:
-        inst1.add_action_copy(test2, operator1)
-    except AssertionError:
-        pass
-    else:
-        assert False, 'It is imposible to add two actions to Parentheses'
+    inst1.initial_action = op
+    op = inst1.initial_action
+    c1 = inst1.add_action_copy(b1, op)
+    c2 = inst1.add_action_copy(b2, op)
 
-    for operator2 in (Choice('2'), Concatenation('3')):
-        inst1 = Scenario()
-        inst1.set_initial_action(operator2)
-        ret1 = inst1.add_action_copy(test1, operator2)
-        assert ret1 == test1 and ret1 is not test1, 'Copy is not successful'
-
-        ret2 = inst1.add_action_copy(test2, operator2)
-        assert ret2 == test2 and ret2 is not test2 and ret2 is not test1, 'Copy is not successful'
+    assert c1 is not b1
+    assert c2 is not b2
+    assert c1.my_operator is op
+    assert c2.my_operator is op
+    assert op[0] is c1
+    assert op[1] is c2
 
 
-def test_scenario_extraction():
-    test1 = Process('test1', 'test1')
-    #test1.actions.
+def test_scenario_extraction(model):
+    c1p1 = model.environment['c1/p1']
+    c1p2 = model.environment['c1/p2']
+    c2p1 = model.environment['c2/p1']
+
+    e1 = ScenarioExtractor(c1p1.actions)
+    s1 = e1()
+    assert len(s1) == 2
+    _compare_scenario_with_actions(s1, c1p1.actions)
+
+    e2 = ScenarioExtractor(c1p2.actions)
+    s2 = e2()
+    assert len(s2) == 2
+    _compare_scenario_with_actions(s2, c1p2.actions)
+
+    e3 = ScenarioExtractor(c2p1.actions)
+    s3 = e3()
+    assert len(s3) == 1
+    _compare_scenario_with_actions(s3, c2p1.actions)
+
+
+def _compare_scenario_with_actions(scenarios, actions):
+    for s in scenarios:
+        assert s.savepoint
+        assert s.initial_action
+
+        assert repr(s.initial_action) == repr(actions.initial_action)
+        for subp in actions.filter(include={Subprocess}):
+            assert repr(s.actions[subp.name].action) == repr(actions[subp.name].action)
+        for name in actions:
+            assert s.actions[name]
+            assert len(actions.behaviour(name)) == len(s.actions.behaviour(name)), \
+                "{} and {}".format('\n'.join(map(repr, actions.behaviour(name))),
+                                   '\n'.join(map(repr, s.actions.behaviour(name))))
