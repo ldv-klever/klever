@@ -471,6 +471,29 @@ class Actions(collections.UserDict):
         act, *_ = acts
         return act
 
+    def first_actions(self, root=None):
+        assert isinstance(root, BaseAction) or root is None, type(root).__name__
+        first = set()
+
+        if not root:
+            process = {self.initial_action}
+        else:
+            process = {root}
+        while process:
+            a = process.pop()
+
+            if isinstance(a, Concatenation) and len(a) > 0:
+                process.add(a[0])
+            elif isinstance(a, Operator):
+                for child in a:
+                    process.add(child)
+            elif isinstance(a, Behaviour) and a.kind is Subprocess and a.description and a.description.action:
+                process.add(a.description.action)
+            else:
+                first.add(a.name)
+
+        return first
+
     @property
     def final_actions(self):
         return set(filter(lambda x: not isinstance(x, Operator), self.behaviour()))
