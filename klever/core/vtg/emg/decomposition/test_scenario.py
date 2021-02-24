@@ -17,9 +17,9 @@
 
 import pytest
 
+from klever.core.vtg.emg.decomposition.scenario import Scenario
+from klever.core.vtg.emg.common.process.actions import Concatenation
 from klever.core.vtg.emg.common.process.model_for_testing import model_preset
-from klever.core.vtg.emg.decomposition.scenario import Scenario, ScenarioExtractor
-from klever.core.vtg.emg.common.process.actions import Concatenation, Subprocess
 
 
 @pytest.fixture
@@ -58,42 +58,3 @@ def test_add_action_copy(model):
     assert c2.my_operator is op
     assert op[0] is c1
     assert op[1] is c2
-
-
-def test_scenario_extraction(model):
-    c1p1 = model.environment['c1/p1']
-    c1p2 = model.environment['c1/p2']
-    c2p1 = model.environment['c2/p1']
-
-    e1 = ScenarioExtractor(c1p1.actions)
-    s1 = e1()
-    assert len(s1) == 2
-    _compare_scenario_with_actions(s1, c1p1.actions)
-
-    e2 = ScenarioExtractor(c1p2.actions)
-    s2 = e2()
-    assert len(s2) == 2
-    _compare_scenario_with_actions(s2, c1p2.actions)
-
-    e3 = ScenarioExtractor(c2p1.actions)
-    s3 = e3()
-    assert len(s3) == 1
-    _compare_scenario_with_actions(s3, c2p1.actions)
-
-
-def _compare_scenario_with_actions(scenarios, actions):
-    first_actions = actions.first_actions()
-    savepoints = [s for a in first_actions for s in actions[a].savepoints]
-
-    for s in scenarios:
-        assert not savepoints or s.savepoint in savepoints
-        assert s.initial_action
-
-        assert repr(s.initial_action) == repr(actions.initial_action)
-        for subp in actions.filter(include={Subprocess}):
-            assert repr(s.actions[subp.name].action) == repr(actions[subp.name].action)
-        for name in actions:
-            assert s.actions[name]
-            assert len(actions.behaviour(name)) == len(s.actions.behaviour(name)), \
-                "{} and {}".format('\n'.join(map(repr, actions.behaviour(name))),
-                                   '\n'.join(map(repr, s.actions.behaviour(name))))
