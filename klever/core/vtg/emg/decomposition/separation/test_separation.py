@@ -18,10 +18,10 @@
 import pytest
 import logging
 
-from klever.core.vtg.emg.common.process.actions import Subprocess
 from klever.core.vtg.emg.decomposition.separation import SeparationStrategy
 from klever.core.vtg.emg.common.process.model_for_testing import model_preset
 from klever.core.vtg.emg.decomposition.separation.linear import LinearStrategy
+from klever.core.vtg.emg.common.process.actions import Subprocess, Choice, Receive
 
 
 @pytest.fixture
@@ -34,23 +34,25 @@ def default_separator():
     return SeparationStrategy(logging, dict())
 
 
+@pytest.fixture
+def linear_separator():
+    return LinearStrategy(logging, dict())
+
+
 def test_default_scenario_extraction(model, default_separator):
     c1p1 = model.environment['c1/p1']
     c1p2 = model.environment['c1/p2']
     c2p1 = model.environment['c2/p1']
 
-    e1 = default_separator(c1p1)
-    s1 = e1()
+    s1 = default_separator(c1p1)
     assert len(s1) == 2
     _compare_scenario_with_actions(s1, c1p1.actions)
 
-    e2 = default_separator(c1p2)
-    s2 = e2()
+    s2 = default_separator(c1p2)
     assert len(s2) == 2
     _compare_scenario_with_actions(s2, c1p2.actions)
 
-    e3 = default_separator(c2p1)
-    s3 = e3()
+    s3 = default_separator(c2p1)
     assert len(s3) == 1
     _compare_scenario_with_actions(s3, c2p1.actions)
 
@@ -71,3 +73,57 @@ def _compare_scenario_with_actions(scenarios, actions):
             assert len(actions.behaviour(name)) == len(s.actions.behaviour(name)), \
                 "{} and {}".format('\n'.join(map(repr, actions.behaviour(name))),
                                    '\n'.join(map(repr, s.actions.behaviour(name))))
+
+
+def test_linear_strategy_c1p1(model, linear_separator):
+    c1p1 = model.environment['c1/p1']
+    scenarios = linear_separator(c1p1)
+    _check_linear_actions(scenarios, c1p1.actions)
+
+
+def test_linear_strategy_c1p2():
+    c1p1 = model.environment['c1/p2']
+    scenarios = linear_separator(c1p1)
+    _check_linear_actions(scenarios, c1p1.actions)
+
+
+def test_linear_strategy_c2p1():
+    c1p1 = model.environment['c2/p1']
+    scenarios = linear_separator(c1p1)
+    _check_linear_actions(scenarios, c1p1.actions)
+
+
+def _check_linear_actions(scenarios, actions):
+    # Savepoints are covered
+    first_actions = actions.first_actions()
+    savepoints = {s.name for a in first_actions for s in actions[a].savepoints}
+    covered = {s.savepoint.name for s in scenarios if s.savepoint}
+    assert savepoints == covered, "Covered: {}; All: {}".format(', '.join(savepoints), ', '.join(covered))
+
+    # All actions are covered
+    covered_actions = dict()
+    for scenario in scenarios:
+        for name in scenario.actions:
+            covered_actions.setdefault(name, 0)
+            behs = len(scenario.actions.behaviour(name))
+            covered_actions[name] += behs
+
+    for name in actions:
+        real_behs = len(actions.behaviour(name))
+        assert name in covered_actions, f'Action {name} is not covered at all'
+        assert real_behs <= covered_actions[name], f'Some entries of {name} are not covered ({real_behs}):' \
+                                                   f' {covered_actions[name]}'
+
+    # No Choices in paths
+    for scenario in scenarios:
+        for beh in scenario.actions.behaviour():
+            if isinstance(beh, Choice):
+                assert False, f'Do not expect choice in the scenario: {repr(beh)}'
+
+    # Have registration or savepoint
+    registrations = {a.name for a in actions.filter(include={Receive})}.intersection(first_actions)
+    assert len(registrations) == 1, f'The process should have a single registration instead of:' \
+                                    f' {", ".join(registrations)}'
+    registration = registrations.pop()
+    for scenario in scenarios:
+        assert scenario.savepoint or registration in scenario.actions.first_actions()
