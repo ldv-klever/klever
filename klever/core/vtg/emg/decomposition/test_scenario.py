@@ -82,8 +82,11 @@ def test_scenario_extraction(model):
 
 
 def _compare_scenario_with_actions(scenarios, actions):
+    first_actions = actions.first_actions()
+    savepoints = [s for a in first_actions for s in actions[a].savepoints]
+
     for s in scenarios:
-        assert s.savepoint
+        assert not savepoints or s.savepoint in savepoints
         assert s.initial_action
 
         assert repr(s.initial_action) == repr(actions.initial_action)
