@@ -81,23 +81,23 @@ def test_linear_strategy_c1p1(model, linear_separator):
     _check_linear_actions(scenarios, c1p1.actions)
 
 
-def test_linear_strategy_c1p2():
-    c1p1 = model.environment['c1/p2']
-    scenarios = linear_separator(c1p1)
-    _check_linear_actions(scenarios, c1p1.actions)
+def test_linear_strategy_c1p2(model, linear_separator):
+    c1p2 = model.environment['c1/p2']
+    scenarios = linear_separator(c1p2)
+    _check_linear_actions(scenarios, c1p2.actions)
 
 
-def test_linear_strategy_c2p1():
-    c1p1 = model.environment['c2/p1']
-    scenarios = linear_separator(c1p1)
-    _check_linear_actions(scenarios, c1p1.actions)
+def test_linear_strategy_c2p1(model, linear_separator):
+    c2p1 = model.environment['c2/p1']
+    scenarios = linear_separator(c2p1)
+    _check_linear_actions(scenarios, c2p1.actions)
 
 
 def _check_linear_actions(scenarios, actions):
     # Savepoints are covered
     first_actions = actions.first_actions()
-    savepoints = {s.name for a in first_actions for s in actions[a].savepoints}
-    covered = {s.savepoint.name for s in scenarios if s.savepoint}
+    savepoints = {str(s) for a in first_actions for s in actions[a].savepoints}
+    covered = {str(s.savepoint) for s in scenarios if s.savepoint}
     assert savepoints == covered, "Covered: {}; All: {}".format(', '.join(savepoints), ', '.join(covered))
 
     # All actions are covered
