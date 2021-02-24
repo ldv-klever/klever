@@ -14,6 +14,7 @@
 # limitations under the License.
 
 import errno
+import os
 import re
 import sys
 
@@ -37,6 +38,7 @@ class OSClient:
         self.args = args
         self.logger = logger
         self.kind = args.entity
+        self.password_file = os.path.join(os.path.expanduser('~'), '.config', 'klever', 'openstack')
 
         session = self.__get_session()
 
@@ -197,15 +199,29 @@ class OSClient:
 
     def __get_session(self):
         self.logger.info('Sign in to OpenStack')
+        try:
+            with open(self.password_file, 'r') as fp:
+                password = fp.read()
+            self.logger.info(f'Read password from "{self.password_file}"" file')
+        except Exception:
+            password = get_password(self.logger, 'OpenStack password for authentication: ')
+
         auth = keystoneauth1.identity.v3.Password(
             auth_url=self.args.os_auth_url,
             username=self.args.os_username,
-            password=get_password(self.logger, 'OpenStack password for authentication: '),
+            password=password,
             user_domain_name=self.args.os_domain_name,
             project_domain_name=self.args.os_domain_name,
             project_name=self.args.os_tenant_name,
         )
         session = keystoneauth1.session.Session(auth=auth)
+
+        if not os.path.isfile(self.password_file) and not self.args.do_not_store_password:
+            self.logger.warning(f'Your password is now stored in plain text in "{self.password_file}" file')
+
+            os.makedirs(self.password_file, exist_ok=True)
+            with open(self.password_file, 'w') as fp:
+                fp.write(password)
 
         try:
             # Perform a request to OpenStack in order to check the correctness of provided username and password.
