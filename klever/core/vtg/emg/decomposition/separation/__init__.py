@@ -15,12 +15,16 @@
 # limitations under the License.
 #
 
+from klever.core.vtg.emg.decomposition.scenario import ScenarioExtractor
+
 
 class SeparationStrategy:
+
+    strategy = ScenarioExtractor
 
     def __init__(self, logger, conf):
         self.logger = logger
         self.conf = conf
 
-    def split_into_scenarios(self, process):
-        return []
+    def __call__(self, process):
+        return self.strategy(process.actions)

@@ -70,7 +70,7 @@ class Decomposition:
 
         processes_to_scenarios = dict()
         for process in processes:
-            scenarios = self.separator.split_into_scenarios(process)
+            scenarios = self.separator(process)
             self.logger.debug(f'Generated {len(scenarios)} scenarios for the process {str(process)}')
             processes_to_scenarios[process] = scenarios
 
