@@ -202,7 +202,7 @@ class OSClient:
         try:
             with open(self.password_file, 'r') as fp:
                 password = fp.read()
-            self.logger.info(f'Read password from "{self.password_file}"" file')
+            self.logger.info(f'Use password from "{self.password_file}" file')
         except Exception:
             password = get_password(self.logger, 'OpenStack password for authentication: ')
 
@@ -217,9 +217,9 @@ class OSClient:
         session = keystoneauth1.session.Session(auth=auth)
 
         if not os.path.isfile(self.password_file) and not self.args.do_not_store_password:
-            self.logger.warning(f'Your password is now stored in plain text in "{self.password_file}" file')
+            self.logger.info(f'Your password is now stored in plain text in "{self.password_file}" file')
 
-            os.makedirs(self.password_file, exist_ok=True)
+            os.makedirs(os.path.dirname(self.password_file), exist_ok=True)
             with open(self.password_file, 'w') as fp:
                 fp.write(password)
 
