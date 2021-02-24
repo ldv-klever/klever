@@ -30,7 +30,8 @@ from klever.deploys.utils import get_password
 
 
 class OSClient:
-    NETWORK_TYPE = {'internal': 'ispras', 'external': 'external_network'}
+    GLOBAL_NET_TYPE = {'internal': 'ispras', 'external': 'external_network'}
+    NET_TYPE = {'internal': 'net-for-intra-computations', 'external': 'net-for-83.149.198-computations'}
 
     def __init__(self, args, logger):
         self.args = args
@@ -128,41 +129,14 @@ class OSClient:
 
         return floating_ip
 
-    def remove_floating_ip(self, instance, share=False):
-        if share:
-            network_name = self.NETWORK_TYPE["internal"]
-        else:
-            network_name = self.NETWORK_TYPE["external"]
-
-        floating_ip = None
-        network_id = self.__get_network_id(network_name)
-
-        floating_ip_address = self.get_instance_floating_ip(instance)
-
-        for f_ip in self.neutron.list_floatingips()['floatingips']:
-            if f_ip['floating_ip_address'] == floating_ip_address and f_ip['floating_network_id'] == network_id:
-                floating_ip = f_ip
-                break
-
-        if not floating_ip and share:
-            self.logger.info('Floating IP {} is already in external network'.format(floating_ip_address))
-            sys.exit()
-        elif not floating_ip and not share:
-            self.logger.info('Floating IP {} is already in internal network'.format(floating_ip_address))
-            sys.exit()
-
-        self.neutron.update_floatingip(floating_ip['id'], {"floatingip": {"port_id": None}})
-
-        self.logger.info('Floating IP {0} is dettached from instance "{1}"'.format(floating_ip_address, instance.name))
-
     def assign_floating_ip(self, instance, share=False):
         if share:
-            network_name = self.NETWORK_TYPE["external"]
+            network_name = self.GLOBAL_NET_TYPE["external"]
         else:
-            network_name = self.NETWORK_TYPE["internal"]
+            network_name = self.GLOBAL_NET_TYPE["internal"]
 
         floating_ip = None
-        network_id = self.__get_network_id(network_name)
+        network_id = self.get_network_id(network_name)
 
         for f_ip in self.neutron.list_floatingips()['floatingips']:
             if f_ip['status'] == 'DOWN' and f_ip['floating_network_id'] == network_id:
@@ -180,12 +154,45 @@ class OSClient:
         self.logger.info('Floating IP {0} is attached to instance "{1}"'
                          .format(floating_ip['floating_ip_address'], instance.name))
 
-    def __get_network_id(self, network_name):
+        return floating_ip
+
+    def interface_detach(self, instance):
+        ports = self.neutron.list_ports(device_id=instance.id)['ports']
+
+        if len(ports) == 0:
+            self.logger.info(f'Instance "{instance.name}" has no networks attached')
+            return
+
+        for port in ports:
+            instance.interface_detach(port['id'])
+            network_name = self.get_network_name(port["network_id"])
+            self.logger.info(f'Network "{network_name}" is dettached from instance "{instance.name}"')
+
+    def interface_attach(self, instance, share=False):
+        if share:
+            network_name = self.NET_TYPE["external"]
+        else:
+            network_name = self.NET_TYPE["internal"]
+
+        network_id = self.get_network_id(network_name)
+        instance.interface_attach(port_id=None, net_id=network_id, fixed_ip=None)
+
+        self.logger.info(f'Network "{network_name}" is attached to instance "{instance.name}"')
+
+    def get_network_id(self, network_name):
         for net in self.neutron.list_networks()['networks']:
             if net['name'] == network_name:
                 return net['id']
 
         self.logger.error(f'OpenStack does not have network with "{network_name}" name')
+        sys.exit(errno.EINVAL)
+
+    def get_network_name(self, network_id):
+        for net in self.neutron.list_networks()['networks']:
+            if net['id'] == network_id:
+                return net['name']
+
+        self.logger.error(f'OpenStack does not have network with "{network_id}" id')
         sys.exit(errno.EINVAL)
 
     def __get_session(self):
