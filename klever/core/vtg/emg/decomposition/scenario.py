@@ -82,16 +82,14 @@ class ScenarioExtractor:
         scenarios = self.__create_scenarios()
         return scenarios
 
-    def _process_subprocess(self, scenario, beh, operator=None, cache=set()):
+    def _process_subprocess(self, scenario, beh, operator=None):
         assert isinstance(beh, Behaviour)
         assert beh.kind is Subprocess
 
         new = self._process_leaf_action(scenario, beh, operator)
-        if beh.name not in cache:
-            cache.add(beh.name)
+        if len(scenario.actions.behaviour(new.name)) == 1:
             child = beh.description.action
             new_action = self._fill_top_down(scenario, child)
-            assert new_action
             new.description.action = new_action
         return new
 
