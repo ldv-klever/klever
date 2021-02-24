@@ -27,4 +27,5 @@ class SeparationStrategy:
         self.conf = conf
 
     def __call__(self, process):
-        return self.strategy(process.actions)
+        new = self.strategy(process.actions)
+        return new()
