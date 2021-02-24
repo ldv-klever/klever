@@ -56,6 +56,12 @@ class Scenario:
 
         return new_copy
 
+    def clone(self):
+        new = Scenario(self.savepoint)
+        new.actions = self.actions.clone()
+        new.__initial_action = new.actions.initial_action
+        return new
+
     def _add_action_copy(self, behaviour: BaseAction):
         assert isinstance(behaviour, BaseAction), \
             f'Expect a base action instead of {type(behaviour).__name__}'
