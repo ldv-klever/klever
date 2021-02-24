@@ -14,8 +14,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
+from klever.core.vtg.emg.decomposition.scenario import ScenarioExtractor
 from klever.core.vtg.emg.decomposition.separation import SeparationStrategy
 
 
-class LinearStrategy(SeparationStrategy):
+class LinearExtractor(ScenarioExtractor):
     pass
+
+
+class LinearStrategy(SeparationStrategy):
+
+    strategy = LinearExtractor
