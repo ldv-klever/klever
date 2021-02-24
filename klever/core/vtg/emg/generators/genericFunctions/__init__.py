@@ -133,7 +133,7 @@ class ScenarioModelgenerator(AbstractGenerator):
         processes = dict()
 
         # Make a process
-        main_process = Process("main", "main")
+        main_process = Process("main")
         main_process.comment = "Main entry point."
         main_process.self_parallelism = False
 
@@ -154,9 +154,14 @@ class ScenarioModelgenerator(AbstractGenerator):
 
             dereg_name = self.__dereg_name(identifier)
             dereg_list.insert(0, f"[{dereg_name}]")
+        else:
+            if len(reg_list) == 0:
+                raise RuntimeError("There is no any functions to call")
 
         process = ".".join(reg_list + dereg_list)
+        self.logger.debug(f"Going to parse main process: {process}")
         parse_process(main_process, process)
+        main_process.actions.populate_with_empty_descriptions()
 
         # Now establish peers
         for child in processes.values():
@@ -187,6 +192,7 @@ class ScenarioModelgenerator(AbstractGenerator):
 
         # Populate actions
         parse_process(child_proc, process)
+        child_proc.actions.populate_with_empty_descriptions()
 
         # Set up Call action
         call = child_proc.actions['call']
@@ -215,7 +221,6 @@ class ScenarioModelgenerator(AbstractGenerator):
 
         # Generate process
         ep = Process("main")
-        ep._category = 'generic'
         ep.comment = "Call exported functions."
         ep.pretty_id = 'generic'
         ep.process = ''
@@ -259,6 +264,8 @@ class ScenarioModelgenerator(AbstractGenerator):
 
         ep.add_condition('function_calls', [], code, 'Call all functions independently.')
         ep.process = "<function_calls>"
+        parse_process(ep, ep.process)
+        ep.actions.populate_with_empty_descriptions()
 
         return ep
 

@@ -8,7 +8,7 @@
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/super_block_v.1/fs_invoke.ko"
+      "value": "ext-modules/filesystem_v.1/fs_invoke.ko"
     }
   ],
   "description": "",
@@ -44,7 +44,7 @@
         {
           "EMG wrapper": [
             {
-              "LDV model 'probe'": [
+              "LDV model 'get_sb'": [
                 {
                   "LDV model 'invoke_reached'": [
                     {

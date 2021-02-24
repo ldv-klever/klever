@@ -230,6 +230,11 @@
         "header": "linux/pm.h",
         "reference": true
       },
+      "pm_runtime_set_active": {
+        "declaration": "int pm_runtime_set_active(%pm.device%)",
+        "header": "linux/pm_runtime.h",
+        "reference": true
+      },
       "pm_runtime_suspended": {
         "declaration": "bool pm_runtime_suspended(%pm.device%)",
         "header": "linux/pm.h",

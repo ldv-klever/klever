@@ -15,37 +15,25 @@
  * limitations under the License.
  */
 
-#include <linux/module.h>
-#include <linux/fs.h>
-#include <ldv/linux/emg/test_model.h>
+#include <linux/dcache.h>
+#include <ldv/linux/common.h>
+#include <ldv/verifier/common.h>
 #include <ldv/verifier/nondet.h>
+#include <ldv/verifier/memory.h>
 
-static int ldv_probe(struct file_system_type *fs_type, int flags, const char *dev_name, void *data, struct vfsmount *mnt)
+struct dentry *root_dentry;
+
+struct dentry *ldv_d_make_root(struct inode *root_inode)
 {
-	ldv_invoke_reached();
-	return 0;
+	struct dentry *res = root_dentry;
+
+	if (root_inode && !res) {
+		if (ldv_undef_int()) {
+			return 0;
+		} else {
+		    root_dentry = ldv_xzalloc(sizeof(struct dentry));
+			res = root_dentry;
+		}
+	}
+	return res;
 }
-
-static void ldv_disconnect(struct super_block *sb)
-{
-	ldv_invoke_reached();
-}
-
-static struct file_system_type ldv_driver = {
-	.get_sb = ldv_probe,
-	.kill_sb = ldv_disconnect,
-};
-
-static int __init ldv_init(void)
-{
-	ldv_invoke_test();
-	return register_filesystem(&ldv_driver);
-}
-
-static void __exit ldv_exit(void)
-{
-	unregister_filesystem(&ldv_driver);
-}
-
-module_init(ldv_init);
-module_exit(ldv_exit);

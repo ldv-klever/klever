@@ -55,7 +55,7 @@
           "init": {
             "comment": "Alloc memory for 'platform_device' structure.",
             "statements": [
-              "%resource% = $ALLOC(%resource%);",
+              "$ALLOC(%resource%);",
               "%resource%->id_entry = & %container%->id_table[0];"
             ]
           },

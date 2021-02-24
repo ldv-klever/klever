@@ -40,6 +40,12 @@
           "uuid": "4875d03e-e7e0-4fda-9611-9d74487afdec",
           "name": "Android loadable kernel modules sample",
           "directory": "linux/android loadable kernel modules sample",
+	  "production": true
+	},
+	{
+          "uuid": "d8d5d104-5651-11eb-ae93-0242ac130002",
+          "name": "File systems sample",
+          "directory": "linux/filesystems sample",
           "production": true
         },
         {

@@ -1,0 +1,18 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "test:environment model specifications"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/filesystem_v.2/unregister_filesystem.ko"
+    }
+  ],
+  "description": "",
+  "is_modifiable": true,
+  "tags": [],
+  "verdict": "0"
+}

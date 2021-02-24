@@ -65,6 +65,7 @@
             ],
             "translation options": {
               "allocate external": false,
+              "simple control functions calls": true,
               "environment model file": "environment_model.c",
               "additional headers": [
                 "ldv/linux/common.h",
@@ -84,6 +85,7 @@
             "common sets model": "counter",
             "model compiler input file": "scripts/mod/empty.c",
             "common models": [
+              "linux/fs/dcache/dcache.c",
               "linux/arch/asm/atomic.c",
               "linux/drivers/base/dd.c",
               "linux/drivers/base/devres.c",
@@ -187,6 +189,7 @@
             "check final state": false,
             "translation options": {
               "self parallel processes": false,
+              "simple control functions calls": false,
               "do not skip signals": true,
               "not self parallel processes": ["linux/insmod"],
               "not self parallel processes from categories": ["usb"],

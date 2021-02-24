@@ -22,11 +22,12 @@ import sortedcontainers
 
 import klever.core.vtg.emg.common.c as c
 from klever.core.vtg.emg.common import get_or_die, id_generator
-from klever.core.vtg.emg.common.process import Dispatch, Receive, Block
+from klever.core.vtg.emg.common.process.actions import Receive, Block, Signal
 from klever.core.vtg.emg.common.process.serialization import CollectionEncoder
 from klever.core.vtg.emg.common.c.types import Structure, Primitive, Pointer, Array, Function, import_declaration
 from klever.core.vtg.emg.generators.linuxModule.interface import Implementation, Resource, Container, Callback
-from klever.core.vtg.emg.generators.linuxModule.process import get_common_parameter, CallRetval, Call, ExtendedAccess, Action
+from klever.core.vtg.emg.generators.linuxModule.process import CallRetval, Call, ExtendedAccess, \
+    ExtendedProcessCollection
 
 
 _declarations = {'environment model': list()}
@@ -42,13 +43,12 @@ def generate_instances(logger, conf, sa, interfaces, model, instance_maps):
 
     :param logger: Logger object.
     :param conf: Configuration dictionary.
-    :param sa:
-    :param interfaces:
-    :param model:
-    :param instance_maps:
-    :return:
+    :param sa: Source.
+    :param interfaces: Inerfaces collection.
+    :param model: ProcessCollection.
+    :param instance_maps: Dict
+    :return: instance_maps, data.
     """
-
     # todo: This should be done completely in another way. First we can prepare instance maps with implementations then
     #       convert ExtendedProcesses into Processes at the same time applying instance maps. This would allow to avoid
     #       unnecessary serialization of the whole collection at the end and reduce memory usage by avoiding
@@ -64,14 +64,20 @@ def generate_instances(logger, conf, sa, interfaces, model, instance_maps):
         names.add(new_name)
     del names
 
+    new_collection = ExtendedProcessCollection()
+    new_collection.models.update({m.name: m for m in model_processes})
+    new_collection.environment.update({str(p): p for p in callback_processes})
+
     # According to new identifiers change signals peers
-    for process in model_processes + callback_processes:
+    for process in new_collection.processes:
         if conf.get("convert statics to globals", True):
             _remove_statics(logger, sa, process)
 
     # Simplify first and set ids then dump
-    for process in model_processes + callback_processes:
-        _simplify_process(logger, conf, sa, interfaces, process)
+    new_collection.establish_peers()
+    peers_cache = dict()
+    for process in new_collection.processes:
+        _simplify_process(logger, conf, sa, interfaces, process, peers_cache, new_collection)
 
     model.environment = sortedcontainers.SortedDict({str(p): p for p in callback_processes})
     # todo: Here we can loose instances of model functions
@@ -86,8 +92,18 @@ def generate_instances(logger, conf, sa, interfaces, model, instance_maps):
     return instance_maps, data
 
 
-def _simplify_process(logger, conf, sa, interfaces, process):
-    # todo: write docs
+def _simplify_process(logger, conf, sa, interfaces, process, peers_cache, new_collection):
+    """
+    Convert the extended processes into simple ones by replacing extentions with simple analogues.
+
+    :param logger: Logger.
+    :param conf: Dict.
+    :param sa: Source.
+    :param interfaces: Inerfaces collection.
+    :param process: ExtendedProcess.
+    :param peers_cache: dict.
+    :param new_collection: ExtendedProcessCollection.
+    """
     logger.debug("Simplify process {!r}".format(process.name))
     # Create maps
     label_map = sortedcontainers.SortedDict()
@@ -158,21 +174,22 @@ def _simplify_process(logger, conf, sa, interfaces, process):
                 action.statements[pos] = statement.replace(whole, str(size))
 
     # Then replace accesses in parameters with simplified expressions
-    for action in process.actions.filter(include={Dispatch, Receive}):
-        if action.peers:
+    for action in process.actions.filter(include={Signal}, exclude={CallRetval, Call}):
+        peers = new_collection.peers(process, {str(action)})
+        if peers:
             guards = []
 
             for index in range(len(action.parameters)):
                 # Determine dispatcher parameter
                 try:
-                    interface = str(get_common_parameter(action, process, index))
+                    interface = str(new_collection.get_common_parameter(action, process, index))
                 except RuntimeError:
-                    suts = [peer['interfaces'][index] for peer in action.peers
-                            if 'interfaces' in peer and len(peer['interfaces']) > index]
-                    if suts:
-                        interface = suts[0]
+                    suits = peers_cache[str(process)].setdefault(action.name, list())
+                    if len(suits) > index:
+                        interface = suits[index]
                     else:
-                        raise
+                        cache_repr = {p: {a: [(str(r.process), r.action.name, r.interfaces) for r in peers_cache[p][a]] for a in peers_cache[p]} for p in peers_cache}
+                        raise RuntimeError(f'Cannot find peers for {str(process)} and {str(action)} in {str(cache_repr)}')
 
                 # Determine dispatch parameter
                 access = process.resolve_access(action.parameters[index], interface)
@@ -191,16 +208,20 @@ def _simplify_process(logger, conf, sa, interfaces, process):
                                                         implementation.adjusted_value(new_label.declaration)))
 
                 # Go through peers and set proper interfaces
-                for peer in action.peers:
-                    if 'interfaces' not in peer:
-                        peer['interfaces'] = list()
-                    if len(peer['interfaces']) == index:
-                        peer['interfaces'].append(interface)
-                    for pr in peer['action'].peers:
-                        if 'interfaces' not in pr:
-                            pr['interfaces'] = list()
-                        if len(pr['interfaces']) == index:
-                            pr['interfaces'].append(interface)
+                for peer in peers:
+                    peers_cache.setdefault(str(peer.process), dict())
+                    peers_cache[str(peer.process)].setdefault(action.name, list())
+
+                    if len(peers_cache[str(peer.process)][action.name]) == index:
+                        peers_cache[str(peer.process)][action.name].append(interface)
+
+                    contr_peers = new_collection.peers(peer.process, action.name)
+                    for pr in contr_peers:
+                        peers_cache.setdefault(str(pr.process), dict())
+                        peers_cache[str(pr.process)].setdefault(action.name, list())
+
+                        if len(peers_cache[str(pr.process)][action.name]) == index:
+                            peers_cache[str(pr.process)][action.name].append(interface)
 
             if guards:
                 if action.condition:
@@ -209,7 +230,7 @@ def _simplify_process(logger, conf, sa, interfaces, process):
                     action.condition = guards
         else:
             # Replace it with a stub
-            new = process.add_condition(action.name, [],
+            new = process.add_condition(action.name + '_replacement', [],
                                         ["/* Skip signal {!r} as it has no peers */".format(action.name)],
                                         "Stub instead of the {!r} signal.".format(action.name))
             process.replace_action(action, new)
@@ -253,7 +274,7 @@ def _simplify_process(logger, conf, sa, interfaces, process):
 
         return final
 
-    for action in process.actions.filter(include={Action}):
+    for action in process.actions.values():
         if isinstance(action, Block):
             # Implement statements processing
             action.statements = code_replacment(action.statements)
@@ -653,20 +674,6 @@ def _yield_instances(logger, conf, sa, interfaces, model, instance_maps):
             rename_process(instance)
             model_fsa.append(instance)
 
-    # According to new identifiers change signals peers
-    for process in model_fsa + callback_fsa:
-        for action in process.actions.filter(include={Dispatch, Receive}):
-            new_peers = []
-            for peer in action.peers:
-                if str(peer['process']) in identifiers_map:
-                    for instance in identifiers_map[str(peer['process'])]:
-                        new_peer = {
-                            "process": instance,
-                            "action": instance.actions[peer['action'].name]
-                        }
-                        new_peers.append(new_peer)
-            action.peers = new_peers
-
     return model_fsa, callback_fsa
 
 
@@ -997,7 +1004,7 @@ def _copy_process(process, instances_left):
     :param instances_left: Number of instances which EMG is still allowed to generate.
     :return: Process object copy.
     """
-    inst = copy.copy(process)
+    inst = process.clone()
 
     if instances_left == 0:
         raise RuntimeError('EMG tries to generate more instances than it is allowed by configuration')
@@ -1100,7 +1107,7 @@ def _split_into_instances(sa, interfaces, process, resource_new_insts, simplifie
                         # If values are repeated just choose random one
                         suits = sorted(
                                 [value for value in interface_to_value[interface]
-                                 if not interface_to_value[interface][value]or
+                                 if not interface_to_value[interface][value] or
                                  chosen_values.intersection(interface_to_value[interface][value]) or
                                  ([cv for cv in interface_to_value[interface][value]
                                    if cv not in value_to_implementation and cv not in chosen_values])])
