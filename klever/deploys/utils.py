@@ -20,8 +20,8 @@ import getpass
 import json
 import logging
 import os
-import pkg_resources
 import pwd
+import setuptools_scm
 import subprocess
 import sys
 
@@ -185,16 +185,7 @@ def get_cgroup_version():
 
 
 def get_klever_version():
-    version = pkg_resources.get_distribution("klever").version
-    location = pkg_resources.get_distribution("klever").location
-
-    if not os.path.exists(os.path.join(location, ".git")):
-        return version
-
     try:
-        desc = ["git", "describe", "--tags", "--dirty"]
-        version = subprocess.check_output(
-            desc, cwd=location, stderr=subprocess.DEVNULL, universal_newlines=True
-        ).strip()
-    finally:
-        return version
+        return setuptools_scm.get_version(root='../..', relative_to=__file__)
+    except Exception:
+        return "unknown"
