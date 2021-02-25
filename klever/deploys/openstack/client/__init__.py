@@ -216,7 +216,7 @@ class OSClient:
         )
         session = keystoneauth1.session.Session(auth=auth)
 
-        if not os.path.isfile(self.password_file) and not self.args.do_not_store_password:
+        if not os.path.isfile(self.password_file) and self.args.store_password:
             self.logger.info(f'Your password is now stored in plain text in "{self.password_file}" file')
 
             os.makedirs(os.path.dirname(self.password_file), exist_ok=True)

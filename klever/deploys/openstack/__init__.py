@@ -81,8 +81,8 @@ def parse_args(args, logger):
     parser.add_argument('--update-python3-packages', default=False, action='store_true',
                         help='Update Python3 packages for action "create" and "update" (default: "%(default)s"). '
                              'This option has no effect for other actions.')
-    parser.add_argument('--do-not-store-password', action='store_true',
-                        help='Do not store OpenStack password on disk (default: False).')
+    parser.add_argument('--store-password', action='store_true',
+                        help='Store OpenStack password on disk (default: False).')
 
     # TODO: Check the correctness of the provided arguments
     args = parser.parse_args(args)
