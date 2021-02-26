@@ -554,7 +554,8 @@ class RP(klever.core.components.Component):
             'wall_time': decision_results['resources']['wall time'],
             'cpu_time': decision_results['resources']['CPU time'],
             'memory': decision_results['resources']['memory size'],
-            'original_sources': self.clade.get_uuid()
+            'original_sources': self.clade.get_uuid() + klever.core.utils.get_file_name_checksum(
+                json.dumps(self.clade.get_meta()))
         }
 
         if self.additional_srcs:
