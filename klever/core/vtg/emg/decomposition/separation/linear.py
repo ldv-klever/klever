@@ -15,51 +15,89 @@
 # limitations under the License.
 #
 
-from klever.core.vtg.emg.decomposition.scenario import ScenarioExtractor
+import collections
+
 from klever.core.vtg.emg.decomposition.separation import SeparationStrategy
-from klever.core.vtg.emg.common.process.actions import Choice, Subprocess, Actions
+from klever.core.vtg.emg.decomposition.scenario import ScenarioExtractor, Scenario
+from klever.core.vtg.emg.common.process.actions import Choice, Subprocess, Actions, Operator, Concatenation
 
 
 class LinearExtractor(ScenarioExtractor):
 
     def __init__(self, actions: Actions):
         super().__init__(actions)
-        self._extra_scenarios = list()
+        # This is a list of lists of choice options that we should chooce to reach some uncovered new choices.
+        self.__scenario_choices = []
+        self.__children_paths = collections.OrderedDict()
+        self.__uncovered = None
+
+        # Collect all choices
+        self.__reset_covered()
 
     def _process_choice(self, scenario, beh, operator=None):
         assert isinstance(beh, Choice), type(beh).__name__
-        subp = {a.name for a in self._actions.filter(include={Subprocess}) if a.name not in scenario.actions}
 
-        def process_child(scn, child):
-            # Check recursion
-            names = self._actions.first_actions(child)
-            if names.issubset(subp):
-                return None
-
-            # Check upper operator
-            return self._fill_top_down(scenario, child, operator)
-
-        first = beh[0]
-        if len(beh) > 1:
-            rest = beh[1:]
+        uncovered_children = [c for c in beh[:] if c in self.__uncovered]
+        if uncovered_children:
+            # Save paths to uncovered choices
+            for unovered_child in uncovered_children[1:]:
+                self.__children_paths[unovered_child] = list(self.__scenario_choices)
+            new_choice = uncovered_children[0]
+            self.__uncovered.remove(new_choice)
+            if new_choice in self.__children_paths:
+                del self.__children_paths[new_choice]
         else:
-            rest = []
+            current_target = list(self.__children_paths.keys())[0]
+            for item in beh:
+                if item in self.__children_paths[current_target]:
+                    new_choice = item
+                    break
+            else:
+                raise RuntimeError(f'Unknown choice at path to {current_target}')
 
-        parent = process_child(scenario, first)
-        for another in rest:
-            new_scenario = scenario.clone()
-            parent = process_child(new_scenario, another)
-            if parent:
-                self._extra_scenarios.append(new_scenario)
+        self.__scenario_choices.append(new_choice)
 
-        return parent
+        if isinstance(new_choice, Operator):
+            return self._fill_top_down(scenario, new_choice, operator)
+        else:
+            new_operator = scenario.add_action_copy(Concatenation(), operator)
+            return self._fill_top_down(scenario, new_choice, new_operator)
 
     def _get_scenarios_for_root_savepoints(self, root):
-        for new in super()._get_scenarios_for_root_savepoints(root):
-            yield new
-        # Yield additional cases
-        while not self._extra_scenarios:
-            yield self._extra_scenarios.pop()
+        def new_scenarios(rt, svp=None):
+            self.__reset_covered()
+            while len(self.__uncovered) > 0:
+                current = len(self.__uncovered)
+                self.__scenario_choices = []
+                nsc = self._new_scenario(rt, svp)
+                assert len(self.__uncovered) < current, 'Deadlock found'
+                yield nsc
+
+        first_actual = self._actions.first_actions(root)
+        assert len(first_actual) == 1, 'Support only the one first action'
+        actual = self._actions.behaviour(first_actual.pop())
+        assert len(actual) == 1, f'Support only the one first action behaviour'
+        actual = actual.pop()
+
+        if actual.description.savepoints:
+            for savepoint in actual.description.savepoints:
+                if self.__uncovered is not None:
+                    yield from new_scenarios(self._actions.initial_action, savepoint)
+                else:
+                    yield new_scenarios(self._actions.initial_action, savepoint)
+        else:
+            if self.__uncovered is not None:
+                yield from new_scenarios(self._actions.initial_action)
+            else:
+                yield new_scenarios(self._actions.initial_action)
+
+    def __reset_covered(self):
+        # Collect all choices
+        choices = filter(lambda x: isinstance(x, Choice), self._actions.behaviour())
+        if choices:
+            self.__uncovered = list()
+            for choice in choices:
+                self.__uncovered.extend(choice[:])
 
 
 class LinearStrategy(SeparationStrategy):
