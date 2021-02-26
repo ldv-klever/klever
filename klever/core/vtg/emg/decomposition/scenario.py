@@ -118,13 +118,6 @@ class ScenarioExtractor:
         return cpy
 
     def _get_scenarios_for_root_savepoints(self, root):
-        def new_scenario(rt, svp=None):
-            nsc = Scenario(svp)
-            nsc.initial_action = rt
-            for child in rt:
-                self._fill_top_down(nsc, child, nsc.initial_action)
-            return nsc
-
         first_actual = self._actions.first_actions(root)
         assert len(first_actual) == 1, 'Support only the one first action'
         actual = self._actions.behaviour(first_actual.pop())
@@ -132,9 +125,16 @@ class ScenarioExtractor:
         actual = actual.pop()
         if actual.description.savepoints:
             for savepoint in actual.description.savepoints:
-                yield new_scenario(self._actions.initial_action, savepoint)
+                yield self._new_scenario(self._actions.initial_action, savepoint)
         else:
-            yield new_scenario(self._actions.initial_action)
+            yield self._new_scenario(self._actions.initial_action)
+
+    def _new_scenario(self, rt, svp=None):
+        nsc = Scenario(svp)
+        nsc.initial_action = rt
+        for child in rt:
+            self._fill_top_down(nsc, child, nsc.initial_action)
+        return nsc
 
     def _fill_top_down(self, scenario: Scenario, beh: Behaviour, operator: Operator = None):
         assert isinstance(beh, BaseAction)
