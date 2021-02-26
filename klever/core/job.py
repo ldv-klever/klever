@@ -748,6 +748,10 @@ class Job(klever.core.components.Component):
     def __upload_original_sources(self):
         # Use Clade UUID to distinguish various original sources. It is pretty well since this UUID is uuid.uuid4().
         src_id = self.clade.get_uuid()
+        # In addition, take into account a meta content as we like to change it manually often. In this case it may be
+        # necessary to re-index the build base. It is not clear if this is the case actually, so, do this in case of
+        # any changes in meta.
+        src_id += klever.core.utils.get_file_name_checksum(json.dumps(self.clade.get_meta()))
 
         session = klever.core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
 
