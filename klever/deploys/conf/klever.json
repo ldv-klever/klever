@@ -47,7 +47,7 @@
   },
   "Klever Build Bases": {
     "linux/loadable kernel modules sample": {
-      "path": "https://forge.ispras.ru/attachments/download/8076/build-base-linux-3.14.79-x86_64-sample.tar.xz"
+      "path": "https://forge.ispras.ru/attachments/download/8461/build-base-linux-3.14.79-x86_64-sample.tar.xz"
     }
   }
 }
