@@ -177,7 +177,7 @@ class Session:
 
     def __upload_archives(self, path_url, data, archives):
         resp = self.__request(path_url, 'POST', data=data,
-                              files={archive_name: open(archive_path, 'rb', buffering=0)
+                              files={archive_name: open(archive_path, 'rb')
                                      for archive_name, archive_path in archives.items()},
                               stream=True)
         return resp.json()
