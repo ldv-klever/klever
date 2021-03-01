@@ -689,12 +689,14 @@ class Job(klever.core.components.Component):
             out_files_prefix = os.path.dirname(os.path.commonprefix(out_files))
             self.logger.info('Common prefix of LD/Link output files is "{0}"'.format(out_files_prefix))
 
-            if in_files_prefix != os.path.sep and out_files_prefix != os.path.sep:
-                self.common_components_conf['working source trees'] = list({in_files_prefix, out_files_prefix})
-            elif in_files_prefix != os.path.sep:
-                self.common_components_conf['working source trees'] = [in_files_prefix]
-            elif out_files_prefix != os.path.sep:
-                self.common_components_conf['working source trees'] = [out_files_prefix]
+            # Meaningful paths look like "/dir...".
+            meaningful_paths = []
+            for path in (in_files_prefix, out_files_prefix):
+                if path and path != os.path.sep:
+                    meaningful_paths.append(path)
+
+            if meaningful_paths:
+                self.common_components_conf['working source trees'] = list(set(meaningful_paths))
             # At least consider build directory as working source tree if the automatic procedure fails.
             else:
                 self.logger.warning(
