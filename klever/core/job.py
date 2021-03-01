@@ -809,7 +809,7 @@ class Job(klever.core.components.Component):
         # In addition, take into account a meta content as we like to change it manually often. In this case it may be
         # necessary to re-index the build base. It is not clear if this is the case actually, so, do this in case of
         # any changes in meta.
-        src_id += klever.core.utils.get_file_name_checksum(json.dumps(self.clade.get_meta()))
+        src_id += '-' + klever.core.utils.get_file_name_checksum(json.dumps(self.clade.get_meta()))[:12]
 
         session = klever.core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
 
