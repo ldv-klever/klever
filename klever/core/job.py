@@ -767,11 +767,12 @@ class Job(klever.core.components.Component):
     def __get_original_sources_basic_info(self):
         self.logger.info('Get information on original sources for following visualization of uncovered source files')
 
+        working_src_trees = self.common_components_conf['working source trees']
+
         # For each source file we need to know the total number of lines and places where functions are defined.
         src_files_info = dict()
         for file_name, file_size in self.clade.src_info.items():
-            src_file_name = klever.core.utils.make_relative_path(self.common_components_conf['working source trees'],
-                                                                 file_name)
+            src_file_name = klever.core.utils.make_relative_path(working_src_trees, file_name)
 
             # Skip non-source files.
             if src_file_name == file_name:
@@ -779,20 +780,24 @@ class Job(klever.core.components.Component):
 
             src_file_name = os.path.join('source files', src_file_name)
 
-            src_files_info[src_file_name] = list()
+            # Store source file size in [0], and file function definition lines in [1]
+            src_files_info[src_file_name] = [file_size['loc'], list()]
 
-            # Store source file size.
-            src_files_info[src_file_name].append(file_size['loc'])
+        # Caution: using internal API of Functions extension
+        for file_name, funcs in self.clade.Functions.yield_functions_by_file():
+            src_file_name = klever.core.utils.make_relative_path(working_src_trees, file_name)
+            src_file_name = os.path.join('source files', src_file_name)
 
-            # Store source file function definition lines.
+            if src_file_name not in src_files_info:
+                continue
+
+            # Store source file function definition lines
             func_def_lines = list()
-            funcs = self.clade.get_functions_by_file([file_name], False)
 
-            if funcs:
-                for func_name, func_info in list(funcs.values())[0].items():
-                    func_def_lines.append(int(func_info['line']))
+            for func_name, func_info in list(funcs.values())[0].items():
+                func_def_lines.append(int(func_info['line']))
 
-            src_files_info[src_file_name].append(sorted(func_def_lines))
+            src_files_info[src_file_name][1] = sorted(func_def_lines)
 
         # Dump obtain information (huge data!) to load it when reporting total code coverage if everything will be okay.
         with open('original sources basic information.json', 'w') as fp:
