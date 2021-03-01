@@ -21,6 +21,7 @@ import json
 import logging
 import os
 import pwd
+import setuptools_scm
 import subprocess
 import sys
 
@@ -181,3 +182,10 @@ def get_cgroup_version():
         return "v1"
     else:
         return "v2"
+
+
+def get_klever_version():
+    try:
+        return setuptools_scm.get_version(root='../..', relative_to=__file__)
+    except Exception:
+        return "unknown"
