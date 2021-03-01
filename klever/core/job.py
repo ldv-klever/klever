@@ -677,7 +677,10 @@ class Job(klever.core.components.Component):
             for cmd in self.clade.get_all_cmds_by_type("CC") + self.clade.get_all_cmds_by_type("CL"):
                 if cmd['in']:
                     for in_file in cmd['in']:
-                        in_files.append(os.path.join(cmd['cwd'], in_file))
+                        # Sometimes some auxiliary stuff is built in addition to normal C source files that are most
+                        # likely located in a place we would like to get.
+                        if not in_file.startswith('/tmp'):
+                            in_files.append(os.path.join(cmd['cwd'], in_file))
             in_files_prefix = os.path.dirname(os.path.commonprefix(in_files))
             self.logger.info('Common prefix of CC/CL input files is "{0}"'.format(in_files_prefix))
 
@@ -685,7 +688,9 @@ class Job(klever.core.components.Component):
             for cmd in self.clade.get_all_cmds_by_type("LD") + self.clade.get_all_cmds_by_type("Link"):
                 if cmd['out']:
                     for out_file in cmd['out']:
-                        out_files.append(os.path.join(cmd['cwd'], out_file))
+                        # Like above.
+                        if not out_file.startswith('/tmp'):
+                            out_files.append(os.path.join(cmd['cwd'], out_file))
             out_files_prefix = os.path.dirname(os.path.commonprefix(out_files))
             self.logger.info('Common prefix of LD/Link output files is "{0}"'.format(out_files_prefix))
 
