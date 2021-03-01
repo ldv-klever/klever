@@ -670,7 +670,7 @@ class Job(klever.core.components.Component):
         # Best of all if users specify working source trees in build bases manually themselves. It is a most accurate
         # approach.
         if 'working source trees' in clade_meta:
-            self.common_components_conf['working source trees'] = clade_meta['working source trees']
+            work_src_trees = clade_meta['working source trees']
         # Otherwise try to find out them automatically as described above.
         else:
             in_files = []
@@ -697,22 +697,30 @@ class Job(klever.core.components.Component):
             # Meaningful paths look like "/dir...".
             meaningful_paths = []
             for path in (in_files_prefix, out_files_prefix):
-                if path and path != os.path.sep:
+                if path and path != os.path.sep and path not in meaningful_paths:
                     meaningful_paths.append(path)
 
             if meaningful_paths:
-                self.common_components_conf['working source trees'] = list(set(meaningful_paths))
+                work_src_trees = meaningful_paths
             # At least consider build directory as working source tree if the automatic procedure fails.
             else:
                 self.logger.warning(
                     'Consider build directory "{0}" as working source tree.'
                     'This may be dangerous and we recommend to specify appropriate working source trees manually!'
                     .format(clade_meta['build_dir']))
-                self.common_components_conf['working source trees'] = [clade_meta['build_dir']]
+                work_src_trees = [clade_meta['build_dir']]
+
+        # Consider minimal path if it is common prefix for other ones. For instance, if we have "/dir1/dir2" and "/dir1"
+        # then "/dir1" will become the only working source tree.
+        if len(work_src_trees) > 1:
+            min_work_src_tree = min(work_src_trees)
+            if os.path.commonprefix(work_src_trees) == min_work_src_tree:
+                work_src_trees = [min_work_src_tree]
 
         self.logger.info(
             'Working source trees to be used are as follows:\n{0}'
-            .format('\n'.join(['  {0}'.format(t) for t in self.common_components_conf['working source trees']])))
+            .format('\n'.join(['  {0}'.format(t) for t in work_src_trees])))
+        self.common_components_conf['working source trees'] = work_src_trees
 
     def __refer_original_sources(self, src_id):
         klever.core.utils.report(
