@@ -194,6 +194,7 @@ class RSG(klever.core.vtg.plugins.Plugin):
                 try:
                     compiler_cmds = list(clade.get_compilation_cmds_by_file(
                         os.path.normpath(os.path.join(path, self.conf['model compiler input file']))))
+                    break
                 except KeyError:
                     pass
 
