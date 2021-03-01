@@ -29,7 +29,7 @@
         <meta name="description" content="">
         <meta name="author" content="">
         <link rel="icon" href="{% static 'bridge/images/klever.ico' %}">
-        <title>{% block title %}{% trans 'Sign in' %}{% endblock %} | Klever</title>
+        <title>{% block title %}{% trans 'Sign in' %}{% endblock %} | Klever{% if klever_version %} {{ klever_version }}{% endif %} </title>
         <script type="text/javascript" src="{% static "bridge/js/jquery-3.4.1.min.js" %}"></script>
         {% if include_jquery_ui %}<script type="text/javascript" src="{% static "bridge/js/jquery-ui.min.js" %}"></script>{% endif %}
         <script type="text/javascript" src="{% static 'bridge/js/notify.min.js' %}"></script>
