@@ -178,14 +178,14 @@ def replace_media_user(path, media_user):
 def get_cgroup_version():
     # I was not able to find a better way to detect cgroup version
     # TODO: improve detection of cgroup version
-    if os.path.exists("/sys/fs/cgroup/freezer"):
-        return "v1"
+    if os.path.exists('/sys/fs/cgroup/freezer'):
+        return 'v1'
     else:
-        return "v2"
+        return 'v2'
 
 
 def get_klever_version():
     try:
         return setuptools_scm.get_version(root='../..', relative_to=__file__)
     except Exception:
-        return "unknown"
+        return ''
