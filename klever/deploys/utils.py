@@ -185,7 +185,4 @@ def get_cgroup_version():
 
 
 def get_klever_version():
-    try:
-        return setuptools_scm.get_version(root='../..', relative_to=__file__)
-    except Exception:
-        return ''
+    return setuptools_scm.get_version(root='../..', relative_to=__file__)

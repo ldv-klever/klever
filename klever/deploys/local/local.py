@@ -79,8 +79,14 @@ class Klever:
         with open(self.prev_deploy_info_file, 'w') as fp:
             json.dump(cur_deploy_info, fp, sort_keys=True, indent=4)
 
+        try:
+            version = get_klever_version()
+        except Exception:
+            self.logger.exception('Could not get Klever version')
+            version = ''
+
         with open(self.version_file, 'w') as fp:
-            fp.write(get_klever_version())
+            fp.write(version)
 
     def _pre_install_or_update(self):
         self._install_klever_addons(self.args.source_directory, self.args.deployment_directory)
