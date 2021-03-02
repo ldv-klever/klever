@@ -123,8 +123,9 @@ def __import_kernel_models(logger, conf, interfaces, collection, chosen):
 
 
 def __choose_processes(logger, conf, interfaces, category, chosen, collection):
-    estimations = sortedcontainers.SortedDict({str(process): __match_labels(logger, interfaces, process, category)
-                                               for process in collection.environment.values()})
+    estimations = sortedcontainers.SortedDict(
+        {str(process): __match_labels(logger, interfaces, chosen, process, category)
+         for process in collection.environment.values()})
 
     logger.info("Choose process to call callbacks from category {!r}".format(category))
     # First random
@@ -237,10 +238,10 @@ def __establish_signal_peers(logger, conf, interfaces, process, chosen, collecti
                                  format(candidate.name, process.name, ', '.join(categories)))
             elif len(categories) == 1:
                 category = list(categories)[0]
-                label_map = __match_labels(logger, interfaces, candidate, category)
+                label_map = __match_labels(logger, interfaces, chosen, candidate, category)
             elif len(categories) == 0:
                 category = process.category
-                label_map = __match_labels(logger, interfaces, candidate, category)
+                label_map = __match_labels(logger, interfaces, chosen, candidate, category)
             else:
                 raise NotImplementedError
             new = __add_process(logger, conf, interfaces, candidate, chosen, category, model=False, label_map=label_map,
@@ -258,7 +259,7 @@ def __establish_signal_peers(logger, conf, interfaces, process, chosen, collecti
                 __establish_signal_peers(logger, conf, interfaces, new, chosen, collection)
 
 
-def __match_labels(logger, interfaces, process, category):
+def __match_labels(logger, interfaces, chosen, process, category):
     label_map = {
         "matched labels": {},
         "unmatched labels": [],
@@ -290,6 +291,20 @@ def __match_labels(logger, interfaces, process, category):
     while success_on_iteration:
         success_on_iteration = False
         old_size = len(label_map["matched callbacks"]) + len(label_map["matched labels"])
+
+        # First, check signals realted to the native category
+        for model in chosen.models.values():
+            for name in model.unmatched_signals(kind=Dispatch):
+                if name in process.actions and isinstance(process.actions[name], Receive) and \
+                        len(model.actions[name].parameters) == len(process.actions[name].parameters):
+                    for i, l in enumerate(model.actions[name].parameters):
+                        model_label, _ = model.extract_label_with_tail(l)
+                        for intf in model_label.interfaces:
+                            intf = interfaces.get_intf(intf)
+                            if intf.category == category:
+                                p_label, _ = process.extract_label_with_tail(process.actions[name].parameters[i])
+                                __add_label_match(label_map, p_label, intf)
+                                break
 
         # Match interfaces and containers
         for action in process.calls:
