@@ -268,11 +268,6 @@ class BridgeException(Exception):
         return str(self.message)
 
 
-class CheckArchiveError(Exception):
-    # Exception to return code 200 but include "ZIP error"
-    pass
-
-
 class BridgeErrorResponse(HttpResponseBadRequest):
     def __init__(self, response, *args, back=None, **kwargs):
         if isinstance(response, int):

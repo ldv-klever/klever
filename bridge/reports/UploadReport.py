@@ -30,7 +30,7 @@ from rest_framework import exceptions, fields, serializers
 from rest_framework.settings import api_settings
 
 from bridge.vars import ERROR_TRACE_FILE, REPORT_ARCHIVE, DECISION_STATUS, SUBJOB_NAME, NAME_ATTR, MPTT_FIELDS
-from bridge.utils import logger, extract_archive, CheckArchiveError
+from bridge.utils import logger, extract_archive
 
 from reports.models import (
     ReportComponent, ReportSafe, ReportUnsafe, ReportUnknown, ReportAttr, ReportComponentLeaf,
@@ -433,10 +433,14 @@ class UploadReports:
     def validate_archives(self, archives_list, archives):
         for arch_name in archives_list:
             if arch_name not in archives:
-                raise CheckArchiveError('Archive "{}" was not attached'.format(arch_name))
+                raise exceptions.ValidationError(detail={
+                    'archive': 'Archive "{}" was not attached'.format(arch_name)
+                })
             arch = archives[arch_name]
             if not zipfile.is_zipfile(arch) or zipfile.ZipFile(arch).testzip():
-                raise CheckArchiveError('The archive "{}" is not a ZIP file'.format(arch_name))
+                raise exceptions.ValidationError(detail={
+                    'archive': 'The archive "{}" is not a ZIP file'.format(arch_name)
+                })
             arch.seek(0)
             self.archives[arch_name] = arch
 
