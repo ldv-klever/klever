@@ -125,6 +125,10 @@
 .SrcHlNB {
     color: #008000
 }
+.SrcHlNC {
+    color: #0000FF;
+    font-weight: bold;
+}
 .SrcHlNF {
     color: #0000FF
 }

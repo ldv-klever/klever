@@ -82,8 +82,15 @@ class RSG(klever.core.vtg.plugins.Plugin):
                 return model
 
         # Get common and requirement specific models.
-        if 'common models' in self.conf and 'models' in self.conf:
-            for common_model_c_file in self.conf['common models']:
+        if 'exclude common models' in self.conf:
+            self.logger.info('Common models to be excluded:\n{0}'
+                             .format('\n'.join(['  {0}'.format(m) for m in self.conf['exclude common models']])))
+            common_models = [m for m in self.conf['common models'] if m not in self.conf['exclude common models']]
+        else:
+            common_models = self.conf['common models']
+
+        if common_models and 'models' in self.conf:
+            for common_model_c_file in common_models:
                 for model in self.conf['models']:
                     if common_model_c_file == get_model_c_file(model):
                         raise KeyError('C file "{0}" is specified in both common and requirement specific models'
@@ -131,12 +138,11 @@ class RSG(klever.core.vtg.plugins.Plugin):
                         models.append(model_c_file_realpath)
 
         # Like for models above except for common models are always C files without any model settings.
-        if 'common models' in self.conf:
-            for common_model_c_file in self.conf['common models']:
-                common_model_c_file_realpath = klever.core.vtg.utils.find_file_or_dir(
-                    self.logger, self.conf['main working directory'], common_model_c_file)
-                self.logger.debug('Get common model with C file "{0}"'.format(common_model_c_file_realpath))
-                models.append(common_model_c_file_realpath)
+        for common_model_c_file in common_models:
+            common_model_c_file_realpath = klever.core.vtg.utils.find_file_or_dir(
+                self.logger, self.conf['main working directory'], common_model_c_file)
+            self.logger.debug('Get common model with C file "{0}"'.format(common_model_c_file_realpath))
+            models.append(common_model_c_file_realpath)
 
         self.logger.debug('Resulting models are: {0}'.format(models))
 
@@ -187,7 +193,7 @@ class RSG(klever.core.vtg.plugins.Plugin):
             for path in self.conf['working source trees']:
                 try:
                     compiler_cmds = list(clade.get_compilation_cmds_by_file(
-                        os.path.join(path, self.conf['model compiler input file'])))
+                        os.path.normpath(os.path.join(path, self.conf['model compiler input file']))))
                 except KeyError:
                     pass
 

@@ -176,22 +176,8 @@ class Session:
                     resp.close()
 
     def __upload_archives(self, path_url, data, archives):
-        while True:
-            resp = None
-            try:
-                resp = self.__request(path_url, 'POST', data=data,
-                                      files={archive_name: open(archive_path, 'rb', buffering=0)
-                                             for archive_name, archive_path in archives.items()},
-                                      stream=True)
-                return resp.json()
-            except BridgeError:
-                if 'ZIP error' in self.error or ('archive' in self.error and any(['is not a ZIP file' in error
-                                                                                  for error in self.error['archive']])):
-                    self.logger.exception('Could not upload ZIP archive')
-                    self.error = None
-                    time.sleep(0.2)
-                else:
-                    raise
-            finally:
-                if resp:
-                    resp.close()
+        resp = self.__request(path_url, 'POST', data=data,
+                              files={archive_name: open(archive_path, 'rb')
+                                     for archive_name, archive_path in archives.items()},
+                              stream=True)
+        return resp.json()

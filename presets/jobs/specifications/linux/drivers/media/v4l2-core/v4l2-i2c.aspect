@@ -22,5 +22,5 @@ before: file("$this")
 
 around: call(void v4l2_i2c_subdev_init(struct v4l2_subdev *sd, struct i2c_client *client, const struct v4l2_subdev_ops *ops))
 {
-	return ldv_v4l2_i2c_subdev_init(sd, client, ops);
+	ldv_v4l2_i2c_subdev_init(sd, client, ops);
 }

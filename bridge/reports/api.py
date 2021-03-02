@@ -16,13 +16,10 @@
 #
 
 import json
-import os
 
-from django.conf import settings
 from django.http import HttpResponse
 from django.template import loader
 from django.urls import reverse
-from django.utils.timezone import now
 from django.utils.translation import ugettext as _
 
 from rest_framework import exceptions
@@ -31,7 +28,6 @@ from rest_framework.generics import (
 )
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.status import HTTP_403_FORBIDDEN
 from rest_framework.views import APIView
 
 from bridge.vars import DECISION_STATUS, LOG_FILE
@@ -48,7 +44,7 @@ from reports.comparison import FillComparisonCache, ComparisonData
 from reports.coverage import GetCoverageData, ReportCoverageStatistics
 from reports.serializers import OriginalSourcesSerializer, PatchReportAttrSerializer
 from reports.source import GetSource
-from reports.UploadReport import UploadReports, CheckArchiveError
+from reports.UploadReport import UploadReports
 
 
 class FillComparisonView(LoggedCallMixin, APIView):
@@ -116,12 +112,7 @@ class UploadReportView(LoggedCallMixin, APIView):
 
         reports_uploader = UploadReports(decision)
         if 'archives' in request.POST:
-            try:
-                reports_uploader.validate_archives(json.loads(request.POST['archives']), request.FILES)
-            except CheckArchiveError as e:
-                with open(os.path.join(settings.LOGS_DIR, 'ZIP.log'), mode='a+', encoding='utf-8') as fp:
-                    fp.write("{}: {}\n".format(now(), e))
-                return Response({'ZIP error': str(e)}, status=HTTP_403_FORBIDDEN)
+            reports_uploader.validate_archives(json.loads(request.POST['archives']), request.FILES)
         reports_uploader.upload_all(json.loads(request.POST['reports']))
         return Response({})
 
