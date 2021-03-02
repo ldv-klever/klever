@@ -29,7 +29,7 @@
         <meta name="description" content="">
         <meta name="author" content="">
         <link rel="icon" href="{% static 'bridge/images/klever.ico' %}">
-        <title>{% block title %}{% trans 'Sign in' %}{% endblock %} | Klever{% if klever_version %} {{ klever_version }}{% endif %} </title>
+        <title>{% block title %}{% trans 'Sign in' %}{% endblock %} | Klever</title>
         <script type="text/javascript" src="{% static "bridge/js/jquery-3.4.1.min.js" %}"></script>
         {% if include_jquery_ui %}<script type="text/javascript" src="{% static "bridge/js/jquery-ui.min.js" %}"></script>{% endif %}
         <script type="text/javascript" src="{% static 'bridge/js/notify.min.js' %}"></script>
@@ -167,5 +167,11 @@
         </div>
         <span id="error__no_file_chosen" hidden>{% trans 'No file is chosen' %}</span>
         <span id="error__ajax_error" hidden>{% trans 'Ajax request error (maybe connection refused)' %}</span>
+
+        <div class="ui footer">
+            <span>Klever{% if klever_version %} {{ klever_version }}{% endif %}</span><br>
+            <span>Copyright © 2019 <a href="http://www.ispras.ru">ISP RAS</a></span><br>
+            <span>Ivannikov Institute for System Programming of the Russian Academy of Sciences</span>
+        </div>
     </body>
 </html>
