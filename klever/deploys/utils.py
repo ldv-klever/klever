@@ -20,8 +20,8 @@ import getpass
 import json
 import logging
 import os
+import pkg_resources
 import pwd
-import setuptools_scm
 import subprocess
 import sys
 
@@ -185,4 +185,4 @@ def get_cgroup_version():
 
 
 def get_klever_version():
-    return setuptools_scm.get_version(root='../..', relative_to=__file__)
+    return pkg_resources.get_distribution("klever").version
