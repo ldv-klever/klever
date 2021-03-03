@@ -114,7 +114,7 @@
     "CPALockator thread-modular": {
       "description": "CPAchecker for checking races with powerful theory",
       "inherit": "CPALockator races",
-      "add options": [{"-lockator-threadmodular-linux": ""}]
+      "add options": [{"-lockator-threadmodular-shared": ""}]
     },
     "CPALockator rcu": {
       "description": "CPAchecker for checking races over rcu pointers",
