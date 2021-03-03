@@ -267,7 +267,8 @@ def __match_labels(logger, interfaces, chosen, process, category):
         "matched callbacks": [],
         "unmatched callbacks": [],
         "matched calls": [],
-        "native interfaces": []
+        "native interfaces": [],
+        "signal labels": []
     }
 
     # Collect native categories and interfaces
@@ -292,7 +293,7 @@ def __match_labels(logger, interfaces, chosen, process, category):
         success_on_iteration = False
         old_size = len(label_map["matched callbacks"]) + len(label_map["matched labels"])
 
-        # First, check signals realted to the native category
+        # First, check signals realted to the native category and match parameters
         for model in chosen.models.values():
             for name in model.unmatched_signals(kind=Dispatch):
                 if name in process.actions and isinstance(process.actions[name], Receive) and \
@@ -304,6 +305,7 @@ def __match_labels(logger, interfaces, chosen, process, category):
                             if intf.category == category:
                                 p_label, _ = process.extract_label_with_tail(process.actions[name].parameters[i])
                                 __add_label_match(label_map, p_label, intf)
+                                label_map["signal labels"].append(p_label.name)
                                 break
 
         # Match interfaces and containers
@@ -465,15 +467,16 @@ def __match_labels(logger, interfaces, chosen, process, category):
 
 
 def __add_label_match(label_map, label, interface):
-    if label.name not in label_map["matched labels"]:
-        # todo: Comment this out until we do not debug interface matching
-        # logger.debug("Match label {!r} with interface {!r}".format(label.name, str(interface)))
-        label_map["matched labels"][label.name] = {str(interface)}
-    else:
-        label_map["matched labels"][label.name].add(str(interface))
+    if label.name not in label_map["signal labels"]:
+        if label.name not in label_map["matched labels"]:
+            # todo: Comment this out until we do not debug interface matching
+            # logger.debug("Match label {!r} with interface {!r}".format(label.name, str(interface)))
+            label_map["matched labels"][label.name] = {str(interface)}
+        else:
+            label_map["matched labels"][label.name].add(str(interface))
 
-    if isinstance(interface, Callback):
-        label_map["matched callbacks"].append(str(interface))
+        if isinstance(interface, Callback):
+            label_map["matched callbacks"].append(str(interface))
 
 
 def __find_native_categories(process):
