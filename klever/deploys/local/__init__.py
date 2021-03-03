@@ -20,15 +20,15 @@ import errno
 import os
 import sys
 
-from klever.deploys.local.local import KleverDevelopment, KleverProduction, KleverTesting
+from klever.deploys.local.local import Klever, KleverDevelopment, KleverProduction, KleverTesting
 from klever.deploys.utils import check_deployment_configuration_file, get_logger, get_cgroup_version
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('action', choices=['install', 'update', 'uninstall'], help='Action to be executed.')
-    parser.add_argument('mode', choices=['development', 'production', 'testing'],
-                        help='Mode for which action to be executed.')
+    parser.add_argument('mode', choices=['development', 'production', 'testing'], nargs='?', default='production',
+                        help='Mode for which action to be executed (default: "%(default)s").')
     parser.add_argument('--non-interactive', default=False, action='store_true',
                         help='Install/update packages non-interactively (default: "%(default)s"). ' +
                              'This option has no effect for mode "testing".')
@@ -62,7 +62,10 @@ def main():
         logger.error('\tsudo grubby --update-kernel=ALL --args="systemd.unified_cgroup_hierarchy=0"')
         sys.exit(-1)
 
-    logger.info('Start execution of action "{0}" for Klever "{1}"'.format(args.action, args.mode))
+    # Returns either mode of previous deployment or unchanged value of args.mode
+    args.mode = Klever(args, logger).get_deployment_mode()
+
+    logger.info('Start execution of action "{0}" in "{1}" mode'.format(args.action, args.mode))
 
     try:
         if args.mode == 'development':
@@ -75,8 +78,8 @@ def main():
             logger.error('Mode "{0}" is not supported'.format(args.mode))
             sys.exit(errno.ENOSYS)
     except SystemExit:
-        logger.error('Could not execute action "{0}" for Klever "{1}" (analyze error messages above for details)'
+        logger.error('Could not execute action "{0}" in "{1}" mode (analyze error messages above for details)'
                      .format(args.action, args.mode))
         raise
 
-    logger.info('Finish execution of action "{0}" for Klever "{1}"'.format(args.action, args.mode))
+    logger.info('Finish execution of action "{0}" in "{1}" mode'.format(args.action, args.mode))
