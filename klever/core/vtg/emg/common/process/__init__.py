@@ -26,8 +26,8 @@ from klever.core.vtg.emg.common.process.actions import Actions, Subprocess, Acti
     Signal, Behaviour, Parentheses, Choice, Concatenation
 
 
+"""Represent a signal peer."""
 Peer = collections.namedtuple('Peer', 'process action')
-# todo: write docs
 
 
 class Process:
@@ -80,6 +80,12 @@ class Process:
             return False
 
     def clone(self):
+        """
+        Copy the instance and return a new one. The copy method is recursive, to get a shallow copy use the copy.copy
+        method.
+
+        :return: Process.
+        """
         inst = copy.copy(self)
 
         # Set simple attributes
@@ -102,10 +108,21 @@ class Process:
 
     @property
     def name(self):
+        """
+        The name attribute is used at pretty printing mostly. To distinguish processes use the string representation that
+        also include a category.
+
+        :return: Str.
+        """
         return self._name
 
     @property
     def category(self):
+        """
+        It is forbidden to change the category. Category unifies processes that work with the same interfaces.
+
+        :return: Str.
+        """
         return self._category
 
     @property
@@ -188,7 +205,9 @@ class Process:
 
     def establish_peers(self, process):
         """
-        Peer these two processes if they can send signals to each other.
+        Peer these two processes if they can send signals to each other. As a result the process attribute 'peers'
+        gets a new key with the name of the peer process and a set of peered actions. Each call of the method cleans
+        previous values that are relevant to the given process.
 
         :param process: Process object
         :return: None
@@ -390,6 +409,7 @@ class Process:
 
 
 class ProcessDescriptor:
+    """The descriptor forbids to set non-Process values."""
 
     EXPECTED_CATEGORY = 'entry_point'
 
@@ -405,6 +425,7 @@ class ProcessDescriptor:
 
 
 class ProcessDict(sortedcontainers.SortedDict):
+    """The collection implements a dictionary with Processes (str -> Process)."""
 
     def __setitem__(self, key, value):
         assert isinstance(value, Process), f'Expect a Process as a value bug got {type(value).__name__}'
@@ -440,14 +461,22 @@ class ProcessCollection:
 
     @property
     def processes(self):
+        """Returns a sorted list of all processes from the model."""
         return sorted(list(self.models.values())) + sorted(list(self.environment.values())) + \
                ([self.entry] if self.entry else [])
 
     @property
     def process_map(self):
+        """Returns a dict with all processes from the model."""
         return {str(p): p for p in self.processes}
 
-    def find_process(self, identifier):
+    def find_process(self, identifier: str):
+        """
+        Get an identifier and search the process in models, environment and entry attributes.
+
+        :param identifier: String representation of the process.
+        :return: Process.
+        """
         if str(self.entry) == identifier:
             return self.entry
         elif identifier in self.models:
@@ -460,7 +489,16 @@ class ProcessCollection:
             raise KeyError('Cannot find process {!r} \nwhere there are processes: {}\n and models: {}'.
                            format(identifier, ', '.join(self.models.keys()), ', '.join(self.environment.keys())))
 
-    def peers(self, process, signals=None, processes=None):
+    def peers(self, process: Process, signals=None, processes=None):
+        """
+        Collect peers of the given process and return a list of Peer objects. The last two arguments helps to filter
+        the result.
+
+        :param process: Process.
+        :param signals: Iterable of names of possible signals.
+        :param processes: Iterable of possible processes names.
+        :return: list of Peer objects.
+        """
         assert isinstance(process, Process), f'Got {type(process).__name__}'
         if signals:
             for signal in signals:
