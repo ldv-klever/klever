@@ -574,6 +574,7 @@
     },
     "functions models": {
       "pm_runtime_force_resume": {
+        "headers": ["linux/device.h"],
         "comment": "Forcefully do runtime resuming.",
         "actions": {
           "assign": {
@@ -630,6 +631,7 @@
         "reference": true
       },
       "pm_runtime_force_suspend": {
+        "headers": ["linux/device.h"],
         "comment": "Forcefully do runtime suspending.",
         "actions": {
           "assign": {
@@ -686,6 +688,7 @@
         "reference": true
       },
       "pm_runtime_enable": {
+        "headers": ["linux/device.h"],
         "comment": "Enable runtime callbacks.",
         "actions": {
           "assign": {
@@ -755,6 +758,7 @@
         "reference": true
       },
       "pm_runtime_disable": {
+        "headers": ["linux/device.h"],
         "comment": "Disable runtime callbacks.",
         "actions": {
           "assign": {
@@ -825,6 +829,7 @@
         "reference": true
       },
       "pm_runtime_set_active": {
+        "headers": ["linux/device.h"],
         "comment": "Set active runtime callbacks.",
         "actions": {
           "activate": {
@@ -845,6 +850,7 @@
         "reference": true
       },
       "pm_runtime_active": {
+        "headers": ["linux/device.h"],
         "comment": "Check runtime status.",
         "actions": {
           "status": {
@@ -865,6 +871,7 @@
         "reference": true
       },
       "pm_runtime_suspended": {
+        "headers": ["linux/device.h"],
         "comment": "Check runtime status.",
         "actions": {
           "status": {
@@ -885,6 +892,7 @@
         "reference": true
       },
       "pm_runtime_enabled": {
+        "headers": ["linux/device.h"],
         "comment": "Check that runtime callbacks are enabled.",
         "actions": {
           "status": {
