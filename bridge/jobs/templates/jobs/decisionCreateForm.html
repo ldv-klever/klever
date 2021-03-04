@@ -80,7 +80,7 @@
                 <div class="ui fluid small vertical buttons">
                     <button id="start_default_decision" class="ui green button">{% trans 'Create and start decision with default configuration' %}</button>
                     <button id="prepare_custom_decision" class="ui green button">{% trans 'Create and start decision with custom configuration' %}</button>
-                    <a href="{{ cancel_url }}" class="ui blue button" style="float: right">{% trans 'Cancel' %}</a>
+                    <a href="{{ cancel_url }}" class="ui blue button">{% trans 'Cancel' %}</a>
                 </div>
             </div>
             <div id="editor_container" class="nine wide column">
@@ -95,8 +95,10 @@
         {% else %}
             {% include 'jobs/startDecision.html' with data=start_data current_conf=current_conf decisions=other_decisions %}
         {% endif %}
-        <div style="float: right;margin-bottom: 50px;">
-            <button id="start_custom_decision" class="ui violet button">{% trans 'Start' %}</button>
+        <div class="ui one column grid">
+            <div class="right aligned column">
+                <button id="start_custom_decision" class="ui violet button">{% trans 'Start' %}</button>
+            </div>
         </div>
     </div>
 

@@ -62,6 +62,23 @@ LOCK_MODES = (
 logger = logging.getLogger('bridge')
 
 
+def get_klever_version():
+    # KLEVER_DEPLOYMENT_DIRECTORY is passed to Bridge by systemd
+    # Its value is specified in /etc/default/klever
+    version_file = os.path.join(os.environ.get('KLEVER_DEPLOYMENT_DIRECTORY', ''), 'version')
+    if not os.path.isfile(version_file):
+        return ''
+    with open(version_file, mode='r', encoding='utf-8') as fp:
+        return fp.read()
+
+
+klever_version = get_klever_version()
+
+
+def klever_version_template_context(request):
+    return {'klever_version': klever_version}
+
+
 class InfoFilter(logging.Filter):
     def __init__(self, level):
         self.__level = level
