@@ -3,15 +3,18 @@
     "functions models": {
       "tty_register_ldisc": {
         "declaration": "int tty_register_ldisc(int disc, *%tty_ldisc.ops%)",
-        "header": "linux/tty.h"
+        "header": "linux/tty.h",
+        "reference": true
       },
       "tty_unregister_ldisc": {
         "declaration": "int tty_unregister_ldisc(int disc)",
-        "header": "linux/tty.h"
+        "header": "linux/tty.h",
+        "reference": true
       }
     },
     "categories": {
       "tty_ldisc": {
+        "reference": true,
         "containers": {
           "ops": {
             "declaration": "struct tty_ldisc_ops ops",
