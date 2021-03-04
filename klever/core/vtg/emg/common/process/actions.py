@@ -20,6 +20,9 @@ import collections
 
 
 class Savepoint:
+    """
+    The class represents a savepoint - description of an initialization used if there is no receiver for a process.
+    """
 
     def __init__(self, name, statements):
         self._name = name
@@ -33,6 +36,10 @@ class Savepoint:
 
 
 class OperatorDescriptor:
+    """
+    The descriptor guards the work with operators. It is error prone to directly clean and set dependencies between
+    actions and the descriptor helps to catch errors.
+    """
 
     def __init__(self):
         self._my_operator = None
@@ -70,6 +77,11 @@ class BaseAction:
         return hash(str(self))
 
     def clone(self):
+        """
+        Copy the object and return a copy with empty my_operator attribute.
+
+        :return: BaseAction.
+        """
         tmp = self.my_operator
         self.my_operator = None
         new = copy.copy(self)
@@ -91,9 +103,12 @@ class BaseAction:
 
 
 class Behaviour(BaseAction):
+    """
+    Behaviour class helps to represent individual actions in a transition system. There can be several actuins with
+    the same name and all they should have a common description implemented by an Action class."""
 
     def __init__(self, name, accepted_class):
-        assert accepted_class is not None
+        assert accepted_class is not None and issubclass(accepted_class, Action)
         super().__init__()
         self._name = name
         self._description = None
@@ -101,30 +116,44 @@ class Behaviour(BaseAction):
         self._accepted_class = accepted_class
 
     def __repr__(self):
+        """Print the representation of the action in process DSL."""
         if self.description:
             return repr(self.description)
         else:
             return repr(self._accepted_class(self.name))
 
     def clone(self):
+        """
+        Copy the instance. Remember, that the my_operator field is clean.
+
+        :return: Behaviour.
+        """
         new = super().clone()
         new._description = None
         return new
 
     @property
     def kind(self):
+        """
+        Return the class of the expected description even if it is not set yet.
+
+        :return: Action.
+        """
         return self._accepted_class
 
     @property
     def name(self):
+        """Name of the description and this action. It is not a unique key!"""
         return self._name
 
     @property
     def description(self):
+        """Description Action."""
         return self._description
 
     @description.setter
     def description(self, item):
+        """Save a new description."""
         assert isinstance(item, self.kind), f'Got {type(item).__name__} instead of {self.kind.__name__}'
         assert str(item) == self.name
 
@@ -134,9 +163,7 @@ class Behaviour(BaseAction):
 
 
 class Operator(BaseAction, collections.UserList):
-    """
-    The class represents an abstract operator with actions.
-    """
+    """The class represents an abstract operator with actions. It is iterable and is based on a list implementation."""
 
     def __init__(self):
         super().__init__()
@@ -295,7 +322,7 @@ class Subprocess(Action):
 
 
 class Signal(Action):
-    # todo: Write doc
+    """This is a common represenation of signal actions: dispatches and receives."""
 
     def __init__(self, name):
         super().__init__(name)
@@ -390,12 +417,25 @@ class Actions(collections.UserDict):
         del self.data[key]
 
     def populate_with_empty_descriptions(self):
+        """
+        Create new descriptions for all behaviours that do not have them. New descriptions will have default values
+        except the name attribute. All descriptions are added to the instance.
+
+        :return: None
+        """
         for baction in self.behaviour():
             if isinstance(baction, Behaviour) and not baction.description:
                 desc = baction.kind(baction.name)
                 self[baction.name] = desc
 
-    def add_process_action(self, item, name='operator'):
+    def add_process_action(self, item: BaseAction, name='operator'):
+        """
+        To add a new Behaviour use this method. Dictionary representations is available only for descriptions.
+
+        :param item: BaseAction.
+        :param name: Name or 'operator'.
+        :return: None
+        """
         assert isinstance(item, BaseAction)
         assert name
         assert not isinstance(item, Operator) or name == 'operator'
@@ -405,12 +445,24 @@ class Actions(collections.UserDict):
         if not isinstance(item, Operator) and self.data.get(name):
             item.description = self.data[name]
 
-    def remove_process_action(self, obj):
+    def remove_process_action(self, obj: BaseAction):
+        """
+        Delete an existing Behaviour instance.
+
+        :param obj: BaseAction.
+        :return: None.
+        """
+        assert isinstance(obj, BaseAction)
         for key in self._process_actions:
             if obj in self._process_actions[key]:
                 self._process_actions[key].remove(obj)
 
     def clone(self):
+        """
+        Recursively clone the collection of actions. It is not shallow one.
+
+        :return: a new instance.
+        """
         new = Actions()
 
         # Clone actions
@@ -439,6 +491,13 @@ class Actions(collections.UserDict):
         return new
 
     def filter(self, include=None, exclude=None):
+        """
+        Use the method to get descriptions with filters for description classes.
+
+        :param include: Iterable with Action classes.
+        :param exclude: Iterable with Action classes.
+        :return: list with Action objects.
+        """
         if not include:
             include = ()
         if not exclude:
@@ -447,7 +506,13 @@ class Actions(collections.UserDict):
         return sorted([x for x in self.data.values() if (not include or any(isinstance(x, t) for t in include)) and
                        (not exclude or all(not isinstance(x, t) for t in exclude))])
 
-    def behaviour(self, name=None):
+    def behaviour(self, name: str = None):
+        """
+        Find all behaviours in the collection or objects with a particular name.
+
+        :param name: Str.
+        :return: BaseAction.
+        """
         if not name:
             return {a for k in self._process_actions for a in self._process_actions[k]}
         else:
@@ -496,4 +561,9 @@ class Actions(collections.UserDict):
 
     @property
     def final_actions(self):
+        """
+        Searches for terminal behaviour actions and return them in a set.
+
+        :return: set of Behaviour actions.
+        """
         return set(filter(lambda x: not isinstance(x, Operator), self.behaviour()))
