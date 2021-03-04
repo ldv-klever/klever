@@ -83,7 +83,8 @@
         "resources": {
           "device": {
             "declaration": "struct device *dev",
-            "implemented in kernel": true
+            "implemented in kernel": true,
+            "header": "linux/device.h"
           }
         }
       }
@@ -199,7 +200,8 @@
         "resources": {
           "device": {
             "declaration": "struct device *dev",
-            "implemented in kernel": true
+            "implemented in kernel": true,
+            "header": "linux/device.h"
           }
         }
       }

@@ -202,6 +202,7 @@
         "reference": true
       },
       "debugfs_create_dir": {
+        "headers": ["linux/fs.h"],
         "actions": {
           "assign": {
             "comment": "Allocate memory for extrnal model dentry and inode.",
@@ -236,6 +237,7 @@
         "reference": true
       },
       "debugfs_create_file": {
+        "headers": ["linux/fs.h"],
         "actions": {
           "assign": {
             "comment": "Allocate memory for model dentry and inode.",
