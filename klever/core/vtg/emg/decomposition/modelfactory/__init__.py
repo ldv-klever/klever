@@ -91,15 +91,15 @@ class ModelFactory:
             new = ProcessCollection()
 
             if batch.entry:
-                new.entry = self._process_copy(model.entry)
-            else:
                 new.entry = self._process_from_scenario(batch.entry, model.entry)
+            else:
+                new.entry = self._process_copy(model.entry)
 
             for attr in ('models', 'environment'):
                 collection = getattr(batch, attr)
                 for key, scenario in collection.items():
                     if scenario:
-                        collection[key] = self._process_from_scenario(collection[key], getattr(model, attr)[key])
+                        collection[key] = self._process_from_scenario(scenario, getattr(model, attr)[key])
 
             new.establish_peers()
             self._remove_unused_processes(new)
@@ -113,12 +113,14 @@ class ModelFactory:
         new_process = process.clone()
         new_process.actions = scenario.actions
 
-        new = process.add_condition('savepoint', [], scenario.savepoint.statements,
-                                    f'Save point {str(scenario.savepoint)}')
-        for initial_action in scenario.actions.initial_action:
-            process.replace_action(initial_action, new)
+        new = new_process.add_condition('savepoint', [], scenario.savepoint.statements,
+                                        f'Save point {str(scenario.savepoint)}')
 
-        return new
+        firsts = scenario.actions.first_actions()
+        for name in firsts:
+            new_process.replace_action(new_process.actions[name], new)
+
+        return new_process
 
     def _remove_unused_processes(self, model: ProcessCollection):
         for key, process in model.environment.items():

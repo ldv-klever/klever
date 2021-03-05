@@ -30,9 +30,14 @@ def model():
 
 def test_default_models(model):
     separation = ModelFactory(logging, {})
-    scenario_generator = SeparationStrategy(logging, dict())
-    processes_to_scenarops = {str(process): scenario_generator(process.actions) for process in model.processes}
-    models = separation(processes_to_scenarops, model)
+    scenario_generator = LinearStrategy(logging, dict())
+    processes_to_scenarops = {str(process): list(scenario_generator(process)) for process in model.environment.values()}
+    models = list(separation(processes_to_scenarops, model))
 
-    assert len(models) == 5
-    
+    cnt = 0
+    for process in model.environment.values():
+        for action in process.actions.values():
+            cnt += len(action.savepoints) if hasattr(action, 'savepoints') and action.savepoints else 0
+
+    # Why?
+    assert len(models) == (cnt * 2) + 1
