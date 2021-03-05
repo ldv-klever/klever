@@ -16,8 +16,8 @@
       "executable path": "bin"
     },
     "CIL": {
-      "version": "7fceefb",
-      "path": "https://forge.ispras.ru/attachments/download/8312/frama-c-cil-7fceefb.tar.xz",
+      "version": "9b3337c",
+      "path": "https://forge.ispras.ru/attachments/download/8464/frama-c-cil-9b3337c.tar.xz",
       "executable path": "."
     },
     "Consul": {
@@ -47,7 +47,13 @@
   },
   "Klever Build Bases": {
     "linux/loadable kernel modules sample": {
-      "path": "https://forge.ispras.ru/attachments/download/8076/build-base-linux-3.14.79-x86_64-sample.tar.xz"
+      "path": "https://forge.ispras.ru/attachments/download/8493/build-base-linux-3.14.79-x86_64-sample.tar.xz"
+    },
+    "linux/loadable kernel modules sample arm": {
+      "path": "https://forge.ispras.ru/attachments/download/8494/build-base-linux-3.14.79-x86_64-sample-arm.tar.xz"
+    },
+    "linux/loadable kernel modules sample arm64": {
+      "path": "https://forge.ispras.ru/attachments/download/8495/build-base-linux-3.14.79-x86_64-sample-arm64.tar.xz"
     }
   }
 }

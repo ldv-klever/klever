@@ -171,10 +171,14 @@ class StartDefaultDecisionView(LoggedCallMixin, APIView):
         return GetConfiguration().for_json()
 
     def post(self, request, **kwargs):
-        job = self.get_job(**kwargs)
-        configuration = self.get_configuration()
-        decision = create_default_decision(request, job, configuration)
-        decision_status_changed(decision)
+        try:
+            job = self.get_job(**kwargs)
+            configuration = self.get_configuration()
+            decision = create_default_decision(request, job, configuration)
+            decision_status_changed(decision)
+        except Exception as e:
+            logger.exception(e)
+            raise exceptions.APIException('Error occured for starting default decision')
         return Response({
             'id': decision.id, 'identifier': str(decision.identifier),
             'url': reverse('jobs:decision', args=[decision.id])

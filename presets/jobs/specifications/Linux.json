@@ -163,6 +163,7 @@
           "name": "RSG",
           "options": {"models": [
             "common/list.c",
+            "linux/alloc/common.c",
             "linux/drivers/usb/core/usb/message.c",
             "linux/memory safety/memory.c"
           ]}
@@ -242,7 +243,10 @@
             "description": "...",
             "plugins": [{
               "name": "RSG",
-              "options": {"models": ["linux/alloc/irq.c"]}
+              "options": {"models": [
+                "linux/alloc/common.c",
+                "linux/alloc/irq.c"
+              ]}
             }]
           },
           {
@@ -268,6 +272,7 @@
                     "model": "$linux/kernel/locking/spinlock.c",
                     "options": {"sets model": "flag"}
                   },
+                  "linux/alloc/common.c",
                   "linux/alloc/spinlock.c"
                 ]}
               }
@@ -278,7 +283,10 @@
             "description": "...",
             "plugins": [{
               "name": "RSG",
-              "options": {"models": ["linux/alloc/usb lock.c"]}
+              "options": {"models": [
+                "linux/alloc/common.c",
+                "linux/alloc/usb lock.c"
+              ]}
             }]
           }
         ]
@@ -801,6 +809,7 @@
               "options": {"models": [
                 "common/list.c",
                 "common/test.c",
+                "linux/alloc/common.c",
                 "linux/drivers/usb/core/usb/message.c",
                 "linux/memory safety/memory.c"
               ]}

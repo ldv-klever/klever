@@ -759,6 +759,7 @@ def get_file_checksum(file_name):
     return hash_sha256.hexdigest()
 
 
+# TODO: rename it with something like get_str_checksum(str) since there is not filename specifics.
 def get_file_name_checksum(file_name):
     hash_sha256 = hashlib.sha256()
     hash_sha256.update(file_name.encode('utf-8'))

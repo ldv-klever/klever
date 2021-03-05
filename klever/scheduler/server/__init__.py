@@ -132,13 +132,13 @@ class Server:
         :param archive: Path to the zip archive to send.
         """
         self.logger.debug(f'Submit the solution of task {identifier}')
-        return self.session.push_archive("service/solution/",
-                                         {
-                                             "task": identifier,
-                                             "description": json.dumps(description, ensure_ascii=False,
-                                                                       sort_keys=True, indent=4)
-                                         },
-                                         archive)
+        self.session.push_archive("service/solution/",
+                                  {
+                                      "task": identifier,
+                                      "description": json.dumps(description, ensure_ascii=False,
+                                                                sort_keys=True, indent=4)
+                                  },
+                                  archive)
 
     def get_user_credentials(self, identifier):
         """
