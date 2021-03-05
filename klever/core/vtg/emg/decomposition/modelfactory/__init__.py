@@ -15,59 +15,48 @@
 # limitations under the License.
 #
 
-from klever.core.vtg.emg.decomposition.scenario import Scenario
-from klever.core.vtg.emg.common.process import Dispatch
+from logging import Logger
+from klever.core.vtg.emg.common.process import Process, ProcessCollection
+from klever.core.vtg.emg.common.process.actions import Receive
 
-# todo: Annotate arguments
-# todo: Write doc
-# todo: What about deterministic choices from sets?
-class ModelFactory:
 
-    def __init__(self, logger, conf):
-        self.conf = conf
-        self.logger = logger
+class ScenarioCollection:
+    """
+    This is a collection of scenarios. The factory generated the model with processes that have provided keys. If a
+    process have a key in the collection but the value is None, then the factory will use the origin process. Otherwise,
+    it will use a provided scenario.
+    """
 
-    def __call__(self, processes_to_scenarios, model):
-        return [model]
-
-    def _choose_scenarios_for_model(self, processes_to_scenarios):
-        root_process = self.origin_model.entry
-        pass
-
-    def _find_process_peers(self):
-        # todo: Implement a tactic to choose scenarios
-        pass
-
-    def _clone_process(self, process):
-        # todo: Copy the process completely
-        pass
-
-    def _replace_actions(self, process, scenario):
-        # todo: Replace actions by the actions from the scenario
-        # todo: Find unused labels and delete them also
-        pass
-
-    def _prepare_savepoint_block(self, process, savepoint):
-        # todo: Determine the initial action
-        # todo: Remove it and add a new Block action instead of it
-        pass
-
-    def _replace_signal_peers(self, process, old_to_new):
-        # todo: Replace old peers with the new ones
-        pass
+    def __init__(self, entry=None, models=None, environment=None):
+        self.entry = entry
+        self.models = models if isinstance(models, dict) else dict()
+        self.environment = environment if isinstance(environment, dict) else dict()
 
 
 class Selector:
+    """
+    A simple implementation that chooses a scenario with a savepoint and uses only it for a new model. Other processes
+    are kept without changes. An origin model is also used.
+    """
 
-    def __init__(self, logger, conf, processes_to_scenarios):
+    def __init__(self, logger: Logger, conf: dict, processes_to_scenarios: dict, model: ProcessCollection):
         self.conf = conf
         self.logger = logger
-        self.covered = set()
+        self.model = model
         self.processes_to_scenarios = processes_to_scenarios
 
-    def generate_models(self):
-        # Choose the scenarios with save points
-        models = []
+    def __call__(self, *args, **kwargs):
+        yield self._make_base_model()
+        for scenario in self._scenarions_with_savepoint:
+            new = ScenarioCollection()
+            new.entry = scenario
+
+            for model in self.model.models:
+                new.models[str(model)] = None
+            for process in self.model.environment:
+                if scenario not in self.processes_to_scenarios[process]:
+                    new.environment[str(process)] = None
+            yield new
 
     @property
     def _scenarios(self):
@@ -77,126 +66,66 @@ class Selector:
     def _scenarions_with_savepoint(self):
         return {s for s in self._scenarios if s.savepoint}
 
-    @property
-    def _uncovered(self):
-        return {s for s in self._scenarios if s not in self.covered}
+    def _make_base_model(self):
+        new = ScenarioCollection()
+        for model in self.model.models:
+            new.models[str(model)] = None
+        for process in self.model.environment:
+            new.environment[str(process)] = None
+        return new
 
-    def _collect_peers(self, sender: Scenario):
-        peers = {}
-        for dispatch in (d for d in sender.actions.filter(include={Dispatch}) if d.peers):
-            for peer in dispatch.peers:
-                peers.update(self.processes_to_scenarios[peer['process']])
-        return peers
 
-    def _choose_unique_peers(self, scenarios):
-        result = set()
+# todo: Annotate arguments
+# todo: Write doc
+class ModelFactory:
 
-        # Get relevant processses
-        processes = {p for p in self.processes_to_scenarios if self.processes_to_scenarios[p].intersection(scenarios)}
+    strategy = Selector
 
-        # Choose relevant scenarios
-        for p in processes:
-            choice = self.processes_to_scenarios[p].intersection(scenarios)
-            uncovered = choice.intersection(self.covered)
-            if uncovered:
-                result.add(uncovered.pop())
+    def __init__(self, logger, conf):
+        self.conf = conf
+        self.logger = logger
+
+    def __call__(self, processes_to_scenarios: dict, model: ProcessCollection):
+        selector = self.strategy(self.logger, self.conf, processes_to_scenarios, model)
+        for batch in selector():
+            new = ProcessCollection()
+
+            if batch.entry:
+                new.entry = self._process_copy(model.entry)
             else:
-                result.add(choice.pop())
+                new.entry = self._process_from_scenario(batch.entry, model.entry)
 
-        return result
+            for attr in ('models', 'environment'):
+                collection = getattr(batch, attr)
+                for key, scenario in collection.items():
+                    if scenario:
+                        collection[key] = self._process_from_scenario(collection[key], getattr(model, attr)[key])
 
-    def _transitive_peers_adding(self, model, entry_scenario):
-        senders = [entry_scenario]
+            new.establish_peers()
+            self._remove_unused_processes(new)
 
-        while senders:
-            sender = senders.pop()
-            receivers = self._collect_peers(sender)
-            unique = self._choose_unique_peers(receivers)
+            yield model
 
-            model.environment.update(unique)
-            self.covered.update(unique)
-            senders.extend([s for s in unique if s not in senders])
+    def _process_copy(self, process: Process):
+        return process.clone()
 
-    def _cover_savepoints(self):
-        # Choose the scenarios with save points
-        # todo: We need to add here processes from other categries also
-        models = []
+    def _process_from_scenario(self, scenario, process):
+        new_process = process.clone()
+        new_process.actions = scenario.actions
 
-        # Cover savepoints
-        for s in self._scenarions_with_savepoint:
-            models.append(ScenarioCollection(s))
-            self.covered.add(s)
+        new = process.add_condition('savepoint', [], scenario.savepoint.statements,
+                                    f'Save point {str(scenario.savepoint)}')
+        for initial_action in scenario.actions.initial_action:
+            process.replace_action(initial_action, new)
 
-        return models
+        return new
 
-    def _choose_random(self, model, pool: set):
-        # todo: Use this in the model broadly
-        # todo: Use deterministic choice
-        assert pool
-        any_random = set(pool).pop()
-        self._select_scenario(model, any_random)
+    def _remove_unused_processes(self, model: ProcessCollection):
+        for key, process in model.environment.items():
+            receives = set(map(str, process.actions.filter(include={Receive})))
+            all_peers = {a for acts in process.peers.values() for a in acts}
 
-    def _select_scenario(self, model, scenario: Scenario):
-        assert scenario
-        assert scenario not in model.environment
-        self.covered.add(scenario)
-        model.environment.add(scenario)
+            if not receives.intersection(all_peers):
+                del model.environment[key]
 
-    def _cover_rest(self):
-        # todo: Reimplement the function to use it for adding scenarios from different categries to models wit savepoint
-        # entries
-        models = []
-
-        # We must cover all scenarios, so do this in the loop
-        while self._uncovered:
-            # Create a new model
-            new_model = ScenarioCollection()
-
-            # Get the list of categories that have at least one environment process
-            categories = {p.category for p in self.processes_to_scenarios}
-            scenario_to_category = {s: p.category for p in self.processes_to_scenarios
-                                    for s in self.processes_to_scenarios[p].intersection(self._uncovered)}
-
-            # Repeate for all categories fot this model (uncovered in the model!). Processes from different categories
-            # can send signals implicitly from executed kernel functions. We cannot catch this from out data structures
-            # so we must add processes from all categories.
-            while categories:
-                category = categories.pop()
-                # Now we should choose a scenario that does not send anything. Check some uncovered processes and find a
-                # suitable scenario.
-
-                # First get the list od scenarios which are relevant to the category and uncovered.
-                relevant = {s for s in scenario_to_category
-                            if scenario_to_category[s] == category}.intersection(self._uncovered)
-                if relevant:
-                    # Select one that has no dispatches.
-                    without_dispatches = {s for s in relevant if not s.actions.filter(include={Dispatch})}
-                    if without_dispatches:
-                        choice = without_dispatches.pop()
-                        self._select_scenario(new_model, choice)
-                    else:
-                        # Ok, then choose one that send signals to uncvered processes
-                        for scenario in relevant:
-                            peers = self._collect_peers(scenario)
-                            if peers:
-                                unique = self._choose_unique_peers(peers)
-                                if unique:
-                                    new_model.environment.update(unique)
-                                    self.covered.update(unique)
-                                    break
-                        else:
-                            # Ok, we do not have any interesting processes. Then add any
-                            self._choose_random(new_model, relevant)
-                else:
-                    # Hmm, seems that we can choose any
-                    self._choose_random(new_model, relevant)
-
-        return models
-
-
-class ScenarioCollection:
-
-    def __init__(self, entry=None, models=None, environment=None):
-        self.entry = entry
-        self.models = models if isinstance(models, set) else set()
-        self.environment = environment if isinstance(environment, set) else set()
+        model.establish_peers()
