@@ -26,6 +26,7 @@ urlpatterns = [
     path('db-statistics/', views.DBLogsStatistics.as_view(), name='db-statistics'),
     path('reports-logging/', views.ReportsLogggingView.as_view(), name='reports-logging'),
     path('logs/', views.FileLogView.as_view(), name='logs'),
+    path('error-trace-analizer/', views.ErrorTraceAnalizerView.as_view(), name='error-trace-analizer'),
 
     path('api/clear-system/', views.ClearSystemAPIView.as_view(), name='api-clear-system'),
     path('api/clear-comparison/<int:pk>/', views.ClearComparisonAPIView.as_view(), name='api-clear-comparison'),

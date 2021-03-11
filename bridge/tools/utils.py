@@ -17,6 +17,7 @@
 
 import os
 import re
+import json
 import tempfile
 import datetime
 
@@ -434,3 +435,31 @@ class RemoveDuplicates:
         return SourceCodeCache.objects.values('identifier')\
             .annotate(duplicates=Count('id'), ids_list=ArrayAgg('id'))\
             .filter(duplicates__gt=1).values('ids_list')
+
+
+class ErrorTraceAnanlizer:
+    def __init__(self, error_trace):
+        self.trace = json.loads(error_trace)
+        self.__simplify()
+
+    def __simplify(self):
+        assert isinstance(self.trace, dict)
+        del self.trace['files']
+        del self.trace['format']
+        if 'global variable declarations' in self.trace:
+            self.__simplify_subtree(self.trace['global variable declarations'])
+        self.__simplify_subtree([self.trace['trace']])
+
+    def __simplify_subtree(self, subtree):
+        if not isinstance(subtree, list):
+            print(subtree)
+        for node in subtree:
+            if 'highlight' in node:
+                del node['highlight']
+            if 'file' in node:
+                del node['file']
+            if 'children' in node:
+                self.__simplify_subtree(node['children'])
+
+    def get_trace(self):
+        return json.dumps(self.trace, ensure_ascii=False, indent=2, sort_keys=True)

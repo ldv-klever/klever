@@ -85,7 +85,7 @@
             "common sets model": "counter",
             "model compiler input file": "scripts/mod/empty.c",
             "common models": [
-              "linux/fs/dcache/dcache.c",
+              "linux/arch/asm/current.c",
               "linux/arch/asm/atomic.c",
               "linux/drivers/base/dd.c",
               "linux/drivers/base/devres.c",
@@ -95,6 +95,7 @@
               "linux/drivers/video/fbdev/core/fbsysfs.c",
               "linux/drivers/spi.c",
               "linux/err.c",
+              "linux/fs/dcache/dcache.c",
               "linux/kernel/panic.c",
               "linux/common.c",
               "linux/mm/slab.c",

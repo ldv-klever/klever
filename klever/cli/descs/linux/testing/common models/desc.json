@@ -4,6 +4,7 @@
         "name": "Linux",
         "external modules": "tests",
         "loadable kernel modules": [
+            "ext-modules/linux/arch/asm/current",
             "ext-modules/linux/drivers/base/dd",
             "ext-modules/linux/drivers/base/devres",
             "ext-modules/linux/drivers/base/devres-memory-safety",
