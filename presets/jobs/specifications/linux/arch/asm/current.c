@@ -17,12 +17,14 @@
 
 #include <linux/sched.h>
 
+static struct task_struct ldv_current;
+
 /* This is a very rough model since for different processes there should be different PIDs as well as there may be other
    PIDs in addition to 1. Though EMG can properly model (get_)current, let's hope that this simple and static model will
    be enough for currently generated environment models and used verification tools. */
-static struct task_struct ldv_current = {.pid = 1};
-
 struct task_struct *ldv_get_current(void)
 {
+	/* TODO: CIF generates invalid code for Linux 4.15.18 if make this initialization globally. */
+	ldv_current.pid = 1;
 	return &ldv_current;
 }
