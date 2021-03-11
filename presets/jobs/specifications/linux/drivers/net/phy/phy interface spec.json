@@ -1,0 +1,55 @@
+{
+    "3.14": {
+      "categories": {
+        "phy": {
+          "callbacks": {
+            "probe": {
+              "declaration": "int (*probe)(%phy.dev%);"
+            },
+            "remove": {
+              "declaration": "int (*remove)(%phy.dev%)"
+            }
+          },
+          "containers": {
+            "phy_driver": {
+              "declaration": "struct phy_driver driver",
+              "fields": {
+                "probe": "%phy.probe%",
+                "remove": "%phy.remove%"
+              },
+              "header": "linux/phy.h"
+            }
+          },
+          "resources": {
+            "dev": {
+              "declaration": "struct phy_device *dev",
+              "header": "linux/phy.h"
+            }
+          },
+          "reference": true
+        }
+      },
+      "functions models": {
+        "phy_driver_unregister": {
+          "declaration": "void phy_driver_unregister(%phy.phy_driver%)",
+          "header": "linux/phy.h",
+          "reference": true
+        },
+        "phy_drivers_unregister": {
+          "declaration": "void phy_driver_unregister(%phy.phy_driver%, int n)",
+          "header": "linux/phy.h",
+          "reference": true
+        },
+        "phy_driver_register": {
+          "declaration": "int phy_driver_register(%phy.phy_driver%, struct module *owner)",
+          "header": "linux/phy.h",
+          "reference": true
+        },
+        "phy_drivers_register": {
+          "declaration": "int phy_driver_register(%phy.phy_driver%, int n, struct module *owner)",
+          "header": "linux/phy.h",
+          "reference": true
+        }
+      }
+    }
+  }

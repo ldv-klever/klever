@@ -1,0 +1,72 @@
+{
+    "3.14": {
+      "functions models": {
+        "sdio_unregister_driver": {
+          "actions": {
+            "assign": {
+              "comment": "Get callbacks provided within 'sdio_driver' argument.",
+              "statements": [
+                "%sdio_driver% = $ARG1;"
+              ]
+            },
+            "deregister": {
+              "parameters": [
+                "%sdio_driver%"
+              ]
+            }
+          },
+          "comment": "Deregister the sdio driver callbacks.",
+          "labels": {
+            "sdio_driver": {
+              "container": true,
+              "interface": [
+                "sdio.sdio_driver"
+              ],
+              "parameter": true
+            }
+          },
+          "process": "<assign>.[deregister]",
+          "reference": true
+        },
+        "sdio_register_driver": {
+          "actions": {
+            "assign": {
+              "comment": "Get callbacks provided within 'sdio_driver' argument.",
+              "statements": [
+                "%sdio_driver% = $ARG1;"
+              ]
+            },
+            "fail": {
+              "comment": "Failed registration of the sdio driver callbacks.",
+              "statements": [
+                "return ldv_undef_int_negative();"
+              ]
+            },
+            "register": {
+              "parameters": [
+                "%sdio_driver%"
+              ]
+            },
+            "success": {
+              "comment": "Registration of sdio_driver callbacks has been finished successfully.",
+              "statements": [
+                "return 0;"
+              ]
+            }
+          },
+          "comment": "Register sdio driver callbacks.",
+          "labels": {
+            "sdio_driver": {
+              "container": true,
+              "interface": [
+                "sdio.sdio_driver"
+              ],
+              "parameter": true
+            }
+          },
+          "process": "<assign>.[register].<success> | <fail>",
+          "reference": true
+        }
+      }
+    }
+  }

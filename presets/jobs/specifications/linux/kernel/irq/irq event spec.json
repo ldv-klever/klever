@@ -156,6 +156,72 @@
         "process": "<assign>.[irq_register].<success> | <fail>",
         "reference": true
       },
+      "devm_request_irq": {
+        "actions": {
+          "assign": {
+            "comment": "Get line, callbacks and data arguments.",
+            "statements": [
+              "%line% = $ARG2;",
+              "%callback% = $ARG3;",
+              "%thread% = 0;",
+              "%data% = $ARG6;"
+            ]
+          },
+          "fail": {
+            "comment": "Failed to allocate an interrupt line for a managed device.",
+            "statements": [
+              "return ldv_undef_int_negative();"
+            ]
+          },
+          "irq_register": {
+            "comment": "Register interrupt callback (callbacks).",
+            "parameters": [
+              "%line%",
+              "%callback%",
+              "%thread%",
+              "%data%"
+            ]
+          },
+          "success": {
+            "comment": "Successfully allocated an interrupt line for a managed device.",
+            "statements": [
+              "return 0;"
+            ]
+          }
+        },
+        "comment": "Allocate an interrupt line for a managed device.",
+        "labels": {
+          "callback": {
+            "callback": true,
+            "interface": [
+              "interrupt.handler"
+            ],
+            "parameter": true
+          },
+          "data": {
+            "interface": [
+              "interrupt.data"
+            ],
+            "parameter": true,
+            "resource": true
+          },
+          "line": {
+            "interface": [
+              "interrupt.line"
+            ],
+            "parameter": true,
+            "resource": true
+          },
+          "thread": {
+            "callback": true,
+            "interface": [
+              "interrupt.thread"
+            ]
+          }
+        },
+        "process": "<assign>.[irq_register].<success> | <fail>",
+        "reference": true
+      },
       "free_irq, devm_free_irq": {
         "actions": {
           "assign": {

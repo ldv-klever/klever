@@ -1,0 +1,45 @@
+{
+    "3.14": {
+      "functions models": {
+        "devm_snd_soc_register_component": {
+          "actions": {
+            "assign": {
+              "comment": "Get callbacks provided within 'snd_soc_component' argument.",
+              "statements": [
+                "%snd_soc_component% = $ARG1;"
+              ]
+            },
+            "fail": {
+              "comment": "Failed registration of the sdio driver callbacks.",
+              "statements": [
+                "return ldv_undef_int_negative();"
+              ]
+            },
+            "register": {
+              "parameters": [
+                "%snd_soc_component%"
+              ]
+            },
+            "success": {
+              "comment": "Registration of snd_soc_component callbacks has been finished successfully.",
+              "statements": [
+                "return 0;"
+              ]
+            }
+          },
+          "comment": "Register snd_soc_component callbacks.",
+          "labels": {
+            "snd_soc_component": {
+              "container": true,
+              "interface": [
+                "snd_soc.driver"
+              ],
+              "parameter": true
+            }
+          },
+          "process": "<assign>.[register].<success> | <fail>",
+          "reference": true
+        }
+      }
+    }
+  }

@@ -1,0 +1,40 @@
+{
+    "3.14": {
+      "categories": {
+        "snd_soc": {
+          "callbacks": {
+            "probe": {
+              "declaration": "int (*probe)(%snd_soc.component%);"
+            },
+            "remove": {
+              "declaration": "int (*remove)(%snd_soc.component%);"
+            }
+          },
+          "containers": {
+            "driver": {
+              "declaration": "struct snd_soc_component_driver driver",
+              "fields": {
+                "open": "%snd_soc.probe%",
+                "close": "%snd_soc.remove%"
+              },
+              "header": "sound/soc.h"
+            }
+          },
+          "resources": {
+            "component": {
+              "declaration": "struct snd_soc_component *component",
+              "header": "sound/soc.h"
+            }
+          },
+          "reference": true
+        }
+      },
+      "functions models": {
+        "devm_snd_soc_register_component": {
+          "declaration": "int devm_snd_soc_register_component(struct device *dev, %snd_soc.driver%, struct snd_soc_dai_driver *dai_drv, int num_dai)",
+          "header": "sound/soc.h",
+          "reference": true
+        }
+      }
+    }
+  }

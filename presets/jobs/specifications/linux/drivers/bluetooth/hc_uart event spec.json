@@ -1,0 +1,72 @@
+{
+    "3.14": {
+      "functions models": {
+        "hci_uart_unregister_proto": {
+          "actions": {
+            "assign": {
+              "comment": "Get callbacks provided within 'hc_uart_proto' argument.",
+              "statements": [
+                "%hc_uart_proto% = $ARG1;"
+              ]
+            },
+            "deregister": {
+              "parameters": [
+                "%hc_uart_proto%"
+              ]
+            }
+          },
+          "comment": "Deregister the hc_uart_proto callbacks.",
+          "labels": {
+            "hc_uart_proto": {
+              "container": true,
+              "interface": [
+                "hci_uart_proto.proto"
+              ],
+              "parameter": true
+            }
+          },
+          "process": "<assign>.[deregister]",
+          "reference": true
+        },
+        "hci_uart_register_proto": {
+          "actions": {
+            "assign": {
+              "comment": "Get callbacks provided within 'hc_uart_proto' argument.",
+              "statements": [
+                "%hc_uart_proto% = $ARG1;"
+              ]
+            },
+            "fail": {
+              "comment": "Failed registration of the sdio driver callbacks.",
+              "statements": [
+                "return ldv_undef_int_negative();"
+              ]
+            },
+            "register": {
+              "parameters": [
+                "%hc_uart_proto%"
+              ]
+            },
+            "success": {
+              "comment": "Registration of hc_uart_proto callbacks has been finished successfully.",
+              "statements": [
+                "return 0;"
+              ]
+            }
+          },
+          "comment": "Register hc_uart_proto callbacks.",
+          "labels": {
+            "hc_uart_proto": {
+              "container": true,
+              "interface": [
+                "hci_uart_proto.proto"
+              ],
+              "parameter": true
+            }
+          },
+          "process": "<assign>.[register].<success> | <fail>",
+          "reference": true
+        }
+      }
+    }
+  }

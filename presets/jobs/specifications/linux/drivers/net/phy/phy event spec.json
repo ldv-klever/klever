@@ -1,0 +1,138 @@
+{
+    "3.14": {
+      "functions models": {
+        "phy_driver_unregister": {
+          "actions": {
+            "assign": {
+              "comment": "Get callbacks provided within 'phy_driver' argument.",
+              "statements": [
+                "%phy_driver% = $ARG1;"
+              ]
+            },
+            "deregister": {
+              "parameters": [
+                "%phy_driver%"
+              ]
+            }
+          },
+          "comment": "Deregister the phy driver callbacks.",
+          "labels": {
+            "phy_driver": {
+              "container": true,
+              "interface": [
+                "phy.phy_driver"
+              ],
+              "parameter": true
+            }
+          },
+          "process": "<assign>.[deregister]",
+          "reference": true
+        },
+        "phy_drivers_unregister": {
+          "actions": {
+            "assign": {
+              "comment": "Get callbacks provided within 'phy_driver' argument.",
+              "statements": [
+                "%phy_driver% = $ARG1;"
+              ]
+            },
+            "deregister": {
+              "parameters": [
+                "%phy_driver%"
+              ]
+            }
+          },
+          "comment": "Deregister the phy driver callbacks.",
+          "labels": {
+            "phy_driver": {
+            "container": true,
+            "interface": [
+                "phy.phy_driver"
+              ],
+              "parameter": true
+              }
+          },
+          "process": "<assign>.[deregister]",
+          "reference": true
+        },
+        "phy_driver_register": {
+          "actions": {
+            "assign": {
+              "comment": "Get callbacks provided within 'phy_driver' argument.",
+              "statements": [
+                "%phy_driver% = $ARG1;"
+              ]
+            },
+            "fail": {
+              "comment": "Failed registration of the phy driver callbacks.",
+              "statements": [
+                "return ldv_undef_int_negative();"
+              ]
+            },
+            "register": {
+              "parameters": [
+                "%phy_driver%"
+              ]
+            },
+            "success": {
+              "comment": "Registration of phy_driver callbacks has been finished successfully.",
+              "statements": [
+                "return 0;"
+              ]
+            }
+          },
+          "comment": "Register phy driver callbacks.",
+          "labels": {
+            "phy_driver": {
+              "container": true,
+              "interface": [
+                "phy.phy_driver"
+              ],
+              "parameter": true
+            }
+          },
+          "process": "<assign>.[register].<success> | <fail>",
+          "reference": true
+        },
+        "phy_drivers_register": {
+          "actions": {
+            "assign": {
+              "comment": "Get callbacks provided within 'phy_driver' argument.",
+              "statements": [
+                "%phy_driver% = $ARG1;"
+              ]
+            },
+            "fail": {
+              "comment": "Failed registration of the phy driver callbacks.",
+              "statements": [
+                "return ldv_undef_int_negative();"
+              ]
+            },
+            "register": {
+              "parameters": [
+                "%phy_driver%"
+              ]
+            },
+            "success": {
+              "comment": "Registration of phy_driver callbacks has been finished successfully.",
+              "statements": [
+                "return 0;"
+              ]
+            }
+          },
+          "comment": "Register phy driver callbacks.",
+          "labels": {
+            "phy_driver": {
+              "container": true,
+              "interface": [
+                "phy.phy_driver"
+              ],
+              "parameter": true
+            }
+          },
+          "process": "<assign>.[register].<success> | <fail>",
+          "reference": true
+        }
+      }
+    }
+  }

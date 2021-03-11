@@ -1,0 +1,72 @@
+{
+    "3.14": {
+      "functions models": {
+        "crypto_unregister_shash": {
+          "actions": {
+            "assign": {
+              "comment": "Get callbacks provided within 'shash_alg' argument.",
+              "statements": [
+                "%shash_alg% = $ARG1;"
+              ]
+            },
+            "deregister": {
+              "parameters": [
+                "%shash_alg%"
+              ]
+            }
+          },
+          "comment": "Deregister the shash_alg callbacks.",
+          "labels": {
+            "shash_alg": {
+              "container": true,
+              "interface": [
+                "shash.shash_alg"
+              ],
+              "parameter": true
+            }
+          },
+          "process": "<assign>.[deregister]",
+          "reference": true
+        },
+        "crypto_register_shash": {
+          "actions": {
+            "assign": {
+              "comment": "Get callbacks provided within 'shash_alg' argument.",
+              "statements": [
+                "%shash_alg% = $ARG1;"
+              ]
+            },
+            "fail": {
+              "comment": "Failed registration of the shash_alg callbacks.",
+              "statements": [
+                "return ldv_undef_int_negative();"
+              ]
+            },
+            "register": {
+              "parameters": [
+                "%shash_alg%"
+              ]
+            },
+            "success": {
+              "comment": "Registration of shash_alg callbacks has been finished successfully.",
+              "statements": [
+                "return 0;"
+              ]
+            }
+          },
+          "comment": "Register shash_alg callbacks.",
+          "labels": {
+            "shash_alg": {
+              "container": true,
+              "interface": [
+                "shash.shash_alg"
+              ],
+              "parameter": true
+            }
+          },
+          "process": "<assign>.[register].<success> | <fail>",
+          "reference": true
+        }
+      }
+    }
+  }

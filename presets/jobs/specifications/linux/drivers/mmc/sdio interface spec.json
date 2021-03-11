@@ -1,0 +1,45 @@
+{
+    "3.14": {
+      "categories": {
+        "sdio": {
+          "callbacks": {
+            "probe": {
+              "declaration": "int (*probe)(%sdio.func%, const struct sdio_device_id *id);"
+            },
+            "remove": {
+              "declaration": "int (*remove)(%sdio.func%);"
+            }
+          },
+          "containers": {
+            "sdio_driver": {
+              "declaration": "struct sdio_driver  driver",
+              "fields": {
+                "probe": "%sdio.probe%",
+                "remove": "%sdio.remove%"
+              },
+              "header": "linux/mmc/sdio_func.h"
+            }
+          },
+          "resources": {
+            "func": {
+              "declaration": "struct sdio_func *func",
+              "header": "linux/mmc/sdio_func.h"
+            }
+          },
+          "reference": true
+        }
+      },
+      "functions models": {
+        "sdio_unregister_driver": {
+          "declaration": "void sdio_unregister_driver(*%sdio.sdio_driver%)",
+          "header": "linux/mmc/sdio_func.h",
+          "reference": true
+        },
+        "sdio_register_driver": {
+          "declaration": "int sdio_register_driver(struct module *owner, *%sdio.sdio_driver%)",
+          "header": "linux/mmc/sdio_func.h",
+          "reference": true
+        }
+      }
+    }
+  }

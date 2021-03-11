@@ -1,0 +1,45 @@
+{
+    "3.14": {
+      "categories": {
+        "hci_uart_proto": {
+          "callbacks": {
+            "probe": {
+              "declaration": "int (*open)(%hci_uart_proto.hu%);"
+            },
+            "remove": {
+              "declaration": "int (*close)(%hci_uart_proto.hu%);"
+            }
+          },
+          "containers": {
+            "proto": {
+              "declaration": "struct hci_uart_proto hp",
+              "fields": {
+                "open": "%hci_uart_proto.probe%",
+                "close": "%hci_uart_proto.remove%"
+              },
+              "header": "drivers/bluetooth/hci_uart.h"
+            }
+          },
+          "resources": {
+            "hu": {
+              "declaration": "struct hci_uart *hu",
+              "header": "drivers/bluetooth/hci_uart.h"
+            }
+          },
+          "reference": true
+        }
+      },
+      "functions models": {
+        "hci_uart_unregister_proto": {
+          "declaration": "void hci_uart_unregister_proto(*%hci_uart_proto.proto%)",
+          "header": "drivers/bluetooth/hci_uart.h",
+          "reference": true
+        },
+        "hci_uart_register_proto": {
+          "declaration": "int hci_uart_register_proto(*%hci_uart_proto.proto%)",
+          "header": "drivers/bluetooth/hci_uart.h",
+          "reference": true
+        }
+      }
+    }
+  }

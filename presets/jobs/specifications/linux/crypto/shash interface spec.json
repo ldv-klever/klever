@@ -1,0 +1,45 @@
+{
+    "3.14": {
+      "categories": {
+        "shash": {
+          "callbacks": {
+            "probe": {
+              "declaration": "int (*init)(%shash.desc%);"
+            },
+            "remove": {
+              "declaration": "int (*final)(%shash.desc%, u8 *out);"
+            }
+          },
+          "containers": {
+            "shash_alg": {
+              "declaration": "struct shash_alg shash_alg",
+              "fields": {
+                "init": "%shash.probe%",
+                "final": "%shash.remove%"
+              },
+              "header": "crypto/hash.h"
+            }
+          },
+          "resources": {
+            "desc": {
+              "declaration": "struct shash_desc *desc",
+              "header": "crypto/hash.h"
+            }
+          },
+          "reference": true
+        }
+      },
+      "functions models": {
+        "crypto_unregister_shash": {
+          "declaration": "void crypto_unregister_shash(*%shash.shash_alg%)",
+          "header": "crypto/internal/hash.h",
+          "reference": true
+        },
+        "crypto_register_shash": {
+          "declaration": "int crypto_register_shash(*%shash.shash_alg%)",
+          "header": "crypto/internal/hash.h",
+          "reference": true
+        }
+      }
+    }
+  }
