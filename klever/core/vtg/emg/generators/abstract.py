@@ -60,7 +60,7 @@ class AbstractGenerator:
         specification_files = {kind: {f for f in file_candidates if f.endswith(ending)}
                                for kind, ending in self.specifications_endings.items()}
 
-        # Then merge them accprdiong to fragmentation set
+        # Then merge them according to specifications set
         specifications = {kind: self._merge_specifications(specifications_set, files)
                           for kind, files in specification_files.items()}
 

@@ -239,9 +239,7 @@ class Source:
         self.prefixes = prefixes
         self.deps = deps
 
-        self.possble_path_prefixes = sortedcontainers.SortedSet()
         self.dep_paths = sortedcontainers.SortedSet()
-
         self._source_functions = sortedcontainers.SortedDict()
         self._source_vars = sortedcontainers.SortedDict()
         self._macros = sortedcontainers.SortedDict()

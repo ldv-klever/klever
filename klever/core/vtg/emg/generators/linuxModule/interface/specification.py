@@ -30,8 +30,8 @@ def import_interface_specification(logger, collection, sa, specification):
             raise ValueError("Provide declaration at the interface specification of '{}.{}'".format(c, i))
         return decl
 
+    logger.debug("Found interface categories: {}".format(', '.join(specification["categories"].keys())))
     for category in specification["categories"]:
-        logger.debug("Found interface category {}".format(category))
         description = specification["categories"][category]
 
         # Import interfaces

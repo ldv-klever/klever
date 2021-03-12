@@ -31,7 +31,7 @@
           "init": {
             "comment": "Allocate memory for pci_dev structure.",
             "statements": [
-              "%resource% = $ALLOC(%resource%);",
+              "$ALLOC(%resource%);",
               "%choice% = ldv_random_int(0, $SIZE(%ids%));",
               "%device_id% = & %container%->id_table[%choice%];"
             ]
@@ -253,7 +253,7 @@
           "init": {
             "comment": "Allocate memory for pci_dev structure.",
             "statements": [
-              "%resource% = $ALLOC(%resource%);",
+              "$ALLOC(%resource%);",
               "%choice% = ldv_random_int(0, $SIZE(%ids%));",
               "%device_id% = & %container%->id_table[%choice%];"
             ]

@@ -87,7 +87,7 @@
             "comment": "Get callbacks.",
             "statements": [
               "%parport_operations% = $ARG4;",
-              "%parport% = $ALLOC(%parport%);"
+              "$ALLOC(%parport%);"
             ]
           },
           "fail": {
