@@ -23,13 +23,13 @@
 #include <ldv/verifier/thread.h>
 
 static DEFINE_MUTEX(ldv_lock);
-int __ldv_pdev;
+int pdev;
 pthread_t thread, thread2;
 int ldv_usb_state;
 
 void ath9k_flush(void) {
      mutex_lock(&ldv_lock);
-     __ldv_pdev = 6;
+     pdev = 6;
      mutex_unlock(&ldv_lock);
 }
 
@@ -99,7 +99,7 @@ void* thread_usb(void *arg) {
                     ath_ahb_disconnect();
                     ldv_usb_state=0;
 
-                    __ldv_pdev = 8;
+                    pdev = 8;
                }
                break;
           case 2:
@@ -111,19 +111,19 @@ void* thread_usb(void *arg) {
      }
 exit_thread_usb:
 
-     __ldv_pdev = 9;
+     pdev = 9;
      return 0;
 }
 
 static int __init ldv_init(void) {
-     __ldv_pdev = 1;
+     pdev = 1;
 
      if (ldv_undef_int()) {
           pthread_create(&thread, 0, &thread_usb, 0);
           return 0;
      }
 
-     __ldv_pdev = 3;
+     pdev = 3;
      return -1;
 }
 
@@ -131,7 +131,7 @@ static void __exit ldv_exit(void) {
      void *status;
      pthread_join(thread, &status);
 
-     __ldv_pdev = 5;
+     pdev = 5;
 }
 
 module_init(ldv_init);
