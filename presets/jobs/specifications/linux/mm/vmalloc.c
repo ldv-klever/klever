@@ -17,25 +17,30 @@
 
 #include <linux/types.h>
 #include <ldv/linux/common.h>
-#include <ldv/linux/err.h>
-#include <ldv/verifier/common.h>
+#include <ldv/linux/vmalloc.h>
 #include <ldv/verifier/memory.h>
-#include <ldv/verifier/nondet.h>
 
-void *ldv_common_alloc(gfp_t flags)
+void *ldv_vmalloc(unsigned long size)
 {
-	ldv_check_alloc_flags(flags);
-	return ldv_malloc_unknown_size();
+	void *res;
+
+	ldv_check_alloc_nonatomic();
+	res = ldv_malloc(size);
+
+	return res;
 }
 
-int ldv_common_alloc_return_int(gfp_t flags)
+void *ldv_vzalloc(unsigned long size)
 {
-	ldv_check_alloc_flags(flags);
-	return ldv_undef_int();
+	void *res;
+
+	ldv_check_alloc_nonatomic();
+	res = ldv_zalloc(size);
+
+	return res;
 }
 
-void *ldv_common_zalloc(gfp_t flags)
+void ldv_vfree(const void *addr)
 {
-	ldv_check_alloc_flags(flags);
-	return ldv_zalloc_unknown_size();
+    ldv_free(addr);
 }

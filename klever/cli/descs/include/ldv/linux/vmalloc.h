@@ -15,27 +15,11 @@
  * limitations under the License.
  */
 
-#include <linux/types.h>
-#include <ldv/linux/common.h>
-#include <ldv/linux/err.h>
-#include <ldv/verifier/common.h>
-#include <ldv/verifier/memory.h>
-#include <ldv/verifier/nondet.h>
+#ifndef __LDV_LINUX_VMALLOC_H
+#define __LDV_LINUX_VMALLOC_H
 
-void *ldv_common_alloc(gfp_t flags)
-{
-	ldv_check_alloc_flags(flags);
-	return ldv_malloc_unknown_size();
-}
+extern void *ldv_vmalloc(unsigned long size);
+extern void *ldv_vzalloc(unsigned long size);
+extern void ldv_vfree(const void *addr);
 
-int ldv_common_alloc_return_int(gfp_t flags)
-{
-	ldv_check_alloc_flags(flags);
-	return ldv_undef_int();
-}
-
-void *ldv_common_zalloc(gfp_t flags)
-{
-	ldv_check_alloc_flags(flags);
-	return ldv_zalloc_unknown_size();
-}
+#endif /* __LDV_LINUX_VMALLOC_H */

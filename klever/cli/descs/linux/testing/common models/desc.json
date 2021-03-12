@@ -18,6 +18,8 @@
             "ext-modules/linux/mm/gfp",
             "ext-modules/linux/mm/slab",
             "ext-modules/linux/mm/util",
+            "ext-modules/linux/mm/vmalloc",
+            "ext-modules/linux/mm/vmalloc-memory-safety",
             "ext-modules/verifier/common",
             "ext-modules/verifier/gcc",
             "ext-modules/verifier/map",
