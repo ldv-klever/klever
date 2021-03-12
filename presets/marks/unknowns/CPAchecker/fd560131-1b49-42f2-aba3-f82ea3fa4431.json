@@ -1,8 +1,0 @@
-{
-  "attrs": [],
-  "function": "CPU time exhausted",
-  "is_regexp": false,
-  "problem_pattern": "Timeout",
-  "production": true,
-  "is_modifiable": false
-}
