@@ -65,6 +65,7 @@
             ],
             "translation options": {
               "allocate external": false,
+              "simple control functions calls": true,
               "environment model file": "environment_model.c",
               "additional headers": [
                 "ldv/linux/common.h",
@@ -94,6 +95,7 @@
               "linux/drivers/video/fbdev/core/fbsysfs.c",
               "linux/drivers/spi.c",
               "linux/err.c",
+              "linux/fs/dcache/dcache.c",
               "linux/kernel/panic.c",
               "linux/common.c",
               "linux/mm/slab.c",
@@ -190,6 +192,7 @@
             "check final state": false,
             "translation options": {
               "self parallel processes": false,
+              "simple control functions calls": false,
               "do not skip signals": true,
               "not self parallel processes": ["linux/insmod"],
               "not self parallel processes from categories": ["usb"],
@@ -220,7 +223,7 @@
             "verifier profile": "race checking",
             "verifier": {
               "name": "CPAchecker",
-              "version": "CPALockator:36189"
+              "version": "CPALockator-combat-mode:36901"
             },
             "result processing": {
               "expect several witnesses": true

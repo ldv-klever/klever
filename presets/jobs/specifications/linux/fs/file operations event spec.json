@@ -33,7 +33,7 @@
             "comment": "Allocate memory for file and inode structures.",
             "trace relevant": true,
             "statements": [
-              "%resource% = $ALLOC(%resource%);",
+              "$ALLOC(%resource%);",
               "%size_cnt% = ldv_undef_int();"
             ]
           },
@@ -202,13 +202,14 @@
         "reference": true
       },
       "debugfs_create_dir": {
+        "headers": ["linux/fs.h"],
         "actions": {
           "assign": {
             "comment": "Allocate memory for extrnal model dentry and inode.",
             "trace relevant": true,
             "statements": [
-              "%dentry% = $ALLOC(%dentry%);",
-              "%inode% = $ALLOC(%inode%);",
+              "$ALLOC(%dentry%);",
+              "$ALLOC(%inode%);",
               "%inode%->i_mode = S_IFDIR | S_IRWXU | S_IRUGO | S_IXUGO;",
 	          "%dentry%->d_parent = $ARG2;",
               "%dentry%->d_inode = %inode%;",
@@ -236,13 +237,14 @@
         "reference": true
       },
       "debugfs_create_file": {
+        "headers": ["linux/fs.h"],
         "actions": {
           "assign": {
             "comment": "Allocate memory for model dentry and inode.",
             "trace relevant": true,
             "statements": [
-              "%dentry% = $ALLOC(%dentry%);",
-              "%inode% = $ALLOC(%inode%);",
+              "$ALLOC(%dentry%);",
+              "$ALLOC(%inode%);",
               "%inode%->i_mode = $ARG2;",
 	          "%dentry%->d_parent = $ARG3;",
               "%inode%->i_private = $ARG4;",

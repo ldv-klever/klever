@@ -108,7 +108,7 @@
             "trace relevant": true,
             "statements": [
               "%ieee80211_ops% = $ARG2;",
-              "%ieee80211_hw% = $ALLOC(%ieee80211_hw%);"
+              "$ALLOC(%ieee80211_hw%);"
             ]
           },
           "fail": {
@@ -304,7 +304,7 @@
             "trace relevant": true,
             "statements": [
               "%ieee80211_ops% = $ARG2;",
-              "%ieee80211_hw% = $ALLOC(%ieee80211_hw%);"
+              "$ALLOC(%ieee80211_hw%);"
             ]
           },
           "fail": {

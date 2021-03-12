@@ -24,6 +24,7 @@ from klever.core.vtg.emg.translation.code import CModel
 from klever.core.vtg.emg.translation.automaton import Automaton
 from klever.core.vtg.emg.translation.fsa_translator.label_fsa_translator import LabelTranslator
 from klever.core.vtg.emg.translation.fsa_translator.state_fsa_translator import StateTranslator
+from klever.core.vtg.emg.translation.fsa_translator.simplest_fsa_translator import SimplestTranslator
 
 
 def translate_intermediate_model(logger, conf, avt, source, collection):
@@ -61,11 +62,7 @@ def translate_intermediate_model(logger, conf, avt, source, collection):
 
     # If necessary match peers
     if conf['translation options'].get('implicit signal peers'):
-        process_list = list(collection.processes)
-        for i, first in enumerate(process_list):
-            if i + 1 < len(process_list):
-                for second in process_list[i+1:]:
-                    first.establish_peers(second)
+        collection.establish_peers()
 
     # Determine entry point file and function
     logger.info("Determine entry point file and function name")
@@ -152,10 +149,12 @@ def translate_intermediate_model(logger, conf, avt, source, collection):
 
     # Prepare code on each automaton
     logger.info("Translate finite state machines into C code")
-    if get_or_die(conf['translation options'], "nested automata"):
-        LabelTranslator(logger, conf['translation options'], source, cmodel, entry_fsa, model_fsa, main_fsa)
+    if conf['translation options'].get("simple control functions calls"):
+        SimplestTranslator(logger, conf['translation options'], source, collection, cmodel, entry_fsa, model_fsa, main_fsa)
+    elif get_or_die(conf['translation options'], "nested automata"):
+        LabelTranslator(logger, conf['translation options'], source, collection, cmodel, entry_fsa, model_fsa, main_fsa)
     else:
-        StateTranslator(logger, conf['translation options'], source, cmodel, entry_fsa, model_fsa, main_fsa)
+        StateTranslator(logger, conf['translation options'], source, collection, cmodel, entry_fsa, model_fsa, main_fsa)
 
     logger.info("Print generated source code")
     addictions = cmodel.print_source_code(additional_code)
@@ -189,3 +188,4 @@ def translate_intermediate_model(logger, conf, avt, source, collection):
         {"C file": os.path.realpath(find_file_or_dir(logger,
                                                      get_or_die(conf, "main working directory"), f))}
         for f in extra_c_files])
+    return avt

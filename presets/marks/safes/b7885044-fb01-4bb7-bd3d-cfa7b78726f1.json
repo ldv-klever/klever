@@ -8,11 +8,11 @@
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/super_block_v.1/super_callbacks.ko"
+      "value": "ext-modules/filesystem_v.2/fs_callbacks.ko"
     }
   ],
   "description": "",
-  "is_modifiable": false,
+  "is_modifiable": true,
   "tags": [],
   "verdict": "0"
 }

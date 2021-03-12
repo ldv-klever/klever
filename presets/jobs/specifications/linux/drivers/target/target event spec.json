@@ -59,7 +59,7 @@
           "init": {
             "comment": "Allocate memory for se_hba structure.",
             "statements": [
-              "%se_hba% = $ALLOC(%se_hba%);"
+              "$ALLOC(%se_hba%);"
             ]
           },
           "register": {
@@ -242,7 +242,7 @@
           "init": {
             "comment": "Allocate memory for se_hba structure.",
             "statements": [
-              "%se_hba% = $ALLOC(%se_hba%);"
+              "$ALLOC(%se_hba%);"
             ]
           },
           "register": {
@@ -422,7 +422,7 @@
           "init": {
             "comment": "Allocate memory for se_hba structure.",
             "statements": [
-              "%se_hba% = $ALLOC(%se_hba%);"
+              "$ALLOC(%se_hba%);"
             ]
           },
           "register": {
@@ -602,7 +602,7 @@
           "init": {
             "comment": "Allocate memory for se_hba structure.",
             "statements": [
-              "%se_hba% = $ALLOC(%se_hba%);"
+              "$ALLOC(%se_hba%);"
             ]
           },
           "register": {
@@ -782,7 +782,7 @@
           "init": {
             "comment": "Allocate memory for se_hba structure.",
             "statements": [
-              "%se_hba% = $ALLOC(%se_hba%);"
+              "$ALLOC(%se_hba%);"
             ]
           },
           "register": {

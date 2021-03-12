@@ -205,7 +205,7 @@
               "alloc": {
                 "comment": "Allocate memory.",
                 "statements": [
-                  "%device% = $ALLOC(%device%);"
+                  "$ALLOC(%device%);"
                 ]
               },
               "skip": {
@@ -428,54 +428,54 @@
               "pre_call_10": {
                 "comment": "Allocate memory for adhoc callback parameters.",
                 "statements": [
-                  "%ldv_param_1_8% = $UALLOC(%ldv_param_1_8%);"
+                  "$UALLOC(%ldv_param_1_8%);"
                 ]
               },
               "pre_call_13": {
                 "comment": "Allocate memory for adhoc callback parameters.",
                 "statements": [
-                  "%ldv_param_1_9% = $UALLOC(%ldv_param_1_9%);"
+                  "$UALLOC(%ldv_param_1_9%);"
                 ]
               },
               "pre_call_16": {
                 "comment": "Allocate memory for adhoc callback parameters.",
                 "statements": [
-                  "%ldv_param_0_10% = $UALLOC(%ldv_param_0_10%);",
-                  "%ldv_param_2_11% = $UALLOC(%ldv_param_2_11%);"
+                  "$UALLOC(%ldv_param_0_10%);",
+                  "$UALLOC(%ldv_param_2_11%);"
                 ]
               },
               "pre_call_2": {
                 "comment": "Allocate memory for adhoc callback parameters.",
                 "statements": [
-                  "%ldv_param_3_4% = $UALLOC(%ldv_param_3_4%);",
-                  "%ldv_param_2_3% = $UALLOC(%ldv_param_2_3%);",
-                  "%ldv_param_1_2% = $UALLOC(%ldv_param_1_2%);"
+                  "$UALLOC(%ldv_param_3_4%);",
+                  "$UALLOC(%ldv_param_2_3%);",
+                  "$UALLOC(%ldv_param_1_2%);"
                 ]
               },
               "pre_call_20": {
                 "comment": "Allocate memory for adhoc callback parameters.",
                 "statements": [
-                  "%ldv_param_1_12% = $UALLOC(%ldv_param_1_12%);"
+                  "$UALLOC(%ldv_param_1_12%);"
                 ]
               },
               "pre_call_24": {
                 "comment": "Allocate memory for adhoc callback parameters.",
                 "statements": [
-                  "%ldv_param_0_13% = $UALLOC(%ldv_param_0_13%);"
+                  "$UALLOC(%ldv_param_0_13%);"
                 ]
               },
               "pre_call_27": {
                 "comment": "Allocate memory for adhoc callback parameters.",
                 "statements": [
-                  "%ldv_param_0_14% = $UALLOC(%ldv_param_0_14%);"
+                  "$UALLOC(%ldv_param_0_14%);"
                 ]
               },
               "pre_call_5": {
                 "comment": "Allocate memory for adhoc callback parameters.",
                 "statements": [
-                  "%ldv_param_2_6% = $UALLOC(%ldv_param_2_6%);",
-                  "%ldv_param_1_5% = $UALLOC(%ldv_param_1_5%);",
-                  "%ldv_param_3_7% = $UALLOC(%ldv_param_3_7%);"
+                  "$UALLOC(%ldv_param_2_6%);",
+                  "$UALLOC(%ldv_param_1_5%);",
+                  "$UALLOC(%ldv_param_3_7%);"
                 ]
               },
               "register_tty_layer": {
@@ -837,7 +837,7 @@
               "init": {
                 "comment": "Allocate memory for file structure.",
                 "statements": [
-                  "%file% = $ALLOC(%file%);"
+                  "$ALLOC(%file%);"
                 ]
               },
               "install_33": {
@@ -975,71 +975,71 @@
               "pre_call_11": {
                 "comment": "Allocate memory for adhoc callback parameters.",
                 "statements": [
-                  "%ldv_param_0_4% = $UALLOC(%ldv_param_0_4%);"
+                  "$UALLOC(%ldv_param_0_4%);"
                 ]
               },
               "pre_call_15": {
                 "comment": "Allocate memory for adhoc callback parameters.",
                 "statements": [
-                  "%ldv_param_2_6% = $UALLOC(%ldv_param_2_6%);",
-                  "%ldv_param_1_5% = $UALLOC(%ldv_param_1_5%);"
+                  "$UALLOC(%ldv_param_2_6%);",
+                  "$UALLOC(%ldv_param_1_5%);"
                 ]
               },
               "pre_call_18": {
                 "comment": "Allocate memory for adhoc callback parameters.",
                 "statements": [
-                  "%ldv_param_2_8% = $UALLOC(%ldv_param_2_8%);",
-                  "%ldv_param_1_7% = $UALLOC(%ldv_param_1_7%);"
+                  "$UALLOC(%ldv_param_2_8%);",
+                  "$UALLOC(%ldv_param_1_7%);"
                 ]
               },
               "pre_call_21": {
                 "comment": "Allocate memory for adhoc callback parameters.",
                 "statements": [
-                  "%ldv_param_1_9% = $UALLOC(%ldv_param_1_9%);"
+                  "$UALLOC(%ldv_param_1_9%);"
                 ]
               },
               "pre_call_24": {
                 "comment": "Allocate memory for adhoc callback parameters.",
                 "statements": [
-                  "%ldv_param_0_10% = $UALLOC(%ldv_param_0_10%);"
+                  "$UALLOC(%ldv_param_0_10%);"
                 ]
               },
               "pre_call_27": {
                 "comment": "Allocate memory for adhoc callback parameters.",
                 "statements": [
-                  "%ldv_param_1_11% = $UALLOC(%ldv_param_1_11%);",
-                  "%ldv_param_2_12% = $UALLOC(%ldv_param_2_12%);"
+                  "$UALLOC(%ldv_param_1_11%);",
+                  "$UALLOC(%ldv_param_2_12%);"
                 ]
               },
               "pre_call_30": {
                 "comment": "Allocate memory for adhoc callback parameters.",
                 "statements": [
-                  "%ldv_param_1_13% = $UALLOC(%ldv_param_1_13%);",
-                  "%ldv_param_2_14% = $UALLOC(%ldv_param_2_14%);"
+                  "$UALLOC(%ldv_param_1_13%);",
+                  "$UALLOC(%ldv_param_2_14%);"
                 ]
               },
               "pre_call_36": {
                 "comment": "Allocate memory for adhoc callback parameters.",
                 "statements": [
-                  "%ldv_param_1_15% = $UALLOC(%ldv_param_1_15%);"
+                  "$UALLOC(%ldv_param_1_15%);"
                 ]
               },
               "pre_call_41": {
                 "comment": "Allocate memory for adhoc callback parameters.",
                 "statements": [
-                  "%ldv_param_1_16% = $UALLOC(%ldv_param_1_16%);"
+                  "$UALLOC(%ldv_param_1_16%);"
                 ]
               },
               "pre_call_44": {
                 "comment": "Allocate memory for adhoc callback parameters.",
                 "statements": [
-                  "%ldv_param_1_17% = $UALLOC(%ldv_param_1_17%);"
+                  "$UALLOC(%ldv_param_1_17%);"
                 ]
               },
               "pre_call_7": {
                 "comment": "Allocate memory for adhoc callback parameters.",
                 "statements": [
-                  "%ldv_param_1_3% = $UALLOC(%ldv_param_1_3%);"
+                  "$UALLOC(%ldv_param_1_3%);"
                 ]
               },
               "tty_register": {
@@ -1148,7 +1148,7 @@
                 "trace relevant": true,
                 "statements": [
                   "/* Callback pre-call */",
-                  "%inode% = $UALLOC(%inode%);",
+                  "$UALLOC(%inode%);",
                   "/* LDV {\"call\": \"ldv_wrapper_serial_proc_open(%inode%, %file%);\", \"type\": \"CALLBACK\", \"comment\": \"proce_open\"} */",
                   "ldv_wrapper_serial_proc_open(%inode%, %file%);",
                   "/* LDV {\"call\": \"ldv_wrapper_serial_proc_show(0, 0);\", \"type\": \"CALLBACK\", \"comment\": \"show\"} */",
@@ -1418,8 +1418,8 @@
               "alloc_interface": {
                 "comment": "Allocate memory and initialize new USB interface.",
                 "statements": [
-                  "%resource% = $ALLOC(%resource%);",
-                  "%usb_device% = $ALLOC(%usb_device%);",
+                  "$ALLOC(%resource%);",
+                  "$ALLOC(%usb_device%);",
                   "%resource%->dev.parent = & %usb_device%->dev;"
                 ]
               },
@@ -1510,13 +1510,13 @@
               "pre_call_3": {
                 "comment": "Allocate memory for adhoc callback parameters.",
                 "statements": [
-                  "%ldv_param_1_2% = $UALLOC(%ldv_param_1_2%);"
+                  "$UALLOC(%ldv_param_1_2%);"
                 ]
               },
               "pre_call_7": {
                 "comment": "Allocate memory for adhoc callback parameters.",
                 "statements": [
-                  "%ldv_param_1_3% = $UALLOC(%ldv_param_1_3%);"
+                  "$UALLOC(%ldv_param_1_3%);"
                 ]
               },
               "probe_5": {

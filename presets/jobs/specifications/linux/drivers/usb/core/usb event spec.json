@@ -6,8 +6,8 @@
           "alloc_interface": {
             "comment": "Allocate memory and initialize new USB interface.",
             "statements": [
-              "%resource% = $ALLOC(%resource%);",
-              "%usb_device% = $ALLOC(%usb_device%);",
+              "$ALLOC(%resource%);",
+              "$ALLOC(%usb_device%);",
               "%resource%->dev.parent = & %usb_device%->dev;",
               "%choice% = ldv_random_int(0, $SIZE(%ids%));",
               "%device_id% = & %container%->id_table[%choice%];"

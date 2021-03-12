@@ -19,7 +19,8 @@ import sortedcontainers
 
 from klever.core.vtg.emg.common import get_or_die, model_comment
 from klever.core.vtg.emg.common.c.types import import_declaration
-from klever.core.vtg.emg.common.process import Action, Receive, Dispatch, Block, Subprocess, Choice, Concatenation
+from klever.core.vtg.emg.common.process.actions import Receive, Dispatch, Block, Subprocess, Choice, \
+    Concatenation, Behaviour
 from klever.core.vtg.emg.common.c import Function
 from klever.core.vtg.emg.translation.code import action_model_comment
 from klever.core.vtg.emg.translation.fsa_translator.common import extract_relevant_automata
@@ -27,7 +28,7 @@ from klever.core.vtg.emg.translation.fsa_translator.common import extract_releva
 
 class FSATranslator:
 
-    def __init__(self, logger, conf, source, cmodel, entry_fsa, model_fsa, event_fsa):
+    def __init__(self, logger, conf, source, collection, cmodel, entry_fsa, model_fsa, event_fsa):
         """
         Initialize new FSA translation object. During the initialization an enviornment model in form of finite
         state machines with process-like actions is translated to C code. Translation includes the following steps:
@@ -40,6 +41,7 @@ class FSATranslator:
         :param logger: Logger object.
         :param conf: Configuration properties dictionary.
         :param source: Source collection object.
+        :param collection: ProcessCollection.
         :param cmodel: CModel object.
         :param entry_fsa: An entry point Automaton object.
         :param model_fsa: List with Automaton objects which correspond to function models.
@@ -51,6 +53,7 @@ class FSATranslator:
         self._event_fsa = event_fsa
         self._conf = conf
         self._source = source
+        self._collection = collection
         self._logger = logger
         self._structures = sortedcontainers.SortedDict()
         self._control_functions = sortedcontainers.SortedDict()
@@ -66,8 +69,9 @@ class FSATranslator:
         for automaton in self._event_fsa + self._model_fsa + [self._entry_fsa]:
             self._logger.debug("Generate code for instance {!r} of process {!r} of categorty {!r}".
                                format(str(automaton), automaton.process.name, automaton.process.category))
-            for action in automaton.process.actions.filter(include={Action}):
-                self._compose_action(action, automaton)
+            for beh in automaton.process.actions.behaviour():
+                if isinstance(beh, Behaviour):
+                    self._compose_action(beh, automaton)
 
         # Start generators of control functions
         for automaton in self._event_fsa + self._model_fsa + [self._entry_fsa]:
@@ -166,10 +170,11 @@ class FSATranslator:
 
         # Determine peers to receive the signal
         automata_peers = sortedcontainers.SortedDict()
-        if len(action.peers) > 0:
+        action_peers = self._collection.peers(automaton.process, {str(action)})
+        if len(action_peers) > 0:
             # Do call only if model which can be called will not hang
             extract_relevant_automata(self._logger, self._event_fsa + self._model_fsa + [self._entry_fsa],
-                                      automata_peers, action.peers, Receive)
+                                      automata_peers, action_peers, Receive)
         else:
             # Generate comment
             code.append("/* Dispatch {!r} is not expected by any process, skipping the action */".
@@ -549,21 +554,23 @@ class FSATranslator:
         """
         raise NotImplementedError
 
-    def _compose_action(self, action, automaton):
+    def _compose_action(self, behaviour, automaton):
         """
         Generate one single code block from given guard, body, model comments statements.
 
-        :param action: Action object.
+        :param behaviour: Behaviour object.
         :param automaton: Automaton object.
         :return: None
         """
-        def compose_single_action(act, code, v_code, conditions, comments):
+        action = behaviour.description
+
+        def compose_single_action(beh, code, v_code, conditions, comments):
             final_code = list()
             final_code.append(comments[0])
 
             # Skip or assert action according to conditions
-            if conditions and (isinstance(act.my_operator, Choice) or
-                               (isinstance(act.my_operator, Concatenation) and not act.my_operator.actions.index(act))):
+            if conditions and (isinstance(beh.my_operator, Choice) or
+                               (isinstance(beh.my_operator, Concatenation) and not beh.my_operator.index(beh))):
                 # todo: if not isinstance(predecessor, Receive):
                 final_code += ['ldv_assume({});'.format(' && '.join(conditions))] + code
             elif conditions and code:
@@ -578,7 +585,7 @@ class FSATranslator:
             if len(comments) == 2:
                 final_code.append(comments[1])
 
-            automaton.code[action] = (v_code, final_code)
+            automaton.code[hash(behaviour)] = (v_code, final_code)
 
         if isinstance(action, Dispatch):
             code_generator = self._dispatch
@@ -594,4 +601,4 @@ class FSATranslator:
             raise TypeError('Unknown action type: {!r}'.format(type(action).__name__))
 
         c, vc, grds, cmmnts = code_generator(action, automaton)
-        compose_single_action(action, c, vc, grds, cmmnts)
+        compose_single_action(behaviour, c, vc, grds, cmmnts)

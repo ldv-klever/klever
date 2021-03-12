@@ -173,7 +173,7 @@
         "actions": {
           "do": {
             "comment": "Begin a power management scenario.",
-            "process": "<runt_enabled>.{runt} | {normal} | (pm_deregister1)"
+            "process": "<runt_enabled>.{runt} | {normal} | (pm_deregister)"
           },
           "runt_enabled": {
             "comment": "Check that runtime callbacks are enabled",
@@ -183,19 +183,19 @@
           },
           "runt": {
             "comment": "Begin a runtime scenario.",
-            "process": "([runtime_idle] | [runtime_suspend].(<run_ok>.{run_resume} | <run_bad>)).(pm_deregister2) "
+            "process": "([runtime_idle] | [runtime_suspend].(<run_ok>.{run_resume} | <run_bad>)).(pm_deregister) "
           },
           "run_resume": {
             "comment": "Begin a runtime resume scenario.",
-            "process": "[runtime_resume].(<runr_ok> | <runr_bad>.{run_resume}).(pm_deregister3)"
+            "process": "[runtime_resume].(<runr_ok> | <runr_bad>.{run_resume}).(pm_deregister)"
           },
           "normal": {
             "comment": "Begin prepare-complete scenario.",
-            "process": "[prepare].(<pre_ok>.({sus} | {fr} | {poff}) | <pre_bad> ).(pm_deregister4)"
+            "process": "[prepare].(<pre_ok>.({sus} | {fr} | {poff}) | <pre_bad> ).(pm_deregister)"
           },
           "compl": {
             "comment": "Do completing.",
-            "process": "[complete].(pm_deregister5)"
+            "process": "[complete].(pm_deregister)"
           },
           "sus": {
             "comment": "Begin suspend-resume scenario.",
@@ -321,7 +321,7 @@
               "%ret% = ldv_post_probe(%ret%);"
             ]
           },
-          "pm_deregister1, pm_deregister2, pm_deregister3, pm_deregister4, pm_deregister5": {
+          "pm_deregister": {
             "comment": "Do not expect power management scenarios.",
             "parameters": []
           },
@@ -574,6 +574,7 @@
     },
     "functions models": {
       "pm_runtime_force_resume": {
+        "headers": ["linux/device.h"],
         "comment": "Forcefully do runtime resuming.",
         "actions": {
           "assign": {
@@ -630,6 +631,7 @@
         "reference": true
       },
       "pm_runtime_force_suspend": {
+        "headers": ["linux/device.h"],
         "comment": "Forcefully do runtime suspending.",
         "actions": {
           "assign": {
@@ -686,6 +688,7 @@
         "reference": true
       },
       "pm_runtime_enable": {
+        "headers": ["linux/device.h"],
         "comment": "Enable runtime callbacks.",
         "actions": {
           "assign": {
@@ -755,6 +758,7 @@
         "reference": true
       },
       "pm_runtime_disable": {
+        "headers": ["linux/device.h"],
         "comment": "Disable runtime callbacks.",
         "actions": {
           "assign": {
@@ -825,6 +829,7 @@
         "reference": true
       },
       "pm_runtime_set_active": {
+        "headers": ["linux/device.h"],
         "comment": "Set active runtime callbacks.",
         "actions": {
           "activate": {
@@ -845,6 +850,7 @@
         "reference": true
       },
       "pm_runtime_active": {
+        "headers": ["linux/device.h"],
         "comment": "Check runtime status.",
         "actions": {
           "status": {
@@ -865,6 +871,7 @@
         "reference": true
       },
       "pm_runtime_suspended": {
+        "headers": ["linux/device.h"],
         "comment": "Check runtime status.",
         "actions": {
           "status": {
@@ -885,6 +892,7 @@
         "reference": true
       },
       "pm_runtime_enabled": {
+        "headers": ["linux/device.h"],
         "comment": "Check that runtime callbacks are enabled.",
         "actions": {
           "status": {
