@@ -18,7 +18,26 @@
         {
           "EMG wrapper": [
             {
-              "LDV model 'init'": []
+              "LDV model 'init'": [
+                {
+                  "LDV model 'undef_uint'": []
+                },
+                {
+                  "Instrumented function 'vzalloc'": [
+                    {
+                      "LDV model 'vzalloc'": [
+                        {
+                          "LDV model 'zalloc'": [
+                            {
+                              "LDV model 'reference_zalloc'": []
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
             }
           ]
         }

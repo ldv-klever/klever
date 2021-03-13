@@ -2,11 +2,6 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Project:Version",
-      "value": "v3.12.17-54-gd40390bf1206"
-    },
-    {
-      "is_compare": true,
       "name": "Requirements specification",
       "value": "kernel:locking:spinlock"
     },
@@ -16,7 +11,7 @@
       "value": "net/tipc/tipc.ko"
     }
   ],
-  "description": "Verifier needs model for vzalloc() to bypass this false alarm.",
+  "description": "Function tipc_createport() allocates memory for port p_ptr, acquires spinlock p_ptr-&gt;lock in the tricky way and returns p_ptr. Then calling function tipc_sk_create() releases the same spinlock but its argument signature differs.",
   "error_trace": [
     [
       [
@@ -26,6 +21,17 @@
               "tipc_sk_create": [
                 {
                   "tipc_createport": [
+                    {
+                      "tipc_ref_acquire": [
+                        {
+                          "Instrumented function 'spin_lock_bh'": [
+                            {
+                              "LDV model 'spin_lock_lock_of_reference'": []
+                            }
+                          ]
+                        }
+                      ]
+                    },
                     {
                       "Instrumented function 'spin_lock_bh'": [
                         {
@@ -63,7 +69,7 @@
   "function": "thread_call_forests",
   "is_modifiable": false,
   "status": null,
-  "tags": ["API models"],
+  "tags": ["ReqSpecs - Argument signatures - Same objects"],
   "threshold": 100,
   "verdict": "3"
 }

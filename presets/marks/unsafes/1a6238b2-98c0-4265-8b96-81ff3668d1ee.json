@@ -18,7 +18,23 @@
         {
           "EMG wrapper": [
             {
-              "hwarc_probe": []
+              "hwarc_probe": [
+                {
+                  "Instrumented function 'kzalloc'": [
+                    {
+                      "LDV model 'kzalloc'": [
+                        {
+                          "LDV model 'zalloc'": [
+                            {
+                              "LDV model 'reference_zalloc'": []
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
             }
           ]
         }

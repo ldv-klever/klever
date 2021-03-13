@@ -8,29 +8,24 @@
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/linux/memory-safety/buffer_overread.ko"
+      "value": "drivers/idle/i7300_idle.ko"
     }
   ],
-  "description": "",
+  "description": "dma_alloc_attrs() needs a model.",
   "error_trace": [
     [
       [
         {
           "EMG wrapper": [
             {
-              "LDV model 'init'": [
+              "i7300_idle_init": [
                 {
-                  "Instrumented function 'kzalloc'": [
+                  "i7300_idle_ioat_init": [
                     {
-                      "LDV model 'kzalloc'": [
-                        {
-                          "LDV model 'zalloc'": [
-                            {
-                              "LDV model 'reference_zalloc'": []
-                            }
-                          ]
-                        }
-                      ]
+                      "dma_alloc_attrs": []
+                    },
+                    {
+                      "i7300_idle_ioat_selftest": []
                     }
                   ]
                 }
@@ -43,8 +38,9 @@
   ],
   "function": "thread_call_forests",
   "is_modifiable": false,
+  "production": true,
   "status": null,
-  "tags": [],
+  "tags": ["API models - Linux kernel"],
   "threshold": 100,
-  "verdict": "2"
+  "verdict": "3"
 }
