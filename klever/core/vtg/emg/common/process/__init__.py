@@ -369,10 +369,22 @@ class Process:
             new_entry = Behaviour(str(new), type(new))
             self.actions.add_process_action(new_entry, str(new))
             operator = entry.my_operator
-            position = operator.index(entry)
-            if not before:
-                position += 1
-            operator.insert(position, new_entry)
+            if isinstance(operator, Choice):
+                new_conc = Concatenation()
+                operator.replace(entry, new_conc)
+                if before:
+                    new_conc.append(new_entry)
+                    new_conc.append(entry)
+                else:
+                    new_conc.append(entry)
+                    new_conc.append(new_entry)
+            elif isinstance(operator, Concatenation):
+                position = operator.index(entry)
+                if not before:
+                    position += 1
+                operator.insert(position, new_entry)
+            else:
+                raise NotImplementedError
 
     def insert_alternative_action(self, new, target):
         """
@@ -390,7 +402,11 @@ class Process:
             operator = entry.my_operator
             newb = Behaviour(str(new), type(new))
             self.actions.add_process_action(newb, str(new))
-            if isinstance(operator, Concatenation):
+
+            if isinstance(operator, Concatenation) and isinstance(operator.my_operator, Choice) and operator[0] is entry:
+                operator = operator.my_operator
+                operator.append(newb)
+            elif isinstance(operator, Concatenation):
                 new_par = Parentheses()
                 operator.replace(entry, new_par)
                 choice = Choice()
