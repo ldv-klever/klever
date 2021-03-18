@@ -19,7 +19,7 @@ import pytest
 
 from klever.core.vtg.emg.common.process import Process
 from klever.core.vtg.emg.common.process.parser import parse_process
-from klever.core.vtg.emg.common.process.actions import Receive, Dispatch, Block, Concatenation
+from klever.core.vtg.emg.common.process.actions import Receive, Dispatch, Block, Concatenation, Choice, Parentheses
 
 
 @pytest.fixture
@@ -88,3 +88,41 @@ def test_add_insert_action(new, process):
     assert operator[-2].name == 'd', repr(operator)
     assert operator[-2].description is target, repr(operator)
     assert str(target) in process.actions
+
+
+def test_insert_before(new, process):
+    target = process.actions['c']
+    operator = process.actions.behaviour('c').pop().my_operator
+    assert isinstance(operator, Concatenation)
+    assert isinstance(operator.my_operator, Choice)
+
+    # Simple case
+    process.insert_action(new, target, before=True)
+    assert isinstance(operator, Concatenation)
+    assert isinstance(operator.my_operator, Choice)
+    assert str(operator[0].description) == 'r'
+    assert str(operator[1].description) == 'c'
+
+
+def test_insert_choice(process):
+    target = process.actions['c']
+    operator = process.actions.behaviour('c').pop().my_operator
+    assert isinstance(operator, Concatenation)
+    operator = operator.my_operator
+    assert isinstance(operator, Choice)
+    assert len(operator) == 2
+
+    # Add more options
+    new_x1 = process.add_condition('x1', [], [], 'This is a test')
+    new_x2 = process.add_condition('x2', [], [], 'This is a test')
+    process.insert_alternative_action(new_x1, target)
+    process.insert_alternative_action(new_x2, target)
+    assert len(operator) == 4
+
+    # Then add precondition to x1
+    new_x3 = process.add_condition('x3', [], [], 'This is a test')
+    process.insert_action(new_x3, new_x1, before=True)
+    operator = process.actions.behaviour('x1').pop().my_operator
+    assert isinstance(operator, Concatenation)
+    assert str(operator[0].description) == 'x3'
+    assert str(operator[1].description) == 'x1'
