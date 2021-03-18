@@ -167,5 +167,11 @@
         </div>
         <span id="error__no_file_chosen" hidden>{% trans 'No file is chosen' %}</span>
         <span id="error__ajax_error" hidden>{% trans 'Ajax request error (maybe connection refused)' %}</span>
+
+        <div class="ui footer">
+            <span>Klever{% if klever_version %} {{ klever_version }}{% endif %}</span><br>
+            <span>Copyright © 2021 <a href="http://www.ispras.ru/en">ISP RAS</a></span><br>
+            <span>Ivannikov Institute for System Programming of the Russian Academy of Sciences</span>
+        </div>
     </body>
 </html>

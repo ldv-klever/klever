@@ -33,7 +33,7 @@
                 {
                   "Instrumented function 'vmalloc'": [
                     {
-                      "LDV model 'common_alloc_without_flags'": [
+                      "LDV model 'vmalloc'": [
                         {
                           "LDV model 'check_alloc_nonatomic'": [
                             {

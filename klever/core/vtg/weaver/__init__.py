@@ -263,9 +263,11 @@ class Weaver(klever.core.vtg.plugins.Plugin):
             [
                 klever.core.vtg.utils.get_cif_or_aspectator_exec(self.conf, 'aspectator'),
                 '-I' + os.path.join(os.path.dirname(self.conf['specifications base']), 'include')
-            ] + klever.core.vtg.utils.prepare_cif_opts(opts, clade, True) +
+            ] +
+            klever.core.vtg.utils.prepare_cif_opts(opts, clade, True) +
+            [aspectator_search_dir] +
+            ['-I' + clade.get_storage_path(p) for p in self.conf['working source trees']] +
             [
-                aspectator_search_dir,
                 '-fsyntax-only',
                 infile
             ],

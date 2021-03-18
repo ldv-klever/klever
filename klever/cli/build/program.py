@@ -15,6 +15,7 @@
 
 import os
 import shutil
+import subprocess
 import urllib.parse
 
 from clade import Clade
@@ -83,9 +84,13 @@ class Program:
         execute_cmd(self.logger, 'git', 'reset', '--hard', cwd=self.work_src_tree)
         execute_cmd(self.logger, 'git', 'checkout', '-f', checkout, cwd=self.work_src_tree)
 
-        # Use Git describe to properly identify program version
-        stdout = execute_cmd(self.logger, 'git', 'describe', cwd=self.work_src_tree, get_output=True)
-        self.version = stdout[0]
+        try:
+            # Use Git describe to properly identify program version
+            stdout = execute_cmd(self.logger, 'git', 'describe', cwd=self.work_src_tree, get_output=True)
+            self.version = stdout[0]
+        except subprocess.CalledProcessError:
+            # Use Git repository version from target program description if Git describe failed
+            self.version = checkout
 
     def _run_clade(self):
         if os.path.isdir(self.target_program_desc['build base']):
@@ -101,26 +106,28 @@ class Program:
         clade.parse_list(clade.conf["extensions"])
 
         self.logger.info('Save project attributes, working source trees and target program description to build base')
+        attrs = [
+            {
+                'name': 'name',
+                'value': type(self).__name__
+            },
+            {
+                'name': 'architecture',
+                'value': self.architecture
+            },
+            {
+                'name': 'version',
+                'value': self.version
+            }
+        ]
+        if self.configuration:
+            attrs.append({
+                'name': 'configuration',
+                'value': self.configuration
+            })
         clade.add_meta_by_key('project attrs', [{
             'name': 'project',
-            'value': [
-                {
-                    'name': 'name',
-                    'value': type(self).__name__
-                },
-                {
-                    'name': 'architecture',
-                    'value': self.architecture
-                },
-                {
-                    'name': 'version',
-                    'value': self.version
-                },
-                {
-                    'name': 'configuration',
-                    'value': self.configuration
-                }
-            ]
+            'value': attrs
         }])
         clade.add_meta_by_key('working source trees', self.work_src_trees)
         clade.add_meta_by_key('target program description', self.target_program_desc)

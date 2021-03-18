@@ -660,14 +660,67 @@ class Job(klever.core.components.Component):
         self.logger.debug('Klever components will use build base "{0}"'
                           .format(self.common_components_conf['build base']))
 
-    # Klever will try to cut off either working source trees (if specified) or at least build directory (otherwise)
-    # from referred file names. Sometimes this is rather optional like for source files referred by error traces, but,
-    # say, for program fragment identifiers this is strictly necessary, e.g. because of otherwise expert assessment will
-    # not work as expected.
+    # Klever will try to cut off either working source trees (if specified) or maximum common paths of CC/CL input files
+    # and LD/Link output files (otherwise) from referred file names. Sometimes this is rather optional like for source
+    # files referred by error traces, but, say, for program fragment identifiers this is strictly necessary, e.g.
+    # because of otherwise expert assessment will not work as expected.
     def __retrieve_working_src_trees(self):
         clade_meta = self.clade.get_meta()
-        self.common_components_conf['working source trees'] = clade_meta['working source trees'] \
-            if 'working source trees' in clade_meta else [clade_meta['build_dir']]
+
+        # Best of all if users specify working source trees in build bases manually themselves. It is a most accurate
+        # approach.
+        if 'working source trees' in clade_meta:
+            work_src_trees = clade_meta['working source trees']
+        # Otherwise try to find out them automatically as described above.
+        else:
+            in_files = []
+            for cmd in self.clade.get_all_cmds_by_type("CC") + self.clade.get_all_cmds_by_type("CL"):
+                if cmd['in']:
+                    for in_file in cmd['in']:
+                        # Sometimes some auxiliary stuff is built in addition to normal C source files that are most
+                        # likely located in a place we would like to get.
+                        if not in_file.startswith('/tmp') and in_file != '/dev/null':
+                            in_files.append(os.path.join(cmd['cwd'], in_file))
+            in_files_prefix = os.path.dirname(os.path.commonprefix(in_files))
+            self.logger.info('Common prefix of CC/CL input files is "{0}"'.format(in_files_prefix))
+
+            out_files = []
+            for cmd in self.clade.get_all_cmds_by_type("LD") + self.clade.get_all_cmds_by_type("Link"):
+                if cmd['out']:
+                    for out_file in cmd['out']:
+                        # Like above.
+                        if not out_file.startswith('/tmp') and in_file != '/dev/null':
+                            out_files.append(os.path.join(cmd['cwd'], out_file))
+            out_files_prefix = os.path.dirname(os.path.commonprefix(out_files))
+            self.logger.info('Common prefix of LD/Link output files is "{0}"'.format(out_files_prefix))
+
+            # Meaningful paths look like "/dir...".
+            meaningful_paths = []
+            for path in (in_files_prefix, out_files_prefix):
+                if path and path != os.path.sep and path not in meaningful_paths:
+                    meaningful_paths.append(path)
+
+            if meaningful_paths:
+                work_src_trees = meaningful_paths
+            # At least consider build directory as working source tree if the automatic procedure fails.
+            else:
+                self.logger.warning(
+                    'Consider build directory "{0}" as working source tree.'
+                    'This may be dangerous and we recommend to specify appropriate working source trees manually!'
+                    .format(clade_meta['build_dir']))
+                work_src_trees = [clade_meta['build_dir']]
+
+        # Consider minimal path if it is common prefix for other ones. For instance, if we have "/dir1/dir2" and "/dir1"
+        # then "/dir1" will become the only working source tree.
+        if len(work_src_trees) > 1:
+            min_work_src_tree = min(work_src_trees)
+            if os.path.commonprefix(work_src_trees) == min_work_src_tree:
+                work_src_trees = [min_work_src_tree]
+
+        self.logger.info(
+            'Working source trees to be used are as follows:\n{0}'
+            .format('\n'.join(['  {0}'.format(t) for t in work_src_trees])))
+        self.common_components_conf['working source trees'] = work_src_trees
 
     def __refer_original_sources(self, src_id):
         klever.core.utils.report(
@@ -748,6 +801,10 @@ class Job(klever.core.components.Component):
     def __upload_original_sources(self):
         # Use Clade UUID to distinguish various original sources. It is pretty well since this UUID is uuid.uuid4().
         src_id = self.clade.get_uuid()
+        # In addition, take into account a meta content as we like to change it manually often. In this case it may be
+        # necessary to re-index the build base. It is not clear if this is the case actually, so, do this in case of
+        # any changes in meta.
+        src_id += '-' + klever.core.utils.get_file_name_checksum(json.dumps(self.clade.get_meta()))[:12]
 
         session = klever.core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
 

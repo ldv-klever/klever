@@ -35,7 +35,7 @@ from klever.deploys.install_deps import install_deps
 from klever.deploys.install_klever_bridge import install_klever_bridge_development, install_klever_bridge_production
 from klever.deploys.prepare_env import prepare_env
 from klever.deploys.utils import execute_cmd, need_verifiercloud_scheduler, start_services, stop_services, \
-    get_media_user, replace_media_user, make_canonical_path
+    get_media_user, replace_media_user, make_canonical_path, get_klever_version
 
 
 class Klever:
@@ -43,12 +43,16 @@ class Klever:
         self.args = args
         self.logger = logger
 
+        self.version_file = os.path.join(self.args.deployment_directory, 'version')
         self.prev_deploy_info_file = os.path.join(self.args.deployment_directory, 'klever.json')
         if os.path.exists(self.prev_deploy_info_file):
             with open(self.prev_deploy_info_file) as fp:
                 self.prev_deploy_info = json.load(fp)
         else:
-            self.prev_deploy_info = {}
+            self.prev_deploy_info = {"mode": self.args.mode}
+
+    def get_deployment_mode(self):
+        return self.prev_deploy_info.get("mode", self.args.mode)
 
     def __getattr__(self, name):
         self.logger.error('Action "{0}" is not supported for Klever "{1}"'.format(name, self.args.mode))
@@ -81,6 +85,15 @@ class Klever:
     def _pre_install_or_update(self):
         self._install_klever_addons(self.args.source_directory, self.args.deployment_directory)
         self._install_klever_build_bases(self.args.source_directory, self.args.deployment_directory)
+
+        try:
+            version = get_klever_version()
+        except Exception:
+            self.logger.exception('Could not get Klever version')
+            version = ''
+
+        with open(self.version_file, 'w') as fp:
+            fp.write(version)
 
     def _install_klever_addons(self, src_dir, deploy_dir):
         deploy_addons_conf = self.deploy_conf['Klever Addons']
@@ -283,7 +296,7 @@ class Klever:
         self._dump_cur_deploy_info(self.prev_deploy_info)
 
     def _pre_install(self):
-        if self.prev_deploy_info:
+        if os.path.exists(self.prev_deploy_info_file):
             self.logger.error(
                 'There is information on previous deployment (perhaps you try to install Klever second time)')
             sys.exit(errno.EINVAL)
@@ -339,8 +352,8 @@ class Klever:
                              self.prev_deploy_info['Klever Addons']['JRE']['executable path'], 'java')))
 
     def _pre_update(self):
-        if not self.prev_deploy_info:
-            self.logger.error('There is not information on previous deployment ({0})'
+        if not os.path.exists(self.prev_deploy_info_file):
+            self.logger.error('There is no information on previous deployment ({0})'
                               .format('perhaps you try to update Klever without previous installation'))
             sys.exit(errno.EINVAL)
 

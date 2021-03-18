@@ -21,7 +21,6 @@ before: file ("$this")
 
 extern void *ldv_common_alloc(gfp_t flags);
 extern int ldv_common_alloc_return_int(gfp_t flags);
-extern void *ldv_common_alloc_without_flags(void);
 extern void *ldv_common_zalloc(gfp_t flags);
 }
 
@@ -58,16 +57,6 @@ pointcut ALLOC_RETURN_INT: call(unsigned long __get_free_pages(.., gfp_t flags, 
 pointcut ZALLOC: execution(static inline void *kzalloc_node(.., gfp_t flags, ..)) ||
                  execution(static inline void *kmem_cache_zalloc(.., gfp_t flags, ..))
 
-/* Functions without parameter of type gfp_t. Implicit flag GFP_KERNEL. */
-pointcut ALLOC_WITHOUT_FLAGS: call(void *vmalloc(..)) ||
-						      call(void *vzalloc(..)) ||
-						      call(void *vmalloc_user(..)) ||
-						      call(void *vmalloc_node(..)) ||
-						      call(void *vzalloc_node(..)) ||
-						      call(void *vmalloc_exec(..)) ||
-						      call(void *vmalloc_32(..)) ||
-						      call(void *vmalloc_32_user(..))
-
 pointcut ALLOC_MACRO: define(alloc_pages(gfp_mask, order)) ||
 					  define(alloc_page_vma(gfp_mask, vma, addr))
 
@@ -84,11 +73,6 @@ around: ALLOC_RETURN_INT
 around: ZALLOC
 {
 	return ldv_common_zalloc(flags);
-}
-
-around: ALLOC_WITHOUT_FLAGS
-{
-	return ldv_common_alloc_without_flags();
 }
 
 around: ALLOC_MACRO

@@ -43,9 +43,15 @@
 	  "production": true
 	},
 	{
-          "uuid": "d8d5d104-5651-11eb-ae93-0242ac130002",
-          "name": "File systems sample",
-          "directory": "linux/filesystems sample",
+          "uuid": "573d4ea2-574b-4f7b-b86c-79182d9e1502",
+          "name": "Loadable kernel modules sample (ARM)",
+          "directory": "linux/loadable kernel modules sample arm",
+          "production": true
+        },
+        {
+          "uuid": "019debae-9991-421c-bfd8-53e3c38b4b37",
+          "name": "Loadable kernel modules sample (ARM64)",
+          "directory": "linux/loadable kernel modules sample arm64",
           "production": true
         },
         {

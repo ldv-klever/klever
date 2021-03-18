@@ -85,7 +85,7 @@
             "common sets model": "counter",
             "model compiler input file": "scripts/mod/empty.c",
             "common models": [
-              "linux/fs/dcache/dcache.c",
+              "linux/arch/asm/current.c",
               "linux/arch/asm/atomic.c",
               "linux/drivers/base/dd.c",
               "linux/drivers/base/devres.c",
@@ -95,10 +95,12 @@
               "linux/drivers/video/fbdev/core/fbsysfs.c",
               "linux/drivers/spi.c",
               "linux/err.c",
+              "linux/fs/dcache/dcache.c",
               "linux/kernel/panic.c",
               "linux/common.c",
               "linux/mm/slab.c",
               "linux/mm/util.c",
+              "linux/mm/vmalloc.c",
               "linux/verifier/memory.c",
               "verifier/common.c",
               "verifier/gcc.c",
@@ -117,7 +119,7 @@
             "verifier profile": "reachability",
             "verifier": {
               "name": "CPAchecker",
-              "version": "klever_fixes:36704"
+              "version": "klever_fixes:36955"
             }
           }
         }
@@ -163,6 +165,7 @@
           "name": "RSG",
           "options": {"models": [
             "common/list.c",
+            "linux/alloc/common.c",
             "linux/drivers/usb/core/usb/message.c",
             "linux/memory safety/memory.c"
           ]}
@@ -174,7 +177,7 @@
             "verifier profile": "memory checking",
             "verifier": {
               "name": "CPAchecker",
-              "version": "klever_fixes:36704"
+              "version": "klever_fixes:36955"
             }
           }
         }
@@ -220,7 +223,7 @@
             "verifier profile": "race checking",
             "verifier": {
               "name": "CPAchecker",
-              "version": "CPALockator:36189"
+              "version": "CPALockator-combat-mode:36901"
             },
             "result processing": {
               "expect several witnesses": true
@@ -438,7 +441,7 @@
                           "verifier profile": "reachability with heap arrays",
                           "verifier": {
                             "name": "CPAchecker",
-                            "version": "klever_fixes:36704"
+                            "version": "klever_fixes:36955"
                           }
                         }
                       }
@@ -765,7 +768,7 @@
                   "verifier profile": "reachability with function pointers",
                   "verifier": {
                     "name": "CPAchecker",
-                    "version": "klever_fixes:36704"
+                    "version": "klever_fixes:36955"
                   }
                 }
               }
@@ -793,7 +796,7 @@
                   "verifier profile": "reachability with heap arrays",
                   "verifier": {
                     "name": "CPAchecker",
-                    "version": "klever_fixes:36704"
+                    "version": "klever_fixes:36955"
                   }
                 }
               }
@@ -808,6 +811,7 @@
               "options": {"models": [
                 "common/list.c",
                 "common/test.c",
+                "linux/alloc/common.c",
                 "linux/drivers/usb/core/usb/message.c",
                 "linux/memory safety/memory.c"
               ]}
