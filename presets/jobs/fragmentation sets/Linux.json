@@ -20,6 +20,105 @@
     "3.14": {
       "reference": true,
       "fragments": {
+        "drivers/usb/gadget/function/usb_f_uac1_legacy.ko": [
+          "drivers/usb/gadget/function/usb_f_uac1_legacy.ko",
+          "drivers/usb/gadget/function/u_uac1_legacy.ko"
+        ],
+        "drivers/usb/gadget/function/usb_f_uac2.ko": [
+          "drivers/usb/gadget/function/usb_f_uac2.ko",
+          "drivers/usb/gadget/function/u_audio.ko"
+        ],
+        "drivers/usb/gadget/function/usb_f_uac1.ko": [
+          "drivers/usb/gadget/function/usb_f_uac1.ko",
+          "drivers/usb/gadget/function/u_audio.ko"
+        ],
+        "drivers/char/ipmi/kcs_bmc_aspeed.ko": [
+          "drivers/char/ipmi/kcs_bmc_aspeed.ko",
+          "drivers/char/ipmi/kcs_bmc.ko"
+        ],
+        "drivers/media/platform/exynos4-is/s5p-csis.ko": [
+          "drivers/media/platform/exynos4-is/s5p-csis.ko",
+          "drivers/media/mc/mc.ko"
+        ],
+        "drivers/media/platform/exynos4-is/exynos-fimc-lite.ko": [
+          "drivers/media/platform/exynos4-is/exynos-fimc-lite.ko",
+          "drivers/media/mc/mc.ko"
+        ],
+        "drivers/media/platform/exynos4-is/exynos-fimc-is.ko": [
+          "drivers/media/platform/exynos4-is/exynos-fimc-is.ko",
+          "drivers/media/mc/mc.ko"
+        ],
+        "drivers/media/usb/uvc/uvcvideo.ko": [
+          "drivers/media/usb/uvc/uvcvideo.ko",
+          "drivers/media/mc/mc.ko"
+        ],
+        "drivers/media/platform/vsp1/vsp1.ko": [
+          "drivers/media/platform/vsp1/vsp1.ko",
+          "drivers/media/mc/mc.ko"
+        ],
+        "drivers/media/platform/vivid/vivid.ko": [
+          "drivers/media/platform/vivid/vivid.ko",
+          "drivers/media/mc/mc.ko"
+        ],
+        "drivers/media/platform/rcar-vin/rcar-vin.ko": [
+          "drivers/media/platform/rcar-vin/rcar-vin.ko",
+          "drivers/media/mc/mc.ko"
+        ],
+        "drivers/char/tpm/tpm_i2c_infineon.ko": [
+          "drivers/char/tpm/tpm_i2c_infineon.ko",
+          "drivers/char/tpm/tpm.ko"
+        ],
+        "drivers/iio/adc/stm32-dfsdm-core.ko": [
+          "drivers/iio/adc/stm32-dfsdm-core.ko",
+          "drivers/iio/buffer/industrialio-hw-consumer.ko"
+        ],
+        "drivers/input/touchscreen/resistive-adc-touch.ko": [
+          "drivers/input/touchscreen/resistive-adc-touch.ko",
+          "drivers/iio/buffer/industrialio-buffer-cb.ko"
+        ],
+        "drivers/net/wireless/ralink/rt2x00/rt2800usb.ko": [
+          "drivers/net/wireless/ralink/rt2x00/rt2800usb.ko",
+          "drivers/net/wireless/ralink/rt2x00/rt2x00usb.ko",
+          "drivers/net/wireless/ralink/rt2x00/rt2x00lib.ko",
+          "drivers/net/wireless/ralink/rt2x00/rt2800lib.ko"
+        ],
+        "sound/soc/generic/snd-soc-simple-card.ko": [
+          "sound/soc/generic/snd-soc-simple-card.ko",
+          "sound/soc/generic/snd-soc-simple-card-utils.ko"
+        ],
+        "sound/soc/codecs/snd-soc-wm8994.ko": [
+          "sound/soc/codecs/snd-soc-wm8994.ko",
+          "sound/soc/codecs/snd-soc-wm-hubs.ko"
+        ],
+        "drivers/bluetooth/btmrvl_sdio.ko": [
+          "drivers/bluetooth/btmrvl_sdio.ko",
+          "drivers/bluetooth/btmrvl.ko"
+        ],
+        "drivers/bluetooth/hci_uart.ko": [
+          "drivers/bluetooth/hci_uart.ko",
+          "drivers/bluetooth/btbcm.ko"
+        ],
+        "drivers/net/dsa/b53/b53_mmap.ko": [
+          "drivers/net/dsa/b53/b53_mmap.ko",
+          "drivers/net/dsa/b53/b53_common.ko",
+          "net/dsa/dsa_core.ko"
+        ],
+        "drivers/net/dsa/b53/b53_mdio.ko": [
+          "drivers/net/dsa/b53/b53_mdio.ko",
+          "drivers/net/dsa/b53/b53_common.ko",
+          "net/dsa/dsa_core.ko"
+        ],
+        "drivers/net/dsa/b53/b53_srab.ko": [
+          "drivers/net/dsa/b53/b53_srab.ko",
+          "drivers/net/dsa/b53/b53_serdes.ko",
+          "drivers/net/dsa/b53/b53_common.ko",
+          "net/dsa/dsa_core.ko"
+        ],
+        "drivers/net/dsa/b53/b53_spi.ko": [
+          "drivers/net/dsa/b53/b53_spi.ko",
+          "drivers/net/dsa/b53/b53_common.ko",
+          "net/dsa/dsa_core.ko"
+        ],
         "drivers/usb/serial/usbserial.ko": [
           "drivers/usb/serial/usb_debug.ko",
           "drivers/usb/serial/usbserial.ko"

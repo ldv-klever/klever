@@ -1,0 +1,72 @@
+{
+    "3.14": {
+      "functions models": {
+        "pstore_unregister": {
+          "actions": {
+            "assign": {
+              "comment": "Get callbacks provided within 'pstore' argument.",
+              "statements": [
+                "%pstore% = $ARG1;"
+              ]
+            },
+            "deregister": {
+              "parameters": [
+                "%pstore%"
+              ]
+            }
+          },
+          "comment": "Deregister the pstore callbacks.",
+          "labels": {
+            "pstore": {
+              "container": true,
+              "interface": [
+                "pstore.info"
+              ],
+              "parameter": true
+            }
+          },
+          "process": "<assign>.[deregister]",
+          "reference": true
+        },
+        "pstore_register": {
+          "actions": {
+            "assign": {
+              "comment": "Get callbacks provided within 'pstore' argument.",
+              "statements": [
+                "%pstore% = $ARG1;"
+              ]
+            },
+            "fail": {
+              "comment": "Failed registration of the pstore callbacks.",
+              "statements": [
+                "return ldv_undef_int_negative();"
+              ]
+            },
+            "register": {
+              "parameters": [
+                "%pstore%"
+              ]
+            },
+            "success": {
+              "comment": "Registration of pstore callbacks has been finished successfully.",
+              "statements": [
+                "return 0;"
+              ]
+            }
+          },
+          "comment": "Register pstore callbacks.",
+          "labels": {
+            "pstore": {
+              "container": true,
+              "interface": [
+                "pstore.info"
+              ],
+              "parameter": true
+            }
+          },
+          "process": "<assign>.[register].<success> | <fail>",
+          "reference": true
+        }
+      }
+    }
+  }

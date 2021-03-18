@@ -1,0 +1,45 @@
+{
+    "3.14": {
+      "categories": {
+        "crypto": {
+          "callbacks": {
+            "probe": {
+              "declaration": "int (*create)(%crypto.template%, struct rtattr **tb);"
+            },
+            "remove": {
+              "declaration": "int (*free)(%crypto.instance%);"
+            }
+          },
+          "containers": {
+            "template": {
+              "declaration": "struct crypto_template template",
+              "fields": {
+                "create": "%crypto.probe%",
+                "free": "%crypto.remove%"
+              },
+              "header": "crypto/algapi.h"
+            }
+          },
+          "resources": {
+            "instance": {
+              "declaration": "struct crypto_instance *instance",
+              "header": "crypto/algapi.h"
+            }
+          },
+          "reference": true
+        }
+      },
+      "functions models": {
+        "crypto_register_template": {
+          "declaration": "int crypto_register_template(%crypto.template%)",
+          "header": "crypto/algapi.h",
+          "reference": true
+        },
+        "crypto_unregister_template": {
+          "declaration": "int crypto_unregister_template(%crypto.template%)",
+          "header": "crypto/algapi.h",
+          "reference": true
+        }
+      }
+    }
+  }

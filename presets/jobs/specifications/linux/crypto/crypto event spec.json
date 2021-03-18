@@ -1,0 +1,72 @@
+{
+  "3.14": {
+    "functions models": {
+      "crypto_unregister_template": {
+        "actions": {
+          "assign": {
+            "comment": "Get callbacks provided within 'crypto' argument.",
+            "statements": [
+              "%crypto_tmpl% = $ARG1;"
+            ]
+          },
+          "deregister": {
+            "parameters": [
+              "%crypto_tmpl%"
+            ]
+          }
+        },
+        "comment": "Deregister the crypto callbacks.",
+        "labels": {
+          "crypto_tmpl": {
+            "container": true,
+            "interface": [
+              "crypto.template"
+            ],
+            "parameter": true
+          }
+        },
+        "process": "<assign>.[deregister]",
+        "reference": true
+      },
+      "crypto_register_template": {
+        "actions": {
+          "assign": {
+            "comment": "Get callbacks provided within 'crypto_tmpl' argument.",
+            "statements": [
+              "%crypto_tmpl% = $ARG1;"
+            ]
+          },
+          "fail": {
+            "comment": "Failed registration of the crypto_tmpl callbacks.",
+            "statements": [
+              "return ldv_undef_int_negative();"
+            ]
+          },
+          "register": {
+            "parameters": [
+              "%crypto_tmpl%"
+            ]
+          },
+          "success": {
+            "comment": "Registration of crypto_tmpl callbacks has been finished successfully.",
+            "statements": [
+              "return 0;"
+            ]
+          }
+        },
+        "comment": "Register crypto_tmpl callbacks.",
+        "labels": {
+          "crypto_tmpl": {
+            "container": true,
+            "interface": [
+              "crypto.template"
+            ],
+            "parameter": true
+          }
+        },
+        "process": "<assign>.[register].<success> | <fail>",
+        "reference": true
+      }
+    }
+  }
+}

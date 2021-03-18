@@ -1,0 +1,40 @@
+{
+    "3.14": {
+      "categories": {
+        "pstore": {
+          "callbacks": {
+            "probe": {
+              "declaration": "int (*open)(%pstore.info%);"
+            },
+            "remove": {
+              "declaration": "int (*close)(%pstore.info%);"
+            }
+          },
+          "containers": {
+            "info": {
+              "declaration": "struct pstore_info psi",
+              "fields": {
+                "open": "%pstore.probe%",
+                "close": "%pstore.remove%"
+              },
+              "header": "linux/pstore.h"
+            }
+          },
+          "resources": {},
+          "reference": true
+        }
+      },
+      "functions models": {
+        "pstore_register": {
+          "declaration": "int pstore_register(%pstore.info%)",
+          "header": "linux/pstore.h",
+          "reference": true
+        },
+        "pstore_unregister": {
+          "declaration": "int pstore_unregister(%pstore.info%)",
+          "header": "linux/pstore.h",
+          "reference": true
+        }
+      }
+    }
+  }
