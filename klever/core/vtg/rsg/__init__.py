@@ -194,6 +194,7 @@ class RSG(klever.core.vtg.plugins.Plugin):
                 try:
                     compiler_cmds = list(clade.get_compilation_cmds_by_file(
                         os.path.normpath(os.path.join(path, self.conf['model compiler input file']))))
+                    break
                 except KeyError:
                     pass
 
@@ -240,6 +241,18 @@ class RSG(klever.core.vtg.plugins.Plugin):
             extra_cc = {'CC': os.path.relpath(full_desc_file, self.conf['main working directory'])}
             if 'generated' in model:
                 extra_cc['generated'] = True
+            if isinstance(model, dict) and model['options'].get('weave in model aspect'):
+                aspect = '{}.aspect'.format(os.path.splitext(get_model_c_file(model))[0])
+
+                if not os.path.isfile(aspect):
+                    raise FileNotFoundError('Aspect "{0}" to be weaved in model does not exist'.format(aspect))
+
+                extra_cc['plugin aspects'] = [
+                    {
+                        'plugin': self.name,
+                        'aspects': [os.path.relpath(aspect, self.conf['main working directory'])]
+                    }
+                ]
             model_grp['Extra CCs'].append(extra_cc)
 
         self.abstract_task_desc['grps'].append(model_grp)

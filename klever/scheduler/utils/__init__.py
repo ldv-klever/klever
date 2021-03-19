@@ -467,12 +467,11 @@ def submit_task_results(logger, server, scheduler_type, identifier, decision_res
             os.fsync(zfp.fp)
 
     if not speculative:
-        ret = server.submit_solution(identifier, decision_results, results_archive)
+        server.submit_solution(identifier, decision_results, results_archive)
     else:
-        ret = True
         logger.info("Do not upload speculative solution")
+
     kv_upload_solution(logger, identifier, scheduler_type, decision_results)
-    return ret
 
 
 def extract_cpu_cores_info():

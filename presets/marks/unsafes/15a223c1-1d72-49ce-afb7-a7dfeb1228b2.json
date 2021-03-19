@@ -1,0 +1,46 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "memory safety"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/idle/i7300_idle.ko"
+    }
+  ],
+  "description": "dma_alloc_attrs() needs a model.",
+  "error_trace": [
+    [
+      [
+        {
+          "EMG wrapper": [
+            {
+              "i7300_idle_init": [
+                {
+                  "i7300_idle_ioat_init": [
+                    {
+                      "dma_alloc_attrs": []
+                    },
+                    {
+                      "i7300_idle_ioat_selftest": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": false,
+  "production": true,
+  "status": null,
+  "tags": ["API models - Linux kernel"],
+  "threshold": 100,
+  "verdict": "3"
+}

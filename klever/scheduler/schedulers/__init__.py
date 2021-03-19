@@ -461,7 +461,10 @@ class Scheduler:
         if identifier not in self._jobs:
             job_conf = self.server.pull_job_conf(identifier)
             if not job_conf:
-                self.server.submit_job_error(identifier, 'Failed to doenload configuration')
+                self.server.submit_job_error(identifier, 'Failed to download configuration')
+                return
+            elif 'tasks' not in job_conf:
+                self.server.submit_job_error(identifier, 'Job has not tasks.json file with resource limits')
                 return
 
             job_conf['configuration']['identifier'] = identifier

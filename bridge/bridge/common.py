@@ -68,6 +68,7 @@ TEMPLATES = [
                 'django.template.context_processors.tz',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'bridge.utils.klever_version_template_context'
             ],
         },
     },

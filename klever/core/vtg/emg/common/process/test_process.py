@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
+# Copyright (c) 2021 ISP RAS (http://www.ispras.ru)
 # Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,84 +15,76 @@
 # limitations under the License.
 #
 
+import pytest
+
 from klever.core.vtg.emg.common.process import Process
 from klever.core.vtg.emg.common.process.parser import parse_process
-from klever.core.vtg.emg.common.process.serialization import CollectionEncoder
+from klever.core.vtg.emg.common.process.actions import Receive, Dispatch, Block, Concatenation
 
 
-def parse_assert(original_method):
-    def test_method(*args, **kwargs):
-        for test in original_method(*args, **kwargs):
-            process = Process('test')
-            obj = parse_process(process, test)
-            assert obj
+@pytest.fixture
+def process():
+    process = Process('test')
+    test = "(((a).<b> | [c]) . [d]) | [e]"
 
-            desc = CollectionEncoder._export_process(process)
-            assert desc
-            # todo: implement more careful comparison of strings
-            #assert desc.get('process') == test
+    # Parse
+    assert parse_process(process, test)
+    process.actions['a'] = Receive('a')
+    process.actions['b'] = Block('b')
+    for name in 'cde':
+        process.actions[name] = Dispatch(name)
 
-    return test_method
-
-
-@parse_assert
-def test_spaces():
-    return [
-        "[c] | ([a].[b])",
-        "[c] | [a].[b]",
-        "[a] | [b] | [c]",
-        "(([a].[b] | [c]) . [d]) | [e]"
-    ]
+    return process
 
 
-@parse_assert
-def test_pars():
-    return [
-        "([a].[b]).[c]",
-        "([suspend].(<suspended>.[resume] | <not_suspended>) | [port_probe].(<port_probed>.[open].(<opened>.{tty_layer} | <not_opened>.[port_remove]) | <not_port_probed>)).{main_workflow} | [disconnect].[release].{insert_device}"
-    ]
+@pytest.fixture
+def new():
+    return Block('r')
 
 
-@parse_assert
-def test_operators():
-    return [
-        "<free>.(instance_deregister)",
-        "[one].[two]",
-        "[one] | [two]",
-        "<assign>.[register] | <none>",
-        "<assign> | [one].[two]"
-    ]
+def test_add_condition(process):
+    new = process.add_condition('x', ['0 == 0'], ['x = 1;'], 'This is a test')
+    assert new and isinstance(new, Block)
+    assert str(new) in process.actions
+    assert not process.actions.behaviour(new.name)
 
 
-@parse_assert
-def test_multiple_operators():
-    return [
-        "<assign>.[open].(ret_open).[register] | <none>",
-    ]
+def test_add_replace_action(new, process):
+    new = Block('r')
+    old = process.actions['d']
+    operator = process.actions.behaviour('d').pop().my_operator
+
+    assert isinstance(operator, Concatenation)
+    process.replace_action(old, new, purge=True)
+
+    assert operator[-1].kind is Block
+    assert operator[-1].name == 'r'
+    assert operator[-1].description is new
+    assert str(old) not in process.actions
+    assert not process.actions.behaviour(str(old))
+    assert len(process.actions.behaviour(str(new))) == 1
 
 
-@parse_assert
-def _test_indexes():
-    # todo: unsupported
-    return [
-        "([a[2]])",
-        "(!register).[instance_register[%k%]].[instance_deregister[%k%]].(deregister)"
-    ]
+def test_add_insert_action(new, process):
+    target = process.actions['d']
+    operator = process.actions.behaviour('d').pop().my_operator
 
+    process.insert_action(new, target, before=True)
+    assert operator[-2].kind is Block, repr(operator)
+    assert operator[-2].name == 'r', repr(operator)
+    assert operator[-2].description is new, f"{repr(operator)} {operator[-1].description}"
+    assert str(new) in process.actions
+    assert operator[-1].kind is Dispatch, repr(operator)
+    assert operator[-1].name == 'd', repr(operator)
+    assert operator[-1].description is target, f"{repr(operator)} {operator[-1].description}"
+    assert str(target) in process.actions
 
-@parse_assert
-def test_subprocess():
-    return [
-        "(!instance_register).<alloc>.<init>.[probe].(ret_probe).(<probe_success>.((usb_reset).[pre].(ret_pre).[post]."
-        "(ret_post) | [suspend].(ret_suspend).[resume].(ret_resume) | <null>).[release].(ret_release)|<failed_probe>)."
-        "[callback].{call}|<positive_probe>.[release].<after_release>.{call}| <positive_probe>.[suspend].(ret_suspend)."
-        "(<suspended>.[resume].(ret_resume)|<not_suspended>).{call}|<negative_probe>.(<free>.(deregister)|[probe]."
-        "(ret_probe).{call})"
-    ]
-
-
-@parse_assert
-def test_broadband_send():
-    return [
-        "[@usb_reset]"
-    ]
+    process.insert_action(new, target, before=False)
+    assert operator[-1].kind is Block, repr(operator)
+    assert operator[-1].name == 'r', repr(operator)
+    assert operator[-1].description is new, repr(operator)
+    assert str(new) in process.actions
+    assert operator[-2].kind is Dispatch, repr(operator)
+    assert operator[-2].name == 'd', repr(operator)
+    assert operator[-2].description is target, repr(operator)
+    assert str(target) in process.actions

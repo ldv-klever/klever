@@ -42,7 +42,7 @@ class GetETV:
         if 'global variable declarations' in self.trace:
             self.html_trace.extend(self.__get_global_vars())
         if self.trace['trace']:
-            self.html_trace.extend(self.__parse_node(self.trace['trace'], 0, None, False, 0))
+            self.html_trace.extend(self.__parse_node(self.trace['trace'], 0, None, 0))
 
     def __get_threads(self):
         threads = []
@@ -79,18 +79,18 @@ class GetETV:
             decl['type'] = 'declaration'
         global_node = {'type': 'declarations', 'children': self.trace['global variable declarations']}
 
-        return self.__parse_node(global_node, 0, self.global_thread, False, global_scope)
+        return self.__parse_node(global_node, 0, self.global_thread, global_scope)
 
     @property
     def _new_scope(self):
         self._curr_scope += 1
         return self._curr_scope
 
-    def __parse_node(self, node, depth, thread, has_asc_note, scope):
+    def __parse_node(self, node, depth, thread, scope):
 
         # Statement
         if node['type'] == 'statement':
-            return self.__parse_statement(node, depth, thread, has_asc_note, scope)
+            return self.__parse_statement(node, depth, thread, scope)
 
         # Thread
         if node['type'] == 'thread':
@@ -101,23 +101,23 @@ class GetETV:
 
             children_trace = []
             for child_node in node['children']:
-                children_trace.extend(self.__parse_node(child_node, 0, node['thread'], False, thread_scope))
+                children_trace.extend(self.__parse_node(child_node, 0, node['thread'], thread_scope))
             return children_trace
 
         # Function call
         if node['type'] == 'function call':
-            return self.__parse_function(node, depth, thread, has_asc_note, scope)
+            return self.__parse_function(node, depth, thread, scope)
 
         # Action
         if node['type'] == 'action':
-            return self.__parse_action(node, depth, thread, has_asc_note, scope)
+            return self.__parse_action(node, depth, thread, scope)
 
         # Declarations
         if node['type'] == 'declarations':
-            return self.__parse_declarations(node, depth, thread, has_asc_note, scope)
+            return self.__parse_declarations(node, depth, thread, scope)
 
-    def __parse_statement(self, node, depth, thread, has_asc_note, scope):
-        notes_data = self.__parse_notes(node, depth, thread, has_asc_note, scope)
+    def __parse_statement(self, node, depth, thread, scope):
+        notes_data = self.__parse_notes(node, depth, thread, scope)
 
         statement_data = {
             'type': node['type'],
@@ -137,8 +137,8 @@ class GetETV:
             return notes_data + [statement_data]
         return [statement_data]
 
-    def __parse_declaration(self, node, depth, thread, scope, has_asc_note, decl_scope):
-        notes_data = self.__parse_notes(node, depth, thread, has_asc_note, decl_scope)
+    def __parse_declaration(self, node, depth, thread, scope, decl_scope):
+        notes_data = self.__parse_notes(node, depth, thread, decl_scope)
 
         decl_data = {
             'type': node['type'],
@@ -170,8 +170,8 @@ class GetETV:
             return notes_data + [decl_data]
         return [decl_data]
 
-    def __parse_function(self, node, depth, thread, has_asc_note, scope):
-        notes_data = self.__parse_notes(node, depth, thread, has_asc_note, scope)
+    def __parse_function(self, node, depth, thread, scope):
+        notes_data = self.__parse_notes(node, depth, thread, scope)
 
         func_enter = {
             'type': node['type'],
@@ -184,10 +184,9 @@ class GetETV:
             func_enter['commented'] = True
 
         # Get function body
-        child_asc_note = has_asc_note or len(notes_data) and notes_data[-1]['level'] in {0, 1}
         func_body = []
         for child_node in node['children']:
-            func_body.extend(self.__parse_node(child_node, depth + 1, thread, child_asc_note, func_enter['body_scope']))
+            func_body.extend(self.__parse_node(child_node, depth + 1, thread, func_enter['body_scope']))
 
         # New scope can be added while children parsing
         if func_enter['body_scope'] in self.shown_scopes:
@@ -210,7 +209,7 @@ class GetETV:
 
         return func_trace
 
-    def __parse_action(self, node, depth, thread, has_asc_note, scope):
+    def __parse_action(self, node, depth, thread, scope):
         if node.get('relevant'):
             # Show all relevant actions
             self.shown_scopes.add(scope)
@@ -226,9 +225,7 @@ class GetETV:
         # Get action body
         action_body = []
         for child_node in node['children']:
-            action_body.extend(self.__parse_node(
-                child_node, depth + 1, thread, has_asc_note, action_enter['body_scope']
-            ))
+            action_body.extend(self.__parse_node(child_node, depth + 1, thread, action_enter['body_scope']))
 
         # New scope can be added while children parsing
         if action_enter['body_scope'] in self.shown_scopes:
@@ -245,7 +242,7 @@ class GetETV:
 
         return action_trace
 
-    def __parse_declarations(self, node, depth, thread, has_asc_note, scope):
+    def __parse_declarations(self, node, depth, thread, scope):
         decl_enter = {
             'type': node['type'],
             'scope': scope,
@@ -258,7 +255,7 @@ class GetETV:
                 # Just declarations are supported inside "declarations" tree
                 continue
             decl_body.extend(self.__parse_declaration(
-                child_node, depth, thread, decl_enter['body_scope'], has_asc_note, scope
+                child_node, depth, thread, decl_enter['body_scope'], scope
             ))
 
         # Count number of declarations inside the declarations block
@@ -310,14 +307,14 @@ class GetETV:
 
         return old_assumptions, new_assumptions
 
-    def __parse_notes(self, node, depth, thread, has_asc_note, scope):
+    def __parse_notes(self, node, depth, thread, scope):
         if not node.get('notes'):
             return []
 
         notes_data = []
         for note in node['notes'][:-1]:
             # Get note level and show current scope if needed
-            if note['level'] == 0 or note['level'] == 1 and not has_asc_note:
+            if note['level'] == 0 or note['level'] == 1:
                 self.shown_scopes.add(scope)
             notes_data.append({
                 'type': 'note',
@@ -331,7 +328,7 @@ class GetETV:
 
         last_note = node['notes'][-1]
         note_hide = node.get('hide', False)
-        if last_note['level'] == 0 or last_note['level'] == 1 and not has_asc_note:
+        if last_note['level'] == 0 or last_note['level'] == 1:
             self.shown_scopes.add(scope)
         notes_data.append({
             'type': 'note',

@@ -11,10 +11,6 @@
     "subsystems": {
       "kernel": true
     },
-    "statically linked modules": {
-      "kernel": false,
-      "search by options": true
-    },
     "subsystems with modules": {
       "kernel": true,
       "add modules by coverage": true

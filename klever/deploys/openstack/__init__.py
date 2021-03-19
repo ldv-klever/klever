@@ -40,14 +40,18 @@ def parse_args(args, logger):
                         help='Action to be executed.')
     parser.add_argument('entity', choices=['image', 'instance'],
                         help='Entity for which action to be executed.')
-    parser.add_argument('--os-auth-url', default='https://cloud.ispras.ru:5000/v2.0',
+    parser.add_argument('--os-auth-url', default='https://sky.ispras.ru:13000',
                         help='OpenStack identity service endpoint for authorization (default: "%(default)s").')
     parser.add_argument('--os-username', default=getpass.getuser(),
                         help='OpenStack username for authentication (default: "%(default)s").')
     parser.add_argument('--os-tenant-name', default='computations',
                         help='OpenStack tenant name (default: "%(default)s").')
+    parser.add_argument('--os-domain-name', default='ispras',
+                        help='OpenStack domain name (default: "%(default)s").')
     parser.add_argument('--os-network-type', default='internal',
                         help='OpenStack network type. Can be "internal" or "external" (default: "%(default)s").')
+    parser.add_argument('--os-sec-group', default='ldv-sec',
+                        help='OpenStack security group (default: "%(default)s").')
     parser.add_argument('--os-keypair-name', default='ldv',
                         help='OpenStack keypair name (default: "%(default)s").')
     parser.add_argument('--ssh-username', default=OS_USER,
@@ -56,7 +60,7 @@ def parse_args(args, logger):
                         help='Path to SSH RSA private key file.'
                              'The appropriate SSH RSA key pair should be stored to OpenStack by name "ldv".')
     parser.add_argument('--name', help='Entity name.')
-    parser.add_argument('--base-image', default='Debian 9.11.1 64-bit',
+    parser.add_argument('--base-image', default='Debian-9-amd64',
                         help='Name of base image on which Klever base image will be based on (default: "%(default)s").')
     parser.add_argument('--klever-base-image', default=load_default_base_image_name(),
                         help='Name of Klever base image on which instances will be based on (default: "%(default)s").')
@@ -77,6 +81,8 @@ def parse_args(args, logger):
     parser.add_argument('--update-python3-packages', default=False, action='store_true',
                         help='Update Python3 packages for action "create" and "update" (default: "%(default)s"). '
                              'This option has no effect for other actions.')
+    parser.add_argument('--store-password', action='store_true',
+                        help='Store OpenStack password on disk (default: False).')
 
     # TODO: Check the correctness of the provided arguments
     args = parser.parse_args(args)

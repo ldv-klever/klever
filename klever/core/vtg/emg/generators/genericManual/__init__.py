@@ -17,6 +17,7 @@
 
 import json
 
+from klever.core.vtg.emg.common.process import ProcessCollection
 from klever.core.vtg.emg.generators.abstract import AbstractGenerator
 from klever.core.vtg.emg.common.process.serialization import CollectionDecoder
 
@@ -53,7 +54,7 @@ class ScenarioModelgenerator(AbstractGenerator):
                              "main process" in descriptions):
 
             parser = CollectionDecoder(self.logger, self.conf)
-            manual_processes = parser.parse_event_specification(source, descriptions)
+            manual_processes = parser.parse_event_specification(source, descriptions, ProcessCollection())
 
             # Decide on process replacements
             or_entry = collection.entry
@@ -86,7 +87,7 @@ class ScenarioModelgenerator(AbstractGenerator):
                     current.update(manual)
 
             collection.entry = or_entry
-            collection.establish_peers(strict=True)
+            collection.establish_peers()
         else:
             self.logger.info("There is no specification for {!r} or it has invalid format".format(fragment_name))
 

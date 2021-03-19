@@ -34,12 +34,6 @@ int ldv_common_alloc_return_int(gfp_t flags)
 	return ldv_undef_int();
 }
 
-void *ldv_common_alloc_without_flags(void)
-{
-	ldv_check_alloc_nonatomic();
-	return ldv_malloc_unknown_size();
-}
-
 void *ldv_common_zalloc(gfp_t flags)
 {
 	ldv_check_alloc_flags(flags);

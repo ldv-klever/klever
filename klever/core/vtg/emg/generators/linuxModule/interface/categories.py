@@ -236,7 +236,6 @@ def __refine_categories(logger, collection, sa):
         return relevant
 
     # Remove categories without implementations
-    logger.info("Calculate relevant interfaces")
     relevant_interfaces = set()
 
     # If category interfaces are not used in kernel functions it means that this structure is not transferred to
@@ -296,15 +295,16 @@ def __refine_categories(logger, collection, sa):
             else:
                 raise TypeError('Expect structure or array container')
 
-    for interface in [collection.get_intf(name) for name in collection.interfaces]:
-        if interface not in relevant_interfaces:
-            logger.debug("Delete interface description {!r} as unrelevant".format(str(interface)))
-            collection.del_intf(str(interface))
+    interfaces_to_delete = [str(i) for i in [collection.get_intf(name) for name in collection.interfaces]
+                            if i not in relevant_interfaces]
+    logger.debug("Delete unrelevant interface descriptions: {}".format(', '.join(interfaces_to_delete)))
+    for interface_name in interfaces_to_delete:
+        collection.del_intf(interface_name)
 
     logger.debug('Finally we have the following interfaces saved:')
     for category in collection.categories:
-        logger.debug('Containers of {} : {}'.format(category, ', '.join(map(str, collection.containers(category)))))
-        logger.debug('Callbacks of {} : {}'.format(category, ', '.join(map(str, collection.callbacks(category)))))
-        logger.debug('Resources of {} : {}'.format(category, ', '.join(map(str, collection.resources(category)))))
-
-    return
+        for interface_kind in ('containers', 'callbacks', 'resources'):
+            getter = getattr(collection, interface_kind)
+            interface_names = tuple(map(str, getter(category)))
+            if interface_names:
+                logger.debug(f'{interface_kind.capitalize()} of {category} : {", ".join(interface_names)}')

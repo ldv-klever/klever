@@ -106,7 +106,7 @@ class CModel:
     mem_function_map = {
         "ALLOC": "ldv_xmalloc",
         "UALLOC": "ldv_xmalloc_unknown_size",
-        "ZALLOC": "ldv_zalloc"
+        "ZALLOC": "ldv_xzalloc"
     }
     free_function_map = {
         "FREE": "ldv_free"
@@ -540,7 +540,7 @@ class FunctionModels:
             if func != 'UALLOC' and self._conf.get('allocate with sizeof', True):
                 size = 'sizeof({})'.format(self.signature.points.to_string('', typedef='complex_and_params'))
 
-            return "{}({})".format(self.mem_function_map[func], size)
+            return "%{}%{} = {}({})".format(label_name, suffix, self.mem_function_map[func], size)
         else:
             raise ValueError('This is not a pointer')
 

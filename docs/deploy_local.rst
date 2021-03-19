@@ -39,16 +39,16 @@ installed :ref:`klever_addons` and :ref:`klever_build_bases`:
 
     $ sudo venv/bin/klever-deploy-local --deployment-directory :term:`$KLEVER_DEPLOY_DIR` update production
 
-If it is also required to update Klever Python package itself (e.g. if you updated :term:`$KLEVER_SRC`), then one
-additional command must be executed:
-
-.. parsed-literal::
+If you need to update Klever Python package itself (e.g. this may be necessary after update of :term:`$KLEVER_SRC`),
+then you should execute one additional command prior to the above one::
 
     $ pip install --upgrade .
-    $ sudo venv/bin/klever-deploy-local --deployment-directory :term:`$KLEVER_DEPLOY_DIR` update production
 
-This additional command, however, should be skipped if Klever Python package was installed in *editable* mode (with -e
-flag).
+This additional command, however, should be skipped if Klever Python package was installed in the *editable* mode (with
+flag -e) unless you need to to upgrade Klever dependencies.
+In the latter case you should execute the following command prior updating Klever::
+
+    $ pip install --upgrade -e .
 
 To *uninstall* Klever you need to run:
 
@@ -73,3 +73,5 @@ Troubleshooting
 
 If something went wrong during installation, you need to uninstall Klever completely prior to following attempts to
 install it.
+In case of ambiguos issues in the development mode you should try to remove the virtual environment and to create it
+from scratch.

@@ -37,7 +37,7 @@
           "init": {
             "comment": "Allocate memory for tty structure.",
             "statements": [
-              "%tty_struct% = $ALLOC(%tty_struct%);"
+              "$ALLOC(%tty_struct%);"
             ]
           },
           "main": {
