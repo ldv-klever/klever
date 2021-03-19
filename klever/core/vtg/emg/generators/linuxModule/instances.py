@@ -432,7 +432,7 @@ def _convert_calls_to_conds(logger, conf, sa, interfaces, process, label_map, ca
         post = add_post_conditions()
         if label_parameters:
             for label in {l.name: l for l in label_parameters}.values():
-                pre.append('{0} = $UALLOC({0});'.format(repr(label)))
+                pre.append('$UALLOC({0});'.format(repr(label)))
                 post.append('$FREE({});'.format(repr(label)))
 
         if pre:
