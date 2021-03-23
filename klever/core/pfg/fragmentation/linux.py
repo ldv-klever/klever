@@ -15,6 +15,9 @@
 # limitations under the License.
 #
 
+import re
+import os
+
 from klever.core.utils import make_relative_path
 from klever.core.pfg.fragmentation import FragmentationAlgorythm
 from klever.core.pfg.abstractions.strategies.callgraph import Callgraph
@@ -30,6 +33,7 @@ class Linux(FragmentationAlgorythm):
         self._max_size = tactic.get("maximum fragment size")
         self._separate_nested = tactic.get("separate nested subsystems", True)
         self.kernel = tactic.get("kernel", False)
+        self._statically_linked = tactic.get("search by options")
 
     def _determine_units(self, program):
         """
@@ -38,25 +42,98 @@ class Linux(FragmentationAlgorythm):
 
         :param program: Program object.
         """
-        for desc in program.clade.get_all_cmds_by_type("LD"):
+        if self._statically_linked:
+            self.logger.info("Search for modules that are linked to the kernel")
+            self.search_for_statically_linked_modules(program)
+        else:
+            self._search_for_modules(program)
+        if self.kernel:
+            self.logger.info('Inspect AR comands in addition')
+            self._search_for_modules(program, 'AR', 'built-in.a')
+
+    def _search_for_modules(self, program, linking_command='LD', suffix='built-in.o'):
+        for desc in program.clade.get_all_cmds_by_type(linking_command):
             identifier = desc['id']
             # This shouldn't happen ever, but let's fail otherwise.
             if len(desc['out']) != 1:
-                self.logger.warning("LD commands with several out files are not supported, skip commands: {!r}".
-                                    format(identifier))
+                self.logger.warning("{} commands with several out files are not supported, skip commands: {!r}".
+                                    format(linking_command, identifier))
                 continue
 
             out = desc['out'][0]
-            if out.endswith('.ko') or out.endswith('built-in.o'):
+            if out.endswith('.ko') or out.endswith(suffix):
                 rel_object_path = make_relative_path(self.source_paths, out)
                 name = rel_object_path
                 fragment = program.create_fragment_from_linker_cmds(identifier, desc, name,
-                                                                    out.endswith('built-in.o') and self._separate_nested)
+                                                                    out.endswith(suffix) and self._separate_nested)
                 if (not self._max_size or fragment.size <= self._max_size) and len(fragment.files) != 0:
                     program.add_fragment(fragment)
                 else:
                     self.logger.debug('Fragment {!r} is rejected since it exceeds maximum size or does not contain '
                                       'files {!r}'.format(fragment.name, fragment.size))
+
+    def search_for_statically_linked_modules(self, program):
+        """Search for CC commands that are linked to a single kernel object usually but linked to the kernel now."""
+        modules = dict()
+        kbuiltstr_re = re.compile(r'KBUILD_STR\((\w+)\)')
+        value_re = re.compile(r'\"(\w+)\"')
+        valid_re = re.compile('\w+')
+        for desc in program.clade.get_all_cmds_by_type('CC'):
+            identifier = desc['id']
+            if not desc['out']:
+                self.logger.warning(f'Ignore command {identifier} without out file')
+                continue
+
+            opts = program.clade.get_cmd_opts(identifier)
+            for option in opts:
+                name = None
+                if option.startswith('KBUILD_MODNAME='):
+                    name = option.replace('KBUILD_MODNAME=', '')
+                elif option.startswith('-DKBUILD_MODNAME'):
+                    name = option.replace('-DKBUILD_MODNAME=', '')
+
+                if name:
+                    match1 = value_re.match(name)
+                    match2 = kbuiltstr_re.match(name)
+                    if match1:
+                        name = match1.group(1)
+                    elif match2:
+                        name = match2.group(1)
+
+                    if valid_re.match(name):
+                        name += '.ko'
+                        break
+
+                    self.logger.warning(f"Cannot parse the option: '{option}'. Skip command {identifier}.")
+            else:
+                continue
+
+            # Get C files
+            files = program.collect_files_from_commands('CC', [desc])
+
+            # Save before creating a fragment
+            out = desc['out'][0]
+            rel_object_path = make_relative_path(self.source_paths, out)
+            # todo: this is a corner case
+            if os.path.isabs(rel_object_path) and rel_object_path[0] == '/':
+                rel_object_path = rel_object_path[1:]
+            elif os.path.isabs(rel_object_path):
+                raise ValueError(f'Cannot get relative path from {rel_object_path} for {out}')
+            name = os.path.join(os.path.dirname(rel_object_path), name)
+            modules.setdefault(name, set())
+            modules[name].update(files)
+
+        # Finally create modules
+        for name, files in modules.items():
+            if not files:
+                self.logger.warning(f'Cannot find C files for linker command {name}')
+
+            fragment = program.create_fragment(name, files)
+            if (not self._max_size or fragment.size <= self._max_size) and len(fragment.files) != 0:
+                program.add_fragment(fragment)
+            else:
+                self.logger.debug('Fragment {!r} is rejected since it exceeds maximum size or does not contain '
+                                  'files {!r}'.format(fragment.name, fragment.size))
 
     def _determine_targets(self, program):
         """
@@ -65,6 +142,11 @@ class Linux(FragmentationAlgorythm):
 
         :param program: Program object.
         """
+        if self.kernel:
+            self.logger.info('Searching for kernel parts instead of kernel objects')
+        else:
+            self.logger.info('Searching for kernel objects instead of statically linked parts')
+
         super()._determine_targets(program)
         for fragment in program.target_fragments:
             if fragment.name.endswith('built-in.o') and not self.kernel:
