@@ -20,10 +20,17 @@
 void ldv_assert(int expr)
 {
 	if (!expr)
+		/* NOTE2 Verification tools treats this call of the special function as a solution of the reachability task that can correspond to either a fault or a false alarm. */
 		__VERIFIER_error();
 }
 
 void ldv_error(void)
 {
-	__VERIFIER_error();
+	ldv_assert(0);
+}
+
+void ldv_assume(int expr)
+{
+    /* NOTE2 Verification tools do not traverse paths where an actual argument of this function is evaluated to zero. */
+    __VERIFIER_assume(expr);
 }
