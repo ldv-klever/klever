@@ -25,7 +25,7 @@ from klever.core.highlight import Highlight
 
 class ErrorTrace:
     ERROR_TRACE_FORMAT_VERSION = 1
-    MODEL_COMMENT_TYPES = 'NOTE|ASSERT|CIF|EMG_WRAPPER'
+    MODEL_COMMENT_TYPES = r'NOTE\d?|ASSERT|CIF|EMG_WRAPPER'
     MAX_NOTE_LEVEl = 3
 
     def __init__(self, logger):
@@ -599,18 +599,31 @@ class ErrorTrace:
 
                         comment = comment.rstrip()
 
-                        if kind == "NOTE":
-                            if file_id not in self._notes:
-                                self._notes[file_id] = dict()
-                            self._notes[file_id][line + 1] = comment
-                            self._logger.debug(
-                                "Get note '{0}' for statement from '{1}:{2}'".format(comment, file, line + 1))
+                        if kind.startswith("NOTE"):
+                            level = None
+                            # Notes of level 1 does not require the level to be explicitly specified.
+                            if len(kind) == 4:
+                                level = 1
+                            elif len(kind) == 5 and kind[4].isdigit():
+                                level = int(kind[4])
+
+                            # Incorrect format of note.
+                            if not level:
+                                continue
+
+                            if level not in self._notes:
+                                self._notes[level] = dict()
+                            if file_id not in self._notes[level]:
+                                self._notes[level][file_id] = dict()
+                            self._notes[level][file_id][line + 1] = comment
+                            self._logger.debug("Get note '{0}' of level '{1}' for statement from '{2}:{3}'"
+                                               .format(comment, level, file, line + 1))
                         elif kind == 'ASSERT':
                             if file_id not in self._asserts:
                                 self._asserts[file_id] = dict()
                             self._asserts[file_id][line + 1] = comment
                             self._logger.debug(
-                                "Get assertiom '{0}' for statement from '{1}:{2}'".format(comment, file, line + 1))
+                                "Get assertion '{0}' for statement from '{1}:{2}'".format(comment, file, line + 1))
                         elif kind == 'CIF':
                             m = re.match(r'Original function \"([^"]+)\"\. Instrumenting function \"([^"]+)\"', comment)
                             if m:
@@ -752,6 +765,7 @@ class ErrorTrace:
         #       in particular, when ldv_assert() will not be invoked with positive conditions (not an error).
         # Two stages are required since for marking edges with warnings we need to know whether there notes at violation
         # path above.
+        note_levels = list(self._notes.keys())
         for edge in self.trace_iterator():
             # Do not add notes when finding warnings.
             if self.is_warning(edge):
@@ -777,19 +791,23 @@ class ErrorTrace:
                                        .format(display, self.resolve_function(func_id)))
                     edge['display'] = display
 
-            if file_id in self._notes and line in self._notes[file_id]:
-                note = self._notes[file_id][line]
-                self._logger.debug("Add note {!r} for statement from '{}:{}'".format(note, file, line))
-                # Model comments are rather essential and they are designed to hide model implementation details.
-                # Unfortunately, some model comments are not perfect yet, but we should fix them rather than make some
-                # workarounds to encourage developers of bad model comments.
-                if 'notes' not in edge:
-                    edge['notes'] = []
-                edge['notes'].append({
-                    'text': note,
-                    'level': 1,
-                    'hide': True
-                })
+            for level in note_levels:
+                if file_id in self._notes[level] and line in self._notes[level][file_id]:
+                    note = self._notes[level][file_id][line]
+                    self._logger.debug("Add note {!r} of level {} for statement from '{}:{}'"
+                                       .format(note, level, file, line))
+                    if 'notes' not in edge:
+                        edge['notes'] = []
+
+                    # Model comments are rather essential and they are designed to hide model implementation details.
+                    # That's why corresponding experssions and statements are hidden.
+                    # Unfortunately, some model comments are not perfect yet, but we should fix them rather than make
+                    # some workarounds to encourage developers of bad model comments.
+                    edge['notes'].append({
+                        'text': note,
+                        'level': level,
+                        'hide': True
+                    })
 
         for edge in self.trace_iterator(backward=True):
             line = edge['line']
