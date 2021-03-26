@@ -32,8 +32,10 @@ static int ldv_disk_state = LDV_NO_DISK;
 
 struct gendisk *ldv_alloc_disk(void)
 {
-	/* ASSERT Gendisk should not be allocated twice. */
-	ldv_assert(ldv_disk_state == LDV_NO_DISK);
+	if (ldv_disk_state != LDV_NO_DISK)
+		/* ASSERT Gendisk should not be allocated twice. */
+		ldv_error();
+
 	/* NOTE Choose an arbitrary return value. */
 	struct gendisk *res = (struct gendisk *)ldv_undef_ptr();
 	/* NOTE If memory is not available. */
@@ -49,16 +51,20 @@ struct gendisk *ldv_alloc_disk(void)
 
 void ldv_add_disk(void)
 {
-	/* ASSERT Gendisk should be allocated. */
-	ldv_assert(ldv_disk_state == LDV_ALLOCATED_DISK);
+	if (ldv_disk_state != LDV_ALLOCATED_DISK)
+		/* ASSERT Gendisk should be allocated. */
+		ldv_error();
+
 	/* NOTE Add gendisk. */
 	ldv_disk_state = LDV_ADDED_DISK;
 }
 
 void ldv_del_gendisk(void)
 {
-	/* ASSERT Gendisk should be allocated. */
-	ldv_assert(ldv_disk_state == LDV_ADDED_DISK);
+	if (ldv_disk_state != LDV_ADDED_DISK)
+		/* ASSERT Gendisk should be allocated. */
+		ldv_error();
+
 	/* NOTE Add gendisk. */
 	ldv_disk_state = LDV_ALLOCATED_DISK;
 }
@@ -66,8 +72,10 @@ void ldv_del_gendisk(void)
 void ldv_put_disk(struct gendisk *disk)
 {
 	if (disk) {
-		/* ASSERT Gendisk should be allocated. */
-		ldv_assert(ldv_disk_state >= LDV_ALLOCATED_DISK);
+		if (ldv_disk_state < LDV_ALLOCATED_DISK)
+			/* ASSERT Gendisk should be allocated. */
+			ldv_error();
+
 		/* NOTE Add gendisk. */
 		ldv_disk_state = LDV_NO_DISK;
 	}
@@ -75,6 +83,7 @@ void ldv_put_disk(struct gendisk *disk)
 
 void ldv_check_final_state( void )
 {
-	/* ASSERT Sysfs groups must be freed at the end. */
-	ldv_assert(ldv_disk_state == LDV_NO_DISK);
+	if (ldv_disk_state != LDV_NO_DISK)
+		/* ASSERT Sysfs groups must be freed at the end. */
+		ldv_error();
 }

@@ -42,7 +42,7 @@
                     {
                       "LDV model 'usb_free_urb'": [
                         {
-                          "LDV model 'assert'": []
+                          "LDV model 'error'": []
                         }
                       ]
                     }

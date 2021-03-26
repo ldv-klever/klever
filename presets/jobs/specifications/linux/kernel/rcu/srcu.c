@@ -30,20 +30,24 @@ void ldv_srcu_read_lock(void)
 
 void ldv_srcu_read_unlock(void)
 {
-	/* ASSERT checks the count of opened srcu_lock sections */
-	ldv_assert(ldv_srcu_nested > 0);
+	if (ldv_srcu_nested <= 0)
+		/* ASSERT checks the count of opened srcu_lock sections */
+		ldv_error();
+
 	/* NOTE Exit from srcu_read_lock/unlock section */
 	ldv_srcu_nested--;
 }
 
 void ldv_check_for_read_section( void )
 {
-	/* ASSERT All srcu_lock sections should be closed at read sections */
-	ldv_assert(ldv_srcu_nested == 0);
+	if (ldv_srcu_nested != 0)
+		/* ASSERT All srcu_lock sections should be closed at read sections */
+		ldv_error();
 }
 
 void ldv_check_final_state( void )
 {
-	/* ASSERT All srcu_lock sections should be closed at exit */
-	ldv_assert(ldv_srcu_nested == 0);
+	if (ldv_srcu_nested != 0)
+		/* ASSERT All srcu_lock sections should be closed at exit */
+		ldv_error();
 }

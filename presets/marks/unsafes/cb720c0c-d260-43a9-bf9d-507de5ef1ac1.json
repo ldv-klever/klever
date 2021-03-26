@@ -24,7 +24,7 @@
                     {
                       "LDV model 'put_disk'": [
                         {
-                          "LDV model 'assert'": []
+                          "LDV model 'error'": []
                         }
                       ]
                     }

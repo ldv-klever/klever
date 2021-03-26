@@ -31,7 +31,7 @@
                     {
                       "LDV model 'check_for_read_section'": [
                         {
-                          "LDV model 'assert'": []
+                          "LDV model 'error'": []
                         }
                       ]
                     }

@@ -17,16 +17,14 @@
 
 #include <ldv/verifier/common.h>
 
-void ldv_assert(int expr)
-{
-	if (!expr)
-		/* NOTE2 Verification tools treats this call of the special function as a solution of the reachability task that can correspond to either a fault or a false alarm. */
-		__VERIFIER_error();
-}
+/* https://sv-comp.sosy-lab.org/2017/rules.php */
+void __VERIFIER_error(void);
+void __VERIFIER_assume(int expr);
 
 void ldv_error(void)
 {
-	ldv_assert(0);
+	/* NOTE2 Verification tools treats this call of the special function as a solution of the reachability task that can correspond to either a fault or a false alarm. */
+	__VERIFIER_error();
 }
 
 void ldv_assume(int expr)

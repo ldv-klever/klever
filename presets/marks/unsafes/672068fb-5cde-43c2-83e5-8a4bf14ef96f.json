@@ -42,7 +42,7 @@
                     {
                       "LDV model 'usb_free_coherent'": [
                         {
-                          "LDV model 'assert'": []
+                          "LDV model 'error'": []
                         }
                       ]
                     }

@@ -34,5 +34,5 @@ long __builtin_expect(long exp, long c)
  */
 void __builtin_trap(void)
 {
-	__VERIFIER_error();
+	ldv_error();
 }

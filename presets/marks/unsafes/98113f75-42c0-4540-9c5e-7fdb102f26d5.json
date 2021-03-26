@@ -38,7 +38,7 @@
                     {
                       "LDV model 'idr_alloc_idp'": [
                         {
-                          "LDV model 'assert'": []
+                          "LDV model 'error'": []
                         }
                       ]
                     }

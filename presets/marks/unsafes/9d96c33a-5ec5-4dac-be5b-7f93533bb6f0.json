@@ -24,7 +24,7 @@
                     {
                       "LDV model 'io_mem_unmap'": [
                         {
-                          "LDV model 'assert'": []
+                          "LDV model 'error'": []
                         }
                       ]
                     }

@@ -38,7 +38,7 @@
                           "LDV model 'undef_int_nonpositive'": []
                         },
                         {
-                          "LDV model 'assert'": []
+                          "LDV model 'error'": []
                         }
                       ]
                     }

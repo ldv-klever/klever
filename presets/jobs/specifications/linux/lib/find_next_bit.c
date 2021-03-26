@@ -22,8 +22,10 @@
 
 unsigned long ldv_find_next_bit(unsigned long size, unsigned long offset)
 {
-	/* ASSERT Offset should not be greater than size. */
-	ldv_assert(offset <= size);
+	if (offset > size)
+		/* ASSERT Offset should not be greater than size. */
+		ldv_error();
+
 	/* NOTE Return value between 0 and size. */
 	unsigned long nondet = ldv_undef_ulong();
 	ldv_assume (nondet <= size);

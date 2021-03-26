@@ -24,7 +24,7 @@
                     {
                       "LDV model 'before_release_sock'": [
                         {
-                          "LDV model 'assert'": []
+                          "LDV model 'error'": []
                         }
                       ]
                     }

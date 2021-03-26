@@ -24,7 +24,7 @@
                     {
                       "LDV model 'srcu_read_unlock'": [
                         {
-                          "LDV model 'assert'": []
+                          "LDV model 'error'": []
                         }
                       ]
                     }

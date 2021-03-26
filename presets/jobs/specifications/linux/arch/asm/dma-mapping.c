@@ -23,8 +23,10 @@
 int ldv_dma_calls = 0;
 
 dma_addr_t ldv_dma_map_page(void) {
-	/* ASSERT Check that previous dma_mapping call was checked */
-	ldv_assert(ldv_dma_calls == 0);
+	if (ldvv_dma_calls != 0)
+		/* ASSERT Check that previous dma_mapping call was checked */
+		ldv_error();
+
 	/* NOTE Increase map counter */
 	ldv_dma_calls++;
 
@@ -32,16 +34,20 @@ dma_addr_t ldv_dma_map_page(void) {
 }
 
 int ldv_dma_mapping_error(void) {
-	/* ASSERT No dma_mapping calls to verify */				
-	ldv_assert(ldv_dma_calls > 0);
+	if (ldv_dma_calls <= 0)
+		/* ASSERT No dma_mapping calls to verify */
+		ldv_error();
+
 	ldv_dma_calls--;
 
 	return ldv_undef_int();
 }
 
 dma_addr_t ldv_dma_map_single(void) {
-	/* ASSERT Check that previous dma_mapping call was checked */
-	ldv_assert(ldv_dma_calls == 0);
+	if (ldv_dma_calls != 0)
+		/* ASSERT Check that previous dma_mapping call was checked */
+		ldv_error();
+
 	/* NOTE Increase map counter */
 	ldv_dma_calls++;
 
@@ -49,8 +55,10 @@ dma_addr_t ldv_dma_map_single(void) {
 }
 
 dma_addr_t ldv_dma_map_single_attrs(void) {
-	/* ASSERT Check that previous dma_mapping call was checked */
-	ldv_assert(ldv_dma_calls == 0);
+	if (ldv_dma_calls != 0)
+		/* ASSERT Check that previous dma_mapping call was checked */
+		ldv_error();
+
 	/* NOTE Increase map counter */
 	ldv_dma_calls++;
 
@@ -58,6 +66,7 @@ dma_addr_t ldv_dma_map_single_attrs(void) {
 }
 
 void ldv_check_final_state(void) {
-	/* ASSERT All dma_mapping calls should be checked before module unloading */
-	ldv_assert(ldv_dma_calls == 0);
+	if (ldv_dma_calls != 0)
+		/* ASSERT All dma_mapping calls should be checked before module unloading */
+		ldv_error();
 }

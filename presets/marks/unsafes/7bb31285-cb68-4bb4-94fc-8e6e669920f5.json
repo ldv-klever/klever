@@ -35,7 +35,7 @@
                     {
                       "LDV model 'del_gendisk'": [
                         {
-                          "LDV model 'assert'": []
+                          "LDV model 'error'": []
                         }
                       ]
                     }

@@ -43,7 +43,7 @@
                     {
                       "LDV model 'clk_disable_clk_of_s3c_hsotg'": [
                         {
-                          "LDV model 'assert'": []
+                          "LDV model 'error'": []
                         }
                       ]
                     }

@@ -35,8 +35,9 @@ struct request *ldv_blk_get_request(gfp_t mask)
 {
 	struct request *res;
 
-	/* ASSERT blk request could be got just in case when it was not got before. */
-	ldv_assert(ldv_blk_rq == LDV_BLK_RQ_ZERO_STATE);
+	if (ldv_blk_rq != LDV_BLK_RQ_ZERO_STATE)
+		/* ASSERT blk request could be got just in case when it was not got before. */
+		ldv_error();
 
 	/* NOTE Generate valid pointer or NULL. */
 	res = (struct request *)ldv_undef_ptr();
@@ -57,8 +58,9 @@ struct request *ldv_blk_make_request(gfp_t mask)
 {
 	struct request *res;
 
-	/* ASSERT blk request could be got just in case when it was not got before. */
-	ldv_assert(ldv_blk_rq == LDV_BLK_RQ_ZERO_STATE);
+	if (ldv_blk_rq != LDV_BLK_RQ_ZERO_STATE)
+		/* ASSERT blk request could be got just in case when it was not got before. */
+		ldv_error();
 
 	/* NOTE Generate valid pointer or errptr. */
 	res = (struct request *)ldv_undef_ptr();
@@ -75,14 +77,17 @@ struct request *ldv_blk_make_request(gfp_t mask)
 
 void ldv_put_blk_rq(void)
 {
-	/* ASSERT blk request could be put just in case when it was got. */
-	ldv_assert(ldv_blk_rq == LDV_BLK_RQ_GOT);
+	if (ldv_blk_rq != LDV_BLK_RQ_GOT)
+		/* ASSERT blk request could be put just in case when it was got. */
+		ldv_error();
+
 	/* NOTE Put blk request. */
 	ldv_blk_rq = LDV_BLK_RQ_ZERO_STATE;
 }
 
 void ldv_check_final_state(void)
 {
-	/* ASSERT blk request could not be got at the end. */
-	ldv_assert(ldv_blk_rq == LDV_BLK_RQ_ZERO_STATE);
+	if (ldv_blk_rq != LDV_BLK_RQ_ZERO_STATE)
+		/* ASSERT blk request could not be got at the end. */
+		ldv_error();
 }

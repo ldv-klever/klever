@@ -24,7 +24,7 @@
                     {
                       "LDV model 'unlock_sock_fast'": [
                         {
-                          "LDV model 'assert'": []
+                          "LDV model 'error'": []
                         }
                       ]
                     }

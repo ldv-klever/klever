@@ -39,14 +39,17 @@ int ldv_sysfs_create_group(void)
 
 void ldv_sysfs_remove_group(void)
 {
-	/* ASSERT Sysfs group must be allocated before. */
-	ldv_assert(ldv_sysfs >= 1);
+	if (ldv_sysfs < 1)
+		/* ASSERT Sysfs group must be allocated before. */
+		ldv_error();
+
 	/* NOTE Decrease allocated counter. */
 	ldv_sysfs--;
 }
 
 void ldv_check_final_state( void )
 {
-	/* ASSERT Sysfs groups must be freed at the end. */
-	ldv_assert(ldv_sysfs == 0);
+	if (ldv_sysfs != 0)
+		/* ASSERT Sysfs groups must be freed at the end. */
+		ldv_error();
 }

@@ -24,8 +24,10 @@ static int ldv_spin{{ arg_sign.id }} = 1;
 
 void ldv_spin_lock{{ arg_sign.id }}(void)
 {
-	/* ASSERT Spinlock{{ arg_sign.text }} must be unlocked */
-	ldv_assert(ldv_spin{{ arg_sign.id }} == 1);
+	if (ldv_spin{{ arg_sign.id }} != 1)
+		/* ASSERT Spinlock{{ arg_sign.text }} must be unlocked */
+		ldv_error();
+
 	/* NOTE Cut all infeasible paths */
 	ldv_assume(ldv_spin{{ arg_sign.id }} == 1);
 	/* NOTE Lock spinlock{{ arg_sign.text }} */
@@ -34,8 +36,10 @@ void ldv_spin_lock{{ arg_sign.id }}(void)
 
 void ldv_spin_unlock{{ arg_sign.id }}(void)
 {
-	/* ASSERT Spinlock{{ arg_sign.text }} must be locked */
-	ldv_assert(ldv_spin{{ arg_sign.id }} == 2);
+	if (ldv_spin{{ arg_sign.id }} != 2)
+		/* ASSERT Spinlock{{ arg_sign.text }} must be locked */
+		ldv_error();
+
 	/* NOTE Cut all infeasible paths */
 	ldv_assume(ldv_spin{{ arg_sign.id }} == 2);
 	/* NOTE Unlock spinlock{{ arg_sign.text }} */
@@ -46,8 +50,10 @@ int ldv_spin_trylock{{ arg_sign.id }}(void)
 {
 	int is_spin_held_by_another_thread;
 
-	/* ASSERT It may be bug if spinlock{{ arg_sign.text }} is locked at this point */
-	ldv_assert(ldv_spin{{ arg_sign.id }} == 1);
+	if (ldv_spin{{ arg_sign.id }} != 1)
+		/* ASSERT It may be bug if spinlock{{ arg_sign.text }} is locked at this point */
+		ldv_error();
+
 	/* NOTE Cut all infeasible paths */
 	ldv_assume(ldv_spin{{ arg_sign.id }} == 1);
 
@@ -69,8 +75,10 @@ int ldv_spin_trylock{{ arg_sign.id }}(void)
 
 void ldv_spin_unlock_wait{{ arg_sign.id }}(void)
 {
-	/* ASSERT Spinlock{{ arg_sign.text }} must not be locked by current thread */
-	ldv_assert(ldv_spin{{ arg_sign.id }} == 1);
+	if (ldv_spin{{ arg_sign.id }} != 1)
+		/* ASSERT Spinlock{{ arg_sign.text }} must not be locked by current thread */
+		ldv_error();
+
 	/* NOTE Cut all infeasible paths */
 	ldv_assume(ldv_spin{{ arg_sign.id }} == 1);
 }
@@ -121,8 +129,10 @@ int ldv_atomic_dec_and_lock{{ arg_sign.id }}(void)
 {
 	int atomic_value_after_dec;
 
-	/* ASSERT Spinlock{{ arg_sign.text }} must be unlocked (since we may lock it in this function) */
-	ldv_assert(ldv_spin{{ arg_sign.id }} == 1);
+	if (ldv_spin{{ arg_sign.id }} != 1)
+		/* ASSERT Spinlock{{ arg_sign.text }} must be unlocked (since we may lock it in this function) */
+		ldv_error();
+
 	/* NOTE Cut all infeasible paths */
 	ldv_assume(ldv_spin{{ arg_sign.id }} == 1);
 
@@ -145,8 +155,9 @@ int ldv_atomic_dec_and_lock{{ arg_sign.id }}(void)
 void ldv_check_final_state(void)
 {
 	// for arg_sign in spinlock_arg_signs
-	/* ASSERT Spinlock{{ arg_sign.text }} must be unlocked before finishing operation */
-	ldv_assert(ldv_spin{{ arg_sign.id }} == 1);
+	if (ldv_spin{{ arg_sign.id }} != 1)
+		/* ASSERT Spinlock{{ arg_sign.text }} must be unlocked before finishing operation */
+		ldv_error();
 	// endfor
 }
 

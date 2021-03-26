@@ -29,7 +29,7 @@
                 {
                   "LDV model 'read_unlock'": [
                     {
-                      "LDV model 'assert'": []
+                      "LDV model 'error'": []
                     }
                   ]
                 }

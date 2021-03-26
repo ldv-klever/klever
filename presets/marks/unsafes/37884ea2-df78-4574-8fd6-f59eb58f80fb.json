@@ -31,7 +31,7 @@
             {
               "LDV model 'invoke_callback'": [
                 {
-                  "LDV model 'assert'": []
+                  "LDV model 'error'": []
                 }
               ]
             }

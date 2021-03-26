@@ -24,7 +24,7 @@
                     {
                       "LDV model 'put_blk_rq'": [
                         {
-                          "LDV model 'assert'": []
+                          "LDV model 'error'": []
                         }
                       ]
                     }

@@ -42,7 +42,7 @@
                     {
                       "LDV model 'module_put'": [
                         {
-                          "LDV model 'assert'": []
+                          "LDV model 'error'": []
                         }
                       ]
                     }

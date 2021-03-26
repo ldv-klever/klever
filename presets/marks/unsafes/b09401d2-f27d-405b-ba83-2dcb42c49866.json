@@ -24,7 +24,7 @@
                     {
                       "LDV model 'blk_cleanup_queue'": [
                         {
-                          "LDV model 'assert'": []
+                          "LDV model 'error'": []
                         }
                       ]
                     }

@@ -26,32 +26,40 @@ int ldv_wlock = 1;
 
 void ldv_read_lock(void)
 {
-	/* ASSERT Write lock should not be aquired */
-	ldv_assert(ldv_wlock == 1);
+	if (ldv_wlock != 1)
+		/* ASSERT Write lock should not be aquired */
+		ldv_error();
+
 	/* NOTE Acquire read lock */
 	ldv_rlock += 1;
 }
 
 void ldv_read_unlock(void)
 {
-	/* ASSERT Read lock should be acquired */
-	ldv_assert(ldv_rlock > 1);
+	if (ldv_rlock <= 1)
+		/* ASSERT Read lock should be acquired */
+		ldv_error();
+
 	/* NOTE Release read lock */
 	ldv_rlock -= 1;
 }
 
 void ldv_write_lock(void)
 {
-	/* ASSERT Write lock should not be aquired */
-	ldv_assert(ldv_wlock == 1);
+	if (ldv_wlock != 1)
+		/* ASSERT Write lock should not be aquired */
+		ldv_error();
+
 	/* NOTE Acquire write lock */
 	ldv_wlock = 2;
 }
 
 void ldv_write_unlock(void)
 {
-	/* ASSERT Write lock should be aquired */
-	ldv_assert(ldv_wlock != 1);
+	if (ldv_wlock == 1)
+		/* ASSERT Write lock should be aquired */
+		ldv_error();
+
 	/* NOTE Release write lock */
 	ldv_wlock = 1;
 }
@@ -88,8 +96,11 @@ int ldv_write_trylock(void)
 
 void ldv_check_final_state(void)
 {
-	/* ASSERT All acquired read locks should be released before finishing operation */
-	ldv_assert(ldv_rlock == 1);
-	/* ASSERT All acquired write locks should be released before finishing operation */
-	ldv_assert(ldv_wlock == 1);
+	if (ldv_rlock != 1)
+		/* ASSERT All acquired read locks should be released before finishing operation */
+		ldv_error();
+
+	if (ldv_wlock != 1)
+		/* ASSERT All acquired write locks should be released before finishing operation */
+		ldv_error();
 }

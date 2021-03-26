@@ -29,16 +29,19 @@ ldv_set LDV_MUTEXES{{ arg_sign.id }};
 
 void ldv_mutex_lock{{ arg_sign.id }}(struct mutex *lock)
 {
-	/* ASSERT Mutex{{ arg_sign.text }} must be unlocked */
-	ldv_assert(!ldv_set_contains(LDV_MUTEXES{{ arg_sign.id }}, lock));
+	if (ldv_set_contains(LDV_MUTEXES{{ arg_sign.id }}, lock))
+		/* ASSERT Mutex{{ arg_sign.text }} must be unlocked */
+		ldv_error();
 	/* NOTE Lock mutex{{ arg_sign.text }} */
 	ldv_set_add(LDV_MUTEXES{{ arg_sign.id }}, lock);
 }
 
 int ldv_mutex_lock_interruptible_or_killable{{ arg_sign.id }}(struct mutex *lock)
 {
-	/* ASSERT Mutex{{ arg_sign.text }} must be unlocked */
-	ldv_assert(!ldv_set_contains(LDV_MUTEXES{{ arg_sign.id }}, lock));
+	if (ldv_set_contains(LDV_MUTEXES{{ arg_sign.id }}, lock))
+		/* ASSERT Mutex{{ arg_sign.text }} must be unlocked */
+		ldv_error();
+
 	/* NOTE Nondeterministically lock mutex{{ arg_sign.text }} */
 	if (ldv_undef_int()) {
 		/* NOTE Lock mutex{{ arg_sign.text }} */
@@ -72,8 +75,9 @@ int ldv_mutex_is_locked{{ arg_sign.id }}(struct mutex *lock)
 
 int ldv_mutex_trylock{{ arg_sign.id }}(struct mutex *lock)
 {
-	/* ASSERT Mutex{{ arg_sign.text }} must be unlocked */
-	ldv_assert(!ldv_set_contains(LDV_MUTEXES{{ arg_sign.id }}, lock));
+	if (ldv_set_contains(LDV_MUTEXES{{ arg_sign.id }}, lock))
+		/* ASSERT Mutex{{ arg_sign.text }} must be unlocked */
+		ldv_error();
 
 	/* NOTE Whether mutex{{ arg_sign.text }} was locked */
 	if (ldv_mutex_is_locked{{ arg_sign.id }}(lock)) {
@@ -107,8 +111,10 @@ int ldv_atomic_dec_and_mutex_lock{{ arg_sign.id }}(atomic_t *cnt, struct mutex *
 
 void ldv_mutex_unlock{{ arg_sign.id }}(struct mutex *lock)
 {
-	/* ASSERT Mutex{{ arg_sign.text }} must be locked */
-	ldv_assert(ldv_set_contains(LDV_MUTEXES{{ arg_sign.id }}, lock));
+	if (!ldv_set_contains(LDV_MUTEXES{{ arg_sign.id }}, lock))
+		/* ASSERT Mutex{{ arg_sign.text }} must be locked */
+		ldv_error();
+
 	/* NOTE Unlock mutex{{ arg_sign.text }} */
 	ldv_set_remove(LDV_MUTEXES{{ arg_sign.id }}, lock);
 }
@@ -125,7 +131,8 @@ void ldv_initialize(void)
 void ldv_check_final_state(void)
 {
 	// for arg_sign in mutex_arg_signs
-	/* ASSERT Mutex{{ arg_sign.text }} must be unlocked at the end */
-	ldv_assert(ldv_set_is_empty(LDV_MUTEXES{{ arg_sign.id }}));
+	if (!ldv_set_is_empty(LDV_MUTEXES{{ arg_sign.id }}))
+		/* ASSERT Mutex{{ arg_sign.text }} must be unlocked at the end */
+		ldv_error();
 	// endfor
 }

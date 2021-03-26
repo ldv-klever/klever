@@ -38,7 +38,7 @@
                           "LDV model 'undef_ptr'": []
                         },
                         {
-                          "LDV model 'assert'": []
+                          "LDV model 'error'": []
                         }
                       ]
                     }

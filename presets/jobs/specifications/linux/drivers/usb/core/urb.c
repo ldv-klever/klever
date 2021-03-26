@@ -43,8 +43,10 @@ struct urb *ldv_usb_alloc_urb(void)
 struct urb *ldv_usb_get_urb(struct urb *urb)
 {
 	if (urb) {
-		/* ASSERT The memory must be allocated before. */
-		ldv_assert(ldv_urb_state>=1);
+		if (ldv_urb_state < 1)
+			/* ASSERT The memory must be allocated before. */
+			ldv_error();
+
 		/* NOTE Increase allocated counter. */
 		ldv_urb_state += 1;
 		return urb;
@@ -53,8 +55,10 @@ struct urb *ldv_usb_get_urb(struct urb *urb)
 
 void ldv_usb_free_urb(struct urb *urb) {
 	if (urb) {
-		/* ASSERT The memory must be allocated before. */
-		ldv_assert(ldv_urb_state>=1);
+		if (ldv_urb_state < 1)
+			/* ASSERT The memory must be allocated before. */
+			ldv_error();
+
 		/* NOTE Decrease allocated counter. */
 		ldv_urb_state -= 1;
 	}
@@ -62,6 +66,7 @@ void ldv_usb_free_urb(struct urb *urb) {
 
 void ldv_check_final_state( void )
 {
-	/* ASSERT The urb requests must be freed at the end. */
-	ldv_assert(ldv_urb_state==0);
+	if (ldv_urb_state != 0)
+		/* ASSERT The urb requests must be freed at the end. */
+		ldv_error();
 }

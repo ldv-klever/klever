@@ -761,10 +761,6 @@ class ErrorTrace:
     def _mark_witness(self):
         self._logger.info('Mark witness with model comments')
 
-        # TODO: This should not be necessary when ldv_assert() and corresponding model comments will be used properly,
-        #       in particular, when ldv_assert() will not be invoked with positive conditions (not an error).
-        # Two stages are required since for marking edges with warnings we need to know whether there notes at violation
-        # path above.
         note_levels = list(self._notes.keys())
         for edge in self.trace_iterator():
             # Do not add notes when finding warnings.
@@ -809,37 +805,17 @@ class ErrorTrace:
                         'hide': True
                     })
 
-        for edge in self.trace_iterator(backward=True):
-            line = edge['line']
-            file_id = edge['file']
-            file = self.resolve_file(file_id)
-
             if file_id in self._asserts and line in self._asserts[file_id]:
-                # Add warning just if there are no more edges with notes at violation path below.
-                track_notes = False
-                note_found = False
-                for violation_edge in reversed(self._violation_edges):
-                    if track_notes:
-                        if 'notes' in violation_edge:
-                            note_found = True
-                            break
-                    if id(violation_edge) == id(edge):
-                        track_notes = True
+                warn = self._asserts[file_id][line]
+                self._logger.debug("Add warning {!r} for statement from '{}:{}'".format(warn, file, line))
+                if 'notes' not in edge:
+                    edge['notes'] = []
 
-                if not note_found:
-                    warn = self._asserts[file_id][line]
-                    self._logger.debug("Add warning {!r} for statement from '{}:{}'".format(warn, file, line))
-                    if 'notes' not in edge:
-                        edge['notes'] = []
-                    edge['notes'].append({
-                        'text': warn,
-                        'level': 0,
-                        'hide': True
-                    })
-
-                    # Do not try to add any warnings any more. We don't know how several violations are encoded in
-                    # witnesses.
-                    break
+                edge['notes'].append({
+                    'text': warn,
+                    'level': 0,
+                    'hide': True
+                })
 
         del self._violation_edges, self._notes, self._asserts, self.displays
 

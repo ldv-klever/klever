@@ -18,20 +18,10 @@
 #ifndef __LDV_VERIFIER_COMMON_H
 #define __LDV_VERIFIER_COMMON_H
 
-/* https://sv-comp.sosy-lab.org/2017/rules.php */
-void __VERIFIER_error(void);
-void __VERIFIER_assume(int expr);
-
-/* If expression is zero ldv_assert() causes program to reach error function
- * call. */
-extern void ldv_assert(int expr);
-
-/* Cause error unconditionally.
- */
+/* Alias for __VERIFIER_error(). Unconditionally reach error function call. */
 extern void ldv_error(void);
 
-/* Internal alias for __VERIFIER_assume(). Proceed only if expression is
- * nonzero. */
+/* Alias for __VERIFIER_assume(). Proceed only if expression is nonzero. */
 extern void ldv_assume(int expr);
 
 #endif /* __LDV_VERIFIER_COMMON_H */

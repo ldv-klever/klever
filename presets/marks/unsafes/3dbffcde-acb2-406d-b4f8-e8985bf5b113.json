@@ -24,7 +24,7 @@
                     {
                       "LDV model 'rcu_read_unlock'": [
                         {
-                          "LDV model 'assert'": []
+                          "LDV model 'error'": []
                         }
                       ]
                     }

@@ -24,7 +24,7 @@
                     {
                       "LDV model 'clk_unprepare_clk'": [
                         {
-                          "LDV model 'assert'": []
+                          "LDV model 'error'": []
                         }
                       ]
                     }
