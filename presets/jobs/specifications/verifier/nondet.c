@@ -99,7 +99,7 @@ unsigned long ldv_undef_ulong(void)
 unsigned long long ldv_undef_ulonglong(void)
 {
 	/* NOTE2 Make a non-determined value of the unsigned long long type (verification tools will consider all possible values) */
-	unsigned long long undef_ulonglong __VERIFIER_nondet_ulonglong();
+	unsigned long long undef_ulonglong = __VERIFIER_nondet_ulonglong();
 	/* NOTE2 Return it to the caller */
 	return undef_ulonglong;
 }
