@@ -42,7 +42,7 @@ void *ldv_create_class(void)
 	/* NOTE Function cannot return NULL */
 	ldv_assume(is_got);
 
-	/* ASSERT Get blk request just in case when an error did not happen */
+	/* NOTE Get blk request just in case when an error did not happen */
 	if (!ldv_is_err(is_got))
 	{
 		if (ldv_usb_gadget_class != LDV_CLASS_ZERO_STATE)
@@ -64,7 +64,7 @@ int ldv_register_class(void)
 	/* NOTE Register gadget class in the nondeterministic way */
 	is_reg = ldv_undef_int_nonpositive();
 
-	/* ASSERT Get blk request just in case when an error did not happen */
+	/* NOTE Get blk request just in case when an error did not happen */
 	if (!is_reg)
 	{
 		if (ldv_usb_gadget_class != LDV_CLASS_ZERO_STATE)
