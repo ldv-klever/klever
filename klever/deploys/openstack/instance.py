@@ -61,13 +61,27 @@ class OSKleverInstance:
 
     def share(self):
         instance = self.client.get_instance(self.name)
-        self.client.remove_floating_ip(instance, share=True)
+
+        self.client.interface_detach(instance)
+        self.client.interface_attach(instance, share=True)
         self.client.assign_floating_ip(instance, share=True)
+
+        instance.add_security_group(self.args.os_sec_group)
+
+        self.logger.info(f'Reboot instance "{self.name}"')
+        instance.reboot()
 
     def hide(self):
         instance = self.client.get_instance(self.name)
-        self.client.remove_floating_ip(instance, share=False)
+
+        self.client.interface_detach(instance)
+        self.client.interface_attach(instance, share=False)
         self.client.assign_floating_ip(instance, share=False)
+
+        instance.add_security_group(self.args.os_sec_group)
+
+        self.logger.info(f'Reboot instance "{self.name}"')
+        instance.reboot()
 
     def remove(self):
         # TODO: wait for successfull deletion everywhere.

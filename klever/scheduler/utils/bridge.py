@@ -145,26 +145,7 @@ class Session:
         :param archive: Path to save the archive.
         :return: None.
         """
-        ret = True
-
-        while True:
-            resp = None
-            try:
-                resp = self.__request(endpoint, 'POST', data=data, files={'archive': open(archive, 'rb', buffering=0)},
-                                      stream=True)
-                break
-            except BridgeError:
-                if 'archive' in self.error and any(['is not a ZIP file' in error for error in self.error['archive']]):
-                    self.logger.info('Could not upload ZIP archive')
-                    self.error = None
-                    time.sleep(0.2)
-                else:
-                    raise
-            finally:
-                if resp:
-                    resp.close()
-
-        return ret
+        self.__request(endpoint, 'POST', data=data, files={'archive': open(archive, 'rb')}, stream=True)
 
     def exchange(self, endpoint, data=None, method='POST', looping=True):
         """

@@ -1,0 +1,11 @@
+[
+    {
+        "build base": "linux/loadable kernel modules sample arm64",
+        "architecture": "arm64",
+        "name": "Linux",
+        "git repository version": "v3.14.79",
+        "loadable kernel modules": [
+            "drivers/ata/pata_arasan_cf.ko"
+        ]
+    }
+]

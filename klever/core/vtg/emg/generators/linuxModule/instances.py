@@ -589,7 +589,6 @@ def _convert_calls_to_conds(logger, conf, sa, interfaces, process, label_map, ca
                 the_last_added = new
             else:
                 process.insert_alternative_action(new, the_last_added)
-
             generated_callbacks += 1
 
             # Reinitialize state
@@ -599,6 +598,9 @@ def _convert_calls_to_conds(logger, conf, sa, interfaces, process, label_map, ca
             # Add post and pre conditions
             if pre_action:
                 process.insert_action(pre_action, new, before=True)
+                # This is because the original callback may be replaced by a series of actions and we should add
+                # alternatives to the first action of such series
+                the_last_added = pre_action
             if post_action:
                 process.insert_action(post_action, new, before=False)
 

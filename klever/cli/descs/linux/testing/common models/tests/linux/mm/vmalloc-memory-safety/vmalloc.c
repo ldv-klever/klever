@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+ * Copyright (c) 2021 ISP RAS (http://www.ispras.ru)
  * Ivannikov Institute for System Programming of the Russian Academy of Sciences
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,4 +15,17 @@
  * limitations under the License.
  */
 
-@include <../linux/alloc/common.aspect>
+#include <linux/module.h>
+#include <ldv/common/test.h>
+
+static int __init ldv_init(void)
+{
+	void *p;
+	size_t size = ldv_undef_uint();
+
+	p = vmalloc(size);
+
+	return 0;
+}
+
+module_init(ldv_init);

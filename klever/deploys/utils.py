@@ -20,6 +20,7 @@ import getpass
 import json
 import logging
 import os
+import pkg_resources
 import pwd
 import subprocess
 import sys
@@ -177,7 +178,11 @@ def replace_media_user(path, media_user):
 def get_cgroup_version():
     # I was not able to find a better way to detect cgroup version
     # TODO: improve detection of cgroup version
-    if os.path.exists("/sys/fs/cgroup/freezer"):
-        return "v1"
+    if os.path.exists('/sys/fs/cgroup/freezer'):
+        return 'v1'
     else:
-        return "v2"
+        return 'v2'
+
+
+def get_klever_version():
+    return pkg_resources.get_distribution("klever").version

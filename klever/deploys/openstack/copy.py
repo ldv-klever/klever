@@ -43,7 +43,25 @@ class CopyDeployConfAndSrcs:
                 with open(os.path.join(klever_copy, 'version'), 'w') as fp:
                     fp.write(setuptools_scm.get_version())
                 execute_cmd(self.logger, 'rm', '-rf', klever_copy + '/.git')
+
+                # Development Klever Bridge runs from Klever sources and it creates directories like __pycache__, media,
+                # etc. with root access. We need to backup media and to restore it after update of Klever sources. Other
+                # directories are out of interest, but they should not hinder rsync.
+                sftp = self.ssh.ssh.open_sftp()
+                media_exists = False
+                try:
+                    sftp.stat('klever/bridge/media')
+                    media_exists = True
+                    self.ssh.execute_cmd('mv klever/bridge/media media-backup')
+                    self.ssh.execute_cmd('sudo rm -rf klever/bridge')
+                except IOError:
+                    pass
+
                 self.ssh.rsync(klever_copy, '~/')
+
+                if media_exists:
+                    self.ssh.execute_cmd('sudo rm -rf klever/bridge/media')
+                    self.ssh.execute_cmd('mv media-backup klever/bridge/media')
             finally:
                 if os.path.exists(klever_copy):
                     shutil.rmtree(klever_copy)

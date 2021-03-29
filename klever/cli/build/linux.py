@@ -32,7 +32,11 @@ class Linux(MakeProgram):
     _ARCH_OPTS = {
         'arm': {
             'ARCH': 'arm',
-            'CROSS_COMPILE': 'arm-unknown-linux-gnueabi-'
+            'CROSS_COMPILE': 'arm-unknown-eabi-'
+        },
+        'arm64': {
+            'ARCH': 'arm64',
+            'CROSS_COMPILE': 'aarch64_be-unknown-linux-gnu-'
         },
         'x86_64': {
             'ARCH': 'x86_64'
@@ -46,8 +50,8 @@ class Linux(MakeProgram):
         if not self.version:
             self.version = self._make('kernelversion', get_output=True)[0]
 
-        if self.architecture == 'arm':
-            self._CLADE_PRESET = 'klever_linux_kernel_arm'
+        # Always specify CIF to be used by Clade since this variable is global and it can be accidentally reused.
+        self._CLADE_CONF['Info.cif'] = self._ARCH_OPTS[self.architecture].get('CROSS_COMPILE', '') + 'cif'
 
     def _clean(self):
         self._make('mrproper')
@@ -57,7 +61,8 @@ class Linux(MakeProgram):
 
         # Linux kernel configuration can be specified by means of configuration file or configuration target.
         # all configuration files are located in the description directory
-        conf_file = os.path.join(self.target_program_desc['description directory'], self.target_program_desc['configuration'])
+        conf_file = os.path.join(self.target_program_desc['description directory'],
+                                 self.target_program_desc['configuration'])
 
         if os.path.isfile(conf_file):
             self.logger.info('Linux kernel configuration file is "{0}"'.format(conf_file))
