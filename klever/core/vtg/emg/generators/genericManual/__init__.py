@@ -111,7 +111,7 @@ class ScenarioModelgenerator(AbstractGenerator):
                                 assert v is None or isinstance(v, dict), str(v)
                                 if not (v and v.get('reference')):
                                     del specification[subsection][k]
-                    if new_content[spec_set].get('main process') and not new_content[spec_set]['main process'].get('reference'):
-                        del new_content[spec_set]['main process']
+                        if specification.get('main process') and not specification['main process'].get('reference'):
+                            del specification['main process']
                     merged_specification.extend(new_content[spec_set])
         return merged_specification
