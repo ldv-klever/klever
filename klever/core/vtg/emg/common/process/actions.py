@@ -523,7 +523,7 @@ class Actions(collections.UserDict):
         """
         Returns initial states of the process.
 
-        :return: Sorted list with starting process State objects.
+        :return: Sorted list with starting process Behaviour objects.
         """
         exclude = {a.action for a in self.filter(include={Subprocess})}
         acts = {a for a in self.behaviour() if not a.my_operator and isinstance(a, Operator) and a not in exclude}
