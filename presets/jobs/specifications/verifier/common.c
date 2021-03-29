@@ -23,12 +23,13 @@ void __VERIFIER_assume(int expr);
 
 void ldv_error(void)
 {
-	/* NOTE2 Verification tools treats this call of the special function as a solution of the reachability task that can correspond to either a fault or a false alarm. */
+	/* NOTE2 Verification tools treats this call of the special function as a solution of the reachability task that can correspond to either a fault or a false alarm */
 	__VERIFIER_error();
 }
 
-void ldv_assume(int expr)
-{
-    /* NOTE2 Verification tools do not traverse paths where an actual argument of this function is evaluated to zero. */
-    __VERIFIER_assume(expr);
-}
+// See corresponding comment in klever/cli/descs/include/ldv/verifier/common.h
+//void ldv_assume(int expr)
+//{
+//    /* NOTE2 Verification tools do not traverse paths where an actual argument of this function is evaluated to zero */
+//    __VERIFIER_assume(expr);
+//}

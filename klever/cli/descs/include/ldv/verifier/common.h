@@ -22,6 +22,10 @@
 extern void ldv_error(void);
 
 /* Alias for __VERIFIER_assume(). Proceed only if expression is nonzero. */
-extern void ldv_assume(int expr);
+/* TODO: CPAchecker can report timeouts instead of good verdicts and v.v. when __VERIFIER_assume() is invoked directly or through ldv_assume()
+ * extern void ldv_assume(int expr);
+ */
+void __VERIFIER_assume(int expr);
+#define ldv_assume(expr) __VERIFIER_assume(expr)
 
 #endif /* __LDV_VERIFIER_COMMON_H */
