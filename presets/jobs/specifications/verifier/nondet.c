@@ -67,7 +67,7 @@ int ldv_random_int(int begin, int end)
 long ldv_undef_long(void)
 {
 	/* NOTE2 Make a non-determined value of the long type (verification tools will consider all possible values) */
-	int undef_long = __VERIFIER_nondet_long();
+	long undef_long = __VERIFIER_nondet_long();
 	/* NOTE2 Return it to the caller */
 	return undef_long;
 }
