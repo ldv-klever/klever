@@ -3,12 +3,12 @@
     {
       "is_compare": true,
       "name": "Requirements specification",
-      "value": "drivers:base:class"
+      "value": "test:common"
     },
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/linux/drivers/base/class/created-at-exit.ko"
+      "value": "ext-modules/verifier/nondet/undef-long.ko"
     }
   ],
   "description": "",
@@ -16,31 +16,13 @@
     [
       [
         {
-          "Entry point 'main'": [
-            {
-              "LDV model 'check_final_state'": [
-                {
-                  "LDV model 'error'": []
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    ],
-    [
-      [
-        {
           "EMG wrapper": [
             {
               "LDV model 'init'": [
                 {
-                  "LDV model 'create_class'": [
+                  "LDV model 'expected_error'": [
                     {
-                      "LDV model 'undef_ptr'": []
-                    },
-                    {
-                      "LDV model 'is_err'": []
+                      "LDV model 'error'": []
                     }
                   ]
                 }
