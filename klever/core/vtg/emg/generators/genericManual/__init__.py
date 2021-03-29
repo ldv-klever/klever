@@ -106,9 +106,12 @@ class ScenarioModelgenerator(AbstractGenerator):
                 else:
                     # Find reference ones
                     for specification in (s.get('model', {}) for s in new_content[spec_set]):
-                        for subsection in specification:
-                            for k, v in list(specification[subsection].items()):
-                                if not v.get('reference'):
+                        for subsection in ('functions models', 'environment processes'):
+                            for k, v in list(specification.get(subsection, dict()).items()):
+                                assert v is None or isinstance(v, dict), str(v)
+                                if not (v and v.get('reference')):
                                     del specification[subsection][k]
+                    if new_content[spec_set].get('main process') and not new_content[spec_set]['main process'].get('reference'):
+                        del new_content[spec_set]['main process']
                     merged_specification.extend(new_content[spec_set])
         return merged_specification

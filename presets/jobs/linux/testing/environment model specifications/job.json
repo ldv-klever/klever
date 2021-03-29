@@ -94,7 +94,9 @@
         "ext-modules/urb_v.1/usb_kill_urb_invoke.ko",
         "ext-modules/urb_v.1/usb_unlink_urb_invoke.ko",
         "ext-modules/urb_v.1/usb_poison_urb_invoke.ko",
-        "ext-modules/kthread_v.1/kthread_run_invoke.ko"
+        "ext-modules/kthread_v.1/kthread_run_invoke.ko",
+        "ext-modules/separate_functions/single_unsafe.ko",
+        "ext-modules/manual_model/unsafe.ko"
       ]
     }
   ],
@@ -353,6 +355,34 @@
         "ext-modules/kthread_v.1"
       ],
       "requirement specifications": ["test:environment model specifications with function pointer analysis"]
+    },
+    {
+      "build base": "linux/testing/environment model specifications/81b6e0",
+      "specifications set": "5.5",
+      "targets": [
+        "ext-modules/timer_v.3",
+        "ext-modules/workqueue_v.1",
+        "ext-modules/urb_v.1",
+        "ext-modules/tasklet_v.2",
+        "ext-modules/kthread_v.1"
+      ],
+      "requirement specifications": ["test:environment model specifications with function pointer analysis"]
+    },
+    {
+      "build base": "linux/testing/environment model specifications/81b6e0",
+      "specifications set": "5.5",
+      "targets": [
+        "ext-modules/separate_functions"
+      ],
+      "requirement specifications": ["test:environment model specifications:default generator"]
+    },
+    {
+      "build base": "linux/testing/environment model specifications/81b6e0",
+      "specifications set": "5.5",
+      "targets": [
+        "ext-modules/manual_model"
+      ],
+      "requirement specifications": ["test:environment model specifications:manual generator"]
     }
   ]
 }
