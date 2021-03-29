@@ -53,7 +53,7 @@ int ldv_post_init(int init_ret_val)
 
 void ldv_check_return_value_probe(int retval)
 {
-	if (ldv_probe_state == LDV_PROBE_ERROR && retval == 0) {
+	if (ldv_probe_state == LDV_PROBE_ERROR && retval == 0)
 		/* ASSERT Errors of usb_register() should be properly propagated */
 		ldv_error();
 

@@ -23,7 +23,7 @@
 int ldv_dma_calls = 0;
 
 dma_addr_t ldv_dma_map_page(void) {
-	if (ldvv_dma_calls != 0)
+	if (ldv_dma_calls != 0)
 		/* ASSERT Check that previous dma_mapping call was checked */
 		ldv_error();
 

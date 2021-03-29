@@ -101,7 +101,7 @@ void ldv_idr_destroy{{ arg_sign.id }}(void)
 void ldv_check_final_state(void)
 {
 	// for arg_sign in idr_arg_signs
-	if (ldv_idr{{ arg_sign.id }} != LDV_NOT_INITIALIZED && ldv_idr{{ arg_sign.id }} != LDV_DESTROYED
+	if (ldv_idr{{ arg_sign.id }} != LDV_NOT_INITIALIZED && ldv_idr{{ arg_sign.id }} != LDV_DESTROYED)
 		/* ASSERT Check if {{ arg_sign.text }} is destroyed or not changed */
 		ldv_error();
 	// endfor
