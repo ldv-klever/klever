@@ -15,17 +15,24 @@
 # limitations under the License.
 #
 
+import logging
+
+from klever.core.vtg.emg.common.process import Process
 from klever.core.vtg.emg.decomposition.scenario import ScenarioExtractor
 
 
 class SeparationStrategy:
+    """
+    Strategy that creates Scenario instances for a provided Process instance. Each scenario is used to replace an origin
+    process in environment model variants.
+    """
 
     strategy = ScenarioExtractor
 
-    def __init__(self, logger, conf):
+    def __init__(self, logger: logging.Logger, conf: dict):
         self.logger = logger
         self.conf = conf
 
-    def __call__(self, process):
+    def __call__(self, process: Process):
         new = self.strategy(process.actions)
         return new()

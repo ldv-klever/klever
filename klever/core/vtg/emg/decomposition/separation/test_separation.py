@@ -31,12 +31,12 @@ def model():
 
 @pytest.fixture
 def default_separator():
-    return SeparationStrategy(logging, dict())
+    return SeparationStrategy(logging.Logger('default'), dict())
 
 
 @pytest.fixture
 def linear_separator():
-    return LinearStrategy(logging, dict())
+    return LinearStrategy(logging.Logger('default'), dict())
 
 
 def test_default_scenario_extraction(model, default_separator):
@@ -47,14 +47,17 @@ def test_default_scenario_extraction(model, default_separator):
     s1 = default_separator(c1p1)
     assert len(s1) == 2
     _compare_scenario_with_actions(s1, c1p1.actions)
+    assert len([s for s in s1 if s.savepoint]) == 2
 
     s2 = default_separator(c1p2)
     assert len(s2) == 2
     _compare_scenario_with_actions(s2, c1p2.actions)
+    assert len([s for s in s2 if s.savepoint]) == 2
 
     s3 = default_separator(c2p1)
     assert len(s3) == 1
     _compare_scenario_with_actions(s3, c2p1.actions)
+    assert len([s for s in s3 if s.savepoint]) == 0
 
 
 def _compare_scenario_with_actions(scenarios, actions):
@@ -80,17 +83,27 @@ def test_linear_strategy_c1p1(model, linear_separator):
     scenarios = linear_separator(c1p1)
     _check_linear_actions(scenarios, c1p1.actions)
 
+    # Test the number of scenarios
+    # Todo: reimplement this. It is better to cover sequences somehow.
+    assert len(scenarios) == 4, f'The number of scenarios is {len(scenarios)}'
+
 
 def test_linear_strategy_c1p2(model, linear_separator):
     c1p2 = model.environment['c1/p2']
     scenarios = linear_separator(c1p2)
     _check_linear_actions(scenarios, c1p2.actions)
 
+    # Test the number of scenarios
+    assert len(scenarios) == 8, f'The number of scenarios is {len(scenarios)}'
+
 
 def test_linear_strategy_c2p1(model, linear_separator):
     c2p1 = model.environment['c2/p1']
     scenarios = linear_separator(c2p1)
     _check_linear_actions(scenarios, c2p1.actions)
+
+    # Test the number of scenarios
+    assert len(scenarios) == 3, f'The number of scenarios is {len(scenarios)}'
 
 
 def _check_linear_actions(scenarios, actions):

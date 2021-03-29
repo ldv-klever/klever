@@ -19,10 +19,14 @@ import collections
 
 from klever.core.vtg.emg.decomposition.separation import SeparationStrategy
 from klever.core.vtg.emg.decomposition.scenario import ScenarioExtractor, Scenario
-from klever.core.vtg.emg.common.process.actions import Choice, Subprocess, Actions, Operator, Concatenation
+from klever.core.vtg.emg.common.process.actions import Choice, Actions, Operator, Concatenation, BaseAction, Action
 
 
 class LinearExtractor(ScenarioExtractor):
+    """
+    This class implements a factory that generates Scenario instances that do not have choices. Instead the factory
+    provides more scenarios that should cover all alternatives from the provided process.
+    """
 
     def __init__(self, actions: Actions):
         super().__init__(actions)
@@ -34,7 +38,7 @@ class LinearExtractor(ScenarioExtractor):
         # Collect all choices
         self.__reset_covered()
 
-    def _process_choice(self, scenario, beh, operator=None):
+    def _process_choice(self, scenario: Scenario, beh: BaseAction, operator: Operator = None):
         assert isinstance(beh, Choice), type(beh).__name__
 
         uncovered_children = [c for c in beh[:] if c in self.__uncovered]
@@ -63,7 +67,7 @@ class LinearExtractor(ScenarioExtractor):
             new_operator = scenario.add_action_copy(Concatenation(), operator)
             return self._fill_top_down(scenario, new_choice, new_operator)
 
-    def _get_scenarios_for_root_savepoints(self, root):
+    def _get_scenarios_for_root_savepoints(self, root: Action):
         def new_scenarios(rt, svp=None):
             self.__reset_covered()
             while len(self.__uncovered) > 0:

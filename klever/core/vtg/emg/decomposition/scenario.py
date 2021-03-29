@@ -22,6 +22,7 @@ from klever.core.vtg.emg.common.process.actions import Savepoint, BaseAction, Op
 
 
 class Scenario:
+    """Main data structure that implements an order of actions without any extra details and descriptions."""
 
     def __init__(self, savepoint: Savepoint = None):
         assert isinstance(savepoint, Savepoint) or savepoint is None,\
@@ -79,6 +80,10 @@ class Scenario:
 
 
 class ScenarioExtractor:
+    """
+    This is a simple extractor that returns a scenario as is in the given process. However, it implements main features
+    to explore actions and this is a foundation for the next implementations.
+    """
 
     def __init__(self, actions: Actions):
         self._actions = actions
@@ -88,7 +93,7 @@ class ScenarioExtractor:
         scenarios = self.__create_scenarios()
         return scenarios
 
-    def _process_subprocess(self, scenario, beh, operator=None):
+    def _process_subprocess(self, scenario: Scenario, beh: BaseAction, operator: Operator = None):
         assert isinstance(beh, Behaviour)
         assert beh.kind is Subprocess
 
@@ -99,16 +104,16 @@ class ScenarioExtractor:
             new.description.action = new_action
         return new
 
-    def _process_concatenation(self, scenario, beh, operator=None):
+    def _process_concatenation(self, scenario: Scenario, beh: Concatenation, operator: Operator = None):
         return self.__process_operator(scenario, beh, operator)
 
-    def _process_choice(self, scenario, beh, operator=None):
+    def _process_choice(self, scenario: Scenario, beh: Choice, operator: Operator = None):
         return self.__process_operator(scenario, beh, operator)
 
-    def _process_parentheses(self, scenario, beh, operator=None):
+    def _process_parentheses(self, scenario: Scenario, beh: Parentheses, operator: Operator = None):
         return self.__process_operator(scenario, beh, operator)
 
-    def _process_leaf_action(self, scenario, beh, operator=None):
+    def _process_leaf_action(self, scenario: Scenario, beh: Behaviour, operator: Operator = None):
         assert isinstance(beh, Behaviour)
 
         cpy = scenario.add_action_copy(beh, operator)
@@ -117,7 +122,7 @@ class ScenarioExtractor:
             scenario.actions[beh.name] = new_description
         return cpy
 
-    def _get_scenarios_for_root_savepoints(self, root):
+    def _get_scenarios_for_root_savepoints(self, root: BaseAction):
         first_actual = self._actions.first_actions(root)
         assert len(first_actual) == 1, 'Support only the one first action'
         actual = self._actions.behaviour(first_actual.pop())
@@ -129,14 +134,14 @@ class ScenarioExtractor:
         else:
             yield self._new_scenario(self._actions.initial_action)
 
-    def _new_scenario(self, rt, svp=None):
-        nsc = Scenario(svp)
-        nsc.initial_action = rt
-        for child in rt:
+    def _new_scenario(self, root: Operator, savepoint: Savepoint = None):
+        nsc = Scenario(savepoint)
+        nsc.initial_action = root
+        for child in root:
             self._fill_top_down(nsc, child, nsc.initial_action)
         return nsc
 
-    def _fill_top_down(self, scenario: Scenario, beh: Behaviour, operator: Operator = None):
+    def _fill_top_down(self, scenario: Scenario, beh: BaseAction, operator: Operator = None):
         assert isinstance(beh, BaseAction)
         assert isinstance(operator, Operator) or operator is None
         assert beh not in scenario.actions.behaviour()
@@ -165,7 +170,7 @@ class ScenarioExtractor:
                 scenarios.append(new_scenario)
         return scenarios
 
-    def __process_operator(self, scenario, behaviour, operator=None):
+    def __process_operator(self, scenario: Scenario, behaviour: Operator, operator: Operator = None):
         assert isinstance(behaviour, Operator), type(behaviour).__name__
         parent = scenario.add_action_copy(behaviour, operator)
 

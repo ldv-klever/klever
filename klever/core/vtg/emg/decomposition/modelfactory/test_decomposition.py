@@ -21,7 +21,7 @@ import logging
 from klever.core.vtg.emg.decomposition.modelfactory import ModelFactory
 from klever.core.vtg.emg.decomposition.separation import SeparationStrategy
 from klever.core.vtg.emg.common.process.model_for_testing import model_preset
-from klever.core.vtg.emg.decomposition.separation.linear import LinearStrategy
+
 
 @pytest.fixture
 def model():
@@ -29,15 +29,14 @@ def model():
 
 
 def test_default_models(model):
-    separation = ModelFactory(logging, {})
-    scenario_generator = LinearStrategy(logging, dict())
+    separation = ModelFactory(logging.Logger('default'), {})
+    scenario_generator = SeparationStrategy(logging.Logger('default'), dict())
     processes_to_scenarops = {str(process): list(scenario_generator(process)) for process in model.environment.values()}
     models = list(separation(processes_to_scenarops, model))
 
-    cnt = 0
+    cnt = 1  # Original model
     for process in model.environment.values():
-        for action in process.actions.values():
+        for action_name in process.actions.first_actions():
+            action = process.actions[action_name]
             cnt += len(action.savepoints) if hasattr(action, 'savepoints') and action.savepoints else 0
-
-    # Why?
-    assert len(models) == (cnt * 2) + 1
+    assert len(models) == cnt

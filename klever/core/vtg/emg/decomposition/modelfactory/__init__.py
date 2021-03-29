@@ -15,9 +15,11 @@
 # limitations under the License.
 #
 
-from logging import Logger
-from klever.core.vtg.emg.common.process import Process, ProcessCollection
+import logging
+
 from klever.core.vtg.emg.common.process.actions import Receive
+from klever.core.vtg.emg.decomposition.scenario import Scenario
+from klever.core.vtg.emg.common.process import Process, ProcessCollection
 
 
 class ScenarioCollection:
@@ -39,7 +41,7 @@ class Selector:
     are kept without changes. An origin model is also used.
     """
 
-    def __init__(self, logger: Logger, conf: dict, processes_to_scenarios: dict, model: ProcessCollection):
+    def __init__(self, logger: logging.Logger, conf: dict, processes_to_scenarios: dict, model: ProcessCollection):
         self.conf = conf
         self.logger = logger
         self.model = model
@@ -75,13 +77,15 @@ class Selector:
         return new
 
 
-# todo: Annotate arguments
-# todo: Write doc
 class ModelFactory:
+    """
+    The factory gets a map from processes to scenarios. It runs a strategy that chooses scenarios per a model and
+    generates then final models.
+    """
 
     strategy = Selector
 
-    def __init__(self, logger, conf):
+    def __init__(self, logger: logging.Logger, conf: dict):
         self.conf = conf
         self.logger = logger
 
@@ -109,7 +113,7 @@ class ModelFactory:
     def _process_copy(self, process: Process):
         return process.clone()
 
-    def _process_from_scenario(self, scenario, process):
+    def _process_from_scenario(self, scenario: Scenario, process: Process):
         new_process = process.clone()
         new_process.actions = scenario.actions
 
