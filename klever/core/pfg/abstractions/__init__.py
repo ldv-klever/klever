@@ -102,6 +102,8 @@ class Program:
                 if not parent_dir or (parent_dir and os.path.dirname(in_file) == parent_dir):
                     file = self._files[in_file]
                     files.add(file)
+                else:
+                    self.logger.warning(f"File {in_file} does not belong to {parent_dir}")
 
         if len(files) == 0:
             self.logger.warning("Cannot find C files for {} commands".format(cmd_type))
@@ -123,13 +125,21 @@ class Program:
         :return: Fragment object.
         """
         cmds = self.clade.get_root_cmds_by_type(identifier, cmd_type)
-        files = self.collect_files_from_commands(cmd_type, map(self.clade.get_cmd, cmds),
-                                                 os.path.dirname(fragmentation_set_conf['out'][0]) if sep_nestd
-                                                 else None)
+        # todo: this is should be investigated deeper
+        if sep_nestd:
+            parent_dir = os.path.dirname(fragmentation_set_conf['out'][0])
+            # This is becaouse new objects go into specific dir
+            parent_dir = parent_dir.replace('build/', '')
+        else:
+            parent_dir = None
+
+        files = self.collect_files_from_commands(cmd_type, map(self.clade.get_cmd, cmds), parent_dir)
         if not files:
             self.logger.warning('Cannot find C files for linker command {!r}'.format(name))
-        fragment = self.create_fragment(name, files, add=add)
-        return fragment
+        if self.get_fragment(name):
+            self.logger.warning(f'There is already created modules {name}')
+            return self.get_fragment(name)
+        return self.create_fragment(name, files, add=add)
 
     def cmnds_recursive_tree_traversing(self, compilation_kind, root_kinds):
         # Build a dict out -> cmd

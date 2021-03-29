@@ -48,10 +48,18 @@ class Linux(FragmentationAlgorythm):
         else:
             self._search_for_modules(program)
         if self.kernel:
+            self.logger.info("Search for modules that are linked to the kernel to separate them from subsystems")
+            self.search_for_statically_linked_modules(program)
             self.logger.info('Inspect AR comands in addition')
             self._search_for_modules(program, 'AR', 'built-in.a')
 
     def _search_for_modules(self, program, linking_command='LD', suffix='built-in.o'):
+        # Join already collected files in modules
+        modules_files = set()
+        if self.kernel:
+            for fragment in program.fragments:
+                modules_files.update(fragment.files)
+
         for desc in program.clade.get_all_cmds_by_type(linking_command):
             identifier = desc['id']
             # This shouldn't happen ever, but let's fail otherwise.
@@ -66,6 +74,9 @@ class Linux(FragmentationAlgorythm):
                 name = rel_object_path
                 fragment = program.create_fragment_from_linker_cmds(identifier, desc, name,
                                                                     out.endswith(suffix) and self._separate_nested)
+                if modules_files:
+                    new_files = fragment.files.difference(modules_files)
+                    fragment.files = new_files
                 if (not self._max_size or fragment.size <= self._max_size) and len(fragment.files) != 0:
                     program.add_fragment(fragment)
                 else:
@@ -127,6 +138,9 @@ class Linux(FragmentationAlgorythm):
         for name, files in modules.items():
             if not files:
                 self.logger.warning(f'Cannot find C files for linker command {name}')
+            if program.get_fragment(name):
+                self.logger.warning(f'There is already created modules {name}')
+                continue
 
             fragment = program.create_fragment(name, files)
             if (not self._max_size or fragment.size <= self._max_size) and len(fragment.files) != 0:
