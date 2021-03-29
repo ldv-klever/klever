@@ -47,3 +47,4 @@ urllib3==1.26.2
 vine==5.0.0
 wcwidth==0.2.5
 zipp==3.4.0
+pytest==4.3.0
