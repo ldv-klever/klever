@@ -20,7 +20,11 @@
             {
               "LDV model 'init'": [
                 {
-                  "LDV model 'unexpected_error'": []
+                  "LDV model 'unexpected_error'": [
+                    {
+                      "LDV model 'error'": []
+                    }
+                  ]
                 }
               ]
             }

@@ -26,7 +26,11 @@
                         {
                           "LDV model 'failed_usb_register_driver'": [
                             {
-                              "LDV model 'expected_error'": []
+                              "LDV model 'expected_error'": [
+                                {
+                                  "LDV model 'error'": []
+                                }
+                              ]
                             }
                           ]
                         }

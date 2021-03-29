@@ -20,7 +20,11 @@
             {
               "exit1": [
                 {
-                  "LDV model 'expected_error'": []
+                  "LDV model 'expected_error'": [
+                    {
+                      "LDV model 'error'": []
+                    }
+                  ]
                 }
               ]
             }
