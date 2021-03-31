@@ -85,22 +85,22 @@ around: call(static inline void LOS_IntRestore(UINT32))
 	__ldv_int_unlock();
 }
 
-around: call(static inline void LOS_SpinLock(SPIN_LOCK_S *))
+around: call(void LOS_SpinLock(SPIN_LOCK_S *))
 {
 	__ldv_spin_lock($arg1, "$arg_sign1");
 }
 
-around: call(static inline void LOS_SpinLockSave(SPIN_LOCK_S *, UINT32 *))
+around: call(void LOS_SpinLockSave(SPIN_LOCK_S *, UINT32 *))
 {
 	__ldv_spin_lock($arg1, "$arg_sign1");
 }
 
-around: call(static inline void LOS_SpinUnlockRestore(SPIN_LOCK_S *, UINT32))
+around: call(void LOS_SpinUnlockRestore(SPIN_LOCK_S *, UINT32))
 {
 	__ldv_spin_unlock($arg1, "$arg_sign1");
 }
 
-around: call(static inline void LOS_SpinUnlock(SPIN_LOCK_S *))
+around: call(void LOS_SpinUnlock(SPIN_LOCK_S *))
 {
 	__ldv_spin_unlock($arg1, "$arg_sign1");
 }
@@ -125,7 +125,7 @@ around: call(static inline void LOS_CirBufLock(CirBuf *, UINT32 *))
 	__ldv_cirbuf_lock($arg1, "$arg_sign1");
 }
 
-around: call(static inline void LOS_CirBufUnlock(CirBuf *, UINT32 *))
+around: call(static inline void LOS_CirBufUnlock(CirBuf *, UINT32))
 {
 	__ldv_cirbuf_unlock($arg1, "$arg_sign1");
 }

@@ -10,7 +10,8 @@
       "reference": true,
       "exclude from all fragments": [
         "kernel/liteos_a/lib/libc/**",
-        "third_party/zlib/**"
+        "third_party/zlib/**",
+        "third_party/musl/**"
       ]
     }
   }

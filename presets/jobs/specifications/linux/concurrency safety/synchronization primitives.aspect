@@ -165,7 +165,7 @@ around: define(spin_lock_irqsave_nested(lock, flags, subclass))
 __ldv_spin_lock(lock)
 }
 
-before: call(static inline void spin_lock(..)) ||
+around: call(static inline void spin_lock(..)) ||
         call(static inline void spin_lock_bh(..)) ||
         call(static inline void spin_lock_irq(..)) ||
         call(void __ldv_spin_lock(..))
@@ -193,7 +193,7 @@ around: define(spin_unlock_irqrestore(lock, flags))
 	__ldv_spin_unlock(lock)
 }
 
-before: call(static inline void spin_unlock(..)) ||
+around: call(static inline void spin_unlock(..)) ||
         call(static inline void spin_unlock_bh(..)) ||
         call(static inline void spin_unlock_irq(..)) ||
         call(static inline void spin_unlock_irqrestore(..)) ||

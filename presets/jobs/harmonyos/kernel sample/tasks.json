@@ -1,8 +1,8 @@
 {
-  "CPU time": "40min",
+  "CPU time": "120min",
   "soft CPU time": 0.9,
   "memory size": "10GB",
   "CPU model": null,
   "number of CPU cores": 0,
-  "disk memory size": "5GB"
+  "disk memory size": "15GB"
 }
