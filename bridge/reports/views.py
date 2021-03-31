@@ -28,12 +28,14 @@ from bridge.CustomViews import DataViewMixin, StreamingResponseView
 from tools.profiling import LoggedCallMixin
 
 from jobs.models import Decision
-from reports.models import ReportComponent, ReportSafe, ReportUnknown, ReportUnsafe, ReportAttr, CoverageArchive
+from reports.models import (
+    ReportComponent, ReportSafe, ReportUnknown, ReportUnsafe, ReportAttr, CoverageArchive, CompareDecisionsInfo
+)
 
 from jobs.utils import JobAccess
 from jobs.ViewJobData import ViewReportData
 
-from reports.comparison import ComparisonTableData
+from reports.comparison import ComparisonTableData, FillComparisonCache
 from reports.coverage import (
     GetCoverageStatistics, LeafCoverageStatistics, CoverageGenerator,
     ReportCoverageStatistics, VerificationCoverageStatistics
@@ -382,7 +384,37 @@ class ReportsComparisonView(LoginRequiredMixin, LoggedCallMixin, TemplateView):
             raise BridgeException(code=401)
         return {
             'decision1': decision1, 'decision2': decision2,
-            'data': ComparisonTableData(self.request.user, decision1, decision2)
+            'data': ComparisonTableData(decision1, decision2)
+        }
+
+
+class ReportsComparisonUUIDView(LoginRequiredMixin, LoggedCallMixin, TemplateView):
+    unparallel = ['Decision', CompareDecisionsInfo]
+    template_name = 'reports/comparison.html'
+
+    def get_context_data(self, **kwargs):
+        # Get decisions
+        try:
+            decision1 = Decision.objects.select_related('job').get(identifier=self.kwargs['decision1'])
+            decision2 = Decision.objects.select_related('job').get(identifier=self.kwargs['decision2'])
+        except Decision.DoesNotExist:
+            raise BridgeException(_("One of the selected decisions wasn't found"))
+
+        # Check jobs access
+        if not JobAccess(self.request.user, job=decision1.job).can_view\
+                or not JobAccess(self.request.user, job=decision2.job).can_view:
+            raise BridgeException(code=401)
+
+        # Get or create comparison cache
+        try:
+            comparison_info = CompareDecisionsInfo.objects.get(decision1=decision1, decision2=decision2)
+        except CompareDecisionsInfo.DoesNotExist:
+            obj = FillComparisonCache(self.request.user, decision1, decision2)
+            comparison_info = obj.info
+
+        return {
+            'decision1': decision1, 'decision2': decision2,
+            'data': ComparisonTableData(decision1, decision2, comparison_info=comparison_info)
         }
 
 
