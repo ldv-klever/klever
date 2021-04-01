@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+ * Copyright (c) 2021 ISP RAS (http://www.ispras.ru)
  * Ivannikov Institute for System Programming of the Russian Academy of Sciences
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,22 +15,10 @@
  * limitations under the License.
  */
 
-#include <ldv/linux/gfp.h>
-#include <ldv/linux/slab.h>
-#include <ldv/verifier/common.h>
+#include <ldv/common/inline_asm.h>
 
-extern int ldv_exclusive_spin_is_locked(void);
-
-void ldv_check_alloc_flags(gfp_t flags)
+void ldv_inline_asm(void)
 {
-	if (ldv_exclusive_spin_is_locked() && !CHECK_WAIT_FLAGS(flags))
-		/* ASSERT __GFP_WAIT flag should be unset (GFP_ATOMIC or GFP_NOWAIT flag should be used) when spinlock is aquired */
-		ldv_assert();
-}
-
-void ldv_check_alloc_nonatomic(void)
-{
-	if (ldv_exclusive_spin_is_locked())
-		/* ASSERT Spinlock should not be acquired */
-		ldv_assert();
+	/* NOTE2 Verification tools do not support inline Assembler, you may need to develop appropriate models in C */
+	0;
 }

@@ -247,6 +247,18 @@ class ErrorTraceParser:
                 _edge['file'], _edge['line'] = self.error_trace.programfile_line_map[startline]
                 referred_file_ids.add(_edge['file'])
 
+                # TODO: see comment in klever/cli/descs/include/ldv/verifier/common.h.
+                if '__VERIFIER_assume' in _edge['source']:
+                    if 'notes' not in _edge:
+                        _edge['notes'] = []
+
+                    _edge['notes'].append({
+                        'text': 'Verification tools do not traverse paths where an actual argument of this function' +
+                                ' is evaluated to zero',
+                        'level': 2,
+                        'hide': False
+                    })
+
                 if control is not None:
                     # Replace conditions to negative ones to consider else branches.
                     if not control:

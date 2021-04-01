@@ -20,13 +20,13 @@
 void ldv_expected_error(void)
 {
 	/* ASSERT Expected error */
-	__VERIFIER_error();
+	ldv_assert();
 }
 
 void ldv_unexpected_error(void)
 {
 	/* ASSERT Unexpected error */
-	__VERIFIER_error();
+	ldv_assert();
 }
 
 void ldv_expected_memory_safety_error(void)

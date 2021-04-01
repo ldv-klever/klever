@@ -22,7 +22,11 @@
                 {
                   "several_groups_export_with_error": [
                     {
-                      "LDV model 'expected_error'": []
+                      "LDV model 'expected_error'": [
+                        {
+                          "LDV model 'assert'": []
+                        }
+                      ]
                     }
                   ]
                 }

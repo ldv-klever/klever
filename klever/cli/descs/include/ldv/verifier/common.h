@@ -18,20 +18,14 @@
 #ifndef __LDV_VERIFIER_COMMON_H
 #define __LDV_VERIFIER_COMMON_H
 
-/* https://sv-comp.sosy-lab.org/2017/rules.php */
-void __VERIFIER_error(void);
-void __VERIFIER_assume(int expr);
+/* Alias for __VERIFIER_error(). Unconditionally reach error function call. */
+extern void ldv_assert(void);
 
-/* If expression is zero ldv_assert() causes program to reach error function
- * call. */
-extern void ldv_assert(int expr);
-
-/* Cause error unconditionally.
+/* Alias for __VERIFIER_assume(). Proceed only if expression is nonzero. */
+/* TODO: CPAchecker can report timeouts instead of good verdicts and v.v. when __VERIFIER_assume() is invoked directly or through ldv_assume()
+ * extern void ldv_assume(int expr);
  */
-extern void ldv_error(void);
-
-/* Internal alias for __VERIFIER_assume(). Proceed only if expression is
- * nonzero. */
+void __VERIFIER_assume(int expr);
 #define ldv_assume(expr) __VERIFIER_assume(expr)
 
 #endif /* __LDV_VERIFIER_COMMON_H */

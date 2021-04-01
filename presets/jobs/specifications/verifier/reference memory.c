@@ -112,6 +112,7 @@ void *ldv_reference_malloc_unknown_size(void)
 	void *res;
 
 	if (ldv_undef_int()) {
+    	/* NOTE2 Allocate special memory any usage of which will be considered as correct by verification tools (https://tinyurl.com/cu4ycvbx). */
 		res = external_allocated_data();
 		ldv_assume(res != NULL);
 		return res;
@@ -125,6 +126,7 @@ void *ldv_reference_calloc_unknown_size(void)
 	void *res;
 
 	if (ldv_undef_int()) {
+    	/* NOTE2 Allocate special memory any usage of which will be considered as correct by verification tools (https://tinyurl.com/cu4ycvbx). */
 		res = external_allocated_data();
 		memset(res, 0, sizeof(res));
 		ldv_assume(res != NULL);
@@ -143,6 +145,7 @@ void *ldv_reference_xmalloc_unknown_size(size_t size)
 {
 	void *res;
 
+    /* NOTE2 Allocate special memory any usage of which will be considered as correct by verification tools (https://tinyurl.com/cu4ycvbx). */
 	res = external_allocated_data();
 	ldv_assume(res != NULL);
 
