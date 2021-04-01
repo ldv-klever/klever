@@ -68,11 +68,10 @@ class GetComparisonObjects:
 
 class FillComparisonCache:
     def __init__(self, user, decision1, decision2):
-        self._user = user
         self._decision1 = decision1
         self._decision2 = decision2
         self._names = self.__get_attr_names()
-        self._info = self.__create_info()
+        self.info = self.__create_info(user)
         self.__fill_data()
 
     def __get_attr_names(self):
@@ -84,9 +83,9 @@ class FillComparisonCache:
             raise BridgeException(_("Jobs with different sets of attributes to compare can't be compared"))
         return list(sorted(names1))
 
-    def __create_info(self):
+    def __create_info(self, user):
         return CompareDecisionsInfo.objects.create(
-            user=self._user, decision1=self._decision1, decision2=self._decision2, names=self._names
+            user=user, decision1=self._decision1, decision2=self._decision2, names=self._names
         )
 
     def __fill_data(self):
@@ -114,7 +113,7 @@ class FillComparisonCache:
 
         # Create new comparison objects
         res = ComparisonObject.objects.bulk_create(list(ComparisonObject(
-            info=self._info, values=list(values_tuple),
+            info=self.info, values=list(values_tuple),
             verdict1=verdicts_data[values_tuple]['verdict1'],
             verdict2=verdicts_data[values_tuple]['verdict2']
         ) for values_tuple in sorted(verdicts_data)))
@@ -156,11 +155,14 @@ class FillComparisonCache:
 
 
 class ComparisonTableData:
-    def __init__(self, user, decision1, decision2):
-        try:
-            self.info = CompareDecisionsInfo.objects.get(user=user, decision1=decision1, decision2=decision2)
-        except CompareDecisionsInfo.DoesNotExist:
-            raise BridgeException(_('The comparison cache was not found'))
+    def __init__(self, decision1, decision2, comparison_info=None):
+        if comparison_info:
+            self.info = comparison_info
+        else:
+            try:
+                self.info = CompareDecisionsInfo.objects.get(decision1=decision1, decision2=decision2)
+            except CompareDecisionsInfo.DoesNotExist:
+                raise BridgeException(_('The comparison cache was not found'))
         self.table_rows = self.__get_table_data()
         self.attrs = self.__get_attrs()
         self.lightweight = (decision1.weight == decision2.weight == DECISION_WEIGHT[1][0])

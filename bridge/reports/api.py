@@ -61,7 +61,7 @@ class FillComparisonView(LoggedCallMixin, APIView):
                 or not JobAccess(self.request.user, job=d2.job).can_view:
             raise exceptions.PermissionDenied(_("You don't have an access to one of the selected jobs"))
         try:
-            CompareDecisionsInfo.objects.get(user=self.request.user, decision1=d1, decision2=d2)
+            CompareDecisionsInfo.objects.get(decision1=d1, decision2=d2)
         except CompareDecisionsInfo.DoesNotExist:
             FillComparisonCache(self.request.user, d1, d2)
         return Response({'url': reverse('reports:comparison', args=[d1.id, d2.id])})
