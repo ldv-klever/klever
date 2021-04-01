@@ -149,11 +149,17 @@ class Weaver(klever.core.vtg.plugins.Plugin):
                     with klever.core.utils.LockedOpen(cache_dir + '.tmp', 'w'):
                         if os.path.exists(cache_dir):
                             self.logger.info('Get woven in C file from cache')
+                            outfile = os.path.join(cache_dir, os.path.basename(outfile))
+                            if not os.path.exists(outfile):
+                                raise FileExistsError('Cache misses woven in C file (perhaps your models are broken)')
                             self.abstract_task_desc['extra C files'].append(
-                                {'C file': os.path.relpath(os.path.join(cache_dir, os.path.basename(outfile)),
-                                                           self.conf['main working directory'])})
+                                {'C file': os.path.relpath(outfile, self.conf['main working directory'])})
                             if self.conf['code coverage details'] != 'Original C source files':
                                 self.logger.info('Get cross references from cache')
+                                additional_srcs = os.path.join(cache_dir, 'additional sources')
+                                if not os.path.exists(additional_srcs):
+                                    raise FileExistsError(
+                                        'Cache misses cross references (perhaps your models are broken)')
                                 self.__merge_additional_srcs(os.path.join(cache_dir, 'additional sources'))
                         else:
                             os.makedirs(cache_dir)
