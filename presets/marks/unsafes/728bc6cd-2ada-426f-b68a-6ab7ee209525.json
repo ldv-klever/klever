@@ -25,7 +25,7 @@
                 {
                   "LDV model 'expected_error'": [
                     {
-                      "LDV model 'error'": []
+                      "LDV model 'assert'": []
                     }
                   ]
                 }

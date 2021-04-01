@@ -24,7 +24,7 @@
                     {
                       "LDV model 'unregister_usb_gadget'": [
                         {
-                          "LDV model 'error'": []
+                          "LDV model 'assert'": []
                         }
                       ]
                     }

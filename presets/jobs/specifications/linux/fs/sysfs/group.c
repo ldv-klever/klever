@@ -41,7 +41,7 @@ void ldv_sysfs_remove_group(void)
 {
 	if (ldv_sysfs < 1)
 		/* ASSERT Sysfs group must be allocated before. */
-		ldv_error();
+		ldv_assert();
 
 	/* NOTE Decrease allocated counter. */
 	ldv_sysfs--;
@@ -51,5 +51,5 @@ void ldv_check_final_state( void )
 {
 	if (ldv_sysfs != 0)
 		/* ASSERT Sysfs groups must be freed at the end. */
-		ldv_error();
+		ldv_assert();
 }

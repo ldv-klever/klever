@@ -106,10 +106,10 @@ void ldv_check_final_state(void)
 	// for arg_sign in clk1_arg_signs
 	if (ldv_enable_count{{ arg_sign.id }} != 0)
 		/* ASSERT Clk{{ arg_sign.text }} should be disabled before finishing operation */
-		ldv_error();
+		ldv_assert();
 
 	if (ldv_prepare_count{{ arg_sign.id }} != 0)
 		/* ASSERT Clk{{ arg_sign.text }} should be unprepared before finishing operation */
-		ldv_error();
+		ldv_assert();
 	// endfor
 }

@@ -33,7 +33,7 @@
                         {
                           "LDV model 'past_rtnl_lock'": [
                             {
-                              "LDV model 'error'": []
+                              "LDV model 'assert'": []
                             }
                           ]
                         }

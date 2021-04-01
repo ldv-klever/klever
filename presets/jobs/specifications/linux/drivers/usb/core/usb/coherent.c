@@ -43,7 +43,7 @@ void ldv_usb_free_coherent(void *addr)
     if (addr) {
         if (ldv_coherent_state < 1)
             /* ASSERT The memory must be allocated before. */
-            ldv_error();
+            ldv_assert();
 
         /* NOTE Decrease allocated counter. */
         ldv_coherent_state -= 1;
@@ -54,5 +54,5 @@ void ldv_check_final_state(void)
 {
     if (ldv_coherent_state != 0)
         /* ASSERT The coherent memory must be freed at the end. */
-        ldv_error();
+        ldv_assert();
 }

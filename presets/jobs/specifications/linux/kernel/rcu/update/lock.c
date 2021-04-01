@@ -32,7 +32,7 @@ void ldv_rcu_read_unlock(void)
 {
 	if (ldv_rcu_nested <= 0)
 		/* ASSERT Check the count of opened rcu_lock sections */
-		ldv_error();
+		ldv_assert();
 
 	/* NOTE Exit from rcu_read_lock/unlock section */
 	ldv_rcu_nested--;
@@ -42,12 +42,12 @@ void ldv_check_for_read_section( void )
 {
 	if (ldv_rcu_nested != 0)
 		/* ASSERT All rcu_lock sections should be closed at read sections */
-		ldv_error();
+		ldv_assert();
 }
 
 void ldv_check_final_state( void )
 {
 	if (ldv_rcu_nested != 0)
 		/* ASSERT All rcu_lock sections should be closed at exit */
-		ldv_error();
+		ldv_assert();
 }

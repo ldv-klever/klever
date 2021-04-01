@@ -47,7 +47,7 @@ void *ldv_create_class(void)
 	{
 		if (ldv_usb_gadget_class != LDV_CLASS_ZERO_STATE)
 			/* ASSERT Check that usb gadget class is unregistered */
-			ldv_error();
+			ldv_assert();
 
 		/* NOTE Register class for usb gadget */
 		ldv_usb_gadget_class = LDV_CLASS_REGISTERED;
@@ -69,7 +69,7 @@ int ldv_register_class(void)
 	{
 		if (ldv_usb_gadget_class != LDV_CLASS_ZERO_STATE)
 			/* ASSERT Check that usb gadget class is unregistered */
-			ldv_error();
+			ldv_assert();
 
 		/* NOTE Register class for usb gadget */
 		ldv_usb_gadget_class = LDV_CLASS_REGISTERED;
@@ -83,7 +83,7 @@ void ldv_unregister_class(void)
 {
 	if (ldv_usb_gadget_class != LDV_CLASS_REGISTERED)
 		/* ASSERT Check that usb gadget class is registered */
-		ldv_error();
+		ldv_assert();
 
 	/* NOTE Unregister class for usb gadget */
 	ldv_usb_gadget_class = LDV_CLASS_ZERO_STATE;
@@ -100,5 +100,5 @@ void ldv_check_final_state(void)
 {
 	if (ldv_usb_gadget_class != LDV_CLASS_ZERO_STATE)
 		/* ASSERT Usb gadget class should be unregistered at the end */
-		ldv_error();
+		ldv_assert();
 }

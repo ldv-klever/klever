@@ -19,7 +19,7 @@
 #define __LDV_VERIFIER_COMMON_H
 
 /* Alias for __VERIFIER_error(). Unconditionally reach error function call. */
-extern void ldv_error(void);
+extern void ldv_assert(void);
 
 /* Alias for __VERIFIER_assume(). Proceed only if expression is nonzero. */
 /* TODO: CPAchecker can report timeouts instead of good verdicts and v.v. when __VERIFIER_assume() is invoked directly or through ldv_assume()

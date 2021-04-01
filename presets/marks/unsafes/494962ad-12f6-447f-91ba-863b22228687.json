@@ -35,7 +35,7 @@
                     {
                       "LDV model 'usb_put_dev'": [
                         {
-                          "LDV model 'error'": []
+                          "LDV model 'assert'": []
                         }
                       ]
                     }

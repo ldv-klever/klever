@@ -20,7 +20,7 @@
             {
               "LDV model 'check_final_state'": [
                 {
-                  "LDV model 'error'": []
+                  "LDV model 'assert'": []
                 }
               ]
             }

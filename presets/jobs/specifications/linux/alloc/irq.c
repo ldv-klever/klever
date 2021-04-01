@@ -24,12 +24,12 @@ void ldv_check_alloc_flags(gfp_t flags)
 {
 	if (ldv_in_interrupt_context() && flags != GFP_ATOMIC)
 		/* ASSERT GFP_ATOMIC flag should be used in context of interrupt */
-		ldv_error();
+		ldv_assert();
 }
 
 void ldv_check_alloc_nonatomic(void)
 {
 	if (ldv_in_interrupt_context())
 		/* ASSERT We should not be in context of interrupt */
-		ldv_error();
+		ldv_assert();
 }

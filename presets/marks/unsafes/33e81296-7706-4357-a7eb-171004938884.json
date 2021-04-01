@@ -46,7 +46,7 @@
             {
               "LDV model 'invoke_reached'": [
                 {
-                  "LDV model 'error'": []
+                  "LDV model 'assert'": []
                 }
               ]
             }

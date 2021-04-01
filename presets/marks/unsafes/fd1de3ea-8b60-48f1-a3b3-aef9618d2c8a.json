@@ -24,7 +24,7 @@
                     {
                       "LDV model 'clk_disable_clk'": [
                         {
-                          "LDV model 'error'": []
+                          "LDV model 'assert'": []
                         }
                       ]
                     }

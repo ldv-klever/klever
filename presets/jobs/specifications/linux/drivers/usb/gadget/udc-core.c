@@ -45,7 +45,7 @@ void *ldv_create_class(void)
 
 	if (!ldv_is_err(is_got) && ldv_usb_gadget != LDV_USB_GADGET_ZERO_STATE)
 		/* ASSERT Registring usb gadget class is only allowed if usb gadget is not registered */
-		ldv_error();
+		ldv_assert();
 
 	/* NOTE Return obtained blk request */
 	return is_got;
@@ -60,7 +60,7 @@ int ldv_register_class(void)
 
 	if (!is_reg && ldv_usb_gadget != LDV_USB_GADGET_ZERO_STATE)
 		/* ASSERT Registering usb gadget class is only allowed if usb gadget is not registered */
-		ldv_error();
+		ldv_assert();
 
 	/* NOTE Return registration status (0 is success) */
 	return is_reg;
@@ -70,7 +70,7 @@ void ldv_unregister_class(void)
 {
 	if (ldv_usb_gadget != LDV_USB_GADGET_ZERO_STATE)
 		/* ASSERT Unregistering usb gadget class is only allowed if usb gadget is not registered */
-		ldv_error();
+		ldv_assert();
 }
 
 void ldv_destroy_class(struct class *cls)
@@ -90,7 +90,7 @@ int ldv_register_chrdev(int major)
 	if (!is_reg) {
 		if (ldv_usb_gadget != LDV_USB_GADGET_ZERO_STATE)
 			/* ASSERT Usb gadget should be unregistered at this point */
-			ldv_error();
+			ldv_assert();
 
 		if (major == 0) {
 			/* NOTE Function returns allocated major number */
@@ -112,7 +112,7 @@ int ldv_register_chrdev_region(void)
 
 	if (!is_reg && ldv_usb_gadget != LDV_USB_GADGET_ZERO_STATE)
 		/* ASSERT Usb gadget should be unregistered at this point */
-		ldv_error();
+		ldv_assert();
 
 	/* NOTE Return registration status (0 is success) */
 	return is_reg;
@@ -122,7 +122,7 @@ void ldv_unregister_chrdev_region(void)
 {
 	if (ldv_usb_gadget != LDV_USB_GADGET_ZERO_STATE)
 		/* ASSERT Usb gadget should not be registered at this point */
-		ldv_error();
+		ldv_assert();
 }
 
 int ldv_register_usb_gadget(void)
@@ -135,7 +135,7 @@ int ldv_register_usb_gadget(void)
 	if (!is_reg) {
 		if (ldv_usb_gadget != LDV_USB_GADGET_ZERO_STATE)
 			/* ASSERT Gadget should not be registered at this point */
-			ldv_error();
+			ldv_assert();
 
 		/* NOTE Register usb gadget */
 		ldv_usb_gadget = LDV_USB_GADGET_REGISTERED;
@@ -149,7 +149,7 @@ void ldv_unregister_usb_gadget(void)
 {
 	if (ldv_usb_gadget != LDV_USB_GADGET_REGISTERED)
 		/* ASSERT Usb gadget should be registered at this point */
-		ldv_error();
+		ldv_assert();
 
 	/* NOTE Unregister usb gadget */
 	ldv_usb_gadget = LDV_USB_GADGET_ZERO_STATE;
@@ -159,5 +159,5 @@ void ldv_check_final_state(void)
 {
 	if (ldv_usb_gadget != LDV_USB_GADGET_ZERO_STATE)
 		/* ASSERT Usb gadget should be unregistered at the end */
-		ldv_error();
+		ldv_assert();
 }

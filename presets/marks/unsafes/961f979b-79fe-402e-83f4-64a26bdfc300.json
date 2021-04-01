@@ -31,7 +31,7 @@
                     {
                       "LDV model 'dma_map_page'": [
                         {
-                          "LDV model 'error'": []
+                          "LDV model 'assert'": []
                         }
                       ]
                     }

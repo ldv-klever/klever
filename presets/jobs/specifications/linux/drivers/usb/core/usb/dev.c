@@ -44,11 +44,11 @@ void ldv_usb_put_dev(struct usb_device *dev)
 	if (dev) {
 		if (!ldv_map_contains_key(LDV_USB_DEV_REF_COUNTS, dev))
 			/* ASSERT USB device reference counter must be incremented */
-			ldv_error();
+			ldv_assert();
 
 		if (ldv_map_get(LDV_USB_DEV_REF_COUNTS, dev) <= 0)
 			/* ASSERT USB device reference counter must be incremented */
-			ldv_error();
+			ldv_assert();
 
 		/* NOTE Decrement USB device reference counter */
 		ldv_map_get(LDV_USB_DEV_REF_COUNTS, dev) > 1
@@ -62,7 +62,7 @@ void ldv_check_return_value_probe(int retval)
 	/* NOTE probe() finished unsuccessfully and returned error code */
 	if (retval && !ldv_map_is_empty(LDV_USB_DEV_REF_COUNTS))
 		/* ASSERT USB device reference counter should not be increased */
-		ldv_error();
+		ldv_assert();
 }
 
 void ldv_initialize(void)
@@ -75,5 +75,5 @@ void ldv_check_final_state(void)
 {
 	if (!ldv_map_is_empty(LDV_USB_DEV_REF_COUNTS))
 		/* ASSERT All incremented USB device reference counters must be decremented at the end */
-		ldv_error();
+		ldv_assert();
 }

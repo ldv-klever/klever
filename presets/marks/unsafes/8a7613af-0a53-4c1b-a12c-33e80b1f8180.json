@@ -24,7 +24,7 @@
                     {
                       "LDV model 'rcu_read_unlock_sched'": [
                         {
-                          "LDV model 'error'": []
+                          "LDV model 'assert'": []
                         }
                       ]
                     }

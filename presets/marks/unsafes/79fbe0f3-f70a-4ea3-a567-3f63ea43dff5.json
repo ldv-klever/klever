@@ -29,7 +29,7 @@
                         {
                           "LDV model 'check_alloc_flags'": [
                             {
-                              "LDV model 'error'": []
+                              "LDV model 'assert'": []
                             }
                           ]
                         }

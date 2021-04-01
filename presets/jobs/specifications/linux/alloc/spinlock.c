@@ -25,12 +25,12 @@ void ldv_check_alloc_flags(gfp_t flags)
 {
 	if (ldv_exclusive_spin_is_locked() && !CHECK_WAIT_FLAGS(flags))
 		/* ASSERT __GFP_WAIT flag should be unset (GFP_ATOMIC or GFP_NOWAIT flag should be used) when spinlock is aquired */
-		ldv_error();
+		ldv_assert();
 }
 
 void ldv_check_alloc_nonatomic(void)
 {
 	if (ldv_exclusive_spin_is_locked())
 		/* ASSERT Spinlock should not be acquired */
-		ldv_error();
+		ldv_assert();
 }

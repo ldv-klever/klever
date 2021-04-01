@@ -33,7 +33,7 @@ struct request_queue *ldv_request_queue(void)
 {
 	if (ldv_queue_state != LDV_NO_QUEUE)
 		/* ASSERT Queue should not be allocated twice. */
-		ldv_error();
+		ldv_assert();
 
 	/* NOTE Choose an arbitrary return value. */
 	struct request_queue *res = (struct request_queue *)ldv_undef_ptr();
@@ -52,7 +52,7 @@ void ldv_blk_cleanup_queue(void)
 {
 	if (ldv_queue_state != LDV_INITIALIZED_QUEUE)
 		/* ASSERT Queue should be allocated . */
-		ldv_error();
+		ldv_assert();
 
 	/* NOTE Free queue. */
 	ldv_queue_state = LDV_NO_QUEUE;
@@ -62,5 +62,5 @@ void ldv_check_final_state(void)
 {
 	if (ldv_queue_state != LDV_NO_QUEUE)
 		/* ASSERT Queue must be freed at the end. */
-		ldv_error();
+		ldv_assert();
 }

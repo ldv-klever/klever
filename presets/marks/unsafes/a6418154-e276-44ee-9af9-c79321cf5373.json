@@ -338,7 +338,7 @@
                                       "LDV model 'exclusive_spin_is_locked'": []
                                     },
                                     {
-                                      "LDV model 'error'": []
+                                      "LDV model 'assert'": []
                                     }
                                   ]
                                 }

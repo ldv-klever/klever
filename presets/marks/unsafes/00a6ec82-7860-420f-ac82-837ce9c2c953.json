@@ -53,7 +53,7 @@
                     {
                       "LDV model 'spin_unlock_lock_of_tipc_port'": [
                         {
-                          "LDV model 'error'": []
+                          "LDV model 'assert'": []
                         }
                       ]
                     }

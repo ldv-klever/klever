@@ -55,7 +55,7 @@ void ldv_check_return_value_probe(int retval)
 {
 	if (ldv_probe_state == LDV_PROBE_ERROR && retval == 0)
 		/* ASSERT Errors of register_netdev() should be properly propagated */
-		ldv_error();
+		ldv_assert();
 
 	/* NOTE Prevent error counter from being checked in other functions */
 	ldv_reset_error_counter();

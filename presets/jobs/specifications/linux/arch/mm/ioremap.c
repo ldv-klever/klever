@@ -39,7 +39,7 @@ void ldv_io_mem_unmap(void)
 {
 	if (ldv_iomem < 1)
 		/* ASSERT io-memory should be allocated before release */
-		ldv_error();
+		ldv_assert();
 
 	/* NOTE Decrease allocated counter. */
 	ldv_iomem--;
@@ -49,5 +49,5 @@ void ldv_check_final_state(void)
 {
 	if (ldv_iomem != 0)
 		/* ASSERT io-memory should be released at exit */
-		ldv_error();
+		ldv_assert();
 }

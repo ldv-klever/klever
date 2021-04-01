@@ -61,7 +61,7 @@ void ldv_module_put(struct module *module)
 	if (module) {
 		if (ldv_module_refcounter <= 1)
 			/* ASSERT Decremented module reference counter should be greater than its initial state */
-			ldv_error();
+			ldv_assert();
 
 		/* NOTE Decrement module reference counter */
 		ldv_module_refcounter--;
@@ -86,5 +86,5 @@ void ldv_check_final_state(void)
 {
 	if (ldv_module_refcounter != 1)
 		/* ASSERT Module reference counter should be decremented to its initial value before finishing operation */
-		ldv_error();
+		ldv_assert();
 }

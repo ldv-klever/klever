@@ -58,7 +58,7 @@ void ldv_clk_unprepare{{ arg_sign.id }}(void)
 {
 	if (ldv_prepare_count{{ arg_sign.id }} <= 0)
 		/* ASSERT Clk{{ arg_sign.text }} should not be unprepared without preparing */
-		ldv_error();
+		ldv_assert();
 
 	/* NOTE Decrease prepare counter */
 	ldv_prepare_count{{ arg_sign.id }}--;
@@ -81,7 +81,7 @@ void ldv_clk_disable{{ arg_sign.id }}(void)
 {
 	if (ldv_enable_count{{ arg_sign.id }} <= 0)
 		/* ASSERT Clk{{ arg_sign.text }} should not be disabled without enabling */
-		ldv_error();
+		ldv_assert();
 
 	/* NOTE Decrease enable counter */
 	ldv_enable_count{{ arg_sign.id }}--;

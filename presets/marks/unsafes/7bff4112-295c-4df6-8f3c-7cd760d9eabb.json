@@ -24,7 +24,7 @@
                     {
                       "LDV model 'wait_for_completion_x'": [
                         {
-                          "LDV model 'error'": []
+                          "LDV model 'assert'": []
                         }
                       ]
                     }

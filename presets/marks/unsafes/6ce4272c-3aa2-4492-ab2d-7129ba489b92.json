@@ -50,7 +50,7 @@
             {
               "LDV model 'check_return_value_probe'": [
                 {
-                  "LDV model 'error'": []
+                  "LDV model 'assert'": []
                 }
               ]
             }

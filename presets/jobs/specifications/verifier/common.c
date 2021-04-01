@@ -21,7 +21,7 @@
 void __VERIFIER_error(void);
 void __VERIFIER_assume(int expr);
 
-void ldv_error(void)
+void ldv_assert(void)
 {
 	/* NOTE2 Verification tools treats this call of the special function as a solution of the reachability task that can correspond to either a fault or a false alarm */
 	__VERIFIER_error();

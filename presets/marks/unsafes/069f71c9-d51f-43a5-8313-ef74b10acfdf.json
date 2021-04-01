@@ -31,7 +31,7 @@
                     {
                       "LDV model 'spin_lock_ldv_lock'": [
                         {
-                          "LDV model 'error'": []
+                          "LDV model 'assert'": []
                         }
                       ]
                     }

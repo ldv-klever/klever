@@ -34,7 +34,7 @@ void ldv_idr_init{{ arg_sign.id }}(void)
 {
 	if (ldv_idr{{ arg_sign.id }} != LDV_NOT_INITIALIZED)
 		/* ASSERT If IDR not initialized it can be initialized */
-		ldv_error();
+		ldv_assert();
 
 	/* NOTE Initialize state{{ arg_sign.id }} */
 	ldv_idr{{ arg_sign.id }} = LDV_INITIALIZED;
@@ -44,11 +44,11 @@ void ldv_idr_alloc{{ arg_sign.id }}(void)
 {
 	if (ldv_idr{{ arg_sign.id }} == LDV_NOT_INITIALIZED)
 		/* ASSERT IDR should be initialized */
-		ldv_error();
+		ldv_assert();
 
 	if (ldv_idr{{ arg_sign.id }} == LDV_DESTROYED)
 		/* ASSERT IDR should not be destroyed */
-		ldv_error();
+		ldv_assert();
 
 	/* NOTE Alloc in state{{ arg_sign.id }} */
 	ldv_idr{{ arg_sign.id }} = LDV_CHANGED;
@@ -58,11 +58,11 @@ void ldv_idr_find{{ arg_sign.id }}(void)
 {
 	if (ldv_idr{{ arg_sign.id }} == LDV_NOT_INITIALIZED)
 		/* ASSERT IDR should be initialized */
-		ldv_error();
+		ldv_assert();
 
 	if (ldv_idr{{ arg_sign.id }} == LDV_DESTROYED)
 		/* ASSERT IDR should not be destroyed */
-		ldv_error();
+		ldv_assert();
 
 	/* NOTE Find in state{{ arg_sign.id }} */
 	ldv_idr{{ arg_sign.id }} = LDV_CHANGED;
@@ -72,11 +72,11 @@ void ldv_idr_remove{{ arg_sign.id }}(void)
 {
 	if (ldv_idr{{ arg_sign.id }} == LDV_NOT_INITIALIZED)
 		/* ASSERT IDR should be initialized */
-		ldv_error();
+		ldv_assert();
 
 	if (ldv_idr{{ arg_sign.id }} == LDV_DESTROYED)
 		/* ASSERT IDR should not be destroyed */
-		ldv_error();
+		ldv_assert();
 
 	/* NOTE Remove from state{{ arg_sign.id }} */
 	ldv_idr{{ arg_sign.id }} = LDV_CHANGED;
@@ -86,11 +86,11 @@ void ldv_idr_destroy{{ arg_sign.id }}(void)
 {
 	if (ldv_idr{{ arg_sign.id }} == LDV_NOT_INITIALIZED)
 		/* ASSERT IDR should be initialized */
-		ldv_error();
+		ldv_assert();
 
 	if (ldv_idr{{ arg_sign.id }} == LDV_DESTROYED)
 		/* ASSERT IDR should not be destroyed */
-		ldv_error();
+		ldv_assert();
 
 	/* NOTE Destroy state{{ arg_sign.id }} */
 	ldv_idr{{ arg_sign.id }} = LDV_DESTROYED;
@@ -103,6 +103,6 @@ void ldv_check_final_state(void)
 	// for arg_sign in idr_arg_signs
 	if (ldv_idr{{ arg_sign.id }} != LDV_NOT_INITIALIZED && ldv_idr{{ arg_sign.id }} != LDV_DESTROYED)
 		/* ASSERT Check if {{ arg_sign.text }} is destroyed or not changed */
-		ldv_error();
+		ldv_assert();
 	// endfor
 }

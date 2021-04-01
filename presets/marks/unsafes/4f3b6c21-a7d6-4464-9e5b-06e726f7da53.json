@@ -49,7 +49,7 @@
                     {
                       "LDV model 'mutex_unlock_ldv_lock'": [
                         {
-                          "LDV model 'error'": []
+                          "LDV model 'assert'": []
                         }
                       ]
                     }

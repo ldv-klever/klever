@@ -46,7 +46,7 @@ void ldv_unlock_sock_fast(void)
 {
 	if (locksocknumber <= 0)
 		/* ASSERT unlock_sock_fas negative locksocknumber the result of multiply releases */
-		ldv_error();
+		ldv_assert();
 
 	/* NOTE unlocking socket fast warning*/
 	locksocknumber--;
@@ -56,7 +56,7 @@ void ldv_before_release_sock(void)
 {
 	if (locksocknumber <= 0)
 		/* ASSERT lock_sock negative locksocknumber the result of multiply releases */
-		ldv_error();
+		ldv_assert();
 
 	/* NOTE locked socket released */
 	locksocknumber--;
@@ -66,5 +66,5 @@ void ldv_check_final_state(void)
 {
 	if (locksocknumber != 0)
 		/* ASSERT lock_sock number */
-		ldv_error();
+		ldv_assert();
 }

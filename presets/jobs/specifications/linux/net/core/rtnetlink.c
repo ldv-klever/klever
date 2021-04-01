@@ -29,7 +29,7 @@ void ldv_past_rtnl_unlock(void)
 {
 	if (rtnllocknumber != 1)
 		/* ASSERT double rtnl_unlock */
-		ldv_error();
+		ldv_assert();
 
 	/* NOTE unlocking */
 	rtnllocknumber=0;
@@ -39,7 +39,7 @@ void ldv_past_rtnl_lock(void)
 {
 	if (rtnllocknumber != 0)
 		/* ASSERT double rtnl_lock */
-		ldv_error();
+		ldv_assert();
 
 	/* NOTE locking */
 	rtnllocknumber=1;
@@ -72,7 +72,7 @@ int ldv_rtnl_trylock(void)
 {
 	if (rtnllocknumber != 0)
 		/* ASSERT double rtnl_trylock */
-		ldv_error();
+		ldv_assert();
 
 	/* NOTE If there is no rtnl_lock */
 	if (!ldv_rtnl_is_locked()) { 
@@ -89,5 +89,5 @@ void ldv_check_final_state(void)
 {
 	if (rtnllocknumber != 0)
 		/* ASSERT lock_sock number */
-		ldv_error();
+		ldv_assert();
 }
