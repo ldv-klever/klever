@@ -260,13 +260,16 @@ class ErrorTraceParser:
                     })
 
                 if control is not None:
-                    # Replace conditions to negative ones to consider else branches.
+                    # Replace conditions to negative ones to consider else branches. It is worth noting that in most
+                    # cases Frama-C (CIL) introduces one of conditions like "==" or "<" surrounded by spaces.
+                    # Otherwise, do nothing even when the else branch should be taken.
+                    # TODO: perhaps without CIL this logic will be incorrect.
                     if not control:
                         cond_replaces = {'==': '!=', '!=': '==', '<=': '>', '>=': '<', '<': '>=', '>': '<='}
                         for orig_cond, replace_cond in cond_replaces.items():
-                            m = re.match(r'^(.+){0}(.+)$'.format(orig_cond), _edge['source'])
+                            m = re.match(r'^(.+) {0} (.+)$'.format(orig_cond), _edge['source'])
                             if m:
-                                _edge['source'] = '{0}{1}{2}'.format(m.group(1), replace_cond, m.group(2))
+                                _edge['source'] = '{0} {1} {2}'.format(m.group(1), replace_cond, m.group(2))
                                 # Do not proceed after some replacement is applied - others won't be done.
                                 break
 
