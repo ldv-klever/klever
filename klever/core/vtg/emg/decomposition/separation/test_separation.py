@@ -55,9 +55,7 @@ def test_default_scenario_extraction(model, default_separator):
     assert len([s for s in s2 if s.savepoint]) == 2
 
     s3 = default_separator(c2p1)
-    assert len(s3) == 1
-    _compare_scenario_with_actions(s3, c2p1.actions)
-    assert len([s for s in s3 if s.savepoint]) == 0
+    assert len(s3) == 0
 
 
 def _compare_scenario_with_actions(scenarios, actions):

@@ -17,8 +17,8 @@
 
 import collections
 
-from klever.core.vtg.emg.decomposition.separation import SeparationStrategy
-from klever.core.vtg.emg.decomposition.scenario import ScenarioExtractor, Scenario
+from klever.core.vtg.emg.decomposition.scenario import Scenario
+from klever.core.vtg.emg.decomposition.separation import SeparationStrategy, ScenarioExtractor
 from klever.core.vtg.emg.common.process.actions import Choice, Actions, Operator, Concatenation, BaseAction, Action
 
 
@@ -48,6 +48,13 @@ class LinearExtractor(ScenarioExtractor):
                 self.__children_paths[unovered_child] = list(self.__scenario_choices)
             new_choice = uncovered_children[0]
             self.__uncovered.remove(new_choice)
+            if isinstance(new_choice, Operator):
+                roots = self._actions.first_actions(new_choice)
+                name = roots.pop()
+            else:
+                name = new_choice.name
+
+            scenario.name = scenario.name + f'_{name}' if scenario.name else name
             if new_choice in self.__children_paths:
                 del self.__children_paths[new_choice]
         else:
@@ -75,6 +82,7 @@ class LinearExtractor(ScenarioExtractor):
                 self.__scenario_choices = []
                 nsc = self._new_scenario(rt, svp)
                 assert len(self.__uncovered) < current, 'Deadlock found'
+                assert nsc.name
                 yield nsc
 
         first_actual = self._actions.first_actions(root)
@@ -89,11 +97,8 @@ class LinearExtractor(ScenarioExtractor):
                     yield from new_scenarios(self._actions.initial_action, savepoint)
                 else:
                     yield new_scenarios(self._actions.initial_action, savepoint)
-        else:
-            if self.__uncovered is not None:
-                yield from new_scenarios(self._actions.initial_action)
-            else:
-                yield new_scenarios(self._actions.initial_action)
+        elif self.__uncovered is not None:
+            yield from new_scenarios(self._actions.initial_action)
 
     def __reset_covered(self):
         # Collect all choices

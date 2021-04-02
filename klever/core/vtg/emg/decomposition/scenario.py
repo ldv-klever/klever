@@ -15,20 +15,19 @@
 # limitations under the License.
 #
 
-import copy
-
-from klever.core.vtg.emg.common.process.actions import Savepoint, BaseAction, Operator, Behaviour, Concatenation, \
-    Choice, Parentheses, Subprocess, Actions
+from klever.core.vtg.emg.common.process.actions import Savepoint, BaseAction, Operator, Behaviour, Actions
 
 
 class Scenario:
     """Main data structure that implements an order of actions without any extra details and descriptions."""
 
-    def __init__(self, savepoint: Savepoint = None):
+    def __init__(self, savepoint: Savepoint = None, name: str = None):
+        assert isinstance(name, str) or name is None
         assert isinstance(savepoint, Savepoint) or savepoint is None,\
             f'Receive incorrect object of type {type(savepoint).__name__}'
 
         self.savepoint = savepoint
+        self.name = name if name else str(savepoint)
         self.actions = Actions()
         self.__initial_action = None
 
@@ -58,7 +57,7 @@ class Scenario:
         return new_copy
 
     def clone(self):
-        new = Scenario(self.savepoint)
+        new = Scenario(self.name, self.savepoint)
         new.actions = self.actions.clone()
         new.__initial_action = new.actions.initial_action
         return new
@@ -77,104 +76,3 @@ class Scenario:
         else:
             raise NotImplementedError
         return new_copy
-
-
-class ScenarioExtractor:
-    """
-    This is a simple extractor that returns a scenario as is in the given process. However, it implements main features
-    to explore actions and this is a foundation for the next implementations.
-    """
-
-    def __init__(self, actions: Actions):
-        self._actions = actions
-        self._roots = {self._actions.initial_action}
-
-    def __call__(self):
-        scenarios = self.__create_scenarios()
-        return scenarios
-
-    def _process_subprocess(self, scenario: Scenario, beh: BaseAction, operator: Operator = None):
-        assert isinstance(beh, Behaviour)
-        assert beh.kind is Subprocess
-
-        new = self._process_leaf_action(scenario, beh, operator)
-        if len(scenario.actions.behaviour(new.name)) == 1:
-            child = beh.description.action
-            new_action = self._fill_top_down(scenario, child)
-            new.description.action = new_action
-        return new
-
-    def _process_concatenation(self, scenario: Scenario, beh: Concatenation, operator: Operator = None):
-        return self.__process_operator(scenario, beh, operator)
-
-    def _process_choice(self, scenario: Scenario, beh: Choice, operator: Operator = None):
-        return self.__process_operator(scenario, beh, operator)
-
-    def _process_parentheses(self, scenario: Scenario, beh: Parentheses, operator: Operator = None):
-        return self.__process_operator(scenario, beh, operator)
-
-    def _process_leaf_action(self, scenario: Scenario, beh: Behaviour, operator: Operator = None):
-        assert isinstance(beh, Behaviour)
-
-        cpy = scenario.add_action_copy(beh, operator)
-        if beh.name not in scenario.actions:
-            new_description = copy.copy(self._actions[beh.name])
-            scenario.actions[beh.name] = new_description
-        return cpy
-
-    def _get_scenarios_for_root_savepoints(self, root: BaseAction):
-        first_actual = self._actions.first_actions(root)
-        assert len(first_actual) == 1, 'Support only the one first action'
-        actual = self._actions.behaviour(first_actual.pop())
-        assert len(actual) == 1, f'Support only the one first action behaviour'
-        actual = actual.pop()
-        if actual.description.savepoints:
-            for savepoint in actual.description.savepoints:
-                yield self._new_scenario(self._actions.initial_action, savepoint)
-        else:
-            yield self._new_scenario(self._actions.initial_action)
-
-    def _new_scenario(self, root: Operator, savepoint: Savepoint = None):
-        nsc = Scenario(savepoint)
-        nsc.initial_action = root
-        for child in root:
-            self._fill_top_down(nsc, child, nsc.initial_action)
-        return nsc
-
-    def _fill_top_down(self, scenario: Scenario, beh: BaseAction, operator: Operator = None):
-        assert isinstance(beh, BaseAction)
-        assert isinstance(operator, Operator) or operator is None
-        assert beh not in scenario.actions.behaviour()
-        if operator:
-            assert operator in scenario.actions.behaviour()
-
-        if isinstance(beh, Concatenation):
-            processing_method = self._process_concatenation
-        elif isinstance(beh, Choice):
-            processing_method = self._process_choice
-        elif isinstance(beh, Parentheses):
-            processing_method = self._process_parentheses
-        elif isinstance(beh, Behaviour) and beh.kind is Subprocess:
-            processing_method = self._process_subprocess
-        else:
-            processing_method = self._process_leaf_action
-
-        return processing_method(scenario, beh, operator)
-
-    def __create_scenarios(self):
-        scenarios = list()
-        while self._roots:
-            root = self._roots.pop()
-
-            for new_scenario in self._get_scenarios_for_root_savepoints(root):
-                scenarios.append(new_scenario)
-        return scenarios
-
-    def __process_operator(self, scenario: Scenario, behaviour: Operator, operator: Operator = None):
-        assert isinstance(behaviour, Operator), type(behaviour).__name__
-        parent = scenario.add_action_copy(behaviour, operator)
-
-        for child in behaviour:
-            self._fill_top_down(scenario, child, parent)
-
-        return parent

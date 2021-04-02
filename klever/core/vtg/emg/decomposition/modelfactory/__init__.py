@@ -48,17 +48,19 @@ class Selector:
         self.processes_to_scenarios = processes_to_scenarios
 
     def __call__(self, *args, **kwargs):
-        yield self._make_base_model()
-        for scenario in self._scenarions_with_savepoint:
-            new = ScenarioCollection()
-            new.entry = scenario
+        if not self.conf.get('skip origin model'):
+            yield self._make_base_model()
+        if not self.conf.get('skip savepoints'):
+            for scenario in self._scenarions_with_savepoint:
+                new = ScenarioCollection()
+                new.entry = scenario
 
-            for model in self.model.models:
-                new.models[str(model)] = None
-            for process in self.model.environment:
-                if scenario not in self.processes_to_scenarios[process]:
-                    new.environment[str(process)] = None
-            yield new
+                for model in self.model.models:
+                    new.models[str(model)] = None
+                for process in self.model.environment:
+                    if scenario not in self.processes_to_scenarios[process]:
+                        new.environment[str(process)] = None
+                yield new
 
     @property
     def _scenarios(self):
