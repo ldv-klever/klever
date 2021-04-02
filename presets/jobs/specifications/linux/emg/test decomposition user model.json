@@ -1,0 +1,119 @@
+{
+  "5.5": [
+    {
+      "fragments": [
+        "ext-modules/decomposition_disabled/a_invoke.ko",
+        "ext-modules/decomposition_disabled/b_invoke.ko",
+        "ext-modules/decomposition_disabled/c_invoke.ko",
+        "ext-modules/decomposition_disabled/c_without_b.ko"
+      ],
+      "model": {
+        "functions models": {},
+        "environment processes": {
+          "base/base": {
+            "actions": {
+              "call_a": {
+                "comment": "Call 'a' callback.",
+                "trace relevant": true,
+                "statements": [
+                  "a(%a_param%);"
+                ]
+              },
+              "call_b": {
+                "comment": "Call 'b' callback.",
+                "trace relevant": true,
+                "statements": [
+                  "b(%b_param%);"
+                ]
+              },
+              "register_base": {
+                "comment": "Activate the first calling callbacks transition system.",
+                "parameters": [],
+                "replicative": true,
+                "savepoints": {
+                  "first_savepoint": [
+                    "%a_param% = 1;",
+                    "%b_param% = 1;"
+                  ]
+                }
+              },
+              "register_c": {
+                "comment": "Activate the second calling callbacks transition system.",
+                "parameters": ["%c_param%"]
+              }
+            },
+            "category": "base",
+            "comment": "Invoke test callbacks.",
+            "declarations": {
+              "environment model": {
+                "& a": "extern void a(int param);\n",
+                "& b": "extern void b(int param);\n"
+              }
+            },
+            "labels": {
+              "a_param": {
+                "declaration": "int a_param",
+                "value": "0"
+              },
+              "b_param": {
+                "declaration": "int b_param",
+                "value": "0"
+              },
+              "c_param": {
+                "declaration": "int c_param",
+                "value": "1"
+              }
+            },
+            "process": "(!register_base).(<call_a> | <call_b>.[register_c])"
+          },
+          "base/advanced": {
+            "actions": {
+              "call_c": {
+                "comment": "Call 'c' callback.",
+                "trace relevant": true,
+                "statements": [
+                  "c(%c_param%);"
+                ]
+              },
+              "register_c": {
+                "comment": "Activate the second calling callbacks transition system.",
+                "parameters": ["%c_param%"],
+                "replicative": true,
+                "second_savepoint": [
+                  "%c_param% = 2;"
+                ]
+              }
+            },
+            "category": "base",
+            "comment": "Invoke the third test callback.",
+            "declarations": {
+              "environment model": {
+                "& c": "extern void c(int param);\n"
+              }
+            },
+            "labels": {
+              "c_param": {
+                "declaration": "int c_param",
+                "value": "0"
+              }
+            },
+            "process": "(!register_c).<call_c>"
+          }
+        },
+        "main process": {
+          "actions": {
+            "register_base": {
+              "comment": "Activate the first calling callbacks transition system.",
+              "parameters": [],
+              "replicative": true
+            }
+          },
+          "category": "entry_point",
+          "comment": "Main process.",
+          "labels": {},
+          "process": "[register_base]"
+        }
+      }
+    }
+  ]
+}
