@@ -428,7 +428,7 @@
         }
       ],
       "decomposition": true,
-      "use savepoints": true
+      "skip origin model": true
     },
     {
       "build base": "linux/testing/environment model specifications/81b6e0",
@@ -442,7 +442,8 @@
         }
       ],
       "decomposition": true,
-      "use savepoints": false,
+      "skip savepoints": true,
+      "skip origin model": true,
       "scenario separation": "linear"
     }
   ]
