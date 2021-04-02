@@ -150,7 +150,8 @@ class CollectionDecoder:
         self.logger.info("Import processes from provided event categories specification")
         raise_exc = []
         if "functions models" in raw:
-            self.logger.info("Import processes from 'kernel model'")
+            self.logger.info("Import processes from 'kernel model', there are "
+                             f"{len(raw['functions models'].keys())} of them")
             for name_list, process_desc in raw["functions models"].items():
                 names = name_list.split(", ")
                 for name in names:
@@ -162,8 +163,11 @@ class CollectionDecoder:
                     except Exception as err:
                         self.logger.warning("Cannot parse {!r}: {}".format(name, str(err)))
                         raise_exc.append(name)
+        else:
+            self.logger.info('There is no "functions models" description')
         if "environment processes" in raw:
-            self.logger.info("Import processes from 'environment processes'")
+            self.logger.info(f"Import processes from 'environment processes', there are "
+                             f"{len(raw['environment processes'].keys())} of them")
             for name, process_desc in raw["environment processes"].items():
                 # This simplifies parsing of event specifications for Linux but actually this can be avoided by adding
                 # categories to corresponding specifications.
@@ -181,6 +185,8 @@ class CollectionDecoder:
                 except Exception:
                     self.logger.warning("Cannot parse {!r}: {}".format(name, traceback.format_exc()))
                     raise_exc.append(name)
+        else:
+            self.logger.info('There is no "environment processes" description')
 
         if "main process" in raw and isinstance(raw["main process"], dict):
             self.logger.info("Import main process")
