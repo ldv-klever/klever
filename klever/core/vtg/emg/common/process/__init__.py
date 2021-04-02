@@ -470,10 +470,11 @@ class ProcessCollection:
 
     entry = ProcessDescriptor()
 
-    def __init__(self):
+    def __init__(self, name=0):
         self._entry = None
         self.models = ProcessDict()
         self.environment = ProcessDict()
+        self.name = name
 
     @property
     def processes(self):

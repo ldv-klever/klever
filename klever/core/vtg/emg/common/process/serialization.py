@@ -39,6 +39,7 @@ class CollectionEncoder(json.JSONEncoder):
 
     def _serialize_collection(self, collection):
         data = {
+            "name": collection.name,
             "functions models": {p.name: self._export_process(p) for p in collection.models.values()},
             "environment processes": {str(p): self._export_process(p) for p in collection.environment.values()},
             "main process": self._export_process(collection.entry) if collection.entry else None
@@ -147,7 +148,11 @@ class CollectionDecoder:
         :param collection: ProcessCollection.
         :return: ProcessCollection
         """
-        self.logger.info("Import processes from provided event categories specification")
+        if 'name' in raw:
+            assert isinstance(raw['name'], str)
+            collection.name = raw['name']
+
+        self.logger.info(f"Import processes from provided event categories specification {collection.name}")
         raise_exc = []
         if "functions models" in raw:
             self.logger.info("Import processes from 'kernel model', there are "

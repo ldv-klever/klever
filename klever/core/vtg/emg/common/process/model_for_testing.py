@@ -327,6 +327,7 @@ def raw_model_preset():
     }
 
     spec = {
+        "name": 'test_model',
         "functions models": {
             "register_c1": register_c1,
             "deregister_c1": deregister_c1,

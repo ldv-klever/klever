@@ -45,6 +45,7 @@ def test_import_model(raw_model, model):
 
 
 def test_imported_names(raw_model, model):
+    assert model.name == raw_model['name']
     assert 'entry' == model.entry.name
 
     for name in raw_model['functions models']:
