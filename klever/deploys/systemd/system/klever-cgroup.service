@@ -1,5 +1,6 @@
 [Unit]
 Description=Klever cgroup Service
+After=klever-native-scheduler.service
 
 [Service]
 Type=simple
