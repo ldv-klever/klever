@@ -29,7 +29,9 @@ class ScenarioCollection:
     it will use a provided scenario.
     """
 
-    def __init__(self, entry=None, models=None, environment=None):
+    def __init__(self, name, entry=None, models=None, environment=None):
+        assert isinstance(name, str) or isinstance(name, int)
+        self.name = name
         self.entry = entry
         self.models = models if isinstance(models, dict) else dict()
         self.environment = environment if isinstance(environment, dict) else dict()
@@ -52,7 +54,7 @@ class Selector:
             yield self._make_base_model()
         if not self.conf.get('skip savepoints'):
             for scenario in self._scenarions_with_savepoint:
-                new = ScenarioCollection()
+                new = ScenarioCollection(scenario.name)
                 new.entry = scenario
 
                 for model in self.model.models:
@@ -71,7 +73,7 @@ class Selector:
         return {s for s in self._scenarios if s.savepoint}
 
     def _make_base_model(self):
-        new = ScenarioCollection()
+        new = ScenarioCollection(0)
         for model in self.model.models:
             new.models[str(model)] = None
         for process in self.model.environment:
@@ -94,7 +96,7 @@ class ModelFactory:
     def __call__(self, processes_to_scenarios: dict, model: ProcessCollection):
         selector = self.strategy(self.logger, self.conf, processes_to_scenarios, model)
         for batch in selector():
-            new = ProcessCollection()
+            new = ProcessCollection(batch.name)
 
             if batch.entry:
                 new.entry = self._process_from_scenario(batch.entry, model.entry)
@@ -110,7 +112,7 @@ class ModelFactory:
             new.establish_peers()
             self._remove_unused_processes(new)
 
-            yield model
+            yield new
 
     def _process_copy(self, process: Process):
         return process.clone()

@@ -16,24 +16,23 @@
 #
 
 from logging import Logger
-from klever.core.vtg.emg.common.c.source import Source
 from klever.core.vtg.emg.common.process import ProcessCollection
+from klever.core.vtg.emg.decomposition.modelfactory import ModelFactory
 from klever.core.vtg.emg.decomposition.separation import SeparationStrategy
 from klever.core.vtg.emg.decomposition.separation.linear import LinearStrategy
-from klever.core.vtg.emg.decomposition.modelfactory.isolated import IsolatedFactory
 
 
 #TODO: Add Python Doc
 #TODO: Add Annotations
-#TODO: Remove SA if it is not required
-def decompose_intermediate_model(logger: Logger, conf: dict, sa: Source, model: ProcessCollection):
+def decompose_intermediate_model(logger: Logger, conf: dict, model: ProcessCollection):
     if conf.get('decomposition'):
         algorythm = Decomposition(logger, conf,
+                                  model=model,
                                   separator=_choose_separator(logger, conf),
                                   modelfactory=_choose_factory(logger, conf))
-        # todo: At this moment do not forward the result
-        for new_model in algorythm.decompose(model):
-            logger.info('Generated a new model')
+        for new_model in algorythm():
+            logger.info(f'Generated a new model {new_model.name}')
+            yield new_model
     else:
         return [model]
 
@@ -48,30 +47,24 @@ def _choose_separator(logger, conf):
 
 
 def _choose_factory(logger, conf):
-    # todo: At the moment this is the only option
-    return IsolatedFactory(logger, conf)
+    # TODO: Implement an option that cover different scenarios not only SP
+    return ModelFactory(logger, conf)
 
 
 class Decomposition:
 
-    def __init__(self, logger, conf, separator, modelfactory):
+    def __init__(self, logger, conf, model, separator, modelfactory):
         self.logger = logger
         self.conf = conf
+        self.model = model
         self.separator = separator
         self.modelfactory = modelfactory
 
-    def decompose(self, model: ProcessCollection):
-        processes = set()
-        # We do not add kernel models to reduce the number of resulted models and scenarios but in general it should
-        # be possible
-        processes.add(model.entry)
-        processes.update(model.environment)
-
+    def __call__(self, *args, **kwargs):
         processes_to_scenarios = dict()
-        for process in processes:
-            scenarios = self.separator(process)
+        for process in self.model.environment.values():
+            scenarios = list(self.separator(process))
             self.logger.debug(f'Generated {len(scenarios)} scenarios for the process {str(process)}')
-            processes_to_scenarios[process] = scenarios
+            processes_to_scenarios[str(process)] = scenarios
 
-        for model in self.modelfactory.generate_models(processes_to_scenarios):
-            yield model
+        yield from self.modelfactory(processes_to_scenarios, self.model)

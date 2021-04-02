@@ -63,7 +63,7 @@ class EMG(Plugin):
         # Import additional aspect files
         abstract_task = self.abstract_task_desc
         self.abstract_task_desc = list()
-        for model in decompose_intermediate_model(self.logger, self.conf, sa, collection):
+        for model in decompose_intermediate_model(self.logger, self.conf, collection):
             new_description = translate_intermediate_model(self.logger, self.conf, copy.deepcopy(abstract_task), sa,
                                                            model)
             new_description["environment model identifier"] = model.name
