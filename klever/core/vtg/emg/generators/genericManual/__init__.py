@@ -47,7 +47,12 @@ class ScenarioModelgenerator(AbstractGenerator):
         descriptions = None
         for imap in all_instance_maps:
             if fragment_name in imap.get('fragments', []):
+                self.logger.info(f'Found model for the fragment {fragment_name}')
                 descriptions = imap.get("model", None)
+
+                contains = ', '.join([i for i in ("functions models", "environment processes", "main process")
+                                      if i in descriptions and descriptions[i]])
+                self.logger.debug(f'The model contains sections: {contains}')
 
         # Import manual process
         if descriptions and ("functions models" in descriptions or "environment processes" in descriptions or
@@ -58,33 +63,33 @@ class ScenarioModelgenerator(AbstractGenerator):
 
             # Decide on process replacements
             or_entry = collection.entry
-            if manual_processes.entry:
-                if (self.conf.get("enforce replacement") and collection.entry) or not collection.entry:
-                    if self.conf.get("keep entry functions") and collection.entry:
-                        for or_decl in collection.entry.declarations:
-                            if or_decl in manual_processes.entry.declarations:
-                                manual_processes.entry.declarations[or_decl] = {
-                                    **manual_processes.entry.declarations[or_decl],
-                                    **collection.entry.declarations[or_decl]
-                                }
-                            else:
-                                manual_processes.entry.declarations[or_decl] = collection.entry.declarations[or_decl]
-                        for or_def in collection.entry.definitions:
-                            if or_def in manual_processes.entry.definitions:
-                                manual_processes.entry.definitions[or_def] = {
-                                    **manual_processes.entry.definitions[or_def],
-                                    **collection.entry.definitions[or_def]
-                                }
-                            else:
-                                manual_processes.entry.definitions[or_def] = collection.entry.definitions[or_def]
+            if manual_processes.entry and (not collection.entry or self.conf.get("enforce replacement")):
+                if self.conf.get("keep entry functions") and collection.entry:
+                    for or_decl in collection.entry.declarations:
+                        if or_decl in manual_processes.entry.declarations:
+                            manual_processes.entry.declarations[or_decl] = {
+                                **manual_processes.entry.declarations[or_decl],
+                                **collection.entry.declarations[or_decl]
+                            }
+                        else:
+                            manual_processes.entry.declarations[or_decl] = collection.entry.declarations[or_decl]
+                    for or_def in collection.entry.definitions:
+                        if or_def in manual_processes.entry.definitions:
+                            manual_processes.entry.definitions[or_def] = {
+                                **manual_processes.entry.definitions[or_def],
+                                **collection.entry.definitions[or_def]
+                            }
+                        else:
+                            manual_processes.entry.definitions[or_def] = collection.entry.definitions[or_def]
 
-                    or_entry = manual_processes.entry
+                or_entry = manual_processes.entry
 
             # Replace rest processes
-            if self.conf.get("enforce replacement"):
-                for current, manual in ((collection.models, manual_processes.models),
-                                        (collection.environment, manual_processes.environment)):
-                    current.update(manual)
+            for current, manual in ((collection.models, manual_processes.models),
+                                    (collection.environment, manual_processes.environment)):
+                for key in manual:
+                    if key not in current or self.conf.get("enforce replacement"):
+                        current[key] = manual[key]
 
             collection.entry = or_entry
             collection.establish_peers()
