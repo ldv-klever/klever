@@ -752,52 +752,7 @@
             "plugins": [{
               "name": "RSG",
               "options": {"models": ["linux/emg/test_model.c"]}
-            }],
-            "children": [
-              {
-                "identifier": "default generator",
-                "description": "Uses the default generator to call provided entry points",
-                "plugins": [
-                  {
-                    "name": "RSG",
-                    "options": {"models": ["linux/emg/test_model.c"]}
-                  },
-                  {
-                    "name": "EMG",
-                    "options": {
-                      "generators options": [
-                        {
-                          "genericFunctions": {
-                            "functions to call": ["ldv_entry_point"],
-                            "call static": true
-                          }
-                        }
-                      ]
-                    }
-                  }
-                ]
-              },
-              {
-                "identifier": "manual generator",
-                "description": "Uses the manually developed specification to call entry points directly",
-                "plugins": [
-                  {
-                    "name": "RSG",
-                    "options": {"models": ["linux/emg/test_model.c"]}
-                  },
-                  {
-                    "name": "EMG",
-                    "options": {
-                      "generators options": [
-                        {
-                          "genericManual": {}
-                        }
-                      ]
-                    }
-                  }
-                ]
-              }
-            ]
+            }]
           },
           {
             "identifier": "environment model specifications with function pointer analysis",

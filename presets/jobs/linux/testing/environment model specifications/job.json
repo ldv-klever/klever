@@ -374,7 +374,14 @@
       "targets": [
         "ext-modules/separate_functions"
       ],
-      "requirement specifications": ["test:environment model specifications:default generator"]
+      "generators options": [
+        {
+          "genericFunctions": {
+            "functions to call": ["ldv_entry_point"],
+            "call static": true
+          }
+        }
+      ]
     },
     {
       "build base": "linux/testing/environment model specifications/81b6e0",
@@ -382,7 +389,11 @@
       "targets": [
         "ext-modules/manual_model"
       ],
-      "requirement specifications": ["test:environment model specifications:manual generator"]
+      "generators options": [
+        {
+          "genericManual": {}
+        }
+      ]
     }
   ]
 }

@@ -3,7 +3,7 @@
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/separate_functions/single_unsafe.ko"
+      "value": "ext-modules/manual_model/unsafe.ko"
     },
     {
       "is_compare": true,
@@ -27,19 +27,20 @@
     [
       [
         {
-          "Call exported functions.": [
+          "registration": [
             {
-              "EMG wrapper": [
+              "LDV model 'register'": []
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "callback": [
+            {
+              "LDV model 'invoke_reached'": [
                 {
-                  "LDV model 'entry_point'": [
-                    {
-                      "LDV model 'invoke_reached'": [
-                        {
-                          "LDV model 'assert'": []
-                        }
-                      ]
-                    }
-                  ]
+                  "LDV model 'assert'": []
                 }
               ]
             }
