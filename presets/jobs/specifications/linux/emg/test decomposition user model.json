@@ -5,7 +5,13 @@
         "ext-modules/decomposition_disabled/a_invoke.ko",
         "ext-modules/decomposition_disabled/b_invoke.ko",
         "ext-modules/decomposition_disabled/c_invoke.ko",
-        "ext-modules/decomposition_disabled/c_without_b.ko"
+        "ext-modules/decomposition_disabled/c_without_b.ko",
+        "ext-modules/decomposition_default/a_invoke.ko",
+        "ext-modules/decomposition_default/b_invoke.ko",
+        "ext-modules/decomposition_default/c_invoke.ko",
+        "ext-modules/decomposition_default/c_without_b_invoke.ko",
+        "ext-modules/decomposition_linear/a_b_invoke.ko",
+        "ext-modules/decomposition_linear/c_invoke.ko"
       ],
       "model": {
         "functions models": {},

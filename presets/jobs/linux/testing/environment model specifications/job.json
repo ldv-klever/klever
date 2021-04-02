@@ -96,7 +96,16 @@
         "ext-modules/urb_v.1/usb_poison_urb_invoke.ko",
         "ext-modules/kthread_v.1/kthread_run_invoke.ko",
         "ext-modules/separate_functions/single_unsafe.ko",
-        "ext-modules/manual_model/unsafe.ko"
+        "ext-modules/manual_model/unsafe.ko",
+        "ext-modules/decomposition_disabled/a_invoke.ko",
+        "ext-modules/decomposition_disabled/b_invoke.ko",
+        "ext-modules/decomposition_disabled/c_invoke.ko",
+        "ext-modules/decomposition_default/a_invoke.ko",
+        "ext-modules/decomposition_default/b_invoke.ko",
+        "ext-modules/decomposition_default/c_invoke.ko",
+        "ext-modules/decomposition_default/c_without_b_invoke.ko",
+        "ext-modules/decomposition_linear/a_b_invoke.ko",
+        "ext-modules/decomposition_linear/c_invoke.ko"
       ]
     }
   ],
@@ -394,6 +403,47 @@
           "genericManual": {}
         }
       ]
+    },
+    {
+      "build base": "linux/testing/environment model specifications/81b6e0",
+      "specifications set": "5.5",
+      "targets": [
+        "ext-modules/decomposition_disabled"
+      ],
+      "generators options": [
+        {
+          "genericManual": {}
+        }
+      ]
+    },
+    {
+      "build base": "linux/testing/environment model specifications/81b6e0",
+      "specifications set": "5.5",
+      "targets": [
+        "ext-modules/decomposition_default"
+      ],
+      "generators options": [
+        {
+          "genericManual": {}
+        }
+      ],
+      "decomposition": true,
+      "use savepoints": true
+    },
+    {
+      "build base": "linux/testing/environment model specifications/81b6e0",
+      "specifications set": "5.5",
+      "targets": [
+        "ext-modules/decomposition_linear"
+      ],
+      "generators options": [
+        {
+          "genericManual": {}
+        }
+      ],
+      "decomposition": true,
+      "use savepoints": false,
+      "scenario separation": "linear"
     }
   ]
 }
