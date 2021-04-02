@@ -36,7 +36,10 @@
             "ext-modules/usb_serial_driver_v.2",
             "ext-modules/workqueue_v.1",
             "ext-modules/separate_functions",
-            "ext-modules/manual_model"
+            "ext-modules/manual_model",
+            "ext-modules/decomposition_disabled",
+            "ext-modules/decomposition_default",
+            "ext-modules/decomposition_linear"
         ],
         "exclude extra headers": ["linux/poll.h"]
     }
