@@ -26,15 +26,17 @@ from klever.core.vtg.emg.decomposition.separation.linear import LinearStrategy
 #TODO: Add Annotations
 def decompose_intermediate_model(logger: Logger, conf: dict, model: ProcessCollection):
     if conf.get('decomposition'):
+        logger.info(f'Decompose environment model {model.name}')
         algorythm = Decomposition(logger, conf,
                                   model=model,
                                   separator=_choose_separator(logger, conf),
-                                  modelfactory=_choose_factory(logger, conf))
+                                  factory=_choose_factory(logger, conf))
         for new_model in algorythm():
             logger.info(f'Generated a new model {new_model.name}')
             yield new_model
     else:
-        return [model]
+        logger.info(f"Do not decompose the provided model {model.name}")
+        yield model
 
 
 def _choose_separator(logger, conf):
@@ -53,15 +55,16 @@ def _choose_factory(logger, conf):
 
 class Decomposition:
 
-    def __init__(self, logger, conf, model, separator, modelfactory):
+    def __init__(self, logger, conf, model, separator, factory):
         self.logger = logger
         self.conf = conf
         self.model = model
         self.separator = separator
-        self.modelfactory = modelfactory
+        self.modelfactory = factory
 
     def __call__(self, *args, **kwargs):
         processes_to_scenarios = dict()
+        self.logger.info('Generating models ...')
         for process in self.model.environment.values():
             scenarios = list(self.separator(process))
             self.logger.debug(f'Generated {len(scenarios)} scenarios for the process {str(process)}')

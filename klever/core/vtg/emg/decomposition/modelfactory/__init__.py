@@ -51,26 +51,28 @@ class Selector:
 
     def __call__(self, *args, **kwargs):
         if not self.conf.get('skip origin model'):
-            yield self._make_base_model()
+            yield self._make_base_model(), None
         if not self.conf.get('skip savepoints'):
-            for scenario in self._scenarions_with_savepoint:
+            for scenario, related_process in self._scenarions_with_savepoint.items():
                 new = ScenarioCollection(scenario.name)
                 new.entry = scenario
 
                 for model in self.model.models:
-                    new.models[str(model)] = None
+                    new.models[model] = None
                 for process in self.model.environment:
+                    if str(process) == related_process:
+                        continue
                     if scenario not in self.processes_to_scenarios[process]:
                         new.environment[str(process)] = None
-                yield new
+                yield new, related_process
 
     @property
     def _scenarios(self):
-        return {s for group in self.processes_to_scenarios.values() for s in group}
+        return {s: p for p, group in self.processes_to_scenarios.items() for s in group}
 
     @property
     def _scenarions_with_savepoint(self):
-        return {s for s in self._scenarios if s.savepoint}
+        return {s: p for s, p in self._scenarios.items() if s.savepoint}
 
     def _make_base_model(self):
         new = ScenarioCollection(0)
@@ -95,19 +97,26 @@ class ModelFactory:
 
     def __call__(self, processes_to_scenarios: dict, model: ProcessCollection):
         selector = self.strategy(self.logger, self.conf, processes_to_scenarios, model)
-        for batch in selector():
+        for batch, related_process in selector():
             new = ProcessCollection(batch.name)
 
             if batch.entry:
-                new.entry = self._process_from_scenario(batch.entry, model.entry)
+                new.entry = self._process_from_scenario(batch.entry, model.environment[related_process])
             else:
                 new.entry = self._process_copy(model.entry)
 
             for attr in ('models', 'environment'):
-                collection = getattr(batch, attr)
-                for key, scenario in collection.items():
-                    if scenario:
-                        collection[key] = self._process_from_scenario(scenario, getattr(model, attr)[key])
+                batch_collection = getattr(batch, attr)
+                collection = getattr(new, attr)
+                for key in getattr(model, attr):
+                    if key in batch_collection:
+                        if batch_collection[key]:
+                            collection[key] = self._process_from_scenario(batch_collection[key],
+                                                                          getattr(model, attr)[key])
+                        else:
+                            collection[key] = self._process_copy(getattr(model, attr)[key])
+                    else:
+                        self.logger.debug(f"Skip process {key} in {new.name}")
 
             new.establish_peers()
             self._remove_unused_processes(new)
@@ -115,11 +124,17 @@ class ModelFactory:
             yield new
 
     def _process_copy(self, process: Process):
-        return process.clone()
+        clone = process.clone()
+        return clone
 
     def _process_from_scenario(self, scenario: Scenario, process: Process):
         new_process = process.clone()
+
+        if len(list(process.labels.keys())) == 0 and len(list(new_process.labels.keys())) == 0:
+            assert False, str(new_process)
+
         new_process.actions = scenario.actions
+        new_process.accesses(refresh=True)
 
         new = new_process.add_condition('savepoint', [], scenario.savepoint.statements,
                                         f'Save point {str(scenario.savepoint)}')
@@ -136,6 +151,7 @@ class ModelFactory:
             all_peers = {a for acts in process.peers.values() for a in acts}
 
             if not receives.intersection(all_peers):
+                self.logger.info(f'Delete process {key} from the model {model.name} as it has no peers')
                 del model.environment[key]
 
         model.establish_peers()
