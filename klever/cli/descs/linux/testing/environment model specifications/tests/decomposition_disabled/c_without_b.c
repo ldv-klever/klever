@@ -17,6 +17,8 @@
 
 #include <ldv/linux/emg/test_model.h>
 
+int b_called = 0;
+
 void a(int param)
 {
     return;
@@ -24,11 +26,11 @@ void a(int param)
 
 void b(int param)
 {
-    return;
+    b_called = 1;
 }
 
 void c(int param)
 {
-    if (param == 2)
+    if (!b_called && param == 1)
         ldv_invoke_reached();
 }
