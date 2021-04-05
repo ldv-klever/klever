@@ -104,6 +104,10 @@ class Process:
 
         # Copy labels
         inst.labels = {l.name: copy.copy(l) for l in self.labels.values()}
+
+        # Recalculate accesses
+        inst.accesses(refresh=True)
+
         return inst
 
     @property
@@ -152,13 +156,14 @@ class Process:
 
         return sorted(set(self.labels.values()).difference(used_labels))
 
-    def accesses(self, accesses=None, exclude=None, no_labels=False):
+    def accesses(self, accesses=None, exclude=None, no_labels=False, refresh=False):
         """
         Go through the process description or retrieve from the cache dictionary with possible label accesses.
 
         :param accesses: Add to the cache an existing dictionary with accesses (Dictionary: {'%blblb%': [Access objs]}).
         :param exclude: Exclude accesses from descriptions of actions of given types (List of Action class names).
         :param no_labels: Exclude accesses based on labels which are not referred anywhere (Bool).
+        :param refresh: enforce recalculation of accesses (Bool).
         :return:
         """
         # todo: Do not like this method. Prefer seeing it as property
@@ -168,7 +173,7 @@ class Process:
         if not accesses:
             accss = sortedcontainers.SortedDict()
 
-            if len(self._accesses) == 0 or len(exclude) > 0 or no_labels:
+            if refresh or (len(self._accesses) == 0 or len(exclude) > 0 or no_labels):
                 # Collect all accesses across process subprocesses
                 for action in self.actions.filter(include={Action}, exclude=exclude):
                     if isinstance(action, Receive) or isinstance(action, Dispatch):
@@ -185,7 +190,7 @@ class Process:
 
                 # Add labels with interfaces
                 if not no_labels:
-                    for label in [self.labels[name] for name in self.labels.keys()]:
+                    for label in self.labels.values():
                         access = '%{}%'.format(label.name)
                         if not accss.get(access):
                             accss[access] = []
@@ -228,10 +233,13 @@ class Process:
                 # Compare signatures of parameters
                 for num, p in enumerate(self.actions[action].parameters):
                     access1 = self.resolve_access(p)
+                    assert access1, f"No access {p} in process {str(self)}"
+                    assert access1.label, f"Access {p} of process {str(self)} does not connected to any label"
                     access2 = process.resolve_access(process.actions[action].parameters[num])
-                    if not access1 or not access2 or not access1.label or not access2.label:
-                        raise RuntimeError("Strange accesses {!r} and {!r} in {!r}".
-                                           format(p, process.actions[action].parameters[num], str(process)))
+                    assert access2, f"No access {process.actions[action].parameters[num]} in process {str(process)}"
+                    assert access2.label, f"Access {process.actions[action].parameters[num]} of process {str(process)}" \
+                                          " does not connected to any label"
+
                     if access1.label.declaration != access2.label.declaration:
                         break
                 else:
