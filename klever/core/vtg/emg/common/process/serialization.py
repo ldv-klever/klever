@@ -280,6 +280,10 @@ class CollectionDecoder:
         if not process.actions.initial_action:
             raise RuntimeError('Process {!r} has no initial action'.format(str(process)))
 
+        intrs = set(process.actions.keys()).intersection(process.actions.savepoints)
+        assert not intrs, "Process must not have savepoints with the same names as actions, but there is an" \
+                          " intersection: %s" % ', '.join(intrs)
+
         process.accesses()
         return process
 
