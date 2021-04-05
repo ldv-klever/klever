@@ -416,6 +416,10 @@ class Actions(collections.UserDict):
                 del self._process_actions[key]
         del self.data[key]
 
+    @property
+    def savepoints(self):
+        return {p for a in self.values() for p in a.savepoints}
+
     def populate_with_empty_descriptions(self):
         """
         Create new descriptions for all behaviours that do not have them. New descriptions will have default values
