@@ -40,3 +40,22 @@ def test_default_models(model):
             action = process.actions[action_name]
             cnt += len(action.savepoints) if hasattr(action, 'savepoints') and action.savepoints else 0
     assert len(models) == cnt
+
+    # Compare processes itself
+    for new_model in models:
+        assert len(list(new_model.models.keys())) > 0
+        assert len(list(new_model.environment.keys())) > 0
+
+        for name, process in model.environment.items():
+            if name in new_model.environment:
+                for label in process.labels:
+                    # Check labels
+                    assert label in new_model.environment[name].labels, f'Missing label {label}'
+
+                assert new_model.environment[name].actions
+            elif new_model.name in process.actions.savepoints:
+                for label in process.labels:
+                    # Check labels
+                    assert label in new_model.entry.labels, f'Missing label {label}'
+
+                assert new_model.entry.actions

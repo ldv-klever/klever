@@ -47,6 +47,9 @@ def clone(process):
 
 
 def test_labels(process, clone):
+    for label_name in process.labels:
+        assert label_name in clone.labels, f'Missing label {label_name}'
+
     assert process.labels['l1'] is not clone.labels['l2']
     process.labels['l3'] = Label('l3')
     assert 'l3' not in clone.labels
