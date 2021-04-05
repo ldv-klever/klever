@@ -355,7 +355,6 @@ class Native(runners.Speculative):
             self._task_processes[identifier] = process
         else:
             klever_core_conf = configuration.copy()
-            del klever_core_conf["resource limits"]
             klever_core_conf["Klever Bridge"] = self.conf["Klever Bridge"]
             klever_core_conf["working directory"] = "klever-core-work-dir"
             self._reserved["jobs"][identifier]["configuration"] = klever_core_conf
