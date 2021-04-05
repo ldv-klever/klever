@@ -30,6 +30,6 @@ void b(int param)
 
 void c(int param)
 {
-    if (!param)
+    if (param == 1)
         ldv_invoke_reached();
 }
