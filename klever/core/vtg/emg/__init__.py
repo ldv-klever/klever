@@ -70,4 +70,7 @@ class EMG(Plugin):
             self.abstract_task_desc.append(new_description)
             self.logger.info(f"An environment model {model.name} has been generated successfully")
 
+        if len(self.abstract_task_desc) == 0:
+            raise ValueError('There is no generated environment models')
+
     main = generate_environment

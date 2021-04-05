@@ -16,12 +16,14 @@
 #
 
 import os
+import json
 import sortedcontainers
 
-from klever.core.vtg.emg.common import id_generator, get_or_die
 from klever.core.vtg.utils import find_file_or_dir
 from klever.core.vtg.emg.translation.code import CModel
 from klever.core.vtg.emg.translation.automaton import Automaton
+from klever.core.vtg.emg.common import id_generator, get_or_die
+from klever.core.vtg.emg.common.process.serialization import CollectionEncoder
 from klever.core.vtg.emg.translation.fsa_translator.label_fsa_translator import LabelTranslator
 from klever.core.vtg.emg.translation.fsa_translator.state_fsa_translator import StateTranslator
 from klever.core.vtg.emg.translation.fsa_translator.simplest_fsa_translator import SimplestTranslator
@@ -50,6 +52,20 @@ def translate_intermediate_model(logger, conf, avt, source, collection):
     conf['translation options'].setdefault('additional headers', list())
     conf['translation options'].setdefault('self parallel processes', False)
 
+    # Make a separate directory
+    model_path = str(collection.name)
+    assert model_path, 'Each environment model should have a unique name'
+    assert not os.path.isdir(model_path), f'Model name {model_path} is used twice'
+    os.makedirs(model_path)
+
+    # Save processes
+    model_file = os.path.join(model_path, 'input model.json')
+    with open(model_file, mode='w', encoding='utf-8') as fp:
+        json.dump(collection, fp, cls=CollectionEncoder, sort_keys=True, indent=2)
+
+    # Save images of processes
+    collection.save_digraphs(os.path.join(model_path, 'images'))
+
     if not collection.entry:
         raise RuntimeError("It is impossible to generate an environment model without main process")
 
@@ -66,7 +82,7 @@ def translate_intermediate_model(logger, conf, avt, source, collection):
 
     # Determine entry point file and function
     logger.info("Determine entry point file and function name")
-    entry_file = get_or_die(conf['translation options'], "environment model file")
+    entry_file = os.path.join(model_path, get_or_die(conf['translation options'], "environment model file"))
     entry_point_name = get_or_die(conf['translation options'], 'entry point')
     files = source.c_full_paths
     if entry_file not in files:
@@ -157,7 +173,7 @@ def translate_intermediate_model(logger, conf, avt, source, collection):
         StateTranslator(logger, conf['translation options'], source, collection, cmodel, entry_fsa, model_fsa, main_fsa)
 
     logger.info("Print generated source code")
-    addictions = cmodel.print_source_code(additional_code)
+    addictions = cmodel.print_source_code(model_path, additional_code)
 
     # Set entry point function in abstract task
     logger.info("Add an entry point function name to the abstract verification task")
