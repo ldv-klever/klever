@@ -75,7 +75,9 @@ def merge_files(logger, conf, abstract_task_desc):
                 '-more-files', 'input files'
             ]
 
-        klever.core.utils.execute(logger, args=args, enforce_limitations=True)
+        klever.core.utils.execute(logger, args=args, enforce_limitations=True,
+                                  cpu_time_limit=conf["resource limits"]["CPU time for executed commands"],
+                                  memory_limit=conf["resource limits"]["memory size for executed commands"])
         # There will be empty file if CIL succeeded. Remove it to avoid unknown reports of whole FVTP later.
         if os.path.isfile('problem desc.txt'):
             os.unlink('problem desc.txt')

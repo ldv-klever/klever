@@ -39,6 +39,8 @@ from jobs.models import Scheduler
 #   cpu_num - number of CPU cores; if number is None then any,
 #   disk_size - disk memory size in GB,
 #   cpu_model - CPU model,
+#   cpu_time_exec_cmds - CPU time for executed commands in min,
+#   memory_exec_cmds - memory size for executed commands in GB,
 #   console_level - console log level; see documentation for Python 3 and
 #     ConfigurationLogging.logging_levels for available values,
 #   console_formatter - console log formatter,
@@ -79,6 +81,8 @@ KLEVER_CORE_DEF_MODES = [
             'cpu_num': None,
             'disk_size': 100,
             'cpu_model': None,
+            'cpu_time_exec_cmds': 7.5,
+            'memory_exec_cmds': 1,
             'console_level': 'NONE',
             'file_level': 'NONE',
             'console_formatter': DEFAULT_FORMATTER[0][2],
@@ -104,6 +108,8 @@ KLEVER_CORE_DEF_MODES = [
             'cpu_num': None,
             'disk_size': 100,
             'cpu_model': None,
+            'cpu_time_exec_cmds': 7.5,
+            'memory_exec_cmds': 1,
             'console_level': 'INFO',
             'file_level': 'DEBUG',
             'console_formatter': DEFAULT_FORMATTER[1][2],
@@ -129,6 +135,8 @@ KLEVER_CORE_DEF_MODES = [
             'cpu_num': None,
             'disk_size': 100,
             'cpu_model': None,
+            'cpu_time_exec_cmds': 7.5,
+            'memory_exec_cmds': 1,
             'console_level': 'INFO',
             'file_level': 'DEBUG',
             'console_formatter': DEFAULT_FORMATTER[1][2],
@@ -177,6 +185,8 @@ class ConfigurationSerializer(serializers.Serializer):
     cpu_num = fields.IntegerField(allow_null=True, min_value=1)
     disk_size = fields.FloatField()
     cpu_model = fields.CharField(default='', allow_null=True, allow_blank=True)
+    cpu_time_exec_cmds = fields.FloatField()
+    memory_exec_cmds = fields.FloatField()
 
     console_level = fields.ChoiceField(LOGGING_LEVELS)
     file_level = fields.ChoiceField(LOGGING_LEVELS)
@@ -251,6 +261,8 @@ class GetConfiguration:
             'cpu_num': filedata['resource limits']['number of CPU cores'],
             'disk_size': filedata['resource limits']['disk memory size'] / 10 ** 9,
             'cpu_model': filedata['resource limits']['CPU model'],
+            'cpu_time_exec_cmds': filedata['resource limits']['CPU time for executed commands'] / 60,
+            'memory_exec_cmds': filedata['resource limits']['memory size for executed commands'] / 10 ** 9,
             'console_level': loggers['console']['level'],
             'file_level': loggers['file']['level'],
             'console_formatter': loggers['console']['formatter'],
@@ -277,7 +289,9 @@ class GetConfiguration:
                 'memory size': int(self.configuration['memory'] * 10 ** 9),
                 'disk memory size': int(self.configuration['disk_size'] * 10 ** 9),
                 'number of CPU cores': self.configuration['cpu_num'],
-                'CPU model': self.configuration['cpu_model'] or None
+                'CPU model': self.configuration['cpu_model'] or None,
+                'CPU time for executed commands': int(self.configuration['cpu_time_exec_cmds'] * 60),
+                'memory size for executed commands': int(self.configuration['memory_exec_cmds'] * 10 ** 9)
             },
             'parallelism': {
                 'Sub-jobs processing': self.__str_to_int_or_float(self.configuration['parallelism'][0]),
