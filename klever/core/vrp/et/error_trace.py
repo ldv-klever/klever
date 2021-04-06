@@ -720,19 +720,27 @@ class ErrorTrace:
         # This is good for analysis, but this is redundant for visualization. Let's merge these edges together.
         edges_to_remove = []
         for edge in self.trace_iterator():
-            if 'enter' in edge:
-                return_edge = self.get_func_return_edge(edge)
-                if return_edge:
-                    exit_edge = self.next_edge(return_edge)
-                    edges_to_remove.insert(0, exit_edge)
-                    next_to_exit_edge = self.next_edge(exit_edge)
-                    # Do not overwrite source code of function entry with the one of function exit when function is
-                    # called within if statement. In that case there is no useful assigments most likely while source
-                    # code of function exit includes some part of this if statement.
-                    if not next_to_exit_edge \
-                            or 'condition' not in next_to_exit_edge \
-                            or exit_edge['line'] != next_to_exit_edge['line']:
-                        edge['source'] = exit_edge['source']
+            if 'enter' not in edge:
+                continue
+
+            return_edge = self.get_func_return_edge(edge)
+            if not return_edge:
+                continue
+
+            exit_edge = self.next_edge(return_edge)
+            if not exit_edge:
+                continue
+
+            edges_to_remove.insert(0, exit_edge)
+            next_to_exit_edge = self.next_edge(exit_edge)
+
+            # Do not overwrite source code of function entry with the one of function exit when function is
+            # called within if statement. In that case there is no useful assigments most likely while source
+            # code of function exit includes some part of this if statement.
+            if not next_to_exit_edge \
+                    or 'condition' not in next_to_exit_edge \
+                    or exit_edge['line'] != next_to_exit_edge['line']:
+                edge['source'] = exit_edge['source']
 
         for edge_to_remove in edges_to_remove:
             self.remove_edge_and_target_node(edge_to_remove)
