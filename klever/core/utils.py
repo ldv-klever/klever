@@ -121,25 +121,21 @@ class StreamQueue:
 
 
 def execute(logger, args, env=None, cwd=None, timeout=0.1, collect_all_stdout=False, filter_func=None,
-            enforce_limitations=False):
+            enforce_limitations=False, cpu_time_limit=450, memory_limit=1000000000):
     cmd = args[0]
     logger.debug('Execute:\n{0}{1}{2}'.format(cmd,
                                               '' if len(args) == 1 else ' ',
                                               ' '.join('"{0}"'.format(arg) for arg in args[1:])))
 
     if enforce_limitations:
-        # todo: Get these limitations from some config
-        timelimit = 450
-        memlimit = 1000000000
-
         soft_time, hard_time = resource.getrlimit(resource.RLIMIT_CPU)
         soft_mem, hard_mem = resource.getrlimit(resource.RLIMIT_AS)
-        logger.debug('Got the following limitations: time={}s, memory={}B'.format(timelimit, memlimit))
+        logger.debug('Got the following limitations: CPU time = {}s, memory = {}B'.format(cpu_time_limit, memory_limit))
 
     p = subprocess.Popen(args, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd)
     if enforce_limitations:
-        resource.prlimit(p.pid, resource.RLIMIT_CPU, [timelimit, hard_time])
-        resource.prlimit(p.pid, resource.RLIMIT_AS, [memlimit, hard_mem])
+        resource.prlimit(p.pid, resource.RLIMIT_CPU, [cpu_time_limit, hard_time])
+        resource.prlimit(p.pid, resource.RLIMIT_AS, [memory_limit, hard_mem])
 
     out_q, err_q = (StreamQueue(p.stdout, 'STDOUT', collect_all_stdout), StreamQueue(p.stderr, 'STDERR', True))
 

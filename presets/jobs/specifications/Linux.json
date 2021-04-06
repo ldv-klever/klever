@@ -150,7 +150,6 @@
               "allocate external": true,
               "environment model file": "environment_model.c",
               "additional headers": [
-                "linux/user_namespace.h",
                 "ldv/linux/common.h",
                 "ldv/linux/err.h",
                 "ldv/verifier/common.h",
