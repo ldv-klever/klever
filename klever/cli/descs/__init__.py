@@ -25,7 +25,6 @@ common_target_program_descs = {
         'loadable kernel modules': ['all'],
         'generate makefiles': True,
         'extra headers': [
-            'linux/user_namespace.h',
             'linux/tty.h',
             'linux/tty_driver.h',
             'linux/usb.h',
