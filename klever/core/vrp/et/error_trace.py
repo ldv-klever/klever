@@ -742,6 +742,14 @@ class ErrorTrace:
                     or exit_edge['line'] != next_to_exit_edge['line']:
                 edge['source'] = exit_edge['source']
 
+            # Copy notes if so from function exit edge to be removed to function entry edge.
+            if 'notes' not in edge:
+                edge['notes'] = []
+
+            if 'notes' in exit_edge:
+                edge['notes'].extend(exit_edge['notes'])
+                del exit_edge['notes']
+
         for edge_to_remove in edges_to_remove:
             self.remove_edge_and_target_node(edge_to_remove)
 
