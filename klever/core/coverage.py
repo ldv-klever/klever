@@ -33,7 +33,8 @@ def add_to_coverage(merged_coverage_info, coverage_info):
             'total functions': coverage_info[file_name]['total functions'],
             'covered lines': dict(),
             'covered functions': dict(),
-            'covered function names': list()
+            'covered function names': list(),
+            'notes': dict()
         })
 
         for kind in ('covered lines', 'covered functions'):
@@ -44,6 +45,10 @@ def add_to_coverage(merged_coverage_info, coverage_info):
         for cov_func_name in file_coverage_info['covered function names']:
             if cov_func_name not in merged_coverage_info[file_name]['covered function names']:
                 merged_coverage_info[file_name]['covered function names'].append(cov_func_name)
+
+        # TODO: What about multiple notes?
+        for line, note in file_coverage_info['notes'].items():
+            merged_coverage_info[file_name]['notes'][line] = note
 
 
 def convert_coverage(merged_coverage_info, coverage_dir, pretty, src_files_info=None):
@@ -62,7 +67,8 @@ def convert_coverage(merged_coverage_info, coverage_dir, pretty, src_files_info=
         file_coverage = {
             'format': coverage_format_version,
             'line coverage': file_coverage_info['covered lines'],
-            'function coverage': file_coverage_info['covered functions']
+            'function coverage': file_coverage_info['covered functions'],
+            'notes': file_coverage_info['notes']
         }
 
         os.makedirs(os.path.join(coverage_dir, os.path.dirname(file_name)), exist_ok=True)
@@ -314,6 +320,7 @@ class LCOV:
     FUNCTION_NAME_END_PREFIX = "#FN:"
     FUNCTION_PREFIX = "FNDA:"
     LINE_PREFIX = "DA:"
+    NOTE_PREFIX = "ADD:"
     EOR_PREFIX = "end_of_record"
 
     def __init__(self, conf, logger, coverage_file, clade, source_dirs, search_dirs, main_work_dir, coverage_details,
@@ -366,7 +373,8 @@ class LCOV:
                     'covered lines': {},
                     'covered functions': {},
                     'covered function names': [],
-                    'total functions': len(func_reverse_map[file]) if file in func_reverse_map else 0
+                    'total functions': len(func_reverse_map[file]) if file in func_reverse_map else 0,
+                    'notes': {}
                 }
 
         with open(self.coverage_file, encoding='utf-8') as fp:
@@ -397,6 +405,7 @@ class LCOV:
                         orig_file_line_num += 1
                     line_num += 1
 
+            note = None
             for line in fp:
                 line = line.rstrip('\n')
                 # Build C functions map.
@@ -435,6 +444,13 @@ class LCOV:
                     orig_file, orig_line = line_map[cil_src_line]
                     init_file_coverage_info(orig_file)
                     coverage_info[orig_file]['covered lines'][orig_line] = cov_num
+
+                    if note:
+                        coverage_info[orig_file]['notes'][orig_line] = {'kind': 'Verifier assumption', 'text': note}
+                        note = None
+                # Remember data to be associated with the next line.
+                elif line.startswith(self.NOTE_PREFIX):
+                    note = line[len(self.NOTE_PREFIX):]
                 # Finalize raw code coverage processing.
                 elif line.startswith(self.EOR_PREFIX):
                     break

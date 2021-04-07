@@ -588,7 +588,7 @@ class RP(klever.core.components.Component):
         exception = None
         if opts['code coverage details'] != "None":
             try:
-                LCOV(self.conf, self.logger, os.path.join('output', 'coverage.info'),
+                LCOV(self.conf, self.logger, os.path.join('output', 'additionalCoverage.info'),
                      self.clade, self.source_paths,
                      self.search_dirs, self.conf['main working directory'],
                      opts['code coverage details'],
