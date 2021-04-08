@@ -32,7 +32,7 @@
         </thead>
         <tbody>
             {% for cov_obj in statistics.data %}
-                <tr data-tg-id="{{ cov_obj.identifier }}"{% if cov_obj.parent %} data-tg-parent="{{ cov_obj.parent }}"{% endif %} data-tg-leaf="{% if cov_obj.is_leaf %}1{% else %}0{% endif %}"{% if cov_obj.depth > 1 %} style="display: none;"{% endif %}>
+                <tr{% if cov_obj.is_leaf %} class="tg-leaf"{% endif %} data-tg-id="{{ cov_obj.identifier }}"{% if cov_obj.parent %} data-tg-parent="{{ cov_obj.parent }}"{% endif %}{% if cov_obj.depth > 1 %} style="display: none;"{% endif %}>
                     <td>
                         <span class="pre-space">{{ cov_obj.indentation }}</span>
                         {% if cov_obj.is_leaf %}

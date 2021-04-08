@@ -26,6 +26,5 @@ $(document).ready(function () {
     let coverage_processor = new CoverageProcessor(
         source_processor, '#CoverageDataContent', '#CoverageStatisticsTable'
     );
-    coverage_processor.open_stat_table();
-    coverage_processor.open_first_file();
+    coverage_processor.openFirstFile();
 });
