@@ -85,9 +85,11 @@
                 "comment": "Activate the second calling callbacks transition system.",
                 "parameters": ["%c_param%"],
                 "replicative": true,
-                "second_savepoint": [
-                  "%c_param% = 2;"
-                ]
+                "savepoints": {
+                  "second_savepoint": [
+                    "%c_param% = 2;"
+                  ]
+                }
               }
             },
             "category": "base",
