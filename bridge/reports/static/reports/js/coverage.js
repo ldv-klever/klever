@@ -17,11 +17,11 @@
 
 
 class CoverageProcessor {
-    #coveredFunctions;
-    #uncoveredFunctions;
-    #sortedCoveredFunctions;
-    #mostCoveredLines;
-    #mostGlobalCoveredLines;
+    _coveredFunctions;
+    _uncoveredFunctions;
+    _sortedCoveredFunctions;
+    _mostCoveredLines;
+    _mostGlobalCoveredLines;
 
     constructor(sourceProcessor, dataWindowSelector, statTableSelector, onSelectionChange) {
         this.sourceProcessor = sourceProcessor;
@@ -29,8 +29,9 @@ class CoverageProcessor {
         this.dataWindow = $(dataWindowSelector);
         this.statTable = $(statTableSelector).find('table').first();
         this.onSelectionChange = onSelectionChange;
-        this.#initStatisticsTable();
-        this.#initCodeNavigation();
+        this.initialFile = this.currentFile;
+        this._initStatisticsTable();
+        this._initCodeNavigation();
     }
 
     openFirstFile() {
@@ -53,16 +54,16 @@ class CoverageProcessor {
         else this.statTable.find('.tree-file-link:visible').first().click();
     }
 
-    #initStatisticsTable() {
+    _initStatisticsTable() {
         let $this = this;
 
         // Activate expand/collapse tree actions
         $this.statTable.find('.tg-expander').click(function (event) {
             let node = $(this).closest('tr');
             if (node.hasClass('tg-expanded')) {
-                $this.#collapseStatTree(node);
+                $this._collapseStatTree(node);
             } else {
-                $this.#expandStatTree(node, event.shiftKey);
+                $this._expandStatTree(node, event.shiftKey);
             }
             update_colors($this.statTable);
         });
@@ -78,93 +79,105 @@ class CoverageProcessor {
         update_colors($this.statTable);
     }
 
-    #initCodeNavigation() {
+    _initCodeNavigation() {
         // Function/lines coverage navigation buttons
 
         $('#next_cov_btn').click(() => {
-            this.#changeSelection(this.coveredFunctions, 1, 'SrcFuncCov');
+            this._changeSelection(this.coveredFunctions, 1, 'SrcFuncCov');
         });
 
         $('#prev_cov_btn').click(() => {
-            this.#changeSelection(this.coveredFunctions, -1, 'SrcFuncCov');
+            this._changeSelection(this.coveredFunctions, -1, 'SrcFuncCov');
         });
 
         $('#next_uncov_btn').click(() => {
-            this.#changeSelection(this.uncoveredFunctions, 1, 'SrcFuncCov');
+            this._changeSelection(this.uncoveredFunctions, 1, 'SrcFuncCov');
         });
 
         $('#prev_uncov_btn').click(() => {
-            this.#changeSelection(this.uncoveredFunctions, -1, 'SrcFuncCov');
+            this._changeSelection(this.uncoveredFunctions, -1, 'SrcFuncCov');
         });
 
         $('#next_srt_btn').click(() => {
-            this.#changeSelection(this.sortedCoveredFunctions, 1, 'SrcFuncCov');
+            this._changeSelection(this.sortedCoveredFunctions, 1, 'SrcFuncCov');
         });
 
         $('#prev_srt_btn').click(() => {
-            this.#changeSelection(this.sortedCoveredFunctions, -1, 'SrcFuncCov');
+            this._changeSelection(this.sortedCoveredFunctions, -1, 'SrcFuncCov');
         });
 
         $('#next_mostcov_btn').click(() => {
-            this.#changeSelection(this.mostCoveredLines, 1, 'SrcLineCov');
+            this._changeSelection(this.mostCoveredLines, 1, 'SrcLineCov');
         });
 
         $('#prev_mostcov_btn').click(() => {
-            this.#changeSelection(this.mostCoveredLines, -1, 'SrcLineCov');
+            this._changeSelection(this.mostCoveredLines, -1, 'SrcLineCov');
         });
 
         $('#next_global_mostcov_btn').click(() => {
-            this.#changeGlobalSelection(this.mostGlobalCoveredLines, 1);
+            this._changeGlobalSelection(this.mostGlobalCoveredLines, 1);
         });
 
         $('#prev_global_mostcov_btn').click(() => {
-            this.#changeGlobalSelection(this.mostGlobalCoveredLines, -1);
+            this._changeGlobalSelection(this.mostGlobalCoveredLines, -1);
         });
     }
 
     get coveredFunctions() {
-        if (!this.#coveredFunctions) {
-            this.#coveredFunctions = this.sourceContainer.find('.SrcFuncCov[data-value]').filter(function() {
+        if (this.currentFile !== this.initialFile) {
+            this._clearCache();
+        }
+        if (!this._coveredFunctions) {
+            this._coveredFunctions = this.sourceContainer.find('.SrcFuncCov[data-value]').filter(function() {
                 return $(this).data('value') > 0
             });
         }
-        return this.#coveredFunctions;
+        return this._coveredFunctions;
     }
 
     get uncoveredFunctions() {
-        if (!this.#uncoveredFunctions) {
-            this.#uncoveredFunctions = this.sourceContainer.find('.SrcFuncCov[data-value]').filter(function() {
+        if (this.currentFile !== this.initialFile) {
+            this._clearCache();
+        }
+        if (!this._uncoveredFunctions) {
+            this._uncoveredFunctions = this.sourceContainer.find('.SrcFuncCov[data-value]').filter(function() {
                 return $(this).data('value') === 0
             });
         }
-        return this.#uncoveredFunctions;
+        return this._uncoveredFunctions;
     }
 
     get sortedCoveredFunctions() {
-        if (!this.#sortedCoveredFunctions) {
+        if (this.currentFile !== this.initialFile) {
+            this._clearCache();
+        }
+        if (!this._sortedCoveredFunctions) {
             // Sort elements in descending order
-            this.#sortedCoveredFunctions = this.coveredFunctions.sort(function(a, b) {
+            this._sortedCoveredFunctions = this.coveredFunctions.sort(function(a, b) {
                 let n1 = $(a).data('value'), n2 = $(b).data('value');
                 return (n1 > n2) ? -1 : (n1 < n2) ? 1 : 0;
             });
         }
-        return this.#sortedCoveredFunctions;
+        return this._sortedCoveredFunctions;
     }
 
     get mostCoveredLines() {
-        if (!this.#mostCoveredLines) {
-            this.#mostCoveredLines = this.sourceContainer.find('.SrcLineCov[data-value]').filter(function() {
+        if (this.currentFile !== this.initialFile) {
+            this._clearCache();
+        }
+        if (!this._mostCoveredLines) {
+            this._mostCoveredLines = this.sourceContainer.find('.SrcLineCov[data-value]').filter(function() {
                 return $(this).data('value') > 0
             }).sort(function(a, b) {
                 let n1 = $(a).data('value'), n2 = $(b).data('value');
                 return (n1 > n2) ? -1 : (n1 < n2) ? 1 : 0;
             }).slice(0, 30);
         }
-        return this.#mostCoveredLines;
+        return this._mostCoveredLines;
     }
 
     get mostGlobalCoveredLines() {
-        if (!this.#mostGlobalCoveredLines) {
+        if (!this._mostGlobalCoveredLines) {
             let mostCoveredLinesStatisticsContainer = $('#most_global_covered_lines');
             let statistics = [];
             if (mostCoveredLinesStatisticsContainer.length) {
@@ -172,12 +185,12 @@ class CoverageProcessor {
                     statistics.push($(this).text());
                 })
             }
-            this.#mostGlobalCoveredLines = statistics;
+            this._mostGlobalCoveredLines = statistics;
         }
-        return this.#mostGlobalCoveredLines;
+        return this._mostGlobalCoveredLines;
     }
 
-    #expandStatTree(node, chain) {
+    _expandStatTree(node, chain) {
         let $this = this,
             nodeID = node.data('tg-id'),
             nodeChildren = node.nextAll(`tr[data-tg-parent="${nodeID}"]`);
@@ -196,12 +209,12 @@ class CoverageProcessor {
             nodeChildren.filter(function() {
                 return !$(this).hasClass('tg-leaf');
             }).each(function() {
-                $this.#expandStatTree($(this), chain);
+                $this._expandStatTree($(this), chain);
             });
         }
     }
 
-    #collapseStatTree(node) {
+    _collapseStatTree(node) {
         let $this = this,
             nodeID = node.data('tg-id'),
             nodeChildren = node.nextAll(`tr[data-tg-parent="${nodeID}"]`);
@@ -210,7 +223,7 @@ class CoverageProcessor {
         nodeChildren.filter(function() {
             return $(this).hasClass('tg-expanded');
         }).each(function() {
-            $this.#collapseStatTree($(this));
+            $this._collapseStatTree($(this));
         });
 
         // Hide all children
@@ -223,7 +236,7 @@ class CoverageProcessor {
         node.removeClass('tg-expanded');
     }
 
-    static #getNewIndex(currentIndex, listSize, change) {
+    static _getNewIndex(currentIndex, listSize, change) {
         if (currentIndex < 0) {
             // If no elements from the list is selected then
             // go to first element if we are moving forward or last one otherwise
@@ -233,7 +246,7 @@ class CoverageProcessor {
         return currentIndex < 0 ? listSize - 1 : currentIndex < listSize ? currentIndex : 0;
     }
 
-    #changeSelection(linesCollection, change, covTypeClass) {
+    _changeSelection(linesCollection, change, covTypeClass) {
         this.dataWindow.empty();
         this.onSelectionChange?.();
 
@@ -247,14 +260,14 @@ class CoverageProcessor {
         // Get selected line and increase index in a list
         let selectedLine = this.sourceProcessor.selected_line?.parent().find(`.${covTypeClass}:first`);
         if (selectedLine && selectedLine.length) {
-            ind = CoverageProcessor.#getNewIndex(linesCollection.index(selectedLine), linesCollection.length, change);
+            ind = CoverageProcessor._getNewIndex(linesCollection.index(selectedLine), linesCollection.length, change);
         }
 
         // Select new line
         this.sourceProcessor.select_span($(linesCollection.get(ind)).parent());
     }
 
-    #changeGlobalSelection(linesCollection, change) {
+    _changeGlobalSelection(linesCollection, change) {
         this.dataWindow.empty();
         this.onSelectionChange?.();
 
@@ -270,7 +283,7 @@ class CoverageProcessor {
         if (this.sourceProcessor.selected_line) {
             let currentLine = this.sourceProcessor.selected_line.parent().attr('id').replace( /^\D+/g, '');
             currentFile = this.sourceProcessor.title_container.text();
-            ind = CoverageProcessor.#getNewIndex(
+            ind = CoverageProcessor._getNewIndex(
                 linesCollection.indexOf(`${currentFile}:${currentLine}`),
                 linesCollection.length, change
             );
@@ -281,5 +294,17 @@ class CoverageProcessor {
         if (newLineData.length === 2) {
             this.sourceProcessor.get_source(newLineData[1], newLineData[0]);
         }
+    }
+
+    get currentFile() {
+        return this.sourceProcessor.title_container.text();
+    }
+
+    _clearCache() {
+        this._coveredFunctions = null;
+        this._uncoveredFunctions = null;
+        this._sortedCoveredFunctions = null;
+        this._mostCoveredLines = null;
+        this.initialFile = this.currentFile;
     }
 }
