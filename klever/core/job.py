@@ -428,32 +428,23 @@ class REP(klever.core.components.Component):
         req_spec_id = verification_status['req spec id']
         envmodel_id = verification_status['environment model']
         ideal_verdicts = verification_status['ideal verdicts']
+        comparison_list = [(program_fragment_id, 'program fragments'),
+                           (req_spec_id, 'requirements specification'),
+                           (envmodel_id, 'environment model')]
 
         matched_ideal_verdict = None
-
-        attributes = [(program_fragment_id, 'program fragments'),
-                      (req_spec_id, 'requirements specification'),
-                      (envmodel_id, 'environment model')]
-        missing = []
-        while attributes and not matched_ideal_verdict:
-            for ideal_verdict in ideal_verdicts:
-                match = True
-                for missing_attr in missing:
-                    if missing_attr in ideal_verdict:
+        ideal_verdicts = sorted(ideal_verdicts, key=lambda x: len(x.keys()), reverse=True)
+        for verdicts in ideal_verdicts:
+            matched = True
+            for value, attribute in comparison_list:
+                if attribute in verdicts:
+                    matched = match_attr(value, verdicts[attribute])
+                    if not matched:
                         break
 
-                for value, attribute in attributes:
-                    if not match_attr(value, ideal_verdict.get(attribute)):
-                        match = False
-                        break
-
-                if match:
-                    matched_ideal_verdict = ideal_verdict
-                    break
-
-            # Try next with a reduced number of attributes
-            _, attribute = attributes.pop(-1)
-            missing.append(attribute)
+            if matched:
+                matched_ideal_verdict = verdicts
+                break
 
         if not matched_ideal_verdict:
             raise ValueError(
