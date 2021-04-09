@@ -25,7 +25,7 @@ from klever.core.vtg.emg.decomposition.separation.linear import LinearStrategy
 #TODO: Add Python Doc
 #TODO: Add Annotations
 def decompose_intermediate_model(logger: Logger, conf: dict, model: ProcessCollection):
-    if conf.get('decomposition'):
+    if not conf.get('single environment model per fragment', True):
         logger.info(f'Decompose environment model {model.name}')
         algorythm = Decomposition(logger, conf,
                                   model=model,
