@@ -98,9 +98,12 @@ def convert_coverage(merged_coverage_info, coverage_dir, pretty, src_files_info=
 
         sorted_file_most_covered_lines = sorted(file_most_covered_lines.items(), key=lambda kv: kv[1], reverse=True)
 
-        coverage_stats['most covered lines'] = []
-        for i in range(most_covered_lines_num):
-            coverage_stats['most covered lines'].append(sorted_file_most_covered_lines[i][0])
+        if sorted_file_most_covered_lines:
+            coverage_stats['most covered lines'] = []
+            for i in range(most_covered_lines_num):
+                if i == len(sorted_file_most_covered_lines):
+                    break
+                coverage_stats['most covered lines'].append(sorted_file_most_covered_lines[i][0])
 
     if src_files_info:
         # Remove data for covered source files. It is out of interest, but we did not know these files earlier.
