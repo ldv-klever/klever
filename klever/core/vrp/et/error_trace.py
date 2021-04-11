@@ -66,10 +66,6 @@ class ErrorTrace:
             raise KeyError('Entry node has not been set yet')
 
     def highlight(self, src, func_name=None):
-        # Current highlighting format does not support new lines in sources. Besides, error trace visualizer in Bridge
-        # also does not show them well.
-        src = src.replace('\n', ' ')
-
         highlight = Highlight(self._logger, src)
         highlight.highlight()
 
@@ -716,6 +712,46 @@ class ErrorTrace:
 
         if removed_switch_cases_num:
             self._logger.debug('{0} switch cases were removed'.format(removed_switch_cases_num))
+
+    def merge_func_entry_and_exit(self):
+        # For each function call with return there is an edge corresponding to function entry and an edge
+        # corresponding to function exit. Both edges are located at a function call. The second edge can contain an
+        # assigment of result to some variable.
+        # This is good for analysis, but this is redundant for visualization. Let's merge these edges together.
+        edges_to_remove = []
+        for edge in self.trace_iterator():
+            if 'enter' not in edge:
+                continue
+
+            return_edge = self.get_func_return_edge(edge)
+            if not return_edge:
+                continue
+
+            exit_edge = self.next_edge(return_edge)
+            if not exit_edge:
+                continue
+
+            edges_to_remove.insert(0, exit_edge)
+            next_to_exit_edge = self.next_edge(exit_edge)
+
+            # Do not overwrite source code of function entry with the one of function exit when function is
+            # called within if statement. In that case there is no useful assigments most likely while source
+            # code of function exit includes some part of this if statement.
+            if not next_to_exit_edge \
+                    or 'condition' not in next_to_exit_edge \
+                    or exit_edge['line'] != next_to_exit_edge['line']:
+                edge['source'] = exit_edge['source']
+
+            # Copy notes if so from function exit edge to be removed to function entry edge.
+            if 'notes' not in edge:
+                edge['notes'] = []
+
+            if 'notes' in exit_edge:
+                edge['notes'].extend(exit_edge['notes'])
+                del exit_edge['notes']
+
+        for edge_to_remove in edges_to_remove:
+            self.remove_edge_and_target_node(edge_to_remove)
 
     def sanity_checks(self):
         # Check:

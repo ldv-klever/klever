@@ -32,6 +32,8 @@ def import_error_trace(logger, witness, verification_task_files):
     # Find violation
     trace.find_violation_path()
 
+    trace.merge_func_entry_and_exit()
+
     # Make more difficult transformations
     envmodel_simplifications(logger, trace)
 

@@ -25,6 +25,7 @@ import klever.core.components
 import klever.core.utils
 
 coverage_format_version = 1
+most_covered_lines_num = 30
 
 
 def add_to_coverage(merged_coverage_info, coverage_info):
@@ -51,7 +52,7 @@ def add_to_coverage(merged_coverage_info, coverage_info):
             merged_coverage_info[file_name]['notes'][line] = note
 
 
-def convert_coverage(merged_coverage_info, coverage_dir, pretty, src_files_info=None):
+def convert_coverage(merged_coverage_info, coverage_dir, pretty, src_files_info=None, total=False):
     # Convert combined coverage to the required format.
     os.mkdir(coverage_dir)
 
@@ -87,6 +88,28 @@ def convert_coverage(merged_coverage_info, coverage_dir, pretty, src_files_info=
             # Total number of considered functions.
             len(file_coverage_info['covered functions'])
         ]
+
+    # Obtain most covered lines for code coverage of verification tasks.
+    if not total:
+        file_most_covered_lines = {}
+        for file_name, file_coverage_info in merged_coverage_info.items():
+            sorted_covered_lines = sorted(file_coverage_info['covered lines'].items(), key=lambda kv: kv[1], reverse=True)
+
+            # It is enough to remember not more than the total number of most covered lines per each file.
+            for i in range(most_covered_lines_num):
+                if i == len(sorted_covered_lines):
+                    break
+
+                file_most_covered_lines["{0}:{1}".format(file_name, sorted_covered_lines[i][0])] = sorted_covered_lines[i][1]
+
+        sorted_file_most_covered_lines = sorted(file_most_covered_lines.items(), key=lambda kv: kv[1], reverse=True)
+
+        if sorted_file_most_covered_lines:
+            coverage_stats['most covered lines'] = []
+            for i in range(most_covered_lines_num):
+                if i == len(sorted_file_most_covered_lines):
+                    break
+                coverage_stats['most covered lines'].append(sorted_file_most_covered_lines[i][0])
 
     if src_files_info:
         # Remove data for covered source files. It is out of interest, but we did not know these files earlier.
@@ -206,7 +229,7 @@ class JCR(klever.core.components.Component):
                             src_files_info = json.load(fp)
 
                         convert_coverage(coverage_info, total_coverage_dir, self.conf['keep intermediate files'],
-                                         src_files_info)
+                                         src_files_info, total=True)
                         total_coverage_dirs.append(total_coverage_dir)
 
                         total_coverages[req_spec_id] = klever.core.utils.ArchiveFiles([total_coverage_dir])
