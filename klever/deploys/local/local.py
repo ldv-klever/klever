@@ -51,6 +51,9 @@ class Klever:
         else:
             self.prev_deploy_info = {"mode": self.args.mode}
 
+        # Do not remove addons and build bases during reinstall action
+        self.keep_addons_and_bb = False
+
     def get_deployment_mode(self):
         return self.prev_deploy_info.get("mode", self.args.mode)
 
@@ -296,7 +299,7 @@ class Klever:
         self._dump_cur_deploy_info(self.prev_deploy_info)
 
     def _pre_install(self):
-        if os.path.exists(self.prev_deploy_info_file):
+        if os.path.exists(self.prev_deploy_info_file) and not self.keep_addons_and_bb:
             self.logger.error(
                 'There is information on previous deployment (perhaps you try to install Klever second time)')
             sys.exit(errno.EINVAL)
@@ -396,14 +399,22 @@ class Klever:
 
         # Removing individual directories and files rather than the whole deployment directory allows to use standard
         # locations like "/", "/usr" or "/usr/local" for deploying Klever.
-        for path in (
-                'klever',
+        paths_to_remove = [
+            'klever',
+            'klever-conf',
+            'klever-work',
+            'klever-media',
+            'version'
+        ]
+
+        if not self.keep_addons_and_bb:
+            paths_to_remove.extend([
                 'klever-addons',
-                'klever-conf',
-                'klever-work',
-                'klever-media',
+                'build bases',
                 'klever.json'
-        ):
+            ])
+
+        for path in paths_to_remove:
             path = os.path.join(self.args.deployment_directory, path)
             if os.path.exists(path) or os.path.islink(path):
                 self.logger.info('Remove "{0}"'.format(path))
@@ -521,6 +532,11 @@ class Klever:
                 build_bases.extend(self.__find_build_bases_recursive(file))
 
         return build_bases
+
+    def reinstall(self):
+        self.keep_addons_and_bb = True
+        self.uninstall()
+        self.install()
 
 
 class KleverDevelopment(Klever):
