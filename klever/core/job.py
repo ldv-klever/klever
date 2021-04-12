@@ -295,7 +295,7 @@ def __solve_sub_jobs(core_obj, vals, components_common_conf, subcomponents):
 
 
 class REP(klever.core.components.Component):
-    SINGLE_ENV_NAME = 'single'
+    SINGLE_ENV_NAME = 'base'
 
     def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, id=None, work_dir=None, attrs=None,
                  separate_from_parent=True, include_child_resources=False, queues_to_terminate=None):
@@ -373,11 +373,12 @@ class REP(klever.core.components.Component):
     def __set_callbacks(self):
 
         # TODO: these 3 functions are very similar, so, they should be merged.
-        # TODO: plugin_fail_processing does not exist already
         def after_plugin_fail_processing(context):
+            assert context.task
             context.mqs['verification statuses'].put({
-                'program fragment id': context.program_fragment_id,
-                'req spec id': context.req_spec_id,
+                'program fragment id': context.task.fragment,
+                'req spec id': context.task.rule if hasattr(context.task, 'rule') else context.task.rule_class,
+                'environment model': context.task.envmodel if hasattr(context.task, 'envmodel') else self.SINGLE_ENV_NAME,
                 'verdict': 'non-verifier unknown',
                 'sub-job identifier': context.conf['sub-job identifier'],
                 'ideal verdicts': context.conf['ideal verdicts'],
@@ -426,7 +427,7 @@ class REP(klever.core.components.Component):
 
         program_fragment_id = verification_status['program fragment id']
         req_spec_id = verification_status['req spec id']
-        envmodel_id = verification_status['environment model']
+        envmodel_id = verification_status.get('environment model')
         ideal_verdicts = verification_status['ideal verdicts']
         comparison_list = [(program_fragment_id, 'program fragments'),
                            (req_spec_id, 'requirements specification'),

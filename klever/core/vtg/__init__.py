@@ -63,7 +63,7 @@ Task = collections.namedtuple('Task', 'fragment rule_class envmodel rule workdir
 # Global values to be set once and used by other components running in parallel with the VTG
 REQ_SPEC_CLASSES = None
 FRAGMENT_DESC_FIELS = None
-SINGLE_ENV_NAME = 'single'
+SINGLE_ENV_NAME = 'base'
 
 
 class VTG(klever.core.components.Component):
@@ -644,6 +644,10 @@ class VTGW(klever.core.components.Component):
         p.start()
         p.join()
 
+    def plugin_fail_processing(self):
+        """Has a callback in job.py!"""
+        self.logger.debug('Submit the information about the failure to the Job processing class')
+
     def _submit_task(self, plugin_desc, out_abstract_task_desc_file):
         plugin_work_dir = plugin_desc['name'].lower()
         self.logger.debug(f'Put final abstract verification task description to '
@@ -771,6 +775,7 @@ class EMGW(VTGW):
             self._run_plugin(options)
         except klever.core.components.ComponentError:
             self.logger.warning('EMG has failed')
+            self.plugin_fail_processing()
 
     def __get_pligin_conf(self, rule_class):
         return next(iter(self.req_spec_classes[rule_class].values()))['plugins'][0]
@@ -854,6 +859,9 @@ class PLUGINS(VTGW):
                 self._run_plugin(plugin_desc, cur_abstract_task_desc_file, out_abstract_task_desc_file)
             except klever.core.components.ComponentError:
                 self.logger.warning('Plugin {} failed'.format(plugin_desc['name']))
+
+                # Call the job hook
+                self.plugin_fail_processing()
                 break
 
             cur_abstract_task_desc_file = out_abstract_task_desc_file

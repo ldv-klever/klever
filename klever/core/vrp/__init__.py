@@ -46,7 +46,7 @@ def __submit_common_attrs(context):
     context.mqs['VRP common attrs'].put(context.common_attrs)
 
 
-SINGLE_ENV_NAME = 'single'
+SINGLE_ENV_NAME = 'base'
 
 
 class VRP(klever.core.components.Component):
