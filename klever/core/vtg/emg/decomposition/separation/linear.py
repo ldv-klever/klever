@@ -15,6 +15,7 @@
 # limitations under the License.
 #
 
+import logging
 import collections
 
 from klever.core.vtg.emg.decomposition.scenario import Scenario
@@ -28,8 +29,8 @@ class LinearExtractor(ScenarioExtractor):
     provides more scenarios that should cover all alternatives from the provided process.
     """
 
-    def __init__(self, actions: Actions):
-        super().__init__(actions)
+    def __init__(self, logger: logging.Logger, actions: Actions):
+        super().__init__(logger, actions)
         # This is a list of lists of choice options that we should chooce to reach some uncovered new choices.
         self.__scenario_choices = []
         self.__children_paths = collections.OrderedDict()
@@ -83,6 +84,7 @@ class LinearExtractor(ScenarioExtractor):
                 nsc = self._new_scenario(rt, svp)
                 assert len(self.__uncovered) < current, 'Deadlock found'
                 assert nsc.name
+                self.logger.debug(f'Generate a new scenario {nsc.name}')
                 yield nsc
 
         first_actual = self._actions.first_actions(root)
@@ -92,12 +94,13 @@ class LinearExtractor(ScenarioExtractor):
         actual = actual.pop()
 
         if actual.description.savepoints:
+            self.logger.debug('Generate scenarios for savepoints')
             for savepoint in actual.description.savepoints:
                 if self.__uncovered is not None:
                     yield from new_scenarios(self._actions.initial_action, savepoint)
                 else:
                     yield new_scenarios(self._actions.initial_action, savepoint)
-        elif self.__uncovered is not None:
+        if self.__uncovered is not None:
             yield from new_scenarios(self._actions.initial_action)
 
     def __reset_covered(self):

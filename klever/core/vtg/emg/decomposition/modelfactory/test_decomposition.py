@@ -22,6 +22,7 @@ from klever.core.vtg.emg.decomposition.modelfactory import ModelFactory
 from klever.core.vtg.emg.decomposition.separation import SeparationStrategy
 from klever.core.vtg.emg.common.process.model_for_testing import model_preset
 
+# todo: Implement models for combinatorial strategy
 
 @pytest.fixture
 def model():

@@ -30,7 +30,8 @@ class ScenarioExtractor:
     to explore actions and this is a foundation for the next implementations.
     """
 
-    def __init__(self, actions: Actions):
+    def __init__(self, logger, actions: Actions):
+        self.logger = logger
         self._actions = actions
         self._roots = {self._actions.initial_action}
 
@@ -138,5 +139,5 @@ class SeparationStrategy:
         self.conf = conf
 
     def __call__(self, process: Process):
-        new = self.strategy(process.actions)
+        new = self.strategy(self.logger, process.actions)
         return new()

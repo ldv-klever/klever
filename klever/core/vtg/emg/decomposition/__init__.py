@@ -20,6 +20,7 @@ from klever.core.vtg.emg.common.process import ProcessCollection
 from klever.core.vtg.emg.decomposition.modelfactory import ModelFactory
 from klever.core.vtg.emg.decomposition.separation import SeparationStrategy
 from klever.core.vtg.emg.decomposition.separation.linear import LinearStrategy
+from klever.core.vtg.emg.decomposition.modelfactory.combinatorial import CombinatorialFactory
 
 
 #TODO: Add Python Doc
@@ -49,8 +50,12 @@ def _choose_separator(logger, conf):
 
 
 def _choose_factory(logger, conf):
-    # TODO: Implement an option that cover different scenarios not only SP
-    return ModelFactory(logger, conf)
+    if conf.get('use all scenarios combinations'):
+        logger.info('Choose the combinatorial factory')
+        return CombinatorialFactory(logger, conf)
+    else:
+        logger.info('Choose the default model factory')
+        return ModelFactory(logger, conf)
 
 
 class Decomposition:

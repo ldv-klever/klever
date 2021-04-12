@@ -456,7 +456,8 @@
       "single environment model per fragment": false,
       "skip savepoints": true,
       "skip origin model": true,
-      "scenario separation": "linear"
+      "scenario separation": "linear",
+      "use all scenarios combinations": true
     }
   ]
 }

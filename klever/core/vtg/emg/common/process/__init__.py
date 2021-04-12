@@ -478,7 +478,7 @@ class ProcessCollection:
 
     entry = ProcessDescriptor()
 
-    def __init__(self, name=0):
+    def __init__(self, name='base'):
         self._entry = None
         self.models = ProcessDict()
         self.environment = ProcessDict()

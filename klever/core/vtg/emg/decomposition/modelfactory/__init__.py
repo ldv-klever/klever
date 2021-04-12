@@ -15,6 +15,7 @@
 # limitations under the License.
 #
 
+import copy
 import logging
 
 from klever.core.vtg.emg.common.process.actions import Receive
@@ -30,11 +31,28 @@ class ScenarioCollection:
     """
 
     def __init__(self, name, entry=None, models=None, environment=None):
-        assert isinstance(name, str) or isinstance(name, int)
+        assert isinstance(name, str)
         self.name = name
         self.entry = entry
         self.models = models if isinstance(models, dict) else dict()
         self.environment = environment if isinstance(environment, dict) else dict()
+
+    def clone(self, new_name: str):
+        """
+        Copy the collection with a new name.
+
+        :param new_name: Name string.
+        :return: ScenarioCollection instance.
+        """
+        new = ScenarioCollection(new_name)
+        new.entry = self.entry.clone() if self.entry else None
+        for collection in ('models', 'environment'):
+            for key in getattr(self, collection):
+                if getattr(self, collection)[key]:
+                    getattr(new, collection)[key] = getattr(self, collection)[key].clone()
+                else:
+                    getattr(new, collection)[key] = None
+        return new
 
 
 class Selector:
@@ -75,7 +93,7 @@ class Selector:
         return {s: p for s, p in self._scenarios.items() if s.savepoint}
 
     def _make_base_model(self):
-        new = ScenarioCollection(0)
+        new = ScenarioCollection('base')
         for model in self.model.models:
             new.models[str(model)] = None
         for process in self.model.environment:
@@ -136,12 +154,17 @@ class ModelFactory:
         new_process.actions = scenario.actions
         new_process.accesses(refresh=True)
 
-        new = new_process.add_condition('savepoint', [], scenario.savepoint.statements,
-                                        f'Save point {str(scenario.savepoint)}')
+        if scenario.savepoint:
+            self.logger.debug(f'Replace the first action in the process {str(process)} by the savepoint'
+                              f' {str(scenario.savepoint)}')
+            new = new_process.add_condition('savepoint', [], scenario.savepoint.statements,
+                                            f'Save point {str(scenario.savepoint)}')
 
-        firsts = scenario.actions.first_actions()
-        for name in firsts:
-            new_process.replace_action(new_process.actions[name], new)
+            firsts = scenario.actions.first_actions()
+            for name in firsts:
+                new_process.replace_action(new_process.actions[name], new)
+        else:
+            self.logger.debug(f'Keep the process {str(process)} created for the scenario {str(scenario.name)} as is')
 
         return new_process
 

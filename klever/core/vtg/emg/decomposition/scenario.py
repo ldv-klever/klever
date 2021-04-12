@@ -27,7 +27,12 @@ class Scenario:
             f'Receive incorrect object of type {type(savepoint).__name__}'
 
         self.savepoint = savepoint
-        self.name = name if name else str(savepoint)
+        if name:
+            self.name = name
+        elif savepoint and str(savepoint) and str(savepoint) != 'None':
+            self.name = str(savepoint)
+        else:
+            self.name = None
         self.actions = Actions()
         self.__initial_action = None
 
@@ -57,7 +62,7 @@ class Scenario:
         return new_copy
 
     def clone(self):
-        new = Scenario(self.name, self.savepoint)
+        new = Scenario(self.savepoint, self.name)
         new.actions = self.actions.clone()
         new.__initial_action = new.actions.initial_action
         return new
