@@ -83,7 +83,9 @@ def test_linear_strategy_c1p1(model, linear_separator):
 
     # Test the number of scenarios
     # Todo: reimplement this. It is better to cover sequences somehow.
-    assert len(scenarios) == 4, f'The number of scenarios is {len(scenarios)}'
+    # 2 - savepoints in activate * 2 options + 2 options without savepoints
+    assert len(scenarios) == 6, f'The number of scenarios is {len(scenarios)}: ' + \
+                                ', '.join([s.name for s in scenarios])
 
 
 def test_linear_strategy_c1p2(model, linear_separator):
@@ -92,7 +94,9 @@ def test_linear_strategy_c1p2(model, linear_separator):
     _check_linear_actions(scenarios, c1p2.actions)
 
     # Test the number of scenarios
-    assert len(scenarios) == 8, f'The number of scenarios is {len(scenarios)}'
+    # (2 options in calls (no recursion) + 2 options in main (no recursion)) * 2 sp + 4 without sp
+    assert len(scenarios) == 12, f'The number of scenarios is {len(scenarios)}: ' + \
+                                 ', '.join([s.name for s in scenarios])
 
 
 def test_linear_strategy_c2p1(model, linear_separator):
@@ -101,7 +105,9 @@ def test_linear_strategy_c2p1(model, linear_separator):
     _check_linear_actions(scenarios, c2p1.actions)
 
     # Test the number of scenarios
-    assert len(scenarios) == 3, f'The number of scenarios is {len(scenarios)}'
+    # 3 options without sp
+    assert len(scenarios) == 3, f'The number of scenarios is {len(scenarios)}: ' + \
+                                ', '.join([s.name for s in scenarios])
 
 
 def _check_linear_actions(scenarios, actions):
