@@ -50,9 +50,11 @@ def main():
                              ' symbolic links as well as unexpected changes in their targets. Indeed this option is' +
                              ' intended to update Klever addons and build bases silently without using deployment' +
                              ' scripts.')
+    parser.add_argument('--log-level', default='INFO', metavar='LEVEL',
+                        help='Set logging level (INFO or DEBUG)')
     args = parser.parse_args()
 
-    logger = get_logger(__name__)
+    logger = get_logger(__name__, args.log_level)
 
     check_deployment_configuration_file(logger, args.deployment_configuration_file)
 

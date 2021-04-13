@@ -18,6 +18,7 @@
 
 import errno
 import json
+import logging
 import os
 import shutil
 import sys
@@ -63,7 +64,11 @@ def install_deps(logger, deploy_conf, prev_deploy_info, non_interactive, update_
             sys.exit(errno.EINVAL)
 
     if pckgs_to_install:
-        logger.info('Install packages:\n  {0}'.format('\n  '.join(pckgs_to_install)))
+
+        if logger.level >= logging.INFO:
+            logger.info('Install packages')
+        else:
+            logger.info('Install packages:\n  {0}'.format('\n  '.join(pckgs_to_install)))
 
         for util in ('apt-get', 'dnf', 'zypper', 'yum'):
             if shutil.which(util):

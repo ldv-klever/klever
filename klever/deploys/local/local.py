@@ -126,8 +126,6 @@ class Klever:
 
     def _install_klever_build_bases(self, src_dir, deploy_dir):
         for klever_build_base in self.deploy_conf['Klever Build Bases']:
-            self.logger.info(f'Install Klever build base "{klever_build_base}"')
-
             base_deploy_dir = os.path.join(deploy_dir, 'build bases', klever_build_base)
 
             # _install_entity method expects configuration in a specific format
@@ -146,7 +144,7 @@ class Klever:
                 if build_base_path != base_deploy_dir:
                     paths_to_remove = [os.path.join(base_deploy_dir, i) for i in os.listdir(base_deploy_dir)]
 
-                    self.logger.info(f'Move "{klever_build_base}" from {build_base_path} to {base_deploy_dir}')
+                    self.logger.debug(f'Move "{klever_build_base}" from {build_base_path} to {base_deploy_dir}')
                     for i in os.listdir(build_base_path):
                         # In theory, it is possible to get "shutil.Error: Destination path already exists" here.
                         # But, it can only happen if the top-level directory inside the archive with the build base
@@ -380,7 +378,7 @@ class Klever:
             for filename in filenames:
                 if filename.startswith('klever'):
                     service = os.path.join(dirpath, filename)
-                    self.logger.info('Remove "{0}"'.format(service))
+                    self.logger.debug('Remove "{0}"'.format(service))
                     os.remove(service)
 
         klever_env_file = '/etc/default/klever'
@@ -414,10 +412,11 @@ class Klever:
                 'klever.json'
             ])
 
+        self.logger.info(f'Remove files inside deployment directory "{self.args.deployment_directory}"')
         for path in paths_to_remove:
             path = os.path.join(self.args.deployment_directory, path)
             if os.path.exists(path) or os.path.islink(path):
-                self.logger.info('Remove "{0}"'.format(path))
+                self.logger.debug('Remove "{0}"'.format(path))
                 if os.path.islink(path) or os.path.isfile(path):
                     os.remove(path)
                 else:
@@ -466,7 +465,7 @@ class Klever:
 
         # Try to remove httpd_t from the list of permissive domains.
         try:
-            execute_cmd(self.logger, 'semanage', 'permissive', '-d', 'httpd_t')
+            execute_cmd(self.logger, 'semanage', 'permissive', '-d', 'httpd_t', stderr=subprocess.DEVNULL)
         except Exception:
             pass
 
