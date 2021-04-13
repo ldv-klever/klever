@@ -294,8 +294,34 @@ def __solve_sub_jobs(core_obj, vals, components_common_conf, subcomponents):
                                                 components_common_conf['ignore failed sub-jobs'], subcomponents)
 
 
+SINGLE_ENV_NAME = 'base'
+
+
+def _vrp_callback(context):
+    context.mqs['verification statuses'].put({
+        'program fragment id': context.program_fragment_id,
+        'environment model': context.envmodel,
+        'req spec id': context.req_spec_id,
+        'verdict': context.verdict,
+        'sub-job identifier': context.conf['sub-job identifier'],
+        'ideal verdicts': context.conf['ideal verdicts'],
+        'data': context.conf.get('data')
+    })
+
+
+def _vtg_plugin_callback(context):
+    context.mqs['verification statuses'].put({
+        'program fragment id': context.task.fragment,
+        'req spec id': context.task.rule if hasattr(context.task, 'rule') else context.task.rule_class,
+        'environment model': context.task.envmodel if hasattr(context.task, 'envmodel') else SINGLE_ENV_NAME,
+        'verdict': 'non-verifier unknown',
+        'sub-job identifier': context.conf['sub-job identifier'],
+        'ideal verdicts': context.conf['ideal verdicts'],
+        'data': context.conf.get('data')
+    })
+
+
 class REP(klever.core.components.Component):
-    SINGLE_ENV_NAME = 'base'
 
     def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, id=None, work_dir=None, attrs=None,
                  separate_from_parent=True, include_child_resources=False, queues_to_terminate=None):
@@ -372,40 +398,14 @@ class REP(klever.core.components.Component):
 
     def __set_callbacks(self):
 
-        # TODO: these 3 functions are very similar, so, they should be merged.
         def after_plugin_fail_processing(context):
-            assert context.task
-            context.mqs['verification statuses'].put({
-                'program fragment id': context.task.fragment,
-                'req spec id': context.task.rule if hasattr(context.task, 'rule') else context.task.rule_class,
-                'environment model': context.task.envmodel if hasattr(context.task, 'envmodel') else self.SINGLE_ENV_NAME,
-                'verdict': 'non-verifier unknown',
-                'sub-job identifier': context.conf['sub-job identifier'],
-                'ideal verdicts': context.conf['ideal verdicts'],
-                'data': context.conf.get('data')
-            })
+            _vtg_plugin_callback(context)
 
         def after_process_failed_task(context):
-            context.mqs['verification statuses'].put({
-                'program fragment id': context.program_fragment_id,
-                'environment model': context.envmodel,
-                'req spec id': context.req_spec_id,
-                'verdict': context.verdict,
-                'sub-job identifier': context.conf['sub-job identifier'],
-                'ideal verdicts': context.conf['ideal verdicts'],
-                'data': context.conf.get('data')
-            })
+            _vrp_callback(context)
 
         def after_process_single_verdict(context):
-            context.mqs['verification statuses'].put({
-                'program fragment id': context.program_fragment_id,
-                'environment model': context.envmodel,
-                'req spec id': context.req_spec_id,
-                'verdict': context.verdict,
-                'sub-job identifier': context.conf['sub-job identifier'],
-                'ideal verdicts': context.conf['ideal verdicts'],
-                'data': context.conf.get('data')
-            })
+            _vrp_callback(context)
 
         klever.core.components.set_component_callbacks(
             self.logger,
@@ -453,7 +453,7 @@ class REP(klever.core.components.Component):
                 'specification "{2}"'.format(program_fragment_id, envmodel_id, req_spec_id))
 
         # This suffix will help to distinguish sub-jobs easier.
-        if envmodel_id == self.SINGLE_ENV_NAME:
+        if envmodel_id == SINGLE_ENV_NAME:
             id_suffix = os.path.join(program_fragment_id, req_spec_id)\
                 if program_fragment_id and req_spec_id else ''
         else:
