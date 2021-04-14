@@ -22,15 +22,16 @@ class CombinatorialSelector(Selector):
 
     def __call__(self, *args, **kwargs):
         self.logger.info('Iterate over all generated scenarios with both SP and not')
-        for new, related_process in super().__call__():
+        for new, related_process in self._iterate_over_base_models(
+                include_base_model=True, include_savepoints=not self.conf.get('skip savepoints')):
             iterate_over_processes = [
                 p for p in self.processes_to_scenarios
                 if related_process != p and [x for x in self.processes_to_scenarios[p] if not x.savepoint]]
             if iterate_over_processes:
                 self.logger.info(f'Create copies of {new.name} for processes {", ".join(iterate_over_processes)}')
-                pool = [new]
+                pool = []
                 for process_name in iterate_over_processes:
-                    for new_model in list(pool):
+                    for new_model in (list(pool) if pool else [new]):
                         for scenario in (s for s in self.processes_to_scenarios[process_name] if not s.savepoint):
                             newest = new_model.clone(str(new_model.name) + f'_{scenario.name}'
                                                      if new_model.name else scenario.name)

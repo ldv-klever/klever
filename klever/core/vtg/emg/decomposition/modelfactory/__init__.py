@@ -68,9 +68,13 @@ class Selector:
         self.processes_to_scenarios = processes_to_scenarios
 
     def __call__(self, *args, **kwargs):
-        if not self.conf.get('skip origin model'):
+        yield from self._iterate_over_base_models(include_base_model=not self.conf.get('skip origin model'),
+                                                  include_savepoints=not self.conf.get('skip savepoints'))
+
+    def _iterate_over_base_models(self, include_base_model=True, include_savepoints=True):
+        if include_base_model:
             yield self._make_base_model(), None
-        if not self.conf.get('skip savepoints'):
+        if include_savepoints:
             for scenario, related_process in self._scenarions_with_savepoint.items():
                 new = ScenarioCollection(scenario.name)
                 new.entry = scenario
