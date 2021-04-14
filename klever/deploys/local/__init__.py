@@ -51,7 +51,7 @@ def main():
                              ' intended to update Klever addons and build bases silently without using deployment' +
                              ' scripts.')
     parser.add_argument('--log-level', default='INFO', metavar='LEVEL',
-                        help='Set logging level (INFO or DEBUG)')
+                        help='Set logging level to LEVEL (INFO or DEBUG).')
     args = parser.parse_args()
 
     logger = get_logger(__name__, args.log_level)

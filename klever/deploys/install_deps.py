@@ -64,7 +64,6 @@ def install_deps(logger, deploy_conf, prev_deploy_info, non_interactive, update_
             sys.exit(errno.EINVAL)
 
     if pckgs_to_install:
-
         if logger.level >= logging.INFO:
             logger.info('Install packages')
         else:

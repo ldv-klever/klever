@@ -41,12 +41,12 @@ class Cd:
 def execute_cmd(logger, *args, stdin=None, stderr=None, get_output=False, username=None):
     logger.debug('Execute command "{0}"'.format(' '.join(args)))
 
-    # Do not print output by default
+    # Do not print output by default.
     stdout = None
     if logger.level >= logging.INFO:
         stdout = subprocess.PIPE
 
-    # stdout argument is not allowed in check_output
+    # stdout argument is not allowed in check_output().
     kwargs = {
         'stdin': stdin,
         'stderr': stderr

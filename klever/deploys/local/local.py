@@ -51,8 +51,8 @@ class Klever:
         else:
             self.prev_deploy_info = {"mode": self.args.mode}
 
-        # Do not remove addons and build bases during reinstall action
-        self.keep_addons_and_bb = False
+        # Do not remove addons and build bases during reinstall action.
+        self.keep_addons_and_build_bases = False
 
     def get_deployment_mode(self):
         return self.prev_deploy_info.get("mode", self.args.mode)
@@ -297,7 +297,7 @@ class Klever:
         self._dump_cur_deploy_info(self.prev_deploy_info)
 
     def _pre_install(self):
-        if os.path.exists(self.prev_deploy_info_file) and not self.keep_addons_and_bb:
+        if os.path.exists(self.prev_deploy_info_file) and not self.keep_addons_and_build_bases:
             self.logger.error(
                 'There is information on previous deployment (perhaps you try to install Klever second time)')
             sys.exit(errno.EINVAL)
@@ -405,7 +405,7 @@ class Klever:
             'version'
         ]
 
-        if not self.keep_addons_and_bb:
+        if not self.keep_addons_and_build_bases:
             paths_to_remove.extend([
                 'klever-addons',
                 'build bases',
@@ -533,7 +533,7 @@ class Klever:
         return build_bases
 
     def reinstall(self):
-        self.keep_addons_and_bb = True
+        self.keep_addons_and_build_bases = True
         self.uninstall()
         self.install()
 
