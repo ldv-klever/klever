@@ -68,6 +68,15 @@ class ScenarioModelgenerator(AbstractGenerator):
         abstract_processes = decoder.parse_event_specification(source, specifications["event specifications"],
                                                                ExtendedProcessCollection())
 
+        # Remove deleted models
+        deleted_models = [func for func in abstract_processes.models if func in source.source_functions and
+                          interfaces.is_removed_function(func)]
+        if deleted_models:
+            self.logger.info("Found deleted models: {}".format(', '.join(deleted_models)))
+
+            for name in deleted_models:
+                del abstract_processes.models[name]
+
         # Now check that we have all necessary interface specifications
         unspecified_functions = [func for func in abstract_processes.models if func in source.source_functions and
                                  func not in [i.name for i in interfaces.function_interfaces]]
