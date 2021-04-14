@@ -138,7 +138,7 @@ class Klever:
             prev_deploy_bases_conf = self.prev_deploy_info['Klever Build Bases']
 
             if self._install_entity(klever_build_base, src_dir, base_deploy_dir,
-                                    deploy_bases_conf, prev_deploy_bases_conf):
+                                    deploy_bases_conf, prev_deploy_bases_conf, build_base=True):
                 build_base_path = self.__find_build_base(base_deploy_dir)
 
                 if build_base_path != base_deploy_dir:
@@ -156,7 +156,7 @@ class Klever:
 
                 self._dump_cur_deploy_info(self.prev_deploy_info)
 
-    def _install_entity(self, name, src_dir, deploy_dir, deploy_conf, prev_deploy_info):
+    def _install_entity(self, name, src_dir, deploy_dir, deploy_conf, prev_deploy_info, build_base=False):
         if name not in deploy_conf:
             self.logger.error(f'"{name}" is not described')
             sys.exit(errno.EINVAL)
@@ -208,10 +208,12 @@ class Klever:
             self.logger.info(f'"{name}" is up to date (version: "{version}")')
             return False
 
+        entity_kind = "Klever build base" if build_base else "Klever addon"
+
         if prev_version:
-            self.logger.info(f'Update "{name}" from version "{prev_version}" to version "{version}"')
+            self.logger.info(f'Update {entity_kind} "{name}" from version "{prev_version}" to version "{version}"')
         else:
-            self.logger.info(f'Install "{name}" (version: "{version}")')
+            self.logger.info(f'Install {entity_kind} "{name}" (version: "{version}")')
 
         # Remove previous version of entity if so. Do not make this in depend on previous version since it can be unset
         # while entity is deployed. For instance, this can be the case when entity deployment fails somewhere in the
