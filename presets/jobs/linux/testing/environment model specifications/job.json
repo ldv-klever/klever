@@ -99,9 +99,7 @@
         "ext-modules/manual_model/unsafe.ko",
         "ext-modules/decomposition_disabled/a_invoke.ko",
         "ext-modules/decomposition_disabled/b_invoke.ko",
-        "ext-modules/decomposition_disabled/c_invoke.ko",
-        "ext-modules/decomposition_linear/a_b_invoke.ko",
-        "ext-modules/decomposition_linear/c_invoke.ko"
+        "ext-modules/decomposition_disabled/c_invoke.ko"
       ]
     },
     {
@@ -119,6 +117,21 @@
         "ext-modules/decomposition_default/c_without_b_invoke.ko"
       ],
       "environment model": ["second_savepoint"]
+    },
+    {
+      "ideal verdict": "unsafe",
+      "program fragments": [
+        "ext-modules/decomposition_linear/a_b_invoke.ko",
+        "ext-modules/decomposition_linear/c_invoke.ko"
+      ],
+      "environment model": ["base_call_b"]
+    },
+    {
+      "ideal verdict": "unsafe",
+      "program fragments": [
+        "ext-modules/decomposition_linear/a_b_invoke.ko"
+      ],
+      "environment model": ["base_call_a"]
     }
   ],
   "extra results processing": "testing",
@@ -455,7 +468,6 @@
       ],
       "single environment model per fragment": false,
       "skip savepoints": true,
-      "skip origin model": true,
       "scenario separation": "linear",
       "use all scenarios combinations": true
     }
