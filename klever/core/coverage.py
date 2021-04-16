@@ -409,8 +409,9 @@ class LCOV:
                 line_num = 1
                 orig_file = None
                 orig_file_line_num = 0
+                line_preprocessor_directive = re.compile(r'\s*#line\s+(\d+)\s*(.*)')
                 for line in cil_fp:
-                    m = re.match('#line\s+(\d+)\s*(.*)', line)
+                    m = line_preprocessor_directive.match(line)
                     if m:
                         orig_file_line_num = int(m.group(1))
                         if m.group(2):

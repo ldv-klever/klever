@@ -84,7 +84,7 @@ class ErrorTraceParser:
                         line_num = 1
                         orig_file_id = None
                         orig_file_line_num = 0
-                        line_preprocessor_directive = re.compile(r'#line\s+(\d+)\s*(.*)')
+                        line_preprocessor_directive = re.compile(r'\s*#line\s+(\d+)\s*(.*)')
                         # By some reason it takes enormous CPU and wall time to store content of large CIL files into
                         # class objects iteratively. So use temporary variable for this.
                         content = ''
