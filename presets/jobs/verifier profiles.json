@@ -10,6 +10,9 @@
         {"-setprop": "counterexample.export.exportExtendedWitness=true"},
         {"-setprop": "counterexample.export.compressWitness=false"},
         {"-setprop": "cpa.arg.witness.removeInsufficientEdges=false"},
+        {"-setprop": "counterexample.export.exportCounterexampleCoverage=true"},
+        {"-setprop": "counterexample.export.prefixAdditionalCoverageFile=Counterexample.%d.additionalCoverage.info"},
+        {"-setprop": "additionalCoverage.file=additionalCoverage.info"},
         {"-noout": ""},
         {"-heap": "%ldv:memory size:0.8:MB%m"}
       ],
@@ -37,19 +40,13 @@
       "description": "CPAchecker for reachability checking",
       "inherit": "CPAchecker common",
       "safety properties": ["CHECK( init({entry_point}()), LTL(G ! call(__VERIFIER_error())) )"],
-      "add options": [
-        {"-ldv": ""},
-        {"-setprop": "coverage.file=coverage.info"}
-      ]
+      "add options": [{"-ldv": ""}]
     },
     "CPAchecker BAM reachability": {
       "description": "CPAchecker with BAM for reachability checking",
       "inherit": "CPAchecker common",
       "safety properties": ["CHECK( init({entry_point}()), LTL(G ! call(__VERIFIER_error())) )"],
-      "add options": [
-        {"-ldv-bam": ""},
-        {"-setprop": "coverage.file=coverage.info"}
-      ]
+      "add options": [{"-ldv-bam": ""}]
     },
     "CPAchecker BAM reachability FP": {
       "description": "CPAchecker with BAM and FPA for reachability checking",
