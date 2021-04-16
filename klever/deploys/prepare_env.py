@@ -24,29 +24,30 @@ from klever.deploys.utils import execute_cmd, get_logger
 
 
 def prepare_env(logger, deploy_dir):
+    logger.info('Prepare environment')
     try:
-        logger.info('Try to create user "klever"')
+        logger.debug('Try to create user "klever"')
         execute_cmd(logger, 'useradd', 'klever')
     except subprocess.CalledProcessError:
-        logger.info('User "klever" already exists')
+        logger.debug('User "klever" already exists')
 
     try:
-        logger.info('Obtain execute access to {!r} home directory'.format(os.getlogin()))
+        logger.debug('Obtain execute access to {!r} home directory'.format(os.getlogin()))
         execute_cmd(logger, 'chmod', 'o+x', os.path.join('/', 'home', os.getlogin()))
     except OSError:
         pass
 
-    logger.info('Prepare configurations directory')
+    logger.debug('Prepare configurations directory')
     execute_cmd(logger, 'mkdir', os.path.join(deploy_dir, 'klever-conf'))
 
-    logger.info('Prepare working directory')
+    logger.debug('Prepare working directory')
     work_dir = os.path.join(deploy_dir, 'klever-work')
     execute_cmd(logger, 'mkdir', work_dir)
     execute_cmd(logger, 'chown', '-LR', 'klever', work_dir)
 
     openssl_header = '/usr/include/openssl/opensslconf.h'
     if not os.path.exists(openssl_header):
-        logger.info('Create soft links for libssl to build new versions of the Linux kernel')
+        logger.debug('Create soft links for libssl to build new versions of the Linux kernel')
         execute_cmd(logger, 'ln', '-s', '/usr/include/x86_64-linux-gnu/openssl/opensslconf.h', openssl_header)
 
     crts = glob.glob('/usr/lib/x86_64-linux-gnu/crt*.o')
@@ -55,11 +56,11 @@ def prepare_env(logger, deploy_dir):
         if not os.path.exists(os.path.join('/usr/lib', os.path.basename(crt))):
             args.append(crt)
     if args:
-        logger.info('Prepare CIF environment')
+        logger.debug('Prepare CIF environment')
         args.append('/usr/lib')
         execute_cmd(logger, 'ln', '-s', *args)
 
-    logger.info('Try to initialise PostgreSQL')
+    logger.debug('Try to initialise PostgreSQL')
     try:
         execute_cmd(logger, 'postgresql-setup', '--initdb', '--unit', 'postgresql')
     except FileNotFoundError:
@@ -88,21 +89,21 @@ def prepare_env(logger, deploy_dir):
 
         execute_cmd(logger, 'service', 'postgresql', 'restart')
 
-    logger.info('Start and enable PostgreSQL service')
+    logger.debug('Start and enable PostgreSQL service')
     execute_cmd(logger, 'systemctl', 'start', 'postgresql')
     execute_cmd(logger, 'systemctl', 'enable', 'postgresql')
 
-    logger.info('Create PostgreSQL user')
+    logger.debug('Create PostgreSQL user')
     execute_cmd(logger, 'psql', '-c', "CREATE USER klever WITH CREATEDB PASSWORD 'klever'", username='postgres')
 
-    logger.info('Create PostgreSQL database')
+    logger.debug('Create PostgreSQL database')
     execute_cmd(logger, 'createdb', '-T', 'template0', '-E', 'utf-8', 'klever', username='postgres')
 
-    logger.info('Start and enable RabbitMQ server service')
+    logger.debug('Start and enable RabbitMQ server service')
     execute_cmd(logger, 'systemctl', 'start', 'rabbitmq-server.service')
     execute_cmd(logger, 'systemctl', 'enable', 'rabbitmq-server.service')
 
-    logger.info('Create RabbitMQ user')
+    logger.debug('Create RabbitMQ user')
     execute_cmd(logger, 'rabbitmqctl', 'add_user', 'service', 'service')
     execute_cmd(logger, 'rabbitmqctl', 'set_user_tags', 'service', 'administrator')
     execute_cmd(logger, 'rabbitmqctl', 'set_permissions', '-p', '/', 'service', '.*', '.*', '.*')

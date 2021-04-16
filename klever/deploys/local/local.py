@@ -51,6 +51,9 @@ class Klever:
         else:
             self.prev_deploy_info = {"mode": self.args.mode}
 
+        # Do not remove addons and build bases during reinstall action.
+        self.keep_addons_and_build_bases = False
+
     def get_deployment_mode(self):
         return self.prev_deploy_info.get("mode", self.args.mode)
 
@@ -123,8 +126,6 @@ class Klever:
 
     def _install_klever_build_bases(self, src_dir, deploy_dir):
         for klever_build_base in self.deploy_conf['Klever Build Bases']:
-            self.logger.info(f'Install Klever build base "{klever_build_base}"')
-
             base_deploy_dir = os.path.join(deploy_dir, 'build bases', klever_build_base)
 
             # _install_entity method expects configuration in a specific format
@@ -137,13 +138,13 @@ class Klever:
             prev_deploy_bases_conf = self.prev_deploy_info['Klever Build Bases']
 
             if self._install_entity(klever_build_base, src_dir, base_deploy_dir,
-                                    deploy_bases_conf, prev_deploy_bases_conf):
+                                    deploy_bases_conf, prev_deploy_bases_conf, build_base=True):
                 build_base_path = self.__find_build_base(base_deploy_dir)
 
                 if build_base_path != base_deploy_dir:
                     paths_to_remove = [os.path.join(base_deploy_dir, i) for i in os.listdir(base_deploy_dir)]
 
-                    self.logger.info(f'Move "{klever_build_base}" from {build_base_path} to {base_deploy_dir}')
+                    self.logger.debug(f'Move "{klever_build_base}" from {build_base_path} to {base_deploy_dir}')
                     for i in os.listdir(build_base_path):
                         # In theory, it is possible to get "shutil.Error: Destination path already exists" here.
                         # But, it can only happen if the top-level directory inside the archive with the build base
@@ -155,7 +156,7 @@ class Klever:
 
                 self._dump_cur_deploy_info(self.prev_deploy_info)
 
-    def _install_entity(self, name, src_dir, deploy_dir, deploy_conf, prev_deploy_info):
+    def _install_entity(self, name, src_dir, deploy_dir, deploy_conf, prev_deploy_info, build_base=False):
         if name not in deploy_conf:
             self.logger.error(f'"{name}" is not described')
             sys.exit(errno.EINVAL)
@@ -207,10 +208,12 @@ class Klever:
             self.logger.info(f'"{name}" is up to date (version: "{version}")')
             return False
 
+        entity_kind = "Klever build base" if build_base else "Klever addon"
+
         if prev_version:
-            self.logger.info(f'Update "{name}" from version "{prev_version}" to version "{version}"')
+            self.logger.info(f'Update {entity_kind} "{name}" from version "{prev_version}" to version "{version}"')
         else:
-            self.logger.info(f'Install "{name}" (version: "{version}")')
+            self.logger.info(f'Install {entity_kind} "{name}" (version: "{version}")')
 
         # Remove previous version of entity if so. Do not make this in depend on previous version since it can be unset
         # while entity is deployed. For instance, this can be the case when entity deployment fails somewhere in the
@@ -296,7 +299,7 @@ class Klever:
         self._dump_cur_deploy_info(self.prev_deploy_info)
 
     def _pre_install(self):
-        if os.path.exists(self.prev_deploy_info_file):
+        if os.path.exists(self.prev_deploy_info_file) and not self.keep_addons_and_build_bases:
             self.logger.error(
                 'There is information on previous deployment (perhaps you try to install Klever second time)')
             sys.exit(errno.EINVAL)
@@ -377,7 +380,7 @@ class Klever:
             for filename in filenames:
                 if filename.startswith('klever'):
                     service = os.path.join(dirpath, filename)
-                    self.logger.info('Remove "{0}"'.format(service))
+                    self.logger.debug('Remove "{0}"'.format(service))
                     os.remove(service)
 
         klever_env_file = '/etc/default/klever'
@@ -396,17 +399,26 @@ class Klever:
 
         # Removing individual directories and files rather than the whole deployment directory allows to use standard
         # locations like "/", "/usr" or "/usr/local" for deploying Klever.
-        for path in (
-                'klever',
+        paths_to_remove = [
+            'klever',
+            'klever-conf',
+            'klever-work',
+            'klever-media',
+            'version'
+        ]
+
+        if not self.keep_addons_and_build_bases:
+            paths_to_remove.extend([
                 'klever-addons',
-                'klever-conf',
-                'klever-work',
-                'klever-media',
+                'build bases',
                 'klever.json'
-        ):
+            ])
+
+        self.logger.info(f'Remove files inside deployment directory "{self.args.deployment_directory}"')
+        for path in paths_to_remove:
             path = os.path.join(self.args.deployment_directory, path)
             if os.path.exists(path) or os.path.islink(path):
-                self.logger.info('Remove "{0}"'.format(path))
+                self.logger.debug('Remove "{0}"'.format(path))
                 if os.path.islink(path) or os.path.isfile(path):
                     os.remove(path)
                 else:
@@ -455,7 +467,7 @@ class Klever:
 
         # Try to remove httpd_t from the list of permissive domains.
         try:
-            execute_cmd(self.logger, 'semanage', 'permissive', '-d', 'httpd_t')
+            execute_cmd(self.logger, 'semanage', 'permissive', '-d', 'httpd_t', stderr=subprocess.DEVNULL)
         except Exception:
             pass
 
@@ -521,6 +533,11 @@ class Klever:
                 build_bases.extend(self.__find_build_bases_recursive(file))
 
         return build_bases
+
+    def reinstall(self):
+        self.keep_addons_and_build_bases = True
+        self.uninstall()
+        self.install()
 
 
 class KleverDevelopment(Klever):
