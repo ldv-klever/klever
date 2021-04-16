@@ -291,6 +291,12 @@ class CoverageProcessor {
 
         // Get source code file with provided line
         let newLineData = linesCollection[ind].split(':');
+        if (newLineData.length > 2) {
+            newLineData = [
+                newLineData.slice(0, -1).join(':'),
+                newLineData[ newLineData.length - 1 ]
+            ];
+        }
         if (newLineData.length === 2) {
             this.sourceProcessor.get_source(newLineData[1], newLineData[0]);
         }
