@@ -320,6 +320,13 @@ class Subprocess(Action):
     def __repr__(self):
         return '{%s}' % self.name
 
+    @property
+    def sequence(self):
+        if self.action:
+            return repr(self.action)
+        else:
+            return ''
+
 
 class Signal(Action):
     """This is a common represenation of signal actions: dispatches and receives."""
@@ -419,6 +426,10 @@ class Actions(collections.UserDict):
     @property
     def savepoints(self):
         return {p for a in self.values() for p in a.savepoints}
+
+    @property
+    def sequence(self):
+        return repr(self.initial_action)
 
     def populate_with_empty_descriptions(self):
         """

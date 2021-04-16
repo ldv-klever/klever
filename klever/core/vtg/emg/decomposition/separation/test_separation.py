@@ -82,10 +82,26 @@ def test_linear_strategy_c1p1(model, linear_separator):
     _check_linear_actions(scenarios, c1p1.actions)
 
     # Test the number of scenarios
-    # Todo: reimplement this. It is better to cover sequences somehow.
-    # 2 - savepoints in activate * 2 options + 2 options without savepoints
-    assert len(scenarios) == 6, f'The number of scenarios is {len(scenarios)}: ' + \
+    # 4 - savepoints  + 1 option without savepoints
+    assert len(scenarios) == 5, f'The number of scenarios is {len(scenarios)}: ' + \
                                 ', '.join([s.name for s in scenarios])
+
+    scenarios = {s.name: s for s in scenarios}
+    assert 'deregister_c1p1' in scenarios
+    assert scenarios['deregister_c1p1'].actions.sequence == \
+           '(!register_c1p1).[register_c1p2].[deregister_c1p2].(deregister_c1p1)'
+    assert 'p1s1_deregister_c1p1' in scenarios
+    assert scenarios['p1s1_deregister_c1p1'].actions.sequence == \
+           '<p1s1>.[register_c1p2].[deregister_c1p2].(deregister_c1p1)'
+    assert 'p1s2_deregister_c1p1' in scenarios
+    assert scenarios['p1s1_deregister_c1p1'].actions.sequence == \
+           '<p1s2>.[register_c1p2].[deregister_c1p2].(deregister_c1p1)'
+    assert 'p1s3_deregister_c1p1' in scenarios
+    assert scenarios['p1s1_deregister_c1p1'].actions.sequence == \
+           '<p1s3>.[register_c1p2].[deregister_c1p2].(deregister_c1p1)'
+    assert 'p1s4_deregister_c1p1' in scenarios
+    assert scenarios['p1s1_deregister_c1p1'].actions.sequence == \
+           '<p1s4>.[register_c1p2].[deregister_c1p2].(deregister_c1p1)'
 
 
 def test_linear_strategy_c1p2(model, linear_separator):
@@ -94,9 +110,41 @@ def test_linear_strategy_c1p2(model, linear_separator):
     _check_linear_actions(scenarios, c1p2.actions)
 
     # Test the number of scenarios
-    # (2 options in calls (no recursion) + 2 options in main (no recursion)) * 2 sp + 4 without sp
-    assert len(scenarios) == 12, f'The number of scenarios is {len(scenarios)}: ' + \
-                                 ', '.join([s.name for s in scenarios])
+    # 3 scenarios + 2 sp * 3 scenarios
+    assert len(scenarios) == 9, f'The number of scenarios is {len(scenarios)}: ' + \
+                                ', '.join([s.name for s in scenarios])
+
+    scenarios = {s.name: s for s in scenarios}
+    assert 'success_read_deregister_c1p2' in scenarios
+    assert scenarios['success_read_deregister_c1p2'].actions.sequence == \
+           '(!register_c1p2).<alloc>.<probe>.<success>.<read>.<remove>.(deregister_c1p2)'
+    assert 'success_write_deregister_c1p2' in scenarios
+    assert scenarios['success_write_deregister_c1p2'].actions.sequence == \
+           '(!register_c1p2).<alloc>.<probe>.<success>.<read>.<remove>.(deregister_c1p2)'
+    assert 'fail_deregister_c1p2' in scenarios
+    assert scenarios['fail_deregister_c1p2'].actions.sequence == \
+           '(!register_c1p2).<alloc>.<probe>.<fail>.(deregister_c1p2)'
+
+    assert 'p2s1_success_read_deregister_c1p2' in scenarios
+    assert scenarios['p2s1_success_read_deregister_c1p2'].actions.sequence == \
+           '<p2s1>.<alloc>.<probe>.<success>.<read>.<remove>.(deregister_c1p2)'
+    assert 'p2s1_success_write_deregister_c1p2' in scenarios
+    assert scenarios['p2s1_success_write_deregister_c1p2'].actions.sequence == \
+           '<p2s1>.<alloc>.<probe>.<success>.<read>.<remove>.(deregister_c1p2)'
+    assert 'p2s1_fail_deregister_c1p2' in scenarios
+    assert scenarios['p2s1_fail_deregister_c1p2'].actions.sequence == \
+           '<p2s1>.<alloc>.<probe>.<fail>.(deregister_c1p2)'
+
+    assert 'p2s2_success_read_deregister_c1p2' in scenarios
+    assert scenarios['p2s2_success_read_deregister_c1p2'].actions.sequence == \
+           '<p2s2>.<alloc>.<probe>.<success>.<read>.<remove>.(deregister_c1p2)'
+    assert 'p2s2_success_write_deregister_c1p2' in scenarios
+    assert scenarios['p2s2_success_write_deregister_c1p2'].actions.sequence == \
+           '<p2s2>.<alloc>.<probe>.<success>.<read>.<remove>.(deregister_c1p2)'
+    assert 'p2s2_fail_deregister_c1p2' in scenarios
+    assert scenarios['p2s2_fail_deregister_c1p2'].actions.sequence == \
+           '<p2s2>.<alloc>.<probe>.<fail>.(deregister_c1p2)'
+
 
 
 def test_linear_strategy_c2p1(model, linear_separator):
@@ -106,6 +154,7 @@ def test_linear_strategy_c2p1(model, linear_separator):
 
     # Test the number of scenarios
     # 3 options without sp
+    # Todo: reimplement this. It is better to cover sequences somehow.
     assert len(scenarios) == 3, f'The number of scenarios is {len(scenarios)}: ' + \
                                 ', '.join([s.name for s in scenarios])
 
