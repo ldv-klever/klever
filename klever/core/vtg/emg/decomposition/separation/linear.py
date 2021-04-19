@@ -31,115 +31,41 @@ class LinearExtractor(ScenarioExtractor):
     provides more scenarios that should cover all alternatives from the provided process.
     """
 
-    def __init__(self, logger: logging.Logger, actions: Actions):
-        super().__init__(logger, actions)
-        # This is a list of lists of choice options that we should chooce to reach some uncovered new choices.
-        self.__scenario_choices = []
-        self.__children_paths = collections.OrderedDict()
-        self.__uncovered = None
-
-        # Collect all choices
-        self.__reset_covered()
-
-    def _process_choice(self, scenario: Scenario, beh: BaseAction, operator: Operator = None):
-        assert isinstance(beh, Choice), type(beh).__name__
-
-        uncovered_children = [c for c in beh[:] if c in self.__uncovered]
-        if uncovered_children:
-            # Save paths to uncovered choices
-            for unovered_child in uncovered_children[1:]:
-                self.__children_paths[unovered_child] = list(self.__scenario_choices)
-            new_choice = uncovered_children[0]
-            self.__uncovered.remove(new_choice)
-            if isinstance(new_choice, Operator):
-                roots = self._actions.first_actions(new_choice)
-                name = roots.pop()
-            else:
-                name = new_choice.name
-
-            scenario.name = scenario.name + f'_{name}' if scenario.name else name
-            if new_choice in self.__children_paths:
-                del self.__children_paths[new_choice]
+    def _new_scenarios(self, paths, action=None):
+        if not action:
+            for path in paths:
+                nsc = Scenario(None)
+                nsc.initial_action = Concatenation()
+                for step in path:
+                    nsc.add_action_copy(step, nsc.initial_action)
+                yield nsc
         else:
-            current_target = list(self.__children_paths.keys())[0]
-            for item in beh:
-                if item in self.__children_paths[current_target]:
-                    new_choice = item
-                    break
-            else:
-                raise RuntimeError(f'Unknown choice at path to {current_target}')
+            suffixes = []
+            check = set()
+            for path in [p for p in paths if str(action) in {str(a) for a in p}]:
+                index = [str(a) for a in p].index(str(action))
+                new_path = [index:]
+                str_path = '++'.join([str(a) for a in new_path])
+                if str_path not in check:
+                    check.add(str_path)
+                    suffixes.append(new_path)
 
-        self.__scenario_choices.append(new_choice)
-
-        if isinstance(new_choice, Operator):
-            return self._fill_top_down(scenario, new_choice, operator)
-        else:
-            new_operator = scenario.add_action_copy(Concatenation(), operator)
-            return self._fill_top_down(scenario, new_choice, new_operator)
-
-    def _process_subprocess(self, scenario: Scenario, beh: BaseAction, operator: Operator = None):
-        assert isinstance(beh, Behaviour)
-        assert beh.kind is Subprocess
-
-        new = self._process_leaf_action(scenario, beh, operator)
-        if len(scenario.actions.behaviour(new.name)) == 1:
-            child = beh.description.action
-            new_action = self._fill_top_down(scenario, child)
-            new.description.action = new_action
-        return new
-
-    def _new_scenario(self, root: Operator, savepoint: Savepoint = None):
-        nsc = Scenario(savepoint)
-        nsc.initial_action = Concatenation()
-        for child in root:
-            self._fill_top_down(nsc, child, nsc.initial_action)
-        return nsc
+            for sp in action.description.savepoints:
+                for path in suffixes:
+                    nsc = Scenario(sp)
+                    nsc.initial_action = Concatenation()
+                    for step in path:
+                        nsc.add_action_copy(step, nsc.initial_action)
+                    yield nsc
 
     def _get_scenarios_for_root_savepoints(self, root: Action):
-        def new_scenarios(rt, svp=None):
-            self.__reset_covered()
-            while len(self.__uncovered) > 0:
-                current = len(self.__uncovered)
-                self.__scenario_choices = []
-                nsc = self._new_scenario(rt, svp)
-                assert len(self.__uncovered) < current, 'Deadlock found'
-                assert nsc.name
-                self.logger.debug(f'Generate a new scenario {nsc.name}')
-                yield nsc
+        paths = self.__determine_paths()
 
-        first_actual = self._actions.first_actions(root)
-        assert len(first_actual) == 1, 'Support only the one first action'
-        actual = self._actions.behaviour(first_actual.pop())
-        assert len(actual) == 1, f'Support only the one first action behaviour'
-        actual = actual.pop()
-
-        if actual.description.savepoints:
-            self.logger.debug('Generate scenarios for savepoints')
-            for savepoint in actual.description.savepoints:
-                if self.__uncovered is not None:
-                    yield from new_scenarios(self._actions.initial_action, savepoint)
-                else:
-                    yield new_scenarios(self._actions.initial_action, savepoint)
-        if self.__uncovered is not None:
-            yield from new_scenarios(self._actions.initial_action)
-
-    def __reset_covered(self):
-        # Collect all choices
-        choices = filter(lambda x: isinstance(x, Choice), self._actions.behaviour())
-        if choices:
-            self.__uncovered = list()
-            for choice in choices:
-                self.__uncovered.extend(choice[:])
-
-    def __process_operator(self, scenario: Scenario, behaviour: Operator, operator: Operator = None):
-        assert isinstance(behaviour, Operator), type(behaviour).__name__
-        # We assume that any linear scenario has a single operator dot
-        assert isinstance(operator, Concatenation)
-
-        for child in behaviour:
-            self._fill_top_down(scenario, child, operator)
-
-        return operator
+        self.logger.debug('Generate main scenarios')
+        yield from self._new_scenarios(paths)
+        for action in (a for a in self._actions.values() if a.savepoints):
+            self.logger.debug(f'Generate scenarios with savepoints for action {str(action)}')
+            yield from _new_scenarios(paths, action)
 
     def __determine_paths(self):
         subp_to_paths = dict()
@@ -149,47 +75,66 @@ class LinearExtractor(ScenarioExtractor):
         # Add the main path
         initial_paths = self.__choose_subprocess_paths(self._actions.initial_action, [])
 
-        # Now we resolve terminal paths
-        terminal_paths = dict()
-        subprocess_names = set(subp_to_paths.keys())
-        subprocesses_with_jumps = list(subprocess_names)
-        
-        while subprocesses_with_jumps:
-            subp_name = subprocesses_with_jumps.pop()
+        while self.__path_dependencies(initial_paths):
+            for dependency in self.__path_dependencies(initial_paths):
+                # First, do substitutions
+                for subprocess, paths in list(subp_to_paths.items()):
+                    new_paths = []
+                    for path in paths:
+                        if str(p[-1]) == dependency:
+                            suffixes = [p for p in subp_to_paths[dependency] if str(p[-1]) != dependency and \
+                                        str(p[-1]) != subprocess)]
+                            if suffixes:
+                                newly_created = __do_substitution(path, suffixes)
+                                new_paths.extend(newly_created)
+                            else:
+                                new_paths.append(path)
+                        else:
+                            new_paths.append(path)
+                    
+                    # Now save new paths
+                    subp_to_paths[subprocess] = new_paths
+                
+                    # Check that the dependecy is not terminated and self-dependent only
+                    new_deps = self.__path_dependencies(subp_to_paths[subprocess])
+                    if len(new_deps) == 0 or (len(new_deps) == 1 and subprocess in new_deps):
+                        # Determine terminal paths and do substitution removing the recursion
+                        recursion_paths = []
+                        terminal_paths = []
+                        
+                        for path in subp_to_paths[subprocess]:
+                            if str(path[-1]) == subprocess:
+                                recursion_paths.append(path)
+                            else:
+                                assert not path[-1].kind is Subprocess:
+                                terminal_paths.append(path)
+                        
+                        new_paths = []
+                        for recursive_path in recursion_paths:
+                            new_paths.extend(self.__do_substitution(recursive_path, terminal_paths))
 
-            for path in list(subp_to_paths[subp_name]):
-                if path[-1].name == subp_name:
-                    continue
-                elif path[-1].name in subprocess_names and path[-1].name not in subprocesses_with_jumps:
-                    new_paths = [path + p for p in terminal_paths[path[-1].name]]
-                    terminal_paths.setdefault(subp_name, list())
-                    terminal_paths[subp_name].extend(new_paths)
+                        subp_to_paths[subprocess] = new_paths + terminal_paths
 
-                    # The path is processed                    
-                elif path[-1].name in subprocess_names and path[-1].name in subprocesses_with_jumps:
-                    continue
+            new_initial_paths = []
+            for path in initial_paths:
+                if path[-1].kind is Subprocess and not self.__path_dependencies(subp_to_paths[str(path[-1])]):
+                    new_initial_paths.extend(self.__do_substitution(path, subp_to_paths[str(path[-1])]))
                 else:
-                    # This is a terminal path
-                    terminal_paths.setdefault(subp_name, list())
-                    terminal_paths[subp_name].append(path)
-                    subp_to_paths[subp_name].remove(path)
+                    new_initial_paths.append(path)
 
+            initial_paths = new_initial_paths
 
-    def determine_subprocess_dependencies(initial_paths, subp_to_paths):
-        deps = dict()
-        main_deps = [str(path[-1]) for path in initial_paths if str(path[-1]) in subp_to_paths]
-        todo = [main_deps]
-        while todo:
-            subp_name = todo.pop()
-            deps[subp_name] = set()
-            deps[subp_name] = {str(path[-1]) for path in subp_to_paths[subp_name] 
-                               if str(path[-1]) in subp_to_paths and str(path[-1]) in deps}
-            for new in deps[subp_name]:
-                if new not in todo:
-                    todo.append(new)
+        return initial_paths
+            
 
-        return main_deps, deps
+    @staticmethod
+    def __do_substitution(self, origin, suffixes):
+        assert suffixes
+        return [origin[:-1] + suffix for suffix in suffixes]
 
+    @staticmethod
+    def __path_dependencies(self, paths):
+        return {str(path[-1]) for path in paths if path[-1].kind is Subprocess}
 
     def __choose_subprocess_paths(self, action: Behaviour, paths: list):
         """
