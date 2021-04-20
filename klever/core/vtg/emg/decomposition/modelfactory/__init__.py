@@ -166,7 +166,10 @@ class ModelFactory:
 
             firsts = scenario.actions.first_actions()
             for name in firsts:
-                new_process.replace_action(new_process.actions[name], new)
+                if isinstance(scenario.actions[name], Receive):
+                    new_process.replace_action(new_process.actions[name], new)
+                else:
+                    new_process.insert_action(new, new_process.actions[name], before=True)
         else:
             self.logger.debug(f'Keep the process {str(process)} created for the scenario {str(scenario.name)} as is')
 
