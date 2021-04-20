@@ -146,7 +146,6 @@ def test_linear_strategy_c1p2(model, linear_separator):
            '<p2s2>.<alloc>.<probe>.<fail>.(deregister_c1p2)'
 
 
-
 def test_linear_strategy_c2p1(model, linear_separator):
     c2p1 = model.environment['c2/p1']
     scenarios = linear_separator(c2p1)
@@ -162,7 +161,7 @@ def test_linear_strategy_c2p1(model, linear_separator):
 def _check_linear_actions(scenarios, actions):
     # Savepoints are covered
     first_actions = actions.first_actions()
-    savepoints = {str(s) for a in first_actions for s in actions[a].savepoints}
+    savepoints = {str(s) for a in actions for s in actions[a].savepoints}
     covered = {str(s.savepoint) for s in scenarios if s.savepoint}
     assert savepoints == covered, "Covered: {}; All: {}".format(', '.join(savepoints), ', '.join(covered))
 
@@ -174,7 +173,7 @@ def _check_linear_actions(scenarios, actions):
             behs = len(scenario.actions.behaviour(name))
             covered_actions[name] += behs
 
-    for name in actions:
+    for name in (name for name in actions if not isinstance(actions[name], Subprocess)):
         real_behs = len(actions.behaviour(name))
         assert name in covered_actions, f'Action {name} is not covered at all'
         assert real_behs <= covered_actions[name], f'Some entries of {name} are not covered ({real_behs}):' \
