@@ -25,7 +25,7 @@ import klever.core.components
 import klever.core.utils
 
 coverage_format_version = 1
-most_covered_lines_num = 30
+most_covered_lines_num = 100
 
 
 def add_to_coverage(merged_coverage_info, coverage_info):
