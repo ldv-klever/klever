@@ -61,6 +61,7 @@ Before performing all other actions described further in this tutorial you need 
 
 Then you will be automatically redirected to a *job tree* page presented in the following sections.
 
+.. Make screenshots using width of 1096 pixels. Height can vary depending on the screenshot content.
 .. _tutorial_signing_in:
 .. figure:: ./media/tutorial/signing-in.png
 
