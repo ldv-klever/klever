@@ -15,7 +15,87 @@
 # limitations under the License.
 #
 
-from klever.core.vtg.emg.common.process.actions import Savepoint, BaseAction, Operator, Behaviour, Actions
+import collections
+
+from klever.core.vtg.emg.common.process.actions import Savepoint, BaseAction, Operator, Behaviour, Actions, Subprocess
+
+
+class Path(collections.UserList):
+
+    def __init__(self, initlist=None, name=None):
+        super().__init__(initlist)
+        if name:
+            self.name = name
+        elif isinstance(initlist, Path) and initlist.name:
+            self.name = initlist.name
+        else:
+            self.name = None
+
+    def __hash__(self):
+        return hash(','.join([a.name for a in self.data]))
+
+    def __eq__(self, other):
+        assert isinstance(other, Path)
+        return hash(self) == hash(other)
+
+    def __add__(self, other):
+        assert isinstance(other, Path)
+
+        new = Path(self.data + other.data if self.terminal else self.data[:-1] + other.data)
+        if self.name:
+            new.add_name_suffix(self.name)
+        if other.name:
+            new.add_name_suffix(other.name)
+        return new
+
+    def __iadd__(self, other):
+        assert isinstance(other, Path)
+        if not self.terminal:
+            self.data.pop()
+
+        self.data += other.data
+        if other.name:
+            self.add_name_suffix(other.name)
+        return self
+
+    def __repr__(self):
+        return 'Path([' + ', '.join(list(map(repr, self.data))) + f'], {self.name})'
+
+    @property
+    def terminal(self):
+        if not self.data:
+            return True
+        else:
+            return self.data[-1].kind is not Subprocess
+
+    def includes(self, path):
+        """
+        Check that the given subprocess and this subprocess have a common part except the last possible jump. Examples:
+        a, b, d includes a, b, {f}
+        a, b, c includes a, {t}
+        a, b, c not includes a, c, {f} or a, b, c, d, {f}
+
+        :param path: Path
+        :return: Bool
+        """
+        assert isinstance(path, Path)
+        assert not self.terminal
+
+        if len(path) > (1 + len(self)):
+            return False
+
+        for index, action in enumerate(path[:-1]):
+            if self.data[index].name != action.name:
+                return False
+
+        return True
+
+    def add_name_suffix(self, name):
+        assert name
+        if self.name:
+            self.name = f"{self.name}_{name}"
+        else:
+            self.name = name
 
 
 class Scenario:
