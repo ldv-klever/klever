@@ -551,7 +551,7 @@ class Actions(collections.UserDict):
         act, *_ = acts
         return act
 
-    def first_actions(self, root=None):
+    def first_actions(self, root=None, enter_subprocesses=True):
         assert isinstance(root, BaseAction) or root is None, type(root).__name__
         first = set()
 
@@ -567,7 +567,8 @@ class Actions(collections.UserDict):
             elif isinstance(a, Operator):
                 for child in a:
                     process.add(child)
-            elif isinstance(a, Behaviour) and a.kind is Subprocess and a.description and a.description.action:
+            elif isinstance(a, Behaviour) and a.kind is Subprocess and a.description and a.description.action and \
+                    enter_subprocesses:
                 process.add(a.description.action)
             else:
                 first.add(a.name)
