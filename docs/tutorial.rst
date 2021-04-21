@@ -477,35 +477,35 @@ Analysis of Code Coverage Reports
 ---------------------------------
 
 Code coverage reports demonstrate parts (lines and functions at the moment) of the target program source code and
-probably models that were considered during verification.
-Though users can expect complete code coverage because programs are analyzed statically, actually this may be not the
+when switching on models that were considered during verification.
+Though users can expect complete code coverage because programs are analyzed statically, actually this may not be the
 case due to incomplete or inaccurate environment models that make some code unreachable or due to some limitations of
 verification tools, e.g. they can ignore calls of functions through function pointers.
-When users need a good or excellent completeness of verification it is necessary to study code coverage reports.
+When users need good or excellent completeness of verification it is necessary to study code coverage reports.
 
-There is a different semantics of code coverage for various verdicts:
+There is different semantics of code coverage for various verdicts:
 
 * *Unsafes* - code coverage reports show exactly those parts of the source code that correspond to error traces.
 * *Safes* - code coverage reports show all parts of the source code that the verification tool analyzed.
   You should keep in mind that there may be different reasons like specified above that prevent the verification tool
   from reaching complete code coverage.
-  Since Klever lacks correctness proves (currently, verification tools do not provide useful correctness proves),
-  analysis of code coverage reports become the only tool for understanding whether *safes* are good or not.
+  Since Klever lacks correctness proofs (currently, verification tools do not provide useful correctness proofs),
+  analysis of code coverage reports becomes the only tool for understanding whether safes are good or not.
 * *Unknowns* (*Timeouts*) - code coverage shows those parts of the target program source code that the verification tool
   could investigate until it was terminated after exhausting computational resources.
-  BTW, if there is no code coverage reports for timeouts, you may need to tune "soft CPU time" from *tasks.json* when
+  BTW, if there are no code coverage reports for timeouts, you may need to tune "soft CPU time" from *tasks.json* when
   creating a new job to give more time to produce them.
 
-By default Klever provides users with code coverage reports just for the target program source code.
-If one needs to inspect code coverage for various models it is necessary to start decision of the job with a custom
+By default, Klever provides users with code coverage reports just for the target program source code.
+If one needs to inspect code coverage for various models it is necessary to start the decision of the job with a custom
 configuration where setting "Code coverage details" should be either "C source files including models" or
 "All source files".
-This can result in a quite considerable overhead, so, this is not switched on always.
+This can result in quite considerable overhead, so, this is not always switched on.
 
 Code Coverage Reports for Unsafes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-For unsafes you will see code coverage reports when analyzing corresponding error traces like in
+For unsafes, you will see code coverage reports when analyzing corresponding error traces like in
 :numref:`tutorial_unsafe_code_coverage_report`.
 Code coverage of a particular source file is shown on the right.
 There is a code coverage legend beneath it.
@@ -517,7 +517,7 @@ More times lines and functions were analyzed during verification more intensive 
 
    Code coverage report for the unsafe error trace
 
-There is a code coverage statistics as well as a source tree on the left of the code coverage legend
+There is code coverage statistics as well as a source tree on the left of the code coverage legend
 (:numref:`tutorial_unsafe_code_coverage_report_statistics`).
 You can click on names of directories and source files to reveal corresponding statistics and to show code coverage for
 these source files (:numref:`tutorial_opening_source_file_code_coverage_page`).
@@ -539,8 +539,8 @@ Code Coverage Reports for Safes
 To open code coverage repots for safes you need to open a page with a list of safes
 (:numref:`tutorial_opening_list_safes_page`) and then open a particular safe page
 (:numref:`tutorial_opening_safe_page`).
-Like for unsafe you can show on the code coverage legend and statistics as well as to show code coverage for
-particular source files (:numref:`tutorial_safe_code_coverage_report`).
+Like for unsafe you can show on code coverage legend and statistics as well as to show code coverage for particular
+source files (:numref:`tutorial_safe_code_coverage_report`).
 
 .. _tutorial_opening_list_safes_page:
 .. figure:: ./media/tutorial/opening-list-safes-page.png
@@ -559,7 +559,7 @@ particular source files (:numref:`tutorial_safe_code_coverage_report`).
 
 The safe verdict does not imply program correctness since some parts of the program could be not analyzed at all and
 thus uncovered.
-To navigate to a next uncovered function you should press the red button with the arrow
+To navigate to the next uncovered function you should press the red button with the arrow
 (:numref:`tutorial_showing_next_uncovered_function`).
 Then you can find places where this uncovered function is invoked and why this was not done during verification (in the
 considered case this was due to lack of environment model specifications for callbacks of the *usb_class_driver*
@@ -575,7 +575,7 @@ For instance, this may be the case due to the verification tool assumes that som
 Code Coverage Reports for Unknowns
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-If you would like to investigate most complicated parts of the target program source code that can cause unknown
+If you would like to investigate the most complicated parts of the target program source code that can cause unknown
 (timeout) verdicts, you should open a page with a list of timeouts (:numref:`tutorial_opening_list_timeouts_page`) and
 then open a particular timeout page (:numref:`tutorial_opening_timeout_page`).
 A timeout code coverage report (:numref:`tutorial_timeout_code_coverage_report`) looks almost like the safe code
@@ -596,9 +596,9 @@ coverage report (:numref:`tutorial_safe_code_coverage_report`).
 
    Code coverage report for the timeout
 
-To traverse through most covered lines that likely took most of verification time you should press the orange button
+To traverse through most covered lines that likely took most of the verification time you should press the orange button
 with the arrow (:numref:`tutorial_showing_next_most_covered_line`).
-If the task include more than one source file it may be helpful for you to investigate lines that are most covered
+If the task includes more than one source file it may be helpful for you to investigate lines that are most covered
 globally.
 For this it is necessary to press the blue button with the arrow.
 Quite often loops can serve as a source of complexity especially when loop boundaries are not specified/modelled
