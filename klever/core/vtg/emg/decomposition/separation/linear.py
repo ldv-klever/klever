@@ -17,7 +17,7 @@
 
 import copy
 
-from klever.core.vtg.emg.decomposition.scenario import Scenario
+from klever.core.vtg.emg.decomposition.scenario import Scenario, Path
 from klever.core.vtg.emg.decomposition.separation import SeparationStrategy, ScenarioExtractor
 from klever.core.vtg.emg.common.process.actions import Choice, Operator, Concatenation, Action, Behaviour, Subprocess
 
@@ -30,7 +30,16 @@ class LinearExtractor(ScenarioExtractor):
 
     def _new_scenarios(self, paths, action=None):
         def add_scenario_from_path(processing_path, savepoint=None):
-            new_scenario = Scenario(savepoint)
+            if processing_path.name and savepoint:
+                name = f"{str(savepoint)}_{processing_path.name}"
+            elif savepoint:
+                name = str(savepoint)
+            elif processing_path.name:
+                name = processing_path.name
+            else:
+                name = "base"
+
+            new_scenario = Scenario(savepoint, name)
             new_scenario.initial_action = Concatenation()
             for behaviour in processing_path:
                 new_scenario.add_action_copy(behaviour, new_scenario.initial_action)
@@ -45,15 +54,12 @@ class LinearExtractor(ScenarioExtractor):
                 for sp in sps:
                     yield add_scenario_from_path(path, sp)
         else:
-            suffixes = []
-            check = set()
-            for path in [p for p in paths if str(action) in {a.name for a in p}]:
+            suffixes = set()
+            for path in (p for p in paths if str(action) in {a.name for a in p}):
                 index = [a.name for a in path].index(str(action))
                 new_path = path[index:]
-                str_path = '++'.join([a.name for a in new_path])
-                if str_path not in check:
-                    check.add(str_path)
-                    suffixes.append(new_path)
+                new_path.name = path.name
+                suffixes.add(new_path)
 
             for sp in action.savepoints:
                 for path in suffixes:
@@ -75,27 +81,27 @@ class LinearExtractor(ScenarioExtractor):
         subp_to_paths = dict()
         # Collect subprocesses and possible different paths
         for subprocess_desc in self._actions.filter(include={Subprocess}):
-            subp_to_paths[str(subprocess_desc)] = self.__choose_subprocess_paths(subprocess_desc.action, [])
+            subp_to_paths[str(subprocess_desc)] = set(self.__choose_subprocess_paths(subprocess_desc.action, []))
         # Add the main path
-        initial_paths = self.__choose_subprocess_paths(self._actions.initial_action, [])
+        initial_paths = set(self.__choose_subprocess_paths(self._actions.initial_action, []))
 
         while self.__path_dependencies(initial_paths):
             for dependency in self.__path_dependencies(initial_paths):
                 # First, do substitutions
                 for subprocess, paths in list(subp_to_paths.items()):
                     if subprocess != dependency:
-                        new_paths = []
+                        new_paths = set()
                         for path in paths:
                             if path[-1].name == dependency:
-                                suffixes = [p for p in subp_to_paths[dependency] if p[-1].name != dependency and
-                                            p[-1].name != subprocess]
+                                suffixes = {p for p in subp_to_paths[dependency] if p[-1].name != dependency and
+                                            p[-1].name != subprocess}
                                 if suffixes:
                                     newly_created = self.__do_substitution(path, suffixes)
-                                    new_paths.extend(newly_created)
+                                    new_paths.update(newly_created)
                                 else:
-                                    new_paths.append(path)
+                                    new_paths.add(path)
                             else:
-                                new_paths.append(path)
+                                new_paths.add(path)
 
                         # Now save new paths
                         subp_to_paths[subprocess] = new_paths
@@ -104,60 +110,49 @@ class LinearExtractor(ScenarioExtractor):
                     new_deps = self.__path_dependencies(subp_to_paths[subprocess])
                     if len(new_deps) == 0 or (len(new_deps) == 1 and subprocess in new_deps):
                         # Determine terminal paths and do substitution removing the recursion
-                        recursion_paths = []
-                        terminal_paths = []
+                        recursion_paths = set()
+                        terminal_paths = set()
                         
                         for path in subp_to_paths[subprocess]:
                             if path[-1].name == subprocess:
-                                recursion_paths.append(path)
+                                recursion_paths.add(path)
                             else:
-                                assert not path[-1].kind is Subprocess
-                                terminal_paths.append(path)
+                                assert path.terminal
+                                terminal_paths.add(path)
                         
-                        new_paths = []
+                        new_paths = set()
                         for recursive_path in recursion_paths:
-                            new_paths.extend(self.__do_substitution(recursive_path, terminal_paths))
+                            new_paths.update(self.__do_substitution(recursive_path, terminal_paths))
 
-                        subp_to_paths[subprocess] = new_paths + terminal_paths
+                        subp_to_paths[subprocess] = new_paths.union(terminal_paths)
 
             # Check the rest subprocesses
             for subprocess, paths in subp_to_paths.items():
-                new_subp_paths = []
+                new_subp_paths = set()
                 for path in subp_to_paths[subprocess]:
-                    if path[-1].kind is Subprocess and not self.__path_dependencies(subp_to_paths[path[-1].name]):
-                        new_subp_paths.extend(self.__do_substitution(path, subp_to_paths[path[-1].name]))
+                    if not path.terminal and not self.__path_dependencies(subp_to_paths[path[-1].name]):
+                        new_subp_paths.update(self.__do_substitution(path, subp_to_paths[path[-1].name]))
                     else:
-                        new_subp_paths.append(path)
+                        new_subp_paths.add(path)
                 subp_to_paths[subprocess] = new_subp_paths
 
-            new_initial_paths = []
+            new_initial_paths = set()
             for path in initial_paths:
-                if path[-1].kind is Subprocess and not self.__path_dependencies(subp_to_paths[path[-1].name]):
-                    new_initial_paths.extend(self.__do_substitution(path, subp_to_paths[path[-1].name]))
+                if not path.terminal and not self.__path_dependencies(subp_to_paths[path[-1].name]):
+                    new_initial_paths.update(self.__do_substitution(path, subp_to_paths[path[-1].name]))
                 else:
-                    new_initial_paths.append(path)
+                    new_initial_paths.add(path)
             initial_paths = new_initial_paths
 
         return initial_paths, subp_to_paths
 
-    @staticmethod
-    def __inclusive_paths(path1, path2):
-        if len(path1) > (1 + len(path2)):
-            return False
-
-        for index, action in enumerate(path1[:-1]):
-            if path2[index].name != action.name:
-                return False
-
-        return True
-
     def __do_substitution(self, origin, suffixes):
         assert suffixes
-        return [origin[:-1] + suffix for suffix in suffixes if not self.__inclusive_paths(origin, suffix)]
+        return {origin + suffix for suffix in suffixes if not origin.includes(suffix)}
 
     @staticmethod
     def __path_dependencies(paths):
-        return {path[-1].name for path in paths if path[-1].kind is Subprocess}
+        return {path[-1].name for path in paths if not path.terminal}
 
     def __choose_subprocess_paths(self, action: Behaviour, prev_paths: list):
         """
@@ -168,21 +163,33 @@ class LinearExtractor(ScenarioExtractor):
         """
         if isinstance(action, Operator):
             if isinstance(action, Choice):
-                paths = []
+                paths = list()
                 for child in action:
+                    # Determine name
+                    first_actions = self._actions.first_actions(child, enter_subprocesses=False)
+                    if len(first_actions) == 1:
+                        name = first_actions.pop()
+                    else:
+                        name = None
+
                     child_paths = self.__choose_subprocess_paths(child, prev_paths)
+                    if name:
+                        for path in child_paths:
+                            path.add_name_suffix(name)
                     paths.extend(child_paths)
             else:
                 # Copy each path!
-                paths = [list(p) for p in prev_paths]
+                paths = [Path(p) for p in prev_paths]
                 for child in action:
                     paths = self.__choose_subprocess_paths(child, paths)
         elif isinstance(action, Behaviour):
-            paths = [list(p) for p in prev_paths]
+            paths = [Path(p) for p in prev_paths]
             if paths:
-                paths[-1] += [action]
+                paths[-1].append(action)
             else:
-                paths.append([action])
+                new = Path()
+                new.append(action)
+                paths.append(new)
         else:
             raise NotImplementedError
 
