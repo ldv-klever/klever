@@ -92,16 +92,14 @@ def test_linear_strategy_c1p1(model, linear_separator):
            '(!register_c1p1).[register_c1p2].[deregister_c1p2].(deregister_c1p1)'
     assert 'p1s1_deregister_c1p1' in scenarios
     assert scenarios['p1s1_deregister_c1p1'].actions.sequence == \
-           '<p1s1>.[register_c1p2].[deregister_c1p2].(deregister_c1p1)'
+           '(!register_c1p1).[register_c1p2].[deregister_c1p2].(deregister_c1p1)'
     assert 'p1s2_deregister_c1p1' in scenarios
     assert scenarios['p1s1_deregister_c1p1'].actions.sequence == \
-           '<p1s2>.[register_c1p2].[deregister_c1p2].(deregister_c1p1)'
+           '(!register_c1p1).[register_c1p2].[deregister_c1p2].(deregister_c1p1)'
     assert 'p1s3_deregister_c1p1' in scenarios
-    assert scenarios['p1s1_deregister_c1p1'].actions.sequence == \
-           '<p1s3>.[register_c1p2].[deregister_c1p2].(deregister_c1p1)'
+    assert scenarios['p1s3_deregister_c1p1'].actions.sequence == '[register_c1p2].[deregister_c1p2].(deregister_c1p1)'
     assert 'p1s4_deregister_c1p1' in scenarios
-    assert scenarios['p1s1_deregister_c1p1'].actions.sequence == \
-           '<p1s4>.[register_c1p2].[deregister_c1p2].(deregister_c1p1)'
+    assert scenarios['p1s4_deregister_c1p1'].actions.sequence == '[register_c1p2].[deregister_c1p2].(deregister_c1p1)'
 
 
 def test_linear_strategy_c1p2(model, linear_separator):
