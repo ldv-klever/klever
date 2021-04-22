@@ -108,40 +108,40 @@ def test_linear_strategy_c1p2(model, linear_separator):
     _check_linear_actions(scenarios, c1p2.actions)
 
     # Test the number of scenarios
-    # 3 scenarios + 2 sp * 3 scenarios
-    assert len(scenarios) == 9, f'The number of scenarios is {len(scenarios)}: ' + \
-                                ', '.join([s.name for s in scenarios])
+    # 10 * 3 scenarios (2 savepoints)
+    assert len(scenarios) >= 30, f'The number of scenarios is {len(scenarios)}: ' + \
+                                 ', '.join([s.name for s in scenarios])
 
     scenarios = {s.name: s for s in scenarios}
-    assert 'success_read_deregister_c1p2' in scenarios
-    assert scenarios['success_read_deregister_c1p2'].actions.sequence == \
+    assert 'success_probe_read_remove_deregister_c1p2' in scenarios
+    assert scenarios['success_probe_read_remove_deregister_c1p2'].actions.sequence == \
            '(!register_c1p2).<alloc>.<probe>.<success>.<read>.<remove>.(deregister_c1p2)'
-    assert 'success_write_deregister_c1p2' in scenarios
-    assert scenarios['success_write_deregister_c1p2'].actions.sequence == \
-           '(!register_c1p2).<alloc>.<probe>.<success>.<read>.<remove>.(deregister_c1p2)'
-    assert 'fail_deregister_c1p2' in scenarios
-    assert scenarios['fail_deregister_c1p2'].actions.sequence == \
+    assert 'success_probe_write_remove_deregister_c1p2' in scenarios
+    assert scenarios['success_probe_write_remove_deregister_c1p2'].actions.sequence == \
+           '(!register_c1p2).<alloc>.<probe>.<success>.<write>.<remove>.(deregister_c1p2)'
+    assert 'fail_probe_deregister_c1p2' in scenarios
+    assert scenarios['fail_probe_deregister_c1p2'].actions.sequence == \
            '(!register_c1p2).<alloc>.<probe>.<fail>.(deregister_c1p2)'
 
-    assert 'p2s1_success_read_deregister_c1p2' in scenarios
-    assert scenarios['p2s1_success_read_deregister_c1p2'].actions.sequence == \
-           '<p2s1>.<alloc>.<probe>.<success>.<read>.<remove>.(deregister_c1p2)'
-    assert 'p2s1_success_write_deregister_c1p2' in scenarios
-    assert scenarios['p2s1_success_write_deregister_c1p2'].actions.sequence == \
-           '<p2s1>.<alloc>.<probe>.<success>.<read>.<remove>.(deregister_c1p2)'
-    assert 'p2s1_fail_deregister_c1p2' in scenarios
-    assert scenarios['p2s1_fail_deregister_c1p2'].actions.sequence == \
-           '<p2s1>.<alloc>.<probe>.<fail>.(deregister_c1p2)'
+    assert 'p2s1_success_probe_read_remove_deregister_c1p2' in scenarios
+    assert scenarios['p2s1_success_probe_read_remove_deregister_c1p2'].actions.sequence == \
+           '(!register_c1p2).<alloc>.<probe>.<success>.<read>.<remove>.(deregister_c1p2)'
+    assert 'p2s1_success_probe_write_remove_deregister_c1p2' in scenarios
+    assert scenarios['p2s1_success_probe_write_remove_deregister_c1p2'].actions.sequence == \
+           '(!register_c1p2).<alloc>.<probe>.<success>.<write>.<remove>.(deregister_c1p2)'
+    assert 'p2s1_fail_probe_deregister_c1p2' in scenarios
+    assert scenarios['p2s1_fail_probe_deregister_c1p2'].actions.sequence == \
+           '(!register_c1p2).<alloc>.<probe>.<fail>.(deregister_c1p2)'
 
-    assert 'p2s2_success_read_deregister_c1p2' in scenarios
-    assert scenarios['p2s2_success_read_deregister_c1p2'].actions.sequence == \
-           '<p2s2>.<alloc>.<probe>.<success>.<read>.<remove>.(deregister_c1p2)'
-    assert 'p2s2_success_write_deregister_c1p2' in scenarios
-    assert scenarios['p2s2_success_write_deregister_c1p2'].actions.sequence == \
-           '<p2s2>.<alloc>.<probe>.<success>.<read>.<remove>.(deregister_c1p2)'
-    assert 'p2s2_fail_deregister_c1p2' in scenarios
-    assert scenarios['p2s2_fail_deregister_c1p2'].actions.sequence == \
-           '<p2s2>.<alloc>.<probe>.<fail>.(deregister_c1p2)'
+    assert 'p2s2_success_probe_read_remove_deregister_c1p2' in scenarios
+    assert scenarios['p2s2_success_probe_read_remove_deregister_c1p2'].actions.sequence == \
+           '(!register_c1p2).<alloc>.<probe>.<success>.<read>.<remove>.(deregister_c1p2)'
+    assert 'p2s2_success_probe_write_remove_deregister_c1p2' in scenarios
+    assert scenarios['p2s2_success_probe_write_remove_deregister_c1p2'].actions.sequence == \
+           '(!register_c1p2).<alloc>.<probe>.<success>.<write>.<remove>.(deregister_c1p2)'
+    assert 'p2s2_fail_probe_deregister_c1p2' in scenarios
+    assert scenarios['p2s2_fail_probe_deregister_c1p2'].actions.sequence == \
+           '(!register_c1p2).<alloc>.<probe>.<fail>.(deregister_c1p2)'
 
 
 def test_linear_strategy_c2p1(model, linear_separator):
