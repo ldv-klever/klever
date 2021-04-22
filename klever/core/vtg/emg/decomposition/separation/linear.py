@@ -148,7 +148,7 @@ class LinearExtractor(ScenarioExtractor):
 
     def __do_substitution(self, origin, suffixes):
         assert suffixes
-        return {origin + suffix for suffix in suffixes if not origin.includes(suffix)}
+        return {origin + suffix for suffix in suffixes if not origin.included(suffix)}
 
     @staticmethod
     def __path_dependencies(paths):

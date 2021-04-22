@@ -68,12 +68,12 @@ class Path(collections.UserList):
         else:
             return self.data[-1].kind is not Subprocess
 
-    def includes(self, path):
+    def included(self, path):
         """
         Check that the given subprocess and this subprocess have a common part except the last possible jump. Examples:
-        a, b, d includes a, b, {f}
-        a, b, c includes a, {t}
-        a, b, c not includes a, c, {f} or a, b, c, d, {f}
+        a, b, {d} included in a, b, f
+        a, b, {c} not includes a, t
+        a, b, c not included in a, c, f or a, b, c, d, f
 
         :param path: Path
         :return: Bool
@@ -81,11 +81,11 @@ class Path(collections.UserList):
         assert isinstance(path, Path)
         assert not self.terminal
 
-        if len(path) > (1 + len(self)):
+        if (len(path) + 1) < len(self):
             return False
 
-        for index, action in enumerate(path[:-1]):
-            if self.data[index].name != action.name:
+        for index, action in enumerate(self[:-1]):
+            if path[index].name != action.name:
                 return False
 
         return True
