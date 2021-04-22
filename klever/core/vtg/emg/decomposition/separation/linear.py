@@ -112,7 +112,7 @@ class LinearExtractor(ScenarioExtractor):
                         # Determine terminal paths and do substitution removing the recursion
                         recursion_paths = set()
                         terminal_paths = set()
-                        
+
                         for path in subp_to_paths[subprocess]:
                             if path[-1].name == subprocess:
                                 recursion_paths.add(path)
@@ -185,7 +185,8 @@ class LinearExtractor(ScenarioExtractor):
         elif isinstance(action, Behaviour):
             paths = [Path(p) for p in prev_paths]
             if paths:
-                paths[-1].append(action)
+                for path in paths:
+                    path.append(action)
             else:
                 new = Path()
                 new.append(action)
