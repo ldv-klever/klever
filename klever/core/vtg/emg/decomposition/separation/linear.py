@@ -38,6 +38,8 @@ class LinearExtractor(ScenarioExtractor):
                 name = processing_path.name
             else:
                 name = "base"
+            self.logger.info(f'Generate {name} scenario for path {repr(processing_path)}' +
+                             (f' and savepoint {str(savepoint)}' if savepoint else ''))
 
             new_scenario = Scenario(savepoint, name)
             new_scenario.initial_action = Concatenation()
@@ -50,7 +52,8 @@ class LinearExtractor(ScenarioExtractor):
 
         if not action or isinstance(action, Subprocess):
             for path in paths:
-                sps = list(action.savepoints) if action else [None]
+                # Skip paths without savepoints and name
+                sps = list(action.savepoints) if action else ([None] if path.name else [])
                 for sp in sps:
                     yield add_scenario_from_path(path, sp)
         else:
