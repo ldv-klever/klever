@@ -34,7 +34,7 @@ def prepare_env(logger, deploy_dir):
     try:
         logger.debug('Obtain execute access to {!r} home directory'.format(os.getlogin()))
         execute_cmd(logger, 'chmod', 'o+x', os.path.join('/', 'home', os.getlogin()))
-    except OSError:
+    except Exception:
         pass
 
     logger.debug('Prepare configurations directory')
