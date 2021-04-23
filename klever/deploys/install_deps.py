@@ -75,8 +75,10 @@ def install_deps(logger, deploy_conf, prev_deploy_info, non_interactive, update_
 
                 if non_interactive:
                     args.append('-y')
+
                 args.extend(pckgs_to_install)
-                execute_cmd(logger, *args)
+                execute_cmd(logger, *args, keep_stdout=True)
+
                 break
         else:
             logger.error('Your Linux distribution is not supported')
@@ -103,8 +105,10 @@ def install_deps(logger, deploy_conf, prev_deploy_info, non_interactive, update_
 
                 if non_interactive:
                     args.append('-y')
+
                 args.extend(pckgs_to_install)
-                execute_cmd(logger, *args)
+                execute_cmd(logger, *args, keep_stdout=True)
+
                 break
         else:
             raise RuntimeError('Your Linux distribution is not supported')

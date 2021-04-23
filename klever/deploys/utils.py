@@ -38,12 +38,12 @@ class Cd:
         os.chdir(self.prev_path)
 
 
-def execute_cmd(logger, *args, stdin=None, stderr=None, get_output=False, username=None):
+def execute_cmd(logger, *args, stdin=None, stderr=None, get_output=False, username=None, keep_stdout=False):
     logger.debug('Execute command "{0}"'.format(' '.join(args)))
 
     # Do not print output by default.
     stdout = None
-    if logger.level >= logging.INFO:
+    if not keep_stdout and logger.level >= logging.INFO:
         stdout = subprocess.PIPE
 
     # stdout argument is not allowed in check_output().
