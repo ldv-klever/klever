@@ -609,6 +609,8 @@ explicitly.
 
    Showing next most covered line
 
+You can find more details about verification results and their expert assessment in [G20]_.
+
 What’s Next?
 ------------
 
@@ -632,3 +634,7 @@ considerable improvements for you for free.
    For the considered example each task is a pair of a Linux loadable kernel module and a requirements specification.
    There are 3355 modules under verification and 2 requirement specifications to be checked, so there are 6710 tasks in
    total.
+
+.. [G20] Gratinskiy V.A., Novikov E.M., Zakharov I.S. Expert Assessment of Verification Tool Results. Proceedings of the
+         Institute for System Programming of the RAS (Proceedings of ISP RAS), volume 32, issue 5, pp. 7-20. 2020.
+         https://doi.org/10.15514/ISPRAS-2020-32(5)-1. (In Russian)
