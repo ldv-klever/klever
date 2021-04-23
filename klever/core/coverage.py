@@ -314,7 +314,8 @@ class JCR(klever.core.components.Component):
                 'total functions': large_cache[file_name]['total functions'],
                 'covered lines': {},
                 'covered functions': {},
-                'covered function names': list()
+                'covered function names': list(),
+                'notes': {}
             })
 
             for path in ('covered lines', 'covered functions'):
