@@ -73,15 +73,15 @@ def raw_model_preset():
                 "comment": "Activate the second process.",
                 "process": "([register_c1p2].[deregister_c1p2]).({activate} | (deregister_c1p1))",
                 "savepoints": {
-                    'p1s3': ["$ALLOC(%container%);"],
-                    'p1s4': ["$ALLOC(%container%);"]
+                    'p1s3': {"statements": ["$ALLOC(%container%);"]},
+                    'p1s4': {"statements": ["$ALLOC(%container%);"]}
                 }
             },
             "register_c1p1": {
                 "parameters": ['%container%'],
                 "savepoints": {
-                    'p1s1': ["$ALLOC(%container%);"],
-                    'p1s2': ["$ALLOC(%container%);"]
+                    'p1s1': {"statements": ["$ALLOC(%container%);"]},
+                    'p1s2': {"statements": ["$ALLOC(%container%);"]}
                 }
             },
             "deregister_c1p1": {
@@ -127,9 +127,12 @@ def raw_model_preset():
                 "condition": ["$ARG1 == global_var"],
                 "parameters": ['%container%'],
                 "savepoints": {
-                    'p2s1': ["$ALLOC(%container%);"],
-                    'p2s2': ["$ALLOC(%container%);"]
-                }
+                    'p2s1': {"statements": ["$ALLOC(%container%);"]},
+                    'p2s2': {"statements": ["$ALLOC(%container%);"]}
+                },
+                "requires": [
+                    {"c1p1": {}}
+                ]
             },
             "alloc": {
                 "comment": "Alloc memory for the container.",
@@ -204,6 +207,38 @@ def raw_model_preset():
             "remove": {
                 "comment": "Removing.",
                 "statements": ["$FREE(%container%);"]
+            }
+        }
+    },
+    c2p2 = {
+        "comment": "Category 2, process 2.",
+        "labels": {},
+        "process": "(!register_c2p2).([read] | [write])",
+        "actions": {
+            "register_c2p2": {
+                "parameters": ['%container%'],
+                "savepoints": [
+                    {
+                      'p4s1': {
+                          "statements": [],
+                          "requires": {
+                              "c1p2": {"actions": ["probe", "success"]}
+                          }
+                      }
+                    },
+                ],
+                "requires": {
+                    "c2p1": {"actions": ["probe", "success"]},
+                    "c1p1": {"savepoint": "p2s1"}
+                }
+            },
+            "read": {
+                "comment": "Do read.",
+                "statements": []
+            },
+            "write": {
+                "comment": "Do write.",
+                "statements": []
             }
         }
     }
@@ -337,7 +372,8 @@ def raw_model_preset():
         "environment processes": {
             "c1/p1": c1p1,
             "c1/p2": c1p2,
-            "c2/p1": c2p1
+            "c2/p1": c2p1,
+            "c2/p2": c2p2
         },
         "main process": main
     }
