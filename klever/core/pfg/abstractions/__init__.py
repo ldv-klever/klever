@@ -138,20 +138,25 @@ class Program:
 
         # Go over roots
         result = dict()
+
         for root_kind in root_kinds:
+            self.logger.debug(f"Process root kind {root_kind}")
             for root_id, root_desc in roots[root_kind].items():
                 leafs = set()
                 non_leafs = [root_desc]
+                processed_cache = {root_id}
                 self.logger.debug(f'Get {root_kind} command {root_desc["id"]}')
 
                 # Search for leafs traversing commands
                 while non_leafs:
                     desc = non_leafs.pop()
 
-                    using = self.clade.get_root_cmds(desc['id'])
+                    using = set(self.clade.get_root_cmds(desc['id']))
                     if using:
-                        self.logger.debug(f'Cmd {desc["out"][0]} has {len(using)} children')
-                        non_leafs.extend([self.clade.get_cmd(identifier) for identifier in using])
+                        self.logger.debug(f'Cmd {desc["out"][0]} has children: {len(using)}')
+                        non_leafs.extend([self.clade.get_cmd(identifier) for identifier in using
+                                          if identifier not in processed_cache])
+                        processed_cache.update(using)
                     else:
                         # This is likely a compilation out
                         self.logger.debug(f'No children {desc["out"][0]}')
