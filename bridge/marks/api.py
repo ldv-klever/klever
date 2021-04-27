@@ -417,7 +417,7 @@ class LikeUnknownMark(LikeMarkBase):
 
 class DownloadAllMarksView(LoggedCallMixin, StreamingResponseAPIView):
     unparallel = ['MarkSafe', 'MarkUnsafe', 'MarkUnknown']
-    permission_classes = (ServicePermission,)
+    permission_classes = (IsAuthenticated,)
 
     def get_generator(self):
         return AllMarksGenerator()
@@ -529,7 +529,7 @@ class InlineCreateForm(LoggedCallMixin, TemplateAPIRetrieveView):
 
 
 class GetUpdatedPresetView(LoggedCallMixin, RetrieveAPIView):
-    permission_classes = (ServicePermission,)
+    permission_classes = (IsAuthenticated,)
     queryset = MarkUnsafe.objects.all()
     serializer_class = UpdatedPresetUnsafeMarkSerializer
     lookup_url_kwarg = "identifier"
