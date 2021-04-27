@@ -103,6 +103,8 @@ class SolutionDetailView(LoggedCallMixin, RetrieveDestroyAPIView):
 
 
 class SolutionDownloadView(LoggedCallMixin, StreamingResponseAPIView):
+    permission_classes = (ServicePermission,)
+
     def get_generator(self):
         solution = get_object_or_404(Solution.objects.select_related('task'), task_id=self.kwargs['task_id'])
         if Decision.objects.only('status').get(id=solution.decision_id).status != DECISION_STATUS[2][0]:
@@ -169,6 +171,8 @@ class DecisionProgressAPIView(LoggedCallMixin, RetrieveUpdateAPIView):
 
 
 class DecisionConfigurationAPIView(LoggedCallMixin, APIView):
+    permission_classes = (ServicePermission,)
+
     def get(self, request, identifier):
         decision = get_object_or_404(
             Decision.objects.select_related('scheduler', 'configuration'), identifier=identifier
@@ -193,6 +197,8 @@ class SchedulerAPIView(LoggedCallMixin, RetrieveUpdateAPIView):
 
 
 class UpdateNodes(LoggedCallMixin, APIView):
+    permission_classes = (ServicePermission,)
+
     def post(self, request):
         serializer = NodeConfSerializer(data=request.data, many=True)
         serializer.is_valid(raise_exception=True)
