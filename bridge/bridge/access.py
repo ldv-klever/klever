@@ -72,3 +72,18 @@ class ManagerPermission(IsAuthenticated):
 class DataViewPermission(IsAuthenticated):
     def has_object_permission(self, request, view, obj):
         return super().has_object_permission(request, view, obj) and request.user == obj.author
+
+
+class CLIPermission(IsAuthenticated):
+    def has_object_permission(self, request, view, obj):
+        if request.user.is_manager or request.user.is_service:
+            return True
+        if isinstance(obj, Job):
+            job = obj
+        elif isinstance(obj, Decision):
+            job = obj.job
+        elif isinstance(obj, ReportComponent):
+            job = obj.decision.job
+        else:
+            return False
+        return JobAccess(request.user, job).is_author
