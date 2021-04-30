@@ -23,6 +23,338 @@ from klever.core.vtg.emg.common.process import ProcessCollection
 from klever.core.vtg.emg.common.process.serialization import CollectionDecoder
 
 
+c1p1 = {
+    "comment": "Category 1, process 1.",
+    "headers": ["linux/test.h"],
+    "labels": {
+        "container": {
+            "declaration": "struct test *var",
+            "value": "0"
+        }
+    },
+    "process": "(!register_c1p1).{activate}",
+    "actions": {
+        "activate": {
+            "comment": "Activate the second process.",
+            "process": "([register_c1p2].[deregister_c1p2]).({activate} | (deregister_c1p1))",
+            "savepoints": {
+                'p1s3': {"statements": ["$ALLOC(%container%);"]},
+                'p1s4': {"statements": ["$ALLOC(%container%);"]}
+            }
+        },
+        "register_c1p1": {
+            "parameters": ['%container%'],
+            "savepoints": {
+                'p1s1': {"statements": ["$ALLOC(%container%);"]},
+                'p1s2': {"statements": ["$ALLOC(%container%);"]}
+            }
+        },
+        "deregister_c1p1": {
+            "parameters": ['%container%']
+        },
+        "register_c1p2": {
+            "parameters": ['%container%']
+        },
+        "deregister_c1p2": {
+            "parameters": ['%container%']
+        }
+    }
+}
+c1p2 = {
+    "comment": "Category 1, process 2.",
+    "headers": ["linux/test.h"],
+    "labels": {
+        "container": {
+            "declaration": "struct test *var",
+            "value": "0"
+        },
+        "ret": {
+            "declaration": "int x",
+            "value": "0"
+        }
+    },
+    "process": "(!register_c1p2).<alloc>.{main}",
+    "declarations": {
+        "environment model": {
+            "global_var": "struct test *global_var;\n"
+        }
+    },
+    "actions": {
+        "main": {
+            "comment": "Test initialization.",
+            "process": "<probe>.(<success>.{calls} | <fail>.{main}) | (deregister_c1p2)"
+        },
+        "calls": {
+            "comment": "Test actions.",
+            "process": "(<read> | <write>).(<remove>.{main} | {calls})"
+        },
+        "register_c1p2": {
+            "condition": ["$ARG1 == global_var"],
+            "parameters": ['%container%'],
+            "savepoints": {
+                'p2s1': {"statements": ["$ALLOC(%container%);"]},
+                'p2s2': {"statements": ["$ALLOC(%container%);"]}
+            },
+            "requires": [
+                {"c1p1": {}}
+            ]
+        },
+        "alloc": {
+            "comment": "Alloc memory for the container.",
+            "statements": ["$CALLOC(%container%);"]
+        },
+        "probe": {
+            "comment": "Do probing.",
+            "statements": ["%ret% = f1(%container%);"]
+        },
+        "success": {
+            "comment": "Successful probing.",
+            "condition": ["%ret% == 0"]
+        },
+        "fail": {
+            "comment": "Failed probing.",
+            "condition": ["%ret% != 0"]
+        },
+        "deregister_c1p2": {
+            "parameters": ['%container%']
+        },
+        "read": {
+            "comment": "Reading.",
+            "statements": ["f2(%container%);"]
+        },
+        "write": {
+            "comment": "Writing.",
+            "statements": ["f3(%container%);"]
+        },
+        "remove": {
+            "comment": "Removing.",
+            "statements": ["$FREE(%container%);"]
+        }
+    }
+}
+c2p1 = {
+           "comment": "Category 2, process 1.",
+           "labels": {
+               "container": {
+                   "declaration": "struct validation *var",
+                   "value": "0"
+               },
+               "ret": {
+                   "declaration": "int x",
+                   "value": "0"
+               }
+           },
+           "process": "(!register_c2p1).{main}",
+           "actions": {
+               "main": {
+                   "comment": "Test initialization.",
+                   "process": "<probe>.(<success> | <fail>.<remove>).{main} | (deregister_c2p1)"
+               },
+               "register_c2p1": {
+                   "condition": ["$ARG1 != 0"],
+                   "parameters": ['%container%'],
+                   "savepoints": {
+                       'c2p1s1': {"statements": []}
+                   }
+               },
+               "probe": {
+                   "comment": "Do probing.",
+                   "statements": ["%ret% = f4(%container%);"]
+               },
+               "success": {
+                   "comment": "Successful probing.",
+                   "condition": ["%ret% == 0"]
+               },
+               "fail": {
+                   "comment": "Failed probing.",
+                   "condition": ["%ret% != 0"]
+               },
+               "deregister_c2p1": {
+                   "parameters": ['%container%']
+               },
+               "remove": {
+                   "comment": "Removing.",
+                   "statements": ["$FREE(%container%);"]
+               }
+           }
+       },
+c2p2 = {
+    "comment": "Category 2, process 2.",
+    "labels": {},
+    "process": "(!register_c2p2).([read] | [write])",
+    "actions": {
+        "register_c2p2": {
+            "parameters": ['%container%'],
+            "savepoints": [
+                {
+                    'p4s1': {
+                        "statements": []
+                    }
+                },
+            ],
+            "requires": {
+                "c2p1": {"actions": ["probe", "success"]},
+                "c1p1": {"savepoint": "p2s1"}
+            }
+        },
+        "read": {
+            "comment": "Do read.",
+            "statements": []
+        },
+        "write": {
+            "comment": "Do write.",
+            "statements": []
+        }
+    }
+}
+register_c1 = {
+    "comment": "Register С1.",
+    "labels": {
+        "container": {
+            "declaration": "struct test *var"
+        },
+    },
+    "process": "<assign>.[register_c1p1].<success> | <fail>",
+    "actions": {
+        "register_c1p1": {
+            "parameters": [
+                "%container%"
+            ]
+        },
+        "assign": {
+            "comment": "Get container.",
+            "statements": [
+                "%container% = $ARG1;"
+            ]
+        },
+        "fail": {
+            "comment": "Failed registration.",
+            "statements": ["return ldv_undef_int_negative();"]
+        },
+        "success": {
+            "comment": "Successful registration.",
+            "statements": [
+                "return 0;"
+            ]
+        }
+    }
+}
+deregister_c1 = {
+    "comment": "Deregister C1.",
+    "labels": {
+        "container": {
+            "declaration": "struct test *var"
+        },
+    },
+    "process": "<assign>.[deregister_c1p1]",
+    "actions": {
+        "deregister_c1p1": {
+            "parameters": [
+                "%container%"
+            ]
+        },
+        "assign": {
+            "comment": "Get container.",
+            "statements": [
+                "%container% = $ARG1;"
+            ]
+        }
+    }
+}
+register_c2 = {
+    "comment": "Register С2.",
+    "labels": {
+        "container": {
+            "declaration": "struct validation *var"
+        },
+    },
+    "process": "<assign>.[register_c2p1].<success> | <fail>",
+    "actions": {
+        "register_c2p1": {
+            "parameters": [
+                "%container%"
+            ]
+        },
+        "assign": {
+            "comment": "Get container.",
+            "statements": [
+                "%container% = $ARG1;"
+            ]
+        },
+        "fail": {
+            "comment": "Failed registration.",
+            "statements": ["return ldv_undef_int_negative();"]
+        },
+        "success": {
+            "comment": "Successful registration.",
+            "statements": [
+                "return 0;"
+            ]
+        }
+    }
+}
+deregister_c2 = {
+    "comment": "Deregister C2.",
+    "labels": {
+        "container": {
+            "declaration": "struct validation *var"
+        },
+    },
+    "process": "<assign>.[deregister_c2p1]",
+    "actions": {
+        "deregister_c2p1": {
+            "parameters": [
+                "%container%"
+            ]
+        },
+        "assign": {
+            "comment": "Get container.",
+            "statements": [
+                "%container% = $ARG1;"
+            ]
+        }
+    }
+}
+main = {
+    "comment": "Main process.",
+    "labels": {},
+    "process": "<root>",
+    "actions": {
+        "root": {
+            "statements": "f5();"
+        }
+    }
+}
+spec = {
+    "name": 'test_model',
+    "functions models": {
+        "register_c1": register_c1,
+        "deregister_c1": deregister_c1,
+        "register_c2": register_c2,
+        "deregister_c2": deregister_c2
+    },
+    "environment processes": {
+        "c1/p1": c1p1,
+        "c1/p2": c1p2,
+        "c2/p1": c2p1
+    },
+    "main process": main
+}
+
+c2_spec = {
+    "name": 'base',
+    "functions models": {
+        "register_c2": register_c2,
+        "deregister_c2": deregister_c2
+    },
+    "environment processes": {
+        "c2/p1": c2p1,
+        "c2/p2": c2p2
+    },
+    "main process": main
+}
+
+
 def source_preset():
     cfiles = [
         'main.c',
@@ -58,325 +390,7 @@ def source_preset():
 
 
 def raw_model_preset():
-    c1p1 = {
-        "comment": "Category 1, process 1.",
-        "headers": ["linux/test.h"],
-        "labels": {
-            "container": {
-                "declaration": "struct test *var",
-                "value": "0"
-            }
-        },
-        "process": "(!register_c1p1).{activate}",
-        "actions": {
-            "activate": {
-                "comment": "Activate the second process.",
-                "process": "([register_c1p2].[deregister_c1p2]).({activate} | (deregister_c1p1))",
-                "savepoints": {
-                    'p1s3': {"statements": ["$ALLOC(%container%);"]},
-                    'p1s4': {"statements": ["$ALLOC(%container%);"]}
-                }
-            },
-            "register_c1p1": {
-                "parameters": ['%container%'],
-                "savepoints": {
-                    'p1s1': {"statements": ["$ALLOC(%container%);"]},
-                    'p1s2': {"statements": ["$ALLOC(%container%);"]}
-                }
-            },
-            "deregister_c1p1": {
-                "parameters": ['%container%']
-            },
-            "register_c1p2": {
-                "parameters": ['%container%']
-            },
-            "deregister_c1p2": {
-                "parameters": ['%container%']
-            }
-        }
-    }
-    c1p2 = {
-        "comment": "Category 1, process 2.",
-        "headers": ["linux/test.h"],
-        "labels": {
-            "container": {
-                "declaration": "struct test *var",
-                "value": "0"
-            },
-            "ret": {
-                "declaration": "int x",
-                "value": "0"
-            }
-        },
-        "process": "(!register_c1p2).<alloc>.{main}",
-        "declarations": {
-            "environment model": {
-                "global_var": "struct test *global_var;\n"
-            }
-        },
-        "actions": {
-            "main": {
-                "comment": "Test initialization.",
-                "process": "<probe>.(<success>.{calls} | <fail>.{main}) | (deregister_c1p2)"
-            },
-            "calls": {
-                "comment": "Test actions.",
-                "process": "(<read> | <write>).(<remove>.{main} | {calls})"
-            },
-            "register_c1p2": {
-                "condition": ["$ARG1 == global_var"],
-                "parameters": ['%container%'],
-                "savepoints": {
-                    'p2s1': {"statements": ["$ALLOC(%container%);"]},
-                    'p2s2': {"statements": ["$ALLOC(%container%);"]}
-                },
-                "requires": [
-                    {"c1p1": {}}
-                ]
-            },
-            "alloc": {
-                "comment": "Alloc memory for the container.",
-                "statements": ["$CALLOC(%container%);"]
-            },
-            "probe": {
-                "comment": "Do probing.",
-                "statements": ["%ret% = f1(%container%);"]
-            },
-            "success": {
-                "comment": "Successful probing.",
-                "condition": ["%ret% == 0"]
-            },
-            "fail": {
-                "comment": "Failed probing.",
-                "condition": ["%ret% != 0"]
-            },
-            "deregister_c1p2": {
-                "parameters": ['%container%']
-            },
-            "read": {
-                "comment": "Reading.",
-                "statements": ["f2(%container%);"]
-            },
-            "write": {
-                "comment": "Writing.",
-                "statements": ["f3(%container%);"]
-            },
-            "remove": {
-                "comment": "Removing.",
-                "statements": ["$FREE(%container%);"]
-            }
-        }
-    }
-    c2p1 = {
-        "comment": "Category 2, process 1.",
-        "labels": {
-            "container": {
-                "declaration": "struct validation *var",
-                "value": "0"
-            },
-            "ret": {
-                "declaration": "int x",
-                "value": "0"
-            }
-        },
-        "process": "(!register_c2p1).{main}",
-        "actions": {
-            "main": {
-                "comment": "Test initialization.",
-                "process": "<probe>.(<success> | <fail>.<remove>).{main} | (deregister_c2p1)"
-            },
-            "register_c2p1": {
-                "condition": ["$ARG1 != 0"],
-                "parameters": ['%container%']
-            },
-            "probe": {
-                "comment": "Do probing.",
-                "statements": ["%ret% = f4(%container%);"]
-            },
-            "success": {
-                "comment": "Successful probing.",
-                "condition": ["%ret% == 0"]
-            },
-            "fail": {
-                "comment": "Failed probing.",
-                "condition": ["%ret% != 0"]
-            },
-            "deregister_c2p1": {
-                "parameters": ['%container%']
-            },
-            "remove": {
-                "comment": "Removing.",
-                "statements": ["$FREE(%container%);"]
-            }
-        }
-    },
-    c2p2 = {
-        "comment": "Category 2, process 2.",
-        "labels": {},
-        "process": "(!register_c2p2).([read] | [write])",
-        "actions": {
-            "register_c2p2": {
-                "parameters": ['%container%'],
-                "savepoints": [
-                    {
-                      'p4s1': {
-                          "statements": [],
-                          "requires": {
-                              "c1p2": {"actions": ["probe", "success"]}
-                          }
-                      }
-                    },
-                ],
-                "requires": {
-                    "c2p1": {"actions": ["probe", "success"]},
-                    "c1p1": {"savepoint": "p2s1"}
-                }
-            },
-            "read": {
-                "comment": "Do read.",
-                "statements": []
-            },
-            "write": {
-                "comment": "Do write.",
-                "statements": []
-            }
-        }
-    }
-    register_c1 = {
-        "comment": "Register С1.",
-        "labels": {
-            "container": {
-                "declaration": "struct test *var"
-            },
-        },
-        "process": "<assign>.[register_c1p1].<success> | <fail>",
-        "actions": {
-            "register_c1p1": {
-                "parameters": [
-                    "%container%"
-                ]
-            },
-            "assign": {
-                "comment": "Get container.",
-                "statements": [
-                    "%container% = $ARG1;"
-                ]
-            },
-            "fail": {
-                "comment": "Failed registration.",
-                "statements": ["return ldv_undef_int_negative();"]
-            },
-            "success": {
-                "comment": "Successful registration.",
-                "statements": [
-                    "return 0;"
-                ]
-            }
-        }
-    }
-    deregister_c1 = {
-        "comment": "Deregister C1.",
-        "labels": {
-            "container": {
-                "declaration": "struct test *var"
-            },
-        },
-        "process": "<assign>.[deregister_c1p1]",
-        "actions": {
-            "deregister_c1p1": {
-                "parameters": [
-                    "%container%"
-                ]
-            },
-            "assign": {
-                "comment": "Get container.",
-                "statements": [
-                    "%container% = $ARG1;"
-                ]
-            }
-        }
-    }
-    register_c2 = {
-        "comment": "Register С2.",
-        "labels": {
-            "container": {
-                "declaration": "struct validation *var"
-            },
-        },
-        "process": "<assign>.[register_c2p1].<success> | <fail>",
-        "actions": {
-            "register_c2p1": {
-                "parameters": [
-                    "%container%"
-                ]
-            },
-            "assign": {
-                "comment": "Get container.",
-                "statements": [
-                    "%container% = $ARG1;"
-                ]
-            },
-            "fail": {
-                "comment": "Failed registration.",
-                "statements": ["return ldv_undef_int_negative();"]
-            },
-            "success": {
-                "comment": "Successful registration.",
-                "statements": [
-                    "return 0;"
-                ]
-            }
-        }
-    }
-    deregister_c2 = {
-        "comment": "Deregister C2.",
-        "labels": {
-            "container": {
-                "declaration": "struct validation *var"
-            },
-        },
-        "process": "<assign>.[deregister_c2p1]",
-        "actions": {
-            "deregister_c2p1": {
-                "parameters": [
-                    "%container%"
-                ]
-            },
-            "assign": {
-                "comment": "Get container.",
-                "statements": [
-                    "%container% = $ARG1;"
-                ]
-            }
-        }
-    }
-    main = {
-        "comment": "Main process.",
-        "labels": {},
-        "process": "<root>",
-        "actions": {
-            "root": {
-                "statements": "f5();"
-            }
-        }
-    }
 
-    spec = {
-        "name": 'test_model',
-        "functions models": {
-            "register_c1": register_c1,
-            "deregister_c1": deregister_c1,
-            "register_c2": register_c2,
-            "deregister_c2": deregister_c2
-        },
-        "environment processes": {
-            "c1/p1": c1p1,
-            "c1/p2": c1p2,
-            "c2/p1": c2p1,
-            "c2/p2": c2p2
-        },
-        "main process": main
-    }
 
     return spec
 
@@ -386,3 +400,9 @@ def model_preset():
     raw_model = raw_model_preset()
     parser = CollectionDecoder(logging, dict())
     return parser.parse_event_specification(source, raw_model, ProcessCollection())
+
+
+def model_preset_c2():
+    source = source_preset()
+    parser = CollectionDecoder(logging, dict())
+    return parser.parse_event_specification(source, c2_spec, ProcessCollection())
