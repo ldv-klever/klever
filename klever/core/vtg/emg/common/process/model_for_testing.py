@@ -133,51 +133,51 @@ c1p2 = {
     }
 }
 c2p1 = {
-           "comment": "Category 2, process 1.",
-           "labels": {
-               "container": {
-                   "declaration": "struct validation *var",
-                   "value": "0"
-               },
-               "ret": {
-                   "declaration": "int x",
-                   "value": "0"
-               }
-           },
-           "process": "(!register_c2p1).{main}",
-           "actions": {
-               "main": {
-                   "comment": "Test initialization.",
-                   "process": "<probe>.(<success> | <fail>.<remove>).{main} | (deregister_c2p1)"
-               },
-               "register_c2p1": {
-                   "condition": ["$ARG1 != 0"],
-                   "parameters": ['%container%'],
-                   "savepoints": {
-                       'c2p1s1': {"statements": []}
-                   }
-               },
-               "probe": {
-                   "comment": "Do probing.",
-                   "statements": ["%ret% = f4(%container%);"]
-               },
-               "success": {
-                   "comment": "Successful probing.",
-                   "condition": ["%ret% == 0"]
-               },
-               "fail": {
-                   "comment": "Failed probing.",
-                   "condition": ["%ret% != 0"]
-               },
-               "deregister_c2p1": {
-                   "parameters": ['%container%']
-               },
-               "remove": {
-                   "comment": "Removing.",
-                   "statements": ["$FREE(%container%);"]
-               }
+   "comment": "Category 2, process 1.",
+   "labels": {
+       "container": {
+           "declaration": "struct validation *var",
+           "value": "0"
+       },
+       "ret": {
+           "declaration": "int x",
+           "value": "0"
+       }
+   },
+   "process": "(!register_c2p1).{main}",
+   "actions": {
+       "main": {
+           "comment": "Test initialization.",
+           "process": "<probe>.(<success> | <fail>.<remove>).{main} | (deregister_c2p1)"
+       },
+       "register_c2p1": {
+           "condition": ["$ARG1 != 0"],
+           "parameters": ['%container%'],
+           "savepoints": {
+               'c2p1s1': {"statements": []}
            }
        },
+       "probe": {
+           "comment": "Do probing.",
+           "statements": ["%ret% = f4(%container%);"]
+       },
+       "success": {
+           "comment": "Successful probing.",
+           "condition": ["%ret% == 0"]
+       },
+       "fail": {
+           "comment": "Failed probing.",
+           "condition": ["%ret% != 0"]
+       },
+       "deregister_c2p1": {
+           "parameters": ['%container%']
+       },
+       "remove": {
+           "comment": "Removing.",
+           "statements": ["$FREE(%container%);"]
+       }
+   }
+}
 c2p2 = {
     "comment": "Category 2, process 2.",
     "labels": {},
@@ -190,7 +190,7 @@ c2p2 = {
                     'p4s1': {
                         "statements": []
                     }
-                },
+                }
             ],
             "requires": {
                 "c2p1": {"actions": ["probe", "success"]},
@@ -212,7 +212,7 @@ register_c1 = {
     "labels": {
         "container": {
             "declaration": "struct test *var"
-        },
+        }
     },
     "process": "<assign>.[register_c1p1].<success> | <fail>",
     "actions": {
@@ -266,7 +266,7 @@ register_c2 = {
     "labels": {
         "container": {
             "declaration": "struct validation *var"
-        },
+        }
     },
     "process": "<assign>.[register_c2p1].<success> | <fail>",
     "actions": {
@@ -298,7 +298,7 @@ deregister_c2 = {
     "labels": {
         "container": {
             "declaration": "struct validation *var"
-        },
+        }
     },
     "process": "<assign>.[deregister_c2p1]",
     "actions": {
@@ -390,8 +390,6 @@ def source_preset():
 
 
 def raw_model_preset():
-
-
     return spec
 
 
