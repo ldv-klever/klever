@@ -55,7 +55,7 @@ def test_default_scenario_extraction(model, default_separator):
     assert len([s for s in s2 if s.savepoint]) == 2
 
     s3 = default_separator(c2p1)
-    assert len(s3) == 0
+    assert len(s3) == 1
 
 
 def _compare_scenario_with_actions(scenarios, actions):
@@ -150,9 +150,9 @@ def test_linear_strategy_c2p1(model, linear_separator):
     _check_linear_actions(scenarios, c2p1.actions)
 
     # Test the number of scenarios
-    # 3 options without sp
+    # 3 options with a single sp
     # Todo: reimplement this. It is better to cover sequences somehow.
-    assert len(scenarios) == 3, f'The number of scenarios is {len(scenarios)}: ' + \
+    assert len(scenarios) == 6, f'The number of scenarios is {len(scenarios)}: ' + \
                                 ', '.join([s.name for s in scenarios])
 
 
