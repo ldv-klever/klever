@@ -66,8 +66,11 @@ class CollectionEncoder(json.JSONEncoder):
             if action.trace_relevant:
                 d['trace relevant'] = action.trace_relevant
             if action.savepoints:
-                d['savepoints'] = {str(point): point.statements for point in action.savepoints}
-
+                d['savepoints'] = {
+                    str(point): {
+                        "statements": point.statements,
+                        "requires": point.requires
+                    } for point in action.savepoints}
             if isinstance(action, Subprocess):
                 if action.action:
                     d['process'] = CollectionEncoder._serialize_fsa(action.action)
@@ -125,6 +128,7 @@ class CollectionDecoder:
         'parameters': None,
         'condition': None,
         'statements': None,
+        'requires': None,
         'pre-call': 'pre_call',
         'post-call': 'post_call',
         'trace relevant': 'trace_relevant'
@@ -300,7 +304,8 @@ class CollectionDecoder:
 
         if 'savepoints' in dic:
             for name in dic['savepoints']:
-                savepoint = Savepoint(name, dic['savepoints'][name])
+                savepoint = Savepoint(name, dic['savepoints'][name].get('statements', []),
+                                      dic['savepoints'][name].get('requires', []))
                 act.savepoints.add(savepoint)
 
     def _import_label(self, name, dic):
