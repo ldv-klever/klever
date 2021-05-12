@@ -64,8 +64,12 @@ def parse_args(args, logger):
                         help='Name of base image on which Klever base image will be based on (default: "%(default)s").')
     parser.add_argument('--klever-base-image', default=load_default_base_image_name(),
                         help='Name of Klever base image on which instances will be based on (default: "%(default)s").')
-    parser.add_argument('--flavor', default='spark.large',
-                        help='Name of flavor to be used for new instances (default: "%(default)s").')
+    parser.add_argument('--vcpus', default=2, type=int,
+                        help='Number of VCPUs to be used in new instances (default: "%(default)s").')
+    parser.add_argument('--ram', type=int,
+                        help='Amount of RAM to be used in new instances (default: 4 x VCPUs x 1024).')
+    parser.add_argument('--disk', default=200, type=int,
+                        help='Amount of disk space to be used in new instances (default: "%(default)s").')
     parser.add_argument('--instances', type=int, default=1,
                         help='The number of new Klever instances (default: "%(default)s").')
     parser.add_argument('--mode', choices=['development', 'production'], default='production',
@@ -90,6 +94,9 @@ def parse_args(args, logger):
     if args.instances <= 0:
         logger.error('The number of new Klever instances must be greater then 0')
         sys.exit(errno.EINVAL)
+
+    if not args.ram:
+        args.ram = args.vcpus * 4 * 1024
 
     return args
 

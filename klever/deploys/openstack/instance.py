@@ -101,7 +101,9 @@ class OSKleverInstance:
             args=self.args,
             name=self.name,
             base_image=base_image,
-            flavor_name=self.args.flavor
+            vcpus=self.args.vcpus,
+            ram=self.args.ram,
+            disk=self.args.disk
         ) as instance:
             with SSH(
                 args=self.args,

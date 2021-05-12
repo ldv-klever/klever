@@ -42,13 +42,15 @@ class OSInstance:
     IMAGE_CREATION_CHECK_INTERVAL = 10
     IMAGE_CREATION_RECOVERY_INTERVAL = 30
 
-    def __init__(self, logger, client, args, name, base_image, flavor_name, keep_on_exit=False):
+    def __init__(self, logger, client, args, name, base_image, vcpus, ram, disk, keep_on_exit=False):
         self.logger = logger
         self.client: OSClient = client
         self.args = args
         self.name = name
         self.base_image = base_image
-        self.flavor_name = flavor_name
+        self.vcpus = vcpus
+        self.ram = ram
+        self.disk = disk
         self.keep_on_exit = keep_on_exit
         self.instance = None
 
@@ -60,20 +62,26 @@ class OSInstance:
             self.remove()
 
     def create(self):
-        self.logger.info(
-            f'Create instance "{self.name}" of flavor "{self.flavor_name}"'
-            f' on the base of image "{self.base_image.name}"'
-        )
-
         try:
-            flavor = self.client.nova.flavors.find(name=self.flavor_name)
+            flavor = self.client.nova.flavors.find(vcpus=self.vcpus, ram=self.ram, disk=self.disk)
         except novaclient.exceptions.NotFound:
+            self.logger.error(
+                f'There is no flavor with {self.vcpus} VCPUs, {self.ram} MB of RAM, {self.disk} GB of disk space')
+
+            # Sort available flavors
+            flavors = sorted(self.client.nova.flavors.list(), key=lambda f: (f.vcpus, f.ram, f.disk))
+
             self.logger.error(
                 'You can use one of the following flavors:\n{0}'.format(
                     '\n'.join(['    {0} - {1} VCPUs, {2} MB of RAM, {3} GB of disk space'
                                .format(flavor.name, flavor.vcpus, flavor.ram, flavor.disk)
-                               for flavor in self.client.nova.flavors.list()])))
+                               for flavor in flavors])))
             sys.exit(errno.EINVAL)
+
+        self.logger.info(
+            f'Create instance "{self.name}" of flavor "{flavor.name}"'
+            f' on the base of image "{self.base_image.name}"'
+        )
 
         self.__setup_keypair()
 
