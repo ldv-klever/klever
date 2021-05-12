@@ -62,21 +62,7 @@ class OSInstance:
             self.remove()
 
     def create(self):
-        try:
-            flavor = self.client.nova.flavors.find(vcpus=self.vcpus, ram=self.ram, disk=self.disk)
-        except novaclient.exceptions.NotFound:
-            self.logger.error(
-                f'There is no flavor with {self.vcpus} VCPUs, {self.ram} MB of RAM, {self.disk} GB of disk space')
-
-            # Sort available flavors
-            flavors = sorted(self.client.nova.flavors.list(), key=lambda f: (f.vcpus, f.ram, f.disk))
-
-            self.logger.error(
-                'You can use one of the following flavors:\n{0}'.format(
-                    '\n'.join(['    {0} - {1} VCPUs, {2} MB of RAM, {3} GB of disk space'
-                               .format(flavor.name, flavor.vcpus, flavor.ram, flavor.disk)
-                               for flavor in flavors])))
-            sys.exit(errno.EINVAL)
+        flavor = self.client.find_flavor(self.vcpus, self.ram, self.disk)
 
         self.logger.info(
             f'Create instance "{self.name}" of flavor "{flavor.name}"'

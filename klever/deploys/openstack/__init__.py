@@ -36,7 +36,7 @@ def load_default_base_image_name():
 
 def parse_args(args, logger):
     parser = argparse.ArgumentParser()
-    parser.add_argument('action', choices=['show', 'create', 'update', 'ssh', 'remove', 'share', 'hide'],
+    parser.add_argument('action', choices=['show', 'create', 'update', 'ssh', 'remove', 'share', 'hide', 'resize'],
                         help='Action to be executed.')
     parser.add_argument('entity', choices=['image', 'instance'],
                         help='Entity for which action to be executed.')

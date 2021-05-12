@@ -15,6 +15,7 @@
 
 import errno
 import sys
+import time
 
 from klever.deploys.openstack.client import OSClient
 from klever.deploys.openstack.client.instance import OSInstance
@@ -156,3 +157,27 @@ class OSKleverInstance:
             ):
                 self.__install_or_update_klever(ssh)
                 self.__deploy_klever(ssh, action='update')
+
+    def resize(self):
+        instance = self.client.get_instance(self.name)
+        flavor = self.client.find_flavor(self.args.vcpus, self.args.ram, self.args.disk)
+
+        if instance.flavor['id'] == flavor.id:
+            self.logger.error('You must change flavor in order to resize instance')
+            sys.exit(errno.EINVAL)
+
+        try:
+            self.logger.info(f'Resize instance "{self.name}" to flavor "{flavor.name}"')
+            instance.resize(self.client.find_flavor(self.args.vcpus, self.args.ram, self.args.disk))
+
+            self.logger.info("This will take several minutes")
+            while instance.status != "VERIFY_RESIZE":
+                instance = self.client.nova.servers.get(instance.id)
+                self.logger.info("Wait until resize is complete")
+                time.sleep(15)
+
+            instance.confirm_resize()
+            self.logger.info('Resize is confirmed and complete')
+        except Exception:
+            self.logger.info('Exception happend: reverting resize')
+            instance.revert_resize()
