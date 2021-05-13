@@ -497,7 +497,6 @@ class JobArchiveUploader:
 
             res = FillCoverageStatistics(instance)
             instance.total = res.total_coverage
-            instance.has_extra = res.has_extra
             instance.save()
             self._logger.update()
         self._logger.end()

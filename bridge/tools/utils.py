@@ -359,7 +359,6 @@ class RecalculateCoverage:
             for cov_obj in CoverageArchive.objects.filter(report__decision=decision):
                 res = FillCoverageStatistics(cov_obj)
                 cov_obj.total = res.total_coverage
-                cov_obj.has_extra = res.has_extra
                 cov_obj.save()
 
 

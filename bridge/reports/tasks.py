@@ -34,7 +34,6 @@ def fill_coverage_statistics(carch_id):
         carch.delete()
         raise BridgeException('Error while parsing coverage statistics: {}'.format(e))
     carch.total = res.total_coverage
-    carch.has_extra = res.has_extra
     carch.save()
 
 

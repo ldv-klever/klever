@@ -119,7 +119,6 @@ class GetCoverageStatistics:
         self.data = CoverageStatistics.objects.filter(coverage=self.coverage).order_by('id')
         self.data_statistic = coverage_data_statistic(self.coverage)
         self.most_covered = most_covered_lines(self.coverage)
-        self.with_extra = self.coverage.has_extra
 
     def __get_coverage_object(self, report, coverage_id):
         parents_ids = set(report.get_ancestors(include_self=True).values_list('id', flat=True))
@@ -135,14 +134,12 @@ class LeafCoverageStatistics:
         self.data = CoverageStatistics.objects.filter(coverage=self.coverage).order_by('id')
         self.data_statistic = coverage_data_statistic(coverage)
         self.most_covered = most_covered_lines(self.coverage)
-        self.with_extra = False
 
 
 class CoverageStatisticsBase:
     def __init__(self, coverage_id=None):
         self._coverage_id = coverage_id
         self.with_report_link = False
-        self.has_extra = False
 
     def coverage_queryset(self):
         raise NotImplementedError('Coverage queryset is not implemented')
@@ -175,7 +172,6 @@ class CoverageStatisticsBase:
             cov_obj = cov_qs.first()
         if not cov_obj:
             return None
-        self.has_extra = cov_obj.has_extra
         return CoverageStatistics.objects.filter(coverage=cov_obj).order_by('id')
 
 
@@ -224,7 +220,6 @@ class FillCoverageStatistics:
     file_sep = '/'
 
     def __init__(self, coverage_obj):
-        self.has_extra = False
         self.coverage_obj = coverage_obj
         self._statistics, self._data_stat = self.__get_statistics()
         self.__save_statistics()
@@ -262,17 +257,10 @@ class FillCoverageStatistics:
                         path='/'.join(curr_path),
                         depth=len(curr_path)
                     )
-                if cov_lines or cov_funcs:
-                    new_objects[curr_path].lines_covered += cov_lines
-                    new_objects[curr_path].lines_total += tot_lines
-                    new_objects[curr_path].funcs_covered += cov_funcs
-                    new_objects[curr_path].funcs_total += tot_func
-                else:
-                    self.has_extra = True
-                new_objects[curr_path].lines_covered_extra += cov_lines
-                new_objects[curr_path].lines_total_extra += tot_lines
-                new_objects[curr_path].funcs_covered_extra += cov_funcs
-                new_objects[curr_path].funcs_total_extra += tot_func
+                new_objects[curr_path].lines_covered += cov_lines
+                new_objects[curr_path].lines_total += tot_lines
+                new_objects[curr_path].funcs_covered += cov_funcs
+                new_objects[curr_path].funcs_total += tot_func
 
         ordered_objects_list = list(sorted(new_objects.values(), key=lambda x: (x.is_leaf, x.name)))
 
