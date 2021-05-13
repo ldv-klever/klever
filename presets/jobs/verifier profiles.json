@@ -14,6 +14,7 @@
         {"-setprop": "counterexample.export.prefixAdditionalCoverageFile=Counterexample.%d.additionalCoverage.info"},
         {"-setprop": "additionalCoverage.file=additionalCoverage.info"},
         {"-noout": ""},
+        {"-setprop": "shutdown.timeout=100"},
         {"-heap": "%ldv:memory size:0.8:MB%m"}
       ],
       "architecture dependant options": {
