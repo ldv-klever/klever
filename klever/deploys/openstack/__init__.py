@@ -64,7 +64,7 @@ def parse_args(args, logger):
                         help='Name of base image on which Klever base image will be based on (default: "%(default)s").')
     parser.add_argument('--klever-base-image', default=load_default_base_image_name(),
                         help='Name of Klever base image on which instances will be based on (default: "%(default)s").')
-    parser.add_argument('--vcpus', default=2, type=int,
+    parser.add_argument('--vcpus', default=8, type=int,
                         help='Number of VCPUs to be used in new instances (default: "%(default)s").')
     parser.add_argument('--ram', type=int,
                         help='Amount of RAM to be used in new instances (default: 4 x VCPUs x 1024).')
