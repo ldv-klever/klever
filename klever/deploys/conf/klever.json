@@ -33,8 +33,8 @@
     "Verification Backends": {
       "CPAchecker": {
         "name": "CPAchecker",
-        "version": "error-info-extention-953c051",
-        "path": "https://forge.ispras.ru/attachments/download/8727/CPAchecker-error-info-extention-953c051.tar.xz",
+        "version": "klever-fixes:37150",
+        "path": "https://forge.ispras.ru/attachments/download/8807/CPAchecker-37150.tar.xz",
         "executable path": "scripts"
       },
       "CPALockator": {
