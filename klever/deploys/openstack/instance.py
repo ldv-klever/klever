@@ -14,6 +14,7 @@
 # limitations under the License.
 
 import errno
+import novaclient.exceptions
 import sys
 import time
 
@@ -178,6 +179,12 @@ class OSKleverInstance:
 
             instance.confirm_resize()
             self.logger.info('Resize is confirmed and complete')
-        except Exception:
-            self.logger.info('Exception happend: reverting resize')
-            instance.revert_resize()
+        except Exception as e:
+            self.logger.error(e)
+
+            instance = self.client.nova.servers.get(instance.id)
+            if instance.status != "ACTIVE":
+                instance.revert_resize()
+                self.logger.info('Resize is reverted')
+
+            sys.exit(errno.EINVAL)
