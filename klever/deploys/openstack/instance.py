@@ -168,7 +168,7 @@ class OSKleverInstance:
 
         try:
             self.logger.info(f'Resize instance "{self.name}" to flavor "{flavor.name}"')
-            instance.resize(self.client.find_flavor(self.args.vcpus, self.args.ram, self.args.disk))
+            instance.resize(flavor)
 
             self.logger.info("This will take several minutes")
             while instance.status != "VERIFY_RESIZE":
