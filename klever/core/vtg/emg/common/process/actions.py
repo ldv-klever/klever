@@ -24,12 +24,8 @@ class Savepoint:
     The class represents a savepoint - description of an initialization used if there is no receiver for a process.
     """
 
-    def __init__(self, name, statements, requires=None):
+    def __init__(self, name, statements):
         self._name = name
-        if not requires:
-            self.requires = []
-        else:
-            self.requires = requires
         self.statements = list(statements)
 
     def __str__(self):
@@ -289,6 +285,7 @@ class Action:
         self.trace_relevant = False
         self.savepoints = set()
         self.comment = ''
+        self.requires = dict()
 
     def __getnewargs__(self):
         # Return the arguments that *must* be passed to __new__ (required for deepcopy)

@@ -99,8 +99,8 @@ def _compare_actions_collections(one, two):
 def _compare_actions(one, two):
     # todo: we do not test attribute 'trace relevant' as it is unnecessary
     for attr in ('comment', 'statements', 'condition', 'parameters',
-                 'peers', 'pre-call', 'post-call'):
-        assert str(one.get(attr)) == str(two.get(attr)), f"{attr}"
+                 'peers', 'pre-call', 'post-call', 'requirements'):
+        assert str(one.get(attr)) == str(two.get(attr)), f"{attr} {str(one)} {str(two)}"
 
     if 'process' in one:
         assert 'process' in two

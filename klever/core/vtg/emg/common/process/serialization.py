@@ -68,8 +68,7 @@ class CollectionEncoder(json.JSONEncoder):
             if action.savepoints:
                 d['savepoints'] = {
                     str(point): {
-                        "statements": point.statements,
-                        "requires": point.requires
+                        "statements": point.statements
                     } for point in action.savepoints}
             if isinstance(action, Subprocess):
                 if action.action:
@@ -123,6 +122,7 @@ class CollectionDecoder:
         'source files': 'cfiles',
         'peers': None
     }
+    # todo: need extra checks of internal values for requires field
     ACTION_ATTRIBUTES = {
         'comment': None,
         'parameters': None,
@@ -239,7 +239,7 @@ class CollectionDecoder:
                 next_actions[name] = next_action
 
         # Import comments
-        if 'comment' in dic:
+        if 'comment' in dic and isinstance(dic['comment'], str):
             process.comment = dic['comment']
         else:
             raise KeyError(
@@ -304,8 +304,7 @@ class CollectionDecoder:
 
         if 'savepoints' in dic:
             for name in dic['savepoints']:
-                savepoint = Savepoint(name, dic['savepoints'][name].get('statements', []),
-                                      dic['savepoints'][name].get('requires', []))
+                savepoint = Savepoint(name, dic['savepoints'][name].get('statements', []))
                 act.savepoints.add(savepoint)
 
     def _import_label(self, name, dic):
