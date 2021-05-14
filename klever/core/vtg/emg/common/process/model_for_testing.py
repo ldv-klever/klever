@@ -95,9 +95,7 @@ c1p2 = {
                 'p2s1': {"statements": ["$ALLOC(%container%);"]},
                 'p2s2': {"statements": ["$ALLOC(%container%);"]}
             },
-            "requires": [
-                {"c1p1": {}}
-            ]
+            "requires": {"c1/p1": {}}
         },
         "alloc": {
             "comment": "Alloc memory for the container.",
@@ -148,7 +146,7 @@ c2p1 = {
    "actions": {
        "main": {
            "comment": "Test initialization.",
-           "process": "<probe>.(<success> | <fail>.<remove>).{main} | (deregister_c2p1)"
+           "process": "<probe>.(<success>.[register_c2p2] | <fail>.<remove>).{main} | (deregister_c2p1)"
        },
        "register_c2p1": {
            "condition": ["$ARG1 != 0"],
@@ -175,26 +173,31 @@ c2p1 = {
        "remove": {
            "comment": "Removing.",
            "statements": ["$FREE(%container%);"]
+       },
+       "register_c2p2": {
+           "parameters": ['%container%']
        }
    }
 }
 c2p2 = {
     "comment": "Category 2, process 2.",
-    "labels": {},
+    "labels": {
+        "container": {
+            "declaration": "struct validation *var",
+            "value": "0"
+        }
+    },
     "process": "(!register_c2p2).([read] | [write])",
     "actions": {
         "register_c2p2": {
             "parameters": ['%container%'],
-            "savepoints": [
-                {
-                    'p4s1': {
-                        "statements": []
-                    }
+            "savepoints": {
+                'p4s1': {
+                    "statements": []
                 }
-            ],
+            },
             "requires": {
-                "c2p1": {"actions": ["probe", "success"]},
-                "c1p1": {"savepoint": "p2s1"}
+                "c2/p1": {"includes": ["probe", "success"]}
             }
         },
         "read": {
@@ -244,7 +247,7 @@ deregister_c1 = {
     "labels": {
         "container": {
             "declaration": "struct test *var"
-        },
+        }
     },
     "process": "<assign>.[deregister_c1p1]",
     "actions": {
@@ -321,6 +324,7 @@ main = {
     "process": "<root>",
     "actions": {
         "root": {
+            "comment": "Some action",
             "statements": "f5();"
         }
     }
