@@ -24,6 +24,7 @@ from klever.core.vtg.emg.common.process.model_for_testing import model_preset
 
 # todo: Implement models for combinatorial strategy
 
+
 @pytest.fixture
 def model():
     return model_preset()

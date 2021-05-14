@@ -22,9 +22,9 @@ from klever.core.vtg.emg.common.process.model_for_testing import model_preset_c2
 from klever.core.vtg.emg.decomposition.modelfactory.selective import SelectiveFactory
 
 
-@pytest.fixture()
+@pytest.fixture
 def model():
-    return model_preset_c2
+    return model_preset_c2()
 
 
 def test_first(model):
@@ -45,6 +45,25 @@ def test_first(model):
 def test_second(model):
     spec = {
         "must contain": {"c2/p1": {}},
+        "cover scenarios": {"c2/p1": {}}
+    }
+    processes_to_scenarios, models = _obtain_models(model, spec)
+
+    # Cover all scenarios from c2p1
+    p1scenarios = processes_to_scenarios['c2/p1']
+    assert len(p1scenarios) == len(models)
+    actions = [m.environment['c2/p1'].actions for m in models]
+    for scenario in p1scenarios:
+        assert scenario.actions in actions
+
+    # No savepoints from c2p2
+    c2p2_withsavepoint = [s for s in processes_to_scenarios['c2/p2'] if s.savepoint].pop()
+    assert all([True if c2p2_withsavepoint.actions != m.entry.actions else False for m in models])
+
+
+def test_second_deletion(model):
+    spec = {
+        "must not contain": {"c2/p2": {}},
         "cover scenarios": {"c2/p1": {}}
     }
     processes_to_scenarios, models = _obtain_models(model, spec)
