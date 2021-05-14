@@ -82,7 +82,9 @@ class OSKleverBaseImage:
             args=self.args,
             name=klever_base_image_name,
             base_image=base_image,
-            flavor_name='crawler.mini'
+            vcpus=1,
+            ram=2048,
+            disk=5
         ) as instance:
             with SSH(
                 args=self.args,
