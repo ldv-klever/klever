@@ -48,8 +48,6 @@ class Linux(FragmentationAlgorythm):
         else:
             self._search_for_modules(program)
         if self.kernel:
-            self.logger.info("Search for modules that are linked to the kernel to separate them from subsystems")
-            self.search_for_statically_linked_modules(program)
             self.logger.info('Inspect AR comands in addition')
             self._search_for_modules(program, 'AR', 'built-in.a')
 
@@ -74,9 +72,15 @@ class Linux(FragmentationAlgorythm):
                 name = rel_object_path
                 fragment = program.create_fragment_from_linker_cmds(identifier, desc, name,
                                                                     out.endswith(suffix) and self._separate_nested)
+                
+                old_size = len(fragment.files)
                 if modules_files:
                     new_files = fragment.files.difference(modules_files)
                     fragment.files = new_files
+
+                    if len(fragment.files) != old_size:
+                        self.logger.info(f"Decreased the number of files of {fragment.name} from {old_size} to " 
+                                         f"{len(fragment.files)}")
                 if (not self._max_size or fragment.size <= self._max_size) and len(fragment.files) != 0:
                     program.add_fragment(fragment)
                 else:
