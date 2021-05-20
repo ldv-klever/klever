@@ -33,7 +33,7 @@ from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 
 from bridge.vars import USER_ROLES
-from bridge.utils import BridgeAPIPagination, extract_archive
+from bridge.utils import BridgeAPIPagination, extract_archive, logger
 from bridge.access import ManagerPermission, ServicePermission
 from bridge.CustomViews import StreamingResponseAPIView, TemplateAPIRetrieveView
 from tools.profiling import LoggedCallMixin
@@ -438,7 +438,11 @@ class UploadMarksView(LoggedCallMixin, APIView):
                     marks_dir = extract_archive(f)
                     for arch_name in os.listdir(marks_dir.name):
                         with open(os.path.join(marks_dir.name, arch_name), mode='rb') as fp:
-                            marks_links.append(marks_uploader.upload_mark(File(fp, name=arch_name))[1])
+                            try:
+                                marks_links.append(marks_uploader.upload_mark(File(fp, name=arch_name))[1])
+                            except Exception:
+                                logger.error('Uploading of mark "{}" has failed.'.format(arch_name))
+                                raise
                     pass
                 else:
                     marks_links.append(marks_uploader.upload_mark(f)[1])
