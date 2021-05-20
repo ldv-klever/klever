@@ -25,7 +25,13 @@ from django.db import migrations, models
 def clear_media(apps, schema_editor):
     for obj in os.listdir(settings.MEDIA_ROOT):
         full_path = os.path.join(settings.MEDIA_ROOT, obj)
-        if os.path.isdir(full_path):
+        if os.path.islink(full_path):
+            for root, dirs, files in os.walk(full_path):
+                for f in files:
+                    os.unlink(os.path.join(root, f))
+                for d in dirs:
+                    shutil.rmtree(os.path.join(root, d))
+        elif os.path.isdir(full_path):
             shutil.rmtree(full_path)
     for obj in os.listdir(settings.LOGS_DIR):
         if obj != '.gitignore':

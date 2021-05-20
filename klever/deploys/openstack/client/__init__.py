@@ -248,3 +248,33 @@ class OSClient:
                                .format(flavor.name, flavor.vcpus, flavor.ram, flavor.disk)
                                for flavor in flavors])))
             sys.exit(errno.EINVAL)
+
+    def get_volume(self, instance):
+        self.logger.info(f'Get volume attached to "{instance.name}"')
+
+        volumes = self.get_volumes(instance.name)
+
+        if len(volumes) == 0:
+            self.logger.error(f'There are no volumes attached to "{instance.name}"')
+            sys.exit(errno.EINVAL)
+
+        if len(volumes) > 1:
+            self.logger.error(
+                f'There are several volumes attached to "{instance.name}", please, resolve this conflict manually'
+            )
+            sys.exit(errno.EINVAL)
+
+        return volumes[0]
+
+    def get_volumes(self, instance):
+        # nova can't delete volumes, so the following code shouldn't be used:
+        # return self.nova.volumes.get_server_volumes(instance.id)
+
+        volumes = []
+
+        for volume in self.cinder.volumes.list():
+            for server in volume.attachments:
+                if server['server_id'] == instance.id:
+                    volumes.append(volume)
+
+        return volumes
