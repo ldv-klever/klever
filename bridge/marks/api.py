@@ -440,10 +440,9 @@ class UploadMarksView(LoggedCallMixin, APIView):
                         with open(os.path.join(marks_dir.name, arch_name), mode='rb') as fp:
                             try:
                                 marks_links.append(marks_uploader.upload_mark(File(fp, name=arch_name))[1])
-                            except Exception:
+                            except Exception as e:
+                                logger.exception(e)
                                 logger.error('Uploading of mark "{}" has failed.'.format(arch_name))
-                                raise
-                    pass
                 else:
                     marks_links.append(marks_uploader.upload_mark(f)[1])
 
