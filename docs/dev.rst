@@ -349,13 +349,48 @@ Klever Bridge Testing
 Additional documentation
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-A lot of usefull documentation for developing Django projects as well as for general using of the PyCharm IDE is
+A lot of useful documentation for developing Django projects as well as for general using of the PyCharm IDE is
 available at the official `site <https://www.jetbrains.com/pycharm/documentation/>`__.
 
 Extended Violation Witness Format
 ---------------------------------
 
-TODO: Translate from Russian.
+The `original format of violation witnesses <https://github.com/sosy-lab/sv-witnesses>`__ is intended primarily for
+automatic validation.
+Each violation witness can describe a subset of possible execution paths and lack some important details.
+This hinders their manual analysis by experts.
+
+We suggest the extended format of violation witnesses to enhance their visualization and assessment capabilities.
+This format requires an extended violation witness to represent a single error path as accurate as possible, i.e. it
+should refer all expressions, statements and declarations starting from an entry point and up to a found violation as
+well as all global variable declarations.
+Besides, extended violation witnesses should mandatory use *enterFunction* and *returnFromFunction* tags for all
+functions that are called along the error path and have definitions.
+
+To distinguish declarations from statements and expressions, especially, to separate global variable declarations from
+the entry point, we suggest to introduce an additional data tag *declaration*.
+Its value should be *true* for all edges corresponding to global and local declarations.
+Its default value used for all other edges implicitly should be *false*.
+
+One more extension is intended for adding important internal information from verification tools to violation
+witnesses.
+For instance, when checking memory safety verification tools can point out places where leaked memory is allocated.
+The corresponding data tag is *note*.
+Its value should has the following format::
+
+    level="N" hide="true|false" value="Some meaningful text"
+
+*N* sets the importance of the note.
+It should be in range from 0 to 3 where 0 should be used just for edges corresponding to found violations.
+Level 1 should be used for vital notes since these notes will be shown by default and they will be used for obtaining
+*error trace patterns* used for automatic assessment of similar violation witnesses.
+All levels of notes will be specially highlighted at visualization.
+Attribute *hide* controls whether notes should be shown together with corresponding edges (in case when *hide* is
+*false*) or without it (otherwise).
+Edges can be omitted when notes represent enough information about them in their attribute *value*.
+The example of this data tag value is as follows::
+
+    level="0" hide="false" value="Memory leak of calloc_ID13 is detected"
 
 Error Trace Format
 ------------------
