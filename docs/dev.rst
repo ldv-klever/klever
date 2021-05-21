@@ -392,10 +392,105 @@ The example of this data tag value is as follows::
 
     level="0" hide="false" value="Memory leak of calloc_ID13 is detected"
 
+Verification tools can provide multiple *note* data tags per an edge.
+
+Thus, the extended format of violation witnesses does extend the existing format of violation witnesses.
+Extended violation witnesses can be even validated like non-extended ones.
+
 Error Trace Format
 ------------------
 
-TODO: Translate from Russian.
+We suggest converting violation witnesses in the extended format represented above to error traces that are more
+convenient for visualization and assessment purposes.
+Error traces should be represented as JSON files with the following content:
+
+.. code-block:: json
+
+    {
+        "format": 1,
+        "files": [
+            "filename1",
+            "filename2",
+            "..."
+        ],
+        "global variable declarations": [
+            {
+                "file": 0,
+                "line": 1,
+                "source": "struct module x;"
+            },
+            {
+                "file": 0,
+                "line": 2,
+                "source": "static ldv_counter = 1;",
+                "notes": [
+                    {
+                        "level": 1
+                        "text": "Initialize counter to zero"
+                    }
+                ],
+                "hide": true
+            },
+            {
+            }
+        ],
+        "trace": "NodeObject"
+   }
+
+*format* indicates a current version of the error trace format.
+For all changes in syntax and especially semantics of the represented data it should be changed.
+
+*files* lists all filenames referred by the error trace.
+Below particular files are represented as indexes in this array.
+This is necessary for optimization purposes since there may be very many edges corresponding to different files that
+can have rather long paths.
+
+For global variable declarations *file*, *line* and *source* are mandatory attributes.
+Their meaning is quite obvious.
+*notes* and *hide* correspond to entities from the extended violation witnesses straightforwardly.
+Below we present a bit more details on these attributes.
+
+*NodeObject* represents the error path (error trace) starting from the entry point and finishing at the detected
+violation.
+It is a JSON object with following attributes:
+
+* *type* - one of "thread", "action", "declarations", "declaration", "statement" and "function call".
+* *thread* - a thread identifier.
+  This attribute is mandatory for objects of type "thread".
+* *file* - an index in the array of files presented above.
+  This attribute is mandatory for objects of types "action", "declaration", "statement" and "function call".
+* *line* - a line number in this file.
+  This attribute is mandatory for the same objects as *file*.
+* *source* - a piece of the source code corresponding to a violation witness edge.
+  This attribute is mandatory for objects of types "declaration", "statement" and "function call".
+* *highlight* - highlighting for a given piece of the source code.
+  This attribute can be set for the same objects as *source*.
+  Its value is an array of arrays each containing a highlight class that influences visualization, a start offset and
+  an end offset of a corresponding entity.
+  All offsets should be in a *source* length range, they should not overlap and the end offset should be greater than
+  the start offset.
+* *condition* - either true or false depending on a corresponding edge represents a conditional statement or not
+  respectively.
+  This attribute can be sef for objects of types "statement" and "function call".
+* *assumption* - verification tool assumptions coinciding with a value of *assumption* data tag.
+  This attribute can be sef for objects of types "statement" and "function call".
+* *display* - a text replacing *source*, e.g. instead of a complete function call statement just a function name can
+  be shown if it is stored as a value of this attribute.
+  This attribute is mandatory for objects of types "action" and "function call".
+  Also, it can be set for objects of types "declaration" and "statement".
+* *relevant* - either true or false that denotes actions that are relevant and irrelevant for creating error trace
+  patterns.
+  This attribute is mandatory for objects of type "action".
+  By default its value is false.
+* *notes* - a list of notes like demonstrated above.
+  This attribute is mandatory for objects of types "declaration", "statement" and "function call".
+* *hide* - either true of false that correspondingly hides or shows a corresponding *source* or *display*.
+  This attribute is mandatory for the same objects as *notes*.
+  By default its value is false.
+* *children* - a list of elements each of type *NodeObject*.
+  This attribute is mandatory for objects of types "thread", "action", "declarations" and "function call".
+
+The first *NodeObject* should have the *thread* type.
 
 Code Coverage Format
 --------------------
