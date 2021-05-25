@@ -435,7 +435,7 @@ Error traces should be represented as JSON files with the following content:
             }
         ],
         "trace": "NodeObject"
-   }
+    }
 
 *format* indicates a current version of the error trace format.
 For all changes in syntax and especially semantics of the represented data it should be changed.
@@ -495,4 +495,76 @@ The first *NodeObject* should have the *thread* type.
 Code Coverage Format
 --------------------
 
-TODO: Translate from Russian. 
+We suggest to convert code coverage reports from verification tools to the more appropriate form for their
+visualization.
+Converted code coverage reports should be represented as JSON files.
+There are should be JSON files for all source files that were covered somehow as well as one file per a verification
+task with statistics.
+Code coverage for individual source files should be placed to files *path/to/src_file.cov.json* and they should have the
+following content:
+
+.. code-block:: json
+
+    {
+        "format": 1,
+        "line coverage": {
+            "1": 4,
+            "3": 7,
+            "...": "..."
+        },
+        "function coverage": {
+            "1": 1,
+            "17": 0,
+            "...": "..."
+        },
+        "notes": {
+            "19": {
+                "kind": "Verifier assumption",
+                "text": "Inline Assembler is ignored"
+            },
+            "51": {
+                "kind": "Environment modelling hint",
+                "text": "Function \"driver_release\" may be called within context of \"driver_probe\" and \"driver_disconnect\" entry points"
+            },
+            "...": "..."
+        }
+    }
+
+*format* means the same as the error trace format considered above.
+
+*line coverage* and *function coverage* shows the number of states for corresponding lines of code.
+For functions these lines of code coincide with places where they are defined.
+The number of states reflect time spent for verification of lines and functions to some extent.
+
+*notes* enumerate hints from verification tools or Klever itself for corresponding lines of code.
+Each such hint can have a random text and one of predefined kinds.
+For each kind a dedicated style will be used at visualization.
+
+Code coverage statistics should be put to file *coverage.json* of the following content:
+
+.. code-block:: json
+
+    {
+        "format": 1,
+        "coverage statistics": {
+            "path/to/src": [100, 1000, 5, 10],
+            "...": []
+        },
+        "most covered lines": [
+              "path/to/src:333",
+              "path/to/another/src:33",
+              "path/to/src:233",
+              "..."
+        ]
+    }
+
+*format* means the same as the error trace format considered above.
+
+*coverage statistics* represents the number of covered lines, the number of lines that could be covered potentially,
+the number of covered functions and the number of functions that could be covered potentially for corresponding source
+files.
+
+*most covered lines* enumerates source files and lines within them that were covered most times.
+
+The same format is appropriate for representing code coverage for the whole program independently for each requirements
+specification that is also supported by Klever.
