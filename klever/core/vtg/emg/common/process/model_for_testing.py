@@ -401,10 +401,14 @@ def model_preset():
     source = source_preset()
     raw_model = raw_model_preset()
     parser = CollectionDecoder(logging, dict())
-    return parser.parse_event_specification(source, raw_model, ProcessCollection())
+    model = parser.parse_event_specification(source, raw_model, ProcessCollection())
+    model.establish_peers()
+    return model
 
 
 def model_preset_c2():
     source = source_preset()
     parser = CollectionDecoder(logging, dict())
-    return parser.parse_event_specification(source, c2_spec, ProcessCollection())
+    model = parser.parse_event_specification(source, c2_spec, ProcessCollection())
+    model.establish_peers()
+    return model
