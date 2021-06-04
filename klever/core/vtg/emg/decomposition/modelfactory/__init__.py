@@ -77,13 +77,8 @@ class Selector:
         if include_savepoints:
             for scenario, related_process in self._scenarions_with_savepoint.items():
                 new = ScenarioCollection(scenario.name)
-                new.entry = scenario
-
-                for model in self.model.models:
-                    new.models[model] = None
                 for process in self.model.environment:
-                    if str(process) == related_process:
-                        continue
+                    new.environment[str(process)] = scenario
                     if scenario not in self.processes_to_scenarios[process]:
                         new.environment[str(process)] = None
                 yield new, related_process
@@ -122,10 +117,26 @@ class ModelFactory:
         for batch, related_process in selector():
             new = ProcessCollection(batch.name)
 
-            if batch.entry:
-                new.entry = self._process_from_scenario(batch.entry, model.environment[related_process])
+            # Set entry process
+            if related_process and batch.environment[related_process] and batch.environment[related_process].savepoint:
+                # There is an environment process with a scenario
+                new.entry = self._process_from_scenario(batch.environment[related_process], model.environment[related_process])
+            elif batch.entry:
+                # The entry process has a scenario
+                new.entry = self._process_from_scenario(batch.entry, model.entry)
             else:
+                # # Keep as is
                 new.entry = self._process_copy(model.entry)
+
+            # Add models if no scenarios provided
+            for function_model in model.models:
+                if not batch.models.get(function_model):
+                    batch.models[function_model] = None
+
+            # Add processes except the relevant one
+            for process in model.environment:
+                if str(process) == related_process:
+                    continue
 
             for attr in ('models', 'environment'):
                 batch_collection = getattr(batch, attr)
