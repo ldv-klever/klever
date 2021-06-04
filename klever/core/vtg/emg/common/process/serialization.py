@@ -23,90 +23,92 @@ from klever.core.vtg.emg.common.process.labels import Label
 from klever.core.vtg.emg.common.c.types import import_declaration
 from klever.core.vtg.emg.common.process.parser import parse_process
 from klever.core.vtg.emg.common.process import Process, ProcessCollection
-from klever.core.vtg.emg.common.process.actions import Receive, Dispatch, Subprocess, Block, Savepoint, Signal
+from klever.core.vtg.emg.common.process.actions import Action, Receive, Dispatch, Subprocess, Block, Savepoint, Signal
 
 
 class CollectionEncoder(json.JSONEncoder):
 
     def default(self, o):
-        try:
-            return super(CollectionEncoder, self).default(0)
-        except TypeError:
-            if isinstance(o, ProcessCollection):
-                return self._serialize_collection(o)
-            else:
-                raise
+        if isinstance(o, ProcessCollection):
+            return self._serialize_collection(o)
+        elif isinstance(o, Process):
+            return self._serialize_process(o)
+        elif isinstance(o, Label):
+            return self._serialize_label(o)
+        elif isinstance(o, Action):
+            return self._serialize_action(o)
+        elif isinstance(o, Savepoint):
+            return self._serialize_savepoint(o)
+        else:
+            return o
 
     def _serialize_collection(self, collection):
         data = {
-            "name": collection.name,
-            "functions models": {p.name: self._export_process(p) for p in collection.models.values()},
-            "environment processes": {str(p): self._export_process(p) for p in collection.environment.values()},
-            "main process": self._export_process(collection.entry) if collection.entry else None
+            "name": str(collection.name),
+            "functions models": {p.name: self.default(p) for p in collection.models.values()},
+            "environment processes": {str(p): self.default(p) for p in collection.environment.values()},
+            "main process": self.default(collection.entry) if collection.entry else None
         }
         return data
 
-    @staticmethod
-    def _export_process(process):
-        def convert_label(label):
-            d = sortedcontainers.SortedDict()
-            if label.declaration:
-                d['declaration'] = label.declaration.to_string(label.name, typedef='complex_and_params')
-            if label.value:
-                d['value'] = label.value
+    def _serialize_label(self, label):
+        dict_repr = sortedcontainers.SortedDict()
+        if label.declaration:
+            dict_repr['declaration'] = label.declaration.to_string(label.name, typedef='complex_and_params')
+        if label.value:
+            dict_repr['value'] = label.value
+        return dict_repr
 
-            return d
+    def _serialize_savepoint(self, point):
+        return {
+            "statements": point.statements
+        }
 
-        def convert_action(action):
-            d = sortedcontainers.SortedDict()
-            if action.comment:
-                d['comment'] = action.comment
-            if action.condition:
-                d['condition'] = action.condition
-            if action.trace_relevant:
-                d['trace relevant'] = action.trace_relevant
-            if action.savepoints:
-                d['savepoints'] = {
-                    str(point): {
-                        "statements": point.statements
-                    } for point in action.savepoints}
-            if isinstance(action, Subprocess):
-                if action.action:
-                    d['process'] = CollectionEncoder._serialize_fsa(action.action)
-                else:
-                    d['process'] = ''
-            elif isinstance(action, Signal) or isinstance(action, Receive):
-                d['parameters'] = action.parameters
-                if isinstance(action, Dispatch) and action.broadcast:
-                    d['broadcast'] = True
-                if isinstance(action, Receive) and not action.replicative:
-                    d['replicative'] = False
-            elif isinstance(action, Block):
-                if action.statements:
-                    d["statements"] = action.statements
-            return d
+    def _serialize_action(self, action):
+        ict_action = sortedcontainers.SortedDict()
+        if action.comment:
+            ict_action['comment'] = action.comment
+        if action.condition:
+            ict_action['condition'] = self.default(action.condition)
+        if action.trace_relevant:
+            ict_action['trace relevant'] = action.trace_relevant
+        if action.savepoints:
+            ict_action['savepoints'] = {
+                str(point): self.default(point) for point in action.savepoints}
+        if isinstance(action, Subprocess):
+            if action.action:
+                ict_action['process'] = repr(action.action)
+            else:
+                ict_action['process'] = ''
+        elif isinstance(action, Signal) or isinstance(action, Receive):
+            ict_action['parameters'] = self.default(list(action.parameters))
+            if isinstance(action, Dispatch) and action.broadcast:
+                ict_action['broadcast'] = True
+            if isinstance(action, Receive) and not action.replicative:
+                ict_action['replicative'] = False
+        elif isinstance(action, Block):
+            if action.statements:
+                ict_action["statements"] = self.default(action.statements)
+        return ict_action
 
+    def _serialize_process(self, process):
         data = {
             'category': process.category,
             'comment': process.comment,
-            'process': CollectionEncoder._serialize_fsa(process.actions.initial_action),
-            'labels': {str(l): convert_label(l) for l in process.labels.values()},
-            'actions': {str(a): convert_action(a) for a in process.actions.values()},
-            'peers': {k: list(sorted(v)) for k, v in process.peers.items()}
+            'process': repr(process.actions.initial_action),
+            'labels': {str(label): self.default(label) for label in process.labels.values()},
+            'actions': {str(action): self.default(action) for action in process.actions.values()},
+            'peers': {k: list(sorted(self.default(v))) for k, v in process.peers.items()}
         }
 
         if len(process.headers) > 0:
-            data['headers'] = list(process.headers)
+            data['headers'] = self.default(list(process.headers))
         if len(process.declarations.keys()) > 0:
-            data['declarations'] = process.declarations
+            data['declarations'] = self.default(process.declarations)
         if len(process.definitions.keys()) > 0:
-            data['definitions'] = process.definitions
+            data['definitions'] = self.default(process.definitions)
 
         return data
-
-    @staticmethod
-    def _serialize_fsa(initial):
-        return repr(initial)
 
 
 class CollectionDecoder:

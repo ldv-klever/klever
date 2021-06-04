@@ -36,7 +36,7 @@ def test_detailed_parsing():
     check_parsed_object(process.actions)
 
     # Then export, import and repeate checks
-    desc = CollectionEncoder._export_process(process)
+    desc = CollectionEncoder()._serialize_process(process)
     process = Process('test')
     assert parse_process(process, desc['process'])
     next_action = parse_process(process, desc['actions']['d']['process'])
