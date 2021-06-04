@@ -15,7 +15,7 @@
 # limitations under the License.
 #
 
-import logging
+import copy
 import json
 import traceback
 import sortedcontainers
@@ -29,7 +29,12 @@ from klever.core.vtg.emg.common.process.actions import Action, Receive, Dispatch
 
 class CollectionEncoder(json.JSONEncoder):
 
+    logger = None
+
     def default(self, o):
+        if self.logger:
+            # This is a helpful debug printing, turn it on when necessary
+            self.logger.info(f"Test print: {str(o)}")
         if isinstance(o, ProcessCollection):
             return self._serialize_collection(o)
         elif isinstance(o, Process):
@@ -226,6 +231,8 @@ class CollectionDecoder:
         return collection
 
     def _import_process(self, source, name, category, dic):
+        # This helps to avoid changing the original specification
+        dic = copy.deepcopy(dic)
         process = self.PROCESS_CONSTRUCTOR(name, category)
 
         for label_name in dic.get('labels', {}):
