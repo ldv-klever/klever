@@ -161,7 +161,7 @@ class ModelFactory:
         if scenario.savepoint:
             self.logger.debug(f'Replace the first action in the process {str(process)} by the savepoint'
                               f' {str(scenario.savepoint)}')
-            new = new_process.add_condition('savepoint', [], scenario.savepoint.statements,
+            new = new_process.add_condition(str(scenario.savepoint), [], scenario.savepoint.statements,
                                             f'Save point {str(scenario.savepoint)}')
 
             firsts = scenario.actions.first_actions()
