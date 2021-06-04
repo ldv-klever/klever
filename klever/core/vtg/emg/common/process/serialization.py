@@ -15,6 +15,7 @@
 # limitations under the License.
 #
 
+import logging
 import json
 import traceback
 import sortedcontainers
@@ -22,7 +23,7 @@ import sortedcontainers
 from klever.core.vtg.emg.common.process.labels import Label
 from klever.core.vtg.emg.common.c.types import import_declaration
 from klever.core.vtg.emg.common.process.parser import parse_process
-from klever.core.vtg.emg.common.process import Process, ProcessCollection
+from klever.core.vtg.emg.common.process import Process, ProcessCollection, Peer
 from klever.core.vtg.emg.common.process.actions import Action, Receive, Dispatch, Subprocess, Block, Savepoint, Signal
 
 
@@ -39,8 +40,14 @@ class CollectionEncoder(json.JSONEncoder):
             return self._serialize_action(o)
         elif isinstance(o, Savepoint):
             return self._serialize_savepoint(o)
-        else:
+        elif isinstance(o, set):
+            return list(o)
+        elif isinstance(o, Peer):
+            raise NotImplementedError
+        elif isinstance(o, (list, dict, str, int, float, bool, type(None))):
             return o
+        else:
+            raise TypeError(f"Cannot serialize object {str(o)} of type {type(o).__name__}")
 
     def _serialize_collection(self, collection):
         data = {
@@ -92,23 +99,22 @@ class CollectionEncoder(json.JSONEncoder):
         return ict_action
 
     def _serialize_process(self, process):
-        data = {
-            'category': process.category,
-            'comment': process.comment,
-            'process': repr(process.actions.initial_action),
-            'labels': {str(label): self.default(label) for label in process.labels.values()},
-            'actions': {str(action): self.default(action) for action in process.actions.values()},
-            'peers': {k: list(sorted(self.default(v))) for k, v in process.peers.items()}
-        }
+        ict_action = sortedcontainers.SortedDict()
+        ict_action['category']  = process.category
+        ict_action['comment'] = process.comment
+        ict_action['process'] = repr(process.actions.initial_action)
+        ict_action['labels'] = {str(label): self.default(label) for label in process.labels.values()}
+        ict_action['actions'] = {str(action): self.default(action) for action in process.actions.values()}
+        ict_action['peers'] = {k: self.default(list(sorted(v))) for k, v in process.peers.items()}
 
         if len(process.headers) > 0:
-            data['headers'] = self.default(list(process.headers))
+            ict_action['headers'] = self.default(list(process.headers))
         if len(process.declarations.keys()) > 0:
-            data['declarations'] = self.default(process.declarations)
+            ict_action['declarations'] = self.default(process.declarations)
         if len(process.definitions.keys()) > 0:
-            data['definitions'] = self.default(process.definitions)
+            ict_action['definitions'] = self.default(process.definitions)
 
-        return data
+        return ict_action
 
 
 class CollectionDecoder:
