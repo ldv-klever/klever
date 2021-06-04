@@ -53,7 +53,8 @@ def test_second(model):
     # Cover all scenarios from c2p1
     p1scenarios = processes_to_scenarios['c2/p1']
     assert len(p1scenarios) == len(models)
-    actions = [m.environment['c2/p1'].actions for m in models]
+    actions = [m.environment['c2/p1'].actions for m in models if 'c2/p1' in m.environment] + \
+              [m.entry.actions for m in models]
     for scenario in p1scenarios:
         assert scenario.actions in actions
 
