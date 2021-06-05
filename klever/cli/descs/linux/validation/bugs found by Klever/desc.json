@@ -1,0 +1,398 @@
+[
+    {
+        "build base": "linux/validation/bugs found by Klever/8c293f545419~",
+        "name": "Linux",
+        "git repository version": "8c293f545419~",
+        "loadable kernel modules": ["drivers/mtd/maps/plat-ram.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/8c293f545419",
+        "name": "Linux",
+        "git repository version": "8c293f545419",
+        "loadable kernel modules": ["drivers/mtd/maps/plat-ram.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/0862d95b437b~",
+        "name": "Linux",
+        "git repository version": "0862d95b437b~",
+        "loadable kernel modules": ["drivers/media/platform/s5p-jpeg/s5p-jpeg.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/0862d95b437b",
+        "name": "Linux",
+        "git repository version": "0862d95b437b",
+        "loadable kernel modules": ["drivers/media/platform/s5p-jpeg/s5p-jpeg.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/6651dba2bd83~",
+        "name": "Linux",
+        "git repository version": "6651dba2bd83~",
+        "loadable kernel modules": ["drivers/media/platform/davinci/isif.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/6651dba2bd83",
+        "name": "Linux",
+        "git repository version": "6651dba2bd83",
+        "loadable kernel modules": ["drivers/media/platform/davinci/isif.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/af0321a5be3e~",
+        "name": "Linux",
+        "git repository version": "af0321a5be3e~",
+        "loadable kernel modules": ["drivers/media/usb/zr364xx/zr364xx.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/af0321a5be3e",
+        "name": "Linux",
+        "git repository version": "af0321a5be3e",
+        "loadable kernel modules": ["drivers/media/usb/zr364xx/zr364xx.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/0d66e04875c5~",
+        "name": "Linux",
+        "git repository version": "0d66e04875c5~",
+        "loadable kernel modules": ["drivers/usb/gadget/udc/goku_udc.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/0d66e04875c5",
+        "name": "Linux",
+        "git repository version": "0d66e04875c5",
+        "loadable kernel modules": ["drivers/usb/gadget/udc/goku_udc.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/4b2e7f99cdd3~",
+        "name": "Linux",
+        "git repository version": "4b2e7f99cdd3~",
+        "loadable kernel modules": ["drivers/watchdog/rdc321x_wdt.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/4b2e7f99cdd3",
+        "name": "Linux",
+        "git repository version": "4b2e7f99cdd3",
+        "loadable kernel modules": ["drivers/watchdog/rdc321x_wdt.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/cb7dc3178a98~",
+        "name": "Linux",
+        "git repository version": "cb7dc3178a98~",
+        "loadable kernel modules": ["drivers/mtd/nand/raw/vf610_nfc.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/cb7dc3178a98",
+        "name": "Linux",
+        "git repository version": "cb7dc3178a98",
+        "loadable kernel modules": ["drivers/mtd/nand/raw/vf610_nfc.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/ce5d72b6f5a0~",
+        "name": "Linux",
+        "git repository version": "ce5d72b6f5a0~",
+        "loadable kernel modules": ["drivers/media/dvb-frontends/rtl2832_sdr.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/ce5d72b6f5a0",
+        "name": "Linux",
+        "git repository version": "ce5d72b6f5a0",
+        "loadable kernel modules": ["drivers/media/dvb-frontends/rtl2832_sdr.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/bcee1609ba96~",
+        "name": "Linux",
+        "git repository version": "bcee1609ba96~",
+        "loadable kernel modules": ["drivers/video/fbdev/sm712fb.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/bcee1609ba96",
+        "name": "Linux",
+        "git repository version": "bcee1609ba96",
+        "loadable kernel modules": ["drivers/video/fbdev/sm712fb.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/87d7ad089b31~",
+        "name": "Linux",
+        "git repository version": "87d7ad089b31~",
+        "loadable kernel modules": ["drivers/mmc/host/via-sdmmc.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/87d7ad089b31",
+        "name": "Linux",
+        "git repository version": "87d7ad089b31",
+        "loadable kernel modules": ["drivers/mmc/host/via-sdmmc.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/6d6018fc30be~",
+        "name": "Linux",
+        "git repository version": "6d6018fc30be~",
+        "loadable kernel modules": ["drivers/dma/dma-jz4780.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/6d6018fc30be",
+        "name": "Linux",
+        "git repository version": "6d6018fc30be",
+        "loadable kernel modules": ["drivers/dma/dma-jz4780.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/f688a345f0d7~",
+        "name": "Linux",
+        "git repository version": "f688a345f0d7~",
+        "loadable kernel modules": ["drivers/gpu/drm/bridge/megachips-stdpxxxx-ge-b850v3-fw.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/f688a345f0d7",
+        "name": "Linux",
+        "git repository version": "f688a345f0d7",
+        "loadable kernel modules": ["drivers/gpu/drm/bridge/megachips-stdpxxxx-ge-b850v3-fw.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/64f4a62e3b17~",
+        "name": "Linux",
+        "git repository version": "64f4a62e3b17~",
+        "loadable kernel modules": ["drivers/crypto/picoxcell_crypto.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/64f4a62e3b17",
+        "name": "Linux",
+        "git repository version": "64f4a62e3b17",
+        "loadable kernel modules": ["drivers/crypto/picoxcell_crypto.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/531412492ce9~",
+        "name": "Linux",
+        "git repository version": "531412492ce9~",
+        "loadable kernel modules": ["drivers/usb/misc/lvstest.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/531412492ce9",
+        "name": "Linux",
+        "git repository version": "531412492ce9",
+        "loadable kernel modules": ["drivers/usb/misc/lvstest.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/f45882cfb152~",
+        "name": "Linux",
+        "git repository version": "f45882cfb152~",
+        "loadable kernel modules": ["drivers/media/platform/qcom/camss/qcom-camss.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/f45882cfb152",
+        "name": "Linux",
+        "git repository version": "f45882cfb152",
+        "loadable kernel modules": ["drivers/media/platform/qcom/camss/qcom-camss.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/602649eadaa0~",
+        "name": "Linux",
+        "git repository version": "602649eadaa0~",
+        "loadable kernel modules": ["drivers/media/platform/davinci/vpif_capture.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/602649eadaa0",
+        "name": "Linux",
+        "git repository version": "602649eadaa0",
+        "loadable kernel modules": ["drivers/media/platform/davinci/vpif_capture.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/2468c877da42~",
+        "name": "Linux",
+        "git repository version": "2468c877da42~",
+        "loadable kernel modules": ["drivers/usb/gadget/udc/net2280.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/2468c877da42",
+        "name": "Linux",
+        "git repository version": "2468c877da42",
+        "loadable kernel modules": ["drivers/usb/gadget/udc/net2280.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/ae90cc8237bf~",
+        "name": "Linux",
+        "git repository version": "ae90cc8237bf~",
+        "loadable kernel modules": ["drivers/usb/gadget/udc/net2272.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/ae90cc8237bf",
+        "name": "Linux",
+        "git repository version": "ae90cc8237bf",
+        "loadable kernel modules": ["drivers/usb/gadget/udc/net2272.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/9c487b0b0ea7~",
+        "name": "Linux",
+        "git repository version": "9c487b0b0ea7~",
+        "loadable kernel modules": ["drivers/media/platform/davinci/vpss.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/9c487b0b0ea7",
+        "name": "Linux",
+        "git repository version": "9c487b0b0ea7",
+        "loadable kernel modules": ["drivers/media/platform/davinci/vpss.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/19e55a87ad62~",
+        "name": "Linux",
+        "git repository version": "19e55a87ad62~",
+        "loadable kernel modules": ["drivers/video/fbdev/sm712fb.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/19e55a87ad62",
+        "name": "Linux",
+        "git repository version": "19e55a87ad62",
+        "loadable kernel modules": ["drivers/video/fbdev/sm712fb.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/80a00e90dede~",
+        "name": "Linux",
+        "git repository version": "80a00e90dede~",
+        "loadable kernel modules": ["drivers/video/fbdev/da8xx-fb.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/80a00e90dede",
+        "name": "Linux",
+        "git repository version": "80a00e90dede",
+        "loadable kernel modules": ["drivers/video/fbdev/da8xx-fb.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/edcb3895a751~",
+        "name": "Linux",
+        "git repository version": "edcb3895a751~",
+        "loadable kernel modules": ["drivers/video/fbdev/neofb.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/edcb3895a751",
+        "name": "Linux",
+        "git repository version": "edcb3895a751",
+        "loadable kernel modules": ["drivers/video/fbdev/neofb.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/e8d35898a78e~",
+        "name": "Linux",
+        "git repository version": "e8d35898a78e~",
+        "loadable kernel modules": ["drivers/video/fbdev/savage/savagefb.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/e8d35898a78e",
+        "name": "Linux",
+        "git repository version": "e8d35898a78e",
+        "loadable kernel modules": ["drivers/video/fbdev/savage/savagefb.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/c8f8529e2c41~",
+        "name": "Linux",
+        "git repository version": "c8f8529e2c41~",
+        "loadable kernel modules": ["drivers/usb/gadget/udc/gr_udc.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/c8f8529e2c41",
+        "name": "Linux",
+        "git repository version": "c8f8529e2c41",
+        "loadable kernel modules": ["drivers/usb/gadget/udc/gr_udc.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/bc4071aafcf4~",
+        "name": "Linux",
+        "git repository version": "bc4071aafcf4~",
+        "loadable kernel modules": ["drivers/hwmon/aspeed-pwm-tacho.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/bc4071aafcf4",
+        "name": "Linux",
+        "git repository version": "bc4071aafcf4",
+        "loadable kernel modules": ["drivers/hwmon/aspeed-pwm-tacho.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/3b4cfc6966ec~",
+        "name": "Linux",
+        "git repository version": "3b4cfc6966ec~",
+        "loadable kernel modules": ["drivers/media/rc/rc-core.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/3b4cfc6966ec",
+        "name": "Linux",
+        "git repository version": "3b4cfc6966ec",
+        "loadable kernel modules": ["drivers/media/rc/rc-core.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/11507bf9a883~",
+        "name": "Linux",
+        "git repository version": "11507bf9a883~",
+        "loadable kernel modules": ["drivers/staging/rts5208/rts5208.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/11507bf9a883",
+        "name": "Linux",
+        "git repository version": "11507bf9a883",
+        "loadable kernel modules": ["drivers/staging/rts5208/rts5208.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/11507bf9a883~",
+        "name": "Linux",
+        "git repository version": "11507bf9a883~",
+        "loadable kernel modules": ["drivers/staging/rts5208/rts5208.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/11507bf9a883",
+        "name": "Linux",
+        "git repository version": "11507bf9a883",
+        "loadable kernel modules": ["drivers/staging/rts5208/rts5208.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/8ce8668bfb64~",
+        "name": "Linux",
+        "git repository version": "8ce8668bfb64~",
+        "loadable kernel modules": ["drivers/staging/kpc2000/kpc_dma/kpc_dma.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/8ce8668bfb64",
+        "name": "Linux",
+        "git repository version": "8ce8668bfb64",
+        "loadable kernel modules": ["drivers/staging/kpc2000/kpc_dma/kpc_dma.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/e1c3cdb26ab8~",
+        "name": "Linux",
+        "git repository version": "e1c3cdb26ab8~",
+        "loadable kernel modules": ["drivers/rapidio/devices/rio_mport_cdev.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/e1c3cdb26ab8",
+        "name": "Linux",
+        "git repository version": "e1c3cdb26ab8",
+        "loadable kernel modules": ["drivers/rapidio/devices/rio_mport_cdev.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/44b8fb6eaa7c~",
+        "name": "Linux",
+        "git repository version": "44b8fb6eaa7c~",
+        "loadable kernel modules": ["drivers/char/tlclk.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/44b8fb6eaa7c",
+        "name": "Linux",
+        "git repository version": "44b8fb6eaa7c",
+        "loadable kernel modules": ["drivers/char/tlclk.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/2e45676a4d33~",
+        "name": "Linux",
+        "git repository version": "2e45676a4d33~",
+        "loadable kernel modules": ["drivers/dma/pch_dma.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/2e45676a4d33",
+        "name": "Linux",
+        "git repository version": "2e45676a4d33",
+        "loadable kernel modules": ["drivers/dma/pch_dma.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/48ce9e4119ce~",
+        "name": "Linux",
+        "git repository version": "48ce9e4119ce~",
+        "loadable kernel modules": ["drivers/usb/host/u132-hcd.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/48ce9e4119ce",
+        "name": "Linux",
+        "git repository version": "48ce9e4119ce",
+        "loadable kernel modules": ["drivers/usb/host/u132-hcd.ko"]
+    }
+]
