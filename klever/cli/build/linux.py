@@ -149,7 +149,7 @@ class Linux(MakeProgram):
             with open(os.path.join(tmp_dir, 'Makefile'), 'w', encoding='utf-8') as fp:
                 fp.write('obj-y += extra-headers.o\n')
 
-            self._make('M=' + tmp_dir, intercept_build_cmds=True)
+            self._make('M=' + tmp_dir, 'extra-headers.o', intercept_build_cmds=True)
 
     def __prepare_ext_modules(self):
         ext_modules = self.target_program_desc.get('external modules')
