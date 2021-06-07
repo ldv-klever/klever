@@ -26,6 +26,7 @@ class SelectiveSelector(Selector):
         must_contain = self.conf.get("must contain", dict())
         must_not_contain = self.conf.get("must not contain", dict())
         cover_conf = self.conf.get("cover scenarios", dict())
+        greedy = self.conf.get("greedy selection", False)
 
         self.logger.info("Collect dependencies between processes")
         dependencies_map, dependant_map = self._extract_dependecnies()
@@ -349,9 +350,13 @@ class SelectiveSelector(Selector):
         else:  # Has no dependencies
             return scenario_items
 
-    def _obtain_ordered_scenarios(self, scenarios_set):
+    def _obtain_ordered_scenarios(self, scenarios_set, coverage=None, greedy=False):
         new_scenario_set = [s for s in scenarios_set if isinstance(s, Scenario)]
-        new_scenario_set = sorted(new_scenario_set, key=lambda x: len(x.actions))
+        if coverage:
+            new_scenario_set = sorted(new_scenario_set, key=lambda x: len(set(x.actions.keys()).intersection(coverage)),
+                                      reverse=greedy)
+        else:
+            new_scenario_set = sorted(new_scenario_set, key=lambda x: len(x.actions.keys()), reverse=greedy)
         new_scenario_set.extend([x for x in scenarios_set if x not in new_scenario_set])
         return new_scenario_set
 
