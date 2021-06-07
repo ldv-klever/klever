@@ -176,21 +176,21 @@ class SelectiveSelector(Selector):
             savepoints = {str(sp) for ac in self.model.environment[process_name].actions.values()
                           for sp in ac.savepoints}
 
-            if cover_conf[process_name].get('actions'):
+            if 'actions' in cover_conf[process_name]:
                 actions_to_cover = set(cover_conf[process_name]['actions'])
             else:
                 actions_to_cover = actions
 
             if cover_conf[process_name].get('actions except'):
-                actions_to_cover.difference_update(cover_conf[process_name]['actions except'])
+                actions_to_cover.difference_update(set(cover_conf[process_name]['actions except']))
 
-            if cover_conf[process_name].get('savepoints'):
+            if 'savepoints' in cover_conf[process_name]:
                 sp_to_cover = set(cover_conf[process_name]['savepoints'])
             else:
                 sp_to_cover = savepoints
 
             if cover_conf[process_name].get('savepoints except'):
-                sp_to_cover.difference_update(cover_conf[process_name]['savepoints except'])
+                sp_to_cover.difference_update(set(cover_conf[process_name]['savepoints except']))
 
             self.logger.info(f"Cover the following actions from the process {process_name}: " +
                              ", ".join(sorted(actions_to_cover)))
