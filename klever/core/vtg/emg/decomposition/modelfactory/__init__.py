@@ -117,6 +117,10 @@ class ModelFactory:
         for batch, related_process in selector():
             new = ProcessCollection(batch.name)
 
+            # Do sanity check to catch several savepoints in a model
+            sp_scenarios = {s for s in batch.environment.values() if isinstance(s, Scenario) and s.savepoint}
+            assert len(sp_scenarios) < 2
+
             # Set entry process
             if related_process and batch.environment[related_process] and batch.environment[related_process].savepoint:
                 # There is an environment process with a scenario
