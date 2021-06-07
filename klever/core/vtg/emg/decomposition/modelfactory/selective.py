@@ -70,7 +70,8 @@ class SelectiveSelector(Selector):
 
                 # Filter by requirements of already added processes
                 scenarios_items_for_model = self._filter_by_requirements_from_model(
-                    process_name, model, scenarios_items, dependant_map, dependencies_map, order, deleted_processes)
+                    process_name, model, scenarios_items_for_model, dependant_map, dependencies_map, order,
+                    deleted_processes)
 
                 # Filter by requirements from considered scenarios
                 scenarios_items_for_model = self._check_by_requirements_of_scenario(
@@ -87,7 +88,9 @@ class SelectiveSelector(Selector):
                     raise ValueError(f"Cannot delete required process {process_name} as it has no suitable scenarios "
                                      f"for {model.name}")
 
-                scenarios_items_for_model = self._obtain_ordered_scenarios(scenarios_items_for_model)
+                scenarios_items_for_model = self._obtain_ordered_scenarios(
+                    scenarios_items_for_model,
+                    list(coverage[process_name].values())[-1] if process_name in coverage else None, greedy)
                 while (process_name in coverage or not local_model_pool) and scenarios_items_for_model:
                     scenario = scenarios_items_for_model.pop(0)
 
@@ -112,6 +115,7 @@ class SelectiveSelector(Selector):
             related_process = None
             for process_name in (p for p, s in model.environment.items() if s and s.savepoint):
                 related_process = process_name
+                break
             yield model, related_process
 
     def _extract_dependecnies(self):
@@ -296,7 +300,7 @@ class SelectiveSelector(Selector):
 
                     for action in (a for a in dependencies_map[proc_with_reqs]
                                    if a in actions_with_requirements and
-                                      actions_with_requirements[a].requires.get(process_name)):
+                                   actions_with_requirements[a].requires.get(process_name)):
                         self.logger.debug(f'Found requirements for {process_name} in {action} of {proc_with_reqs}')
                         if not set(actions_with_requirements[action].requires[process_name]["includes"]). \
                                 issubset(set(suitable.actions.keys())):
