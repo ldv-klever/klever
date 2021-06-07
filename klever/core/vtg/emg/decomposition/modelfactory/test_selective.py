@@ -89,7 +89,7 @@ def test_deletion(model):
 def test_complex_restrictions(model):
     spec = {
         "must contain": {"c2/p2": {"actions": [["read"]]}},
-        "must not contain": {"c2/p1": {"savepoints": [["c2p1s1"]]}},
+        "must not contain": {"c2/p1": {"savepoints": ["c2p1s1"]}},
         "cover scenarios": {"c2/p2": {}}
     }
     processes_to_scenarios, models = _obtain_models(model, spec)
