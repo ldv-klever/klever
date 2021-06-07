@@ -124,7 +124,9 @@ class ModelFactory:
             # Set entry process
             if related_process and batch.environment[related_process] and batch.environment[related_process].savepoint:
                 # There is an environment process with a scenario
-                new.entry = self._process_from_scenario(batch.environment[related_process], model.environment[related_process])
+                new.entry = self._process_from_scenario(batch.environment[related_process],
+                                                        model.environment[related_process])
+                del batch.environment[related_process]
             elif batch.entry:
                 # The entry process has a scenario
                 new.entry = self._process_from_scenario(batch.entry, model.entry)
@@ -136,11 +138,6 @@ class ModelFactory:
             for function_model in model.models:
                 if not batch.models.get(function_model):
                     batch.models[function_model] = None
-
-            # Add processes except the relevant one
-            for process in model.environment:
-                if str(process) == related_process:
-                    continue
 
             for attr in ('models', 'environment'):
                 batch_collection = getattr(batch, attr)
