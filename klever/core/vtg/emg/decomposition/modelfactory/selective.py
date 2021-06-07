@@ -74,9 +74,15 @@ class SelectiveSelector(Selector):
                     process_name, model, scenarios_items_for_model, dependencies_map, order, deleted_processes)
 
                 # Iteratively copy models to fill the coverage
-                if not scenarios_items_for_model:
-                    raise ValueError(f'Cannot find any suitable scenarios of process {process_name} suitable for model '
-                                     f'{model.name}')
+                if not scenarios_items_for_model and process_name not in must_contain:
+                    self.logger.warning(f'Cannot find any suitable scenarios of process {process_name} suitable for '
+                                        f'model {model.name}, deleting it')
+                    del model.environment[process_name]
+                    next_model_pool.append(model)
+                    continue
+                elif not scenarios_items_for_model and process_name in must_contain:
+                    raise ValueError(f"Cannot delete required process {process_name} as it has no suitable scenarios "
+                                     f"for {model.name}")
 
                 scenarios_items_for_model = self._obtain_ordered_scenarios(scenarios_items_for_model)
                 while (process_name in coverage or not local_model_pool) and scenarios_items_for_model:
@@ -144,10 +150,15 @@ class SelectiveSelector(Selector):
                     continue
             else:
                 order.append(process_name)
+
+        for process_name in (p for p in list(todo) if p in must_not_contain and len(must_not_contain[p].keys()) == 0):
+            deleted_processes.add(process_name)
+            todo.remove(process_name)
+        else:
+            self.logger.info(f"Delete processes: " + ", ".join(sorted(deleted_processes)))
+
         order.extend(list(todo))
-        if deleted_processes:
-            self.logger.info(f"Delete processes " + ", ".join(sorted(deleted_processes)))
-        return deleted_processes, sorted(order)
+        return deleted_processes, order
 
     def _prepare_coverage(self, cover_conf):
         coverage = dict()
@@ -203,9 +214,8 @@ class SelectiveSelector(Selector):
         if process_name in must_contain and must_contain[process_name].get('savepoints'):
             new_scenarios_items = set()
 
-            for suitable in (s for s in scenarios_items
-                             if isinstance(s, Scenario) and
-                                str(s.savepoint) in must_contain[process_name]['savepoints']):
+            for suitable in (s for s in scenarios_items if isinstance(s, Scenario) and
+                             str(s.savepoint) in must_contain[process_name]['savepoints']):
                 new_scenarios_items.add(suitable)
 
             self.logger.debug(f"{process_name.capitalize()} has the fowllowing scenarios with required savepoints: " +
