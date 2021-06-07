@@ -45,7 +45,7 @@ class SelectiveSelector(Selector):
         # Iterate over processes
         model_pool = [first_model]
         while order:
-            process_name = order.pop()
+            process_name = order.pop(0)
 
             # Get all scenarios
             scenarios_items = set(list(self.processes_to_scenarios[process_name]) +
