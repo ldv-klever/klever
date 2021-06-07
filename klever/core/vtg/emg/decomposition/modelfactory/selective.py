@@ -308,6 +308,7 @@ class SelectiveSelector(Selector):
                             self.logger.info(f"Cannot add {str(scenario)} of {process_name} because "
                                              f"{asked_process} is deleted")
                             add_flag = False
+                            continue
                         if asked_process in order:
                             # Have not been considered yet
                             continue
