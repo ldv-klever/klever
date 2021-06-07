@@ -27,7 +27,7 @@ def model():
     return model_preset_c2()
 
 
-def test_first(model):
+def test_inclusion_p2(model):
     spec = {
         "must contain": {"c2/p2": {}},
         "cover scenarios": {"c2/p2": {}}
@@ -43,7 +43,7 @@ def test_first(model):
         assert scenario.actions in actions
 
 
-def test_second(model):
+def test_inclusion_p1(model):
     spec = {
         "must contain": {"c2/p1": {}},
         "cover scenarios": {"c2/p1": {}}
@@ -63,7 +63,7 @@ def test_second(model):
     assert all([True if c2p2_withsavepoint.actions != m.entry.actions else False for m in models])
 
 
-def test_second_deletion(model):
+def test_deletion(model):
     spec = {
         "must not contain": {"c2/p2": {}},
         "cover scenarios": {"c2/p1": {}}
@@ -73,7 +73,7 @@ def test_second_deletion(model):
     # Cover all scenarios from c2p1
     p1scenarios = processes_to_scenarios['c2/p1']
     assert len(p1scenarios) == len(models)
-    actions = [m.environment['c2/p1'].actions for m in models]
+    actions = [m.environment['c2/p1'].actions for m in models] + [m.entry.actions for m in models]
     for scenario in p1scenarios:
         assert scenario.actions in actions
 
@@ -81,8 +81,12 @@ def test_second_deletion(model):
     c2p2_withsavepoint = [s for s in processes_to_scenarios['c2/p2'] if s.savepoint].pop()
     assert all([True if c2p2_withsavepoint.actions != m.entry.actions else False for m in models])
 
+    # No other actions
+    for model in models:
+        assert 'c2/p2' not in model.environment
 
-def test_third(model):
+
+def test_complex_restrictions(model):
     spec = {
         "must contain": {"c2/p2": {"actions": [["read"]]}},
         "must not contain": {"c2/p1": {"savepoints": [["c2p1s1"]]}},
@@ -92,12 +96,34 @@ def test_third(model):
 
     # Cover only scenarios with read from p2
     assert len(models) == len([s for s in processes_to_scenarios['c2/p2'] if 'write' not in s.actions])
-    for m in models:
-        assert 'write' not in m.environment['c2/p2'].actions
+    actions = [m.environment['c2/p2'].actions for m in models] + [m.entry.actions for m in models]
+    for model_actions in actions:
+        assert 'write' not in model_actions
+        assert 'read' in model_actions
 
     # No scenarios with a savepoint c2p1s1
     c2p1_withsavepoint = [s for s in processes_to_scenarios['c2/p1'] if s.savepoint].pop()
     assert all([True if c2p1_withsavepoint.actions != m.entry.actions else False for m in models])
+
+
+def test_contraversal_conditions(model):
+    spec = {
+        "must contain": {"c2/p2": {}},
+        "must not contain": {"c2/p1": {}},
+        "cover scenarios": {"c2/p1": {}}
+    }
+    # TODO: Implement assertions, expect an exception ValueError
+    raise NotImplementedError
+
+
+def test_complex_exclusion(model):
+    spec = {
+        "must contain": {"c2/p1": {}},
+        "must not contain": {"c2/p1": {"actions": [["probe", "success"]]}},
+        "cover scenarios": {"c2/p1": {}}
+    }
+    # TODO: Implement assertions, expect p2p1 with failed probe
+    raise NotImplementedError
 
 
 def _obtain_models(model, specification):
