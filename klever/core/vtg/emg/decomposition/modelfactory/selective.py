@@ -65,6 +65,9 @@ class SelectiveSelector(Selector):
                 self.logger.info(f"Consider adding scenarios to model {model.name}")
                 local_model_pool = list()
 
+                # Filter scenarios with savepoints if there is one already
+                scenarios_items_for_model = self._filter_by_savepoints_in_model(model, scenarios_items)
+
                 # Filter by requirements of already added processes
                 scenarios_items_for_model = self._filter_by_requirements_from_model(
                     process_name, model, scenarios_items, dependant_map, dependencies_map, order, deleted_processes)
@@ -257,6 +260,19 @@ class SelectiveSelector(Selector):
 
             self.logger.debug(f"{process_name.capitalize()} has the fowllowing scenarios without forbidden "
                               f"savepoints: " + ', '.join(list(map(str, new_scenarios_items))))
+            return new_scenarios_items
+        else:
+            return scenarios_items
+
+    def _filter_by_savepoints_in_model(self, model, scenarios_items):
+        exists_savepoint = False
+        for scenario in model.environment.values():
+            if isinstance(scenario, Scenario) and scenario.savepoint:
+                exists_savepoint = True
+                break
+
+        if exists_savepoint:
+            new_scenarios_items = {s for s in scenarios_items if not isinstance(s, Scenario) or not s.savepoint}
             return new_scenarios_items
         else:
             return scenarios_items
