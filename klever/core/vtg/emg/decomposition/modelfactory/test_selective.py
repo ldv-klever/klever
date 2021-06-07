@@ -58,10 +58,6 @@ def test_inclusion_p1(model):
     for scenario in p1scenarios:
         assert scenario.actions in actions
 
-    # No savepoints from c2p2
-    c2p2_withsavepoint = [s for s in processes_to_scenarios['c2/p2'] if s.savepoint].pop()
-    assert all([True if c2p2_withsavepoint.actions != m.entry.actions else False for m in models])
-
 
 def test_deletion(model):
     spec = {
@@ -73,7 +69,8 @@ def test_deletion(model):
     # Cover all scenarios from c2p1
     p1scenarios = processes_to_scenarios['c2/p1']
     assert len(p1scenarios) == len(models)
-    actions = [m.environment['c2/p1'].actions for m in models] + [m.entry.actions for m in models]
+    actions = [m.environment['c2/p1'].actions for m in models if 'c2/p1' in m.environment] + \
+              [m.entry.actions for m in models if 'c2/p1' not in m.environment]
     for scenario in p1scenarios:
         assert scenario.actions in actions
 
@@ -89,14 +86,17 @@ def test_deletion(model):
 def test_complex_restrictions(model):
     spec = {
         "must contain": {"c2/p2": {"actions": [["read"]]}},
-        "must not contain": {"c2/p1": {"savepoints": ["c2p1s1"]}},
+        "must not contain": {"c2/p1": {"savepoints": ["c2p1s1"]},
+                             "c2/p2": {"actions": [["write"]]}},
         "cover scenarios": {"c2/p2": {}}
     }
     processes_to_scenarios, models = _obtain_models(model, spec)
 
     # Cover only scenarios with read from p2
-    assert len(models) == len([s for s in processes_to_scenarios['c2/p2'] if 'write' not in s.actions])
-    actions = [m.environment['c2/p2'].actions for m in models] + [m.entry.actions for m in models]
+    scenarios_with_read = [s for s in processes_to_scenarios['c2/p2'] if 'write' not in s.actions]
+    assert len(models) == len(scenarios_with_read)
+    actions = [m.environment['c2/p2'].actions for m in models if 'c2/p2' in m.environment] + \
+              [m.entry.actions for m in models if 'c2/p2' not in m.environment]
     for model_actions in actions:
         assert 'write' not in model_actions
         assert 'read' in model_actions
@@ -112,8 +112,16 @@ def test_contraversal_conditions(model):
         "must not contain": {"c2/p1": {}},
         "cover scenarios": {"c2/p1": {}}
     }
-    # TODO: Implement assertions, expect an exception ValueError
-    raise NotImplementedError
+    with pytest.raises(ValueError):
+        _obtain_models(model, spec)
+
+    spec = {
+        "must contain": {"c2/p2": {}},
+        "must not contain": {"c2/p1": {}, "c2/p2": {"savepoints": {}}},
+        "cover scenarios": {"c2/p2": {}}
+    }
+    with pytest.raises(ValueError):
+        _obtain_models(model, spec)
 
 
 def test_complex_exclusion(model):
@@ -122,8 +130,87 @@ def test_complex_exclusion(model):
         "must not contain": {"c2/p1": {"actions": [["probe", "success"]]}},
         "cover scenarios": {"c2/p1": {}}
     }
-    # TODO: Implement assertions, expect p2p1 with failed probe
-    raise NotImplementedError
+    processes_to_scenarios, models = _obtain_models(model, spec)
+    relevant_scenarios = [s.actions for s in processes_to_scenarios['c2/p1']
+                          if not {"probe", "success"}.issubset(set(s.actions.keys()))]
+
+    # Test the number of models
+    assert len(models) == len(relevant_scenarios)
+
+    # Test that threre is a p1 model in models
+    actions = [m.environment['c2/p1'].actions for m in models if 'c2/p1' in m.environment] + \
+              [m.entry.actions for m in models if 'c2/p1' not in m.environment]
+
+    # Test allscenarios of p1 are covered
+    assert len(actions) == len(relevant_scenarios)
+    for scneario_actions in relevant_scenarios:
+        assert scneario_actions in actions
+
+
+def test_cover_actions(model):
+    spec = {
+        "cover scenarios": {"c2/p1": {"actions": ["probe"], "savepoints": []}}
+    }
+    processes_to_scenarios, models = _obtain_models(model, spec)
+    assert len(models) == 1
+    model = models.pop()
+    if 'c2/p1' in model.environment:
+        actions = model.environment['c2/p1'].actions
+    else:
+        actions = model.entry.actions
+
+    assert "probe" in actions
+
+
+def test_cover_savepoint(model):
+    spec = {
+        "must contain": {"c2/p1": {"savepoints": ["c2p1s1"]}},
+        "cover scenarios": {"c2/p1": {"savepoints": ["c2p1s1"]}}
+    }
+    processes_to_scenarios, models = _obtain_models(model, spec)
+
+    # Test the number of models
+    relevant_scenarios = [s.actions for s in processes_to_scenarios['c2/p1'] if s.savepoint]
+    assert len(relevant_scenarios) == len(models)
+
+    for model in models:
+        assert "c2/p1" not in model.environment
+        assert "c2p1s1" in model.entry.actions
+
+
+def test_cover_except_savepoint(model):
+    spec = {
+        "must contain": {"c2/p1": {}},
+        "cover scenarios": {"c2/p1": {"savepoints except": ["c2p1s1"]}}
+    }
+    processes_to_scenarios, models = _obtain_models(model, spec)
+
+    # Test the number of models
+    relevant_scenarios = [s.actions for s in processes_to_scenarios['c2/p1'] if not s.savepoint]
+    assert len(relevant_scenarios) == len(models)
+
+    model_actions = [m.environment['c2/p1'].actions for m in models]
+    for relevant in relevant_scenarios:
+        assert relevant in model_actions
+
+
+def test_cover_except_actions(model):
+    spec = {
+        "must contain": {"c2/p2": {}},
+        "cover scenarios": {"c2/p2": {"actions except": ["read"], "savepoints": []}},
+        "greedy selection": True
+    }
+    processes_to_scenarios, models = _obtain_models(model, spec)
+
+    # Test the number of models
+    relevant_scenarios = [s.actions for s in processes_to_scenarios['c2/p2']
+                          if not s.savepoint and "read" not in s.actions]
+    assert len(relevant_scenarios) == len(models)
+
+    model_actions = [m.environment['c2/p2'].actions for m in models if 'c2/p2' in m.environment] +\
+                    [m.entry.actions for m in models if 'c2/p2' not in m.environment]
+    for relevant in relevant_scenarios:
+        assert relevant in model_actions
 
 
 def _obtain_models(model, specification):
