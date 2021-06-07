@@ -16,6 +16,7 @@
 #
 
 from klever.core.vtg.emg.decomposition.scenario import Scenario
+from klever.core.vtg.emg.common.process.actions import Subprocess
 from klever.core.vtg.emg.decomposition.modelfactory import Selector, ModelFactory
 
 
@@ -151,8 +152,10 @@ class SelectiveSelector(Selector):
     def _prepare_coverage(self, cover_conf):
         coverage = dict()
         for process_name in cover_conf:
-            actions = set(self.model.environment[process_name].actions.keys())
-            savepoints = {str(sp) for ac in self.model.environment[process_name].actions.values() for sp in ac.savepoints}
+            # Subprocesses may not be covered in scenarios, so avoid adding the origin process to cover them
+            actions = set(str(a) for a in self.model.environment[process_name].actions.filter(exclude={Subprocess}))
+            savepoints = {str(sp) for ac in self.model.environment[process_name].actions.values()
+                          for sp in ac.savepoints}
 
             if cover_conf[process_name].get('actions'):
                 actions_to_cover = set(cover_conf[process_name]['actions'])
