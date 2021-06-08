@@ -1,0 +1,59 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "memory safety"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/hwmon/smsc47m1.ko"
+    }
+  ],
+  "description": "Like the 0% similarity mark.",
+  "error_trace": [
+    [
+      [
+        {
+          "EMG wrapper": [
+            {
+              "smsc47m1_probe": [
+                {
+                  "dev_get_platdata": []
+                },
+                {
+                  "smsc47m1_handle_resources": []
+                },
+                {
+                  "Instrumented function 'devm_kzalloc'": [
+                    {
+                      "LDV model 'devm_kzalloc'": [
+                        {
+                          "LDV model 'zalloc'": [
+                            {
+                              "LDV model 'reference_zalloc'": []
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": true,
+  "status": null,
+  "tags": [
+    "API models",
+    "API models - Linux kernel"
+  ],
+  "threshold": 0,
+  "verdict": "3"
+}

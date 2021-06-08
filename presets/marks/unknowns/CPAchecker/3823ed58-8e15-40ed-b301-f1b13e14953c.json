@@ -1,0 +1,24 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Project:Version",
+      "value": "v5.8-rc4"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/hwmon/aspeed-pwm-tacho.ko"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "memory safety"
+    }
+  ],
+  "description": "CIL removed temporary variable breaking conditional statement.",
+  "function": "Syntax error: if (! (__ret != 0))",
+  "is_modifiable": false,
+  "is_regexp": false,
+  "problem_pattern": "CILTmpVars"
+}

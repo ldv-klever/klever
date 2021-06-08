@@ -1,0 +1,82 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Project:Version",
+      "value": "v5.8-rc2-393-g80a00e90dede"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/video/fbdev/sm712fb.ko"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "memory safety"
+    }
+  ],
+  "description": "https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/commit/?id=19e55a87ad62",
+  "error_trace": [
+    [
+      [
+        {
+          "EMG wrapper": [
+            {
+              "smtcfb_pci_probe": [
+                {
+                  "Instrumented function 'framebuffer_alloc'": [
+                    {
+                      "LDV model 'framebuffer_alloc'": [
+                        {
+                          "LDV model 'zalloc'": [
+                            {
+                              "LDV model 'reference_zalloc'": []
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "pci_set_drvdata": [
+                    {
+                      "dev_set_drvdata": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "EMG wrapper": [
+            {
+              "smtcfb_pci_remove": [
+                {
+                  "pci_get_drvdata": [
+                    {
+                      "dev_get_drvdata": []
+                    }
+                  ]
+                },
+                {
+                  "smtc_unmap_smem": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": false,
+  "status": null,
+  "tags": [],
+  "threshold": 100,
+  "verdict": "2"
+}
