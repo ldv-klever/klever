@@ -70,7 +70,9 @@ HIGHLIGHT_CLASSES = {
 
 COVERAGE_CLASSES = {
     'Verifier assumption': "SrcCovVA",
-    'Environment modelling hint': "SrcCovEMH"
+    'Verifier operation statistics': "SrcCovVOS",
+    'Environment modelling hint': "SrcCovEMH",
+    'Multiple notes': "SrcCovMN"
 }
 
 

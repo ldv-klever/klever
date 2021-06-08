@@ -344,7 +344,8 @@ class LCOV:
     FUNCTION_NAME_END_PREFIX = "#FN:"
     FUNCTION_PREFIX = "FNDA:"
     LINE_PREFIX = "DA:"
-    NOTE_PREFIX = "ADD:"
+    ADD_PREFIX = "ADD:"
+    TIMERS_PREFIX = "TIMERS:"
     EOR_PREFIX = "end_of_record"
 
     def __init__(self, conf, logger, coverage_file, clade, source_dirs, search_dirs, main_work_dir, coverage_details,
@@ -430,7 +431,8 @@ class LCOV:
                         orig_file_line_num += 1
                     line_num += 1
 
-            note = None
+            add = None
+            timers = None
             for line in fp:
                 line = line.rstrip('\n')
                 # Build C functions map.
@@ -470,12 +472,22 @@ class LCOV:
                     init_file_coverage_info(orig_file)
                     coverage_info[orig_file]['covered lines'][orig_line] = cov_num
 
-                    if note:
-                        coverage_info[orig_file]['notes'][orig_line] = {'kind': 'Verifier assumption', 'text': note}
-                        note = None
+                    if add and timers:
+                        coverage_info[orig_file]['notes'][orig_line] = {'kind': 'Multiple notes',
+                                                                        'text': timers + '. ' + add}
+                        add = None
+                        timers = None
+                    elif add:
+                        coverage_info[orig_file]['notes'][orig_line] = {'kind': 'Verifier assumption', 'text': add}
+                        add = None
+                    elif timers:
+                        coverage_info[orig_file]['notes'][orig_line] = {'kind': 'Verifier operation statistics', 'text': timers}
+                        timers = None
                 # Remember data to be associated with the next line.
-                elif line.startswith(self.NOTE_PREFIX):
-                    note = line[len(self.NOTE_PREFIX):]
+                elif line.startswith(self.ADD_PREFIX):
+                    add = line[len(self.ADD_PREFIX):]
+                elif line.startswith(self.TIMERS_PREFIX):
+                    timers = line[len(self.TIMERS_PREFIX):]
                 # Finalize raw code coverage processing.
                 elif line.startswith(self.EOR_PREFIX):
                     break
