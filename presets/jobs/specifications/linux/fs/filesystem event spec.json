@@ -408,7 +408,7 @@
         "actions": {
           "main": {
             "comment": "Going to initialize super block.",
-            "process": "[mount].(<mount_success>.[super_operations_register].[super_operations_deregister].[kill_sb] | <mount_fail>).({main} | (deregister))"
+            "process": "[mount].(<mount_success>.[@inode_register].[@inode_deregister].[kill_sb] | <mount_fail>).({main} | (deregister))"
           },
           "register": {
             "parameters": [
@@ -423,13 +423,12 @@
               "%file_system_type%"
             ]
           },
-          "super_operations_register": {
-            "comment": "Expect super operations callbacks.",
+          "inode_register": {
+            "comment": "Register inode operations.",
             "parameters": []
           },
-          "super_operations_deregister": {
-            "comment": "Finish calling super operations callbacks.",
-            "condition": [],
+          "inode_deregister": {
+            "comment": "unregister inode operations.",
             "parameters": []
           },
           "kill_sb": {
