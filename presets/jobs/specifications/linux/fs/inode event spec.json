@@ -1,0 +1,91 @@
+{
+  "3.14": {
+    "functions models": {},
+    "environment processes": {
+      "inode_scenario": {
+        "comment": "File system scenario.",
+        "reference": true,
+        "headers": [
+          "linux/fs.h",
+          "linux/dcache.h"
+        ],
+        "labels": {
+          "parent_inode": {
+            "resource": true,
+            "interface": [
+              "inode.inode"
+            ]
+          },
+          "created_inode": {
+            "resource": true,
+            "interface": [
+              "inode.inode"
+            ]
+          },
+          "dentry": {
+            "resource": true,
+            "interface": [
+              "inode.dentry"
+            ]
+          },
+          "inode_operations": {
+            "countainer": true,
+            "interface": [
+              "inode.inode_operations"
+            ]
+          },
+          "ret": {
+            "declaration": "int ret;"
+          }
+        },
+        "process": "(!inode_register).<init>.[mkdir].(<mkdir_success>.[rmdir] | <mkdir_fail>).(inode_deregister)",
+        "actions": {
+          "inode_register": {
+            "comment": "Begin the inode-related callbacks invocation scenario.",
+            "parameters": []
+          },
+          "inode_deregister": {
+            "comment": "Finish the inode-related callbacks invocation scenario.",
+            "parameters": []
+          },
+          "init": {
+            "comment": "Prepare the parent inode (get root one) and a new dentry.",
+            "statements": [
+              "%parent_inode% = ldv_inodes[0];",
+              "$UALLOC(%dentry%);"
+            ]
+          },
+          "mkdir": {
+            "comment": "Create an inode for a directory.",
+            "callback": "%inode_operations.mkdir%",
+            "parameters": [
+              "%parent_inode%", "%dentry%"
+            ],
+            "callback return value": "%ret%"
+          },
+          "rmdir": {
+            "comment": "Delete created directory.",
+            "callback": "%inode_operations.rmdir%",
+            "parameters": ["%created_inode%", "%dentry%"]
+          },
+          "mkdir_success": {
+            "comment": "Directory created successfully.",
+            "condition": [
+              "%ret% != 0"
+            ],
+            "statements": [
+              "%created_inode% = ldv_inodes[ldv_created_cnt];"
+            ],
+            "trace relevant": true
+          },
+          "mkdir_fail": {
+            "comment": "Failed to delete the directory.",
+            "condition": [
+              "%ret% == 0"
+            ]
+          }
+        }
+      }
+    }
+  }
+}
