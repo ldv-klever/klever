@@ -405,6 +405,11 @@
             "ldv_super_block": "struct super_block *ldv_super_block;\n"
           }
         },
+        "definitions": {
+          "environment model": {
+            "inode": "linux/fs/inode.c"
+          }
+        },
         "actions": {
           "main": {
             "comment": "Going to initialize super block.",
