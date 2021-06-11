@@ -39,7 +39,9 @@
             "ext-modules/manual_model",
             "ext-modules/decomposition_disabled",
             "ext-modules/decomposition_default",
-            "ext-modules/decomposition_linear"
+            "ext-modules/decomposition_linear",
+            "ext-modules/decomposition_selective_default",
+            "ext-modules/decomposition_selective_linear"
         ],
         "exclude extra headers": ["linux/poll.h"]
     }
