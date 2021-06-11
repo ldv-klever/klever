@@ -20,6 +20,7 @@ from klever.core.vtg.emg.common.process import ProcessCollection
 from klever.core.vtg.emg.decomposition.modelfactory import ModelFactory
 from klever.core.vtg.emg.decomposition.separation import SeparationStrategy
 from klever.core.vtg.emg.decomposition.separation.linear import LinearStrategy
+from klever.core.vtg.emg.decomposition.modelfactory.selective import SelectiveFactory
 from klever.core.vtg.emg.decomposition.modelfactory.combinatorial import CombinatorialFactory
 
 
@@ -50,9 +51,15 @@ def _choose_separator(logger, conf):
 
 
 def _choose_factory(logger, conf):
-    if conf.get('use all scenarios combinations'):
+    if isinstance(conf.get('select scenarios'), str) and conf['select scenarios'] == 'use all scenarios combinations' :
         logger.info('Choose the combinatorial factory')
         return CombinatorialFactory(logger, conf)
+    elif isinstance(conf.get('select scenarios'), dict):
+        if 'cover scenarios' not in conf['select scenarios']:
+            raise ValueError("Provide configuration parameter 'cover scenarios' inside 'select scenarios'")
+        conf.update(conf.get('select scenarios', dict()))
+        logger.info('Choose the combinatorial factory')
+        return SelectiveFactory(logger, conf)
     else:
         logger.info('Choose the default model factory')
         return ModelFactory(logger, conf)
