@@ -16,8 +16,8 @@
       "executable path": "bin"
     },
     "CIL": {
-      "version": "cafbf58",
-      "path": "https://forge.ispras.ru/attachments/download/8876/frama-c-cil-cafbf58.tar.xz",
+      "version": "57c4604",
+      "path": "https://forge.ispras.ru/attachments/download/8899/frama-c-cil-57c4604.tar.xz",
       "executable path": "."
     },
     "Consul": {
