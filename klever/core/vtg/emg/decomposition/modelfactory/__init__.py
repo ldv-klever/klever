@@ -23,6 +23,23 @@ from klever.core.vtg.emg.decomposition.scenario import Scenario
 from klever.core.vtg.emg.common.process import Process, ProcessCollection
 
 
+def extend_model_name(model, name):
+    assert model
+    assert isinstance(model, (ProcessCollection, ScenarioCollection))
+    assert isinstance(name, str)
+
+    if model.name == 'base' and name != 'base':
+        model.name = name.capitalize()
+    elif model.name != 'base' and name != 'base':
+        model.name += f':{name}'
+
+
+def remove_process(model, process_name):
+    assert process_name and process_name in model.environment
+    del model.environment[process_name]
+    extend_model_name(model, f'no {process_name}')
+
+
 class ScenarioCollection:
     """
     This is a collection of scenarios. The factory generated the model with processes that have provided keys. If a
@@ -98,6 +115,18 @@ class Selector:
         for process in self.model.environment:
             new.environment[str(process)] = None
         return new
+
+    def _assign_scenario(self, batch: ScenarioCollection, scenario=None, process_name=None):
+        if not process_name:
+            batch.entry = scenario
+        elif process_name in batch.environment:
+            batch.environment[process_name] = scenario
+        else:
+            raise ValueError(f'Cannot set scenario {scenario.name} to deleted process {process_name}')
+
+        if scenario:
+            assert scenario.name
+            extend_model_name(batch, scenario.name)
 
 
 class ModelFactory:
@@ -194,6 +223,6 @@ class ModelFactory:
 
             if not receives.intersection(all_peers):
                 self.logger.info(f'Delete process {key} from the model {model.name} as it has no peers')
-                del model.environment[key]
+                remove_process(model, key)
 
         model.establish_peers()

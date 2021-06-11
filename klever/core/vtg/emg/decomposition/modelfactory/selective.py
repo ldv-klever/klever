@@ -17,7 +17,7 @@
 
 from klever.core.vtg.emg.decomposition.scenario import Scenario
 from klever.core.vtg.emg.common.process.actions import Subprocess
-from klever.core.vtg.emg.decomposition.modelfactory import Selector, ModelFactory
+from klever.core.vtg.emg.decomposition.modelfactory import Selector, ModelFactory, remove_process
 
 
 class SelectiveSelector(Selector):
@@ -42,7 +42,7 @@ class SelectiveSelector(Selector):
         # Prepare the initial base models
         first_model = self._make_base_model()
         for process_name in deleted_processes:
-            del first_model.environment[process_name]
+            remove_process(first_model, process_name)
 
         # Iterate over processes
         model_pool = [first_model]
@@ -82,7 +82,7 @@ class SelectiveSelector(Selector):
                 if not scenarios_items_for_model and process_name not in must_contain:
                     self.logger.warning(f'Cannot find any suitable scenarios of process {process_name} suitable for '
                                         f'model {model.name}, deleting it')
-                    del model.environment[process_name]
+                    remove_process(model, process_name)
                     next_model_pool.append(model)
                     continue
                 elif not scenarios_items_for_model and process_name in must_contain:
@@ -382,15 +382,9 @@ class SelectiveSelector(Selector):
     def _clone_model_with_scenario(self, process_name, model, scenario):
         self.logger.info(f'Add scenario {str(scenario)} of {process_name} '
                          f'as it has coverage impact')
-
-        if isinstance(scenario, Scenario):
-            name = (str(model.name) + f'_{scenario.name}') \
-                if scenario.name != 'base' or model.name != 'base' else scenario.name
-        else:
-            name = str(model.name)
-
-        new = model.clone(name)
-        new.environment[process_name] = scenario if isinstance(scenario, Scenario) else None
+        new = model.clone(model.name)
+        # This should change the name of the model
+        self._assign_scenario(new, scenario if isinstance(scenario, Scenario) else None, process_name)
         return new
 
 

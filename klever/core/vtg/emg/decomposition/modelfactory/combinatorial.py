@@ -38,7 +38,7 @@ class CombinatorialSelector(Selector):
                                                      else scenario.name)
                             self.logger.info(f"Add a new model '{newest.name}' from model '{new_model.name}' "
                                              f"and scenario '{scenario.name}'")
-                            newest.environment[process_name] = scenario
+                            self._assign_scenario(newest, scenario, process_name)
                             pool.append(newest)
 
                 for new_model in pool:
