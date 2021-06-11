@@ -469,7 +469,129 @@
       "single environment model per fragment": false,
       "skip savepoints": true,
       "scenario separation": "linear",
-      "use all scenarios combinations": true
+      "select scenarios": "use all scenarios combinations"
+    },
+    {
+      "build base": "linux/testing/environment model specifications/81b6e0",
+      "specifications set": "5.5",
+      "targets": [
+        "ext-modules/decomposition_selective_default"
+      ],
+      "generators options": [
+        {
+          "genericManual": {}
+        }
+      ],
+      "single environment model per fragment": false,
+      "select scenarios": {
+        "must not contain": {
+          "cat/first_child": {},
+          "cat/second_child": {}
+        },
+        "cover scenarios": {}
+      }
+    },
+    {
+      "build base": "linux/testing/environment model specifications/81b6e0",
+      "specifications set": "5.5",
+      "targets": [
+        "ext-modules/decomposition_selective_default"
+      ],
+      "generators options": [
+        {
+          "genericManual": {}
+        }
+      ],
+      "single environment model per fragment": false,
+      "select scenarios": {
+        "must contain": {
+          "cat/first_child": {"savepoints":  ["first_savepoint"]}
+        },
+        "cover scenarios": {
+          "cat/first_child": {}
+        }
+      }
+    },
+    {
+      "build base": "linux/testing/environment model specifications/81b6e0",
+      "specifications set": "5.5",
+      "targets": [
+        "ext-modules/decomposition_selective_default"
+      ],
+      "generators options": [
+        {
+          "genericManual": {}
+        }
+      ],
+      "single environment model per fragment": false,
+      "select scenarios": {
+        "cover scenarios": {
+          "cat/first_child": {"actions":  ["first_branch"], "savepoints":  []}
+        }
+      }
+    },
+    {
+      "build base": "linux/testing/environment model specifications/81b6e0",
+      "specifications set": "5.5",
+      "targets": [
+        "ext-modules/decomposition_selective_linear"
+      ],
+      "generators options": [
+        {
+          "genericManual": {}
+        }
+      ],
+      "single environment model per fragment": false,
+      "scenario separation": "linear",
+      "select scenarios": {
+        "must contain": {
+          "cat/first_child": {"savepoints":  ["first_savepoint"]}
+        },
+        "cover scenarios": {
+          "cat/first_child": {"actions":  ["first_branch"]}
+        }
+      }
+    },
+    {
+      "build base": "linux/testing/environment model specifications/81b6e0",
+      "specifications set": "5.5",
+      "targets": [
+        "ext-modules/decomposition_selective_linear"
+      ],
+      "generators options": [
+        {
+          "genericManual": {}
+        }
+      ],
+      "single environment model per fragment": false,
+      "scenario separation": "linear",
+      "select scenarios": {
+        "must contain": {
+          "cat/first_child": {"savepoints":  ["first_savepoint"]}
+        },
+        "cover scenarios": {
+          "cat/first_child": {"actions":  ["first_branch"]}
+        }
+      }
+    },
+    {
+      "build base": "linux/testing/environment model specifications/81b6e0",
+      "specifications set": "5.5",
+      "targets": [
+        "ext-modules/decomposition_selective_linear"
+      ],
+      "generators options": [
+        {
+          "genericManual": {}
+        }
+      ],
+      "scenario separation": "linear",
+      "single environment model per fragment": false,
+      "select scenarios": {
+        "cover scenarios": {
+          "cat/first_child": {"actions":  ["first_branch", "second_branch"], "savepoints":  ["first_savepoint"]}
+        }
+      }
     }
   ]
 }
