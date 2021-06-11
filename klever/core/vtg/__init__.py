@@ -750,14 +750,9 @@ class EMGW(VTGW):
             tasks = []
 
         # Generate task descriptions for further tasks
-        if len(tasks) == 1:
-            env_model = SINGLE_ENV_NAME
-            task_desc = tasks.pop()
+        for task_desc in tasks:
+            env_model = task_desc.get("environment model identifier", SINGLE_ENV_NAME)
             create_task(task_desc, env_model)
-        else:
-            for task_desc in tasks:
-                env_model = task_desc["environment model identifier"]
-                create_task(task_desc, env_model)
 
         # Submit new tasks to the VTG
         return type(self.task).__name__, tuple(self.task), self.work_dir, pairs
