@@ -45,7 +45,7 @@ class SelectiveSelector(Selector):
             remove_process(first_model, process_name)
 
         # Iterate over processes
-        model_pool = [first_model]
+        model_pool = []
         while order:
             process_name = order.pop(0)
             self.logger.info(f"Consider scenarios of process {process_name}")
@@ -63,12 +63,24 @@ class SelectiveSelector(Selector):
             scenarios_items = self._filter_must_not_contain_savepoints(process_name, scenarios_items, must_not_contain)
 
             next_model_pool = list()
-            for model in model_pool:
+            if not model_pool:
+                self.logger.info("Expect this is a first considered process")
+                iterate_over_models = [first_model]
+            else:
+                # Do not modify model pool by adding the very first model, it is undesirable
+                iterate_over_models = model_pool
+
+            for model in iterate_over_models:
                 self.logger.info(f"Consider adding scenarios to model {model.name}")
                 local_model_pool = list()
 
-                # Filter scenarios with savepoints if there is one already
-                scenarios_items_for_model = self._filter_by_savepoints_in_model(model, scenarios_items)
+                if process_name in coverage:
+                    # Filter scenarios with savepoints if there is one already
+                    scenarios_items_for_model = self._filter_by_savepoints_in_model(model, scenarios_items)
+                else:
+                    # Remove savepoints if this process is not required to cover
+                    scenarios_items_for_model = {s for s in scenarios_items
+                                                 if not isinstance(s, Scenario) or not s.savepoint}
 
                 # Filter by requirements of already added processes
                 scenarios_items_for_model = self._filter_by_requirements_from_model(
@@ -338,8 +350,13 @@ class SelectiveSelector(Selector):
                             continue
 
                         required_actions = scenario.actions[action_name].requires[asked_process]["includes"]
-                        considered_actions = model.environment[asked_process].actions  \
-                            if model.environment[asked_process] else self.model.environment[asked_process].actions
+                        if asked_process in model.environment:
+                            considered_actions = model.environment[asked_process].actions \
+                                if model.environment[asked_process] else self.model.environment[asked_process].actions
+                        elif asked_process == str(self.model.entry):
+                            considered_actions = model.entry.actions if model.entry else self.model.entry.actions
+                        else:
+                            raise ValueError(f'Cannot find a process with name {asked_process} in the model at all')
                         if not set(required_actions).issubset(set(considered_actions.keys())):
                             self.logger.info(f"Cannot add {scenario.name} of {process_name} because "
                                              f"{asked_process} does not satisfy required creteria of inclusion: " +
@@ -371,8 +388,10 @@ class SelectiveSelector(Selector):
         else:
             return False
 
-        if uncovered_actions and uncovered_actions.intersection(set(scenario.actions.keys())):
-            uncovered_actions.difference_update(set(scenario.actions.keys()))
+        impact = uncovered_actions.intersection(set(scenario.actions.keys()))
+        if uncovered_actions and impact:
+            self.logger.debug(f"Coverage impact of scenario {scenario.name} of {process_name} is: " + ', '.join(impact))
+            uncovered_actions.difference_update(impact)
 
             if isinstance(scenario, Scenario) and scenario.savepoint and str(scenario.savepoint) in coverage and \
                     not uncovered_actions:
