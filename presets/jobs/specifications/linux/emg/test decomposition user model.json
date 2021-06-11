@@ -37,10 +37,12 @@
                 "parameters": [],
                 "replicative": true,
                 "savepoints": {
-                  "first_savepoint": [
-                    "%a_param% = 1;",
-                    "%b_param% = 1;"
-                  ]
+                  "first_savepoint": {
+                    "statements": [
+                      "%a_param% = 1;",
+                      "%b_param% = 1;"
+                    ]
+                  }
                 }
               },
               "register_c": {
@@ -86,9 +88,11 @@
                 "parameters": ["%c_param%"],
                 "replicative": true,
                 "savepoints": {
-                  "second_savepoint": [
-                    "%c_param% = 2;"
-                  ]
+                  "second_savepoint": {
+                    "statements": [
+                      "%c_param% = 2;"
+                    ]
+                  }
                 }
               }
             },
@@ -112,14 +116,180 @@
           "actions": {
             "register_base": {
               "comment": "Activate the first calling callbacks transition system.",
-              "parameters": [],
-              "replicative": true
+              "parameters": []
             }
           },
           "category": "entry_point",
           "comment": "Main process.",
           "labels": {},
           "process": "[register_base]"
+        }
+      }
+    },
+    {
+      "fragments": [
+        "ext-modules/decomposition_selective_default/basic.ko",
+        "ext-modules/decomposition_selective_default/child_savepoints.ko",
+        "ext-modules/decomposition_selective_linear/basic.ko",
+        "ext-modules/decomposition_selective_linear/child_savepoints.ko"
+      ],
+      "model": {
+        "functions models": {},
+        "environment processes": {
+          "cat/first_child": {
+            "actions": {
+              "register_c1": {
+                "comment": "Start actions of the first child.",
+                "requires": {
+                  "entry_point/entry": {"includes": ["first_branch"]}
+                },
+                "savepoints": {
+                  "first_savepoint": {
+                    "statements": ["%sp% = 1;"]
+                  },
+                  "second_savepoint": {
+                    "statements": ["%sp% = 2;"]
+                  }
+                }
+              },
+              "deregister_c1": {
+                "comment": "End actions of the first child."
+              },
+              "first_branch": {
+                "comment": "Call the first branch.",
+                "trace relevant": true,
+                "statements": [
+                  "%branch% = 1;",
+                  "first_callback(%branch%, %sp%);"
+                ]
+              },
+              "second_branch": {
+                "comment": "Call the second branch.",
+                "trace relevant": true,
+                "statements": [
+                  "%branch% = 2;",
+                  "first_callback(%branch%, %sp%);"
+                ]
+              }
+            },
+            "comment": "The first child.",
+            "labels": {
+              "branch": {
+                "declaration": "int branch",
+                "value": "0"
+              },
+              "sp": {
+                "declaration": "int sp",
+                "value": "0"
+              }
+            },
+            "declarations": {
+              "environment model": {
+                "first_callback": "extern void first_callback(int branch, int sp);\n"
+              }
+            },
+            "process": "(!register_c1).(<first_branch> | <second_branch>).(deregister_c1)"
+          },
+          "cat/second_child": {
+            "actions": {
+              "register_c2": {
+                "comment": "Start actions of the second child.",
+                "requires": {
+                  "entry_point/entry": {"includes": ["second_branch"]}
+                },
+                "savepoints": {
+                  "third_savepoint": {
+                    "statements": ["%sp% = 1;"]
+                  },
+                  "fourth_savepoint": {
+                    "statements": ["%sp% = 2;"]
+                  }
+                }
+              },
+              "deregister_c2": {
+                "comment": "End actions of the second child."
+              },
+              "first_branch": {
+                "comment": "Call the first branch.",
+                "trace relevant": true,
+                "statements": [
+                  "%branch% = 1;",
+                  "second_callback(%branch%, %sp%);"
+                ]
+              },
+              "second_branch": {
+                "comment": "Call the second branch.",
+                "trace relevant": true,
+                "statements": [
+                  "%branch% = 2;",
+                  "second_callback(%branch%, %sp%);"
+                ]
+              }
+            },
+            "comment": "The first child.",
+            "labels": {
+              "branch": {
+                "declaration": "int branch",
+                "value": "0"
+              },
+              "sp": {
+                "declaration": "int sp",
+                "value": "0"
+              }
+            },
+            "declarations": {
+              "environment model": {
+                "second_callback": "extern void second_callback(int branch, int sp);\n"
+              }
+            },
+            "process": "(!register_c2).(<first_branch> | <second_branch>).(deregister_c2)"
+          }
+        },
+        "main process": {
+          "actions": {
+            "register_c1": {
+              "comment": "Register the first child."
+            },
+            "deregister_c1": {
+              "comment": "Deregister the first child."
+            },
+            "register_c2": {
+              "comment": "Register the second child."
+            },
+            "deregister_c2": {
+              "comment": "Deregister the second child."
+            },
+            "first_branch": {
+              "comment": "Call the first branch.",
+              "trace relevant": true,
+              "statements": [
+                "%branch% = 1;",
+                "main_callback(%branch%);"
+              ]
+            },
+            "second_branch": {
+              "comment": "Call the second branch.",
+              "trace relevant": true,
+              "statements": [
+                "%branch% = 2;",
+                "main_callback(%branch%);"
+              ]
+            }
+          },
+          "category": "entry_point",
+          "comment": "Main process.",
+          "labels": {
+            "branch": {
+              "declaration": "int branch",
+              "value": "0"
+            }
+          },
+          "declarations": {
+            "environment model": {
+              "main_callback": "extern void main_callback(int branch);\n"
+            }
+          },
+          "process": "[register_c1].<first_branch>.[deregister_c1] | [register_c2].<second_branch>.[deregister_c2]"
         }
       }
     }
