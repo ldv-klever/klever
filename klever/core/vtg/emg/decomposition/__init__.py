@@ -58,7 +58,7 @@ def _choose_factory(logger, conf):
         if 'cover scenarios' not in conf['select scenarios']:
             raise ValueError("Provide configuration parameter 'cover scenarios' inside 'select scenarios'")
         conf.update(conf.get('select scenarios', dict()))
-        logger.info('Choose the combinatorial factory')
+        logger.info('Activate the selection of scenarios according to the provided configuration')
         return SelectiveFactory(logger, conf)
     else:
         logger.info('Choose the default model factory')

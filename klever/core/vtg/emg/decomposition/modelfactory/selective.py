@@ -48,6 +48,7 @@ class SelectiveSelector(Selector):
         model_pool = [first_model]
         while order:
             process_name = order.pop(0)
+            self.logger.info(f"Consider scenarios of process {process_name}")
 
             # Get all scenarios
             scenarios_items = set(list(self.processes_to_scenarios[process_name]) +
@@ -106,7 +107,7 @@ class SelectiveSelector(Selector):
                         self.logger.info(f'Add a new model {new.name}')
                         local_model_pool.append(new)
                     else:
-                        self.logger.info(f'Skip scenario {str(scenario)} of {process_name} '
+                        self.logger.info(f'Skip scenario {scenario.name} of {process_name} '
                                          f'as it has no coverage impact')
                 next_model_pool.extend(local_model_pool)
 
@@ -277,9 +278,11 @@ class SelectiveSelector(Selector):
                 break
 
         if exists_savepoint:
+            self.logger.debug(f"Model {model.name} has a savepoint already")
             new_scenarios_items = {s for s in scenarios_items if not isinstance(s, Scenario) or not s.savepoint}
             return new_scenarios_items
         else:
+            self.logger.debug(f"Model {model.name} has not a savepoint")
             return scenarios_items
 
     def _filter_by_requirements_from_model(self, process_name, model, scenarios_items, dependant_map, dependencies_map,
@@ -305,7 +308,7 @@ class SelectiveSelector(Selector):
                         self.logger.debug(f'Found requirements for {process_name} in {action} of {proc_with_reqs}')
                         if not set(actions_with_requirements[action].requires[process_name]["includes"]). \
                                 issubset(set(suitable.actions.keys())):
-                            self.logger.info(f"Cannot add {str(suitable)} of {process_name} because "
+                            self.logger.info(f"Cannot add {suitable.name} of {process_name} because "
                                              f"of {action} of {proc_with_reqs}")
                             accept_flag = False
 
@@ -326,7 +329,7 @@ class SelectiveSelector(Selector):
                 for action_name in (a for a in dependencies_map[process_name] if a in scenario.actions):
                     for asked_process in scenario.actions[action_name].requires:
                         if asked_process in deleted:
-                            self.logger.info(f"Cannot add {str(scenario)} of {process_name} because "
+                            self.logger.info(f"Cannot add {scenario.name} of {process_name} because "
                                              f"{asked_process} is deleted")
                             add_flag = False
                             continue
@@ -338,7 +341,7 @@ class SelectiveSelector(Selector):
                         considered_actions = model.environment[asked_process].actions  \
                             if model.environment[asked_process] else self.model.environment[asked_process].actions
                         if not set(required_actions).issubset(set(considered_actions.keys())):
-                            self.logger.info(f"Cannot add {str(scenario)} of {process_name} because "
+                            self.logger.info(f"Cannot add {scenario.name} of {process_name} because "
                                              f"{asked_process} does not satisfy required creteria of inclusion: " +
                                              ", ".join(required_actions))
                             add_flag = False
@@ -373,6 +376,7 @@ class SelectiveSelector(Selector):
 
             if isinstance(scenario, Scenario) and scenario.savepoint and str(scenario.savepoint) in coverage and \
                     not uncovered_actions:
+                self.logger.debug(f"Covered {str(scenario.savepoint)} of {process_name}")
                 del coverage[str(scenario.savepoint)]
 
             return True
@@ -380,7 +384,7 @@ class SelectiveSelector(Selector):
             return False
 
     def _clone_model_with_scenario(self, process_name, model, scenario):
-        self.logger.info(f'Add scenario {str(scenario)} of {process_name} '
+        self.logger.info(f'Add scenario {scenario.name} of {process_name} '
                          f'as it has coverage impact')
         new = model.clone(model.name)
         # This should change the name of the model
