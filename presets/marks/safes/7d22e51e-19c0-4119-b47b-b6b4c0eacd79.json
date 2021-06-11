@@ -1,0 +1,23 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Project:Version",
+      "value": "v5.7-rc1-367-gda7de29bb171"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/staging/iio/impedance-analyzer/ad5933.ko"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "drivers:clk2"
+    }
+  ],
+  "description": "",
+  "is_modifiable": false,
+  "tags": [],
+  "verdict": "0"
+}
