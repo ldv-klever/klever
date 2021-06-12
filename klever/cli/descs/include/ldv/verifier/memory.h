@@ -24,6 +24,8 @@ typedef unsigned long size_t;
 typedef unsigned int size_t;
 #endif
 
+extern unsigned int ldv_is_memory_alloc_failures;
+
 extern void *memcpy(void *dest, const void *src, size_t n);
 
 // Implementations for direct use in specifications and models
