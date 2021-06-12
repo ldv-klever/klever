@@ -507,10 +507,7 @@
       "targets": ["drivers/hwmon/aspeed-pwm-tacho.ko"],
       "specifications set": "5.5",
       "requirement specifications": ["memory safety"],
-      "ideal verdicts": [{
-        "ideal verdict": "unsafe",
-        "comment": "CPAchecker parsing failure due to CIL removed temporary variable breaking conditional statement."
-      }],
+      "ideal verdicts": [{"ideal verdict": "unsafe"}],
       "data": {"bug identifier": "bc4071aafcf4~"}
     },
     {
@@ -520,7 +517,7 @@
       "requirement specifications": ["memory safety"],
       "ideal verdicts": [{
         "ideal verdict": "safe",
-        "comment": "CPAchecker parsing failure due to CIL removed temporary variable breaking conditional statement."
+        "comment": "CPAchecker NPE."
       }],
       "data": {"bug identifier": "bc4071aafcf4~"}
     },
