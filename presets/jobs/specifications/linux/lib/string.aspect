@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 ISP RAS (http://www.ispras.ru)
+ * Copyright (c) 2021 ISP RAS (http://www.ispras.ru)
  * Ivannikov Institute for System Programming of the Russian Academy of Sciences
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,16 +15,27 @@
  * limitations under the License.
  */
 
-#ifndef __LDV_LINUX_STRING_H
-#define __LDV_LINUX_STRING_H
+before: file("$this")
+{
+#include <ldv/linux/string.h>
+}
 
-#include <linux/types.h>
+around: call(size_t strlen(const char *s))
+{
+	return ldv_strlen(s);
+}
 
-extern void *ldv_kmemdup(const void *src, size_t len, gfp_t gfp);
+around: call(int strcmp(const char *cs, const char *ct))
+{
+	return ldv_strcmp(cs, ct);
+}
 
-extern size_t ldv_strlen(const char *s);
-extern int ldv_strcmp(const char *cs, const char *ct);
-extern int ldv_strncmp(const char *cs, const char *ct, __kernel_size_t count);
-extern char *ldv_strstr(const char *s1, const char *s2);
+around: call(int strncmp(const char *cs, const char *ct, __kernel_size_t count))
+{
+	return ldv_strncmp(cs, ct, count);
+}
 
-#endif /* __LDV_LINUX_STRING_H */
+around: call(char *strstr(const char *s1, const char *s2))
+{
+	return ldv_strstr(s1, s2);
+}

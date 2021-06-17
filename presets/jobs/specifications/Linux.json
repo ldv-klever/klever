@@ -99,6 +99,7 @@
               "linux/fs/dcache/dcache.c",
               "linux/kernel/panic.c",
               "linux/common.c",
+              "linux/lib/string.c",
               "linux/mm/slab.c",
               "linux/mm/util.c",
               "linux/mm/vmalloc.c",
