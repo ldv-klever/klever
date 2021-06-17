@@ -15,6 +15,7 @@
             "ext-modules/linux/drivers/video/fbdev/core/fbsys",
             "ext-modules/linux/err",
             "ext-modules/linux/ldv/common",
+            "ext-modules/linux/lib/bitmap",
             "ext-modules/linux/mm/gfp",
             "ext-modules/linux/mm/slab",
             "ext-modules/linux/mm/util",

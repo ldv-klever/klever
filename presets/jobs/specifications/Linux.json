@@ -99,6 +99,8 @@
               "linux/fs/dcache/dcache.c",
               "linux/kernel/panic.c",
               "linux/common.c",
+              "linux/lib/bitmap.c",
+              "linux/lib/find_bit.c",
               "linux/mm/slab.c",
               "linux/mm/util.c",
               "linux/mm/vmalloc.c",
