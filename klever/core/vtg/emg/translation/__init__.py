@@ -53,7 +53,7 @@ def translate_intermediate_model(logger, conf, avt, source, collection):
     conf['translation options'].setdefault('self parallel processes', False)
 
     # Make a separate directory
-    model_path = str(collection.name)
+    model_path = str(collection.formatted_name)
     assert model_path, 'Each environment model should have a unique name'
     assert not os.path.isdir(model_path), f'Model name {model_path} is used twice'
     os.makedirs(model_path)

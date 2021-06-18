@@ -728,12 +728,12 @@ class EMGW(VTGW):
     def _get_prepared_data(self):
         pairs = []
 
-        def create_task(task, model):
-            task_workdir = os.path.join(self.work_dir, model)
+        def create_task(task, model, pathname):
+            task_workdir = os.path.join(self.work_dir, pathname)
             os.makedirs(task_workdir, exist_ok=True)
             task_file = os.path.join(task_workdir, self.initial_abstract_task_desc_file)
-            with open(task_file, 'w', encoding='utf-8') as fp:
-                klever.core.utils.json_dump(task, fp, self.conf['keep intermediate files'])
+            with open(task_file, 'w', encoding='utf-8') as handle:
+                klever.core.utils.json_dump(task, handle, self.conf['keep intermediate files'])
             pairs.append([model, task_workdir])
 
         # Send tasks to the VTG
@@ -752,7 +752,8 @@ class EMGW(VTGW):
         # Generate task descriptions for further tasks
         for task_desc in tasks:
             env_model = task_desc.get("environment model identifier", SINGLE_ENV_NAME)
-            create_task(task_desc, env_model)
+            env_path = task_desc.get("environment model pathname", SINGLE_ENV_NAME)
+            create_task(task_desc, env_model, env_path)
 
         # Submit new tasks to the VTG
         return type(self.task).__name__, tuple(self.task), self.work_dir, pairs

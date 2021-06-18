@@ -67,6 +67,7 @@ class EMG(Plugin):
             new_description = translate_intermediate_model(self.logger, self.conf, copy.deepcopy(abstract_task), sa,
                                                            model)
             new_description["environment model identifier"] = model.name
+            new_description["environment model pathname"] = model.formatted_name
             self.abstract_task_desc.append(new_description)
             self.logger.info(f"An environment model {model.name} has been generated successfully")
 
