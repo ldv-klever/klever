@@ -72,9 +72,12 @@ class CollectionEncoder(json.JSONEncoder):
         return dict_repr
 
     def _serialize_savepoint(self, point):
-        return {
-            "statements": point.statements
-        }
+        sp = sortedcontainers.SortedDict()
+        if point.statements:
+            sp["statements"] = point.statements
+        if point.comment:
+            sp["comment"] = point.comment
+        return sp
 
     def _serialize_action(self, action):
         ict_action = sortedcontainers.SortedDict()
@@ -318,8 +321,8 @@ class CollectionDecoder:
             setattr(act, attname, dic[att])
 
         if 'savepoints' in dic:
-            for name in dic['savepoints']:
-                savepoint = Savepoint(name, dic['savepoints'][name].get('statements', []))
+            for name, sp_dic in dic['savepoints'].items():
+                savepoint = Savepoint(name, sp_dic.get('statements', []), sp_dic.get('comment'))
                 act.savepoints.add(savepoint)
 
     def _import_label(self, name, dic):

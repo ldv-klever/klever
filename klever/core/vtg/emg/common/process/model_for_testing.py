@@ -38,7 +38,7 @@ c1p1 = {
             "comment": "Activate the second process.",
             "process": "([register_c1p2].[deregister_c1p2]).({activate} | (deregister_c1p1))",
             "savepoints": {
-                'p1s3': {"statements": ["$ALLOC(%container%);"]},
+                'p1s3': {"statements": ["$ALLOC(%container%);"], "comment": "Expect to detect."},
                 'p1s4': {"statements": ["$ALLOC(%container%);"]}
             }
         },

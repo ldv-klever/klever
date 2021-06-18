@@ -154,6 +154,11 @@ class Process:
             if action.condition:
                 for statement in action.condition:
                     extract_labels(statement)
+            if action.savepoints:
+                for savepoint in action.savepoints:
+                    if savepoint.statements:
+                        for statement in savepoint.statements:
+                            extract_labels(statement)
 
         return sorted(set(self.labels.values()).difference(used_labels))
 
