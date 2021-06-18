@@ -31,7 +31,7 @@ def extend_model_name(model, name):
     if model.name == 'base' and name != 'base':
         model.name = name.capitalize()
     elif model.name != 'base' and name != 'base':
-        model.name += f':{name}'
+        model.name += f', {name}'
 
 
 def remove_process(model, process_name):

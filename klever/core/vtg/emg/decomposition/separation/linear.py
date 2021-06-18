@@ -31,7 +31,7 @@ class LinearExtractor(ScenarioExtractor):
     def _new_scenarios(self, paths, action=None):
         def add_scenario_from_path(processing_path, savepoint=None):
             if processing_path.name and savepoint:
-                name = f"{str(savepoint)}_{processing_path.name}"
+                name = f"{str(savepoint)} with {processing_path.name}"
             elif savepoint:
                 name = str(savepoint)
             elif processing_path.name:

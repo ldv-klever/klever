@@ -17,6 +17,7 @@
 
 import re
 import copy
+import string
 import graphviz
 import collections
 import sortedcontainers
@@ -483,6 +484,13 @@ class ProcessCollection:
         self.models = ProcessDict()
         self.environment = ProcessDict()
         self.name = name
+
+    @property
+    def formatted_name(self):
+        """Generate name that can be used to create directories"""
+        remove_punctuation_map = dict((ord(char), '_') for char in string.punctuation)
+        remove_punctuation_map[ord(' ')] = '_'
+        return self.name.translate(remove_punctuation_map)
 
     @property
     def processes(self):

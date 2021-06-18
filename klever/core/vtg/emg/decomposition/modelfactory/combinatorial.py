@@ -15,7 +15,7 @@
 # limitations under the License.
 #
 
-from klever.core.vtg.emg.decomposition.modelfactory import Selector, ModelFactory
+from klever.core.vtg.emg.decomposition.modelfactory import Selector, ModelFactory, extend_model_name
 
 
 class CombinatorialSelector(Selector):
@@ -33,9 +33,8 @@ class CombinatorialSelector(Selector):
                 for process_name in iterate_over_processes:
                     for new_model in (list(pool) if pool else [new]):
                         for scenario in (s for s in self.processes_to_scenarios[process_name] if not s.savepoint):
-                            newest = new_model.clone(str(new_model.name) + f'_{scenario.name}'
-                                                     if scenario.name != 'base' or new_model.name != 'base'
-                                                     else scenario.name)
+                            newest = new_model.clone(new_model.name)
+                            extend_model_name(newest, scenario.name)
                             self.logger.info(f"Add a new model '{newest.name}' from model '{new_model.name}' "
                                              f"and scenario '{scenario.name}'")
                             self._assign_scenario(newest, scenario, process_name)
