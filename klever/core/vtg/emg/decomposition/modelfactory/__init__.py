@@ -159,9 +159,11 @@ class ModelFactory:
             elif batch.entry:
                 # The entry process has a scenario
                 new.entry = self._process_from_scenario(batch.entry, model.entry)
-            else:
-                # # Keep as is
+            elif model.entry:
+                # Keep as is
                 new.entry = self._process_copy(model.entry)
+            else:
+                new.entry = None
 
             # Add models if no scenarios provided
             for function_model in model.models:
@@ -203,7 +205,9 @@ class ModelFactory:
             self.logger.debug(f'Replace the first action in the process {str(process)} by the savepoint'
                               f' {str(scenario.savepoint)}')
             new = new_process.add_condition(str(scenario.savepoint), [], scenario.savepoint.statements,
+                                            scenario.savepoint.comment if scenario.savepoint.comment else
                                             f'Save point {str(scenario.savepoint)}')
+            new.trace_relevant = True
 
             firsts = scenario.actions.first_actions()
             for name in firsts:
