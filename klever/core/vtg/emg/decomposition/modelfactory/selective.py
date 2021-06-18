@@ -126,6 +126,9 @@ class SelectiveSelector(Selector):
 
             model_pool = next_model_pool
 
+        if not model_pool:
+            self.logger.info('No models have been selected, use the base one')
+            model_pool = [first_model]
         for model in model_pool:
             related_process = None
             for process_name in (p for p, s in model.environment.items() if s and s.savepoint):
