@@ -505,7 +505,7 @@
       "single environment model per fragment": false,
       "select scenarios": {
         "must contain": {
-          "cat/first_child": {"savepoints":  ["first_savepoint"]}
+          "cat/first_child": {"savepoints":  ["first_savepoint"],"scenarios only":  false}
         },
         "cover scenarios": {
           "cat/first_child": {}
@@ -525,6 +525,9 @@
       ],
       "single environment model per fragment": false,
       "select scenarios": {
+        "must contain": {
+          "cat/first_child": {"scenarios only":  false}
+        },
         "cover scenarios": {
           "cat/first_child": {"actions":  ["first_branch"], "savepoints":  []}
         }
