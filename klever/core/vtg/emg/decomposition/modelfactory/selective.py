@@ -55,6 +55,7 @@ class SelectiveSelector(Selector):
                                   [self.model.environment[process_name]])
 
             # Filter by "must contain"
+            scenarios_items = self._filter_must_contain_base_process(process_name, scenarios_items, must_contain)
             scenarios_items = self._filter_must_contain_actions(process_name, scenarios_items, must_contain)
             scenarios_items = self._filter_must_contain_savepoints(process_name, scenarios_items, must_contain)
 
@@ -130,6 +131,7 @@ class SelectiveSelector(Selector):
             for process_name in (p for p, s in model.environment.items() if s and s.savepoint):
                 related_process = process_name
                 break
+            self.logger.info(f"Finally generate a batch for model {model.name}")
             yield model, related_process
 
     def _extract_dependecnies(self):
@@ -216,6 +218,13 @@ class SelectiveSelector(Selector):
                 coverage[process_name][sp] = set(actions_to_cover)
 
         return coverage
+
+    def _filter_must_contain_base_process(self, process_name, scenarios_items, must_contain):
+        if process_name not in must_contain or must_contain[process_name].get('scenarios only', True):
+            self.logger.debug(f"Remove base process {process_name} as only scenarios can be selected")
+            return {s for s in scenarios_items if isinstance(s, Scenario)}
+        else:
+            return scenarios_items
 
     def _filter_must_contain_actions(self, process_name, scenarios_items, must_contain):
         if process_name in must_contain and must_contain[process_name].get('actions'):
