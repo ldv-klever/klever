@@ -16,6 +16,7 @@
  */
 
 #include <ldv/linux/find_bit.h>
+#include <ldv/verifier/common.h>
 
 static unsigned long ldv_ffs(unsigned long word)
 {
@@ -55,13 +56,22 @@ static unsigned long ldv_min(unsigned long a, unsigned long b)
 	return b;
 }
 
+static unsigned long ldv_restrict_find_bit_res(unsigned long res, unsigned long size)
+{
+	/* This can help a bit for verification tools working without bit precision. */
+	ldv_assume(res >= 0);
+	ldv_assume(res <= size);
+
+	return res;
+}
+
 unsigned long ldv_find_first_bit(const unsigned long *addr, unsigned long size)
 {
 	unsigned long i;
 
 	for (i = 0; i * 8 * sizeof(long) < size; i++)
 		if (addr[i])
-			return ldv_min(i * 8 * sizeof(long) + ldv_ffs(addr[i]), size);
+			return ldv_restrict_find_bit_res(ldv_min(i * 8 * sizeof(long) + ldv_ffs(addr[i]), size), size);
 
 	return size;
 }
@@ -69,6 +79,8 @@ unsigned long ldv_find_first_bit(const unsigned long *addr, unsigned long size)
 unsigned long ldv_find_next_bit(const unsigned long *addr, unsigned long size, unsigned long offset)
 {
 	unsigned long tmp;
+
+	ldv_check_find_bit_offset(size, offset);
 
 	tmp = addr[offset / (8 * sizeof(long))];
 	tmp &= ~0ULL << (offset & (8 * sizeof(long) - 1));
@@ -82,12 +94,14 @@ unsigned long ldv_find_next_bit(const unsigned long *addr, unsigned long size, u
 		tmp = addr[offset / (8 * sizeof(long))];
 	}
 
-	return ldv_min(offset + ldv_ffs(tmp), size);
+	return ldv_restrict_find_bit_res(ldv_min(offset + ldv_ffs(tmp), size), size);
 }
 
 unsigned long ldv_find_next_zero_bit(const unsigned long *addr, unsigned long size, unsigned long offset)
 {
 	unsigned long tmp;
+
+	ldv_check_find_bit_offset(size, offset);
 
 	tmp = addr[offset / (8 * sizeof(long))];
 	tmp ^= ~0UL;
@@ -103,5 +117,5 @@ unsigned long ldv_find_next_zero_bit(const unsigned long *addr, unsigned long si
 		tmp ^= ~0UL;
 	}
 
-	return ldv_min(offset + ldv_ffs(tmp), size);
+	return ldv_restrict_find_bit_res(ldv_min(offset + ldv_ffs(tmp), size), size);
 }

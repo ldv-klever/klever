@@ -22,4 +22,6 @@ extern unsigned long ldv_find_first_bit(const unsigned long *addr, unsigned long
 extern unsigned long ldv_find_next_bit(const unsigned long *addr, unsigned long size, unsigned long offset);
 extern unsigned long ldv_find_next_zero_bit(const unsigned long *addr, unsigned long size, unsigned long offset);
 
+extern void ldv_check_find_bit_offset(unsigned long size, unsigned long offset);
+
 #endif /* __LDV_LINUX_FIND_BIT_H */
