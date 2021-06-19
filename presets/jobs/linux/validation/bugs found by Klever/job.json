@@ -148,7 +148,7 @@
       "requirement specifications": ["concurrency safety"],
       "ideal verdicts": [{
         "ideal verdict": "unsafe",
-        "comment": "Target bug is found, but the overall verdict is unknown (timeout)."
+        "comment": "Target bug is found. In addition, there is non-target bug. The overall verdict is unknown (timeout)."
       }],
       "data": {"bug identifier": "4b2e7f99cdd3~"}
     },
@@ -159,7 +159,7 @@
       "requirement specifications": ["concurrency safety"],
       "ideal verdicts": [{
         "ideal verdict": "safe",
-        "comment": "Timeout."
+        "comment": "Non-target bug. The overall verdict is unknown (timeout)."
       }],
       "data": {"bug identifier": "4b2e7f99cdd3~"}
     },
@@ -517,7 +517,7 @@
       "requirement specifications": ["memory safety"],
       "ideal verdicts": [{
         "ideal verdict": "safe",
-        "comment": "CPAchecker NPE."
+        "comment": "Timeout."
       }],
       "data": {"bug identifier": "bc4071aafcf4~"}
     },
@@ -555,7 +555,7 @@
       "requirement specifications": ["memory safety"],
       "ideal verdicts": [{
         "ideal verdict": "safe",
-        "comment": "False alarm due to \"EMG\". EMG should model wait_for_completion_interruptible(), after it chip->srb is initialized."
+        "comment": "Timeout."
       }],
       "data": {"bug identifier": "11507bf9a883~"}
     },
@@ -629,7 +629,7 @@
       "requirement specifications": ["concurrency safety"],
       "ideal verdicts": [{
         "ideal verdict": "unsafe",
-        "comment": "Target bug is found. In addition, there are false alarms due to \"EMG - Specs - Bad parameters\". EMG should honestly allocate memory for PCI devices. Otherwise, verification tools do not properly track it."
+        "comment": "Target bug is found. In addition, there are false alarms due to \"EMG - Specs - Bad parameters\". EMG should honestly allocate memory for PCI devices. Otherwise, verification tools do not properly track it. The overall verdict is unknown (timeout)."
       }],
       "data": {"bug identifier": "2e45676a4d33~"}
     },
@@ -640,7 +640,7 @@
       "requirement specifications": ["concurrency safety"],
       "ideal verdicts": [{
         "ideal verdict": "safe",
-        "comment": "False alarms due to \"EMG - Specs - Bad parameters\". EMG should honestly allocate memory for PCI devices. Otherwise, verification tools do not properly track it."
+        "comment": "False alarms due to \"EMG - Specs - Bad parameters\". EMG should honestly allocate memory for PCI devices. Otherwise, verification tools do not properly track it. The overall verdict is unknown (timeout)."
       }],
       "data": {"bug identifier": "2e45676a4d33~"}
     },

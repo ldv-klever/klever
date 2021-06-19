@@ -99,6 +99,8 @@
               "linux/fs/dcache/dcache.c",
               "linux/kernel/panic.c",
               "linux/common.c",
+              "linux/lib/bitmap.c",
+              "linux/lib/find_bit.common.c",
               "linux/lib/string.c",
               "linux/mm/slab.c",
               "linux/mm/util.c",
@@ -674,11 +676,11 @@
         "identifier": "lib",
         "children": [
           {
-            "identifier": "find_next_bit",
+            "identifier": "find_bit",
             "description": "...",
             "plugins": [{
               "name": "RSG",
-              "options": {"models": ["linux/lib/find_next_bit.c"]}
+              "options": {"models": ["linux/lib/find_bit.c"]}
             }]
           },
           {

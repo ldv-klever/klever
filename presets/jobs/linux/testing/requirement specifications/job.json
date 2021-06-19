@@ -58,7 +58,7 @@
         "ext-modules/linux/kernel/rcu/update/lock-sched/safe.ko",
         "ext-modules/linux/kernel/sched/completion/safe.ko",
         "ext-modules/linux/kernel/sched/completion-no-lockdep/safe.ko",
-        "ext-modules/linux/lib/find_next_bit/safe.ko",
+        "ext-modules/linux/lib/find_bit/safe.ko",
         "ext-modules/linux/lib/idr/safe.ko",
         "ext-modules/linux/memory-safety/safe.ko",
         "ext-modules/linux/memory-safety/array_overread_safe.ko",
@@ -218,8 +218,8 @@
       "requirement specifications": ["kernel:sched:completion"]
     },
     {
-      "targets": ["ext-modules/linux/lib/find_next_bit"],
-      "requirement specifications": ["lib:find_next_bit"]
+      "targets": ["ext-modules/linux/lib/find_bit"],
+      "requirement specifications": ["lib:find_bit"]
     },
     {
       "targets": ["ext-modules/linux/lib/idr"],

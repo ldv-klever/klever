@@ -2,13 +2,13 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Requirements specification",
-      "value": "lib:find_bit"
+      "name": "Program fragment",
+      "value": "ext-modules/linux/lib/bitmap/safe.ko"
     },
     {
       "is_compare": true,
-      "name": "Program fragment",
-      "value": "ext-modules/linux/lib/find_bit/safe.ko"
+      "name": "Requirements specification",
+      "value": "test:memory safety"
     }
   ],
   "description": "",

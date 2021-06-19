@@ -18,28 +18,12 @@
 #include <linux/cpumask.h>
 #include <ldv/linux/common.h>
 #include <ldv/verifier/common.h>
-#include <ldv/verifier/nondet.h>
 
-unsigned long ldv_find_next_bit(unsigned long size, unsigned long offset)
+void ldv_check_find_bit_offset(unsigned long size, unsigned long offset)
 {
 	if (offset > size)
 		/* ASSERT Offset should not be greater than size. */
 		ldv_assert();
-
-	/* NOTE Return value between 0 and size. */
-	unsigned long nondet = ldv_undef_ulong();
-	ldv_assume (nondet <= size);
-	ldv_assume (nondet >= 0);
-	return nondet;
-}
-
-unsigned long ldv_find_first_bit(unsigned long size)
-{
-	/* NOTE Return value between 0 and size. */
-	unsigned long nondet = ldv_undef_ulong();
-	ldv_assume (nondet <= size);
-	ldv_assume (nondet >= 0);
-	return nondet;
 }
 
 void ldv_initialize(void)
