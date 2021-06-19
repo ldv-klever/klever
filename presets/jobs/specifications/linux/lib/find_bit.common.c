@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-#include <ldv/linux/bitmap.h>
+#include <ldv/linux/find_bit.h>
 
 static unsigned long ldv_ffs(unsigned long word)
 {
