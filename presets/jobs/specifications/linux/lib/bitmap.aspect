@@ -46,6 +46,12 @@ around: call(static inline void bitmap_clear(unsigned long *map, unsigned int st
 	ldv_bitmap_clear(map, start, nbits);
 }
 
+around: call(static inline void bitmap_zero(unsigned long *dst, unsigned int nbits)) ||
+        call(static inline void bitmap_zero(unsigned long *dst, int nbits))
+{
+	ldv_bitmap_zero(dst, nbits);
+}
+
 around: call(static inline unsigned long bitmap_find_next_zero_area(unsigned long *map, unsigned long size, unsigned long start, unsigned int nr, unsigned long align_mask)) ||
         call(unsigned long bitmap_find_next_zero_area(unsigned long *map, unsigned long size, unsigned long start, unsigned int nr, unsigned long align_mask))
 {
