@@ -32,6 +32,10 @@ extern void free(void *);
 /* ISO/IEC 9899:1999 specification, § 7.21.2 "Copying functions". */
 extern void *memcpy(void *s1, const void *s2, size_t n);
 
+/* This is actual, say, for the Linux kernel on ARM
+   (https://elixir.bootlin.com/linux/v3.14.79/source/arch/arm/include/asm/string.h). */
+#undef memset
+
 /* ISO/IEC 9899:1999 specification, § 7.21.6 "Miscellaneous functions". */
 extern void *memset(void *s, int c, size_t n);
 
