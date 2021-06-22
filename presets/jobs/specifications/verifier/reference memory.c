@@ -19,17 +19,6 @@
 #include <ldv/verifier/nondet.h>
 #include <ldv/verifier/memory.h>
 
-/* ISO/IEC 9899:1999 specification, § 7.20.3 "Memory management functions". */
-extern void *malloc(size_t size);
-extern void *calloc(size_t nmemb, size_t size);
-extern void free(void *);
-
-/* ISO/IEC 9899:1999 specification, § 7.21.2 "Copying functions". */
-extern void *memcpy(void *s1, const void *s2, size_t n);
-
-/* ISO/IEC 9899:1999 specification, § 7.21.6 "Miscellaneous functions". */
-extern void *memset(void *s, int c, size_t n);
-
 unsigned int ldv_is_memory_alloc_failures = 1;
 
 void *ldv_reference_malloc(size_t size)

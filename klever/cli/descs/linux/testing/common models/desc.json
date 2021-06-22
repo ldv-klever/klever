@@ -16,6 +16,7 @@
             "ext-modules/linux/err",
             "ext-modules/linux/ldv/common",
             "ext-modules/linux/lib/bitmap",
+            "ext-modules/linux/lib/string",
             "ext-modules/linux/mm/gfp",
             "ext-modules/linux/mm/slab",
             "ext-modules/linux/mm/util",

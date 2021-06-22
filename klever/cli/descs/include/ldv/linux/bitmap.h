@@ -23,6 +23,9 @@ extern void ldv_clear_bit(long nr, unsigned long *addr);
 
 extern void ldv_bitmap_set(unsigned long *map, unsigned int start, int nbits);
 extern void ldv_bitmap_clear(unsigned long *map, unsigned int start, int nbits);
+
+extern void ldv_bitmap_zero(unsigned long *dst, unsigned int nbits);
+
 extern unsigned long ldv_bitmap_find_next_zero_area(unsigned long *map, unsigned long size, unsigned long start, unsigned int nr, unsigned long align_mask);
 
 #endif /* __LDV_LINUX_BITMAP_H */

@@ -104,6 +104,15 @@ static int __init ldv_init(void)
 	if (bit != 125)
 		ldv_unexpected_memory_safety_error();
 
+	bitmap_zero(ldv_bitmap, 150);
+
+	counter = 0;
+	for_each_set_bit(bit, ldv_bitmap, LDV_BIT_MAX)
+		counter++;
+
+	if (counter != 8)
+		ldv_unexpected_memory_safety_error();
+
 	return 0;
 }
 
