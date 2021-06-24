@@ -24,6 +24,10 @@
                 <th>{% trans 'Files' %}</th>
                 <th>{% trans 'Line coverage' %}</th>
                 <th>{% trans 'Function coverage' %}</th>
+                {% if statistics.with_extra %}
+                    <th>{% trans 'Total line coverage' %}</th>
+                    <th>{% trans 'Total function coverage' %}</th>
+                {% endif %}
             </tr>
         </thead>
         <tbody>
@@ -40,6 +44,10 @@
                     </td>
                     <td{% if cov_obj.lines_color %} style="background-color: {{ cov_obj.lines_color }};"{% endif %}><b>{{ cov_obj.lines_percentage }}</b> ({{ cov_obj.lines_covered }}/{{ cov_obj.lines_total }})</td>
                     <td{% if cov_obj.funcs_color %} style="background-color: {{ cov_obj.funcs_color }};"{% endif %}><b>{{ cov_obj.funcs_percentage }}</b> ({{ cov_obj.funcs_covered }}/{{ cov_obj.funcs_total }})</td>
+                    {% if statistics.with_extra %}
+                        <td{% if cov_obj.lines_color_extra %} style="background-color: {{ cov_obj.lines_color_extra }};"{% endif %}><b>{{ cov_obj.lines_percentage_extra }}</b> ({{ cov_obj.lines_covered_extra }}/{{ cov_obj.lines_total_extra }})</td>
+                        <td{% if cov_obj.funcs_color_extra %} style="background-color: {{ cov_obj.funcs_color_extra }};"{% endif %}><b>{{ cov_obj.funcs_percentage_extra }}</b> ({{ cov_obj.funcs_covered_extra }}/{{ cov_obj.funcs_total_extra }})</td>
+                    {% endif %}
                 </tr>
             {%  endfor %}
         </tbody>
