@@ -820,7 +820,7 @@ class Job(klever.core.components.Component):
         self.workers_num = klever.core.utils.get_parallel_threads_num(self.logger, self.conf)
         subcomponents = [('PSFS', self.__process_source_files)]
         for i in range(self.workers_num):
-            subcomponents.append(('RSF', self.__process_source_file))
+            subcomponents.append(('PSF', self.__process_source_file))
         self.launch_subcomponents(False, *subcomponents)
         self.mqs['file names'].close()
 
