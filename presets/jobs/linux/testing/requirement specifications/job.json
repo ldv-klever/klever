@@ -68,6 +68,10 @@
         "ext-modules/linux/memory-safety/memcpy_safe.ko",
         "ext-modules/linux/memory-safety/ext_alloc_free_safe.ko",
         "ext-modules/linux/memory-safety/free_safe.ko",
+        "ext-modules/linux/memory-safety/memset.ko",
+        "ext-modules/linux/memory-safety/memset2.ko",
+        "ext-modules/linux/memory-safety/memset3.ko",
+        "ext-modules/linux/memory-safety/memset4.ko",
         "ext-modules/linux/net/core/dev/safe.ko",
         "ext-modules/linux/net/core/rtnetlink/safe.ko",
         "ext-modules/linux/net/core/sock/safe.ko"
