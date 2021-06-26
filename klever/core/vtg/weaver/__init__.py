@@ -91,8 +91,7 @@ class Weaver(klever.core.vtg.plugins.Plugin):
 
             return weaver_worker
 
-        # TODO: determine its properly.
-        workers_num = 8 # klever.core.utils.get_parallel_threads_num(self.logger, self.conf, 'Tasks generation')
+        workers_num = klever.core.utils.get_parallel_threads_num(self.logger, self.conf, 'Weaving')
         klever.core.components.launch_queue_workers(self.logger, extra_cc_indexes_queue, constructor, workers_num,
                                                     False)
         self.abstract_task_desc['extra C files'] = list(vals['extra C files'])
