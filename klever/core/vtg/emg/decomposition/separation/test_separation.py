@@ -21,7 +21,7 @@ import logging
 from klever.core.vtg.emg.decomposition.separation import SeparationStrategy
 from klever.core.vtg.emg.common.process.model_for_testing import model_preset
 from klever.core.vtg.emg.decomposition.separation.linear import LinearStrategy
-from klever.core.vtg.emg.common.process.actions import Subprocess, Choice, Receive
+from klever.core.vtg.emg.common.process.actions import Subprocess, Choice, Receive, Block
 
 
 @pytest.fixture
@@ -190,3 +190,8 @@ def _check_linear_actions(scenarios, actions):
     registration = registrations.pop()
     for scenario in scenarios:
         assert scenario.savepoint or registration in scenario.actions.first_actions()
+
+    # No blocks with conditions
+    for scenario in scenarios:
+        for action in scenario.actions.filter(include={Block}):
+            assert not action.condition, "Blocks must be moved to statements as assumptions"

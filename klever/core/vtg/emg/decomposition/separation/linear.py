@@ -19,7 +19,8 @@ import copy
 
 from klever.core.vtg.emg.decomposition.scenario import Scenario, Path
 from klever.core.vtg.emg.decomposition.separation import SeparationStrategy, ScenarioExtractor
-from klever.core.vtg.emg.common.process.actions import Choice, Operator, Concatenation, Action, Behaviour, Subprocess
+from klever.core.vtg.emg.common.process.actions import Choice, Operator, Concatenation, Action, Behaviour, Subprocess, \
+    Block
 
 
 class LinearExtractor(ScenarioExtractor):
@@ -46,8 +47,14 @@ class LinearExtractor(ScenarioExtractor):
             for behaviour in processing_path:
                 new_scenario.add_action_copy(behaviour, new_scenario.initial_action)
                 if behaviour.name not in new_scenario.actions:
-                    new_description = copy.copy(self._actions[behaviour.name])
+                    new_description = copy.deepcopy(self._actions[behaviour.name])
                     new_scenario.actions[behaviour.name] = new_description
+
+                    # Transform blocks
+                    if isinstance(new_description, Block) and new_description.condition:
+                        for statement in reversed(new_description.condition):
+                            new_description.statements.insert(0, f"ldv_assume({statement});")
+                        new_description.condition = []
             return new_scenario
 
         if not action or isinstance(action, Subprocess):
