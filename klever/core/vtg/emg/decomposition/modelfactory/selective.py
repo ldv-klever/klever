@@ -157,11 +157,28 @@ class SelectiveSelector(Selector):
                     'Provide a list of savepoints to the "must contain" parameter'
 
                 for item in must_contain[process_name]['savepoints']:
-                    assert isinstance(item, str), 
+                    assert isinstance(item, str), \
                            "Provide a list of savepoints' names to the 'must contain' parameter"
 
     def _sanity_check_must_not_contain(self, must_contain):
-        raise NotImplementedError
+        for process_name in must_contain:
+            assert process_name in self.model.environment, f'There is no process {process_name} in the model'
+
+            if 'actions' in must_contain[process_name]:
+                assert isinstance(must_contain[process_name]['actions'], list), 'Provide a list of names to the ' \
+                                                                                '"must not contain" parameter'
+
+                for action_name in must_contain[process_name]['actions']:
+                    assert isinstance(action_name, str) and action_name in process_name.actions, \
+                        f"There is no action {action_name} in {process_name}"
+
+            if 'savepoints' in must_contain[process_name]:
+                assert isinstance(must_contain[process_name]['savepoints'], list), \
+                    'Provide a list of savepoints to the "must not contain" parameter'
+
+                for item in must_contain[process_name]['savepoints']:
+                    assert isinstance(item, str), \
+                        "Provide a list of savepoints' names to the 'must not contain' parameter"
 
     def _extract_dependecnies(self):
         # This map contains a map from processes to actions that contains requirements
@@ -224,7 +241,7 @@ class SelectiveSelector(Selector):
             if 'actions' in cover_conf[process_name]:
                 assert(isinstance(cover_conf[process_name]['actions'], list))
                 for item in cover_conf[process_name]['actions']:
-                    assert isinstance(item, str) and item in process_name.actions, \
+                    assert isinstance(item, str) and item in self.model.environment[process_name].actions, \
                         f"There is no action {item} in {process_name}"
                 actions_to_cover = set(cover_conf[process_name]['actions'])
             else:
