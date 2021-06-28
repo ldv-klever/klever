@@ -137,6 +137,32 @@ class SelectiveSelector(Selector):
             self.logger.info(f"Finally generate a batch for model {model.name}")
             yield model, related_process
 
+    def _sanity_check_must_contain(self, must_contain):
+        for process_name in must_contain:
+            assert process_name in self.model.environment, f'There is no process {process_name} in the model'
+
+            if 'actions' in must_contain[process_name]:
+                assert isinstance(must_contain[process_name]['actions'], list), 'Provide a list of lists to the ' \
+                                                                                '"must contain" parameter'
+
+                for item in must_contain[process_name]['actions']:
+                    assert isinstance(item, list), 'Provide a list of lists to the "must contain" parameter'
+
+                    for action_name in item:
+                        assert isinstance(action_name, str) and action_name in process_name.actions, \
+                            f"There is no action {action_name} in {process_name}"
+
+            if 'savepoints' in must_contain[process_name]:
+                assert isinstance(must_contain[process_name]['savepoints'], list), \
+                    'Provide a list of savepoints to the "must contain" parameter'
+
+                for item in must_contain[process_name]['savepoints']:
+                    assert isinstance(item, str), 
+                           "Provide a list of savepoints' names to the 'must contain' parameter"
+
+    def _sanity_check_must_not_contain(self, must_contain):
+        raise NotImplementedError
+
     def _extract_dependecnies(self):
         # This map contains a map from processes to actions that contains requirements
         dependencies_map = dict()
@@ -190,11 +216,16 @@ class SelectiveSelector(Selector):
         coverage = dict()
         for process_name in cover_conf:
             # Subprocesses may not be covered in scenarios, so avoid adding the origin process to cover them
+            assert process_name in self.model.environment, f'There is no process {process_name} in the model'
             actions = set(str(a) for a in self.model.environment[process_name].actions.filter(exclude={Subprocess}))
             savepoints = {str(sp) for ac in self.model.environment[process_name].actions.values()
                           for sp in ac.savepoints}
 
             if 'actions' in cover_conf[process_name]:
+                assert(isinstance(cover_conf[process_name]['actions'], list))
+                for item in cover_conf[process_name]['actions']:
+                    assert isinstance(item, str) and item in process_name.actions, \
+                        f"There is no action {item} in {process_name}"
                 actions_to_cover = set(cover_conf[process_name]['actions'])
             else:
                 actions_to_cover = actions
@@ -203,11 +234,19 @@ class SelectiveSelector(Selector):
                 actions_to_cover.difference_update(set(cover_conf[process_name]['actions except']))
 
             if 'savepoints' in cover_conf[process_name]:
+                assert (isinstance(cover_conf[process_name]['savepoints'], list))
+                for item in cover_conf[process_name]['savepoints']:
+                    assert isinstance(item, str) and item in map(str, self.model.environment[process_name].savepoints),\
+                        f"There is no savepoint {item} in {process_name}"
                 sp_to_cover = set(cover_conf[process_name]['savepoints'])
             else:
                 sp_to_cover = savepoints
 
             if cover_conf[process_name].get('savepoints except'):
+                assert (isinstance(cover_conf[process_name]['savepoints except'], list))
+                for item in cover_conf[process_name]['savepoints except']:
+                    assert isinstance(item, str) and item in map(str, self.model.environment[process_name].savepoints),\
+                        f"There is no savepoint {item} in {process_name}"
                 sp_to_cover.difference_update(set(cover_conf[process_name]['savepoints except']))
 
             self.logger.info(f"Cover the following actions from the process {process_name}: " +
