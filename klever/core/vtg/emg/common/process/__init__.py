@@ -131,6 +131,14 @@ class Process:
         return self._category
 
     @property
+    def savepoints(self):
+        """
+        Quickly get all process savepoints.
+        :return: Set with savepoints.
+        """
+        return {s for a in self.actions.values() for s in a.savepoints}
+
+    @property
     def unused_labels(self):
         """
         Returns a set of label names which are not referenced in the process description. They are candidates to be
