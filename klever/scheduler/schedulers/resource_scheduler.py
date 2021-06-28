@@ -411,7 +411,8 @@ class ResourceManager:
                 raise SchedulerException(
                         "Given resource limits for job and tasks are too high: {}".format(self.__last_limitation_error))
         else:
-            raise SchedulerException("Given resource limits are two high, we do not have such amount of resources")
+            raise SchedulerException(
+                "Given resource limits for job and tasks are too high: {}".format(self.__last_limitation_error))
 
     def node_info(self, node):
         """
@@ -708,7 +709,7 @@ class ResourceManager:
                 if self.__last_limitation_error:
                     self.__last_limitation_error += ', '
                 _, mem = memory_units_converter(disk_memory, outunit='GB')
-                self.__last_limitation_error += f'use {mem} of disk size or less'
+                self.__last_limitation_error += f'use {mem} of disk memory or less'
 
             return False
 
