@@ -21,7 +21,7 @@ import time
 import requests
 import consulate
 
-from klever.scheduler.utils import higher_priority, sort_priority
+from klever.scheduler.utils import higher_priority, sort_priority, memory_units_converter
 from klever.scheduler.schedulers import SchedulerException
 
 
@@ -48,6 +48,7 @@ class ResourceManager:
         self.__jobs_config = {}
         self.__tasks_config = {}
         self.__pool_size = 1000
+        self.__last_limitation_error = ''
 
         self.set_pool_limit(pool_size)
         self.__logger.info("Resource manager is live now with max running jobs limitation is {}".format(max_jobs))
@@ -408,8 +409,7 @@ class ResourceManager:
                 if len(nodes) > 0:
                     return True
                 raise SchedulerException(
-                        "Given resource limits for job and tasks in sum are too high, we do not have such amount of "
-                        "resources")
+                        "Given resource limits for job and tasks are too high: {}".format(self.__last_limitation_error))
         else:
             raise SchedulerException("Given resource limits are two high, we do not have such amount of resources")
 
@@ -696,6 +696,20 @@ class ResourceManager:
                 disk_memory >= restriction["disk memory size"]:
             return True
         else:
+            self.__last_limitation_error = ''
+            if cpu_number < restriction["number of CPU cores"]:
+                self.__last_limitation_error += f'ask {cpu_number} CPU cores or less'
+            if ram_memory < restriction["memory size"]:
+                if self.__last_limitation_error:
+                    self.__last_limitation_error += ', '
+                _, mem = memory_units_converter(ram_memory, outunit='GB')
+                self.__last_limitation_error += f'use {mem} memory or less'
+            if disk_memory < restriction["disk memory size"]:
+                if self.__last_limitation_error:
+                    self.__last_limitation_error += ', '
+                _, mem = memory_units_converter(disk_memory, outunit='GB')
+                self.__last_limitation_error += f'use {mem} of disk size or less'
+
             return False
 
     def __reserve_resources(self, system_status, amount, node=None):
