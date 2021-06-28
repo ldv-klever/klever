@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import copy
 
 from klever.core.vtg.emg.decomposition.scenario import Scenario
 from klever.core.vtg.emg.common.process.actions import Subprocess
@@ -27,6 +28,9 @@ class SelectiveSelector(Selector):
         must_not_contain = self.conf.get("must not contain", dict())
         cover_conf = self.conf.get("cover scenarios", dict())
         greedy = self.conf.get("greedy selection", False)
+
+        self._sanity_check_must_contain(must_contain)
+        self._sanity_check_must_not_contain(must_not_contain)
 
         self.logger.info("Collect dependencies between processes")
         dependencies_map, dependant_map = self._extract_dependecnies()
@@ -74,8 +78,9 @@ class SelectiveSelector(Selector):
             for model in iterate_over_models:
                 self.logger.info(f"Consider adding scenarios to model {model.name}")
                 local_model_pool = list()
+                local_coverage = copy.deepcopy(coverage)
 
-                if process_name in coverage:
+                if process_name in local_coverage:
                     # Filter scenarios with savepoints if there is one already
                     scenarios_items_for_model = self._filter_by_savepoints_in_model(model, scenarios_items)
                 else:
@@ -105,17 +110,17 @@ class SelectiveSelector(Selector):
 
                 scenarios_items_for_model = self._obtain_ordered_scenarios(
                     scenarios_items_for_model,
-                    list(coverage[process_name].values())[-1] if process_name in coverage else None, greedy)
-                while (process_name in coverage or not local_model_pool) and scenarios_items_for_model:
+                    list(local_coverage[process_name].values())[-1] if process_name in local_coverage else None, greedy)
+                while (process_name in local_coverage or not local_model_pool) and scenarios_items_for_model:
                     scenario = scenarios_items_for_model.pop(0)
 
-                    if process_name not in coverage:
+                    if process_name not in local_coverage:
                         new = self._clone_model_with_scenario(process_name, model, scenario)
                         self.logger.info(f"Process {process_name} can be covered by any scenario as it is not required "
                                          f"to cover")
                         local_model_pool.append(new)
                         break
-                    elif self._check_coverage_impact(process_name, coverage[process_name], scenario):
+                    elif self._check_coverage_impact(process_name, local_coverage[process_name], scenario):
                         new = self._clone_model_with_scenario(process_name, model, scenario)
                         self.logger.info(f'Add a new model {new.name}')
                         local_model_pool.append(new)
@@ -134,6 +139,11 @@ class SelectiveSelector(Selector):
             for process_name in (p for p, s in model.environment.items() if s and s.savepoint):
                 related_process = process_name
                 break
+
+            if not related_process and not self.model.entry:
+                self.logger.warning(f"Skip model {model.name} as it has no savepoints and the entry process")
+                continue
+
             self.logger.info(f"Finally generate a batch for model {model.name}")
             yield model, related_process
 
@@ -145,12 +155,13 @@ class SelectiveSelector(Selector):
                 assert isinstance(must_contain[process_name]['actions'], list), 'Provide a list of lists to the ' \
                                                                                 '"must contain" parameter'
 
-                for item in must_contain[process_name]['actions']:
+                for item in must_contain[process_name].get('actions', []):
                     assert isinstance(item, list), 'Provide a list of lists to the "must contain" parameter'
 
                     for action_name in item:
-                        assert isinstance(action_name, str) and action_name in process_name.actions, \
-                            f"There is no action {action_name} in {process_name}"
+                        assert isinstance(action_name, str) and \
+                               action_name in self.model.environment[process_name].actions, \
+                               f"There is no action {action_name} in {process_name}"
 
             if 'savepoints' in must_contain[process_name]:
                 assert isinstance(must_contain[process_name]['savepoints'], list), \
@@ -160,23 +171,23 @@ class SelectiveSelector(Selector):
                     assert isinstance(item, str), \
                            "Provide a list of savepoints' names to the 'must contain' parameter"
 
-    def _sanity_check_must_not_contain(self, must_contain):
-        for process_name in must_contain:
+    def _sanity_check_must_not_contain(self, must_not_contain):
+        for process_name in must_not_contain:
             assert process_name in self.model.environment, f'There is no process {process_name} in the model'
 
-            if 'actions' in must_contain[process_name]:
-                assert isinstance(must_contain[process_name]['actions'], list), 'Provide a list of names to the ' \
-                                                                                '"must not contain" parameter'
+            for item in must_not_contain[process_name].get('actions', []):
+                assert isinstance(item, list), 'Provide a list of lists to the "must not contain" parameter'
 
-                for action_name in must_contain[process_name]['actions']:
-                    assert isinstance(action_name, str) and action_name in process_name.actions, \
-                        f"There is no action {action_name} in {process_name}"
+                for action_name in item:
+                    assert isinstance(action_name, str) and \
+                           action_name in action_name in self.model.environment[process_name].actions, \
+                           f"There is no action {action_name} in {process_name}"
 
-            if 'savepoints' in must_contain[process_name]:
-                assert isinstance(must_contain[process_name]['savepoints'], list), \
+            if 'savepoints' in must_not_contain[process_name]:
+                assert isinstance(must_not_contain[process_name]['savepoints'], list), \
                     'Provide a list of savepoints to the "must not contain" parameter'
 
-                for item in must_contain[process_name]['savepoints']:
+                for item in must_not_contain[process_name]['savepoints']:
                     assert isinstance(item, str), \
                         "Provide a list of savepoints' names to the 'must not contain' parameter"
 

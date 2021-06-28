@@ -117,7 +117,7 @@ def test_contraversal_conditions(model):
 
     spec = {
         "must contain": {"c2/p2": {}},
-        "must not contain": {"c2/p1": {}, "c2/p2": {"savepoints": {}}},
+        "must not contain": {"c2/p1": {}, "c2/p2": {"savepoints": []}},
         "cover scenarios": {"c2/p2": {}}
     }
     with pytest.raises(ValueError):
