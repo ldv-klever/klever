@@ -132,6 +132,15 @@
         "ext-modules/decomposition_linear/a_b_invoke.ko"
       ],
       "environment model": ["base_call_a"]
+    },
+    {
+      "ideal verdict": "unsafe",
+      "program fragments": [
+        "ext-modules/decomposition_selective_default/basic.ko",
+        "ext-modules/decomposition_selective_default/child_savepoints.ko",
+        "ext-modules/decomposition_selective_linear/basic.ko",
+        "ext-modules/decomposition_selective_linear/child_savepoints.ko"
+      ]
     }
   ],
   "extra results processing": "testing",
