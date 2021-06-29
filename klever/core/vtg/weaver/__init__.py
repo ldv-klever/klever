@@ -198,7 +198,7 @@ class WeaverWorker(klever.core.components.Component):
             self.logger.info('Concatenate all aspects of all plugins together')
 
             # Resulting aspect.
-            aspect = 'aspect'
+            aspect = '{0}.aspect'.format(os.path.splitext(os.path.basename(outfile_unique))[0])
 
             # Get all aspects. Place RSG aspects at beginning since they can instrument entities added by
             # aspects of other plugins while corresponding function declarations still need be at beginning
