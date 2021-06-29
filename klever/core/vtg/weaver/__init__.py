@@ -76,6 +76,9 @@ class Weaver(klever.core.vtg.plugins.Plugin):
         # Here workers will put their results, namely, paths to extra C files.
         vals = {'extra C files': multiprocessing.Manager().list()}
 
+        # Lock to mutually exclude Weaver workers from each other.
+        lock = multiprocessing.Manager().Lock()
+
         def constructor(extra_cc_index):
             weaver_worker = WeaverWorker(self.conf, self.logger, self.id, self.callbacks, self.mqs,
                                          vals,
@@ -87,7 +90,8 @@ class Weaver(klever.core.vtg.plugins.Plugin):
                                          aspectator_search_dir=aspectator_search_dir,
                                          env=env,
                                          grp_id=self.extra_ccs[extra_cc_index][0],
-                                         extra_cc=self.extra_ccs[extra_cc_index][1])
+                                         extra_cc=self.extra_ccs[extra_cc_index][1],
+                                         lock=lock)
 
             return weaver_worker
 
@@ -151,7 +155,7 @@ class Weaver(klever.core.vtg.plugins.Plugin):
 class WeaverWorker(klever.core.components.Component):
     def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, id=None, work_dir=None, attrs=None,
                  separate_from_parent=False, include_child_resources=False, search_dirs=None, clade=None,
-                 clade_meta=None, aspectator_search_dir=None, env=None, grp_id=None, extra_cc=None):
+                 clade_meta=None, aspectator_search_dir=None, env=None, grp_id=None, extra_cc=None, lock=None):
         super(WeaverWorker, self).__init__(conf, logger, parent_id, callbacks, mqs, vals, id, work_dir, attrs,
                                            separate_from_parent, include_child_resources)
 
@@ -164,6 +168,7 @@ class WeaverWorker(klever.core.components.Component):
         self.env = env
         self.grp_id = grp_id
         self.extra_cc = extra_cc
+        self.lock = lock
 
     def process_extra_cc(self):
         # Each CC is either pair (compiler command identifier, compiler command type) or JSON file name
@@ -186,9 +191,12 @@ class WeaverWorker(klever.core.components.Component):
 
             infile = cc["in"][0]
 
-        # Distinguish source files having the same names.
-        outfile_unique = '{0}.i'.format(
-            klever.core.utils.unique_file_name(os.path.splitext(os.path.basename(infile))[0], '.i'))
+        # Distinguish input source files having the same names. Here we would like to recreate again the appropriate
+        # directory structure as this will result into too long path names. Locking is necessary to have really unique
+        # names between different workers that can run in parallel.
+        with self.lock:
+            outfile_unique = '{0}.i'.format(
+                klever.core.utils.unique_file_name(os.path.splitext(os.path.basename(infile))[0], '.i'))
         # This is used for storing/getting to/from cache where uniqueness is guaranteed by other means.
         outfile = '{0}.i'.format(os.path.splitext(os.path.basename(infile))[0])
         self.logger.info('Weave in C file "{0}"'.format(infile))
