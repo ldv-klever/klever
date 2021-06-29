@@ -692,24 +692,31 @@ class ResourceManager:
 
         # Check rest resources
         cpu_number, ram_memory, disk_memory = self.__free_resources(node)
+        cpu_number_limit, memory_size_limit, disk_memory_size_limit = \
+            restriction["number of CPU cores"], restriction["memory size"], restriction["disk memory size"]
 
-        if cpu_number >= restriction["number of CPU cores"] and ram_memory >= restriction["memory size"] and \
-                disk_memory >= restriction["disk memory size"]:
+        if cpu_number >= cpu_number_limit and ram_memory >= memory_size_limit and \
+                disk_memory >= disk_memory_size_limit:
             return True
         else:
             self.__last_limitation_error = ''
-            if cpu_number < restriction["number of CPU cores"]:
-                self.__last_limitation_error += f'ask {cpu_number} CPU cores or less'
-            if ram_memory < restriction["memory size"]:
+            if cpu_number < cpu_number_limit:
+                self.__last_limitation_error += f'you can ask for {cpu_number} CPU cores or less in total' \
+                                                f' while current demand is {cpu_number_limit}'
+            if ram_memory < memory_size_limit:
                 if self.__last_limitation_error:
                     self.__last_limitation_error += ', '
                 _, mem = memory_units_converter(ram_memory, outunit='GB')
-                self.__last_limitation_error += f'use {mem} memory or less'
-            if disk_memory < restriction["disk memory size"]:
+                _, mem_limit = memory_units_converter(memory_size_limit, outunit='GB')
+                self.__last_limitation_error += f'you can use {mem} of memory or less in total' \
+                                                f' while current demand is {mem_limit}'
+            if disk_memory < disk_memory_size_limit:
                 if self.__last_limitation_error:
                     self.__last_limitation_error += ', '
                 _, mem = memory_units_converter(disk_memory, outunit='GB')
-                self.__last_limitation_error += f'use {mem} of disk memory or less'
+                _, mem_limit = memory_units_converter(disk_memory_size_limit, outunit='GB')
+                self.__last_limitation_error += f'you can use {mem} of disk memory or less in total' \
+                                                f' while current demand is {mem_limit}'
 
             return False
 
