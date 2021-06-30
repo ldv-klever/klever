@@ -248,7 +248,13 @@ class FillCoverageStatistics:
         cnt = 0
         new_objects = {}
         for fname in self._statistics:
-            cov_lines, tot_lines, cov_funcs, tot_func = self._statistics[fname]
+            cov_data = self._statistics[fname]
+            if len(cov_data) == 4:
+                cov_lines, tot_lines, cov_funcs, tot_func = cov_data
+            else:
+                cov_lines = cov_funcs = None
+                tot_lines, tot_func = cov_data
+
             path_l = tuple(fname.split(self.file_sep))
             for i in range(len(path_l)):
                 curr_path = path_l[:(i + 1)]
@@ -262,16 +268,16 @@ class FillCoverageStatistics:
                         path='/'.join(curr_path),
                         depth=len(curr_path)
                     )
-                if cov_lines or cov_funcs:
+                if cov_lines is not None or cov_funcs is not None:
                     new_objects[curr_path].lines_covered += cov_lines
                     new_objects[curr_path].lines_total += tot_lines
                     new_objects[curr_path].funcs_covered += cov_funcs
                     new_objects[curr_path].funcs_total += tot_func
+                    new_objects[curr_path].lines_covered_extra += cov_lines
+                    new_objects[curr_path].funcs_covered_extra += cov_funcs
                 else:
                     self.has_extra = True
-                new_objects[curr_path].lines_covered_extra += cov_lines
                 new_objects[curr_path].lines_total_extra += tot_lines
-                new_objects[curr_path].funcs_covered_extra += cov_funcs
                 new_objects[curr_path].funcs_total_extra += tot_func
 
         ordered_objects_list = list(sorted(new_objects.values(), key=lambda x: (x.is_leaf, x.name)))
