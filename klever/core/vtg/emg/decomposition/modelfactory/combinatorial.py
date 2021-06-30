@@ -34,7 +34,7 @@ class CombinatorialSelector(Selector):
                     for new_model in (list(pool) if pool else [new]):
                         for scenario in (s for s in self.processes_to_scenarios[process_name] if not s.savepoint):
                             newest = new_model.clone(new_model.name)
-                            extend_model_name(newest, scenario.name)
+                            extend_model_name(newest, process_name, scenario.name)
                             self.logger.info(f"Add a new model '{newest.name}' from model '{new_model.name}' "
                                              f"and scenario '{scenario.name}'")
                             self._assign_scenario(newest, scenario, process_name)

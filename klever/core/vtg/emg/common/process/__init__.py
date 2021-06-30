@@ -497,13 +497,19 @@ class ProcessCollection:
         self.models = ProcessDict()
         self.environment = ProcessDict()
         self.name = name
+        self.attributes = dict()
 
     @property
-    def formatted_name(self):
+    def attributed_name(self):
         """Generate name that can be used to create directories"""
+        if self.attributes:
+            name = ', '.join((f"{p}:{self.attributes[p]}" for p in sorted(self.attributes.keys())))
+        else:
+            name = self.name
+
         remove_punctuation_map = dict((ord(char), '_') for char in string.punctuation)
         remove_punctuation_map[ord(' ')] = '_'
-        return self.name.translate(remove_punctuation_map)
+        return name.translate(remove_punctuation_map)
 
     @property
     def processes(self):

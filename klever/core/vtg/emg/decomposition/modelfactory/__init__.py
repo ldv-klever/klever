@@ -23,21 +23,17 @@ from klever.core.vtg.emg.decomposition.scenario import Scenario
 from klever.core.vtg.emg.common.process import Process, ProcessCollection
 
 
-def extend_model_name(model, name):
+def extend_model_name(model, process_name, attribute):
     assert model
     assert isinstance(model, (ProcessCollection, ScenarioCollection))
-    assert isinstance(name, str)
-
-    if model.name == 'base' and name != 'base':
-        model.name = name.capitalize()
-    elif model.name != 'base' and name != 'base':
-        model.name += f', {name}'
+    assert isinstance(process_name, str) and isinstance(attribute, str)
+    model.attributes[process_name] = attribute
 
 
 def remove_process(model, process_name):
     assert process_name and process_name in model.environment
     del model.environment[process_name]
-    extend_model_name(model, f'no {process_name}')
+    extend_model_name(model, process_name, 'Removed')
 
 
 class ScenarioCollection:
@@ -53,6 +49,7 @@ class ScenarioCollection:
         self.entry = entry
         self.models = models if isinstance(models, dict) else dict()
         self.environment = environment if isinstance(environment, dict) else dict()
+        self.attributes = dict()
 
     def clone(self, new_name: str):
         """
@@ -126,7 +123,7 @@ class Selector:
 
         if scenario:
             assert scenario.name
-            extend_model_name(batch, scenario.name)
+            extend_model_name(batch, process_name, scenario.name)
 
 
 class ModelFactory:
@@ -145,6 +142,7 @@ class ModelFactory:
         selector = self.strategy(self.logger, self.conf, processes_to_scenarios, model)
         for batch, related_process in selector():
             new = ProcessCollection(batch.name)
+            new.attributes = copy.deepcopy(batch.attributes)
 
             # Do sanity check to catch several savepoints in a model
             sp_scenarios = {s for s in batch.environment.values() if isinstance(s, Scenario) and s.savepoint}

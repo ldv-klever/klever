@@ -63,7 +63,6 @@ Task = collections.namedtuple('Task', 'fragment rule_class envmodel rule workdir
 # Global values to be set once and used by other components running in parallel with the VTG
 REQ_SPEC_CLASSES = None
 FRAGMENT_DESC_FIELS = None
-SINGLE_ENV_NAME = 'base'
 
 
 class VTG(klever.core.components.Component):
@@ -751,9 +750,8 @@ class EMGW(VTGW):
 
         # Generate task descriptions for further tasks
         for task_desc in tasks:
-            env_model = task_desc.get("environment model identifier", SINGLE_ENV_NAME)
-            env_path = task_desc.get("environment model pathname", SINGLE_ENV_NAME)
-            create_task(task_desc, env_model, env_path)
+            env_path = task_desc.get("environment model pathname")
+            create_task(task_desc, env_path, env_path)
 
         # Submit new tasks to the VTG
         return type(self.task).__name__, tuple(self.task), self.work_dir, pairs
@@ -793,14 +791,19 @@ class EMGW(VTGW):
 class PLUGINS(VTGW):
 
     def _submit_attrs(self):
-        if self.task.envmodel != SINGLE_ENV_NAME:
-            self.attrs.append(
-                {
-                    "name": "Environment model",
-                    "value": self.task.envmodel,
-                    "compare": True
-                }
-            )
+        initial_abstract_task_desc_file = os.path.join(os.path.pardir, self.initial_abstract_task_desc_file)
+        # Initial abstract verification task looks like corresponding program fragment.
+        with open(initial_abstract_task_desc_file, 'r', encoding='utf-8') as fp:
+            initial_abstract_task_desc = json.load(fp)
+        if initial_abstract_task_desc["environment model attributes"]:
+            for entry, value in initial_abstract_task_desc["environment model attributes"].items():
+                self.attrs.append(
+                    {
+                        "name": f"Environment model '{entry}'",
+                        "value": value,
+                        "compare": True
+                    }
+                )
         self.attrs.append(
             {
                 "name": "Requirements specification",

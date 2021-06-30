@@ -63,13 +63,15 @@ class EMG(Plugin):
         # Import additional aspect files
         abstract_task = self.abstract_task_desc
         self.abstract_task_desc = list()
-        for model in decompose_intermediate_model(self.logger, self.conf, collection):
+        for number, model in enumerate(decompose_intermediate_model(self.logger, self.conf, collection)):
+            model.name = number
             new_description = translate_intermediate_model(self.logger, self.conf, copy.deepcopy(abstract_task), sa,
                                                            model)
-            new_description["environment model identifier"] = model.name
-            new_description["environment model pathname"] = model.formatted_name
+
+            new_description["environment model attributes"] = model.attributes
+            new_description["environment model pathname"] = str(number)
             self.abstract_task_desc.append(new_description)
-            self.logger.info(f"An environment model {model.name} has been generated successfully")
+            self.logger.info(f"An environment model {model.attributed_name} has been generated successfully")
 
         if len(self.abstract_task_desc) == 0:
             raise ValueError('There is no generated environment models')
