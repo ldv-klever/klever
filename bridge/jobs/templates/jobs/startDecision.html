@@ -95,10 +95,16 @@
             <input class="parallelism-values" id="parallelism_1" type="text" value="{{ data.conf.parallelism.1 }}">
         </div>
         <br><br>
-        <label for="parallelism_2">{% trans 'Results processing' %}</label>
+        <label for="parallelism_2">{% trans 'Weaving' %}</label>
         <br>
         <div class="ui input">
             <input class="parallelism-values" id="parallelism_2" type="text" value="{{ data.conf.parallelism.2 }}">
+        </div>
+        <br><br>
+        <label for="parallelism_3">{% trans 'Results processing' %}</label>
+        <br>
+        <div class="ui input">
+            <input class="parallelism-values" id="parallelism_3" type="text" value="{{ data.conf.parallelism.3 }}">
         </div>
         <br><br><br>
         {% for p in data.parallelism %}
