@@ -231,3 +231,20 @@ class OSClient:
             sys.exit(errno.EACCES)
 
         return session
+
+    def find_flavor(self, vcpus, ram, disk):
+        try:
+            return self.nova.flavors.find(vcpus=vcpus, ram=ram, disk=disk)
+        except novaclient.exceptions.NotFound:
+            self.logger.error(
+                f'There is no flavor with {vcpus} VCPUs, {ram} MB of RAM, {disk} GB of disk space')
+
+            # Sort available flavors
+            flavors = sorted(self.nova.flavors.list(), key=lambda f: (f.vcpus, f.ram, f.disk))
+
+            self.logger.error(
+                'You can use one of the following flavors:\n{0}'.format(
+                    '\n'.join(['    {0} - {1} VCPUs, {2} MB of RAM, {3} GB of disk space'
+                               .format(flavor.name, flavor.vcpus, flavor.ram, flavor.disk)
+                               for flavor in flavors])))
+            sys.exit(errno.EINVAL)

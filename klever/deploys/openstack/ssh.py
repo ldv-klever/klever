@@ -121,7 +121,7 @@ class SSH:
         self.logger.info('Open interactive SSH to instance "{0}" (IP: {1})'.format(self.name, self.floating_ip))
 
         execute_cmd(self.logger, 'ssh', '-o', 'StrictHostKeyChecking=no', '-i', self.args.ssh_rsa_private_key_file,
-                    '{0}@{1}'.format(self.args.ssh_username, self.floating_ip))
+                    '{0}@{1}'.format(self.args.ssh_username, self.floating_ip), keep_stdout=True)
 
     def rsync(self, host_path, instance_path):
         if not instance_path:

@@ -1,0 +1,51 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Project:Version",
+      "value": "v5.7-rc1-366-gdee2dabc0e41"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/staging/iio/impedance-analyzer/ad5933.ko"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "drivers:clk2"
+    }
+  ],
+  "description": "https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/commit/?id=da7de29bb171",
+  "error_trace": [
+    [
+      [
+        {
+          "EMG wrapper": [
+            {
+              "ad5933_probe": [
+                {
+                  "Instrumented function 'clk_disable_unprepare'": [
+                    {
+                      "LDV model 'clk_disable_mclk_of_ad5933_state'": [
+                        {
+                          "LDV model 'assert'": []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": false,
+  "status": null,
+  "tags": [],
+  "threshold": 100,
+  "verdict": "2"
+}

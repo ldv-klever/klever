@@ -1,0 +1,76 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Project:Version",
+      "value": "v5.8-rc6-208-g75ae051efc9b"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/usb/gadget/udc/net2272.ko"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "arch:mm:ioremap"
+    }
+  ],
+  "description": "https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/commit/?id=ae90cc8237bf",
+  "error_trace": [
+    [
+      [
+        {
+          "EMG wrapper": [
+            {
+              "net2272_pci_probe": [
+                {
+                  "net2272_rdk1_probe": [
+                    {
+                      "Instrumented function 'ioremap'": [
+                        {
+                          "LDV model 'io_mem_remap'": []
+                        }
+                      ]
+                    },
+                    {
+                      "Instrumented function 'ioremap'": [
+                        {
+                          "LDV model 'io_mem_remap'": []
+                        }
+                      ]
+                    },
+                    {
+                      "Instrumented function 'iounmap'": [
+                        {
+                          "LDV model 'io_mem_unmap'": []
+                        }
+                      ]
+                    },
+                    {
+                      "Instrumented function 'iounmap'": [
+                        {
+                          "LDV model 'io_mem_unmap'": [
+                            {
+                              "LDV model 'assert'": []
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": false,
+  "status": null,
+  "tags": [],
+  "threshold": 100,
+  "verdict": "2"
+}

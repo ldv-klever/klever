@@ -1,0 +1,69 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Project:Version",
+      "value": "v5.7-rc3-59-gd8ef2b73a459"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/mtd/nand/raw/stm32_fmc2_nand.ko"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "drivers:clk1"
+    }
+  ],
+  "description": "https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/commit/?id=71d1f1d5958f",
+  "error_trace": [
+    [
+      [
+        {
+          "Entry point 'main'": [
+            {
+              "LDV model 'check_final_state'": [
+                {
+                  "LDV model 'assert'": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    ],
+    [
+      [
+        {
+          "EMG wrapper": [
+            {
+              "stm32_fmc2_probe": [
+                {
+                  "Instrumented function 'clk_prepare_enable'": [
+                    {
+                      "LDV model 'clk_prepare_enable_clk_of_stm32_fmc2_nfc'": [
+                        {
+                          "LDV model 'clk_prepare_clk_of_stm32_fmc2_nfc'": []
+                        },
+                        {
+                          "LDV model 'clk_enable_clk_of_stm32_fmc2_nfc'": []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": false,
+  "status": null,
+  "tags": [],
+  "threshold": 100,
+  "verdict": "2"
+}

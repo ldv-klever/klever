@@ -1,0 +1,59 @@
+/*
+ * Copyright (c) 2021 ISP RAS (http://www.ispras.ru)
+ * Ivannikov Institute for System Programming of the Russian Academy of Sciences
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+before: file("$this")
+{
+#include <ldv/linux/bitmap.h>
+} 
+
+around: call(static inline void set_bit(long nr, volatile unsigned long *addr)) ||
+        call(static inline void set_bit(int nr, volatile unsigned long *addr))
+{
+	ldv_set_bit(nr, addr);
+}
+
+around: call(static inline void clear_bit(long nr, volatile unsigned long *addr)) ||
+        call(static inline void clear_bit(int nr, volatile unsigned long *addr))
+{
+	ldv_clear_bit(nr, addr);
+}
+
+around: call(static inline void bitmap_set(unsigned long *map, unsigned int start, unsigned int nbits)) ||
+        call(void bitmap_set(unsigned long *map, int start, int nbits)) ||
+        call(void bitmap_set(unsigned long *map, unsigned int start, int nbits))
+{
+	ldv_bitmap_set(map, start, nbits);
+}
+
+around: call(static inline void bitmap_clear(unsigned long *map, unsigned int start, unsigned int nbits)) ||
+        call(void bitmap_clear(unsigned long *map, int start, int nbits)) ||
+        call(void bitmap_clear(unsigned long *map, unsigned int start, int nbits))
+{
+	ldv_bitmap_clear(map, start, nbits);
+}
+
+around: call(static inline void bitmap_zero(unsigned long *dst, unsigned int nbits)) ||
+        call(static inline void bitmap_zero(unsigned long *dst, int nbits))
+{
+	ldv_bitmap_zero(dst, nbits);
+}
+
+around: call(static inline unsigned long bitmap_find_next_zero_area(unsigned long *map, unsigned long size, unsigned long start, unsigned int nr, unsigned long align_mask)) ||
+        call(unsigned long bitmap_find_next_zero_area(unsigned long *map, unsigned long size, unsigned long start, unsigned int nr, unsigned long align_mask))
+{
+	return ldv_bitmap_find_next_zero_area(map, size, start, nr, align_mask);
+}

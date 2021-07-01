@@ -6,7 +6,6 @@ Requires=rabbitmq-server.service
 Type=idle
 User=klever
 EnvironmentFile=/etc/default/klever
-ExecStartPre=/bin/sh -c "sleep 10"
 ExecStart=/bin/sh -c "${KLEVER_PYTHON_BIN_DIR}/klever-native-scheduler ${KLEVER_DEPLOYMENT_DIRECTORY}/klever-conf/native-scheduler.json"
 Restart=on-failure
 RestartSec=5

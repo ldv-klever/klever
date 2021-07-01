@@ -42,6 +42,7 @@ class MakeProgram(Program):
         if intercept_build_cmds:
             clade = Clade(cmds_file=self.cmds_file)
 
+            self.logger.info('Execute command "{0}" intercepting build commands'.format(' '.join(cmd)))
             # TODO: Add support of passing custom environment and capturing stdout with stderr
             r = clade.intercept(cmd, append=True, cwd=self.work_src_tree)
 
