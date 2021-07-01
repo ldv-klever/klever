@@ -37,8 +37,12 @@
                     {% endif %}
                     <span>{{ cov_obj.name }}</span>
                 </td>
-                <td{% if cov_obj.lines_color %} style="background-color: {{ cov_obj.lines_color }};"{% endif %}><b>{{ cov_obj.lines_percentage }}</b> ({{ cov_obj.lines_covered }}/{{ cov_obj.lines_total }})</td>
-                <td{% if cov_obj.funcs_color %} style="background-color: {{ cov_obj.funcs_color }};"{% endif %}><b>{{ cov_obj.funcs_percentage }}</b> ({{ cov_obj.funcs_covered }}/{{ cov_obj.funcs_total }})</td>
+                <td{% if cov_obj.lines_color %} style="background-color: {{ cov_obj.lines_color }};"{% endif %}>
+                    <b>{{ cov_obj.lines_percentage }}</b>{% if cov_obj.lines_total > 0 %} ({{ cov_obj.lines_covered }}/{{ cov_obj.lines_total }}){% endif %}
+                </td>
+                <td{% if cov_obj.funcs_color %} style="background-color: {{ cov_obj.funcs_color }};"{% endif %}>
+                    <b>{{ cov_obj.funcs_percentage }}</b>{% if cov_obj.funcs_total %} ({{ cov_obj.funcs_covered }}/{{ cov_obj.funcs_total }}){% endif %}
+                </td>
             </tr>
         {%  endfor %}
     </tbody>
