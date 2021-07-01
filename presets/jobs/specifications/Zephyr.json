@@ -68,7 +68,7 @@
             "verifier profile": "reachability",
             "verifier": {
               "name": "CPAchecker",
-              "version": "klever-fixes:37150"
+              "version": "klever-fixes:37649"
             }
           }
         }
