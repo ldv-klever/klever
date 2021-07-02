@@ -340,6 +340,12 @@ class ErrorTrace:
         return data, self._attrs
 
     def add_attr(self, name, value, associate, compare):
+        m = re.match(r'(.*) (__anonstruct_[^ ]*) (.*)', value)
+        if m:
+            anon_struct_name = m.group(2)
+            anon_struct_name = re.sub(r'_\d+$', '', anon_struct_name)
+            value = "{0} {1} {2}".format(m.group(1), anon_struct_name, m.group(3))
+
         self._attrs.append({
             'name': name,
             'value': value,
