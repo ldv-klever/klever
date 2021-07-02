@@ -64,12 +64,12 @@ class EMG(Plugin):
         abstract_task = self.abstract_task_desc
         self.abstract_task_desc = list()
         for number, model in enumerate(decompose_intermediate_model(self.logger, self.conf, collection)):
-            model.name = number
+            model.name = str(number)
             new_description = translate_intermediate_model(self.logger, self.conf, copy.deepcopy(abstract_task), sa,
                                                            model)
 
             new_description["environment model attributes"] = model.attributes
-            new_description["environment model pathname"] = str(number)
+            new_description["environment model pathname"] = model.name
             self.abstract_task_desc.append(new_description)
             self.logger.info(f"An environment model {model.attributed_name} has been generated successfully")
 

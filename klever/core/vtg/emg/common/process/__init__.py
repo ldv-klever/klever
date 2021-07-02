@@ -505,7 +505,7 @@ class ProcessCollection:
         if self.attributes:
             name = ', '.join((f"{p}:{self.attributes[p]}" for p in sorted(self.attributes.keys())))
         else:
-            name = self.name
+            name = str(self.name)
 
         remove_punctuation_map = dict((ord(char), '_') for char in string.punctuation)
         remove_punctuation_map[ord(' ')] = '_'
