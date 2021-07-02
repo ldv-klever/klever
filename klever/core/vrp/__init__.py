@@ -596,6 +596,10 @@ class RP(klever.core.components.Component):
                 else:
                     coverage_file = os.path.join('output', 'additionalCoverage.info')
 
+                    # TODO: CPALockator does not output enhanced code coverage reports at the moment.
+                    if not os.path.exists(coverage_file):
+                        coverage_file = os.path.join('output', 'coverage.info')
+
                 LCOV(self.conf, self.logger, coverage_file,
                      self.clade, self.source_paths,
                      self.search_dirs, self.conf['main working directory'],
