@@ -46,9 +46,6 @@ def __submit_common_attrs(context):
     context.mqs['VRP common attrs'].put(context.common_attrs)
 
 
-SINGLE_ENV_NAME = 'base'
-
-
 class VRP(klever.core.components.Component):
 
     def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, id=None, work_dir=None, attrs=None,
@@ -172,7 +169,7 @@ class VRP(klever.core.components.Component):
                 break
 
             status, data, attempt, source_paths = element
-            pf, rule_class, envmodel, requirement, _ = data[1]
+            pf, rule_class, envmodel, requirement, _, envattrs = data[1]
             result_key = f'{pf}:{envmodel}:{requirement}'
             self.logger.info(f'Receive solution {result_key}')
             attrs = None
@@ -225,6 +222,7 @@ class RP(klever.core.components.Component):
         self.element = element
         self.verdict = None
         self.envmodel = None
+        self.envattrs = None
         self.req_spec_id = None
         self.program_fragment_id = None
         self.task_error = None
@@ -254,9 +252,10 @@ class RP(klever.core.components.Component):
         element = self.element
         status, data = element
         task_id, task_desc, opts, program_fragment_desc, verifier, additional_srcs, verification_task_files = data
-        program_fragment_id, _, envmodel, req_spec_id, _ = task_desc
+        program_fragment_id, _, envmodel, req_spec_id, _, envattrs = task_desc
         self.program_fragment_id = program_fragment_id
         self.envmodel = envmodel
+        self.envattrs = dict(envattrs)
         self.req_spec_id = req_spec_id
         self.results_key = f'{program_fragment_id}:{envmodel}:{req_spec_id}'
         self.additional_srcs = additional_srcs
@@ -265,13 +264,13 @@ class RP(klever.core.components.Component):
 
         files_list_file = 'files list.txt'
         klever.core.utils.save_program_fragment_description(program_fragment_desc, files_list_file)
-        if envmodel != SINGLE_ENV_NAME:
+        if self.envattrs:
             attrs = [{
-                "name": "Environment model",
-                "value": envmodel,
+                "name":  f"Environment model '{attr}'",
+                "value": value,
                 "compare": True,
                 "associate": True
-            }]
+            } for attr, value in dict(self.envattrs).items() if value]
         else:
             attrs = []
         attrs.extend([

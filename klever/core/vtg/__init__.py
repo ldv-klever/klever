@@ -58,7 +58,7 @@ def __submit_common_attrs(context):
 
 # Classes for queue transfer
 Abstract = collections.namedtuple('AbstractTask', 'fragment rule_class')
-Task = collections.namedtuple('Task', 'fragment rule_class envmodel rule workdir')
+Task = collections.namedtuple('Task', 'fragment rule_class envmodel rule workdir, envattrs')
 
 # Global values to be set once and used by other components running in parallel with the VTG
 REQ_SPEC_CLASSES = None
@@ -418,10 +418,10 @@ class VTG(klever.core.components.Component):
 
                     # Generate a verification task per a new environment model and rule
                     if models:
-                        for env_model, workdir in models:
+                        for env_model, workdir, envattrs in models:
                             for rule in self.req_spec_classes[atask.rule_class]:
                                 new_workdir = os.path.join(workdir, rule)
-                                new = Task(atask.fragment, atask.rule_class, env_model, rule, new_workdir)
+                                new = Task(atask.fragment, atask.rule_class, env_model, rule, new_workdir, envattrs)
                                 self.logger.debug(f'Create verification task {new}')
                                 if not keep_dirs:
                                     atask_tasks[atask].add(new)
@@ -732,15 +732,15 @@ class VTGW(klever.core.components.Component):
 class EMGW(VTGW):
 
     def _get_prepared_data(self):
-        pairs = []
+        triples = []
 
-        def create_task(task, model, pathname):
+        def create_task(task, model, pathname, envattrs):
             task_workdir = os.path.join(self.work_dir, pathname)
             os.makedirs(task_workdir, exist_ok=True)
             task_file = os.path.join(task_workdir, self.initial_abstract_task_desc_file)
             with open(task_file, 'w', encoding='utf-8') as handle:
                 klever.core.utils.json_dump(task, handle, self.conf['keep intermediate files'])
-            pairs.append([model, task_workdir])
+            triples.append([model, task_workdir, envattrs])
 
         # Send tasks to the VTG
         out_file = os.path.join(self.work_dir, self.out_abstract_task_desc_file)
@@ -758,10 +758,11 @@ class EMGW(VTGW):
         # Generate task descriptions for further tasks
         for task_desc in tasks:
             env_path = task_desc.get("environment model pathname")
-            create_task(task_desc, env_path, env_path)
+            env_attrs = tuple(task_desc.get("environment model attributes", dict()).items())
+            create_task(task_desc, env_path, env_path, env_attrs)
 
         # Submit new tasks to the VTG
-        return type(self.task).__name__, tuple(self.task), self.work_dir, pairs
+        return type(self.task).__name__, tuple(self.task), self.work_dir, triples
 
     def _generate_abstact_verification_task_desc(self):
         fragment = self.task.fragment
@@ -798,19 +799,17 @@ class EMGW(VTGW):
 class PLUGINS(VTGW):
 
     def _submit_attrs(self):
-        initial_abstract_task_desc_file = os.path.join(os.path.pardir, self.initial_abstract_task_desc_file)
-        # Initial abstract verification task looks like corresponding program fragment.
-        with open(initial_abstract_task_desc_file, 'r', encoding='utf-8') as fp:
-            initial_abstract_task_desc = json.load(fp)
-        if initial_abstract_task_desc["environment model attributes"]:
-            for entry, value in initial_abstract_task_desc["environment model attributes"].items():
-                self.attrs.append(
-                    {
-                        "name": f"Environment model '{entry}'",
-                        "value": value,
-                        "compare": True
-                    }
-                )
+        if self.task.envattrs:
+            environment_attributes = dict(self.task.envattrs)
+            for entry, value in environment_attributes.items():
+                if value:
+                    self.attrs.append(
+                        {
+                            "name": f"Environment model '{entry}'",
+                            "value": value,
+                            "compare": True
+                        }
+                    )
         self.attrs.append(
             {
                 "name": "Requirements specification",
