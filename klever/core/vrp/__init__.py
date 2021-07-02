@@ -592,7 +592,13 @@ class RP(klever.core.components.Component):
                 # code coverage reports corresponding to violation witnesses just in case when there is the only
                 # violation witness. Otherwise, use a common code coverage report.
                 if len(glob.glob(os.path.join('output', 'witness.*.graphml'))) == 1:
-                    coverage_file = glob.glob(os.path.join('output', 'Counterexample.*.additionalCoverage.info'))[0]
+                    coverage_files = glob.glob(os.path.join('output', 'Counterexample.*.additionalCoverage.info'))
+
+                    if coverage_files:
+                        coverage_file = coverage_files[0]
+                    # TODO: CPALockator does not output enhanced code coverage reports at the moment.
+                    else:
+                        coverage_file = os.path.join('output', 'coverage.info')
                 else:
                     coverage_file = os.path.join('output', 'additionalCoverage.info')
 
