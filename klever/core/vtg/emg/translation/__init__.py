@@ -57,7 +57,8 @@ def translate_intermediate_model(logger, conf, avt, source, collection):
     assert model_path, 'Each environment model should have a unique name'
     assert not os.path.isdir(model_path), f'Model name {model_path} is used twice'
     os.makedirs(model_path)
-    os.symlink(model_path, collection.attributed_name, target_is_directory=True)
+    # todo: There are collisions possible
+    # os.symlink(model_path, collection.attributed_name, target_is_directory=True)
 
     # Save processes
     model_file = os.path.join(model_path, 'input model.json')
