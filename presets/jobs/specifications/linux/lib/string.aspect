@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+ * Copyright (c) 2021 ISP RAS (http://www.ispras.ru)
  * Ivannikov Institute for System Programming of the Russian Academy of Sciences
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,18 +17,25 @@
 
 before: file("$this")
 {
-unsigned long ldv_find_next_bit(unsigned long size, unsigned long offset);
-unsigned long ldv_find_first_bit(unsigned long size);
+#include <ldv/linux/string.h>
 }
 
-around: call (unsigned long find_next_zero_bit(const unsigned long *addr, unsigned long size, unsigned long offset)) ||
-        call (unsigned long find_next_bit(const unsigned long *addr, unsigned long size, unsigned long offset))
+around: call(size_t strlen(const char *s))
 {
-	return ldv_find_next_bit(size, offset);
+	return ldv_strlen(s);
 }
 
-around: call (unsigned long find_first_zero_bit(const unsigned long *addr, unsigned long size)) ||
-        call (unsigned long find_first_bit(const unsigned long *addr, unsigned long size))
+around: call(int strcmp(const char *cs, const char *ct))
 {
-	return ldv_find_first_bit(size);
+	return ldv_strcmp(cs, ct);
+}
+
+around: call(int strncmp(const char *cs, const char *ct, __kernel_size_t count))
+{
+	return ldv_strncmp(cs, ct, count);
+}
+
+around: call(char *strstr(const char *s1, const char *s2))
+{
+	return ldv_strstr(s1, s2);
 }

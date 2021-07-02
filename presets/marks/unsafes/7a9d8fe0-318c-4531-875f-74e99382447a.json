@@ -1,0 +1,69 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Project:Version",
+      "value": "v5.8-rc1-3-g48aae57f0f9f"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/mtd/spi-nor/controllers/cadence-quadspi.ko"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "drivers:clk1"
+    }
+  ],
+  "description": "https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/commit/?id=c61088d1f993",
+  "error_trace": [
+    [
+      [
+        {
+          "Entry point 'main'": [
+            {
+              "LDV model 'check_final_state'": [
+                {
+                  "LDV model 'assert'": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    ],
+    [
+      [
+        {
+          "EMG wrapper": [
+            {
+              "cqspi_probe": [
+                {
+                  "Instrumented function 'clk_prepare_enable'": [
+                    {
+                      "LDV model 'clk_prepare_enable_clk_of_cqspi_st'": [
+                        {
+                          "LDV model 'clk_prepare_clk_of_cqspi_st'": []
+                        },
+                        {
+                          "LDV model 'clk_enable_clk_of_cqspi_st'": []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": false,
+  "status": null,
+  "tags": [],
+  "threshold": 100,
+  "verdict": "2"
+}

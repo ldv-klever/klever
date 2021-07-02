@@ -1,0 +1,70 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Project:Version",
+      "value": "v5.9-rc7-550-gbf65f8aabdb3"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/media/usb/usbtv/usbtv.ko"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "memory safety"
+    }
+  ],
+  "description": "",
+  "error_trace": [
+    [
+      [
+        {
+          "EMG wrapper": [
+            {
+              "usbtv_probe": [
+                {
+                  "Instrumented function 'kzalloc'": [
+                    {
+                      "LDV model 'kzalloc'": [
+                        {
+                          "LDV model 'zalloc'": [
+                            {
+                              "LDV model 'reference_zalloc'": []
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Instrumented function 'kfree'": [
+                    {
+                      "LDV model 'free'": [
+                        {
+                          "LDV model 'reference_free'": []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": false,
+  "status": null,
+  "tags": [
+    "API models - Linux kernel - kref*",
+    "API models",
+    "API models - Linux kernel"
+  ],
+  "threshold": 100,
+  "verdict": "3"
+}

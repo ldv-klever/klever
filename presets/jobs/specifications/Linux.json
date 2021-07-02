@@ -85,6 +85,7 @@
             "common sets model": "counter",
             "model compiler input file": "scripts/mod/empty.c",
             "common models": [
+              "common/inline_asm.c",
               "linux/arch/asm/current.c",
               "linux/arch/asm/atomic.c",
               "linux/drivers/base/dd.c",
@@ -98,6 +99,9 @@
               "linux/fs/dcache/dcache.c",
               "linux/kernel/panic.c",
               "linux/common.c",
+              "linux/lib/bitmap.c",
+              "linux/lib/find_bit.common.c",
+              "linux/lib/string.c",
               "linux/mm/slab.c",
               "linux/mm/util.c",
               "linux/mm/vmalloc.c",
@@ -149,7 +153,6 @@
               "allocate external": true,
               "environment model file": "environment_model.c",
               "additional headers": [
-                "linux/user_namespace.h",
                 "ldv/linux/common.h",
                 "ldv/linux/err.h",
                 "ldv/verifier/common.h",
@@ -673,11 +676,11 @@
         "identifier": "lib",
         "children": [
           {
-            "identifier": "find_next_bit",
+            "identifier": "find_bit",
             "description": "...",
             "plugins": [{
               "name": "RSG",
-              "options": {"models": ["linux/lib/find_next_bit.c"]}
+              "options": {"models": ["linux/lib/find_bit.c"]}
             }]
           },
           {

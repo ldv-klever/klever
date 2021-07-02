@@ -1,0 +1,69 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Project:Version",
+      "value": "v5.9-rc2-31-gd43511d05cd4"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/mtd/nand/raw/vf610_nfc.ko"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "drivers:clk1"
+    }
+  ],
+  "description": "https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/commit/?id=cb7dc3178a98",
+  "error_trace": [
+    [
+      [
+        {
+          "Entry point 'main'": [
+            {
+              "LDV model 'check_final_state'": [
+                {
+                  "LDV model 'assert'": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    ],
+    [
+      [
+        {
+          "EMG wrapper": [
+            {
+              "vf610_nfc_probe": [
+                {
+                  "Instrumented function 'clk_prepare_enable'": [
+                    {
+                      "LDV model 'clk_prepare_enable_clk_of_vf610_nfc'": [
+                        {
+                          "LDV model 'clk_prepare_clk_of_vf610_nfc'": []
+                        },
+                        {
+                          "LDV model 'clk_enable_clk_of_vf610_nfc'": []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": false,
+  "status": null,
+  "tags": [],
+  "threshold": 100,
+  "verdict": "2"
+}

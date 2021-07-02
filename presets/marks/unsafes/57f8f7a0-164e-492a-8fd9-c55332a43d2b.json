@@ -3,12 +3,12 @@
     {
       "is_compare": true,
       "name": "Requirements specification",
-      "value": "lib:find_next_bit"
+      "value": "lib:find_bit"
     },
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/linux/lib/find_next_bit/wrong-offset.ko"
+      "value": "ext-modules/linux/lib/find_bit/wrong-offset.ko"
     }
   ],
   "description": "",
@@ -22,12 +22,13 @@
                 {
                   "Instrumented function 'find_next_zero_bit'": [
                     {
-                      "LDV model 'find_next_bit'": [
+                      "LDV model 'find_next_zero_bit'": [
                         {
-                          "LDV model 'undef_ulong'": []
-                        },
-                        {
-                          "LDV model 'assert'": []
+                          "LDV model 'check_find_bit_offset'": [
+                            {
+                              "LDV model 'assert'": []
+                            }
+                          ]
                         }
                       ]
                     }

@@ -1,0 +1,23 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Project:Version",
+      "value": "v5.10-rc1-152-g6651dba2bd83"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/media/platform/davinci/isif.ko"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "arch:mm:ioremap"
+    }
+  ],
+  "description": "",
+  "is_modifiable": false,
+  "tags": [],
+  "verdict": "0"
+}

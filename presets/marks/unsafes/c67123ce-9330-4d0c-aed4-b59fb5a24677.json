@@ -1,0 +1,74 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Project:Version",
+      "value": "v5.8-rc2-387-g17d8dcf5330a"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/video/fbdev/savage/savagefb.ko"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "memory safety"
+    }
+  ],
+  "description": "https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/commit/?id=e8d35898a78e",
+  "error_trace": [
+    [
+      [
+        {
+          "EMG wrapper": [
+            {
+              "savagefb_probe": [
+                {
+                  "savage_init_fb_info": [
+                    {
+                      "Instrumented function 'kcalloc'": [
+                        {
+                          "LDV model 'kcalloc'": [
+                            {
+                              "LDV model 'calloc'": [
+                                {
+                                  "LDV model 'reference_calloc'": []
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Instrumented function 'framebuffer_release'": [
+                    {
+                      "LDV model 'framebuffer_release'": [
+                        {
+                          "LDV model 'free'": [
+                            {
+                              "LDV model 'reference_free'": []
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": false,
+  "status": null,
+  "tags": [],
+  "threshold": 100,
+  "verdict": "2"
+}

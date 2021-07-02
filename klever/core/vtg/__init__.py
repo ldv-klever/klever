@@ -639,7 +639,14 @@ class VTGW(klever.core.components.Component):
 
         plugin = getattr(importlib.import_module(f'.{plugin_name.lower()}', 'klever.core.vtg'), plugin_name)
         p = plugin(plugin_conf, self.logger, self.id, self.callbacks, self.mqs, self.vals,
-                   plugin_name, plugin_work_dir, separate_from_parent=True, include_child_resources=True)
+                   plugin_name, plugin_work_dir, separate_from_parent=True,
+                   # Weaver can execute workers in parallel but it does not launch any heaveweight subprocesses for
+                   # which it is necessary to include child resources. These workers can execute time consuming CIF and
+                   # appropriate resoureces are dumped to directory "child resources" and after all they are taken into
+                   # account when calculating Weaver resources since we wouldn't like to separately show resources
+                   # consumed by workers. Moreover, we even wouldn't like to execute them in separate working
+                   # directories like sub-jobs to simplify the workflow and debugging.
+                   include_child_resources=True if plugin_name != 'Weaver' else False)
         p.start()
         p.join()
 

@@ -1,0 +1,84 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Project:Version",
+      "value": "v5.9-rc4-16-g87d7ad089b31"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/mmc/host/via-sdmmc.ko"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "concurrency safety"
+    }
+  ],
+  "description": "Non-target bug.",
+  "error_trace": [
+    [
+      [
+        {
+          "EMG wrapper": [
+            {
+              "via_sd_probe": []
+            }
+          ]
+        }
+      ]
+    ],
+    [
+      [
+        {
+          "LDV model 'switch_to_interrupt_context'": []
+        }
+      ],
+      [
+        {
+          "via_sdc_card_detect": [
+            {
+              "Instrumented function '__ldv_spin_lock'": []
+            },
+            {
+              "Instrumented function 'spin_unlock_irqrestore'": []
+            },
+            {
+              "via_reset_pcictrl": [
+                {
+                  "Instrumented function '__ldv_spin_lock'": []
+                },
+                {
+                  "Instrumented function 'spin_unlock_irqrestore'": []
+                },
+                {
+                  "via_pwron_sleep": []
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "EMG wrapper": [
+            {
+              "via_sdc_isr": [
+                {
+                  "Instrumented function 'spin_lock'": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": false,
+  "status": "0",
+  "tags": [],
+  "threshold": 100,
+  "verdict": "1"
+}

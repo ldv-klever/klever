@@ -25,7 +25,7 @@ from klever.core.highlight import Highlight
 
 class ErrorTrace:
     ERROR_TRACE_FORMAT_VERSION = 1
-    MODEL_COMMENT_TYPES = 'NOTE|ASSERT|CIF|EMG_WRAPPER'
+    MODEL_COMMENT_TYPES = r'NOTE\d?|ASSERT|CIF|EMG_WRAPPER'
     MAX_NOTE_LEVEl = 3
 
     def __init__(self, logger):
@@ -66,10 +66,6 @@ class ErrorTrace:
             raise KeyError('Entry node has not been set yet')
 
     def highlight(self, src, func_name=None):
-        # Current highlighting format does not support new lines in sources. Besides, error trace visualizer in Bridge
-        # also does not show them well.
-        src = src.replace('\n', ' ')
-
         highlight = Highlight(self._logger, src)
         highlight.highlight()
 
@@ -599,18 +595,31 @@ class ErrorTrace:
 
                         comment = comment.rstrip()
 
-                        if kind == "NOTE":
-                            if file_id not in self._notes:
-                                self._notes[file_id] = dict()
-                            self._notes[file_id][line + 1] = comment
-                            self._logger.debug(
-                                "Get note '{0}' for statement from '{1}:{2}'".format(comment, file, line + 1))
+                        if kind.startswith("NOTE"):
+                            level = None
+                            # Notes of level 1 does not require the level to be explicitly specified.
+                            if len(kind) == 4:
+                                level = 1
+                            elif len(kind) == 5 and kind[4].isdigit():
+                                level = int(kind[4])
+
+                            # Incorrect format of note.
+                            if not level:
+                                continue
+
+                            if level not in self._notes:
+                                self._notes[level] = dict()
+                            if file_id not in self._notes[level]:
+                                self._notes[level][file_id] = dict()
+                            self._notes[level][file_id][line + 1] = comment
+                            self._logger.debug("Get note '{0}' of level '{1}' for statement from '{2}:{3}'"
+                                               .format(comment, level, file, line + 1))
                         elif kind == 'ASSERT':
                             if file_id not in self._asserts:
                                 self._asserts[file_id] = dict()
                             self._asserts[file_id][line + 1] = comment
                             self._logger.debug(
-                                "Get assertiom '{0}' for statement from '{1}:{2}'".format(comment, file, line + 1))
+                                "Get assertion '{0}' for statement from '{1}:{2}'".format(comment, file, line + 1))
                         elif kind == 'CIF':
                             m = re.match(r'Original function \"([^"]+)\"\. Instrumenting function \"([^"]+)\"', comment)
                             if m:
@@ -704,6 +713,46 @@ class ErrorTrace:
         if removed_switch_cases_num:
             self._logger.debug('{0} switch cases were removed'.format(removed_switch_cases_num))
 
+    def merge_func_entry_and_exit(self):
+        # For each function call with return there is an edge corresponding to function entry and an edge
+        # corresponding to function exit. Both edges are located at a function call. The second edge can contain an
+        # assigment of result to some variable.
+        # This is good for analysis, but this is redundant for visualization. Let's merge these edges together.
+        edges_to_remove = []
+        for edge in self.trace_iterator():
+            if 'enter' not in edge:
+                continue
+
+            return_edge = self.get_func_return_edge(edge)
+            if not return_edge:
+                continue
+
+            exit_edge = self.next_edge(return_edge)
+            if not exit_edge:
+                continue
+
+            edges_to_remove.insert(0, exit_edge)
+            next_to_exit_edge = self.next_edge(exit_edge)
+
+            # Do not overwrite source code of function entry with the one of function exit when function is
+            # called within if statement. In that case there is no useful assigments most likely while source
+            # code of function exit includes some part of this if statement.
+            if not next_to_exit_edge \
+                    or 'condition' not in next_to_exit_edge \
+                    or exit_edge['line'] != next_to_exit_edge['line']:
+                edge['source'] = exit_edge['source']
+
+            # Copy notes if so from function exit edge to be removed to function entry edge.
+            if 'notes' not in edge:
+                edge['notes'] = []
+
+            if 'notes' in exit_edge:
+                edge['notes'].extend(exit_edge['notes'])
+                del exit_edge['notes']
+
+        for edge_to_remove in edges_to_remove:
+            self.remove_edge_and_target_node(edge_to_remove)
+
     def sanity_checks(self):
         # Check:
         # * branching
@@ -748,10 +797,7 @@ class ErrorTrace:
     def _mark_witness(self):
         self._logger.info('Mark witness with model comments')
 
-        # TODO: This should not be necessary when ldv_assert() and corresponding model comments will be used properly,
-        #       in particular, when ldv_assert() will not be invoked with positive conditions (not an error).
-        # Two stages are required since for marking edges with warnings we need to know whether there notes at violation
-        # path above.
+        note_levels = list(self._notes.keys())
         for edge in self.trace_iterator():
             # Do not add notes when finding warnings.
             if self.is_warning(edge):
@@ -777,51 +823,35 @@ class ErrorTrace:
                                        .format(display, self.resolve_function(func_id)))
                     edge['display'] = display
 
-            if file_id in self._notes and line in self._notes[file_id]:
-                note = self._notes[file_id][line]
-                self._logger.debug("Add note {!r} for statement from '{}:{}'".format(note, file, line))
-                # Model comments are rather essential and they are designed to hide model implementation details.
-                # Unfortunately, some model comments are not perfect yet, but we should fix them rather than make some
-                # workarounds to encourage developers of bad model comments.
-                if 'notes' not in edge:
-                    edge['notes'] = []
-                edge['notes'].append({
-                    'text': note,
-                    'level': 1,
-                    'hide': True
-                })
-
-        for edge in self.trace_iterator(backward=True):
-            line = edge['line']
-            file_id = edge['file']
-            file = self.resolve_file(file_id)
-
-            if file_id in self._asserts and line in self._asserts[file_id]:
-                # Add warning just if there are no more edges with notes at violation path below.
-                track_notes = False
-                note_found = False
-                for violation_edge in reversed(self._violation_edges):
-                    if track_notes:
-                        if 'notes' in violation_edge:
-                            note_found = True
-                            break
-                    if id(violation_edge) == id(edge):
-                        track_notes = True
-
-                if not note_found:
-                    warn = self._asserts[file_id][line]
-                    self._logger.debug("Add warning {!r} for statement from '{}:{}'".format(warn, file, line))
+            for level in note_levels:
+                if file_id in self._notes[level] and line in self._notes[level][file_id]:
+                    note = self._notes[level][file_id][line]
+                    self._logger.debug("Add note {!r} of level {} for statement from '{}:{}'"
+                                       .format(note, level, file, line))
                     if 'notes' not in edge:
                         edge['notes'] = []
+
+                    # Model comments are rather essential and they are designed to hide model implementation details.
+                    # That's why corresponding experssions and statements are hidden.
+                    # Unfortunately, some model comments are not perfect yet, but we should fix them rather than make
+                    # some workarounds to encourage developers of bad model comments.
                     edge['notes'].append({
-                        'text': warn,
-                        'level': 0,
+                        'text': note,
+                        'level': level,
                         'hide': True
                     })
 
-                    # Do not try to add any warnings any more. We don't know how several violations are encoded in
-                    # witnesses.
-                    break
+            if file_id in self._asserts and line in self._asserts[file_id]:
+                warn = self._asserts[file_id][line]
+                self._logger.debug("Add warning {!r} for statement from '{}:{}'".format(warn, file, line))
+                if 'notes' not in edge:
+                    edge['notes'] = []
+
+                edge['notes'].append({
+                    'text': warn,
+                    'level': 0,
+                    'hide': True
+                })
 
         del self._violation_edges, self._notes, self._asserts, self.displays
 

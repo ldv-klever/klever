@@ -1,0 +1,79 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Project:Version",
+      "value": "v5.9-rc7"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/watchdog/rdc321x_wdt.ko"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "concurrency safety"
+    },
+    {
+      "is_compare": true,
+      "name": "Declaration",
+      "value": "struct __anonstruct_rdc321x_wdt_device_312 (?.default_ticks)"
+    }
+  ],
+  "description": "https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/commit/?id=4b2e7f99cdd3",
+  "error_trace": [
+    [
+      [
+        {
+          "EMG wrapper": [
+            {
+              "rdc321x_wdt_probe": []
+            }
+          ]
+        }
+      ]
+    ],
+    [
+      [
+        {
+          "EMG wrapper": [
+            {
+              "rdc321x_wdt_ioctl": [
+                {
+                  "rdc321x_wdt_start": [
+                    {
+                      "Instrumented function '__ldv_spin_lock'": []
+                    },
+                    {
+                      "Instrumented function 'spin_unlock_irqrestore'": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "EMG wrapper": [
+            {
+              "rdc321x_wdt_write": [
+                {
+                  "rdc321x_wdt_reset": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": false,
+  "status": null,
+  "tags": [],
+  "threshold": 100,
+  "verdict": "2"
+}

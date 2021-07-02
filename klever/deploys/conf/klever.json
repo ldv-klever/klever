@@ -1,23 +1,23 @@
 {
   "Klever Addons": {
     "CIF": {
-      "version": "746d8be",
-      "path": "https://forge.ispras.ru/attachments/download/8316/cif-746d8be.tar.xz",
+      "version": "f610d70",
+      "path": "https://forge.ispras.ru/attachments/download/8908/cif-f610d70.tar.xz",
       "executable path": "bin"
     },
     "CIF-ARM": {
-      "version": "746d8be",
-      "path": "https://forge.ispras.ru/attachments/download/8317/arm-unknown-eabi-cif-746d8be.tar.xz",
+      "version": "f610d70",
+      "path": "https://forge.ispras.ru/attachments/download/8907/arm-unknown-eabi-cif-f610d70.tar.xz",
       "executable path": "bin"
     },
     "CIF-ARM64": {
-      "version": "746d8be",
-      "path": "https://forge.ispras.ru/attachments/download/8324/aarch64_be-unknown-linux-gnu-cif-746d8be.tar.xz",
+      "version": "81a3960",
+      "path": "https://forge.ispras.ru/attachments/download/8923/aarch64_be-unknown-linux-gnu-cif-81a3960.tar.xz",
       "executable path": "bin"
     },
     "CIL": {
-      "version": "18d3be8",
-      "path": "https://forge.ispras.ru/attachments/download/8510/frama-c-cil-18d3be8.tar.xz",
+      "version": "57c4604",
+      "path": "https://forge.ispras.ru/attachments/download/8899/frama-c-cil-57c4604.tar.xz",
       "executable path": "."
     },
     "Consul": {

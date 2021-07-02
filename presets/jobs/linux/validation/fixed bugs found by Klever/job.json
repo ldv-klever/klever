@@ -1,0 +1,225 @@
+{
+  "project": "Linux",
+  "extra results processing": "validation",
+  "sub-jobs": [
+    {
+      "build base": "linux/validation/fixed bugs found by Klever/7b817585b730~",
+      "targets": ["drivers/media/pci/bt8xx/bttv.ko"],
+      "specifications set": "5.5",
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "data": {"bug identifier": "7b817585b730~"}
+    },
+    {
+      "build base": "linux/validation/fixed bugs found by Klever/7b817585b730",
+      "targets": ["drivers/media/pci/bt8xx/bttv.ko"],
+      "specifications set": "5.5",
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{
+        "ideal verdict": "safe",
+        "comment": "Timeout."
+      }],
+      "data": {"bug identifier": "7b817585b730~"}
+    },
+    {
+      "build base": "linux/validation/fixed bugs found by Klever/f36592e7b343~",
+      "targets": ["drivers/media/test-drivers/vicodec/vicodec.ko"],
+      "specifications set": "5.5",
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "data": {"bug identifier": "f36592e7b343~"}
+    },
+    {
+      "build base": "linux/validation/fixed bugs found by Klever/f36592e7b343",
+      "targets": ["drivers/media/test-drivers/vicodec/vicodec.ko"],
+      "specifications set": "5.5",
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "f36592e7b343~"}
+    },
+    {
+      "build base": "linux/validation/fixed bugs found by Klever/bf65f8aabdb3~",
+      "targets": ["drivers/media/usb/usbtv/usbtv.ko"],
+      "specifications set": "5.5",
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "data": {"bug identifier": "bf65f8aabdb3~"}
+    },
+    {
+      "build base": "linux/validation/fixed bugs found by Klever/bf65f8aabdb3",
+      "targets": ["drivers/media/usb/usbtv/usbtv.ko"],
+      "specifications set": "5.5",
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{
+        "ideal verdict": "safe",
+        "comment": "False alarm due to \"API models - Linux kernel - kref*\"."
+      }],
+      "data": {"bug identifier": "bf65f8aabdb3~"}
+    },
+    {
+      "build base": "linux/validation/fixed bugs found by Klever/43c2cc2864bc~",
+      "targets": ["drivers/platform/goldfish/goldfish_pipe.ko"],
+      "specifications set": "5.5",
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "data": {"bug identifier": "43c2cc2864bc~"}
+    },
+    {
+      "build base": "linux/validation/fixed bugs found by Klever/43c2cc2864bc",
+      "targets": ["drivers/platform/goldfish/goldfish_pipe.ko"],
+      "specifications set": "5.5",
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{
+        "ideal verdict": "safe",
+        "comment": "Commit 43c2cc2864bc does not fix the target bug completely, so, it is still actual."
+      }],
+      "data": {"bug identifier": "43c2cc2864bc~"}
+    },
+    {
+      "build base": "linux/validation/fixed bugs found by Klever/9b719c7119e7~",
+      "targets": ["drivers/usb/gadget/udc/net2272.ko"],
+      "specifications set": "5.5",
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{
+        "ideal verdict": "unsafe",
+        "comment": "Timeout."
+      }],
+      "data": {"bug identifier": "9b719c7119e7~"}
+    },
+    {
+      "build base": "linux/validation/fixed bugs found by Klever/9b719c7119e7",
+      "targets": ["drivers/usb/gadget/udc/net2272.ko"],
+      "specifications set": "5.5",
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{
+        "ideal verdict": "safe",
+        "comment": "False alarm due to \"API models - Linux kernel\". usb_initialize_gadget() and put_device() cares about memory release, but they are unknown to a verifier."
+      }],
+      "data": {"bug identifier": "9b719c7119e7~"}
+    },
+    {
+      "build base": "linux/validation/fixed bugs found by Klever/f770fbec4165~",
+      "targets": ["drivers/usb/gadget/udc/net2280.ko"],
+      "specifications set": "5.5",
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{
+        "ideal verdict": "unsafe",
+        "comment": "Timeout."
+      }],
+      "data": {"bug identifier": "f770fbec4165~"}
+    },
+    {
+      "build base": "linux/validation/fixed bugs found by Klever/f770fbec4165",
+      "targets": ["drivers/usb/gadget/udc/net2280.ko"],
+      "specifications set": "5.5",
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{
+        "ideal verdict": "safe",
+        "comment": "Timeout."
+      }],
+      "data": {"bug identifier": "f770fbec4165~"}
+    },
+    {
+      "build base": "linux/validation/fixed bugs found by Klever/28ebeb8db770~",
+      "targets": ["drivers/usb/misc/usbtest.ko"],
+      "specifications set": "5.5",
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "data": {"bug identifier": "28ebeb8db770~"}
+    },
+    {
+      "build base": "linux/validation/fixed bugs found by Klever/28ebeb8db770",
+      "targets": ["drivers/usb/misc/usbtest.ko"],
+      "specifications set": "5.5",
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{
+        "ideal verdict": "safe",
+        "comment": "Timeout."
+      }],
+      "data": {"bug identifier": "28ebeb8db770~"}
+    },
+    {
+      "build base": "linux/validation/fixed bugs found by Klever/bf65f8aabdb3~",
+      "targets": ["drivers/media/usb/usbtv/usbtv.ko"],
+      "specifications set": "5.5",
+      "requirement specifications": ["drivers:usb:core:usb:dev"],
+      "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "data": {"bug identifier": "bf65f8aabdb3~"}
+    },
+    {
+      "build base": "linux/validation/fixed bugs found by Klever/bf65f8aabdb3",
+      "targets": ["drivers/media/usb/usbtv/usbtv.ko"],
+      "specifications set": "5.5",
+      "requirement specifications": ["drivers:usb:core:usb:dev"],
+      "ideal verdicts": [{
+        "ideal verdict": "safe",
+        "comment": "False alarm due to \"EMG - Specs - Bad parameters\". CPAchecker assumes that interface_to_usbdev(intf) may be both NULL and not NULL since EMG does not accurately initializes USB interfaces."
+      }],
+      "data": {"bug identifier": "bf65f8aabdb3~"}
+    },
+    {
+      "build base": "linux/validation/fixed bugs found by Klever/71d1f1d5958f~",
+      "targets": ["drivers/mtd/nand/raw/stm32_fmc2_nand.ko"],
+      "specifications set": "5.5",
+      "requirement specifications": ["drivers:clk1"],
+      "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "data": {"bug identifier": "71d1f1d5958f~"}
+    },
+    {
+      "build base": "linux/validation/fixed bugs found by Klever/71d1f1d5958f",
+      "targets": ["drivers/mtd/nand/raw/stm32_fmc2_nand.ko"],
+      "specifications set": "5.5",
+      "requirement specifications": ["drivers:clk1"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "71d1f1d5958f~"}
+    },
+    {
+      "build base": "linux/validation/fixed bugs found by Klever/c61088d1f993~",
+      "targets": ["drivers/mtd/spi-nor/controllers/cadence-quadspi.ko"],
+      "specifications set": "5.5",
+      "requirement specifications": ["drivers:clk1"],
+      "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "data": {"bug identifier": "c61088d1f993~"}
+    },
+    {
+      "build base": "linux/validation/fixed bugs found by Klever/c61088d1f993",
+      "targets": ["drivers/mtd/spi-nor/controllers/cadence-quadspi.ko"],
+      "specifications set": "5.5",
+      "requirement specifications": ["drivers:clk1"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "c61088d1f993~"}
+    },
+    {
+      "build base": "linux/validation/fixed bugs found by Klever/da7de29bb171~",
+      "targets": ["drivers/staging/iio/impedance-analyzer/ad5933.ko"],
+      "specifications set": "5.5",
+      "requirement specifications": ["drivers:clk2"],
+      "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "data": {"bug identifier": "da7de29bb171~"}
+    },
+    {
+      "build base": "linux/validation/fixed bugs found by Klever/da7de29bb171",
+      "targets": ["drivers/staging/iio/impedance-analyzer/ad5933.ko"],
+      "specifications set": "5.5",
+      "requirement specifications": ["drivers:clk2"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "da7de29bb171~"}
+    },
+    {
+      "build base": "linux/validation/fixed bugs found by Klever/c2de37b31f17~",
+      "targets": ["drivers/usb/chipidea/ci_hdrc_usb2.ko"],
+      "specifications set": "5.5",
+      "requirement specifications": ["drivers:clk2"],
+      "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "data": {"bug identifier": "c2de37b31f17~"}
+    },
+    {
+      "build base": "linux/validation/fixed bugs found by Klever/c2de37b31f17",
+      "targets": ["drivers/usb/chipidea/ci_hdrc_usb2.ko"],
+      "specifications set": "5.5",
+      "requirement specifications": ["drivers:clk2"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "c2de37b31f17~"}
+    }
+  ]
+}

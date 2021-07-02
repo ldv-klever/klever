@@ -1,0 +1,85 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Project:Version",
+      "value": "v4.19-rc7-230-gc394cc3b470c"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/platform/goldfish/goldfish_pipe.ko"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "memory safety"
+    }
+  ],
+  "description": "https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/commit/?id=43c2cc2864bc",
+  "error_trace": [
+    [
+      [
+        {
+          "EMG wrapper": [
+            {
+              "goldfish_pipe_probe": []
+            }
+          ]
+        }
+      ]
+    ],
+    [
+      [
+        {
+          "EMG wrapper": [
+            {
+              "goldfish_pipe_open": [
+                {
+                  "Instrumented function 'kzalloc'": [
+                    {
+                      "LDV model 'kzalloc'": [
+                        {
+                          "LDV model 'zalloc'": [
+                            {
+                              "LDV model 'reference_zalloc'": []
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "get_free_pipe_id_locked": [
+                    {
+                      "Instrumented function 'kcalloc'": [
+                        {
+                          "LDV model 'kcalloc'": [
+                            {
+                              "LDV model 'calloc'": [
+                                {
+                                  "LDV model 'reference_calloc'": []
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": false,
+  "status": null,
+  "tags": [],
+  "threshold": 100,
+  "verdict": "2"
+}

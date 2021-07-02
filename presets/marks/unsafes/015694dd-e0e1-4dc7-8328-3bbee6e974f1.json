@@ -38,6 +38,9 @@
                   "LDV model 'create_class'": [
                     {
                       "LDV model 'undef_ptr'": []
+                    },
+                    {
+                      "LDV model 'is_err'": []
                     }
                   ]
                 }

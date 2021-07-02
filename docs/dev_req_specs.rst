@@ -158,12 +158,12 @@ It tracks that modules should decrement the reference counter to its initial val
     #include <ldv/verifier/nondet.h>
 
     /* NOTE Initialize module reference counter at the beginning */
-    static int ldv_module_refcounter = 1;
+    static int ldv_module_refcounter = 0;
 
     int ldv_try_module_get(struct module *module)
     {
         /* NOTE Nondeterministically increment module reference counter */
-        if (ldv_undef_int() == 1) {
+        if (ldv_undef_int()) {
             /* NOTE Increment module reference counter */
             ldv_module_refcounter++;
             /* NOTE Successfully incremented module reference counter */
@@ -176,16 +176,19 @@ It tracks that modules should decrement the reference counter to its initial val
 
     void ldv_module_put(struct module *module)
     {
-        /* ASSERT One should not decrement non-incremented module reference counters */
-        ldv_assert(ldv_module_refcounter > 1);
+        if (ldv_module_refcounter < 1)
+            /* ASSERT One should not decrement non-incremented module reference counters */
+            ldv_assert();
+
         /* NOTE Decrement module reference counter */
         ldv_module_refcounter--;
     }
 
     void ldv_check_final_state(void)
     {
-        /* ASSERT Module reference counter should be decremented to its initial value before finishing operation */
-        ldv_assert(ldv_module_refcounter == 1);
+        if (ldv_module_refcounter)
+            /* ASSERT Module reference counter should be decremented to its initial value before finishing operation */
+            ldv_assert();
     }
 
 It is worth noting that model functions do not refer their parameter **module**, i.e. they consider all modules the

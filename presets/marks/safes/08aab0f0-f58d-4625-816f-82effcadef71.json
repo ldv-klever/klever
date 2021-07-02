@@ -1,0 +1,23 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Project:Version",
+      "value": "v5.8-rc1-242-g9c487b0b0ea7"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/media/platform/davinci/vpss.ko"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "arch:mm:ioremap"
+    }
+  ],
+  "description": "",
+  "is_modifiable": false,
+  "tags": [],
+  "verdict": "0"
+}

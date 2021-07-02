@@ -3,16 +3,21 @@
     {
       "is_compare": true,
       "name": "Requirements specification",
-      "value": "test:common"
+      "value": "alloc:spinlock"
     },
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/verifier/nondet/undef-long.ko"
+      "value": "drivers/net/usb/kaweth.ko"
+    },
+    {
+      "is_compare": true,
+      "name": "Project:Version",
+      "value": "v3.5-6984-ge4c7f259c5be"
     }
   ],
   "description": "",
   "is_modifiable": false,
   "tags": [],
-  "verdict": "2"
+  "verdict": "0"
 }

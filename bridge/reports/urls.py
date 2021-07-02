@@ -39,6 +39,8 @@ urlpatterns = [
     path('api/fill-comparison/<int:decision1>/<int:decision2>/',
          api.FillComparisonView.as_view(), name='api-fill-comparison'),
     path('comparison/<int:decision1>/<int:decision2>/', views.ReportsComparisonView.as_view(), name='comparison'),
+    path('comparison/<uuid:decision1>/<uuid:decision2>/',
+         views.ReportsComparisonUUIDView.as_view(), name='comparison-uuid'),
     path('api/comparison-data/<int:info_id>/', api.ReportsComparisonDataView.as_view(), name='api-comparison-data'),
 
     # Coverage

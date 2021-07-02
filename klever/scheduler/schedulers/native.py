@@ -100,6 +100,7 @@ class Native(runners.Speculative):
             self._node_name = nodes[0]
             data = self._manager.node_info(self._node_name)
             self._cpu_cores = data["CPU number"]
+        utils.kv_clear_solutions(self.logger, self.scheduler_type())
 
         # init process pull
         if "processes" not in self.conf["scheduler"]:
@@ -355,7 +356,6 @@ class Native(runners.Speculative):
             self._task_processes[identifier] = process
         else:
             klever_core_conf = configuration.copy()
-            del klever_core_conf["resource limits"]
             klever_core_conf["Klever Bridge"] = self.conf["Klever Bridge"]
             klever_core_conf["working directory"] = "klever-core-work-dir"
             self._reserved["jobs"][identifier]["configuration"] = klever_core_conf

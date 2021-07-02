@@ -1,0 +1,85 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Project:Version",
+      "value": "v5.8-rc1-316-g670f7ef5f0fc"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/media/platform/davinci/vpif_capture.ko"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "memory safety"
+    }
+  ],
+  "description": "https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/commit/?id=602649eadaa0",
+  "error_trace": [
+    [
+      [
+        {
+          "EMG wrapper": [
+            {
+              "vpif_probe": [
+                {
+                  "vpif_capture_get_pdata": [
+                    {
+                      "Instrumented function 'devm_kzalloc'": [
+                        {
+                          "LDV model 'devm_kzalloc'": [
+                            {
+                              "LDV model 'zalloc'": [
+                                {
+                                  "LDV model 'reference_zalloc'": []
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Instrumented function 'kcalloc'": [
+                    {
+                      "LDV model 'kcalloc'": [
+                        {
+                          "LDV model 'calloc'": [
+                            {
+                              "LDV model 'reference_calloc'": []
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Instrumented function 'kfree'": [
+                    {
+                      "LDV model 'free'": [
+                        {
+                          "LDV model 'reference_free'": []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": false,
+  "status": null,
+  "tags": [],
+  "threshold": 100,
+  "verdict": "2"
+}

@@ -203,7 +203,7 @@ SourceProcessor.prototype.select_line = function(line) {
 
 SourceProcessor.prototype.get_source = function(line, filename, save_history=true) {
     let instance = this;
-    if (save_history){
+    if (save_history) {
         let state_url = get_url_with_get_parameters(window.location.href, {
             'source': encodeURIComponent(filename), 'sourceline': line
         });

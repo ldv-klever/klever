@@ -44,6 +44,15 @@ def coverage_data_statistic(coverage):
     return statistics
 
 
+def most_covered_lines(coverage: CoverageArchive):
+    try:
+        res = ArchiveFileContent(coverage, 'archive', COVERAGE_FILE)
+    except Exception as e:
+        raise BridgeException(_("Error while extracting source file: %(error)s") % {'error': str(e)})
+    data = json.loads(res.content.decode('utf8'))
+    return data.get('most covered lines')
+
+
 def json_to_html(data):
     tab_len = 2
 
@@ -109,6 +118,7 @@ class GetCoverageStatistics:
             raise Http404('Coverage archive was not found')
         self.data = CoverageStatistics.objects.filter(coverage=self.coverage).order_by('id')
         self.data_statistic = coverage_data_statistic(self.coverage)
+        self.most_covered = most_covered_lines(self.coverage)
         self.with_extra = self.coverage.has_extra
 
     def __get_coverage_object(self, report, coverage_id):
@@ -124,6 +134,7 @@ class LeafCoverageStatistics:
         self.coverage = coverage
         self.data = CoverageStatistics.objects.filter(coverage=self.coverage).order_by('id')
         self.data_statistic = coverage_data_statistic(coverage)
+        self.most_covered = most_covered_lines(self.coverage)
         self.with_extra = False
 
 
@@ -352,3 +363,56 @@ class CoverageGenerator(FileWrapper):
         self.name = "coverage-{}.zip".format(cov_arch.identifier or 'verification')
         self.size = len(cov_arch.archive)
         super().__init__(cov_arch.archive, 8192)
+
+
+class MostCoveredLines:
+    coverage_postfix = '.cov.json'
+
+    def __init__(self, coverage: CoverageArchive):
+        self.coverage = coverage
+        self._statistics = {}
+        self._max_covered = 0
+
+    def collect(self):
+        try:
+            res = ArchiveFileContent(self.coverage, 'archive', COVERAGE_FILE)
+        except Exception as e:
+            raise BridgeException(_("Error while extracting source file: %(error)s") % {'error': str(e)})
+        data = json.loads(res.content.decode('utf8'))
+
+        for filename in data['coverage statistics']:
+            if data['coverage statistics'][filename][0] > 0:
+                self.__parse_file(filename)
+        print("Max covered:", self._max_covered)
+        statistics = {}
+        for filename in self._statistics:
+            for line_num, cov_num in self._statistics[filename]:
+                statistics['{}:{}'.format(filename, line_num)] = cov_num
+        return list(sorted(statistics, key=lambda x: (-statistics[x], x)))[:30]
+
+    def __parse_file(self, filename):
+        try:
+            res = ArchiveFileContent(self.coverage, 'archive', filename + self.coverage_postfix)
+        except Exception as e:
+            raise BridgeException(_("Error while extracting source file: %(error)s") % {'error': str(e)})
+        data = json.loads(res.content.decode('utf8'))
+        if 'line coverage' not in data:
+            return
+
+        lines_statistics = []
+        for line_num, cov_num in data['line coverage'].items():
+            self._max_covered = max(self._max_covered, cov_num)
+            if cov_num == 0:
+                continue
+            if len(lines_statistics) == 0:
+                lines_statistics.append((line_num, cov_num))
+                continue
+            for i in range(len(lines_statistics)):
+                if lines_statistics[i][1] >= cov_num:
+                    lines_statistics.insert(i, (line_num, cov_num))
+                    break
+            else:
+                lines_statistics.append((line_num, cov_num))
+            if len(lines_statistics) > 31:
+                lines_statistics = lines_statistics[-30:]
+        self._statistics[filename] = lines_statistics[-30:]
