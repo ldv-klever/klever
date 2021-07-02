@@ -21,7 +21,7 @@ import time
 import requests
 import consulate
 
-from klever.scheduler.utils import higher_priority, sort_priority
+from klever.scheduler.utils import higher_priority, sort_priority, memory_units_converter
 from klever.scheduler.schedulers import SchedulerException
 
 
@@ -48,6 +48,7 @@ class ResourceManager:
         self.__jobs_config = {}
         self.__tasks_config = {}
         self.__pool_size = 1000
+        self.__last_limitation_error = []
 
         self.set_pool_limit(pool_size)
         self.__logger.info("Resource manager is live now with max running jobs limitation is {}".format(max_jobs))
@@ -400,6 +401,9 @@ class ResourceManager:
         status = self.__create_system_status(delete_tasks=True, delete_jobs=True)
         nodes = self.__nodes_ranking(status, restrictions)
 
+        msg = self.__make_limitation_error(
+            self.__free_resources(list(status.values())[-1]), restrictions, conf['task resource limits'])
+
         if len(nodes) > 0:
             if job and conf['task scheduler'] != 'VerifierCloud':
                 task_restrictions = conf['task resource limits']
@@ -407,11 +411,9 @@ class ResourceManager:
                 nodes = self.__nodes_ranking(status, task_restrictions)
                 if len(nodes) > 0:
                     return True
-                raise SchedulerException(
-                        "Given resource limits for job and tasks in sum are too high, we do not have such amount of "
-                        "resources")
+                self.__raise_limitation_error(msg)
         else:
-            raise SchedulerException("Given resource limits are two high, we do not have such amount of resources")
+            self.__raise_limitation_error(msg)
 
     def node_info(self, node):
         """
@@ -431,6 +433,31 @@ class ResourceManager:
         :return: A list with node names.
         """
         return [n for n in self.__system_status.keys() if self.__system_status[n]['status'] != 'DISCONNECTED']
+
+    def __make_limitation_error(self, resources, job_restrictions, task_restrictions):
+        cpus, memory, disk = resources
+        error_block = {
+            "number of CPU cores": f'available {cpus} of CPU cores but requested'
+                                   f' {job_restrictions["number of CPU cores"]} for the job '
+                                   f'and {task_restrictions["number of CPU cores"]} for a task',
+            "memory size": "available {} of memory but requested {} for the"
+                           " job and {} for a task".format(
+                                memory_units_converter(memory, outunit='GB')[-1],
+                                memory_units_converter(job_restrictions["memory size"], outunit='GB')[-1],
+                                memory_units_converter(task_restrictions["memory size"], outunit='GB')[-1]),
+            "disk memory size": "available {} of disk memory but requested {} for the"
+                                " job and {} for a task".format(
+                                    memory_units_converter(disk, outunit='GB')[-1],
+                                    memory_units_converter(job_restrictions["disk memory size"], outunit='GB')[-1],
+                                    memory_units_converter(task_restrictions["disk memory size"], outunit='GB')[-1])
+        }
+        return error_block
+
+    def __raise_limitation_error(self, msg):
+        if self.__last_limitation_error:
+            error = [msg[kind] for kind in self.__last_limitation_error]
+            error = ', '.join(error)
+            raise SchedulerException(error)
 
     @property
     def __processing_jobs(self):
@@ -691,11 +718,20 @@ class ResourceManager:
 
         # Check rest resources
         cpu_number, ram_memory, disk_memory = self.__free_resources(node)
+        cpu_number_limit, memory_size_limit, disk_memory_size_limit = \
+            restriction["number of CPU cores"], restriction["memory size"], restriction["disk memory size"]
 
-        if cpu_number >= restriction["number of CPU cores"] and ram_memory >= restriction["memory size"] and \
-                disk_memory >= restriction["disk memory size"]:
+        if cpu_number >= cpu_number_limit and ram_memory >= memory_size_limit and \
+                disk_memory >= disk_memory_size_limit:
             return True
         else:
+            self.__last_limitation_error = []
+            if cpu_number < restriction["number of CPU cores"]:
+                self.__last_limitation_error.append('number of CPU cores')
+            if ram_memory < restriction["memory size"]:
+                self.__last_limitation_error.append('memory size')
+            if disk_memory < restriction["disk memory size"]:
+                self.__last_limitation_error.append('disk memory size')
             return False
 
     def __reserve_resources(self, system_status, amount, node=None):
