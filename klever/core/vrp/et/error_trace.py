@@ -805,10 +805,6 @@ class ErrorTrace:
 
         note_levels = list(self._notes.keys())
         for edge in self.trace_iterator():
-            # Do not add notes when finding warnings.
-            if self.is_warning(edge):
-                continue
-
             line = edge['line']
             file_id = edge['file']
             file = self.resolve_file(file_id)
@@ -852,6 +848,13 @@ class ErrorTrace:
                 self._logger.debug("Add warning {!r} for statement from '{}:{}'".format(warn, file, line))
                 if 'notes' not in edge:
                     edge['notes'] = []
+                else:
+                    # There may be already warning from the verification tool, but it is not so specific as the one
+                    # that is based on model comments. So, just remove it.
+                    for note_idx, note in enumerate(edge['notes']):
+                        if note['level'] == 0:
+                            del edge['notes'][note_idx]
+                            break
 
                 edge['notes'].append({
                     'text': warn,
