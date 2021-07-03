@@ -428,10 +428,7 @@
       "targets": ["drivers/video/fbdev/da8xx-fb.ko"],
       "specifications set": "5.5",
       "requirement specifications": ["memory safety"],
-      "ideal verdicts": [{
-        "ideal verdict": "unsafe",
-        "comment": "CPAchecker IllegalArg Except."
-      }],
+      "ideal verdicts": [{"ideal verdict": "unsafe"}],
       "data": {"bug identifier": "80a00e90dede~"}
     },
     {
@@ -441,7 +438,7 @@
       "requirement specifications": ["memory safety"],
       "ideal verdicts": [{
         "ideal verdict": "safe",
-        "comment": "CPAchecker IllegalArg Except."
+        "comment": "Timeout."
       }],
       "data": {"bug identifier": "80a00e90dede~"}
     },
