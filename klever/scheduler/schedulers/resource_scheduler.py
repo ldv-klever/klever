@@ -402,7 +402,9 @@ class ResourceManager:
         nodes = self.__nodes_ranking(status, restrictions)
 
         msg = self.__make_limitation_error(
-            self.__free_resources(list(status.values())[-1]), restrictions, conf['task resource limits'])
+            self.__free_resources(list(status.values())[-1]),
+            restrictions if job else self.__jobs_config[conf['job id']]['configuration']['resource limits'],
+            conf['task resource limits'] if job else restrictions)
 
         if len(nodes) > 0:
             if job and conf['task scheduler'] != 'VerifierCloud':
