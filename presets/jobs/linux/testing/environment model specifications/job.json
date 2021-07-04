@@ -1,7 +1,7 @@
 {
   "project": "Linux",
   "build base": "linux/testing/environment model specifications/606cdb",
-  "requirement specifications": ["test:environment model specifications"],
+  "requirement specifications": ["test:EMG"],
   "ideal verdicts": [
     {"ideal verdict": "safe"},
     {
@@ -293,7 +293,7 @@
         "ext-modules/tasklet_v.1",
         "ext-modules/kthread_v.1"
       ],
-      "requirement specifications": ["test:environment model specifications with function pointer analysis"]
+      "requirement specifications": ["test:EMG with function pointer analysis"]
     },
     {
       "build base": "linux/testing/environment model specifications/fedc1e",
@@ -304,7 +304,7 @@
         "ext-modules/tasklet_v.1",
         "ext-modules/kthread_v.1"
       ],
-      "requirement specifications": ["test:environment model specifications with function pointer analysis"]
+      "requirement specifications": ["test:EMG with function pointer analysis"]
     },
     {
       "build base": "linux/testing/environment model specifications/01358e",
@@ -316,7 +316,7 @@
         "ext-modules/tasklet_v.1",
         "ext-modules/kthread_v.1"
       ],
-      "requirement specifications": ["test:environment model specifications with function pointer analysis"]
+      "requirement specifications": ["test:EMG with function pointer analysis"]
     },
     {
       "build base": "linux/testing/environment model specifications/a8ec86",
@@ -328,7 +328,7 @@
         "ext-modules/tasklet_v.2",
         "ext-modules/kthread_v.1"
       ],
-      "requirement specifications": ["test:environment model specifications with function pointer analysis"]
+      "requirement specifications": ["test:EMG with function pointer analysis"]
     },
     {
       "build base": "linux/testing/environment model specifications/62134e",
@@ -340,7 +340,7 @@
         "ext-modules/tasklet_v.2",
         "ext-modules/kthread_v.1"
       ],
-      "requirement specifications": ["test:environment model specifications with function pointer analysis"]
+      "requirement specifications": ["test:EMG with function pointer analysis"]
     },
     {
       "build base": "linux/testing/environment model specifications/81b6e0",
@@ -352,7 +352,7 @@
         "ext-modules/tasklet_v.2",
         "ext-modules/kthread_v.1"
       ],
-      "requirement specifications": ["test:environment model specifications with function pointer analysis"]
+      "requirement specifications": ["test:EMG with function pointer analysis"]
     }
   ]
 }
