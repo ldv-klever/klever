@@ -115,7 +115,7 @@ class OSKleverInstance:
             ram=self.args.ram,
             disk=self.args.disk
         ) as instance:
-            if self.args.use_volume:
+            if not self.args.without_volume:
                 instance.create_volume()
 
             with SSH(
@@ -132,7 +132,7 @@ class OSKleverInstance:
                 ):
                     self.__install_or_update_klever(ssh)
 
-                    if self.args.use_volume:
+                    if not self.args.without_volume:
                         self.__mount_volume(ssh, instance)
 
                     self.__deploy_klever(ssh, action='install')

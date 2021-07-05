@@ -87,8 +87,10 @@ def parse_args(args, logger):
                              'This option has no effect for other actions.')
     parser.add_argument('--store-password', action='store_true',
                         help='Store OpenStack password on disk (default: False).')
-    parser.add_argument('--use-volume', action='store_true', default=False,
-                        help='Use OpenStack volumes to store data')
+    parser.add_argument('--without-volume', action='store_true', default=False,
+                        help='Do not use OpenStack volumes to store data (default: False)')
+    parser.add_argument('--volume-size', default=200, type=int,
+                        help='Size of volume in GB (default: "%(default)s").')
 
     # TODO: Check the correctness of the provided arguments
     args = parser.parse_args(args)

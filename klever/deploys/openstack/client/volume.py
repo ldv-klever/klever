@@ -35,7 +35,7 @@ class OSVolume:
         while attempts > 0:
             try:
                 self.logger.info(f'Create {self.name} volume')
-                self.volume = self.client.cinder.volumes.create(size=200, name=self.name)
+                self.volume = self.client.cinder.volumes.create(size=self.args.volume_size, name=self.name)
 
                 while self.volume.status != 'available':
                     self.volume = self.volume.manager.get(self.volume.id)
