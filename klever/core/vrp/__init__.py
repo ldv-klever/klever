@@ -182,7 +182,7 @@ class VRP(klever.core.components.Component):
                     "value": str(attempt)
                 }]
             else:
-                new_id = "RP/{}/{}".format(pf, envmodel, requirement)
+                new_id = "RP/{}/{}/{}".format(pf, envmodel, requirement)
                 workdir = os.path.join(pf, envmodel, requirement)
             self.vals['task solution triples'][result_key] = [None, None, None]
             try:
