@@ -127,6 +127,7 @@ class Selector:
         if scenario:
             assert scenario.name
             extend_model_name(batch, process_name, scenario.name)
+        self.logger.info(f'The new model name is "{batch.attributed_name}"')
 
 
 class ModelFactory:
@@ -182,7 +183,7 @@ class ModelFactory:
                         else:
                             collection[key] = self._process_copy(getattr(model, attr)[key])
                     else:
-                        self.logger.debug(f"Skip process {key} in {new.name}")
+                        self.logger.debug(f"Skip process {key} in {new.attributed_name}")
 
             new.establish_peers()
             self._remove_unused_processes(new)
@@ -217,7 +218,7 @@ class ModelFactory:
                 else:
                     new_process.insert_action(new, new_process.actions[name], before=True)
         else:
-            self.logger.debug(f'Keep the process {str(process)} created for the scenario {str(scenario.name)} as is')
+            self.logger.debug(f'Keep the process "{str(process)}" created for the scenario "{str(scenario.name)}" as is')
 
         return new_process
 
@@ -227,7 +228,7 @@ class ModelFactory:
             all_peers = {a for acts in process.peers.values() for a in acts}
 
             if not receives.intersection(all_peers):
-                self.logger.info(f'Delete process {key} from the model {model.name} as it has no peers')
+                self.logger.info(f'Delete process {key} from the model {model.attributed_name} as it has no peers')
                 remove_process(model, key)
 
         model.establish_peers()

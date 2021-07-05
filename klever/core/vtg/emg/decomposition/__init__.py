@@ -34,7 +34,7 @@ def decompose_intermediate_model(logger: Logger, conf: dict, model: ProcessColle
                                   separator=_choose_separator(logger, conf),
                                   factory=_choose_factory(logger, conf))
         for new_model in algorythm():
-            logger.info(f'Generated a new model {new_model.name}')
+            logger.info(f'Generated a new model {new_model.attributed_name}')
             yield new_model
     else:
         logger.info(f"Do not decompose the provided model {model.name}")

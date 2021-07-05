@@ -76,7 +76,7 @@ class SelectiveSelector(Selector):
                 iterate_over_models = model_pool
 
             for model in iterate_over_models:
-                self.logger.info(f"Consider adding scenarios to model {model.name}")
+                self.logger.info(f"Consider adding scenarios to model {model.attributed_name}")
                 local_model_pool = list()
                 local_coverage = copy.deepcopy(coverage)
 
@@ -100,13 +100,13 @@ class SelectiveSelector(Selector):
                 # Iteratively copy models to fill the coverage
                 if not scenarios_items_for_model and process_name not in must_contain:
                     self.logger.warning(f'Cannot find any suitable scenarios of process {process_name} suitable for '
-                                        f'model {model.name}, deleting it')
+                                        f'model {model.attributed_name}, deleting it')
                     remove_process(model, process_name)
                     next_model_pool.append(model)
                     continue
                 elif not scenarios_items_for_model and process_name in must_contain:
                     raise ValueError(f"Cannot delete required process {process_name} as it has no suitable scenarios "
-                                     f"for {model.name}")
+                                     f"for {model.attributed_name}")
 
                 scenarios_items_for_model = self._obtain_ordered_scenarios(
                     scenarios_items_for_model,
@@ -122,7 +122,7 @@ class SelectiveSelector(Selector):
                         break
                     elif self._check_coverage_impact(process_name, local_coverage[process_name], scenario):
                         new = self._clone_model_with_scenario(process_name, model, scenario)
-                        self.logger.info(f'Add a new model {new.name}')
+                        self.logger.info(f'Add a new model {new.attributed_name}')
                         local_model_pool.append(new)
                     else:
                         self.logger.info(f'Skip scenario {scenario.name} of {process_name} '
@@ -141,10 +141,10 @@ class SelectiveSelector(Selector):
                 break
 
             if not related_process and not self.model.entry:
-                self.logger.warning(f"Skip model {model.name} as it has no savepoints and the entry process")
+                self.logger.warning(f"Skip model {model.attributed_name} as it has no savepoints and the entry process")
                 continue
 
-            self.logger.info(f"Finally generate a batch for model {model.name}")
+            self.logger.info(f"Finally return a batch for model {model.attributed_name}")
             yield model, related_process
 
     def _sanity_check_must_contain(self, must_contain):
@@ -369,11 +369,11 @@ class SelectiveSelector(Selector):
                 break
 
         if exists_savepoint:
-            self.logger.debug(f"Model {model.name} has a savepoint already")
+            self.logger.debug(f"Model {model.attributed_name} has a savepoint already")
             new_scenarios_items = {s for s in scenarios_items if not isinstance(s, Scenario) or not s.savepoint}
             return new_scenarios_items
         else:
-            self.logger.debug(f"Model {model.name} has not a savepoint")
+            self.logger.debug(f"Model {model.attributed_name} has not a savepoint")
             return scenarios_items
 
     def _filter_by_requirements_from_model(self, process_name, model, scenarios_items, dependant_map, dependencies_map,
@@ -482,8 +482,8 @@ class SelectiveSelector(Selector):
             return False
 
     def _clone_model_with_scenario(self, process_name, model, scenario):
-        self.logger.info(f'Add scenario {scenario.name} of {process_name} '
-                         f'as it has coverage impact')
+        self.logger.info(f'Add scenario {scenario.name} of {process_name} to model "{model.attributed_name}"'
+                         f' as it has coverage impact')
         new = model.clone(model.name)
         # This should change the name of the model
         self._assign_scenario(new, scenario if isinstance(scenario, Scenario) else None, process_name)
