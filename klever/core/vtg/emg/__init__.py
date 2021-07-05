@@ -63,8 +63,13 @@ class EMG(Plugin):
         # Import additional aspect files
         abstract_task = self.abstract_task_desc
         self.abstract_task_desc = list()
+        used_attributed_names = set()
         for number, model in enumerate(decompose_intermediate_model(self.logger, self.conf, collection)):
             model.name = str(number)
+            if model.attributed_name in used_attributed_names:
+                raise ValueError(f'The model with name "{model.attributed_name}" has been already been generated')
+            else:
+                used_attributed_names.add(model.attributed_name)
             new_description = translate_intermediate_model(self.logger, self.conf, copy.deepcopy(abstract_task), sa,
                                                            model)
 
