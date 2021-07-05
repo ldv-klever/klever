@@ -16,6 +16,7 @@
 #
 
 import os
+import shutil
 import json
 import sortedcontainers
 
@@ -43,7 +44,7 @@ def translate_intermediate_model(logger, conf, avt, source, collection):
     :return: None.
     """
     # Prepare main configuration properties
-    logger.info("Check necessary configuration properties to be set")
+    logger.info(f"Translate '{collection.attributed_name}' with an identifier {collection.name}")
     conf['translation options'].setdefault('entry point', 'main')
     conf['translation options'].setdefault('enironment model file', 'environment_model.c')
     conf['translation options'].setdefault('nested automata', True)
@@ -56,9 +57,11 @@ def translate_intermediate_model(logger, conf, avt, source, collection):
     model_path = str(collection.name)
     assert model_path, 'Each environment model should have a unique name'
     assert not os.path.isdir(model_path), f'Model name {model_path} is used twice'
+    if os.path.isdir(model_path):
+        logger.info(f'Clean workdir for translation "{model_path}"')
+        shutil.rmtree(model_path)
     os.makedirs(model_path)
-    # todo: There are collisions possible
-    # os.symlink(model_path, collection.attributed_name, target_is_directory=True)
+    os.symlink(model_path, collection.attributed_name, target_is_directory=True)
 
     # Save processes
     model_file = os.path.join(model_path, 'input model.json')
