@@ -143,10 +143,14 @@ class ModelFactory:
         self.logger = logger
 
     def __call__(self, processes_to_scenarios: dict, model: ProcessCollection):
+        yield from self._cached_yield(self._factory_iterator(processes_to_scenarios, model))
+
+    def _factory_iterator(self, processes_to_scenarios: dict, model: ProcessCollection):
         selector = self.strategy(self.logger, self.conf, processes_to_scenarios, model)
         for batch, related_process in selector():
             new = ProcessCollection(batch.name)
             new.attributes = copy.deepcopy(batch.attributes)
+            original_name = batch.attributed_name
 
             # Do sanity check to catch several savepoints in a model
             sp_scenarios = {s for s in batch.environment.values() if isinstance(s, Scenario) and s.savepoint}
@@ -188,7 +192,19 @@ class ModelFactory:
             new.establish_peers()
             self._remove_unused_processes(new)
 
+            if new.attributed_name != original_name:
+                self.logger.info('Reduced batch {!r} to {!r}'.format(original_name, new.attributed_name))
             yield new
+
+    def _cached_yield(self, model_iterator):
+        model_cache = set()
+        for model in model_iterator:
+            if model.attributed_name not in model_cache:
+                model_cache.add(model.attributed_name)
+                yield model
+            else:
+                self.logger.info('Skip cached model {!r}'.format(model.attributed_name))
+                continue
 
     def _process_copy(self, process: Process):
         clone = process.clone()
