@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 import errno
 import sys
 import time
@@ -22,7 +21,8 @@ from klever.deploys.openstack.client import OSClient
 from klever.deploys.openstack.client.instance import OSInstance
 from klever.deploys.openstack.ssh import SSH
 from klever.deploys.openstack.copy import CopyDeployConfAndSrcs
-from klever.deploys.openstack.constants import PYTHON, KLEVER_DEPLOY_LOCAL, DEPLOYMENT_DIRECTORY, OS_HOME, OS_USER
+from klever.deploys.openstack.constants import PYTHON, KLEVER_DEPLOY_LOCAL, DEPLOYMENT_DIR, OS_USER, \
+    VOLUME_DIR, MEDIA_DIR
 
 
 class OSKleverInstance:
@@ -150,7 +150,7 @@ class OSKleverInstance:
     def __deploy_klever(self, ssh, action='install'):
         # TODO: check that source directory contains setup.py file
         ssh.execute_cmd(
-            f'sudo {KLEVER_DEPLOY_LOCAL} --deployment-directory {DEPLOYMENT_DIRECTORY} --non-interactive'
+            f'sudo {KLEVER_DEPLOY_LOCAL} --deployment-directory {DEPLOYMENT_DIR} --non-interactive'
             + (' --update-packages' if self.args.update_packages else '')
             + (' --update-python3-packages' if self.args.update_python3_packages else '')
             + f' --deployment-configuration-file klever.json --source-directory klever {action} {self.args.mode}'
@@ -159,24 +159,25 @@ class OSKleverInstance:
     def __mount_volume(self, ssh, instance):
         device = instance.volume.DEVICE
         partition = device + '1'
-        volume_dir = os.path.join(OS_HOME, 'volume')
 
         # Create partition inside volume
         ssh.execute_cmd(f'echo "start=2048, type=83" | sudo sfdisk {device}')
         # Format partition
         ssh.execute_cmd(f'sudo mkfs.ext4 {partition}')
         # Create mount point for volume
-        ssh.execute_cmd(f'mkdir {volume_dir}')
+        ssh.execute_cmd(f'mkdir {VOLUME_DIR}')
         # Make volume automount after restarts
-        ssh.execute_cmd(f'echo  "{partition} {volume_dir} auto defaults,nofail 0 3" | sudo tee -a /etc/fstab')
+        ssh.execute_cmd(f'echo  "{partition} {VOLUME_DIR} auto defaults,nofail 0 3" | sudo tee -a /etc/fstab')
         # Mount created partition
         ssh.execute_cmd(f'sudo mount -t ext4 {partition}')
         # Grant rights to mounted partition to OS_USER
-        ssh.execute_cmd(f'sudo chown {OS_USER}:{OS_USER} {volume_dir}')
-        ssh.execute_cmd(f'mkdir {volume_dir}/media')
-        ssh.execute_cmd('sudo mkdir -p /home/debian/klever-inst')
-        ssh.execute_cmd(f'sudo ln -s -T {volume_dir}/media /home/debian/klever-inst/klever-media')
-        ssh.execute_cmd('sudo chown www-data:www-data /home/debian/klever-inst/klever-media')
+        ssh.execute_cmd(f'sudo chown {OS_USER}:{OS_USER} {VOLUME_DIR}')
+
+        # Store media in volume
+        ssh.execute_cmd(f'mkdir {VOLUME_DIR}/media')
+        ssh.execute_cmd(f'sudo mkdir -p {DEPLOYMENT_DIR}')
+        ssh.execute_cmd(f'sudo ln -s -T {VOLUME_DIR}/media {MEDIA_DIR}')
+        ssh.execute_cmd(f'sudo chown www-data:www-data {MEDIA_DIR}')
 
     def update(self):
         instance = self.client.get_instance(self.name)
