@@ -22,7 +22,7 @@ from klever.deploys.openstack.client.instance import OSInstance
 from klever.deploys.openstack.ssh import SSH
 from klever.deploys.openstack.copy import CopyDeployConfAndSrcs
 from klever.deploys.openstack.constants import PYTHON, KLEVER_DEPLOY_LOCAL, DEPLOYMENT_DIR, OS_USER, \
-    VOLUME_DIR, MEDIA_DIR
+    VOLUME_DIR, MEDIA_DIR, SRC_DIR
 
 
 class OSKleverInstance:
@@ -176,8 +176,17 @@ class OSKleverInstance:
         # Store media in volume
         ssh.execute_cmd(f'mkdir {VOLUME_DIR}/media')
         ssh.execute_cmd(f'sudo mkdir -p {DEPLOYMENT_DIR}')
-        ssh.execute_cmd(f'sudo ln -s -T {VOLUME_DIR}/media {MEDIA_DIR}')
-        ssh.execute_cmd(f'sudo chown www-data:www-data {MEDIA_DIR}')
+
+        if self.args.mode == 'production':
+            ssh.execute_cmd(f'sudo ln -s -T {VOLUME_DIR}/media {MEDIA_DIR}')
+            ssh.execute_cmd(f'sudo chown www-data:www-data {MEDIA_DIR}')
+        elif self.args.mode == 'development':
+            # Remove empty media directory
+            ssh.execute_cmd(f'rm -rf {SRC_DIR}/bridge/media')
+            ssh.execute_cmd(f'sudo ln -s -T {VOLUME_DIR}/media {SRC_DIR}/bridge/media')
+        else:
+            self.logger.error('Unsupported deployment mode')
+            sys.exit(errno.EINVAL)
 
     def update(self):
         instance = self.client.get_instance(self.name)

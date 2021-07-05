@@ -21,6 +21,7 @@ KLEVER_DEPLOY_LOCAL = os.path.join(os.path.dirname(PYTHON), 'klever-deploy-local
 
 OS_USER = 'debian'
 OS_HOME = f'/home/{OS_USER}'
+SRC_DIR = os.path.join(OS_HOME, 'klever')
 DEPLOYMENT_DIR = os.path.join(OS_HOME, 'klever-inst')
 STORAGE = os.path.join(OS_HOME, 'klever-storage')
 VOLUME_DIR = os.path.join(OS_HOME, 'volume')
