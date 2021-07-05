@@ -51,6 +51,8 @@ class ScenarioCollection:
         self.environment = environment if isinstance(environment, dict) else dict()
         self.attributes = dict()
 
+    attributed_name = ProcessCollection.attributed_name
+
     def clone(self, new_name: str):
         """
         Copy the collection with a new name.
@@ -59,6 +61,7 @@ class ScenarioCollection:
         :return: ScenarioCollection instance.
         """
         new = ScenarioCollection(new_name)
+        new.attributes = dict(self.attributes)
         new.entry = self.entry.clone() if self.entry else None
         for collection in ('models', 'environment'):
             for key in getattr(self, collection):
