@@ -179,7 +179,6 @@ class OSKleverInstance:
 
         if self.args.mode == 'production':
             ssh.execute_cmd(f'sudo ln -s -T {VOLUME_DIR}/media {MEDIA_DIR}')
-            ssh.execute_cmd(f'sudo chown www-data:www-data {MEDIA_DIR}')
         elif self.args.mode == 'development':
             # Remove empty media directory
             ssh.execute_cmd(f'rm -rf {SRC_DIR}/bridge/media')

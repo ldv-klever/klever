@@ -80,7 +80,8 @@ def install_klever_bridge_production(logger, src_dir, deploy_dir, populate_just_
 
     logger.info('Prepare media directory')
     media = '/var/www/klever-bridge/bridge/media'
-    media_real = os.path.join(os.path.realpath(deploy_dir), 'klever-media')
+    media_real = os.path.realpath(os.path.join(os.path.realpath(deploy_dir), 'klever-media'))
+
     shutil.rmtree(media)
     execute_cmd(logger, 'mkdir', '-p', media_real)
     execute_cmd(logger, 'ln', '-s', '-T', media_real, media)
