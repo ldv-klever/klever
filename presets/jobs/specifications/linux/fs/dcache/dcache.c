@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+ * Copyright (c) 2021 ISP RAS (http://www.ispras.ru)
  * Ivannikov Institute for System Programming of the Russian Academy of Sciences
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 
+#include <linux/fs.h>
 #include <linux/dcache.h>
 #include <ldv/linux/common.h>
 #include <ldv/verifier/common.h>
@@ -23,17 +24,55 @@
 
 struct dentry *root_dentry;
 
+
+struct dentry *ldv_d_alloc_pseudo(struct super_block *sb, const struct qstr *name)
+{
+    struct dentry *dentry;
+    size_t size;
+
+    if (ldv_undef_int()) {
+        return NULL;
+    } else {
+        dentry = ldv_zalloc(sizeof(struct dentry));
+        /* Set the string */
+        dentry->d_sb = sb;
+        dentry->d_parent = dentry;
+        dentry->d_op = dentry->d_sb->s_d_op;
+
+        /* Init lists */
+        INIT_LIST_HEAD(& dentry->d_subdirs);
+        INIT_LIST_HEAD(& dentry->d_u.d_alias);
+        INIT_LIST_HEAD(& dentry->d_child);
+
+        return dentry;
+    }
+}
+
+
 struct dentry *ldv_d_make_root(struct inode *root_inode)
 {
-	struct dentry *res = root_dentry;
+    struct dentry *res = root_dentry;
+    struct qstr root_name;
+    char *name;
 
-	if (root_inode && !res) {
-		if (ldv_undef_int()) {
-			return 0;
-		} else {
-		    root_dentry = ldv_xzalloc(sizeof(struct dentry));
-			res = root_dentry;
-		}
-	}
-	return res;
+    if (root_inode && !res) {
+        if (ldv_undef_int()) {
+            return 0;
+        } else {
+            /* TODO: Fix after CPAchecker SMG will support string assignment */
+            root_name.name = ldv_xzalloc(2);
+            name = (char *)root_name.name;
+            name[0] = '/';
+            name[1] = '\0';
+            root_name.len = 1;
+            root_dentry = ldv_d_alloc_pseudo(root_inode->i_sb, & root_name);
+            ldv_free(root_name.name);
+            ldv_assume(root_dentry != NULL);
+            root_dentry->d_name.name = 0;
+            root_dentry->d_name.len = 0;
+            root_dentry->d_inode = root_inode;
+            res = root_dentry;
+        }
+    }
+    return res;
 }

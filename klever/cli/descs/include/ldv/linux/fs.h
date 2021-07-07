@@ -15,19 +15,20 @@
  * limitations under the License.
  */
 
-before: file("$this")
-{
-#include <linux/fs.h>
-#include <linux/dcache.h>
-struct dentry *ldv_d_make_root(struct inode *root_inode);
-}
+ #include <linux/fs.h>
 
-around: call(struct dentry *d_make_root(..))
-{
-    return ldv_d_make_root($arg1);
-}
+ /* Internal parameter that defines the max number of inodes in the model */
+ #define MAX_INODES 3
 
-around: call(struct dentry *d_alloc_root(..))
-{
-    return ldv_d_make_root($arg1);
-}
+ /* Simple model for the inodes tree */
+ extern unsigned long ldv_created_cnt;
+ extern struct inode *ldv_inodes[MAX_INODES];
+
+ /* VFS functions */
+ struct inode *ldv_alloc_inode(struct super_block *);
+ void ldv_inode_init_once(struct inode *);
+ void ldv_clear_inode(struct inode *);
+ struct inode *ldv_iget_locked(struct super_block *, unsigned long);
+
+ /* Aux functions */
+ struct inode *ldv_get_root_inode(void);

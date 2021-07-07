@@ -15,6 +15,16 @@
         "declaration": "struct inode *iget_locked(struct super_block *sb, unsigned long ino)",
         "header": "linux/fs.h",
         "reference": true
+      },
+      "d_instantiate": {
+        "declaration": "void d_instantiate(struct dentry *, struct inode *)",
+        "header": "linux/dcache.h",
+        "reference": true
+      },
+      "d_splice_alias": {
+        "declaration": "struct dentry *d_splice_alias(struct inode *, struct dentry *)",
+        "header": "linux/dcache.h",
+        "reference": true
       }
     },
     "categories": {

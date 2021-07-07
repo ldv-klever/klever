@@ -17,17 +17,20 @@
 
 before: file("$this")
 {
-#include <linux/fs.h>
-#include <linux/dcache.h>
-struct dentry *ldv_d_make_root(struct inode *root_inode);
+#include <ldv/linux/fs.h>
 }
 
-around: call(struct dentry *d_make_root(..))
+around: call(void inode_init_once(struct inode *inode))
 {
-    return ldv_d_make_root($arg1);
+   return ldv_inode_init_once(inode);
 }
 
-around: call(struct dentry *d_alloc_root(..))
+around: call(void clear_inode(struct inode *inode))
 {
-    return ldv_d_make_root($arg1);
+    return ldv_clear_inode(inode);
+}
+
+around: call(struct inode *iget_locked(struct super_block *sb, unsigned long ino))
+{
+    return iget_locked(sb, ino);
 }

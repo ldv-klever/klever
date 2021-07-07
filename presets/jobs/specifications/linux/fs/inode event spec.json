@@ -1,6 +1,79 @@
 {
   "3.14": {
-    "functions models": {},
+    "functions models": {
+      "new_inode": {
+        "actions": {
+          "success": {
+            "comment": "Create new inode.",
+            "trace relevant": true,
+            "statements": [
+              "%superblock% = $ARG1;",
+              "%inode% = ldv_alloc_inode(%superblock%);",
+              "if (%inode%) {",
+              "\t%inode%->i_state = 0;",
+              "}",
+              "return %inode%;"
+            ]
+          },
+          "fail": {
+            "comment": "Failed to create an inode.",
+            "trace relevant": true,
+            "statements": [
+              "return 0;"
+            ]
+          }
+        },
+        "comment": "Create an inode.",
+        "labels": {
+          "superblock": {
+            "container": true,
+            "parameter": true,
+            "interface": [
+              "filesystem.super_block"
+            ]
+          },
+          "inode": {
+            "parameter": true,
+            "interface": [
+              "inode.inode"
+            ]
+          }
+        },
+        "process": "<success> | <fail>",
+        "reference": true
+      },
+      "d_instantiate": {
+        "comment": "Model of d_instantiate from the VFS.",
+        "headers": ["linux/dcache.h"],
+        "labels": {},
+        "actions": {
+          "call": {
+            "comment":"Connect the dentry with the inode.",
+            "statements": [
+              "$ARG1->d_inode = $ARG2;"
+            ],
+            "trace relevant": true
+          }
+        },
+        "process": "<call>"
+      },
+      "d_splice_alias": {
+        "comment": "Model of d_splice_alias from the VFS.",
+        "headers": ["linux/dcache.h"],
+        "labels": {},
+        "actions": {
+          "call": {
+            "comment":"Connect the dentry with the inode.",
+            "statements": [
+              "$ARG2->d_inode = $ARG1;",
+              "return $ARG2;"
+            ],
+            "trace relevant": true
+          }
+        },
+        "process": "<call>"
+      }
+    },
     "environment processes": {
       "inode_scenario": {
         "comment": "File system scenario.",
