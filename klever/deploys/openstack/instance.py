@@ -153,6 +153,7 @@ class OSKleverInstance:
             f'sudo {KLEVER_DEPLOY_LOCAL} --deployment-directory {DEPLOYMENT_DIR} --non-interactive'
             + (' --update-packages' if self.args.update_packages else '')
             + (' --update-python3-packages' if self.args.update_python3_packages else '')
+            + f' --log-level {self.args.log_level}'
             + f' --deployment-configuration-file klever.json --source-directory klever {action} {self.args.mode}'
         )
 
@@ -197,7 +198,7 @@ class OSKleverInstance:
         # Move the PostgreSQL data directory to volume
         ssh.execute_cmd(f'mkdir {VOLUME_PGSQL_DIR}')
         # copy the contents of data_dir
-        ssh.execute_cmd(f'sudo rsync -av {data_dir}/ {VOLUME_PGSQL_DIR}')
+        ssh.execute_cmd(f'sudo rsync -a {data_dir}/ {VOLUME_PGSQL_DIR}')
 
         # Change PostgreSQL configuration
         ssh.execute_cmd(f'sudo sed -i "s#^\\(data_directory\\s*=\\s*\\).*\$#\\1\'{VOLUME_PGSQL_DIR}\'#" {conf_file}')
