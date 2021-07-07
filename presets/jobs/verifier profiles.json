@@ -47,7 +47,10 @@
       "description": "CPAchecker with BAM for reachability checking",
       "inherit": "CPAchecker common",
       "safety properties": ["CHECK( init({entry_point}()), LTL(G ! call(__VERIFIER_error())) )"],
-      "add options": [{"-ldv-bam": ""}]
+      "add options": [
+        {"-setprop": "counterexample.export.allowImpreciseCounterexamples=false"},
+        {"-ldv-bam": ""}
+      ]
     },
     "CPAchecker BAM reachability FP": {
       "description": "CPAchecker with BAM and FPA for reachability checking",
