@@ -84,7 +84,7 @@ class OSKleverBaseImage:
             base_image=base_image,
             vcpus=1,
             ram=2048,
-            disk=5
+            disk=10
         ) as instance:
             with SSH(
                 args=self.args,
