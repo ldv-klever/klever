@@ -57,7 +57,7 @@
             {
               "tlclk_release": [
                 {
-                  "cif_free_irq": []
+                  "Instrumented function 'free_irq'": []
                 }
               ]
             }

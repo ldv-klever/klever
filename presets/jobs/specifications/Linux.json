@@ -123,7 +123,7 @@
             "verifier profile": "reachability",
             "verifier": {
               "name": "CPAchecker",
-              "version": "klever_fixes:36955"
+              "version": "klever_fixes:37649"
             }
           }
         }
@@ -180,7 +180,7 @@
             "verifier profile": "memory checking",
             "verifier": {
               "name": "CPAchecker",
-              "version": "klever_fixes:36955"
+              "version": "klever_fixes:37649"
             }
           }
         }
@@ -444,7 +444,7 @@
                           "verifier profile": "reachability with heap arrays",
                           "verifier": {
                             "name": "CPAchecker",
-                            "version": "klever_fixes:36955"
+                            "version": "klever_fixes:37649"
                           }
                         }
                       }
@@ -750,16 +750,16 @@
         "identifier": "test",
         "children": [
           {
-            "identifier": "environment model specifications",
-            "description": "Requirement intended for testing environment model specifications and the generator",
+            "identifier": "EMG",
+            "description": "Requirements specification for testing environment model specifications and EMG",
             "plugins": [{
               "name": "RSG",
               "options": {"models": ["linux/emg/test_model.c"]}
             }]
           },
           {
-            "identifier": "environment model specifications with function pointer analysis",
-            "description": "Requirement intended for testing environment model specifications and generator with function pointer analysis",
+            "identifier": "EMG with function pointer analysis",
+            "description": "Requirements specification intended for testing environment model specifications and EMG with function pointer analysis",
             "plugins": [
               {
                 "name": "RSG",
@@ -771,7 +771,7 @@
                   "verifier profile": "reachability with function pointers",
                   "verifier": {
                     "name": "CPAchecker",
-                    "version": "klever_fixes:36955"
+                    "version": "klever_fixes:37649"
                   }
                 }
               }
@@ -799,7 +799,7 @@
                   "verifier profile": "reachability with heap arrays",
                   "verifier": {
                     "name": "CPAchecker",
-                    "version": "klever_fixes:36955"
+                    "version": "klever_fixes:37649"
                   }
                 }
               }

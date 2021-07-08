@@ -588,7 +588,25 @@ class RP(klever.core.components.Component):
         exception = None
         if opts['code coverage details'] != "None":
             try:
-                LCOV(self.conf, self.logger, os.path.join('output', 'coverage.info'),
+                # At the moment Klever supports just one code coverage report per a verification task. So, we can use
+                # code coverage reports corresponding to violation witnesses just in case when there is the only
+                # violation witness. Otherwise, use a common code coverage report.
+                if len(glob.glob(os.path.join('output', 'witness.*.graphml'))) == 1:
+                    coverage_files = glob.glob(os.path.join('output', 'Counterexample.*.additionalCoverage.info'))
+
+                    if coverage_files:
+                        coverage_file = coverage_files[0]
+                    # TODO: CPALockator does not output enhanced code coverage reports at the moment.
+                    else:
+                        coverage_file = os.path.join('output', 'coverage.info')
+                else:
+                    coverage_file = os.path.join('output', 'additionalCoverage.info')
+
+                    # TODO: CPALockator does not output enhanced code coverage reports at the moment.
+                    if not os.path.exists(coverage_file):
+                        coverage_file = os.path.join('output', 'coverage.info')
+
+                LCOV(self.conf, self.logger, coverage_file,
                      self.clade, self.source_paths,
                      self.search_dirs, self.conf['main working directory'],
                      opts['code coverage details'],
