@@ -199,14 +199,14 @@ class SelectiveSelector(Selector):
         # keys
         dependant_map = dict()
         for process in self.model.environment.values():
-            action_names = [str(a) for a in process.actions if process.actions[a].requires]
+            action_names = [str(a) for a in process.actions if process.actions[a].require]
             if action_names:
                 self.logger.info(f"Process {process} has requirements in the following actions: " +
                                  ", ".join(action_names))
                 dependencies_map[str(process)] = action_names
 
                 for action in action_names:
-                    for dependant in process.actions[action].requires.keys():
+                    for dependant in process.actions[action].require.keys():
                         dependant_map.setdefault(dependant, set())
                         dependant_map[dependant].add(str(process))
 
@@ -395,9 +395,9 @@ class SelectiveSelector(Selector):
 
                     for action in (a for a in dependencies_map[proc_with_reqs]
                                    if a in actions_with_requirements and
-                                   actions_with_requirements[a].requires.get(process_name)):
+                                   actions_with_requirements[a].require.get(process_name)):
                         self.logger.debug(f'Found requirements for {process_name} in {action} of {proc_with_reqs}')
-                        if not set(actions_with_requirements[action].requires[process_name]["includes"]). \
+                        if not set(actions_with_requirements[action].require[process_name]["includes"]). \
                                 issubset(set(suitable.actions.keys())):
                             self.logger.info(f"Cannot add {suitable.name} of {process_name} because "
                                              f"of {action} of {proc_with_reqs}")
@@ -418,7 +418,7 @@ class SelectiveSelector(Selector):
                 add_flag = True
 
                 for action_name in (a for a in dependencies_map[process_name] if a in scenario.actions):
-                    for asked_process in scenario.actions[action_name].requires:
+                    for asked_process in scenario.actions[action_name].require:
                         if asked_process in deleted:
                             self.logger.info(f"Cannot add {scenario.name} of {process_name} because "
                                              f"{asked_process} is deleted")

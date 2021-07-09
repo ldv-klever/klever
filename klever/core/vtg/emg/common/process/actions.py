@@ -286,7 +286,7 @@ class Action:
         self.trace_relevant = False
         self.savepoints = set()
         self.comment = ''
-        self.requires = dict()
+        self.require = dict()
 
     def __getnewargs__(self):
         # Return the arguments that *must* be passed to __new__ (required for deepcopy)

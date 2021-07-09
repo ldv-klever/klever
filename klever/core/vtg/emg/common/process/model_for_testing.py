@@ -95,7 +95,7 @@ c1p2 = {
                 'p2s1': {"statements": ["$ALLOC(%container%);"]},
                 'p2s2': {"statements": ["$ALLOC(%container%);"]}
             },
-            "requires": {"c1/p1": {}}
+            "require": {"c1/p1": {}}
         },
         "alloc": {
             "comment": "Alloc memory for the container.",

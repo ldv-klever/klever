@@ -140,7 +140,7 @@
             "actions": {
               "register_c1": {
                 "comment": "Start actions of the first child.",
-                "requires": {
+                "require": {
                   "entry_point/entry": {"includes": ["first_branch"]}
                 },
                 "savepoints": {

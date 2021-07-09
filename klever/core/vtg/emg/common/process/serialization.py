@@ -144,7 +144,7 @@ class CollectionDecoder:
         'parameters': None,
         'condition': None,
         'statements': None,
-        'requires': None,
+        'require': None,
         'pre-call': 'pre_call',
         'post-call': 'post_call',
         'trace relevant': 'trace_relevant'
