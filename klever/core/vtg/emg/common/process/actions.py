@@ -286,7 +286,7 @@ class Action:
         self.trace_relevant = False
         self.savepoints = set()
         self.comment = ''
-        self.require = dict()
+        self._require = dict()
 
     def __getnewargs__(self):
         # Return the arguments that *must* be passed to __new__ (required for deepcopy)
@@ -303,6 +303,21 @@ class Action:
 
     def __lt__(self, other):
         return str(self) < str(other)
+
+    @property
+    def require(self):
+        return copy.deepcopy(self._require)
+
+    def add_required_process(self, process_name: str, actions: set):
+        assert isinstance(process_name, str)
+        assert isinstance(actions, set)
+        for name in actions:
+            assert isinstance(name, str)
+
+        self._require.setdefault(process_name, dict())
+        if actions:
+            self._require[process_name].setdefault('include', set())
+            self._require[process_name]['include'].update(set(actions))
 
 
 class Subprocess(Action):

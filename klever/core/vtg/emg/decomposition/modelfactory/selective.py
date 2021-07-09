@@ -397,7 +397,7 @@ class SelectiveSelector(Selector):
                                    if a in actions_with_requirements and
                                    actions_with_requirements[a].require.get(process_name)):
                         self.logger.debug(f'Found requirements for {process_name} in {action} of {proc_with_reqs}')
-                        if not set(actions_with_requirements[action].require[process_name]["includes"]). \
+                        if not set(actions_with_requirements[action].require[process_name]["include"]). \
                                 issubset(set(suitable.actions.keys())):
                             self.logger.info(f"Cannot add {suitable.name} of {process_name} because "
                                              f"of {action} of {proc_with_reqs}")
@@ -428,7 +428,7 @@ class SelectiveSelector(Selector):
                             # Have not been considered yet
                             continue
 
-                        required_actions = scenario.actions[action_name].requires[asked_process]["includes"]
+                        required_actions = scenario.actions[action_name].require[asked_process]["include"]
                         if asked_process in model.environment:
                             considered_actions = model.environment[asked_process].actions \
                                 if model.environment[asked_process] else self.model.environment[asked_process].actions

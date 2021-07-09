@@ -15,6 +15,7 @@
 # limitations under the License.
 #
 
+import copy
 import json
 import pytest
 import logging
@@ -64,6 +65,39 @@ def test_export_model(source, model):
     raw1 = json.loads(raw1)
     raw2 = json.loads(raw2)
     _compare_models(raw1, raw2)
+
+
+def test_requirements_field(source, raw_model):
+    test_raw_model = copy.deepcopy(raw_model)
+    assert 'c1/p1' in test_raw_model['environment processes']['c1/p2']['actions']['register_c1p2']['require']
+
+    # Incorrect process
+    test_raw_model['environment processes']['c1/p2']['actions']['register_c1p2']['require']['c5/p4'] = dict()
+    with pytest.raises(ValueError):
+        CollectionDecoder(logging, dict()).parse_event_specification(source, json.loads(json.dumps(test_raw_model)),
+                                                                     ProcessCollection())
+
+    # Missing action
+    test_raw_model = copy.deepcopy(raw_model)
+    test_raw_model['environment processes']['c1/p2']['actions']['register_c1p2']['require']['c1/p1'] = \
+        {'include': ['goaway']}
+    with pytest.raises(ValueError):
+        CollectionDecoder(logging, dict()).parse_event_specification(source, json.loads(json.dumps(test_raw_model)),
+                                                                     ProcessCollection())
+
+
+def test_savepoint_uniqueness(source, raw_model):
+    raw_model = copy.deepcopy(raw_model)
+
+    # Add two savepoints with the same name
+    assert 'p2s1' in raw_model['environment processes']['c1/p2']['actions']['register_c1p2']['savepoints']
+    new_sp = dict(raw_model["environment processes"]['c1/p2']['actions']['register_c1p2']['savepoints']['p2s1'])
+    raw_model['environment processes']['c2/p1']['actions']['register_c2p1']['savepoints']['p2s1'] = new_sp
+
+    # Expect an error
+    with pytest.raises(ValueError):
+        CollectionDecoder(logging, dict()).parse_event_specification(source, json.loads(json.dumps(raw_model)),
+                                                                     ProcessCollection())
 
 
 def _compare_models(raw1, raw2):

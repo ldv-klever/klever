@@ -90,6 +90,9 @@ class CollectionEncoder(json.JSONEncoder):
         if action.savepoints:
             ict_action['savepoints'] = {
                 str(point): self.default(point) for point in action.savepoints}
+        if action.require:
+            ict_action['require'] = {
+                name: self.default(value) for name, value in action.require.items()}
         if isinstance(action, Subprocess):
             if action.action:
                 ict_action['process'] = repr(action.action)
@@ -138,13 +141,11 @@ class CollectionDecoder:
         'source files': 'cfiles',
         'peers': None
     }
-    # todo: need extra checks of internal values for requires field
     ACTION_ATTRIBUTES = {
         'comment': None,
         'parameters': None,
         'condition': None,
         'statements': None,
-        'require': None,
         'pre-call': 'pre_call',
         'post-call': 'post_call',
         'trace relevant': 'trace_relevant'
@@ -227,6 +228,39 @@ class CollectionDecoder:
         if raise_exc:
             raise RuntimeError("Some specifications cannot be parsed, inspect log to find problems with: {}".
                                format(', '.join(raise_exc)))
+
+        # Check savepoint's uniqueness
+        if collection.entry.savepoints:
+            raise ValueError('The entry process {!r} is not allowed to have savepoints'.format(str(collection.entry)))
+        for model_process in collection.models.values():
+            if model_process.savepoints:
+                raise ValueError('The function model {!r} is not allowed to have savepoints'.format(str(model_process)))
+        savepoints = set()
+        for process in collection.environment.values():
+            for action in process.actions.values():
+                if action.savepoints:
+                    sp = set(map(str, action.savepoints))
+                    if sp.intersection(savepoints):
+                        intr = ', '.join(sp.intersection(savepoints))
+                        raise ValueError(f'Savepoints cannot be used twice: {intr}')
+                    else:
+                        savepoints.update(sp)
+                if action.require:
+                    for name in action.require:
+                        if name == str(collection.entry):
+                            required = collection.entry
+                        elif name in collection.models.keys():
+                            required = collection.models[name]
+                        elif name in map(str, collection.environment.values()):
+                            required = collection.environment[name]
+                        else:
+                            raise ValueError(f'There is no process {name} required by {str(process)} in'
+                                             f' action {str(action)}')
+
+                        for action_name in action.require[name].get('include', set()):
+                            if action_name not in required.actions:
+                                raise ValueError(f'Process {str(process)} in action {str(action)} requires action '
+                                                 f'{action_name} which is missing in process {name}')
 
         self.logger.debug(f'Imported function models: {", ".join(collection.models.keys())}')
         self.logger.debug(f'Imported environment processes: {", ".join(collection.environment.keys())}')
@@ -324,6 +358,10 @@ class CollectionDecoder:
             for name, sp_dic in dic['savepoints'].items():
                 savepoint = Savepoint(name, sp_dic.get('statements', []), sp_dic.get('comment'))
                 act.savepoints.add(savepoint)
+
+        if 'require' in dic:
+            for process_name in dic['require']:
+                act.add_required_process(process_name, set(dic['require'][process_name].get('include', set())))
 
     def _import_label(self, name, dic):
         label = self.LABEL_CONSTRUCTOR(name)
