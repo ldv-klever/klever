@@ -179,37 +179,6 @@ c2p1 = {
        }
    }
 }
-c2p2 = {
-    "comment": "Category 2, process 2.",
-    "labels": {
-        "container": {
-            "declaration": "struct validation *var",
-            "value": "0"
-        }
-    },
-    "process": "(!register_c2p2).([read] | [write])",
-    "actions": {
-        "register_c2p2": {
-            "parameters": ['%container%'],
-            "savepoints": {
-                'p4s1': {
-                    "statements": []
-                }
-            },
-            "requires": {
-                "c2/p1": {"includes": ["probe", "success"]}
-            }
-        },
-        "read": {
-            "comment": "Do read.",
-            "statements": []
-        },
-        "write": {
-            "comment": "Do write.",
-            "statements": []
-        }
-    }
-}
 register_c1 = {
     "comment": "Register С1.",
     "labels": {
@@ -345,19 +314,6 @@ spec = {
     "main process": main
 }
 
-c2_spec = {
-    "name": 'base',
-    "functions models": {
-        "register_c2": register_c2,
-        "deregister_c2": deregister_c2
-    },
-    "environment processes": {
-        "c2/p1": c2p1,
-        "c2/p2": c2p2
-    },
-    "main process": main
-}
-
 
 def source_preset():
     cfiles = [
@@ -402,13 +358,5 @@ def model_preset():
     raw_model = raw_model_preset()
     parser = CollectionDecoder(logging, dict())
     model = parser.parse_event_specification(source, raw_model, ProcessCollection())
-    model.establish_peers()
-    return model
-
-
-def model_preset_c2():
-    source = source_preset()
-    parser = CollectionDecoder(logging, dict())
-    model = parser.parse_event_specification(source, c2_spec, ProcessCollection())
     model.establish_peers()
     return model
