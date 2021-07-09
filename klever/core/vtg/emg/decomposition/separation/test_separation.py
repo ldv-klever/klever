@@ -15,13 +15,16 @@
 # limitations under the License.
 #
 
+import json
 import pytest
 import logging
 
+from klever.core.vtg.emg.common.process import ProcessCollection
 from klever.core.vtg.emg.decomposition.separation import SeparationStrategy
-from klever.core.vtg.emg.common.process.model_for_testing import model_preset
 from klever.core.vtg.emg.decomposition.separation.linear import LinearStrategy
+from klever.core.vtg.emg.common.process.serialization import CollectionDecoder
 from klever.core.vtg.emg.common.process.actions import Subprocess, Choice, Receive, Block
+from klever.core.vtg.emg.common.process.model_for_testing import model_preset, source_preset
 
 
 @pytest.fixture
@@ -37,6 +40,46 @@ def default_separator():
 @pytest.fixture
 def linear_separator():
     return LinearStrategy(logging.Logger('default'), dict())
+
+
+@pytest.fixture()
+def specific_model():
+    c1p1 = {
+        "comment": "Category 1, process 1.",
+        "process": "(!register_c1p1).(deregister_c1p1)",
+        "actions": {
+            "register_c1p1": {"parameters": []},
+            "deregister_c1p1": {"parameters": []}
+        }
+    }
+    c1p2 = {
+        "comment": "Category 1, process 2.",
+        "process": "(!register_c1p1).{level_one}",
+        "actions": {
+            "level_one": {"process": "<a>.({level_two} | {level_three}) | {finish}", "comment": ""},
+            "level_two": {"process": "(<b> | <c>).{finish}", "comment": ""},
+            "level_three": {"process": "<d>.{finish}", "comment": ""},
+            "finish": {"process": "(deregister_c1p1)"},
+            "register_c1p1": {"parameters": []},
+            "deregister_c1p1": {"parameters": []},
+            "a": {"comment": "", "statements": [], "condition": []},
+            "b": {"comment": "", "statements": [], "condition": []},
+            "c": {"comment": "", "statements": [], "condition": []},
+            "d": {"comment": "", "statements": [], "condition": []}
+        }
+    }
+    spec = {
+        "name": 'test_model',
+        "functions models": {},
+        "environment processes": {
+            "c1/p1": c1p1,
+            "c1/p2": c1p2
+        }
+    }
+    collection = CollectionDecoder(logging, dict()).parse_event_specification(source_preset(),
+                                                                              json.loads(json.dumps(spec)),
+                                                                              ProcessCollection())
+    return collection
 
 
 def test_default_scenario_extraction(model, default_separator):
@@ -97,9 +140,11 @@ def test_linear_strategy_c1p1(model, linear_separator):
     assert scenarios['p1s1 with deregister_c1p1'].actions.sequence == \
            '(!register_c1p1).[register_c1p2].[deregister_c1p2].(deregister_c1p1)'
     assert 'p1s3 with deregister_c1p1' in scenarios
-    assert scenarios['p1s3 with deregister_c1p1'].actions.sequence == '[register_c1p2].[deregister_c1p2].(deregister_c1p1)'
+    assert scenarios['p1s3 with deregister_c1p1'].actions.sequence == \
+           '[register_c1p2].[deregister_c1p2].(deregister_c1p1)'
     assert 'p1s4 with deregister_c1p1' in scenarios
-    assert scenarios['p1s4 with deregister_c1p1'].actions.sequence == '[register_c1p2].[deregister_c1p2].(deregister_c1p1)'
+    assert scenarios['p1s4 with deregister_c1p1'].actions.sequence == \
+           '[register_c1p2].[deregister_c1p2].(deregister_c1p1)'
 
 
 def test_linear_strategy_c1p2(model, linear_separator):
@@ -154,6 +199,25 @@ def test_linear_strategy_c2p1(model, linear_separator):
     # Todo: reimplement this. It is better to cover sequences somehow.
     assert len(scenarios) == 6, f'The number of scenarios is {len(scenarios)}: ' + \
                                 ', '.join([s.name for s in scenarios])
+
+
+def test_plain_process(specific_model, linear_separator):
+    c1p1 = specific_model.environment['c1/p1']
+    scenarios = linear_separator(c1p1)
+    _check_linear_actions(scenarios, c1p1.actions)
+
+    assert len(scenarios) == 1
+
+
+def test_deep_subprocesses(specific_model, linear_separator):
+    c1p2 = specific_model.environment['c1/p2']
+    scenarios = linear_separator(c1p2)
+    _check_linear_actions(scenarios, c1p2.actions)
+
+    assert len(scenarios) == 4, f'The number of scenarios is {len(scenarios)}: ' + \
+                                ', '.join([s.name for s in scenarios])
+    # TODO: Add more specific tests for scenario names
+    raise NotImplementedError
 
 
 def _check_linear_actions(scenarios, actions):
