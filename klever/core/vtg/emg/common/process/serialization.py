@@ -230,7 +230,7 @@ class CollectionDecoder:
                                format(', '.join(raise_exc)))
 
         # Check savepoint's uniqueness
-        if collection.entry.savepoints:
+        if collection.entry and collection.entry.savepoints:
             raise ValueError('The entry process {!r} is not allowed to have savepoints'.format(str(collection.entry)))
         for model_process in collection.models.values():
             if model_process.savepoints:
@@ -247,7 +247,7 @@ class CollectionDecoder:
                         savepoints.update(sp)
                 if action.require:
                     for name in action.require:
-                        if name == str(collection.entry):
+                        if collection.entry and name == str(collection.entry):
                             required = collection.entry
                         elif name in collection.models.keys():
                             required = collection.models[name]
@@ -272,7 +272,7 @@ class CollectionDecoder:
         dic = copy.deepcopy(dic)
         process = self.PROCESS_CONSTRUCTOR(name, category)
 
-        for label_name in dic.get('labels', {}):
+        for label_name in dic.get('labels', dict()):
             label = self._import_label(label_name, dic['labels'][label_name])
             process.labels[label_name] = label
 
