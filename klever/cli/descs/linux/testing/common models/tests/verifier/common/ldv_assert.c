@@ -15,23 +15,15 @@
  * limitations under the License.
  */
 
-#include <ldv/verifier/common.h>
+#include <linux/module.h>
+#include <ldv/common/test.h>
 
-/* https://sv-comp.sosy-lab.org/2017/rules.php */
-void __VERIFIER_error(void);
-void __VERIFIER_assume(int expr);
-
-#ifndef LDV_MEMORY_SAFETY
-void ldv_assert(void)
+static int __init ldv_init(void)
 {
-	/* NOTE2 Verification tools treats this call of the special function as a solution of the reachability task that can correspond to either a fault or a false alarm */
-	__VERIFIER_error();
-}
-#endif
+	/* ASSERT Expected error */
+	ldv_assert();
 
-// See corresponding comment in klever/cli/descs/include/ldv/verifier/common.h
-//void ldv_assume(int expr)
-//{
-//    /* NOTE2 Verification tools do not traverse paths where an actual argument of this function is evaluated to zero */
-//    __VERIFIER_assume(expr);
-//}
+	return 0;
+}
+
+module_init(ldv_init);

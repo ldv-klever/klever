@@ -18,8 +18,14 @@
 #ifndef __LDV_VERIFIER_COMMON_H
 #define __LDV_VERIFIER_COMMON_H
 
-/* Alias for __VERIFIER_error(). Unconditionally reach error function call. */
+#ifdef LDV_MEMORY_SAFETY
+/* Deliberate NULL pointer dereference corresponding to violations of requirement specifications expressed and checked
+   using memory safety properties or false alarms. */
+#define ldv_assert() ({*(char *)0;})
+#else
+/* Unconditionally reach call of error function, i.e. __VERIFIER_error(). */
 extern void ldv_assert(void);
+#endif
 
 /* Alias for __VERIFIER_assume(). Proceed only if expression is nonzero. */
 /* TODO: CPAchecker can report timeouts instead of good verdicts and v.v. when __VERIFIER_assume() is invoked directly or through ldv_assume()

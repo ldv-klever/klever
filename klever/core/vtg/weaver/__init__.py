@@ -248,6 +248,9 @@ class WeaverWorker(klever.core.components.Component):
         # Some stuff, e.g. size_t definition, may be architecture dependent.
         opts.append(klever.core.vtg.utils.define_arch_dependent_macro(self.conf))
 
+        # Add options for using models from RGS if so.
+        opts.extend(self.extra_cc.get('opts', []))
+
         cwd = self.clade.get_storage_path(cc['cwd'])
 
         is_model = (self.grp_id == 'models')
