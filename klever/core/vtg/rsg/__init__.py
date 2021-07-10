@@ -90,11 +90,21 @@ class RSG(klever.core.vtg.plugins.Plugin):
             common_models = self.conf['common models']
 
         if common_models and 'models' in self.conf:
-            for common_model_c_file in common_models:
+            for common_model in common_models:
+                common_model_c_file = get_model_c_file(common_model)
                 for model in self.conf['models']:
                     if common_model_c_file == get_model_c_file(model):
                         raise KeyError('C file "{0}" is specified in both common and requirement specific models'
                                        .format(common_model_c_file))
+
+        def add_model(model, model_c_file_realpath):
+            if isinstance(model, dict):
+                models.append({
+                    'model': model_c_file_realpath,
+                    'options': model['options']
+                })
+            else:
+                models.append(model_c_file_realpath)
 
         if 'models' in self.conf:
             # Find out actual C files.
@@ -128,21 +138,15 @@ class RSG(klever.core.vtg.plugins.Plugin):
                     model_c_file_realpath = klever.core.vtg.utils.find_file_or_dir(
                         self.logger, self.conf['main working directory'], model_c_file)
                     self.logger.debug('Get model with C file "{0}"'.format(model_c_file_realpath))
+                    add_model(model, model_c_file_realpath)
 
-                    if isinstance(model, dict):
-                        models.append({
-                            'model': model_c_file_realpath,
-                            'options': model['options']
-                        })
-                    else:
-                        models.append(model_c_file_realpath)
-
-        # Like for models above except for common models are always C files without any model settings.
-        for common_model_c_file in common_models:
+        # Like for models above.
+        for common_model in common_models:
+            common_model_c_file = get_model_c_file(common_model)
             common_model_c_file_realpath = klever.core.vtg.utils.find_file_or_dir(
                 self.logger, self.conf['main working directory'], common_model_c_file)
             self.logger.debug('Get common model with C file "{0}"'.format(common_model_c_file_realpath))
-            models.append(common_model_c_file_realpath)
+            add_model(common_model, common_model_c_file_realpath)
 
         self.logger.debug('Resulting models are: {0}'.format(models))
 
