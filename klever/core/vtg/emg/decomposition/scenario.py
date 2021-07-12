@@ -81,6 +81,9 @@ class Path(collections.UserList):
         assert isinstance(path, Path)
         assert not self.terminal
 
+        if len(self) == 1:
+            return False
+
         if (len(path) + 1) < len(self):
             return False
 
