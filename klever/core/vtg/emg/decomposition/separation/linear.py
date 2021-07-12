@@ -95,6 +95,10 @@ class LinearExtractor(ScenarioExtractor):
         # Add the main path
         initial_paths = set(self.__choose_subprocess_paths(self._actions.initial_action, []))
 
+        if len(initial_paths) == 1 and not self.__path_dependencies(initial_paths):
+            # This is a separate case when there is the only path without subprocesses, we have to give a name to it
+            tuple(initial_paths)[-1].add_name_suffix('base')
+
         while self.__path_dependencies(initial_paths):
             for dependency in self.__path_dependencies(initial_paths):
                 # First, do substitutions
