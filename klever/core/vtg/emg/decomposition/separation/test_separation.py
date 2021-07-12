@@ -201,23 +201,31 @@ def test_linear_strategy_c2p1(model, linear_separator):
                                 ', '.join([s.name for s in scenarios])
 
 
-def test_plain_process(specific_model, linear_separator):
-    c1p1 = specific_model.environment['c1/p1']
-    scenarios = linear_separator(c1p1)
-    _check_linear_actions(scenarios, c1p1.actions)
+# def test_lienar_plain_process(specific_model, linear_separator):
+#     c1p1 = specific_model.environment['c1/p1']
+#     scenarios = linear_separator(c1p1)
+#     _check_linear_actions(scenarios, c1p1.actions)
+#
+#     assert len(scenarios) == 1
 
-    assert len(scenarios) == 1
 
-
-def test_deep_subprocesses(specific_model, linear_separator):
+def test_linear_deep_subprocesses(specific_model, linear_separator):
     c1p2 = specific_model.environment['c1/p2']
     scenarios = linear_separator(c1p2)
     _check_linear_actions(scenarios, c1p2.actions)
 
     assert len(scenarios) == 4, f'The number of scenarios is {len(scenarios)}: ' + \
                                 ', '.join([s.name for s in scenarios])
-    # TODO: Add more specific tests for scenario names
-    raise NotImplementedError
+
+    scenarios = {s.name: s for s in scenarios}
+    assert 'level_three_a' in scenarios
+    assert scenarios['level_three_a'].actions.sequence == '(!register_c1p1).<a>.<d>.(deregister_c1p1)'
+    assert 'level_two_a_c' in scenarios
+    assert scenarios['level_two_a_c'].actions.sequence == '(!register_c1p1).<a>.<c>.(deregister_c1p1)'
+    assert 'finish' in scenarios
+    assert scenarios['finish'].actions.sequence == '(!register_c1p1).(deregister_c1p1)'
+    assert 'level_two_a_b' in scenarios
+    assert scenarios['level_two_a_b'].actions.sequence == '(!register_c1p1).<a>.<b>.(deregister_c1p1)'
 
 
 def _check_linear_actions(scenarios, actions):
