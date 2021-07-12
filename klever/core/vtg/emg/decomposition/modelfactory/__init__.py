@@ -213,7 +213,7 @@ class ModelFactory:
     def _process_from_scenario(self, scenario: Scenario, process: Process):
         new_process = process.clone()
 
-        if len(list(process.labels.keys())) == 0 and len(list(new_process.labels.keys())) == 0:
+        if len(list(process.labels.keys())) != 0 and len(list(new_process.labels.keys())) == 0:
             assert False, str(new_process)
 
         new_process.actions = scenario.actions
