@@ -171,6 +171,9 @@ class SelectiveSelector(Selector):
                     assert isinstance(item, str), \
                            "Provide a list of savepoints' names to the 'must contain' parameter"
 
+                    assert isinstance(item, str) and item in map(str, self.model.environment[process_name].savepoints),\
+                            f"There is no savepoint {item} in {process_name}"
+
     def _sanity_check_must_not_contain(self, must_not_contain):
         for process_name in must_not_contain:
             assert process_name in self.model.environment, f'There is no process {process_name} in the model'
@@ -190,6 +193,9 @@ class SelectiveSelector(Selector):
                 for item in must_not_contain[process_name]['savepoints']:
                     assert isinstance(item, str), \
                         "Provide a list of savepoints' names to the 'must not contain' parameter"
+
+                    assert isinstance(item, str) and item in map(str, self.model.environment[process_name].savepoints),\
+                        f"There is no savepoint {item} in {process_name}"
 
     def _extract_dependecnies(self):
         # This map contains a map from processes to actions that contains requirements
@@ -259,6 +265,10 @@ class SelectiveSelector(Selector):
                 actions_to_cover = actions
 
             if cover_conf[process_name].get('actions except'):
+                assert (isinstance(cover_conf[process_name]['actions except'], list))
+                for item in cover_conf[process_name]['actions except']:
+                    assert isinstance(item, str) and item in self.model.environment[process_name].actions, \
+                        f"There is no action {item} in {process_name}"
                 actions_to_cover.difference_update(set(cover_conf[process_name]['actions except']))
 
             if 'savepoints' in cover_conf[process_name]:
@@ -452,10 +462,12 @@ class SelectiveSelector(Selector):
     def _obtain_ordered_scenarios(self, scenarios_set, coverage=None, greedy=False):
         new_scenario_list = [s for s in scenarios_set if isinstance(s, Scenario)]
         if coverage:
-            new_scenario_list = sorted(new_scenario_list,
-                                      key=lambda x: (len(set(x.actions.keys()).intersection(coverage)) +
-                                                     len(set(x.actions.keys()).difference(coverage))),
-                                      reverse=greedy)
+            # Split into two parts that contain forbidden actions and not
+            good = [s for s in new_scenario_list if not set(s.actions.keys()).difference(coverage)]
+            bad = [s for s in new_scenario_list if s not in good]
+            new_scenario_list = sorted(good, key=lambda x: len(set(x.actions.keys()).intersection(coverage)),
+                                       reverse=greedy)
+            new_scenario_list.extend(sorted(bad, key=lambda x: len(set(x.actions.keys()).difference(coverage))))
         else:
             new_scenario_list = sorted(new_scenario_list, key=lambda x: len(x.actions.keys()), reverse=greedy)
         new_scenario_list.extend([x for x in scenarios_set if x not in new_scenario_list])
