@@ -28,6 +28,122 @@ from klever.core.vtg.emg.decomposition.separation.linear import LinearStrategy
 from klever.core.vtg.emg.decomposition.modelfactory.selective import SelectiveFactory
 
 
+MAIN = {
+    "comment": "Main process.",
+    "labels": {},
+    "process": "<root>",
+    "actions": {
+        "root": {
+            "comment": "Some action",
+            "statements": []
+        }
+    }
+}
+REGISTER = {
+    "comment": "",
+    "labels": {"container": {"declaration": "struct validation *var"}},
+    "process": "[register_p1]",
+    "actions": {
+        "register_p1": {"parameters": ["%container%"]}
+    }
+}
+DEREGISTER = {
+    "comment": "",
+    "labels": {"container": {"declaration": "struct validation *var"}},
+    "process": "[deregister_p1]",
+    "actions": {
+        "deregister_p1": {"parameters": ["%container%"]}
+    }
+}
+B1 = {
+    "comment": "",
+    "labels": {
+        "container": {"declaration": "struct validation *var"},
+        "ret": {"declaration": "int x", "value": "0"}
+    },
+    "process": "(!register_p1).{main}",
+    "actions": {
+        "main": {
+            "comment": "",
+            "process": "<probe>.(<success>.[register_p2] | <fail>.<remove>).{main} | (deregister_p1)"
+        },
+        "register_p1": {
+            "condition": ["$ARG1 != 0"],
+            "parameters": ['%container%'],
+            "savepoints": {'s1': {"statements": []}}
+        },
+        "probe": {
+            "comment": "Do probing.",
+            "statements": ["%ret% = f4(%container%);"]
+        },
+        "success": {
+            "comment": "Successful probing.",
+            "condition": ["%ret% == 0"]
+        },
+        "fail": {
+            "comment": "Failed probing.",
+            "condition": ["%ret% != 0"]
+        },
+        "deregister_p1": {
+            "parameters": ['%container%']
+        },
+        "remove": {
+            "comment": "Removing.",
+            "statements": ["$FREE(%container%);"]
+        },
+        "register_p2": {
+            "parameters": ['%container%']
+        }
+    }
+}
+B2 = {
+    "comment": "",
+    "labels": {
+        "container": {"declaration": "struct validation *var"}
+    },
+    "process": "(!register_p2).([read] | [write])",
+    "actions": {
+        "register_p2": {
+            "parameters": ['%container%'],
+            "savepoints": {'s2': {"statements": []}},
+            "require": {"c/p1": {"include": ["probe", "success"]}}
+        },
+        "read": {"comment": "", "statements": []},
+        "write": {"comment": "Do write.", "statements": []}
+    }
+}
+
+
+@pytest.fixture()
+def model():
+    files = ['test.c']
+    functions = {
+        'f1': "static int f1(struct test *)",
+        'f2': "static void f2(struct test *)"
+    }
+    source = Source(files, [], dict())
+    for name, declaration_str in functions.items():
+        new = Function(name, declaration_str)
+        new.definition_file = files[0]
+        source.set_source_function(new, files[0])
+    spec = {
+        "name": 'base',
+        "functions models": {
+            "f1": REGISTER,
+            "f2": DEREGISTER,
+        },
+        "environment processes": {
+            "c/p1": B1,
+            "c/p2": B2
+        },
+        "main process": MAIN
+    }
+    collection = CollectionDecoder(logging, dict()).parse_event_specification(source,
+                                                                              json.loads(json.dumps(spec)),
+                                                                              ProcessCollection())
+    return collection
+
+
 P1 = {
     "comment": "",
     "labels": {},
@@ -137,7 +253,7 @@ P4 = {
 
 
 @pytest.fixture()
-def model():
+def advanced_model():
     files = ['test.c']
     functions = {
         'f1': "static int f1(struct test *)",
@@ -190,7 +306,7 @@ def _obtain_linear_model(logger, model, specification):
     return processes_to_scenarios, list(separation(processes_to_scenarios, model))
 
 
-def test_default_coverage(logger, model):
+def test_default_coverage(logger, advanced_model):
     spec = {
         "must not contain": {"c/p3": {}},
         "must contain": {
@@ -198,7 +314,7 @@ def test_default_coverage(logger, model):
         },
         "cover scenarios": {"c/p1": {"savepoints except": []}}
     }
-    processes_to_scenarios, models = _obtain_model(logger, model, spec)
+    processes_to_scenarios, models = _obtain_model(logger, advanced_model, spec)
 
     # Cover all p1 savepoints + base p2 process, expect no p3, p4
     p1scenarios = processes_to_scenarios['c/p1']
@@ -211,206 +327,208 @@ def test_default_coverage(logger, model):
 
 def test_inclusion_p2(logger, model):
     spec = {
-        "must contain": {"c/p3": {}, "c/p1": {"savepoints": ['sp_init_first']}},
-        "cover scenarios": {"c/p3": {"savepoints": []}, "c/p1": {"savepoints": ["sp_init_first"]}}
+        "must contain": {"c/p2": {}},
+        "cover scenarios": {"c/p2": {}}
     }
     processes_to_scenarios, models = _obtain_linear_model(logger, model, spec)
 
     # Cover all c2p2 scenarios
-    p3scenarios = [s for s in processes_to_scenarios['c/p3'] if not s.savepoint]
-    assert len(models) == len(p3scenarios)
-    actions = [m.environment['c/p3'].actions for m in models if 'c/p3' in m.environment] +\
+    p2scenarios = processes_to_scenarios['c/p2']
+    assert len(p2scenarios) == len(models)
+    actions = [m.environment['c/p2'].actions for m in models if 'c/p2' in m.environment] + \
               [m.entry.actions for m in models]
-    for scenario in p3scenarios:
+    for scenario in p2scenarios:
         assert scenario.actions in actions
 
 
-# def test_inclusion_p1(model):
-#     spec = {
-#         "must contain": {"c2/p1": {}},
-#         "cover scenarios": {"c2/p1": {}}
-#     }
-#     processes_to_scenarios, models = _obtain_models(model, spec)
-#
-#     # Cover all scenarios from c2p1
-#     p1scenarios = processes_to_scenarios['c2/p1']
-#     assert len(p1scenarios) == len(models)
-#     actions = [m.environment['c2/p1'].actions for m in models if 'c2/p1' in m.environment] + \
-#               [m.entry.actions for m in models]
-#     for scenario in p1scenarios:
-#         assert scenario.actions in actions
-#
-#
-# def test_deletion(model):
-#     spec = {
-#         "must not contain": {"c2/p2": {}},
-#         "cover scenarios": {"c2/p1": {}}
-#     }
-#     processes_to_scenarios, models = _obtain_models(model, spec)
-#
-#     # Cover all scenarios from c2p1
-#     p1scenarios = processes_to_scenarios['c2/p1']
-#     assert len(p1scenarios) == len(models)
-#     actions = [m.environment['c2/p1'].actions for m in models if 'c2/p1' in m.environment] + \
-#               [m.entry.actions for m in models if 'c2/p1' not in m.environment]
-#     for scenario in p1scenarios:
-#         assert scenario.actions in actions
-#
-#     # No savepoints from c2p2
-#     c2p2_withsavepoint = [s for s in processes_to_scenarios['c2/p2'] if s.savepoint].pop()
-#     assert all([True if c2p2_withsavepoint.actions != m.entry.actions else False for m in models])
-#
-#     # No other actions
-#     for model in models:
-#         assert 'c2/p2' not in model.environment
-#
-#
-# def test_complex_restrictions(model):
-#     spec = {
-#         "must contain": {"c2/p2": {"actions": [["read"]]}},
-#         "must not contain": {"c2/p1": {"savepoints": ["c2p1s1"]},
-#                              "c2/p2": {"actions": [["write"]]}},
-#         "cover scenarios": {"c2/p2": {}}
-#     }
-#     processes_to_scenarios, models = _obtain_models(model, spec)
-#
-#     # Cover only scenarios with read from p2
-#     scenarios_with_read = [s for s in processes_to_scenarios['c2/p2'] if 'write' not in s.actions]
-#     assert len(models) == len(scenarios_with_read)
-#     actions = [m.environment['c2/p2'].actions for m in models if 'c2/p2' in m.environment] + \
-#               [m.entry.actions for m in models if 'c2/p2' not in m.environment]
-#     for model_actions in actions:
-#         assert 'write' not in model_actions
-#         assert 'read' in model_actions
-#
-#     # No scenarios with a savepoint c2p1s1
-#     c2p1_withsavepoint = [s for s in processes_to_scenarios['c2/p1'] if s.savepoint].pop()
-#     assert all([True if c2p1_withsavepoint.actions != m.entry.actions else False for m in models])
-#
-#
-# def test_contraversal_conditions(model):
-#     spec = {
-#         "must contain": {"c2/p2": {}},
-#         "must not contain": {"c2/p1": {}},
-#         "cover scenarios": {"c2/p1": {}}
-#     }
-#     with pytest.raises(ValueError):
-#         _obtain_models(model, spec)
-#
-#     spec = {
-#         "must contain": {"c2/p2": {}},
-#         "must not contain": {"c2/p1": {}, "c2/p2": {"savepoints": []}},
-#         "cover scenarios": {"c2/p2": {}}
-#     }
-#     with pytest.raises(ValueError):
-#         _obtain_models(model, spec)
-#
-#
-# def test_complex_exclusion(model):
-#     spec = {
-#         "must contain": {"c2/p1": {}},
-#         "must not contain": {"c2/p1": {"actions": [["probe", "success"]]}},
-#         "cover scenarios": {"c2/p1": {}}
-#     }
-#     processes_to_scenarios, models = _obtain_models(model, spec)
-#     relevant_scenarios = [s.actions for s in processes_to_scenarios['c2/p1']
-#                           if not {"probe", "success"}.issubset(set(s.actions.keys()))]
-#
-#     # Test the number of models
-#     assert len(models) == len(relevant_scenarios)
-#
-#     # Test that threre is a p1 model in models
-#     actions = [m.environment['c2/p1'].actions for m in models if 'c2/p1' in m.environment] + \
-#               [m.entry.actions for m in models if 'c2/p1' not in m.environment]
-#
-#     # Test allscenarios of p1 are covered
-#     assert len(actions) == len(relevant_scenarios)
-#     for scneario_actions in relevant_scenarios:
-#         assert scneario_actions in actions
-#
-#
-# def test_cover_actions(model):
-#     spec = {
-#         "cover scenarios": {"c2/p1": {"actions": ["probe"], "savepoints": []}}
-#     }
-#     processes_to_scenarios, models = _obtain_models(model, spec)
-#     assert len(models) == 1
-#     model = models.pop()
-#     if 'c2/p1' in model.environment:
-#         actions = model.environment['c2/p1'].actions
-#     else:
-#         actions = model.entry.actions
-#
-#     assert "probe" in actions
-#
-#
-# def test_cover_savepoint(model):
-#     spec = {
-#         "must contain": {"c2/p1": {"savepoints": ["c2p1s1"]}},
-#         "cover scenarios": {"c2/p1": {"savepoints": ["c2p1s1"]}}
-#     }
-#     processes_to_scenarios, models = _obtain_models(model, spec)
-#
-#     # Test the number of models
-#     relevant_scenarios = [s.actions for s in processes_to_scenarios['c2/p1'] if s.savepoint]
-#     assert len(relevant_scenarios) == len(models)
-#
-#     for model in models:
-#         assert "c2/p1" not in model.environment
-#         assert "c2p1s1" in model.entry.actions
-#
-#
-# def test_cover_except_savepoint(model):
-#     spec = {
-#         "must contain": {"c2/p1": {}},
-#         "cover scenarios": {"c2/p1": {"savepoints except": ["c2p1s1"]}}
-#     }
-#     processes_to_scenarios, models = _obtain_models(model, spec)
-#
-#     # Test the number of models
-#     relevant_scenarios = [s.actions for s in processes_to_scenarios['c2/p1'] if not s.savepoint]
-#     assert len(relevant_scenarios) == len(models)
-#
-#     model_actions = [m.environment['c2/p1'].actions for m in models]
-#     for relevant in relevant_scenarios:
-#         assert relevant in model_actions
-#
-#
-# def test_cover_except_actions(model):
-#     spec = {
-#         "must contain": {"c2/p2": {}},
-#         "cover scenarios": {"c2/p2": {"actions except": ["read"], "savepoints": []}}
-#     }
-#     processes_to_scenarios, models = _obtain_models(model, spec)
-#
-#     # Test the number of models
-#     relevant_scenarios = [s.actions for s in processes_to_scenarios['c2/p2']
-#                           if not s.savepoint and "read" not in s.actions]
-#     assert len(relevant_scenarios) == len(models)
-#
-#     model_actions = [m.environment['c2/p2'].actions for m in models if 'c2/p2' in m.environment] +\
-#                     [m.entry.actions for m in models if 'c2/p2' not in m.environment]
-#     for relevant in relevant_scenarios:
-#         assert relevant in model_actions
-#
-#
-# # def test_missing_keys():
-# #     raise NotImplementedError
-# #
-# #
-# # def test_combinations_with_deleted_dependencies():
-# #     raise NotImplementedError
-# #
-# #
-# # def test_all_process_savepoints():
-# #     raise RuntimeError
-# #
-# #
-# # def test_all_processes_explicitly():
-# #     raise NotImplementedError
-# #
-# #
-# # def test_all_processes_autoconfig():
-# #     raise NotImplementedError
+def test_inclusion_p1(logger, model):
+    spec = {
+        "must contain": {"c/p1": {}},
+        "cover scenarios": {"c/p1": {}}
+    }
+    processes_to_scenarios, models = _obtain_linear_model(logger, model, spec)
+
+    # Cover all scenarios from c2p1
+    p1scenarios = processes_to_scenarios['c/p1']
+    assert len(p1scenarios) == len(models)
+    actions = [m.environment['c/p1'].actions for m in models if 'c/p1' in m.environment] + \
+              [m.entry.actions for m in models]
+    for scenario in p1scenarios:
+        assert scenario.actions in actions
+
+    # No savepoints from c2p2
+    c2p2_withsavepoint = [s for s in processes_to_scenarios['c/p2'] if s.savepoint].pop()
+    assert all([True if c2p2_withsavepoint.actions != m.entry.actions else False for m in models])
+
+
+def test_deletion(logger, model):
+    spec = {
+        "must not contain": {"c/p2": {}},
+        "cover scenarios": {"c/p1": {}}
+    }
+    processes_to_scenarios, models = _obtain_linear_model(logger, model, spec)
+
+    # Cover all scenarios from p1
+    p1scenarios = {s for s in processes_to_scenarios['c/p1']}
+    assert len(p1scenarios) == len(models)
+    actions = [m.environment['c/p1'].actions for m in models if 'c/p1' in m.environment] + \
+              [m.entry.actions for m in models]
+    for scenario in p1scenarios:
+        assert scenario.actions in actions
+
+    # No savepoints from p2
+    p2_withsavepoint = [s for s in processes_to_scenarios['c/p2'] if s.savepoint].pop()
+    assert all([True if p2_withsavepoint.actions != m.entry.actions else False for m in models])
+
+    # No other actions
+    for model in models:
+        assert 'c/p2' not in model.environment
+
+
+def test_complex_restrictions(logger, model):
+    spec = {
+        "must contain": {"c/p2": {"actions": [["read"]]}},
+        "must not contain": {"c/p1": {"savepoints": ["s1"]},
+                             "c/p2": {"actions": [["write"]]}},
+        "cover scenarios": {"c/p2": {}}
+    }
+    processes_to_scenarios, models = _obtain_linear_model(logger, model, spec)
+
+    # Cover only scenarios with read from p2
+    scenarios_with_read = [s for s in processes_to_scenarios['c/p2'] if 'write' not in s.actions]
+    assert len(models) == len(scenarios_with_read)
+    actions = [m.environment['c/p2'].actions for m in models if 'c/p2' in m.environment] + \
+              [m.entry.actions for m in models if 'c/p2' not in m.environment]
+    for model_actions in actions:
+        assert 'write' not in model_actions
+        assert 'read' in model_actions
+
+    # No scenarios with a savepoint p1s1
+    p1_withsavepoint = [s for s in processes_to_scenarios['c/p1'] if s.savepoint].pop()
+    assert all([True if p1_withsavepoint.actions != m.entry.actions else False for m in models])
+
+
+def test_contraversal_conditions(logger, model):
+    spec = {
+        "must contain": {"c/p2": {}},
+        "must not contain": {"c/p1": {}},
+        "cover scenarios": {"c/p1": {}}
+    }
+    with pytest.raises(ValueError):
+        _obtain_linear_model(logger, model, spec)
+
+    spec = {
+        "must contain": {"c/p2": {}},
+        "must not contain": {"c/p1": {}, "c/p2": {"savepoints": []}},
+        "cover scenarios": {"c/p2": {}}
+    }
+    with pytest.raises(ValueError):
+        _obtain_linear_model(logger, model, spec)
+
+
+def test_complex_exclusion(logger, model):
+    spec = {
+        "must contain": {"c/p1": {}},
+        "must not contain": {"c/p1": {"actions": [["probe", "success"]]}},
+        "cover scenarios": {"c/p1": {}}
+    }
+    processes_to_scenarios, models = _obtain_linear_model(logger, model, spec)
+    relevant_scenarios = [s.actions for s in processes_to_scenarios['c/p1']
+                          if not {"probe", "success"}.issubset(set(s.actions.keys()))]
+
+    # Test the number of models
+    assert len(models) == len(relevant_scenarios)
+
+    # Test that threre is a p1 model in models
+    actions = [m.environment['c/p1'].actions for m in models if 'c/p1' in m.environment] + \
+              [m.entry.actions for m in models if 'c/p1' not in m.environment]
+
+    # Test allscenarios of p1 are covered
+    assert len(actions) == len(relevant_scenarios)
+    for scneario_actions in relevant_scenarios:
+        assert scneario_actions in actions
+
+
+def test_cover_actions(logger, model):
+    spec = {
+        "cover scenarios": {"c/p1": {"actions": ["probe"], "savepoints": []}}
+    }
+    processes_to_scenarios, models = _obtain_linear_model(logger, model, spec)
+    assert len(models) == 1
+    model = models.pop()
+    if 'c/p1' in model.environment:
+        actions = model.environment['c/p1'].actions
+    else:
+        actions = model.entry.actions
+
+    assert "probe" in actions
+
+
+def test_cover_savepoint(logger, model):
+    spec = {
+        "must contain": {"c/p1": {"savepoints": ["s1"]}},
+        "cover scenarios": {"c/p1": {"savepoints": ["s1"]}}
+    }
+    processes_to_scenarios, models = _obtain_linear_model(logger, model, spec)
+
+    # Test the number of models
+    relevant_scenarios = [s.actions for s in processes_to_scenarios['c/p1'] if s.savepoint]
+    assert len(relevant_scenarios) == len(models)
+
+    for model in models:
+        assert "c/p1" not in model.environment
+        assert "s1" in model.entry.actions
+
+
+def test_cover_except_savepoint(logger, model):
+    spec = {
+        "must contain": {"c/p1": {}},
+        "cover scenarios": {"c/p1": {"savepoints except": ["s1"]}}
+    }
+    processes_to_scenarios, models = _obtain_linear_model(logger, model, spec)
+
+    # Test the number of models
+    relevant_scenarios = [s.actions for s in processes_to_scenarios['c/p1'] if not s.savepoint]
+    assert len(relevant_scenarios) == len(models)
+
+    model_actions = [m.environment['c/p1'].actions for m in models]
+    for relevant in relevant_scenarios:
+        assert relevant in model_actions
+
+
+def test_cover_except_actions(logger, model):
+    spec = {
+        "must contain": {"c/p2": {}},
+        "cover scenarios": {"c/p2": {"actions except": ["read"], "savepoints": []}}
+    }
+    processes_to_scenarios, models = _obtain_linear_model(logger, model, spec)
+
+    # Test the number of models
+    relevant_scenarios = [s.actions for s in processes_to_scenarios['c/p2']
+                          if not s.savepoint and "read" not in s.actions]
+    assert len(relevant_scenarios) == len(models)
+
+    model_actions = [m.environment['c/p2'].actions for m in models if 'c/p2' in m.environment] +\
+                    [m.entry.actions for m in models if 'c/p2' not in m.environment]
+    for relevant in relevant_scenarios:
+        assert relevant in model_actions
+
+
+# def test_missing_keys():
+#     raise NotImplementedError
 #
 #
+# def test_combinations_with_deleted_dependencies():
+#     raise NotImplementedError
+#
+#
+# def test_all_process_savepoints():
+#     raise RuntimeError
+#
+#
+# def test_all_processes_explicitly():
+#     raise NotImplementedError
+#
+#
+# def test_all_processes_autoconfig():
+#     raise NotImplementedError
