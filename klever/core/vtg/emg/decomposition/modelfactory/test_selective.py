@@ -15,6 +15,7 @@
 # limitations under the License.
 #
 
+import sys
 import json
 import pytest
 import logging
@@ -27,7 +28,7 @@ from klever.core.vtg.emg.decomposition.separation.linear import LinearStrategy
 from klever.core.vtg.emg.decomposition.modelfactory.selective import SelectiveFactory
 
 
-p1 = {
+P1 = {
     "comment": "",
     "labels": {},
     "process": "(!register_p1).<init>.(<exit> | <init_failed>)",
@@ -45,19 +46,19 @@ p1 = {
         "init_failed": {"comment": ""}
     }
 }
-register_p2 = {
+REGISTER_P2 = {
     "comment": "",
     "labels": {},
     "process": "[register_p2]",
     "actions": {"register_p2": {}}
 }
-deregister_p2 = {
+DEREGISTER_P2 = {
     "comment": "",
     "labels": {},
     "process": "[deregister_p2]",
     "actions": {"deregister_p2": {}}
 }
-p2 = {
+P2 = {
     "comment": "",
     "labels": {"ret": {"declaration": "int x"}},
     "process": "(!register_p2).{main}",
@@ -81,7 +82,7 @@ p2 = {
         "deregister_p3": {"parameters": []}
     }
 }
-p3 = {
+P3 = {
     "comment": "",
     "labels": {},
     "process": "(!register_p3).<init>.{scenario1}",
@@ -115,7 +116,7 @@ p3 = {
         "scenario1": {"comment": "", "process": "{create_scenario} | {create2_scenario}"}
     }
 }
-p4 = {
+P4 = {
     "comment": "",
     "labels": {},
     "process": "(!register_p4).<write>.(deregister_p4)",
@@ -132,7 +133,7 @@ p4 = {
 }
 
 
-@pytest.fixture
+@pytest.fixture()
 def model():
     files = ['test.c']
     functions = {
@@ -146,14 +147,14 @@ def model():
         source.set_source_function(new, files[0])
     spec = {
         "functions models": {
-            "f1": register_p2,
-            "f2": deregister_p2,
+            "f1": REGISTER_P2,
+            "f2": DEREGISTER_P2,
         },
         "environment processes": {
-            "c/p1": p1,
-            "c/p2": p2,
-            "c/p3": p3,
-            "c/p4": p4
+            "c/p1": P1,
+            "c/p2": P2,
+            "c/p3": P3,
+            "c/p4": P4
         }
     }
     collection = CollectionDecoder(logging, dict()).parse_event_specification(source,
@@ -162,21 +163,31 @@ def model():
     return collection
 
 
-def _obtain_model(model, specification):
-    separation = SelectiveFactory(logging.Logger('default'), specification)
-    scenario_generator = SeparationStrategy(logging.Logger('default'), dict())
+@pytest.fixture()
+def logger():
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.DEBUG)
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setLevel(logging.DEBUG)
+    logger.addHandler(handler)
+    return logger
+
+
+def _obtain_model(logger, model, specification):
+    separation = SelectiveFactory(logger, specification)
+    scenario_generator = SeparationStrategy(logger, dict())
     processes_to_scenarios = {str(process): list(scenario_generator(process)) for process in model.environment.values()}
     return processes_to_scenarios, list(separation(processes_to_scenarios, model))
 
 
-def _obtain_linear_model(model, specification):
-    separation = SelectiveFactory(logging.Logger('default'), specification)
-    scenario_generator = LinearStrategy(logging.Logger('default'), dict())
+def _obtain_linear_model(logger, model, specification):
+    separation = SelectiveFactory(logger, specification)
+    scenario_generator = LinearStrategy(logger, dict())
     processes_to_scenarios = {str(process): list(scenario_generator(process)) for process in model.environment.values()}
     return processes_to_scenarios, list(separation(processes_to_scenarios, model))
 
 
-def test_default_coverage(model):
+def test_default_coverage(logger, model):
     spec = {
         "must not contain": {"c/p3": {}},
         "must contain": {
@@ -184,7 +195,7 @@ def test_default_coverage(model):
         },
         "cover scenarios": {"c/p1": {"savepoints except": []}}
     }
-    processes_to_scenarios, models = _obtain_model(model, spec)
+    processes_to_scenarios, models = _obtain_model(logger, model, spec)
 
     # Cover all p1 savepoints + base p2 process, expect no p3, p4
     p1scenarios = processes_to_scenarios['c/p1']
@@ -195,26 +206,22 @@ def test_default_coverage(model):
         assert 'c/p4' not in model.environment
 
 
-# def _test_linear_coverage():
-#     raise NotImplementedError
+def test_inclusion_p2(logger, model):
+    spec = {
+        "must contain": {"c/p3": {}},
+        "cover scenarios": {"c/p3": {}}
+    }
+    processes_to_scenarios, models = _obtain_linear_model(logger, model, spec)
+
+    # Cover all c2p2 scenarios
+    p3scenarios = processes_to_scenarios['c/p3']
+    assert len(p3scenarios) == len(models)
+    actions = [m.environment['c/p3'].actions for m in models if 'c/p3' in m.environment] +\
+              [m.entry.actions for m in models]
+    for scenario in p3scenarios:
+        assert scenario.actions in actions
 
 
-# def test_inclusion_p2(model):
-#     spec = {
-#         "must contain": {"c/p2": {}},
-#         "cover scenarios": {"c/p2": {}}
-#     }
-#     processes_to_scenarios, models = _obtain_models(model, spec)
-#
-#     # Cover all c2p2 scenarios
-#     p2scenarios = processes_to_scenarios['c2/p2']
-#     assert len(p2scenarios) == len(models)
-#     actions = [m.environment['c2/p2'].actions for m in models if 'c2/p2' in m.environment] +\
-#               [m.entry.actions for m in models]
-#     for scenario in p2scenarios:
-#         assert scenario.actions in actions
-#
-#
 # def test_inclusion_p1(model):
 #     spec = {
 #         "must contain": {"c2/p1": {}},
@@ -404,8 +411,3 @@ def test_default_coverage(model):
 # #     raise NotImplementedError
 #
 #
-# def _obtain_models(model, specification):
-#     separation = SelectiveFactory(logging.Logger('default'), specification)
-#     scenario_generator = LinearStrategy(logging.Logger('default'), dict())
-#     processes_to_scenarios = {str(process): list(scenario_generator(process)) for process in model.environment.values()}
-#     return processes_to_scenarios, list(separation(processes_to_scenarios, model))
