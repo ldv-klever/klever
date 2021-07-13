@@ -450,14 +450,16 @@ class SelectiveSelector(Selector):
             return scenario_items
 
     def _obtain_ordered_scenarios(self, scenarios_set, coverage=None, greedy=False):
-        new_scenario_set = [s for s in scenarios_set if isinstance(s, Scenario)]
+        new_scenario_list = [s for s in scenarios_set if isinstance(s, Scenario)]
         if coverage:
-            new_scenario_set = sorted(new_scenario_set, key=lambda x: len(set(x.actions.keys()).intersection(coverage)),
+            new_scenario_list = sorted(new_scenario_list,
+                                      key=lambda x: (len(set(x.actions.keys()).intersection(coverage)) +
+                                                     len(set(x.actions.keys()).difference(coverage))),
                                       reverse=greedy)
         else:
-            new_scenario_set = sorted(new_scenario_set, key=lambda x: len(x.actions.keys()), reverse=greedy)
-        new_scenario_set.extend([x for x in scenarios_set if x not in new_scenario_set])
-        return new_scenario_set
+            new_scenario_list = sorted(new_scenario_list, key=lambda x: len(x.actions.keys()), reverse=greedy)
+        new_scenario_list.extend([x for x in scenarios_set if x not in new_scenario_list])
+        return new_scenario_list
 
     def _check_coverage_impact(self, process_name, coverage, scenario):
         if (isinstance(scenario, Scenario) and not scenario.savepoint) or not isinstance(scenario, Scenario):
