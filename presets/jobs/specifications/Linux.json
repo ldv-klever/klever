@@ -106,7 +106,6 @@
               "linux/mm/util.c",
               "linux/mm/vmalloc.c",
               "linux/verifier/memory.c",
-              "verifier/common.c",
               "verifier/gcc.c",
               "verifier/nondet.c"
             ]
