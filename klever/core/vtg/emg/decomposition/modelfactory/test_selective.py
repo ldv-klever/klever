@@ -514,10 +514,64 @@ def test_cover_except_actions(logger, model):
         assert relevant in model_actions
 
 
-# def test_missing_keys():
-#     raise NotImplementedError
-#
-#
+def test_missing_keys(logger, model):
+    error_specs = [
+        {
+            "must contain": {"c/p3": {}},
+            "cover scenarios": {"c/p1": {}}
+        },
+        {
+            "cover scenarios": {"c/p3": {}}
+        },
+        {
+            "must not contain": {"c/p3": {}},
+            "cover scenarios": {"c/p1": {}}
+        },
+        {
+            "cover scenarios": {"c/p1": {"savepoints": ["x"]}}
+        },
+        {
+            "cover scenarios": {"c/p1": {"actions": ["x"]}}
+        },
+        {
+            "cover scenarios": {"c/p1": {"savepoints except": ["x"]}}
+        },
+        {
+            "cover scenarios": {"c/p1": {"actions except": ["x"]}}
+        },
+        {
+            "must contain": {"c/p1": {"actions": [['']]}},
+            "cover scenarios": {"c/p1": {}}
+        },
+        {
+            "must contain": {"c/p1": {"actions": ['']}},
+            "cover scenarios": {"c/p1": {}}
+        },
+        {
+            "must contain": {"c/p1": {"savepoints": [['']]}},
+            "cover scenarios": {"c/p1": {}}
+        },
+        {
+            "must contain": {"c/p1": {"savepoints": ['x']}},
+            "cover scenarios": {"c/p1": {}}
+        },
+        {
+            "must not contain": {"c/p1": {"actions": ['']}},
+            "cover scenarios": {"c/p1": {}}
+        },
+        {
+            "must not contain": {"c/p1": {"savepoints": [['']]}},
+            "cover scenarios": {"c/p1": {}}
+        },
+        {
+            "must not contain": {"c/p1": {"savepoints": ['x']}},
+            "cover scenarios": {"c/p1": {}}
+        }
+    ]
+    for spec in error_specs:
+        with pytest.raises(AssertionError):
+            _obtain_linear_model(logger, model, spec)
+
 # def test_combinations_with_deleted_dependencies():
 #     raise NotImplementedError
 #
