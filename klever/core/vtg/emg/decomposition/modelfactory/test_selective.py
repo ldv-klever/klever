@@ -92,6 +92,9 @@ P3 = {
             "savepoints": {
                 'sp_init_p3': {"statements": [], "comment": "test comment"}
             },
+            "require": {
+                "c/p2": {"include": ["register_p3", "deregister_p3"]}
+            }
         },
         "deregister_p3": {"parameters": []},
         "free": {"comment": ""},
@@ -208,14 +211,14 @@ def test_default_coverage(logger, model):
 
 def test_inclusion_p2(logger, model):
     spec = {
-        "must contain": {"c/p3": {}},
-        "cover scenarios": {"c/p3": {}}
+        "must contain": {"c/p3": {}, "c/p1": {"savepoints": ['sp_init_first']}},
+        "cover scenarios": {"c/p3": {"savepoints": []}, "c/p1": {"savepoints": ["sp_init_first"]}}
     }
     processes_to_scenarios, models = _obtain_linear_model(logger, model, spec)
 
     # Cover all c2p2 scenarios
-    p3scenarios = processes_to_scenarios['c/p3']
-    assert len(p3scenarios) == len(models)
+    p3scenarios = [s for s in processes_to_scenarios['c/p3'] if not s.savepoint]
+    assert len(models) == len(p3scenarios)
     actions = [m.environment['c/p3'].actions for m in models if 'c/p3' in m.environment] +\
               [m.entry.actions for m in models]
     for scenario in p3scenarios:
