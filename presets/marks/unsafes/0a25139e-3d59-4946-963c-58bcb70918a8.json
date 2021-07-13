@@ -27,11 +27,7 @@
                     {
                       "LDV model 'vmalloc'": [
                         {
-                          "LDV model 'check_alloc_nonatomic'": [
-                            {
-                              "LDV model 'assert'": []
-                            }
-                          ]
+                          "LDV model 'check_alloc_nonatomic'": []
                         }
                       ]
                     }

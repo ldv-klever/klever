@@ -18,11 +18,7 @@
         {
           "LDV model 'failed_register_netdev'": [
             {
-              "LDV model 'expected_error'": [
-                {
-                  "LDV model 'assert'": []
-                }
-              ]
+              "LDV model 'expected_error'": []
             }
           ]
         }

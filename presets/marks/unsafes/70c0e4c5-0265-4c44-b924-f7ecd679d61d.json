@@ -29,11 +29,7 @@
         {
           "LDV model 'handler'": [
             {
-              "LDV model 'invoke_reached'": [
-                {
-                  "LDV model 'assert'": []
-                }
-              ]
+              "LDV model 'invoke_reached'": []
             }
           ]
         }

@@ -34,9 +34,6 @@
                   "LDV model 'register_class'": [
                     {
                       "LDV model 'undef_int_nonpositive'": []
-                    },
-                    {
-                      "LDV model 'assert'": []
                     }
                   ]
                 }

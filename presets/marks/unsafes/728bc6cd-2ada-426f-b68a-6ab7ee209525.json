@@ -23,11 +23,7 @@
                   "LDV model 'switch_to_interrupt_context'": []
                 },
                 {
-                  "LDV model 'expected_error'": [
-                    {
-                      "LDV model 'assert'": []
-                    }
-                  ]
+                  "LDV model 'expected_error'": []
                 }
               ]
             }

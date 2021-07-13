@@ -22,11 +22,7 @@
                 {
                   "Instrumented function 'rtnl_unlock'": [
                     {
-                      "LDV model 'past_rtnl_unlock'": [
-                        {
-                          "LDV model 'assert'": []
-                        }
-                      ]
+                      "LDV model 'past_rtnl_unlock'": []
                     }
                   ]
                 }

@@ -22,11 +22,7 @@
                 {
                   "Instrumented function 'unlock_sock_fast'": [
                     {
-                      "LDV model 'unlock_sock_fast'": [
-                        {
-                          "LDV model 'assert'": []
-                        }
-                      ]
+                      "LDV model 'unlock_sock_fast'": []
                     }
                   ]
                 }

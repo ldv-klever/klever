@@ -26,11 +26,7 @@
                         {
                           "LDV model 'check_alloc_flags'": [
                             {
-                              "LDV model 'expected_error'": [
-                                {
-                                  "LDV model 'assert'": []
-                                }
-                              ]
+                              "LDV model 'expected_error'": []
                             }
                           ]
                         }

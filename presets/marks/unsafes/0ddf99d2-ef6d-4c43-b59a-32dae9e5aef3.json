@@ -18,11 +18,7 @@
         {
           "EMG wrapper": [
             {
-              "LDV model 'init'": [
-                {
-                  "LDV model 'assert'": []
-                }
-              ]
+              "LDV model 'init'": []
             }
           ]
         }

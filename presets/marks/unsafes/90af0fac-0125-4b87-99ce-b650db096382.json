@@ -22,11 +22,7 @@
                 {
                   "Instrumented function 'rcu_read_unlock_bh'": [
                     {
-                      "LDV model 'rcu_read_unlock_bh'": [
-                        {
-                          "LDV model 'assert'": []
-                        }
-                      ]
+                      "LDV model 'rcu_read_unlock_bh'": []
                     }
                   ]
                 }

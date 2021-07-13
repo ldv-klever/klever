@@ -22,11 +22,7 @@
                 {
                   "Instrumented function 'srcu_read_unlock'": [
                     {
-                      "LDV model 'srcu_read_unlock'": [
-                        {
-                          "LDV model 'assert'": []
-                        }
-                      ]
+                      "LDV model 'srcu_read_unlock'": []
                     }
                   ]
                 }
