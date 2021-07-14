@@ -210,17 +210,6 @@
       "data": {"bug identifier": "bcee1609ba96~"}
     },
     {
-      "build base": "linux/validation/bugs found by Klever/bcee1609ba96",
-      "targets": ["drivers/video/fbdev/sm712fb.ko"],
-      "specifications set": "5.5",
-      "requirement specifications": ["arch:mm:ioremap"],
-      "ideal verdicts": [{
-        "ideal verdict": "safe",
-        "comment": "Timeout."
-      }],
-      "data": {"bug identifier": "bcee1609ba96~"}
-    },
-    {
       "build base": "linux/validation/bugs found by Klever/87d7ad089b31~",
       "targets": ["drivers/mmc/host/via-sdmmc.ko"],
       "specifications set": "5.5",
