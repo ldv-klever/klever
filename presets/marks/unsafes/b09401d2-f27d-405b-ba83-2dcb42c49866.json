@@ -22,11 +22,7 @@
                 {
                   "Instrumented function 'blk_cleanup_queue'": [
                     {
-                      "LDV model 'blk_cleanup_queue'": [
-                        {
-                          "LDV model 'assert'": []
-                        }
-                      ]
+                      "LDV model 'blk_cleanup_queue'": []
                     }
                   ]
                 }

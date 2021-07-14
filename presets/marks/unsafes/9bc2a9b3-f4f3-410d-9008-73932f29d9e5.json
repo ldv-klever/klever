@@ -22,11 +22,7 @@
                 {
                   "Instrumented function 'usb_gadget_unregister_driver'": [
                     {
-                      "LDV model 'unregister_usb_gadget'": [
-                        {
-                          "LDV model 'assert'": []
-                        }
-                      ]
+                      "LDV model 'unregister_usb_gadget'": []
                     }
                   ]
                 }

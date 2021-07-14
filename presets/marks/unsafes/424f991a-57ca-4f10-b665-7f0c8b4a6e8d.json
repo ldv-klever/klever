@@ -65,11 +65,7 @@
         {
           "LDV model 'post_probe'": [
             {
-              "LDV model 'check_return_value_probe'": [
-                {
-                  "LDV model 'assert'": []
-                }
-              ]
+              "LDV model 'check_return_value_probe'": []
             }
           ]
         }

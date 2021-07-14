@@ -173,6 +173,15 @@ class RSG(klever.core.vtg.plugins.Plugin):
         # Sort aspects to apply them in the deterministic order.
         aspects.sort()
 
+        # Always specify either specific model sets model or common one.
+        opts = ['-DLDV_SETS_MODEL_' + (model['options']['sets model']
+                                       if isinstance(model, dict) and 'sets model' in model['options']
+                                       else self.conf['common sets model']).upper()]
+        if self.conf.get('memory safety'):
+            opts += ['-DLDV_MEMORY_SAFETY']
+        if 'specifications set' in self.conf:
+            opts += ['-DLDV_SPECS_SET_{0}'.format(self.conf['specifications set'].replace('.', '_'))]
+
         for grp in self.abstract_task_desc['grps']:
             self.logger.info('Add aspects to C files of group "{0}"'.format(grp['id']))
             for extra_cc in grp['Extra CCs']:
@@ -182,6 +191,7 @@ class RSG(klever.core.vtg.plugins.Plugin):
                     'plugin': self.name,
                     'aspects': [os.path.relpath(aspect, self.conf['main working directory']) for aspect in aspects]
                 })
+                extra_cc['opts'] = opts
 
         # Generate CC full description file per each model and add it to abstract task description.
         # First of all obtain CC options to be used to compile models.
@@ -225,13 +235,6 @@ class RSG(klever.core.vtg.plugins.Plugin):
             base_name = klever.core.utils.unique_file_name(file, '{0}.json'.format(ext))
             full_desc_file = '{0}{1}.json'.format(base_name, ext)
             out_file = '{0}.c'.format(base_name)
-
-            # Always specify either specific model sets model or common one.
-            opts = ['-DLDV_SETS_MODEL_' + (model['options']['sets model']
-                                           if isinstance(model, dict) and 'sets model' in model['options']
-                                           else self.conf['common sets model']).upper()]
-            if 'specifications set' in self.conf:
-                opts += ['-DLDV_SPECS_SET_{0}'.format(self.conf['specifications set'].replace('.', '_'))]
 
             self.logger.debug('Dump CC full description to file "{0}"'.format(full_desc_file))
             with open(full_desc_file, 'w', encoding='utf-8') as fp:

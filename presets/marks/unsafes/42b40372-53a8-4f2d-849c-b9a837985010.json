@@ -46,11 +46,7 @@
             {
               "LDV model 'read_time'": [
                 {
-                  "LDV model 'invoke_reached'": [
-                    {
-                      "LDV model 'assert'": []
-                    }
-                  ]
+                  "LDV model 'invoke_reached'": []
                 }
               ]
             }

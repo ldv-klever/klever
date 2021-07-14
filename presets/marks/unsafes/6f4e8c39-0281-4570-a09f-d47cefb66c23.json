@@ -44,11 +44,7 @@
         {
           "LDV model 'alloc_device'": [
             {
-              "LDV model 'invoke_callback'": [
-                {
-                  "LDV model 'assert'": []
-                }
-              ]
+              "LDV model 'invoke_callback'": []
             }
           ]
         }

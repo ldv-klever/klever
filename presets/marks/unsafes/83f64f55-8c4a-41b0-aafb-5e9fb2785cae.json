@@ -27,11 +27,7 @@
                   ]
                 },
                 {
-                  "LDV model 'write_unlock'": [
-                    {
-                      "LDV model 'assert'": []
-                    }
-                  ]
+                  "LDV model 'write_unlock'": []
                 }
               ]
             }

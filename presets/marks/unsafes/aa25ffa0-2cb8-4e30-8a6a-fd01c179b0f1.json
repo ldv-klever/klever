@@ -36,9 +36,6 @@
                       "LDV model 'request_queue'": [
                         {
                           "LDV model 'undef_ptr'": []
-                        },
-                        {
-                          "LDV model 'assert'": []
                         }
                       ]
                     }

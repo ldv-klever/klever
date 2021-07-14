@@ -31,11 +31,7 @@
                     {
                       "LDV model 'before_ieee80211_unregister_hw'": [
                         {
-                          "LDV model 'past_rtnl_lock'": [
-                            {
-                              "LDV model 'assert'": []
-                            }
-                          ]
+                          "LDV model 'past_rtnl_lock'": []
                         }
                       ]
                     }

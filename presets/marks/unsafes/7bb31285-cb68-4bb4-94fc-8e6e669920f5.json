@@ -33,11 +33,7 @@
                 {
                   "Instrumented function 'del_gendisk'": [
                     {
-                      "LDV model 'del_gendisk'": [
-                        {
-                          "LDV model 'assert'": []
-                        }
-                      ]
+                      "LDV model 'del_gendisk'": []
                     }
                   ]
                 }

@@ -26,11 +26,7 @@
                   "LDV model 'read_unlock'": []
                 },
                 {
-                  "LDV model 'read_unlock'": [
-                    {
-                      "LDV model 'assert'": []
-                    }
-                  ]
+                  "LDV model 'read_unlock'": []
                 }
               ]
             }

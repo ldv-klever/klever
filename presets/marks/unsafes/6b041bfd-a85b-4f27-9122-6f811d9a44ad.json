@@ -43,11 +43,7 @@
                 {
                   "Instrumented function 'spin_unlock'": [
                     {
-                      "LDV model 'spin_unlock_ldv_lock1'": [
-                        {
-                          "LDV model 'assert'": []
-                        }
-                      ]
+                      "LDV model 'spin_unlock_ldv_lock1'": []
                     }
                   ]
                 }

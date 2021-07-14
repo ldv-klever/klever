@@ -31,11 +31,7 @@
             {
               "LDV model 'open'": [
                 {
-                  "LDV model 'invoke_reached'": [
-                    {
-                      "LDV model 'assert'": []
-                    }
-                  ]
+                  "LDV model 'invoke_reached'": []
                 }
               ]
             }
