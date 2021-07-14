@@ -17,8 +17,26 @@
 import copy
 
 from klever.core.vtg.emg.decomposition.scenario import Scenario
-from klever.core.vtg.emg.common.process.actions import Subprocess
-from klever.core.vtg.emg.decomposition.modelfactory import Selector, ModelFactory, remove_process
+from klever.core.vtg.emg.common.process.actions import Subprocess, Receive
+from klever.core.vtg.emg.decomposition.modelfactory import Selector, ModelFactory, remove_process, \
+    all_transitive_dependencies, process_transitive_dependencies, is_required
+
+
+def _must_contain_scenarios(must_contain_conf, scenario_model):
+    """
+    Return a set of scenarios and process names that are entries of must contain configuration.
+
+    :param must_contain_conf: dict.
+    :param scenario_model: ScenarioModel.
+    :return: set of process names, set of Scenario objects.
+    """
+    names = set()
+    scenarios = set()
+    for entry in must_contain_conf:
+        if entry in scenario_model.environment and scenario_model.environment[entry]:
+            names.add(entry)
+            scenarios.add(scenario_model.environment[entry])
+    return names, scenarios
 
 
 class SelectiveSelector(Selector):
@@ -33,6 +51,7 @@ class SelectiveSelector(Selector):
         self._sanity_check_must_not_contain(must_not_contain)
 
         self.logger.info("Collect dependencies between processes")
+        self._add_peers_as_requirements(self.model)
         dependencies_map, dependant_map = self._extract_dependecnies()
 
         deleted_processes, order = self._calculate_process_order(must_contain, must_not_contain, cover_conf,
@@ -147,6 +166,17 @@ class SelectiveSelector(Selector):
             self.logger.info(f"Finally return a batch for model {model.attributed_name}")
             yield model, related_process
 
+    def _add_peers_as_requirements(self, model):
+        model.establish_peers()
+        for process in model.environment.values():
+            receives = set(map(str, process.actions.filter(include={Receive})))
+
+            for peer, dispatches in process.peers.items():
+                if peer in model.environment and dispatches.issubset(receives):
+                    for dispatch in dispatches:
+                        self.logger.debug(f"Add requirement {peer}:{dispatch} to process {str(process)}")
+                        process.actions[dispatch].add_required_process(peer, {dispatch})
+
     def _sanity_check_must_contain(self, must_contain):
         for process_name in must_contain:
             assert process_name in self.model.environment, f'There is no process {process_name} in the model'
@@ -198,6 +228,7 @@ class SelectiveSelector(Selector):
                         f"There is no savepoint {item} in {process_name}"
 
     def _extract_dependecnies(self):
+        # TODO: Update
         # This map contains a map from processes to actions that contains requirements
         dependencies_map = dict()
 
@@ -219,14 +250,27 @@ class SelectiveSelector(Selector):
         return dependencies_map, dependant_map
 
     def _calculate_process_order(self, must_contain, must_not_contain, cover_conf, dependant_map):
+        # Detect order using transitive dependencies
+        todo = set(self.model.environment.keys())
+        order = []
+        deps = all_transitive_dependencies(set(self.model.environment.values()))
+        while todo and deps:
+            free = []
+            for entry in todo:
+                if not is_required(deps, self.model.environment[entry]):
+                    free.append(entry)
+            for selected in free:
+                order.append(selected)
+                todo.remove(selected)
+                del deps[selected]
+
         # These processes will be deleted from models at all
         deleted_processes = set()
 
         # Determine the order to iterate over the processes
-        todo = set(self.model.environment.keys())
         to_cover = todo.intersection(cover_conf.keys())
         todo.difference_update(to_cover)
-        order = []
+
         for process_name in to_cover:
             if process_name in must_not_contain and len(must_not_contain[process_name].keys()) == 0:
                 if process_name in must_contain or process_name in dependant_map:
@@ -237,13 +281,16 @@ class SelectiveSelector(Selector):
             else:
                 order.append(process_name)
 
-        for process_name in (p for p in list(todo) if p in must_not_contain and len(must_not_contain[p].keys()) == 0):
+        for process_name in (p for p in must_not_contain if len(must_not_contain[p].keys()) == 0):
             deleted_processes.add(process_name)
-            todo.remove(process_name)
+            if process_name in todo:
+                todo.remove(process_name)
+            if process_name in order:
+                order.remove(process_name)
         else:
             self.logger.info(f"Delete processes: " + ", ".join(sorted(deleted_processes)))
 
-        order.extend(list(todo))
+        order.extend(sorted(list(todo)))
         return deleted_processes, order
 
     def _prepare_coverage(self, cover_conf):
