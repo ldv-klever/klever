@@ -609,6 +609,29 @@ def test_combinations_with_extra_dependencies(logger, advanced_model):
         assert scenario.actions in actions
 
 
+def test_savepoints_with_deps(logger, advanced_model):
+    spec = {
+        "cover scenarios": {
+            "c/p1": {"savepoints only": True},
+            "c/p3": {"actions": [["create2", "success"]]}
+        }
+    }
+    processes_to_scenarios, models = _obtain_linear_model(logger, advanced_model, spec)
+
+    # Cover all scenarios from p1
+    p1scenarios = {s for s in processes_to_scenarios['c/p1'] if s.savepoint}
+    p3scenarios = {s for s in processes_to_scenarios['c/p3'] if 'create2' in s.actions and 'success' in s.actions}
+    assert False
+    # todo: Update
+    actions = [m.environment['c/p1'].actions for m in models if 'c/p1' in m.environment] + \
+              [m.environment['c/p3'].actions for m in models if 'c/p3' in m.environment] + \
+              [m.entry.actions for m in models]
+    for scenario in p1scenarios:
+        assert scenario.actions in actions
+    for scenario in p3scenarios:
+        assert scenario.actions in actions
+
+
 def test_savepoints_without_base_actions(logger, advanced_model):
     spec = {
         "cover scenarios": {
