@@ -16,10 +16,11 @@
 #
 import copy
 
+from klever.core.vtg.emg.common.process import Process
 from klever.core.vtg.emg.decomposition.scenario import Scenario
 from klever.core.vtg.emg.common.process.actions import Subprocess, Receive
 from klever.core.vtg.emg.decomposition.modelfactory import Selector, ModelFactory, remove_process, \
-    all_transitive_dependencies, process_transitive_dependencies, is_required
+    all_transitive_dependencies, is_required, transitive_restricted_deps, satisfy_deps
 
 
 def _must_contain_scenarios(must_contain_conf, scenario_model):
@@ -52,15 +53,13 @@ class SelectiveSelector(Selector):
 
         self.logger.info("Collect dependencies between processes")
         self._add_peers_as_requirements(self.model)
-        dependencies_map, dependant_map = self._extract_dependecnies()
-
-        deleted_processes, order = self._calculate_process_order(must_contain, must_not_contain, cover_conf,
-                                                                 dependant_map)
-        self.logger.info("Order of process iteration is: " + ', '.join(order))
 
         # Prepare coverage
         self.logger.info("Prepare detailed coverage descriptions per process")
         coverage = self._prepare_coverage(cover_conf)
+
+        deleted_processes, order, dep_order = self._calculate_process_order(must_contain, must_not_contain, coverage)
+        self.logger.info("Order of process iteration is: " + ', '.join(order))
 
         # Prepare the initial base models
         first_model = self._make_base_model()
@@ -69,8 +68,10 @@ class SelectiveSelector(Selector):
 
         # Iterate over processes
         model_pool = []
+        processed = set()
         while order:
             process_name = order.pop(0)
+            processed.add(process_name)
             self.logger.info(f"Consider scenarios of process {process_name}")
 
             # Get all scenarios
@@ -99,22 +100,16 @@ class SelectiveSelector(Selector):
                 local_model_pool = list()
                 local_coverage = copy.deepcopy(coverage)
 
+                # Remove savepoints if this process is not required to cover
                 if process_name in local_coverage:
-                    # Filter scenarios with savepoints if there is one already
-                    scenarios_items_for_model = self._filter_by_savepoints_in_model(model, scenarios_items)
+                    scenarios_items_for_model = set(scenarios_items)
                 else:
-                    # Remove savepoints if this process is not required to cover
                     scenarios_items_for_model = {s for s in scenarios_items
                                                  if not isinstance(s, Scenario) or not s.savepoint}
 
-                # Filter by requirements of already added processes
-                scenarios_items_for_model = self._filter_by_requirements_from_model(
-                    process_name, model, scenarios_items_for_model, dependant_map, dependencies_map, order,
-                    deleted_processes)
-
-                # Filter by requirements from considered scenarios
-                scenarios_items_for_model = self._check_by_requirements_of_scenario(
-                    process_name, model, scenarios_items_for_model, dependencies_map, order, deleted_processes)
+                # Filter scenarios with savepoints if there is one already
+                scenarios_items_for_model = self._filter_by_model(model, process_name, scenarios_items_for_model,
+                                                                  dep_order)
 
                 # Iteratively copy models to fill the coverage
                 if not scenarios_items_for_model and process_name not in must_contain:
@@ -202,7 +197,7 @@ class SelectiveSelector(Selector):
                            "Provide a list of savepoints' names to the 'must contain' parameter"
 
                     assert isinstance(item, str) and item in map(str, self.model.environment[process_name].savepoints),\
-                            f"There is no savepoint {item} in {process_name}"
+                           f"There is no savepoint {item} in {process_name}"
 
     def _sanity_check_must_not_contain(self, must_not_contain):
         for process_name in must_not_contain:
@@ -227,32 +222,18 @@ class SelectiveSelector(Selector):
                     assert isinstance(item, str) and item in map(str, self.model.environment[process_name].savepoints),\
                         f"There is no savepoint {item} in {process_name}"
 
-    def _extract_dependecnies(self):
-        # TODO: Update
-        # This map contains a map from processes to actions that contains requirements
-        dependencies_map = dict()
-
-        # This map allows to determine which processes are required by any other. Such required processes are set as
-        # keys
-        dependant_map = dict()
-        for process in self.model.environment.values():
-            action_names = [str(a) for a in process.actions if process.actions[a].require]
-            if action_names:
-                self.logger.info(f"Process {process} has requirements in the following actions: " +
-                                 ", ".join(action_names))
-                dependencies_map[str(process)] = action_names
-
-                for action in action_names:
-                    for dependant in process.actions[action].require.keys():
-                        dependant_map.setdefault(dependant, set())
-                        dependant_map[dependant].add(str(process))
-
-        return dependencies_map, dependant_map
-
-    def _calculate_process_order(self, must_contain, must_not_contain, cover_conf, dependant_map):
+    def _calculate_process_order(self, must_contain, must_not_contain, coverage):
         # Detect order using transitive dependencies
         todo = set(self.model.environment.keys())
-        order = []
+
+        # Check contraversal configurations
+        for process_name in todo:
+            if process_name in must_not_contain and len(must_not_contain[process_name].keys()) == 0 and \
+                    process_name in must_contain:
+                raise ValueError(f'Cannot cover {process_name} as it is given in "must not contain" configuration '
+                                 f'and required by other configurations')
+
+        dep_order = []
         deps = all_transitive_dependencies(set(self.model.environment.values()))
         while todo and deps:
             free = []
@@ -260,38 +241,40 @@ class SelectiveSelector(Selector):
                 if not is_required(deps, self.model.environment[entry]):
                     free.append(entry)
             for selected in free:
-                order.append(selected)
+                dep_order.append(selected)
                 todo.remove(selected)
                 del deps[selected]
 
         # These processes will be deleted from models at all
         deleted_processes = set()
-
-        # Determine the order to iterate over the processes
-        to_cover = todo.intersection(cover_conf.keys())
-        todo.difference_update(to_cover)
-
-        for process_name in to_cover:
-            if process_name in must_not_contain and len(must_not_contain[process_name].keys()) == 0:
-                if process_name in must_contain or process_name in dependant_map:
-                    raise ValueError(f'Cannot cover {process_name} as it is given in "must not contain" configuration '
-                                     f'and required by other configurations')
-                else:
-                    continue
-            else:
-                order.append(process_name)
-
         for process_name in (p for p in must_not_contain if len(must_not_contain[p].keys()) == 0):
             deleted_processes.add(process_name)
             if process_name in todo:
                 todo.remove(process_name)
-            if process_name in order:
-                order.remove(process_name)
+
+            if process_name in dep_order:
+                for process_covered in (p for p in dep_order[:dep_order.index(process_name)] if p in coverage):
+                    # Check savepoints
+                    if len(coverage[process_covered].keys()) == 1:
+                        raise ValueError(f'Cannot cover {process_covered} as {process_name} should be deleted')
+                # Delete rest
+                for name in dep_order[:dep_order.index(process_name)]:
+                    dep_order.remove(name)
         else:
             self.logger.info(f"Delete processes: " + ", ".join(sorted(deleted_processes)))
 
-        order.extend(sorted(list(todo)))
-        return deleted_processes, order
+        # Check cover first, then dependencies
+        order = [p for p in dep_order if p in coverage] + \
+                [p for p in dep_order if p not in coverage]
+
+        # Add from rest list
+        order.extend([p for p in todo if p in coverage])
+        todo = [p for p in todo if p not in order]
+
+        # Sort rest by coverage
+        order = order + [p for p in todo if p in coverage] + [p for p in todo if p not in coverage]
+
+        return deleted_processes, order, dep_order
 
     def _prepare_coverage(self, cover_conf):
         coverage = dict()
@@ -418,93 +401,32 @@ class SelectiveSelector(Selector):
         else:
             return scenarios_items
 
-    def _filter_by_savepoints_in_model(self, model, scenarios_items):
+    def _filter_by_model(self, model, process_name, scenarios_items, dep_order):
+        # Check that there is a savepoint in the model and required by must contain
         exists_savepoint = False
         for scenario in model.environment.values():
             if isinstance(scenario, Scenario) and scenario.savepoint:
                 exists_savepoint = True
+                self.logger.debug(f"Model {model.attributed_name} has a savepoint already")
                 break
 
         if exists_savepoint:
-            self.logger.debug(f"Model {model.attributed_name} has a savepoint already")
-            new_scenarios_items = {s for s in scenarios_items if not isinstance(s, Scenario) or not s.savepoint}
-            return new_scenarios_items
+            new_scenarios_items = {s for s in scenarios_items if isinstance(s, Process) or not s.savepoint}
         else:
-            self.logger.debug(f"Model {model.attributed_name} has not a savepoint")
-            return scenarios_items
+            new_scenarios_items = set(scenarios_items)
 
-    def _filter_by_requirements_from_model(self, process_name, model, scenarios_items, dependant_map, dependencies_map,
-                                           order, deleted):
-        if process_name in dependant_map:
-            new_scenarios_items = set()
+        # Edit deps order
+        deps = transitive_restricted_deps(self.model, model, self.model.environment[process_name], dep_order)
 
-            for suitable in scenarios_items:
-                accept_flag = True
-
-                for proc_with_reqs in dependant_map[process_name]:
-                    if proc_with_reqs in order or proc_with_reqs in deleted:   # We not traversed it or deleted
-                        self.logger.debug(f"Skip requirements of {proc_with_reqs} for {process_name}")
-                        continue
-
-                    # Actions of the process with requirements
-                    actions_with_requirements = model.environment[proc_with_reqs].actions \
-                        if model.environment[proc_with_reqs] else self.model.environment[proc_with_reqs].actions
-
-                    for action in (a for a in dependencies_map[proc_with_reqs]
-                                   if a in actions_with_requirements and
-                                   actions_with_requirements[a].require.get(process_name)):
-                        self.logger.debug(f'Found requirements for {process_name} in {action} of {proc_with_reqs}')
-                        if not set(actions_with_requirements[action].require[process_name]["include"]). \
-                                issubset(set(suitable.actions.keys())):
-                            self.logger.info(f"Cannot add {suitable.name} of {process_name} because "
-                                             f"of {action} of {proc_with_reqs}")
-                            accept_flag = False
-
-                if accept_flag:
-                    new_scenarios_items.add(suitable)
-
-            return new_scenarios_items
-        else:
-            return scenarios_items
-
-    def _check_by_requirements_of_scenario(self, process_name, model, scenario_items, dependencies_map, order, deleted):
-        if process_name in dependencies_map:
-            new_scenario_items = set()
-
-            for scenario in scenario_items:
-                add_flag = True
-
-                for action_name in (a for a in dependencies_map[process_name] if a in scenario.actions):
-                    for asked_process in scenario.actions[action_name].require:
-                        if asked_process in deleted:
-                            self.logger.info(f"Cannot add {scenario.name} of {process_name} because "
-                                             f"{asked_process} is deleted")
-                            add_flag = False
-                            continue
-                        if asked_process in order:
-                            # Have not been considered yet
-                            continue
-
-                        required_actions = scenario.actions[action_name].require[asked_process]["include"]
-                        if asked_process in model.environment:
-                            considered_actions = model.environment[asked_process].actions \
-                                if model.environment[asked_process] else self.model.environment[asked_process].actions
-                        elif asked_process == str(self.model.entry):
-                            considered_actions = model.entry.actions if model.entry else self.model.entry.actions
-                        else:
-                            raise ValueError(f'Cannot find a process with name {asked_process} in the model at all')
-                        if not set(required_actions).issubset(set(considered_actions.keys())):
-                            self.logger.info(f"Cannot add {scenario.name} of {process_name} because "
-                                             f"{asked_process} does not satisfy required creteria of inclusion: " +
-                                             ", ".join(required_actions))
-                            add_flag = False
-
-                if add_flag:
-                    new_scenario_items.add(scenario)
-
-            return new_scenario_items
-        else:  # Has no dependencies
-            return scenario_items
+        selected_items = set()
+        for scenario in new_scenarios_items:
+            if satisfy_deps(deps, self.model.environment[process_name], scenario):
+                self.logger.debug(f"Scenario {scenario.name} meets model {model.attributed_name}")
+                selected_items.add(scenario)
+            else:
+                self.logger.debug(f"Scenario {scenario.name} don't meet model {model.attributed_name}")
+        new_scenarios_items = selected_items
+        return new_scenarios_items
 
     def _obtain_ordered_scenarios(self, scenarios_set, coverage=None, greedy=False):
         new_scenario_list = [s for s in scenarios_set if isinstance(s, Scenario)]
