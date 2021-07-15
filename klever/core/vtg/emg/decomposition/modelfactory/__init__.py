@@ -36,112 +36,6 @@ def remove_process(model, process_name):
     extend_model_name(model, process_name, 'Removed')
 
 
-def process_dependencies(process):
-    """
-    Collect dependnecies (p->actions) for a given process.
-
-    :param process: Process.
-    :return: {p: {actions}}
-    """
-    dependencies_map = dict()
-    for action in (a for a in process.actions.values() if a.require):
-        for name, v in action.require.items():
-            dependencies_map.setdefault(name, set())
-            dependencies_map[name].update(v.get('include', set()))
-
-    return dependencies_map
-
-
-def all_dependencies(processes: set):
-    """
-    Collect dependencies of all processes together.
-
-    :param processes: set of Process objects.
-    :return: {p: {required: {required_actions}}}
-    """
-    dependencies_map = dict()
-    for process in processes:
-        dependencies_map.setdefault(str(process), dict())
-        dependencies_map[str(process)].update(process_dependencies(process))
-
-    return dependencies_map
-
-
-def process_transitive_dependencies(processes: set, process: Process, scenario: Scenario = None):
-    """
-    Collect dependencies transitively of a given process.
-
-    :param processes: Set of Process objects to search dependencies.
-    :param process: Process object.
-    :param scenario: Its scenario that may have less actions.
-    :return: {required: {required_actions}}
-    """
-    assert process in processes or scenario in processes
-    processes_map = {str(p): p for p in processes}
-
-    name = str(process)
-    if not scenario:
-        scenario = process
-    processes_map[name] = scenario
-
-    ret_deps = dict()
-    processed = set()
-    todo = [name]
-    while todo:
-        p_name = todo.pop()
-        p = processes_map[p_name]
-        deps = process_dependencies(p)
-        for required_name in deps:
-            if required_name in processed:
-                raise RecursionError(f'Recursive dependencies for {required_name} calculated for {str(scenario)}')
-            elif required_name in todo:
-                pass
-            else:
-                todo.append(required_name)
-
-            ret_deps.setdefault(required_name, set())
-            ret_deps[required_name].update(deps[required_name])
-    return ret_deps
-
-
-def all_transitive_dependencies(processes: set, selected: set = None):
-    """
-    Collect transitive dependencies for selected processes/scenarios. If selected = None, then all processes are
-    selected.
-
-    :param processes: Set of Process objects.
-    :param selected: Set of Process objects for which is needed to search dependencies.
-    :return: {p: {required: {required_actions}}}
-    """
-    if not selected:
-        selected = processes
-    assert selected.issubset(processes)
-
-    deps = dict()
-    for selected_process in selected:
-        selected_deps = process_transitive_dependencies(processes, selected_process)
-        deps[str(selected_process)] = selected_deps
-    return deps
-
-
-def is_required(dependencies: dict, process: Process, scenario: Scenario = None):
-    """
-    Check that particular process or even its scenario is required by anybody in given dependencies.
-
-    :param dependencies: Dict created by functions defined above.
-    :param process: Process.
-    :param scenario: Scenario object.
-    :return: bool.
-    """
-    name = str(process)
-    actions = set((scenario.actions if scenario else process.actions).keys())
-
-    for entry in dependencies:
-        if name in dependencies[entry] and dependencies[entry][name].issubset(actions):
-            return True
-    return False
-
-
 class ScenarioCollection:
     """
     This is a collection of scenarios. The factory generated the model with processes that have provided keys. If a
@@ -238,6 +132,146 @@ class Selector:
             assert scenario.name
             extend_model_name(batch, process_name, scenario.name)
         self.logger.info(f'The new model name is "{batch.attributed_name}"')
+
+
+def process_dependencies(process):
+    """
+    Collect dependnecies (p->actions) for a given process.
+
+    :param process: Process.
+    :return: {p: {actions}}
+    """
+    dependencies_map = dict()
+    for action in (a for a in process.actions.values() if a.require):
+        for name, v in action.require.items():
+            dependencies_map.setdefault(name, set())
+            dependencies_map[name].update(v.get('include', set()))
+
+    return dependencies_map
+
+
+def process_transitive_dependencies(processes: set, process: Process):
+    """
+    Collect dependencies transitively of a given process.
+
+    :param processes: Set of Process objects to search dependencies.
+    :param process: Process object.
+    :return: {required: {required_actions}}
+    """
+    assert process in processes
+    processes_map = {str(p): p for p in processes}
+
+    ret_deps = dict()
+    processed = set()
+    todo = [str(process)]
+    while todo:
+        p_name = todo.pop()
+        p = processes_map[p_name]
+        deps = process_dependencies(p)
+        for required_name in deps:
+            if required_name in processed:
+                raise RecursionError(f'Recursive dependencies for {required_name} calculated for {str(process)}')
+            elif required_name not in todo:
+                todo.append(required_name)
+
+            ret_deps.setdefault(required_name, set())
+            ret_deps[required_name].update(deps[required_name])
+    return ret_deps
+
+
+def all_transitive_dependencies(processes: set):
+    """
+    Collect transitive dependencies for selected processes/scenarios. If selected = None, then all processes are
+    selected.
+
+    :param processes: Set of Process objects.
+    :return: {p: {required: {required_actions}}}
+    """
+    deps = dict()
+    for process in processes:
+        selected_deps = process_transitive_dependencies(processes, process)
+        deps[str(process)] = selected_deps
+    return deps
+
+
+def is_required(dependencies: dict, process: Process, scenario: Scenario = None):
+    """
+    Check that particular process or even its scenario is required by anybody in given dependencies.
+
+    :param dependencies: Dict created by functions defined above.
+    :param process: Process.
+    :param scenario: Scenario object.
+    :return: bool.
+    """
+    name = str(process)
+    actions = set((scenario.actions if scenario else process.actions).keys())
+
+    for entry in dependencies:
+        if name in dependencies[entry] and dependencies[entry][name].issubset(actions):
+            return True
+    return False
+
+
+def transitive_restricted_deps(model: ProcessCollection, batch: ScenarioCollection, process: Process, dep_order: list):
+    """
+    Found transitive dependencies for processes in dep_order.
+
+    :param model: Origin model.
+    :param batch: Collection with some scenarios.
+    :param process: Collect dependecnies upt to this process.
+    :param dep_order: List of processes where at the end are not required and at the beginning are the most required
+                      ones.
+    :return: {asking: {required: {required_actions}}}
+    """
+    assert str(process) in dep_order
+    observe_processes = dep_order[:dep_order.index(str(process))]
+    first_defined_index = None
+    for i, name in enumerate(observe_processes):
+        if batch.environment.get(name):
+            first_defined_index = i
+            break
+    if isinstance(first_defined_index, int):
+        observe_processes = observe_processes[first_defined_index:]
+    else:
+        return dict()
+
+    ret_deps = dict()
+    for process_name in observe_processes:
+        if batch.environment[process_name]:
+            required = batch.environment[process_name]
+        else:
+            required = model.environment[process_name]
+        required_deps = process_dependencies(required)
+
+        # Add already known deps
+        for entry in (e for e in required_deps if e in ret_deps):
+            for required, actions in ret_deps[entry].items():
+                required_deps[entry].setdefault(required, set())
+                required_deps[entry][required].update(actions)
+
+        # Save
+        if required_deps:
+            ret_deps[process_name] = required_deps
+
+    return ret_deps
+
+
+def satisfy_deps(dependencies: dict, process: Process, scenario: Scenario):
+    """
+    Check that particular process or even its scenario meets all dependencies in dependencies.
+
+    :param dependencies: Dict created by functions defined above.
+    :param process: Process.
+    :param scenario: Scenario object.
+    :return: bool.
+    """
+    if not dependencies:
+        return True
+
+    for required_actions in (deps[str(process)] for deps in dependencies.values() if str(process) in deps):
+        if not required_actions.issubset(set(scenario.actions.keys())):
+            return False
+    return True
 
 
 class ModelFactory:
