@@ -418,14 +418,6 @@ def test_contraversal_conditions(logger, model):
     with pytest.raises(ValueError):
         _obtain_linear_model(logger, model, spec)
 
-    spec = {
-        "must contain": {"c/p2": {}},
-        "must not contain": {"c/p1": {}, "c/p2": {"savepoints": []}},
-        "cover scenarios": {"c/p2": {}}
-    }
-    with pytest.raises(ValueError):
-        _obtain_linear_model(logger, model, spec)
-
 
 def test_complex_exclusion(logger, model):
     spec = {
@@ -577,12 +569,12 @@ def test_missing_keys(logger, model):
 def test_combinations_with_transitive_dependencies(logger, advanced_model):
     spec = {
         "must contain": {"c/p3": {}},
-        "cover scenarios": {"c/p3": {}}
+        "cover scenarios": {"c/p3": {"actions": ["create2", "success"]}}
     }
     processes_to_scenarios, models = _obtain_linear_model(logger, advanced_model, spec)
 
     # Cover all scenarios from p1
-    p3scenarios = {s for s in processes_to_scenarios['c/p3']}
+    p3scenarios = {s for s in processes_to_scenarios['c/p3'] if {"create2", "success"}.issubset(set(s.actions.keys()))}
     assert len(p3scenarios) == len(models)
     actions = [m.environment['c/p3'].actions for m in models if 'c/p3' in m.environment] + \
               [m.entry.actions for m in models]
