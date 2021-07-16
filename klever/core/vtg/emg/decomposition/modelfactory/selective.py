@@ -550,7 +550,7 @@ class SelectiveSelector(Selector):
 
         # Replacing a savepoint!
         if reassign:
-            self._assign_scenario(new, None, reassign)
+            remove_process(new, reassign)
 
         # This should change the name of the model
         self._assign_scenario(new, scenario if isinstance(scenario, Scenario) else None, process_name)
