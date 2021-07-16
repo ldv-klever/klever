@@ -143,6 +143,7 @@ class SelectiveSelector(Selector):
                 scenarios_items_for_model = self._obtain_ordered_scenarios(
                     scenarios_items_for_model,
                     list(local_coverage[process_name].values())[-1] if process_name in local_coverage else None, greedy)
+                added = 0
                 while (process_name in local_coverage or not local_model_pool) and scenarios_items_for_model:
                     scenario = scenarios_items_for_model.pop(0)
 
@@ -151,14 +152,26 @@ class SelectiveSelector(Selector):
                         self.logger.info(f"Process {process_name} can be covered by any scenario as it is not required "
                                          f"to cover")
                         local_model_pool.append(new)
+                        added += 1
                         break
                     elif self._check_coverage_impact(process_name, local_coverage[process_name], scenario):
                         new = self._clone_model_with_scenario(process_name, model, scenario)
                         self.logger.info(f'Add a new model {new.attributed_name}')
                         local_model_pool.append(new)
+                        added += 1
                     else:
                         self.logger.info(f'Skip scenario {scenario.name} of {process_name} '
                                          f'as it has no coverage impact')
+
+                # This is a corner case when no coverage impact exists for a model. If a model still has a coverage
+                # bonus for any other process add it.
+                if not added and any(p for p in local_coverage if p in model.environment and p not in order):
+                    self.logger.warning(f'Cannot find any suitable scenarios of process {process_name} that give extra'
+                                        f' coverage for model {model.attributed_name}, deleting it but keep a model')
+                    new = model.clone(model.name)
+                    remove_process(model, process_name)
+                    local_model_pool.append(new)
+
                 next_model_pool.extend(local_model_pool)
 
             model_pool = next_model_pool
@@ -352,7 +365,7 @@ class SelectiveSelector(Selector):
             for sp in sp_to_cover:
                 coverage[process_name][sp] = set(actions_to_cover)
 
-            if cover_conf.get("savepoints only"):
+            if cover_conf[process_name].get("savepoints only"):
                 coverage[process_name][process_name] = set()
                 if len(coverage[process_name].keys()) == 1:
                     raise ValueError(f'Process {process_name} cannot be covered with the provided configuration')
