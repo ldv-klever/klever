@@ -418,6 +418,14 @@ def test_contraversal_conditions(logger, model):
     with pytest.raises(ValueError):
         _obtain_linear_model(logger, model, spec)
 
+    spec = {
+        "must contain": {"c/p2": {}},
+        "must not contain": {"c/p1": {}, "c/p2": {"savepoints": []}},
+        "cover scenarios": {"c/p2": {}}
+    }
+    with pytest.raises(ValueError):
+        _obtain_linear_model(logger, model, spec)
+
 
 def test_complex_exclusion(logger, model):
     spec = {

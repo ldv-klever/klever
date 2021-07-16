@@ -61,6 +61,9 @@ class SelectiveSelector(Selector):
         deleted_processes, order, dep_order = self._calculate_process_order(must_contain, must_not_contain, coverage)
         self.logger.info("Order of process iteration is: " + ', '.join(order))
 
+        # Check contraversal requirements
+        self._check_contraversal_requirements(deleted_processes, must_contain, must_not_contain, coverage, order)
+
         # Prepare the initial base models
         first_model = self._make_base_model()
         for process_name in deleted_processes:
@@ -171,6 +174,12 @@ class SelectiveSelector(Selector):
                     for dispatch in dispatches:
                         self.logger.debug(f"Add requirement {peer}:{dispatch} to process {str(process)}")
                         process.actions[dispatch].add_required_process(peer, {dispatch})
+
+    def _check_contraversal_requirements(self, deleted_processes, must_contain, must_not_contain, coverage, order):
+        # todo: We may need to implement more chacks for complicated cases
+        for deleted in deleted_processes:
+            if deleted in must_contain or deleted in coverage:
+                raise ValueError(f"Cannot cover {deleted} process in must contain becaouse of the contraversal spec")
 
     def _sanity_check_must_contain(self, must_contain):
         for process_name in must_contain:
