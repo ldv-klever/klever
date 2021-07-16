@@ -107,8 +107,23 @@ class SelectiveSelector(Selector):
                 if process_name in local_coverage:
                     scenarios_items_for_model = set(scenarios_items)
                 else:
-                    scenarios_items_for_model = {s for s in scenarios_items
-                                                 if not isinstance(s, Scenario) or not s.savepoint}
+                    # Do we have already savepoint?
+                    # Have we covered required processes?
+                    if process_name in dep_order and not any(True for p in dep_order[dep_order.index(process_name):]
+                                                             if p in coverage and p in model.environment):
+                        self.logger.debug(f"Now we have covered all required processes and can enable savepoints for "
+                                          f"{process_name}")
+                        if any(True for s in model.environment.values() if s and s.savepoint):
+                            self.logger.debug(f"Model {model.attributed_name} has a savepoint already")
+                            scenarios_items_for_model = {s for s in scenarios_items
+                                                         if not isinstance(s, Scenario) or not s.savepoint}
+                        else:
+                            scenarios_items_for_model = set(scenarios_items)
+                    else:
+                        self.logger.debug(f"We still have processes to cover and {process_name} is not allowed to have "
+                                          f"savepoints")
+                        scenarios_items_for_model = {s for s in scenarios_items
+                                                     if not isinstance(s, Scenario) or not s.savepoint}
 
                 # Filter scenarios with savepoints if there is one already
                 scenarios_items_for_model = self._filter_by_model(model, process_name, scenarios_items_for_model,
