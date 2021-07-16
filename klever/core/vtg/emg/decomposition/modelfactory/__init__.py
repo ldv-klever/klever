@@ -133,7 +133,7 @@ class Selector:
             assert scenario.name
             extend_model_name(batch, process_name, scenario.name)
         elif batch.attributes.get(process_name):
-            extend_model_name(batch, process_name, None)
+            del batch.attributes[process_name]
         self.logger.info(f'The new model name is "{batch.attributed_name}"')
 
 

@@ -157,12 +157,15 @@ class SelectiveSelector(Selector):
                     elif self._check_coverage_impact(process_name, local_coverage[process_name], scenario):
                         # Check savepoints
                         p_with_sp = [n for n, s in model.environment.items() if s and s.savepoint]
+                        p_with_sp = None if not p_with_sp else p_with_sp.pop()
                         reassign = None
-                        if scenario and isinstance(scenario, Scenario) and scenario.savepoint and p_with_sp:
+                        if scenario and isinstance(scenario, Scenario) and p_with_sp and \
+                                ((p_with_sp in dep_order and process_name in dep_order and
+                                  dep_order.index(p_with_sp) < dep_order.index(process_name)) or scenario.savepoint):
                             # We are going to replace savepoint, save the model still
                             self.logger.info(f'Save model {model.attributed_name} before reassigning savepoint')
                             local_model_pool.append(model)
-                            reassign = p_with_sp.pop()
+                            reassign = p_with_sp
                             added += 1
 
                         new = self._clone_model_with_scenario(process_name, model, scenario, reassign)
