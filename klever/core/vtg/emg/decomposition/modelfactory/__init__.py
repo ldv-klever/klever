@@ -242,7 +242,7 @@ def transitive_restricted_deps(model: ProcessCollection, batch: ScenarioCollecti
         return dict()
 
     ret_deps = dict()
-    for process_name in observe_processes:
+    for process_name in (name for name in observe_processes if name in batch.environment):
         if batch.environment[process_name]:
             required = batch.environment[process_name]
         else:
