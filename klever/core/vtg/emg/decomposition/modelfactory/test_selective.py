@@ -359,7 +359,9 @@ def test_inclusion_p1(logger, model):
 
     # No savepoints from c2p2
     c2p2_withsavepoint = [s for s in processes_to_scenarios['c/p2'] if s.savepoint].pop()
-    assert all([True if c2p2_withsavepoint.actions != m.entry.actions else False for m in models])
+    for model in models:
+        if model.entry.actions == c2p2_withsavepoint.actions:
+            assert False, f"Model {model.attributed_name} has a savepoint from p2"
 
 
 def test_deletion(logger, model):
@@ -590,69 +592,61 @@ def test_combinations_with_transitive_dependencies(logger, advanced_model):
         assert scenario.actions in actions
 
 
-def test_combinations_with_extra_dependencies(logger, advanced_model):
-    spec = {
-        "cover scenarios": {"c/p2": {}, "c/p3": {"savepoints except": []}}
-    }
-    processes_to_scenarios, models = _obtain_linear_model(logger, advanced_model, spec)
-
-    # Cover all scenarios from p1
-    p3scenarios = {s for s in processes_to_scenarios['c/p3'] if s.savepoint}
-    p2scenarios = {s for s in processes_to_scenarios['c/p2']}
-    assert len(models) == (len(p3scenarios) + len(p2scenarios))
-    actions = [m.environment['c/p3'].actions for m in models if 'c/p3' in m.environment] + \
-              [m.environment['c/p2'].actions for m in models if 'c/p2' in m.environment] + \
-              [m.entry.actions for m in models]
-    for scenario in p3scenarios:
-        assert scenario.actions in actions
-    for scenario in p2scenarios:
-        assert scenario.actions in actions
-
-
 def test_savepoints_with_deps(logger, advanced_model):
     spec = {
         "cover scenarios": {
-            "c/p1": {"savepoints only": True},
-            "c/p3": {"actions": [["create2", "success"]]}
+            "c/p1": {"savepoints only": True}
         }
     }
     processes_to_scenarios, models = _obtain_linear_model(logger, advanced_model, spec)
 
     # Cover all scenarios from p1
     p1scenarios = {s for s in processes_to_scenarios['c/p1'] if s.savepoint}
-    p3scenarios = {s for s in processes_to_scenarios['c/p3'] if 'create2' in s.actions and 'success' in s.actions}
-    assert False
-    # todo: Update
-    actions = [m.environment['c/p1'].actions for m in models if 'c/p1' in m.environment] + \
-              [m.environment['c/p3'].actions for m in models if 'c/p3' in m.environment] + \
-              [m.entry.actions for m in models]
+    assert len(models) == len(p1scenarios)
+    names = [m.attributes['c/p1'] for m in models]
     for scenario in p1scenarios:
         assert scenario.actions in actions
     for scenario in p3scenarios:
         assert scenario.actions in actions
 
-
-def test_savepoints_without_base_actions(logger, advanced_model):
+def test_savepoints_with_mc_deps(logger, advanced_model):
     spec = {
+        "must contain": {"c/p3": {}},
         "cover scenarios": {
-            "c/p1": {"actions": [["exit"]], "savepoints only": True},
-            "c/p3": {"actions": [["create2", "success"]], "savepoints only": True}
+            "c/p1": {"savepoints only": True},
+            "c/p3": {"actions": ["create2", "success"], "savepoints": []}
         }
     }
     processes_to_scenarios, models = _obtain_linear_model(logger, advanced_model, spec)
 
     # Cover all scenarios from p1
     p1scenarios = {s for s in processes_to_scenarios['c/p1'] if s.savepoint and 'exit' in s.actions}
-    p3scenarios = {s for s in processes_to_scenarios['c/p3'] if s.savepoint and 'create2' in s.actions and
-                   'success' in s.actions}
-    assert len(models) == (len(p1scenarios) + len(p3scenarios))
-    actions = [m.environment['c/p1'].actions for m in models if 'c/p1' in m.environment] + \
-              [m.environment['c/p3'].actions for m in models if 'c/p3' in m.environment] + \
-              [m.entry.actions for m in models]
+    assert len(models) == len(p1scenarios)
+    names = [m.attributes['c/p1'] for m in models]
     for scenario in p1scenarios:
-        assert scenario.actions in actions
+        assert scenario.name in names
+
+
+def test_combinations_with_savepoints_only(logger, advanced_model):
+    spec = {
+        "cover scenarios": {
+            "c/p1": {"savepoints only": True},
+            "c/p3": {"actions": ["create2", "success"], "savepoints only": True}}
+    }
+    processes_to_scenarios, models = _obtain_linear_model(logger, advanced_model, spec)
+
+    # Cover all scenarios from p1
+    p1scenarios = {s for s in processes_to_scenarios['c/p1'] if s.savepoint}
+    p3scenarios = {s for s in processes_to_scenarios['c/p3']
+                   if s.savepoint and {"create2", "success"}.issubset(set(s.actions.keys()))}
+    assert len(models) == (len(p1scenarios) + len(p3scenarios))
+    names = [m.attributes['c/p1'] for m in models]
+    for scenario in p1scenarios:
+        assert scenario.name in names
+    names = [m.attributes['c/p3'] for m in models]
     for scenario in p3scenarios:
-        assert scenario.actions in actions
+        assert scenario.name in names
+
 
 
 def test_all_process_savepoints_and_actions_without_base(logger, advanced_model):
