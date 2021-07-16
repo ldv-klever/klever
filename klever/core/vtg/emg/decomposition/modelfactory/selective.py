@@ -352,6 +352,11 @@ class SelectiveSelector(Selector):
             for sp in sp_to_cover:
                 coverage[process_name][sp] = set(actions_to_cover)
 
+            if cover_conf.get("savepoints only"):
+                coverage[process_name][process_name] = set()
+                if len(coverage[process_name].keys()) == 1:
+                    raise ValueError(f'Process {process_name} cannot be covered with the provided configuration')
+
         return coverage
 
     def _filter_must_contain_base_process(self, process_name, scenarios_items, must_contain):
