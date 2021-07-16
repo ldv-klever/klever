@@ -155,7 +155,17 @@ class SelectiveSelector(Selector):
                         added += 1
                         break
                     elif self._check_coverage_impact(process_name, local_coverage[process_name], scenario):
-                        new = self._clone_model_with_scenario(process_name, model, scenario)
+                        # Check savepoints
+                        p_with_sp = [n for n, s in model.environment.items() if s and s.savepoint]
+                        reassign = None
+                        if scenario and isinstance(scenario, Scenario) and scenario.savepoint and p_with_sp:
+                            # We are going to replace savepoint, save the model still
+                            self.logger.info(f'Save model {model.attributed_name} before reassigning savepoint')
+                            local_model_pool.append(model)
+                            reassign = p_with_sp.pop()
+                            added += 1
+
+                        new = self._clone_model_with_scenario(process_name, model, scenario, reassign)
                         self.logger.info(f'Add a new model {new.attributed_name}')
                         local_model_pool.append(new)
                         added += 1
@@ -474,9 +484,6 @@ class SelectiveSelector(Selector):
         else:
             new_scenarios_items = set(scenarios_items)
 
-        # Edit deps order
-        deps = transitive_restricted_deps(self.model, model, self.model.environment[process_name], dep_order)
-
         selected_items = set()
         for scenario in new_scenarios_items:
             if satisfy_deps(deps, self.model.environment[process_name], scenario):
@@ -533,10 +540,15 @@ class SelectiveSelector(Selector):
         else:
             return False
 
-    def _clone_model_with_scenario(self, process_name, model, scenario):
+    def _clone_model_with_scenario(self, process_name, model, scenario, reassign=None):
         self.logger.info(f'Add scenario {scenario.name} of {process_name} to model "{model.attributed_name}"'
                          f' as it has coverage impact')
         new = model.clone(model.name)
+
+        # Replacing a savepoint!
+        if reassign:
+            self._assign_scenario(new, None, reassign)
+
         # This should change the name of the model
         self._assign_scenario(new, scenario if isinstance(scenario, Scenario) else None, process_name)
         return new

@@ -26,7 +26,8 @@ from klever.core.vtg.emg.common.process import Process, ProcessCollection
 def extend_model_name(model, process_name, attribute):
     assert model
     assert isinstance(model, (ProcessCollection, ScenarioCollection))
-    assert isinstance(process_name, str) and isinstance(attribute, str)
+    assert isinstance(process_name, str)
+    assert isinstance(attribute, str) or attribute is None
     model.attributes[process_name] = attribute
 
 
@@ -131,6 +132,8 @@ class Selector:
         if scenario:
             assert scenario.name
             extend_model_name(batch, process_name, scenario.name)
+        elif batch.attributes.get(process_name):
+            extend_model_name(batch, process_name, None)
         self.logger.info(f'The new model name is "{batch.attributed_name}"')
 
 
