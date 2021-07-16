@@ -464,11 +464,21 @@ class SelectiveSelector(Selector):
             # Split into two parts that contain forbidden actions and not
             good = [s for s in new_scenario_list if not set(s.actions.keys()).difference(coverage)]
             bad = [s for s in new_scenario_list if s not in good]
-            new_scenario_list = sorted(good, key=lambda x: len(set(x.actions.keys()).intersection(coverage)),
+            new_scenario_list = sorted(good,
+                                       key=lambda x: (not bool(isinstance(x, Scenario) and x.savepoint),
+                                                      len(set(x.actions.keys()).intersection(coverage)),
+                                                      x.name),
                                        reverse=greedy)
-            new_scenario_list.extend(sorted(bad, key=lambda x: len(set(x.actions.keys()).difference(coverage))))
+            new_scenario_list.extend(sorted(bad,
+                                            key=lambda x: (not bool(isinstance(x, Scenario) and x.savepoint),
+                                                           len(set(x.actions.keys()).difference(coverage)),
+                                                           x.name)))
         else:
-            new_scenario_list = sorted(new_scenario_list, key=lambda x: len(x.actions.keys()), reverse=greedy)
+            new_scenario_list = sorted(new_scenario_list,
+                                       key=lambda x: (not bool(isinstance(x, Scenario) and x.savepoint),
+                                                      len(x.actions.keys()),
+                                                      x.name),
+                                       reverse=greedy)
         new_scenario_list.extend([x for x in scenarios_set if x not in new_scenario_list])
         return new_scenario_list
 
