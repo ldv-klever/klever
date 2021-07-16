@@ -70,7 +70,7 @@ class SelectiveSelector(Selector):
             remove_process(first_model, process_name)
 
         # Iterate over processes
-        model_pool = []
+        model_pool = set()
         processed = set()
         while order:
             process_name = order.pop(0)
@@ -89,17 +89,17 @@ class SelectiveSelector(Selector):
             scenarios_items = self._filter_must_not_contain_actions(process_name, scenarios_items, must_not_contain)
             scenarios_items = self._filter_must_not_contain_savepoints(process_name, scenarios_items, must_not_contain)
 
-            next_model_pool = list()
+            next_model_pool = set()
             if not model_pool:
                 self.logger.info("Expect this is a first considered process")
-                iterate_over_models = [first_model]
+                iterate_over_models = {first_model}
             else:
                 # Do not modify model pool by adding the very first model, it is undesirable
                 iterate_over_models = model_pool
 
-            for model in iterate_over_models:
+            for model in sorted(iterate_over_models, key=lambda x: x.attributed_name):
                 self.logger.info(f"Consider adding scenarios to model {model.attributed_name}")
-                local_model_pool = list()
+                local_model_pool = set()
                 local_coverage = copy.deepcopy(coverage)
 
                 # Remove savepoints if this process is not required to cover
@@ -134,7 +134,7 @@ class SelectiveSelector(Selector):
                     self.logger.warning(f'Cannot find any suitable scenarios of process {process_name} suitable for '
                                         f'model {model.attributed_name}, deleting it')
                     remove_process(model, process_name)
-                    next_model_pool.append(model)
+                    next_model_pool.add(model)
                     continue
                 elif not scenarios_items_for_model and process_name in must_contain:
                     raise ValueError(f"Cannot delete required process {process_name} as it has no suitable scenarios "
@@ -151,7 +151,7 @@ class SelectiveSelector(Selector):
                         new = self._clone_model_with_scenario(process_name, model, scenario)
                         self.logger.info(f"Process {process_name} can be covered by any scenario as it is not required "
                                          f"to cover")
-                        local_model_pool.append(new)
+                        local_model_pool.add(new)
                         added += 1
                         break
                     elif self._check_coverage_impact(process_name, local_coverage[process_name], scenario):
@@ -164,13 +164,13 @@ class SelectiveSelector(Selector):
                                   dep_order.index(p_with_sp) < dep_order.index(process_name)) or scenario.savepoint):
                             # We are going to replace savepoint, save the model still
                             self.logger.info(f'Save model {model.attributed_name} before reassigning savepoint')
-                            local_model_pool.append(model)
+                            local_model_pool.add(model)
                             reassign = p_with_sp
                             added += 1
 
                         new = self._clone_model_with_scenario(process_name, model, scenario, reassign)
                         self.logger.info(f'Add a new model {new.attributed_name}')
-                        local_model_pool.append(new)
+                        local_model_pool.add(new)
                         added += 1
                     else:
                         self.logger.info(f'Skip scenario {scenario.name} of {process_name} '
@@ -183,16 +183,16 @@ class SelectiveSelector(Selector):
                                         f' coverage for model {model.attributed_name}, deleting it but keep a model')
                     new = model.clone(model.name)
                     remove_process(model, process_name)
-                    local_model_pool.append(new)
+                    local_model_pool.add(new)
 
-                next_model_pool.extend(local_model_pool)
+                next_model_pool.update(local_model_pool)
 
             processed.add(process_name)
             model_pool = next_model_pool
 
         if not model_pool:
             self.logger.info('No models have been selected, use the base one')
-            model_pool = [first_model]
+            model_pool = {first_model}
         for model in model_pool:
             related_process = None
             for process_name in (p for p, s in model.environment.items() if s and s.savepoint):

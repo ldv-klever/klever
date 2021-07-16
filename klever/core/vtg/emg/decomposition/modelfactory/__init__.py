@@ -44,6 +44,9 @@ class ScenarioCollection:
     it will use a provided scenario.
     """
 
+    def __hash__(self):
+        return hash(self.attributed_name)
+
     def __init__(self, name, entry=None, models=None, environment=None):
         assert isinstance(name, str)
         self.name = name
