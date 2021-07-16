@@ -253,13 +253,14 @@ class SelectiveSelector(Selector):
                 todo.remove(process_name)
 
             if process_name in dep_order:
-                for process_covered in (p for p in dep_order[:dep_order.index(process_name)] if p in coverage):
+                for process_covered in (p for p in dep_order[:dep_order.index(process_name)+1] if p in coverage):
                     # Check savepoints
                     if len(coverage[process_covered].keys()) == 1:
                         raise ValueError(f'Cannot cover {process_covered} as {process_name} should be deleted')
                 # Delete rest
-                for name in dep_order[:dep_order.index(process_name)]:
+                for name in dep_order[:dep_order.index(process_name)+1]:
                     dep_order.remove(name)
+                    deleted_processes.add(name)
         else:
             self.logger.info(f"Delete processes: " + ", ".join(sorted(deleted_processes)))
 
