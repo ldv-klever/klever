@@ -212,7 +212,8 @@ def is_required(dependencies: dict, process: Process, scenario: Scenario = None)
     return False
 
 
-def transitive_restricted_deps(model: ProcessCollection, batch: ScenarioCollection, process: Process, dep_order: list):
+def transitive_restricted_deps(model: ProcessCollection, batch: ScenarioCollection, process: Process, dep_order: list,
+                               processed: set):
     """
     Found transitive dependencies for processes in dep_order.
 
@@ -221,13 +222,15 @@ def transitive_restricted_deps(model: ProcessCollection, batch: ScenarioCollecti
     :param process: Collect dependecnies upt to this process.
     :param dep_order: List of processes where at the end are not required and at the beginning are the most required
                       ones.
+    :param processed: A set with process names that are in model.
     :return: {asking: {required: {required_actions}}}
     """
     assert str(process) in dep_order
+    processed = {p for p in processed if p in model.environment}
     observe_processes = dep_order[:dep_order.index(str(process))]
     first_defined_index = None
     for i, name in enumerate(observe_processes):
-        if batch.environment.get(name):
+        if name in processed:
             first_defined_index = i
             break
     if isinstance(first_defined_index, int):

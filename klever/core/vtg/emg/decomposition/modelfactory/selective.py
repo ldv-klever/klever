@@ -74,7 +74,6 @@ class SelectiveSelector(Selector):
         processed = set()
         while order:
             process_name = order.pop(0)
-            processed.add(process_name)
             self.logger.info(f"Consider scenarios of process {process_name}")
 
             # Get all scenarios
@@ -127,7 +126,8 @@ class SelectiveSelector(Selector):
 
                 # Filter scenarios with savepoints if there is one already
                 scenarios_items_for_model = self._filter_by_model(model, process_name, scenarios_items_for_model,
-                                                                  dep_order)
+                                                                  dep_order, must_contain, processed,
+                                                                  process_name in coverage)
 
                 # Iteratively copy models to fill the coverage
                 if not scenarios_items_for_model and process_name not in must_contain:
@@ -174,6 +174,7 @@ class SelectiveSelector(Selector):
 
                 next_model_pool.extend(local_model_pool)
 
+            processed.add(process_name)
             model_pool = next_model_pool
 
         if not model_pool:
@@ -444,7 +445,7 @@ class SelectiveSelector(Selector):
         else:
             return scenarios_items
 
-    def _filter_by_model(self, model, process_name, scenarios_items, dep_order):
+    def _filter_by_model(self, model, process_name, scenarios_items, dep_order, must_contain, processed,  in_coverage):
         # Check that there is a savepoint in the model and required by must contain
         exists_savepoint = False
         for scenario in model.environment.values():
@@ -453,7 +454,22 @@ class SelectiveSelector(Selector):
                 self.logger.debug(f"Model {model.attributed_name} has a savepoint already")
                 break
 
-        if exists_savepoint:
+        # Edit deps order
+        deps = transitive_restricted_deps(self.model, model, self.model.environment[process_name], dep_order, processed)
+
+        # Check must contain dependencies
+        if in_coverage:
+            mc_required = [p for p in dep_order if p in processed and p in must_contain]
+            if mc_required:
+                self.logger.debug(f"Consider dependencies up to {mc_required[0]}")
+                removing_deps = dep_order[:dep_order.index(mc_required[0])]
+                for pname in (p for p in removing_deps if p in deps):
+                    del deps[pname]
+            else:
+                self.logger.debug(f"Do not consider dependencies to increase the coverage")
+                deps = dict()
+
+        if exists_savepoint and not in_coverage:
             new_scenarios_items = {s for s in scenarios_items if isinstance(s, Process) or not s.savepoint}
         else:
             new_scenarios_items = set(scenarios_items)
