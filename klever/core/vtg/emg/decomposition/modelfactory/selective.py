@@ -20,7 +20,7 @@ from klever.core.vtg.emg.common.process import Process
 from klever.core.vtg.emg.decomposition.scenario import Scenario
 from klever.core.vtg.emg.common.process.actions import Subprocess, Receive
 from klever.core.vtg.emg.decomposition.modelfactory import Selector, ModelFactory, remove_process, \
-    all_transitive_dependencies, is_required, transitive_restricted_deps, satisfy_deps
+    all_transitive_dependencies, is_required, transitive_restricted_deps, satisfy_deps, broken_deps
 
 
 def _must_contain_scenarios(must_contain_conf, scenario_model):
@@ -102,6 +102,12 @@ class SelectiveSelector(Selector):
                 local_model_pool = set()
                 local_coverage = copy.deepcopy(coverage)
 
+                if process_name not in model.environment:
+                    self.logger.warning(f'Skip processing model {model.attributed_name} as it does not '
+                                        f'require {process_name}')
+                    next_model_pool.add(model)
+                    continue
+
                 # Remove savepoints if this process is not required to cover
                 if process_name in local_coverage:
                     scenarios_items_for_model = set(scenarios_items)
@@ -133,7 +139,7 @@ class SelectiveSelector(Selector):
                 if not scenarios_items_for_model and process_name not in must_contain:
                     self.logger.warning(f'Cannot find any suitable scenarios of process {process_name} suitable for '
                                         f'model {model.attributed_name}, deleting it')
-                    remove_process(model, process_name)
+                    self.delete_with_deps(model, process_name, dep_order, processed)
                     next_model_pool.add(model)
                     continue
                 elif not scenarios_items_for_model and process_name in must_contain:
@@ -148,7 +154,7 @@ class SelectiveSelector(Selector):
                     scenario = scenarios_items_for_model.pop(0)
 
                     if process_name not in local_coverage:
-                        new = self._clone_model_with_scenario(process_name, model, scenario)
+                        new = self._clone_model_with_scenario(process_name, model, scenario, dep_order, processed)
                         self.logger.info(f"Process {process_name} can be covered by any scenario as it is not required "
                                          f"to cover")
                         local_model_pool.add(new)
@@ -168,7 +174,8 @@ class SelectiveSelector(Selector):
                             reassign = p_with_sp
                             added += 1
 
-                        new = self._clone_model_with_scenario(process_name, model, scenario, reassign)
+                        new = self._clone_model_with_scenario(process_name, model, scenario, dep_order, processed,
+                                                              reassign)
                         self.logger.info(f'Add a new model {new.attributed_name}')
                         local_model_pool.add(new)
                         added += 1
@@ -182,7 +189,7 @@ class SelectiveSelector(Selector):
                     self.logger.warning(f'Cannot find any suitable scenarios of process {process_name} that give extra'
                                         f' coverage for model {model.attributed_name}, deleting it but keep a model')
                     new = model.clone(model.name)
-                    remove_process(model, process_name)
+                    self.delete_with_deps(model, process_name, dep_order, processed)
                     local_model_pool.add(new)
 
                 next_model_pool.update(local_model_pool)
@@ -497,6 +504,31 @@ class SelectiveSelector(Selector):
         new_scenarios_items = selected_items
         return new_scenarios_items
 
+    def break_dependencies(self, model, process_name, scenario, dep_order, processed):
+        # Check that there is a savepoint in the model and required by must contain
+        savepoint = None
+        for name, s in model.environment.items():
+            if isinstance(s, Scenario) and s.savepoint and name in dep_order:
+                savepoint = name
+                break
+
+        # Edit deps order
+        deps = transitive_restricted_deps(self.model, model, self.model.environment[process_name], dep_order, processed)
+        if not deps:
+            return set()
+
+        selected_items = set()
+        if satisfy_deps(deps, self.model.environment[process_name], scenario):
+            return selected_items
+        else:
+            broken = broken_deps(deps, self.model.environment[process_name], scenario)
+            if savepoint and not scenario.savepoint:
+                saved_order = dep_order[:dep_order.index(savepoint)+1]
+                for p in saved_order:
+                    if p in broken:
+                        broken.remove(p)
+            return broken
+
     def _obtain_ordered_scenarios(self, scenarios_set, coverage=None, greedy=False):
         new_scenario_list = [s for s in scenarios_set if isinstance(s, Scenario)]
         if coverage:
@@ -543,18 +575,46 @@ class SelectiveSelector(Selector):
         else:
             return False
 
-    def _clone_model_with_scenario(self, process_name, model, scenario, reassign=None):
+    def _clone_model_with_scenario(self, process_name, model, scenario, dep_order, processed, reassign=None):
         self.logger.info(f'Add scenario {scenario.name} of {process_name} to model "{model.attributed_name}"'
                          f' as it has coverage impact')
         new = model.clone(model.name)
 
-        # Replacing a savepoint!
+        # Check dependencies
+        broken = self.break_dependencies(model, process_name, scenario, dep_order, processed)
         if reassign:
-            remove_process(new, reassign)
+            broken.add(reassign)
+        if broken:
+            for entry in broken:
+                remove_process(model, entry)
 
         # This should change the name of the model
         self._assign_scenario(new, scenario if isinstance(scenario, Scenario) else None, process_name)
         return new
+
+    def delete_with_deps(self, model, process_name, dep_order, processed):
+        # Check that there is a savepoint in the model and required by must contain
+        savepoint = None
+        for name, s in model.environment.items():
+            if isinstance(s, Scenario) and s.savepoint and name in dep_order:
+                savepoint = name
+                break
+
+        # Edit deps order
+        deps = transitive_restricted_deps(self.model, model, self.model.environment[process_name], dep_order, processed)
+        if not deps:
+            selected_items = {process_name}
+        else:
+            selected_items = {name for name in deps.items() if process_name in deps}
+            if savepoint:
+                saved_order = dep_order[:dep_order.index(savepoint)+1]
+                for p in saved_order:
+                    if p in selected_items:
+                        selected_items.remove(p)
+
+        # Now delete processes
+        for p in selected_items:
+            remove_process(model, p)
 
 
 class SelectiveFactory(ModelFactory):

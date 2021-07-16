@@ -134,6 +134,8 @@ class Selector:
 
         if scenario:
             assert scenario.name
+            assert all(False for s in batch.environment.values() if isinstance(s, Scenario) and s.savepoint and
+                       s != scenario)
             extend_model_name(batch, process_name, scenario.name)
         elif batch.attributes.get(process_name):
             del batch.attributes[process_name]
@@ -281,6 +283,26 @@ def satisfy_deps(dependencies: dict, process: Process, scenario: Scenario):
         if not required_actions.issubset(set(scenario.actions.keys())):
             return False
     return True
+
+
+def broken_deps(dependencies: dict, process: Process, scenario: Scenario):
+    """
+    List broken dependencies
+
+    :param dependencies: Dict created by functions defined above.
+    :param process: Process.
+    :param scenario: Scenario object.
+    :return: bool.
+    """
+    if not dependencies:
+        return set()
+
+    broken = set()
+    for asker, required_actions in ((asker, deps[str(process)]) for asker, deps in dependencies.items()
+                                    if str(process) in deps):
+        if not required_actions.issubset(set(scenario.actions.keys())):
+            broken.add(asker)
+    return broken
 
 
 class ModelFactory:
