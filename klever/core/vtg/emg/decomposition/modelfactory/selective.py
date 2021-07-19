@@ -170,9 +170,10 @@ class SelectiveSelector(Selector):
                         if scenario and isinstance(scenario, Scenario) and p_with_sp and \
                                 ((p_with_sp in dep_order and process_name in dep_order and
                                   dep_order.index(p_with_sp) < dep_order.index(process_name)) or scenario.savepoint):
-                            # We are going to replace savepoint, save the model still
                             self.logger.info(f'Save model {model.attributed_name} before reassigning savepoint')
-                            local_model_pool.add(model)
+                            short = model.clone(model.name)
+                            self.delete_with_deps(short, process_name, dep_order, processed)
+                            local_model_pool.add(short)
                             reassign = p_with_sp
                             added += 1
 
@@ -196,7 +197,8 @@ class SelectiveSelector(Selector):
 
                 next_model_pool.update(local_model_pool)
 
-            model_pool = set({m.attributed_name: m for m in next_model_pool}.values())
+            filtered_models = set({m.attributed_name: m for m in next_model_pool}.values())
+            model_pool = filtered_models
 
         if not model_pool:
             self.logger.info('No models have been selected, use the base one')
@@ -667,6 +669,7 @@ class SelectiveSelector(Selector):
                 for p in saved_order:
                     if p in selected_items:
                         selected_items.remove(p)
+            selected_items.add(process_name)
 
         # Now delete processes
         for p in selected_items:
