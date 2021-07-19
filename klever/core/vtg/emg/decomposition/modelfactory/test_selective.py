@@ -250,6 +250,22 @@ P4 = {
         "write": {"comment": ""}
     }
 }
+P5 = {
+    "comment": "",
+    "labels": {},
+    "process": "(!register_p1).(<w1> | <w2>).(deregister_p1)",
+    "actions": {
+        "register_p1": {
+            "parameters": [],
+            "savepoints": {
+                'sp_p5': {"statements": []}
+            }
+        },
+        "deregister_p1": {"parameters": []},
+        "w1": {"comment": ""},
+        "w2": {"comment": ""}
+    }
+}
 
 
 @pytest.fixture()
@@ -275,6 +291,36 @@ def advanced_model():
             "c/p3": P3,
             "c/p4": P4
         }
+    }
+    collection = CollectionDecoder(logging, dict()).parse_event_specification(source,
+                                                                              json.loads(json.dumps(spec)),
+                                                                              ProcessCollection())
+    return collection
+
+
+@pytest.fixture()
+def model_with_independent_process():
+    files = ['test.c']
+    functions = {
+        'f1': "static int f1(struct test *)",
+        'f2': "static void f2(struct test *)"
+    }
+    source = Source(files, [], dict())
+    for name, declaration_str in functions.items():
+        new = Function(name, declaration_str)
+        new.definition_file = files[0]
+        source.set_source_function(new, files[0])
+    spec = {
+        "functions models": {
+            "f1": REGISTER_P2,
+            "f2": DEREGISTER_P2,
+        },
+        "environment processes": {
+            "c/p1": P1,
+            "c/p2": P2,
+            "c/p5": P5
+        },
+        "main process": MAIN
     }
     collection = CollectionDecoder(logging, dict()).parse_event_specification(source,
                                                                               json.loads(json.dumps(spec)),
@@ -730,10 +776,57 @@ def test_all_process_savepoints_and_actions_without_base(logger, advanced_model)
         assert {s.name for s in scenarios}.issubset(model_scenarios)
 
 
-# def test_process_without_deps():
-#     pass
+def test_process_without_deps(logger, model_with_independent_process):
+    spec = {
+        "must not contain": {"c/p1": {"savepoints": ["sp_init_first", "sp_init_second", "sp_init_third"]}},
+        "cover scenarios": {
+            "c/p5": {}
+        }
+    }
+    processes_to_scenarios, models = _obtain_linear_model(logger, model_with_independent_process, spec,
+                                                          separate_dispatches=True)
+    p5scenarios = set(processes_to_scenarios['c/p5'])
+    assert len(models) == len(p5scenarios)
+    names = [m.attributes['c/p5'] for m in models if m.attributes.get('c/p5')]
+    for scenario in p5scenarios:
+        assert scenario.name in names
 
 
-# def test_child_free_ops():
-#     pass
+def test_process_ignoring_freee_process(logger, model_with_independent_process):
+    spec = {
+        "cover scenarios": {
+            "c/p1": {"savepoints only": True},
+            "c/p2": {"actions": ["fail"]}
+        }
+    }
+    processes_to_scenarios, models = _obtain_linear_model(logger, model_with_independent_process, spec,
+                                                          separate_dispatches=True)
+    s1 = {s for s in processes_to_scenarios['c/p1'] if s.savepoint}
+    s3 = {s for s in processes_to_scenarios['c/p2'] if 'fail' in s.actions}
+    assert len(models) == len(s3) * (len(s1) / 2)
+    names = [m.attributes['c/p1'] for m in models if m.attributes.get('c/p1')]
+    for scenario in s1:
+        assert scenario.name in names
+    names = [m.attributes['c/p3'] for m in models if m.attributes.get('c/p3')]
+    for scenario in s3:
+        assert scenario.name in names
 
+
+def test_combine_free_and_dependent_processes(logger, model_with_independent_process):
+    spec = {
+        "cover scenarios": {
+            "c/p5": {},
+            "c/p2": {"actions": ["fail"]}
+        }
+    }
+    processes_to_scenarios, models = _obtain_linear_model(logger, model_with_independent_process, spec,
+                                                          separate_dispatches=True)
+    s1 = {s for s in processes_to_scenarios['c/p1'] if s.savepoint}
+    s3 = {s for s in processes_to_scenarios['c/p2'] if 'fail' in s.actions}
+    assert len(models) == len(s3) * (len(s1) / 2)
+    names = [m.attributes['c/p1'] for m in models if m.attributes.get('c/p1')]
+    for scenario in s1:
+        assert scenario.name in names
+    names = [m.attributes['c/p3'] for m in models if m.attributes.get('c/p3')]
+    for scenario in s3:
+        assert scenario.name in names
