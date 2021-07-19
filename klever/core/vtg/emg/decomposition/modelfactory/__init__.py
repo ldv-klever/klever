@@ -45,7 +45,7 @@ class ScenarioCollection:
     """
 
     def __hash__(self):
-        return hash(self.attributed_name)
+        return hash(str(self.attributed_name))
 
     def __init__(self, name, entry=None, models=None, environment=None):
         assert isinstance(name, str)
@@ -125,6 +125,9 @@ class Selector:
         return new
 
     def _assign_scenario(self, batch: ScenarioCollection, scenario=None, process_name=None):
+        if scenario and scenario is not None:
+            assert scenario not in batch.environment.values()
+
         if not process_name:
             batch.entry = scenario
         elif process_name in batch.environment:
@@ -134,8 +137,7 @@ class Selector:
 
         if scenario:
             assert scenario.name
-            assert all(False for s in batch.environment.values() if isinstance(s, Scenario) and s.savepoint and
-                       s != scenario)
+            assert len(tuple(s for s in batch.environment.values() if isinstance(s, Scenario) and s.savepoint)) <= 1
             extend_model_name(batch, process_name, scenario.name)
         elif batch.attributes.get(process_name):
             del batch.attributes[process_name]
@@ -220,6 +222,37 @@ def is_required(dependencies: dict, process: Process, scenario: Scenario = None)
     return False
 
 
+def transitive_deps(model: ProcessCollection, batch: ScenarioCollection, observe_processes: list):
+    """
+    Found transitive dependencies for processes in dep_order.
+
+    :param model: Origin model.
+    :param batch: Collection with some scenarios.
+    :param observe_processes: List of process names for which collect dependencies.
+    :return: {asking: {required: {required_actions}}}
+    """
+    ret_deps = dict()
+    for process_name in (name for name in observe_processes if name in batch.environment):
+        if batch.environment[process_name]:
+            required = batch.environment[process_name]
+        else:
+            required = model.environment[process_name]
+        required_deps = process_dependencies(required)
+
+        # Add already known deps
+        for entry in ret_deps:
+            if process_name in ret_deps[entry]:
+                for name, deps in required_deps.items():
+                    ret_deps[entry].setdefault(name, set())
+                    ret_deps[entry][name].update(deps)
+
+        # Save
+        if required_deps:
+            ret_deps[process_name] = required_deps
+
+    return ret_deps
+
+
 def transitive_restricted_deps(model: ProcessCollection, batch: ScenarioCollection, process: Process, dep_order: list,
                                processed: set):
     """
@@ -246,25 +279,7 @@ def transitive_restricted_deps(model: ProcessCollection, batch: ScenarioCollecti
     else:
         return dict()
 
-    ret_deps = dict()
-    for process_name in (name for name in observe_processes if name in batch.environment):
-        if batch.environment[process_name]:
-            required = batch.environment[process_name]
-        else:
-            required = model.environment[process_name]
-        required_deps = process_dependencies(required)
-
-        # Add already known deps
-        for entry in (e for e in required_deps if e in ret_deps):
-            for required, actions in ret_deps[entry].items():
-                required_deps[entry].setdefault(required, set())
-                required_deps[entry][required].update(actions)
-
-        # Save
-        if required_deps:
-            ret_deps[process_name] = required_deps
-
-    return ret_deps
+    return transitive_deps(model, batch, observe_processes)
 
 
 def satisfy_deps(dependencies: dict, process: Process, scenario: Scenario):
@@ -283,26 +298,6 @@ def satisfy_deps(dependencies: dict, process: Process, scenario: Scenario):
         if not required_actions.issubset(set(scenario.actions.keys())):
             return False
     return True
-
-
-def broken_deps(dependencies: dict, process: Process, scenario: Scenario):
-    """
-    List broken dependencies
-
-    :param dependencies: Dict created by functions defined above.
-    :param process: Process.
-    :param scenario: Scenario object.
-    :return: bool.
-    """
-    if not dependencies:
-        return set()
-
-    broken = set()
-    for asker, required_actions in ((asker, deps[str(process)]) for asker, deps in dependencies.items()
-                                    if str(process) in deps):
-        if not required_actions.issubset(set(scenario.actions.keys())):
-            broken.add(asker)
-    return broken
 
 
 class ModelFactory:
