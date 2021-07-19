@@ -673,7 +673,8 @@ def test_savepoints_only_with_deps(logger, advanced_model):
     p1scenarios = {s for s in processes_to_scenarios['c/p1'] if s.savepoint}
     p3scenarios = {s for s in processes_to_scenarios['c/p3']
                    if s.savepoint and {"create2", "success"}.issubset(set(s.actions.keys()))}
-    assert len(models) <= (len(p1scenarios) + len(p3scenarios))
+    p1scenarios_for_p3 = {s for s in processes_to_scenarios['c/p1'] if s.savepoint and "exit" in s.actions}
+    assert len(models) <= (len(p1scenarios) + len(p1scenarios_for_p3) + len(p3scenarios))
     names = [m.attributes['c/p3'] for m in models if m.attributes.get('c/p3')]
     for scenario in p3scenarios:
         assert scenario.name in names
