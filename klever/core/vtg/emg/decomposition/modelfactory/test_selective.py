@@ -705,15 +705,35 @@ def test_savepoints_without_base_actions(logger, advanced_model):
         assert scenario.name in names
 
 
-# def test_all_process_savepoints_and_actions_without_base(logger, advanced_model):
-#     spec = {
-#         "cover scenarios": {
-#             "c/p1": {"savepoints only": True},
-#             "c/p2": {},
-#             "c/p3": {"savepoints only": True},
-#             "c/p4": {}
-#         }
-#     }
-#     processes_to_scenarios, models = _obtain_linear_model(logger, advanced_model, spec, separate_dispatches=True)
-#
-#     raise NotImplementedError
+def test_all_process_savepoints_and_actions_without_base(logger, advanced_model):
+    spec = {
+        "cover scenarios": {
+            "c/p1": {"savepoints only": True},
+            "c/p2": {},
+            "c/p3": {"savepoints only": True},
+            "c/p4": {}
+        }
+    }
+    processes_to_scenarios, models = _obtain_linear_model(logger, advanced_model, spec, separate_dispatches=True)
+    # Check attributes
+    for model in models:
+        assert len(model.attributes) == 4
+
+    s1 = {s for s in processes_to_scenarios['c/p1'] if s.savepoint}
+    s3 = {s for s in processes_to_scenarios['c/p3'] if s.savepoint}
+    s2 = set(processes_to_scenarios['c/p2'])
+    s4 = set(processes_to_scenarios['c/p4'])
+    names = ['c/p1', 'c/p2', 'c/p3', 'c/p4']
+
+    for name, scenarios in zip(names, [s1, s2, s3, s4]):
+        model_scenarios = {m.attributes[name] for m in models}
+        assert {s.name for s in scenarios}.issubset(model_scenarios)
+
+
+# def test_process_without_deps():
+#     pass
+
+
+# def test_child_free_ops():
+#     pass
+
