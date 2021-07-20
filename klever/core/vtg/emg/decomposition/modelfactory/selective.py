@@ -203,7 +203,7 @@ class SelectiveSelector(Selector):
         if not model_pool:
             self.logger.info('No models have been selected, use the base one')
             model_pool = {first_model}
-        for model in model_pool:
+        for model in sorted(model_pool, key=lambda x: x.attributed_name):
             related_process = None
             for process_name in (p for p, s in model.environment.items() if s and s.savepoint):
                 related_process = process_name
@@ -288,7 +288,7 @@ class SelectiveSelector(Selector):
         todo = set(self.model.environment.keys())
 
         # Check contraversal configurations
-        for process_name in todo:
+        for process_name in sorted(todo):
             if process_name in must_not_contain and len(must_not_contain[process_name].keys()) == 0 and \
                     process_name in must_contain:
                 raise ValueError(f'Cannot cover {process_name} as it is given in "must not contain" configuration '
@@ -298,7 +298,7 @@ class SelectiveSelector(Selector):
         deps = all_transitive_dependencies(set(self.model.environment.values()))
         while todo and deps:
             free = []
-            for entry in todo:
+            for entry in sorted(todo):
                 if not is_required(deps, self.model.environment[entry]):
                     free.append(entry)
             for selected in free:
@@ -308,7 +308,7 @@ class SelectiveSelector(Selector):
 
         # These processes will be deleted from models at all
         deleted_processes = set()
-        for process_name in (p for p in must_not_contain if len(must_not_contain[p].keys()) == 0):
+        for process_name in (p for p in sorted(must_not_contain.keys()) if len(must_not_contain[p].keys()) == 0):
             deleted_processes.add(process_name)
             if process_name in todo:
                 todo.remove(process_name)
@@ -330,11 +330,11 @@ class SelectiveSelector(Selector):
                 [p for p in dep_order if p not in coverage]
 
         # Add from rest list
-        order.extend([p for p in todo if p in coverage])
-        todo = [p for p in todo if p not in order]
+        order.extend([p for p in sorted(todo) if p in coverage])
+        todo = [p for p in sorted(todo) if p not in order]
 
         # Sort rest by coverage
-        order = order + [p for p in todo if p in coverage] + [p for p in todo if p not in coverage]
+        order = order + [p for p in sorted(todo) if p in coverage] + [p for p in sorted(todo) if p not in coverage]
 
         return deleted_processes, order, dep_order
 
