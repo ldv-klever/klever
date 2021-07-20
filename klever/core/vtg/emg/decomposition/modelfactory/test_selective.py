@@ -253,15 +253,15 @@ P4 = {
 P5 = {
     "comment": "",
     "labels": {},
-    "process": "(!register_p1).(<w1> | <w2>).(deregister_p1)",
+    "process": "(!register_p2).(<w1> | <w2>).(deregister_p2)",
     "actions": {
-        "register_p1": {
+        "register_p2": {
             "parameters": [],
             "savepoints": {
                 'sp_p5': {"statements": []}
             }
         },
-        "deregister_p1": {"parameters": []},
+        "deregister_p2": {"parameters": []},
         "w1": {"comment": ""},
         "w2": {"comment": ""}
     }
@@ -803,11 +803,11 @@ def test_process_ignoring_freee_process(logger, model_with_independent_process):
                                                           separate_dispatches=True)
     s1 = {s for s in processes_to_scenarios['c/p1'] if s.savepoint}
     s3 = {s for s in processes_to_scenarios['c/p2'] if 'fail' in s.actions}
-    assert len(models) == len(s3) * (len(s1) / 2)
+    assert len(models) == len(s1)
     names = [m.attributes['c/p1'] for m in models if m.attributes.get('c/p1')]
     for scenario in s1:
         assert scenario.name in names
-    names = [m.attributes['c/p3'] for m in models if m.attributes.get('c/p3')]
+    names = [m.attributes['c/p2'] for m in models if m.attributes.get('c/p2')]
     for scenario in s3:
         assert scenario.name in names
 
@@ -821,12 +821,12 @@ def test_combine_free_and_dependent_processes(logger, model_with_independent_pro
     }
     processes_to_scenarios, models = _obtain_linear_model(logger, model_with_independent_process, spec,
                                                           separate_dispatches=True)
-    s1 = {s for s in processes_to_scenarios['c/p1'] if s.savepoint}
-    s3 = {s for s in processes_to_scenarios['c/p2'] if 'fail' in s.actions}
-    assert len(models) == len(s3) * (len(s1) / 2)
-    names = [m.attributes['c/p1'] for m in models if m.attributes.get('c/p1')]
-    for scenario in s1:
+    s5 = {s for s in processes_to_scenarios['c/p5']}
+    s2 = {s for s in processes_to_scenarios['c/p2'] if 'fail' in s.actions}
+    assert len(models) == len(s5)
+    names = [m.attributes['c/p5'] for m in models if m.attributes.get('c/p5')]
+    for scenario in s5:
         assert scenario.name in names
-    names = [m.attributes['c/p3'] for m in models if m.attributes.get('c/p3')]
-    for scenario in s3:
+    names = [m.attributes['c/p2'] for m in models if m.attributes.get('c/p2')]
+    for scenario in s2:
         assert scenario.name in names
