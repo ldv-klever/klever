@@ -85,7 +85,7 @@
         {
           "name": "EMG",
           "options": {
-            "translation options": {}
+            "translation options": {"allocate external": true}
           }
         },
         {
