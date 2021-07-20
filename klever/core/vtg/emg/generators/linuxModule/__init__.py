@@ -29,6 +29,24 @@ from klever.core.vtg.emg.generators.linuxModule.interface.collection import Inte
 from klever.core.vtg.emg.generators.linuxModule.process.serialization import ExtendedProcessDecoder
 
 
+DEFAULT_COMMENTS = {
+    "dispatch": {
+        "register": "Register {} callbacks.",
+        "instance_register": "Register {} callbacks.",
+        "deregister": "Deregister {} callbacks.",
+        "instance_deregister": "Deregister {} callbacks.",
+        "irq_register": "Register {} interrupt handler.",
+        "irq_deregister": "Deregister {} interrupt handler."
+    },
+    "receive": {
+        "register": "Begin {} callbacks invocations scenario.",
+        "instance_register": "Begin {} callbacks invocations scenario.",
+        "deregister": "Finish {} callbacks invocations scenario.",
+        "instance_deregister": "Finish {} callbacks invocations scenario."
+    }
+}
+
+
 class ScenarioModelgenerator(AbstractGenerator):
 
     specifications_endings = {
@@ -50,6 +68,8 @@ class ScenarioModelgenerator(AbstractGenerator):
         # Get instance maps if possible
         instance_maps = sortedcontainers.SortedDict()
         all_instance_maps = specifications.get("instance maps", [])
+        self.conf.setdefault("action comments", DEFAULT_COMMENTS)
+        self.conf.setdefault("callback comment", "Invoke callback {0} from {1}.")
 
         # Get fragment name
         task_name = abstract_task_desc['fragment']

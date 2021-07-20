@@ -30,6 +30,17 @@ from klever.core.vtg.emg.translation.fsa_translator.state_fsa_translator import 
 from klever.core.vtg.emg.translation.fsa_translator.simplest_fsa_translator import SimplestTranslator
 
 
+DEFAULT_INCLUDE_HEADERS = (
+    "ldv/linux/common.h",
+    "ldv/linux/err.h",
+    "ldv/verifier/common.h",
+    "ldv/verifier/gcc.h",
+    "ldv/verifier/nondet.h",
+    "ldv/verifier/memory.h",
+    "ldv/verifier/thread.h"
+)
+
+
 def translate_intermediate_model(logger, conf, avt, source, collection):
     """
     This is the main translator function. It generates automata first for all given processes of the environment model
@@ -50,7 +61,7 @@ def translate_intermediate_model(logger, conf, avt, source, collection):
     conf['translation options'].setdefault('nested automata', True)
     conf['translation options'].setdefault('direct control functions calls', True)
     conf['translation options'].setdefault('code additional aspects', list())
-    conf['translation options'].setdefault('additional headers', list())
+    conf['translation options'].setdefault('additional headers', DEFAULT_INCLUDE_HEADERS)
     conf['translation options'].setdefault('self parallel processes', False)
 
     # Make a separate directory
@@ -61,7 +72,8 @@ def translate_intermediate_model(logger, conf, avt, source, collection):
         logger.info(f'Clean workdir for translation "{model_path}"')
         shutil.rmtree(model_path)
     os.makedirs(model_path)
-    os.symlink(model_path, collection.attributed_name, target_is_directory=True)
+    if collection.attributed_name != collection.name:
+        os.symlink(model_path, collection.attributed_name, target_is_directory=True)
 
     # Save processes
     model_file = os.path.join(model_path, 'input model.json')
@@ -87,7 +99,8 @@ def translate_intermediate_model(logger, conf, avt, source, collection):
 
     # Determine entry point file and function
     logger.info("Determine entry point file and function name")
-    entry_file = os.path.join(model_path, get_or_die(conf['translation options'], "environment model file"))
+    entry_file = os.path.join(model_path,
+                              conf['translation options'].get('environment model file', 'environment_model.c'))
     entry_point_name = get_or_die(conf['translation options'], 'entry point')
     files = source.c_full_paths
     if entry_file not in files:
@@ -170,7 +183,7 @@ def translate_intermediate_model(logger, conf, avt, source, collection):
 
     # Prepare code on each automaton
     logger.info("Translate finite state machines into C code")
-    if conf['translation options'].get("simple control functions calls"):
+    if conf['translation options'].get("simple control functions calls", True):
         SimplestTranslator(logger, conf['translation options'], source, collection, cmodel, entry_fsa, model_fsa, main_fsa)
     elif get_or_die(conf['translation options'], "nested automata"):
         LabelTranslator(logger, conf['translation options'], source, collection, cmodel, entry_fsa, model_fsa, main_fsa)

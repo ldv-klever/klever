@@ -41,6 +41,8 @@ class ScenarioModelgenerator(AbstractGenerator):
         :param specifications: dictionary with merged specifications.
         :return: Reports dict
         """
+        self.conf.setdefault("enforce replacement", True)
+
         # Import Specifications
         all_instance_maps = specifications.get("manual event models", [])
         fragment_name = abstract_task_desc['fragment']
