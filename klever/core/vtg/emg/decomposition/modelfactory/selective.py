@@ -506,7 +506,7 @@ class SelectiveSelector(Selector):
                 model.environment[process_name] = scenario
                 deps2 = transitive_deps(self.model, model, dep_order[dep_order.index(process_name):])
                 model.environment[process_name] = None
-                for required in deps2.get(process_name, dict()):
+                for required in (r for r in deps2.get(process_name, dict()) if r in self.model.environment):
                     if required in model.environment and model.environment[required]:
                         possible_actions = set(model.environment[required].actions.keys())
                     elif required in model.environment:
@@ -515,6 +515,9 @@ class SelectiveSelector(Selector):
                         possible_actions = set()
 
                     if not deps2[process_name][required].issubset(possible_actions):
+                        acts = ', '.join(deps2[process_name][required])
+                        self.logger.debug(f"Model {model.attributed_name} do not have actions ({acts}) of {required}"
+                                          f" required by {process_name}")
                         break
                 else:
                     selected_items.add(scenario)

@@ -103,9 +103,9 @@ class Selector:
             for scenario, related_process in self._scenarions_with_savepoint.items():
                 new = ScenarioCollection(scenario.name)
                 for process in self.model.environment:
-                    new.environment[str(process)] = scenario
-                    if scenario not in self.processes_to_scenarios[process]:
-                        new.environment[str(process)] = None
+                    new.environment[str(process)] = None
+                    if scenario in self.processes_to_scenarios[process]:
+                        self._assign_scenario(new, scenario, str(process))
                 yield new, related_process
 
     @property
@@ -181,7 +181,7 @@ def process_transitive_dependencies(processes: set, process: Process):
         for required_name in deps:
             if required_name in processed:
                 raise RecursionError(f'Recursive dependencies for {required_name} calculated for {str(process)}')
-            elif required_name not in todo:
+            elif required_name not in todo and required_name in processes_map:
                 todo.append(required_name)
 
             ret_deps.setdefault(required_name, set())
