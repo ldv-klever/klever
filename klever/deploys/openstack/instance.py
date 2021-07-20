@@ -143,9 +143,13 @@ class OSKleverInstance:
                 return instance
 
     def __install_or_update_klever(self, ssh):
-        ssh.execute_cmd(f'sudo {PYTHON} -m pip install --upgrade pip setuptools wheel')
+        pip_install_cmd = f'sudo {PYTHON} -m pip install --upgrade '
 
-        ssh.execute_cmd(f'sudo {PYTHON} -m pip install --upgrade -r klever/requirements.txt ./klever')
+        if self.args.log_level == 'INFO':
+            pip_install_cmd += '--quiet '
+
+        ssh.execute_cmd(pip_install_cmd + 'pip setuptools wheel')
+        ssh.execute_cmd(pip_install_cmd + '-r klever/requirements.txt ./klever')
 
     def __deploy_klever(self, ssh, action='install'):
         # TODO: check that source directory contains setup.py file
