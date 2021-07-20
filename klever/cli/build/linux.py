@@ -251,10 +251,8 @@ class Linux(MakeProgram):
         for modules in self.target_program_desc['loadable kernel modules']:
             # Modules ending with .ko imply individual modules.
             if re.search(r'\.ko$', modules):
-                if ext_modules:
-                    build_targets.append([os.path.join(ext_modules, modules)])
-                else:
-                    build_targets.append([modules])
+                build_target = os.path.join(ext_modules, modules) if ext_modules else modules
+                build_targets.append(['M={0}'.format(os.path.dirname(build_target)), os.path.basename(modules)])
             # Otherwise it is directory that can contain modules.
             else:
                 if ext_modules:
