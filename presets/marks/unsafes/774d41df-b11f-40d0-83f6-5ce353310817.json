@@ -22,11 +22,7 @@
                 {
                   "multimodule_error_export_with_error": [
                     {
-                      "LDV model 'expected_error'": [
-                        {
-                          "LDV model 'assert'": []
-                        }
-                      ]
+                      "LDV model 'expected_error'": []
                     }
                   ]
                 }

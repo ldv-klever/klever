@@ -197,6 +197,10 @@ class WeaverWorker(klever.core.components.Component):
         with self.lock:
             outfile_unique = '{0}.i'.format(
                 klever.core.utils.unique_file_name(os.path.splitext(os.path.basename(infile))[0], '.i'))
+            # Create empty unique output file while the lock is held in order unique_file_name() invoked in concurrent
+            # processes will see it and do generate a new unique output file.
+            with open(outfile_unique, 'w'):
+                pass
         # This is used for storing/getting to/from cache where uniqueness is guaranteed by other means.
         outfile = '{0}.i'.format(os.path.splitext(os.path.basename(infile))[0])
         self.logger.info('Weave in C file "{0}"'.format(infile))
@@ -243,6 +247,9 @@ class WeaverWorker(klever.core.components.Component):
         opts = cc['opts']
         # Some stuff, e.g. size_t definition, may be architecture dependent.
         opts.append(klever.core.vtg.utils.define_arch_dependent_macro(self.conf))
+
+        # Add options for using models from RGS if so.
+        opts.extend(self.extra_cc.get('opts', []))
 
         cwd = self.clade.get_storage_path(cc['cwd'])
 

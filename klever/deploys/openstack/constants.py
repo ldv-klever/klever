@@ -21,5 +21,11 @@ KLEVER_DEPLOY_LOCAL = os.path.join(os.path.dirname(PYTHON), 'klever-deploy-local
 
 OS_USER = 'debian'
 OS_HOME = f'/home/{OS_USER}'
-DEPLOYMENT_DIRECTORY = os.path.join(OS_HOME, 'klever-inst')
+SRC_DIR = os.path.join(OS_HOME, 'klever')
+DEPLOYMENT_DIR = os.path.join(OS_HOME, 'klever-inst')
 STORAGE = os.path.join(OS_HOME, 'klever-storage')
+PROD_MEDIA_DIR = os.path.join(DEPLOYMENT_DIR, 'klever-media')
+DEV_MEDIA_DIR = os.path.join(SRC_DIR, 'bridge', 'media')
+VOLUME_DIR = os.path.join(OS_HOME, 'volume')
+VOLUME_MEDIA_DIR = os.path.join(VOLUME_DIR, 'media')
+VOLUME_PGSQL_DIR = os.path.join(VOLUME_DIR, 'postgresql')

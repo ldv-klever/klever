@@ -210,17 +210,6 @@
       "data": {"bug identifier": "bcee1609ba96~"}
     },
     {
-      "build base": "linux/validation/bugs found by Klever/bcee1609ba96",
-      "targets": ["drivers/video/fbdev/sm712fb.ko"],
-      "specifications set": "5.5",
-      "requirement specifications": ["arch:mm:ioremap"],
-      "ideal verdicts": [{
-        "ideal verdict": "safe",
-        "comment": "Timeout."
-      }],
-      "data": {"bug identifier": "bcee1609ba96~"}
-    },
-    {
       "build base": "linux/validation/bugs found by Klever/87d7ad089b31~",
       "targets": ["drivers/mmc/host/via-sdmmc.ko"],
       "specifications set": "5.5",
@@ -428,10 +417,7 @@
       "targets": ["drivers/video/fbdev/da8xx-fb.ko"],
       "specifications set": "5.5",
       "requirement specifications": ["memory safety"],
-      "ideal verdicts": [{
-        "ideal verdict": "unsafe",
-        "comment": "CPAchecker IllegalArg Except."
-      }],
+      "ideal verdicts": [{"ideal verdict": "unsafe"}],
       "data": {"bug identifier": "80a00e90dede~"}
     },
     {
@@ -441,7 +427,7 @@
       "requirement specifications": ["memory safety"],
       "ideal verdicts": [{
         "ideal verdict": "safe",
-        "comment": "CPAchecker IllegalArg Except."
+        "comment": "Timeout."
       }],
       "data": {"bug identifier": "80a00e90dede~"}
     },
@@ -511,17 +497,6 @@
       "specifications set": "5.5",
       "requirement specifications": ["memory safety"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
-      "data": {"bug identifier": "bc4071aafcf4~"}
-    },
-    {
-      "build base": "linux/validation/bugs found by Klever/bc4071aafcf4",
-      "targets": ["drivers/hwmon/aspeed-pwm-tacho.ko"],
-      "specifications set": "5.5",
-      "requirement specifications": ["memory safety"],
-      "ideal verdicts": [{
-        "ideal verdict": "safe",
-        "comment": "Timeout."
-      }],
       "data": {"bug identifier": "bc4071aafcf4~"}
     },
     {
@@ -668,6 +643,19 @@
         "comment": "False alarm due to \"EMG - Specs - Bad composition\". Most likely EMG should not invoke probe in parallel with exit."
       }],
       "data": {"bug identifier": "48ce9e4119ce~"}
+    }
+  ],
+  "unstable sub-jobs": [
+    {
+      "build base": "linux/validation/bugs found by Klever/bc4071aafcf4",
+      "targets": ["drivers/hwmon/aspeed-pwm-tacho.ko"],
+      "specifications set": "5.5",
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{
+        "ideal verdict": "safe",
+        "comment": "Either timeout or NPE."
+      }],
+      "data": {"bug identifier": "bc4071aafcf4~"}
     }
   ]
 }

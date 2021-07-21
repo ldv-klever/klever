@@ -29,11 +29,7 @@
                 {
                   "Instrumented function 'rcu_barrier'": [
                     {
-                      "LDV model 'check_for_read_section'": [
-                        {
-                          "LDV model 'assert'": []
-                        }
-                      ]
+                      "LDV model 'check_for_read_section'": []
                     }
                   ]
                 }

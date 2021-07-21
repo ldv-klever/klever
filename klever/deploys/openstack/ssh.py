@@ -132,6 +132,9 @@ class SSH:
             # so, we need to explicitly expand ~ here
             instance_path = instance_path.replace('~', f'/home/{OS_USER}', 1)
 
+        self.logger.debug('Execute rsync command to instance "{}" (IP: {})\ncopy {} to {}'
+                          .format(self.name, self.floating_ip, host_path, instance_path))
+
         # mkdir also doesn't work with paths inside quotes that contain ~
         self.execute_cmd(f'mkdir -p "{instance_path}"')
 

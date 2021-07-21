@@ -31,11 +31,7 @@
                     {
                       "LDV model 'kmalloc'": [
                         {
-                          "LDV model 'check_alloc_flags'": [
-                            {
-                              "LDV model 'assert'": []
-                            }
-                          ]
+                          "LDV model 'check_alloc_flags'": []
                         }
                       ]
                     }
