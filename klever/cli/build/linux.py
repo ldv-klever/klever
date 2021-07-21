@@ -44,14 +44,15 @@ class Linux(MakeProgram):
     }
 
     def __init__(self, logger, target_program_desc):
+        # Always specify CIF to be used by Clade since this variable is global and it can be accidentally reused.
+        architecture = target_program_desc['architecture']
+        self._CLADE_CONF['Info.cif'] = self._ARCH_OPTS[architecture].get('CROSS_COMPILE', '') + 'cif'
+
         super().__init__(logger, target_program_desc)
         self.kconfig_config = None
 
         if not self.version:
             self.version = self._make('kernelversion', get_output=True)[0]
-
-        # Always specify CIF to be used by Clade since this variable is global and it can be accidentally reused.
-        self._CLADE_CONF['Info.cif'] = self._ARCH_OPTS[self.architecture].get('CROSS_COMPILE', '') + 'cif'
 
     def _clean(self):
         self._make('mrproper')
