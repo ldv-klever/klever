@@ -108,7 +108,7 @@
         "ext-modules/decomposition_default/a_invoke.ko",
         "ext-modules/decomposition_default/b_invoke.ko"
       ],
-      "environment model": ["first_savepoint"]
+      "environment model": ["1"]
     },
     {
       "ideal verdict": "unsafe",
@@ -116,31 +116,44 @@
         "ext-modules/decomposition_default/c_invoke.ko",
         "ext-modules/decomposition_default/c_without_b_invoke.ko"
       ],
-      "environment model": ["second_savepoint"]
-    },
-    {
-      "ideal verdict": "unsafe",
-      "program fragments": [
-        "ext-modules/decomposition_linear/a_b_invoke.ko",
-        "ext-modules/decomposition_linear/c_invoke.ko"
-      ],
-      "environment model": ["base_call_b"]
+      "environment model": ["0"]
     },
     {
       "ideal verdict": "unsafe",
       "program fragments": [
         "ext-modules/decomposition_linear/a_b_invoke.ko"
+      ]
+    },
+    {
+      "ideal verdict": "unsafe",
+      "program fragments": [
+        "ext-modules/decomposition_linear/c_invoke.ko"
       ],
-      "environment model": ["base_call_a"]
+      "environment model": ["0", "1"]
     },
     {
       "ideal verdict": "unsafe",
       "program fragments": [
         "ext-modules/decomposition_selective_default/basic.ko",
-        "ext-modules/decomposition_selective_default/child_savepoints.ko",
+        "ext-modules/decomposition_selective_default/child_savepoints.ko"
+      ],
+      "environment model": ["0"]
+    },
+    {
+      "ideal verdict": "unsafe",
+      "program fragments": [
+        "ext-modules/decomposition_selective_default/basic.ko",
+        "ext-modules/decomposition_selective_default/child_savepoints.ko"
+      ],
+      "environment model": ["0"]
+    },
+    {
+      "ideal verdict": "unsafe",
+      "program fragments": [
         "ext-modules/decomposition_selective_linear/basic.ko",
         "ext-modules/decomposition_selective_linear/child_savepoints.ko"
-      ]
+      ],
+      "environment model": ["0", "1"]
     }
   ],
   "extra results processing": "testing",
@@ -514,27 +527,6 @@
       "single environment model per fragment": false,
       "select scenarios": {
         "must contain": {
-          "cat/first_child": {"savepoints":  ["first_savepoint"],"scenarios only":  false}
-        },
-        "cover scenarios": {
-          "cat/first_child": {}
-        }
-      }
-    },
-    {
-      "build base": "linux/testing/environment model specifications/81b6e0",
-      "specifications set": "5.5",
-      "targets": [
-        "ext-modules/decomposition_selective_default"
-      ],
-      "generators options": [
-        {
-          "genericManual": {}
-        }
-      ],
-      "single environment model per fragment": false,
-      "select scenarios": {
-        "must contain": {
           "cat/first_child": {"scenarios only":  false}
         },
         "cover scenarios": {
@@ -553,55 +545,15 @@
           "genericManual": {}
         }
       ],
-      "single environment model per fragment": false,
-      "scenario separation": "linear",
-      "select scenarios": {
-        "must contain": {
-          "cat/first_child": {"savepoints":  ["first_savepoint"]}
-        },
-        "cover scenarios": {
-          "cat/first_child": {"actions":  ["first_branch"]}
-        }
-      }
-    },
-    {
-      "build base": "linux/testing/environment model specifications/81b6e0",
-      "specifications set": "5.5",
-      "targets": [
-        "ext-modules/decomposition_selective_linear"
-      ],
-      "generators options": [
-        {
-          "genericManual": {}
-        }
-      ],
-      "single environment model per fragment": false,
-      "scenario separation": "linear",
-      "select scenarios": {
-        "must contain": {
-          "cat/first_child": {"scenarios only": true}
-        },
-        "cover scenarios": {
-          "cat/first_child": {"actions":  ["first_branch"]}
-        }
-      }
-    },
-    {
-      "build base": "linux/testing/environment model specifications/81b6e0",
-      "specifications set": "5.5",
-      "targets": [
-        "ext-modules/decomposition_selective_linear"
-      ],
-      "generators options": [
-        {
-          "genericManual": {}
-        }
-      ],
       "scenario separation": "linear",
       "single environment model per fragment": false,
       "select scenarios": {
         "cover scenarios": {
-          "cat/first_child": {"actions":  ["first_branch", "second_branch"], "savepoints":  ["first_savepoint"]}
+          "cat/first_child": {
+            "actions":  ["first_branch", "second_branch"],
+            "savepoints":  ["first_savepoint"],
+            "savepoints only":  true
+          }
         }
       }
     }
