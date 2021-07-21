@@ -1,0 +1,65 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Project:Version",
+      "value": "v5.13-rc4-314-gda9a805b1249"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/media/rc/st_rc.ko"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "drivers:clk2"
+    }
+  ],
+  "description": "https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/commit/?id=04297b00dfb4",
+  "error_trace": [
+    [
+      [
+        {
+          "EMG wrapper": [
+            {
+              "st_rc_probe": [
+                {
+                  "st_rc_hardware_init": [
+                    {
+                      "Instrumented function 'clk_prepare_enable'": [
+                        {
+                          "LDV model 'clk_prepare_enable_sys_clock_of_st_rc_device'": [
+                            {
+                              "LDV model 'clk_prepare_sys_clock_of_st_rc_device'": []
+                            },
+                            {
+                              "LDV model 'clk_unprepare_sys_clock_of_st_rc_device'": []
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Instrumented function 'clk_disable_unprepare'": [
+                    {
+                      "LDV model 'clk_disable_sys_clock_of_st_rc_device'": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": false,
+  "status": null,
+  "tags": [],
+  "threshold": 100,
+  "verdict": "2"
+}
