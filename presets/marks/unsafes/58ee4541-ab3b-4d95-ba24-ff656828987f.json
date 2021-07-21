@@ -1,0 +1,65 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Project:Version",
+      "value": "v5.13-rc4-234-g8610b3a2abfd"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/media/platform/cadence/cdns-csi2tx.ko"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "drivers:clk2"
+    }
+  ],
+  "description": "https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/commit/?id=e6001f6922cf",
+  "error_trace": [
+    [
+      [
+        {
+          "EMG wrapper": [
+            {
+              "csi2tx_probe": [
+                {
+                  "csi2tx_get_resources": [
+                    {
+                      "Instrumented function 'clk_prepare_enable'": [
+                        {
+                          "LDV model 'clk_prepare_enable_p_clk_of_csi2tx_priv'": [
+                            {
+                              "LDV model 'clk_prepare_p_clk_of_csi2tx_priv'": []
+                            },
+                            {
+                              "LDV model 'clk_unprepare_p_clk_of_csi2tx_priv'": []
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "Instrumented function 'clk_disable_unprepare'": [
+                        {
+                          "LDV model 'clk_disable_p_clk_of_csi2tx_priv'": []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": false,
+  "status": null,
+  "tags": [],
+  "threshold": 100,
+  "verdict": "2"
+}
