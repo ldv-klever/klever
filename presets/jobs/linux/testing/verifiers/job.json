@@ -109,14 +109,18 @@
     {
       "targets": ["**"],
       "exclude targets": [
-          "ext-modules/dynamic-memory/arrays/safe.ko",
-          "ext-modules/dynamic-memory/arrays/unsafe.ko"
+          "ext-modules/dynamic-memory/arrays/*",
+          "ext-modules/initializers/*"
       ],
       "requirement specifications": ["test:common"]
     },
     {
       "targets": ["ext-modules/dynamic-memory/arrays/*"],
       "requirement specifications": ["test:common with heap arrays"]
+    },
+    {
+      "targets": ["ext-modules/initializers/*"],
+      "requirement specifications": ["test:memory safety"]
     }
   ]
 }
