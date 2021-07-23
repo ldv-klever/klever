@@ -99,7 +99,8 @@ setuptools.setup(
         "requests",
         "setuptools_scm",
         "sortedcontainers",
-        "consulate"
+        "consulate",
+        "pytest"
     ],
     extras_require={
         "strict": open("requirements.txt", encoding="utf8").read().splitlines(),

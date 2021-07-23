@@ -102,3 +102,4 @@ warlock==1.3.3
 wcwidth==0.2.5
 wrapt==1.12.1
 zipp==3.4.0
+pytest==6.2.4
