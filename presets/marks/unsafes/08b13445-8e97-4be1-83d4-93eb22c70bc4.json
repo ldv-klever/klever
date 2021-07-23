@@ -1,0 +1,86 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Project:Version",
+      "value": "v5.13-rc4-360-ge198be37e525"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/media/platform/marvell-ccic/cafe_ccic.ko"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "memory safety"
+    }
+  ],
+  "description": "https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/commit/?id=2b889a4afcac",
+  "error_trace": [
+    [
+      [
+        {
+          "EMG wrapper": [
+            {
+              "cafe_pci_probe": [
+                {
+                  "Instrumented function 'kzalloc'": [
+                    {
+                      "LDV model 'kzalloc'": [
+                        {
+                          "LDV model 'zalloc'": [
+                            {
+                              "LDV model 'reference_zalloc'": []
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "pci_set_drvdata": [
+                    {
+                      "dev_set_drvdata": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "EMG wrapper": [
+            {
+              "cafe_pci_remove": [
+                {
+                  "pci_get_drvdata": [
+                    {
+                      "dev_get_drvdata": []
+                    }
+                  ]
+                },
+                {
+                  "cafe_shutdown": [
+                    {
+                      "cafe_smbus_shutdown": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": false,
+  "status": null,
+  "tags": [],
+  "threshold": 100,
+  "verdict": "2"
+}
