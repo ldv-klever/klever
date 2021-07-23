@@ -1,0 +1,55 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Environment model 'cat/first_child'",
+      "value": "first_savepoint with second_branch"
+    },
+    {
+      "is_compare": true,
+      "name": "Environment model 'cat/second_child'",
+      "value": "Removed"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/decomposition_selective_linear/basic.ko"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "test:EMG"
+    }
+  ],
+  "description": "",
+  "error_trace": [
+    [
+      [
+        {
+          "Entry point 'main'": [
+            {
+              "LDV model 'initialize'": []
+            }
+          ]
+        }
+      ]
+    ],
+    [
+      [
+        {
+          "first_callback": [
+            {
+              "LDV model 'invoke_reached'": []
+            }
+          ]
+        }
+      ]
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": true,
+  "status": null,
+  "tags": [],
+  "threshold": 0,
+  "verdict": "0"
+}
