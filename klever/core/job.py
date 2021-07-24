@@ -457,8 +457,8 @@ class REP(klever.core.components.Component):
             id_suffix = os.path.join(program_fragment_id, req_spec_id)\
                 if program_fragment_id and req_spec_id else ''
         else:
-            id_suffix = os.path.join(program_fragment_id, envmodel_id, req_spec_id) \
-                if program_fragment_id and envmodel_id and req_spec_id else ''
+            id_suffix = os.path.join(program_fragment_id, req_spec_id, envmodel_id) \
+                if program_fragment_id and req_spec_id and envmodel_id else ''
 
         return id_suffix, {
             'verdict': verification_status['verdict'],

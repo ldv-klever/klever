@@ -799,6 +799,13 @@ class EMGW(VTGW):
 class PLUGINS(VTGW):
 
     def _submit_attrs(self):
+        self.attrs.append(
+            {
+                "name": "Requirements specification",
+                "value": self.task.rule,
+                "compare": True
+            }
+        )
         if self.task.envattrs:
             environment_attributes = dict(self.task.envattrs)
             for entry, value in environment_attributes.items():
@@ -810,13 +817,6 @@ class PLUGINS(VTGW):
                             "compare": True
                         }
                     )
-        self.attrs.append(
-            {
-                "name": "Requirements specification",
-                "value": self.task.rule,
-                "compare": True
-            }
-        )
         super(PLUGINS, self)._submit_attrs()
 
     def _get_prepared_data(self):

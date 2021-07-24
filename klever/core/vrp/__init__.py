@@ -221,10 +221,11 @@ class RP(klever.core.components.Component):
         # Read this in a callback
         self.element = element
         self.verdict = None
-        self.envmodel = None
-        self.envattrs = None
         self.req_spec_id = None
         self.program_fragment_id = None
+        self.envmodel = None
+        self.report_attrs = None
+        self.files_list_file = 'files list.txt'
         self.task_error = None
         self.source_paths = source_paths
         self.results_key = None
@@ -252,50 +253,53 @@ class RP(klever.core.components.Component):
         element = self.element
         status, data = element
         task_id, task_desc, opts, program_fragment_desc, verifier, additional_srcs, verification_task_files = data
-        program_fragment_id, _, envmodel, req_spec_id, _, envattrs = task_desc
-        self.program_fragment_id = program_fragment_id
-        self.envmodel = envmodel
-        self.envattrs = dict(envattrs)
-        self.req_spec_id = req_spec_id
-        self.results_key = f'{program_fragment_id}:{envmodel}:{req_spec_id}'
+        self.program_fragment_id, _, self.envmodel, self.req_spec_id, _, envattrs = task_desc
+        self.results_key = f'{self.program_fragment_id}:{self.envmodel}:{self.req_spec_id}'
         self.additional_srcs = additional_srcs
         self.verification_task_files = verification_task_files
         self.logger.debug("Process results of task {}".format(task_id))
 
-        files_list_file = 'files list.txt'
-        klever.core.utils.save_program_fragment_description(program_fragment_desc, files_list_file)
-        if self.envattrs:
-            attrs = [{
-                "name":  f"Environment model '{attr}'",
-                "value": value,
-                "compare": True,
-                "associate": True
-            } for attr, value in dict(self.envattrs).items() if value]
-        else:
-            attrs = []
-        attrs.extend([
-             {
-                 "name": "Program fragment",
-                 "value": self.program_fragment_id,
-                 "data": files_list_file,
-                 "compare": True
-             },
-             {
-                 "name": "Requirements specification",
-                 "value": req_spec_id,
-                 "compare": True
-             }
-         ])
+        klever.core.utils.save_program_fragment_description(program_fragment_desc, self.files_list_file)
+
+        # These attributes should not have "associate": True. Otherwise, new unknown marks for RP will be associated by
+        # them automatically.
+        self.report_attrs = [
+            {
+                "name": "Program fragment",
+                "value": self.program_fragment_id,
+                "data": self.files_list_file,
+                "compare": True
+            },
+            {
+                "name": "Requirements specification",
+                "value": self.req_spec_id,
+                "compare": True
+            }
+        ]
+        if envattrs:
+            for attr, value in dict(envattrs).items():
+                if value:
+                    self.report_attrs.append({
+                        "name": f"Environment model '{attr}'",
+                        "value": value,
+                        "compare": True
+                    })
+
         klever.core.utils.report(self.logger,
                                  'patch',
                                  {
                                      'identifier': self.id,
-                                     'attrs': attrs
+                                     'attrs': self.report_attrs
                                  },
                                  self.mqs['report files'],
                                  self.vals['report id'],
                                  self.conf['main working directory'],
-                                 data_files=[files_list_file])
+                                 data_files=[self.files_list_file])
+
+        # In contrast when these attributes will be reported for Safes and Unsafes, new marks should be associated by
+        # them automatically.
+        for attr in self.report_attrs:
+            attr["associate"] = True
 
         # Update solution status
         data = list(self.vals['task solution triples'][self.results_key])
@@ -337,20 +341,7 @@ class RP(klever.core.components.Component):
         return error_trace_file, attrs
 
     def report_unsafe(self, error_trace_file, attrs, identifier=''):
-        attrs.extend([
-            {
-                "name": "Program fragment",
-                "value": self.program_fragment_id,
-                "associate": True,
-                "compare": True
-            },
-            {
-                "name": "Requirements specification",
-                "value": self.req_spec_id,
-                "associate": True,
-                "compare": True
-            }
-        ])
+        attrs.extend(self.report_attrs)
         klever.core.utils.report(self.logger,
                                  'unsafe',
                                  {
@@ -365,7 +356,8 @@ class RP(klever.core.components.Component):
                                  },
                                  self.mqs['report files'],
                                  self.vals['report id'],
-                                 self.conf['main working directory'])
+                                 self.conf['main working directory'],
+                                 data_files=[self.files_list_file])
 
     def process_single_verdict(self, decision_results, opts, log_file):
         """The function has a callback that collects verdicts to compare them with the ideal ones."""
@@ -401,26 +393,14 @@ class RP(klever.core.components.Component):
                                          # There may be the only Safe, so, "/" uniquely distinguishes it.
                                          'identifier': self.verification_report_id + '/',
                                          'parent': self.verification_report_id,
-                                         'attrs': [
-                                             {
-                                                 "name": "Program fragment",
-                                                 "value": self.program_fragment_id,
-                                                 "associate": True,
-                                                 "compare": True
-                                             },
-                                             {
-                                                 "name": "Requirements specification",
-                                                 "value": self.req_spec_id,
-                                                 "associate": True,
-                                                 "compare": True
-                                             }
-                                         ]
+                                         'attrs': self.report_attrs
                                          # TODO: at the moment it is unclear what are verifier proofs.
                                          # 'proof': None
                                      },
                                      self.mqs['report files'],
                                      self.vals['report id'],
-                                     self.conf['main working directory'])
+                                     self.conf['main working directory'],
+                                     data_files=[self.files_list_file])
             self.verdict = 'safe'
         else:
             witnesses = sorted(glob.glob(os.path.join('output', 'witness.*.graphml')))
