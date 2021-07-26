@@ -1,0 +1,28 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Environment model 'base/advanced'",
+      "value": "second_savepoint"
+    },
+    {
+      "is_compare": true,
+      "name": "Environment model 'base/base'",
+      "value": "Removed"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/decomposition_default/a_invoke.ko"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "test:EMG"
+    }
+  ],
+  "description": "",
+  "is_modifiable": true,
+  "tags": [],
+  "verdict": "0"
+}
