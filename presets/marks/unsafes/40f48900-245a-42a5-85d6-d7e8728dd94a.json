@@ -45,6 +45,6 @@
   "is_modifiable": true,
   "status": null,
   "tags": [],
-  "threshold": 0,
-  "verdict": "0"
+  "threshold": 100,
+  "verdict": "2"
 }
