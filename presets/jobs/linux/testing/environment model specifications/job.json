@@ -416,18 +416,6 @@
       "build base": "linux/testing/environment model specifications/81b6e0",
       "specifications set": "5.5",
       "targets": [
-        "ext-modules/timer_v.3",
-        "ext-modules/workqueue_v.1",
-        "ext-modules/urb_v.1",
-        "ext-modules/tasklet_v.2",
-        "ext-modules/kthread_v.1"
-      ],
-      "requirement specifications": ["test:EMG with function pointer analysis"]
-    },
-    {
-      "build base": "linux/testing/environment model specifications/81b6e0",
-      "specifications set": "5.5",
-      "targets": [
         "ext-modules/separate_functions"
       ],
       "generators options": [
