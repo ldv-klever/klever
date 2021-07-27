@@ -24,9 +24,15 @@ from klever.core.vtg.emg.decomposition.modelfactory.selective import SelectiveFa
 from klever.core.vtg.emg.decomposition.modelfactory.combinatorial import CombinatorialFactory
 
 
-#TODO: Add Python Doc
-#TODO: Add Annotations
 def decompose_intermediate_model(logger: Logger, conf: dict, model: ProcessCollection):
+    """
+    Decompose the given environment model.
+
+    :param logger: Logger obj.
+    :param conf: Dictionary with EMG configuration.
+    :param model: ProcessCollection obj.
+    :return: An iterator over models.
+    """
     if not conf.get('single environment model per fragment', True):
         logger.info(f'Decompose environment model {model.name}')
         algorythm = Decomposition(logger, conf,
