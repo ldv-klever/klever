@@ -364,6 +364,16 @@ class ModelFactory:
 
             if new.attributed_name != original_name:
                 self.logger.info('Reduced batch {!r} to {!r}'.format(original_name, new.attributed_name))
+
+            # Add missing attributes to the model
+            for process_name in model.environment:
+                added_attributes = []
+                if process_name not in new.attributes:
+                    added_attributes.append(process_name)
+                    extend_model_name(new, process_name, 'base')
+                added_attributes = ', '.join(added_attributes)
+                self.logger.debug(f'Add to model {new.attributed_name} the following attributes: {added_attributes}')
+
             yield new
 
     def _cached_yield(self, model_iterator):
