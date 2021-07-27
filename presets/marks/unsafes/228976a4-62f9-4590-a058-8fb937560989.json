@@ -2,18 +2,8 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Environment model 'cat/first_child'",
-      "value": "Removed"
-    },
-    {
-      "is_compare": true,
-      "name": "Environment model 'cat/second_child'",
-      "value": "fourth_savepoint"
-    },
-    {
-      "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/decomposition_selective_default/basic.ko"
+      "value": "ext-modules/decomposition_disabled/c_invoke.ko"
     },
     {
       "is_compare": true,
@@ -37,7 +27,7 @@
     [
       [
         {
-          "second_callback": [
+          "c": [
             {
               "LDV model 'invoke_reached'": []
             }

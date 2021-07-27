@@ -3,12 +3,22 @@
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/manual_model/unsafe.ko"
+      "value": "ext-modules/decomposition_selective_default/basic.ko"
     },
     {
       "is_compare": true,
       "name": "Requirements specification",
       "value": "test:EMG"
+    },
+    {
+      "is_compare": true,
+      "name": "Environment model 'cat/first_child'",
+      "value": "Removed"
+    },
+    {
+      "is_compare": true,
+      "name": "Environment model 'cat/second_child'",
+      "value": "fourth_savepoint"
     }
   ],
   "description": "",
@@ -27,16 +37,7 @@
     [
       [
         {
-          "registration": [
-            {
-              "LDV model 'register'": []
-            }
-          ]
-        }
-      ],
-      [
-        {
-          "callback": [
+          "second_callback": [
             {
               "LDV model 'invoke_reached'": []
             }

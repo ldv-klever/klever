@@ -3,12 +3,22 @@
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/decomposition_disabled/b_invoke.ko"
+      "value": "ext-modules/decomposition_linear/c_invoke.ko"
     },
     {
       "is_compare": true,
       "name": "Requirements specification",
       "value": "test:EMG"
+    },
+    {
+      "is_compare": true,
+      "name": "Environment model 'base/advanced'",
+      "value": "base"
+    },
+    {
+      "is_compare": true,
+      "name": "Environment model 'base/base'",
+      "value": "base"
     }
   ],
   "description": "",
@@ -27,7 +37,7 @@
     [
       [
         {
-          "b": [
+          "c": [
             {
               "LDV model 'invoke_reached'": []
             }

@@ -2,23 +2,23 @@
   "attrs": [
     {
       "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/decomposition_selective_default/child_savepoints.ko"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "test:EMG"
+    },
+    {
+      "is_compare": true,
       "name": "Environment model 'cat/first_child'",
       "value": "Removed"
     },
     {
       "is_compare": true,
       "name": "Environment model 'cat/second_child'",
-      "value": "Removed"
-    },
-    {
-      "is_compare": true,
-      "name": "Program fragment",
-      "value": "ext-modules/decomposition_selective_default/basic.ko"
-    },
-    {
-      "is_compare": true,
-      "name": "Requirements specification",
-      "value": "test:EMG"
+      "value": "fourth_savepoint"
     }
   ],
   "description": "",
@@ -37,7 +37,7 @@
     [
       [
         {
-          "main_callback": [
+          "second_callback": [
             {
               "LDV model 'invoke_reached'": []
             }

@@ -2,18 +2,8 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Environment model 'cat/first_child'",
-      "value": "first_savepoint with second_branch"
-    },
-    {
-      "is_compare": true,
-      "name": "Environment model 'cat/second_child'",
-      "value": "Removed"
-    },
-    {
-      "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/decomposition_selective_linear/child_savepoints.ko"
+      "value": "ext-modules/manual_model/unsafe.ko"
     },
     {
       "is_compare": true,
@@ -37,7 +27,16 @@
     [
       [
         {
-          "first_callback": [
+          "registration": [
+            {
+              "LDV model 'register'": []
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "callback": [
             {
               "LDV model 'invoke_reached'": []
             }

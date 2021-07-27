@@ -2,23 +2,23 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Environment model 'base/advanced'",
-      "value": "base"
-    },
-    {
-      "is_compare": true,
-      "name": "Environment model 'base/base'",
-      "value": "call_b"
-    },
-    {
-      "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/decomposition_linear/a_b_invoke.ko"
+      "value": "ext-modules/decomposition_selective_linear/basic.ko"
     },
     {
       "is_compare": true,
       "name": "Requirements specification",
       "value": "test:EMG"
+    },
+    {
+      "is_compare": true,
+      "name": "Environment model 'cat/first_child'",
+      "value": "first_savepoint with second_branch"
+    },
+    {
+      "is_compare": true,
+      "name": "Environment model 'cat/second_child'",
+      "value": "Removed"
     }
   ],
   "description": "",
@@ -37,7 +37,7 @@
     [
       [
         {
-          "b": [
+          "first_callback": [
             {
               "LDV model 'invoke_reached'": []
             }

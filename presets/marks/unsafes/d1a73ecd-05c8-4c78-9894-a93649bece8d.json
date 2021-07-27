@@ -2,18 +2,8 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Environment model 'base/advanced'",
-      "value": "base"
-    },
-    {
-      "is_compare": true,
-      "name": "Environment model 'base/base'",
-      "value": "call_b"
-    },
-    {
-      "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/decomposition_linear/c_invoke.ko"
+      "value": "ext-modules/separate_functions/single_unsafe.ko"
     },
     {
       "is_compare": true,
@@ -37,9 +27,17 @@
     [
       [
         {
-          "c": [
+          "Call exported functions.": [
             {
-              "LDV model 'invoke_reached'": []
+              "EMG wrapper": [
+                {
+                  "LDV model 'entry_point'": [
+                    {
+                      "LDV model 'invoke_reached'": []
+                    }
+                  ]
+                }
+              ]
             }
           ]
         }

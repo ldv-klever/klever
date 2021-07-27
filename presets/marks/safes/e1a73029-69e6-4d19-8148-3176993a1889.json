@@ -2,11 +2,6 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Environment model 'base/base'",
-      "value": "first_savepoint"
-    },
-    {
-      "is_compare": true,
       "name": "Program fragment",
       "value": "ext-modules/decomposition_default/c_without_b_invoke.ko"
     },
@@ -14,6 +9,16 @@
       "is_compare": true,
       "name": "Requirements specification",
       "value": "test:EMG"
+    },
+    {
+      "is_compare": true,
+      "name": "Environment model 'base/advanced'",
+      "value": "base"
+    },
+    {
+      "is_compare": true,
+      "name": "Environment model 'base/base'",
+      "value": "first_savepoint"
     }
   ],
   "description": "",

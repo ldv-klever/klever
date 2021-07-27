@@ -2,16 +2,6 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Environment model 'base/advanced'",
-      "value": "Removed"
-    },
-    {
-      "is_compare": true,
-      "name": "Environment model 'base/base'",
-      "value": "call_a"
-    },
-    {
-      "is_compare": true,
       "name": "Program fragment",
       "value": "ext-modules/decomposition_linear/a_b_invoke.ko"
     },
@@ -19,6 +9,16 @@
       "is_compare": true,
       "name": "Requirements specification",
       "value": "test:EMG"
+    },
+    {
+      "is_compare": true,
+      "name": "Environment model 'base/advanced'",
+      "value": "Removed"
+    },
+    {
+      "is_compare": true,
+      "name": "Environment model 'base/base'",
+      "value": "call_a"
     }
   ],
   "description": "",

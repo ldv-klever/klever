@@ -2,18 +2,23 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Environment model 'base/base'",
-      "value": "first_savepoint"
-    },
-    {
-      "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/decomposition_default/b_invoke.ko"
+      "value": "ext-modules/decomposition_selective_linear/child_savepoints.ko"
     },
     {
       "is_compare": true,
       "name": "Requirements specification",
       "value": "test:EMG"
+    },
+    {
+      "is_compare": true,
+      "name": "Environment model 'cat/first_child'",
+      "value": "first_savepoint with first_branch"
+    },
+    {
+      "is_compare": true,
+      "name": "Environment model 'cat/second_child'",
+      "value": "Removed"
     }
   ],
   "description": "",
@@ -32,7 +37,7 @@
     [
       [
         {
-          "b": [
+          "first_callback": [
             {
               "LDV model 'invoke_reached'": []
             }

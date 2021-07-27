@@ -2,18 +2,8 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Environment model 'base/advanced'",
-      "value": "second_savepoint"
-    },
-    {
-      "is_compare": true,
-      "name": "Environment model 'base/base'",
-      "value": "Removed"
-    },
-    {
-      "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/decomposition_default/c_without_b_invoke.ko"
+      "value": "ext-modules/decomposition_disabled/b_invoke.ko"
     },
     {
       "is_compare": true,
@@ -37,7 +27,7 @@
     [
       [
         {
-          "c": [
+          "b": [
             {
               "LDV model 'invoke_reached'": []
             }
