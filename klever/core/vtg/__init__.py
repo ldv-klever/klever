@@ -758,7 +758,7 @@ class EMGW(VTGW):
         # Generate task descriptions for further tasks
         for task_desc in tasks:
             env_path = task_desc.get("environment model pathname")
-            env_attrs = tuple(task_desc.get("environment model attributes", dict()).items())
+            env_attrs = tuple(sorted(task_desc.get("environment model attributes", dict()).items(), key=lambda x: x[0]))
             create_task(task_desc, env_path, env_path, env_attrs)
 
         # Submit new tasks to the VTG
@@ -807,8 +807,7 @@ class PLUGINS(VTGW):
             }
         )
         if self.task.envattrs:
-            environment_attributes = dict(self.task.envattrs)
-            for entry, value in environment_attributes.items():
+            for entry, value in self.task.envattrs:
                 if value:
                     self.attrs.append(
                         {

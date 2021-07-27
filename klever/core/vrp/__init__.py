@@ -277,7 +277,7 @@ class RP(klever.core.components.Component):
             }
         ]
         if envattrs:
-            for attr, value in dict(envattrs).items():
+            for attr, value in envattrs:
                 if value:
                     self.report_attrs.append({
                         "name": f"Environment model '{attr}'",
