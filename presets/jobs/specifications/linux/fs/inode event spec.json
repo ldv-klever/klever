@@ -80,7 +80,8 @@
         "reference": true,
         "headers": [
           "linux/fs.h",
-          "linux/dcache.h"
+          "linux/dcache.h",
+          "ldv/linux/fs.h"
         ],
         "labels": {
           "parent_inode": {

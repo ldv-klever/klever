@@ -32,5 +32,5 @@ around: call(void clear_inode(struct inode *inode))
 
 around: call(struct inode *iget_locked(struct super_block *sb, unsigned long ino))
 {
-    return iget_locked(sb, ino);
+    return ldv_iget_locked(sb, ino);
 }

@@ -34,6 +34,7 @@
               "linux/drivers/spi.c",
               "linux/err.c",
               "linux/fs/dcache/dcache.c",
+              "linux/fs/inode.c",
               "linux/kernel/panic.c",
               "linux/lib/bitmap.c",
               "linux/lib/find_bit.common.c",
