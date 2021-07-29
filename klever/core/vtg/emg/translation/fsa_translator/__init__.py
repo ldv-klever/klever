@@ -61,7 +61,8 @@ class FSATranslator:
         conf.setdefault('do not skip signals', False)
 
         # Get from unused interfaces
-        for process in (a.process for a in self._model_fsa + self._event_fsa if len(a.process.headers) > 0):
+        for process in (a.process for a in self._model_fsa + self._event_fsa + [entry_fsa] 
+                        if len(a.process.headers) > 0):
             self._cmodel.add_headers(process.file, sorted(process.headers, key=len))
 
         # Generates base code blocks
