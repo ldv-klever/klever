@@ -50,7 +50,7 @@ extern void ldv_free(void *s);
 extern void *ldv_realloc(void *ptr, size_t size);
 
 extern void *ldv_xmalloc(size_t size);
-extern void *ldv_xcalloc(size_t size);
+extern void *ldv_xcalloc(size_t nmemb, size_t size);
 extern void *ldv_xzalloc(size_t size);
 
 extern void *ldv_malloc_unknown_size(void);
