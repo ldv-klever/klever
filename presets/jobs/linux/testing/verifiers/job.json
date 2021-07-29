@@ -110,7 +110,8 @@
       "targets": ["**"],
       "exclude targets": [
           "ext-modules/dynamic-memory/arrays/*",
-          "ext-modules/initializers/*"
+          "ext-modules/initializers/*",
+          "ext-modules/offsets/**"
       ],
       "requirement specifications": ["test:common"]
     },
@@ -119,7 +120,10 @@
       "requirement specifications": ["test:common with heap arrays"]
     },
     {
-      "targets": ["ext-modules/initializers/*"],
+      "targets": [
+        "ext-modules/initializers/*",
+        "ext-modules/offsets/**"
+      ],
       "requirement specifications": ["test:memory safety"]
     }
   ]

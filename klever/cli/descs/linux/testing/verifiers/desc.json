@@ -54,6 +54,7 @@
             "ext-modules/loops/ten-iterations",
             "ext-modules/loops/two-iterations",
             "ext-modules/loops/while",
+            "ext-modules/offsets/enum-fields",
             "ext-modules/pointers/address",
             "ext-modules/pointers/alias",
             "ext-modules/pointers/container-of",
