@@ -48,6 +48,14 @@ class Program:
         # Path to the Clade cmds.txt file with intercepted commands
         self.cmds_file = os.path.realpath(os.path.join(self.work_src_tree, 'cmds.txt'))
 
+        # Clade API object
+        clade_conf = dict(self._CLADE_CONF)
+        clade_conf.update(self.target_program_desc.get('extra Clade options', dict()))
+        self.clade = Clade(work_dir=self.target_program_desc['build base'],
+                           cmds_file=self.cmds_file,
+                           conf=clade_conf,
+                           preset=self._CLADE_PRESET)
+
     def _prepare_work_src_tree(self):
         o = urllib.parse.urlparse(self.work_src_tree)
         if o[0] in ('http', 'https', 'ftp'):
@@ -96,14 +104,7 @@ class Program:
         if os.path.isdir(self.target_program_desc['build base']):
             shutil.rmtree(self.target_program_desc['build base'])
 
-        clade_conf = dict(self._CLADE_CONF)
-        clade_conf.update(self.target_program_desc.get('extra Clade options', dict()))
-
-        clade = Clade(work_dir=self.target_program_desc['build base'],
-                      cmds_file=self.cmds_file,
-                      conf=clade_conf,
-                      preset=self._CLADE_PRESET)
-        clade.parse_list(clade.conf["extensions"])
+        self.clade.parse_list(self.clade.conf['extensions'])
 
         self.logger.info('Save project attributes, working source trees and target program description to build base')
         attrs = [
@@ -125,12 +126,12 @@ class Program:
                 'name': 'configuration',
                 'value': self.configuration
             })
-        clade.add_meta_by_key('project attrs', [{
+        self.clade.add_meta_by_key('project attrs', [{
             'name': 'project',
             'value': attrs
         }])
-        clade.add_meta_by_key('working source trees', self.work_src_trees)
-        clade.add_meta_by_key('target program description', self.target_program_desc)
+        self.clade.add_meta_by_key('working source trees', self.work_src_trees)
+        self.clade.add_meta_by_key('target program description', self.target_program_desc)
 
     @staticmethod
     def build_wrapper(build):

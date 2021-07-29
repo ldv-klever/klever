@@ -34,7 +34,7 @@ from jobs.models import Scheduler
 #   scheduler - see bridge.vars.SCHEDULER_TYPE for available values (task scheduler),
 #   max_tasks - positive number (max solving tasks per sub-job),
 #   weight - see vars.DECISION_WEIGHT for available values (weight of decision),
-#   parallelism: [Sub-jobs processing, Tasks generation, Results processing]
+#   parallelism: [Sub-jobs processing, Tasks generation, Weaving, Results processing]
 #   memory - memory size in GB,
 #   cpu_num - number of CPU cores; if number is None then any,
 #   disk_size - disk memory size in GB,
@@ -63,10 +63,10 @@ DEFAULT_FORMATTER = (
                                   "(%(process)d) %(levelname)5s> %(message)s")
 )
 PARALLELISM_PACKS = [
-    ('sequential', _('Sequentially'), ('1', '1', '1')),
-    ('slow', _('Slowly'), ('1', '1', '1')),
-    ('quick', _('Quickly'), ('1', '2', '1')),
-    ('very quick', _('Very quickly'), ('1', '1.0', '2'))
+    ('sequential', _('Sequentially'), ('1', '1', '1', '1')),
+    ('slow', _('Slowly'), ('1', '1', '1', '1')),
+    ('quick', _('Quickly'), ('1', '2', '2', '1')),
+    ('very quick', _('Very quickly'), ('1', '1.0', '2', '2'))
 ]
 KLEVER_CORE_DEF_MODES = [
     {
@@ -76,7 +76,7 @@ KLEVER_CORE_DEF_MODES = [
             'scheduler': SCHEDULER_TYPE[0][0],
             'max_tasks': 100,
             'weight': DECISION_WEIGHT[1][0],
-            'parallelism': ['1', '1', '1'],
+            'parallelism': ['1', '3', '1', '1'],
             'memory': 3,
             'cpu_num': None,
             'disk_size': 100,
@@ -103,10 +103,10 @@ KLEVER_CORE_DEF_MODES = [
             'scheduler': SCHEDULER_TYPE[0][0],
             'max_tasks': 100,
             'weight': DECISION_WEIGHT[0][0],
-            'parallelism': ['1', '2', '1'],
+            'parallelism': ['1', '2', '0.5', '1'],
             'memory': 5,
             'cpu_num': None,
-            'disk_size': 100,
+            'disk_size': 20,
             'cpu_model': None,
             'cpu_time_exec_cmds': 7.5,
             'memory_exec_cmds': 1,
@@ -130,10 +130,10 @@ KLEVER_CORE_DEF_MODES = [
             'scheduler': SCHEDULER_TYPE[0][0],
             'max_tasks': 100,
             'weight': DECISION_WEIGHT[0][0],
-            'parallelism': ['1', '2', '1'],
+            'parallelism': ['1', '2', '0.5', '1'],
             'memory': 5,
             'cpu_num': None,
-            'disk_size': 100,
+            'disk_size': 20,
             'cpu_model': None,
             'cpu_time_exec_cmds': 7.5,
             'memory_exec_cmds': 1,
@@ -160,7 +160,8 @@ def get_configuration_value(name, value):
                 return {
                     'parallelism_0': p_val[0],
                     'parallelism_1': p_val[1],
-                    'parallelism_2': p_val[2]
+                    'parallelism_2': p_val[2],
+                    'parallelism_3': p_val[3]
                 }
     elif name == 'def_console_formatter':
         for f_id, __, f_val in DEFAULT_FORMATTER:
@@ -179,7 +180,7 @@ class ConfigurationSerializer(serializers.Serializer):
     max_tasks = fields.IntegerField(min_value=1)
     weight = fields.ChoiceField(DECISION_WEIGHT)
 
-    parallelism = fields.ListField(child=fields.RegexField(r'^\d+(\.\d+)?$'), min_length=3, max_length=3)
+    parallelism = fields.ListField(child=fields.RegexField(r'^\d+(\.\d+)?$'), min_length=4, max_length=4)
 
     memory = fields.FloatField()
     cpu_num = fields.IntegerField(allow_null=True, min_value=1)
@@ -255,6 +256,7 @@ class GetConfiguration:
             'parallelism': [
                 str(filedata['parallelism']['Sub-jobs processing']),
                 str(filedata['parallelism']['Tasks generation']),
+                str(filedata['parallelism']['Weaving']),
                 str(filedata['parallelism']['Results processing']),
             ],
             'memory': filedata['resource limits']['memory size'] / 10 ** 9,
@@ -296,7 +298,8 @@ class GetConfiguration:
             'parallelism': {
                 'Sub-jobs processing': self.__str_to_int_or_float(self.configuration['parallelism'][0]),
                 'Tasks generation': self.__str_to_int_or_float(self.configuration['parallelism'][1]),
-                'Results processing': self.__str_to_int_or_float(self.configuration['parallelism'][2])
+                'Weaving': self.__str_to_int_or_float(self.configuration['parallelism'][2]),
+                'Results processing': self.__str_to_int_or_float(self.configuration['parallelism'][3])
             },
             'logging': {
                 'formatters': [

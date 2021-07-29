@@ -34,7 +34,7 @@ def load_default_base_image_name():
         return fp.read().strip()
 
 
-def parse_args(args, logger):
+def parse_args(args):
     parser = argparse.ArgumentParser()
     parser.add_argument('action', choices=['show', 'create', 'update', 'ssh', 'remove', 'share', 'hide', 'resize'],
                         help='Action to be executed.')
@@ -87,12 +87,18 @@ def parse_args(args, logger):
                              'This option has no effect for other actions.')
     parser.add_argument('--store-password', action='store_true',
                         help='Store OpenStack password on disk (default: False).')
+    parser.add_argument('--without-volume', action='store_true', default=False,
+                        help='Do not use OpenStack volumes to store data (default: False)')
+    parser.add_argument('--volume-size', default=200, type=int,
+                        help='Size of volume in GB (default: "%(default)s").')
+    parser.add_argument('--log-level', default='INFO', metavar='LEVEL',
+                        help='Set logging level to LEVEL (INFO or DEBUG).')
 
     # TODO: Check the correctness of the provided arguments
     args = parser.parse_args(args)
 
     if args.instances <= 0:
-        logger.error('The number of new Klever instances must be greater then 0')
+        print('The number of new Klever instances must be greater then 0')
         sys.exit(errno.EINVAL)
 
     if not args.ram:
@@ -104,9 +110,8 @@ def parse_args(args, logger):
 
 
 def main(sys_args=sys.argv[1:]):
-    logger = get_logger(__name__)
-
-    args = parse_args(sys_args, logger)
+    args = parse_args(sys_args)
+    logger = get_logger(__name__, args.log_level)
 
     check_deployment_configuration_file(logger, args.deployment_configuration_file)
 

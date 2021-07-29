@@ -44,14 +44,15 @@ class Linux(MakeProgram):
     }
 
     def __init__(self, logger, target_program_desc):
+        # Always specify CIF to be used by Clade since this variable is global and it can be accidentally reused.
+        architecture = target_program_desc['architecture']
+        self._CLADE_CONF['Info.cif'] = self._ARCH_OPTS[architecture].get('CROSS_COMPILE', '') + 'cif'
+
         super().__init__(logger, target_program_desc)
         self.kconfig_config = None
 
         if not self.version:
             self.version = self._make('kernelversion', get_output=True)[0]
-
-        # Always specify CIF to be used by Clade since this variable is global and it can be accidentally reused.
-        self._CLADE_CONF['Info.cif'] = self._ARCH_OPTS[self.architecture].get('CROSS_COMPILE', '') + 'cif'
 
     def _clean(self):
         self._make('mrproper')
@@ -149,7 +150,7 @@ class Linux(MakeProgram):
             with open(os.path.join(tmp_dir, 'Makefile'), 'w', encoding='utf-8') as fp:
                 fp.write('obj-y += extra-headers.o\n')
 
-            self._make('M=' + tmp_dir, intercept_build_cmds=True)
+            self._make('M=' + tmp_dir, 'extra-headers.o', intercept_build_cmds=True)
 
     def __prepare_ext_modules(self):
         ext_modules = self.target_program_desc.get('external modules')
@@ -250,10 +251,8 @@ class Linux(MakeProgram):
         for modules in self.target_program_desc['loadable kernel modules']:
             # Modules ending with .ko imply individual modules.
             if re.search(r'\.ko$', modules):
-                if ext_modules:
-                    build_targets.append([os.path.join(ext_modules, modules)])
-                else:
-                    build_targets.append([modules])
+                build_target = os.path.join(ext_modules, modules) if ext_modules else modules
+                build_targets.append(['M={0}'.format(os.path.dirname(build_target)), os.path.basename(modules)])
             # Otherwise it is directory that can contain modules.
             else:
                 if ext_modules:

@@ -15,7 +15,6 @@
 
 import os
 
-from clade import Clade
 from klever.cli.utils import execute_cmd
 from klever.cli.build.program import Program
 
@@ -40,10 +39,9 @@ class MakeProgram(Program):
         cmd = ['make', '-j', str(os.cpu_count())] + opts + list(target)
 
         if intercept_build_cmds:
-            clade = Clade(cmds_file=self.cmds_file)
-
+            self.logger.info('Execute command "{0}" intercepting build commands'.format(' '.join(cmd)))
             # TODO: Add support of passing custom environment and capturing stdout with stderr
-            r = clade.intercept(cmd, append=True, cwd=self.work_src_tree)
+            r = self.clade.intercept(cmd, append=True, cwd=self.work_src_tree)
 
             if r:
                 raise RuntimeError('Build failed')

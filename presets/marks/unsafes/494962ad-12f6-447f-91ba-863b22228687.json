@@ -33,11 +33,7 @@
                 {
                   "Instrumented function 'usb_put_dev'": [
                     {
-                      "LDV model 'usb_put_dev'": [
-                        {
-                          "LDV model 'assert'": []
-                        }
-                      ]
+                      "LDV model 'usb_put_dev'": []
                     }
                   ]
                 }

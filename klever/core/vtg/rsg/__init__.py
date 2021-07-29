@@ -90,11 +90,21 @@ class RSG(klever.core.vtg.plugins.Plugin):
             common_models = self.conf['common models']
 
         if common_models and 'models' in self.conf:
-            for common_model_c_file in common_models:
+            for common_model in common_models:
+                common_model_c_file = get_model_c_file(common_model)
                 for model in self.conf['models']:
                     if common_model_c_file == get_model_c_file(model):
                         raise KeyError('C file "{0}" is specified in both common and requirement specific models'
                                        .format(common_model_c_file))
+
+        def add_model(model, model_c_file_realpath):
+            if isinstance(model, dict):
+                models.append({
+                    'model': model_c_file_realpath,
+                    'options': model['options']
+                })
+            else:
+                models.append(model_c_file_realpath)
 
         if 'models' in self.conf:
             # Find out actual C files.
@@ -128,21 +138,15 @@ class RSG(klever.core.vtg.plugins.Plugin):
                     model_c_file_realpath = klever.core.vtg.utils.find_file_or_dir(
                         self.logger, self.conf['main working directory'], model_c_file)
                     self.logger.debug('Get model with C file "{0}"'.format(model_c_file_realpath))
+                    add_model(model, model_c_file_realpath)
 
-                    if isinstance(model, dict):
-                        models.append({
-                            'model': model_c_file_realpath,
-                            'options': model['options']
-                        })
-                    else:
-                        models.append(model_c_file_realpath)
-
-        # Like for models above except for common models are always C files without any model settings.
-        for common_model_c_file in common_models:
+        # Like for models above.
+        for common_model in common_models:
+            common_model_c_file = get_model_c_file(common_model)
             common_model_c_file_realpath = klever.core.vtg.utils.find_file_or_dir(
                 self.logger, self.conf['main working directory'], common_model_c_file)
             self.logger.debug('Get common model with C file "{0}"'.format(common_model_c_file_realpath))
-            models.append(common_model_c_file_realpath)
+            add_model(common_model, common_model_c_file_realpath)
 
         self.logger.debug('Resulting models are: {0}'.format(models))
 
@@ -169,6 +173,15 @@ class RSG(klever.core.vtg.plugins.Plugin):
         # Sort aspects to apply them in the deterministic order.
         aspects.sort()
 
+        # Always specify either specific model sets model or common one.
+        opts = ['-DLDV_SETS_MODEL_' + (model['options']['sets model']
+                                       if isinstance(model, dict) and 'sets model' in model['options']
+                                       else self.conf['common sets model']).upper()]
+        if self.conf.get('memory safety'):
+            opts += ['-DLDV_MEMORY_SAFETY']
+        if 'specifications set' in self.conf:
+            opts += ['-DLDV_SPECS_SET_{0}'.format(self.conf['specifications set'].replace('.', '_'))]
+
         for grp in self.abstract_task_desc['grps']:
             self.logger.info('Add aspects to C files of group "{0}"'.format(grp['id']))
             for extra_cc in grp['Extra CCs']:
@@ -178,6 +191,7 @@ class RSG(klever.core.vtg.plugins.Plugin):
                     'plugin': self.name,
                     'aspects': [os.path.relpath(aspect, self.conf['main working directory']) for aspect in aspects]
                 })
+                extra_cc['opts'] = opts
 
         # Generate CC full description file per each model and add it to abstract task description.
         # First of all obtain CC options to be used to compile models.
@@ -221,13 +235,6 @@ class RSG(klever.core.vtg.plugins.Plugin):
             base_name = klever.core.utils.unique_file_name(file, '{0}.json'.format(ext))
             full_desc_file = '{0}{1}.json'.format(base_name, ext)
             out_file = '{0}.c'.format(base_name)
-
-            # Always specify either specific model sets model or common one.
-            opts = ['-DLDV_SETS_MODEL_' + (model['options']['sets model']
-                                           if isinstance(model, dict) and 'sets model' in model['options']
-                                           else self.conf['common sets model']).upper()]
-            if 'specifications set' in self.conf:
-                opts += ['-DLDV_SPECS_SET_{0}'.format(self.conf['specifications set'].replace('.', '_'))]
 
             self.logger.debug('Dump CC full description to file "{0}"'.format(full_desc_file))
             with open(full_desc_file, 'w', encoding='utf-8') as fp:

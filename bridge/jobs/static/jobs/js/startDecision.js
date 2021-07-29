@@ -92,6 +92,7 @@ StartDecision.prototype.update = function(resp) {
     $('#parallelism_0').val(resp['parallelism'][0]);
     $('#parallelism_1').val(resp['parallelism'][1]);
     $('#parallelism_2').val(resp['parallelism'][2]);
+    $('#parallelism_3').val(resp['parallelism'][3]);
     $('#memory').val(resp['memory']);
     $('#cpu_num').val(resp['cpu_num'] || '');
     $('#disk_size').val(resp['disk_size']);
@@ -115,7 +116,7 @@ StartDecision.prototype.serialize = function() {
             weight: $('input[name="weight"]:checked').val(),
             coverage_details: $('input[name="coverage_details"]:checked').val(),
             max_tasks: $('#max_tasks').val(),
-            parallelism: [$('#parallelism_0').val(), $('#parallelism_1').val(), $('#parallelism_2').val()],
+            parallelism: [$('#parallelism_0').val(), $('#parallelism_1').val(), $('#parallelism_2').val(), $('#parallelism_3').val()],
             memory: $('#memory').val().replace(/,/, '.'),
             cpu_num: $('#cpu_num').val() || null,
             disk_size: $('#disk_size').val().replace(/,/, '.'),

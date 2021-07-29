@@ -41,11 +41,7 @@
                 {
                   "Instrumented function 'clk_disable_unprepare'": [
                     {
-                      "LDV model 'clk_disable_clk_of_s3c_hsotg'": [
-                        {
-                          "LDV model 'assert'": []
-                        }
-                      ]
+                      "LDV model 'clk_disable_clk_of_s3c_hsotg'": []
                     }
                   ]
                 }

@@ -43,7 +43,7 @@ def yield_categories(logger, conf, collection, sa):
     __complement_interfaces(logger, collection)
 
     logger.info("Determine unrelevant to the checked code interfaces and remove them")
-    __refine_categories(logger, collection, sa)
+    __refine_categories(logger, conf, collection, sa)
 
 
 def __populate_resources(collection):
@@ -223,7 +223,7 @@ def __complement_interfaces(logger, collection):
     return
 
 
-def __refine_categories(logger, collection, sa):
+def __refine_categories(logger, conf, collection, sa):
     def __check_category_relevance(func):
         relevant = []
 
@@ -297,6 +297,21 @@ def __refine_categories(logger, collection, sa):
 
     interfaces_to_delete = [str(i) for i in [collection.get_intf(name) for name in collection.interfaces]
                             if i not in relevant_interfaces]
+    if "allowed categories" in conf:
+        allowed_categories = set(conf.get("allowed categories"))
+        logger.debug("Got a whitelist of allowed categories: {}".format(', '.join(allowed_categories)))
+        assert isinstance(allowed_categories, set), "Expect a list of allowed categories"
+        for intf in [str(i) for i in [collection.get_intf(name) for name in collection.interfaces]
+                     if i not in collection.function_interfaces and i.category not in allowed_categories and
+                     str(i) not in interfaces_to_delete]:
+            interfaces_to_delete.append(intf)
+
+        # Now check functions
+        for function_intf in collection.function_interfaces:
+            relevant_categories = {i.category for i in __check_category_relevance(function_intf)}
+            if not allowed_categories.intersection(relevant_categories):
+                interfaces_to_delete.append(str(function_intf))
+
     logger.debug("Delete unrelevant interface descriptions: {}".format(', '.join(interfaces_to_delete)))
     for interface_name in interfaces_to_delete:
         collection.del_intf(interface_name)

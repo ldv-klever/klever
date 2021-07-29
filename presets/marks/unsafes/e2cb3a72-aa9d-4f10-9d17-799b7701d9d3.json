@@ -26,11 +26,7 @@
                   "LDV model 'switch_to_process_context'": []
                 },
                 {
-                  "LDV model 'expected_error'": [
-                    {
-                      "LDV model 'assert'": []
-                    }
-                  ]
+                  "LDV model 'expected_error'": []
                 }
               ]
             }

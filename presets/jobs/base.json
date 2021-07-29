@@ -76,6 +76,16 @@
           "uuid": "dfd84ccc-f580-497f-9c50-77425ef6302f",
           "children": [
             {
+              "uuid": "75b545fc-f92e-4ff9-8fc8-4062ba37ec6e",
+              "name": "Bugs found by Klever",
+              "directory": "linux/validation/bugs found by Klever"
+            },
+            {
+              "uuid": "823a8bf0-1110-4f2c-acf1-7d1e46b7d68f",
+              "name": "Bugs found by Klever but fixed by the Linux kernel developers themselves",
+              "directory": "linux/validation/fixed bugs found by Klever"
+            },
+            {
               "uuid": "b8d817a8-1b6a-493e-b869-c03ff7a65f6d",
               "name": "Stable Branch Bugs for 2014 Year",
               "directory": "linux/validation/2014 stable branch bugs"

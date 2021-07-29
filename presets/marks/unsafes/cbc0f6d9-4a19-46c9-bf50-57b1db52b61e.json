@@ -36,9 +36,6 @@
                       "LDV model 'register_chrdev_region'": [
                         {
                           "LDV model 'undef_int_nonpositive'": []
-                        },
-                        {
-                          "LDV model 'assert'": []
                         }
                       ]
                     }

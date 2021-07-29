@@ -16,15 +16,29 @@
 #
 
 import os
+import shutil
+import json
 import sortedcontainers
 
-from klever.core.vtg.emg.common import id_generator, get_or_die
 from klever.core.vtg.utils import find_file_or_dir
 from klever.core.vtg.emg.translation.code import CModel
 from klever.core.vtg.emg.translation.automaton import Automaton
+from klever.core.vtg.emg.common import id_generator, get_or_die
+from klever.core.vtg.emg.common.process.serialization import CollectionEncoder
 from klever.core.vtg.emg.translation.fsa_translator.label_fsa_translator import LabelTranslator
 from klever.core.vtg.emg.translation.fsa_translator.state_fsa_translator import StateTranslator
 from klever.core.vtg.emg.translation.fsa_translator.simplest_fsa_translator import SimplestTranslator
+
+
+DEFAULT_INCLUDE_HEADERS = (
+    "ldv/linux/common.h",
+    "ldv/linux/err.h",
+    "ldv/verifier/common.h",
+    "ldv/verifier/gcc.h",
+    "ldv/verifier/nondet.h",
+    "ldv/verifier/memory.h",
+    "ldv/verifier/thread.h"
+)
 
 
 def translate_intermediate_model(logger, conf, avt, source, collection):
@@ -41,14 +55,33 @@ def translate_intermediate_model(logger, conf, avt, source, collection):
     :return: None.
     """
     # Prepare main configuration properties
-    logger.info("Check necessary configuration properties to be set")
+    logger.info(f"Translate '{collection.attributed_name}' with an identifier {collection.name}")
     conf['translation options'].setdefault('entry point', 'main')
     conf['translation options'].setdefault('enironment model file', 'environment_model.c')
     conf['translation options'].setdefault('nested automata', True)
     conf['translation options'].setdefault('direct control functions calls', True)
     conf['translation options'].setdefault('code additional aspects', list())
-    conf['translation options'].setdefault('additional headers', list())
+    conf['translation options'].setdefault('additional headers', DEFAULT_INCLUDE_HEADERS)
     conf['translation options'].setdefault('self parallel processes', False)
+
+    # Make a separate directory
+    model_path = str(collection.name)
+    assert model_path, 'Each environment model should have a unique name'
+    assert not os.path.isdir(model_path), f'Model name {model_path} is used twice'
+    if os.path.isdir(model_path):
+        logger.info(f'Clean workdir for translation "{model_path}"')
+        shutil.rmtree(model_path)
+    os.makedirs(model_path)
+    if collection.attributed_name != collection.name:
+        os.symlink(model_path, collection.attributed_name, target_is_directory=True)
+
+    # Save processes
+    model_file = os.path.join(model_path, 'input model.json')
+    with open(model_file, mode='w', encoding='utf-8') as fp:
+        json.dump(collection, fp, cls=CollectionEncoder, sort_keys=True, indent=2)
+
+    # Save images of processes
+    collection.save_digraphs(os.path.join(model_path, 'images'))
 
     if not collection.entry:
         raise RuntimeError("It is impossible to generate an environment model without main process")
@@ -66,7 +99,8 @@ def translate_intermediate_model(logger, conf, avt, source, collection):
 
     # Determine entry point file and function
     logger.info("Determine entry point file and function name")
-    entry_file = get_or_die(conf['translation options'], "environment model file")
+    entry_file = os.path.join(model_path,
+                              conf['translation options'].get('environment model file', 'environment_model.c'))
     entry_point_name = get_or_die(conf['translation options'], 'entry point')
     files = source.c_full_paths
     if entry_file not in files:
@@ -149,7 +183,7 @@ def translate_intermediate_model(logger, conf, avt, source, collection):
 
     # Prepare code on each automaton
     logger.info("Translate finite state machines into C code")
-    if conf['translation options'].get("simple control functions calls"):
+    if conf['translation options'].get("simple control functions calls", True):
         SimplestTranslator(logger, conf['translation options'], source, collection, cmodel, entry_fsa, model_fsa, main_fsa)
     elif get_or_die(conf['translation options'], "nested automata"):
         LabelTranslator(logger, conf['translation options'], source, collection, cmodel, entry_fsa, model_fsa, main_fsa)
@@ -157,7 +191,7 @@ def translate_intermediate_model(logger, conf, avt, source, collection):
         StateTranslator(logger, conf['translation options'], source, collection, cmodel, entry_fsa, model_fsa, main_fsa)
 
     logger.info("Print generated source code")
-    addictions = cmodel.print_source_code(additional_code)
+    addictions = cmodel.print_source_code(model_path, additional_code)
 
     # Set entry point function in abstract task
     logger.info("Add an entry point function name to the abstract verification task")

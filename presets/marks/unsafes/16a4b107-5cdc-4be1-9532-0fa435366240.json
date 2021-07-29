@@ -36,11 +36,7 @@
                 {
                   "Instrumented function 'module_put'": [
                     {
-                      "LDV model 'module_put'": [
-                        {
-                          "LDV model 'assert'": []
-                        }
-                      ]
+                      "LDV model 'module_put'": []
                     }
                   ]
                 }
