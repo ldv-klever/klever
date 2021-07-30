@@ -55,7 +55,8 @@
             "trace relevant": true
           }
         },
-        "process": "<call>"
+        "process": "<call>",
+        "reference": true
       },
       "d_splice_alias": {
         "comment": "Model of d_splice_alias from the VFS.",
@@ -71,7 +72,8 @@
             "trace relevant": true
           }
         },
-        "process": "<call>"
+        "process": "<call>",
+        "reference": true
       }
     },
     "environment processes": {
