@@ -25,6 +25,11 @@
         "declaration": "struct dentry *d_splice_alias(struct inode *, struct dentry *)",
         "header": "linux/dcache.h",
         "reference": true
+      },
+      "inode_init_once": {
+        "declaration": "void inode_init_once(struct inode *inode)",
+        "header": "linux/fs.h",
+        "reference": true
       }
     },
     "categories": {

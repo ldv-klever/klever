@@ -74,6 +74,69 @@
         },
         "process": "<call>",
         "reference": true
+      },
+      "iget_locked": {
+        "comment": "Find or create an inode by given identifier.",
+        "headers": ["linux/fs.h"],
+        "labels": {},
+        "declarations": {
+          "environment model": {
+            "ldv_iget_locked": "struct inode *ldv_iget_locked(struct super_block *sb, unsigned long ino);"
+          }
+        },
+        "actions": {
+          "call": {
+            "comment":"Call the model.",
+            "statements": [
+              "return ldv_iget_locked($ARG1, $ARG2);"
+            ],
+            "trace relevant": true
+          }
+        },
+        "process": "<call>",
+        "reference": true
+      },
+      "inode_init_once": {
+        "comment": "Init inode fields at cration.",
+        "headers": ["linux/fs.h"],
+        "labels": {},
+        "declarations": {
+          "environment model": {
+            "ldv_inode_init_once": "void ldv_inode_init_once(struct inode *inode);"
+          }
+        },
+        "actions": {
+          "call": {
+            "comment":"Call the model.",
+            "statements": [
+              "ldv_inode_init_once($ARG1);"
+            ],
+            "trace relevant": true
+          }
+        },
+        "process": "<call>",
+        "reference": true
+      },
+      "clear_inode": {
+        "comment": "Crear inode before deletion.",
+        "headers": ["linux/fs.h"],
+        "labels": {},
+        "declarations": {
+          "environment model": {
+            "ldv_clear_inode": "void ldv_clear_inode(struct inode *inode);"
+          }
+        },
+        "actions": {
+          "call": {
+            "comment":"Call the model.",
+            "statements": [
+              "ldv_clear_inode($ARG1);"
+            ],
+            "trace relevant": true
+          }
+        },
+        "process": "<call>",
+        "reference": true
       }
     },
     "environment processes": {

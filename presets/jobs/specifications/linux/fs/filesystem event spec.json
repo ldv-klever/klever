@@ -243,6 +243,29 @@
   },
   "3.14": {
     "functions models": {
+      "d_make_root, d_alloc_root": {
+        "comment": "Call fill_super implementation.",
+        "headers": [
+          "linux/dcache.h"
+        ],
+        "reference": true,
+        "declarations": {
+          "environment model": {
+            "ldv_d_make_root": "struct dentry *ldv_d_make_root(struct inode *root_inode);"
+          }
+        },
+        "labels": {},
+        "process": "<call>",
+        "actions": {
+          "call": {
+            "comment": "Alloc root dentry.",
+            "trace relevant": true,
+            "statements": [
+              "return ldv_d_make_root($ARG1);"
+            ]
+          }
+        }
+      },
       "mount_bdev, mount_mtd": {
         "comment": "Call fill_super implementation.",
         "headers": [
@@ -251,7 +274,7 @@
         "reference": true,
         "declarations": {
           "environment model": {
-            "ldv_super_block": "struct super_block *ldv_super_block;\n"
+            "ldv_super_block": "struct super_block *ldv_super_block;"
           }
         },
         "labels": {
@@ -407,6 +430,7 @@
         },
         "definitions": {
           "environment model": {
+            "dentry": "linux/fs/dcache/dcache.c",
             "inode": "linux/fs/inode.c"
           }
         },

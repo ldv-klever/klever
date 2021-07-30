@@ -76,6 +76,16 @@
         "declaration": "struct dentry *mount_mtd(*%filesystem.file_system_type%, int flags, const char *dev_name, void *data, int (*fill_super)(struct super_block *, void *, int))",
         "header": "linux/fs.h",
         "reference": true
+      },
+      "d_make_root": {
+        "declaration": "struct dentry *d_make_root(struct inode *root_inode)",
+        "header": "linux/fs.h",
+        "reference": true
+      },
+      "d_alloc_root": {
+        "declaration": "struct dentry * d_alloc_root(struct inode *root_inode)",
+        "header": "linux/fs.h",
+        "reference": true
       }
     },
     "categories": {
