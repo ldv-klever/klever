@@ -42,21 +42,13 @@
     [
       [
         {
-          "LDV model 'fill_super'": [
+          "LDV model 'iget_locked'": [
             {
-              "Instrumented function 'iget_locked'": [
+              "LDV model 'alloc_inode'": [
                 {
-                  "LDV model 'iget_locked'": [
+                  "LDV model 'super_alloc_inode'": [
                     {
-                      "LDV model 'alloc_inode'": [
-                        {
-                          "LDV model 'super_alloc_inode'": [
-                            {
-                              "LDV model 'invoke_reached'": []
-                            }
-                          ]
-                        }
-                      ]
+                      "LDV model 'invoke_reached'": []
                     }
                   ]
                 }
