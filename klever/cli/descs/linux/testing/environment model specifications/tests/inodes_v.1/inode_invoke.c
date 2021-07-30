@@ -92,8 +92,9 @@ static int __init ldv_init(void)
 
     ldv_register();
     ret = register_filesystem(&ldv_fs);
-    if (ret)
+    if (ret) {
         ldv_deregister();
+	}
 
 	return ret;
 }
