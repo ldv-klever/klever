@@ -19,7 +19,8 @@
         "ext-modules/file_operations_v.1/file_operations_invoke.ko",
         "ext-modules/filesystem_v.1/fs_invoke.ko",
         "ext-modules/filesystem_v.2/fs_invoke.ko",
-        "ext-modules/filesystem_v.2/inode_invoke.ko",
+        "ext-modules/inodes_v.1/inode_invoke.ko",
+        "ext-modules/inodes_v.1/alloc_inode_invoke.ko",
         "ext-modules/generic/default_array_invoke.ko",
         "ext-modules/generic/default_invoke.ko",
         "ext-modules/generic/double_invoke.ko",
@@ -361,7 +362,8 @@
         "ext-modules/workqueue_v.1",
         "ext-modules/urb_v.1",
         "ext-modules/tasklet_v.1",
-        "ext-modules/kthread_v.1"
+        "ext-modules/kthread_v.1",
+        "ext-modules/inodes_v.1"
       ],
       "requirement specifications": ["test:EMG with function pointer analysis"]
     },
@@ -373,7 +375,8 @@
         "ext-modules/workqueue_v.1",
         "ext-modules/urb_v.1",
         "ext-modules/tasklet_v.1",
-        "ext-modules/kthread_v.1"
+        "ext-modules/kthread_v.1",
+        "ext-modules/inodes_v.1"
       ],
       "requirement specifications": ["test:EMG with function pointer analysis"]
     },
@@ -385,7 +388,8 @@
         "ext-modules/workqueue_v.1",
         "ext-modules/urb_v.1",
         "ext-modules/tasklet_v.2",
-        "ext-modules/kthread_v.1"
+        "ext-modules/kthread_v.1",
+        "ext-modules/inodes_v.1"
       ],
       "requirement specifications": ["test:EMG with function pointer analysis"]
     },
@@ -397,7 +401,8 @@
         "ext-modules/workqueue_v.1",
         "ext-modules/urb_v.1",
         "ext-modules/tasklet_v.2",
-        "ext-modules/kthread_v.1"
+        "ext-modules/kthread_v.1",
+        "ext-modules/inodes_v.1"
       ],
       "requirement specifications": ["test:EMG with function pointer analysis"]
     },
@@ -409,7 +414,8 @@
         "ext-modules/workqueue_v.1",
         "ext-modules/urb_v.1",
         "ext-modules/tasklet_v.2",
-        "ext-modules/kthread_v.1"
+        "ext-modules/kthread_v.1",
+        "ext-modules/inodes_v.1"
       ],
       "requirement specifications": ["test:EMG with function pointer analysis"]
     },
