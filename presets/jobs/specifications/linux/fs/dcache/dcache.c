@@ -18,6 +18,7 @@
 #include <linux/fs.h>
 #include <linux/dcache.h>
 #include <ldv/linux/common.h>
+#include <ldv/linux/list.h>
 #include <ldv/verifier/common.h>
 #include <ldv/verifier/nondet.h>
 #include <ldv/verifier/memory.h>
@@ -40,9 +41,9 @@ struct dentry *ldv_d_alloc_pseudo(struct super_block *sb, const struct qstr *nam
         dentry->d_op = dentry->d_sb->s_d_op;
 
         /* Init lists */
-        INIT_LIST_HEAD(& dentry->d_subdirs);
-        INIT_LIST_HEAD(& dentry->d_u.d_alias);
-        INIT_LIST_HEAD(& dentry->d_child);
+        ldv_init_list_head(& dentry->d_subdirs);
+        INIT_HLIST_NODE(& dentry->d_u.d_alias);
+        ldv_init_list_head(& dentry->d_child);
 
         return dentry;
     }

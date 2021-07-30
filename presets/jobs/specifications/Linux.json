@@ -33,6 +33,7 @@
               "linux/drivers/video/fbdev/core/fbsysfs.c",
               "linux/drivers/spi.c",
               "linux/err.c",
+              "linux/list.c",
               "linux/fs/dcache/dcache.c",
               "linux/fs/inode.c",
               "linux/kernel/panic.c",
