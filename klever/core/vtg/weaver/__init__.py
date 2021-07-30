@@ -111,7 +111,7 @@ class Weaver(klever.core.vtg.plugins.Plugin):
                 os.makedirs(os.path.dirname(new_file), exist_ok=True)
                 shutil.copy(aux_file, new_file)
 
-                cross_refs = CrossRefs(self.conf, self.logger, self.clade, aux_file, new_file, self.search_dirs)
+                cross_refs = CrossRefs(self.conf, self.logger, clade, aux_file, new_file, search_dirs)
                 cross_refs.get_cross_refs()
 
         self.abstract_task_desc['additional sources'] = os.path.relpath('additional sources',
