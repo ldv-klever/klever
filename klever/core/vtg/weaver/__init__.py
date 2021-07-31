@@ -408,4 +408,3 @@ class WeaverWorker(klever.core.components.Component):
                     if not os.path.exists(dest):
                         os.makedirs(os.path.dirname(dest), exist_ok=True)
                         shutil.copy(file, dest)
-
