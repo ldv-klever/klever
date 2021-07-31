@@ -56,6 +56,9 @@ class Weaver(klever.core.vtg.plugins.Plugin):
         env = dict(os.environ)
         # Print stubs instead of inline Assembler since verifiers do not interpret it and even can fail.
         env['LDV_INLINE_ASM_STUB'] = ''
+        # Get rid of all type qualifiers that are useless for verification most likely, but breaks generation or/and
+        # solution of verification tasks from time to time.
+        env['LDV_C_BACKEND_OMIT_TYPE_QUALS'] = "1"
 
         # Put all extra CC descriptions into the queue prior to launching parallel workers.
         self.extra_ccs = []
