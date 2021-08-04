@@ -40,14 +40,13 @@ Let’s assume that you decompress this archive into directory
 **/home/debian/build-base-linux-3.14.79-x86_64-allmodconfig** so that there should be file *meta.json* directly at the
 top level in that directory.
 
-To prepare the target build base from scratch you can follow the next
-steps::
+To prepare the target build base from scratch you can follow the next steps::
 
    $ wget https://cdn.kernel.org/pub/linux/kernel/v3.x/linux-3.14.79.tar.xz
    $ tar -xvf linux-3.14.79.tar.xz
    $ cd linux-3.14.79/
    $ make allmodconfig
-   $ clade -w ~/build-base-linux-3.14.79-x86_64-allmodconfig -p klever_linux_kernel make -j8 modules
+   $ clade -w ~/build-base-linux-3.14.79-x86_64-allmodconfig -p klever_linux_kernel --cif $KLEVER_DEPLOY_DIR/klever-addons/CIF/bin/cif make -j8 modules
 
 Then you will need to wait for quite a long period of time depending on the performance of your machine.
 
