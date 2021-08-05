@@ -64,7 +64,7 @@ def get_instance_floating_ip(instance_name):
 def solve_job(preset_job_id, instance_ip):
     print(f'Solve {preset_job_id} job')
 
-    cli = Cli(f'{instance_ip}:8998', 'manager', 'manager')
+    cli = Cli(host=f'{instance_ip}:8998', username='manager', password='manager')
     decision_conf = os.path.join(os.path.dirname(__file__), 'decision.conf')
 
     job_id = cli.create_job(preset_job_id)[1]
