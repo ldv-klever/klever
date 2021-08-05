@@ -202,7 +202,7 @@ class OSKleverInstance:
         # Move the PostgreSQL data directory to volume
         ssh.execute_cmd(f'mkdir {VOLUME_PGSQL_DIR}')
         # copy the contents of data_dir
-        ssh.execute_cmd(f'sudo rsync -a {data_dir}/ {VOLUME_PGSQL_DIR}')
+        ssh.execute_cmd(f'sudo rsync --exclude "postmaster.pid" -a {data_dir}/ {VOLUME_PGSQL_DIR}')
 
         # Change PostgreSQL configuration
         ssh.execute_cmd(f'sudo sed -i "s#^\\(data_directory\\s*=\\s*\\).*\$#\\1\'{VOLUME_PGSQL_DIR}\'#" {conf_file}')
