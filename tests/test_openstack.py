@@ -21,6 +21,7 @@ import subprocess
 import time
 import random
 
+from klever.cli import Cli
 from klever.deploys.utils import get_logger
 from klever.deploys.openstack.client import OSClient
 
@@ -63,20 +64,16 @@ def get_instance_floating_ip(instance_name):
 
 def solve_job(preset_job_id, instance_ip):
     print(f'Solve {preset_job_id} job')
-    credentials = ('--host', f'{instance_ip}:8998', '--username', 'manager', '--password', 'manager')
 
+    cli = Cli(f'{instance_ip}:8998', 'manager', 'manager')
     decision_conf = os.path.join(os.path.dirname(__file__), 'decision.conf')
-    ret = subprocess.check_output(
-        ('klever-start-preset-solution', '--rundata', decision_conf, preset_job_id, *credentials)
-    ).decode('utf8').rstrip()
-    job_id = ret[ret.find(': ') + 2:]
+
+    job_id = cli.create_job(preset_job_id)[1]
+    decision_id = cli.start_job_decision(job_id, rundata=decision_conf)[1]
 
     while True:
         time.sleep(5)
-        subprocess.check_call(
-            ('klever-download-progress', '-o', '/tmp/progress.json', job_id, *credentials),
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
-        )
+        cli.decision_progress(decision_id, '/tmp/progress.json')
 
         with open('/tmp/progress.json') as fp:
             progress = json.load(fp)
