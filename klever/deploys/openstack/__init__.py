@@ -25,7 +25,7 @@ from klever.deploys.openstack.instances import OSKleverInstances
 from klever.deploys.openstack.instance import OSKleverInstance
 from klever.deploys.openstack.image import OSKleverBaseImage
 from klever.deploys.utils import check_deployment_configuration_file, get_logger
-from klever.deploys.openstack.constants import OS_USER
+from klever.deploys.openstack.conf import OS_USER
 
 
 def load_default_base_image_name():
@@ -40,14 +40,8 @@ def parse_args(args):
                         help='Action to be executed.')
     parser.add_argument('entity', choices=['image', 'instance'],
                         help='Entity for which action to be executed.')
-    parser.add_argument('--os-auth-url', default='https://sky.ispras.ru:13000',
-                        help='OpenStack identity service endpoint for authorization (default: "%(default)s").')
     parser.add_argument('--os-username', default=getpass.getuser(),
                         help='OpenStack username for authentication (default: "%(default)s").')
-    parser.add_argument('--os-tenant-name', default='computations',
-                        help='OpenStack tenant name (default: "%(default)s").')
-    parser.add_argument('--os-domain-name', default='ispras',
-                        help='OpenStack domain name (default: "%(default)s").')
     parser.add_argument('--os-network-type', default='internal',
                         help='OpenStack network type. Can be "internal" or "external" (default: "%(default)s").')
     parser.add_argument('--os-sec-group', default='ldv-sec',
