@@ -80,12 +80,6 @@ def solve_job(preset_job_id, instance_ip):
     assert progress['status'] == '3'
 
 
-def solve_all_jobs(instance_ip):
-    solve_job('c1529fbf-a7db-4507-829e-55f846044309', instance_ip)
-    solve_job('573d4ea2-574b-4f7b-b86c-79182d9e1502', instance_ip)
-    solve_job('019debae-9991-421c-bfd8-53e3c38b4b37', instance_ip)
-
-
 @pytest.mark.parametrize('mode', ['development', 'production'])
 def test_deploy(mode):
     instance_name = get_instance_name(mode=mode)
@@ -93,7 +87,7 @@ def test_deploy(mode):
 
     try:
         instance_ip = get_instance_floating_ip(instance_name)
-        solve_all_jobs(instance_ip)
+        solve_job('019debae-9991-421c-bfd8-53e3c38b4b37', instance_ip)
     finally:
         klever_deploy_openstack(instance_name, 'remove', 'instance')
 
@@ -128,7 +122,7 @@ def test_update(mode):
     klever_deploy_openstack(instance_name, 'update', 'instance')
 
     instance_ip = get_instance_floating_ip(instance_name)
-    solve_all_jobs(instance_ip)
+    solve_job('019debae-9991-421c-bfd8-53e3c38b4b37', instance_ip)
 
 
 def test_list():
