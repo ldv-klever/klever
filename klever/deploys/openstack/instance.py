@@ -99,7 +99,6 @@ class OSKleverInstance:
 
     def create(self):
         base_image = self.client.get_base_image(self.args.klever_base_image)
-        self.logger.debug(f'Klever base image: {base_image}')
 
         if self.client.instance_exists(self.name):
             self.logger.error(f'Klever instance matching "{self.name}" already exists')
