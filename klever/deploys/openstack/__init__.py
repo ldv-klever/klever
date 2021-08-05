@@ -56,7 +56,7 @@ def parse_args(args):
                         help='OpenStack keypair name (default: "%(default)s").')
     parser.add_argument('--ssh-username', default=OS_USER,
                         help='SSH username for authentication (default: "%(default)s").')
-    parser.add_argument('--ssh-rsa-private-key-file',
+    parser.add_argument('--ssh-rsa-private-key-file', default=os.path.expanduser('~/.ssh/ldv.key'),
                         help='Path to SSH RSA private key file.'
                              'The appropriate SSH RSA key pair should be stored to OpenStack by name "ldv".')
     parser.add_argument('--name', help='Entity name.')
