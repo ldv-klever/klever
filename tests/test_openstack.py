@@ -111,7 +111,7 @@ def test_resize():
     klever_deploy_openstack(instance_name, 'create', 'instance')
 
     try:
-        klever_deploy_openstack(instance_name, 'resize', 'instance', vcpus='2', ram='8')
+        klever_deploy_openstack(instance_name, 'resize', 'instance', vcpus='1', ram='4')
     finally:
         klever_deploy_openstack(instance_name, 'remove', 'instance')
 
