@@ -59,7 +59,10 @@ def download_progress():
     args = parser.parse_args()
 
     cli = Cli(args.host, args.username, args.password)
-    cli.decision_progress(args.decision, args.out)
+    progress = cli.decision_progress(args.decision)
+
+    with open(args.out, mode='w', encoding='utf-8') as fp:
+        json.dump(progress, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
     print('JSON file with solution progress of verification job decision "{0}" was successfully downloaded to "{1}"'
           .format(args.decision, args.out))
@@ -72,7 +75,10 @@ def download_results():
     args = parser.parse_args()
 
     cli = Cli(args.host, args.username, args.password)
-    cli.decision_results(args.decision, args.out)
+    results = cli.decision_results(args.decision)
+
+    with open(args.out, mode='w', encoding='utf-8') as fp:
+        json.dump(results, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
     print('JSON file with verification results of verificaiton job decision "{0}" was successfully downloaded to "{1}"'
           .format(args.decision, args.out))

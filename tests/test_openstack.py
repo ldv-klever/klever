@@ -14,7 +14,6 @@
 # limitations under the License.
 
 import getpass
-import json
 import os
 import pytest
 import subprocess
@@ -73,10 +72,7 @@ def solve_job(preset_job_id, instance_ip):
 
     while True:
         time.sleep(5)
-        cli.decision_progress(decision_id, '/tmp/progress.json')
-
-        with open('/tmp/progress.json') as fp:
-            progress = json.load(fp)
+        progress = cli.decision_progress(decision_id)
 
         if int(progress['status']) > 2:
             break

@@ -169,27 +169,25 @@ class Cli:
             'jobs/api/upload_jobs/', 'POST', files=[('file', open(archive, 'rb', buffering=0))], stream=True
         )
 
-    def decision_progress(self, identifier, filename):
+    def decision_progress(self, identifier):
         """
-        Save decision progress to json file.
+        Get decision progress in json format.
         :param identifier: decision identifier (uuid).
         :param filename: path where to save the file.
-        :return: None
+        :return: json encoded prgress
         """
         resp = self.__request('service/progress/{}/'.format(identifier))
-        with open(filename, mode='w', encoding='utf-8') as fp:
-            json.dump(resp.json(), fp, ensure_ascii=False, sort_keys=True, indent=4)
+        return resp.json()
 
-    def decision_results(self, identifier, filename):
+    def decision_results(self, identifier):
         """
-        Save job decision results to json file.
+        Get job decision results in json format.
         :param identifier: decision identifier (uuid).
         :param filename: path where to save the file.
-        :return: None
+        :return: json encoded results
         """
         resp = self.__request('jobs/api/decision-results/{0}/'.format(identifier))
-        with open(filename, mode='w', encoding='utf-8') as fp:
-            json.dump(resp.json(), fp, ensure_ascii=False, sort_keys=True, indent=4)
+        return resp.json()
 
     def create_job(self, preset_uuid):
         """
