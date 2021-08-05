@@ -96,8 +96,16 @@ class Weaver(klever.core.vtg.plugins.Plugin):
             return weaver_worker
 
         workers_num = klever.core.utils.get_parallel_threads_num(self.logger, self.conf, 'Weaving')
-        klever.core.components.launch_queue_workers(self.logger, extra_cc_indexes_queue, constructor, workers_num,
-                                                    False)
+        if klever.core.components.launch_queue_workers(self.logger, extra_cc_indexes_queue, constructor, workers_num,
+                                                       fail_tolerant=True):
+            # One of Weaver workers has failed. We can not set fail_tolerant to False above since if one of Weaver
+            # workers fail, killing other ones may result to invalid, infinitely locked cache entries. This can result
+            # in deadlocks for other verification tasks (other groups of Weaver workers) that will expect that somebody
+            # will fill these cache entries sooner or later. There were not such issues when Weaver operated
+            # sequentially.
+            # Raising SystemExit allows to avoid useless stack traces in Unknown reports of Weaver.
+            raise SystemExit
+
         self.abstract_task_desc['extra C files'] = list(vals['extra C files'])
         extra_cc_indexes_queue.close()
 
@@ -111,7 +119,7 @@ class Weaver(klever.core.vtg.plugins.Plugin):
                 os.makedirs(os.path.dirname(new_file), exist_ok=True)
                 shutil.copy(aux_file, new_file)
 
-                cross_refs = CrossRefs(self.conf, self.logger, self.clade, aux_file, new_file, self.search_dirs)
+                cross_refs = CrossRefs(self.conf, self.logger, clade, aux_file, new_file, search_dirs)
                 cross_refs.get_cross_refs()
 
         self.abstract_task_desc['additional sources'] = os.path.relpath('additional sources',
@@ -408,4 +416,3 @@ class WeaverWorker(klever.core.components.Component):
                     if not os.path.exists(dest):
                         os.makedirs(os.path.dirname(dest), exist_ok=True)
                         shutil.copy(file, dest)
-
