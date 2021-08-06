@@ -25,7 +25,7 @@ import time
 import zipfile
 
 from klever.deploys.utils import execute_cmd, get_password
-from klever.deploys.openstack.constants import OS_USER
+from klever.deploys.openstack.conf import OS_USER
 
 
 class SSH:

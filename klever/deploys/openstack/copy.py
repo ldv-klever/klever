@@ -20,7 +20,7 @@ import shutil
 import tempfile
 
 from klever.deploys.utils import Cd, execute_cmd
-from klever.deploys.openstack.constants import STORAGE
+from klever.deploys.openstack.conf import STORAGE
 
 
 class CopyDeployConfAndSrcs:

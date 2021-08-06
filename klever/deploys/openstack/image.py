@@ -22,7 +22,7 @@ from klever.deploys.openstack.client import OSClient
 from klever.deploys.openstack.client.instance import OSInstance
 from klever.deploys.openstack.ssh import SSH
 from klever.deploys.openstack.copy import CopyDeployConfAndSrcs
-from klever.deploys.openstack.constants import PYTHON
+from klever.deploys.openstack.conf import PYTHON
 
 
 class OSKleverBaseImage:
@@ -30,7 +30,7 @@ class OSKleverBaseImage:
         self.args = args
         self.logger = logger
         self.name = self.args.name
-        self.client = OSClient(args, logger)
+        self.client = OSClient(logger, args.os_username, args.store_password)
 
     def __getattr__(self, name):
         self.logger.error(f'Action "{name}" is not supported for "{self.args.entity}"')

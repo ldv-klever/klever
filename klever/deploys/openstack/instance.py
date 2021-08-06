@@ -21,7 +21,7 @@ from klever.deploys.openstack.client import OSClient
 from klever.deploys.openstack.client.instance import OSInstance
 from klever.deploys.openstack.ssh import SSH
 from klever.deploys.openstack.copy import CopyDeployConfAndSrcs
-from klever.deploys.openstack.constants import PYTHON, KLEVER_DEPLOY_LOCAL, DEPLOYMENT_DIR, OS_USER, \
+from klever.deploys.openstack.conf import PYTHON, KLEVER_DEPLOY_LOCAL, DEPLOYMENT_DIR, OS_USER, \
     VOLUME_DIR, PROD_MEDIA_DIR, DEV_MEDIA_DIR, VOLUME_PGSQL_DIR, VOLUME_MEDIA_DIR
 
 
@@ -30,7 +30,7 @@ class OSKleverInstance:
         self.args = args
         self.logger = logger
         self.name = self.args.name or f'{self.args.os_username}-klever-{self.args.mode}'
-        self.client = client or OSClient(args, logger)
+        self.client = client or OSClient(logger, args.os_username, args.store_password)
 
     def __getattr__(self, name):
         self.logger.error(f'Action "{name}" is not supported for "{self.args.entity}"')
@@ -99,7 +99,6 @@ class OSKleverInstance:
 
     def create(self):
         base_image = self.client.get_base_image(self.args.klever_base_image)
-        self.logger.debug(f'Klever base image: {base_image}')
 
         if self.client.instance_exists(self.name):
             self.logger.error(f'Klever instance matching "{self.name}" already exists')
