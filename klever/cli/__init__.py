@@ -19,6 +19,7 @@ import os
 import re
 # TODO: this is non-standard dependency while it is not required for all users. So, let's create a separate library!
 import requests
+from requests.adapters import HTTPAdapter
 import zipfile
 
 from klever.cli.utils import get_password
@@ -79,6 +80,7 @@ class Cli:
             'password': self.password
         })
         self.session.headers.update({'Authorization': 'Token {}'.format(resp.json()['token'])})
+        self.session.mount(self.host, HTTPAdapter(max_retries=25))
 
     def __get_host(self, host):
         if not isinstance(host, str) or len(host) == 0:
