@@ -190,12 +190,13 @@ def launch_queue_workers(logger, queue, constructor, number, fail_tolerant, moni
     :param fail_tolerant: True if no need to stop processing on fail.
     :param monitoring_list: List with already started Components that should be checked as other workers and if some of
                             them fails then we should also termionate the rest workers.
-    :return: None
+    :return: 0 if all workers finish successfully and 1 otherwise.
     """
     logger.info("Start children set with {!r} workers".format(number))
     active = True
     elements = []
     components = []
+    ret = 0
     try:
         while True:
             # Fetch all new elements
@@ -225,7 +226,9 @@ def launch_queue_workers(logger, queue, constructor, number, fail_tolerant, moni
                     p.join(1.0 / len(components))
                 except ComponentError:
                     # Ignore or terminate the rest
-                    if not fail_tolerant:
+                    if fail_tolerant:
+                        ret = 1
+                    else:
                         raise
                 # If all is OK
                 if not p.is_alive():
@@ -234,7 +237,9 @@ def launch_queue_workers(logger, queue, constructor, number, fail_tolerant, moni
                         p.join()
                     except ComponentError:
                         # Ignore or terminate the rest
-                        if not fail_tolerant:
+                        if fail_tolerant:
+                            ret = 1
+                        else:
                             raise
 
                     # Just remove it
@@ -257,6 +262,8 @@ def launch_queue_workers(logger, queue, constructor, number, fail_tolerant, moni
         for p in components:
             if p.is_alive():
                 p.terminate()
+
+    return ret
 
 
 def check_components(logger, components):
