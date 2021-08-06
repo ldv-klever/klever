@@ -21,6 +21,10 @@ KLEVER_DEPLOY_LOCAL = os.path.join(os.path.dirname(PYTHON), 'klever-deploy-local
 
 OS_USER = 'debian'
 OS_HOME = f'/home/{OS_USER}'
+OS_AUTH_URL = 'https://sky.ispras.ru:13000'  # OpenStack identity service endpoint for authorization
+OS_TENANT_NAME = 'computations'
+OS_DOMAIN_NAME = 'ispras'
+
 SRC_DIR = os.path.join(OS_HOME, 'klever')
 DEPLOYMENT_DIR = os.path.join(OS_HOME, 'klever-inst')
 STORAGE = os.path.join(OS_HOME, 'klever-storage')

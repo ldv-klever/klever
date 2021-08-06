@@ -13,11 +13,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import argparse
 import os
 import json
 
 from uuid import UUID
-from klever.cli.utils import get_args_parser, Session
+from klever.cli import Cli
+
+
+def get_args_parser(desc):
+    parser = argparse.ArgumentParser(description=desc)
+    parser.add_argument('--host', required=True, help='Server host')
+    parser.add_argument('--username', required=True, help='Your username')
+    parser.add_argument('--password', help='Your password')
+    return parser
 
 
 def download_job():
@@ -26,8 +35,8 @@ def download_job():
     parser.add_argument('-o', '--out', help='ZIP archive name.')
     args = parser.parse_args()
 
-    session = Session(args)
-    arch = session.download_job(args.job, args.out)
+    cli = Cli(args.host, args.username, args.password)
+    arch = cli.download_job(args.job, args.out)
 
     print('ZIP archive with verification job "{0}" was successfully downloaded to "{1}"'.format(args.job, arch))
 
@@ -37,8 +46,8 @@ def download_marks():
     parser.add_argument('-o', '--out', help='ZIP archive name.')
     args = parser.parse_args()
 
-    session = Session(args)
-    arch = session.download_all_marks(args.out)
+    cli = Cli(args.host, args.username, args.password)
+    arch = cli.download_all_marks(args.out)
 
     print('ZIP archive with all expert marks was successfully downloaded to "{0}"'.format(arch))
 
@@ -49,8 +58,11 @@ def download_progress():
     parser.add_argument('-o', '--out', help='JSON file name.', default='progress.json')
     args = parser.parse_args()
 
-    session = Session(args)
-    session.decision_progress(args.decision, args.out)
+    cli = Cli(args.host, args.username, args.password)
+    progress = cli.decision_progress(args.decision)
+
+    with open(args.out, mode='w', encoding='utf-8') as fp:
+        json.dump(progress, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
     print('JSON file with solution progress of verification job decision "{0}" was successfully downloaded to "{1}"'
           .format(args.decision, args.out))
@@ -62,8 +74,11 @@ def download_results():
     parser.add_argument('-o', '--out', help='JSON file name.', default='results.json')
     args = parser.parse_args()
 
-    session = Session(args)
-    session.decision_results(args.decision, args.out)
+    cli = Cli(args.host, args.username, args.password)
+    results = cli.decision_results(args.decision)
+
+    with open(args.out, mode='w', encoding='utf-8') as fp:
+        json.dump(results, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
     print('JSON file with verification results of verificaiton job decision "{0}" was successfully downloaded to "{1}"'
           .format(args.decision, args.out))
@@ -75,13 +90,13 @@ def start_preset_solution():
                         help='Preset job identifier (uuid). Can be obtained form presets/jobs/base.json')
     parser.add_argument('--replacement', help='JSON file name or string with data what files '
                                               'should be replaced before starting solution.')
-    parser.add_argument('--rundata', type=open, help='JSON file name. Set it if you would like to '
-                                                     'start solution with specific settings.')
+    parser.add_argument('--rundata', help='JSON file name. Set it if you would like to '
+                                          'start solution with specific settings.')
     args = parser.parse_args()
 
-    session = Session(args)
-    _, job_uuid = session.create_job(args.preset)
-    _, decision_uuid = session.start_job_decision(job_uuid, args.rundata, args.replacement)
+    cli = Cli(args.host, args.username, args.password)
+    _, job_uuid = cli.create_job(args.preset)
+    _, decision_uuid = cli.start_job_decision(job_uuid, rundata=args.rundata, replacement=args.replacement)
 
     print('Solution of verification job "{0}" was successfully started: {1}'.format(job_uuid, decision_uuid))
 
@@ -91,12 +106,12 @@ def start_solution():
     parser.add_argument('job', type=UUID, help='Verification job identifier (uuid).')
     parser.add_argument('--replacement', help='JSON file name or string with data what files '
                                               'should be replaced before starting solution.')
-    parser.add_argument('--rundata', type=open, help='JSON file name. Set it if you would like '
-                                                     'to start solution with specific settings.')
+    parser.add_argument('--rundata', help='JSON file name. Set it if you would like '
+                                          'to start solution with specific settings.')
     args = parser.parse_args()
 
-    session = Session(args)
-    _, decision_uuid = session.start_job_decision(args.job, args.rundata, args.replacement)
+    cli = Cli(args.host, args.username, args.password)
+    _, decision_uuid = cli.start_job_decision(args.job, rundata=args.rundata, replacement=args.replacement)
 
     print('Solution of verification job "{0}" was successfully started: {1}'.format(args.job, decision_uuid))
 
@@ -108,14 +123,14 @@ def update_preset_mark():
                                                    'specific error trace for update.')
     args = parser.parse_args()
 
-    session = Session(args)
+    cli = Cli(args.host, args.username, args.password)
 
     mark_path = os.path.abspath(args.mark)
     if not os.path.isfile(mark_path):
         raise ValueError('The preset mark file was not found')
 
     mark_identifier = UUID(os.path.splitext(os.path.basename(mark_path))[0])
-    mark_data = session.get_updated_preset_mark(mark_identifier, args.report)
+    mark_data = cli.get_updated_preset_mark(mark_identifier, args.report)
     with open(mark_path, mode='w', encoding='utf-8') as fp:
         json.dump(mark_data, fp, indent=2, sort_keys=True, ensure_ascii=False)
 
@@ -130,8 +145,8 @@ def upload_job():
     if not os.path.exists(args.archive):
         raise FileNotFoundError('ZIP archive of verification job "{0}" does not exist'.format(args.archive))
 
-    session = Session(args)
-    session.upload_job(args.archive)
+    cli = Cli(args.host, args.username, args.password)
+    cli.upload_job(args.archive)
 
     print('ZIP archive of verification job "{0}" was successfully uploaded. '
           'If archive is not corrupted the job will be soon created.'.format(args.archive))
