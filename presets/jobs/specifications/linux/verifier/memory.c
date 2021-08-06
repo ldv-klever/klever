@@ -60,6 +60,14 @@ void *ldv_xmalloc(size_t size)
     return res;
 }
 
+void *ldv_xcalloc(size_t nmemb, size_t size)
+{
+    void *res;
+    res = ldv_reference_xcalloc(nmemb, size);
+    ldv_assume(!ldv_is_err(res));
+    return res;
+}
+
 void *ldv_xzalloc(size_t size)
 {
 	void *res;
