@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+ * Copyright (c) 2021 ISP RAS (http://www.ispras.ru)
  * Ivannikov Institute for System Programming of the Russian Academy of Sciences
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,14 +23,14 @@
 
 static int ldv_mkdir(struct inode *parent, struct dentry *new, umode_t mode)
 {
-    ldv_invoke_middle_callback();
-    return 0;
+	ldv_invoke_middle_callback();
+	return 0;
 }
 
 static int ldv_rmdir(struct inode *parent, struct dentry *child)
 {
-    ldv_invoke_middle_callback();
-    return 0;
+	ldv_invoke_middle_callback();
+	return 0;
 }
 
 const struct inode_operations ldv_dir_inops = {
@@ -51,15 +51,15 @@ static int ldv_fill_super(struct super_block *s, void *data, int silent)
 {
 	struct inode *inode;
 	
-    s->s_op = &ldv_sops;
+	s->s_op = &ldv_sops;
 	inode = iget_locked(s, 0);
-	if (IS_ERR(inode)) {
+	if (IS_ERR(inode))
 		return -ENOMEM;
-	}
+
 	s->s_root = d_make_root(inode);
-	if (!s->s_root) {
+	if (!s->s_root)
 		return -ENOMEM;
-	}
+
 	return 0;
 }
 
@@ -90,11 +90,10 @@ static int __init ldv_init(void)
 {
 	int ret = ldv_undef_int();
 
-    ldv_register();
-    ret = register_filesystem(&ldv_fs);
-    if (ret) {
-        ldv_deregister();
-	}
+	ldv_register();
+	ret = register_filesystem(&ldv_fs);
+	if (ret)
+		ldv_deregister();
 
 	return ret;
 }

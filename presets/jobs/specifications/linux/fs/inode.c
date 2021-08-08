@@ -1,3 +1,20 @@
+/*
+ * Copyright (c) 2021 ISP RAS (http://www.ispras.ru)
+ * Ivannikov Institute for System Programming of the Russian Academy of Sciences
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 #include <ldv/linux/fs.h>
 
 unsigned long ldv_created_cnt;
@@ -21,12 +38,14 @@ static int ldv_inode_init_always(struct super_block *sb, struct inode *inode)
 	inode->i_rdev = 0;
 	inode->dirtied_when = 0;
 	inode->i_mapping = & (inode->i_data);
+
 	return 0;
 }
 
 struct inode *ldv_alloc_inode(struct super_block *sb)
 {
 	struct inode *inode;
+
 	if (sb->s_op->alloc_inode)
 		inode = sb->s_op->alloc_inode(sb);
 	else
@@ -35,9 +54,9 @@ struct inode *ldv_alloc_inode(struct super_block *sb)
 	if (!inode)
 		return NULL;
 
-    /* Assume it is always successful */
-    ldv_inodes[ldv_created_cnt] = inode;
-    ldv_created_cnt++;
+	/* Assume it is always successful */
+	ldv_inodes[ldv_created_cnt] = inode;
+	ldv_created_cnt++;
 	ldv_inode_init_always(sb, inode);
 
 	return inode;
@@ -45,7 +64,7 @@ struct inode *ldv_alloc_inode(struct super_block *sb)
 
 void ldv_inode_init_once(struct inode *inode)
 {
-    memset(inode, 0, sizeof(struct inode));
+	memset(inode, 0, sizeof(struct inode));
 }
 
 void ldv_clear_inode(struct inode *inode)
@@ -55,27 +74,29 @@ void ldv_clear_inode(struct inode *inode)
 
 static unsigned long ldv_find_ino(unsigned long ino)
 {
-    int i;
-    for (i = 0; i < ldv_created_cnt; i++) {
-        if (ldv_inodes[i]->i_ino == ino)
-            return i;
-    }
-    return ldv_created_cnt;
+	int i;
+
+	for (i = 0; i < ldv_created_cnt; i++) {
+		if (ldv_inodes[i]->i_ino == ino)
+			return i;
+	}
+
+	return ldv_created_cnt;
 }
 
 struct inode *ldv_iget_locked(struct super_block *sb, unsigned long ino)
 {
-    unsigned long cnt;
+	unsigned long cnt;
 	struct inode *inode;
 	cnt = ldv_find_ino(ino);
 
 	if (ldv_inodes[cnt])
-	    return ldv_inodes[cnt];
+		return ldv_inodes[cnt];
 
 	return ldv_alloc_inode(sb);
 }
 
 struct inode *ldv_get_root_inode(void)
 {
-    return ldv_inodes[0];
+	return ldv_inodes[0];
 }
