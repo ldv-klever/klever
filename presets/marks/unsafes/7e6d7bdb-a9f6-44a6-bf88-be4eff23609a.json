@@ -18,7 +18,7 @@
     {
       "is_compare": true,
       "name": "Declaration",
-      "value": "rxq_deinit::const void *rxq_deinit::*__CPAchecker_TMP_4"
+      "value": "rxq_deinit::void *rxq_deinit::*__CPAchecker_TMP_4"
     }
   ],
   "description": "cancel_work_sync() should disable execution of the timeout work (pxa168_eth_tx_timeout_task).",
