@@ -8,7 +8,7 @@
 struct dentry *root_dentry;
 
 /* Get rid of this function when macro WRITE_ONCE() will be hanled properly (https://forge.ispras.ru/issues/10896). */
-static void ldv_init_list_head(struct list_head *list)
+void ldv_init_list_head(struct list_head *list)
 {
        list->next = list;
        list->prev = list;
@@ -28,9 +28,9 @@ struct dentry *ldv_d_alloc_pseudo(struct super_block *sb, const struct qstr *nam
 		dentry->d_parent = dentry;
 		dentry->d_op = dentry->d_sb->s_d_op;
 
-		/* Init lists */
+		/* Init lists (other lists are initialized directly in environment model specifications, since definition of
+		   struct dentry depends on Linux kernel version). */
 		ldv_init_list_head(&dentry->d_subdirs);
-		ldv_init_list_head(&dentry->d_child);
 
 		return dentry;
 	}

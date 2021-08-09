@@ -262,8 +262,10 @@
             "trace relevant": true,
             "statements": [
               "struct dentry *root_dentry = ldv_d_make_root($ARG1);",
-              "if (root_dentry)",
-              "    INIT_HLIST_NODE(&root_dentry->d_u.d_alias);"
+              "if (root_dentry) {",
+              "    INIT_HLIST_NODE(&root_dentry->d_u.d_alias);",
+              "    ldv_init_list_head(&root_dentry->d_child);",
+              "}"
             ]
           }
         }
@@ -513,8 +515,10 @@
             "trace relevant": true,
             "statements": [
               "struct dentry *root_dentry = ldv_d_make_root($ARG1);",
-              "if (root_dentry)",
-              "    INIT_HLIST_NODE(&root_dentry->d_alias);"
+              "if (root_dentry) {",
+              "    INIT_HLIST_NODE(&root_dentry->d_alias);",
+              "    ldv_init_list_head(&root_dentry->d_u.d_child);",
+              "}"
             ]
           }
         }

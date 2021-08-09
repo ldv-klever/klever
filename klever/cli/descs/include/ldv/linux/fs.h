@@ -32,3 +32,4 @@
 
  /* Aux functions */
  struct inode *ldv_get_root_inode(void);
+ void ldv_init_list_head(struct list_head *list);
