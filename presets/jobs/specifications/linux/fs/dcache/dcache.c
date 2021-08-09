@@ -1,7 +1,6 @@
 #include <linux/fs.h>
 #include <linux/dcache.h>
 #include <ldv/linux/common.h>
-#include <ldv/linux/list.h>
 #include <ldv/verifier/common.h>
 #include <ldv/verifier/nondet.h>
 #include <ldv/verifier/memory.h>
