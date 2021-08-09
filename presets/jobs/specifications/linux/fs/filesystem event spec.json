@@ -495,7 +495,7 @@
       }
     }
   },
-  "3.14-dentry.d_alias": {
+  "3.14-dentry-v2": {
     "functions models": {
       "d_make_root, d_alloc_root": {
         "comment": "Call fill_super implementation.",

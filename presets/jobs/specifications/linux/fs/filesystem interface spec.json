@@ -118,7 +118,7 @@
       }
     }
   },
-  "3.14-dentry.d_alias": {
+  "3.14-dentry-v2": {
     "functions models": {
       "register_filesystem": {
         "declaration": "int register_filesystem(*%filesystem.file_system_type%)",
