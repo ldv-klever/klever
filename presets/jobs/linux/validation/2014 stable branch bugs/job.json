@@ -163,7 +163,7 @@
     {
       "build base": "linux/validation/2014 stable branch bugs/ae3f34854485~",
       "targets": ["fs/nfs/nfs.ko"],
-      "specifications set": "3.14-dentry.d_alias",
+      "specifications set": "3.14-dentry-v2",
       "requirement specifications": ["kernel:locking:spinlock"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
       "data": {"bug identifier": "ae3f34854485~"}
@@ -171,7 +171,7 @@
     {
       "build base": "linux/validation/2014 stable branch bugs/ae3f34854485",
       "targets": ["fs/nfs/nfs.ko"],
-      "specifications set": "3.14-dentry.d_alias",
+      "specifications set": "3.14-dentry-v2",
       "requirement specifications": ["kernel:locking:spinlock"],
       "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "ae3f34854485~"}
@@ -179,7 +179,7 @@
     {
       "build base": "linux/validation/2014 stable branch bugs/44f694330e1e~",
       "targets": ["net/sunrpc/sunrpc.ko"],
-      "specifications set": "3.14-dentry.d_alias",
+      "specifications set": "3.14-dentry-v2",
       "requirement specifications": ["kernel:module"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
       "data": {"bug identifier": "44f694330e1e~"}
@@ -187,7 +187,7 @@
     {
       "build base": "linux/validation/2014 stable branch bugs/44f694330e1e",
       "targets": ["net/sunrpc/sunrpc.ko"],
-      "specifications set": "3.14-dentry.d_alias",
+      "specifications set": "3.14-dentry-v2",
       "requirement specifications": ["kernel:module"],
       "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "44f694330e1e~"}
