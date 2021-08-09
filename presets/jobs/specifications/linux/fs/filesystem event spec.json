@@ -265,7 +265,8 @@
               "if (root_dentry) {",
               "    INIT_HLIST_NODE(&root_dentry->d_u.d_alias);",
               "    ldv_init_list_head(&root_dentry->d_child);",
-              "}"
+              "}",
+              "return root_dentry;"
             ]
           }
         }
@@ -518,7 +519,8 @@
               "if (root_dentry) {",
               "    INIT_HLIST_NODE(&root_dentry->d_alias);",
               "    ldv_init_list_head(&root_dentry->d_u.d_child);",
-              "}"
+              "}",
+              "return root_dentry;"
             ]
           }
         }
