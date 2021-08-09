@@ -30,7 +30,6 @@ struct dentry *ldv_d_alloc_pseudo(struct super_block *sb, const struct qstr *nam
 
 		/* Init lists */
 		ldv_init_list_head(&dentry->d_subdirs);
-		INIT_HLIST_NODE(&dentry->d_u.d_alias);
 		ldv_init_list_head(&dentry->d_child);
 
 		return dentry;
