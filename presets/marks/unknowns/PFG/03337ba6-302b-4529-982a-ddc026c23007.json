@@ -1,0 +1,8 @@
+{
+  "attrs": [],
+  "function": "ValueError: Cannot find fragments, files or functions for the following expressions",
+  "is_regexp": false,
+  "problem_pattern": "Invalid targets",
+  "production": true,
+  "is_modifiable": false
+}
