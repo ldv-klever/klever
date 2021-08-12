@@ -20,7 +20,7 @@ before: file("$this")
 #include <ldv/linux/list.h>
 }
 
-around: call(static inline void INIT_LIST_HEAD(struct list_head *list))
+around: execution(static inline void INIT_LIST_HEAD(struct list_head *list))
 {
 	ldv_init_list_head(list);
 }
