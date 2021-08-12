@@ -34,11 +34,13 @@ from jobs.models import Scheduler
 #   scheduler - see bridge.vars.SCHEDULER_TYPE for available values (task scheduler),
 #   max_tasks - positive number (max solving tasks per sub-job),
 #   weight - see vars.DECISION_WEIGHT for available values (weight of decision),
-#   parallelism: [Sub-jobs processing, Tasks generation, Results processing]
+#   parallelism: [Sub-jobs processing, Tasks generation, Weaving, Results processing]
 #   memory - memory size in GB,
 #   cpu_num - number of CPU cores; if number is None then any,
 #   disk_size - disk memory size in GB,
 #   cpu_model - CPU model,
+#   cpu_time_exec_cmds - CPU time for executed commands in min,
+#   memory_exec_cmds - memory size for executed commands in GB,
 #   console_level - console log level; see documentation for Python 3 and
 #     ConfigurationLogging.logging_levels for available values,
 #   console_formatter - console log formatter,
@@ -61,10 +63,10 @@ DEFAULT_FORMATTER = (
                                   "(%(process)d) %(levelname)5s> %(message)s")
 )
 PARALLELISM_PACKS = [
-    ('sequential', _('Sequentially'), ('1', '1', '1')),
-    ('slow', _('Slowly'), ('1', '1', '1')),
-    ('quick', _('Quickly'), ('1', '2', '1')),
-    ('very quick', _('Very quickly'), ('1', '1.0', '2'))
+    ('sequential', _('Sequentially'), ('1', '1', '1', '1')),
+    ('slow', _('Slowly'), ('1', '1', '1', '1')),
+    ('quick', _('Quickly'), ('1', '2', '2', '1')),
+    ('very quick', _('Very quickly'), ('1', '1.0', '2', '2'))
 ]
 KLEVER_CORE_DEF_MODES = [
     {
@@ -74,11 +76,13 @@ KLEVER_CORE_DEF_MODES = [
             'scheduler': SCHEDULER_TYPE[0][0],
             'max_tasks': 100,
             'weight': DECISION_WEIGHT[1][0],
-            'parallelism': ['1', '1', '1'],
+            'parallelism': ['1', '3', '1', '1'],
             'memory': 3,
             'cpu_num': None,
             'disk_size': 100,
             'cpu_model': None,
+            'cpu_time_exec_cmds': 7.5,
+            'memory_exec_cmds': 1,
             'console_level': 'NONE',
             'file_level': 'NONE',
             'console_formatter': DEFAULT_FORMATTER[0][2],
@@ -99,11 +103,13 @@ KLEVER_CORE_DEF_MODES = [
             'scheduler': SCHEDULER_TYPE[0][0],
             'max_tasks': 100,
             'weight': DECISION_WEIGHT[0][0],
-            'parallelism': ['1', '2', '1'],
+            'parallelism': ['1', '2', '0.5', '1'],
             'memory': 5,
             'cpu_num': None,
-            'disk_size': 100,
+            'disk_size': 20,
             'cpu_model': None,
+            'cpu_time_exec_cmds': 7.5,
+            'memory_exec_cmds': 1,
             'console_level': 'INFO',
             'file_level': 'DEBUG',
             'console_formatter': DEFAULT_FORMATTER[1][2],
@@ -124,11 +130,13 @@ KLEVER_CORE_DEF_MODES = [
             'scheduler': SCHEDULER_TYPE[0][0],
             'max_tasks': 100,
             'weight': DECISION_WEIGHT[0][0],
-            'parallelism': ['1', '2', '1'],
+            'parallelism': ['1', '2', '0.5', '1'],
             'memory': 5,
             'cpu_num': None,
-            'disk_size': 100,
+            'disk_size': 20,
             'cpu_model': None,
+            'cpu_time_exec_cmds': 7.5,
+            'memory_exec_cmds': 1,
             'console_level': 'INFO',
             'file_level': 'DEBUG',
             'console_formatter': DEFAULT_FORMATTER[1][2],
@@ -152,7 +160,8 @@ def get_configuration_value(name, value):
                 return {
                     'parallelism_0': p_val[0],
                     'parallelism_1': p_val[1],
-                    'parallelism_2': p_val[2]
+                    'parallelism_2': p_val[2],
+                    'parallelism_3': p_val[3]
                 }
     elif name == 'def_console_formatter':
         for f_id, __, f_val in DEFAULT_FORMATTER:
@@ -171,12 +180,14 @@ class ConfigurationSerializer(serializers.Serializer):
     max_tasks = fields.IntegerField(min_value=1)
     weight = fields.ChoiceField(DECISION_WEIGHT)
 
-    parallelism = fields.ListField(child=fields.RegexField(r'^\d+(\.\d+)?$'), min_length=3, max_length=3)
+    parallelism = fields.ListField(child=fields.RegexField(r'^\d+(\.\d+)?$'), min_length=4, max_length=4)
 
     memory = fields.FloatField()
     cpu_num = fields.IntegerField(allow_null=True, min_value=1)
     disk_size = fields.FloatField()
     cpu_model = fields.CharField(default='', allow_null=True, allow_blank=True)
+    cpu_time_exec_cmds = fields.FloatField()
+    memory_exec_cmds = fields.FloatField()
 
     console_level = fields.ChoiceField(LOGGING_LEVELS)
     file_level = fields.ChoiceField(LOGGING_LEVELS)
@@ -245,12 +256,15 @@ class GetConfiguration:
             'parallelism': [
                 str(filedata['parallelism']['Sub-jobs processing']),
                 str(filedata['parallelism']['Tasks generation']),
+                str(filedata['parallelism']['Weaving']),
                 str(filedata['parallelism']['Results processing']),
             ],
             'memory': filedata['resource limits']['memory size'] / 10 ** 9,
             'cpu_num': filedata['resource limits']['number of CPU cores'],
             'disk_size': filedata['resource limits']['disk memory size'] / 10 ** 9,
             'cpu_model': filedata['resource limits']['CPU model'],
+            'cpu_time_exec_cmds': filedata['resource limits']['CPU time for executed commands'] / 60,
+            'memory_exec_cmds': filedata['resource limits']['memory size for executed commands'] / 10 ** 9,
             'console_level': loggers['console']['level'],
             'file_level': loggers['file']['level'],
             'console_formatter': loggers['console']['formatter'],
@@ -277,12 +291,15 @@ class GetConfiguration:
                 'memory size': int(self.configuration['memory'] * 10 ** 9),
                 'disk memory size': int(self.configuration['disk_size'] * 10 ** 9),
                 'number of CPU cores': self.configuration['cpu_num'],
-                'CPU model': self.configuration['cpu_model'] or None
+                'CPU model': self.configuration['cpu_model'] or None,
+                'CPU time for executed commands': int(self.configuration['cpu_time_exec_cmds'] * 60),
+                'memory size for executed commands': int(self.configuration['memory_exec_cmds'] * 10 ** 9)
             },
             'parallelism': {
                 'Sub-jobs processing': self.__str_to_int_or_float(self.configuration['parallelism'][0]),
                 'Tasks generation': self.__str_to_int_or_float(self.configuration['parallelism'][1]),
-                'Results processing': self.__str_to_int_or_float(self.configuration['parallelism'][2])
+                'Weaving': self.__str_to_int_or_float(self.configuration['parallelism'][2]),
+                'Results processing': self.__str_to_int_or_float(self.configuration['parallelism'][3])
             },
             'logging': {
                 'formatters': [

@@ -27,9 +27,9 @@
                 {
                   "Instrumented function 'usb_submit_urb'": [
                     {
-                      "LDV model 'check_alloc_flags'": [
+                      "LDV model 'common_alloc_return_int'": [
                         {
-                          "LDV model 'assert'": []
+                          "LDV model 'check_alloc_flags'": []
                         }
                       ]
                     }

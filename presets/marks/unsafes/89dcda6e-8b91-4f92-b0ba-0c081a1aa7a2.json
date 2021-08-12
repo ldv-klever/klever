@@ -1,0 +1,54 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Project:Version",
+      "value": "v5.9-rc1-24-g64f4a62e3b17"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/crypto/picoxcell_crypto.ko"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "concurrency safety"
+    }
+  ],
+  "description": "Non-target bug.",
+  "error_trace": [
+    [
+      [
+        {
+          "EMG wrapper": [
+            {
+              "spacc_probe": [
+                {
+                  "writel": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    ],
+    [
+      [
+        {
+          "EMG wrapper": [
+            {
+              "spacc_stat_irq_thresh_store": []
+            }
+          ]
+        }
+      ]
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": false,
+  "status": "0",
+  "tags": [],
+  "threshold": 100,
+  "verdict": "1"
+}

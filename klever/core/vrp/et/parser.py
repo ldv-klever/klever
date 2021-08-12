@@ -84,7 +84,7 @@ class ErrorTraceParser:
                         line_num = 1
                         orig_file_id = None
                         orig_file_line_num = 0
-                        line_preprocessor_directive = re.compile(r'#line\s+(\d+)\s*(.*)')
+                        line_preprocessor_directive = re.compile(r'\s*#line\s+(\d+)\s*(.*)')
                         # By some reason it takes enormous CPU and wall time to store content of large CIL files into
                         # class objects iteratively. So use temporary variable for this.
                         content = ''
@@ -244,17 +244,34 @@ class ErrorTraceParser:
 
             if startoffset and endoffset and startline:
                 _edge['source'] = self.error_trace.programfile_content[startoffset:(endoffset + 1)]
+                # New lines in sources are not supported well during processing and following visualization.
+                _edge['source'] = re.sub(r'\n *', ' ', _edge['source'])
                 _edge['file'], _edge['line'] = self.error_trace.programfile_line_map[startline]
                 referred_file_ids.add(_edge['file'])
 
+                # TODO: see comment in klever/cli/descs/include/ldv/verifier/common.h.
+                if '__VERIFIER_assume' in _edge['source']:
+                    if 'notes' not in _edge:
+                        _edge['notes'] = []
+
+                    _edge['notes'].append({
+                        'text': 'Verification tools do not traverse paths where an actual argument of this function' +
+                                ' is evaluated to zero',
+                        'level': 2,
+                        'hide': False
+                    })
+
                 if control is not None:
-                    # Replace conditions to negative ones to consider else branches.
+                    # Replace conditions to negative ones to consider else branches. It is worth noting that in most
+                    # cases Frama-C (CIL) introduces one of conditions like "==" or "<" surrounded by spaces.
+                    # Otherwise, do nothing even when the else branch should be taken.
+                    # TODO: perhaps without CIL this logic will be incorrect.
                     if not control:
                         cond_replaces = {'==': '!=', '!=': '==', '<=': '>', '>=': '<', '<': '>=', '>': '<='}
                         for orig_cond, replace_cond in cond_replaces.items():
-                            m = re.match(r'^(.+){0}(.+)$'.format(orig_cond), _edge['source'])
+                            m = re.match(r'^(.+) {0} (.+)$'.format(orig_cond), _edge['source'])
                             if m:
-                                _edge['source'] = '{0}{1}{2}'.format(m.group(1), replace_cond, m.group(2))
+                                _edge['source'] = '{0} {1} {2}'.format(m.group(1), replace_cond, m.group(2))
                                 # Do not proceed after some replacement is applied - others won't be done.
                                 break
 

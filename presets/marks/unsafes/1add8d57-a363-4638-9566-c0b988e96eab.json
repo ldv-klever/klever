@@ -3,12 +3,12 @@
     {
       "is_compare": true,
       "name": "Requirements specification",
-      "value": "test:environment model specifications"
+      "value": "test:EMG"
     },
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/super_block_v.1/fs_invoke.ko"
+      "value": "ext-modules/filesystem_v.1/fs_invoke.ko"
     }
   ],
   "description": "",
@@ -44,13 +44,9 @@
         {
           "EMG wrapper": [
             {
-              "LDV model 'probe'": [
+              "LDV model 'get_sb'": [
                 {
-                  "LDV model 'invoke_reached'": [
-                    {
-                      "LDV model 'assert'": []
-                    }
-                  ]
+                  "LDV model 'invoke_reached'": []
                 }
               ]
             }

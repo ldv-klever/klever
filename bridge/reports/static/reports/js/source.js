@@ -78,6 +78,8 @@ SourceProcessor.prototype.init_references = function(ref_id, ref_popup) {
         data_html = instance.container.find('#' + ref_id).html();
     ref_popup.find('.ReferencesContainer').html(data_html);
     ref_popup.find('.SrcRefLink').click(function () {
+        instance.preserveState(ref_popup.data('currline'), instance.title_container.text());
+
         if (instance.ref_click_callback) instance.ref_click_callback();
         instance.get_source($(this).data('line'), $(this).parent().data('file'));
     })
@@ -97,42 +99,61 @@ SourceProcessor.prototype.refresh = function() {
     this.container.find('.SrcRefToLink').click(function () {
         if (instance.ref_click_callback) instance.ref_click_callback();
 
+        const current_file = instance.title_container.text();
+        const current_line = parseInt($(this).closest('.SrcCode').siblings('.SrcLine').attr('id').replace('SrcL_', ''));
+        instance.preserveState(current_line, current_file)
+
         let file_index = $(this).data('file'), file_name;
-        if (file_index === null) file_name = instance.title_container.text();
+        if (file_index === null) file_name = current_file;
         else file_name = instance.container.find(`.SrcFileData[data-index="${file_index}"]`).text();
 
         instance.get_source(parseInt($(this).data('line')), file_name);
     });
 
-    this.container.find('.SrcRefToDeclLink').popup({
-        popup: this.source_declarations,
-        onShow: function (activator) {
-            instance.init_references($(activator).data('declaration'), source_declarations_popup)
-        },
-        position: 'bottom left',
-        lastResort: 'bottom left',
-        hoverable: true,
-        inline: true,
-        delay: {
-            show: 100,
-            hide: 300
+    this.container.find('.SrcRefToDeclLink').hover(function () {
+        if (!$(this).hasClass('PopupActivated')) {
+            $(this).addClass('PopupActivated');
+            $(this).popup({
+                popup: instance.source_declarations,
+                onShow: function (activator) {
+                    const activator_line = parseInt($(activator).closest('.SrcCode').siblings('.SrcLine').attr('id').replace('SrcL_', ''));
+                    source_declarations_popup.data('currline', activator_line);
+                    instance.init_references($(activator).data('declaration'), source_declarations_popup);
+                },
+                position: 'bottom left',
+                lastResort: 'bottom left',
+                hoverable: true,
+                inline: true,
+                delay: {
+                    show: 100,
+                    hide: 300
+                }
+            }).popup('show');
         }
     });
 
-    this.container.find('.SrcRefFromLink').popup({
-        popup: this.source_references,
-        onShow: function (activator) {
-            instance.init_references($(activator).data('id'), source_references_div)
-        },
-        position: 'bottom left',
-        lastResort: 'bottom left',
-        hoverable: true,
-        inline: true,
-        delay: {
-            show: 100,
-            hide: 300
+    this.container.find('.SrcRefFromLink').hover(function () {
+        if (!$(this).hasClass('PopupActivated')) {
+            $(this).addClass('PopupActivated');
+            $(this).popup({
+                popup: instance.source_references,
+                onShow: function (activator) {
+                    const activator_line = parseInt($(activator).closest('.SrcCode').siblings('.SrcLine').attr('id').replace('SrcL_', ''));
+                    source_references_div.data('currline', activator_line);
+                    instance.init_references($(activator).data('id'), source_references_div);
+                },
+                position: 'bottom left',
+                lastResort: 'bottom left',
+                hoverable: true,
+                inline: true,
+                delay: {
+                    show: 100,
+                    hide: 300
+                }
+            }).popup("show");
         }
     });
+
     this.container.find('.SrcCovDataLink').click(function () {
         let selected_src_line = $(this).parent();
 
@@ -190,13 +211,17 @@ SourceProcessor.prototype.select_line = function(line) {
     this.select_span(this.container.find(`#SrcL_${line}`));
 };
 
+SourceProcessor.prototype.preserveState = function (line, filename) {
+    let state_url = get_url_with_get_parameters(window.location.href, {
+        'source': encodeURIComponent(filename), 'sourceline': line
+    });
+    history.pushState([filename, line], null, state_url);
+};
+
 SourceProcessor.prototype.get_source = function(line, filename, save_history=true) {
     let instance = this;
-    if (save_history){
-        let state_url = get_url_with_get_parameters(window.location.href, {
-            'source': encodeURIComponent(filename), 'sourceline': line
-        });
-        history.pushState([filename, line], null, state_url);
+    if (save_history) {
+        this.preserveState(line, filename);
     }
 
     if (filename === this.title_container.text()) {
@@ -205,6 +230,11 @@ SourceProcessor.prototype.get_source = function(line, filename, save_history=tru
         }
     }
     else {
+        $('#source_code_dimmer').addClass('active');
+        let empty_container = new Promise((c, _) => {
+            instance.container.empty();
+            c();
+        })
         $.ajax({
             url: instance.url,
             type: 'GET',
@@ -213,14 +243,17 @@ SourceProcessor.prototype.get_source = function(line, filename, save_history=tru
                 with_legend: !!instance.legend_container.length
             },
             success: function (resp) {
-                instance.container.html(resp);
                 instance.selected_line = null;
                 instance.title_container.text(filename);
                 instance.title_container.popup({content: filename});
-                if (!instance.container.find('#source_not_found').length) {
-                    instance.select_line(line);
-                    instance.refresh();
-                }
+                empty_container.then(function () {
+                    $('#source_code_dimmer').removeClass('active');
+                    instance.container.html(resp);
+                    if (!instance.container.find('#source_not_found').length) {
+                        instance.select_line(line);
+                        instance.refresh();
+                    }
+                });
             }
         });
     }

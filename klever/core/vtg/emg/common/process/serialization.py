@@ -15,106 +15,117 @@
 # limitations under the License.
 #
 
+import copy
 import json
+import traceback
 import sortedcontainers
 
+from klever.core.vtg.emg.common.process.labels import Label
 from klever.core.vtg.emg.common.c.types import import_declaration
 from klever.core.vtg.emg.common.process.parser import parse_process
-from klever.core.vtg.emg.common.process import Receive, Dispatch, Subprocess, Block, Label, Process, Action, Choice, \
-    Concatenation, Parentheses, ProcessCollection
+from klever.core.vtg.emg.common.process import Process, ProcessCollection, Peer
+from klever.core.vtg.emg.common.process.actions import Action, Receive, Dispatch, Subprocess, Block, Savepoint, Signal
 
 
 class CollectionEncoder(json.JSONEncoder):
 
+    logger = None
+
     def default(self, o):
-        try:
-            return super(CollectionEncoder, self).default(0)
-        except TypeError:
-            if isinstance(o, ProcessCollection):
-                return self._serialize_collection(o)
-            else:
-                raise
+        if self.logger:
+            # This is a helpful debug printing, turn it on when necessary
+            self.logger.info(f"Test print: {str(o)}")
+        if isinstance(o, ProcessCollection):
+            return self._serialize_collection(o)
+        elif isinstance(o, Process):
+            return self._serialize_process(o)
+        elif isinstance(o, Label):
+            return self._serialize_label(o)
+        elif isinstance(o, Action):
+            return self._serialize_action(o)
+        elif isinstance(o, Savepoint):
+            return self._serialize_savepoint(o)
+        elif isinstance(o, set):
+            return list(o)
+        elif isinstance(o, Peer):
+            raise NotImplementedError
+        elif isinstance(o, (list, dict, str, int, float, bool, type(None))):
+            return o
+        else:
+            raise TypeError(f"Cannot serialize object {str(o)} of type {type(o).__name__}")
 
     def _serialize_collection(self, collection):
         data = {
-            "functions models": {p.name: self._export_process(p) for p in collection.models.values()},
-            "environment processes": {str(p): self._export_process(p) for p in collection.environment.values()},
-            "main process": self._export_process(collection.entry) if collection.entry else None
+            "name": str(collection.name),
+            "functions models": {p.name: self.default(p) for p in collection.models.values()},
+            "environment processes": {str(p): self.default(p) for p in collection.environment.values()},
+            "main process": self.default(collection.entry) if collection.entry else None
         }
         return data
 
-    @staticmethod
-    def _export_process(process):
-        def convert_label(label):
-            d = sortedcontainers.SortedDict()
-            if label.declaration:
-                d['declaration'] = label.declaration.to_string(label.name, typedef='complex_and_params')
-            if label.value:
-                d['value'] = label.value
+    def _serialize_label(self, label):
+        dict_repr = sortedcontainers.SortedDict()
+        if label.declaration:
+            dict_repr['declaration'] = label.declaration.to_string(label.name, typedef='complex_and_params')
+        if label.value:
+            dict_repr['value'] = label.value
+        return dict_repr
 
-            return d
+    def _serialize_savepoint(self, point):
+        sp = sortedcontainers.SortedDict()
+        if point.statements:
+            sp["statements"] = point.statements
+        if point.comment:
+            sp["comment"] = point.comment
+        return sp
 
-        def convert_action(action):
-            d = sortedcontainers.SortedDict()
-            if action.comment:
-                d['comment'] = action.comment
-            if action.condition:
-                d['condition'] = action.condition
-            if action.trace_relevant:
-                d['trace relevant'] = action.trace_relevant
+    def _serialize_action(self, action):
+        ict_action = sortedcontainers.SortedDict()
+        if action.comment:
+            ict_action['comment'] = action.comment
+        if action.condition:
+            ict_action['condition'] = self.default(action.condition)
+        if action.trace_relevant:
+            ict_action['trace relevant'] = action.trace_relevant
+        if action.savepoints:
+            ict_action['savepoints'] = {
+                str(point): self.default(point) for point in action.savepoints}
+        if action.require:
+            ict_action['require'] = {
+                name: self.default(value) for name, value in action.require.items()}
+        if isinstance(action, Subprocess):
+            if action.action:
+                ict_action['process'] = repr(action.action)
+            else:
+                ict_action['process'] = ''
+        elif isinstance(action, Signal) or isinstance(action, Receive):
+            ict_action['parameters'] = self.default(list(action.parameters))
+            if isinstance(action, Dispatch) and action.broadcast:
+                ict_action['broadcast'] = True
+            if isinstance(action, Receive) and not action.replicative:
+                ict_action['replicative'] = False
+        elif isinstance(action, Block):
+            if action.statements:
+                ict_action["statements"] = self.default(action.statements)
+        return ict_action
 
-            if isinstance(action, Subprocess):
-                d['process'] = CollectionEncoder._serialize_fsa(action.action)
-            elif isinstance(action, Dispatch) or isinstance(action, Receive):
-                d['parameters'] = action.parameters
-
-                if len(action.peers) > 0:
-                    d['peers'] = list()
-                    for p in action.peers:
-                        d['peers'].append(str(p['process']))
-
-                    # Remove duplicates
-                    d['peers'] = sorted(set(d['peers']))
-            elif isinstance(action, Block):
-                if action.statements:
-                    d["statements"] = action.statements
-            return d
-
-        data = {
-            'category': process.category,
-            'comment': process.comment,
-            'process': CollectionEncoder._serialize_fsa(process.actions.initial_action),
-            'labels': {str(l): convert_label(l) for l in process.labels.values()},
-            'actions': {str(a): convert_action(a) for a in
-                        process.actions.filter(include={Action}, exclude={Subprocess})}
-        }
-        data['actions'].update({a.reference_name: convert_action(a)
-                                for a in process.actions.filter(include={Subprocess})})
+    def _serialize_process(self, process):
+        ict_action = sortedcontainers.SortedDict()
+        ict_action['category']  = process.category
+        ict_action['comment'] = process.comment
+        ict_action['process'] = repr(process.actions.initial_action)
+        ict_action['labels'] = {str(label): self.default(label) for label in process.labels.values()}
+        ict_action['actions'] = {str(action): self.default(action) for action in process.actions.values()}
+        ict_action['peers'] = {k: self.default(list(sorted(v))) for k, v in process.peers.items()}
 
         if len(process.headers) > 0:
-            data['headers'] = list(process.headers)
+            ict_action['headers'] = self.default(list(process.headers))
         if len(process.declarations.keys()) > 0:
-            data['declarations'] = process.declarations
+            ict_action['declarations'] = self.default(process.declarations)
         if len(process.definitions.keys()) > 0:
-            data['definitions'] = process.definitions
+            ict_action['definitions'] = self.default(process.definitions)
 
-        return data
-
-    @staticmethod
-    def _serialize_fsa(initial):
-        def _serialize_action(action):
-            if isinstance(action, Action):
-                return repr(action)
-            elif isinstance(action, Choice):
-                return ' | '.join(_serialize_action(a) for a in action.actions)
-            elif isinstance(action, Concatenation):
-                return '.'.join(_serialize_action(a) for a in action.actions)
-            elif isinstance(action, Parentheses):
-                return '(%s)' % _serialize_action(action.action)
-            else:
-                raise NotImplementedError
-
-        return _serialize_action(initial)
+        return ict_action
 
 
 class CollectionDecoder:
@@ -127,14 +138,14 @@ class CollectionDecoder:
         'headers': None,
         'declarations': None,
         'definitions': None,
-        'source files': 'cfiles'
+        'source files': 'cfiles',
+        'peers': None
     }
     ACTION_ATTRIBUTES = {
         'comment': None,
         'parameters': None,
         'condition': None,
         'statements': None,
-        'peers': None,
         'pre-call': 'pre_call',
         'post-call': 'post_call',
         'trace relevant': 'trace_relevant'
@@ -149,38 +160,41 @@ class CollectionDecoder:
         self.logger = logger
         self.conf = conf
 
-    def parse_event_specification(self, source, raw):
+    def parse_event_specification(self, source, raw, collection):
         """
         Parse process descriptions and create corresponding objects to populate the collection.
 
         :param source: Source code collection.
         :param raw: Dictionary with content of JSON file.
+        :param collection: ProcessCollection.
         :return: ProcessCollection
         """
-        collection = ProcessCollection()
+        if 'name' in raw:
+            assert isinstance(raw['name'], str)
+            collection.name = raw['name']
 
-        self.logger.info("Import processes from provided event categories specification")
+        self.logger.info(f"Import processes from provided event categories specification {collection.name}")
         raise_exc = []
         if "functions models" in raw:
-            self.logger.info("Import processes from 'kernel model'")
+            self.logger.info("Import processes from 'kernel model', there are "
+                             f"{len(raw['functions models'].keys())} of them")
             for name_list, process_desc in raw["functions models"].items():
                 names = name_list.split(", ")
                 for name in names:
-                    self.logger.debug("Import process which models {!r}".format(name))
-
                     # Set some default values
                     category = "functions models"
                     try:
                         process = self._import_process(source, name, category, process_desc)
-                        collection.models[str(process)] = process
+                        collection.models[process.name] = process
                     except Exception as err:
                         self.logger.warning("Cannot parse {!r}: {}".format(name, str(err)))
                         raise_exc.append(name)
+        else:
+            self.logger.info('There is no "functions models" description')
         if "environment processes" in raw:
-            self.logger.info("Import processes from 'environment processes'")
+            self.logger.info(f"Import processes from 'environment processes', there are "
+                             f"{len(raw['environment processes'].keys())} of them")
             for name, process_desc in raw["environment processes"].items():
-                self.logger.debug("Import environment process {!r}".format(name))
-
                 # This simplifies parsing of event specifications for Linux but actually this can be avoided by adding
                 # categories to corresponding specifications.
                 if '/' in name:
@@ -194,17 +208,19 @@ class CollectionDecoder:
                         raise ValueError("There is an already imported process {!r} in intermediate environment model".
                                          format(str(process)))
                     collection.environment[str(process)] = process
-                except Exception as err:
-                    self.logger.warning("Cannot parse {!r}: {}".format(name, str(err)))
+                except Exception:
+                    self.logger.warning("Cannot parse {!r}: {}".format(name, traceback.format_exc()))
                     raise_exc.append(name)
+        else:
+            self.logger.info('There is no "environment processes" description')
 
         if "main process" in raw and isinstance(raw["main process"], dict):
             self.logger.info("Import main process")
             try:
-                entry_process = self._import_process(source, "entry", "entry process", raw["main process"])
+                entry_process = self._import_process(source, "entry", "main", raw["main process"])
                 collection.entry = entry_process
             except Exception as err:
-                self.logger.warning("Cannot main process: {}".format(str(err)))
+                self.logger.warning("Cannot parse the main process: {}".format(str(err)))
                 raise_exc.append('entry')
         else:
             collection.entry = None
@@ -213,12 +229,50 @@ class CollectionDecoder:
             raise RuntimeError("Some specifications cannot be parsed, inspect log to find problems with: {}".
                                format(', '.join(raise_exc)))
 
+        # Check savepoint's uniqueness
+        if collection.entry and collection.entry.savepoints:
+            raise ValueError('The entry process {!r} is not allowed to have savepoints'.format(str(collection.entry)))
+        for model_process in collection.models.values():
+            if model_process.savepoints:
+                raise ValueError('The function model {!r} is not allowed to have savepoints'.format(str(model_process)))
+        savepoints = set()
+        for process in collection.environment.values():
+            for action in process.actions.values():
+                if action.savepoints:
+                    sp = set(map(str, action.savepoints))
+                    if sp.intersection(savepoints):
+                        intr = ', '.join(sp.intersection(savepoints))
+                        raise ValueError(f'Savepoints cannot be used twice: {intr}')
+                    else:
+                        savepoints.update(sp)
+                if action.require:
+                    for name in action.require:
+                        if collection.entry and name == str(collection.entry):
+                            required = collection.entry
+                        elif name in collection.models.keys():
+                            required = collection.models[name]
+                        elif name in map(str, collection.environment.values()):
+                            required = collection.environment[name]
+                        else:
+                            raise ValueError(f'There is no process {name} required by {str(process)} in'
+                                             f' action {str(action)}')
+
+                        for action_name in action.require[name].get('include', set()):
+                            if action_name not in required.actions:
+                                raise ValueError(f'Process {str(process)} in action {str(action)} requires action '
+                                                 f'{action_name} which is missing in process {name}')
+
+        self.logger.debug(f'Imported function models: {", ".join(collection.models.keys())}')
+        self.logger.debug(f'Imported environment processes: {", ".join(collection.environment.keys())}')
+
         return collection
 
     def _import_process(self, source, name, category, dic):
+        # This helps to avoid changing the original specification
+        dic = copy.deepcopy(dic)
         process = self.PROCESS_CONSTRUCTOR(name, category)
 
-        for label_name in dic.get('labels', {}):
+        for label_name in dic.get('labels', dict()):
             label = self._import_label(label_name, dic['labels'][label_name])
             process.labels[label_name] = label
 
@@ -230,18 +284,14 @@ class CollectionDecoder:
 
         # Then import subprocesses
         next_actions = sortedcontainers.SortedDict()
-        for name, desc in dic.get('actions', {}).items():
+        for name, desc in dic.get('actions', dict()).items():
             subp = desc.get('process')
             if subp:
                 next_action = parse_process(process, subp)
                 next_actions[name] = next_action
 
-        # Connect actions
-        for action in process.actions.filter(include={Subprocess}):
-            action.action = next_actions[action.reference_name]
-
         # Import comments
-        if 'comment' in dic:
+        if 'comment' in dic and isinstance(dic['comment'], str):
             process.comment = dic['comment']
         else:
             raise KeyError(
@@ -252,15 +302,13 @@ class CollectionDecoder:
         for some_name, description in dic.get('actions', {}).items():
             names = some_name.split(", ")
             for act_name in names:
-                if not process.actions.get(act_name):
-                    if description.get('process'):
-                        for act in (a for a in process.actions.filter(include={Subprocess})
-                                    if a.reference_name == act_name):
-                            self._import_action(process, act, dict(description))
-                    else:
-                        raise ValueError('Action {!r} was not used in {!r} process'.format(act_name, str(process)))
-                else:
-                    self._import_action(process, process.actions[act_name], description)
+                if act_name not in (x.name for x in process.actions.final_actions):
+                    raise ValueError(f'Action {act_name} was not used in {str(process)} process')
+                self._import_action(process, act_name, description)
+
+        # Connect actions
+        for name in next_actions:
+            process.actions[name].action = next_actions[name]
 
         for att in self.PROCESS_ATTRIBUTES:
             if att in dic:
@@ -280,7 +328,7 @@ class CollectionDecoder:
                 # Update object to be sure that changes are saved there
                 setattr(process, att, dic_copy)
 
-        unused_labels = {str(l) for l in process.unused_labels}
+        unused_labels = {str(label) for label in process.unused_labels}
         if unused_labels:
             raise RuntimeError("Found unused labels in process {!r}: {}".format(str(process), ', '.join(unused_labels)))
         if process.file != 'entry point':
@@ -288,16 +336,32 @@ class CollectionDecoder:
         if not process.actions.initial_action:
             raise RuntimeError('Process {!r} has no initial action'.format(str(process)))
 
+        intrs = set(process.actions.keys()).intersection(process.actions.savepoints)
+        assert not intrs, "Process must not have savepoints with the same names as actions, but there is an" \
+                          " intersection: %s" % ', '.join(intrs)
+
         process.accesses()
         return process
 
-    def _import_action(self, process, act, dic):
+    def _import_action(self, process, name, dic):
+        act = process.actions.behaviour(name).pop().kind(name)
+        process.actions[name] = act
+
         for att in (att for att in self.ACTION_ATTRIBUTES if att in dic):
             if self.ACTION_ATTRIBUTES[att]:
                 attname = self.ACTION_ATTRIBUTES[att]
             else:
                 attname = att
             setattr(act, attname, dic[att])
+
+        if 'savepoints' in dic:
+            for name, sp_dic in dic['savepoints'].items():
+                savepoint = Savepoint(name, sp_dic.get('statements', []), sp_dic.get('comment'))
+                act.savepoints.add(savepoint)
+
+        if 'require' in dic:
+            for process_name in dic['require']:
+                act.add_required_process(process_name, set(dic['require'][process_name].get('include', set())))
 
     def _import_label(self, name, dic):
         label = self.LABEL_CONSTRUCTOR(name)

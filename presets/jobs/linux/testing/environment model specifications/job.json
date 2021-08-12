@@ -1,7 +1,7 @@
 {
   "project": "Linux",
   "build base": "linux/testing/environment model specifications/606cdb",
-  "requirement specifications": ["test:environment model specifications"],
+  "requirement specifications": ["test:EMG"],
   "ideal verdicts": [
     {"ideal verdict": "safe"},
     {
@@ -17,6 +17,8 @@
         "ext-modules/ethtool_ops_v.2/ethtool_ops_invoke.ko",
         "ext-modules/ethtool_ops_v.3/ethtool_ops_invoke.ko",
         "ext-modules/file_operations_v.1/file_operations_invoke.ko",
+        "ext-modules/filesystem_v.1/fs_invoke.ko",
+        "ext-modules/filesystem_v.2/fs_invoke.ko",
         "ext-modules/generic/default_array_invoke.ko",
         "ext-modules/generic/default_invoke.ko",
         "ext-modules/generic/double_invoke.ko",
@@ -58,7 +60,6 @@
         "ext-modules/seq_operations_v.1/seq_operations_invoke.ko",
         "ext-modules/serial_core_v.1/serial_core_invoke.ko",
         "ext-modules/serio_driver_v.1/serio_driver_invoke.ko",
-        "ext-modules/super_block_v.1/fs_invoke.ko",
         "ext-modules/target_backend_v.1/target_backend_invoke.ko",
         "ext-modules/target_type_v.1/target_type_invoke.ko",
         "ext-modules/timer_v.1/init_timer_invoke.ko",
@@ -93,8 +94,66 @@
         "ext-modules/urb_v.1/usb_kill_urb_invoke.ko",
         "ext-modules/urb_v.1/usb_unlink_urb_invoke.ko",
         "ext-modules/urb_v.1/usb_poison_urb_invoke.ko",
-        "ext-modules/kthread_v.1/kthread_run_invoke.ko"
+        "ext-modules/kthread_v.1/kthread_run_invoke.ko",
+        "ext-modules/separate_functions/single_unsafe.ko",
+        "ext-modules/manual_model/unsafe.ko",
+        "ext-modules/decomposition_disabled/a_invoke.ko",
+        "ext-modules/decomposition_disabled/b_invoke.ko",
+        "ext-modules/decomposition_disabled/c_invoke.ko"
       ]
+    },
+    {
+      "ideal verdict": "unsafe",
+      "program fragments": [
+        "ext-modules/decomposition_default/a_invoke.ko",
+        "ext-modules/decomposition_default/b_invoke.ko"
+      ],
+      "environment model": ["1"]
+    },
+    {
+      "ideal verdict": "unsafe",
+      "program fragments": [
+        "ext-modules/decomposition_default/c_invoke.ko",
+        "ext-modules/decomposition_default/c_without_b_invoke.ko"
+      ],
+      "environment model": ["0"]
+    },
+    {
+      "ideal verdict": "unsafe",
+      "program fragments": [
+        "ext-modules/decomposition_linear/a_b_invoke.ko"
+      ]
+    },
+    {
+      "ideal verdict": "unsafe",
+      "program fragments": [
+        "ext-modules/decomposition_linear/c_invoke.ko"
+      ],
+      "environment model": ["0", "1"]
+    },
+    {
+      "ideal verdict": "unsafe",
+      "program fragments": [
+        "ext-modules/decomposition_selective_default/basic.ko",
+        "ext-modules/decomposition_selective_default/child_savepoints.ko"
+      ],
+      "environment model": ["0"]
+    },
+    {
+      "ideal verdict": "unsafe",
+      "program fragments": [
+        "ext-modules/decomposition_selective_default/basic.ko",
+        "ext-modules/decomposition_selective_default/child_savepoints.ko"
+      ],
+      "environment model": ["0"]
+    },
+    {
+      "ideal verdict": "unsafe",
+      "program fragments": [
+        "ext-modules/decomposition_selective_linear/basic.ko",
+        "ext-modules/decomposition_selective_linear/child_savepoints.ko"
+      ],
+      "environment model": ["0", "1"]
     }
   ],
   "extra results processing": "testing",
@@ -108,6 +167,7 @@
         "ext-modules/devm_threaded_irq_v.1",
         "ext-modules/ethtool_ops_v.1",
         "ext-modules/file_operations_v.1",
+        "ext-modules/filesystem_v.1",
         "ext-modules/get_sb_v.1",
         "ext-modules/hid_driver_v.1",
         "ext-modules/hid_v.1",
@@ -122,7 +182,6 @@
         "ext-modules/scsi_host_template_v.1",
         "ext-modules/seq_operations_v.1",
         "ext-modules/serial_core_v.1",
-        "ext-modules/super_block_v.1",
         "ext-modules/tty_v.1",
         "ext-modules/usb_driver_v.1",
         "ext-modules/usb_serial_driver_v.1"
@@ -136,6 +195,7 @@
         "ext-modules/devm_threaded_irq_v.1",
         "ext-modules/ethtool_ops_v.1",
         "ext-modules/file_operations_v.1",
+        "ext-modules/filesystem_v.2",
         "ext-modules/hid_driver_v.1",
         "ext-modules/hid_v.1",
         "ext-modules/i2c_v.1",
@@ -166,6 +226,7 @@
         "ext-modules/devm_threaded_irq_v.1",
         "ext-modules/ethtool_ops_v.2",
         "ext-modules/file_operations_v.1",
+        "ext-modules/filesystem_v.2",
         "ext-modules/hid_driver_v.1",
         "ext-modules/hid_v.1",
         "ext-modules/i2c_v.1",
@@ -196,6 +257,7 @@
         "ext-modules/devm_threaded_irq_v.1",
         "ext-modules/ethtool_ops_v.3",
         "ext-modules/file_operations_v.1",
+        "ext-modules/filesystem_v.2",
         "ext-modules/hid_driver_v.1",
         "ext-modules/hid_v.1",
         "ext-modules/i2c_v.1",
@@ -226,6 +288,7 @@
         "ext-modules/devm_threaded_irq_v.1",
         "ext-modules/ethtool_ops_v.3",
         "ext-modules/file_operations_v.1",
+        "ext-modules/filesystem_v.2",
         "ext-modules/hid_driver_v.1",
         "ext-modules/hid_v.1",
         "ext-modules/i2c_v.1",
@@ -256,6 +319,7 @@
         "ext-modules/devm_threaded_irq_v.1",
         "ext-modules/ethtool_ops_v.3",
         "ext-modules/file_operations_v.1",
+        "ext-modules/filesystem_v.2",
         "ext-modules/hid_driver_v.1",
         "ext-modules/hid_v.1",
         "ext-modules/i2c_v.1",
@@ -287,7 +351,7 @@
         "ext-modules/tasklet_v.1",
         "ext-modules/kthread_v.1"
       ],
-      "requirement specifications": ["test:environment model specifications with function pointer analysis"]
+      "requirement specifications": ["test:EMG with function pointer analysis"]
     },
     {
       "build base": "linux/testing/environment model specifications/fedc1e",
@@ -298,7 +362,7 @@
         "ext-modules/tasklet_v.1",
         "ext-modules/kthread_v.1"
       ],
-      "requirement specifications": ["test:environment model specifications with function pointer analysis"]
+      "requirement specifications": ["test:EMG with function pointer analysis"]
     },
     {
       "build base": "linux/testing/environment model specifications/01358e",
@@ -310,7 +374,7 @@
         "ext-modules/tasklet_v.1",
         "ext-modules/kthread_v.1"
       ],
-      "requirement specifications": ["test:environment model specifications with function pointer analysis"]
+      "requirement specifications": ["test:EMG with function pointer analysis"]
     },
     {
       "build base": "linux/testing/environment model specifications/a8ec86",
@@ -322,7 +386,7 @@
         "ext-modules/tasklet_v.2",
         "ext-modules/kthread_v.1"
       ],
-      "requirement specifications": ["test:environment model specifications with function pointer analysis"]
+      "requirement specifications": ["test:EMG with function pointer analysis"]
     },
     {
       "build base": "linux/testing/environment model specifications/62134e",
@@ -334,7 +398,7 @@
         "ext-modules/tasklet_v.2",
         "ext-modules/kthread_v.1"
       ],
-      "requirement specifications": ["test:environment model specifications with function pointer analysis"]
+      "requirement specifications": ["test:EMG with function pointer analysis"]
     },
     {
       "build base": "linux/testing/environment model specifications/81b6e0",
@@ -346,7 +410,140 @@
         "ext-modules/tasklet_v.2",
         "ext-modules/kthread_v.1"
       ],
-      "requirement specifications": ["test:environment model specifications with function pointer analysis"]
+      "requirement specifications": ["test:EMG with function pointer analysis"]
+    },
+    {
+      "build base": "linux/testing/environment model specifications/81b6e0",
+      "specifications set": "5.5",
+      "targets": [
+        "ext-modules/separate_functions"
+      ],
+      "generators options": [
+        {
+          "genericFunctions": {
+            "functions to call": ["ldv_entry_point"],
+            "call static": true
+          }
+        }
+      ]
+    },
+    {
+      "build base": "linux/testing/environment model specifications/81b6e0",
+      "specifications set": "5.5",
+      "targets": [
+        "ext-modules/manual_model"
+      ],
+      "generators options": [
+        {
+          "genericManual": {}
+        }
+      ]
+    },
+    {
+      "build base": "linux/testing/environment model specifications/81b6e0",
+      "specifications set": "5.5",
+      "targets": [
+        "ext-modules/decomposition_disabled"
+      ],
+      "generators options": [
+        {
+          "genericManual": {}
+        }
+      ]
+    },
+    {
+      "build base": "linux/testing/environment model specifications/81b6e0",
+      "specifications set": "5.5",
+      "targets": [
+        "ext-modules/decomposition_default"
+      ],
+      "generators options": [
+        {
+          "genericManual": {}
+        }
+      ],
+      "single environment model per fragment": false,
+      "skip origin model": true
+    },
+    {
+      "build base": "linux/testing/environment model specifications/81b6e0",
+      "specifications set": "5.5",
+      "targets": [
+        "ext-modules/decomposition_linear"
+      ],
+      "generators options": [
+        {
+          "genericManual": {}
+        }
+      ],
+      "single environment model per fragment": false,
+      "skip savepoints": true,
+      "scenario separation": "linear",
+      "select scenarios": "use all scenarios combinations"
+    },
+    {
+      "build base": "linux/testing/environment model specifications/81b6e0",
+      "specifications set": "5.5",
+      "targets": [
+        "ext-modules/decomposition_selective_default"
+      ],
+      "generators options": [
+        {
+          "genericManual": {}
+        }
+      ],
+      "single environment model per fragment": false,
+      "select scenarios": {
+        "must not contain": {
+          "cat/first_child": {},
+          "cat/second_child": {}
+        },
+        "cover scenarios": {}
+      }
+    },
+    {
+      "build base": "linux/testing/environment model specifications/81b6e0",
+      "specifications set": "5.5",
+      "targets": [
+        "ext-modules/decomposition_selective_default"
+      ],
+      "generators options": [
+        {
+          "genericManual": {}
+        }
+      ],
+      "single environment model per fragment": false,
+      "select scenarios": {
+        "must contain": {
+          "cat/first_child": {"scenarios only":  false}
+        },
+        "cover scenarios": {
+          "cat/first_child": {"actions":  ["first_branch"], "savepoints":  []}
+        }
+      }
+    },
+    {
+      "build base": "linux/testing/environment model specifications/81b6e0",
+      "specifications set": "5.5",
+      "targets": [
+        "ext-modules/decomposition_selective_linear"
+      ],
+      "generators options": [
+        {
+          "genericManual": {}
+        }
+      ],
+      "scenario separation": "linear",
+      "single environment model per fragment": false,
+      "select scenarios": {
+        "cover scenarios": {
+          "cat/first_child": {
+            "actions":  ["first_branch", "second_branch"],
+            "savepoints":  ["first_savepoint"],
+            "savepoints only":  true
+          }
+        }
+      }
     }
   ]
 }

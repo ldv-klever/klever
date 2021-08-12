@@ -10,7 +10,7 @@ celery==5.0.3
 certifi==2020.12.5
 cffi==1.14.4
 chardet==3.0.4
-clade==3.2.18
+clade==3.4.7
 click==7.1.2
 click-didyoumean==0.0.3
 click-plugins==1.1.1
@@ -102,3 +102,4 @@ warlock==1.3.3
 wcwidth==0.2.5
 wrapt==1.12.1
 zipp==3.4.0
+pytest==6.2.4

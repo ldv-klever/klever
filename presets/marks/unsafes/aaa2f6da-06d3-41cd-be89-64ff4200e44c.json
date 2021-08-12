@@ -1,0 +1,55 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Project:Version",
+      "value": "v5.8-rc1-317-g602649eadaa0"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/media/platform/qcom/camss/qcom-camss.ko"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "memory safety"
+    }
+  ],
+  "description": "https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/commit/?id=f45882cfb152",
+  "error_trace": [
+    [
+      [
+        {
+          "EMG wrapper": [
+            {
+              "camss_probe": [
+                {
+                  "Instrumented function 'kzalloc'": [
+                    {
+                      "LDV model 'kzalloc'": [
+                        {
+                          "LDV model 'zalloc'": [
+                            {
+                              "LDV model 'reference_zalloc'": []
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": false,
+  "status": null,
+  "tags": [],
+  "threshold": 100,
+  "verdict": "2"
+}

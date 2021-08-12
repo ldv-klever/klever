@@ -15,5 +15,6 @@
  * limitations under the License.
  */
 
+#undef LDV_SETS_MODEL_COUNTER
 #define LDV_SETS_MODEL_NONNEGATIVE_COUNTER
 #include <ldv/verifier/set.h>

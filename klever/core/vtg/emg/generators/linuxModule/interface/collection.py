@@ -73,6 +73,15 @@ class InterfaceCollection:
         :return: True or False.
         """
         return identifier in self.__deleted_interfaces
+    
+    def is_removed_function(self, name):
+        """
+        Returns True if there is an function interface with a provided identifier in a deleted interfaces collection.
+
+        :param name: Function name string.
+        :return: True or False.
+        """
+        return f"functions models.{name}" in self.__deleted_interfaces
 
     def get_or_restore_intf(self, identifier):
         """

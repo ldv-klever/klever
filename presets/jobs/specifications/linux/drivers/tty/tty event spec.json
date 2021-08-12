@@ -45,7 +45,7 @@
           "init": {
             "comment": "Allocate memory for file structure.",
             "statements": [
-              "%file% = $ALLOC(%file%);"
+              "$ALLOC(%file%);"
             ]
           },
           "install": {
@@ -244,7 +244,7 @@
           "alloc": {
             "comment": "Allocate memory for tty_driver structure.",
             "statements": [
-              "%tty_driver% = $ALLOC(%tty_driver%);"
+              "$ALLOC(%tty_driver%);"
             ]
           },
           "fail": {
@@ -280,7 +280,7 @@
           "alloc": {
             "comment": "Allocate memory for tty_driver structure.",
             "statements": [
-              "%tty_driver% = $ALLOC(%tty_driver%);"
+              "$ALLOC(%tty_driver%);"
             ]
           },
           "fail": {

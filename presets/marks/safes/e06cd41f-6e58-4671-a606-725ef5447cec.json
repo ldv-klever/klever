@@ -3,12 +3,12 @@
     {
       "is_compare": true,
       "name": "Requirements specification",
-      "value": "test:environment model specifications"
+      "value": "test:EMG"
     },
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/super_block_v.1/fs_callbacks.ko"
+      "value": "ext-modules/filesystem_v.1/fs_callbacks.ko"
     }
   ],
   "description": "",

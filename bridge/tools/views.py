@@ -34,7 +34,7 @@ from rest_framework.response import Response
 from rest_framework.renderers import TemplateHTMLRenderer
 
 from bridge.vars import USER_ROLES, UNKNOWN_ERROR, DECISION_STATUS
-from bridge.utils import BridgeException, logger
+from bridge.utils import logger, BridgeException
 from bridge.access import ManagerPermission
 
 from jobs.models import JobFile, Decision
@@ -43,10 +43,13 @@ from marks.models import ConvertedTrace
 from service.models import Task
 from tools.models import LockTable
 
-from tools.utils import objects_without_relations, ClearFiles, Recalculation, RecalculateMarksCache
+from tools.utils import (
+    objects_without_relations, ClearFiles, Recalculation, RecalculateMarksCache, RemoveDuplicates, ErrorTraceAnanlizer
+)
 from tools.profiling import ProfileData, ExecLocker, LoggedCallMixin, DBLogsAnalizer
 
 from jobs.preset import PopulatePresets
+from reports.etv import GetETV
 from marks.population import PopulateSafeMarks, PopulateUnsafeMarks, PopulateUnknownMarks, populate_tags
 from service.population import populuate_schedulers
 
@@ -76,6 +79,7 @@ class ClearSystemAPIView(LoggedCallMixin, APIView):
         assert request.user.role == USER_ROLES[2][0]
         ClearFiles()
         objects_without_relations(Computer).delete()
+        RemoveDuplicates()
         return Response({'message': _("All unused files and DB rows were deleted")})
 
 
@@ -266,4 +270,31 @@ class FileLogView(LoginRequiredMixin, TemplateView):
             selected_log = context['logs'][0]
 
         context['selected_log'] = selected_log
+        return context
+
+
+class ErrorTraceAnalizerView(LoginRequiredMixin, TemplateView):
+    template_name = 'tools/ErrorTraceAnalizer.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['include_jquery_ui'] = True
+        context['etv'] = context['json'] = None
+
+        et_index = 0
+        if 'index' in self.request.GET:
+            et_index = int(self.request.GET['index'])
+        context['index'] = et_index
+
+        et_dir = os.path.join(settings.BASE_DIR, 'tools', 'error-traces')
+        error_traces = os.listdir(et_dir)
+        context['error_traces'] = list((i, error_traces[i]) for i in range(len(error_traces)))
+        if len(error_traces) > et_index:
+            with open(os.path.join(et_dir, error_traces[0]), mode='r', encoding='utf-8') as fp:
+                error_trace = fp.read()
+            try:
+                context['etv'] = GetETV(error_trace, self.request.user)
+            except Exception as e:
+                logger.exception(e)
+            context['json'] = ErrorTraceAnanlizer(error_trace).get_trace().replace('\\"', '\\\\"')
         return context

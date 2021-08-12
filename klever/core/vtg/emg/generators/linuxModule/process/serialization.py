@@ -27,7 +27,8 @@ class ExtendedProcessDecoder(CollectionDecoder):
         'headers': None,
         'declarations': None,
         'definitions': None,
-        'source files': 'cfiles'
+        'source files': 'cfiles',
+        'peers': None
     }
     ACTION_ATTRIBUTES = {
         'comment': None,
@@ -58,21 +59,20 @@ class ExtendedProcessDecoder(CollectionDecoder):
         super().__init__(logger, conf)
         self.conf.setdefault("callback comment", 'Invoke callback {0!r} from {1!r}.')
 
-    def _import_action(self, process, act, dic):
+    def _import_action(self, process, name, dic):
+        super()._import_action(process, name, dic)
+        act = process.actions[name]
         if 'callback' in dic:
             if isinstance(act, Dispatch) and 'callback' in dic:
-                new = Call(act.name)
+                new = Call(name)
             elif isinstance(act, Receive):
-                new = CallRetval(act.name)
+                new = CallRetval(name)
             else:
                 new = None
 
             if new:
-                process.replace_action(act, new)
-                del process.actions[str(act)]
+                new.__dict__.update(act.__dict__)
                 process.actions[str(new)] = new
-                act = new
-        super()._import_action(process, act, dic)
 
     def _import_label(self, name, dic):
         label = super()._import_label(name, dic)
@@ -91,3 +91,23 @@ class ExtendedProcessDecoder(CollectionDecoder):
                 TypeError('Expect list or string with interface identifier')
 
         return label
+
+    def _import_process(self, source, name, category, dic):
+        process = super()._import_process(source, name, category, dic)
+
+        # Now we need to extract category from labels
+        if not process.category:
+            labels = filter(lambda x: x.interfaces, process.labels.values())
+            popular = dict()
+            for interface in (i for l in labels for i in l.interfaces):
+                category, _ = interface.split('.')
+                popular.setdefault(category, 0)
+                popular[category] += 1
+
+            popular = list(reversed(sorted(popular.keys(), key=lambda x: popular[x])))
+            if not popular:
+                self.logger.warning(f'Cannot determine category of the process {process.name}')
+                process.category = 'undefined'
+            else:
+                process.category = popular[0]
+        return process

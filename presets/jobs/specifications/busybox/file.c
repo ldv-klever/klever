@@ -85,8 +85,6 @@ int ldv_fileno(FILE *stream)
 		/* NOTE This is the fifth tracked file */
 		return ldv_tmp_file_fd5;
 
-	/* ASSERT Should open a FILE stream to get its file descriptor */
-	ldv_assert(1);
 	return ret;
 }
 
@@ -173,40 +171,50 @@ FILE *ldv_fdopen(int fd)
 		/* NOTE Get the file descriptor of STDEFF */
 		return stdout;
 	if (fd == 3) {
-		/* ASSERT Should open the first file before accessing it */
-		ldv_assert(ldv_tmp_file1 == 0);
+		if (ldv_tmp_file1 != 0)
+			/* ASSERT Should open the first file before accessing it */
+			ldv_assert();
+
 		ldv_tmp_file1 = ldv_reference_xmalloc(0);
 		ldv_tmp_file_fd1 = 3;
 		/* NOTE Successfully opened the first file */
 		return ldv_tmp_file1;
 	}
 	if (fd == 4) {
-		/* ASSERT Should open the second file before accessing it */
-		ldv_assert(ldv_tmp_file2 == 0);
+		if (ldv_tmp_file2 != 0)
+			/* ASSERT Should open the second file before accessing it */
+			ldv_assert();
+
 		ldv_tmp_file2 = ldv_reference_xmalloc(0);
 		ldv_tmp_file_fd2 = 4;
 		/* NOTE Successfully opened the second file */
 		return ldv_tmp_file2;
 	}
 	if (fd == 5) {
-		/* ASSERT Successfully opened the third file before accessing it */
-		ldv_assert(ldv_tmp_file3 == 0);
+		if (ldv_tmp_file3 != 0)
+			/* ASSERT Successfully opened the third file before accessing it */
+			ldv_assert();
+
 		ldv_tmp_file3 = ldv_reference_xmalloc(0);
 		ldv_tmp_file_fd3 = 5;
 		/* NOTE Successfully opened the third file */
 		return ldv_tmp_file3;
 	}
 	if (fd == 6) {
-		/* ASSERT Should open the fourth file before accessing it */
-		ldv_assert(ldv_tmp_file4 == 0);
+		if (ldv_tmp_file4 != 0)
+			/* ASSERT Should open the fourth file before accessing it */
+			ldv_assert();
+
 		ldv_tmp_file4 = ldv_reference_xmalloc(0);
 		ldv_tmp_file_fd4 = 6;
 		/* NOTE Successfully opened the fourth file */
 		return ldv_tmp_file4;
 	}
 	if (fd == 7) {
-		/* ASSERT Should open the fifth file before accessing it */
-		ldv_assert(ldv_tmp_file5 == 0);
+		if (ldv_tmp_file5 != 0)
+			/* ASSERT Should open the fifth file before accessing it */
+			ldv_assert();
+
 		ldv_tmp_file5 = ldv_reference_xmalloc(0);
 		ldv_tmp_file_fd5 = 7;
 		/* NOTE Successfully opened the fifth file */
@@ -216,7 +224,7 @@ FILE *ldv_fdopen(int fd)
 	    return 0;
 	else
 	    /* ASSERT Cannot open a stream of an unknown file descriptor */
-	    ldv_assert(0);
+	    ldv_assert();
 }
 
 int ldv_close(int fd)
@@ -225,57 +233,77 @@ int ldv_close(int fd)
 		/* NOTE Close a standard stream */
 		return 0;
 	if (fd == 3) {
-		/* ASSERT Must call close to avoid memory leak */
-		ldv_assert(ldv_tmp_file1 == 0);
-		/* ASSERT Should open the file stream before closing it */
-		ldv_assert(ldv_tmp_file_fd1 == 3);
+		if (ldv_tmp_file1 != 0)
+			/* ASSERT Must call close to avoid memory leak */
+			ldv_assert();
+
+		if (ldv_tmp_file_fd1 != 3)
+			/* ASSERT Should open the file stream before closing it */
+			ldv_assert();
+
 		ldv_tmp_file_fd1 = -1;
 		ldv_tmp_file1 = 0;
 		/* NOTE Close the first stream */
 		return 0;
 	}
 	if (fd == 4) {
-		/* ASSERT Must call close to avoid memory leak */
-		ldv_assert(ldv_tmp_file2 == 0);
-		/* ASSERT Should open the file stream before closing it */
-		ldv_assert(ldv_tmp_file_fd2 == 4);
+		if (ldv_tmp_file2 != 0)
+			/* ASSERT Must call close to avoid memory leak */
+			ldv_assert();
+
+		if (ldv_tmp_file_fd2 != 4)
+			/* ASSERT Should open the file stream before closing it */
+			ldv_assert();
+
 		ldv_tmp_file_fd2 = -1;
 		ldv_tmp_file2 = 0;
 		/* NOTE Close the second stream */
 		return 0;
 	}
 	if (fd == 5) {
-		/* ASSERT Must call close to avoid memory leak */
-		ldv_assert(ldv_tmp_file3 == 0);
-		/* ASSERT Should open the file stream before closing it */
-		ldv_assert(ldv_tmp_file_fd3 == 5);
+		if (ldv_tmp_file3 != 0)
+			/* ASSERT Must call close to avoid memory leak */
+			ldv_assert();
+
+		if (ldv_tmp_file_fd3 != 5)
+			/* ASSERT Should open the file stream before closing it */
+			ldv_assert();
+
 		ldv_tmp_file_fd3 = -1;
 		ldv_tmp_file3 = 0;
 		/* NOTE Close the third stream */
 		return 0;
 	}
 	if (fd == 6) {
-		/* ASSERT Must call close to avoid memory leak */
-		ldv_assert(ldv_tmp_file4 == 0);
-		/* ASSERT Should open the file stream before closing it */
-		ldv_assert(ldv_tmp_file_fd4 == 6);
+		if (ldv_tmp_file4 != 0)
+			/* ASSERT Must call close to avoid memory leak */
+			ldv_assert();
+
+		if (ldv_tmp_file_fd4 != 6)
+			/* ASSERT Should open the file stream before closing it */
+			ldv_assert();
+
 		ldv_tmp_file_fd4 = -1;
 		ldv_tmp_file4 = 0;
 		/* NOTE Close the fourth stream */
 		return 0;
 	}
 	if (fd == 7) {
-		/* ASSERT Must call close to avoid memory leak */
-		ldv_assert(ldv_tmp_file5 == 0);
-		/* ASSERT Should open the file stream before closing it */
-		ldv_assert(ldv_tmp_file_fd5 == 7);
+		if (ldv_tmp_file5 != 0)
+			/* ASSERT Must call close to avoid memory leak */
+			ldv_assert();
+
+		if (ldv_tmp_file_fd5 != 7)
+			/* ASSERT Should open the file stream before closing it */
+			ldv_assert();
+
 		ldv_tmp_file_fd5 = -1;
 		ldv_tmp_file5 = 0;
 		/* NOTE Close the fifth stream */
 		return 0;
 	}
 	/* ASSERT Should open the file stream before closing it */
-	ldv_assert(0);
+	ldv_assert();
 }
 
 int ldv_fclose(FILE *fp)
@@ -284,47 +312,57 @@ int ldv_fclose(FILE *fp)
 		/* NOTE Close a standard stream by its descriptor */
 		return 0;
 	if (fp == ldv_tmp_file1) {
-		/* ASSERT Should open the file before closing it */
-		ldv_assert(ldv_tmp_file_fd1 == 3);
+		if (ldv_tmp_file_fd1 != 3)
+			/* ASSERT Should open the file before closing it */
+			ldv_assert();
+
 		ldv_tmp_file_fd1 = -1;
 		ldv_tmp_file1 = 0;
 		/* NOTE Close the first file */
 		return 0;
 	}
 	if (fp == ldv_tmp_file2) {
-		/* ASSERT Should open the file before closing it */
-		ldv_assert(ldv_tmp_file_fd2 == 4);
+		if (ldv_tmp_file_fd2 != 4)
+			/* ASSERT Should open the file before closing it */
+			ldv_assert();
+
 		ldv_tmp_file_fd2 = -1;
 		ldv_tmp_file2 = 0;
 		/* NOTE Close the second file */
 		return 0;
 	}
 	if (fp == ldv_tmp_file3) {
-		/* ASSERT Should open the file before closing it */
-		ldv_assert(ldv_tmp_file_fd3 == 5);
+		if (ldv_tmp_file_fd3 != 5)
+			/* ASSERT Should open the file before closing it */
+			ldv_assert();
+
 		ldv_tmp_file_fd3 = -1;
 		ldv_tmp_file3 = 0;
 		/* NOTE Close the third file */
 		return 0;
 	}
 	if (fp == ldv_tmp_file4) {
-		/* ASSERT Should open the file before closing it */
-		ldv_assert(ldv_tmp_file_fd4 == 6);
+		if (ldv_tmp_file_fd4 != 6)
+			/* ASSERT Should open the file before closing it */
+			ldv_assert();
+
 		ldv_tmp_file_fd4 = -1;
 		ldv_tmp_file4 = 0;
 		/* NOTE Close the fourth file */
 		return 0;
 	}
 	if (fp == ldv_tmp_file5) {
-		/* ASSERT Should open the file before closing it */
-		ldv_assert(ldv_tmp_file_fd5 == 7);
+		if (ldv_tmp_file_fd5 != 7)
+			/* ASSERT Should open the file before closing it */
+			ldv_assert();
+
 		ldv_tmp_file_fd5 = -1;
 		ldv_tmp_file5 = 0;
 		/* NOTE Close the fifth file */
 		return 0;
 	}
 	/* ASSERT Should open the file before closing it */
-	ldv_assert(0);
+	ldv_assert();
 }
 
 void ldv_faccess(FILE *fp)
@@ -333,37 +371,47 @@ void ldv_faccess(FILE *fp)
 		/* NOTE Access a standard stream */
 		return;
 	if (fp == ldv_tmp_file1) {
-		/* ASSERT Should open the stream before closing it */
-		ldv_assert(ldv_tmp_file_fd1 == 3);
+		if (ldv_tmp_file_fd1 != 3)
+			/* ASSERT Should open the stream before closing it */
+			ldv_assert();
+
 		/* NOTE Access the first stream */
 		return;
 	}
 	if (fp == ldv_tmp_file2) {
-		/* ASSERT Should open the stream before closing it */
-		ldv_assert(ldv_tmp_file_fd2 == 4);
+		if (ldv_tmp_file_fd2 != 4)
+			/* ASSERT Should open the stream before closing it */
+			ldv_assert();
+
 		/* NOTE Access the second stream */
 		return;
 	}
 	if (fp == ldv_tmp_file3) {
-		/* ASSERT Should open the stream before closing it */
-		ldv_assert(ldv_tmp_file_fd3 == 5);
+		if (ldv_tmp_file_fd3 != 5)
+			/* ASSERT Should open the stream before closing it */
+			ldv_assert();
+
 		/* NOTE Access the third stream */
 		return;
 	}
 	if (fp == ldv_tmp_file4) {
-		/* ASSERT Should open the stream before closing it */
-		ldv_assert(ldv_tmp_file_fd4 == 6);
+		if (ldv_tmp_file_fd4 != 6)
+			/* ASSERT Should open the stream before closing it */
+			ldv_assert();
+
 		/* NOTE Access the fourth stream */
 		return;
 	}
 	if (fp == ldv_tmp_file5) {
-		/* ASSERT Should open the stream before closing it */
-		ldv_assert(ldv_tmp_file_fd5 == 7);
+		if (ldv_tmp_file_fd5 != 7)
+			/* ASSERT Should open the stream before closing it */
+			ldv_assert();
+
 		/* NOTE Access the fifth stream */
 		return;
 	}
 	/* ASSERT Should open the stream before accessing it */
-	ldv_assert(0);
+	ldv_assert();
 }
 
 void ldv_access(int fd)
@@ -371,37 +419,47 @@ void ldv_access(int fd)
 	if (fd == 0 || fd == 1 || fd == 2)
 		return;
 	if (fd == 3) {
-		/* ASSERT Should open the file before accessing it */
-		ldv_assert(ldv_tmp_file_fd1 == 3);
+		if (ldv_tmp_file_fd1 != 3)
+			/* ASSERT Should open the file before accessing it */
+			ldv_assert();
+
 		/* NOTE Access the first file */
 		return;
 	}
 	if (fd == 4) {
-		/* ASSERT Should open the file before accessing it */
-		ldv_assert(ldv_tmp_file_fd2 == 4);
+		if (ldv_tmp_file_fd2 != 4)
+			/* ASSERT Should open the file before accessing it */
+			ldv_assert();
+
 		/* NOTE Access the second file */
 		return;
 	}
 	if (fd == 5) {
-		/* ASSERT Should open the file before accessing it */
-		ldv_assert(ldv_tmp_file_fd3 == 5);
+		if (ldv_tmp_file_fd3 != 5)
+			/* ASSERT Should open the file before accessing it */
+			ldv_assert();
+
 		/* NOTE Access the third file */
 		return;
 	}
 	if (fd == 6) {
-		/* ASSERT Should open the file before accessing it */
-		ldv_assert(ldv_tmp_file_fd4 == 6);
+		if (ldv_tmp_file_fd4 != 6)
+			/* ASSERT Should open the file before accessing it */
+			ldv_assert();
+
 		/* NOTE Access the fourth file */
 		return;
 	}
 	if (fd == 7) {
-		/* ASSERT Should open the file before accessing it */
-		ldv_assert(ldv_tmp_file_fd5 == 7);
+		if (ldv_tmp_file_fd5 != 7)
+			/* ASSERT Should open the file before accessing it */
+			ldv_assert();
+
 		/* NOTE Access the fifth file */
 		return;
 	}
 	/* ASSERT Cannot access an unopened file */
-	ldv_assert(0);
+	ldv_assert();
 }
 
 int ldv_pipe(int pipefd[2])
@@ -419,14 +477,23 @@ int ldv_pipe(int pipefd[2])
 
 void ldv_check_final_state(void)
 {
-    /* ASSERT Missed closing the first file */
-	ldv_assert(ldv_tmp_file1 == 0);
-	/* ASSERT Missed closing the second file */
-	ldv_assert(ldv_tmp_file2 == 0);
-	/* ASSERT Missed closing the third file */
-	ldv_assert(ldv_tmp_file3 == 0);
-	/* ASSERT Missed closing the fourth file */
-	ldv_assert(ldv_tmp_file4 == 0);
-	/* ASSERT Missed closing the fifth file */
-	ldv_assert(ldv_tmp_file5 == 0);
+	if (ldv_tmp_file1 != 0)
+		/* ASSERT Missed closing the first file */
+		ldv_assert();
+
+	if (ldv_tmp_file2 != 0)
+		/* ASSERT Missed closing the second file */
+		ldv_assert();
+
+	if (ldv_tmp_file3 != 0)
+		/* ASSERT Missed closing the third file */
+		ldv_assert();
+
+	if (ldv_tmp_file4 != 0)
+		/* ASSERT Missed closing the fourth file */
+		ldv_assert();
+
+	if (ldv_tmp_file5 != 0)
+		/* ASSERT Missed closing the fifth file */
+		ldv_assert();
 }

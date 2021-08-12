@@ -23,7 +23,7 @@ from klever.deploys.utils import Cd, execute_cmd, get_logger, start_services, st
 
 
 # This function includes common actions for both development and production Klever Bridge.
-def _install_klever_bridge(logger):
+def _install_klever_bridge(logger, update):
     logger.info('Update translations')
     execute_cmd(logger, sys.executable, './manage.py', 'compilemessages')
 
@@ -31,31 +31,34 @@ def _install_klever_bridge(logger):
     execute_cmd(logger, sys.executable, './manage.py', 'migrate')
 
     logger.info('Populate database')
-    execute_cmd(logger, sys.executable, './manage.py', 'createuser',
-                '--username', 'admin', '--password', 'admin',
-                '--staff', '--superuser')
-    execute_cmd(logger, sys.executable, './manage.py', 'createuser',
-                '--username', 'manager', '--password', 'manager',
-                '--role', '2')
-    execute_cmd(logger, sys.executable, './manage.py', 'createuser',
-                '--username', 'service', '--password', 'service',
-                '--role', '4')
+    # We need to create users once. Otherwise this can overwrite their settings changed manually.
+    if not update:
+        execute_cmd(logger, sys.executable, './manage.py', 'createuser',
+                    '--username', 'admin', '--password', 'admin',
+                    '--staff', '--superuser')
+        execute_cmd(logger, sys.executable, './manage.py', 'createuser',
+                    '--username', 'manager', '--password', 'manager',
+                    '--role', '2')
+        execute_cmd(logger, sys.executable, './manage.py', 'createuser',
+                    '--username', 'service', '--password', 'service',
+                    '--role', '4')
+
     execute_cmd(logger, sys.executable, './manage.py', 'populate', '--all')
 
 
-def install_klever_bridge_development(logger, src_dir):
+def install_klever_bridge_development(logger, src_dir, update=False):
     logger.info('Install/update development Klever Bridge')
 
     services = ('klever-bridge-development', 'klever-celery-development', 'klever-celerybeat-development')
     stop_services(logger, services)
 
     with Cd(os.path.join(src_dir, 'bridge')):
-        _install_klever_bridge(logger)
+        _install_klever_bridge(logger, update)
 
     start_services(logger, services)
 
 
-def install_klever_bridge_production(logger, src_dir, deploy_dir, populate_just_production_presets=True):
+def install_klever_bridge_production(logger, src_dir, deploy_dir, populate_just_production_presets=True, update=False):
     logger.info('Install/update production Klever Bridge')
 
     services = ('nginx', 'klever-bridge', 'klever-celery', 'klever-celerybeat')
@@ -77,7 +80,8 @@ def install_klever_bridge_production(logger, src_dir, deploy_dir, populate_just_
 
     logger.info('Prepare media directory')
     media = '/var/www/klever-bridge/bridge/media'
-    media_real = os.path.join(os.path.realpath(deploy_dir), 'klever-media')
+    media_real = os.path.realpath(os.path.join(os.path.realpath(deploy_dir), 'klever-media'))
+
     shutil.rmtree(media)
     execute_cmd(logger, 'mkdir', '-p', media_real)
     execute_cmd(logger, 'ln', '-s', '-T', media_real, media)
@@ -88,7 +92,7 @@ def install_klever_bridge_production(logger, src_dir, deploy_dir, populate_just_
             if not populate_just_production_presets:
                 fp.write('POPULATE_JUST_PRODUCTION_PRESETS = False\n')
 
-        _install_klever_bridge(logger)
+        _install_klever_bridge(logger, update)
 
         logger.info('Collect static files')
         execute_cmd(logger, sys.executable, './manage.py', 'collectstatic', '--noinput')
@@ -115,14 +119,16 @@ def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--development', default=False, action='store_true')
+    parser.add_argument('--update', default=False, action='store_true')
     parser.add_argument('--source-directory', default='klever')
     parser.add_argument('--deployment-directory', default='klever-inst')
     args = parser.parse_args()
 
     if args.development:
-        install_klever_bridge_development(get_logger(__name__), args.source_directory)
+        install_klever_bridge_development(get_logger(__name__), args.source_directory, args.update)
     else:
-        install_klever_bridge_production(get_logger(__name__), args.source_directory, args.deployment_directory)
+        install_klever_bridge_production(get_logger(__name__), args.source_directory, args.deployment_directory,
+                                         args.update)
 
 
 if __name__ == '__main__':

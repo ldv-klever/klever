@@ -8,7 +8,7 @@
     {
       "is_compare": true,
       "name": "Requirements specification",
-      "value": "test:environment model specifications"
+      "value": "test:EMG"
     }
   ],
   "description": "",
@@ -44,11 +44,7 @@
         {
           "LDV model 'probe'": [
             {
-              "LDV model 'invoke_reached'": [
-                {
-                  "LDV model 'assert'": []
-                }
-              ]
+              "LDV model 'invoke_reached'": []
             }
           ]
         }

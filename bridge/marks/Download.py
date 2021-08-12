@@ -434,6 +434,7 @@ class UploadAllMarks:
                         mark_type = self._uploader.upload_mark(fp)[0]
                     except Exception as e:
                         logger.exception(e)
+                        logger.error('Uploading of mark "{}" has failed.'.format(file_name))
                         mark_type = 'fail'
                     upload_result.setdefault(mark_type, 0)
                     upload_result[mark_type] += 1

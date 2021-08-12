@@ -58,7 +58,7 @@
           "init": {
             "comment": "Alloc memory and initialize an usb_serial structure that should be done by USB serial subsystem when the device is inserted.",
             "statements": [
-              "%resource% = $ALLOC(%resource%);"
+              "$ALLOC(%resource%);"
             ]
           },
           "insert_device": {
@@ -639,7 +639,7 @@
           "init": {
             "comment": "Alloc memory and initialize an usb_serial structure that should be done by USB serial subsystem when the device is inserted.",
             "statements": [
-              "%resource% = $ALLOC(%resource%);",
+              "$ALLOC(%resource%);",
               "%port% = ldv_xmalloc(sizeof(struct usb_serial_port));",
               "%port%->write_urbs[0] = emg_make_urb(%port%);",
               "%port%->interrupt_in_urb = emg_make_urb(%port%);",
@@ -841,7 +841,7 @@
               "struct urb *emg_make_urb(struct usb_serial_port *port) {\n",
               "\t struct urb *new_urb;\n",
               "\t new_urb = ldv_xmalloc(sizeof(struct urb));\n",
-              "\t new_urb->transfer_buffer = external_allocated_data();\n",
+              "\t new_urb->transfer_buffer = ldv_malloc_unknown_size();\n",
               "\t new_urb->context = port;\n",
               "\t ldv_assume(new_urb->actual_length > 0);\n",
               "\t ldv_assume(new_urb->actual_length < 1000);\n",
@@ -992,7 +992,7 @@
           "init": {
             "comment": "Alloc memory and initialize an usb_serial structure that should be done by USB serial subsystem when the device is inserted.",
             "statements": [
-              "%resource% = $ALLOC(%resource%);"
+              "$ALLOC(%resource%);"
             ]
           },
           "insert_device": {

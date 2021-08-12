@@ -372,12 +372,34 @@ class AttrStatisticsInfo:
     def __init__(self, view, **qs_kwargs):
         self.attr_name = self.__get_attr_name(view)
         self._qs_kwargs = qs_kwargs
+        self._filtered_attrs = {}
+        self._attr_filter = self.__get_qs_filters(view)
         self.info = self.__get_info()
 
     def __get_attr_name(self, view):
         if view['attr_stat'] and len(view['attr_stat']) == 1:
             return view['attr_stat'][0]
         return None
+
+    def __get_qs_filters(self, view):
+        if view['attr_stat_filter'] and len(view['attr_stat_filter']) == 2:
+            return view['attr_stat_filter'][0], view['attr_stat_filter'][1].lower()
+        return None
+
+    def __filter_attr(self, value):
+        if self._attr_filter is None:
+            return True
+        if value in self._filtered_attrs:
+            return self._filtered_attrs[value]
+        accepted = False
+        if self._attr_filter[0] == 'iexact':
+            accepted = self._attr_filter[1] == value.lower()
+        elif self._attr_filter[0] == 'istartswith':
+            accepted = value.lower().startswith(self._attr_filter[1])
+        elif self._attr_filter[0] == 'icontains':
+            accepted = self._attr_filter[1] in value.lower()
+        self._filtered_attrs[value] = accepted
+        return accepted
 
     def __get_info(self):
         if not self.attr_name:
@@ -391,6 +413,8 @@ class AttrStatisticsInfo:
             ).values_list('cache__attrs', flat=True)
             for report_attrs in queryset:
                 attr_value = report_attrs[self.attr_name]
+                if not self.__filter_attr(attr_value):
+                    continue
                 if attr_value not in data:
                     data[attr_value] = {
                         'attr_value': attr_value, 'safes': 0, 'unsafes': 0, 'unknowns': 0,

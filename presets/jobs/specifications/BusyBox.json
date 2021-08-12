@@ -32,22 +32,21 @@
           "options": {
             "common sets model": "counter",
             "model compiler input file": "applets/applets.c",
-            "common models": {
-              "verifier/common.c": {},
-              "verifier/gcc.c": {},
-              "verifier/nondet.c": {},
-              "userspace/verifier/memory.c": {},
-              "userspace/common.c": {},
-              "userspace/string.c": {},
-              "userspace/stdlib.c": {},
-              "userspace/stdio.c": {},
-              "busybox/globals.c": {},
-              "busybox/fork.c": {},
-              "busybox/libbb/appletlib.c": {},
-              "busybox/libbb/verror_msg.c": {},
-              "busybox/libbb/perror_msg.c": {},
-              "busybox/libbb/xfuncs_printf.c": {}
-            }
+            "common models": [
+              "verifier/gcc.c",
+              "verifier/nondet.c",
+              "userspace/verifier/memory.c",
+              "userspace/common.c",
+              "userspace/string.c",
+              "userspace/stdlib.c",
+              "userspace/stdio.c",
+              "busybox/globals.c",
+              "busybox/fork.c",
+              "busybox/libbb/appletlib.c",
+              "busybox/libbb/verror_msg.c",
+              "busybox/libbb/perror_msg.c",
+              "busybox/libbb/xfuncs_printf.c"
+            ]
           }
         },
         {
@@ -61,7 +60,7 @@
             "verifier profile": "CPAchecker BAM BusyBox",
             "verifier": {
               "name": "CPAchecker",
-              "version": "klever_fixes:36704"
+              "version": "klever_fixes:37649"
             }
           }
         }
@@ -90,7 +89,7 @@
               "verifier profile": "memory checking",
               "verifier": {
                 "name": "CPAchecker",
-                "version": "klever_fixes:36704"
+                "version": "klever_fixes:37649"
               }
             }
           }

@@ -54,6 +54,7 @@ HIGHLIGHT_CLASSES = {
     'LSE': 'SrcHlLSE',
     'N': 'SrcHlN',
     'NB': 'SrcHlNB',
+    'NC': 'SrcHlNC',
     'NF': 'SrcHlNF',
     'NL': 'SrcHlNL',
     'O': 'SrcHlO',
@@ -69,7 +70,9 @@ HIGHLIGHT_CLASSES = {
 
 COVERAGE_CLASSES = {
     'Verifier assumption': "SrcCovVA",
-    'Environment modelling hint': "SrcCovEMH"
+    'Verifier operation statistics': "SrcCovVOS",
+    'Environment modelling hint': "SrcCovEMH",
+    'Multiple notes': "SrcCovMN"
 }
 
 
@@ -377,8 +380,8 @@ class ParseSource:
     def __get_coverage_note(self, line):
         if self._coverage and 'notes' in self._coverage and line in self._coverage['notes']:
             return (
-                COVERAGE_CLASSES.get(self._coverage['notes']['kind']),
-                self._coverage['notes']['text']
+                COVERAGE_CLASSES.get(self._coverage['notes'][line]['kind']),
+                self._coverage['notes'][line]['text']
             )
         return None
 

@@ -28,7 +28,7 @@
             "comment": "Allocate memory for auxiliary variables.",
             "trace relevant": true,
             "statements": [
-              "%index% = $ALLOC(%index%);"
+              "$ALLOC(%index%);"
             ]
           },
           "inner_loop": {
@@ -155,7 +155,7 @@
             "comment": "Alloc memory for sequential file structure and initialize it.",
             "trace relevant": true,
             "statements": [
-              "%seq_file% = $ALLOC(%seq_file%);",
+              "$ALLOC(%seq_file%);",
               "%ops% = $ARG2;",
               "%file%->private_data = %seq_file%;"
             ]

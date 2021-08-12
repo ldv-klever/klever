@@ -22,11 +22,7 @@
                 {
                   "Instrumented function 'idr_alloc'": [
                     {
-                      "LDV model 'idr_alloc_idp'": [
-                        {
-                          "LDV model 'assert'": []
-                        }
-                      ]
+                      "LDV model 'idr_alloc_idp'": []
                     }
                   ]
                 }

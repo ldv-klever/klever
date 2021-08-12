@@ -18,11 +18,7 @@
         {
           "Entry point 'main'": [
             {
-              "LDV model 'check_final_state'": [
-                {
-                  "LDV model 'assert'": []
-                }
-              ]
+              "LDV model 'check_final_state'": []
             }
           ]
         }
@@ -38,6 +34,9 @@
                   "LDV model 'create_class'": [
                     {
                       "LDV model 'undef_ptr'": []
+                    },
+                    {
+                      "LDV model 'is_err'": []
                     }
                   ]
                 }

@@ -17,13 +17,15 @@
 
 import os
 import re
+import json
 import tempfile
 import datetime
 
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
+from django.contrib.postgres.aggregates import ArrayAgg
 from django.db import transaction
-from django.db.models import F, FileField
+from django.db.models import F, FileField, Count
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 
@@ -35,11 +37,11 @@ from service.models import SERVICE_DIR, Solution, Task
 from marks.models import (
     CONVERTED_DIR, ConvertedTrace, MarkSafe, MarkSafeReport, MarkSafeAttr, MarkSafeTag,
     MarkUnsafe, MarkUnsafeReport, MarkUnsafeAttr, MarkUnsafeTag,
-    MarkUnknown, MarkUnknownReport, MarkUnknownAttr
+    MarkUnknown, MarkUnknownReport, MarkUnknownAttr, UnsafeConvertionCache
 )
 from reports.models import (
     ReportComponent, ReportSafe, ReportUnsafe, ReportUnknown, ReportComponentLeaf,
-    CoverageArchive, OriginalSources, DecisionCache, ORIGINAL_SOURCES_DIR
+    CoverageArchive, OriginalSources, DecisionCache, SourceCodeCache, ORIGINAL_SOURCES_DIR
 )
 from marks.tasks import connect_safe_report, connect_unsafe_report, connect_unknown_report
 
@@ -398,3 +400,66 @@ class ParseReportsLogs:
                 'text': m.group(4).split('##')
             }
         return None, None
+
+
+class RemoveDuplicates:
+    def __init__(self):
+        self.clear_all()
+
+    def clear_all(self):
+        # Clear converted traces cache
+        qs = self.__unsafe_converted_cache_qs()
+        ids_to_delete = self.__collect_ids_to_remove(qs)
+        UnsafeConvertionCache.objects.filter(id__in=ids_to_delete).delete()
+
+        # Clear converted traces cache
+        qs = self.__source_code_cache_qs()
+        ids_to_delete = self.__collect_ids_to_remove(qs)
+        SourceCodeCache.objects.filter(id__in=ids_to_delete).delete()
+
+    def __collect_ids_to_remove(self, qs):
+        ids_to_delete = set()
+        for obj in qs:
+            max_id = max(obj['ids_list'])
+            ids_set = set(obj['ids_list'])
+            ids_set.remove(max_id)
+            ids_to_delete |= ids_set
+        return ids_to_delete
+
+    def __unsafe_converted_cache_qs(self):
+        return UnsafeConvertionCache.objects.values('unsafe', 'converted__function')\
+            .annotate(duplicates=Count('id'), ids_list=ArrayAgg('id'))\
+            .filter(duplicates__gt=1).values('ids_list')
+
+    def __source_code_cache_qs(self):
+        return SourceCodeCache.objects.values('identifier')\
+            .annotate(duplicates=Count('id'), ids_list=ArrayAgg('id'))\
+            .filter(duplicates__gt=1).values('ids_list')
+
+
+class ErrorTraceAnanlizer:
+    def __init__(self, error_trace):
+        self.trace = json.loads(error_trace)
+        self.__simplify()
+
+    def __simplify(self):
+        assert isinstance(self.trace, dict)
+        del self.trace['files']
+        del self.trace['format']
+        if 'global variable declarations' in self.trace:
+            self.__simplify_subtree(self.trace['global variable declarations'])
+        self.__simplify_subtree([self.trace['trace']])
+
+    def __simplify_subtree(self, subtree):
+        if not isinstance(subtree, list):
+            print(subtree)
+        for node in subtree:
+            if 'highlight' in node:
+                del node['highlight']
+            if 'file' in node:
+                del node['file']
+            if 'children' in node:
+                self.__simplify_subtree(node['children'])
+
+    def get_trace(self):
+        return json.dumps(self.trace, ensure_ascii=False, indent=2, sort_keys=True)

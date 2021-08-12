@@ -66,7 +66,6 @@
     }
   },
   "4.15": {
-    "categories": {},
     "functions models": {
       "__platform_driver_probe": {
         "declaration": "int __platform_driver_probe(*%platform.platform_driver%, %platform.probe%, struct module *module)",
@@ -79,7 +78,6 @@
     }
   },
   "4.17": {
-    "categories": {},
     "functions models": {
       "__platform_driver_probe": {
         "declaration": "int __platform_driver_probe(*%platform.platform_driver%, %platform.probe%, struct module *module)",
@@ -92,7 +90,18 @@
     }
   },
   "4.6.7": {
-    "categories": {},
+    "functions models": {
+      "__platform_driver_probe": {
+        "declaration": "int __platform_driver_probe(*%platform.platform_driver%, %platform.probe%, struct module *module)",
+        "header": "linux/platform_device.h"
+      },
+      "__platform_driver_register": {
+        "declaration": "int __platform_driver_register(*%platform.platform_driver%, struct module *owner)",
+        "header": "linux/platform_device.h"
+      }
+    }
+  },
+  "5.5": {
     "functions models": {
       "__platform_driver_probe": {
         "declaration": "int __platform_driver_probe(*%platform.platform_driver%, %platform.probe%, struct module *module)",

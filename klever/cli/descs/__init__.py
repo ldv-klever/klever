@@ -25,7 +25,6 @@ common_target_program_descs = {
         'loadable kernel modules': ['all'],
         'generate makefiles': True,
         'extra headers': [
-            'linux/user_namespace.h',
             'linux/tty.h',
             'linux/tty_driver.h',
             'linux/usb.h',
@@ -40,6 +39,7 @@ common_target_program_descs = {
             'linux/mod_devicetable.h',
             'linux/device.h',
             'linux/pm.h',
+            'linux/pm_runtime.h',
             'linux/fs.h',
             'linux/rtnetlink.h',
             'net/mac80211.h',
@@ -58,6 +58,10 @@ common_target_program_descs = {
             'linux/spi/spi.h',
             'linux/fb.h',
             'linux/firmware.h',
+            'linux/dcache.h',
+            "linux/statfs.h",
+            "linux/mount.h",
+            "linux/mtd/mtd.h",
             'media/v4l2-common.h',
             'media/v4l2-device.h'
         ]

@@ -1,0 +1,38 @@
+{% comment "License" %}
+% Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
+% Ivannikov Institute for System Programming of the Russian Academy of Sciences
+%
+% Licensed under the Apache License, Version 2.0 (the "License");
+% you may not use this file except in compliance with the License.
+% You may obtain a copy of the License at
+%
+%    http://www.apache.org/licenses/LICENSE-2.0
+%
+% Unless required by applicable law or agreed to in writing, software
+% distributed under the License is distributed on an "AS IS" BASIS,
+% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+% See the License for the specific language governing permissions and
+% limitations under the License.
+{% endcomment %}
+{% load i18n %}
+{% if statistics %}
+<div class="ui mini icon buttons">
+    <button id="prev_cov_btn" class="ui green button note-popup" data-content="{% trans 'Previous covered function' %}"><i class="step backward icon"></i></button>
+    <button id="next_cov_btn" class="ui green button note-popup" data-content="{% trans 'Next covered function' %}"><i class="step forward icon"></i></button>
+    <button id="prev_uncov_btn" class="ui red button note-popup" data-content="{% trans 'Previous uncovered function' %}"><i class="step backward icon"></i></button>
+    <button id="next_uncov_btn" class="ui red button note-popup" data-content="{% trans 'Next uncovered function' %}"><i class="step forward icon"></i></button>
+    <button id="prev_srt_btn" class="ui teal button note-popup" data-content="{% trans 'Previous covered function sorted by number of calls' %}"><i class="step backward icon"></i></button>
+    <button id="next_srt_btn" class="ui teal button note-popup" data-content="{% trans 'Next covered function sorted by number of calls' %}"><i class="step forward icon"></i></button>
+    <button id="prev_mostcov_btn" class="ui orange button note-popup" data-content="{% trans 'Previous most covered line' %}"><i class="step backward icon"></i></button>
+    <button id="next_mostcov_btn" class="ui orange button note-popup" data-content="{% trans 'Next most covered line' %}"><i class="step forward icon"></i></button>
+    {% if statistics.most_covered %}
+        <button id="prev_global_mostcov_btn" class="ui blue button note-popup" data-content="{% trans 'Previous global most covered line' %}"><i class="fast backward icon"></i></button>
+        <button id="next_global_mostcov_btn" class="ui blue button note-popup" data-content="{% trans 'Next global most covered line' %}"><i class="fast forward icon"></i></button>
+        <div id="most_global_covered_lines" hidden>
+            {% for mc in statistics.most_covered %}
+                <span>{{ mc }}</span>
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
+{% endif %}

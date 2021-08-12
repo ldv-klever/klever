@@ -1,0 +1,77 @@
+{
+  "5.5": [
+    {
+      "fragments": [
+        "ext-modules/manual_model/unsafe.ko",
+        "ext-modules/manual_model/safe.ko"
+      ],
+      "model": {
+        "functions models": {},
+        "environment processes": {
+          "base/base": {
+            "actions": {
+              "fail": {
+                "comment": "Probing failed.",
+                "condition": [
+                  "%ret% != 0"
+                ]
+              },
+              "probe": {
+                "comment": "Probe device.",
+                "trace relevant": true,
+                "statements": [
+                  "%ret% = registration();",
+                  "%ret% = ldv_post_probe(%ret%);"
+                ]
+              },
+              "success": {
+                "comment": "Call the required callback.",
+                "trace relevant": true,
+                "condition": [
+                  "%ret% == 0"
+                ],
+                "statements": [
+                  "callback();",
+                  "deregistration();"
+                ]
+              },
+              "register_base": {
+                "comment": "Begin USB callbacks invocation scenario.",
+                "parameters": [],
+                "replicative": true
+              }
+            },
+            "category": "base",
+            "comment": "Invoke test callbacks.",
+            "declarations": {
+              "environment model": {
+                "& registration": "extern int registration(void);\n",
+                "& deregistration": "extern void deregistration(void);\n",
+                "& callback": "extern void callback(void);\n"
+              }
+            },
+            "identifier": "base/base/manual_scenario",
+            "labels": {
+              "ret": {
+                "declaration": "int ret"
+              }
+            },
+            "process": "(!register_base).<probe>.(<success> | <fail>)"
+          }
+        },
+        "main process": {
+          "actions": {
+            "register_base": {
+              "comment": "Register base scenario.",
+              "parameters": []
+            }
+          },
+          "category": "entry_point",
+          "comment": "Main process.",
+          "labels": {},
+          "process": "[register_base]"
+        }
+      }
+    }
+  ]
+}

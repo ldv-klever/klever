@@ -58,12 +58,11 @@ def __submit_common_attrs(context):
 
 # Classes for queue transfer
 Abstract = collections.namedtuple('AbstractTask', 'fragment rule_class')
-Task = collections.namedtuple('Task', 'fragment rule_class envmodel rule workdir')
+Task = collections.namedtuple('Task', 'fragment rule_class envmodel rule workdir, envattrs')
 
 # Global values to be set once and used by other components running in parallel with the VTG
 REQ_SPEC_CLASSES = None
 FRAGMENT_DESC_FIELS = None
-SINGLE_ENV_NAME = 'single'
 
 
 class VTG(klever.core.components.Component):
@@ -419,10 +418,10 @@ class VTG(klever.core.components.Component):
 
                     # Generate a verification task per a new environment model and rule
                     if models:
-                        for env_model, workdir in models:
+                        for env_model, workdir, envattrs in models:
                             for rule in self.req_spec_classes[atask.rule_class]:
                                 new_workdir = os.path.join(workdir, rule)
-                                new = Task(atask.fragment, atask.rule_class, env_model, rule, new_workdir)
+                                new = Task(atask.fragment, atask.rule_class, env_model, rule, new_workdir, envattrs)
                                 self.logger.debug(f'Create verification task {new}')
                                 if not keep_dirs:
                                     atask_tasks[atask].add(new)
@@ -617,7 +616,7 @@ class VTGW(klever.core.components.Component):
     def _run_plugin(self, plugin_desc, initial_abstract_task_desc_file=None, out_abstract_task_desc_file=None):
         plugin_name = plugin_desc['name']
         plugin_work_dir = plugin_desc['name'].lower()
-        plugin_conf = copy.deepcopy(self.conf)
+        plugin_conf = copy.deepcopy(plugin_desc['options'])
         plugin_conf_file = f'{plugin_name.lower()} conf.json'
         initial_abstract_task_desc_file = initial_abstract_task_desc_file if initial_abstract_task_desc_file else \
             self.initial_abstract_task_desc_file
@@ -626,7 +625,7 @@ class VTGW(klever.core.components.Component):
 
         self.logger.info(f'Launch plugin {plugin_name}')
         if 'options' in plugin_desc:
-            plugin_conf.update(plugin_desc['options'])
+            plugin_conf.update(self.conf)
         plugin_conf['in abstract task desc file'] = os.path.relpath(initial_abstract_task_desc_file,
                                                                     self.conf['main working directory'])
         plugin_conf['out abstract task desc file'] = os.path.relpath(out_abstract_task_desc_file,
@@ -640,9 +639,20 @@ class VTGW(klever.core.components.Component):
 
         plugin = getattr(importlib.import_module(f'.{plugin_name.lower()}', 'klever.core.vtg'), plugin_name)
         p = plugin(plugin_conf, self.logger, self.id, self.callbacks, self.mqs, self.vals,
-                   plugin_name, plugin_work_dir, separate_from_parent=True, include_child_resources=True)
+                   plugin_name, plugin_work_dir, separate_from_parent=True,
+                   # Weaver can execute workers in parallel but it does not launch any heaveweight subprocesses for
+                   # which it is necessary to include child resources. These workers can execute time consuming CIF and
+                   # appropriate resoureces are dumped to directory "child resources" and after all they are taken into
+                   # account when calculating Weaver resources since we wouldn't like to separately show resources
+                   # consumed by workers. Moreover, we even wouldn't like to execute them in separate working
+                   # directories like sub-jobs to simplify the workflow and debugging.
+                   include_child_resources=True if plugin_name != 'Weaver' else False)
         p.start()
         p.join()
+
+    def plugin_fail_processing(self):
+        """Has a callback in job.py!"""
+        self.logger.debug('Submit the information about the failure to the Job processing class')
 
     def _submit_task(self, plugin_desc, out_abstract_task_desc_file):
         plugin_work_dir = plugin_desc['name'].lower()
@@ -722,15 +732,15 @@ class VTGW(klever.core.components.Component):
 class EMGW(VTGW):
 
     def _get_prepared_data(self):
-        pairs = []
+        triples = []
 
-        def create_task(task, model):
-            task_workdir = os.path.join(self.work_dir, model)
+        def create_task(task, model, pathname, envattrs):
+            task_workdir = os.path.join(self.work_dir, pathname)
             os.makedirs(task_workdir, exist_ok=True)
             task_file = os.path.join(task_workdir, self.initial_abstract_task_desc_file)
-            with open(task_file, 'w', encoding='utf-8') as fp:
-                klever.core.utils.json_dump(task, fp, self.conf['keep intermediate files'])
-            pairs.append([model, task_workdir])
+            with open(task_file, 'w', encoding='utf-8') as handle:
+                klever.core.utils.json_dump(task, handle, self.conf['keep intermediate files'])
+            triples.append([model, task_workdir, envattrs])
 
         # Send tasks to the VTG
         out_file = os.path.join(self.work_dir, self.out_abstract_task_desc_file)
@@ -746,17 +756,13 @@ class EMGW(VTGW):
             tasks = []
 
         # Generate task descriptions for further tasks
-        if len(tasks) == 1:
-            env_model = SINGLE_ENV_NAME
-            task_desc = tasks.pop()
-            create_task(task_desc, env_model)
-        else:
-            for task_desc in tasks:
-                env_model = task_desc["environment model identifier"]
-                create_task(task_desc, env_model)
+        for task_desc in tasks:
+            env_path = task_desc.get("environment model pathname")
+            env_attrs = tuple(sorted(task_desc.get("environment model attributes", dict()).items(), key=lambda x: x[0]))
+            create_task(task_desc, env_path, env_path, env_attrs)
 
         # Submit new tasks to the VTG
-        return type(self.task).__name__, tuple(self.task), self.work_dir, pairs
+        return type(self.task).__name__, tuple(self.task), self.work_dir, triples
 
     def _generate_abstact_verification_task_desc(self):
         fragment = self.task.fragment
@@ -771,6 +777,7 @@ class EMGW(VTGW):
             self._run_plugin(options)
         except klever.core.components.ComponentError:
             self.logger.warning('EMG has failed')
+            self.plugin_fail_processing()
 
     def __get_pligin_conf(self, rule_class):
         return next(iter(self.req_spec_classes[rule_class].values()))['plugins'][0]
@@ -792,14 +799,6 @@ class EMGW(VTGW):
 class PLUGINS(VTGW):
 
     def _submit_attrs(self):
-        if self.task.envmodel != SINGLE_ENV_NAME:
-            self.attrs.append(
-                {
-                    "name": "Environment model",
-                    "value": self.task.envmodel,
-                    "compare": True
-                }
-            )
         self.attrs.append(
             {
                 "name": "Requirements specification",
@@ -807,6 +806,16 @@ class PLUGINS(VTGW):
                 "compare": True
             }
         )
+        if self.task.envattrs:
+            for entry, value in self.task.envattrs:
+                if value:
+                    self.attrs.append(
+                        {
+                            "name": f"Environment model '{entry}'",
+                            "value": value,
+                            "compare": True
+                        }
+                    )
         super(PLUGINS, self)._submit_attrs()
 
     def _get_prepared_data(self):
@@ -854,6 +863,9 @@ class PLUGINS(VTGW):
                 self._run_plugin(plugin_desc, cur_abstract_task_desc_file, out_abstract_task_desc_file)
             except klever.core.components.ComponentError:
                 self.logger.warning('Plugin {} failed'.format(plugin_desc['name']))
+
+                # Call the job hook
+                self.plugin_fail_processing()
                 break
 
             cur_abstract_task_desc_file = out_abstract_task_desc_file

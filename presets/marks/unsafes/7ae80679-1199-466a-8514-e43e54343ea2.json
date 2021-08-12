@@ -1,0 +1,47 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Project:Version",
+      "value": "v5.6-rc7-254-g8b93527071a8"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/usb/chipidea/ci_hdrc_usb2.ko"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "drivers:clk2"
+    }
+  ],
+  "description": "https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/commit/?id=c2de37b31f17",
+  "error_trace": [
+    [
+      [
+        {
+          "EMG wrapper": [
+            {
+              "ci_hdrc_usb2_remove": [
+                {
+                  "Instrumented function 'clk_disable_unprepare'": [
+                    {
+                      "LDV model 'clk_disable_clk_of_ci_hdrc_usb2_priv'": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": false,
+  "status": null,
+  "tags": [],
+  "threshold": 100,
+  "verdict": "2"
+}

@@ -18,6 +18,7 @@
 
 import errno
 import json
+import logging
 import os
 import shutil
 import sys
@@ -63,7 +64,10 @@ def install_deps(logger, deploy_conf, prev_deploy_info, non_interactive, update_
             sys.exit(errno.EINVAL)
 
     if pckgs_to_install:
-        logger.info('Install packages:\n  {0}'.format('\n  '.join(pckgs_to_install)))
+        if logger.level >= logging.INFO:
+            logger.info('Install packages')
+        else:
+            logger.info('Install packages:\n  {0}'.format('\n  '.join(pckgs_to_install)))
 
         for util in ('apt-get', 'dnf', 'zypper', 'yum'):
             if shutil.which(util):
@@ -71,8 +75,10 @@ def install_deps(logger, deploy_conf, prev_deploy_info, non_interactive, update_
 
                 if non_interactive:
                     args.append('-y')
+
                 args.extend(pckgs_to_install)
-                execute_cmd(logger, *args)
+                execute_cmd(logger, *args, keep_stdout=True)
+
                 break
         else:
             logger.error('Your Linux distribution is not supported')
@@ -99,8 +105,10 @@ def install_deps(logger, deploy_conf, prev_deploy_info, non_interactive, update_
 
                 if non_interactive:
                     args.append('-y')
+
                 args.extend(pckgs_to_install)
-                execute_cmd(logger, *args)
+                execute_cmd(logger, *args, keep_stdout=True)
+
                 break
         else:
             raise RuntimeError('Your Linux distribution is not supported')
