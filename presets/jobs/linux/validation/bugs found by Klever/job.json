@@ -322,7 +322,10 @@
       "targets": ["drivers/dma/dma-jz4780.ko"],
       "specifications set": "5.5",
       "requirement specifications": ["concurrency safety"],
-      "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "ideal verdicts": [{
+        "ideal verdict": "unsafe",
+        "comment": "Target bug is found (2 unsafes)."
+      }],
       "data": {"bug identifier": "6d6018fc30be~"}
     },
     {
