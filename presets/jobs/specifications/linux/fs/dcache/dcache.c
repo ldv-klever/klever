@@ -1,18 +1,12 @@
 #include <linux/fs.h>
 #include <linux/dcache.h>
 #include <ldv/linux/common.h>
+#include <ldv/linux/list.h>
 #include <ldv/verifier/common.h>
 #include <ldv/verifier/nondet.h>
 #include <ldv/verifier/memory.h>
 
 struct dentry *root_dentry;
-
-/* Get rid of this function when macro WRITE_ONCE() will be hanled properly (https://forge.ispras.ru/issues/10896). */
-void ldv_init_list_head(struct list_head *list)
-{
-       list->next = list;
-       list->prev = list;
-}
 
 struct dentry *ldv_d_alloc_pseudo(struct super_block *sb, const struct qstr *name)
 {
