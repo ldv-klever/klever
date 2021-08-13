@@ -3,13 +3,99 @@
   "extra results processing": "validation",
   "sub-jobs": [
     {
+      "build base": "linux/validation/bugs found by Klever/2b889a4afcac~",
+      "targets": ["drivers/media/platform/marvell-ccic/cafe_ccic.ko"],
+      "specifications set": "5.5",
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "data": {"bug identifier": "2b889a4afcac~"}
+    },
+    {
+      "build base": "linux/validation/bugs found by Klever/2b889a4afcac",
+      "targets": ["drivers/media/platform/marvell-ccic/cafe_ccic.ko"],
+      "specifications set": "5.5",
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "2b889a4afcac~"}
+    },
+    {
+      "build base": "linux/validation/bugs found by Klever/04297b00dfb4~",
+      "targets": ["drivers/media/rc/st_rc.ko"],
+      "specifications set": "5.5",
+      "requirement specifications": ["drivers:clk2"],
+      "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "data": {"bug identifier": "04297b00dfb4~"}
+    },
+    {
+      "build base": "linux/validation/bugs found by Klever/04297b00dfb4",
+      "targets": ["drivers/media/rc/st_rc.ko"],
+      "specifications set": "5.5",
+      "requirement specifications": ["drivers:clk2"],
+      "ideal verdicts": [{
+        "ideal verdict": "safe",
+        "comment": "False alarm due to \"EMG - Specs - Bad parameters\". EMG does not allocate memory for platform_device honestly, so, the verification tool ignores that zeroed memory is allocated for rc_dev, that is related with the platform device via platform_set_drvdata(). Later the verification tool assumes that st_rc_resume()->dev_get_drvdata()->irq_wake may be nonzero."
+      }],
+      "data": {"bug identifier": "04297b00dfb4~"}
+    },
+    {
+      "build base": "linux/validation/bugs found by Klever/b7fdd208687b~",
+      "targets": ["drivers/media/platform/sti/hva/st-hva.ko"],
+      "specifications set": "5.5",
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "data": {"bug identifier": "b7fdd208687b~"}
+    },
+    {
+      "build base": "linux/validation/bugs found by Klever/b7fdd208687b",
+      "targets": ["drivers/media/platform/sti/hva/st-hva.ko"],
+      "specifications set": "5.5",
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{
+        "ideal verdict": "safe",
+        "comment": "CPAchecker IllegalArgumentException."
+      }],
+      "data": {"bug identifier": "b7fdd208687b~"}
+    },
+    {
+      "build base": "linux/validation/bugs found by Klever/cca65f640455~",
+      "targets": ["drivers/media/platform/cadence/cdns-csi2rx.ko"],
+      "specifications set": "5.5",
+      "requirement specifications": ["drivers:clk2"],
+      "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "data": {"bug identifier": "cca65f640455~"}
+    },
+    {
+      "build base": "linux/validation/bugs found by Klever/cca65f640455",
+      "targets": ["drivers/media/platform/cadence/cdns-csi2rx.ko"],
+      "specifications set": "5.5",
+      "requirement specifications": ["drivers:clk2"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "cca65f640455~"}
+    },
+    {
+      "build base": "linux/validation/bugs found by Klever/e6001f6922cf~",
+      "targets": ["drivers/media/platform/cadence/cdns-csi2tx.ko"],
+      "specifications set": "5.5",
+      "requirement specifications": ["drivers:clk2"],
+      "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "data": {"bug identifier": "e6001f6922cf~"}
+    },
+    {
+      "build base": "linux/validation/bugs found by Klever/e6001f6922cf",
+      "targets": ["drivers/media/platform/cadence/cdns-csi2tx.ko"],
+      "specifications set": "5.5",
+      "requirement specifications": ["drivers:clk2"],
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "e6001f6922cf~"}
+    },
+    {
       "build base": "linux/validation/bugs found by Klever/a4dd4fc6105e~",
       "targets": ["drivers/net/appletalk/cops.ko"],
       "specifications set": "5.5",
       "requirement specifications": ["concurrency safety"],
       "ideal verdicts": [{
         "ideal verdict": "unsafe",
-        "comment": "Could not build the module."
+        "comment": "Target bug is found. The overall verdict is unknown (timeout)."
       }],
       "data": {"bug identifier": "a4dd4fc6105e~"}
     },
@@ -20,7 +106,7 @@
       "requirement specifications": ["concurrency safety"],
       "ideal verdicts": [{
         "ideal verdict": "safe",
-        "comment": "Could not build the module."
+        "comment": "Non-target bug is found. The overall verdict is unknown (timeout)."
       }],
       "data": {"bug identifier": "a4dd4fc6105e~"}
     },
@@ -31,7 +117,7 @@
       "requirement specifications": ["concurrency safety"],
       "ideal verdicts": [{
         "ideal verdict": "unsafe",
-        "comment": "Could not build the module for the ARM architecture."
+        "comment": "Target bug is found (10 unsafes). In addition, there is non-target bug and 3 false alarms due to \"EMG - Specs\" (likely pxa168_eth_start_xmit()/pxa168_eth_netpoll() should not be invoked after napi_disable() and netif_carrier_off())."
       }],
       "data": {"bug identifier": "0571a753cb07~"}
     },
@@ -42,7 +128,7 @@
       "requirement specifications": ["concurrency safety"],
       "ideal verdicts": [{
         "ideal verdict": "safe",
-        "comment": "Could not build the module for the ARM architecture."
+        "comment": "Non-target bug, 10 false alarms due to \"EMG - Specs - Missed trigger\" (cancel_work_sync() should disable execution of the timeout work (pxa168_eth_tx_timeout_task)) and 3 false alarms due to \"EMG - Specs\" (likely pxa168_eth_start_xmit()/pxa168_eth_netpoll() should not be invoked after napi_disable() and netif_carrier_off())."
       }],
       "data": {"bug identifier": "0571a753cb07~"}
     },
@@ -210,17 +296,6 @@
       "data": {"bug identifier": "bcee1609ba96~"}
     },
     {
-      "build base": "linux/validation/bugs found by Klever/bcee1609ba96",
-      "targets": ["drivers/video/fbdev/sm712fb.ko"],
-      "specifications set": "5.5",
-      "requirement specifications": ["arch:mm:ioremap"],
-      "ideal verdicts": [{
-        "ideal verdict": "safe",
-        "comment": "Timeout."
-      }],
-      "data": {"bug identifier": "bcee1609ba96~"}
-    },
-    {
       "build base": "linux/validation/bugs found by Klever/87d7ad089b31~",
       "targets": ["drivers/mmc/host/via-sdmmc.ko"],
       "specifications set": "5.5",
@@ -247,7 +322,10 @@
       "targets": ["drivers/dma/dma-jz4780.ko"],
       "specifications set": "5.5",
       "requirement specifications": ["concurrency safety"],
-      "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "ideal verdicts": [{
+        "ideal verdict": "unsafe",
+        "comment": "Target bug is found (2 unsafes)."
+      }],
       "data": {"bug identifier": "6d6018fc30be~"}
     },
     {
@@ -428,10 +506,7 @@
       "targets": ["drivers/video/fbdev/da8xx-fb.ko"],
       "specifications set": "5.5",
       "requirement specifications": ["memory safety"],
-      "ideal verdicts": [{
-        "ideal verdict": "unsafe",
-        "comment": "CPAchecker IllegalArg Except."
-      }],
+      "ideal verdicts": [{"ideal verdict": "unsafe"}],
       "data": {"bug identifier": "80a00e90dede~"}
     },
     {
@@ -441,7 +516,7 @@
       "requirement specifications": ["memory safety"],
       "ideal verdicts": [{
         "ideal verdict": "safe",
-        "comment": "CPAchecker IllegalArg Except."
+        "comment": "Timeout."
       }],
       "data": {"bug identifier": "80a00e90dede~"}
     },
@@ -511,17 +586,6 @@
       "specifications set": "5.5",
       "requirement specifications": ["memory safety"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
-      "data": {"bug identifier": "bc4071aafcf4~"}
-    },
-    {
-      "build base": "linux/validation/bugs found by Klever/bc4071aafcf4",
-      "targets": ["drivers/hwmon/aspeed-pwm-tacho.ko"],
-      "specifications set": "5.5",
-      "requirement specifications": ["memory safety"],
-      "ideal verdicts": [{
-        "ideal verdict": "safe",
-        "comment": "Timeout."
-      }],
       "data": {"bug identifier": "bc4071aafcf4~"}
     },
     {
@@ -668,6 +732,19 @@
         "comment": "False alarm due to \"EMG - Specs - Bad composition\". Most likely EMG should not invoke probe in parallel with exit."
       }],
       "data": {"bug identifier": "48ce9e4119ce~"}
+    }
+  ],
+  "unstable sub-jobs": [
+    {
+      "build base": "linux/validation/bugs found by Klever/bc4071aafcf4",
+      "targets": ["drivers/hwmon/aspeed-pwm-tacho.ko"],
+      "specifications set": "5.5",
+      "requirement specifications": ["memory safety"],
+      "ideal verdicts": [{
+        "ideal verdict": "safe",
+        "comment": "Either timeout or NPE."
+      }],
+      "data": {"bug identifier": "bc4071aafcf4~"}
     }
   ]
 }

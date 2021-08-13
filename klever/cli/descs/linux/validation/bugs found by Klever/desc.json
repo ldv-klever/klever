@@ -1,5 +1,89 @@
 [
     {
+        "build base": "linux/validation/bugs found by Klever/2b889a4afcac~",
+        "name": "Linux",
+        "git repository version": "2b889a4afcac~",
+        "loadable kernel modules": ["drivers/media/platform/marvell-ccic/cafe_ccic.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/2b889a4afcac",
+        "name": "Linux",
+        "git repository version": "2b889a4afcac",
+        "loadable kernel modules": ["drivers/media/platform/marvell-ccic/cafe_ccic.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/04297b00dfb4~",
+        "name": "Linux",
+        "git repository version": "04297b00dfb4~",
+        "loadable kernel modules": ["drivers/media/rc/st_rc.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/04297b00dfb4",
+        "name": "Linux",
+        "git repository version": "04297b00dfb4",
+        "loadable kernel modules": ["drivers/media/rc/st_rc.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/b7fdd208687b~",
+        "name": "Linux",
+        "git repository version": "b7fdd208687b~",
+        "loadable kernel modules": ["drivers/media/platform/sti/hva/st-hva.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/b7fdd208687b",
+        "name": "Linux",
+        "git repository version": "b7fdd208687b",
+        "loadable kernel modules": ["drivers/media/platform/sti/hva/st-hva.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/cca65f640455~",
+        "name": "Linux",
+        "git repository version": "cca65f640455~",
+        "loadable kernel modules": ["drivers/media/platform/cadence/cdns-csi2rx.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/cca65f640455",
+        "name": "Linux",
+        "git repository version": "cca65f640455",
+        "loadable kernel modules": ["drivers/media/platform/cadence/cdns-csi2rx.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/e6001f6922cf~",
+        "name": "Linux",
+        "git repository version": "e6001f6922cf~",
+        "loadable kernel modules": ["drivers/media/platform/cadence/cdns-csi2tx.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/e6001f6922cf",
+        "name": "Linux",
+        "git repository version": "e6001f6922cf",
+        "loadable kernel modules": ["drivers/media/platform/cadence/cdns-csi2tx.ko"]
+    },
+        {
+        "build base": "linux/validation/bugs found by Klever/a4dd4fc6105e~",
+        "name": "Linux",
+        "git repository version": "a4dd4fc6105e~",
+        "loadable kernel modules": ["drivers/net/appletalk/cops.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/a4dd4fc6105e",
+        "name": "Linux",
+        "git repository version": "a4dd4fc6105e",
+        "loadable kernel modules": ["drivers/net/appletalk/cops.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/0571a753cb07~",
+        "name": "Linux",
+        "git repository version": "0571a753cb07~",
+        "loadable kernel modules": ["drivers/net/ethernet/marvell/pxa168_eth.ko"]
+    },
+    {
+        "build base": "linux/validation/bugs found by Klever/0571a753cb07",
+        "name": "Linux",
+        "git repository version": "0571a753cb07",
+        "loadable kernel modules": ["drivers/net/ethernet/marvell/pxa168_eth.ko"]
+    },
+    {
         "build base": "linux/validation/bugs found by Klever/8c293f545419~",
         "name": "Linux",
         "git repository version": "8c293f545419~",

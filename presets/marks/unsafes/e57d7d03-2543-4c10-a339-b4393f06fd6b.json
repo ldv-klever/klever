@@ -30,7 +30,7 @@
             {
               "tlclk_init": [
                 {
-                  "kzalloc": []
+                  "Instrumented function 'kzalloc'": []
                 }
               ]
             }

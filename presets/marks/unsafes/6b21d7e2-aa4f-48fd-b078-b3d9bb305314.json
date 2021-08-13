@@ -1,0 +1,55 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/decomposition_linear/a_b_invoke.ko"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "test:EMG"
+    },
+    {
+      "is_compare": true,
+      "name": "Environment model 'base/advanced'",
+      "value": "base"
+    },
+    {
+      "is_compare": true,
+      "name": "Environment model 'base/base'",
+      "value": "base"
+    }
+  ],
+  "description": "",
+  "error_trace": [
+    [
+      [
+        {
+          "Entry point 'main'": [
+            {
+              "LDV model 'initialize'": []
+            }
+          ]
+        }
+      ]
+    ],
+    [
+      [
+        {
+          "a": [
+            {
+              "LDV model 'invoke_reached'": []
+            }
+          ]
+        }
+      ]
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": true,
+  "status": null,
+  "tags": [],
+  "threshold": 0,
+  "verdict": "2"
+}

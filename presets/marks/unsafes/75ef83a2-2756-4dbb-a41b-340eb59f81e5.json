@@ -23,11 +23,7 @@
                   "LDV model 'write_lock'": []
                 },
                 {
-                  "LDV model 'read_lock'": [
-                    {
-                      "LDV model 'assert'": []
-                    }
-                  ]
+                  "LDV model 'read_lock'": []
                 }
               ]
             }

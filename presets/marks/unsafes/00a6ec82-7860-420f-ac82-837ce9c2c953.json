@@ -51,11 +51,7 @@
                 {
                   "Instrumented function 'spin_unlock_bh'": [
                     {
-                      "LDV model 'spin_unlock_lock_of_tipc_port'": [
-                        {
-                          "LDV model 'assert'": []
-                        }
-                      ]
+                      "LDV model 'spin_unlock_lock_of_tipc_port'": []
                     }
                   ]
                 }

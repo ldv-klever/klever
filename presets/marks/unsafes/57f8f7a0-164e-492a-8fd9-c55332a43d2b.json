@@ -24,11 +24,7 @@
                     {
                       "LDV model 'find_next_zero_bit'": [
                         {
-                          "LDV model 'check_find_bit_offset'": [
-                            {
-                              "LDV model 'assert'": []
-                            }
-                          ]
+                          "LDV model 'check_find_bit_offset'": []
                         }
                       ]
                     }

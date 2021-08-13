@@ -18,7 +18,7 @@
     {
       "is_compare": true,
       "name": "Declaration",
-      "value": "__write_once_size::volatile void *__write_once_size::*p"
+      "value": "__write_once_size::void *__write_once_size::*p"
     }
   ],
   "description": "CPALockator does not support atomic values.",
@@ -92,14 +92,14 @@
             {
               "mport_cdev_ioctl": [
                 {
-                  "rio_mport_obw_map": [
+                  "rio_mport_transfer_ioctl": [
                     {
-                      "rio_mport_get_outbound_mapping": [
+                      "rio_dma_transfer": [
                         {
-                          "Instrumented function 'mutex_lock'": []
-                        },
-                        {
-                          "rio_mport_create_outbound_mapping": [
+                          "get_dma_channel": [
+                            {
+                              "Instrumented function 'mutex_lock'": []
+                            },
                             {
                               "kref_init": [
                                 {

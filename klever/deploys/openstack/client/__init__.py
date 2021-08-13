@@ -28,16 +28,17 @@ import neutronclient.v2_0.client
 import cinderclient.client
 
 from klever.deploys.utils import get_password
+from klever.deploys.openstack.conf import OS_AUTH_URL, OS_TENANT_NAME, OS_DOMAIN_NAME
 
 
 class OSClient:
     GLOBAL_NET_TYPE = {'internal': 'ispras', 'external': 'external_network'}
     NET_TYPE = {'internal': 'net-for-intra-computations', 'external': 'net-for-83.149.198-computations'}
 
-    def __init__(self, args, logger):
-        self.args = args
+    def __init__(self, logger, os_username, store_password=False):
         self.logger = logger
-        self.kind = args.entity
+        self.os_username = os_username
+        self.store_password = store_password
         self.password_file = os.path.join(os.path.expanduser('~'), '.config', 'klever', 'openstack')
 
         session = self.__get_session()
@@ -47,10 +48,6 @@ class OSClient:
         self.nova = novaclient.client.Client('2', session=session)
         self.neutron = neutronclient.v2_0.client.Client(session=session)
         self.cinder = cinderclient.client.Client('3', session=session)
-
-    def __getattr__(self, name):
-        self.logger.error(f'Action "{name}" is not supported for "{self.kind}"')
-        sys.exit(errno.ENOSYS)
 
     def image_exists(self, image_name):
         return self.get_images(image_name) != []
@@ -207,16 +204,16 @@ class OSClient:
             password = get_password(self.logger, 'OpenStack password for authentication: ')
 
         auth = keystoneauth1.identity.v3.Password(
-            auth_url=self.args.os_auth_url,
-            username=self.args.os_username,
+            auth_url=OS_AUTH_URL,
+            username=self.os_username,
             password=password,
-            user_domain_name=self.args.os_domain_name,
-            project_domain_name=self.args.os_domain_name,
-            project_name=self.args.os_tenant_name,
+            user_domain_name=OS_DOMAIN_NAME,
+            project_domain_name=OS_DOMAIN_NAME,
+            project_name=OS_TENANT_NAME,
         )
         session = keystoneauth1.session.Session(auth=auth)
 
-        if not os.path.isfile(self.password_file) and self.args.store_password:
+        if not os.path.isfile(self.password_file) and self.store_password:
             self.logger.info(f'Your password is now stored in plain text in "{self.password_file}" file')
 
             os.makedirs(os.path.dirname(self.password_file), exist_ok=True)
@@ -248,3 +245,33 @@ class OSClient:
                                .format(flavor.name, flavor.vcpus, flavor.ram, flavor.disk)
                                for flavor in flavors])))
             sys.exit(errno.EINVAL)
+
+    def get_volume(self, instance):
+        self.logger.info(f'Get volume attached to "{instance.name}"')
+
+        volumes = self.get_volumes(instance.name)
+
+        if len(volumes) == 0:
+            self.logger.error(f'There are no volumes attached to "{instance.name}"')
+            sys.exit(errno.EINVAL)
+
+        if len(volumes) > 1:
+            self.logger.error(
+                f'There are several volumes attached to "{instance.name}", please, resolve this conflict manually'
+            )
+            sys.exit(errno.EINVAL)
+
+        return volumes[0]
+
+    def get_volumes(self, instance):
+        # nova can't delete volumes, so the following code shouldn't be used:
+        # return self.nova.volumes.get_server_volumes(instance.id)
+
+        volumes = []
+
+        for volume in self.cinder.volumes.list():
+            for server in volume.attachments:
+                if server['server_id'] == instance.id:
+                    volumes.append(volume)
+
+        return volumes

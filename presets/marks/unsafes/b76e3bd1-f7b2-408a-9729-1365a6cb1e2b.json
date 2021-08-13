@@ -33,11 +33,7 @@
                 {
                   "Instrumented function 'blk_get_request'": [
                     {
-                      "LDV model 'blk_get_request'": [
-                        {
-                          "LDV model 'assert'": []
-                        }
-                      ]
+                      "LDV model 'blk_get_request'": []
                     }
                   ]
                 }

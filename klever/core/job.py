@@ -294,6 +294,33 @@ def __solve_sub_jobs(core_obj, vals, components_common_conf, subcomponents):
                                                 components_common_conf['ignore failed sub-jobs'], subcomponents)
 
 
+SINGLE_ENV_NAME = 'base'
+
+
+def _vrp_callback(context):
+    context.mqs['verification statuses'].put({
+        'program fragment id': context.program_fragment_id,
+        'environment model': context.envmodel,
+        'req spec id': context.req_spec_id,
+        'verdict': context.verdict,
+        'sub-job identifier': context.conf['sub-job identifier'],
+        'ideal verdicts': context.conf['ideal verdicts'],
+        'data': context.conf.get('data')
+    })
+
+
+def _vtg_plugin_callback(context):
+    context.mqs['verification statuses'].put({
+        'program fragment id': context.task.fragment,
+        'req spec id': context.task.rule if hasattr(context.task, 'rule') else context.task.rule_class,
+        'environment model': context.task.envmodel if hasattr(context.task, 'envmodel') else SINGLE_ENV_NAME,
+        'verdict': 'non-verifier unknown',
+        'sub-job identifier': context.conf['sub-job identifier'],
+        'ideal verdicts': context.conf['ideal verdicts'],
+        'data': context.conf.get('data')
+    })
+
+
 class REP(klever.core.components.Component):
 
     def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, id=None, work_dir=None, attrs=None,
@@ -371,36 +398,14 @@ class REP(klever.core.components.Component):
 
     def __set_callbacks(self):
 
-        # TODO: these 3 functions are very similar, so, they should be merged.
         def after_plugin_fail_processing(context):
-            context.mqs['verification statuses'].put({
-                'program fragment id': context.program_fragment_id,
-                'req spec id': context.req_spec_id,
-                'verdict': 'non-verifier unknown',
-                'sub-job identifier': context.conf['sub-job identifier'],
-                'ideal verdicts': context.conf['ideal verdicts'],
-                'data': context.conf.get('data')
-            })
+            _vtg_plugin_callback(context)
 
         def after_process_failed_task(context):
-            context.mqs['verification statuses'].put({
-                'program fragment id': context.program_fragment_id,
-                'req spec id': context.req_spec_id,
-                'verdict': context.verdict,
-                'sub-job identifier': context.conf['sub-job identifier'],
-                'ideal verdicts': context.conf['ideal verdicts'],
-                'data': context.conf.get('data')
-            })
+            _vrp_callback(context)
 
         def after_process_single_verdict(context):
-            context.mqs['verification statuses'].put({
-                'program fragment id': context.program_fragment_id,
-                'req spec id': context.req_spec_id,
-                'verdict': context.verdict,
-                'sub-job identifier': context.conf['sub-job identifier'],
-                'ideal verdicts': context.conf['ideal verdicts'],
-                'data': context.conf.get('data')
-            })
+            _vrp_callback(context)
 
         klever.core.components.set_component_callbacks(
             self.logger,
@@ -412,8 +417,7 @@ class REP(klever.core.components.Component):
             )
         )
 
-    @staticmethod
-    def __match_ideal_verdict(verification_status):
+    def __match_ideal_verdict(self, verification_status):
         def match_attr(attr, ideal_attr):
             if ideal_attr and ((isinstance(ideal_attr, str) and attr == ideal_attr) or
                                (isinstance(ideal_attr, list) and attr in ideal_attr)):
@@ -423,48 +427,38 @@ class REP(klever.core.components.Component):
 
         program_fragment_id = verification_status['program fragment id']
         req_spec_id = verification_status['req spec id']
+        envmodel_id = verification_status.get('environment model')
         ideal_verdicts = verification_status['ideal verdicts']
+        comparison_list = [(program_fragment_id, 'program fragments'),
+                           (req_spec_id, 'requirements specification'),
+                           (envmodel_id, 'environment model')]
 
         matched_ideal_verdict = None
+        ideal_verdicts = sorted(ideal_verdicts, key=lambda x: len(x.keys()), reverse=True)
+        for verdicts in ideal_verdicts:
+            matched = True
+            for value, attribute in comparison_list:
+                if attribute in verdicts:
+                    matched = match_attr(value, verdicts[attribute])
+                    if not matched:
+                        break
 
-        # Try to match exactly by both program fragment and requirements specification.
-        for ideal_verdict in ideal_verdicts:
-            if match_attr(program_fragment_id, ideal_verdict.get('program fragments')) \
-                    and match_attr(req_spec_id, ideal_verdict.get('requirements specification')):
-                matched_ideal_verdict = ideal_verdict
+            if matched:
+                matched_ideal_verdict = verdicts
                 break
-
-        # Try to match just by program fragment.
-        if not matched_ideal_verdict:
-            for ideal_verdict in ideal_verdicts:
-                if 'requirements specification' not in ideal_verdict \
-                        and match_attr(program_fragment_id, ideal_verdict.get('program fragments')):
-                    matched_ideal_verdict = ideal_verdict
-                    break
-
-        # Try to match just by requirements specification.
-        if not matched_ideal_verdict:
-            for ideal_verdict in ideal_verdicts:
-                if 'program fragments' not in ideal_verdict \
-                        and match_attr(req_spec_id, ideal_verdict.get('requirements specification')):
-                    matched_ideal_verdict = ideal_verdict
-                    break
-
-        # If nothing of above matched.
-        if not matched_ideal_verdict:
-            for ideal_verdict in ideal_verdicts:
-                if 'program fragments' not in ideal_verdict and 'requirements specification' not in ideal_verdict:
-                    matched_ideal_verdict = ideal_verdict
-                    break
 
         if not matched_ideal_verdict:
             raise ValueError(
-                'Could not match ideal verdict for program fragment "{0}" and requirements specification "{1}"'
-                .format(program_fragment_id, req_spec_id))
+                'Could not match ideal verdict for program fragment "{0}", environment model {1} and requirements '
+                'specification "{2}"'.format(program_fragment_id, envmodel_id, req_spec_id))
 
         # This suffix will help to distinguish sub-jobs easier.
-        id_suffix = os.path.join(program_fragment_id, req_spec_id)\
-            if program_fragment_id and req_spec_id else ''
+        if envmodel_id == SINGLE_ENV_NAME:
+            id_suffix = os.path.join(program_fragment_id, req_spec_id)\
+                if program_fragment_id and req_spec_id else ''
+        else:
+            id_suffix = os.path.join(program_fragment_id, req_spec_id, envmodel_id) \
+                if program_fragment_id and req_spec_id and envmodel_id else ''
 
         return id_suffix, {
             'verdict': verification_status['verdict'],

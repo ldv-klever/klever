@@ -1,0 +1,101 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Project:Version",
+      "value": "v5.13-rc4-315-g04297b00dfb4"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/media/rc/st_rc.ko"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "drivers:clk2"
+    }
+  ],
+  "description": "EMG does not allocate memory for platform_device honestly, so, the verification tool ignores that zeroed memory is allocated for rc_dev, that is related with the platform device via platform_set_drvdata(). Later the verification tool assumes that st_rc_resume()-&gt;dev_get_drvdata()-&gt;irq_wake may be nonzero.",
+  "error_trace": [
+    [
+      [
+        {
+          "EMG wrapper": [
+            {
+              "st_rc_probe": [
+                {
+                  "st_rc_hardware_init": [
+                    {
+                      "Instrumented function 'clk_prepare_enable'": [
+                        {
+                          "LDV model 'clk_prepare_enable_sys_clock_of_st_rc_device'": [
+                            {
+                              "LDV model 'clk_prepare_sys_clock_of_st_rc_device'": []
+                            },
+                            {
+                              "LDV model 'clk_enable_sys_clock_of_st_rc_device'": []
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "EMG wrapper": [
+            {
+              "st_rc_remove": [
+                {
+                  "Instrumented function 'clk_disable_unprepare'": [
+                    {
+                      "LDV model 'clk_disable_sys_clock_of_st_rc_device'": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    ],
+    [
+      [
+        {
+          "EMG wrapper": [
+            {
+              "st_rc_suspend": [
+                {
+                  "Instrumented function 'clk_disable_unprepare'": [
+                    {
+                      "LDV model 'clk_disable_sys_clock_of_st_rc_device'": []
+                    },
+                    {
+                      "LDV model 'clk_unprepare_sys_clock_of_st_rc_device'": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": false,
+  "status": null,
+  "tags": [
+    "EMG - Specs - Bad parameters",
+    "EMG - Specs",
+    "EMG"
+  ],
+  "threshold": 100,
+  "verdict": "3"
+}

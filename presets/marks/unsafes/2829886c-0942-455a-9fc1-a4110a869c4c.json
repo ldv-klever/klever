@@ -38,9 +38,6 @@
                           "LDV model 'check_alloc_nonatomic'": [
                             {
                               "LDV model 'exclusive_spin_is_locked'": []
-                            },
-                            {
-                              "LDV model 'assert'": []
                             }
                           ]
                         }

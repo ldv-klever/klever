@@ -190,12 +190,13 @@ def launch_queue_workers(logger, queue, constructor, number, fail_tolerant, moni
     :param fail_tolerant: True if no need to stop processing on fail.
     :param monitoring_list: List with already started Components that should be checked as other workers and if some of
                             them fails then we should also termionate the rest workers.
-    :return: None
+    :return: 0 if all workers finish successfully and 1 otherwise.
     """
     logger.info("Start children set with {!r} workers".format(number))
     active = True
     elements = []
     components = []
+    ret = 0
     try:
         while True:
             # Fetch all new elements
@@ -225,7 +226,9 @@ def launch_queue_workers(logger, queue, constructor, number, fail_tolerant, moni
                     p.join(1.0 / len(components))
                 except ComponentError:
                     # Ignore or terminate the rest
-                    if not fail_tolerant:
+                    if fail_tolerant:
+                        ret = 1
+                    else:
                         raise
                 # If all is OK
                 if not p.is_alive():
@@ -234,7 +237,9 @@ def launch_queue_workers(logger, queue, constructor, number, fail_tolerant, moni
                         p.join()
                     except ComponentError:
                         # Ignore or terminate the rest
-                        if not fail_tolerant:
+                        if fail_tolerant:
+                            ret = 1
+                        else:
                             raise
 
                     # Just remove it
@@ -257,6 +262,8 @@ def launch_queue_workers(logger, queue, constructor, number, fail_tolerant, moni
         for p in components:
             if p.is_alive():
                 p.terminate()
+
+    return ret
 
 
 def check_components(logger, components):
@@ -312,6 +319,8 @@ class CallbacksCaller:
 
 
 class Component(multiprocessing.Process, CallbacksCaller):
+    MAX_ID_LEN = 200
+
     def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, id=None, work_dir=None, attrs=None,
                  separate_from_parent=False, include_child_resources=False):
         # Actually initialize process.
@@ -333,6 +342,25 @@ class Component(multiprocessing.Process, CallbacksCaller):
         self.name = type(self).__name__.replace('KleverSubcomponent', '')
         # Include parent identifier into the child one. This is required to distinguish reports for different sub-jobs.
         self.id = os.path.join(parent_id, id if id else self.name)
+
+        # Component identifiers are used either directly or with some quite restricted suffixes as report identifiers.
+        # Bridge limits the latter with 255 symbols. Unfortunately, it does not log identifiers that cause troubles.
+        # Moreover, it could not point out particular places where long identifiers were created. Core can do both, but
+        # unfortunately it is impossible to show corresponding exceptions in Bridge if we will raise them in
+        # klever.core.utils.report(). This is the fundamental infrastructure limitation. For instance,
+        # klever.core.components.launch_queue_workers ignores exception raised by workers if fail_tolerant is set to
+        # true that is the case for sub-jobs and VTG workers. Also, these exception will likely happen prior start
+        # reports will be uploaded, so, corresponding unknown reports will not be created as it will not be possible to
+        # bind them with non-existing start reports. There will be errors in logs, but it is not convenient to
+        # investigate them (though, sometimes this is the only possible way).
+        # The only bad thing is that at this point we are not aware about lenghts of suffixes to be used, so, if one
+        # will suddenly exceed limit "255 - self.MAX_ID_LEN", there still will be an unclear failure in Bridge without
+        # good unknown reports. Let's hope that this will not happen ever.
+        if len(self.id) > self.MAX_ID_LEN:
+            raise ValueError(
+                'Too large component identifier "{0}" (current length is {1} while {2} can be used at most)'
+                .format(self.id, len(self.id), self.MAX_ID_LEN))
+
         self.work_dir = work_dir if work_dir else self.name.lower()
         # Component start time.
         self.tasks_start_time = 0

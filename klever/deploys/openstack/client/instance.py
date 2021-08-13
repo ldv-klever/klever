@@ -25,6 +25,7 @@ from Crypto.PublicKey import RSA
 
 from klever.deploys.utils import get_password
 from klever.deploys.openstack.client import OSClient
+from klever.deploys.openstack.client.volume import OSVolume
 
 
 class OSCreationTimeout(RuntimeError):
@@ -53,6 +54,7 @@ class OSInstance:
         self.disk = disk
         self.keep_on_exit = keep_on_exit
         self.instance = None
+        self.volume = None
 
     def __enter__(self):
         return self.create()
@@ -132,6 +134,13 @@ class OSInstance:
         self.logger.error('Could not create instance')
         sys.exit(errno.EPERM)
 
+    def create_volume(self):
+        self.volume = OSVolume(self.logger, self.client, self.args, self.name)
+        self.volume.create()
+        self.volume.attach(self.instance)
+
+        return self.volume
+
     def remove(self, instance=None):
         if not instance:
             instance = self.instance
@@ -139,6 +148,9 @@ class OSInstance:
         if instance:
             self.logger.info(f'Remove instance "{instance.name}"')
             instance.delete()
+
+        if self.volume:
+            self.volume.remove()
 
     def __setup_keypair(self):
         private_key_file = self.args.ssh_rsa_private_key_file

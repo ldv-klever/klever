@@ -29,11 +29,7 @@
                 {
                   "Instrumented function 'idr_init'": [
                     {
-                      "LDV model 'idr_init_idp'": [
-                        {
-                          "LDV model 'assert'": []
-                        }
-                      ]
+                      "LDV model 'idr_init_idp'": []
                     }
                   ]
                 }

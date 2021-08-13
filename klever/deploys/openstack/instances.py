@@ -28,7 +28,7 @@ class OSKleverInstances:
     def __init__(self, args, logger):
         self.args = args
         self.logger = logger
-        self.client = OSClient(args, logger)
+        self.client = OSClient(logger, args.os_username, args.store_password)
 
         self.name = self.args.name or f'{self.args.os_username}-klever-production'
         # It is assumed that all requested Klever experimental instances have the same unique prefix (name).

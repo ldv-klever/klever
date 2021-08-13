@@ -64,3 +64,28 @@ def test_replacement(new, process):
 
     assert len(bvs) == 1
     assert bvs.pop().description is newest
+
+
+def test_first_actions():
+    p1 = Process('x')
+    parse_process(p1, '<a> | <b>')
+    p1.actions.populate_with_empty_descriptions()
+    assert p1.actions.first_actions() == {'a', 'b'}
+
+    p1 = Process('x')
+    parse_process(p1, '<a>.<b>')
+    p1.actions.populate_with_empty_descriptions()
+    assert p1.actions.first_actions() == {'a'}
+
+    p1 = Process('x')
+    parse_process(p1, '<a>.<b> | <c>')
+    p1.actions.populate_with_empty_descriptions()
+    assert p1.actions.first_actions() == {'a', 'c'}
+
+    p1 = Process('x')
+    parse_process(p1, '<a> | {b}')
+    t = parse_process(p1, '<c>')
+    p1.actions.populate_with_empty_descriptions()
+    p1.actions['b'].action = t
+    assert p1.actions.first_actions() == {'a', 'c'}
+    assert p1.actions.first_actions(t) == {'c'}

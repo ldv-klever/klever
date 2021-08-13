@@ -56,6 +56,9 @@ class Weaver(klever.core.vtg.plugins.Plugin):
         env = dict(os.environ)
         # Print stubs instead of inline Assembler since verifiers do not interpret it and even can fail.
         env['LDV_INLINE_ASM_STUB'] = ''
+        # Get rid of all type qualifiers that are useless for verification most likely, but breaks generation or/and
+        # solution of verification tasks from time to time.
+        env['LDV_C_BACKEND_OMIT_TYPE_QUALS'] = "1"
 
         # Put all extra CC descriptions into the queue prior to launching parallel workers.
         self.extra_ccs = []
@@ -96,8 +99,16 @@ class Weaver(klever.core.vtg.plugins.Plugin):
             return weaver_worker
 
         workers_num = klever.core.utils.get_parallel_threads_num(self.logger, self.conf, 'Weaving')
-        klever.core.components.launch_queue_workers(self.logger, extra_cc_indexes_queue, constructor, workers_num,
-                                                    False)
+        if klever.core.components.launch_queue_workers(self.logger, extra_cc_indexes_queue, constructor, workers_num,
+                                                       fail_tolerant=True):
+            # One of Weaver workers has failed. We can not set fail_tolerant to False above since if one of Weaver
+            # workers fail, killing other ones may result to invalid, infinitely locked cache entries. This can result
+            # in deadlocks for other verification tasks (other groups of Weaver workers) that will expect that somebody
+            # will fill these cache entries sooner or later. There were not such issues when Weaver operated
+            # sequentially.
+            # Raising SystemExit allows to avoid useless stack traces in Unknown reports of Weaver.
+            raise SystemExit
+
         self.abstract_task_desc['extra C files'] = list(vals['extra C files'])
         extra_cc_indexes_queue.close()
 
@@ -111,7 +122,7 @@ class Weaver(klever.core.vtg.plugins.Plugin):
                 os.makedirs(os.path.dirname(new_file), exist_ok=True)
                 shutil.copy(aux_file, new_file)
 
-                cross_refs = CrossRefs(self.conf, self.logger, self.clade, aux_file, new_file, self.search_dirs)
+                cross_refs = CrossRefs(self.conf, self.logger, clade, aux_file, new_file, search_dirs)
                 cross_refs.get_cross_refs()
 
         self.abstract_task_desc['additional sources'] = os.path.relpath('additional sources',
@@ -197,6 +208,10 @@ class WeaverWorker(klever.core.components.Component):
         with self.lock:
             outfile_unique = '{0}.i'.format(
                 klever.core.utils.unique_file_name(os.path.splitext(os.path.basename(infile))[0], '.i'))
+            # Create empty unique output file while the lock is held in order unique_file_name() invoked in concurrent
+            # processes will see it and do generate a new unique output file.
+            with open(outfile_unique, 'w'):
+                pass
         # This is used for storing/getting to/from cache where uniqueness is guaranteed by other means.
         outfile = '{0}.i'.format(os.path.splitext(os.path.basename(infile))[0])
         self.logger.info('Weave in C file "{0}"'.format(infile))
@@ -243,6 +258,9 @@ class WeaverWorker(klever.core.components.Component):
         opts = cc['opts']
         # Some stuff, e.g. size_t definition, may be architecture dependent.
         opts.append(klever.core.vtg.utils.define_arch_dependent_macro(self.conf))
+
+        # Add options for using models from RGS if so.
+        opts.extend(self.extra_cc.get('opts', []))
 
         cwd = self.clade.get_storage_path(cc['cwd'])
 
@@ -401,4 +419,3 @@ class WeaverWorker(klever.core.components.Component):
                     if not os.path.exists(dest):
                         os.makedirs(os.path.dirname(dest), exist_ok=True)
                         shutil.copy(file, dest)
-

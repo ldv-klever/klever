@@ -22,11 +22,7 @@
                 {
                   "Instrumented function 'clk_unprepare'": [
                     {
-                      "LDV model 'clk_unprepare_clk'": [
-                        {
-                          "LDV model 'assert'": []
-                        }
-                      ]
+                      "LDV model 'clk_unprepare_clk'": []
                     }
                   ]
                 }

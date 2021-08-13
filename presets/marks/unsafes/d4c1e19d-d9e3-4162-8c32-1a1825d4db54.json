@@ -23,11 +23,7 @@
         {
           "Entry point 'main'": [
             {
-              "LDV model 'check_final_state'": [
-                {
-                  "LDV model 'assert'": []
-                }
-              ]
+              "LDV model 'check_final_state'": []
             }
           ]
         }

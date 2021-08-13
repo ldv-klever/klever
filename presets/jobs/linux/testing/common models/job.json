@@ -45,7 +45,8 @@
         "ext-modules/linux/drivers/video/fbdev/core/fbsys/*",
         "ext-modules/linux/lib/bitmap/*",
         "ext-modules/linux/lib/string/*",
-        "ext-modules/linux/mm/vmalloc-memory-safety/*"
+        "ext-modules/linux/mm/vmalloc-memory-safety/*",
+        "ext-modules/verifier/common/ldv_assert_memory_safety.ko"
       ],
       "requirement specifications": ["test:common"]
     },
@@ -55,7 +56,8 @@
         "ext-modules/linux/drivers/video/fbdev/core/fbsys/*",
         "ext-modules/linux/lib/bitmap/*",
         "ext-modules/linux/lib/string/*",
-        "ext-modules/linux/mm/vmalloc-memory-safety/*"
+        "ext-modules/linux/mm/vmalloc-memory-safety/*",
+        "ext-modules/verifier/common/ldv_assert_memory_safety.ko"
       ],
       "requirement specifications": ["test:memory safety"]
     }
