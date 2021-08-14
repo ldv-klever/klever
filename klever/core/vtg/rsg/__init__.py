@@ -163,8 +163,13 @@ class RSG(klever.core.vtg.plugins.Plugin):
         for model in models:
             aspect = '{}.aspect'.format(os.path.splitext(get_model_c_file(model))[0])
 
+            # Aspects are not mandatory. There may be pure C models, e.g. when one needs to provide some definitions
+            # without any weaving.
             if not os.path.isfile(aspect):
                 continue
+
+            if not os.stat(aspect).st_size:
+                raise ValueError('Aspect "{0}" is empty and should be removed from the verification job'.format(aspect))
 
             self.logger.debug('Get aspect "{0}"'.format(aspect))
 

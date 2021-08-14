@@ -236,7 +236,13 @@ class WeaverWorker(klever.core.components.Component):
             # Concatenate aspects.
             with open(aspect, 'w', encoding='utf-8') as fout:
                 for a in aspects:
-                    with open(os.path.join(self.conf['main working directory'], a), encoding='utf-8') as fin:
+                    a = os.path.join(self.conf['main working directory'], a)
+
+                    # Skip empty aspects since they have no sense. BTW, empty aspects for models are forbidden by RSG.
+                    if not os.stat(a).st_size:
+                        continue
+
+                    with open(a, encoding='utf-8') as fin:
                         for line in fin:
                             fout.write(line)
                         # Aspects may not terminate with the new line symbol that will cause horrible syntax
