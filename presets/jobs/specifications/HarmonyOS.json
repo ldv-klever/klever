@@ -304,12 +304,11 @@
           "options": {
             "common sets model": "counter",
             "model compiler input file": "kernel/liteos_a/kernel/common/los_config.c",
-            "common models": {
-              "verifier/common.c": {},
-              "verifier/gcc.c": {},
-              "verifier/nondet.c": {},
-              "harmonyos/common.c": {}
-            }
+            "common models": [
+              "verifier/gcc.c",
+              "verifier/nondet.c",
+              "harmonyos/common.c"
+            ]
           }
         },
         {"name": "Weaver",
