@@ -50,11 +50,10 @@
           "options": {
             "common sets model": "counter",
             "model compiler input file": "drivers/interrupt_controller/system_apic.c",
-            "common models": {
-              "verifier/common.c": {},
-              "verifier/gcc.c": {},
-              "verifier/nondet.c": {}
-            }
+            "common models": [
+              "verifier/gcc.c",
+              "verifier/nondet.c"
+            ]
           }
         },
         {
@@ -68,7 +67,7 @@
             "verifier profile": "reachability",
             "verifier": {
               "name": "CPAchecker",
-              "version": "klever_fixes:36955"
+              "version": "klever_fixes:37649"
             }
           }
         }

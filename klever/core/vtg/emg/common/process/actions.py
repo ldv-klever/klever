@@ -24,8 +24,9 @@ class Savepoint:
     The class represents a savepoint - description of an initialization used if there is no receiver for a process.
     """
 
-    def __init__(self, name, statements):
+    def __init__(self, name, statements, comment=None):
         self._name = name
+        self.comment = comment if comment else name.capitalize()
         self.statements = list(statements)
 
     def __str__(self):
@@ -283,8 +284,9 @@ class Action:
         self.name = name
         self.condition = []
         self.trace_relevant = False
-        self.savepoints = []
+        self.savepoints = set()
         self.comment = ''
+        self._require = dict()
 
     def __getnewargs__(self):
         # Return the arguments that *must* be passed to __new__ (required for deepcopy)
@@ -301,6 +303,21 @@ class Action:
 
     def __lt__(self, other):
         return str(self) < str(other)
+
+    @property
+    def require(self):
+        return copy.deepcopy(self._require)
+
+    def add_required_process(self, process_name: str, actions: set):
+        assert isinstance(process_name, str)
+        assert isinstance(actions, set)
+        for name in actions:
+            assert isinstance(name, str)
+
+        self._require.setdefault(process_name, dict())
+        if actions:
+            self._require[process_name].setdefault('include', set())
+            self._require[process_name]['include'].update(set(actions))
 
 
 class Subprocess(Action):
@@ -319,6 +336,13 @@ class Subprocess(Action):
 
     def __repr__(self):
         return '{%s}' % self.name
+
+    @property
+    def sequence(self):
+        if self.action:
+            return repr(self.action)
+        else:
+            return ''
 
 
 class Signal(Action):
@@ -415,6 +439,14 @@ class Actions(collections.UserDict):
                 action.my_operator.remove(action)
                 del self._process_actions[key]
         del self.data[key]
+
+    @property
+    def savepoints(self):
+        return {p for a in self.values() for p in a.savepoints}
+
+    @property
+    def sequence(self):
+        return repr(self.initial_action)
 
     def populate_with_empty_descriptions(self):
         """
@@ -523,7 +555,7 @@ class Actions(collections.UserDict):
         """
         Returns initial states of the process.
 
-        :return: Sorted list with starting process State objects.
+        :return: Sorted list with starting process Behaviour objects.
         """
         exclude = {a.action for a in self.filter(include={Subprocess})}
         acts = {a for a in self.behaviour() if not a.my_operator and isinstance(a, Operator) and a not in exclude}
@@ -535,6 +567,30 @@ class Actions(collections.UserDict):
             format('\n'.join(f"{repr(a)} parent: {repr(a.my_operator)}" for a in acts))
         act, *_ = acts
         return act
+
+    def first_actions(self, root=None, enter_subprocesses=True):
+        assert isinstance(root, BaseAction) or root is None, type(root).__name__
+        first = set()
+
+        if not root:
+            process = {self.initial_action}
+        else:
+            process = {root}
+        while process:
+            a = process.pop()
+
+            if isinstance(a, Concatenation) and len(a) > 0:
+                process.add(a[0])
+            elif isinstance(a, Operator):
+                for child in a:
+                    process.add(child)
+            elif isinstance(a, Behaviour) and a.kind is Subprocess and a.description and a.description.action and \
+                    enter_subprocesses:
+                process.add(a.description.action)
+            else:
+                first.add(a.name)
+
+        return first
 
     @property
     def final_actions(self):

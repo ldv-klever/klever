@@ -22,11 +22,7 @@
                 {
                   "Instrumented function 'sysfs_remove_group'": [
                     {
-                      "LDV model 'sysfs_remove_group'": [
-                        {
-                          "LDV model 'assert'": []
-                        }
-                      ]
+                      "LDV model 'sysfs_remove_group'": []
                     }
                   ]
                 }

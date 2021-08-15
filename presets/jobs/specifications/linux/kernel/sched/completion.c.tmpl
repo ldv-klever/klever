@@ -36,16 +36,20 @@ void ldv_init_completion{{ arg_sign.id }}(void)
 
 void ldv_init_completion_macro{{ arg_sign.id }}(void)
 {
-	/* ASSERT Check if {{ arg_sign.text }} is declared.*/
-	ldv_assert(ldv_completion{{ arg_sign.id }} != LDV_NOT_DECLARED);
+	if (ldv_completion{{ arg_sign.id }} == LDV_NOT_DECLARED)
+		/* ASSERT Check if {{ arg_sign.text }} is declared. */
+		ldv_assert();
+
 	/* NOTE Initialize completion { arg_sign.text }}. */
 	ldv_completion{{ arg_sign.id }} = LDV_DECLARED;
 }
 
 void ldv_wait_for_completion{{ arg_sign.id }}(void)
 {
-	/* ASSERT Check if there was declaration for {{ arg_sign.text }}.*/
-	ldv_assert(ldv_completion{{ arg_sign.id }} != LDV_NOT_DECLARED);
+	if (ldv_completion{{ arg_sign.id }} == LDV_NOT_DECLARED)
+		/* ASSERT Check if there was declaration for {{ arg_sign.text }}. */
+		ldv_assert();
+
 	/* NOTE Set {{ arg_sign.text }} as completed. */
 	ldv_completion{{ arg_sign.id }} = LDV_COMPLETED;
 }

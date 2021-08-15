@@ -1,0 +1,66 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "memory safety"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/hwmon/aspeed-pwm-tacho.ko"
+    },
+    {
+      "is_compare": true,
+      "name": "Project:Version",
+      "value": "v5.8-rc4"
+    }
+  ],
+  "description": "https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/commit/?id=bc4071aafcf4",
+  "error_trace": [
+    [
+      [
+        {
+          "EMG wrapper": [
+            {
+              "aspeed_pwm_tacho_probe": [
+                {
+                  "Instrumented function 'devm_kzalloc'": [
+                    {
+                      "LDV model 'devm_kzalloc'": [
+                        {
+                          "LDV model 'zalloc'": [
+                            {
+                              "LDV model 'reference_zalloc'": []
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "aspeed_create_fan": [
+                    {
+                      "aspeed_create_pwm_port": [
+                        {
+                          "aspeed_set_pwm_port_enable": []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": false,
+  "status": null,
+  "tags": [],
+  "threshold": 100,
+  "verdict": "2"
+}

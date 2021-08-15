@@ -36,9 +36,6 @@
                       "LDV model 'alloc_disk'": [
                         {
                           "LDV model 'undef_ptr'": []
-                        },
-                        {
-                          "LDV model 'assert'": []
                         }
                       ]
                     }

@@ -22,11 +22,7 @@
                 {
                   "Instrumented function 'put_disk'": [
                     {
-                      "LDV model 'put_disk'": [
-                        {
-                          "LDV model 'assert'": []
-                        }
-                      ]
+                      "LDV model 'put_disk'": []
                     }
                   ]
                 }

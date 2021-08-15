@@ -15,13 +15,14 @@
 # limitations under the License.
 #
 
-
+import copy
 from klever.core.utils import report
 from klever.core.vtg.plugins import Plugin
 from klever.core.vtg.emg.common import get_or_die
 from klever.core.vtg.emg.generators import generate_processes
 from klever.core.vtg.emg.common.process import ProcessCollection
 from klever.core.vtg.emg.translation import translate_intermediate_model
+from klever.core.vtg.emg.decomposition import decompose_intermediate_model
 from klever.core.vtg.emg.common.c.source import create_source_representation
 
 
@@ -60,11 +61,24 @@ class EMG(Plugin):
         self.logger.info("An intermediate environment model has been prepared")
 
         # Import additional aspect files
-        translate_intermediate_model(self.logger, self.conf, self.abstract_task_desc, sa, collection)
-        self.logger.info("An environment model has been generated successfully")
+        abstract_task = self.abstract_task_desc
+        self.abstract_task_desc = list()
+        used_attributed_names = set()
+        for number, model in enumerate(decompose_intermediate_model(self.logger, self.conf, collection)):
+            model.name = str(number)
+            if model.attributed_name in used_attributed_names:
+                raise ValueError(f'The model with name "{model.attributed_name}" has been already been generated')
+            else:
+                used_attributed_names.add(model.attributed_name)
+            new_description = translate_intermediate_model(self.logger, self.conf, copy.deepcopy(abstract_task), sa,
+                                                           model)
 
-        # todo: complete this feature
-        self.abstract_task_desc["environment model identifier"] = "default"
-        self.abstract_task_desc = [self.abstract_task_desc]
+            new_description["environment model attributes"] = model.attributes
+            new_description["environment model pathname"] = model.name
+            self.abstract_task_desc.append(new_description)
+            self.logger.info(f"An environment model {model.attributed_name} has been generated successfully")
+
+        if len(self.abstract_task_desc) == 0:
+            raise ValueError('There is no generated environment models')
 
     main = generate_environment

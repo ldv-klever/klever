@@ -22,11 +22,7 @@
                 {
                   "Instrumented function 'dma_mapping_error'": [
                     {
-                      "LDV model 'dma_mapping_error'": [
-                        {
-                          "LDV model 'assert'": []
-                        }
-                      ]
+                      "LDV model 'dma_mapping_error'": []
                     }
                   ]
                 }

@@ -15,6 +15,10 @@
  * limitations under the License.
  */
 
+/* DO NOT USE this requirements specification since it is too inaccurate. First of all, it is not a bug if drivers
+   remove non-created sysfs groups. Besides, rather than creating groups individual files can be created using
+   sysfs_create_file(), but later the whole group of such files can be removed. */
+
 #include <ldv/linux/common.h>
 #include <ldv/verifier/common.h>
 #include <ldv/verifier/nondet.h>
@@ -39,14 +43,17 @@ int ldv_sysfs_create_group(void)
 
 void ldv_sysfs_remove_group(void)
 {
-	/* ASSERT Sysfs group must be allocated before. */
-	ldv_assert(ldv_sysfs >= 1);
+	if (ldv_sysfs < 1)
+		/* ASSERT Sysfs group must be allocated before. */
+		ldv_assert();
+
 	/* NOTE Decrease allocated counter. */
 	ldv_sysfs--;
 }
 
 void ldv_check_final_state( void )
 {
-	/* ASSERT Sysfs groups must be freed at the end. */
-	ldv_assert(ldv_sysfs == 0);
+	if (ldv_sysfs != 0)
+		/* ASSERT Sysfs groups must be freed at the end. */
+		ldv_assert();
 }

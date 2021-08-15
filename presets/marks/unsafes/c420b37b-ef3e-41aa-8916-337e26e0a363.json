@@ -24,11 +24,7 @@
                     {
                       "LDV model 'destroy_class'": [
                         {
-                          "LDV model 'unregister_class'": [
-                            {
-                              "LDV model 'assert'": []
-                            }
-                          ]
+                          "LDV model 'unregister_class'": []
                         }
                       ]
                     }

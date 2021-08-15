@@ -92,10 +92,13 @@ StartDecision.prototype.update = function(resp) {
     $('#parallelism_0').val(resp['parallelism'][0]);
     $('#parallelism_1').val(resp['parallelism'][1]);
     $('#parallelism_2').val(resp['parallelism'][2]);
+    $('#parallelism_3').val(resp['parallelism'][3]);
     $('#memory').val(resp['memory']);
     $('#cpu_num').val(resp['cpu_num'] || '');
     $('#disk_size').val(resp['disk_size']);
     $('#cpu_model').val(resp['cpu_model']);
+    $('#cpu_time_exec_cmds').val(resp['cpu_time_exec_cmds']);
+    $('#memory_exec_cmds').val(resp['memory_exec_cmds']);
     $('#console_level').dropdown('set selected', resp['console_level']);
     $('#file_level').dropdown('set selected', resp['file_level']);
     $('#console_formatter').val(resp['console_formatter']);
@@ -113,11 +116,13 @@ StartDecision.prototype.serialize = function() {
             weight: $('input[name="weight"]:checked').val(),
             coverage_details: $('input[name="coverage_details"]:checked').val(),
             max_tasks: $('#max_tasks').val(),
-            parallelism: [$('#parallelism_0').val(), $('#parallelism_1').val(), $('#parallelism_2').val()],
+            parallelism: [$('#parallelism_0').val(), $('#parallelism_1').val(), $('#parallelism_2').val(), $('#parallelism_3').val()],
             memory: $('#memory').val().replace(/,/, '.'),
             cpu_num: $('#cpu_num').val() || null,
             disk_size: $('#disk_size').val().replace(/,/, '.'),
             cpu_model: $('#cpu_model').val(),
+            cpu_time_exec_cmds: $('#cpu_time_exec_cmds').val().replace(/,/, '.'),
+            memory_exec_cmds: $('#memory_exec_cmds').val().replace(/,/, '.'),
             console_level: $('#console_level').val(),
             file_level: $('#file_level').val(),
             console_formatter: $('#console_formatter').val(),

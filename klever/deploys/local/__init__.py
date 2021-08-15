@@ -26,7 +26,7 @@ from klever.deploys.utils import check_deployment_configuration_file, get_logger
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('action', choices=['install', 'update', 'uninstall'], help='Action to be executed.')
+    parser.add_argument('action', choices=['install', 'update', 'reinstall', 'uninstall'], help='Action to be executed.')
     parser.add_argument('mode', choices=['development', 'production', 'testing'], nargs='?', default='production',
                         help='Mode for which action to be executed (default: "%(default)s").')
     parser.add_argument('--non-interactive', default=False, action='store_true',
@@ -50,9 +50,11 @@ def main():
                              ' symbolic links as well as unexpected changes in their targets. Indeed this option is' +
                              ' intended to update Klever addons and build bases silently without using deployment' +
                              ' scripts.')
+    parser.add_argument('--log-level', default='INFO', metavar='LEVEL',
+                        help='Set logging level to LEVEL (INFO or DEBUG).')
     args = parser.parse_args()
 
-    logger = get_logger(__name__)
+    logger = get_logger(__name__, args.log_level)
 
     check_deployment_configuration_file(logger, args.deployment_configuration_file)
 

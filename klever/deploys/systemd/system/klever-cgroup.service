@@ -1,5 +1,7 @@
 [Unit]
 Description=Klever cgroup Service
+Requires=klever-native-scheduler.service
+After=klever-native-scheduler.service
 
 [Service]
 Type=simple

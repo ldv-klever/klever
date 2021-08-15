@@ -40,11 +40,7 @@
                 {
                   "Instrumented function 'usb_free_urb'": [
                     {
-                      "LDV model 'usb_free_urb'": [
-                        {
-                          "LDV model 'assert'": []
-                        }
-                      ]
+                      "LDV model 'usb_free_urb'": []
                     }
                   ]
                 }

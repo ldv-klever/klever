@@ -22,11 +22,7 @@
                 {
                   "Instrumented function 'wait_for_completion'": [
                     {
-                      "LDV model 'wait_for_completion_x'": [
-                        {
-                          "LDV model 'assert'": []
-                        }
-                      ]
+                      "LDV model 'wait_for_completion_x'": []
                     }
                   ]
                 }

@@ -1,0 +1,94 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Project:Version",
+      "value": "v5.8-rc1-13-gc8a00029dc70"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/staging/kpc2000/kpc_dma/kpc_dma.ko"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "memory safety"
+    }
+  ],
+  "description": "https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/commit/?id=8ce8668bfb64",
+  "error_trace": [
+    [
+      [
+        {
+          "EMG wrapper": [
+            {
+              "kpc_dma_probe": [
+                {
+                  "Instrumented function 'kzalloc'": [
+                    {
+                      "LDV model 'kzalloc'": [
+                        {
+                          "LDV model 'zalloc'": [
+                            {
+                              "LDV model 'reference_zalloc'": []
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "platform_set_drvdata": [
+                    {
+                      "dev_set_drvdata": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "EMG wrapper": [
+            {
+              "kpc_dma_remove": [
+                {
+                  "platform_get_drvdata": [
+                    {
+                      "dev_get_drvdata": []
+                    }
+                  ]
+                },
+                {
+                  "destroy_dma_engine": [
+                    {
+                      "stop_dma_engine": [
+                        {
+                          "WriteEngineControl": [
+                            {
+                              "writel": []
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": false,
+  "status": null,
+  "tags": [],
+  "threshold": 100,
+  "verdict": "2"
+}

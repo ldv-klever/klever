@@ -29,11 +29,7 @@
                 {
                   "Instrumented function 'dma_map_page'": [
                     {
-                      "LDV model 'dma_map_page'": [
-                        {
-                          "LDV model 'assert'": []
-                        }
-                      ]
+                      "LDV model 'dma_map_page'": []
                     }
                   ]
                 }

@@ -25,6 +25,7 @@ from Crypto.PublicKey import RSA
 
 from klever.deploys.utils import get_password
 from klever.deploys.openstack.client import OSClient
+from klever.deploys.openstack.client.volume import OSVolume
 
 
 class OSCreationTimeout(RuntimeError):
@@ -42,15 +43,18 @@ class OSInstance:
     IMAGE_CREATION_CHECK_INTERVAL = 10
     IMAGE_CREATION_RECOVERY_INTERVAL = 30
 
-    def __init__(self, logger, client, args, name, base_image, flavor_name, keep_on_exit=False):
+    def __init__(self, logger, client, args, name, base_image, vcpus, ram, disk, keep_on_exit=False):
         self.logger = logger
         self.client: OSClient = client
         self.args = args
         self.name = name
         self.base_image = base_image
-        self.flavor_name = flavor_name
+        self.vcpus = vcpus
+        self.ram = ram
+        self.disk = disk
         self.keep_on_exit = keep_on_exit
         self.instance = None
+        self.volume = None
 
     def __enter__(self):
         return self.create()
@@ -60,20 +64,12 @@ class OSInstance:
             self.remove()
 
     def create(self):
+        flavor = self.client.find_flavor(self.vcpus, self.ram, self.disk)
+
         self.logger.info(
-            f'Create instance "{self.name}" of flavor "{self.flavor_name}"'
+            f'Create instance "{self.name}" of flavor "{flavor.name}"'
             f' on the base of image "{self.base_image.name}"'
         )
-
-        try:
-            flavor = self.client.nova.flavors.find(name=self.flavor_name)
-        except novaclient.exceptions.NotFound:
-            self.logger.error(
-                'You can use one of the following flavors:\n{0}'.format(
-                    '\n'.join(['    {0} - {1} VCPUs, {2} MB of RAM, {3} GB of disk space'
-                               .format(flavor.name, flavor.vcpus, flavor.ram, flavor.disk)
-                               for flavor in self.client.nova.flavors.list()])))
-            sys.exit(errno.EINVAL)
 
         self.__setup_keypair()
 
@@ -138,6 +134,13 @@ class OSInstance:
         self.logger.error('Could not create instance')
         sys.exit(errno.EPERM)
 
+    def create_volume(self):
+        self.volume = OSVolume(self.logger, self.client, self.args, self.name)
+        self.volume.create()
+        self.volume.attach(self.instance)
+
+        return self.volume
+
     def remove(self, instance=None):
         if not instance:
             instance = self.instance
@@ -145,6 +148,9 @@ class OSInstance:
         if instance:
             self.logger.info(f'Remove instance "{instance.name}"')
             instance.delete()
+
+        if self.volume:
+            self.volume.remove()
 
     def __setup_keypair(self):
         private_key_file = self.args.ssh_rsa_private_key_file

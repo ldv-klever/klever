@@ -1,0 +1,23 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "alloc:spinlock"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/net/usb/kaweth.ko"
+    },
+    {
+      "is_compare": true,
+      "name": "Project:Version",
+      "value": "v3.5-6984-ge4c7f259c5be"
+    }
+  ],
+  "description": "",
+  "is_modifiable": false,
+  "tags": [],
+  "verdict": "0"
+}

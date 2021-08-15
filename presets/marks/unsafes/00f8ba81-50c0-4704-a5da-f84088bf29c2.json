@@ -1,0 +1,59 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Project:Version",
+      "value": "v5.10-rc6-306-g0862d95b437b"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/media/platform/s5p-jpeg/s5p-jpeg.ko"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "memory safety"
+    }
+  ],
+  "description": "Array jpeg-&gt;clocks is accessed by an index that value depends on a value returned by of_match_node().",
+  "error_trace": [
+    [
+      [
+        {
+          "EMG wrapper": [
+            {
+              "s5p_jpeg_probe": [
+                {
+                  "Instrumented function 'devm_kzalloc'": [
+                    {
+                      "LDV model 'devm_kzalloc'": [
+                        {
+                          "LDV model 'zalloc'": [
+                            {
+                              "LDV model 'reference_zalloc'": []
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": false,
+  "status": null,
+  "tags": [
+    "API models",
+    "API models - Linux kernel",
+    "API models - Linux kernel - of_match_node"
+  ],
+  "threshold": 100,
+  "verdict": "3"
+}

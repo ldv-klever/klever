@@ -22,4 +22,9 @@
 
 extern void *ldv_kmemdup(const void *src, size_t len, gfp_t gfp);
 
+extern size_t ldv_strlen(const char *s);
+extern int ldv_strcmp(const char *cs, const char *ct);
+extern int ldv_strncmp(const char *cs, const char *ct, __kernel_size_t count);
+extern char *ldv_strstr(const char *s1, const char *s2);
+
 #endif /* __LDV_LINUX_STRING_H */

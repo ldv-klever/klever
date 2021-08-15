@@ -25,7 +25,7 @@ from klever.deploys.openstack.instances import OSKleverInstances
 from klever.deploys.openstack.instance import OSKleverInstance
 from klever.deploys.openstack.image import OSKleverBaseImage
 from klever.deploys.utils import check_deployment_configuration_file, get_logger
-from klever.deploys.openstack.constants import OS_USER
+from klever.deploys.openstack.conf import OS_USER
 
 
 def load_default_base_image_name():
@@ -34,20 +34,14 @@ def load_default_base_image_name():
         return fp.read().strip()
 
 
-def parse_args(args, logger):
+def parse_args(args):
     parser = argparse.ArgumentParser()
-    parser.add_argument('action', choices=['show', 'create', 'update', 'ssh', 'remove', 'share', 'hide'],
+    parser.add_argument('action', choices=['show', 'create', 'update', 'ssh', 'remove', 'share', 'hide', 'resize'],
                         help='Action to be executed.')
     parser.add_argument('entity', choices=['image', 'instance'],
                         help='Entity for which action to be executed.')
-    parser.add_argument('--os-auth-url', default='https://sky.ispras.ru:13000',
-                        help='OpenStack identity service endpoint for authorization (default: "%(default)s").')
     parser.add_argument('--os-username', default=getpass.getuser(),
                         help='OpenStack username for authentication (default: "%(default)s").')
-    parser.add_argument('--os-tenant-name', default='computations',
-                        help='OpenStack tenant name (default: "%(default)s").')
-    parser.add_argument('--os-domain-name', default='ispras',
-                        help='OpenStack domain name (default: "%(default)s").')
     parser.add_argument('--os-network-type', default='internal',
                         help='OpenStack network type. Can be "internal" or "external" (default: "%(default)s").')
     parser.add_argument('--os-sec-group', default='ldv-sec',
@@ -56,7 +50,7 @@ def parse_args(args, logger):
                         help='OpenStack keypair name (default: "%(default)s").')
     parser.add_argument('--ssh-username', default=OS_USER,
                         help='SSH username for authentication (default: "%(default)s").')
-    parser.add_argument('--ssh-rsa-private-key-file',
+    parser.add_argument('--ssh-rsa-private-key-file', default=os.path.expanduser('~/.ssh/ldv.key'),
                         help='Path to SSH RSA private key file.'
                              'The appropriate SSH RSA key pair should be stored to OpenStack by name "ldv".')
     parser.add_argument('--name', help='Entity name.')
@@ -64,8 +58,12 @@ def parse_args(args, logger):
                         help='Name of base image on which Klever base image will be based on (default: "%(default)s").')
     parser.add_argument('--klever-base-image', default=load_default_base_image_name(),
                         help='Name of Klever base image on which instances will be based on (default: "%(default)s").')
-    parser.add_argument('--flavor', default='spark.large',
-                        help='Name of flavor to be used for new instances (default: "%(default)s").')
+    parser.add_argument('--vcpus', default=8, type=int,
+                        help='Number of VCPUs to be used in new instances (default: "%(default)s").')
+    parser.add_argument('--ram', type=int,
+                        help='Amount of RAM in GB to be used in new instances (default: 4 x VCPUs).')
+    parser.add_argument('--disk', default=200, type=int,
+                        help='Amount of disk space in GB to be used in new instances (default: "%(default)s").')
     parser.add_argument('--instances', type=int, default=1,
                         help='The number of new Klever instances (default: "%(default)s").')
     parser.add_argument('--mode', choices=['development', 'production'], default='production',
@@ -83,21 +81,31 @@ def parse_args(args, logger):
                              'This option has no effect for other actions.')
     parser.add_argument('--store-password', action='store_true',
                         help='Store OpenStack password on disk (default: False).')
+    parser.add_argument('--without-volume', action='store_true', default=False,
+                        help='Do not use OpenStack volumes to store data (default: False)')
+    parser.add_argument('--volume-size', default=200, type=int,
+                        help='Size of volume in GB (default: "%(default)s").')
+    parser.add_argument('--log-level', default='INFO', metavar='LEVEL',
+                        help='Set logging level to LEVEL (INFO or DEBUG).')
 
     # TODO: Check the correctness of the provided arguments
     args = parser.parse_args(args)
 
     if args.instances <= 0:
-        logger.error('The number of new Klever instances must be greater then 0')
+        print('The number of new Klever instances must be greater then 0')
         sys.exit(errno.EINVAL)
+
+    if not args.ram:
+        args.ram = args.vcpus * 4 * 1024
+    else:
+        args.ram = args.ram * 1024
 
     return args
 
 
 def main(sys_args=sys.argv[1:]):
-    logger = get_logger(__name__)
-
-    args = parse_args(sys_args, logger)
+    args = parse_args(sys_args)
+    logger = get_logger(__name__, args.log_level)
 
     check_deployment_configuration_file(logger, args.deployment_configuration_file)
 

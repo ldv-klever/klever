@@ -185,7 +185,7 @@ def _import_code_analysis(logger, conf, clade, dependencies, collection):
 
     logger.debug("The following functions were imported: {}".format(', '.join(collection.source_functions)))
 
-    macros_file = conf.get('macros white list')
+    macros_file = conf.get('macros white list', 'linux/emg/macros white list.json')
     if macros_file:
         macros_file = find_file_or_dir(logger, conf['main working directory'], macros_file)
         with open(macros_file, 'r', encoding='utf-8') as fp:

@@ -15,331 +15,29 @@
 # limitations under the License.
 #
 
+import copy
 import json
 import pytest
 import logging
 
-from klever.core.vtg.emg.common.c import Function
-from klever.core.vtg.emg.common.c.source import Source
+from klever.core.vtg.emg.common.process.model_for_testing import raw_model_preset, model_preset, source_preset
 from klever.core.vtg.emg.common.process import ProcessCollection
 from klever.core.vtg.emg.common.process.serialization import CollectionDecoder, CollectionEncoder
 
 
 @pytest.fixture
 def source():
-    cfiles = [
-        'main.c',
-        'lib.c'
-    ]
-
-    source = Source(cfiles, [], dict())
-    main_functions = {
-        'f1': "static int f1(struct test *)",
-        'f2': "static void f2(struct test *)",
-        'f3': "static void f3(struct test *)",
-        'f4': "static int f4(struct validation *)",
-        'f5': "static void f4(void)"
-    }
-    external_functions = {
-        "register_c1": "int register_c1(struct test *)",
-        "deregister_c1": "void deregister_c1(struct test *)",
-        "register_c2": "int register_c2(struct validation *)",
-        "deregister_c2": "void deregister_c2(struct validation *)"
-    }
-
-    for name, declaration_str in main_functions.items():
-        new = Function(name, declaration_str)
-        new.definition_file = cfiles[0]
-        source.set_source_function(new, cfiles[0])
-
-    for name, declaration_str in external_functions.items():
-        new = Function(name, declaration_str)
-        new.definition_file = cfiles[1]
-        source.set_source_function(new, cfiles[1])
-
-    return source
+    return source_preset()
 
 
 @pytest.fixture
 def raw_model():
-    c1p1 = {
-        "comment": "Category 1, process 1.",
-        "headers": ["linux/test.h"],
-        "labels": {
-            "container": {
-                "declaration": "struct test *var",
-                "value": "0"
-            }
-        },
-        "process": "(!register_c1p1).{activate}",
-        "actions": {
-            "activate": {
-                "comment": "Activate the second process.",
-                "process": "([register_c1p2].[deregister_c1p2]).({activate} | (deregister_c1p1))"
-            },
-            "register_c1p1": {
-                "parameters": ['%container%']
-            },
-            "deregister_c1p1": {
-                "parameters": ['%container%']
-            },
-            "register_c1p2": {
-                "parameters": ['%container%']
-            },
-            "deregister_c1p2": {
-                "parameters": ['%container%']
-            }
-        }
-    }
-    c1p2 = {
-        "comment": "Category 1, process 2.",
-        "headers": ["linux/test.h"],
-        "labels": {
-            "container": {
-                "declaration": "struct test *var",
-                "value": "0"
-            },
-            "ret": {
-                "declaration": "int x",
-                "value": "0"
-            }
-        },
-        "process": "(!register_c1p2).<alloc>.{main}",
-        "declarations": {
-            "environment model": {
-                "global_var": "struct test *global_var;\n"
-            }
-        },
-        "actions": {
-            "main": {
-                "comment": "Test initialization.",
-                "process": "<probe>.(<success>.{calls} | <fail>.{main}) | (deregister_c1p2)"
-            },
-            "calls": {
-                "comment": "Test actions.",
-                "process": "(<read> | <write>).(<remove>.{main} | {calls})"
-            },
-            "register_c1p2": {
-                "condition": ["$ARG1 == global_var"],
-                "parameters": ['%container%']
-            },
-            "alloc": {
-                "comment": "Alloc memory for the container.",
-                "statements": ["$CALLOC(%container%);"]
-            },
-            "probe": {
-                "comment": "Do probing.",
-                "statements": ["%ret% = f1(%container%);"]
-            },
-            "success": {
-                "comment": "Successful probing.",
-                "condition": ["%ret% == 0"]
-            },
-            "fail": {
-                "comment": "Failed probing.",
-                "condition": ["%ret% != 0"]
-            },
-            "deregister_c1p2": {
-                "parameters": ['%container%']
-            },
-            "read": {
-                "comment": "Reading.",
-                "statements": ["f2(%container%);"]
-            },
-            "write": {
-                "comment": "Writing.",
-                "statements": ["f3(%container%);"]
-            },
-            "remove": {
-                "comment": "Removing.",
-                "statements": ["$FREE(%container%);"]
-            }
-        }
-    }
-    c2p1 = {
-        "comment": "Category 2, process 1.",
-        "labels": {
-            "container": {
-                "declaration": "struct validation *var",
-                "value": "0"
-            },
-            "ret": {
-                "declaration": "int x",
-                "value": "0"
-            }
-        },
-        "process": "(!register_c2p1).{main}",
-        "actions": {
-            "main": {
-                "comment": "Test initialization.",
-                "process": "<probe>.(<success> | <fail>.<remove>).{main} | (deregister_c2p1)"
-            },
-            "register_c2p1": {
-                "condition": ["$ARG1 != 0"],
-                "parameters": ['%container%']
-            },
-            "probe": {
-                "comment": "Do probing.",
-                "statements": ["%ret% = f4(%container%);"]
-            },
-            "success": {
-                "comment": "Successful probing.",
-                "condition": ["%ret% == 0"]
-            },
-            "fail": {
-                "comment": "Failed probing.",
-                "condition": ["%ret% != 0"]
-            },
-            "deregister_c2p1": {
-                "parameters": ['%container%']
-            },
-            "remove": {
-                "comment": "Removing.",
-                "statements": ["$FREE(%container%);"]
-            }
-        }
-    }
-    register_c1 = {
-        "comment": "Register С1.",
-        "labels": {
-            "container": {
-                "declaration": "struct test *var"
-            },
-        },
-        "process": "<assign>.[register_c1p1].<success> | <fail>",
-        "actions": {
-            "register_c1p1": {
-                "parameters": [
-                    "%container%"
-                ]
-            },
-            "assign": {
-                "comment": "Get container.",
-                "statements": [
-                    "%container% = $ARG1;"
-                ]
-            },
-            "fail": {
-                "comment": "Failed registration.",
-                "statements": ["return ldv_undef_int_negative();"]
-            },
-            "success": {
-                "comment": "Successful registration.",
-                "statements": [
-                    "return 0;"
-                ]
-            }
-        }
-    }
-    deregister_c1 = {
-        "comment": "Deregister C1.",
-        "labels": {
-            "container": {
-                "declaration": "struct test *var"
-            },
-        },
-        "process": "<assign>.[deregister_c1p1]",
-        "actions": {
-            "deregister_c1p1": {
-                "parameters": [
-                    "%container%"
-                ]
-            },
-            "assign": {
-                "comment": "Get container.",
-                "statements": [
-                    "%container% = $ARG1;"
-                ]
-            }
-        }
-    }
-    register_c2 = {
-        "comment": "Register С2.",
-        "labels": {
-            "container": {
-                "declaration": "struct validation *var"
-            },
-        },
-        "process": "<assign>.[register_c2p1].<success> | <fail>",
-        "actions": {
-            "register_c2p1": {
-                "parameters": [
-                    "%container%"
-                ]
-            },
-            "assign": {
-                "comment": "Get container.",
-                "statements": [
-                    "%container% = $ARG1;"
-                ]
-            },
-            "fail": {
-                "comment": "Failed registration.",
-                "statements": ["return ldv_undef_int_negative();"]
-            },
-            "success": {
-                "comment": "Successful registration.",
-                "statements": [
-                    "return 0;"
-                ]
-            }
-        }
-    }
-    deregister_c2 = {
-        "comment": "Deregister C2.",
-        "labels": {
-            "container": {
-                "declaration": "struct validation *var"
-            },
-        },
-        "process": "<assign>.[deregister_c2p1]",
-        "actions": {
-            "deregister_c2p1": {
-                "parameters": [
-                    "%container%"
-                ]
-            },
-            "assign": {
-                "comment": "Get container.",
-                "statements": [
-                    "%container% = $ARG1;"
-                ]
-            }
-        }
-    }
-    main = {
-        "comment": "Main process.",
-        "labels": {},
-        "process": "<root>",
-        "actions": {
-            "root": {
-                "statements": "f5();"
-            }
-        }
-    }
-
-    spec = {
-        "functions models": {
-            "register_c1": register_c1,
-            "deregister_c1": deregister_c1,
-            "register_c2": register_c2,
-            "deregister_c2": deregister_c2
-        },
-        "environment processes": {
-            "c1/p1": c1p1,
-            "c1/p2": c1p2,
-            "c2/p1": c2p1
-        },
-        "main process": main
-    }
-
-    return spec
+    return raw_model_preset()
 
 
 @pytest.fixture()
 def model(source, raw_model):
-    parser = CollectionDecoder(logging, dict())
-    return parser.parse_event_specification(source, raw_model, ProcessCollection())
+    return model_preset()
 
 
 def test_import_model(raw_model, model):
@@ -348,6 +46,7 @@ def test_import_model(raw_model, model):
 
 
 def test_imported_names(raw_model, model):
+    assert model.name == raw_model['name']
     assert 'entry' == model.entry.name
 
     for name in raw_model['functions models']:
@@ -366,6 +65,39 @@ def test_export_model(source, model):
     raw1 = json.loads(raw1)
     raw2 = json.loads(raw2)
     _compare_models(raw1, raw2)
+
+
+def test_requirements_field(source, raw_model):
+    test_raw_model = copy.deepcopy(raw_model)
+    assert 'c1/p1' in test_raw_model['environment processes']['c1/p2']['actions']['register_c1p2']['require']
+
+    # Incorrect process
+    test_raw_model['environment processes']['c1/p2']['actions']['register_c1p2']['require']['c5/p4'] = dict()
+    with pytest.raises(ValueError):
+        CollectionDecoder(logging, dict()).parse_event_specification(source, json.loads(json.dumps(test_raw_model)),
+                                                                     ProcessCollection())
+
+    # Missing action
+    test_raw_model = copy.deepcopy(raw_model)
+    test_raw_model['environment processes']['c1/p2']['actions']['register_c1p2']['require']['c1/p1'] = \
+        {'include': ['goaway']}
+    with pytest.raises(ValueError):
+        CollectionDecoder(logging, dict()).parse_event_specification(source, json.loads(json.dumps(test_raw_model)),
+                                                                     ProcessCollection())
+
+
+def test_savepoint_uniqueness(source, raw_model):
+    raw_model = copy.deepcopy(raw_model)
+
+    # Add two savepoints with the same name
+    assert 'p2s1' in raw_model['environment processes']['c1/p2']['actions']['register_c1p2']['savepoints']
+    new_sp = dict(raw_model["environment processes"]['c1/p2']['actions']['register_c1p2']['savepoints']['p2s1'])
+    raw_model['environment processes']['c2/p1']['actions']['register_c2p1']['savepoints']['p2s1'] = new_sp
+
+    # Expect an error
+    with pytest.raises(ValueError):
+        CollectionDecoder(logging, dict()).parse_event_specification(source, json.loads(json.dumps(raw_model)),
+                                                                     ProcessCollection())
 
 
 def _compare_models(raw1, raw2):
@@ -395,16 +127,32 @@ def _compare_actions_collections(one, two):
     assert len(one) == len(two)
     for action in one:
         _compare_actions(one[action], two[action])
+    _compare_savepoints(one, two)
 
 
 def _compare_actions(one, two):
     # todo: we do not test attribute 'trace relevant' as it is unnecessary
-    for attr in ('comment', 'statements', 'condition', 'parameters', 'savepoints',
-                 'peers', 'pre-call', 'post-call'):
-        assert str(one.get(attr)) == str(two.get(attr)), f"{attr}"
+    for attr in ('comment', 'statements', 'condition', 'parameters',
+                 'peers', 'pre-call', 'post-call', 'requirements'):
+        assert str(one.get(attr)) == str(two.get(attr)), f"{attr} {str(one)} {str(two)}"
 
     if 'process' in one:
         assert 'process' in two
+
+
+def _compare_savepoints(desc1, desc2):
+    for action in desc1:
+        if 'savepoints' in action and len(action['savepoints']):
+            assert desc2[action]['savepoints'], f"Expect {len(action['savepoints'])} savepoints"
+            names = set(desc2[action]['savepoints'].keys())
+            keys = set(action['savepoints'].keys())
+            assert names == keys, 'Savepoints do not match: {} and {}'.format(', '.join(names), ', '.join(keys))
+
+            for name in desc1[action]['savepoints']:
+                for i, line1 in enumerate(desc1[action]['savepoints'][name]):
+                    line2 = desc2[action]['savepoints'][name][i]
+                    assert line1 == line2, f"Line '{line1}' does not match '{line2}' at position {i} of action " \
+                                           f"{action} savepoint {name}"
 
 
 def test_compare_peers(model):
