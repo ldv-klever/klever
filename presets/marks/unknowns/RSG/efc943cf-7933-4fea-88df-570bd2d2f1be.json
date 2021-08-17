@@ -1,0 +1,8 @@
+{
+  "attrs": [],
+  "function": "ValueError: Aspect \".*\" is empty and should be removed from the verification job",
+  "is_regexp": true,
+  "problem_pattern": "Empty aspect",
+  "production": true,
+  "is_modifiable": false
+}
