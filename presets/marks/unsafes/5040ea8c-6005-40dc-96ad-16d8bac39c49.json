@@ -18,7 +18,7 @@
     {
       "is_compare": true,
       "name": "Declaration",
-      "value": "struct mport_dev *(?.dma_chan)"
+      "value": "struct mport_dev (?.dma_chan)"
     }
   ],
   "description": "Non-target bug.",

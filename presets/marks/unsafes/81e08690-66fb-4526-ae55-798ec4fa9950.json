@@ -2,13 +2,8 @@
   "attrs": [
     {
       "is_compare": true,
-      "name": "Project:Version",
-      "value": "v5.7-7908-ge1c3cdb26ab8"
-    },
-    {
-      "is_compare": true,
-      "name": "Program fragment",
-      "value": "drivers/rapidio/devices/rio_mport_cdev.ko"
+      "name": "Declaration",
+      "value": "struct list_head (?.next)"
     },
     {
       "is_compare": true,
@@ -17,11 +12,16 @@
     },
     {
       "is_compare": true,
-      "name": "Declaration",
-      "value": "struct mport_cdev_priv (?.dmach)"
+      "name": "Program fragment",
+      "value": "drivers/rapidio/devices/rio_mport_cdev.ko"
+    },
+    {
+      "is_compare": true,
+      "name": "Project:Version",
+      "value": "v5.7-7908-ge1c3cdb26ab8"
     }
   ],
-  "description": "Non-target bug.",
+  "description": "",
   "error_trace": [
     [
       [
@@ -63,9 +63,22 @@
                           "Instrumented function 'mutex_lock'": []
                         },
                         {
-                          "dmaengine_terminate_all": []
+                          "Instrumented function 'mutex_unlock'": []
                         }
                       ]
+                    },
+                    {
+                      "mport_cdev_kill_fasync": [
+                        {
+                          "Instrumented function 'mutex_lock'": []
+                        },
+                        {
+                          "Instrumented function 'mutex_unlock'": []
+                        }
+                      ]
+                    },
+                    {
+                      "Instrumented function 'mutex_lock'": []
                     }
                   ]
                 }
@@ -96,17 +109,32 @@
         {
           "EMG wrapper": [
             {
-              "mport_cdev_ioctl": [
+              "mport_cdev_mmap": [
                 {
-                  "rio_mport_transfer_ioctl": [
+                  "Instrumented function 'mutex_lock'": []
+                },
+                {
+                  "Instrumented function 'mutex_unlock'": []
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "EMG wrapper": [
+            {
+              "mport_cdev_release": [
+                {
+                  "mport_cdev_release_dma": [
                     {
-                      "rio_dma_transfer": [
+                      "Instrumented function 'spin_lock'": []
+                    },
+                    {
+                      "list_splice_init": [
                         {
-                          "get_dma_channel": [
-                            {
-                              "Instrumented function 'mutex_lock'": []
-                            }
-                          ]
+                          "__list_splice": []
                         }
                       ]
                     }
@@ -121,8 +149,14 @@
   ],
   "function": "thread_call_forests",
   "is_modifiable": false,
-  "status": "0",
-  "tags": [],
+  "status": null,
+  "tags": [
+    "Verifier",
+    "Verifier - CPALockator - Predicate analysis - Memory model - Different structures",
+    "Verifier - CPALockator - Predicate analysis - Memory model",
+    "Verifier - CPALockator - Predicate analysis",
+    "Verifier - CPALockator"
+  ],
   "threshold": 100,
-  "verdict": "1"
+  "verdict": "3"
 }

@@ -18,7 +18,7 @@
     {
       "is_compare": true,
       "name": "Declaration",
-      "value": "struct pxa168_eth_private *(?.tx_skb)"
+      "value": "struct pxa168_eth_private (?.tx_skb)"
     }
   ],
   "description": "https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/commit/?id=0571a753cb07",

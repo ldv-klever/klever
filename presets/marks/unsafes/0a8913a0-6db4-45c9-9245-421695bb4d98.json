@@ -2,6 +2,11 @@
   "attrs": [
     {
       "is_compare": true,
+      "name": "Declaration",
+      "value": "void *cif_free::*ldv_func_arg"
+    },
+    {
+      "is_compare": true,
       "name": "Requirements specification",
       "value": "concurrency safety rcu"
     },

@@ -18,7 +18,7 @@
     {
       "is_compare": true,
       "name": "Declaration",
-      "value": "__write_once_size::void *__write_once_size::*p"
+      "value": "void *__write_once_size::*p"
     }
   ],
   "description": "CPALockator does not support atomic values.",

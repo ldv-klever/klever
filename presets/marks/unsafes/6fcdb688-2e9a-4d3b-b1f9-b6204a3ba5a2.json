@@ -18,7 +18,7 @@
     {
       "is_compare": true,
       "name": "Declaration",
-      "value": "struct mport_dev *(?.portwrites)"
+      "value": "struct mport_dev (?.portwrites)"
     }
   ],
   "description": "https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/commit/?id=e1c3cdb26ab8",

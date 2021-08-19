@@ -18,7 +18,7 @@
     {
       "is_compare": true,
       "name": "Declaration",
-      "value": "struct pch_dma *(?.membase)"
+      "value": "struct pch_dma (?.membase)"
     }
   ],
   "description": "EMG should honestly allocate memory for PCI devices. Otherwise, verification tools do not properly track it.",
