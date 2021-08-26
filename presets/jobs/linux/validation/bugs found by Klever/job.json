@@ -52,7 +52,7 @@
       "requirement specifications": ["memory safety"],
       "ideal verdicts": [{
         "ideal verdict": "safe",
-        "comment": "CPAchecker IllegalArgumentException."
+        "comment": "Timeout."
       }],
       "data": {"bug identifier": "b7fdd208687b~"}
     },
