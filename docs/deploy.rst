@@ -41,8 +41,9 @@ Software Requirements
 ---------------------
 
 Klever deployment is designed to work on `Debian 9 <https://wiki.debian.org/DebianStretch>`__,
-`Ubuntu 18.04 <https://wiki.ubuntu.com/BionicBeaver/ReleaseNotes>`__ and
-`Fedora 32 <https://docs.fedoraproject.org/en-US/fedora/f32/>`__.
+`Ubuntu 18.04 <https://wiki.ubuntu.com/BionicBeaver/ReleaseNotes>`__,
+`Fedora 32 <https://docs.fedoraproject.org/en-US/fedora/f32/>`__ and
+`openSUSE 15.2 <https://doc.opensuse.org/release-notes/x86_64/openSUSE/Leap/15.2/>`__.
 You can try it for other versions of these distributions, as well as for their derivatives on your own risk.
 
 To deploy Klever one has to clone its Git repository (a path to a directory where it is cloned is referred to as
@@ -58,12 +59,14 @@ First of all it is necessary to install packages listed at the following files:
 
 * Debian - :file:`klever/deploys/conf/debian-packages.txt` from :term:`$KLEVER_SRC`.
 * Fedora - :file:`klever/deploys/conf/fedora-packages.txt` from :term:`$KLEVER_SRC`.
+* openSUSE - :file:`klever/deploys/conf/opensuse-packages.txt` from :term:`$KLEVER_SRC`.
 
 Then you need to install `Python 3.7 or higher <https://www.python.org/>`__ and a corresponding development package.
 If your distribution does not have them you can get them from:
 
 * Debian - `here <https://forge.ispras.ru/attachments/download/7251/python-3.7.6.tar.xz>`__.
 * Fedora - `here <https://forge.ispras.ru/attachments/download/7252/python-fedora-3.7.6.tar.xz>`__.
+* openSUSE - `here <https://forge.ispras.ru/attachments/download/9073/python-opensuse-3.7.6.tar.xz>`__.
 
 To install required Python packages we recommend to create a virtual environment using installed Python.
 For instance, you can run following commands within :term:`$KLEVER_SRC`::
