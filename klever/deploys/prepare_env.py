@@ -66,8 +66,9 @@ def prepare_env(logger, deploy_dir):
     try:
         execute_cmd(logger, 'postgresql-setup', '--initdb', '--unit', 'postgresql')
     except FileNotFoundError:
-        # postgresql-setup may not be present in the system
-        pass
+        # postgresql-setup may not be present in the system. On some systems like openSUSE it is necessary to start the
+        # PostgreSQL service at least once so that necessary initialization will be performed automatically.
+        execute_cmd(logger, 'service', 'postgresql', 'restart')
     except subprocess.CalledProcessError:
         # postgresql-setup may fail if it was already executed before
         pass
