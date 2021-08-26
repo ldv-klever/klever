@@ -18,7 +18,7 @@
     {
       "is_compare": true,
       "name": "Declaration",
-      "value": "struct tx_desc *(?.buf_ptr)"
+      "value": "struct tx_desc (?.buf_ptr)"
     }
   ],
   "description": "Likely pxa168_eth_start_xmit()/pxa168_eth_netpoll() should not be invoked after napi_disable() and netif_carrier_off().",

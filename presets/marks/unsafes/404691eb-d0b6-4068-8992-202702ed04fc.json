@@ -18,7 +18,7 @@
     {
       "is_compare": true,
       "name": "Declaration",
-      "value": "struct emg_struct_character_driver_scenario_tlclk_fops_11 *(?.arg0)"
+      "value": "struct emg_struct_character_driver_scenario_tlclk_fops_11 (?.arg0)"
     }
   ],
   "description": "",

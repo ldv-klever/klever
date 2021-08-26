@@ -18,7 +18,7 @@
     {
       "is_compare": true,
       "name": "Declaration",
-      "value": "struct cops_local *(?.board)"
+      "value": "struct cops_local (?.board)"
     }
   ],
   "description": "One more bug that looks almost like the target one (https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/commit/?id=a4dd4fc6105e).",

@@ -14,6 +14,11 @@
       "is_compare": true,
       "name": "Requirements specification",
       "value": "concurrency safety"
+    },
+    {
+      "is_compare": true,
+      "name": "Declaration",
+      "value": "struct spacc_engine (?.stat_irq_thresh)"
     }
   ],
   "description": "https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/commit/?id=64f4a62e3b17",

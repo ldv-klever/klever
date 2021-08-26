@@ -18,7 +18,7 @@
     {
       "is_compare": true,
       "name": "Declaration",
-      "value": "struct emg_struct_interrupt_scenario_pd_irq_8 *(?.arg0)"
+      "value": "struct emg_struct_interrupt_scenario_pd_irq_8 (?.arg0)"
     }
   ],
   "description": "EMG should honestly allocate memory for PCI devices. Otherwise, verification tools do not properly track it.",

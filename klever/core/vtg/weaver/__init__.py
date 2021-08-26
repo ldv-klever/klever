@@ -47,12 +47,6 @@ class Weaver(klever.core.vtg.plugins.Plugin):
             raise RuntimeError('Build base is not OK')
         clade_meta = clade.get_meta()
 
-        # This is required to get compiler (Aspectator) specific stdarg.h since kernel C files are compiled
-        # with "-nostdinc" option and system stdarg.h couldn't be used.
-        aspectator_search_dir = '-isystem' + klever.core.utils.execute(
-            self.logger, (klever.core.vtg.utils.get_cif_or_aspectator_exec(self.conf, 'aspectator'),
-                          '-print-file-name=include'), collect_all_stdout=True)[0]
-
         env = dict(os.environ)
         # Print stubs instead of inline Assembler since verifiers do not interpret it and even can fail.
         env['LDV_INLINE_ASM_STUB'] = ''
@@ -90,7 +84,6 @@ class Weaver(klever.core.vtg.plugins.Plugin):
                                          include_child_resources=True,
                                          search_dirs=search_dirs,
                                          clade=clade, clade_meta=clade_meta,
-                                         aspectator_search_dir=aspectator_search_dir,
                                          env=env,
                                          grp_id=self.extra_ccs[extra_cc_index][0],
                                          extra_cc=self.extra_ccs[extra_cc_index][1],
@@ -166,7 +159,7 @@ class Weaver(klever.core.vtg.plugins.Plugin):
 class WeaverWorker(klever.core.components.Component):
     def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, id=None, work_dir=None, attrs=None,
                  separate_from_parent=False, include_child_resources=False, search_dirs=None, clade=None,
-                 clade_meta=None, aspectator_search_dir=None, env=None, grp_id=None, extra_cc=None, lock=None):
+                 clade_meta=None, env=None, grp_id=None, extra_cc=None, lock=None):
         super(WeaverWorker, self).__init__(conf, logger, parent_id, callbacks, mqs, vals, id, work_dir, attrs,
                                            separate_from_parent, include_child_resources)
 
@@ -175,7 +168,6 @@ class WeaverWorker(klever.core.components.Component):
         self.search_dirs = search_dirs
         self.clade = clade
         self.clade_meta = clade_meta
-        self.aspectator_search_dir = aspectator_search_dir
         self.env = env
         self.grp_id = grp_id
         self.extra_cc = extra_cc
@@ -236,7 +228,13 @@ class WeaverWorker(klever.core.components.Component):
             # Concatenate aspects.
             with open(aspect, 'w', encoding='utf-8') as fout:
                 for a in aspects:
-                    with open(os.path.join(self.conf['main working directory'], a), encoding='utf-8') as fin:
+                    a = os.path.join(self.conf['main working directory'], a)
+
+                    # Skip empty aspects since they have no sense. BTW, empty aspects for models are forbidden by RSG.
+                    if not os.stat(a).st_size:
+                        continue
+
+                    with open(a, encoding='utf-8') as fin:
                         for line in fin:
                             fout.write(line)
                         # Aspects may not terminate with the new line symbol that will cause horrible syntax
@@ -329,7 +327,6 @@ class WeaverWorker(klever.core.components.Component):
                 (['--aspect', os.path.realpath(aspect)] if aspect else ['--stage', 'C-backend']) +
                 ['--', '-include', self.conf['LDV inline Assembler header file']] +
                 klever.core.vtg.utils.prepare_cif_opts(opts, self.clade, is_model) +
-                [self.aspectator_search_dir] +
                 ['-I' + self.clade.get_storage_path(p) for p in self.conf['working source trees']]
             ),
             env=self.env,
@@ -358,7 +355,6 @@ class WeaverWorker(klever.core.components.Component):
                 '-I' + os.path.join(os.path.dirname(self.conf['specifications base']), 'include')
             ] +
             klever.core.vtg.utils.prepare_cif_opts(opts, self.clade, True) +
-            [self.aspectator_search_dir] +
             ['-I' + self.clade.get_storage_path(p) for p in self.conf['working source trees']] +
             [
                 '-fsyntax-only',

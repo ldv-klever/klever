@@ -38,6 +38,7 @@
               "linux/lib/bitmap.c",
               "linux/lib/find_bit.common.c",
               "linux/lib/string.c",
+              "linux/list.c",
               "linux/mm/slab.c",
               "linux/mm/util.c",
               "linux/mm/vmalloc.c",
@@ -58,7 +59,7 @@
             "verifier profile": "reachability",
             "verifier": {
               "name": "CPAchecker",
-              "version": "klever_fixes:37649"
+              "version": "klever_fixes:38135"
             }
           }
         }
@@ -106,7 +107,7 @@
             "verifier profile": "memory checking",
             "verifier": {
               "name": "CPAchecker",
-              "version": "klever_fixes:37649"
+              "version": "klever_fixes:38135"
             }
           }
         }
@@ -142,7 +143,7 @@
             "verifier profile": "race checking",
             "verifier": {
               "name": "CPAchecker",
-              "version": "CPALockator-combat-mode:36901"
+              "version": "CPALockator-combat-mode:38006"
             },
             "result processing": {
               "expect several witnesses": true
@@ -360,7 +361,7 @@
                           "verifier profile": "reachability with heap arrays",
                           "verifier": {
                             "name": "CPAchecker",
-                            "version": "klever_fixes:37649"
+                            "version": "klever_fixes:38135"
                           }
                         }
                       }
@@ -687,7 +688,7 @@
                   "verifier profile": "reachability with function pointers",
                   "verifier": {
                     "name": "CPAchecker",
-                    "version": "klever_fixes:37649"
+                    "version": "klever_fixes:38135"
                   }
                 }
               }
@@ -715,7 +716,7 @@
                   "verifier profile": "reachability with heap arrays",
                   "verifier": {
                     "name": "CPAchecker",
-                    "version": "klever_fixes:37649"
+                    "version": "klever_fixes:38135"
                   }
                 }
               }

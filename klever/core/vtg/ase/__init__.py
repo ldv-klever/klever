@@ -79,13 +79,6 @@ class ASE(klever.core.vtg.plugins.Plugin):
                                                                     request_aspect)
             self.logger.debug('Request aspect is "{0}"'.format(request_aspect))
 
-            # This is required to get compiler (Aspectator) specific stdarg.h since kernel C files are compiled with
-            # "-nostdinc" option and system stdarg.h couldn't be used.
-            aspectator_search_dir = '-isystem' + klever.core.utils.execute(
-                self.logger,
-                (klever.core.vtg.utils.get_cif_or_aspectator_exec(self.conf, 'aspectator'), '-print-file-name=include'),
-                collect_all_stdout=True)[0]
-
             for grp in self.abstract_task_desc['grps']:
                 self.logger.info('Request argument signatures for C files of group "{0}"'.format(grp['id']))
 
@@ -151,11 +144,9 @@ class ASE(klever.core.vtg.plugins.Plugin):
                             (['--keep'] if self.conf['keep intermediate files'] else []) +
                             ['--'] +
                             klever.core.vtg.utils.prepare_cif_opts(opts, clade) +
-                            [
-                                # Like in Weaver.
-                                '-I' + os.path.join(os.path.dirname(self.conf['specifications base']), 'include'),
-                                aspectator_search_dir
-                            ]),
+                            # Like in Weaver.
+                            ['-I' + os.path.join(os.path.dirname(self.conf['specifications base']), 'include')]
+                        ),
                         env,
                         cwd=clade.get_storage_path(cc['cwd']),
                         timeout=0.01,

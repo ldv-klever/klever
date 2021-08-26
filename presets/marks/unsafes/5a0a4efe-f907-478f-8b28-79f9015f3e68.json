@@ -18,7 +18,7 @@
     {
       "is_compare": true,
       "name": "Declaration",
-      "value": "struct pxa168_eth_private *(?.htpr)"
+      "value": "struct pxa168_eth_private (?.htpr)"
     }
   ],
   "description": "Non-target bug.",

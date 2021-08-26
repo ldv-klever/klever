@@ -3,7 +3,7 @@
     {
       "is_compare": true,
       "name": "Declaration",
-      "value": "cif_free::void *cif_free::*ldv_func_arg1"
+      "value": "void *cif_free::*ldv_func_arg"
     },
     {
       "is_compare": true,

@@ -18,7 +18,7 @@
     {
       "is_compare": true,
       "name": "Declaration",
-      "value": "struct u132 *(?.platform_dev)"
+      "value": "struct u132 (?.platform_dev)"
     }
   ],
   "description": "https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/commit/?id=48ce9e4119ce",

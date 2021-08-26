@@ -18,7 +18,7 @@
     {
       "is_compare": true,
       "name": "Declaration",
-      "value": "struct dma_device *(?.dev)"
+      "value": "struct dma_device (?.dev)"
     }
   ],
   "description": "https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/commit/?id=6d6018fc30be",
