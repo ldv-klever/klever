@@ -70,7 +70,7 @@ def prepare_env(logger, deploy_dir):
         # postgresql-setup may fail if it was already executed before
         pass
 
-    # Search for pg_hba_conf_file in all possible locations
+    # Search for pg_hba.conf in all possible locations
     for path in ('/etc/postgresql', '/var/lib/pgsql/data'):
         try:
             pg_hba_conf_file = execute_cmd(logger, 'find', path, '-name', 'pg_hba.conf', get_output=True).rstrip()
