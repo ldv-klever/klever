@@ -270,3 +270,9 @@
     font-size: 0.8em;
     white-space: nowrap;
 }
+
+.Highlighted {
+    border: 1px solid rebeccapurple;
+    border-radius: 2px;
+    background-color: #f3edd8;
+}

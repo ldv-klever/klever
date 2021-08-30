@@ -70,7 +70,9 @@
             {% if coverage %}
                 <a class="ui icon mini basic button" href="{% url 'reports:coverage-download' coverage.coverage.id %}" style="float:left;">{% trans 'Download code coverage' %}</a>
                 {% include 'reports/coverage/coverageNavigation.html' with statistics=coverage %}
+                <br>
             {% endif %}
+            <div id="highlight_selection" class="ui mini violet basic button" style="margin-top: 5px;">{% trans 'Highlight selection' %}</div>
         </div>
     </div>
 
@@ -183,4 +185,6 @@
         {# Code coverage data statistics modal #}
         {% include 'reports/coverage/coverageDataStatisticsModal.html' with DataStatistics=coverage.data_statistic %}
     {% endif %}
+
+    <span id="no_text_for_search" hidden>{% trans 'No text to search is selected' %}</span>
 {% endblock %}
