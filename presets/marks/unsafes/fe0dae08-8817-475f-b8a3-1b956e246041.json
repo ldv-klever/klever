@@ -1,0 +1,62 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Project:Version",
+      "value": "v5.9-rc6-67-g9b719c7119e7"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/usb/gadget/udc/net2272.ko"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "memory safety"
+    }
+  ],
+  "description": "usb_initialize_gadget() and put_device() cares about memory release, but they are unknown to a verifier.",
+  "error_trace": [
+    [
+      [
+        {
+          "EMG wrapper": [
+            {
+              "net2272_pci_probe": [
+                {
+                  "net2272_probe_init": [
+                    {
+                      "Instrumented function 'kzalloc'": [
+                        {
+                          "LDV model 'kzalloc'": [
+                            {
+                              "LDV model 'zalloc'": [
+                                {
+                                  "LDV model 'reference_zalloc'": []
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": false,
+  "status": null,
+  "tags": [
+    "API models",
+    "API models - Linux kernel"
+  ],
+  "threshold": 100,
+  "verdict": "3"
+}

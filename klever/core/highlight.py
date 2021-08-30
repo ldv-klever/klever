@@ -131,6 +131,7 @@ class Highlight:
                 Literal.String.Escape,
                 Name,
                 Name.Builtin,
+                Name.Class,
                 Name.Function,
                 Name.Label,
                 Operator

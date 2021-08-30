@@ -16,31 +16,20 @@
 #
 
 import re
+import collections
 import sortedcontainers
 
+from klever.core.vtg.emg.common.process.labels import Label
 from klever.core.vtg.emg.common.c.types import Array, Structure, Pointer
+from klever.core.vtg.emg.common.process import Process, Access, ProcessCollection
 from klever.core.vtg.emg.generators.linuxModule.interface import Interface, Container
-from klever.core.vtg.emg.common.process import Process, Label, Access, Block, Dispatch, Receive, Action
+from klever.core.vtg.emg.common.process.actions import Block, Dispatch, Receive, Signal
 
 
-def get_common_parameter(action, process, position):
-    interfaces = [access.interface for access in process.resolve_access(action.parameters[position])
-                  if access.interface]
-
-    for peer in action.peers:
-        candidates = [access.interface for access
-                      in peer['process'].resolve_access(peer['action'].parameters[position])
-                      if access.interface]
-        interfaces = set(interfaces) & set(candidates)
-
-    if len(interfaces) == 0:
-        raise RuntimeError('Need at least one common interface to send a signal')
-    else:
-        # Todo how to choose between several ones?
-        return list(interfaces)[0]
+Peer = collections.namedtuple('Peer', 'process action interfaces')
 
 
-class Call(Action):
+class Call(Dispatch):
 
     def __init__(self, name):
         super().__init__(name)
@@ -51,7 +40,7 @@ class Call(Action):
         self.post_call = []
 
 
-class CallRetval(Action):
+class CallRetval(Receive):
 
     def __init__(self, name):
         super().__init__(name)
@@ -213,9 +202,6 @@ class ExtendedProcess(Process):
         self.allowed_implementations = sortedcontainers.SortedDict()
         self.instance_number = 0
 
-    def __copy__(self):
-        return super().__copy__()
-
     @property
     def name(self):
         return self._name
@@ -248,8 +234,9 @@ class ExtendedProcess(Process):
             for m in self.label_re.finditer(expr):
                 used_labels.add(m.group(1))
 
-        for action in self.actions.filter(include={Action}):
+        for action in self.actions.values():
             if (isinstance(action, Call) or isinstance(action, CallRetval)) and action.callback:
+                assert action.callback, 'Expect required callback action'
                 extract_labels(action.callback)
             if isinstance(action, Call):
                 for param in action.parameters:
@@ -283,6 +270,14 @@ class ExtendedProcess(Process):
     def resources(self):
         return [self.labels[name] for name in self.labels if self.labels[name].resource]
 
+    def unmatched_signals(self, kind=Signal):
+        signals = set(map(str, self.actions.filter(include={kind}, exclude={CallRetval, Call})))
+        matched = set()
+        for peered in self.peers.values():
+            matched.update(peered)
+        signals.difference_update(matched)
+        return signals
+
     def extract_label(self, string):
         name, tail = self.extract_label_with_tail(string)
         return name
@@ -304,8 +299,15 @@ class ExtendedProcess(Process):
             raise ValueError('Cannot extract label from access {} in process {}'.format(string, format(string)))
 
     def establish_peers(self, process):
-        peers = self.get_available_peers(process)
-        for signals in peers:
+        assert isinstance(process, ExtendedProcess), \
+            f'Got a {type(process).__name__} instead of a {type(self).__name__}'
+
+        if str(self) in process.peers:
+            del process.peers[str(self)]
+        if str(process) in self.peers:
+            del self.peers[str(process)]
+
+        for signals in self.get_available_peers(process):
             for index in range(len(self.actions[signals[0]].parameters)):
                 label1 = self.extract_label(self.actions[signals[0]].parameters[index])
                 label2 = process.extract_label(process.actions[signals[1]].parameters[index])
@@ -327,47 +329,40 @@ class ExtendedProcess(Process):
                 if label2.declaration and not label1.declaration and len(label1.interfaces) == 0:
                     label1.declaration = label2.declaration
 
-            self.actions[signals[0]].peers.append(
-                {
-                    'process': process,
-                    'action': process.actions[signals[1]]
-                })
-            process.actions[signals[1]].peers.append(
-                {
-                    'process': self,
-                    'action': self.actions[signals[0]]
-                })
+            self.peers.setdefault(str(process), set())
+            process.peers.setdefault(str(self), set())
+            self.peers[str(process)].add(str(signals[1]))
+            process.peers[str(self)].add(str(signals[0]))
 
     def get_available_peers(self, process):
+        assert isinstance(process, ExtendedProcess), f'Got a {type(process).__name__} instead of {type(self).__name__}'
         ret = []
 
         # Match dispatches
-        for dispatch, receive in ((d, r) for d in self.actions.filter(include={Dispatch})
-                                  for r in process.actions.filter(include={Receive})):
-            if process.instance_number not in {p['process'].instance_number for p in dispatch.peers}:
-                match = self.__compare_signals(process, dispatch, receive)
-                if match:
-                    ret.append([dispatch.name, receive.name])
+        for dispatch, receive in ((d, r) for d in self.actions.filter(include={Dispatch}, exclude={Call})
+                                  for r in process.actions.filter(include={Receive}, exclude={CallRetval})):
+            match = self.__compare_signals(process, dispatch, receive)
+            if match:
+                ret.append((dispatch.name, receive.name))
 
         # Match receives
-        for receive, dispatch in ((r, d) for r in self.actions.filter(include={Receive})
-                                  for d in process.actions.filter(include={Dispatch})):
-            if process.instance_number not in {p['process'].instance_number for p in receive.peers}:
-                match = self.__compare_signals(process, receive, dispatch)
-                if match:
-                    ret.append([receive.name, dispatch.name])
+        for receive, dispatch in ((r, d) for r in self.actions.filter(include={Receive}, exclude={CallRetval})
+                                  for d in process.actions.filter(include={Dispatch}, exclude={Call})):
+            match = self.__compare_signals(process, receive, dispatch)
+            if match:
+                ret.append((receive.name, dispatch.name))
         return ret
 
-    def accesses(self, accesses=None, exclude=None, no_labels=False):
+    def accesses(self, accesses=None, exclude=None, no_labels=False, refresh=False):
         if not exclude:
             exclude = list()
 
         if not accesses:
             accss = sortedcontainers.SortedDict()
 
-            if not self._accesses or len(exclude) > 0 or no_labels:
+            if refresh or (not self._accesses or len(exclude) > 0 or no_labels):
                 # Collect all accesses across process subprocesses
-                for action in self.actions.filter(include={Action}, exclude=exclude):
+                for action in self.actions.filter(exclude=exclude):
                     if isinstance(action, Call) or isinstance(action, CallRetval) and action.callback:
                         accss[action.callback] = []
                     if isinstance(action, Call):
@@ -443,15 +438,6 @@ class ExtendedProcess(Process):
         self._accesses[acc.expression] = [acc]
         return lb
 
-    def add_condition(self, name, condition, statements, comment):
-        new = Block(name)
-        self.actions[name] = new
-
-        new.condition = condition
-        new.statements = statements
-        new.comment = comment
-        return new
-
     def __compare_signals(self, process, first, second):
         if first.name == second.name and len(first.parameters) == len(second.parameters):
             match = True
@@ -471,3 +457,32 @@ class ExtendedProcess(Process):
             return match
         else:
             return False
+
+
+class ExtendedProcessCollection(ProcessCollection):
+
+    def peers(self, process, signals=None, processes=None):
+        """Add an extra field interfaces in addition to the process and action."""
+        peers = super().peers(process, signals, processes)
+        return [Peer(*p, []) for p in peers]
+
+    def get_common_parameter(self, action, process, position):
+        assert isinstance(action, Signal)
+        assert isinstance(process, ExtendedProcess)
+        assert isinstance(position, int)
+
+        interfaces = [access.interface for access in process.resolve_access(action.parameters[position])
+                      if access.interface]
+
+        for peer in self.peers(process, {action.name}):
+            candidates = [access.interface for access
+                          in peer.process.resolve_access(peer.action.parameters[position])
+                          if access.interface]
+            interfaces = set(interfaces) & set(candidates)
+
+        if len(interfaces) == 0:
+            raise RuntimeError('Need at least one common interface to send a signal')
+        else:
+            # Todo how to choose between several ones?
+            return list(interfaces)[0]
+

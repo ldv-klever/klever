@@ -5,76 +5,13 @@
         {
           "name": "EMG",
           "options": {
-            "entry point": "main",
-            "initialize requirements": true,
-            "check final state": true,
-            "macros white list": "linux/emg/macros white list.json",
             "generators options": [
-              {
-                "linuxModule": {
-                  "callback comment": "Invoke callback {0} from {1}.",
-                  "action comments": {
-                    "dispatch": {
-                      "register": "Register {} callbacks.",
-                      "instance_register": "Register {} callbacks.",
-                      "deregister": "Deregister {} callbacks.",
-                      "instance_deregister": "Deregister {} callbacks.",
-                      "irq_register": "Register {} interrupt handler.",
-                      "irq_deregister": "Deregister {} interrupt handler."
-                    },
-                    "receive": {
-                      "register": "Begin {} callbacks invocations scenario.",
-                      "instance_register": "Begin {} callbacks invocations scenario.",
-                      "deregister": "Finish {} callbacks invocations scenario.",
-                      "instance_deregister": "Finish {} callbacks invocations scenario."
-                    }
-                  }
-                }
-              },
-              {
-                "linuxInsmod": {
-                  "init": "module_init",
-                  "exit": "module_exit",
-                  "kernel_initialization": [
-                    "early_initcall",
-                    "pure_initcall",
-                    "core_initcall",
-                    "core_initcall_sync",
-                    "postcore_initcall",
-                    "postcore_initcall_sync",
-                    "arch_initcall",
-                    "arch_initcall_sync",
-                    "subsys_initcall",
-                    "subsys_initcall_sync",
-                    "fs_initcall",
-                    "fs_initcall_sync",
-                    "rootfs_initcall",
-                    "device_initcall",
-                    "device_initcall_sync",
-                    "late_initcall",
-                    "late_initcall_sync",
-                    "console_initcall",
-                    "security_initcall"
-                  ],
-                  "kernel": false
-                }
-              },
-              {
-                "genericManual": {"enforce replacement": true}
-              }
+              {"linuxModule": {}},
+              {"linuxInsmod": {}},
+              {"genericManual": {}}
             ],
             "translation options": {
-              "allocate external": false,
-              "environment model file": "environment_model.c",
-              "additional headers": [
-                "ldv/linux/common.h",
-                "ldv/linux/err.h",
-                "ldv/verifier/common.h",
-                "ldv/verifier/gcc.h",
-                "ldv/verifier/nondet.h",
-                "ldv/verifier/memory.h",
-                "ldv/verifier/thread.h"
-              ]
+              "allocate external": false
             }
           }
         },
@@ -84,7 +21,10 @@
             "common sets model": "counter",
             "model compiler input file": "scripts/mod/empty.c",
             "common models": [
+              "common/inline_asm.c",
+              "linux/arch/asm/current.c",
               "linux/arch/asm/atomic.c",
+              "linux/common.c",
               "linux/drivers/base/dd.c",
               "linux/drivers/base/devres.c",
               "linux/drivers/base/firmware_loader.c",
@@ -93,12 +33,16 @@
               "linux/drivers/video/fbdev/core/fbsysfs.c",
               "linux/drivers/spi.c",
               "linux/err.c",
+              "linux/fs/dcache/dcache.c",
               "linux/kernel/panic.c",
-              "linux/common.c",
+              "linux/lib/bitmap.c",
+              "linux/lib/find_bit.common.c",
+              "linux/lib/string.c",
+              "linux/list.c",
               "linux/mm/slab.c",
               "linux/mm/util.c",
+              "linux/mm/vmalloc.c",
               "linux/verifier/memory.c",
-              "verifier/common.c",
               "verifier/gcc.c",
               "verifier/nondet.c"
             ]
@@ -115,7 +59,7 @@
             "verifier profile": "reachability",
             "verifier": {
               "name": "CPAchecker",
-              "version": "trunk:36447"
+              "version": "klever_fixes:38135"
             }
           }
         }
@@ -141,29 +85,20 @@
         {
           "name": "EMG",
           "options": {
-            "translation options": {
-              "allocate external": true,
-              "environment model file": "environment_model.c",
-              "additional headers": [
-                "linux/user_namespace.h",
-                "ldv/linux/common.h",
-                "ldv/linux/err.h",
-                "ldv/verifier/common.h",
-                "ldv/verifier/gcc.h",
-                "ldv/verifier/nondet.h",
-                "ldv/verifier/memory.h",
-                "ldv/verifier/thread.h"
-              ]
-            }
+            "translation options": {"allocate external": true}
           }
         },
         {
           "name": "RSG",
-          "options": {"models": [
-            "common/list.c",
-            "linux/drivers/usb/core/usb/message.c",
-            "linux/memory safety/memory.c"
-          ]}
+          "options": {
+            "memory safety": true,
+            "models": [
+              "common/list.c",
+              "linux/alloc/common.c",
+              "linux/drivers/usb/core/usb/message.c",
+              "linux/memory safety/memory.c"
+            ]
+          }
         },
         {"name": "Weaver"},
         {
@@ -172,7 +107,7 @@
             "verifier profile": "memory checking",
             "verifier": {
               "name": "CPAchecker",
-              "version": "trunk:36447"
+              "version": "klever_fixes:38135"
             }
           }
         }
@@ -187,22 +122,13 @@
             "check final state": false,
             "translation options": {
               "self parallel processes": false,
+              "simple control functions calls": false,
               "do not skip signals": true,
               "not self parallel processes": ["linux/insmod"],
               "not self parallel processes from categories": ["usb"],
               "not self parallel processes from scenarios": ["usb_serial_scenario"],
               "direct control functions calls": false,
-              "allocate external": false,
-              "environment model file": "environment_model.c",
-              "additional headers": [
-                "ldv/linux/common.h",
-                "ldv/linux/err.h",
-                "ldv/verifier/common.h",
-                "ldv/verifier/gcc.h",
-                "ldv/verifier/nondet.h",
-                "ldv/verifier/memory.h",
-                "ldv/verifier/thread.h"
-              ]
+              "allocate external": false
             }
           }
         },
@@ -217,7 +143,7 @@
             "verifier profile": "race checking",
             "verifier": {
               "name": "CPAchecker",
-              "version": "CPALockator:36189"
+              "version": "CPALockator-combat-mode:38006"
             },
             "result processing": {
               "expect several witnesses": true
@@ -239,7 +165,10 @@
             "description": "...",
             "plugins": [{
               "name": "RSG",
-              "options": {"models": ["linux/alloc/irq.c"]}
+              "options": {"models": [
+                "linux/alloc/common.c",
+                "linux/alloc/irq.c"
+              ]}
             }]
           },
           {
@@ -265,6 +194,7 @@
                     "model": "$linux/kernel/locking/spinlock.c",
                     "options": {"sets model": "flag"}
                   },
+                  "linux/alloc/common.c",
                   "linux/alloc/spinlock.c"
                 ]}
               }
@@ -275,7 +205,10 @@
             "description": "...",
             "plugins": [{
               "name": "RSG",
-              "options": {"models": ["linux/alloc/usb lock.c"]}
+              "options": {"models": [
+                "linux/alloc/common.c",
+                "linux/alloc/usb lock.c"
+              ]}
             }]
           }
         ]
@@ -428,7 +361,7 @@
                           "verifier profile": "reachability with heap arrays",
                           "verifier": {
                             "name": "CPAchecker",
-                            "version": "trunk:36447"
+                            "version": "klever_fixes:38135"
                           }
                         }
                       }
@@ -660,11 +593,11 @@
         "identifier": "lib",
         "children": [
           {
-            "identifier": "find_next_bit",
+            "identifier": "find_bit",
             "description": "...",
             "plugins": [{
               "name": "RSG",
-              "options": {"models": ["linux/lib/find_next_bit.c"]}
+              "options": {"models": ["linux/lib/find_bit.c"]}
             }]
           },
           {
@@ -734,16 +667,16 @@
         "identifier": "test",
         "children": [
           {
-            "identifier": "environment model specifications",
-            "description": "Requirement intended for testing environment model specifications and the generator",
+            "identifier": "EMG",
+            "description": "Requirements specification for testing environment model specifications and EMG",
             "plugins": [{
               "name": "RSG",
               "options": {"models": ["linux/emg/test_model.c"]}
             }]
           },
           {
-            "identifier": "environment model specifications with function pointer analysis",
-            "description": "Requirement intended for testing environment model specifications and generator with function pointer analysis",
+            "identifier": "EMG with function pointer analysis",
+            "description": "Requirements specification intended for testing environment model specifications and EMG with function pointer analysis",
             "plugins": [
               {
                 "name": "RSG",
@@ -755,7 +688,7 @@
                   "verifier profile": "reachability with function pointers",
                   "verifier": {
                     "name": "CPAchecker",
-                    "version": "trunk:36447"
+                    "version": "klever_fixes:38135"
                   }
                 }
               }
@@ -783,7 +716,7 @@
                   "verifier profile": "reachability with heap arrays",
                   "verifier": {
                     "name": "CPAchecker",
-                    "version": "trunk:36447"
+                    "version": "klever_fixes:38135"
                   }
                 }
               }
@@ -798,6 +731,7 @@
               "options": {"models": [
                 "common/list.c",
                 "common/test.c",
+                "linux/alloc/common.c",
                 "linux/drivers/usb/core/usb/message.c",
                 "linux/memory safety/memory.c"
               ]}

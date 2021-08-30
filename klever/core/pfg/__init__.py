@@ -15,6 +15,7 @@
 # limitations under the License.
 #
 
+import glob
 import os
 import json
 import importlib
@@ -120,13 +121,15 @@ class PFG(klever.core.components.Component):
 
         if program:
             self.logger.info("Search for fragmentation description and configuration for {!r}".format(program))
-            file_name = os.path.join(db, '%s.json' % program.capitalize())
-            if not os.path.isfile(file_name):
-                self.logger.warning('There is no fragmentation sets description file {!r}'.format(file_name))
-                specification = {}
-            else:
-                with open(file_name, 'r', encoding='utf-8') as fp:
-                    specification = json.load(fp)
+            conf_files = glob.glob(os.path.join(db, '*.json'))
+            specification = {}
+            for conf_file in conf_files:
+                if os.path.basename(conf_file) == '%s.json' % program:
+                    with open(conf_file, 'r', encoding='utf-8') as fp:
+                        specification = json.load(fp)
+
+            if not specification:
+                self.logger.warning('There is no fragmentation sets description file for program {!r}'.format(program))
         else:
             raise ValueError("Require 'project' attribute to be set in job.json to proceed")
 

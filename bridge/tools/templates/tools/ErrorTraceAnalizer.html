@@ -1,0 +1,78 @@
+{% extends 'bridge/base.html' %}
+{% comment "License" %}
+% Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
+% Ivannikov Institute for System Programming of the Russian Academy of Sciences
+%
+% Licensed under the Apache License, Version 2.0 (the "License");
+% you may not use this file except in compliance with the License.
+% You may obtain a copy of the License at
+%
+%    http://www.apache.org/licenses/LICENSE-2.0
+%
+% Unless required by applicable law or agreed to in writing, software
+% distributed under the License is distributed on an "AS IS" BASIS,
+% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+% See the License for the specific language governing permissions and
+% limitations under the License.
+{% endcomment %}
+
+{% load i18n %}
+{% load static %}
+{% load compress %}
+
+{% block head_block %}
+    <link href="{% static 'tools/json-view/jsonview.bundle.css' %}" rel="stylesheet">
+
+    {% compress css file tools-etv %}
+        <link href="{% static 'reports/css/source.css' %}" rel="stylesheet">
+        <link href="{% static 'reports/css/ETV.css' %}" rel="stylesheet">
+        <link href="{% static 'reports/css/ETV_Note.css' %}" rel="stylesheet">
+        <link href="{% static 'tools/css/etv-analizer.css' %}" rel="stylesheet">
+    {% endcompress %}
+
+    <script type="text/javascript" src="{% static 'tools/json-view/jsonview.bundle.js' %}"></script>
+
+    {% compress js file tools-etv %}
+        <script type="text/javascript" src="{% static 'tools/js/etv-analizer.js' %}"></script>
+        <script type="text/javascript" src="{% static 'reports/js/ETV.js' %}"></script>
+    {% endcompress %}
+{% endblock %}
+
+{% block body_block %}
+    <div class="ui grid">
+        <div class="ten wide column">
+            <h3>{% trans 'Error trace analizer' %}</h3>
+        </div>
+        <div class="six wide column right aligned">
+            <div class="ui action input">
+                <select id="error_trace_selector" class="ui dropdown">
+                    {% for et in error_traces %}
+                        <option value="{% url 'tools:error-trace-analizer' %}?index={{ et.0 }}"{% if index == et.0 %} selected{% endif %}>{{ et.1 }}</option>
+                    {% endfor %}
+                </select>
+                <button id="show_error_trace" class="ui blue button">{% trans 'Show' %}</button>
+            </div>
+        </div>
+    </div>
+    <div class="ui grid">
+        <div class="eight wide column">
+            <div class="ui raised segment error-trace-content">
+                {% if etv %}
+                    {% include 'reports/ErrorTrace.html' with etv=etv %}
+                {% endif %}
+            </div>
+        </div>
+        <div class="eight wide column">
+            <div id="et_json" class="ui raised segment error-trace-content filecontent"></div>
+        </div>
+    </div>
+
+    {% if json %}
+        <script type="application/javascript">
+            jQuery(function () {
+                const tree = JsonView.renderJSON(`{{ json|safe }}`, $('#et_json')[0]);
+                JsonView.expandChildren(tree);
+            });
+        </script>
+    {% endif %}
+{% endblock %}

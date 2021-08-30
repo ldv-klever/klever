@@ -29,6 +29,29 @@ from klever.core.vtg.emg.generators.linuxInsmod.tarjan import calculate_load_ord
 specifications_endings = []
 
 
+DEFAULT_INIT_FUNCS = (
+    "early_initcall",
+    "pure_initcall",
+    "core_initcall",
+    "core_initcall_sync",
+    "postcore_initcall",
+    "postcore_initcall_sync",
+    "arch_initcall",
+    "arch_initcall_sync",
+    "subsys_initcall",
+    "subsys_initcall_sync",
+    "fs_initcall",
+    "fs_initcall_sync",
+    "rootfs_initcall",
+    "device_initcall",
+    "device_initcall_sync",
+    "late_initcall",
+    "late_initcall_sync",
+    "console_initcall",
+    "security_initcall"
+)
+
+
 class ScenarioModelgenerator(AbstractGenerator):
 
     def make_scenarios(self, abstract_task_desc, collection, source, specifications):
@@ -49,6 +72,10 @@ class ScenarioModelgenerator(AbstractGenerator):
             raise ValueError('Do not expect any main process already attached to the model, reorder EMG generators in '
                              'configuration to generate insmod process')
 
+        self.conf.setdefault('kernel initialization', DEFAULT_INIT_FUNCS)
+        self.conf.setdefault('init', "module_init")
+        self.conf.setdefault('exit', "module_exit")
+        self.conf.setdefault('kernel', False)
         self.logger.info("Determine initialization and exit functions")
         inits, exits, kernel_initializations = self.__import_inits_exits(abstract_task_desc, source)
 
@@ -107,7 +134,7 @@ class ScenarioModelgenerator(AbstractGenerator):
             else:
                 extra = dict()
 
-            for name in get_or_die(self.conf, 'kernel_initialization'):
+            for name in get_or_die(self.conf, 'kernel initialization'):
                 mc = source.get_macro(name)
 
                 same_list = []
@@ -137,7 +164,7 @@ class ScenarioModelgenerator(AbstractGenerator):
 
     def __generate_insmod_process(self, source, inits, exits, kernel_initializations):
         self.logger.info("Generate artificial process description to call Init and Exit module functions 'insmod'")
-        ep = Process("insmod", "linux")
+        ep = Process("insmod")
         ep.comment = "Initialize or exit module."
         ep.self_parallelism = False
 
@@ -170,6 +197,7 @@ class ScenarioModelgenerator(AbstractGenerator):
 
         # This populates all actions
         parse_process(ep, process)
+        ep.actions.populate_with_empty_descriptions()
 
         if len(kernel_initializations) > 0:
             body = [
@@ -207,7 +235,7 @@ class ScenarioModelgenerator(AbstractGenerator):
             addon = func.define()
             ep.add_definition('environment model', 'emg_kernel_init', addon)
 
-            ki_subprocess = ep.actions['kernel_initialization']
+            ki_subprocess = ep.actions['kernel initialization']
             ki_subprocess.statements = ["%ret% = emg_kernel_init();"]
             ki_subprocess.comment = 'Kernel initialization stage.'
             ki_subprocess.trace_relevant = True

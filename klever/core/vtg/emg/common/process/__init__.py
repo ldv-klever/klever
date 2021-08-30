@@ -17,63 +17,18 @@
 
 import re
 import copy
+import string
 import graphviz
 import collections
 import sortedcontainers
 
-
-class Access:
-    """
-    Class to represent expressions based on labels from process descriptions.
-
-    For instance: %mylabel%.
-    """
-
-    def __init__(self, expression):
-        self.expression = expression
-        self.label = None
-        self.list_access = None
-
-    def __str__(self):
-        return self.expression
-
-    def __lt__(self, other):
-        return str(self) < str(other)
+from klever.core.vtg.emg.common.process.labels import Label, Access
+from klever.core.vtg.emg.common.process.actions import Actions, Subprocess, Action, Dispatch, Receive, Block, Operator,\
+    Signal, Behaviour, Parentheses, Choice, Concatenation
 
 
-class Label:
-    """
-    The class represent Label from process descriptions.
-
-    A label is a C variable without a strictly given scope. It can be local, global depending on translation of the
-    environment model to C code. Process state consists of labels and from current action.
-    """
-    def __init__(self, name: str):
-        self.value = None
-        self.declaration = None
-        self._name = name
-
-    @property
-    def name(self):
-        return self._name
-
-    def __str__(self):
-        return self._name
-
-    def __repr__(self):
-        return '%{}%'.format(self._name)
-
-    def __eq__(self, other):
-        if self.declaration and other.declaration:
-            return self.declaration == other.declaration
-        else:
-            return False
-
-    def __hash__(self):
-        return hash(self._name)
-
-    def __lt__(self, other):
-        return str(self) < str(other)
+"""Represent a signal peer."""
+Peer = collections.namedtuple('Peer', 'process action')
 
 
 class Process:
@@ -101,6 +56,7 @@ class Process:
         self.cfiles = sortedcontainers.SortedSet()
         self.headers = list()
         self.actions = Actions()
+        self.peers = dict()
         self.labels = sortedcontainers.SortedDict()
         self.declarations = sortedcontainers.SortedDict()
         self.definitions = sortedcontainers.SortedDict()
@@ -124,15 +80,23 @@ class Process:
         else:
             return False
 
-    def __copy__(self):
-        inst = type(self)(self.name, self.category)
+    def clone(self):
+        """
+        Copy the instance and return a new one. The copy method is recursive, to get a shallow copy use the copy.copy
+        method.
+
+        :return: Process.
+        """
+        inst = copy.copy(self)
 
         # Set simple attributes
         for att, val in self.__dict__.items():
-            if isinstance(val, list) or isinstance(val, dict) or isinstance(val, Actions):
+            if isinstance(val, list) or isinstance(val, dict):
                 setattr(inst, att, copy.copy(val))
             else:
                 setattr(inst, att, val)
+
+        inst.actions = self.actions.clone()
 
         # Change declarations and definition keys
         for collection in (self.declarations, self.definitions):
@@ -141,15 +105,38 @@ class Process:
 
         # Copy labels
         inst.labels = {l.name: copy.copy(l) for l in self.labels.values()}
+
+        # Recalculate accesses
+        inst.accesses(refresh=True)
+
         return inst
 
     @property
     def name(self):
+        """
+        The name attribute is used at pretty printing mostly. To distinguish processes use the string representation that
+        also include a category.
+
+        :return: Str.
+        """
         return self._name
 
     @property
     def category(self):
+        """
+        It is forbidden to change the category. Category unifies processes that work with the same interfaces.
+
+        :return: Str.
+        """
         return self._category
+
+    @property
+    def savepoints(self):
+        """
+        Quickly get all process savepoints.
+        :return: Set with savepoints.
+        """
+        return {s for a in self.actions.values() for s in a.savepoints}
 
     @property
     def unused_labels(self):
@@ -166,7 +153,7 @@ class Process:
                 used_labels.add(self.labels[m.group(1)])
 
         for action in (a for a in self.actions.values() if isinstance(a, Action)):
-            if isinstance(action, Receive) or isinstance(action, Dispatch):
+            if isinstance(action, Signal):
                 for param in action.parameters:
                     extract_labels(param)
             if isinstance(action, Block):
@@ -175,16 +162,22 @@ class Process:
             if action.condition:
                 for statement in action.condition:
                     extract_labels(statement)
+            if action.savepoints:
+                for savepoint in action.savepoints:
+                    if savepoint.statements:
+                        for statement in savepoint.statements:
+                            extract_labels(statement)
 
         return sorted(set(self.labels.values()).difference(used_labels))
 
-    def accesses(self, accesses=None, exclude=None, no_labels=False):
+    def accesses(self, accesses=None, exclude=None, no_labels=False, refresh=False):
         """
         Go through the process description or retrieve from the cache dictionary with possible label accesses.
 
         :param accesses: Add to the cache an existing dictionary with accesses (Dictionary: {'%blblb%': [Access objs]}).
         :param exclude: Exclude accesses from descriptions of actions of given types (List of Action class names).
         :param no_labels: Exclude accesses based on labels which are not referred anywhere (Bool).
+        :param refresh: enforce recalculation of accesses (Bool).
         :return:
         """
         # todo: Do not like this method. Prefer seeing it as property
@@ -194,7 +187,7 @@ class Process:
         if not accesses:
             accss = sortedcontainers.SortedDict()
 
-            if len(self._accesses) == 0 or len(exclude) > 0 or no_labels:
+            if refresh or (len(self._accesses) == 0 or len(exclude) > 0 or no_labels):
                 # Collect all accesses across process subprocesses
                 for action in self.actions.filter(include={Action}, exclude=exclude):
                     if isinstance(action, Receive) or isinstance(action, Dispatch):
@@ -211,7 +204,7 @@ class Process:
 
                 # Add labels with interfaces
                 if not no_labels:
-                    for label in [self.labels[name] for name in self.labels.keys()]:
+                    for label in self.labels.values():
                         access = '%{}%'.format(label.name)
                         if not accss.get(access):
                             accss[access] = []
@@ -231,33 +224,43 @@ class Process:
 
     def establish_peers(self, process):
         """
-        Peer these two processes if they can send signals to each other.
+        Peer these two processes if they can send signals to each other. As a result the process attribute 'peers'
+        gets a new key with the name of the peer process and a set of peered actions. Each call of the method cleans
+        previous values that are relevant to the given process.
 
         :param process: Process object
         :return: None
         """
+        if str(self) in process.peers:
+            del process.peers[str(self)]
+        if str(process) in self.peers:
+            del self.peers[str(process)]
+
         # Find suitable peers
-        for action in (a for a in self.actions
-                       if isinstance(self.actions[a], Receive) or isinstance(self.actions[a], Dispatch)):
+        for action in self.actions.filter(include={Signal}):
             if action in process.actions and \
-                    (isinstance(process.actions[action], Receive) or isinstance(process.actions[action], Dispatch)) and\
+                    isinstance(process.actions[action], Signal) and\
                     not isinstance(process.actions[action], type(self.actions[action])) and \
                     len(process.actions[action].parameters) == len(self.actions[action].parameters) and \
-                    self._name not in (p['process'] for p in process.actions[action].peers):
+                    str(action) not in self.peers.get(str(process), set()):
+
                 # Compare signatures of parameters
                 for num, p in enumerate(self.actions[action].parameters):
                     access1 = self.resolve_access(p)
+                    assert access1, f"No access {p} in process {str(self)}"
+                    assert access1.label, f"Access {p} of process {str(self)} does not connected to any label"
                     access2 = process.resolve_access(process.actions[action].parameters[num])
-                    if not access1 or not access2 or not access1.label or not access2.label:
-                        raise RuntimeError("Strange accesses {!r} and {!r} in {!r} and {!r}".
-                                           format(p, process.actions[action].parameters[num], process.pretty_id,
-                                                  process.pretty_id))
-                    if not access1.label.declaration.compare(access2.label.declaration):
+                    assert access2, f"No access {process.actions[action].parameters[num]} in process {str(process)}"
+                    assert access2.label, f"Access {process.actions[action].parameters[num]} of process {str(process)}" \
+                                          " does not connected to any label"
+
+                    if access1.label.declaration != access2.label.declaration:
                         break
                 else:
                     # All parameters match each other
-                    self.actions[action].peers.append({'process': process, 'action': process.actions[action]})
-                    process.actions[action].peers.append({'process': self, 'action': self.actions[action]})
+                    for p1, p2 in ((self, process), (process, self)):
+                        p1.peers.setdefault(str(p2), set())
+                        p1.peers[str(p2)].add(str(action))
 
     def resolve_access(self, access):
         """
@@ -357,26 +360,19 @@ class Process:
         :param purge: Delete an object from collection.
         :return: None
         """
-        operator = old.my_operator
-        if operator:
-            if isinstance(operator, Parentheses):
-                operator.action = None
-                operator.action = new
-            elif isinstance(operator, Choice):
-                operator.remove_action(old)
-                operator.add_action(new)
-            elif isinstance(operator, Concatenation):
-                index = operator.actions.index(old)
-                operator.remove_action(old)
-                operator.add_action(new, position=index)
-            else:
-                raise RuntimeError('unsupported operator')
-        else:
-            raise RuntimeError('Expect operator')
+        assert isinstance(old, Action), f'Expect strictly an Action to replace but got {repr(old)}'
+        assert isinstance(new, Action), f'Expect strictly an Action to replace with {repr(new)}'
+        self.actions[str(new)] = new
+
+        for entry in self.actions.behaviour(str(old)):
+            new_entry = Behaviour(str(new), type(new))
+            self.actions.add_process_action(new_entry, str(new))
+            operator = entry.my_operator
+            operator.replace(entry, new_entry)
+            self.actions.remove_process_action(entry)
 
         if purge:
             del self.actions[str(old)]
-            self.actions[str(new)] = new
 
     def insert_action(self, new, target, before=False):
         """
@@ -386,32 +382,31 @@ class Process:
         :param target: Action object.
         :param before: True if append left ot append to  the right end.
         """
-        operator = target.my_operator
-        if isinstance(operator, Concatenation):
-            position = operator.actions.index(target)
-            if before:
-                operator.add_action(new, position=position)
+        assert isinstance(new, Action), f'Got non-action object {str(new)}'
+        assert isinstance(target, Action), f'Got non-action object {str(target)}'
+        if str(new) not in self.actions:
+            self.actions[str(new)] = new
+
+        for entry in self.actions.behaviour(str(target)):
+            new_entry = Behaviour(str(new), type(new))
+            self.actions.add_process_action(new_entry, str(new))
+            operator = entry.my_operator
+            if isinstance(operator, Choice):
+                new_conc = Concatenation()
+                operator.replace(entry, new_conc)
+                if before:
+                    new_conc.append(new_entry)
+                    new_conc.append(entry)
+                else:
+                    new_conc.append(entry)
+                    new_conc.append(new_entry)
+            elif isinstance(operator, Concatenation):
+                position = operator.index(entry)
+                if not before:
+                    position += 1
+                operator.insert(position, new_entry)
             else:
-                operator.add_action(new, position=position+1)
-        elif isinstance(operator, Parentheses):
-            conc = Concatenation(str(len(self.actions.keys()) + 1))
-            operator.action = None
-            if before:
-                conc.actions = [new, target]
-            else:
-                conc.actions = [target, new]
-            operator.action = conc
-        elif isinstance(operator, Choice):
-            operator.remove_action(target)
-            if before:
-                actions = [new, target]
-            else:
-                actions = [target, new]
-            conc = Concatenation(str(len(self.actions.keys()) + 1))
-            conc.actions = actions
-            operator.add_action(conc)
-        else:
-            raise ValueError("Unknown operator {!r}".format(str(type(operator).__name__)))
+                raise NotImplementedError
 
     def insert_alternative_action(self, new, target):
         """
@@ -420,378 +415,72 @@ class Process:
         :param new: Action object.
         :param target: Action object.
         """
-        operator = target.my_operator
-        if isinstance(operator, Concatenation):
-            index = operator.actions.index(target)
-            operator.remove_action(target)
-            new_par = Parentheses(str(len(self.actions.keys()) + 1))
-            choice = Choice(str(len(self.actions.keys()) + 2))
-            new_par.action = choice
-            choice.actions = {new, target}
-            operator.add_action(new_par, position=index)
-        elif isinstance(operator, Parentheses):
-            choice = Choice(str(len(self.actions.keys()) + 1))
-            operator.action = None
-            choice.actions = {target, new}
-            operator.action = choice
-        elif isinstance(operator, Choice):
-            operator.add_action(new)
-        else:
-            raise ValueError("Unknown operator {!r}".format(str(type(operator).__name__)))
+        assert isinstance(new, Action), f'Got non-action object {str(new)}'
+        assert isinstance(target, Action), f'Got non-action object {str(target)}'
+        if str(new) not in self.actions:
+            self.actions[str(new)] = new
+
+        for entry in self.actions.behaviour(str(target)):
+            operator = entry.my_operator
+            newb = Behaviour(str(new), type(new))
+            self.actions.add_process_action(newb, str(new))
+
+            if isinstance(operator, Concatenation) and isinstance(operator.my_operator, Choice) and operator[0] is entry:
+                operator = operator.my_operator
+                operator.append(newb)
+            elif isinstance(operator, Concatenation):
+                new_par = Parentheses()
+                operator.replace(entry, new_par)
+                choice = Choice()
+                new_par.append(choice)
+                choice.append(newb)
+                choice.append(entry)
+            elif isinstance(operator, Parentheses):
+                choice = Choice()
+                operator.replace(entry, choice)
+                choice.append(newb)
+                choice.append(entry)
+            elif isinstance(operator, Choice):
+                operator.append(newb)
+            else:
+                raise ValueError("Unknown operator {!r}".format(type(operator).__name__))
 
 
-class Actions(collections.UserDict):
+class ProcessDescriptor:
+    """The descriptor forbids to set non-Process values."""
+
+    EXPECTED_CATEGORY = 'entry_point'
+
+    def __set__(self, obj, value):
+        assert isinstance(value, Process) or value is None, f'Got {type(value).__name__} instead of a process'
+        if value:
+            # Warning: this is becouse there is no setter in the class and this is normal
+            value._category = self.EXPECTED_CATEGORY
+        obj._entry = value
+
+    def __get__(self, obj, objtype):
+        return obj._entry
+
+
+class ProcessDict(sortedcontainers.SortedDict):
+    """The collection implements a dictionary with Processes (str -> Process)."""
 
     def __setitem__(self, key, value):
-        if isinstance(key, BaseAction):
-            key = str(key)
-        elif isinstance(key, str):
-            pass
+        assert isinstance(value, Process), f'Expect a Process as a value bug got {type(value).__name__}'
+        if value.category and value.category == 'functions models':
+            assert key == value.name, f'Function models should be assigned by its name ({value.name}) but got {key}'
         else:
-            raise KeyError('Do not provide any other type than string or {}'.format(BaseAction.__name__))
-
-        if not isinstance(value, BaseAction):
-            raise ValueError('Accept only actions as values but got {}'.format(type(value).__name__))
-
-        self.data[key] = value
+            assert key == str(value), f'Environment processes should be saved by its string representation' \
+                                      f' ({str(value)}) but got {key}'
+        super().__setitem__(key, value)
 
     def __getitem__(self, item):
-        if isinstance(item, BaseAction):
-            return self.data[str(item)]
-        else:
-            return self.data[item]
-
-    def __copy__(self):
-        new = Actions()
-
-        # Copy items
-        new.data = {n: copy.copy(v) for n, v in self.data.items()}
-
-        # Explicitly clear operators (replacement forbidden by the API)
-        # todo: Avoid using private methods. But now this is the simplest wat to clean values
-        for action in new.data.values():
-            action.my_operator = None
-            if isinstance(action, Receive) or isinstance(action, Dispatch):
-                # They contain references to other processes in peers
-                action.parameters = copy.copy(action.parameters)
-            elif isinstance(action, Parentheses) or isinstance(action, Subprocess):
-                action._action = None
-            elif isinstance(action, Concatenation):
-                action._actions = collections.deque()
-            elif isinstance(action, Choice):
-                action._actions = sortedcontainers.SortedSet()
-
-        # Set new references
-        for action in self.data.values():
-            if isinstance(action, Parentheses) or isinstance(action, Subprocess):
-                new.data[action.name].action = new.data[action.action.name]
-            elif isinstance(action, Concatenation):
-                new.data[action.name].actions = [new.data[act.name] for i, act in enumerate(action.actions)]
-            elif isinstance(action, Choice):
-                new.data[action.name].actions = {new.data[act.name] for act in action.actions}
-
-        return new
-
-    def filter(self, include=None, exclude=None):
-        if not include:
-            include = ()
-        if not exclude:
-            exclude = ()
-
-        return sorted([x for x in self.data.values() if (not include or any(isinstance(x, t) for t in include)) and
-                       (not exclude or all(not isinstance(x, t) for t in exclude))])
-
-    @property
-    def initial_action(self):
-        """
-        Returns initial states of the process.
-
-        :return: Sorted list with starting process State objects.
-        """
-        acts = {s for s in self.data.values() if not s.my_operator}
-        acts.difference_update({s.action for s in self.filter(include={Subprocess}) if s.action})
-        if len(acts) != 1:
-            raise ValueError('Process %s contains more than one action'.format(str(self)))
-        act, *_ = acts
-        return act
-
-    @property
-    def unmatched_receives(self):
-        """
-        Returns Receive actions that do not have peers.
-
-        :return: A list of Action objects.
-        """
-        return (act for act in self.filter(include={Receive}) if not act.peers)
-
-    @property
-    def unmatched_dispatches(self):
-        """
-        Returns Dispatch actions that do not have peers.
-
-        :return: A list of Action objects.
-        """
-        return (act for act in self.filter(include={Dispatch}) if not act.peers)
-
-
-class BaseAction:
-    """
-    Base class for actions which can be executed in terms of a Process. Each action of a process is executed strictly
-    one after another. All they are executed in the same context (depending on chosen translator).
-    """
-
-    def __new__(cls, name: str, **kwards):
-        # This is required to do deepcopy
-        self = super().__new__(cls)
-        self.name = name
-        self._my_operator = None
-        return self
-
-    def __getnewargs__(self):
-        # Return the arguments that *must* be passed to __new__ (required for deepcopy)
-        return self.name,
-
-    def __str__(self):
-        return self.name
-
-    def __hash__(self):
-        return hash(self.name)
-
-    def __eq__(self, other):
-        return self.name == other.name
-
-    def __lt__(self, other):
-        return str(self) < str(other)
-
-    @property
-    def my_operator(self):
-        return self._my_operator
-
-    @my_operator.setter
-    def my_operator(self, new):
-        if (not self._my_operator and new) or (self._my_operator and not new):
-            if not isinstance(new, Action):
-                self._my_operator = new
+        if isinstance(item, Process):
+            if item.category and item.category == 'functions models':
+                item = item.name
             else:
-                raise RuntimeError(
-                    "Cannot set action {!r} as operator for {!r}".format(str(type(new).__name__), str(self)))
-        elif self._my_operator and new:
-            raise RuntimeError('Explicitly clean first operator field')
-
-
-class Action(BaseAction):
-    """
-    Base class for actions which can be executed in terms of a Process. Each action of a process is executed strictly
-    one after another. All they are executed in the same context (depending on chosen translator).
-    """
-
-    def __init__(self, name):
-        super(Action, self).__init__()
-        self.condition = []
-        self.trace_relevant = False
-        self.comment = ''
-
-
-class Subprocess(Action):
-    """
-    An action to direct the control flow. It implies execution of given sequence of actions instead of the current one.
-    In contrast to C functions there is no any return or exit from the current process sequence given in the action.
-    If the sequence is finite then the process just will stop execution of actions. It means that it is useless to
-    place any actions after this one.
-
-    An example of action string: "{mynewsequence}".
-    """
-
-    def __init__(self, name, reference_name=None):
-        super(Subprocess, self).__init__(name)
-        self.process = None
-        self.reference_name = reference_name
-        self._action = None
-        self.fsa = None
-
-    @property
-    def action(self):
-        return self._action
-
-    @action.setter
-    def action(self, new):
-        if (not self._action and new) or (self._action and not new):
-            if new:
-                new.my_operator = None
-            self._action = new
-        else:
-            raise RuntimeError('Explicitly clean first operator field')
-
-    def __repr__(self):
-        return '{%s}' % str(self.reference_name if self.reference_name else self.name)
-
-
-class Dispatch(Action):
-    """
-    An action that implies to send a signal to an another environmental process. It allows to save values from labels
-    of the dispatcher in labels of the receiver via parameters. If there is no peer receivers then the signal will not
-    be sent. If there is no receiver at the moment the semantics of sending would be sleeping. If it is possible to send
-    a signal or do an another action then it still can be executed.
-
-    An example of action string: "[mysend]".
-    """
-
-    def __init__(self, name, broadcast=False):
-        super(Dispatch, self).__init__(name)
-        self.broadcast = broadcast
-        self.trace_relevant = True
-        self.parameters = []
-        self.peers = []
-
-    def __repr__(self):
-        return '[%s%s]' % ('@' if self.broadcast else '', str(self))
-
-
-class Receive(Action):
-    """
-    Class to represent receiver actions. Semantics of receiving is instant. If there is no sender at the moment then
-    the action is skipped. If there is no sender at the moment then the process will sleep or do an another possible
-    action.
-
-    An example of action string: "(mysend)".
-    """
-
-    def __init__(self, name, repliative=False):
-        super(Receive, self).__init__(name)
-        self.replicative = repliative
-        self.parameters = []
-        self.peers = []
-
-    def __repr__(self):
-        return '(%s%s)' % ('!' if self.replicative else '', str(self))
-
-
-class Block(Action):
-    """
-    Class represents a C code base block with some code. You also can add a condition. In contrast to other actions
-    if a condition is not satisfied and the action is the one possible action in a choose operator (|) then this
-    conditional branch will not be chosen. Note then in other actions the whole action is just skipped.
-
-    An example of action string: "<mycondition>".
-    """
-
-    def __init__(self, name):
-        super(Block, self).__init__(name)
-        self.statements = []
-        self.condition = []
-        self.trace_relevant = False
-
-    def __repr__(self):
-        return '<%s>' % str(self)
-
-
-class Parentheses(BaseAction):
-    """
-    This class represent an open parenthese symbol to simplify serialization and import.
-    """
-
-    def __init__(self, name):
-        super(Parentheses, self).__init__()
-        self._action = None
-
-    @property
-    def action(self):
-        return self._action
-
-    @action.setter
-    def action(self, new):
-        if (not self._action and new) or (self._action and not new):
-            if self._action:
-                self._action.my_operator = None
-            if new:
-                new.my_operator = self
-            self._action = new
-        else:
-            raise RuntimeError('Explicitly clean first operator field')
-
-    def __repr__(self):
-        return '{%s}' % str(self.reference_name if self.reference_name else self.name)
-
-
-class Concatenation(BaseAction):
-    """
-    The class represents a sequence of actions.
-    """
-
-    def __init__(self, name):
-        super(Concatenation, self).__init__()
-        self._actions = collections.deque()
-
-    @property
-    def actions(self):
-        return list(self._actions)
-
-    @actions.setter
-    def actions(self, actions):
-        if self._actions and actions:
-            raise RuntimeError('First clean actions before setting new ones')
-        for item in list(self._actions):
-            self.remove_action(item)
-        if actions:
-            for item in actions:
-                self.add_action(item)
-        else:
-            self._actions = collections.deque()
-
-    def add_action(self, action, position=None):
-        if action in self._actions:
-            raise RuntimeError('An action already present')
-        action.my_operator = self
-        if not isinstance(position, int):
-            self._actions.append(action)
-        else:
-            self._actions.insert(position, action)
-
-    def remove_action(self, action):
-        if action in self._actions:
-            self._actions.remove(action)
-            action.my_operator = None
-        else:
-            raise ValueError('There is no such action')
-
-
-class Choice(BaseAction):
-    """
-    The class represents a choice between actions.
-    """
-
-    def __init__(self, name):
-        super(Choice, self).__init__()
-        self._actions = sortedcontainers.SortedSet()
-
-    @property
-    def actions(self):
-        return set(self._actions)
-
-    @actions.setter
-    def actions(self, actions):
-        if self._actions and actions:
-            raise RuntimeError('First clean actions before setting new ones')
-        for item in list(self._actions):
-            self.remove_action(item)
-        if actions:
-            for item in actions:
-                self.add_action(item)
-        else:
-            self._actions = collections.deque()
-
-    def add_action(self, action):
-        if action in self._actions:
-            raise RuntimeError('An action already present')
-        action.my_operator = self
-        self._actions.add(action)
-
-    def remove_action(self, action):
-        if action in self._actions:
-            self._actions.remove(action)
-            action.my_operator = None
-        else:
-            raise ValueError('There is no such action')
+                item = str(item)
+        return super().__getitem__(item)
 
 
 class ProcessCollection:
@@ -801,31 +490,104 @@ class ProcessCollection:
     environment model processes that acts as soon as they receives replicative signals and a main process.
     """
 
-    def __init__(self):
-        self.entry = None
-        self.models = sortedcontainers.SortedDict()
-        self.environment = sortedcontainers.SortedDict()
+    entry = ProcessDescriptor()
+
+    def __init__(self, name='base'):
+        self._entry = None
+        self.models = ProcessDict()
+        self.environment = ProcessDict()
+        self.name = name
+        self.attributes = dict()
+
+    @property
+    def attributed_name(self):
+        """Generate name that can be used to create directories"""
+        if self.attributes:
+            name = ', '.join((f"{p}:{self.attributes[p]}" for p in sorted(self.attributes.keys())))
+        else:
+            name = str(self.name)
+
+        remove_punctuation_map = dict((ord(char), '_') for char in string.punctuation)
+        remove_punctuation_map[ord(' ')] = '_'
+        return name.translate(remove_punctuation_map)
 
     @property
     def processes(self):
+        """Returns a sorted list of all processes from the model."""
         return sorted(list(self.models.values())) + sorted(list(self.environment.values())) + \
                ([self.entry] if self.entry else [])
 
     @property
     def process_map(self):
+        """Returns a dict with all processes from the model."""
         return {str(p): p for p in self.processes}
 
-    def establish_peers(self, strict=False):
+    def find_process(self, identifier: str):
+        """
+        Get an identifier and search the process in models, environment and entry attributes.
+
+        :param identifier: String representation of the process.
+        :return: Process.
+        """
+        if str(self.entry) == identifier:
+            return self.entry
+        elif identifier in self.models:
+            return self.models[identifier]
+        elif identifier.split('/')[-1] in self.models:
+            return self.models[identifier.split('/')[-1]]
+        elif identifier in self.environment:
+            return self.environment[identifier]
+        else:
+            raise KeyError('Cannot find process {!r} \nwhere there are processes: {}\n and models: {}'.
+                           format(identifier, ', '.join(self.models.keys()), ', '.join(self.environment.keys())))
+
+    def peers(self, process: Process, signals=None, processes=None):
+        """
+        Collect peers of the given process and return a list of Peer objects. The last two arguments helps to filter
+        the result.
+
+        :param process: Process.
+        :param signals: Iterable of names of possible signals.
+        :param processes: Iterable of possible processes names.
+        :return: list of Peer objects.
+        """
+        assert isinstance(process, Process), f'Got {type(process).__name__}'
+        if signals:
+            for signal in signals:
+                assert isinstance(signal, str), f'Signal {str(signal)} has type {type(process).__name__} instead of str'
+        if processes:
+            for name in processes:
+                assert isinstance(name, str), f'Process name {str(name)} has type {type(process).__name__}'
+
+        peers = []
+        for agent_name in (n for n in process.peers if processes is None or n in processes):
+            agent = self.find_process(agent_name)
+
+            for action_name in (n for n in process.peers[agent_name] if signals is None or n in signals):
+                peers.append(Peer(agent, agent.actions[action_name]))
+
+        return peers
+
+    def establish_peers(self):
         """
         Get processes and guarantee that all peers are correctly set for both receivers and dispatchers. The function
         replaces dispatches expressed by strings to object references as it is expected in translation.
 
-        :param strict: Raise exception if a peer process identifier is unknown (True) or just ignore it (False).
         :return: None
         """
-        # Then check peers. This is because in generated processes there no peers set for manually written processes
+        # Delete all previous peers to avoid keeping the old deleted processes
         for process in self.processes:
-            self.__establist_peers_of_process(process, strict)
+            process.peers.clear()
+
+        # Fisrt check models
+        for model in self.models.values():
+            for process in list(self.environment.values()) + ([self.entry] if self.entry else []):
+                model.establish_peers(process)
+
+        processes = list(self.environment.values()) + ([self.entry] if self.entry else [])
+        for i, process in enumerate(processes):
+            for pair in processes[i+1:]:
+                process.establish_peers(pair)
 
     def save_digraphs(self, directory):
         """
@@ -837,27 +599,32 @@ class ProcessCollection:
         :parameter directory: Name of the directory to save graphs of processes.
         :return: None
         """
+        covered_subprocesses = set()
+
         def process_next(prevs, action):
-            if isinstance(action, Action):
+            if isinstance(action, Behaviour):
                 for prev in prevs:
-                    graph.edge(str(prev), str(action))
-                return {action}
-            if isinstance(action, Choice):
+                    graph.edge(str(hash(prev)), str(hash(action)))
+
+                if action.kind is Subprocess:
+                    if action.description.action not in covered_subprocesses:
+                        graph.node(str(hash(action.description)), r'Begin subprocess {}\l'.format(repr(a)))
+                        covered_subprocesses.add(action.description.action)
+                        process_next({action.description}, action.description.action)
+                    graph.edge(str(hash(action)), str(hash(action.description)))
+                    return {}
+                else:
+                    return {action}
+            elif isinstance(action, Parentheses):
+                return process_next(prevs, action[0])
+            elif isinstance(action, Choice):
                 new_prevs = set()
-                for act in action.actions:
+                for act in action:
                     new_prevs.update(process_next(prevs, act))
                 return new_prevs
             elif isinstance(action, Concatenation):
-                for act in action.actions:
-                    if isinstance(act, Action):
-                        for prev in prevs:
-                            graph.edge(str(prev), str(act))
-                        prevs = {act}
-                    else:
-                        prevs = process_next(prevs, act)
-                return prevs
-            elif isinstance(action, Parentheses):
-                process_next(prevs, action.action)
+                for act in action:
+                    prevs = process_next(prevs, act)
                 return prevs
             else:
                 raise NotImplementedError
@@ -871,35 +638,10 @@ class ProcessCollection:
                 format="png"
             )
 
-            for a in process.actions.filter(include={Action}, exclude={Subprocess}):
-                graph.node(str(a), r'{}\l'.format(repr(a)))
+            for a in process.actions.final_actions:
+                graph.node(str(hash(a)), r'{}\l'.format(repr(a)))
             process_next(set(), process.actions.initial_action)
 
             # Save to dg_file
             graph.save(dg_file)
             graph.render()
-
-    def __establist_peers_of_process(self, process, strict=False):
-        # Then check peers. This is because in generated processes there no peers set for manually written processes
-        process_map = self.process_map
-        for action in [process.actions[a] for a in process.actions.filter(include={Receive, Dispatch})
-                       if process.actions[a].peers]:
-            new_peers = list()
-            for peer in action.peers:
-                if isinstance(peer, str):
-                    if peer in process_map:
-                        target = process_map[peer]
-                        new_peer = {'process': target, 'action': target.actions[action.name]}
-                        new_peers.append(new_peer)
-
-                        opposite_peers = [str(p['process']) if isinstance(p, dict) else p
-                                          for p in target.actions[action.name].peers]
-                        if str(process) not in opposite_peers:
-                            target.actions[action.name].peers.append({'process': process, 'action': action})
-                    elif strict:
-                        raise KeyError("Process {!r} tries to send a signal {!r} to {!r} but there is no such "
-                                       "process in the model".format(str(process), str(action), peer))
-                else:
-                    new_peers.append(peer)
-
-            action.peers = new_peers

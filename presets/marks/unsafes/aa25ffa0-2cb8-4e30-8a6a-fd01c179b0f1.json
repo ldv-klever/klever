@@ -33,14 +33,7 @@
                 {
                   "Instrumented function 'blk_alloc_queue'": [
                     {
-                      "LDV model 'request_queue'": [
-                        {
-                          "LDV model 'undef_ptr'": []
-                        },
-                        {
-                          "LDV model 'assert'": []
-                        }
-                      ]
+                      "LDV model 'request_queue'": []
                     }
                   ]
                 }

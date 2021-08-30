@@ -25,6 +25,7 @@ import klever.core.components
 import klever.core.utils
 
 coverage_format_version = 1
+most_covered_lines_num = 100
 
 
 def add_to_coverage(merged_coverage_info, coverage_info):
@@ -33,7 +34,8 @@ def add_to_coverage(merged_coverage_info, coverage_info):
             'total functions': coverage_info[file_name]['total functions'],
             'covered lines': dict(),
             'covered functions': dict(),
-            'covered function names': list()
+            'covered function names': list(),
+            'notes': dict()
         })
 
         for kind in ('covered lines', 'covered functions'):
@@ -45,8 +47,12 @@ def add_to_coverage(merged_coverage_info, coverage_info):
             if cov_func_name not in merged_coverage_info[file_name]['covered function names']:
                 merged_coverage_info[file_name]['covered function names'].append(cov_func_name)
 
+        # TODO: What about multiple notes?
+        for line, note in file_coverage_info['notes'].items():
+            merged_coverage_info[file_name]['notes'][line] = note
 
-def convert_coverage(merged_coverage_info, coverage_dir, pretty, src_files_info=None):
+
+def convert_coverage(merged_coverage_info, coverage_dir, pretty, src_files_info=None, total=False):
     # Convert combined coverage to the required format.
     os.mkdir(coverage_dir)
 
@@ -62,7 +68,8 @@ def convert_coverage(merged_coverage_info, coverage_dir, pretty, src_files_info=
         file_coverage = {
             'format': coverage_format_version,
             'line coverage': file_coverage_info['covered lines'],
-            'function coverage': file_coverage_info['covered functions']
+            'function coverage': file_coverage_info['covered functions'],
+            'notes': file_coverage_info['notes']
         }
 
         os.makedirs(os.path.join(coverage_dir, os.path.dirname(file_name)), exist_ok=True)
@@ -81,6 +88,28 @@ def convert_coverage(merged_coverage_info, coverage_dir, pretty, src_files_info=
             # Total number of considered functions.
             len(file_coverage_info['covered functions'])
         ]
+
+    # Obtain most covered lines for code coverage of verification tasks.
+    if not total:
+        file_most_covered_lines = {}
+        for file_name, file_coverage_info in merged_coverage_info.items():
+            sorted_covered_lines = sorted(file_coverage_info['covered lines'].items(), key=lambda kv: kv[1], reverse=True)
+
+            # It is enough to remember not more than the total number of most covered lines per each file.
+            for i in range(most_covered_lines_num):
+                if i == len(sorted_covered_lines):
+                    break
+
+                file_most_covered_lines["{0}:{1}".format(file_name, sorted_covered_lines[i][0])] = sorted_covered_lines[i][1]
+
+        sorted_file_most_covered_lines = sorted(file_most_covered_lines.items(), key=lambda kv: kv[1], reverse=True)
+
+        if sorted_file_most_covered_lines:
+            coverage_stats['most covered lines'] = []
+            for i in range(most_covered_lines_num):
+                if i == len(sorted_file_most_covered_lines):
+                    break
+                coverage_stats['most covered lines'].append(sorted_file_most_covered_lines[i][0])
 
     if src_files_info:
         # Remove data for covered source files. It is out of interest, but we did not know these files earlier.
@@ -200,7 +229,7 @@ class JCR(klever.core.components.Component):
                             src_files_info = json.load(fp)
 
                         convert_coverage(coverage_info, total_coverage_dir, self.conf['keep intermediate files'],
-                                         src_files_info)
+                                         src_files_info, total=True)
                         total_coverage_dirs.append(total_coverage_dir)
 
                         total_coverages[req_spec_id] = klever.core.utils.ArchiveFiles([total_coverage_dir])
@@ -285,7 +314,8 @@ class JCR(klever.core.components.Component):
                 'total functions': large_cache[file_name]['total functions'],
                 'covered lines': {},
                 'covered functions': {},
-                'covered function names': list()
+                'covered function names': list(),
+                'notes': {}
             })
 
             for path in ('covered lines', 'covered functions'):
@@ -314,6 +344,8 @@ class LCOV:
     FUNCTION_NAME_END_PREFIX = "#FN:"
     FUNCTION_PREFIX = "FNDA:"
     LINE_PREFIX = "DA:"
+    ADD_PREFIX = "ADD:"
+    TIMERS_PREFIX = "TIMERS:"
     EOR_PREFIX = "end_of_record"
 
     def __init__(self, conf, logger, coverage_file, clade, source_dirs, search_dirs, main_work_dir, coverage_details,
@@ -366,7 +398,8 @@ class LCOV:
                     'covered lines': {},
                     'covered functions': {},
                     'covered function names': [],
-                    'total functions': len(func_reverse_map[file]) if file in func_reverse_map else 0
+                    'total functions': len(func_reverse_map[file]) if file in func_reverse_map else 0,
+                    'notes': {}
                 }
 
         with open(self.coverage_file, encoding='utf-8') as fp:
@@ -386,8 +419,9 @@ class LCOV:
                 line_num = 1
                 orig_file = None
                 orig_file_line_num = 0
+                line_preprocessor_directive = re.compile(r'\s*#line\s+(\d+)\s*(.*)')
                 for line in cil_fp:
-                    m = re.match('#line\s+(\d+)\s*(.*)', line)
+                    m = line_preprocessor_directive.match(line)
                     if m:
                         orig_file_line_num = int(m.group(1))
                         if m.group(2):
@@ -397,6 +431,8 @@ class LCOV:
                         orig_file_line_num += 1
                     line_num += 1
 
+            add = None
+            timers = None
             for line in fp:
                 line = line.rstrip('\n')
                 # Build C functions map.
@@ -435,6 +471,23 @@ class LCOV:
                     orig_file, orig_line = line_map[cil_src_line]
                     init_file_coverage_info(orig_file)
                     coverage_info[orig_file]['covered lines'][orig_line] = cov_num
+
+                    if add and timers:
+                        coverage_info[orig_file]['notes'][orig_line] = {'kind': 'Multiple notes',
+                                                                        'text': timers + '. ' + add}
+                        add = None
+                        timers = None
+                    elif add:
+                        coverage_info[orig_file]['notes'][orig_line] = {'kind': 'Verifier assumption', 'text': add}
+                        add = None
+                    elif timers:
+                        coverage_info[orig_file]['notes'][orig_line] = {'kind': 'Verifier operation statistics', 'text': timers}
+                        timers = None
+                # Remember data to be associated with the next line.
+                elif line.startswith(self.ADD_PREFIX):
+                    add = line[len(self.ADD_PREFIX):]
+                elif line.startswith(self.TIMERS_PREFIX):
+                    timers = line[len(self.TIMERS_PREFIX):]
                 # Finalize raw code coverage processing.
                 elif line.startswith(self.EOR_PREFIX):
                     break

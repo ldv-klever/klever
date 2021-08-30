@@ -16,8 +16,6 @@
 #
 
 import pytest
-import logging
-import sortedcontainers
 
 from klever.core.vtg.emg.common.c.types import import_declaration
 from klever.core.vtg.emg.generators.linuxModule.interface import Container
@@ -27,7 +25,7 @@ from klever.core.vtg.emg.generators.linuxModule.interface.specification import i
 
 @pytest.fixture
 def intf_collection():
-    collection = InterfaceCollection(logging, sortedcontainers.SortedDict())
+    collection = InterfaceCollection()
     usb_driver = Container('usb', 'driver')
     usb_driver.declaration = import_declaration('struct usb_driver driver')
     collection.set_intf(usb_driver)

@@ -36,6 +36,11 @@ def merge_files(logger, conf, abstract_task_desc):
     else:
         logger.info('Merge source files by means of CIL')
 
+        with open('input files', 'w', encoding='utf-8') as fp:
+            for extra_c_file in abstract_task_desc['extra C files']:
+                if 'C file' in extra_c_file:
+                    fp.write(os.path.join(conf['main working directory'], extra_c_file['C file']) + '\n')
+
         args = ['toplevel.opt'] + \
             conf.get('CIL additional opts', []) + \
             [
@@ -67,14 +72,12 @@ def merge_files(logger, conf, abstract_task_desc):
                 '-aggressive-merging',
                 '-print', '-print-lines', '-no-print-annot',
                 '-ocode', 'cil.i',
-            ] + \
-            [
-                os.path.join(conf['main working directory'], extra_c_file['C file'])
-                for extra_c_file in abstract_task_desc['extra C files']
-                if 'C file' in extra_c_file
-               ]
+                '-more-files', 'input files'
+            ]
 
-        klever.core.utils.execute(logger, args=args, enforce_limitations=True)
+        klever.core.utils.execute(logger, args=args, enforce_limitations=True,
+                                  cpu_time_limit=conf["resource limits"]["CPU time for executed commands"],
+                                  memory_limit=conf["resource limits"]["memory size for executed commands"])
         # There will be empty file if CIL succeeded. Remove it to avoid unknown reports of whole FVTP later.
         if os.path.isfile('problem desc.txt'):
             os.unlink('problem desc.txt')

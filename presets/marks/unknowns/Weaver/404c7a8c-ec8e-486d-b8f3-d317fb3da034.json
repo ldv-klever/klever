@@ -1,0 +1,9 @@
+{
+  "attrs": [],
+  "description": "Something was not found within the cache. This can happen when processing of models fails at some stage before and corresponding data was not put to the cache. You need to investigate other errors of Weaver.",
+  "function": "Cache misses",
+  "is_modifiable": false,
+  "is_regexp": false,
+  "link": "",
+  "problem_pattern": "CacheMiss"
+}

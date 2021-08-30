@@ -106,7 +106,7 @@ class CModel:
     mem_function_map = {
         "ALLOC": "ldv_xmalloc",
         "UALLOC": "ldv_xmalloc_unknown_size",
-        "ZALLOC": "ldv_zalloc"
+        "ZALLOC": "ldv_xzalloc"
     }
     free_function_map = {
         "FREE": "ldv_free"
@@ -232,16 +232,17 @@ class CModel:
         for file in sortedcontainers.SortedSet(func.files_called_at).union(func.declaration_files):
             self._call_aspects.setdefault(file, []).append(new_aspect)
 
-    def print_source_code(self, additional_lines):
+    def print_source_code(self, model_path, additional_lines):
         """
         Generate an environment model as a C code. The code is distributed across aspect addictions for original
         source files and the main environment model C code.
 
+        :param model_path: Path string to the subdir with model files to print.
         :param additional_lines: Dictionary with the user-defined C code:
                                  {'file name': {'definitions': [...], 'declarations': []}}
         :return: Dictionary {'file': Path to generated file with the Code}
         """
-        aspect_dir = "aspects"
+        aspect_dir = os.path.join(model_path, "aspects")
         self._logger.info("Create directory for aspect files {}".format("aspects"))
         os.makedirs(aspect_dir.encode('utf-8'), exist_ok=True)
 
@@ -312,8 +313,8 @@ class CModel:
                          [line for aspect in self._call_aspects[file] for line in aspect.define() + ["\n"]]
 
             if file != self.entry_file:
-                name = "{}.aspect".format(unique_file_name("aspects/ldv_" + os.path.splitext(os.path.basename(file))[0],
-                                                           '.aspect'))
+                filename = os.path.join(aspect_dir, 'ldv_%s' % os.path.splitext(os.path.basename(file))[0])
+                name = "%s.aspect" % unique_file_name(filename, '.aspect')
                 path = os.path.relpath(name, self._workdir)
                 self._logger.info("Add aspect file {!r}".format(path))
                 addictions[file] = path
@@ -540,7 +541,7 @@ class FunctionModels:
             if func != 'UALLOC' and self._conf.get('allocate with sizeof', True):
                 size = 'sizeof({})'.format(self.signature.points.to_string('', typedef='complex_and_params'))
 
-            return "{}({})".format(self.mem_function_map[func], size)
+            return "%{}%{} = {}({})".format(label_name, suffix, self.mem_function_map[func], size)
         else:
             raise ValueError('This is not a pointer')
 

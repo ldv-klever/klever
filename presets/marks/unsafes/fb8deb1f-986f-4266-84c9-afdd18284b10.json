@@ -33,14 +33,7 @@
                 {
                   "Instrumented function 'alloc_disk'": [
                     {
-                      "LDV model 'alloc_disk'": [
-                        {
-                          "LDV model 'undef_ptr'": []
-                        },
-                        {
-                          "LDV model 'assert'": []
-                        }
-                      ]
+                      "LDV model 'alloc_disk'": []
                     }
                   ]
                 }

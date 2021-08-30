@@ -141,13 +141,7 @@ After confirming that Klever works as expected, you should run the following com
 
 Updated list of requirements will be saved and should be committed to the repository afterwards.
 
-.. _dev_deploy:
-
-Deployment for Development Purposes
------------------------------------
-
-To deploy Klever for development purposes in addition to using mode *development* (see :ref:`local_deploy`) one needs
-to specify command-line option *--allow-symbolic-links*.
+.. _test_build_bases_generation:
 
 How to generate build bases for testing Klever
 ----------------------------------------------
@@ -158,7 +152,7 @@ ISP RAS local network).
 
 To generate build bases for testing Klever you need to perform following preliminary steps:
 
-#. Install Klever locally for development purposes according to the user documentation (see :ref:`dev_deploy`).
+#. Install Klever locally for development purposes according to the user documentation (see :ref:`deploy`).
 #. Create a dedicated directory for sources and build bases and move to it.
    Note that there should be quite much free space.
    We recommend at least 100 GB.
@@ -173,12 +167,6 @@ To generate build bases for testing Klever you need to perform following prelimi
 
    #. https://kernel.googlesource.com/pub/scm/linux/kernel/git/stable/linux-stable
    #. https://github.com/gregkh/linux
-
-#. Make CIF executables to be available through the PATH environment variable, e.g.::
-
-    $ export PATH=$KLEVER_DEPLOY_DIR/klever-addons/CIF/bin/:$PATH
-
-   where the KLEVER_DEPLOY_DIR environment variable is explained at :term:`$KLEVER_DEPLOY_DIR`.
 
 #. Read notes regarding the compiler after the end of this list.
 #. Run the following command to find out available descriptions of build bases for testing Klever::
@@ -217,6 +205,8 @@ The simplest way to get GCC 4.8 on Ubuntu is to execute the following commands::
 
     $ sudo apt update
     $ sudo apt install gcc-4.8
+    $ sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 70
+    $ sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.8 48
     $ sudo update-alternatives --config gcc
 
 (after executing the last command you need to select GCC 4.8; do not forget to make v.v. after preparing build bases!)
@@ -236,8 +226,8 @@ In contrast to other test suites this one likely corresponds to the most industr
 One can (re-)generate bare CPAchecker benchmarks almost automatically.
 To do this it is recommended to follow next steps:
 
-#. Clone https://gitlab.com/sosy-lab/software/ldv-klever-benchmarks.git or
-   git@gitlab.com:sosy-lab/software/ldv-klever-benchmarks.git once.
+#. Clone `<https://gitlab.com/sosy-lab/software/ldv-klever-benchmarks.git>`__ or
+   `<git@gitlab.com:sosy-lab/software/ldv-klever-benchmarks.git>`__ once.
 #. After some changes within Klever specifications, configurations and test cases you need to solve appropriate
    verification jobs.
    To avoid some non-determinism it is better to use the same machine, e.g. LDV Dev, to do this.
@@ -359,20 +349,222 @@ Klever Bridge Testing
 Additional documentation
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-A lot of usefull documentation for developing Django projects as well as for general using of the PyCharm IDE is
+A lot of useful documentation for developing Django projects as well as for general using of the PyCharm IDE is
 available at the official `site <https://www.jetbrains.com/pycharm/documentation/>`__.
 
 Extended Violation Witness Format
 ---------------------------------
 
-TODO: Translate from Russian.
+The `original format of violation witnesses <https://github.com/sosy-lab/sv-witnesses>`__ is intended primarily for
+automatic validation.
+Each violation witness can describe a subset of possible execution paths and lack some important details.
+This hinders their manual analysis by experts.
+
+We suggest the extended format of violation witnesses to enhance their visualization and assessment capabilities.
+This format requires an extended violation witness to represent a single error path as accurate as possible, i.e. it
+should refer all expressions, statements and declarations starting from an entry point and up to a found violation as
+well as all global variable declarations.
+Besides, extended violation witnesses should mandatory use *enterFunction* and *returnFromFunction* tags for all
+functions that are called along the error path and have definitions.
+
+To distinguish declarations from statements and expressions, especially, to separate global variable declarations from
+the entry point, we suggest to introduce an additional data tag *declaration*.
+Its value should be *true* for all edges corresponding to global and local declarations.
+Its default value used for all other edges implicitly should be *false*.
+
+One more extension is intended for adding important internal information from verification tools to violation
+witnesses.
+For instance, when checking memory safety verification tools can point out places where leaked memory is allocated.
+The corresponding data tag is *note*.
+Its value should has the following format::
+
+    level="N" hide="true|false" value="Some meaningful text"
+
+*N* sets the importance of the note.
+It should be in range from 0 to 3 where 0 should be used just for edges corresponding to found violations.
+Level 1 should be used for vital notes since these notes will be shown by default and they will be used for obtaining
+*error trace patterns* used for automatic assessment of similar violation witnesses.
+All levels of notes will be specially highlighted at visualization.
+Attribute *hide* controls whether notes should be shown together with corresponding edges (in case when *hide* is
+*false*) or without it (otherwise).
+Edges can be omitted when notes represent enough information about them in their attribute *value*.
+The example of this data tag value is as follows::
+
+    level="0" hide="false" value="Memory leak of calloc_ID13 is detected"
+
+Verification tools can provide multiple *note* data tags per an edge.
+
+Thus, the extended format of violation witnesses does extend the existing format of violation witnesses.
+Extended violation witnesses can be even validated like non-extended ones.
 
 Error Trace Format
 ------------------
 
-TODO: Translate from Russian.
+We suggest converting violation witnesses in the extended format represented above to error traces that are more
+convenient for visualization and assessment purposes.
+Error traces should be represented as JSON files with the following content:
+
+.. code-block:: json
+
+    {
+        "format": 1,
+        "files": [
+            "filename1",
+            "filename2",
+            "..."
+        ],
+        "global variable declarations": [
+            {
+                "file": 0,
+                "line": 1,
+                "source": "struct module x;"
+            },
+            {
+                "file": 0,
+                "line": 2,
+                "source": "static ldv_counter = 1;",
+                "notes": [
+                    {
+                        "level": 1
+                        "text": "Initialize counter to zero"
+                    }
+                ],
+                "hide": true
+            },
+            {
+            }
+        ],
+        "trace": "NodeObject"
+    }
+
+*format* indicates a current version of the error trace format.
+For all changes in syntax and especially semantics of the represented data it should be changed.
+
+*files* lists all filenames referred by the error trace.
+Below particular files are represented as indexes in this array.
+This is necessary for optimization purposes since there may be very many edges corresponding to different files that
+can have rather long paths.
+
+For global variable declarations *file*, *line* and *source* are mandatory attributes.
+Their meaning is quite obvious.
+*notes* and *hide* correspond to entities from the extended violation witnesses straightforwardly.
+Below we present a bit more details on these attributes.
+
+*NodeObject* represents the error path (error trace) starting from the entry point and finishing at the detected
+violation.
+It is a JSON object with following attributes:
+
+* *type* - one of "thread", "action", "declarations", "declaration", "statement" and "function call".
+* *thread* - a thread identifier.
+  This attribute is mandatory for objects of type "thread".
+* *file* - an index in the array of files presented above.
+  This attribute is mandatory for objects of types "action", "declaration", "statement" and "function call".
+* *line* - a line number in this file.
+  This attribute is mandatory for the same objects as *file*.
+* *source* - a piece of the source code corresponding to a violation witness edge.
+  This attribute is mandatory for objects of types "declaration", "statement" and "function call".
+* *highlight* - highlighting for a given piece of the source code.
+  This attribute can be set for the same objects as *source*.
+  Its value is an array of arrays each containing a highlight class that influences visualization, a start offset and
+  an end offset of a corresponding entity.
+  All offsets should be in a *source* length range, they should not overlap and the end offset should be greater than
+  the start offset.
+* *condition* - either true or false depending on a corresponding edge represents a conditional statement or not
+  respectively.
+  This attribute can be sef for objects of types "statement" and "function call".
+* *assumption* - verification tool assumptions coinciding with a value of *assumption* data tag.
+  This attribute can be sef for objects of types "statement" and "function call".
+* *display* - a text replacing *source*, e.g. instead of a complete function call statement just a function name can
+  be shown if it is stored as a value of this attribute.
+  This attribute is mandatory for objects of types "action" and "function call".
+  Also, it can be set for objects of types "declaration" and "statement".
+* *relevant* - either true or false that denotes actions that are relevant and irrelevant for creating error trace
+  patterns.
+  This attribute is mandatory for objects of type "action".
+  By default its value is false.
+* *notes* - a list of notes like demonstrated above.
+  This attribute is mandatory for objects of types "declaration", "statement" and "function call".
+* *hide* - either true of false that correspondingly hides or shows a corresponding *source* or *display*.
+  This attribute is mandatory for the same objects as *notes*.
+  By default its value is false.
+* *children* - a list of elements each of type *NodeObject*.
+  This attribute is mandatory for objects of types "thread", "action", "declarations" and "function call".
+
+The first *NodeObject* should have the *thread* type.
 
 Code Coverage Format
 --------------------
 
-TODO: Translate from Russian. 
+We suggest to convert code coverage reports from verification tools to the more appropriate form for their
+visualization.
+Converted code coverage reports should be represented as JSON files.
+There are should be JSON files for all source files that were covered somehow as well as one file per a verification
+task with statistics.
+Code coverage for individual source files should be placed to files *path/to/src_file.cov.json* and they should have the
+following content:
+
+.. code-block:: json
+
+    {
+        "format": 1,
+        "line coverage": {
+            "1": 4,
+            "3": 7,
+            "...": "..."
+        },
+        "function coverage": {
+            "1": 1,
+            "17": 0,
+            "...": "..."
+        },
+        "notes": {
+            "19": {
+                "kind": "Verifier assumption",
+                "text": "Inline Assembler is ignored"
+            },
+            "51": {
+                "kind": "Environment modelling hint",
+                "text": "Function \"driver_release\" may be called within context of \"driver_probe\" and \"driver_disconnect\" entry points"
+            },
+            "...": "..."
+        }
+    }
+
+*format* means the same as the error trace format considered above.
+
+*line coverage* and *function coverage* shows the number of states for corresponding lines of code.
+For functions these lines of code coincide with places where they are defined.
+The number of states reflect time spent for verification of lines and functions to some extent.
+
+*notes* enumerate hints from verification tools or Klever itself for corresponding lines of code.
+Each such hint can have a random text and one of predefined kinds.
+For each kind a dedicated style will be used at visualization.
+
+Code coverage statistics should be put to file *coverage.json* of the following content:
+
+.. code-block:: json
+
+    {
+        "format": 1,
+        "coverage statistics": {
+            "path/to/src": [100, 1000, 5, 10],
+            "...": []
+        },
+        "most covered lines": [
+              "path/to/src:333",
+              "path/to/another/src:33",
+              "path/to/src:233",
+              "..."
+        ]
+    }
+
+*format* means the same as the error trace format considered above.
+
+*coverage statistics* represents the number of covered lines, the number of lines that could be covered potentially,
+the number of covered functions and the number of functions that could be covered potentially for corresponding source
+files.
+
+*most covered lines* enumerates source files and lines within them that were covered most times.
+
+The same format is appropriate for representing code coverage for the whole program independently for each requirements
+specification that is also supported by Klever.

@@ -171,7 +171,7 @@ def main():
         prev_deploy_info = json.load(fp)
 
     configure_controller_and_schedulers(get_logger(__name__), args.development, args.source_directory,
-                                        args.deployment_directory,prev_deploy_info)
+                                        args.deployment_directory, prev_deploy_info)
 
 
 if __name__ == '__main__':

@@ -1,18 +1,23 @@
 {
   "Klever Addons": {
     "CIF": {
-      "version": "7eb76b0",
-      "path": "https://forge.ispras.ru/attachments/download/8056/cif-7eb76b0.tar.xz",
+      "version": "8ec7214",
+      "path": "https://forge.ispras.ru/attachments/download/9111/cif-8ec7214.tar.xz",
       "executable path": "bin"
     },
     "CIF-ARM": {
-      "version": "79182af",
-      "path": "https://forge.ispras.ru/attachments/download/8074/arm-unknown-eabi-cif-79182af.tar.xz",
+      "version": "8ec7214",
+      "path": "https://forge.ispras.ru/attachments/download/9112/arm-unknown-eabi-cif-8ec7214.tar.xz",
+      "executable path": "bin"
+    },
+    "CIF-ARM64": {
+      "version": "8ec7214",
+      "path": "https://forge.ispras.ru/attachments/download/9113/aarch64_be-unknown-linux-gnu-cif-8ec7214.tar.xz",
       "executable path": "bin"
     },
     "CIL": {
-      "version": "0a60360",
-      "path": "https://forge.ispras.ru/attachments/download/8075/frama-c-cil-0a60360.tar.xz",
+      "version": "57c4604",
+      "path": "https://forge.ispras.ru/attachments/download/8899/frama-c-cil-57c4604.tar.xz",
       "executable path": "."
     },
     "Consul": {
@@ -28,21 +33,27 @@
     "Verification Backends": {
       "CPAchecker": {
         "name": "CPAchecker",
-        "version": "trunk:36447",
-        "path": "https://forge.ispras.ru/attachments/download/8254/CPAchecker-36447.tar.xz",
+        "version": "klever_fixes:38135",
+        "path": "https://forge.ispras.ru/attachments/download/9069/CPAchecker-38135.tar.xz",
         "executable path": "scripts"
       },
       "CPALockator": {
         "name": "CPAchecker",
-        "version": "CPALockator:36189",
-        "path": "https://forge.ispras.ru/attachments/download/8195/CPALockator-36189.tar.xz",
+        "version": "CPALockator-combat-mode:38006",
+        "path": "https://forge.ispras.ru/attachments/download/9047/CPALockator-38006.tar.xz",
         "executable path": "scripts"
       }
     }
   },
   "Klever Build Bases": {
     "linux/loadable kernel modules sample": {
-      "path": "https://forge.ispras.ru/attachments/download/8076/build-base-linux-3.14.79-x86_64-sample.tar.xz"
+      "path": "https://forge.ispras.ru/attachments/download/8493/build-base-linux-3.14.79-x86_64-sample.tar.xz"
+    },
+    "linux/loadable kernel modules sample arm": {
+      "path": "https://forge.ispras.ru/attachments/download/8494/build-base-linux-3.14.79-x86_64-sample-arm.tar.xz"
+    },
+    "linux/loadable kernel modules sample arm64": {
+      "path": "https://forge.ispras.ru/attachments/download/8495/build-base-linux-3.14.79-x86_64-sample-arm64.tar.xz"
     }
   }
 }

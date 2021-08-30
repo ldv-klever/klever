@@ -22,11 +22,7 @@
                 {
                   "Instrumented function 'blk_put_request'": [
                     {
-                      "LDV model 'put_blk_rq'": [
-                        {
-                          "LDV model 'assert'": []
-                        }
-                      ]
+                      "LDV model 'put_blk_rq'": []
                     }
                   ]
                 }

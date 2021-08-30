@@ -33,7 +33,7 @@ from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 
 from bridge.vars import USER_ROLES
-from bridge.utils import BridgeAPIPagination, extract_archive
+from bridge.utils import BridgeAPIPagination, extract_archive, logger
 from bridge.access import ManagerPermission, ServicePermission
 from bridge.CustomViews import StreamingResponseAPIView, TemplateAPIRetrieveView
 from tools.profiling import LoggedCallMixin
@@ -417,7 +417,7 @@ class LikeUnknownMark(LikeMarkBase):
 
 class DownloadAllMarksView(LoggedCallMixin, StreamingResponseAPIView):
     unparallel = ['MarkSafe', 'MarkUnsafe', 'MarkUnknown']
-    permission_classes = (ServicePermission,)
+    permission_classes = (IsAuthenticated,)
 
     def get_generator(self):
         return AllMarksGenerator()
@@ -431,6 +431,7 @@ class UploadMarksView(LoggedCallMixin, APIView):
             raise exceptions.PermissionDenied(_("You don't have an access to create new marks"))
 
         marks_links = []
+        failed_mark_uploads = 0
         marks_uploader = MarksUploader(request.user)
         for f in self.request.FILES.getlist('file'):
             with zipfile.ZipFile(f, 'r') as zfp:
@@ -438,14 +439,25 @@ class UploadMarksView(LoggedCallMixin, APIView):
                     marks_dir = extract_archive(f)
                     for arch_name in os.listdir(marks_dir.name):
                         with open(os.path.join(marks_dir.name, arch_name), mode='rb') as fp:
-                            marks_links.append(marks_uploader.upload_mark(File(fp, name=arch_name))[1])
-                    pass
+                            try:
+                                marks_links.append(marks_uploader.upload_mark(File(fp, name=arch_name))[1])
+                            except Exception as e:
+                                logger.exception(e)
+                                logger.error('Uploading of mark "{}" has failed.'.format(arch_name))
+                                failed_mark_uploads += 1
                 else:
                     marks_links.append(marks_uploader.upload_mark(f)[1])
 
         if len(marks_links) == 1:
             return Response({'url': marks_links[0]})
-        return Response({'message': _('Number of created marks: %(number)s') % {'number': len(marks_links)}})
+
+        if failed_mark_uploads:
+            return Response({'message': _('Number of created marks: %(number)s.'
+                                          ' Number of marks which uploading failed: %(failed_number)s.'
+                                          ' See logs for details.')
+                                        % {'number': len(marks_links), 'failed_number': failed_mark_uploads}})
+        else:
+            return Response({'message': _('Number of created marks: %(number)s') % {'number': len(marks_links)}})
 
 
 class UploadAllMarksView(LoggedCallMixin, APIView):
@@ -517,7 +529,7 @@ class InlineCreateForm(LoggedCallMixin, TemplateAPIRetrieveView):
 
 
 class GetUpdatedPresetView(LoggedCallMixin, RetrieveAPIView):
-    permission_classes = (ServicePermission,)
+    permission_classes = (IsAuthenticated,)
     queryset = MarkUnsafe.objects.all()
     serializer_class = UpdatedPresetUnsafeMarkSerializer
     lookup_url_kwarg = "identifier"

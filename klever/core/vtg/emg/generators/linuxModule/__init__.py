@@ -18,13 +18,33 @@
 import ujson
 import sortedcontainers
 
+from klever.core.vtg.emg.common.process import ProcessCollection
 from klever.core.vtg.emg.generators.abstract import AbstractGenerator
 from klever.core.vtg.emg.common.process.serialization import CollectionDecoder
 from klever.core.vtg.emg.generators.linuxModule.instances import generate_instances
 from klever.core.vtg.emg.generators.linuxModule.processes import process_specifications
+from klever.core.vtg.emg.generators.linuxModule.process import ExtendedProcessCollection
 from klever.core.vtg.emg.generators.linuxModule.interface.analysis import import_specification
 from klever.core.vtg.emg.generators.linuxModule.interface.collection import InterfaceCollection
 from klever.core.vtg.emg.generators.linuxModule.process.serialization import ExtendedProcessDecoder
+
+
+DEFAULT_COMMENTS = {
+    "dispatch": {
+        "register": "Register {} callbacks.",
+        "instance_register": "Register {} callbacks.",
+        "deregister": "Deregister {} callbacks.",
+        "instance_deregister": "Deregister {} callbacks.",
+        "irq_register": "Register {} interrupt handler.",
+        "irq_deregister": "Deregister {} interrupt handler."
+    },
+    "receive": {
+        "register": "Begin {} callbacks invocations scenario.",
+        "instance_register": "Begin {} callbacks invocations scenario.",
+        "deregister": "Finish {} callbacks invocations scenario.",
+        "instance_deregister": "Finish {} callbacks invocations scenario."
+    }
+}
 
 
 class ScenarioModelgenerator(AbstractGenerator):
@@ -48,6 +68,8 @@ class ScenarioModelgenerator(AbstractGenerator):
         # Get instance maps if possible
         instance_maps = sortedcontainers.SortedDict()
         all_instance_maps = specifications.get("instance maps", [])
+        self.conf.setdefault("action comments", DEFAULT_COMMENTS)
+        self.conf.setdefault("callback comment", "Invoke callback {0} from {1}.")
 
         # Get fragment name
         task_name = abstract_task_desc['fragment']
@@ -63,7 +85,17 @@ class ScenarioModelgenerator(AbstractGenerator):
 
         self.logger.info("Import event categories specification")
         decoder = ExtendedProcessDecoder(self.logger, self.conf)
-        abstract_processes = decoder.parse_event_specification(source, specifications["event specifications"])
+        abstract_processes = decoder.parse_event_specification(source, specifications["event specifications"],
+                                                               ExtendedProcessCollection())
+
+        # Remove deleted models
+        deleted_models = [func for func in abstract_processes.models if func in source.source_functions and
+                          interfaces.is_removed_function(func)]
+        if deleted_models:
+            self.logger.info("Found deleted models: {}".format(', '.join(deleted_models)))
+
+            for name in deleted_models:
+                del abstract_processes.models[name]
 
         # Now check that we have all necessary interface specifications
         unspecified_functions = [func for func in abstract_processes.models if func in source.source_functions and
@@ -86,7 +118,7 @@ class ScenarioModelgenerator(AbstractGenerator):
                                       escape_forward_slashes=False))
 
         puredecoder = CollectionDecoder(self.logger, self.conf)
-        new_pure_collection = puredecoder.parse_event_specification(source, ujson.loads(data))
+        new_pure_collection = puredecoder.parse_event_specification(source, ujson.loads(data), ProcessCollection())
         collection.environment.update(new_pure_collection.environment)
         collection.models.update(new_pure_collection.models)
         collection.establish_peers()

@@ -36,25 +36,29 @@ void ldv_invoke_test(void)
 
 void ldv_invoke_callback(void)
 {
-	/* ASSERT Callback cannot be called without registration or after deregistration. */
-	ldv_assert(registered);
+	if (!registered)
+		/* ASSERT Callback cannot be called without registration or after deregistration. */
+		ldv_assert();
 
-	/* ASSERT Need probing before calling this callback. */
-	ldv_assert(!probed);
+	if (probed)
+		/* ASSERT Need probing before calling this callback. */
+		ldv_assert();
 }
 
 void ldv_invoke_middle_callback(void)
 {
-	/* ASSERT Callback cannot be called without registration or after deregistration. */
-	ldv_assert(registered);
+	if (!registered)
+		/* ASSERT Callback cannot be called without registration or after deregistration. */
+		ldv_assert();
 
-	/* ASSERT Need probing before calling this callback. */
-	ldv_assert(probed);
+	if (!probed)
+		/* ASSERT Need probing before calling this callback. */
+		ldv_assert();
 }
 
 void ldv_invoke_reached(void) {
 	/* ASSERT Test successfully passes as the callback call is reached. */
-	ldv_assert(0);
+	ldv_assert();
 }
 
 void ldv_deregister(void)
@@ -82,14 +86,14 @@ void ldv_release_down(void)
 		probed--;
 	else
 		/* ASSERT Cannot free unprobed or already released resources. */
-		ldv_assert(0);
+		ldv_assert();
 }
 
 void ldv_release_completely(void)
 {
 	if (!probed)
 		/* ASSERT Cannot free unprobed or already released resources. */
-		ldv_assert(0);
+		ldv_assert();
 	else
 		/* NOTE Release all resources. */
 		probed = 0;
@@ -97,8 +101,11 @@ void ldv_release_completely(void)
 
 void ldv_check_final_state(void)
 {
-	/* ASSERT At the end of the test all resources should be released. */
-	ldv_assert(probed == 0 || supress);
-	/* ASSERT At the end of the test all callbacks should be deregistered. */
-	ldv_assert(registered == 0 || supress);
+	if (probed && !supress)
+		/* ASSERT At the end of the test all resources should be released. */
+		ldv_assert();
+
+	if (registered && !supress)
+		/* ASSERT At the end of the test all callbacks should be deregistered. */
+		ldv_assert();
 }

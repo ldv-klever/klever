@@ -41,11 +41,13 @@ unsigned __VERIFIER_nondet_unsigned(void);
 unsigned long __VERIFIER_nondet_ulong(void);
 unsigned long long __VERIFIER_nondet_ulonglong(void);
 void *__VERIFIER_nondet_pointer(void);
-void __VERIFIER_assume(int expression);
 
 int ldv_undef_int(void)
 {
-	return __VERIFIER_nondet_int();
+	/* NOTE2 Make a non-determined value of the integer type (verification tools will consider all possible values) */
+	int undef_int = __VERIFIER_nondet_int();
+	/* NOTE2 Return it to the caller */
+	return undef_int;
 }
 
 int ldv_random_int(int begin, int end)
@@ -55,36 +57,51 @@ int ldv_random_int(int begin, int end)
 	if (begin >= end)
         return begin;
   	else {
-        ret = __VERIFIER_nondet_int();
+        ret = ldv_undef_int();
         ldv_assume(ret >= begin);
         ldv_assume(ret < end);
         return ret;
 	}
 }
 
-int ldv_undef_long(void)
+long ldv_undef_long(void)
 {
-	return __VERIFIER_nondet_long();
+	/* NOTE2 Make a non-determined value of the long type (verification tools will consider all possible values) */
+	long undef_long = __VERIFIER_nondet_long();
+	/* NOTE2 Return it to the caller */
+	return undef_long;
 }
 
 unsigned int ldv_undef_uint(void)
 {
-	return __VERIFIER_nondet_uint();
+	/* NOTE2 Make a non-determined value of the unsigned int type (verification tools will consider all possible values) */
+	unsigned int undef_uint = __VERIFIER_nondet_uint();
+	/* NOTE2 Return it to the caller */
+	return undef_uint;
 }
 
 void *ldv_undef_ptr(void)
 {
-	return __VERIFIER_nondet_pointer();
+	/* NOTE2 Make a non-determined value of the pointer type (verification tools will consider all possible values) */
+	void *undef_ptr = __VERIFIER_nondet_pointer();
+	/* NOTE2 Return it to the caller */
+	return undef_ptr;
 }
 
 unsigned long ldv_undef_ulong(void)
 {
-	return __VERIFIER_nondet_ulong();
+	/* NOTE2 Make a non-determined value of the unsigned long type (verification tools will consider all possible values) */
+	unsigned long undef_ulong = __VERIFIER_nondet_ulong();
+	/* NOTE2 Return it to the caller */
+	return undef_ulong;
 }
 
 unsigned long long ldv_undef_ulonglong(void)
 {
-	return __VERIFIER_nondet_ulonglong();
+	/* NOTE2 Make a non-determined value of the unsigned long long type (verification tools will consider all possible values) */
+	unsigned long long undef_ulonglong = __VERIFIER_nondet_ulonglong();
+	/* NOTE2 Return it to the caller */
+	return undef_ulonglong;
 }
 
 int ldv_undef_int_positive(void)

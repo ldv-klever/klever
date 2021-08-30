@@ -22,16 +22,17 @@
 void __VERIFIER_error(void);
 void __VERIFIER_assume(int expr);
 
-/* If expression is zero ldv_assert() causes program to reach error function
- * call. */
-extern void ldv_assert(int expr);
+#ifdef LDV_MEMORY_SAFETY
+/* Deliberate NULL pointer dereference corresponding to violations of requirement specifications expressed and checked
+   using memory safety properties or false alarms. */
+#define ldv_assert() ({*(char *)0;})
+#else
+/* Unconditionally reach call of error function, i.e. __VERIFIER_error(). Verification tools treats this call of the
+   special function as a solution of the reachability task that can correspond to either a fault or a false alarm. */
+#define ldv_assert() __VERIFIER_error()
+#endif
 
-/* Cause error unconditionally.
- */
-extern void ldv_error(void);
-
-/* Internal alias for __VERIFIER_assume(). Proceed only if expression is
- * nonzero. */
+/* Proceed further only if expression is nonzero. */
 #define ldv_assume(expr) __VERIFIER_assume(expr)
 
 #endif /* __LDV_VERIFIER_COMMON_H */

@@ -103,7 +103,7 @@
           "alloc": {
             "comment": "Alloc memory for rtc_device structure and initialize it.",
             "statements": [
-              "%rtc_device% = $ALLOC(%rtc_device%);",
+              "$ALLOC(%rtc_device%);",
               "%device% = $ARG2;",
               "%rtc_class_ops% = $ARG3;",
               "%rtc_device%->ops = %rtc_class_ops%;",

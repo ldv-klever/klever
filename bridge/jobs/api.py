@@ -36,7 +36,8 @@ from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 
 from bridge.access import (
-    ViewJobPermission, DestroyJobPermission, ServicePermission, CreateJobPermission, UpdateJobPermission
+    ViewJobPermission, DestroyJobPermission, ServicePermission,
+    CreateJobPermission, UpdateJobPermission, CLIPermission
 )
 from bridge.vars import PRESET_JOB_TYPE, DECISION_STATUS
 from bridge.utils import logger
@@ -171,10 +172,14 @@ class StartDefaultDecisionView(LoggedCallMixin, APIView):
         return GetConfiguration().for_json()
 
     def post(self, request, **kwargs):
-        job = self.get_job(**kwargs)
-        configuration = self.get_configuration()
-        decision = create_default_decision(request, job, configuration)
-        decision_status_changed(decision)
+        try:
+            job = self.get_job(**kwargs)
+            configuration = self.get_configuration()
+            decision = create_default_decision(request, job, configuration)
+            decision_status_changed(decision)
+        except Exception as e:
+            logger.exception(e)
+            raise exceptions.APIException('Error occured for starting default decision')
         return Response({
             'id': decision.id, 'identifier': str(decision.identifier),
             'url': reverse('jobs:decision', args=[decision.id])
@@ -195,7 +200,7 @@ class DecisionStatusView(RetrieveAPIView):
 
 class DecisionResultsAPIView(LoggedCallMixin, RetrieveAPIView):
     serializer_class = DecisionResultsSerializerRO
-    permission_classes = (ViewJobPermission,)
+    permission_classes = (CLIPermission,)
     queryset = Decision.objects.all()
     lookup_url_kwarg = 'identifier'
     lookup_field = 'identifier'
@@ -333,10 +338,11 @@ class CheckDownloadAccessView(LoggedCallMixin, APIView):
 
 
 class DownloadJobByUUIDView(LoggedCallMixin, StreamingResponseAPIView):
-    permission_classes = (ServicePermission,)
+    permission_classes = (CLIPermission,)
 
     def get_generator(self):
         job = get_object_or_404(Job, identifier=self.kwargs['identifier'])
+        self.check_object_permissions(self.request, job)
         return JobArchiveGenerator(job)
 
 

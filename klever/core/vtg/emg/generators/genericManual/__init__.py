@@ -17,6 +17,7 @@
 
 import json
 
+from klever.core.vtg.emg.common.process import ProcessCollection
 from klever.core.vtg.emg.generators.abstract import AbstractGenerator
 from klever.core.vtg.emg.common.process.serialization import CollectionDecoder
 
@@ -40,53 +41,60 @@ class ScenarioModelgenerator(AbstractGenerator):
         :param specifications: dictionary with merged specifications.
         :return: Reports dict
         """
+        self.conf.setdefault("enforce replacement", True)
+
         # Import Specifications
         all_instance_maps = specifications.get("manual event models", [])
         fragment_name = abstract_task_desc['fragment']
         descriptions = None
         for imap in all_instance_maps:
             if fragment_name in imap.get('fragments', []):
+                self.logger.info(f'Found model for the fragment {fragment_name}')
                 descriptions = imap.get("model", None)
+
+                contains = ', '.join([i for i in ("functions models", "environment processes", "main process")
+                                      if i in descriptions and descriptions[i]])
+                self.logger.debug(f'The model contains sections: {contains}')
 
         # Import manual process
         if descriptions and ("functions models" in descriptions or "environment processes" in descriptions or
                              "main process" in descriptions):
 
             parser = CollectionDecoder(self.logger, self.conf)
-            manual_processes = parser.parse_event_specification(source, descriptions)
+            manual_processes = parser.parse_event_specification(source, descriptions, ProcessCollection())
 
             # Decide on process replacements
             or_entry = collection.entry
-            if manual_processes.entry:
-                if (self.conf.get("enforce replacement") and collection.entry) or not collection.entry:
-                    if self.conf.get("keep entry functions") and collection.entry:
-                        for or_decl in collection.entry.declarations:
-                            if or_decl in manual_processes.entry.declarations:
-                                manual_processes.entry.declarations[or_decl] = {
-                                    **manual_processes.entry.declarations[or_decl],
-                                    **collection.entry.declarations[or_decl]
-                                }
-                            else:
-                                manual_processes.entry.declarations[or_decl] = collection.entry.declarations[or_decl]
-                        for or_def in collection.entry.definitions:
-                            if or_def in manual_processes.entry.definitions:
-                                manual_processes.entry.definitions[or_def] = {
-                                    **manual_processes.entry.definitions[or_def],
-                                    **collection.entry.definitions[or_def]
-                                }
-                            else:
-                                manual_processes.entry.definitions[or_def] = collection.entry.definitions[or_def]
+            if manual_processes.entry and (not collection.entry or self.conf.get("enforce replacement")):
+                if self.conf.get("keep entry functions") and collection.entry:
+                    for or_decl in collection.entry.declarations:
+                        if or_decl in manual_processes.entry.declarations:
+                            manual_processes.entry.declarations[or_decl] = {
+                                **manual_processes.entry.declarations[or_decl],
+                                **collection.entry.declarations[or_decl]
+                            }
+                        else:
+                            manual_processes.entry.declarations[or_decl] = collection.entry.declarations[or_decl]
+                    for or_def in collection.entry.definitions:
+                        if or_def in manual_processes.entry.definitions:
+                            manual_processes.entry.definitions[or_def] = {
+                                **manual_processes.entry.definitions[or_def],
+                                **collection.entry.definitions[or_def]
+                            }
+                        else:
+                            manual_processes.entry.definitions[or_def] = collection.entry.definitions[or_def]
 
-                    or_entry = manual_processes.entry
+                or_entry = manual_processes.entry
 
             # Replace rest processes
-            if self.conf.get("enforce replacement"):
-                for current, manual in ((collection.models, manual_processes.models),
-                                        (collection.environment, manual_processes.environment)):
-                    current.update(manual)
+            for current, manual in ((collection.models, manual_processes.models),
+                                    (collection.environment, manual_processes.environment)):
+                for key in manual:
+                    if key not in current or self.conf.get("enforce replacement"):
+                        current[key] = manual[key]
 
             collection.entry = or_entry
-            collection.establish_peers(strict=True)
+            collection.establish_peers()
         else:
             self.logger.info("There is no specification for {!r} or it has invalid format".format(fragment_name))
 
@@ -104,10 +112,13 @@ class ScenarioModelgenerator(AbstractGenerator):
                     merged_specification.extend(new_content[spec_set])
                 else:
                     # Find reference ones
-                    for specification in (s.get('model', {}) for s in new_content[spec_set]):
-                        for subsection in specification:
-                            for k, v in list(specification[subsection].items()):
-                                if not v.get('reference'):
+                    for specification in (s.get('model', dict()) for s in new_content[spec_set]):
+                        for subsection in ('functions models', 'environment processes'):
+                            for k, v in list(specification.get(subsection, dict()).items()):
+                                assert v is None or isinstance(v, dict), str(v)
+                                if not (v and v.get('reference')):
                                     del specification[subsection][k]
+                        if specification.get('main process') and not specification['main process'].get('reference'):
+                            del specification['main process']
                     merged_specification.extend(new_content[spec_set])
         return merged_specification

@@ -6,7 +6,7 @@ cchardet==2.1.7
 celery==5.0.3
 certifi==2020.12.5
 chardet==3.0.4
-clade==3.2.15
+clade==3.4.7
 click==7.1.2
 click-didyoumean==0.0.3
 click-plugins==1.1.1
@@ -47,3 +47,4 @@ urllib3==1.26.2
 vine==5.0.0
 wcwidth==0.2.5
 zipp==3.4.0
+pytest==6.2.4

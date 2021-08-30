@@ -15,6 +15,7 @@
 
 import os
 import shutil
+import subprocess
 import urllib.parse
 
 from clade import Clade
@@ -46,6 +47,14 @@ class Program:
 
         # Path to the Clade cmds.txt file with intercepted commands
         self.cmds_file = os.path.realpath(os.path.join(self.work_src_tree, 'cmds.txt'))
+
+        # Clade API object
+        clade_conf = dict(self._CLADE_CONF)
+        clade_conf.update(self.target_program_desc.get('extra Clade options', dict()))
+        self.clade = Clade(work_dir=self.target_program_desc['build base'],
+                           cmds_file=self.cmds_file,
+                           conf=clade_conf,
+                           preset=self._CLADE_PRESET)
 
     def _prepare_work_src_tree(self):
         o = urllib.parse.urlparse(self.work_src_tree)
@@ -83,47 +92,46 @@ class Program:
         execute_cmd(self.logger, 'git', 'reset', '--hard', cwd=self.work_src_tree)
         execute_cmd(self.logger, 'git', 'checkout', '-f', checkout, cwd=self.work_src_tree)
 
-        # Use Git describe to properly identify program version
-        stdout = execute_cmd(self.logger, 'git', 'describe', cwd=self.work_src_tree, get_output=True)
-        self.version = stdout[0]
+        try:
+            # Use Git describe to properly identify program version
+            stdout = execute_cmd(self.logger, 'git', 'describe', cwd=self.work_src_tree, get_output=True)
+            self.version = stdout[0]
+        except subprocess.CalledProcessError:
+            # Use Git repository version from target program description if Git describe failed
+            self.version = checkout
 
     def _run_clade(self):
         if os.path.isdir(self.target_program_desc['build base']):
             shutil.rmtree(self.target_program_desc['build base'])
 
-        clade_conf = dict(self._CLADE_CONF)
-        clade_conf.update(self.target_program_desc.get('extra Clade options', dict()))
-
-        clade = Clade(work_dir=self.target_program_desc['build base'],
-                      cmds_file=self.cmds_file,
-                      conf=clade_conf,
-                      preset=self._CLADE_PRESET)
-        clade.parse_list(clade.conf["extensions"])
+        self.clade.parse_list(self.clade.conf['extensions'])
 
         self.logger.info('Save project attributes, working source trees and target program description to build base')
-        clade.add_meta_by_key('project attrs', [{
+        attrs = [
+            {
+                'name': 'name',
+                'value': type(self).__name__
+            },
+            {
+                'name': 'architecture',
+                'value': self.architecture
+            },
+            {
+                'name': 'version',
+                'value': self.version
+            }
+        ]
+        if self.configuration:
+            attrs.append({
+                'name': 'configuration',
+                'value': self.configuration
+            })
+        self.clade.add_meta_by_key('project attrs', [{
             'name': 'project',
-            'value': [
-                {
-                    'name': 'name',
-                    'value': type(self).__name__
-                },
-                {
-                    'name': 'architecture',
-                    'value': self.architecture
-                },
-                {
-                    'name': 'version',
-                    'value': self.version
-                },
-                {
-                    'name': 'configuration',
-                    'value': self.configuration
-                }
-            ]
+            'value': attrs
         }])
-        clade.add_meta_by_key('working source trees', self.work_src_trees)
-        clade.add_meta_by_key('target program description', self.target_program_desc)
+        self.clade.add_meta_by_key('working source trees', self.work_src_trees)
+        self.clade.add_meta_by_key('target program description', self.target_program_desc)
 
     @staticmethod
     def build_wrapper(build):

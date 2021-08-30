@@ -134,7 +134,7 @@
                 <h4 class="header ui blue">{% trans 'Description' %}</h4>
                 <div class="ui form">
                     <label for="mark_description"></label>
-                    <textarea id="mark_description" rows="5" style="resize:none">{{ data.description }}</textarea>
+                    <textarea id="mark_description" rows="5" style="resize:none">{{ data.description|safe }}</textarea>
                 </div>
             </div>
             <br>
@@ -199,7 +199,7 @@
                     </div>
                 {% endif %}
             {% elif data.type == 'unknown' and problem_description %}
-                <div class="ui red segment filecontent" style="min-height:50vh;max-height:80vh;">{{ problem_description }}</div>
+                <div class="ui red segment filecontent" style="min-height:50vh;max-height:70vh;">{{ problem_description }}</div>
             {% endif %}
 
             {# Attributes #}

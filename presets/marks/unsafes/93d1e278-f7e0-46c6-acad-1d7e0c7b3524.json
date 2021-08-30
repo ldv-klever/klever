@@ -1,0 +1,144 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Project:Version",
+      "value": "v5.7-7908-ge1c3cdb26ab8"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/rapidio/devices/rio_mport_cdev.ko"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "concurrency safety"
+    },
+    {
+      "is_compare": true,
+      "name": "Declaration",
+      "value": "void *__write_once_size::*p"
+    }
+  ],
+  "description": "CPALockator does not support atomic values.",
+  "error_trace": [
+    [
+      [
+        {
+          "EMG wrapper": [
+            {
+              "mport_add_mport": [
+                {
+                  "mport_cdev_add": [
+                    {
+                      "Instrumented function 'mutex_lock'": []
+                    },
+                    {
+                      "Instrumented function 'mutex_unlock'": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "EMG wrapper": [
+            {
+              "mport_remove_mport": [
+                {
+                  "Instrumented function 'mutex_lock'": []
+                },
+                {
+                  "atomic_set": [
+                    {
+                      "arch_atomic_set": [
+                        {
+                          "__write_once_size": []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    ],
+    [
+      [
+        {
+          "EMG wrapper": [
+            {
+              "mport_cdev_open": [
+                {
+                  "Instrumented function 'mutex_lock'": []
+                },
+                {
+                  "Instrumented function 'mutex_unlock'": []
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "EMG wrapper": [
+            {
+              "mport_cdev_ioctl": [
+                {
+                  "rio_mport_transfer_ioctl": [
+                    {
+                      "rio_dma_transfer": [
+                        {
+                          "get_dma_channel": [
+                            {
+                              "Instrumented function 'mutex_lock'": []
+                            },
+                            {
+                              "kref_init": [
+                                {
+                                  "refcount_set": [
+                                    {
+                                      "atomic_set": [
+                                        {
+                                          "arch_atomic_set": [
+                                            {
+                                              "__write_once_size": []
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": false,
+  "status": null,
+  "tags": [
+    "Verifier",
+    "Verifier - CPALockator"
+  ],
+  "threshold": 100,
+  "verdict": "3"
+}

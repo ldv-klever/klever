@@ -20,6 +20,7 @@ import getpass
 import json
 import logging
 import os
+import pkg_resources
 import pwd
 import subprocess
 import sys
@@ -37,9 +38,15 @@ class Cd:
         os.chdir(self.prev_path)
 
 
-def execute_cmd(logger, *args, stdin=None, stderr=None, get_output=False, username=None):
-    logger.info('Execute command "{0}"'.format(' '.join(args)))
+def execute_cmd(logger, *args, stdin=None, stderr=None, get_output=False, username=None, keep_stdout=False):
+    logger.debug('Execute command "{0}"'.format(' '.join(args)))
 
+    # Do not print output by default.
+    stdout = None
+    if not keep_stdout and logger.level >= logging.INFO:
+        stdout = subprocess.PIPE
+
+    # stdout argument is not allowed in check_output().
     kwargs = {
         'stdin': stdin,
         'stderr': stderr
@@ -59,7 +66,7 @@ def execute_cmd(logger, *args, stdin=None, stderr=None, get_output=False, userna
     if get_output:
         return subprocess.check_output(args, **kwargs).decode('utf-8')
     else:
-        subprocess.check_call(args, **kwargs)
+        subprocess.check_call(args, stdout=stdout, **kwargs)
 
 
 def check_deployment_configuration_file(logger, deploy_conf_file):
@@ -86,11 +93,11 @@ def check_deployment_configuration_file(logger, deploy_conf_file):
         sys.exit(errno.ENOENT)
 
 
-def get_logger(name):
+def get_logger(name, level='INFO'):
     logger = logging.getLogger(name)
-    logger.setLevel(logging.INFO)
+    logger.setLevel(level)
     handler = logging.StreamHandler(sys.stdout)
-    handler.setLevel(logging.INFO)
+    handler.setLevel(level)
     formatter = logging.Formatter('%(asctime)s (%(filename)s:%(lineno)03d) %(levelname)s> %(message)s',
                                   "%Y-%m-%d %H:%M:%S")
     handler.setFormatter(formatter)
@@ -128,14 +135,14 @@ def need_verifiercloud_scheduler(prev_deploy_info):
 
 
 def start_services(logger, services):
-    logger.info('Start and enable services')
+    logger.info(f'Start and enable services: {", ".join(services)}')
     for service in services:
         execute_cmd(logger, 'service', service, 'start')
         execute_cmd(logger, 'systemctl', 'enable', service)
 
 
 def stop_services(logger, services, ignore_errors=False):
-    logger.info('Stop services')
+    logger.info(f'Stop services: {", ".join(services)}')
     for service in services:
         try:
             execute_cmd(logger, 'service', service, 'stop')
@@ -177,7 +184,11 @@ def replace_media_user(path, media_user):
 def get_cgroup_version():
     # I was not able to find a better way to detect cgroup version
     # TODO: improve detection of cgroup version
-    if os.path.exists("/sys/fs/cgroup/freezer"):
-        return "v1"
+    if os.path.exists('/sys/fs/cgroup/freezer'):
+        return 'v1'
     else:
-        return "v2"
+        return 'v2'
+
+
+def get_klever_version():
+    return pkg_resources.get_distribution("klever").version

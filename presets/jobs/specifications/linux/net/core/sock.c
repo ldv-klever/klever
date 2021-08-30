@@ -44,22 +44,27 @@ bool ldv_lock_sock_fast(void)
 
 void ldv_unlock_sock_fast(void)
 {
-	/* ASSERT unlock_sock_fas negative locksocknumber the result of multiply releases */
-	ldv_assert(locksocknumber > 0);
+	if (locksocknumber <= 0)
+		/* ASSERT unlock_sock_fas negative locksocknumber the result of multiply releases */
+		ldv_assert();
+
 	/* NOTE unlocking socket fast warning*/
 	locksocknumber--;
 }
 
 void ldv_before_release_sock(void)
 {
-	/* ASSERT lock_sock negative locksocknumber the result of multiply releases */
-	ldv_assert(locksocknumber > 0);
+	if (locksocknumber <= 0)
+		/* ASSERT lock_sock negative locksocknumber the result of multiply releases */
+		ldv_assert();
+
 	/* NOTE locked socket released */
 	locksocknumber--;
 }
 
 void ldv_check_final_state(void)
 {
-	/* ASSERT lock_sock number */
-	ldv_assert(locksocknumber == 0);
+	if (locksocknumber != 0)
+		/* ASSERT lock_sock number */
+		ldv_assert();
 }

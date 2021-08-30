@@ -10,6 +10,8 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 
+.. _deploy:
+
 Deployment
 ==========
 
@@ -54,14 +56,14 @@ Then you need to install all required dependencies.
 
 First of all it is necessary to install packages listed at the following files:
 
-* For Debian - :file:`klever/deploys/conf/debian-packages.txt` from :term:`$KLEVER_SRC`.
-* For Fedora - :file:`klever/deploys/conf/fedora-packages.txt` from :term:`$KLEVER_SRC`.
+* Debian - :file:`klever/deploys/conf/debian-packages.txt` from :term:`$KLEVER_SRC`.
+* Fedora - :file:`klever/deploys/conf/fedora-packages.txt` from :term:`$KLEVER_SRC`.
 
-Then you need to install `Python 3.7 or higher <https://www.python.org/>`__ if your distribution does not have it:
+Then you need to install `Python 3.7 or higher <https://www.python.org/>`__ and a corresponding development package.
+If your distribution does not have them you can get them from:
 
-* For Debian you can get it from `here <https://forge.ispras.ru/attachments/download/7251/python-3.7.6.tar.xz>`__.
-* For Fedora you can get it from
-  `here <https://forge.ispras.ru/attachments/download/7252/python-fedora-3.7.6.tar.xz>`__.
+* Debian - `here <https://forge.ispras.ru/attachments/download/7251/python-3.7.6.tar.xz>`__.
+* Fedora - `here <https://forge.ispras.ru/attachments/download/7252/python-fedora-3.7.6.tar.xz>`__.
 
 To install required Python packages we recommend to create a virtual environment using installed Python.
 For instance, you can run following commands within :term:`$KLEVER_SRC`::
@@ -81,19 +83,23 @@ Then you need to install Python packages including the Klever one:
 
     $ pip install -r requirements.txt .
 
-  Later to upgrade Klever Python package you should run::
+  Later to upgrade the Klever Python package you should run::
 
-    $ pip install --upgrade .
+    $ pip install --upgrade -r requirements.txt .
 
-* If one is going to develop Klever (see :ref:`dev_deploy` in addition), one should install Klever Python package in
-  *editable* mode (with -e flag).
+* If one is going to develop Klever one should install Klever Python package in the *editable* mode (with flag *-e*).
   To do it, run the following command within :term:`$KLEVER_SRC`::
 
     $ pip install -r requirements.txt -e .
 
+  In this case the Klever Python package will be updated automatically, but you may still need to upgrade its
+  dependencies by running the following command::
+
+    $ pip install --upgrade -r requirements.txt -e .
+
+
 .. note:: Removing `-r requirements.txt` from the command will install latest versions of required packages.
           However, it is not guaranteed that they will work well with Klever.
-
 
 Then one has to get :ref:`klever_addons` and :ref:`klever_build_bases`.
 Both of them should be described appropriately within :ref:`deploy_conf_file`.

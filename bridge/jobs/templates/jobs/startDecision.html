@@ -59,7 +59,6 @@
                 <br>
             {% endfor %}
         </div>
-        <br><br>
         <h5>{% trans 'Tasks scheduler' %}</h5>
         {% for sch in data.schedulers %}
             <div class="ui radio scheduler-checkbox checkbox">
@@ -68,7 +67,7 @@
             </div>
             <br>
         {% endfor %}
-        <br><br>
+        <br>
         <label for="max_tasks" style="margin-right: 20px;">{% trans 'Max solving tasks per a sub-job' %}</label>
         <div>
             <div class="ui input">
@@ -96,10 +95,16 @@
             <input class="parallelism-values" id="parallelism_1" type="text" value="{{ data.conf.parallelism.1 }}">
         </div>
         <br><br>
-        <label for="parallelism_2">{% trans 'Results processing' %}</label>
+        <label for="parallelism_2">{% trans 'Weaving' %}</label>
         <br>
         <div class="ui input">
             <input class="parallelism-values" id="parallelism_2" type="text" value="{{ data.conf.parallelism.2 }}">
+        </div>
+        <br><br>
+        <label for="parallelism_3">{% trans 'Results processing' %}</label>
+        <br>
+        <div class="ui input">
+            <input class="parallelism-values" id="parallelism_3" type="text" value="{{ data.conf.parallelism.3 }}">
         </div>
         <br><br><br>
         {% for p in data.parallelism %}
@@ -152,7 +157,30 @@
                 {% trans 'You can specify any substring of the target CPU model. The empty value means any model.' %}
             </div>
         </div>
+        <br>
+        <label for="cpu_time_exec_cmds" style="margin-right: 20px;">{% trans 'CPU time for executed commands' %}, {% trans 'min' %}</label>
+        <div>
+            <div class="ui input">
+                <input id="cpu_time_exec_cmds" type="text" value="{{ data.conf.cpu_time_exec_cmds }}">
+            </div>
+            <i class="ui blue icon help note-popup"></i>
+            <div class="ui popup">
+                {% trans 'For instance,' %} 3.5.
+            </div>
+        </div>
+        <br>
+        <label for="memory_exec_cmds" style="margin-right: 20px;">{% trans 'Memory size for executed commands' %}, {% trans 'GB' %}</label>
+        <div>
+            <div class="ui input">
+                <input id="memory_exec_cmds" type="text" value="{{ data.conf.memory_exec_cmds }}">
+            </div>
+            <i class="ui blue icon help note-popup"></i>
+            <div class="ui popup">
+                {% trans 'For instance,' %} 1.5.
+            </div>
+        </div>
     </div>
+
 </div>
 <div class="ui horizontal segments">
     <div class="ui violet segment">

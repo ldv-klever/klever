@@ -10,6 +10,7 @@
             "ext-modules/devm_threaded_irq_v.1",
             "ext-modules/ethtool_ops_v.3",
             "ext-modules/file_operations_v.1",
+            "ext-modules/filesystem_v.2",
             "ext-modules/hid_driver_v.1",
             "ext-modules/hid_v.1",
             "ext-modules/i2c_v.1",
@@ -33,7 +34,14 @@
             "ext-modules/urb_v.1",
             "ext-modules/usb_driver_v.1",
             "ext-modules/usb_serial_driver_v.2",
-            "ext-modules/workqueue_v.1"
+            "ext-modules/workqueue_v.1",
+            "ext-modules/separate_functions",
+            "ext-modules/manual_model",
+            "ext-modules/decomposition_disabled",
+            "ext-modules/decomposition_default",
+            "ext-modules/decomposition_linear",
+            "ext-modules/decomposition_selective_default",
+            "ext-modules/decomposition_selective_linear"
         ],
         "exclude extra headers": ["linux/poll.h"]
     }

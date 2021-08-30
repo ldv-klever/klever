@@ -22,6 +22,7 @@ body {
 
 .body-block {
     margin-top: 75px;
+    min-height: 80vh;
 }
 
 .purple-title {
@@ -158,5 +159,16 @@ input[type=checkbox] {
     max-width: 100%;
     overflow-x: auto;
     overflow-y: auto;
-    max-height: 85vh;
+}
+
+.ui.footer {
+    position: relative;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    text-align: center;
+    margin: 1rem 0 0 0;
+    padding: 1em;
+    color: rgba(126, 126, 126, 0.9);
+    font-style: italic;
 }

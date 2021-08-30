@@ -17,7 +17,7 @@ import os
 import setuptools
 
 
-VERSION = '3.0'
+VERSION = '3.1'
 
 
 def get_fallback_version():
@@ -66,14 +66,14 @@ setuptools.setup(
             "klever-resources-check=klever.scheduler.controller.checks.resources:main",
             "klever-schedulers-check=klever.scheduler.controller.checks.schedulers:main",
             "klever-build=klever.cli.build.__main__:main",
-            "klever-download-job=klever.cli.cli:download_job",
-            "klever-download-marks=klever.cli.cli:download_marks",
-            "klever-download-progress=klever.cli.cli:download_progress",
-            "klever-download-results=klever.cli.cli:download_results",
-            "klever-start-preset-solution=klever.cli.cli:start_preset_solution",
-            "klever-start-solution=klever.cli.cli:start_solution",
-            "klever-update-preset-mark=klever.cli.cli:update_preset_mark",
-            "klever-update-job=klever.cli.cli:upload_job",
+            "klever-download-job=klever.cli.__main__:download_job",
+            "klever-download-marks=klever.cli.__main__:download_marks",
+            "klever-download-progress=klever.cli.__main__:download_progress",
+            "klever-download-results=klever.cli.__main__:download_results",
+            "klever-start-preset-solution=klever.cli.__main__:start_preset_solution",
+            "klever-start-solution=klever.cli.__main__:start_solution",
+            "klever-update-preset-mark=klever.cli.__main__:update_preset_mark",
+            "klever-update-job=klever.cli.__main__:upload_job",
             "klever-deploy-local=klever.deploys.local:main",
             "klever-deploy-openstack=klever.deploys.openstack:main",
         ]
@@ -81,7 +81,7 @@ setuptools.setup(
     install_requires=[
         "Django==3.0.6",
         "BenchExec==3.3",
-        "clade==3.2.15",
+        "clade>=3.4,<3.5",
         "psycopg2",
         "graphviz",
         "celery",
@@ -99,7 +99,8 @@ setuptools.setup(
         "requests",
         "setuptools_scm",
         "sortedcontainers",
-        "consulate"
+        "consulate",
+        "pytest"
     ],
     extras_require={
         "strict": open("requirements.txt", encoding="utf8").read().splitlines(),

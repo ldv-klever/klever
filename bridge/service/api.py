@@ -25,7 +25,7 @@ from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 
 from bridge.vars import TASK_STATUS, DECISION_STATUS
-from bridge.access import ServicePermission
+from bridge.access import ServicePermission, CLIPermission
 from bridge.CustomViews import StreamingResponseAPIView
 from tools.profiling import LoggedCallMixin
 
@@ -157,7 +157,7 @@ class DecisionStatusAPIView(LoggedCallMixin, APIView):
 
 class DecisionProgressAPIView(LoggedCallMixin, RetrieveUpdateAPIView):
     unparallel = [Decision]
-    permission_classes = (ServicePermission,)
+    permission_classes = (CLIPermission,)
     serializer_class = DecisionSerializer
     queryset = Decision.objects
     lookup_field = 'identifier'

@@ -1198,11 +1198,7 @@ class DecideJob:
         status_code = str(resp.status_code)
         if not status_code.startswith('2'):
             try:
-                err_json = resp.json()
-                if status_code == '403' and 'ZIP error' in err_json:
-                    logger.info('ZIP error: {}'.format(err_json['ZIP error']))
-                else:
-                    logger.error(err_json)
+                logger.error(resp.json())
             except Exception as e:
                 print(e)
                 logger.error(resp.content)

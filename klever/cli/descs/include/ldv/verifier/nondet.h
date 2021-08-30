@@ -22,7 +22,7 @@
 /* Special nondeterministic functions. */
 extern int ldv_undef_int(void);
 extern int ldv_random_int(int begin, int end);
-extern int ldv_undef_long(void);
+extern long ldv_undef_long(void);
 extern unsigned int ldv_undef_uint(void);
 extern unsigned long ldv_undef_ulong(void);
 extern unsigned long long ldv_undef_ulonglong(void);

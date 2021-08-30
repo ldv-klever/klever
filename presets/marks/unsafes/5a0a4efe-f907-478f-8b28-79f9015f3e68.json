@@ -1,0 +1,59 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Project:Version",
+      "value": "v5.12-rc2-287-g0571a753cb07"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/net/ethernet/marvell/pxa168_eth.ko"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "concurrency safety"
+    },
+    {
+      "is_compare": true,
+      "name": "Declaration",
+      "value": "struct pxa168_eth_private (?.htpr)"
+    }
+  ],
+  "description": "Non-target bug.",
+  "error_trace": [
+    [
+      [
+        {
+          "EMG wrapper": [
+            {
+              "pxa168_eth_remove": []
+            }
+          ]
+        }
+      ]
+    ],
+    [
+      [
+        {
+          "EMG wrapper": [
+            {
+              "pxa168_eth_set_rx_mode": [
+                {
+                  "memset": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": false,
+  "status": "0",
+  "tags": [],
+  "threshold": 100,
+  "verdict": "1"
+}

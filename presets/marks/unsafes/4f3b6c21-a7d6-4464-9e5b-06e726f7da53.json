@@ -47,11 +47,7 @@
                 {
                   "Instrumented function 'mutex_unlock'": [
                     {
-                      "LDV model 'mutex_unlock_ldv_lock'": [
-                        {
-                          "LDV model 'assert'": []
-                        }
-                      ]
+                      "LDV model 'mutex_unlock_ldv_lock'": []
                     }
                   ]
                 }

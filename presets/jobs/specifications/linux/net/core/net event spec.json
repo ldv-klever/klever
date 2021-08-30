@@ -55,7 +55,7 @@
             "comment": "Allocate memory for a network device.",
             "trace relevant": true,
             "statements": [
-              "%netdev% = $ALLOC(%netdev%);",
+              "$ALLOC(%netdev%);",
               "%setup% = $ARG3;"
             ]
           },
@@ -246,7 +246,7 @@
             "comment": "Allocate memory for an ethernet device.",
             "trace relevant": true,
             "statements": [
-              "%netdev% = $ALLOC(%netdev%);"
+              "$ALLOC(%netdev%);"
             ]
           },
           "fail": {
@@ -282,7 +282,7 @@
             "comment": "Allocate memory for a network device.",
             "trace relevant": true,
             "statements": [
-              "%netdev% = $ALLOC(%netdev%);",
+              "$ALLOC(%netdev%);",
               "%setup% = $ARG4;"
             ]
           },
@@ -410,7 +410,7 @@
             "comment": "Allocate memory for an ethernet device.",
             "trace relevant": true,
             "statements": [
-              "%netdev% = $ALLOC(%netdev%);"
+              "$ALLOC(%netdev%);"
             ]
           },
           "fail": {
@@ -446,7 +446,7 @@
             "comment": "Allocate memory for a network device.",
             "trace relevant": true,
             "statements": [
-              "%netdev% = $ALLOC(%netdev%);",
+              "$ALLOC(%netdev%);",
               "%setup% = $ARG4;"
             ]
           },
@@ -574,7 +574,7 @@
             "comment": "Allocate memory for an ethernet device.",
             "trace relevant": true,
             "statements": [
-              "%netdev% = $ALLOC(%netdev%);"
+              "$ALLOC(%netdev%);"
             ]
           },
           "fail": {
@@ -610,7 +610,7 @@
             "comment": "Allocate memory for a network device.",
             "trace relevant": true,
             "statements": [
-              "%netdev% = $ALLOC(%netdev%);",
+              "$ALLOC(%netdev%);",
               "%setup% = $ARG4;"
             ]
           },
@@ -738,7 +738,7 @@
             "comment": "Allocate memory for an ethernet device.",
             "trace relevant": true,
             "statements": [
-              "%netdev% = $ALLOC(%netdev%);"
+              "$ALLOC(%netdev%);"
             ]
           },
           "fail": {
@@ -774,7 +774,7 @@
             "comment": "Allocate memory for a network device.",
             "trace relevant": true,
             "statements": [
-              "%netdev% = $ALLOC(%netdev%);",
+              "$ALLOC(%netdev%);",
               "%setup% = $ARG4;"
             ]
           },

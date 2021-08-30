@@ -32,7 +32,11 @@ class Linux(MakeProgram):
     _ARCH_OPTS = {
         'arm': {
             'ARCH': 'arm',
-            'CROSS_COMPILE': 'arm-unknown-linux-gnueabi-'
+            'CROSS_COMPILE': 'arm-unknown-eabi-'
+        },
+        'arm64': {
+            'ARCH': 'arm64',
+            'CROSS_COMPILE': 'aarch64_be-unknown-linux-gnu-'
         },
         'x86_64': {
             'ARCH': 'x86_64'
@@ -40,14 +44,15 @@ class Linux(MakeProgram):
     }
 
     def __init__(self, logger, target_program_desc):
+        # Always specify CIF to be used by Clade since this variable is global and it can be accidentally reused.
+        architecture = target_program_desc['architecture']
+        self._CLADE_CONF['Info.cif'] = self._ARCH_OPTS[architecture].get('CROSS_COMPILE', '') + 'cif'
+
         super().__init__(logger, target_program_desc)
         self.kconfig_config = None
 
         if not self.version:
             self.version = self._make('kernelversion', get_output=True)[0]
-
-        if self.architecture == 'arm':
-            self._CLADE_PRESET = 'klever_linux_kernel_arm'
 
     def _clean(self):
         self._make('mrproper')
@@ -57,7 +62,8 @@ class Linux(MakeProgram):
 
         # Linux kernel configuration can be specified by means of configuration file or configuration target.
         # all configuration files are located in the description directory
-        conf_file = os.path.join(self.target_program_desc['description directory'], self.target_program_desc['configuration'])
+        conf_file = os.path.join(self.target_program_desc['description directory'],
+                                 self.target_program_desc['configuration'])
 
         if os.path.isfile(conf_file):
             self.logger.info('Linux kernel configuration file is "{0}"'.format(conf_file))
@@ -144,7 +150,7 @@ class Linux(MakeProgram):
             with open(os.path.join(tmp_dir, 'Makefile'), 'w', encoding='utf-8') as fp:
                 fp.write('obj-y += extra-headers.o\n')
 
-            self._make('M=' + tmp_dir, intercept_build_cmds=True)
+            self._make('M=' + tmp_dir, 'extra-headers.o', intercept_build_cmds=True)
 
     def __prepare_ext_modules(self):
         ext_modules = self.target_program_desc.get('external modules')
@@ -194,9 +200,12 @@ class Linux(MakeProgram):
                         fp.write('obj-m += $(patsubst %, %/, $(notdir $(patsubst %/, %, {0})))\n'
                                  .format('$(filter %/, $(wildcard $(src)/*/))'))
                         fp.write('obj-m += $(notdir $(patsubst %.c, %.o, $(wildcard $(src)/*.c)))\n')
-                        # Specify additional directory to search for model headers.
-                        fp.write('ccflags-y += -I' + os.path.realpath(
-                            self.target_program_desc['external modules header files search directory']))
+                        fp.write('ccflags-y += '
+                                 # Specify additional directory to search for model headers.
+                                 '-I' + os.path.realpath(
+                                        self.target_program_desc['external modules header files search directory']) +
+                                 # Like in klever.core.vtg.weaver.Weaver.weave.
+                                 ' -DLDV_{0}'.format(self.architecture.upper().replace('-', '_')))
             elif ismakefile:
                 work_src_tree_root = dirpath
                 break
@@ -242,10 +251,8 @@ class Linux(MakeProgram):
         for modules in self.target_program_desc['loadable kernel modules']:
             # Modules ending with .ko imply individual modules.
             if re.search(r'\.ko$', modules):
-                if ext_modules:
-                    build_targets.append([os.path.join(ext_modules, modules)])
-                else:
-                    build_targets.append([modules])
+                build_target = os.path.join(ext_modules, modules) if ext_modules else modules
+                build_targets.append(['M={0}'.format(os.path.dirname(build_target)), os.path.basename(modules)])
             # Otherwise it is directory that can contain modules.
             else:
                 if ext_modules:

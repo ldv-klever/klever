@@ -1,0 +1,91 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Declaration",
+      "value": "unsigned long *ldv_clear_bit::*addr"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "concurrency safety"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/watchdog/rdc321x_wdt.ko"
+    },
+    {
+      "is_compare": true,
+      "name": "Project:Version",
+      "value": "v5.9-rc7"
+    }
+  ],
+  "description": "",
+  "error_trace": [
+    [
+      [
+        {
+          "EMG wrapper": [
+            {
+              "rdc321x_wdt_probe": [
+                {
+                  "Instrumented function 'clear_bit'": [
+                    {
+                      "LDV model 'clear_bit'": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    ],
+    [
+      [
+        {
+          "EMG wrapper": [
+            {
+              "rdc321x_wdt_ioctl": [
+                {
+                  "rdc321x_wdt_start": [
+                    {
+                      "Instrumented function '__ldv_spin_lock'": []
+                    },
+                    {
+                      "Instrumented function 'spin_unlock_irqrestore'": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "EMG wrapper": [
+            {
+              "rdc321x_wdt_release": [
+                {
+                  "Instrumented function 'clear_bit'": [
+                    {
+                      "LDV model 'clear_bit'": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": false,
+  "status": "0",
+  "tags": [],
+  "threshold": 100,
+  "verdict": "1"
+}

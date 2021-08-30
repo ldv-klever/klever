@@ -29,11 +29,7 @@
                 {
                   "Instrumented function 'rtnl_lock'": [
                     {
-                      "LDV model 'past_rtnl_lock'": [
-                        {
-                          "LDV model 'assert'": []
-                        }
-                      ]
+                      "LDV model 'past_rtnl_lock'": []
                     }
                   ]
                 }

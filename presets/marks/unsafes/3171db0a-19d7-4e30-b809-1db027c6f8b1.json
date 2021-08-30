@@ -2,6 +2,11 @@
   "attrs": [
     {
       "is_compare": true,
+      "name": "Declaration",
+      "value": "struct ldv_struct (?.field1)"
+    },
+    {
+      "is_compare": true,
       "name": "Requirements specification",
       "value": "concurrency safety"
     },

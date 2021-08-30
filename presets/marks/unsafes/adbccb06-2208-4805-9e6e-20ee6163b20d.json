@@ -1,0 +1,79 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Project:Version",
+      "value": "v5.8-rc3-11-g4a0f5a7f2bab"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/usb/gadget/udc/gr_udc.ko"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "memory safety"
+    }
+  ],
+  "description": "CPAchecker SMG does not catch that \"dev-&gt;nepo = ((status &gt;&gt; 24) &amp; 15U) + 1U\" is always less than 17 and overflows array dev-&gt;epo that has exactly 16 elements.",
+  "error_trace": [
+    [
+      [
+        {
+          "EMG wrapper": [
+            {
+              "gr_probe": [
+                {
+                  "Instrumented function 'devm_kzalloc'": [
+                    {
+                      "LDV model 'devm_kzalloc'": [
+                        {
+                          "LDV model 'zalloc'": [
+                            {
+                              "LDV model 'reference_zalloc'": []
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "platform_set_drvdata": [
+                    {
+                      "dev_set_drvdata": []
+                    }
+                  ]
+                },
+                {
+                  "gr_remove": [
+                    {
+                      "platform_get_drvdata": [
+                        {
+                          "dev_get_drvdata": []
+                        }
+                      ]
+                    },
+                    {
+                      "gr_ep_remove": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": false,
+  "status": null,
+  "tags": [
+    "Verifier",
+    "Verifier - CPAchecker SMG"
+  ],
+  "threshold": 100,
+  "verdict": "3"
+}

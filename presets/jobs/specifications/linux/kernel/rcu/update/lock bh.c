@@ -30,20 +30,24 @@ void ldv_rcu_read_lock_bh(void)
 
 void ldv_rcu_read_unlock_bh(void)
 {
-	/* ASSERT Check the count of opened rcu_lock sections */
-	ldv_assert(ldv_rcu_nested_bh > 0);
+	if (ldv_rcu_nested_bh <= 0)
+		/* ASSERT Check the count of opened rcu_lock sections */
+		ldv_assert();
+
 	/* NOTE Exit from rcu_read_lock/unlock section */
 	ldv_rcu_nested_bh--;
 }
 
 void ldv_check_for_read_section( void )
 {
-	/* ASSERT All rcu_lock sections should be closed at read sections */
-	ldv_assert(ldv_rcu_nested_bh == 0);
+	if (ldv_rcu_nested_bh != 0)
+		/* ASSERT All rcu_lock sections should be closed at read sections */
+		ldv_assert();
 }
 
 void ldv_check_final_state( void )
 {
-	/* ASSERT All rcu_lock sections should be closed at exit */
-	ldv_assert(ldv_rcu_nested_bh == 0);
+	if (ldv_rcu_nested_bh != 0)
+		/* ASSERT All rcu_lock sections should be closed at exit */
+		ldv_assert();
 }

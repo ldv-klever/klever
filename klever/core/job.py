@@ -23,6 +23,7 @@ import os
 import shutil
 import tarfile
 import time
+import traceback
 import zipfile
 
 from clade import Clade
@@ -48,9 +49,20 @@ DEFAULT_ARCH_OPTS = {
     'CIF': {
       'cross compile prefix': 'arm-unknown-eabi-'
     },
-    # Currently CIL does not support ARM (https://forge.ispras.ru/issues/10471).
     'CIL': {
-      'machine': 'gcc_x86_64'
+      'machine': 'gcc_arm_32'
+    },
+    'Clade': {
+      'preset': 'klever_linux_kernel_arm'
+    }
+  },
+  'ARM64': {
+    'CIF': {
+      'cross compile prefix': 'aarch64_be-unknown-linux-gnu-'
+    },
+    # As above.
+    'CIL': {
+      'machine': 'gcc_arm_64'
     },
     'Clade': {
       'preset': 'klever_linux_kernel_arm'
@@ -282,6 +294,33 @@ def __solve_sub_jobs(core_obj, vals, components_common_conf, subcomponents):
                                                 components_common_conf['ignore failed sub-jobs'], subcomponents)
 
 
+SINGLE_ENV_NAME = 'base'
+
+
+def _vrp_callback(context):
+    context.mqs['verification statuses'].put({
+        'program fragment id': context.program_fragment_id,
+        'environment model': context.envmodel,
+        'req spec id': context.req_spec_id,
+        'verdict': context.verdict,
+        'sub-job identifier': context.conf['sub-job identifier'],
+        'ideal verdicts': context.conf['ideal verdicts'],
+        'data': context.conf.get('data')
+    })
+
+
+def _vtg_plugin_callback(context):
+    context.mqs['verification statuses'].put({
+        'program fragment id': context.task.fragment,
+        'req spec id': context.task.rule if hasattr(context.task, 'rule') else context.task.rule_class,
+        'environment model': context.task.envmodel if hasattr(context.task, 'envmodel') else SINGLE_ENV_NAME,
+        'verdict': 'non-verifier unknown',
+        'sub-job identifier': context.conf['sub-job identifier'],
+        'ideal verdicts': context.conf['ideal verdicts'],
+        'data': context.conf.get('data')
+    })
+
+
 class REP(klever.core.components.Component):
 
     def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, id=None, work_dir=None, attrs=None,
@@ -359,36 +398,14 @@ class REP(klever.core.components.Component):
 
     def __set_callbacks(self):
 
-        # TODO: these 3 functions are very similar, so, they should be merged.
         def after_plugin_fail_processing(context):
-            context.mqs['verification statuses'].put({
-                'program fragment id': context.program_fragment_id,
-                'req spec id': context.req_spec_id,
-                'verdict': 'non-verifier unknown',
-                'sub-job identifier': context.conf['sub-job identifier'],
-                'ideal verdicts': context.conf['ideal verdicts'],
-                'data': context.conf.get('data')
-            })
+            _vtg_plugin_callback(context)
 
         def after_process_failed_task(context):
-            context.mqs['verification statuses'].put({
-                'program fragment id': context.program_fragment_id,
-                'req spec id': context.req_spec_id,
-                'verdict': context.verdict,
-                'sub-job identifier': context.conf['sub-job identifier'],
-                'ideal verdicts': context.conf['ideal verdicts'],
-                'data': context.conf.get('data')
-            })
+            _vrp_callback(context)
 
         def after_process_single_verdict(context):
-            context.mqs['verification statuses'].put({
-                'program fragment id': context.program_fragment_id,
-                'req spec id': context.req_spec_id,
-                'verdict': context.verdict,
-                'sub-job identifier': context.conf['sub-job identifier'],
-                'ideal verdicts': context.conf['ideal verdicts'],
-                'data': context.conf.get('data')
-            })
+            _vrp_callback(context)
 
         klever.core.components.set_component_callbacks(
             self.logger,
@@ -400,8 +417,7 @@ class REP(klever.core.components.Component):
             )
         )
 
-    @staticmethod
-    def __match_ideal_verdict(verification_status):
+    def __match_ideal_verdict(self, verification_status):
         def match_attr(attr, ideal_attr):
             if ideal_attr and ((isinstance(ideal_attr, str) and attr == ideal_attr) or
                                (isinstance(ideal_attr, list) and attr in ideal_attr)):
@@ -411,48 +427,38 @@ class REP(klever.core.components.Component):
 
         program_fragment_id = verification_status['program fragment id']
         req_spec_id = verification_status['req spec id']
+        envmodel_id = verification_status.get('environment model')
         ideal_verdicts = verification_status['ideal verdicts']
+        comparison_list = [(program_fragment_id, 'program fragments'),
+                           (req_spec_id, 'requirements specification'),
+                           (envmodel_id, 'environment model')]
 
         matched_ideal_verdict = None
+        ideal_verdicts = sorted(ideal_verdicts, key=lambda x: len(x.keys()), reverse=True)
+        for verdicts in ideal_verdicts:
+            matched = True
+            for value, attribute in comparison_list:
+                if attribute in verdicts:
+                    matched = match_attr(value, verdicts[attribute])
+                    if not matched:
+                        break
 
-        # Try to match exactly by both program fragment and requirements specification.
-        for ideal_verdict in ideal_verdicts:
-            if match_attr(program_fragment_id, ideal_verdict.get('program fragments')) \
-                    and match_attr(req_spec_id, ideal_verdict.get('requirements specification')):
-                matched_ideal_verdict = ideal_verdict
+            if matched:
+                matched_ideal_verdict = verdicts
                 break
-
-        # Try to match just by program fragment.
-        if not matched_ideal_verdict:
-            for ideal_verdict in ideal_verdicts:
-                if 'requirements specification' not in ideal_verdict \
-                        and match_attr(program_fragment_id, ideal_verdict.get('program fragments')):
-                    matched_ideal_verdict = ideal_verdict
-                    break
-
-        # Try to match just by requirements specification.
-        if not matched_ideal_verdict:
-            for ideal_verdict in ideal_verdicts:
-                if 'program fragments' not in ideal_verdict \
-                        and match_attr(req_spec_id, ideal_verdict.get('requirements specification')):
-                    matched_ideal_verdict = ideal_verdict
-                    break
-
-        # If nothing of above matched.
-        if not matched_ideal_verdict:
-            for ideal_verdict in ideal_verdicts:
-                if 'program fragments' not in ideal_verdict and 'requirements specification' not in ideal_verdict:
-                    matched_ideal_verdict = ideal_verdict
-                    break
 
         if not matched_ideal_verdict:
             raise ValueError(
-                'Could not match ideal verdict for program fragment "{0}" and requirements specification "{1}"'
-                .format(program_fragment_id, req_spec_id))
+                'Could not match ideal verdict for program fragment "{0}", environment model {1} and requirements '
+                'specification "{2}"'.format(program_fragment_id, envmodel_id, req_spec_id))
 
         # This suffix will help to distinguish sub-jobs easier.
-        id_suffix = os.path.join(program_fragment_id, req_spec_id)\
-            if program_fragment_id and req_spec_id else ''
+        if envmodel_id == SINGLE_ENV_NAME:
+            id_suffix = os.path.join(program_fragment_id, req_spec_id)\
+                if program_fragment_id and req_spec_id else ''
+        else:
+            id_suffix = os.path.join(program_fragment_id, req_spec_id, envmodel_id) \
+                if program_fragment_id and req_spec_id and envmodel_id else ''
 
         return id_suffix, {
             'verdict': verification_status['verdict'],
@@ -597,13 +603,17 @@ class Job(klever.core.components.Component):
         # Try to find specified build base either in normal way or additionally in directory "build bases" that is
         # convenient to use when working with many build bases.
         try:
-            build_base = klever.core.utils.find_file_or_dir(self.logger, os.path.curdir,
+            build_base = klever.core.utils.find_file_or_dir(self.logger,
+                                                            self.common_components_conf['main working directory'],
                                                             self.common_components_conf['build base'])
-        except FileNotFoundError:
+        except FileNotFoundError as e:
+            self.logger.warning('Failed to find build base:\n{}'.format(traceback.format_exc().rstrip()))
             try:
                 build_base = klever.core.utils.find_file_or_dir(
-                    self.logger, os.path.curdir, os.path.join('build bases', self.common_components_conf['build base']))
-            except FileNotFoundError:
+                    self.logger, self.common_components_conf['main working directory'],
+                    os.path.join('build bases', self.common_components_conf['build base']))
+            except FileNotFoundError as e:
+                self.logger.warning('Failed to find build base:\n{}'.format(traceback.format_exc().rstrip()))
                 raise FileNotFoundError(
                     'Specified build base "{0}" does not exist, {1}'.format(self.common_components_conf['build base'],
                                                                             common_advice)) from None
@@ -644,14 +654,67 @@ class Job(klever.core.components.Component):
         self.logger.debug('Klever components will use build base "{0}"'
                           .format(self.common_components_conf['build base']))
 
-    # Klever will try to cut off either working source trees (if specified) or at least build directory (otherwise)
-    # from referred file names. Sometimes this is rather optional like for source files referred by error traces, but,
-    # say, for program fragment identifiers this is strictly necessary, e.g. because of otherwise expert assessment will
-    # not work as expected.
+    # Klever will try to cut off either working source trees (if specified) or maximum common paths of CC/CL input files
+    # and LD/Link output files (otherwise) from referred file names. Sometimes this is rather optional like for source
+    # files referred by error traces, but, say, for program fragment identifiers this is strictly necessary, e.g.
+    # because of otherwise expert assessment will not work as expected.
     def __retrieve_working_src_trees(self):
         clade_meta = self.clade.get_meta()
-        self.common_components_conf['working source trees'] = clade_meta['working source trees'] \
-            if 'working source trees' in clade_meta else [clade_meta['build_dir']]
+
+        # Best of all if users specify working source trees in build bases manually themselves. It is a most accurate
+        # approach.
+        if 'working source trees' in clade_meta:
+            work_src_trees = clade_meta['working source trees']
+        # Otherwise try to find out them automatically as described above.
+        else:
+            in_files = []
+            for cmd in self.clade.get_all_cmds_by_type("CC") + self.clade.get_all_cmds_by_type("CL"):
+                if cmd['in']:
+                    for in_file in cmd['in']:
+                        # Sometimes some auxiliary stuff is built in addition to normal C source files that are most
+                        # likely located in a place we would like to get.
+                        if not in_file.startswith('/tmp') and in_file != '/dev/null':
+                            in_files.append(os.path.join(cmd['cwd'], in_file))
+            in_files_prefix = os.path.dirname(os.path.commonprefix(in_files))
+            self.logger.info('Common prefix of CC/CL input files is "{0}"'.format(in_files_prefix))
+
+            out_files = []
+            for cmd in self.clade.get_all_cmds_by_type("LD") + self.clade.get_all_cmds_by_type("Link"):
+                if cmd['out']:
+                    for out_file in cmd['out']:
+                        # Like above.
+                        if not out_file.startswith('/tmp') and in_file != '/dev/null':
+                            out_files.append(os.path.join(cmd['cwd'], out_file))
+            out_files_prefix = os.path.dirname(os.path.commonprefix(out_files))
+            self.logger.info('Common prefix of LD/Link output files is "{0}"'.format(out_files_prefix))
+
+            # Meaningful paths look like "/dir...".
+            meaningful_paths = []
+            for path in (in_files_prefix, out_files_prefix):
+                if path and path != os.path.sep and path not in meaningful_paths:
+                    meaningful_paths.append(path)
+
+            if meaningful_paths:
+                work_src_trees = meaningful_paths
+            # At least consider build directory as working source tree if the automatic procedure fails.
+            else:
+                self.logger.warning(
+                    'Consider build directory "{0}" as working source tree.'
+                    'This may be dangerous and we recommend to specify appropriate working source trees manually!'
+                    .format(clade_meta['build_dir']))
+                work_src_trees = [clade_meta['build_dir']]
+
+        # Consider minimal path if it is common prefix for other ones. For instance, if we have "/dir1/dir2" and "/dir1"
+        # then "/dir1" will become the only working source tree.
+        if len(work_src_trees) > 1:
+            min_work_src_tree = min(work_src_trees)
+            if os.path.commonprefix(work_src_trees) == min_work_src_tree:
+                work_src_trees = [min_work_src_tree]
+
+        self.logger.info(
+            'Working source trees to be used are as follows:\n{0}'
+            .format('\n'.join(['  {0}'.format(t) for t in work_src_trees])))
+        self.common_components_conf['working source trees'] = work_src_trees
 
     def __refer_original_sources(self, src_id):
         klever.core.utils.report(
@@ -732,6 +795,10 @@ class Job(klever.core.components.Component):
     def __upload_original_sources(self):
         # Use Clade UUID to distinguish various original sources. It is pretty well since this UUID is uuid.uuid4().
         src_id = self.clade.get_uuid()
+        # In addition, take into account a meta content as we like to change it manually often. In this case it may be
+        # necessary to re-index the build base. It is not clear if this is the case actually, so, do this in case of
+        # any changes in meta.
+        src_id += '-' + klever.core.utils.get_file_name_checksum(json.dumps(self.clade.get_meta()))[:12]
 
         session = klever.core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
 
@@ -747,7 +814,7 @@ class Job(klever.core.components.Component):
         self.workers_num = klever.core.utils.get_parallel_threads_num(self.logger, self.conf)
         subcomponents = [('PSFS', self.__process_source_files)]
         for i in range(self.workers_num):
-            subcomponents.append(('RSF', self.__process_source_file))
+            subcomponents.append(('PSF', self.__process_source_file))
         self.launch_subcomponents(False, *subcomponents)
         self.mqs['file names'].close()
 
