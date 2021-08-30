@@ -121,6 +121,8 @@ def load_deps_conf(logger):
         deps_conf_file = os.path.join(deps_conf_dir, 'debian-packages.txt')
     elif shutil.which('dnf'):
         deps_conf_file = os.path.join(deps_conf_dir, 'fedora-packages.txt')
+    elif shutil.which('zypper'):
+        deps_conf_file = os.path.join(deps_conf_dir, 'opensuse-packages.txt')
     else:
         logger.error('Your Linux distribution is not supported')
         sys.exit(errno.EINVAL)
