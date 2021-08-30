@@ -266,4 +266,36 @@ $(document).ready(function () {
 
     // Initialize coverage
     new CoverageProcessor(source_processor, '#CoverageDataContent', '#CoverageStatisticsTable', unselect_etv_line);
+
+    function highlight_word(word, container) {
+        container.find(`span:contains("${word}"):not(:has(*))`).each(function() {
+            let text = $(this).text();
+            let re = new RegExp(`(${word})`, 'g');
+            text = text.replace(re, '<span class="Highlighted">$1</span>');
+            $(this).html(text);
+        });
+    }
+
+    $('#highlight_selection').click(function () {
+        $('.Highlighted').each(function () {
+            let text = $(this).parent().text();
+            $(this).parent().text(text);
+        });
+
+        let selection = window.getSelection().toString();
+        const words = selection.split(new RegExp('\\s+'));
+        let word = '';
+        for (let i = 0; i < words.length; i++) {
+            if (words[i]) {
+                word = words[i];
+                break;
+            }
+        }
+        if (!word.length) {
+            err_notify($('#no_text_for_search').text());
+            return;
+        }
+        highlight_word(word, etv_window);
+        highlight_word(word, source_processor.container);
+    });
 });
