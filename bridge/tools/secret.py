@@ -50,7 +50,18 @@ class FixOldCoverage:
                 for item in zin.infolist():
                     if item.filename != COVERAGE_FILE:
                         zout.writestr(item, zin.read(item.filename))
-        os.remove(archive_path)
-        os.rename(tmpname, archive_path)
-        with zipfile.ZipFile(archive_path, mode='a', compression=zipfile.ZIP_DEFLATED) as zf:
-            zf.writestr(COVERAGE_FILE, json.dumps(data, indent=2, ensure_ascii=False))
+
+        cached_archive = os.path.splitext(archive_path)[0] + '_old.zip'
+        os.rename(archive_path, cached_archive)
+        try:
+            os.rename(tmpname, archive_path)
+            with zipfile.ZipFile(archive_path, mode='a', compression=zipfile.ZIP_DEFLATED) as zf:
+                zf.writestr(COVERAGE_FILE, json.dumps(data, indent=2, ensure_ascii=False))
+        except Exception as e:
+            try:
+                os.remove(archive_path)
+            finally:
+                os.rename(cached_archive, archive_path)
+            raise BridgeException(e)
+        else:
+            os.remove(cached_archive)
