@@ -64,6 +64,10 @@ class User(AbstractUser):
         verbose_name=_('Number of declarations in error trace'), default=settings.DEF_USER['declarations_number'],
         help_text=_('Error trace declarations number threshold that should be opened by default')
     )
+    notes_level = models.PositiveIntegerField(
+        verbose_name=_('Error trace notes level'), default=settings.DEF_USER['notes_level'],
+        help_text=_('Error trace notes with level higher than selected one will be ignored')
+    )
 
     # Do not include remote fields here
     REQUIRED_FIELDS = ['email', 'first_name', 'last_name']
