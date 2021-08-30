@@ -72,7 +72,7 @@
                 {% include 'reports/coverage/coverageNavigation.html' with statistics=coverage %}
                 <br>
             {% endif %}
-            <div id="highlight_selection" class="ui mini violet basic button" style="margin-top: 5px;">{% trans 'Highlight selection' %}</div>
+            <div id="highlight_selection" class="ui mini violet basic button" style="margin-top: 5px;">{% trans 'Highlight selected identifier' %}</div>
         </div>
     </div>
 
@@ -186,5 +186,5 @@
         {% include 'reports/coverage/coverageDataStatisticsModal.html' with DataStatistics=coverage.data_statistic %}
     {% endif %}
 
-    <span id="no_text_for_search" hidden>{% trans 'No text to search is selected' %}</span>
+    <span id="no_text_for_search" hidden>{% trans 'Please, select the identifier to search for' %}</span>
 {% endblock %}
