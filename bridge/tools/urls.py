@@ -27,6 +27,7 @@ urlpatterns = [
     path('reports-logging/', views.ReportsLogggingView.as_view(), name='reports-logging'),
     path('logs/', views.FileLogView.as_view(), name='logs'),
     path('error-trace-analizer/', views.ErrorTraceAnalizerView.as_view(), name='error-trace-analizer'),
+    path('secret/', views.SecretPageView.as_view(), name='secret-page'),
 
     path('api/clear-system/', views.ClearSystemAPIView.as_view(), name='api-clear-system'),
     path('api/clear-comparison/<int:pk>/', views.ClearComparisonAPIView.as_view(), name='api-clear-comparison'),
@@ -42,4 +43,6 @@ urlpatterns = [
 
     path('api/log-content/', api.LogContentAPIView.as_view(), name='api-log-content'),
     path('api/clear-log/', api.ClearLogAPIView.as_view(), name='api-clear-log'),
+
+    path('api/secret/fix-old-coverage/', api.FixOldCoverageAPIView.as_view(), name='api-secret-fix-old-coverage'),
 ]

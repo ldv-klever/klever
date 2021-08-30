@@ -42,6 +42,7 @@ ENV/
 .idea/workspace.xml
 */.idea/workspace.xml
 .idea/dictionaries/*
+.idea/dataSources*
 
 # mypy
 .mypy_cache/

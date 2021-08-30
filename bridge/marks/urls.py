@@ -51,8 +51,7 @@ urlpatterns = [
          name='unsafe-ass-changes'),
     path('api/remove-unsafe-marks/', api.RemoveUnsafeMarksView.as_view(), name='api-remove-marks-unsafe'),
 
-    path('api/get-updated-preset/<uuid:identifier>/', api.GetUpdatedPresetView.as_view(),
-         name='api-updated-unsafe-preset'),
+    path('api/get-updated-preset/<uuid:identifier>/', api.GetUpdatedPresetView.as_view()),
 
     # Unknown marks
     path('unknown/', views.UnknownMarksListView.as_view(), name='unknown-list'),
