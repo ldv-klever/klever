@@ -1,0 +1,23 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Project:Version",
+      "value": "v5.9-rc1-252-gf688a345f0d7"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/gpu/drm/bridge/megachips-stdpxxxx-ge-b850v3-fw.ko"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "memory safety"
+    }
+  ],
+  "description": "",
+  "is_modifiable": false,
+  "tags": [],
+  "verdict": "0"
+}

@@ -36,7 +36,7 @@
             "ext-modules/linux/kernel/rcu/update/lock-sched",
             "ext-modules/linux/kernel/rcu/srcu",
             "ext-modules/linux/kernel/sched/completion",
-            "ext-modules/linux/lib/find_next_bit",
+            "ext-modules/linux/lib/find_bit",
             "ext-modules/linux/lib/idr",
             "ext-modules/linux/memory-safety",
             "ext-modules/linux/net/core/dev",

@@ -100,6 +100,7 @@ class Native(runners.Speculative):
             self._node_name = nodes[0]
             data = self._manager.node_info(self._node_name)
             self._cpu_cores = data["CPU number"]
+        utils.kv_clear_solutions(self.logger, self.scheduler_type())
 
         # init process pull
         if "processes" not in self.conf["scheduler"]:

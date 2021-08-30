@@ -336,9 +336,6 @@
                                   "LDV model 'check_alloc_flags'": [
                                     {
                                       "LDV model 'exclusive_spin_is_locked'": []
-                                    },
-                                    {
-                                      "LDV model 'assert'": []
                                     }
                                   ]
                                 }

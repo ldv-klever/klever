@@ -24,7 +24,22 @@ typedef unsigned long size_t;
 typedef unsigned int size_t;
 #endif
 
-extern void *memcpy(void *dest, const void *src, size_t n);
+/* ISO/IEC 9899:1999 specification, § 7.20.3 "Memory management functions". */
+extern void *malloc(size_t size);
+extern void *calloc(size_t nmemb, size_t size);
+extern void free(void *);
+
+/* ISO/IEC 9899:1999 specification, § 7.21.2 "Copying functions". */
+extern void *memcpy(void *s1, const void *s2, size_t n);
+
+/* This is actual, say, for the Linux kernel on ARM
+   (https://elixir.bootlin.com/linux/v3.14.79/source/arch/arm/include/asm/string.h). */
+#undef memset
+
+/* ISO/IEC 9899:1999 specification, § 7.21.6 "Miscellaneous functions". */
+extern void *memset(void *s, int c, size_t n);
+
+extern unsigned int ldv_is_memory_alloc_failures;
 
 // Implementations for direct use in specifications and models
 extern void *ldv_malloc(size_t size);
@@ -35,6 +50,7 @@ extern void ldv_free(void *s);
 extern void *ldv_realloc(void *ptr, size_t size);
 
 extern void *ldv_xmalloc(size_t size);
+extern void *ldv_xcalloc(size_t nmemb, size_t size);
 extern void *ldv_xzalloc(size_t size);
 
 extern void *ldv_malloc_unknown_size(void);
@@ -50,6 +66,7 @@ extern void ldv_reference_free(void *s);
 extern void *ldv_reference_realloc(void *ptr, size_t size);
 
 extern void *ldv_reference_xmalloc(size_t size);
+extern void *ldv_reference_xcalloc(size_t nmemb, size_t size);
 extern void *ldv_reference_xzalloc(size_t size);
 
 extern void *ldv_reference_malloc_unknown_size(void);
@@ -61,5 +78,7 @@ extern void *ldv_reference_zalloc_unknown_size(void);
  *                              when it wants to allocate memory of unknown size.
  */
 extern void *ldv_xmalloc_unknown_size(size_t size);
+
+extern void *ldv_reference_xmalloc_unknown_size(size_t size);
 
 #endif /* __LDV_VERIFIER_MEMORY_H */

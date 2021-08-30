@@ -353,14 +353,14 @@ class ExtendedProcess(Process):
                 ret.append((receive.name, dispatch.name))
         return ret
 
-    def accesses(self, accesses=None, exclude=None, no_labels=False):
+    def accesses(self, accesses=None, exclude=None, no_labels=False, refresh=False):
         if not exclude:
             exclude = list()
 
         if not accesses:
             accss = sortedcontainers.SortedDict()
 
-            if not self._accesses or len(exclude) > 0 or no_labels:
+            if refresh or (not self._accesses or len(exclude) > 0 or no_labels):
                 # Collect all accesses across process subprocesses
                 for action in self.actions.filter(exclude=exclude):
                     if isinstance(action, Call) or isinstance(action, CallRetval) and action.callback:

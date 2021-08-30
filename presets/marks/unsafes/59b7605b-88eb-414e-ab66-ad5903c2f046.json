@@ -1,0 +1,63 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Project:Version",
+      "value": "v5.7-rc1-4-g48ce9e4119ce"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/usb/host/u132-hcd.ko"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "concurrency safety"
+    },
+    {
+      "is_compare": true,
+      "name": "Declaration",
+      "value": "int u132_exiting"
+    }
+  ],
+  "description": "Most likely EMG should not invoke probe in parallel with exit.",
+  "error_trace": [
+    [
+      [
+        {
+          "EMG wrapper": [
+            {
+              "u132_hcd_exit": [
+                {
+                  "Instrumented function 'mutex_lock'": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    ],
+    [
+      [
+        {
+          "EMG wrapper": [
+            {
+              "u132_probe": []
+            }
+          ]
+        }
+      ]
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": false,
+  "status": null,
+  "tags": [
+    "EMG - Specs",
+    "EMG - Specs - Bad composition",
+    "EMG"
+  ],
+  "threshold": 100,
+  "verdict": "3"
+}

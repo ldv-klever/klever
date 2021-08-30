@@ -1,0 +1,71 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Project:Version",
+      "value": "v5.9-rc1-9-g05655541c950"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/dma/dma-jz4780.ko"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "concurrency safety"
+    },
+    {
+      "is_compare": true,
+      "name": "Declaration",
+      "value": "struct dma_device (?.dev)"
+    }
+  ],
+  "description": "https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/commit/?id=6d6018fc30be",
+  "error_trace": [
+    [
+      [
+        {
+          "EMG wrapper": [
+            {
+              "jz4780_dma_probe": []
+            }
+          ]
+        }
+      ]
+    ],
+    [
+      [
+        {
+          "LDV model 'switch_to_interrupt_context'": []
+        }
+      ],
+      [
+        {
+          "EMG wrapper": [
+            {
+              "jz4780_dma_irq_handler": [
+                {
+                  "jz4780_dma_chan_irq": [
+                    {
+                      "Instrumented function 'spin_lock'": []
+                    },
+                    {
+                      "vchan_cookie_complete": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": false,
+  "status": null,
+  "tags": [],
+  "threshold": 100,
+  "verdict": "2"
+}

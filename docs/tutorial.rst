@@ -40,14 +40,13 @@ Let’s assume that you decompress this archive into directory
 **/home/debian/build-base-linux-3.14.79-x86_64-allmodconfig** so that there should be file *meta.json* directly at the
 top level in that directory.
 
-To prepare the target build base from scratch you can follow the next
-steps::
+To prepare the target build base from scratch you can follow the next steps::
 
    $ wget https://cdn.kernel.org/pub/linux/kernel/v3.x/linux-3.14.79.tar.xz
    $ tar -xvf linux-3.14.79.tar.xz
    $ cd linux-3.14.79/
    $ make allmodconfig
-   $ clade -w ~/build-base-linux-3.14.79-x86_64-allmodconfig -p klever_linux_kernel make -j8 modules
+   $ clade -w ~/build-base-linux-3.14.79-x86_64-allmodconfig -p klever_linux_kernel --cif $KLEVER_DEPLOY_DIR/klever-addons/CIF/bin/cif make -j8 modules
 
 Then you will need to wait for quite a long period of time depending on the performance of your machine.
 
@@ -61,6 +60,7 @@ Before performing all other actions described further in this tutorial you need 
 
 Then you will be automatically redirected to a *job tree* page presented in the following sections.
 
+.. Make screenshots using width of 1096 pixels. Height can vary depending on the screenshot content.
 .. _tutorial_signing_in:
 .. figure:: ./media/tutorial/signing-in.png
 
@@ -237,7 +237,7 @@ In this case it provides users with *unknown* verdicts, otherwise there are *saf
 (:numref:`tutorial_verdicts`).
 You already saw the example with summaries of these verdicts at the job tree page
 (:numref:`tutorial_showing_job_versions` and :numref:`tutorial_status_decision_job_version`).
-In this tutorial we do not consider other verdicts rather than unsafes that are either violations of checked
+In this tutorial we do not consider in detail other verdicts rather than unsafes that are either violations of checked
 requirements or false alarms (:numref:`tutorial_total_number_unsafes_reported_thus_far`).
 Klever reports unsafes if so during the decision of the job version and you can assess them both during the decision and
 after its completion.
@@ -340,6 +340,8 @@ does not contain anything at the right part of the window since there should be 
 generated *main* function but by default models are not demonstrated for users in the web interface.
 If you click on a line number corresponding to an original source file, you will see this source file as in
 :numref:`tutorial_showing_line_in_original_source_file_corresponding_to_error_trace_statement`.
+Error traces and source files are highlighted syntactically and you can use cross references for source files to find
+out definitions or places of usage for various entities.
 
 .. _tutorial_showing_line_in_original_source_file_corresponding_to_error_trace_statement:
 .. figure:: ./media/tutorial/showing-line-in-original-source-file-corresponding-to-error-trace-statement.png
@@ -470,6 +472,144 @@ This list can be filtered out by entering parts of tag names (:numref:`tutorial_
 
    Entering tag name part
 
+Analysis of Code Coverage Reports
+---------------------------------
+
+Code coverage reports demonstrate parts (lines and functions at the moment) of the target program source code and
+when switching on models that were considered during verification.
+Though users can expect complete code coverage because programs are analyzed statically, actually this may not be the
+case due to incomplete or inaccurate environment models that make some code unreachable or due to some limitations of
+verification tools, e.g. they can ignore calls of functions through function pointers.
+When users need good or excellent completeness of verification it is necessary to study code coverage reports.
+
+There is different semantics of code coverage for various verdicts:
+
+* *Unsafes* - code coverage reports show exactly those parts of the source code that correspond to error traces.
+* *Safes* - code coverage reports show all parts of the source code that the verification tool analyzed.
+  You should keep in mind that there may be different reasons like specified above that prevent the verification tool
+  from reaching complete code coverage.
+  Since Klever lacks correctness proofs (currently, verification tools do not provide useful correctness proofs),
+  analysis of code coverage reports becomes the only tool for understanding whether safes are good or not.
+* *Unknowns* (*Timeouts*) - code coverage shows those parts of the target program source code that the verification tool
+  could investigate until it was terminated after exhausting computational resources.
+  BTW, if there are no code coverage reports for timeouts, you may need to tune "soft CPU time" from *tasks.json* when
+  creating a new job to give more time to produce them.
+
+By default, Klever provides users with code coverage reports just for the target program source code.
+If one needs to inspect code coverage for various models it is necessary to start the decision of the job with a custom
+configuration where setting "Code coverage details" should be either "C source files including models" or
+"All source files".
+This can result in quite considerable overhead, so, this is not always switched on.
+
+Code Coverage Reports for Unsafes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+For unsafes, you will see code coverage reports when analyzing corresponding error traces like in
+:numref:`tutorial_unsafe_code_coverage_report`.
+Code coverage of a particular source file is shown on the right.
+There is a code coverage legend beneath it.
+The pink background and red crosses point out uncovered lines and functions respectively.
+More times lines and functions were analyzed during verification more intensive green background is used for them.
+
+.. _tutorial_unsafe_code_coverage_report:
+.. figure:: ./media/tutorial/unsafe-code-coverage-report.png
+
+   Code coverage report for the unsafe error trace
+
+There is code coverage statistics as well as a source tree on the left of the code coverage legend
+(:numref:`tutorial_unsafe_code_coverage_report_statistics`).
+You can click on names of directories and source files to reveal corresponding statistics and to show code coverage for
+these source files (:numref:`tutorial_opening_source_file_code_coverage_page`).
+The latter has sense for tasks consisting of several source files.
+
+.. _tutorial_unsafe_code_coverage_report_statistics:
+.. figure:: ./media/tutorial/unsafe-code-coverage-report-statistics.png
+
+   Code coverage statistics
+
+.. _tutorial_opening_source_file_code_coverage_page:
+.. figure:: ./media/tutorial/opening-source-file-code-coverage-page.png
+
+   Opening code coverage for the particular source file
+
+Code Coverage Reports for Safes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+To open code coverage repots for safes you need to open a page with a list of safes
+(:numref:`tutorial_opening_list_safes_page`) and then open a particular safe page
+(:numref:`tutorial_opening_safe_page`).
+Like for unsafe you can show on code coverage legend and statistics as well as to show code coverage for particular
+source files (:numref:`tutorial_safe_code_coverage_report`).
+
+.. _tutorial_opening_list_safes_page:
+.. figure:: ./media/tutorial/opening-list-safes-page.png
+
+   Opening page with the list of safes
+
+.. _tutorial_opening_safe_page:
+.. figure:: ./media/tutorial/opening-safe-page.png
+
+   Opening safe page
+
+.. _tutorial_safe_code_coverage_report:
+.. figure:: ./media/tutorial/safe-code-coverage-report.png
+
+   Code coverage report for the safe
+
+The safe verdict does not imply program correctness since some parts of the program could be not analyzed at all and
+thus uncovered.
+To navigate to the next uncovered function you should press the red button with the arrow
+(:numref:`tutorial_showing_next_uncovered_function`).
+Then you can find places where this uncovered function is invoked and why this was not done during verification (in the
+considered case this was due to lack of environment model specifications for callbacks of the *usb_class_driver*
+structure).
+Besides, while a function can be covered there may be uncovered lines within it.
+For instance, this may be the case due to the verification tool assumes that some conditions are always true or false.
+
+.. _tutorial_showing_next_uncovered_function:
+.. figure:: ./media/tutorial/showing-next-uncovered-function.png
+
+   Showing next uncovered function
+
+Code Coverage Reports for Unknowns
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If you would like to investigate the most complicated parts of the target program source code that can cause unknown
+(timeout) verdicts, you should open a page with a list of timeouts (:numref:`tutorial_opening_list_timeouts_page`) and
+then open a particular timeout page (:numref:`tutorial_opening_timeout_page`).
+A timeout code coverage report (:numref:`tutorial_timeout_code_coverage_report`) looks almost like the safe code
+coverage report (:numref:`tutorial_safe_code_coverage_report`).
+
+.. _tutorial_opening_list_timeouts_page:
+.. figure:: ./media/tutorial/opening-list-timeouts-page.png
+
+   Opening page with the list of timeouts
+
+.. _tutorial_opening_timeout_page:
+.. figure:: ./media/tutorial/opening-timeout-page.png
+
+   Opening timeout page
+
+.. _tutorial_timeout_code_coverage_report:
+.. figure:: ./media/tutorial/timeout-code-coverage-report.png
+
+   Code coverage report for the timeout
+
+To traverse through most covered lines that likely took most of the verification time you should press the orange button
+with the arrow (:numref:`tutorial_showing_next_most_covered_line`).
+If the task includes more than one source file it may be helpful for you to investigate lines that are most covered
+globally.
+For this it is necessary to press the blue button with the arrow.
+Quite often loops can serve as a source of complexity especially when loop boundaries are not specified/modelled
+explicitly.
+
+.. _tutorial_showing_next_most_covered_line:
+.. figure:: ./media/tutorial/showing-next-most-covered-line.png
+
+   Showing next most covered line
+
+You can find more details about verification results and their expert assessment in [G20]_.
+
 What’s Next?
 ------------
 
@@ -493,3 +633,7 @@ considerable improvements for you for free.
    For the considered example each task is a pair of a Linux loadable kernel module and a requirements specification.
    There are 3355 modules under verification and 2 requirement specifications to be checked, so there are 6710 tasks in
    total.
+
+.. [G20] Gratinskiy V.A., Novikov E.M., Zakharov I.S. Expert Assessment of Verification Tool Results. Proceedings of the
+         Institute for System Programming of the RAS (Proceedings of ISP RAS), volume 32, issue 5, pp. 7-20. 2020.
+         https://doi.org/10.15514/ISPRAS-2020-32(5)-1. (In Russian)

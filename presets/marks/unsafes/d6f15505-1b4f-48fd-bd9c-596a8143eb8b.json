@@ -1,0 +1,68 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Project:Version",
+      "value": "v5.12-15164-g93c5d741d14b"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/net/appletalk/cops.ko"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "concurrency safety"
+    },
+    {
+      "is_compare": true,
+      "name": "Declaration",
+      "value": "struct net_device (?.base_addr)"
+    }
+  ],
+  "description": "https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/commit/?id=a4dd4fc6105e",
+  "error_trace": [
+    [
+      [
+        {
+          "EMG wrapper": [
+            {
+              "cops_module_init": [
+                {
+                  "cops_probe": [
+                    {
+                      "cops_probe1": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    ],
+    [
+      [
+        {
+          "LDV model 'switch_to_interrupt_context'": []
+        }
+      ],
+      [
+        {
+          "EMG wrapper": [
+            {
+              "cops_interrupt": []
+            }
+          ]
+        }
+      ]
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": false,
+  "status": null,
+  "tags": [],
+  "threshold": 100,
+  "verdict": "2"
+}

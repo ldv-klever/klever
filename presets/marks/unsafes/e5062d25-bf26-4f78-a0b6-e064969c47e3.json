@@ -1,0 +1,91 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Project:Version",
+      "value": "v5.8-rc1-15-g11507bf9a883"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/staging/rts5208/rts5208.ko"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "memory safety"
+    }
+  ],
+  "description": "EMG should model wait_for_completion_interruptible(), after it chip-&gt;srb is initialized.",
+  "error_trace": [
+    [
+      [
+        {
+          "EMG wrapper": [
+            {
+              "rtsx_control_thread": []
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "EMG wrapper": [
+            {
+              "rtsx_probe": [
+                {
+                  "Instrumented function 'scsi_host_alloc'": [
+                    {
+                      "Allocate a new Scsi_Host and perform basic initialization. (Relevant to 'rtsx_host_template')": [
+                        {
+                          "LDV model 'xzalloc'": [
+                            {
+                              "LDV model 'reference_xzalloc'": []
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "host_to_rtsx": []
+                },
+                {
+                  "Instrumented function 'kzalloc'": [
+                    {
+                      "LDV model 'kzalloc'": [
+                        {
+                          "LDV model 'zalloc'": [
+                            {
+                              "LDV model 'reference_zalloc'": []
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Instrumented function 'kthread_create_on_node'": [
+                    {
+                      "Create a kthread. (Relevant to 'rtsx_control_thread')": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": false,
+  "status": null,
+  "tags": [
+    "EMG"
+  ],
+  "threshold": 100,
+  "verdict": "3"
+}

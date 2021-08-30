@@ -15,6 +15,10 @@
  * limitations under the License.
  */
 
+/* DO NOT USE this requirements specification since it is too inaccurate. First of all, it is not a bug if drivers
+   remove non-created sysfs groups. Besides, rather than creating groups individual files can be created using
+   sysfs_create_file(), but later the whole group of such files can be removed. */
+
 #include <ldv/linux/common.h>
 #include <ldv/verifier/common.h>
 #include <ldv/verifier/nondet.h>

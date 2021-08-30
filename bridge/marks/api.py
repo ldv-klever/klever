@@ -431,6 +431,7 @@ class UploadMarksView(LoggedCallMixin, APIView):
             raise exceptions.PermissionDenied(_("You don't have an access to create new marks"))
 
         marks_links = []
+        failed_mark_uploads = 0
         marks_uploader = MarksUploader(request.user)
         for f in self.request.FILES.getlist('file'):
             with zipfile.ZipFile(f, 'r') as zfp:
@@ -443,12 +444,20 @@ class UploadMarksView(LoggedCallMixin, APIView):
                             except Exception as e:
                                 logger.exception(e)
                                 logger.error('Uploading of mark "{}" has failed.'.format(arch_name))
+                                failed_mark_uploads += 1
                 else:
                     marks_links.append(marks_uploader.upload_mark(f)[1])
 
         if len(marks_links) == 1:
             return Response({'url': marks_links[0]})
-        return Response({'message': _('Number of created marks: %(number)s') % {'number': len(marks_links)}})
+
+        if failed_mark_uploads:
+            return Response({'message': _('Number of created marks: %(number)s.'
+                                          ' Number of marks which uploading failed: %(failed_number)s.'
+                                          ' See logs for details.')
+                                        % {'number': len(marks_links), 'failed_number': failed_mark_uploads}})
+        else:
+            return Response({'message': _('Number of created marks: %(number)s') % {'number': len(marks_links)}})
 
 
 class UploadAllMarksView(LoggedCallMixin, APIView):

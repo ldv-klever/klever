@@ -544,17 +544,14 @@ class KleverDevelopment(Klever):
     def __init__(self, args, logger):
         super().__init__(args, logger)
 
-    def _install_or_update(self):
-        install_klever_bridge_development(self.logger, self.args.source_directory)
-
     def install(self):
         self._pre_install()
-        self._install_or_update()
+        install_klever_bridge_development(self.logger, self.args.source_directory)
         self._post_install_or_update(is_dev=True)
 
     def update(self):
         self._pre_update()
-        self._install_or_update()
+        install_klever_bridge_development(self.logger, self.args.source_directory, update=True)
         self._post_install_or_update(is_dev=True)
 
     def uninstall(self):
@@ -573,19 +570,17 @@ class KleverProduction(Klever):
     def __init__(self, args, logger):
         super().__init__(args, logger)
 
-    def _install_or_update(self):
-        install_klever_bridge_production(self.logger, self.args.source_directory, self.args.deployment_directory,
-                                         not self._IS_DEV)
-
     def install(self):
         self._pre_install()
         execute_cmd(self.logger, 'systemd-tmpfiles', '--create')
-        self._install_or_update()
+        install_klever_bridge_production(self.logger, self.args.source_directory, self.args.deployment_directory,
+                                         not self._IS_DEV)
         self._post_install_or_update(self._IS_DEV)
 
     def update(self):
         self._pre_update()
-        self._install_or_update()
+        install_klever_bridge_production(self.logger, self.args.source_directory, self.args.deployment_directory,
+                                         not self._IS_DEV, update=True)
         self._post_install_or_update(self._IS_DEV)
 
     def uninstall(self):

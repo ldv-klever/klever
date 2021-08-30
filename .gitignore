@@ -41,6 +41,7 @@ ENV/
 # PyCharm
 .idea/workspace.xml
 */.idea/workspace.xml
+.idea/dictionaries/*
 
 # mypy
 .mypy_cache/

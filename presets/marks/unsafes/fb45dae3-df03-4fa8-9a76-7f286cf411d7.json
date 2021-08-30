@@ -1,0 +1,89 @@
+{
+  "attrs": [
+    {
+      "is_compare": true,
+      "name": "Project:Version",
+      "value": "v5.12-rc2-286-gdd4fa1dae9f4"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/net/ethernet/marvell/pxa168_eth.ko"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirements specification",
+      "value": "concurrency safety"
+    },
+    {
+      "is_compare": true,
+      "name": "Declaration",
+      "value": "struct pxa168_eth_private (?.rx_desc_area_size)"
+    }
+  ],
+  "description": "https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/commit/?id=0571a753cb07",
+  "error_trace": [
+    [
+      [
+        {
+          "EMG wrapper": [
+            {
+              "pxa168_eth_stop": [
+                {
+                  "rxq_deinit": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    ],
+    [
+      [
+        {
+          "pxa168_eth_tx_timeout_task": [
+            {
+              "pxa168_eth_stop": [
+                {
+                  "txq_deinit": [
+                    {
+                      "txq_reclaim": [
+                        {
+                          "netif_tx_lock": [
+                            {
+                              "Instrumented function 'spin_lock'": []
+                            }
+                          ]
+                        },
+                        {
+                          "netif_tx_unlock": [
+                            {
+                              "Instrumented function 'spin_unlock'": []
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "pxa168_eth_open": [
+                {
+                  "rxq_init": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": false,
+  "status": null,
+  "tags": [],
+  "threshold": 100,
+  "verdict": "2"
+}

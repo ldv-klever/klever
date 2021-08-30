@@ -19,29 +19,19 @@
 #include <ldv/verifier/nondet.h>
 #include <ldv/verifier/memory.h>
 
-/* ISO/IEC 9899:1999 specification, § 7.20.3 "Memory management functions". */
-extern void *malloc(size_t size);
-extern void *calloc(size_t nmemb, size_t size);
-extern void free(void *);
-
-/* ISO/IEC 9899:1999 specification, § 7.21.2 "Copying functions". */
-extern void *memcpy(void *s1, const void *s2, size_t n);
-
-/* ISO/IEC 9899:1999 specification, § 7.21.6 "Miscellaneous functions". */
-extern void *memset(void *s, int c, size_t n);
+unsigned int ldv_is_memory_alloc_failures = 1;
 
 void *ldv_reference_malloc(size_t size)
 {
 	void *res;
 
-	if (ldv_undef_int()) {
-		/* Always successful according to SV-COMP definition. */
-		res = malloc(size);
-		ldv_assume(res != NULL);
-		return res;
-	}
-	else
+	if (ldv_is_memory_alloc_failures && ldv_undef_int())
 		return NULL;
+
+	/* Always successful according to SV-COMP definition. */
+	res = malloc(size);
+	ldv_assume(res != NULL);
+	return res;
 }
 
 void *ldv_reference_calloc(size_t nmemb, size_t size)
@@ -92,6 +82,16 @@ void *ldv_reference_xmalloc(size_t size)
 	void *res;
 
 	res = malloc(size);
+	ldv_assume(res != NULL);
+
+	return res;
+}
+
+void *ldv_reference_xcalloc(size_t nmemb, size_t size)
+{
+	void *res;
+
+	res = calloc(nmemb, size);
 	ldv_assume(res != NULL);
 
 	return res;

@@ -25,7 +25,7 @@ import time
 import zipfile
 
 from klever.deploys.utils import execute_cmd, get_password
-from klever.deploys.openstack.constants import OS_USER
+from klever.deploys.openstack.conf import OS_USER
 
 
 class SSH:
@@ -121,7 +121,7 @@ class SSH:
         self.logger.info('Open interactive SSH to instance "{0}" (IP: {1})'.format(self.name, self.floating_ip))
 
         execute_cmd(self.logger, 'ssh', '-o', 'StrictHostKeyChecking=no', '-i', self.args.ssh_rsa_private_key_file,
-                    '{0}@{1}'.format(self.args.ssh_username, self.floating_ip))
+                    '{0}@{1}'.format(self.args.ssh_username, self.floating_ip), keep_stdout=True)
 
     def rsync(self, host_path, instance_path):
         if not instance_path:
@@ -131,6 +131,9 @@ class SSH:
             # with '-s' rsync sends all filenames without allowing the remote shell to interpret them
             # so, we need to explicitly expand ~ here
             instance_path = instance_path.replace('~', f'/home/{OS_USER}', 1)
+
+        self.logger.debug('Execute rsync command to instance "{}" (IP: {})\ncopy {} to {}'
+                          .format(self.name, self.floating_ip, host_path, instance_path))
 
         # mkdir also doesn't work with paths inside quotes that contain ~
         self.execute_cmd(f'mkdir -p "{instance_path}"')

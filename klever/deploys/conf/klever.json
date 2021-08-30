@@ -1,23 +1,23 @@
 {
   "Klever Addons": {
     "CIF": {
-      "version": "746d8be",
-      "path": "https://forge.ispras.ru/attachments/download/8316/cif-746d8be.tar.xz",
+      "version": "0f9da42",
+      "path": "https://forge.ispras.ru/attachments/download/9065/cif-0f9da42.tar.xz",
       "executable path": "bin"
     },
     "CIF-ARM": {
-      "version": "746d8be",
-      "path": "https://forge.ispras.ru/attachments/download/8317/arm-unknown-eabi-cif-746d8be.tar.xz",
+      "version": "0f9da42",
+      "path": "https://forge.ispras.ru/attachments/download/9066/arm-unknown-eabi-cif-0f9da42.tar.xz",
       "executable path": "bin"
     },
     "CIF-ARM64": {
-      "version": "746d8be",
-      "path": "https://forge.ispras.ru/attachments/download/8324/aarch64_be-unknown-linux-gnu-cif-746d8be.tar.xz",
+      "version": "0f9da42",
+      "path": "https://forge.ispras.ru/attachments/download/9067/aarch64_be-unknown-linux-gnu-cif-0f9da42.tar.xz",
       "executable path": "bin"
     },
     "CIL": {
-      "version": "36de461",
-      "path": "https://forge.ispras.ru/attachments/download/8718/frama-c-cil-36de461.tar.xz",
+      "version": "57c4604",
+      "path": "https://forge.ispras.ru/attachments/download/8899/frama-c-cil-57c4604.tar.xz",
       "executable path": "."
     },
     "Consul": {
@@ -33,14 +33,14 @@
     "Verification Backends": {
       "CPAchecker": {
         "name": "CPAchecker",
-        "version": "klever_fixes:36955",
-        "path": "https://forge.ispras.ru/attachments/download/8531/CPAchecker-36955.tar.xz",
+        "version": "klever_fixes:38135",
+        "path": "https://forge.ispras.ru/attachments/download/9069/CPAchecker-38135.tar.xz",
         "executable path": "scripts"
       },
       "CPALockator": {
         "name": "CPAchecker",
-        "version": "CPALockator-combat-mode:36901",
-        "path": "https://forge.ispras.ru/attachments/download/8530/CPALockator-36901.tar.xz",
+        "version": "CPALockator-combat-mode:38006",
+        "path": "https://forge.ispras.ru/attachments/download/9047/CPALockator-38006.tar.xz",
         "executable path": "scripts"
       }
     }
