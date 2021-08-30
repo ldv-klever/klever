@@ -469,6 +469,20 @@ class ExtendedJSONEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 
+# Check that all attribute names/values are less than 64/255 characters.
+def check_attr_values(attrs):
+    for attr in attrs:
+        if len(attr['name']) > 64:
+            raise ValueError("Attribute name \"{0}\" is longer than 64 characters".format(attr['name']))
+
+        # Like for capitalize_attr_names().
+        if isinstance(attr['value'], list):
+            check_attr_values(attr['value'])
+        elif len(attr['value']) > 255:
+            raise ValueError("Attribute \"{0}\" value \"{1}\" is longer than 255 characters"
+                             .format(attr['name'], attr['value']))
+
+
 # Capitalize first letters of attribute names.
 def capitalize_attr_names(attrs):
     # Each attribute is dictionary with one element which value is either string or array of subattributes.
@@ -494,6 +508,7 @@ def report(logger, kind, report_data, mq, report_id, main_work_dir, report_dir='
     prefix = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(6))
     archives = []
     if 'attrs' in report_data:
+        check_attr_values(report_data['attrs'])
         capitalize_attr_names(report_data['attrs'])
 
         if data_files:
