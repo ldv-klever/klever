@@ -15,28 +15,11 @@
 # limitations under the License.
 #
 
-from multiprocessing import Pool
 from django.core.management.base import BaseCommand
 
 from bridge.vars import JOB_UPLOAD_STATUS
-
-
-def upload_archive_process(obj_id: int) -> str:
-    import django
-    django.setup()
-    from jobs.models import UploadedJobArchive
-    from jobs.Upload import JobArchiveUploader
-
-    try:
-        upload_obj = UploadedJobArchive.objects.get(id=obj_id)
-    except UploadedJobArchive.DoesNotExist:
-        return "Can't find uploaded archive"
-    try:
-        with JobArchiveUploader(upload_obj) as uploader:
-            uploader.upload()
-    except Exception as e:
-        return str(e)
-    return ""
+from jobs.models import UploadedJobArchive
+from jobs.Upload import JobArchiveUploader
 
 
 class Command(BaseCommand):
@@ -44,20 +27,24 @@ class Command(BaseCommand):
     requires_migrations_checks = True
 
     def handle(self, *args, **options):
-        from jobs.models import UploadedJobArchive
-        ids = list(UploadedJobArchive.objects.filter(status=JOB_UPLOAD_STATUS[0][0]).values_list('id', flat=True))
-        if len(ids) == 0:
+        upload_objects_qs = UploadedJobArchive.objects.filter(status=JOB_UPLOAD_STATUS[0][0])
+        if len(upload_objects_qs) == 0:
             if options['verbosity'] >= 1:
                 self.stdout.write("No archives to upload.")
             return
-        pool = Pool(4)
-        if options['verbosity'] >= 1:
-            self.stdout.write("Starting uploading of {} archive(s).".format(len(ids)))
-        res = pool.map(upload_archive_process, ids)
 
         if options['verbosity'] >= 1:
-            assert len(ids) == len(res)
-            for i in range(len(ids)):
-                if res[i]:
-                    self.stdout.write("Uploading archive with id={} failed: {}".format(ids[i], res[i]))
+            self.stdout.write("Starting uploading of {} archive(s).".format(len(upload_objects_qs)))
+
+        for upload_obj in upload_objects_qs:
+            if options['verbosity'] >= 1:
+                self.stdout.write("Starting uploading of archive {}.".format(upload_obj.name))
+            try:
+                with JobArchiveUploader(upload_obj) as uploader:
+                    uploader.upload()
+            except Exception as e:
+                self.stderr.write("Uploading archive with id={} ({}) failed: {}".format(
+                    upload_obj.id, upload_obj.name, str(e))
+                )
+        if options['verbosity'] >= 1:
             self.stdout.write("Uploading finished.")
