@@ -285,10 +285,8 @@ class ReportUnsafeView(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, Detai
         if not JobAccess(self.request.user, self.object.decision.job).can_view:
             raise BridgeException(code=400)
         try:
-            with open("S:\\Downloads\\error trace.json", mode='r') as fp:
-                etv = GetETV(fp.read(), self.request.user)
-            # etv = GetETV(ArchiveFileContent(self.object, 'error_trace', ERROR_TRACE_FILE).content.decode('utf8'),
-            #              self.request.user)
+            etv = GetETV(ArchiveFileContent(self.object, 'error_trace', ERROR_TRACE_FILE).content.decode('utf8'),
+                         self.request.user)
         except Exception as e:
             logger.exception(e)
             etv = None

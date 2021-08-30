@@ -268,7 +268,7 @@ class FillCoverageStatistics:
                         path='/'.join(curr_path),
                         depth=len(curr_path)
                     )
-                if cov_lines is not None or cov_funcs is not None:
+                if cov_lines is not None and cov_funcs is not None:
                     new_objects[curr_path].lines_covered += cov_lines
                     new_objects[curr_path].lines_total += tot_lines
                     new_objects[curr_path].funcs_covered += cov_funcs
@@ -422,3 +422,7 @@ class MostCoveredLines:
             if len(lines_statistics) > 31:
                 lines_statistics = lines_statistics[-30:]
         self._statistics[filename] = lines_statistics[-30:]
+
+
+def fix_old_coverages():
+    qs = CoverageArchive.objects.filter(report__decision_id=self._decision.id).exclude(identifier='')
