@@ -423,6 +423,3 @@ class MostCoveredLines:
                 lines_statistics = lines_statistics[-30:]
         self._statistics[filename] = lines_statistics[-30:]
 
-
-def fix_old_coverages():
-    qs = CoverageArchive.objects.filter(report__decision_id=self._decision.id).exclude(identifier='')

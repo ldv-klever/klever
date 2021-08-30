@@ -298,3 +298,7 @@ class ErrorTraceAnalizerView(LoginRequiredMixin, TemplateView):
                 logger.exception(e)
             context['json'] = ErrorTraceAnanlizer(error_trace).get_trace().replace('\\"', '\\\\"')
         return context
+
+
+class SecretPageView(TemplateView):
+    template_name = 'tools/secret.html'
