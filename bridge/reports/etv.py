@@ -311,8 +311,19 @@ class GetETV:
         if not node.get('notes'):
             return []
 
+        node_notes = []
+        for note in node['notes']:
+            if note['level'] > self.user.notes_level:
+                # Ignore the note
+                continue
+            if note['level'] == 0 or note['level'] == 1:
+                self.shown_scopes.add(scope)
+            node_notes.append(note)
+        if not node_notes:
+            return []
+
         notes_data = []
-        for note in node['notes'][:-1]:
+        for note in node_notes[:-1]:
             # Get note level and show current scope if needed
             if note['level'] == 0 or note['level'] == 1:
                 self.shown_scopes.add(scope)
@@ -326,7 +337,7 @@ class GetETV:
                 'LC': self._html_collector.note_content(depth, note['level'], note['text'], False)
             })
 
-        last_note = node['notes'][-1]
+        last_note = node_notes[-1]
         note_hide = node.get('hide', False)
         if last_note['level'] == 0 or last_note['level'] == 1:
             self.shown_scopes.add(scope)

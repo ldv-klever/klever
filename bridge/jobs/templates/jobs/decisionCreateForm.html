@@ -115,6 +115,7 @@
             <div class="ui center aligned grid">
                 <button class="ui blue basic inverted button modal-cancel">{% trans 'Cancel version creation' %}</button>
                 <button class="ui red basic inverted button modal-confirm">{% trans 'Create the version anyway' %}</button>
+                <button class="ui green basic inverted button save-and-proceed">{% trans 'Save changes and proceed' %}</button>
             </div>
         </div>
     </div>
@@ -180,6 +181,15 @@
             file_not_commited_modal.find('.modal-confirm').click(function () {
                 if (next_step === 'default') start_default_decision();
                 else proceed_to_start_decision();
+            });
+            file_not_commited_modal.find('.save-and-proceed').click(function () {
+                file_not_commited_modal.modal('hide');
+                files_form.commit_file().then(() => {
+                    if (next_step === 'default') start_default_decision();
+                    else proceed_to_start_decision();
+                }).catch(err => {
+                    err_notify(err);
+                });
             });
 
             $('#start_default_decision').click(function () {

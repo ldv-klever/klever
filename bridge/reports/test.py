@@ -1213,7 +1213,9 @@ class DecideJob:
         try:
             for a_name in archives:
                 archives_fp[os.path.basename(a_name)] = open(os.path.join(ARCHIVE_PATH, a_name), mode='rb')
-            self.__request(data={'reports': json.dumps(reports)}, files=archives_fp)
+            self.__request(data={
+                'reports': json.dumps(reports), 'archives': json.dumps(list(archives_fp))
+            }, files=archives_fp)
         finally:
             for fp in archives_fp.values():
                 fp.close()
@@ -1385,7 +1387,9 @@ class DecideJob:
         for carch in coverage.values():
             cov_files[os.path.basename(carch)] = open(os.path.join(ARCHIVE_PATH, carch), mode='rb')
         try:
-            self.__request(data={'report': json.dumps(report)}, files=cov_files)
+            self.__request(data={
+                'reports': json.dumps([report]), 'archives': json.dumps(list(cov_files))
+            }, files=cov_files)
         finally:
             for fp in cov_files.values():
                 fp.close()
@@ -1506,6 +1510,7 @@ class DecideJob:
         self.__upload_finish_report(vrp)
 
     def __upload_verdicts(self, parent, chunk):
+        cnt = 0
         verification = {
             'identifier': self.__get_report_id(chunk['tool']),
             'type': 'verification', 'parent': parent, 'component': chunk['tool'],
@@ -1532,13 +1537,19 @@ class DecideJob:
                 'additional_sources': chunk['additional_sources']
             })
         if 'safe' in chunk:
+            cnt += 1
             files.append(chunk['safe'])
-            reports.append({'type': 'safe', 'parent': verification['identifier'], 'attrs': []})
+            reports.append({
+                'identifier': '{}/safe'.format(verification['identifier']),
+                'type': 'safe', 'parent': verification['identifier'], 'attrs': []
+            })
         elif 'unsafes' in chunk:
             cnt = 1
             for unsafe_archive in chunk['unsafes']:
                 files.append(unsafe_archive)
+                cnt += 1
                 reports.append({
+                    'identifier': '{}/unsafe/{}'.format(verification['identifier'], cnt),
                     'type': 'unsafe', 'parent': verification['identifier'],
                     'attrs': [{'name': 'entry point', 'value': 'func_%s' % cnt}],
                     'error_trace': unsafe_archive
@@ -1547,6 +1558,7 @@ class DecideJob:
         if 'unknown' in chunk and 'safe' not in chunk:
             files.append(chunk['unknown'])
             reports.append({
+                'identifier': '{}/unknown'.format(verification['identifier']),
                 'type': 'unknown', 'parent': verification['identifier'],
                 'problem_description': chunk['unknown']
             })
