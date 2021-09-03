@@ -52,12 +52,12 @@ For instance, for the Linux kernel they are as follows:
 * Mailing lists, including `Linux Kernel Mailing List <https://lkml.org/>`__.
 * The history of development in Git.
 
-Using the latter source you can bugs fixed in target programs.
+Using the latter source you can find out bugs fixed in target programs.
 These bugs can correspond to common weaknesses of C programs like buffer overflows as well as they can implicitly refer
 to specific requirements, in particular rules of correct usage of specific APIs.
 
-Technically it is possible to check very different requirements within the same specification, we do not recommend to do
-this due to some limitations of software model checkers (*verification tools*).
+Technically it is possible to check very different requirements within the same specification, but we do not recommend
+to do this due to some limitations of software model checkers (*verification tools*).
 Nevertheless, you can formulate and check requirements related to close API elements together.
 
 Let's consider rules of correct usage of the module reference counter API in the Linux kernel.
