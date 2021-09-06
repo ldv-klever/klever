@@ -124,9 +124,7 @@ def convert_coverage(merged_coverage_info, coverage_dir, pretty, src_files_info=
 
             # Add the total number of lines and functions for uncovered source files.
             coverage_stats['coverage statistics'][file_name] = [
-                0,
                 info[0],
-                0,
                 len(info[1])
             ]
 
