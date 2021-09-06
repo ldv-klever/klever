@@ -141,7 +141,7 @@ class JobArchiveUploader:
                 len(preset_info['name']) > 150 or len(preset_info['name']) == 0:
             raise exceptions.ValidationError({'preset': _('Preset info is corrupted')})
         try:
-            preset_dir = PresetJob.objects.get(name=preset_info['name'])
+            preset_dir = PresetJob.objects.get(name=preset_info['name'], parent_id=main_preset.id)
             if preset_dir.type != PRESET_JOB_TYPE[2][0]:
                 raise exceptions.ValidationError({'preset': _('Preset info is corrupted')})
             return preset_dir.id
