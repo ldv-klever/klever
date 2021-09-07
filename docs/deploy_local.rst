@@ -32,6 +32,9 @@ for development purposes, otherwise, please, choose *production*) and to run the
 .. note:: Absolute path to :file:`klever-deploy-local` is necessary due to environment variables required for the
           Klever Python virtual environment are not passed to sudo commands most likely.
 
+.. note:: You should install Klever Python package in the editable mode in case of the development mode
+          (:ref:`software_requirements`). Otherwise, some functionality may not work as intended.
+
 After successfull installation one is able to *update* Klever multiple times to install new or to update alredy
 installed :ref:`klever_addons` and :ref:`klever_build_bases`:
 
