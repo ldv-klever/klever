@@ -49,7 +49,7 @@ class JobFile(WithFilesMixin, models.Model):
 class PresetJob(MPTTModel):
     parent = TreeForeignKey('self', models.CASCADE, null=True, blank=True, related_name='children')
     identifier = models.UUIDField(db_index=True, null=True)
-    name = models.CharField(max_length=150, unique=True, db_index=True, verbose_name=_('Name'))
+    name = models.CharField(max_length=150, db_index=True, verbose_name=_('Name'))
     type = models.CharField(max_length=1, choices=PRESET_JOB_TYPE)
     check_date = models.DateTimeField()
 
@@ -58,6 +58,7 @@ class PresetJob(MPTTModel):
     class Meta:
         db_table = 'job_preset'
         verbose_name = _('Preset job')
+        unique_together = [('parent', 'name')]
 
     class MPTTMeta:
         order_insertion_by = ['creation_date']
