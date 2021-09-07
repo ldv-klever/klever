@@ -26,6 +26,7 @@ Contents
    deploy
    tutorial
    cli
+   dev_common_api_models
    dev_req_specs
    dev
    glossary
