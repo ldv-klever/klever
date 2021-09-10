@@ -99,6 +99,23 @@
         {"-setprop": "parser.readLineDirectives=false"}
       ]
     },
+    "CPAchecker SMG without support of uncertain environment behavior": {
+      "description": "CPAchecker with SMG for memory errors checking that almost does not support any uncertainty in behavior of environment",
+      "inherit": "CPAchecker SMG memory checking",
+      "safety properties": [
+          "CHECK( init({entry_point}()), LTL(G valid-free) )",
+          "CHECK( init({entry_point}()), LTL(G valid-deref) )",
+          "CHECK( init({entry_point}()), LTL(G valid-memtrack) )"
+      ],
+      "add options": [
+        {"-setprop": "cpa.smg.enableHeapAbstraction=false"},
+        {"-setprop": "cpa.smg.handleIncompleteExternalVariableAsExternalAllocation=false"},
+        {"-setprop": "cpa.smg.handleUnknownDereferenceAsSafe=false"},
+        {"-setprop": "cpa.smg.handleUnknownFunctions=STRICT"},
+        {"-setprop": "cpa.smg.merge=SEP"},
+        {"-setprop": "cpa.smg.safeUnknownFunctionsPatterns=ldv_.*"}
+      ]
+    },
     "CPALockator lightweight": {
       "description": "CPAchecker for checking races",
       "inherit": "CPALockator races",
@@ -145,6 +162,9 @@
     },
     "memory checking": {
       "CPAchecker": {"klever_fixes:38277": {"inherit": "CPAchecker SMG memory checking"}}
+    },
+    "memory checking without uncertainty": {
+      "CPAchecker": {"klever_fixes:38277": {"inherit": "CPAchecker SMG without support of uncertain environment behavior"}}
     }
   }
 }

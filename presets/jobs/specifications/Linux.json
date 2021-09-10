@@ -736,6 +736,27 @@
                 "linux/memory safety/memory.c"
               ]}
             }]
+          },
+          {
+            "identifier": "memory checking without uncertainty",
+            "description": "...",
+            "template": "memory safety for loadable kernel modules and kernel subsystems",
+            "plugins": [
+              {
+                "name": "RSG",
+                "options": {"models": [
+                  "common/list.c",
+                  "common/test.c",
+                  "linux/alloc/common.c",
+                  "linux/drivers/usb/core/usb/message.c",
+                  "linux/memory safety/memory.c"
+                ]}
+              },
+              {
+                "name": "FVTP",
+                "options": {"verifier profile": "memory checking without uncertainty"}
+              }
+            ]
           }
         ]
       },
