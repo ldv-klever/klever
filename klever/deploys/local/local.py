@@ -314,9 +314,9 @@ class Klever:
             fp.write('KLEVER_SOURCE_DIRECTORY="{0}"\n'.format(os.path.realpath(self.args.source_directory)))
             fp.write('KLEVER_DEPLOYMENT_DIRECTORY="{0}"\n'.format(os.path.realpath(self.args.deployment_directory)))
             fp.write('KLEVER_DATA_DIR="{0}"\n'
-                     .format(os.path.join(os.path.realpath(self.args.deployment_directory), 'build bases')
-                             if len(self.deploy_conf['Klever Build Bases'])
-                             else os.path.join(os.path.realpath(self.args.source_directory), 'build bases')))
+                     .format(os.path.realpath(self.args.data_directory)
+                             if self.args.data_directory
+                             else os.path.join(os.path.realpath(self.args.deployment_directory), 'build bases')))
             fp.write("KLEVER_WORKERS={}\n".format(os.cpu_count() + 1))
             fp.write("KLEVER_PYTHON_BIN_DIR={}\n".format(os.path.dirname(sys.executable)))
             fp.write("KLEVER_PYTHON={}\n".format(sys.executable))
