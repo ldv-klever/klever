@@ -108,11 +108,9 @@
           "CHECK( init({entry_point}()), LTL(G valid-memtrack) )"
       ],
       "add options": [
-        {"-setprop": "cpa.smg.enableHeapAbstraction=false"},
         {"-setprop": "cpa.smg.handleIncompleteExternalVariableAsExternalAllocation=false"},
         {"-setprop": "cpa.smg.handleUnknownDereferenceAsSafe=false"},
         {"-setprop": "cpa.smg.handleUnknownFunctions=STRICT"},
-        {"-setprop": "cpa.smg.merge=SEP"},
         {"-setprop": "cpa.smg.safeUnknownFunctionsPatterns=ldv_.*"}
       ]
     },
