@@ -469,7 +469,6 @@ class FunctionModels:
                         var = automaton.determine_variable(access.label)
                         if isinstance(var.declaration, Pointer):
                             self.signature = var.declaration
-                            self.ualloc_flag = True
                             new = self.mem_function_re.sub(replacement, statement)
                             stms.append(new)
                     else:
@@ -533,12 +532,9 @@ class FunctionModels:
             raise NotImplementedError("Set implementation for the function {}".format(func))
 
         if isinstance(self.signature, Pointer):
-            if func == 'ALLOC' and self.ualloc_flag:
-                # Do not alloc memory anyway for unknown resources anyway to avoid incomplete type errors
-                func = 'UALLOC'
             if self._conf.get('disable ualloc') and func == 'UALLOC':
                 func = 'ALLOC'
-            if func != 'UALLOC' and self._conf.get('allocate with sizeof', True):
+            if func == 'ALLOC' and self._conf.get('allocate with sizeof', True):
                 size = 'sizeof({})'.format(self.signature.points.to_string('', typedef='complex_and_params'))
 
             return "%{}%{} = {}({})".format(label_name, suffix, self.mem_function_map[func], size)
