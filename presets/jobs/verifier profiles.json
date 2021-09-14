@@ -112,7 +112,7 @@
     "CPAchecker SMG without deducing abstraction for lists": {
       "description": "CPAchecker with SMG for memory errors checking that does not spend time for deducing abstraction for lists (this should unlikely be used for target programs with lists)",
       "inherit": "CPAchecker SMG memory checking",
-      "add options": [{"-setprop": "enableHeapAbstraction=false"}]
+      "add options": [{"-setprop": "cpa.smg.enableHeapAbstraction=false"}]
     },
     "CPALockator lightweight": {
       "description": "CPAchecker for checking races",
