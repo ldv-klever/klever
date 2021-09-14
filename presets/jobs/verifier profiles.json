@@ -111,7 +111,7 @@
         {"-setprop": "cpa.smg.handleIncompleteExternalVariableAsExternalAllocation=false"},
         {"-setprop": "cpa.smg.handleUnknownDereferenceAsSafe=false"},
         {"-setprop": "cpa.smg.handleUnknownFunctions=STRICT"},
-        {"-setprop": "cpa.smg.safeUnknownFunctionsPatterns=ldv_.*"}
+        {"-setprop": "cpa.smg.safeUnknownFunctionsPatterns=ldv_.*,printk"}
       ]
     },
     "CPALockator lightweight": {
