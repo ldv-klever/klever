@@ -102,17 +102,17 @@
     "CPAchecker SMG without support of uncertain environment behavior": {
       "description": "CPAchecker with SMG for memory errors checking that almost does not support any uncertainty in behavior of environment",
       "inherit": "CPAchecker SMG memory checking",
-      "safety properties": [
-          "CHECK( init({entry_point}()), LTL(G valid-free) )",
-          "CHECK( init({entry_point}()), LTL(G valid-deref) )",
-          "CHECK( init({entry_point}()), LTL(G valid-memtrack) )"
-      ],
       "add options": [
         {"-setprop": "cpa.smg.handleIncompleteExternalVariableAsExternalAllocation=false"},
         {"-setprop": "cpa.smg.handleUnknownDereferenceAsSafe=false"},
         {"-setprop": "cpa.smg.handleUnknownFunctions=STRICT"},
         {"-setprop": "cpa.smg.safeUnknownFunctionsPatterns=ldv_.*,printk"}
       ]
+    },
+    "CPAchecker SMG without deducing abstraction for lists": {
+      "description": "CPAchecker with SMG for memory errors checking that does not spend time for deducing abstraction for lists (this should unlikely be used for target programs with lists)",
+      "inherit": "CPAchecker SMG memory checking",
+      "add options": [{"-setprop": "enableHeapAbstraction=false"}]
     },
     "CPALockator lightweight": {
       "description": "CPAchecker for checking races",
@@ -163,6 +163,9 @@
     },
     "memory checking without uncertainty": {
       "CPAchecker": {"klever_fixes:38277": {"inherit": "CPAchecker SMG without support of uncertain environment behavior"}}
+    },
+    "memory checking without abstraction for lists": {
+      "CPAchecker": {"klever_fixes:38277": {"inherit": "CPAchecker SMG without deducing abstraction for lists"}}
     }
   }
 }
