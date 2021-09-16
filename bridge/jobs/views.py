@@ -36,7 +36,7 @@ from bridge.CustomViews import DataViewMixin, StreamingResponseView
 from tools.profiling import LoggedCallMixin
 
 from users.models import User
-from jobs.models import Job, JobFile, UploadedJobArchive, PresetJob, FileSystem, UserRole
+from jobs.models import Job, JobFile, UploadedJobArchive, PresetJob, FileSystem, UserRole, DefaultDecisionConfiguration
 from service.models import Decision
 
 from users.utils import JOB_TREE_VIEW
@@ -179,10 +179,19 @@ class DecisionFormPage(LoginRequiredMixin, LoggedCallMixin, DetailView):
             'unique_name': get_unique_decision_name(self.object),
             'cancel_url': reverse('jobs:job', args=[self.object.id]),
             'files_data': preset_job_files_tree_json(preset_job),
-            'current_conf': settings.DEF_KLEVER_CORE_MODE,
-            'start_data': StartDecisionData(self.request.user),
             'other_decisions': other_decisions
         })
+
+        try:
+            default_conf = DefaultDecisionConfiguration.objects.select_related('file').get(user=self.request.user)
+            context['has_default'] = True
+            context['current_conf'] = 'default'
+            context['start_data'] = StartDecisionData(self.request.user, file_conf=default_conf.file.file)
+        except DefaultDecisionConfiguration.DoesNotExist:
+            context['has_default'] = False
+            context['current_conf'] = settings.DEF_KLEVER_CORE_MODE
+            context['start_data'] = StartDecisionData(self.request.user, conf_name=settings.DEF_KLEVER_CORE_MODE)
+
         return context
 
 
@@ -209,7 +218,8 @@ class DecisionCopyFormPage(LoginRequiredMixin, LoggedCallMixin, DetailView):
             'cancel_url': reverse('jobs:decision', args=[self.object.id]),
             'files_data': decision_files,
             'start_data': StartDecisionData(self.request.user, base_decision=self.object),
-            'other_decisions': other_decisions
+            'other_decisions': other_decisions,
+            'has_default': DefaultDecisionConfiguration.objects.filter(user=self.request.user).exists()
         })
         return context
 
@@ -228,7 +238,8 @@ class DecisionRestartPage(LoginRequiredMixin, LoggedCallMixin, DetailView):
             .exclude(status=DECISION_STATUS[0][0]).only('id', 'title', 'start_date')
         context.update({
             'start_data': StartDecisionData(self.request.user, base_decision=self.object),
-            'other_decisions': other_decisions
+            'other_decisions': other_decisions,
+            'has_default': DefaultDecisionConfiguration.objects.filter(user=self.request.user).exists()
         })
         return context
 

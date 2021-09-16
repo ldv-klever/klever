@@ -21,54 +21,59 @@ function StartDecision(conf_url, values_url) {
     return this;
 }
 
-StartDecision.prototype.initialize = function() {
-    let instance = this;
-    $('.normal-dropdown').dropdown();
+StartDecision.prototype.onSelectionChanged = function (new_value) {
+    const $this = this;
 
     let file_form = $('#upload_file_conf_form'),
         lastconf_form = $('#select_lastconf_form');
+    if (new_value === 'file_conf') {
+        lastconf_form.hide();
+        file_form.show();
+    }
+    else if(new_value === 'lastconf') {
+        file_form.hide();
+        $.post($this.conf_url, {decision: parseInt($('#lastconf_select').val())}, function (resp) {
+            $this.update(resp)
+        });
+        lastconf_form.show();
+    }
+    else {
+        file_form.hide();
+        lastconf_form.hide();
+        $.post($this.conf_url, {conf_name: new_value}, function (resp) {
+            $this.update(resp)
+        });
+    }
+};
+
+StartDecision.prototype.initialize = function() {
+    const $this = this;
+    $('.normal-dropdown').dropdown();
+
     $('#default_configs').dropdown({
         onChange: function () {
-            let conf_name = $('#default_configs').val();
-            if (conf_name === 'file_conf') {
-                lastconf_form.hide();
-                file_form.show();
-            }
-            else if(conf_name === 'lastconf') {
-                file_form.hide();
-                $.post(instance.conf_url, {decision: parseInt($('#lastconf_select').val())}, function (resp) {
-                    instance.update(resp)
-                });
-                lastconf_form.show();
-            }
-            else {
-                file_form.hide();
-                lastconf_form.hide();
-                $.post(instance.conf_url, {conf_name: conf_name}, function (resp) {
-                    instance.update(resp)
-                });
-            }
+            $this.onSelectionChanged($('#default_configs').val());
         }
     });
     $('#file_conf').on('fileselect', function () {
         let data = new FormData();
         data.append('file_conf', $(this)[0].files[0]);
-        api_upload_file(instance.conf_url, 'POST', data, function (resp) {
-            instance.update(resp);
+        api_upload_file($this.conf_url, 'POST', data, function (resp) {
+            $this.update(resp);
             $('#dimmer_of_page').removeClass('active');
         });
     });
     $('#lastconf_select').dropdown({
         onChange: function () {
-            $.post(instance.conf_url, {decision: parseInt($('#lastconf_select').val())}, function (resp) {
-                instance.update(resp)
+            $.post($this.conf_url, {decision: parseInt($('#lastconf_select').val())}, function (resp) {
+                $this.update(resp)
             });
         }
     });
 
     $('.get-attr-value').click(function () {
         $.ajax({
-            url: instance.values_url,
+            url: $this.values_url,
             type: 'POST',
             data: {
                 name: $(this).data('name'),
@@ -225,3 +230,31 @@ StartDecision.prototype.check_sch_user_data = function() {
 
     return err_found;
 };
+
+
+StartDecision.prototype.addDefaultOption = function (text) {
+    const def_conf_select = $('#default_configs');
+    let def_option = def_conf_select.find('option[value="default"]');
+    if (!def_option.length) {
+        def_conf_select.prepend($('<option>', {value: "default", text: text}))
+        def_conf_select.dropdown('refresh');
+        $('#reset_default_conf_btn').show();
+    }
+    def_conf_select.val('default');
+    def_conf_select.dropdown('set selected', 'default');
+    // Don't call this.onSelectionChanged() as default options are already set
+};
+
+
+StartDecision.prototype.removeDefaultOption = function () {
+    const def_conf_select = $('#default_configs');
+    const initial_val = def_conf_select.val();
+
+    def_conf_select.find('option[value="default"]').remove();
+    def_conf_select.dropdown('refresh');
+    $('#reset_default_conf_btn').hide();
+
+    if (initial_val === 'default') {
+        this.onSelectionChanged(def_conf_select.val());
+    }
+}

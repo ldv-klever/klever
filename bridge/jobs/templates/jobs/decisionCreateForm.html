@@ -91,9 +91,9 @@
     </div>
     <div id="start_decision_form" style="display: none;">
         {% if base_decision %}
-            {% include 'jobs/startDecision.html' with data=start_data decisions=other_decisions base_decision=base_decision %}
+            {% include 'jobs/startDecision.html' with data=start_data decisions=other_decisions base_decision=base_decision has_default=has_default %}
         {% else %}
-            {% include 'jobs/startDecision.html' with data=start_data current_conf=current_conf decisions=other_decisions %}
+            {% include 'jobs/startDecision.html' with data=start_data current_conf=current_conf decisions=other_decisions has_default=has_default %}
         {% endif %}
         <div class="ui one column grid">
             <div class="right aligned column">
@@ -231,6 +231,25 @@
             });
 
             getUrlParameter('state') ? history.back() : history.replaceState(['files'], 'Files state');
+
+            $('#save_conf_as_default_btn').click(function () {
+                $.post("{% url 'jobs:api-create-defconf' %}", {
+                    configuration: start_form.serialize()
+                }, function () {
+                    start_form.addDefaultOption("{% trans 'Default' %}");
+                    success_notify("{% trans 'Default configuration was saved' %}");
+                });
+            });
+            $('#reset_default_conf_btn').click(function () {
+                $.ajax({
+                    url: "{% url 'jobs:api-remove-defconf' %}",
+                    method: "DELETE",
+                    success: function () {
+                        start_form.removeDefaultOption();
+                        success_notify("{% trans 'Default configuration was removed' %}");
+                    }
+                });
+            });
         });
     </script>
 {% endblock %}

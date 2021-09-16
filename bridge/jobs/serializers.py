@@ -34,7 +34,8 @@ from bridge.utils import logger, file_checksum, file_get_or_create, RMQConnect, 
 from bridge.serializers import DynamicFieldsModelSerializer
 
 from jobs.models import (
-    PRESET_JOB_TYPE, Job, Decision, JobFile, FileSystem, UserRole, UploadedJobArchive, PresetJob, PresetFile
+    PRESET_JOB_TYPE, Job, Decision, JobFile, FileSystem, UserRole, UploadedJobArchive, PresetJob, PresetFile,
+    DefaultDecisionConfiguration
 )
 from reports.models import Report, AttrFile, AdditionalSources, CompareDecisionsInfo, DecisionCache
 from service.models import Task
@@ -362,3 +363,34 @@ class UpdateDecisionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Decision
         fields = ('title',)
+
+
+class DefaultDecisionConfigurationSerializer(serializers.ModelSerializer):
+    user = fields.HiddenField(default=serializers.CurrentUserDefault())
+    configuration = fields.CharField()
+
+    def validate(self, attrs):
+        # Get configuration
+        conf_str = attrs.pop('configuration')
+        try:
+            configuration = GetConfiguration(user_conf=json.loads(conf_str)).for_json()
+        except Exception as e:
+            logger.exception(e)
+            raise exceptions.ValidationError({'configuration': _('The configuration has wrong format')})
+
+        # Save configuration file
+        conf_db = file_get_or_create(json.dumps(
+            configuration, indent=2, sort_keys=True, ensure_ascii=False
+        ), 'configuration.json', JobFile)
+        attrs['file_id'] = conf_db.id
+
+        return attrs
+
+    def to_representation(self, instance):
+        if isinstance(instance, self.Meta.model):
+            return {'pk': instance.pk}
+        return {}
+
+    class Meta:
+        model = DefaultDecisionConfiguration
+        fields = ('user', 'configuration')

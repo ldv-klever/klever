@@ -20,12 +20,13 @@ import mimetypes
 
 from difflib import unified_diff
 
+from django.conf import settings
 from django.db import transaction
 from django.http.response import HttpResponse, StreamingHttpResponse
 from django.urls import reverse
 from django.utils.translation import ugettext as _
 
-from rest_framework import exceptions
+from rest_framework import exceptions, status
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.generics import (
     get_object_or_404, RetrieveAPIView, ListAPIView, CreateAPIView, UpdateAPIView, DestroyAPIView
@@ -44,11 +45,12 @@ from bridge.utils import logger
 from bridge.CustomViews import TemplateAPIRetrieveView, TemplateAPIListView, StreamingResponseAPIView
 from tools.profiling import LoggedCallMixin
 
-from jobs.models import Job, JobFile, UploadedJobArchive, PresetJob, Decision
+from jobs.models import Job, JobFile, UploadedJobArchive, PresetJob, Decision, DefaultDecisionConfiguration
 from jobs.serializers import (
     decision_status_changed, create_default_decision,
     PresetJobDirSerializer, JobFileSerializer, CreateJobSerializer, UpdateJobSerializer,
-    DecisionStatusSerializerRO, CreateDecisionSerializer, UpdateDecisionSerializer, RestartDecisionSerializer
+    DecisionStatusSerializerRO, CreateDecisionSerializer, UpdateDecisionSerializer, RestartDecisionSerializer,
+    DefaultDecisionConfigurationSerializer
 )
 from jobs.configuration import get_configuration_value, GetConfiguration
 from jobs.Download import KleverCoreArchiveGen, UploadJobsScheduler, JobArchiveGenerator, get_jobs_to_download
@@ -144,7 +146,14 @@ class GetConfigurationView(LoggedCallMixin, APIView):
             )
             conf_kwargs = {'file_conf': decision.configuration.file}
         elif 'conf_name' in self.request.data:
-            conf_kwargs = {'conf_name': request.data['conf_name']}
+            if self.request.data['conf_name'] == 'default':
+                try:
+                    def_conf_obj = DefaultDecisionConfiguration.objects.select_related('file').get(user=request.user)
+                    conf_kwargs = {'file_conf': def_conf_obj.file.file}
+                except DefaultDecisionConfiguration.DoesNotExist:
+                    conf_kwargs = {'conf_name': settings.DEF_KLEVER_CORE_MODE}
+            else:
+                conf_kwargs = {'conf_name': request.data['conf_name']}
         try:
             return Response(GetConfiguration(**conf_kwargs).configuration)
         except Exception as e:
@@ -379,3 +388,25 @@ class GetJobCoverageTableView(LoggedCallMixin, TemplateAPIRetrieveView):
             instance, self.request.query_params['coverage_id']
         ).statistics
         return context
+
+
+class CreateDefConfAPIView(LoggedCallMixin, CreateAPIView):
+    serializer_class = DefaultDecisionConfigurationSerializer
+    permission_classes = (IsAuthenticated,)
+
+    def create(self, request, *args, **kwargs):
+        try:
+            def_conf = DefaultDecisionConfiguration.objects.get(user=self.request.user)
+            serializer = self.get_serializer(def_conf, data=request.data)
+            success_status = status.HTTP_200_OK
+        except DefaultDecisionConfiguration.DoesNotExist:
+            serializer = self.get_serializer(data=request.data)
+            success_status = status.HTTP_201_CREATED
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=success_status)
+
+
+class RemoveDefConfAPIView(LoggedCallMixin, DestroyAPIView):
+    def get_object(self):
+        return get_object_or_404(DefaultDecisionConfiguration, user=self.request.user)

@@ -214,5 +214,13 @@ class FileSystem(models.Model):
         db_table = 'file_system'
 
 
+class DefaultDecisionConfiguration(models.Model):
+    user = models.OneToOneField(User, models.CASCADE, related_name='decision_conf')
+    file = models.ForeignKey(JobFile, models.CASCADE)
+
+    class Meta:
+        db_table = 'jobs_default_decision_conf'
+
+
 post_delete.connect(remove_instance_files, sender=JobFile)
 post_delete.connect(remove_instance_files, sender=UploadedJobArchive)
