@@ -330,7 +330,7 @@ class CollectionDecoder:
 
         # Check unused recursive subprocesses
         reachable_actions = process.actions.used_actions(enter_subprocesses=True)
-        unrechable_actions = set(map(str, process.actions.final_actions)).difference_update(reachable_actions)
+        unrechable_actions = {a.name for a in process.actions.final_actions}.difference(reachable_actions)
         if unrechable_actions:
             raise RuntimeError("Process {!r} has unreachable actions: {}".\
                                format(str(process), ', '.join(sorted(unrechable_actions))))
