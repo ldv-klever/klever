@@ -59,7 +59,7 @@
             "verifier profile": "reachability",
             "verifier": {
               "name": "CPAchecker",
-              "version": "klever_fixes:38215"
+              "version": "klever_fixes:38277"
             }
           }
         }
@@ -107,7 +107,7 @@
             "verifier profile": "memory checking",
             "verifier": {
               "name": "CPAchecker",
-              "version": "klever_fixes:38215"
+              "version": "klever_fixes:38277"
             }
           }
         }
@@ -361,7 +361,7 @@
                           "verifier profile": "reachability with heap arrays",
                           "verifier": {
                             "name": "CPAchecker",
-                            "version": "klever_fixes:38215"
+                            "version": "klever_fixes:38277"
                           }
                         }
                       }
@@ -688,7 +688,7 @@
                   "verifier profile": "reachability with function pointers",
                   "verifier": {
                     "name": "CPAchecker",
-                    "version": "klever_fixes:38215"
+                    "version": "klever_fixes:38277"
                   }
                 }
               }
@@ -716,7 +716,7 @@
                   "verifier profile": "reachability with heap arrays",
                   "verifier": {
                     "name": "CPAchecker",
-                    "version": "klever_fixes:38215"
+                    "version": "klever_fixes:38277"
                   }
                 }
               }
@@ -736,6 +736,48 @@
                 "linux/memory safety/memory.c"
               ]}
             }]
+          },
+          {
+            "identifier": "memory checking without uncertainty",
+            "description": "...",
+            "template": "memory safety for loadable kernel modules and kernel subsystems",
+            "plugins": [
+              {
+                "name": "RSG",
+                "options": {"models": [
+                  "common/list.c",
+                  "common/test.c",
+                  "linux/alloc/common.c",
+                  "linux/drivers/usb/core/usb/message.c",
+                  "linux/memory safety/memory.c"
+                ]}
+              },
+              {
+                "name": "FVTP",
+                "options": {"verifier profile": "memory checking without uncertainty"}
+              }
+            ]
+          },
+          {
+            "identifier": "memory checking without abstraction for lists",
+            "description": "...",
+            "template": "memory safety for loadable kernel modules and kernel subsystems",
+            "plugins": [
+              {
+                "name": "RSG",
+                "options": {"models": [
+                  "common/list.c",
+                  "common/test.c",
+                  "linux/alloc/common.c",
+                  "linux/drivers/usb/core/usb/message.c",
+                  "linux/memory safety/memory.c"
+                ]}
+              },
+              {
+                "name": "FVTP",
+                "options": {"verifier profile": "memory checking without abstraction for lists"}
+              }
+            ]
           }
         ]
       },

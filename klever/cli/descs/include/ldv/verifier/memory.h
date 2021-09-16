@@ -81,4 +81,6 @@ extern void *ldv_xmalloc_unknown_size(size_t size);
 
 extern void *ldv_reference_xmalloc_unknown_size(size_t size);
 
+extern void *external_allocated_data(void);
+
 #endif /* __LDV_VERIFIER_MEMORY_H */
