@@ -15,6 +15,7 @@
 # limitations under the License.
 #
 
+import copy
 import json
 
 from django.conf import settings
@@ -319,6 +320,14 @@ class GetConfiguration:
             'collect total code coverage': self.configuration['total_coverage'],
             'code coverage details': self.configuration['coverage_details'],
         }
+
+    def for_html(self):
+        html_conf = copy.deepcopy(self.configuration)
+        html_conf['priority'] = dict(PRIORITY)[html_conf['priority']]
+        html_conf['coverage_details'] = dict(COVERAGE_DETAILS)[html_conf['coverage_details']]
+        html_conf['weight'] = dict(DECISION_WEIGHT)[html_conf['weight']]
+        html_conf['cpu_model'] = html_conf['cpu_model'] or '-'
+        return html_conf
 
     def __validate_conf(self, configuration):
         serializer = ConfigurationSerializer(data=configuration)

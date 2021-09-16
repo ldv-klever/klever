@@ -1,0 +1,120 @@
+{% comment "License" %}
+% Copyright (c) 2019 ISP RAS (http://www.ispras.ru)
+% Ivannikov Institute for System Programming of the Russian Academy of Sciences
+%
+% Licensed under the Apache License, Version 2.0 (the "License");
+% you may not use this file except in compliance with the License.
+% You may obtain a copy of the License at
+%
+%    http://www.apache.org/licenses/LICENSE-2.0
+%
+% Unless required by applicable law or agreed to in writing, software
+% distributed under the License is distributed on an "AS IS" BASIS,
+% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+% See the License for the specific language governing permissions and
+% limitations under the License.
+{% endcomment %}
+
+{% load i18n %}
+
+<div class="ui grid">
+    <div class="five wide column">
+        <h4>{% trans 'Scheduling' %}</h4>
+        <div class="ui bulleted list">
+            <div class="item"><b>{% trans 'Job priority' %}</b>: {{ conf.priority }}</div>
+            <div class="item"><b>{% trans 'Tasks scheduler' %}</b>: {{ object.scheduler.get_type_display }}</div>
+            <div class="item"><b>{% trans 'Max solving tasks per a sub-job' %}</b>: {{ conf.max_tasks }}</div>
+        </div>
+    </div>
+    <div class="five wide column">
+        <h4>{% trans 'Operations parallelism' %}</h4>
+        <div class="ui bulleted list">
+            <div class="item"><b>{% trans 'Sub-jobs processing' %}</b>: {{ conf.parallelism.0 }}</div>
+            <div class="item"><b>{% trans 'Tasks generation' %}</b>: {{ conf.parallelism.1 }}</div>
+            <div class="item"><b>{% trans 'Weaving' %}</b>: {{ conf.parallelism.2 }}</div>
+            <div class="item"><b>{% trans 'Results processing' %}</b>: {{ conf.parallelism.3 }}</div>
+        </div>
+    </div>
+    <div class="six wide column">
+        <h4>{% trans 'Resource limits for Klever Core' %}</h4>
+        <div class="ui bulleted list">
+            <div class="item"><b>{% trans 'Memory size' %}</b>: {{ conf.memory }} {% trans 'GB' %}</div>
+            <div class="item"><b>{% trans 'Number of CPU cores' %}</b>: {{ conf.disk_size }}</div>
+            <div class="item"><b>{% trans 'Disk memory size' %}</b>: {{ conf.disk_size }} {% trans 'GB' %}</div>
+            <div class="item"><b>{% trans 'Number of CPU cores' %}</b>: {{ conf.cpu_num }}</div>
+            <div class="item"><b>{% trans 'CPU model' %}</b>: {{ conf.cpu_model }}</div>
+            <div class="item"><b>{% trans 'CPU time for executed commands' %}</b>: {{ conf.cpu_time_exec_cmds }} {% trans 'min' %}</div>
+            <div class="item"><b>{% trans 'Memory size for executed commands' %}</b>: {{ conf.memory_exec_cmds }} {% trans 'GB' %}</div>
+        </div>
+    </div>
+</div>
+<div class="ui divider"></div>
+
+<h4>{% trans 'Logging' %}</h4>
+<div class="ui list">
+    <div class="item">
+        <i class="desktop icon"></i>
+        <div class="content">
+            <div class="header">{% trans 'Console' %}: {{ conf.console_level }}</div>
+            <div class="description filecontent">{{ conf.console_formatter }}</div>
+        </div>
+    </div>
+    <div class="item">
+        <i class="file outline icon"></i>
+        <div class="content">
+            <div class="header">{% trans 'File' %}: {{ conf.file_level }}</div>
+            <div class="description filecontent">{{ conf.file_formatter }}</div>
+        </div>
+    </div>
+</div>
+<div class="ui divider"></div>
+
+<h4>{% trans 'Other settings' %}</h4>
+<div class="ui grid">
+    <div class="eight wide column">
+        <div class="ui list">
+            <div class="item">
+                <i class="{% if conf.keep_intermediate_files %}green check{% else %}red x{% endif %} icon"></i>
+                <div class="content">{% trans 'Keep intermediate files inside the working directory of Klever Core' %}</div>
+            </div>
+            <div class="item">
+                <i class="{% if conf.upload_verifier_files %}green check{% else %}red x{% endif %} icon"></i>
+                <div class="content">{% trans 'Upload verifier input files' %}</div>
+            </div>
+            <div class="item">
+                <i class="{% if conf.upload_other_files %}green check{% else %}red x{% endif %} icon"></i>
+                <div class="content">{% trans 'Upload other intermediate files' %}</div>
+            </div>
+            <div class="item">
+                <i class="{% if conf.ignore_instances %}green check{% else %}red x{% endif %} icon"></i>
+                <div class="content">{% trans 'Ignore other instances of Klever Core' %}</div>
+            </div>
+            <div class="item">
+                <i class="{% if conf.ignore_subjobs %}green check{% else %}red x{% endif %} icon"></i>
+                <div class="content">{% trans 'Ignore failed sub-jobs' %}</div>
+            </div>
+            <div class="item">
+                <i class="{% if conf.total_coverage %}green check{% else %}red x{% endif %} icon"></i>
+                <div class="content">{% trans 'Collect total code coverage' %}</div>
+            </div>
+        </div>
+    </div>
+    <div class="eight wide column">
+        <div class="ui list">
+            <div class="item">
+                <i class="eye icon"></i>
+                <div class="content">
+                    <div class="header">{% trans 'Code coverage details' %}</div>
+                    <div class="description">{{ conf.coverage_details }}</div>
+                </div>
+            </div>
+            <div class="item">
+                <i class="archive icon"></i>
+                <div class="content">
+                    <div class="header">{% trans 'Job reports' %}</div>
+                    <div class="description">{{ conf.weight }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
