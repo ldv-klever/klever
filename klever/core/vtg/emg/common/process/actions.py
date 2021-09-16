@@ -592,6 +592,29 @@ class Actions(collections.UserDict):
 
         return first
 
+    def used_actions(self, root=None, enter_subprocesses=True):
+        assert isinstance(root, BaseAction) or root is None, type(root).__name__
+        used = set()
+
+        if not root:
+            process = {self.initial_action}
+        else:
+            process = {root}
+        while process:
+            a = process.pop()
+
+            if isinstance(a, Operator) and len(a) > 0:
+                for child in a:
+                    process.add(child)
+            elif isinstance(a, Behaviour) and a.kind is Subprocess and a.description and a.description.action and \
+                    enter_subprocesses and a.name not in used:
+                process.add(a.description.action)
+                used.add(a.name)
+            else:
+                used.add(a.name)
+
+        return used
+
     @property
     def final_actions(self):
         """
