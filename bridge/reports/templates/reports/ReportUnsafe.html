@@ -23,6 +23,8 @@
 {% block title %}{% trans 'Unsafe' %}{% endblock %}
 
 {% block head_block %}
+    <script src="{% static 'bridge/js/jquery.mark.min.js' %}"></script>
+
     {% compress js file etv %}
         <script type="text/javascript" src="{% static 'reports/js/source.js' %}"></script>
         <script type="text/javascript" src="{% static 'reports/js/coverage.js' %}"></script>
@@ -185,6 +187,4 @@
         {# Code coverage data statistics modal #}
         {% include 'reports/coverage/coverageDataStatisticsModal.html' with DataStatistics=coverage.data_statistic %}
     {% endif %}
-
-    <span id="no_text_for_search" hidden>{% trans 'Please, select the identifier to search for' %}</span>
 {% endblock %}
