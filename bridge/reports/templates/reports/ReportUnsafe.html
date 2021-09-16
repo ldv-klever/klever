@@ -72,7 +72,6 @@
             {% if coverage %}
                 <a class="ui icon mini basic button" href="{% url 'reports:coverage-download' coverage.coverage.id %}" style="float:left;">{% trans 'Download code coverage' %}</a>
                 {% include 'reports/coverage/coverageNavigation.html' with statistics=coverage %}
-                <br>
             {% endif %}
             <div id="highlight_selection" class="ui mini violet basic button" style="margin-top: 5px;">{% trans 'Highlight selected identifier' %}</div>
         </div>
