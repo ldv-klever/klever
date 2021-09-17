@@ -22,10 +22,11 @@ from difflib import unified_diff
 
 from django.db import transaction
 from django.http.response import HttpResponse, StreamingHttpResponse
+from django.template import loader
 from django.urls import reverse
 from django.utils.translation import ugettext as _
 
-from rest_framework import exceptions
+from rest_framework import exceptions, status
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.generics import (
     get_object_or_404, RetrieveAPIView, ListAPIView, CreateAPIView, UpdateAPIView, DestroyAPIView
@@ -44,13 +45,14 @@ from bridge.utils import logger
 from bridge.CustomViews import TemplateAPIRetrieveView, TemplateAPIListView, StreamingResponseAPIView
 from tools.profiling import LoggedCallMixin
 
-from jobs.models import Job, JobFile, UploadedJobArchive, PresetJob, Decision
+from jobs.models import Job, JobFile, UploadedJobArchive, PresetJob, Decision, DefaultDecisionConfiguration
 from jobs.serializers import (
     decision_status_changed, create_default_decision,
     PresetJobDirSerializer, JobFileSerializer, CreateJobSerializer, UpdateJobSerializer,
-    DecisionStatusSerializerRO, CreateDecisionSerializer, UpdateDecisionSerializer, RestartDecisionSerializer
+    DecisionStatusSerializerRO, CreateDecisionSerializer, UpdateDecisionSerializer, RestartDecisionSerializer,
+    DefaultDecisionConfigurationSerializer
 )
-from jobs.configuration import get_configuration_value, GetConfiguration
+from jobs.configuration import get_configuration_value, get_default_configuration, GetConfiguration
 from jobs.Download import KleverCoreArchiveGen, UploadJobsScheduler, JobArchiveGenerator, get_jobs_to_download
 from jobs.utils import get_unique_job_name, JobAccess, DecisionAccess
 from reports.coverage import DecisionCoverageStatistics
@@ -133,23 +135,24 @@ class RestartDecisionView(LoggedCallMixin, UpdateAPIView):
 class GetConfigurationView(LoggedCallMixin, APIView):
     permission_classes = (IsAuthenticated,)
 
-    def post(self, request):
-        conf_kwargs = {}
-        if 'file_conf' in self.request.FILES:
-            conf_kwargs = {'file_conf': request.FILES['file_conf']}
-        elif 'decision' in self.request.data:
-            decision = get_object_or_404(
-                Decision.objects.select_related('configuration'),
-                pk=self.request.data['decision']
-            )
-            conf_kwargs = {'file_conf': decision.configuration.file}
-        elif 'conf_name' in self.request.data:
-            conf_kwargs = {'conf_name': request.data['conf_name']}
+    def __get_configuration(self, **kwargs):
         try:
-            return Response(GetConfiguration(**conf_kwargs).configuration)
+            return GetConfiguration(**kwargs).configuration
         except Exception as e:
             logger.exception(e)
             raise exceptions.APIException(_('Wrong configuration format'))
+
+    def post(self, request):
+        if 'file_conf' in self.request.FILES:
+            return Response(self.__get_configuration(file_conf=request.FILES['file_conf']))
+        if 'decision' in self.request.data:
+            decision = get_object_or_404(
+                Decision.objects.select_related('configuration').filter(pk=self.request.data['decision'])
+            )
+            return Response(GetConfiguration(file_conf=decision.configuration.file).configuration)
+        if self.request.data.get('conf_name', 'default') == 'default':
+            return Response(get_default_configuration(self.request.user).configuration)
+        return Response(self.__get_configuration(conf_name=request.data['conf_name']))
 
 
 class StartJobDefValueView(LoggedCallMixin, APIView):
@@ -166,15 +169,15 @@ class StartDefaultDecisionView(LoggedCallMixin, APIView):
             raise exceptions.PermissionDenied(_("You don't have an access to start decision of this job"))
         return job
 
-    def get_configuration(self):
-        if 'file_conf' in self.request.FILES:
-            return GetConfiguration(file_conf=self.request.FILES['file_conf']).for_json()
-        return GetConfiguration().for_json()
-
     def post(self, request, **kwargs):
         try:
             job = self.get_job(**kwargs)
-            configuration = self.get_configuration()
+
+            if 'file_conf' in self.request.FILES:
+                configuration = GetConfiguration(file_conf=self.request.FILES['file_conf']).for_json()
+            else:
+                configuration = get_default_configuration(self.request.user).for_json()
+
             decision = create_default_decision(request, job, configuration)
             decision_status_changed(decision)
         except Exception as e:
@@ -379,3 +382,34 @@ class GetJobCoverageTableView(LoggedCallMixin, TemplateAPIRetrieveView):
             instance, self.request.query_params['coverage_id']
         ).statistics
         return context
+
+
+class CreateDefConfAPIView(LoggedCallMixin, CreateAPIView):
+    serializer_class = DefaultDecisionConfigurationSerializer
+    permission_classes = (IsAuthenticated,)
+
+    def create(self, request, *args, **kwargs):
+        try:
+            def_conf = DefaultDecisionConfiguration.objects.get(user=self.request.user)
+            serializer = self.get_serializer(def_conf, data=request.data)
+            success_status = status.HTTP_200_OK
+        except DefaultDecisionConfiguration.DoesNotExist:
+            serializer = self.get_serializer(data=request.data)
+            success_status = status.HTTP_201_CREATED
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=success_status)
+
+
+class GetConfHtmlAPIView(LoggedCallMixin, RetrieveAPIView):
+    # TODO: Decision view permission
+    permission_classes = (IsAuthenticated,)
+
+    def get_queryset(self):
+        return Decision.objects.select_related('configuration', 'scheduler')
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        conf_data = GetConfiguration(file_conf=instance.configuration.file).for_html()
+        template = loader.get_template('jobs/viewDecision/configuration.html')
+        return HttpResponse(template.render({'conf': conf_data, 'object': instance}, request))
