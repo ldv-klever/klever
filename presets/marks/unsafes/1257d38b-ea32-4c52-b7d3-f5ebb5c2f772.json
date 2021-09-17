@@ -18,7 +18,7 @@
     {
       "is_compare": true,
       "name": "Declaration",
-      "value": "struct pxa168_eth_private *(?.tx_curr_desc_q)"
+      "value": "struct pxa168_eth_private (?.tx_curr_desc_q)"
     }
   ],
   "description": "cancel_work_sync() should disable execution of the timeout work (pxa168_eth_tx_timeout_task).",

@@ -100,6 +100,30 @@ def test_savepoint_uniqueness(source, raw_model):
                                                                      ProcessCollection())
 
 
+def test_failures(source, raw_model):
+    # Check for unused labels
+    raw_model1 = copy.deepcopy(raw_model)
+    raw_model1['environment processes']['c1/p2']['labels']['unused_label'] = {'declaration': 'int x'}
+    with pytest.raises(RuntimeError):
+        CollectionDecoder(logging, dict()).parse_event_specification(source, json.loads(json.dumps(raw_model1)),
+                                                                     ProcessCollection())
+    # Check for unused actions
+    raw_model2 = copy.deepcopy(raw_model)
+    raw_model2['environment processes']['c1/p2']['actions']['new'] = {'comment': 'Test', "statements": []}
+    with pytest.raises(RuntimeError):
+        CollectionDecoder(logging, dict()).parse_event_specification(source, json.loads(json.dumps(raw_model2)),
+                                                                     ProcessCollection())
+
+    # todo: Implement unused recursive subprocess
+    raw_model3 = copy.deepcopy(raw_model)
+    raw_model3['environment processes']['c1/p2']['actions']['test'] = {
+        'comment': 'Test', "process": "(<read> | <read>).{test}"
+    }
+    with pytest.raises(RuntimeError):
+        CollectionDecoder(logging, dict()).parse_event_specification(source, json.loads(json.dumps(raw_model3)),
+                                                                     ProcessCollection())
+
+
 def _compare_models(raw1, raw2):
     _compare_process(raw1["main process"], raw2["main process"])
     for attr in ("functions models", "environment processes"):

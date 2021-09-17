@@ -18,7 +18,7 @@
     {
       "is_compare": true,
       "name": "Declaration",
-      "value": "txq_deinit::void *txq_deinit::*__CPAchecker_TMP_2"
+      "value": "void *txq_deinit::*__CPAchecker_TMP_2"
     }
   ],
   "description": "https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/commit/?id=0571a753cb07",

@@ -52,7 +52,7 @@
       "requirement specifications": ["memory safety"],
       "ideal verdicts": [{
         "ideal verdict": "safe",
-        "comment": "CPAchecker IllegalArgumentException."
+        "comment": "Timeout."
       }],
       "data": {"bug identifier": "b7fdd208687b~"}
     },
@@ -525,7 +525,10 @@
       "targets": ["drivers/video/fbdev/neofb.ko"],
       "specifications set": "5.5",
       "requirement specifications": ["memory safety"],
-      "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "ideal verdicts": [{
+        "ideal verdict": "unsafe",
+        "comment": "Timeout after updating CPAchecker to https://github.com/sosy-lab/cpachecker/commit/66ec09899287."
+      }],
       "data": {"bug identifier": "edcb3895a751~"}
     },
     {
@@ -652,7 +655,7 @@
       "requirement specifications": ["concurrency safety"],
       "ideal verdicts": [{
         "ideal verdict": "unsafe",
-        "comment": "Target bug is found (5 unsafes). In addition, there is non-target bug (2 unsafes) and false alarm due to \"Verifier - CPALockator\" (CPALockator does not support atomic values)."
+        "comment": "Target bug is found (5 unsafes). In addition, there is non-target bug (2 unsafes), false alarm due to \"Verifier - CPALockator\" (CPALockator does not support atomic values) and false alarm due to \"Verifier - CPALockator - Predicate analysis - Memory model\"."
       }],
       "data": {"bug identifier": "e1c3cdb26ab8~"}
     },
@@ -663,7 +666,7 @@
       "requirement specifications": ["concurrency safety"],
       "ideal verdicts": [{
         "ideal verdict": "safe",
-        "comment": "Non-target bug (2 unsafes), false alarms due to \"EMG - Specs - Bad sequence\" (5 unsafes, most likely EMG should invoke file_operations callbacks after cdev_device_add() rather than after cdev_init()) and false alarm due to \"Verifier - CPALockator\" (CPALockator does not support atomic values)."
+        "comment": "Non-target bug (2 unsafes), false alarms due to \"EMG - Specs - Bad sequence\" (5 unsafes, most likely EMG should invoke file_operations callbacks after cdev_device_add() rather than after cdev_init()), false alarm due to \"Verifier - CPALockator\" (CPALockator does not support atomic values) and false alarm due to \"Verifier - CPALockator - Predicate analysis - Memory model\"."
       }],
       "data": {"bug identifier": "e1c3cdb26ab8~"}
     },

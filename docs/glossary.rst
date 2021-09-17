@@ -25,6 +25,14 @@ Glossary
         Klever generates each environment model on the basis of specifications and it is represented as a number of
         additional C source files (*models*) bound with original ones through instrumentation.
 
+    Program fragment
+        Software verification tools can not check nontrivial requirements for large programs in a reasonable time.
+        So Klever decomposes target programs into moderate-sized program fragments and generates independent
+        verification tasks for all of them.
+        Each program fragment represents a subset of program source files and information how to build them.
+        Program fragments can intersect with each other.
+        Linux kernel loadable modules can serve as a good example of program fragments.
+
     $KLEVER_SRC
         A path to a root directory of a Klever source tree.
 

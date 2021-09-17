@@ -436,7 +436,7 @@ class JSTreeConverter:
     def __sort_children(self, obj):
         if not obj.get('children'):
             return
-        obj['children'].sort(key=lambda x: (x['type'] is 'file', x['text']))
+        obj['children'].sort(key=lambda x: (x['type'] == 'file', x['text']))
         for child in obj['children']:
             self.__sort_children(child)
 

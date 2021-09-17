@@ -52,19 +52,19 @@ For instance, for the Linux kernel they are as follows:
 * Mailing lists, including `Linux Kernel Mailing List <https://lkml.org/>`__.
 * The history of development in Git.
 
-Using the latter source you can bugs fixed in target programs.
+Using the latter source you can find out bugs fixed in target programs.
 These bugs can correspond to common weaknesses of C programs like buffer overflows as well as they can implicitly refer
 to specific requirements, in particular rules of correct usage of specific APIs.
 
-Technically it is possible to check very different requirements within the same specification, we do not recommend to do
-this due to some limitations of software model checkers (*verification tools*).
+Technically it is possible to check very different requirements within the same specification, but we do not recommend
+to do this due to some limitations of software model checkers (*verification tools*).
 Nevertheless, you can formulate and check requirements related to close API elements together.
 
 Let's consider rules of correct usage of the module reference counter API in the Linux kernel.
 For brevity we will not consider some elements of this API.
 
 Linux loadable kernel modules can be unloaded just when there is no more processes using them.
-To notify the Linux kernel that module is necessary one should call :c:func:`try_module_get()`.
+One should call :c:func:`try_module_get()` in order to notify the Linux kernel that module is still in use.
 
 .. c:function:: bool try_module_get(struct module *module)
 
@@ -105,12 +105,12 @@ Development of each requirements specification includes the following steps:
 
 We recommend to develop new requirement specifications on the basis of existing ones to avoid various tricky issues and
 to speed up the whole process considerably.
-Also, we recommend you to deploy Klever in the development mode.
+Also, we recommend you to deploy Klever in the *development* mode (:ref:`local_deploy`).
 In this case you will get much more debug information that can help you to identify various issues.
 Moreover, you will not even need to update your Klever installation.
 Though Web UI supports rich means for creating, editing and other operations with verification job files including
 specifications, we recommend you to develop requirement specifications directly within :term:`$KLEVER_SRC` by means of
-some IDE.
+some IDE or editor.
 To further reduce manual efforts using such the workflow, you can temporarily modify necessary preset verification jobs,
 e.g. to specify requirement specifications and program fragments of interest within :file:`job.json`.
 Do not forget to not commit these temporary changes to the repository!
@@ -118,14 +118,15 @@ Do not forget to not commit these temporary changes to the repository!
 Developing Model
 ^^^^^^^^^^^^^^^^
 
-First of all you should develop a model of a considered API and specify preconditions of API usage within that model.
+First of all you should develop a model of a considered API and specify pre- and postconditions of API usage within that
+model.
 Klever suggests to use the C programming language for this purpose while one can use some library functions having a
 special semantics for software model checkers, e.g. for modeling nondeterministic behavior, for using sets and maps,
 etc.
 
 The model includes a *model state* that is represented as a set of global variables usually.
-Besides, it includes *model functions* that change the model state and check for preconditions according to semantics of
-the modelled API.
+Besides, it includes *model functions* that change the model state and check for pre- and postconditions according to
+semantics of the modelled API.
 
 Ideally the model behavior should correspond to behavior of the corresponding implementation.
 However in practice it is rather difficult to achieve this due to complexity of the implementation and restrictions of
@@ -133,11 +134,11 @@ verification tools.
 You can extend the implementation behavior in the model.
 For example, if a function can return one of several error codes in the form of the corresponding negative integers,
 the model can return any non-positive number in case of errors.
-It is not recommended to narrow the implementation behavior in the model (e.g. always return 0 though the
+It is not recommended to narrow down the implementation behavior in the model (e.g. always return 0 though the
 implementation can return values other than 0) as it can result in some paths will not be considered and the overall
 verification quality will decrease.
 
-In the example below there is the model state represented by global variable **ldv_module_refcounter** initialized by 1.
+In the example below there is the model state represented by global variable **ldv_module_refcounter** initialized by 0.
 This variable is changed within model functions **ldv_try_module_get()** and **ldv_module_put()** according to the
 semantics of the corresponding API.
 
@@ -146,7 +147,7 @@ The first one is within **ldv_module_put()**.
 It is intended to find out cases when modules decrement the reference counter without incrementing it first.
 The second check is within **ldv_check_final_state()** invoked by the :term:`environment model <Environment model>`
 after modules are unloaded.
-It tracks that modules should decrement the reference counter to its initial value before finishing their operation.
+It tracks whether modules decrement reference counters to their initial values before finishing their operation.
 
 .. code-block:: c
 
@@ -240,7 +241,10 @@ functions **ldv_try_module_get()** and **ldv_module_put()**.
         ldv_module_put(module);
     }
 
-It is not hard to accomplish this aspect file with bingins for static inline stubs of these functions.
+It is not hard to accomplish this aspect file with bindings for static inline stubs of these functions.
+
+The aspect file above contains declarations of model functions.
+You can place them into a separate header file and include that file into both the C file and the aspect file.
 
 Description of New Requirements Specification
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

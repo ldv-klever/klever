@@ -18,7 +18,7 @@
     {
       "is_compare": true,
       "name": "Declaration",
-      "value": "struct jz4780_dma_chan *(?.id)"
+      "value": "struct jz4780_dma_chan (?.id)"
     }
   ],
   "description": "https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/commit/?id=6d6018fc30be",

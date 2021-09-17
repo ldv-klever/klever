@@ -564,7 +564,7 @@ class MarksTableBase:
     def marks_data(self):
         cnt = (self.page.number - 1) * self.paginator.per_page + 1
 
-        columns = ['checkbox', 'number'] if self.is_manager else ['number']
+        columns = ['checkbox', 'number']
         columns.extend(self.view['columns'])
 
         # We collecting attributes from separate request to ensure the order of attributes columns is right

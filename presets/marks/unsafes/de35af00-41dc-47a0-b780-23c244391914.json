@@ -18,7 +18,7 @@
     {
       "is_compare": true,
       "name": "Declaration",
-      "value": "ldv_set_bit::unsigned long *ldv_set_bit::*addr"
+      "value": "unsigned long *ldv_set_bit::*addr"
     }
   ],
   "description": "Likely pxa168_eth_start_xmit()/pxa168_eth_netpoll() should not be invoked after napi_disable() and netif_carrier_off().",

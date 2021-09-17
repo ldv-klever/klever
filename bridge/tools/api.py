@@ -29,6 +29,7 @@ from rest_framework.exceptions import APIException
 from bridge.access import ManagerPermission
 from tools.profiling import DBLogsAnalizer
 from tools.utils import ParseReportsLogs
+from tools.secret import FixOldCoverage
 
 
 class CalculateDBLogStatisticsView(APIView):
@@ -83,3 +84,12 @@ class LogContentAPIView(APIView):
                 fp.seek(0)
             content = fp.read().decode('utf-8')
         return Response({'content': content, 'position': new_position, 'reload': reload_log})
+
+
+class FixOldCoverageAPIView(APIView):
+    permission_classes = (ManagerPermission,)
+
+    def post(self, request):
+        fixer = FixOldCoverage()
+        fixer.fix_all()
+        return Response({'number': fixer.count})

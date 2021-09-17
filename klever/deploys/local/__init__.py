@@ -26,7 +26,8 @@ from klever.deploys.utils import check_deployment_configuration_file, get_logger
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('action', choices=['install', 'update', 'reinstall', 'uninstall'], help='Action to be executed.')
+    parser.add_argument('action', choices=['install', 'update', 'reinstall', 'uninstall'],
+                        help='Action to be executed.')
     parser.add_argument('mode', choices=['development', 'production', 'testing'], nargs='?', default='production',
                         help='Mode for which action to be executed (default: "%(default)s").')
     parser.add_argument('--non-interactive', default=False, action='store_true',
@@ -38,6 +39,9 @@ def main():
     parser.add_argument('--source-directory', default=os.getcwd(),
                         help='Path to Klever source directory (default: "%(default)s").')
     parser.add_argument('--deployment-directory', required=True, help='Path to Klever deployment directory.')
+    parser.add_argument('--data-directory', help='Path to directory where Klever will search for build bases. Please,' +
+                                                 ' use this option carefully since it will abandon any deployed build' +
+                                                 ' bases if so.')
     parser.add_argument('--update-packages', default=False, action='store_true',
                         help='Update packages for action "update" (default: "%(default)s"). ' +
                              'This option has no effect for action "install".')

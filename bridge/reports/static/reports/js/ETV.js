@@ -20,6 +20,7 @@ $(document).ready(function () {
         data_window = $('#ETV_data');
 
     function unselect_etv_line() {
+        etv_window.find('.ETV_OpenEye.pink').switchClass('pink', 'violet');
         etv_window.find('.ETVSelectedLine').removeClass('ETVSelectedLine');
         etv_window.find('.ETV_LINE_Note_Selected').removeClass('ETV_LINE_Note_Selected');
         data_window.empty();
@@ -180,6 +181,14 @@ $(document).ready(function () {
         unselect_etv_line();
 
         let node = $(this).parent().parent();
+        node[0].classList.forEach((c_name) => {
+            console.log(c_name);
+            if (c_name.startsWith('scope-')) {
+                const scope_id = c_name.replace('scope-', '');
+                $(`span[data-scope="${scope_id}"`).find('.ETV_OpenEye').switchClass('violet', 'pink');
+            }
+        });
+
         // Select clicked line
         node.addClass('ETVSelectedLine');
 
@@ -266,4 +275,14 @@ $(document).ready(function () {
 
     // Initialize coverage
     new CoverageProcessor(source_processor, '#CoverageDataContent', '#CoverageStatisticsTable', unselect_etv_line);
+
+    $('#highlight_selection').click(function () {
+        const codeSelector = etv_window.find('.ETV_LC');
+        codeSelector.unmark();
+
+        const word = source_processor.markSelection(window.getSelection().toString());
+        if (word) {
+            codeSelector.mark(word, {caseSensitive: true});
+        }
+    });
 });

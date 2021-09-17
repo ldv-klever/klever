@@ -270,3 +270,10 @@
     font-size: 0.8em;
     white-space: nowrap;
 }
+
+mark {
+    border: 1px solid rebeccapurple;
+    border-radius: 2px;
+    background-color: #f3edd8;
+    color: inherit;
+}

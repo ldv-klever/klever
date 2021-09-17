@@ -27,7 +27,8 @@ function SourceProcessor(container, title_container, history_container, data_con
     this.url = null;
     this.cov_data_url = null;
     this.errors = {
-        line_not_found: 'Line not found'
+        line_not_found: 'Line not found',
+        no_text_for_search: 'Select something first'
     };
     this.selected_line = null;
     return this;
@@ -37,6 +38,7 @@ SourceProcessor.prototype.initialize = function(ref_click_callback, source_url) 
     let instance = this;
 
     if (PAGE_ERRORS && PAGE_ERRORS.line_not_found) instance.errors.line_not_found = PAGE_ERRORS.line_not_found;
+    if (PAGE_ERRORS && PAGE_ERRORS.no_text_for_search) instance.errors.no_text_for_search = PAGE_ERRORS.no_text_for_search;
 
     instance.ref_click_callback = ref_click_callback;
     instance.url = source_url;
@@ -257,4 +259,24 @@ SourceProcessor.prototype.get_source = function(line, filename, save_history=tru
             }
         });
     }
-};
+}
+
+SourceProcessor.prototype.markSelection = function(selection) {
+    const codeSelector = this.container.find('.SrcCode');
+    codeSelector.unmark();
+
+    const words = selection.split(new RegExp('\\s+'));
+    let word = '';
+    for (let i = 0; i < words.length; i++) {
+        if (words[i]) {
+            word = words[i];
+            break;
+        }
+    }
+    if (!word.length) {
+        err_notify(this.errors.no_text_for_search);
+        return null;
+    }
+    codeSelector.mark(word, {caseSensitive: true});
+    return word;
+}

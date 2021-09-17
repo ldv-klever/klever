@@ -46,12 +46,18 @@ $(document).ready(function () {
         });
     }
 
+    let is_rename_modal_open = false;
+
     // Activate rename decision modal
     let rename_decision_modal = $('#rename_decision_modal');
-    rename_decision_modal.modal({transition: 'slide down', autofocus: false, closable: false})
-        .modal('attach events', '#rename_decision_btn', 'show');
+    rename_decision_modal.modal({transition: 'slide down', autofocus: false, closable: false});
+    $('#rename_decision_btn').click(function () {
+        rename_decision_modal.modal('show');
+        is_rename_modal_open = true;
+    });
     rename_decision_modal.find('.modal-cancel').click(function () {
-        rename_decision_modal.modal('hide')
+        rename_decision_modal.modal('hide');
+        is_rename_modal_open = false;
     });
     rename_decision_modal.find('.modal-confirm').click(function () {
         $.ajax({
@@ -130,6 +136,7 @@ $(document).ready(function () {
     let interval = setInterval(function () {
         if ($.active > 0) return false;
         if (is_filters_open) return false;
+        if (is_rename_modal_open) return false;
         if (autoupdate_btn.data('status') === 'on') {
             // Autoupdate is turned on
             update_decision_results(interval);

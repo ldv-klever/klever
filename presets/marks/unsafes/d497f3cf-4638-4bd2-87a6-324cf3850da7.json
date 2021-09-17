@@ -3,7 +3,7 @@
     {
       "is_compare": true,
       "name": "Declaration",
-      "value": "ldv_clear_bit::unsigned long *ldv_clear_bit::*addr"
+      "value": "unsigned long *ldv_clear_bit::*addr"
     },
     {
       "is_compare": true,

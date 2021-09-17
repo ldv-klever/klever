@@ -16,9 +16,11 @@
 # limitations under the License.
 #
 
+import errno
 import glob
 import os
 import subprocess
+import sys
 
 from klever.deploys.utils import execute_cmd, get_logger
 
@@ -64,13 +66,15 @@ def prepare_env(logger, deploy_dir):
     try:
         execute_cmd(logger, 'postgresql-setup', '--initdb', '--unit', 'postgresql')
     except FileNotFoundError:
-        # postgresql-setup may not be present in the system
-        pass
+        # postgresql-setup may not be present in the system. On some systems like openSUSE it is necessary to start the
+        # PostgreSQL service at least once so that necessary initialization will be performed automatically.
+        execute_cmd(logger, 'service', 'postgresql', 'restart')
     except subprocess.CalledProcessError:
         # postgresql-setup may fail if it was already executed before
         pass
 
-    # Search for pg_hba_conf_file in all possible locations
+    # Search for pg_hba.conf in all possible locations
+    pg_hba_conf_file = None
     for path in ('/etc/postgresql', '/var/lib/pgsql/data'):
         try:
             pg_hba_conf_file = execute_cmd(logger, 'find', path, '-name', 'pg_hba.conf', get_output=True).rstrip()
@@ -88,6 +92,10 @@ def prepare_env(logger, deploy_dir):
                 fp.write(line)
 
         execute_cmd(logger, 'service', 'postgresql', 'restart')
+
+    if not pg_hba_conf_file:
+        logger.error('Could not find PostgreSQL configuration file')
+        sys.exit(errno.EINVAL)
 
     logger.debug('Start and enable PostgreSQL service')
     execute_cmd(logger, 'systemctl', 'start', 'postgresql')

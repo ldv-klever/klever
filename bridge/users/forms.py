@@ -138,8 +138,8 @@ class EditProfileForm(FormColumnsMixin, forms.ModelForm):
     form_columns = (
         ('new_password1', 'new_password2', 'email', 'first_name', 'last_name'),
         (
-            'accuracy', 'data_format', 'language', 'timezone', 'assumptions',
-            'triangles', 'coverage_data', 'default_threshold', 'declarations_number'
+            'accuracy', 'data_format', 'language', 'timezone', 'assumptions', 'triangles',
+            'coverage_data', 'default_threshold', 'declarations_number', 'notes_level'
         )
     )
     error_messages = {
@@ -197,7 +197,7 @@ class EditProfileForm(FormColumnsMixin, forms.ModelForm):
         fields = (
             'email', 'first_name', 'last_name', 'data_format', 'language',
             'accuracy', 'assumptions', 'triangles', 'coverage_data',
-            'default_threshold', 'declarations_number'
+            'default_threshold', 'declarations_number', 'notes_level'
         )
         widgets = {
             'data_format': SematicUISelect(),

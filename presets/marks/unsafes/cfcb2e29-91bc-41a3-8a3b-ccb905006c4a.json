@@ -14,6 +14,11 @@
       "is_compare": true,
       "name": "Requirements specification",
       "value": "concurrency safety"
+    },
+    {
+      "is_compare": true,
+      "name": "Declaration",
+      "value": "struct via_crdr_mmc_host (?.quirks)"
     }
   ],
   "description": "Non-target bug. Target bug in via_sd_suspend() could not be found since EMG generates emg_pm_pm_ops_scenario_via_sd_pm_ops(), but it does not invoke it ever.",

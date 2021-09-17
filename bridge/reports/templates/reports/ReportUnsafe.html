@@ -23,6 +23,8 @@
 {% block title %}{% trans 'Unsafe' %}{% endblock %}
 
 {% block head_block %}
+    <script src="{% static 'bridge/js/jquery.mark.min.js' %}"></script>
+
     {% compress js file etv %}
         <script type="text/javascript" src="{% static 'reports/js/source.js' %}"></script>
         <script type="text/javascript" src="{% static 'reports/js/coverage.js' %}"></script>
@@ -71,6 +73,7 @@
                 <a class="ui icon mini basic button" href="{% url 'reports:coverage-download' coverage.coverage.id %}" style="float:left;">{% trans 'Download code coverage' %}</a>
                 {% include 'reports/coverage/coverageNavigation.html' with statistics=coverage %}
             {% endif %}
+            <div id="highlight_selection" class="ui mini violet basic button" style="margin-top: 5px;">{% trans 'Highlight selected identifier' %}</div>
         </div>
     </div>
 

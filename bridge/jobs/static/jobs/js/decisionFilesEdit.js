@@ -198,27 +198,35 @@ FilesTree.prototype.upload_file = function(data, on_success, on_error) {
 FilesTree.prototype.commit_file = function() {
     let instance = this;
 
-    // The file wasn't changed
-    if (instance.editor_status.is(':hidden')) return;
+    return new Promise((resolve, reject) => {
+        // The file wasn't changed
+        if (instance.editor_status.is(':hidden')) return;
 
-    let node = instance.tree_obj.get_selected(true)[0];
+        let node = instance.tree_obj.get_selected(true)[0];
 
-    // No selected node
-    if (!node) return;
+        // No selected node
+        if (!node) {
+            reject("There are no selected node");
+            return;
+        }
 
-    let data = new FormData(), content = instance.mirror.getValue();
-    data.append('file', new File([new Blob([content])], node.text));
+        let data = new FormData(), content = instance.mirror.getValue();
+        data.append('file', new File([new Blob([content])], node.text));
 
-    instance.upload_file(data, function (hash_sum) {
-        node.data = {hashsum: hash_sum};
-        let cached = instance.editor_cache.find('span[data-hashsum="' + hash_sum + '"]');
+        instance.upload_file(data, function (hash_sum) {
+            node.data = {hashsum: hash_sum};
+            let cached = instance.editor_cache.find('span[data-hashsum="' + hash_sum + '"]');
 
-        // Caching file content
-        if (!cached.length) instance.editor_cache.append(
-            $('<span>').text(content).data('hashsum', node.data.hashsum)
-        );
-        success_notify(instance.messages.file_commited);
-        instance.editor_status.hide();
+            // Caching file content
+            if (!cached.length) instance.editor_cache.append(
+                $('<span>').text(content).data('hashsum', node.data.hashsum)
+            );
+            success_notify(instance.messages.file_commited);
+            instance.editor_status.hide();
+            resolve();
+        }, () => {
+            reject("File uploading failed");
+        });
     });
 };
 
@@ -429,7 +437,11 @@ FilesTree.prototype.initialize = function (data) {
     instance.mirror = CodeMirror(function (elt) { instance.editor_display.append(elt) }, {
         mode: {name: "javascript", json: true}, theme: "midnight", lineNumbers: true,
         readOnly: true, extraKeys: {
-            [commit_file_key]: function () { instance.commit_file(); }}
+            [commit_file_key]: function () {
+                instance.commit_file().catch(err => {
+                    err_notify(err);
+                });
+            }}
     });
     instance.mirror.setSize('100%', '85vh');
     instance.mirror.on('change', function (doc, changeObj) {

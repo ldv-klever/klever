@@ -18,7 +18,7 @@
     {
       "is_compare": true,
       "name": "Declaration",
-      "value": "struct mport_cdev_priv *(?.dmach)"
+      "value": "struct mport_cdev_priv (?.dmach)"
     }
   ],
   "description": "Non-target bug.",
