@@ -63,6 +63,7 @@ def translate_intermediate_model(logger, conf, avt, source, collection):
     conf['translation options'].setdefault('code additional aspects', list())
     conf['translation options'].setdefault('additional headers', DEFAULT_INCLUDE_HEADERS)
     conf['translation options'].setdefault('self parallel processes', False)
+    conf['translation options'].setdefault('ignore missing program files', False)
 
     # Make a separate directory
     model_path = str(collection.name)
@@ -125,6 +126,9 @@ def translate_intermediate_model(logger, conf, avt, source, collection):
         if process.file == 'environment model':
             process.file = entry_file
 
+    # Initalize code representation
+    cmodel = CModel(logger, conf, conf['main working directory'], files, entry_point_name, entry_file)
+
     # Then convert into proper format
     for file in additional_code:
         additional_code[file]['declarations'] = [val if val.endswith('\n') else val + '\n'
@@ -132,7 +136,7 @@ def translate_intermediate_model(logger, conf, avt, source, collection):
 
         val = additional_code[file]['definitions']
         additional_code[file]['definitions'] = list()
-        for item in val.values():
+        for name, item in val.items():
             if isinstance(item, list):
                 additional_code[file]['definitions'].extend(item)
             elif isinstance(item, str):
@@ -140,6 +144,11 @@ def translate_intermediate_model(logger, conf, avt, source, collection):
                 pth = find_file_or_dir(logger, conf['main working directory'], item)
                 with open(pth, 'r', encoding='utf-8') as fp:
                     additional_code[file]['definitions'].extend(fp.readlines() + ["\n"])
+            elif isinstance(item, dict):
+                # Generate wrappers or do any other transformations
+                func = cmodel.create_wrapper(name, item['wrapper'], item['declaration'])
+                additional_code[file]['definitions'].extend(func.define() + ["\n"])
+                additional_code['environment model']['declarations'].append(func.declare(extern=True)[0] + "\n")
             else:
                 raise ValueError("Expect either a list of string as a definition in intermediate model specification of"
                                  " a path name but got {!r}".format(item))
@@ -148,9 +157,6 @@ def translate_intermediate_model(logger, conf, avt, source, collection):
     if 'environment model' in additional_code:
         additional_code[entry_file] = additional_code['environment model']
         del additional_code['environment model']
-
-    # Initalize code representation
-    cmodel = CModel(logger, conf, conf['main working directory'], files, entry_point_name, entry_file)
 
     # Add common headers provided by a user
     for file in files:
