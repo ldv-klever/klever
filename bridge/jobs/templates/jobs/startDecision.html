@@ -21,34 +21,27 @@
     <div class="four wide column">
         <div class="buttons">
             <div id="save_conf_as_default_btn" class="ui small basic violet button">{% trans 'Save as default' %}</div>
-            <div id="reset_default_conf_btn" class="ui small basic red button"{% if not has_default %} style="display: none"{% endif %}>{% trans 'Reset default' %}</div>
+            <div id="reset_default_conf_btn" class="ui small basic red button"{% if not data.has_default %} style="display: none"{% endif %}>{% trans 'Reset default' %}</div>
         </div>
     </div>
     <div class="six wide column right aligned">
         <div id="upload_file_conf_form" style="display: none;">
             <span class="ui violet button btn-file">{% trans 'Browse' %}<input id="file_conf" type="file"></span>
         </div>
-        <div id="select_lastconf_form"{% if not base_decision %} style="display: none;"{% endif %}>
+        <div id="select_lastconf_form"{% if not data.base_decision %} style="display: none;"{% endif %}>
             <select id="lastconf_select" class="ui dropdown">
-                {% for decision in decisions %}
-                    <option value="{{ decision.id }}"{% if base_decision and base_decision.id == decision.id %} selected{% endif %} >{{ decision.name }}</option>
+                {% for decision in data.decisions %}
+                    <option value="{{ decision.id }}"{% if data.base_decision and data.base_decision.id == decision.id %} selected{% endif %} >{{ decision.name }}</option>
                 {% endfor %}
             </select>
         </div>
     </div>
     <div class="six wide column right aligned">
         <label for="default_configs"></label>
-        <select id="default_configs" class="ui dropdown">
-            {% if has_default %}
-                <option value="default"{% if current_conf and current_conf == 'default' %} selected{% endif %}>{% trans 'Default' %}</option>
-            {% endif %}
-
+        <select id="default_configs" class="ui dropdown" data-defmode="{{ data.default_mode }}">
             {% for conf in data.modes %}
-                <option value="{{ conf.0 }}"{% if current_conf and current_conf == conf.0 %} selected{% endif %}>{{ conf.1 }}</option>
+                <option value="{{ conf.0 }}"{% if data.selected_mode == conf.0 %} selected{% endif %}>{{ conf.1 }}</option>
             {% endfor %}
-            {% if decisions|length %}
-                <option value="lastconf"{% if base_decision %} selected{% endif %}>{% trans "Other decision's configuration" %}</option>
-            {% endif %}
             <option value="file_conf">{% trans 'Use configuration from file' %}</option>
         </select>
     </div>

@@ -90,11 +90,7 @@
         </div>
     </div>
     <div id="start_decision_form" style="display: none;">
-        {% if base_decision %}
-            {% include 'jobs/startDecision.html' with data=start_data decisions=other_decisions base_decision=base_decision has_default=has_default %}
-        {% else %}
-            {% include 'jobs/startDecision.html' with data=start_data current_conf=current_conf decisions=other_decisions has_default=has_default %}
-        {% endif %}
+        {% include 'jobs/startDecision.html' with data=start_data %}
         <div class="ui one column grid">
             <div class="right aligned column">
                 <button id="start_custom_decision" class="ui violet button">{% trans 'Start' %}</button>

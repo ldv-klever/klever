@@ -255,6 +255,9 @@ StartDecision.prototype.removeDefaultOption = function () {
     $('#reset_default_conf_btn').hide();
 
     if (initial_val === 'default') {
-        this.onSelectionChanged(def_conf_select.val());
+        const new_val = def_conf_select.data('defmode');
+        def_conf_select.val(new_val);
+        def_conf_select.dropdown('set selected', new_val);
+        this.onSelectionChanged(new_val);
     }
 }

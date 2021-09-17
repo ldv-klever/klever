@@ -36,7 +36,7 @@ from bridge.CustomViews import DataViewMixin, StreamingResponseView
 from tools.profiling import LoggedCallMixin
 
 from users.models import User
-from jobs.models import Job, JobFile, UploadedJobArchive, PresetJob, FileSystem, UserRole, DefaultDecisionConfiguration
+from jobs.models import Job, JobFile, UploadedJobArchive, PresetJob, FileSystem, UserRole
 from service.models import Decision
 
 from users.utils import JOB_TREE_VIEW
@@ -172,25 +172,13 @@ class DecisionFormPage(LoginRequiredMixin, LoggedCallMixin, DetailView):
             raise BridgeException(_("You don't have an access to create job version"))
         context = super(DecisionFormPage, self).get_context_data(**kwargs)
         preset_job = self.object.preset.get_ancestors(include_self=True).filter(type=PRESET_JOB_TYPE[1][0]).first()
-        other_decisions = Decision.objects.filter(job=self.object).order_by('id')\
-            .exclude(status=DECISION_STATUS[0][0]).only('id', 'title', 'start_date')
         context.update({
             'job': self.object,
             'unique_name': get_unique_decision_name(self.object),
             'cancel_url': reverse('jobs:job', args=[self.object.id]),
             'files_data': preset_job_files_tree_json(preset_job),
-            'other_decisions': other_decisions
+            'start_data': StartDecisionData(self.request.user, self.object)
         })
-
-        try:
-            default_conf = DefaultDecisionConfiguration.objects.select_related('file').get(user=self.request.user)
-            context['has_default'] = True
-            context['current_conf'] = 'default'
-            context['start_data'] = StartDecisionData(self.request.user, file_conf=default_conf.file.file)
-        except DefaultDecisionConfiguration.DoesNotExist:
-            context['has_default'] = False
-            context['current_conf'] = settings.DEF_KLEVER_CORE_MODE
-            context['start_data'] = StartDecisionData(self.request.user, conf_name=settings.DEF_KLEVER_CORE_MODE)
 
         return context
 
@@ -208,18 +196,12 @@ class DecisionCopyFormPage(LoginRequiredMixin, LoggedCallMixin, DetailView):
         decision_files = json.dumps(JSTreeConverter().make_tree(
             list(FileSystem.objects.filter(decision=self.object).values_list('name', 'file__hash_sum'))
         ), ensure_ascii=False)
-
-        other_decisions = Decision.objects.filter(job=self.object.job).order_by('id')\
-            .exclude(status=DECISION_STATUS[0][0]).only('id', 'title', 'start_date')
         context.update({
             'job': self.object.job,
             'unique_name': get_unique_decision_name(self.object.job),
-            'base_decision': self.object,
             'cancel_url': reverse('jobs:decision', args=[self.object.id]),
             'files_data': decision_files,
-            'start_data': StartDecisionData(self.request.user, base_decision=self.object),
-            'other_decisions': other_decisions,
-            'has_default': DefaultDecisionConfiguration.objects.filter(user=self.request.user).exists()
+            'start_data': StartDecisionData(self.request.user, self.object.job, base_decision=self.object)
         })
         return context
 
@@ -234,13 +216,7 @@ class DecisionRestartPage(LoginRequiredMixin, LoggedCallMixin, DetailView):
         if not DecisionAccess(self.request.user, self.object).can_restart:
             raise BridgeException(_("You don't have an access to restart this decision"))
         context = super(DecisionRestartPage, self).get_context_data(**kwargs)
-        other_decisions = Decision.objects.filter(job=self.object.job).order_by('id') \
-            .exclude(status=DECISION_STATUS[0][0]).only('id', 'title', 'start_date')
-        context.update({
-            'start_data': StartDecisionData(self.request.user, base_decision=self.object),
-            'other_decisions': other_decisions,
-            'has_default': DefaultDecisionConfiguration.objects.filter(user=self.request.user).exists()
-        })
+        context['start_data'] = StartDecisionData(self.request.user, self.object.job, base_decision=self.object)
         return context
 
 

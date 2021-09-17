@@ -34,7 +34,7 @@
 {% endblock %}
 
 {% block body_block %}
-    {% include 'jobs/startDecision.html' with data=start_data decisions=other_decisions base_decision=object has_default=has_default %}
+    {% include 'jobs/startDecision.html' with data=start_data %}
 
     <button id="start_custom_decision" class="ui violet button" style="float: right">{% trans 'Start' %}</button>
     <a href="{% url 'jobs:decision' object.id %}" class="ui blue button">{% trans 'Cancel' %}</a>
