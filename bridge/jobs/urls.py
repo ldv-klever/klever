@@ -73,6 +73,8 @@ urlpatterns = [
     path('download-configuration/<int:pk>/', views.DownloadConfigurationView.as_view(), name='download-decision-conf'),
     path('api/configuration/', api.GetConfigurationView.as_view(), name='api-configuration'),
     path('api/conf-def-value/', api.StartJobDefValueView.as_view(), name='api-def-start-value'),
+    path('api/configuration/create/', api.CreateDefConfAPIView.as_view(), name='api-create-defconf'),
+    path('api/configuration/<int:pk>/', api.GetConfHtmlAPIView.as_view(), name='api-get-html-conf'),
 
     path('api/decide/<int:pk>/', api.StartDefaultDecisionView.as_view(), name='api-decide'),
     path('api/decide-uuid/<uuid:identifier>/', api.StartDefaultDecisionView.as_view(), name='api-decide-uuid'),

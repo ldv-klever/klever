@@ -34,7 +34,7 @@
 {% endblock %}
 
 {% block body_block %}
-    {% include 'jobs/startDecision.html' with data=start_data decisions=other_decisions base_decision=object %}
+    {% include 'jobs/startDecision.html' with data=start_data %}
 
     <button id="start_custom_decision" class="ui violet button" style="float: right">{% trans 'Start' %}</button>
     <a href="{% url 'jobs:decision' object.id %}" class="ui blue button">{% trans 'Cancel' %}</a>
@@ -65,6 +65,15 @@
             {% if start_data.need_auth %}
                 start_form.initialize_sch_user_modal("{% url 'service:api-scheduler-user' %}");
             {% endif %}
+
+            $('#save_conf_as_default_btn').click(function () {
+                $.post("{% url 'jobs:api-create-defconf' %}", {
+                    configuration: start_form.serialize()
+                }, function () {
+                    start_form.selectDefaultOption();
+                    success_notify("{% trans 'Default configuration was saved' %}", 3000);
+                });
+            });
         });
     </script>
 {% endblock %}

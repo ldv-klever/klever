@@ -90,11 +90,7 @@
         </div>
     </div>
     <div id="start_decision_form" style="display: none;">
-        {% if base_decision %}
-            {% include 'jobs/startDecision.html' with data=start_data decisions=other_decisions base_decision=base_decision %}
-        {% else %}
-            {% include 'jobs/startDecision.html' with data=start_data current_conf=current_conf decisions=other_decisions %}
-        {% endif %}
+        {% include 'jobs/startDecision.html' with data=start_data %}
         <div class="ui one column grid">
             <div class="right aligned column">
                 <button id="start_custom_decision" class="ui violet button">{% trans 'Start' %}</button>
@@ -231,6 +227,15 @@
             });
 
             getUrlParameter('state') ? history.back() : history.replaceState(['files'], 'Files state');
+
+            $('#save_conf_as_default_btn').click(function () {
+                $.post("{% url 'jobs:api-create-defconf' %}", {
+                    configuration: start_form.serialize()
+                }, function () {
+                    start_form.selectDefaultOption();
+                    success_notify("{% trans 'Default configuration was saved' %}", 3000);
+                });
+            });
         });
     </script>
 {% endblock %}

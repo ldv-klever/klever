@@ -30,7 +30,8 @@
         const PAGE_URLS = {
             get_status: "{% url 'jobs:api-decision-status' object.id %}",
             get_progress: "{% url 'jobs:progress' object.id %}",
-            decision_results: "{% url 'jobs:decision-results' object.id %}"
+            decision_results: "{% url 'jobs:decision-results' object.id %}",
+            configuration_html: "{% url 'jobs:api-get-html-conf' object.id %}"
         };
     </script>
 
@@ -62,7 +63,7 @@
                 <div class="ui dropdown item">
                     <div class="header">{% trans 'Decision' %}</div><i class="dropdown icon"></i>
                     <div class="menu">
-                        <a href="{% url 'jobs:download-decision-conf' object.id %}" class="item"><i class="settings icon"></i> {% trans 'Download configuration' %}</a>
+                        <a id="show_configuration_btn" class="item"><i class="settings icon"></i> {% trans 'Configuration' %}</a>
                         <a id="restart_decision_btn" class="item{% if not access.can_restart %} disabled{% endif %}"><i class="redo icon"></i> {% trans 'Restart' %}</a>
                         <a id="stop_decision_btn" class="item{% if not access.can_stop %} disabled{% endif %}"><i class="stop icon"></i> {% trans 'Stop' %}</a>
                     </div>
@@ -209,6 +210,18 @@
             </div>
         </div>
     {% endif %}
+
+    <div id="decision_conf_modal" class="ui dinamic large modal">
+        <i class="close icon"></i>
+        <div class="header">{% trans 'Configuration' %}</div>
+        <div class="content"></div>
+        <div class="actions">
+            <a href="{% url 'jobs:download-decision-conf' object.id %}" class="ui labeled icon small violet button">
+                <i class="download icon"></i>
+                {% trans 'Download configuration' %}
+            </a>
+        </div>
+    </div>
 
     <div hidden>
         <span id="stop_autorefresh">{% trans 'Stop page autorefresh' %}</span>
