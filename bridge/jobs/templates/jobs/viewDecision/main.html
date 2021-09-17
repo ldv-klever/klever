@@ -30,7 +30,8 @@
         const PAGE_URLS = {
             get_status: "{% url 'jobs:api-decision-status' object.id %}",
             get_progress: "{% url 'jobs:progress' object.id %}",
-            decision_results: "{% url 'jobs:decision-results' object.id %}"
+            decision_results: "{% url 'jobs:decision-results' object.id %}",
+            configuration_html: "{% url 'jobs:api-get-html-conf' object.id %}"
         };
     </script>
 
@@ -213,7 +214,7 @@
     <div id="decision_conf_modal" class="ui dinamic large modal">
         <i class="close icon"></i>
         <div class="header">{% trans 'Configuration' %}</div>
-        <div class="content">{% include 'jobs/viewDecision/configuration.html' with conf=conf object=object %}</div>
+        <div class="content"></div>
         <div class="actions">
             <a href="{% url 'jobs:download-decision-conf' object.id %}" class="ui labeled icon small violet button">
                 <i class="download icon"></i>

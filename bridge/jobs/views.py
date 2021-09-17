@@ -40,7 +40,7 @@ from jobs.models import Job, JobFile, UploadedJobArchive, PresetJob, FileSystem,
 from service.models import Decision
 
 from users.utils import JOB_TREE_VIEW
-from jobs.configuration import StartDecisionData, GetConfiguration
+from jobs.configuration import StartDecisionData
 from jobs.Download import (
     get_jobs_to_download, JobFileGenerator, DecisionConfGenerator, JobArchiveGenerator, JobsArchivesGen
 )
@@ -281,9 +281,6 @@ class DecisionPage(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, DetailVie
 
         # Verification results
         context['reportdata'] = ViewJobData(self.request.user, self.get_view(VIEW_TYPES[2]), self.object)
-
-        # Configuration
-        context['conf'] = GetConfiguration(file_conf=self.object.configuration.file).for_html()
 
         return context
 

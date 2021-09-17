@@ -23,6 +23,7 @@ from difflib import unified_diff
 from django.conf import settings
 from django.db import transaction
 from django.http.response import HttpResponse, StreamingHttpResponse
+from django.template import loader
 from django.urls import reverse
 from django.utils.translation import ugettext as _
 
@@ -410,3 +411,17 @@ class CreateDefConfAPIView(LoggedCallMixin, CreateAPIView):
 class RemoveDefConfAPIView(LoggedCallMixin, DestroyAPIView):
     def get_object(self):
         return get_object_or_404(DefaultDecisionConfiguration, user=self.request.user)
+
+
+class GetConfHtmlAPIView(LoggedCallMixin, RetrieveAPIView):
+    # TODO: Decision view permission
+    permission_classes = (IsAuthenticated,)
+
+    def get_queryset(self):
+        return Decision.objects.select_related('configuration', 'scheduler')
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        conf_data = GetConfiguration(file_conf=instance.configuration.file).for_html()
+        template = loader.get_template('jobs/viewDecision/configuration.html')
+        return HttpResponse(template.render({'conf': conf_data, 'object': instance}, request))

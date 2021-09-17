@@ -106,11 +106,14 @@ $(document).ready(function () {
         onUnchecked: function () { download_verifier_files_problems.hide() }
     });
 
-    // Activate configuration modal
+    // Activate current decision configuration modal
     let decision_conf_modal = $('#decision_conf_modal');
     decision_conf_modal.modal({transition: 'scale', autofocus: false, closable: true});
     $('#show_configuration_btn').click(function () {
-        decision_conf_modal.modal('show')
+        $.get(PAGE_URLS.configuration_html, {}, function (resp) {
+            decision_conf_modal.find('.content').html(resp);
+            decision_conf_modal.modal('show')
+        });
     });
 
 

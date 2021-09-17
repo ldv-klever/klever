@@ -33,9 +33,39 @@
                     {% endif %}
                 </td>
                 <td class="note-popup" data-content="{% trans 'Configuration' %}">
-                    <i class="ui settings link blue icon file-content-activator" data-url="{% url 'jobs:file-content' decision.configuration.hash_sum %}" data-download="{% url 'jobs:download-decision-conf' decision.pk %}"></i>
+                    <i class="ui settings link blue icon decision-conf-btn"
+                       data-url="{% url 'jobs:api-get-html-conf' decision.pk %}"
+                       data-download="{% url 'jobs:download-decision-conf' decision.pk %}"></i>
                 </td>
             </tr>
         {% endfor %}
     </tbody>
 </table>
+
+{# Decision configuration modal #}
+<div id="other_decisions_conf_modal" class="ui dinamic large modal">
+    <i class="close icon"></i>
+    <div class="header">{% trans 'Configuration' %}</div>
+    <div class="content"></div>
+    <div class="actions">
+        <a id="download_decision_conf_btn" class="ui labeled icon small violet button">
+            <i class="download icon"></i>
+            {% trans 'Download configuration' %}
+        </a>
+    </div>
+</div>
+
+<script type="text/javascript">
+    jQuery(function () {
+        // Decision configuration modal
+        let other_decisions_conf_modal = $('#other_decisions_conf_modal');
+        other_decisions_conf_modal.modal({transition: 'scale', autofocus: false, closable: true});
+        $('.decision-conf-btn').click(function () {
+            other_decisions_conf_modal.find('#download_decision_conf_btn').attr('href', $(this).data('download'));
+            $.get($(this).data('url'), {}, function (resp) {
+                other_decisions_conf_modal.find('.content').html(resp);
+                other_decisions_conf_modal.modal('show');
+            });
+        });
+    });
+</script>
