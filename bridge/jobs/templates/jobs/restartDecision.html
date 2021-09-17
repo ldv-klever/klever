@@ -71,7 +71,7 @@
                     configuration: start_form.serialize()
                 }, function () {
                     start_form.addDefaultOption("{% trans 'Default' %}");
-                    success_notify("{% trans 'Default configuration was saved' %}");
+                    success_notify("{% trans 'Default configuration was saved' %}", 3000);
                 });
             });
             $('#reset_default_conf_btn').click(function () {
@@ -80,7 +80,7 @@
                     method: "DELETE",
                     success: function () {
                         start_form.removeDefaultOption();
-                        success_notify("{% trans 'Default configuration was removed' %}");
+                        success_notify("{% trans 'Default configuration was removed' %}", 3000);
                     }
                 });
             });
