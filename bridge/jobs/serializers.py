@@ -40,7 +40,7 @@ from jobs.models import (
 from reports.models import Report, AttrFile, AdditionalSources, CompareDecisionsInfo, DecisionCache
 from service.models import Task
 
-from jobs.configuration import GetConfiguration
+from jobs.configuration import get_default_configuration, GetConfiguration
 from jobs.utils import JSTreeConverter, validate_scheduler, copy_files_with_replace
 
 FILE_SEP = '/'
@@ -87,7 +87,7 @@ def create_default_decision(request, job, configuration):
     return decision
 
 
-def validate_configuration(conf_str):
+def validate_configuration(user, conf_str):
     validated_data = {}
 
     # Get configuration
@@ -98,7 +98,7 @@ def validate_configuration(conf_str):
             logger.exception(e)
             raise exceptions.ValidationError({'configuration': _('The configuration has wrong format')})
     else:
-        configuration = GetConfiguration().for_json()
+        configuration = get_default_configuration(user).for_json()
 
     validated_data['priority'] = configuration['priority']
     validated_data['weight'] = configuration['weight']
@@ -253,7 +253,7 @@ class CreateDecisionSerializer(serializers.ModelSerializer):
     configuration = fields.CharField(required=False)
 
     def validate(self, attrs):
-        conf_data = validate_configuration(attrs.pop('configuration', None))
+        conf_data = validate_configuration(attrs['operator'], attrs.pop('configuration', None))
         attrs.update(conf_data)
         return attrs
 
@@ -292,7 +292,7 @@ class RestartDecisionSerializer(serializers.ModelSerializer):
         Task.objects.filter(decision=instance).delete()
 
     def validate(self, attrs):
-        conf_data = validate_configuration(attrs.pop('configuration'))
+        conf_data = validate_configuration(attrs['operator'], attrs.pop('configuration'))
         attrs.update(conf_data)
 
         attrs['status'] = DECISION_STATUS[1][0]

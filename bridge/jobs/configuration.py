@@ -25,7 +25,7 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import fields, serializers
 
 from bridge.vars import PRIORITY, SCHEDULER_TYPE, DECISION_WEIGHT, COVERAGE_DETAILS, SCHEDULER_STATUS, DECISION_STATUS
-from bridge.utils import logger, BridgeException
+from bridge.utils import BridgeException
 
 from users.models import SchedulerUser
 from jobs.models import Scheduler, DefaultDecisionConfiguration
@@ -174,6 +174,14 @@ def get_configuration_value(name, value):
             if f_id == value:
                 return {'file_formatter': f_val}
     return {}
+
+
+def get_default_configuration(user):
+    try:
+        defconf_obj = DefaultDecisionConfiguration.objects.select_related('file').get(user=user)
+        return GetConfiguration(file_conf=defconf_obj.file.file)
+    except DefaultDecisionConfiguration.DoesNotExist:
+        return GetConfiguration(conf_name=settings.DEF_KLEVER_CORE_MODE)
 
 
 class ConfigurationSerializer(serializers.Serializer):
@@ -338,32 +346,23 @@ class GetConfiguration:
 
 class StartDecisionData:
     def __init__(self, user, job, base_decision=None):
-        self.has_default = DefaultDecisionConfiguration.objects.filter(user=user).exists()
-
-        self.modes = []
-        if self.has_default:
-            self.modes.append(('default', _('Default')))
-        self.modes.extend(list((m['id'], m['name']) for m in KLEVER_CORE_DEF_MODES))
+        self.recommended_mode = settings.DEF_KLEVER_CORE_MODE
 
         self.decisions = Decision.objects.filter(job=job).order_by('id') \
             .exclude(status=DECISION_STATUS[0][0]).only('id', 'title', 'start_date')
+
+        self.modes = list((m['id'], m['name']) for m in KLEVER_CORE_DEF_MODES)
         if len(self.decisions):
             self.modes.append(('lastconf', _("Other decision's configuration")))
+        self.modes.append(('file_conf', _('Use configuration from file')))
 
         self.base_decision = base_decision
         if self.base_decision:
-            self.default_mode = 'lastconf'
             self.selected_mode = 'lastconf'
-            self.conf = self.__get_configuration(base_decision=self.base_decision)
-        elif self.has_default:
-            self.default_mode = settings.DEF_KLEVER_CORE_MODE
-            self.selected_mode = 'default'
-            default_conf = DefaultDecisionConfiguration.objects.select_related('file').get(user=user)
-            self.conf = self.__get_configuration(file_conf=default_conf.file.file)
+            self.conf = GetConfiguration(base_decision=self.base_decision).configuration
         else:
-            self.default_mode = settings.DEF_KLEVER_CORE_MODE
-            self.selected_mode = settings.DEF_KLEVER_CORE_MODE
-            self.conf = self.__get_configuration(conf_name=settings.DEF_KLEVER_CORE_MODE)
+            self.selected_mode = 'default'
+            self.conf = get_default_configuration(user).configuration
 
         self.need_auth = not SchedulerUser.objects.filter(user=user).exists()
 
@@ -375,13 +374,6 @@ class StartDecisionData:
         self.formatters = DEFAULT_FORMATTER
         self.coverage_details = COVERAGE_DETAILS
         self.schedulers = self.__get_schedulers()
-
-    def __get_configuration(self, **kwargs):
-        try:
-            return GetConfiguration(**kwargs).configuration
-        except Exception as e:
-            logger.exception(e)
-            raise BridgeException(_('Configuration has wrong format'))
 
     def __get_schedulers(self):
         schedulers = []

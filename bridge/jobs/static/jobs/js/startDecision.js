@@ -50,9 +50,9 @@ StartDecision.prototype.initialize = function() {
     const $this = this;
     $('.normal-dropdown').dropdown();
 
-    $('#default_configs').dropdown({
-        onChange: function () {
-            $this.onSelectionChanged($('#default_configs').val());
+    $('#configuration_mode').dropdown({
+        onChange: function (value) {
+            $this.onSelectionChanged(value);
         }
     });
     $('#file_conf').on('fileselect', function () {
@@ -232,32 +232,11 @@ StartDecision.prototype.check_sch_user_data = function() {
 };
 
 
-StartDecision.prototype.addDefaultOption = function (text) {
-    const def_conf_select = $('#default_configs');
-    let def_option = def_conf_select.find('option[value="default"]');
-    if (!def_option.length) {
-        def_conf_select.prepend($('<option>', {value: "default", text: text}))
-        def_conf_select.dropdown('refresh');
-        $('#reset_default_conf_btn').show();
+StartDecision.prototype.selectDefaultOption = function () {
+    const configuration_mode_select = $('#configuration_mode');
+    if (configuration_mode_select.dropdown('get value') !== 'default') {
+        // Don't call this.onSelectionChanged() as default options are already set
+        configuration_mode_select.find('input').val('default');
+        configuration_mode_select.dropdown('set selected', 'default');
     }
-    def_conf_select.val('default');
-    def_conf_select.dropdown('set selected', 'default');
-    // Don't call this.onSelectionChanged() as default options are already set
 };
-
-
-StartDecision.prototype.removeDefaultOption = function () {
-    const def_conf_select = $('#default_configs');
-    const initial_val = def_conf_select.val();
-
-    def_conf_select.find('option[value="default"]').remove();
-    def_conf_select.dropdown('refresh');
-    $('#reset_default_conf_btn').hide();
-
-    if (initial_val === 'default') {
-        const new_val = def_conf_select.data('defmode');
-        def_conf_select.val(new_val);
-        def_conf_select.dropdown('set selected', new_val);
-        this.onSelectionChanged(new_val);
-    }
-}

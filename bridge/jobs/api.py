@@ -20,7 +20,6 @@ import mimetypes
 
 from difflib import unified_diff
 
-from django.conf import settings
 from django.db import transaction
 from django.http.response import HttpResponse, StreamingHttpResponse
 from django.template import loader
@@ -53,7 +52,7 @@ from jobs.serializers import (
     DecisionStatusSerializerRO, CreateDecisionSerializer, UpdateDecisionSerializer, RestartDecisionSerializer,
     DefaultDecisionConfigurationSerializer
 )
-from jobs.configuration import get_configuration_value, GetConfiguration
+from jobs.configuration import get_configuration_value, get_default_configuration, GetConfiguration
 from jobs.Download import KleverCoreArchiveGen, UploadJobsScheduler, JobArchiveGenerator, get_jobs_to_download
 from jobs.utils import get_unique_job_name, JobAccess, DecisionAccess
 from reports.coverage import DecisionCoverageStatistics
@@ -136,30 +135,24 @@ class RestartDecisionView(LoggedCallMixin, UpdateAPIView):
 class GetConfigurationView(LoggedCallMixin, APIView):
     permission_classes = (IsAuthenticated,)
 
-    def post(self, request):
-        conf_kwargs = {}
-        if 'file_conf' in self.request.FILES:
-            conf_kwargs = {'file_conf': request.FILES['file_conf']}
-        elif 'decision' in self.request.data:
-            decision = get_object_or_404(
-                Decision.objects.select_related('configuration'),
-                pk=self.request.data['decision']
-            )
-            conf_kwargs = {'file_conf': decision.configuration.file}
-        elif 'conf_name' in self.request.data:
-            if self.request.data['conf_name'] == 'default':
-                try:
-                    def_conf_obj = DefaultDecisionConfiguration.objects.select_related('file').get(user=request.user)
-                    conf_kwargs = {'file_conf': def_conf_obj.file.file}
-                except DefaultDecisionConfiguration.DoesNotExist:
-                    conf_kwargs = {'conf_name': settings.DEF_KLEVER_CORE_MODE}
-            else:
-                conf_kwargs = {'conf_name': request.data['conf_name']}
+    def __get_configuration(self, **kwargs):
         try:
-            return Response(GetConfiguration(**conf_kwargs).configuration)
+            return GetConfiguration(**kwargs).configuration
         except Exception as e:
             logger.exception(e)
             raise exceptions.APIException(_('Wrong configuration format'))
+
+    def post(self, request):
+        if 'file_conf' in self.request.FILES:
+            return Response(self.__get_configuration(file_conf=request.FILES['file_conf']))
+        if 'decision' in self.request.data:
+            decision = get_object_or_404(
+                Decision.objects.select_related('configuration').filter(pk=self.request.data['decision'])
+            )
+            return Response(GetConfiguration(file_conf=decision.configuration.file).configuration)
+        if self.request.data.get('conf_name', 'default') == 'default':
+            return Response(get_default_configuration(self.request.user).configuration)
+        return Response(self.__get_configuration(conf_name=request.data['conf_name']))
 
 
 class StartJobDefValueView(LoggedCallMixin, APIView):
@@ -176,15 +169,15 @@ class StartDefaultDecisionView(LoggedCallMixin, APIView):
             raise exceptions.PermissionDenied(_("You don't have an access to start decision of this job"))
         return job
 
-    def get_configuration(self):
-        if 'file_conf' in self.request.FILES:
-            return GetConfiguration(file_conf=self.request.FILES['file_conf']).for_json()
-        return GetConfiguration().for_json()
-
     def post(self, request, **kwargs):
         try:
             job = self.get_job(**kwargs)
-            configuration = self.get_configuration()
+
+            if 'file_conf' in self.request.FILES:
+                configuration = GetConfiguration(file_conf=self.request.FILES['file_conf']).for_json()
+            else:
+                configuration = get_default_configuration(self.request.user).for_json()
+
             decision = create_default_decision(request, job, configuration)
             decision_status_changed(decision)
         except Exception as e:
@@ -406,11 +399,6 @@ class CreateDefConfAPIView(LoggedCallMixin, CreateAPIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data, status=success_status)
-
-
-class RemoveDefConfAPIView(LoggedCallMixin, DestroyAPIView):
-    def get_object(self):
-        return get_object_or_404(DefaultDecisionConfiguration, user=self.request.user)
 
 
 class GetConfHtmlAPIView(LoggedCallMixin, RetrieveAPIView):
