@@ -31,7 +31,7 @@
                   "%ret% == 0"
                 ],
                 "statements": [
-                  "callback();",
+                  "emg_callback();",
                   "deregistration();"
                 ]
               },
@@ -43,11 +43,18 @@
             },
             "category": "base",
             "comment": "Invoke test callbacks.",
+            "definitions": {
+              "ext-modules/manual_model/unsafe.c": {
+                "callback": {"declaration": "static void callback(void)", "wrapper": "emg_callback"}
+              },
+              "ext-modules/manual_model/safe.c": {
+                "callback": {"declaration": "static void callback(void)", "wrapper": "emg_callback"}
+              }
+            },
             "declarations": {
               "environment model": {
                 "& registration": "extern int registration(void);\n",
-                "& deregistration": "extern void deregistration(void);\n",
-                "& callback": "extern void callback(void);\n"
+                "& deregistration": "extern void deregistration(void);\n"
               }
             },
             "identifier": "base/base/manual_scenario",
