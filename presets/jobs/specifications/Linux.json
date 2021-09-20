@@ -33,7 +33,6 @@
               "linux/drivers/video/fbdev/core/fbsysfs.c",
               "linux/drivers/spi.c",
               "linux/err.c",
-              "linux/fs/dcache/dcache.c",
               "linux/kernel/panic.c",
               "linux/lib/bitmap.c",
               "linux/lib/find_bit.common.c",

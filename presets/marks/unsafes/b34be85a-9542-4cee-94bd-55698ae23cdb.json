@@ -3,12 +3,12 @@
     {
       "is_compare": true,
       "name": "Program fragment",
-      "value": "ext-modules/manual_model/unsafe.ko"
+      "value": "ext-modules/inodes_v.1/alloc_inode_invoke.ko"
     },
     {
       "is_compare": true,
       "name": "Requirements specification",
-      "value": "test:EMG"
+      "value": "test:EMG with function pointer analysis"
     }
   ],
   "description": "",
@@ -27,20 +27,30 @@
     [
       [
         {
-          "registration": [
+          "EMG wrapper": [
             {
-              "LDV model 'register'": []
+              "LDV model 'init'": [
+                {
+                  "LDV model 'register'": []
+                }
+              ]
             }
           ]
         }
-      ],
+      ]
+    ],
+    [
       [
         {
-          "EMG wrapper": [
+          "LDV model 'iget_locked'": [
             {
-              "callback": [
+              "LDV model 'alloc_inode'": [
                 {
-                  "LDV model 'invoke_reached'": []
+                  "LDV model 'super_alloc_inode'": [
+                    {
+                      "LDV model 'invoke_reached'": []
+                    }
+                  ]
                 }
               ]
             }

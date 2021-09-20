@@ -1,0 +1,69 @@
+{
+  "3.14": {
+    "functions models": {
+      "new_inode": {
+        "declaration": "struct inode *new_inode(struct super_block *sb)",
+        "header": "linux/fs.h",
+        "reference": true
+      },
+      "clear_inode": {
+        "declaration": "void clear_inode(struct inode *inode)",
+        "header": "linux/fs.h",
+        "reference": true
+      },
+      "iget_locked": {
+        "declaration": "struct inode *iget_locked(struct super_block *sb, unsigned long ino)",
+        "header": "linux/fs.h",
+        "reference": true
+      },
+      "d_instantiate": {
+        "declaration": "void d_instantiate(struct dentry *, struct inode *)",
+        "header": "linux/dcache.h",
+        "reference": true
+      },
+      "d_splice_alias": {
+        "declaration": "struct dentry *d_splice_alias(struct inode *, struct dentry *)",
+        "header": "linux/dcache.h",
+        "reference": true
+      },
+      "inode_init_once": {
+        "declaration": "void inode_init_once(struct inode *inode)",
+        "header": "linux/fs.h",
+        "reference": true
+      }
+    },
+    "categories": {
+      "inode": {
+        "containers": {
+          "inode_operations": {
+            "declaration": "struct inode_operations ops",
+            "header": "linux/fs.h",
+            "fields": {
+              "mkdir": "%inode.mkdir%",
+              "rmdir": "%inode.rmdir%"
+            }
+          }
+        },
+        "resources": {
+          "inode": {
+            "declaration": "struct inode *inode",
+            "header": "linux/fs.h"
+          },
+          "dentry": {
+            "declaration": "struct dentry *dentry",
+            "header": "linux/dcache.h"
+          }
+        },
+        "callbacks": {
+          "mkdir": {
+            "declaration": "int (*mkdir) (%inode.inode%, %inode.dentry%,umode_t)"
+          },
+          "rmdir": {
+            "declaration": "int (*rmdir) (%inode.inode%, %inode.dentry%)"
+          }
+        },
+        "reference": true
+      }
+    }
+  }
+}

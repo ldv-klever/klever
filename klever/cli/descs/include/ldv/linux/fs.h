@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+ * Copyright (c) 2021 ISP RAS (http://www.ispras.ru)
  * Ivannikov Institute for System Programming of the Russian Academy of Sciences
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,25 +15,21 @@
  * limitations under the License.
  */
 
-#include <ldv/verifier/nondet.h>
-#include <ldv/linux/emg/test_model.h>
+ #include <linux/fs.h>
 
+ /* Internal parameter that defines the max number of inodes in the model */
+ #define MAX_INODES 3
 
-int registration(void)
-{
-    if (ldv_undef_int()) {
-        ldv_register();
-        return 0;
-    }
-    return ldv_undef_int_negative();
-}
+ /* Simple model for the inodes tree */
+ extern unsigned long ldv_created_cnt;
+ extern struct inode *ldv_inodes[MAX_INODES];
 
-void deregistration(void)
-{
-    ldv_deregister();
-}
+ /* VFS functions */
+ struct inode *ldv_alloc_inode(struct super_block *);
+ void ldv_inode_init_once(struct inode *);
+ void ldv_clear_inode(struct inode *);
+ struct inode *ldv_iget_locked(struct super_block *, unsigned long);
 
-static void callback(void)
-{
-    ldv_invoke_reached();
-}
+ /* Aux functions */
+ struct inode *ldv_get_root_inode(void);
+ void ldv_init_list_head(struct list_head *list);

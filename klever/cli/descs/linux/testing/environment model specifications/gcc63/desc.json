@@ -16,6 +16,7 @@
             "ext-modules/i2c_v.1",
             "ext-modules/ieee80211_ops_v.1",
             "ext-modules/iio_triggered_buffer_v.1",
+            "ext-modules/inodes_v.1",
             "ext-modules/irq_v.2",
             "ext-modules/kthread_v.1",
             "ext-modules/net_device_ops_v.2",

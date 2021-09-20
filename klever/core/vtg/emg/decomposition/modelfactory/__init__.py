@@ -328,10 +328,14 @@ class ModelFactory:
 
             # Set entry process
             if related_process and batch.environment[related_process] and batch.environment[related_process].savepoint:
-                # There is an environment process with a scenario
+                # There is an environment process with a savepoint
                 new.entry = self._process_from_scenario(batch.environment[related_process],
                                                         model.environment[related_process])
                 del batch.environment[related_process]
+
+                # Move declarations and definitions
+                if model.entry:
+                    self._copy_declarations_to_init(model.entry, new.entry)
             elif batch.entry:
                 # The entry process has a scenario
                 new.entry = self._process_from_scenario(batch.entry, model.entry)
@@ -358,6 +362,7 @@ class ModelFactory:
                             collection[key] = self._process_copy(getattr(model, attr)[key])
                     else:
                         self.logger.debug(f"Skip process {key} in {new.attributed_name}")
+                        self._copy_declarations_to_init(getattr(model, attr)[key], new.entry)
 
             new.establish_peers()
             self._remove_unused_processes(new)
@@ -425,6 +430,15 @@ class ModelFactory:
 
             if not receives.intersection(all_peers):
                 self.logger.info(f'Delete process {key} from the model {model.attributed_name} as it has no peers')
+                self._copy_declarations_to_init(model.environment[key], model.entry)
                 remove_process(model, key)
 
         model.establish_peers()
+
+    def _copy_declarations_to_init(self, process: Process, init: Process):
+        assert process
+
+        for attr in ('declarations', 'definitions'):
+            for file in getattr(process, attr):
+                getattr(init, attr).setdefault(file, dict())
+                getattr(init, attr)[file].update(getattr(process, attr)[file])

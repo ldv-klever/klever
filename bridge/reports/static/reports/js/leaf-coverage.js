@@ -27,4 +27,8 @@ $(document).ready(function () {
         source_processor, '#CoverageDataContent', '#CoverageStatisticsTable'
     );
     coverage_processor.openFirstFile();
+
+    $('#highlight_selection').click(function () {
+        source_processor.markSelection(window.getSelection().toString());
+    });
 });

@@ -76,6 +76,79 @@
         "declaration": "struct dentry *mount_mtd(*%filesystem.file_system_type%, int flags, const char *dev_name, void *data, int (*fill_super)(struct super_block *, void *, int))",
         "header": "linux/fs.h",
         "reference": true
+      },
+      "d_make_root": {
+        "declaration": "struct dentry *d_make_root(struct inode *root_inode)",
+        "header": "linux/fs.h",
+        "reference": true
+      },
+      "d_alloc_root": {
+        "declaration": "struct dentry * d_alloc_root(struct inode *root_inode)",
+        "header": "linux/fs.h",
+        "reference": true
+      }
+    },
+    "categories": {
+      "filesystem": {
+        "containers": {
+          "file_system_type": {
+            "declaration": "struct file_system_type ops",
+            "header": "linux/fs.h",
+            "fields": {
+              "mount": "%filesystem.mount%",
+              "kill_sb": "%filesystem.kill_sb%"
+            }
+          }
+        },
+        "resources": {
+          "super_block": {
+            "declaration": "struct super_block *ops",
+            "header": "linux/fs.h"
+          }
+        },
+        "callbacks": {
+          "mount": {
+            "declaration": "struct dentry * (*mount) (*%filesystem.file_system_type%, int, const char *, void *)"
+          },
+          "kill_sb": {
+            "declaration": "void (*kill_sb) (*%filesystem.super_block%)"
+          }
+        },
+        "reference": true
+      }
+    }
+  },
+  "3.14-dentry-v2": {
+    "functions models": {
+      "register_filesystem": {
+        "declaration": "int register_filesystem(*%filesystem.file_system_type%)",
+        "header": "linux/fs.h",
+        "reference": true
+      },
+      "unregister_filesystem": {
+        "declaration": "int unregister_filesystem(*%filesystem.file_system_type%)",
+        "header": "linux/fs.h",
+        "reference": true
+      },
+      "mount_bdev": {
+        "declaration": "struct dentry *mount_bdev(*%filesystem.file_system_type%, int flags, const char *dev_name, void *data, int (*fill_super)(struct super_block *, void *, int))",
+        "header": "linux/fs.h",
+        "reference": true
+      },
+      "mount_mtd": {
+        "declaration": "struct dentry *mount_mtd(*%filesystem.file_system_type%, int flags, const char *dev_name, void *data, int (*fill_super)(struct super_block *, void *, int))",
+        "header": "linux/fs.h",
+        "reference": true
+      },
+      "d_make_root": {
+        "declaration": "struct dentry *d_make_root(struct inode *root_inode)",
+        "header": "linux/fs.h",
+        "reference": true
+      },
+      "d_alloc_root": {
+        "declaration": "struct dentry * d_alloc_root(struct inode *root_inode)",
+        "header": "linux/fs.h",
+        "reference": true
       }
     },
     "categories": {
