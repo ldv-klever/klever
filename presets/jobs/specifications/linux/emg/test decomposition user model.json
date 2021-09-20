@@ -185,7 +185,7 @@
             },
             "declarations": {
               "environment model": {
-                "first_callback": "extern void first_callback(int branch, int sp);"
+                "second_callback": "extern void second_callback(int branch, int sp);"
               }
             },
             "process": "(!register_c1).(<first_branch> | <second_branch>).(deregister_c1)"
@@ -239,7 +239,7 @@
             },
             "declarations": {
               "environment model": {
-                "second_callback": "extern void second_callback(int branch, int sp);"
+                "main_callback": "extern void main_callback(int branch);"
               }
             },
             "process": "(!register_c2).(<first_branch> | <second_branch>).(deregister_c2)"
@@ -286,7 +286,7 @@
           },
           "declarations": {
             "environment model": {
-              "main_callback": "extern void main_callback(int branch);"
+              "first_callback": "extern void first_callback(int branch, int sp);"
             }
           },
           "process": "[register_c1].<first_branch>.[deregister_c1] | [register_c2].<second_branch>.[deregister_c2]"
