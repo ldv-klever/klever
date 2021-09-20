@@ -386,6 +386,27 @@ class CModel:
 
         return body
 
+    def create_wrapper(self, wrapped_name: str, new_name: str, declaration: str) -> Function:
+        """
+        Create a wrapper of a static function and return an object of newly crreated function.
+
+        :param wrapped_name: function name to wrap.
+        :param new_name: a name of the wrapper.
+        :param declaration: function declaration str.
+        :return: Function object
+        """
+        new_func = Function(new_name, declaration)
+
+        # Generate call
+        ret = '' if not new_func.declaration.return_value or new_func.declaration.return_value == 'void' else 'return'
+
+        # Generate params
+        params = ', '.join(["arg{}".format(i) for i in range(len(new_func.declaration.parameters))])
+        call = "{} {}({});".format(ret, wrapped_name, params)
+        new_func.body.append(call)
+        self._logger.info("Generated new wrapper function {!r}".format(new_func.name))
+        return new_func
+
     @staticmethod
     def _collapse_headers_sets(sets):
         final_list = []

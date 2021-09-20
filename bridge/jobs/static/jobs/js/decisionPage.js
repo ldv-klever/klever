@@ -106,6 +106,17 @@ $(document).ready(function () {
         onUnchecked: function () { download_verifier_files_problems.hide() }
     });
 
+    // Activate current decision configuration modal
+    let decision_conf_modal = $('#decision_conf_modal');
+    decision_conf_modal.modal({transition: 'scale', autofocus: false, closable: true});
+    $('#show_configuration_btn').click(function () {
+        $.get(PAGE_URLS.configuration_html, {}, function (resp) {
+            decision_conf_modal.find('.content').html(resp);
+            decision_conf_modal.modal('show')
+        });
+    });
+
+
     let num_of_updates = 0, is_filters_open = false, autoupdate_btn = $('#decision_autoupdate_btn');
 
     function stop_autoupdate() {
