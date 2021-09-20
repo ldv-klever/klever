@@ -1,6 +1,34 @@
 {
   "2.6.33": {
     "functions models": {
+      "d_alloc_root": {
+        "comment": "Call fill_super implementation.",
+        "headers": [
+          "linux/dcache.h",
+          "ldv/linux/list.h>"
+        ],
+        "declarations": {
+          "environment model": {
+            "ldv_d_make_root": "struct dentry *ldv_d_make_root(struct inode *root_inode);"
+          }
+        },
+        "labels": {},
+        "process": "<call>",
+        "actions": {
+          "call": {
+            "comment": "Alloc root dentry.",
+            "trace relevant": true,
+            "statements": [
+              "struct dentry *root_dentry = ldv_d_make_root($ARG1);",
+              "if (root_dentry) {",
+              "    INIT_HLIST_NODE(&root_dentry->d_alias);",
+              "    ldv_init_list_head(&root_dentry->d_u.d_child);",
+              "}",
+              "return root_dentry;"
+            ]
+          }
+        }
+      },
       "get_sb_nodev, get_sb_single, get_sb_ns": {
         "comment": "Call fill_super implementation.",
         "declarations": {
