@@ -67,8 +67,8 @@ DEFAULT_FORMATTER = (
 PARALLELISM_PACKS = [
     ('sequential', _('Sequentially'), ('1', '1', '1', '1')),
     ('slow', _('Slowly'), ('1', '1', '1', '1')),
-    ('quick', _('Quickly'), ('1', '2', '2', '1')),
-    ('very quick', _('Very quickly'), ('1', '1.0', '2', '2'))
+    ('quick', _('Quickly'), ('1', '4', '2', '1')),
+    ('very quick', _('Very quickly'), ('1', '1.0', '0.5', '2'))
 ]
 KLEVER_CORE_DEF_MODES = [
     {
@@ -78,7 +78,7 @@ KLEVER_CORE_DEF_MODES = [
             'scheduler': SCHEDULER_TYPE[0][0],
             'max_tasks': 100,
             'weight': DECISION_WEIGHT[1][0],
-            'parallelism': ['1', '3', '1', '1'],
+            'parallelism': ['1', '3', '2', '1'],
             'memory': 3,
             'cpu_num': None,
             'disk_size': 100,
@@ -105,7 +105,7 @@ KLEVER_CORE_DEF_MODES = [
             'scheduler': SCHEDULER_TYPE[0][0],
             'max_tasks': 100,
             'weight': DECISION_WEIGHT[0][0],
-            'parallelism': ['1', '2', '0.5', '1'],
+            'parallelism': ['1', '5', '0.5', '2'],
             'memory': 5,
             'cpu_num': None,
             'disk_size': 20,
@@ -132,7 +132,7 @@ KLEVER_CORE_DEF_MODES = [
             'scheduler': SCHEDULER_TYPE[0][0],
             'max_tasks': 100,
             'weight': DECISION_WEIGHT[0][0],
-            'parallelism': ['1', '2', '0.5', '1'],
+            'parallelism': ['1', '5', '0.5', '2'],
             'memory': 5,
             'cpu_num': None,
             'disk_size': 20,
