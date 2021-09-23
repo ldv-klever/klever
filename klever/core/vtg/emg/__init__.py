@@ -54,10 +54,11 @@ class EMG(Plugin):
         reports = generate_processes(self.logger, self.conf, collection, self.abstract_task_desc, sa)
 
         # Send data to the server
-        self.logger.info("Send data about generated instances to the server")
+        if reports:
+            self.logger.info("Send data about generated instances to the server")
+            report(self.logger, 'patch', {'identifier': self.id, 'data': reports}, self.mqs['report files'],
+                   self.vals['report id'], get_or_die(self.conf, "main working directory"))
 
-        report(self.logger, 'patch', {'identifier': self.id, 'data': reports}, self.mqs['report files'],
-               self.vals['report id'], get_or_die(self.conf, "main working directory"))
         self.logger.info("An intermediate environment model has been prepared")
 
         # Import additional aspect files
