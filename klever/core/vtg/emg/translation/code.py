@@ -478,7 +478,13 @@ class FunctionModels:
 
                 # Bracket is required to ignore CIF expressions like $res or $arg1
                 if fn in self.mem_function_map or fn in self.free_function_map:
-                    access = self.mem_function_re.search(statement).group(2)
+                    access = self.mem_function_re.search(statement)
+                    if not access:
+                        raise ValueError("Cannot parse the {!r} statement. Ensure you provided labels as arguments and "
+                                         "do not miss '%' symbols.".format(statement))
+                    else:
+                        access = access.group(2)
+
                     if fn in self.mem_function_map:
                         replacement = self._replace_mem_call
                     else:
