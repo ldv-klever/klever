@@ -490,7 +490,7 @@ class UploadReports:
             return error_html
         return str(value)
 
-    def __upload(self, data):
+    def __upload(self, data: dict):
         assert isinstance(data, dict), 'Report data not a dict'
 
         # Check report type

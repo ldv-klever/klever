@@ -26,7 +26,7 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers, exceptions, fields
 
 from bridge.vars import DECISION_STATUS, PRIORITY, SCHEDULER_TYPE, SCHEDULER_STATUS, TASK_STATUS
-from bridge.utils import logger, RMQConnect
+from bridge.utils import logger, require_lock, RMQConnect
 from bridge.serializers import TimeStampField, DynamicFieldsModelSerializer
 
 from users.models import SchedulerUser
@@ -55,6 +55,7 @@ class VerificationToolSerializer(serializers.ModelSerializer):
 class SchedulerUserSerializer(serializers.ModelSerializer):
     user = fields.HiddenField(default=serializers.CurrentUserDefault())
 
+    @require_lock(SchedulerUser)
     def create(self, validated_data):
         try:
             instance = SchedulerUser.objects.get(user=validated_data['user'])
