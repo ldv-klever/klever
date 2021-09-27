@@ -46,12 +46,18 @@ $(document).ready(function () {
         });
     }
 
+    let is_rename_modal_open = false;
+
     // Activate rename decision modal
     let rename_decision_modal = $('#rename_decision_modal');
-    rename_decision_modal.modal({transition: 'slide down', autofocus: false, closable: false})
-        .modal('attach events', '#rename_decision_btn', 'show');
+    rename_decision_modal.modal({transition: 'slide down', autofocus: false, closable: false});
+    $('#rename_decision_btn').click(function () {
+        rename_decision_modal.modal('show');
+        is_rename_modal_open = true;
+    });
     rename_decision_modal.find('.modal-cancel').click(function () {
-        rename_decision_modal.modal('hide')
+        rename_decision_modal.modal('hide');
+        is_rename_modal_open = false;
     });
     rename_decision_modal.find('.modal-confirm').click(function () {
         $.ajax({
@@ -100,6 +106,17 @@ $(document).ready(function () {
         onUnchecked: function () { download_verifier_files_problems.hide() }
     });
 
+    // Activate current decision configuration modal
+    let decision_conf_modal = $('#decision_conf_modal');
+    decision_conf_modal.modal({transition: 'scale', autofocus: false, closable: true});
+    $('#show_configuration_btn').click(function () {
+        $.get(PAGE_URLS.configuration_html, {}, function (resp) {
+            decision_conf_modal.find('.content').html(resp);
+            decision_conf_modal.modal('show')
+        });
+    });
+
+
     let num_of_updates = 0, is_filters_open = false, autoupdate_btn = $('#decision_autoupdate_btn');
 
     function stop_autoupdate() {
@@ -130,6 +147,7 @@ $(document).ready(function () {
     let interval = setInterval(function () {
         if ($.active > 0) return false;
         if (is_filters_open) return false;
+        if (is_rename_modal_open) return false;
         if (autoupdate_btn.data('status') === 'on') {
             // Autoupdate is turned on
             update_decision_results(interval);

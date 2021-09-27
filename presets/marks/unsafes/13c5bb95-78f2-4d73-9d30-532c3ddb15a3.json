@@ -36,9 +36,13 @@
       ],
       [
         {
-          "callback": [
+          "EMG wrapper": [
             {
-              "LDV model 'invoke_reached'": []
+              "callback": [
+                {
+                  "LDV model 'invoke_reached'": []
+                }
+              ]
             }
           ]
         }

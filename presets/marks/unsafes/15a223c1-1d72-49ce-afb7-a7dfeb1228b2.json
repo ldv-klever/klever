@@ -11,7 +11,7 @@
       "value": "drivers/idle/i7300_idle.ko"
     }
   ],
-  "description": "dma_alloc_attrs() needs a model.",
+  "description": "CPAchecker SMG can not operate with object pointed by ioat_desc due to memory for that object is allocated using unknown ops->alloc within dma_alloc_attrs(). dma_alloc_attrs() invokes get_dma_ops() where ops is assumed to be dma_ops that is not initialized anywhere.",
   "error_trace": [
     [
       [

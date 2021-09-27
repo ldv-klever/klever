@@ -121,6 +121,14 @@
     {
       "targets": ["ext-modules/initializers/*"],
       "requirement specifications": ["test:memory safety"]
+    },
+    {
+      "targets": ["ext-modules/initializers/strings.ko"],
+      "requirement specifications": ["test:memory checking without uncertainty"]
+    },
+    {
+      "targets": ["ext-modules/initializers/strings.ko"],
+      "requirement specifications": ["test:memory checking without abstraction for lists"]
     }
   ]
 }

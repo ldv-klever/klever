@@ -33,7 +33,7 @@ void deregistration(void)
     ldv_deregister();
 }
 
-void callback(void)
+static void callback(void)
 {
     ldv_invoke_reached();
 }

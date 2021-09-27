@@ -386,6 +386,27 @@ class CModel:
 
         return body
 
+    def create_wrapper(self, wrapped_name: str, new_name: str, declaration: str) -> Function:
+        """
+        Create a wrapper of a static function and return an object of newly crreated function.
+
+        :param wrapped_name: function name to wrap.
+        :param new_name: a name of the wrapper.
+        :param declaration: function declaration str.
+        :return: Function object
+        """
+        new_func = Function(new_name, declaration)
+
+        # Generate call
+        ret = '' if not new_func.declaration.return_value or new_func.declaration.return_value == 'void' else 'return'
+
+        # Generate params
+        params = ', '.join(["arg{}".format(i) for i in range(len(new_func.declaration.parameters))])
+        call = "{} {}({});".format(ret, wrapped_name, params)
+        new_func.body.append(call)
+        self._logger.info("Generated new wrapper function {!r}".format(new_func.name))
+        return new_func
+
     @staticmethod
     def _collapse_headers_sets(sets):
         final_list = []
@@ -457,7 +478,13 @@ class FunctionModels:
 
                 # Bracket is required to ignore CIF expressions like $res or $arg1
                 if fn in self.mem_function_map or fn in self.free_function_map:
-                    access = self.mem_function_re.search(statement).group(2)
+                    access = self.mem_function_re.search(statement)
+                    if not access:
+                        raise ValueError("Cannot parse the {!r} statement. Ensure you provided labels as arguments and "
+                                         "do not miss '%' symbols.".format(statement))
+                    else:
+                        access = access.group(2)
+
                     if fn in self.mem_function_map:
                         replacement = self._replace_mem_call
                     else:
@@ -469,7 +496,6 @@ class FunctionModels:
                         var = automaton.determine_variable(access.label)
                         if isinstance(var.declaration, Pointer):
                             self.signature = var.declaration
-                            self.ualloc_flag = True
                             new = self.mem_function_re.sub(replacement, statement)
                             stms.append(new)
                     else:
@@ -533,12 +559,9 @@ class FunctionModels:
             raise NotImplementedError("Set implementation for the function {}".format(func))
 
         if isinstance(self.signature, Pointer):
-            if func == 'ALLOC' and self.ualloc_flag:
-                # Do not alloc memory anyway for unknown resources anyway to avoid incomplete type errors
-                func = 'UALLOC'
             if self._conf.get('disable ualloc') and func == 'UALLOC':
                 func = 'ALLOC'
-            if func != 'UALLOC' and self._conf.get('allocate with sizeof', True):
+            if func == 'ALLOC' and self._conf.get('allocate with sizeof', True):
                 size = 'sizeof({})'.format(self.signature.points.to_string('', typedef='complex_and_params'))
 
             return "%{}%{} = {}({})".format(label_name, suffix, self.mem_function_map[func], size)

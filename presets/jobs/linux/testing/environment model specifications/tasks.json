@@ -1,6 +1,7 @@
 {
   "CPU time": "8min",
   "wall time": "30min",
+  "soft CPU time": 0.9,
   "memory size": "3GB",
   "CPU model": null,
   "number of CPU cores": 0,

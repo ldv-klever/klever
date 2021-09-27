@@ -56,7 +56,8 @@
             "comment": "Alloc memory for 'platform_device' structure.",
             "statements": [
               "$ALLOC(%resource%);",
-              "%resource%->id_entry = & %container%->id_table[0];"
+              "%resource%->id_entry = & %container%->id_table[0];",
+              "%resource%->dev.platform_data = ldv_xmalloc_unknown_size(0);"
             ]
           },
           "main": {

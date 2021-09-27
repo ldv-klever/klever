@@ -1,18 +1,18 @@
 {
   "Klever Addons": {
     "CIF": {
-      "version": "8ec7214",
-      "path": "https://forge.ispras.ru/attachments/download/9111/cif-8ec7214.tar.xz",
+      "version": "fef1efb",
+      "path": "https://forge.ispras.ru/attachments/download/9152/cif-fef1efb.tar.xz",
       "executable path": "bin"
     },
     "CIF-ARM": {
-      "version": "8ec7214",
-      "path": "https://forge.ispras.ru/attachments/download/9112/arm-unknown-eabi-cif-8ec7214.tar.xz",
+      "version": "fef1efb",
+      "path": "https://forge.ispras.ru/attachments/download/9151/arm-unknown-eabi-cif-fef1efb.tar.xz",
       "executable path": "bin"
     },
     "CIF-ARM64": {
-      "version": "8ec7214",
-      "path": "https://forge.ispras.ru/attachments/download/9113/aarch64_be-unknown-linux-gnu-cif-8ec7214.tar.xz",
+      "version": "fef1efb",
+      "path": "https://forge.ispras.ru/attachments/download/9150/aarch64_be-unknown-linux-gnu-cif-fef1efb.tar.xz",
       "executable path": "bin"
     },
     "CIL": {
@@ -33,14 +33,14 @@
     "Verification Backends": {
       "CPAchecker": {
         "name": "CPAchecker",
-        "version": "klever_fixes:38135",
-        "path": "https://forge.ispras.ru/attachments/download/9069/CPAchecker-38135.tar.xz",
+        "version": "klever_fixes:38277",
+        "path": "https://forge.ispras.ru/attachments/download/9189/CPAchecker-38277.tar.xz",
         "executable path": "scripts"
       },
       "CPALockator": {
         "name": "CPAchecker",
-        "version": "CPALockator-combat-mode:38006",
-        "path": "https://forge.ispras.ru/attachments/download/9047/CPALockator-38006.tar.xz",
+        "version": "CPALockator-combat-mode:38211",
+        "path": "https://forge.ispras.ru/attachments/download/9128/CPALockator-38211.tar.xz",
         "executable path": "scripts"
       }
     }

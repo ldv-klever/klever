@@ -15,6 +15,7 @@
 # limitations under the License.
 #
 
+import copy
 import json
 
 from django.conf import settings
@@ -23,11 +24,12 @@ from django.utils.translation import ugettext_lazy as _
 
 from rest_framework import fields, serializers
 
-from bridge.vars import PRIORITY, SCHEDULER_TYPE, DECISION_WEIGHT, COVERAGE_DETAILS, SCHEDULER_STATUS
-from bridge.utils import logger, BridgeException
+from bridge.vars import PRIORITY, SCHEDULER_TYPE, DECISION_WEIGHT, COVERAGE_DETAILS, SCHEDULER_STATUS, DECISION_STATUS
+from bridge.utils import BridgeException
 
 from users.models import SchedulerUser
-from jobs.models import Scheduler
+from jobs.models import Scheduler, DefaultDecisionConfiguration
+from reports.models import Decision
 
 # Each Klever Core mode represents sets of values for following sets of attributes:
 #   priority - see bridge.vars.PRIORITY for available values (job priority),
@@ -65,8 +67,8 @@ DEFAULT_FORMATTER = (
 PARALLELISM_PACKS = [
     ('sequential', _('Sequentially'), ('1', '1', '1', '1')),
     ('slow', _('Slowly'), ('1', '1', '1', '1')),
-    ('quick', _('Quickly'), ('1', '2', '2', '1')),
-    ('very quick', _('Very quickly'), ('1', '1.0', '2', '2'))
+    ('quick', _('Quickly'), ('1', '4', '2', '1')),
+    ('very quick', _('Very quickly'), ('1', '1.0', '0.5', '2'))
 ]
 KLEVER_CORE_DEF_MODES = [
     {
@@ -76,7 +78,7 @@ KLEVER_CORE_DEF_MODES = [
             'scheduler': SCHEDULER_TYPE[0][0],
             'max_tasks': 100,
             'weight': DECISION_WEIGHT[1][0],
-            'parallelism': ['1', '3', '1', '1'],
+            'parallelism': ['1', '3', '2', '1'],
             'memory': 3,
             'cpu_num': None,
             'disk_size': 100,
@@ -103,7 +105,7 @@ KLEVER_CORE_DEF_MODES = [
             'scheduler': SCHEDULER_TYPE[0][0],
             'max_tasks': 100,
             'weight': DECISION_WEIGHT[0][0],
-            'parallelism': ['1', '2', '0.5', '1'],
+            'parallelism': ['1', '5', '0.5', '2'],
             'memory': 5,
             'cpu_num': None,
             'disk_size': 20,
@@ -130,7 +132,7 @@ KLEVER_CORE_DEF_MODES = [
             'scheduler': SCHEDULER_TYPE[0][0],
             'max_tasks': 100,
             'weight': DECISION_WEIGHT[0][0],
-            'parallelism': ['1', '2', '0.5', '1'],
+            'parallelism': ['1', '5', '0.5', '2'],
             'memory': 5,
             'cpu_num': None,
             'disk_size': 20,
@@ -172,6 +174,14 @@ def get_configuration_value(name, value):
             if f_id == value:
                 return {'file_formatter': f_val}
     return {}
+
+
+def get_default_configuration(user):
+    try:
+        defconf_obj = DefaultDecisionConfiguration.objects.select_related('file').get(user=user)
+        return GetConfiguration(file_conf=defconf_obj.file.file)
+    except DefaultDecisionConfiguration.DoesNotExist:
+        return GetConfiguration(conf_name=settings.DEF_KLEVER_CORE_MODE)
 
 
 class ConfigurationSerializer(serializers.Serializer):
@@ -320,6 +330,14 @@ class GetConfiguration:
             'code coverage details': self.configuration['coverage_details'],
         }
 
+    def for_html(self):
+        html_conf = copy.deepcopy(self.configuration)
+        html_conf['priority'] = dict(PRIORITY)[html_conf['priority']]
+        html_conf['coverage_details'] = dict(COVERAGE_DETAILS)[html_conf['coverage_details']]
+        html_conf['weight'] = dict(DECISION_WEIGHT)[html_conf['weight']]
+        html_conf['cpu_model'] = html_conf['cpu_model'] or '-'
+        return html_conf
+
     def __validate_conf(self, configuration):
         serializer = ConfigurationSerializer(data=configuration)
         serializer.is_valid(raise_exception=True)
@@ -327,14 +345,25 @@ class GetConfiguration:
 
 
 class StartDecisionData:
-    def __init__(self, user, **kwargs):
-        try:
-            self.conf = GetConfiguration(**kwargs).configuration
-        except Exception as e:
-            logger.exception(e)
-            raise BridgeException(_('Configuration has wrong format'))
+    def __init__(self, user, job, base_decision=None):
+        self.recommended_mode = settings.DEF_KLEVER_CORE_MODE
+
+        self.decisions = Decision.objects.filter(job=job).order_by('id') \
+            .exclude(status=DECISION_STATUS[0][0]).only('id', 'title', 'start_date')
 
         self.modes = list((m['id'], m['name']) for m in KLEVER_CORE_DEF_MODES)
+        if len(self.decisions):
+            self.modes.append(('lastconf', _("Other decision's configuration")))
+        self.modes.append(('file_conf', _('Use configuration from file')))
+
+        self.base_decision = base_decision
+        if self.base_decision:
+            self.selected_mode = 'lastconf'
+            self.conf = GetConfiguration(base_decision=self.base_decision).configuration
+        else:
+            self.selected_mode = 'default'
+            self.conf = get_default_configuration(user).configuration
+
         self.need_auth = not SchedulerUser.objects.filter(user=user).exists()
 
         self.job_sch_err = None

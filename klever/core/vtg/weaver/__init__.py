@@ -141,7 +141,12 @@ class Weaver(klever.core.vtg.plugins.Plugin):
 
                         with klever.core.utils.LockedOpen(new_file + '.tmp', 'w'):
                             if os.path.isfile(new_file):
-                                os.remove(new_file + '.tmp')
+                                # It looks weird but sometimes that file may not exist. Silently ignore that case.
+                                try:
+                                    os.remove(new_file + '.tmp')
+                                except OSError:
+                                    pass
+
                                 continue
 
                             shutil.copy(file, new_file)

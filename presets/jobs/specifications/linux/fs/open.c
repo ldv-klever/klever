@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+ * Copyright (c) 2021 ISP RAS (http://www.ispras.ru)
  * Ivannikov Institute for System Programming of the Russian Academy of Sciences
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,17 +15,19 @@
  * limitations under the License.
  */
 
-before: file("$this")
-{
-struct dentry *ldv_d_make_root(struct inode *root_inode);
-}
+#include <ldv/linux/fs.h>
+#include <ldv/verifier/nondet.h>
 
-around: call(struct dentry *d_make_root(..))
+int ldv_vfs_open(const struct path *path, struct file *file)
 {
-	return ldv_d_make_root($arg1);
-}
+	if (ldv_undef_int() && path && path->dentry) {
+		file->f_path = *path;
 
-around: call(struct dentry *d_alloc_root(..))
-{
-	return ldv_d_make_root($arg1);
+		f->f_inode = path->dentry->d_inode;
+		f->f_mapping = path->dentry->d_inode->i_mapping;
+		f->f_mode |= FMODE_LSEEK | FMODE_PREAD | FMODE_PWRITE;
+
+		return 0;
+	} else
+		return ldv_undef_int_negative();
 }
