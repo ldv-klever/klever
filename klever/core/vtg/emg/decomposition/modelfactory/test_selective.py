@@ -15,7 +15,6 @@
 # limitations under the License.
 #
 
-import sys
 import json
 import pytest
 import logging
@@ -266,6 +265,91 @@ P5 = {
         "w2": {"comment": ""}
     }
 }
+
+
+@pytest.fixture()
+def double_init_model():
+    files = ['test.c']
+    functions = {
+        'f1': "static int f1(struct test *)",
+        'f2': "static void f2(struct test *)"
+    }
+    source = Source(files, [], dict())
+    for name, declaration_str in functions.items():
+        new = Function(name, declaration_str)
+        new.definition_file = files[0]
+        source.set_source_function(new, files[0])
+
+    c1p1 = {
+        "comment": "Category 1, process 1.",
+        "process": "(!register_c1p1).<init>.(<ok>.[register_c2p2].[deregister_c2p2] | <fail>)",
+        "actions": {
+            "register_c1p1": {
+                "parameters": [],
+                "require": {"c2/p2": {"include": ["register_c2p2"]}},
+                "savepoints": {
+                    "s1": {"statements": []}
+                }
+            },
+            "register_c2p2": {"parameters": []},
+            "deregister_c2p2": {"parameters": []},
+            "init": {"coment": ""},
+            "ok": {"coment": ""},
+            "fail": {"coment": ""}
+        }
+    }
+    c1p2 = {
+        "comment": "Category 1, process 1.",
+        "process": "(!register_c1p2).<init>.(<ok> | <fail>)",
+        "actions": {
+            "register_c1p2": {
+                "parameters": [],
+                "savepoints": {
+                    "basic": {"statements": []}
+                }
+            },
+            "init": {"coment": ""},
+            "ok": {"coment": ""},
+            "fail": {"coment": ""}
+        }
+    }
+    c2p1 = {
+        "comment": "Category 2, process 1.",
+        "process": "(!register_p1).<probe>.(deregister_p1)",
+        "labels": {"container": {"declaration": "struct validation *var"}},
+        "actions": {
+            "register_p1": {"parameters": ["%container%"]},
+            "deregister_p1": {"parameters": ["%container%"]},
+            "probe": {"comment": ""},
+        }
+    }
+    c2p2 = {
+        "comment": "Category 2, process 2.",
+        "process": "(!register_c2p2).(<v1> | <v2>).(deregister_c2p2)",
+        "actions": {
+            "register_c2p2": {"parameters": [], "require": {"c2/p1": {"include": ["probe"]}}},
+            "deregister_c2p2": {"parameters": []},
+            "v1": {"comment": ""},
+            "v2": {"comment": ""}
+        }
+    }
+    spec = {
+        "name": 'test_model',
+        "functions models": {
+            "f1": REGISTER,
+            "f2": DEREGISTER
+        },
+        "environment processes": {
+            "c1/p1": c1p1,
+            "c1/p2": c1p2,
+            "c2/p1": c2p1,
+            "c2/p2": c2p2
+        }
+    }
+    collection = CollectionDecoder(logging, dict()).parse_event_specification(source,
+                                                                              json.loads(json.dumps(spec)),
+                                                                              ProcessCollection())
+    return collection
 
 
 @pytest.fixture()
@@ -830,3 +914,12 @@ def test_combine_free_and_dependent_processes(logger, model_with_independent_pro
     names = [m.attributes['c/p2'] for m in models if m.attributes.get('c/p2')]
     for scenario in s2:
         assert scenario.name in names
+
+
+def test_double_sender_model(logger, double_init_model):
+    spec = {
+        "cover scenarios": {"c1/p1": {"savepoints only": True}, "c1/p2": {"savepoints only": True}, "c2/p2": {}}
+    }
+    processes_to_scenarios, models = _obtain_linear_model(logger, double_init_model, spec)
+    attributes = {str(m.attributes): m for m in models}
+    pass
