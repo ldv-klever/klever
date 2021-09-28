@@ -57,6 +57,11 @@ urlpatterns = [
     path('api/clear-verification-files/<int:decision_id>/', api.ClearVerificationFilesView.as_view(),
          name='clear-verification-files'),
 
+    # Report images
+    path('component/images-download/<int:pk>/', views.DownloadReportPNGView.as_view(), name='download-report-png'),
+    path('api/component/images-create/', api.ReportImageCreate.as_view(), name='api-add-report-image'),
+    path('api/component/images-get/<int:pk>/', api.ReportImageGetDataView.as_view(), name='api-get-report-image'),
+
     # Pages of reports by identifier
     re_path(r'^(?P<decision>[0-9A-Fa-f-]+)/safe(?P<identifier>.*)$',
             views.ReportSafeView.as_view(), name='safe'),
@@ -68,4 +73,6 @@ urlpatterns = [
             views.ReportUnknownView.as_view(), name='unknown'),
     re_path(r'^(?P<decision>[0-9A-Fa-f-]+)/component(?P<identifier>.*)$',
             views.ReportComponentView.as_view(), name='component'),
+
+    path('d3/', views.TestD3.as_view()),
 ]

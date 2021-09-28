@@ -37,12 +37,14 @@ from bridge.CustomViews import TemplateAPIRetrieveView
 from tools.profiling import LoggedCallMixin
 
 from jobs.models import Decision
-from reports.models import Report, ReportComponent, OriginalSources, CoverageArchive, ReportAttr, CompareDecisionsInfo
+from reports.models import (
+    Report, ReportComponent, OriginalSources, CoverageArchive, ReportAttr, CompareDecisionsInfo, ReportImage
+)
 
 from jobs.utils import JobAccess, DecisionAccess
 from reports.comparison import FillComparisonCache, ComparisonData
 from reports.coverage import GetCoverageData, ReportCoverageStatistics
-from reports.serializers import OriginalSourcesSerializer, PatchReportAttrSerializer
+from reports.serializers import OriginalSourcesSerializer, PatchReportAttrSerializer, ReportImageSerializer
 from reports.source import GetSource
 from reports.UploadReport import UploadReports
 
@@ -246,3 +248,26 @@ class UpdateReportAttrView(LoggedCallMixin, UpdateAPIView):
         self.check_object_permissions(self.request, obj)
 
         return obj
+
+
+class ReportImageCreate(LoggedCallMixin, CreateAPIView):
+    serializer_class = ReportImageSerializer
+    permission_classes = (IsAuthenticated,)
+
+    def perform_create(self, serializer):
+        report = get_object_or_404(
+            ReportComponent,
+            identifier=self.request.data.get('report', ''),
+            decision__identifier=self.request.data.get('decision', '')
+        )
+        serializer.save(report=report)
+
+
+class ReportImageGetDataView(LoggedCallMixin, APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request, pk):
+        img_obj = get_object_or_404(ReportImage, pk=pk)
+        with img_obj.data.file as fp:
+            content = fp.read()
+        return Response({'title': img_obj.title, 'content': content})

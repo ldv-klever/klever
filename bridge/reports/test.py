@@ -1799,3 +1799,66 @@ class ReportsLogging:
 
         with open(os.path.join(settings.LOGS_DIR, self.filename), mode="a", encoding="utf-8") as fp:
             fp.write("{}-{}-{}: {}\n".format(time.time(), self._decision, action, message))
+
+
+class TestCreateImages:
+    base_url = 'http://127.0.0.1:8998'
+
+    def __init__(self):
+        self.session = requests.Session()
+        self.root_dir = os.path.join(settings.MEDIA_ROOT, 'images')
+
+        # Authenticate
+        resp = self.__request('/service/get_token/', data={'username': 'service', 'password': 'service'})
+        self.session.headers.update({'Authorization': 'Token {}'.format(resp.json()['token'])})
+        self.create_images()
+
+    def create_images(self):
+        for root, _, filenames in os.walk(self.root_dir):
+            for fname in filenames:
+                if os.path.splitext(fname)[-1] != '.dot':
+                    continue
+                data_path = os.path.join(root, fname)
+                image_path = os.path.join(root, fname + '.png')
+                if os.path.isfile(image_path):
+                    self.__create_image(image_path, data_path)
+
+    def __create_image(self, image_path, data_path):
+        data = {
+            'decision': '6f63d646-26e8-4925-923b-aa36cfd24755',
+            'report': '/Job',
+            'title': os.path.splitext(os.path.basename(data_path))[0]
+        }
+        with open(image_path, mode='rb') as image_file:
+            with open(data_path, mode='rb') as data_file:
+                resp = self.__request(
+                    '/reports/api/component/images-create/',
+                    method='POST', data=data,
+                    files=[('image', image_file), ('data', data_file)]
+                )
+                print(resp)
+
+    def __request(self, url, method='POST', **kwargs):
+        cnt = 0
+        while True:
+            try:
+                resp = self.session.request(method, self.base_url + url, **kwargs)
+            except Exception as e:
+                logger.error(str(e))
+            else:
+                break
+            time.sleep(1)
+            cnt += 1
+            if cnt > 3:
+                raise ResponseError('Connection max tries exceeded')
+
+        if not 200 <= resp.status_code < 300:
+            try:
+                error_str = str(resp.json())
+            except Exception as e:
+                print(e)
+                error_str = resp.content
+            logger.error(error_str)
+            resp.close()
+            raise ResponseError('Unexpected status code returned: {}'.format(resp.status_code))
+        return resp
