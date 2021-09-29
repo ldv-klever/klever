@@ -35,21 +35,19 @@
                 "comment": "Alloc memory for 'platform_device' structure.",
                 "statements": [
                   "$ALLOC(%resource%);",
-                  "%resource%->id_entry = & %container%->id_table[0];"
+                  "%resource%->id_entry = & %container%->id_table[0];",
+                  "%resource%->dev.platform_data = ldv_xmalloc_unknown_size(0);"
                 ]
               },
               "main": {
                 "comment": "Check that device is truely in the system and begin callback invocations.",
-                "process": "<probe>.(<ok>.([pm_register].[pm_deregister]|<none>).<release>.<after_release>|<bad>).<free>.(deregister)"
+                "process": "<probe>.(<probe_successful>.([pm_register].[pm_deregister]).<release>.<after_release>|<probe_failed>).<free>.(deregister)"
               },
-              "bad": {
+              "probe_successful": {
                 "comment": "Failed to probe the device.",
                 "condition": [
                   "%probed% != 0"
                 ]
-              },
-              "none": {
-                "comment": "Skip callbacks call."
               },
               "pm_deregister": {
                 "comment": "Finish the power management scenario.",
@@ -59,7 +57,7 @@
                 "comment": "Proceed to a power management scenario.",
                 "parameters": []
               },
-              "ok": {
+              "probe_failed": {
                 "comment": "Platform device is probed successfully now.",
                 "condition": [
                   "%probed% == 0"
@@ -84,10 +82,16 @@
                 ],
                 "trace relevant": true,
                 "require": {
-                  "main/process": {
+                  "entry_point/entry": {
                     "include": [
-                      "init_success_0"
+                      "init_success"
                     ]
+                  }
+                },
+                "savepoints": {
+                  "bypass_initialization": {
+                    "comment": "Just ignore the initialization function.",
+                    "statements": ["%container% = emg_alias_arasan_cf_driver;"]
                   }
                 }
               },
@@ -176,13 +180,13 @@
                 ],
                 "trace relevant": true
               },
-              "bad": {
+              "suspend_failed": {
                 "comment": "Callback failed.",
                 "condition": [
                   "%ret% != 0"
                 ]
               },
-              "ok": {
+              "suspend_successful": {
                 "comment": "Callback successfully finished.",
                 "condition": [
                   "%ret% == 0"
@@ -248,75 +252,7 @@
                 "pm_register"
               ]
             },
-            "process": "(!pm_register).(<suspend>.(<ok>.<resume>|<bad>)).(pm_deregister)"
-          },
-          "main/process": {
-            "actions": {
-              "arasan_cf_driver_exit": {
-                "comment": "Exit the module before its unloading with 'arasan_cf_driver_exit' function.",
-                "statements": [
-                  "emg_arasan_cf_driver_exit();"
-                ],
-                "trace relevant": true
-              },
-              "arasan_cf_driver_init": {
-                "comment": "Initialize the module after insmod with 'arasan_cf_driver_init' function.",
-                "statements": [
-                  "%ret% = emg_arasan_cf_driver_init();",
-                  "%ret% = ldv_post_init(%ret%);"
-                ],
-                "trace relevant": true,
-                "savepoints": {
-                  "demo": {
-                    "comment": "The savepoint added for demonstrating purposes.",
-                    "statements": []
-                  }
-                }
-              },
-              "init_failed_0": {
-                "comment": "Failed to initialize the module.",
-                "condition": [
-                  "%ret% != 0"
-                ]
-              },
-              "init_success_0": {
-                "comment": "Module has been initialized.",
-                "condition": [
-                  "%ret% == 0"
-                ]
-              }
-            },
-            "category": "entry_point",
-            "comment": "Initialize or exit module.",
-            "declarations": {
-              "environment model": {
-                "arasan_cf_driver_exit": "extern void emg_arasan_cf_driver_exit(void);\n",
-                "arasan_cf_driver_init": "extern int emg_arasan_cf_driver_init(void);\n"
-              }
-            },
-            "definitions": {
-              "/var/lib/klever/workspace/Branches-and-Tags-Processing/linux-stable/drivers/ata/pata_arasan_cf.c": {
-                "arasan_cf_driver_exit": [
-                  "/* EMG_WRAPPER emg_arasan_cf_driver_exit */\n",
-                  "void emg_arasan_cf_driver_exit(void) {\n",
-                  "\tarasan_cf_driver_exit();\n",
-                  "}\n"
-                ],
-                "arasan_cf_driver_init": [
-                  "/* EMG_WRAPPER emg_arasan_cf_driver_init */\n",
-                  "int emg_arasan_cf_driver_init(void) {\n",
-                  "\treturn arasan_cf_driver_init();\n",
-                  "}\n"
-                ]
-              }
-            },
-            "labels": {
-              "ret": {
-                "declaration": "int ret"
-              }
-            },
-            "peers": {},
-            "process": "<arasan_cf_driver_init>.(<init_success_0>.<arasan_cf_driver_exit>|<init_failed_0>)"
+            "process": "(!pm_register).(<suspend>.(<suspend_successful>.<resume>|<suspend_failed>)).(pm_deregister)"
           }
         },
         "functions models": {
@@ -409,7 +345,67 @@
             "process": "<assign>.[deregister]"
           }
         },
-        "main process": null,
+        "main process": {
+            "actions": {
+              "arasan_cf_driver_exit": {
+                "comment": "Exit the module before its unloading with 'arasan_cf_driver_exit' function.",
+                "statements": [
+                  "emg_arasan_cf_driver_exit();"
+                ],
+                "trace relevant": true
+              },
+              "arasan_cf_driver_init": {
+                "comment": "Initialize the module after insmod with 'arasan_cf_driver_init' function.",
+                "statements": [
+                  "%ret% = emg_arasan_cf_driver_init();",
+                  "%ret% = ldv_post_init(%ret%);"
+                ],
+                "trace relevant": true
+              },
+              "init_failed": {
+                "comment": "Failed to initialize the module.",
+                "condition": [
+                  "%ret% != 0"
+                ]
+              },
+              "init_success": {
+                "comment": "Module has been initialized.",
+                "condition": [
+                  "%ret% == 0"
+                ]
+              }
+            },
+            "comment": "Initialize or exit module.",
+            "declarations": {
+              "environment model": {
+                "arasan_cf_driver_exit": "extern void emg_arasan_cf_driver_exit(void);\n",
+                "arasan_cf_driver_init": "extern int emg_arasan_cf_driver_init(void);\n"
+              }
+            },
+            "definitions": {
+              "/var/lib/klever/workspace/Branches-and-Tags-Processing/linux-stable/drivers/ata/pata_arasan_cf.c": {
+                "arasan_cf_driver_exit": [
+                  "/* EMG_WRAPPER emg_arasan_cf_driver_exit */\n",
+                  "void emg_arasan_cf_driver_exit(void) {\n",
+                  "\tarasan_cf_driver_exit();\n",
+                  "}\n"
+                ],
+                "arasan_cf_driver_init": [
+                  "/* EMG_WRAPPER emg_arasan_cf_driver_init */\n",
+                  "int emg_arasan_cf_driver_init(void) {\n",
+                  "\treturn arasan_cf_driver_init();\n",
+                  "}\n"
+                ]
+              }
+            },
+            "labels": {
+              "ret": {
+                "declaration": "int ret"
+              }
+            },
+            "peers": {},
+            "process": "<arasan_cf_driver_init>.(<init_success>.<arasan_cf_driver_exit>|<init_failed>)"
+          },
         "name": "0"
       }
     }
