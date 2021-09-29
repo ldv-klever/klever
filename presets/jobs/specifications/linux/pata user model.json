@@ -1,0 +1,417 @@
+{
+  "3.14": [
+    {
+      "fragments": [
+        "drivers/ata/pata_arasan_cf.ko"
+      ],
+      "model": {
+        "environment processes": {
+          "platform/platform_instance_arasan_cf_driver": {
+            "actions": {
+              "after_release": {
+                "comment": "Platform device is released now.",
+                "statements": [
+                  "%probed% = 1;"
+                ]
+              },
+              "deregister": {
+                "comment": "Finish {} callbacks invocations scenario.",
+                "condition": [
+                  "%container% == $ARG1",
+                  "$ARG1 == emg_alias_arasan_cf_driver"
+                ],
+                "parameters": [
+                  "%container%"
+                ],
+                "trace relevant": true
+              },
+              "free": {
+                "comment": "Free memory for 'platform_device' structure.",
+                "statements": [
+                  "$FREE(%resource%);"
+                ]
+              },
+              "init": {
+                "comment": "Alloc memory for 'platform_device' structure.",
+                "statements": [
+                  "$ALLOC(%resource%);",
+                  "%resource%->id_entry = & %container%->id_table[0];"
+                ]
+              },
+              "main": {
+                "comment": "Check that device is truely in the system and begin callback invocations.",
+                "process": "<probe>.(<ok>.([pm_register].[pm_deregister]|<none>).<release>.<after_release>|<bad>).<free>.(deregister)"
+              },
+              "bad": {
+                "comment": "Failed to probe the device.",
+                "condition": [
+                  "%probed% != 0"
+                ]
+              },
+              "none": {
+                "comment": "Skip callbacks call."
+              },
+              "pm_deregister": {
+                "comment": "Finish the power management scenario.",
+                "parameters": []
+              },
+              "pm_register": {
+                "comment": "Proceed to a power management scenario.",
+                "parameters": []
+              },
+              "ok": {
+                "comment": "Platform device is probed successfully now.",
+                "condition": [
+                  "%probed% == 0"
+                ]
+              },
+              "probe": {
+                "comment": "Check that the device in the system and do driver initializations.",
+                "statements": [
+                  "ldv_pre_probe();",
+                  "%probed% = emg_wrapper_arasan_cf_probe(%resource%);",
+                  "%probed% = ldv_post_probe(%probed%);"
+                ],
+                "trace relevant": true
+              },
+              "register": {
+                "comment": "Register a driver callbacks for platform-level device.",
+                "condition": [
+                  "$ARG1 == emg_alias_arasan_cf_driver"
+                ],
+                "parameters": [
+                  "%container%"
+                ],
+                "trace relevant": true,
+                "require": {
+                  "main/process": {
+                    "include": [
+                      "init_success_0"
+                    ]
+                  }
+                }
+              },
+              "release": {
+                "comment": "Remove device from the system.",
+                "statements": [
+                  "emg_wrapper_arasan_cf_remove(%resource%);"
+                ],
+                "trace relevant": true
+              }
+            },
+            "category": "platform",
+            "comment": "Invoke platfrom callbacks. (Relevant to 'arasan_cf_driver')",
+            "declarations": {
+              "environment model": {
+                "emg_wrapper_arasan_cf_probe": "extern int emg_wrapper_arasan_cf_probe(struct platform_device *);\n",
+                "emg_wrapper_arasan_cf_remove": "extern int emg_wrapper_arasan_cf_remove(struct platform_device *);\n"
+              }
+            },
+            "definitions": {
+              "/var/lib/klever/workspace/Branches-and-Tags-Processing/linux-stable/drivers/ata/pata_arasan_cf.c": {
+                "emg_wrapper_arasan_cf_probe": [
+                  "/* EMG_WRAPPER emg_wrapper_arasan_cf_probe */\n",
+                  "int emg_wrapper_arasan_cf_probe(struct platform_device *arg0) {\n",
+                  "\treturn arasan_cf_probe(arg0);\n",
+                  "}\n",
+                  "\n"
+                ],
+                "emg_wrapper_arasan_cf_remove": [
+                  "/* EMG_WRAPPER emg_wrapper_arasan_cf_remove */\n",
+                  "int emg_wrapper_arasan_cf_remove(struct platform_device *arg0) {\n",
+                  "\treturn arasan_cf_remove(arg0);\n",
+                  "}\n",
+                  "\n"
+                ]
+              }
+            },
+            "headers": [
+              "linux/mod_devicetable.h",
+              "linux/platform_device.h"
+            ],
+            "labels": {
+              "container": {
+                "declaration": "struct platform_driver *container",
+                "value": "emg_alias_arasan_cf_driver"
+              },
+              "probed": {
+                "declaration": "int probed",
+                "value": "1"
+              },
+              "resource": {
+                "declaration": "struct platform_device *resource"
+              }
+            },
+            "peers": {
+              "functions models/__platform_driver_register": [
+                "register"
+              ],
+              "functions models/platform_driver_unregister": [
+                "deregister"
+              ],
+              "pm/pm_ops_scenario_arasan_cf_pm_ops": [
+                "pm_deregister",
+                "pm_register"
+              ]
+            },
+            "process": "(!register).<init>.{main}"
+          },
+          "pm/pm_ops_scenario_arasan_cf_pm_ops": {
+            "actions": {
+              "pm_deregister": {
+                "comment": "Do not expect power management scenarios.",
+                "parameters": [],
+                "trace relevant": true
+              },
+              "pm_register": {
+                "comment": "Ready for a power management scenarios.",
+                "parameters": [],
+                "trace relevant": true
+              },
+              "resume": {
+                "comment": "Make the device start working again after resume.",
+                "statements": [
+                  "%ret% = emg_wrapper_arasan_cf_resume(%device%);",
+                  "ldv_assume(%ret% = 0);"
+                ],
+                "trace relevant": true
+              },
+              "bad": {
+                "comment": "Callback failed.",
+                "condition": [
+                  "%ret% != 0"
+                ]
+              },
+              "ok": {
+                "comment": "Callback successfully finished.",
+                "condition": [
+                  "%ret% == 0"
+                ]
+              },
+              "suspend": {
+                "comment": "Quiesce subsystem-level device before suspend.",
+                "statements": [
+                  "%ret% = emg_wrapper_arasan_cf_suspend(%device%);",
+                  "%ret% = ldv_post_probe(%ret%);"
+                ],
+                "trace relevant": true
+              }
+            },
+            "category": "pm",
+            "comment": "Invoke power management callbacks. (Relevant to 'arasan_cf_pm_ops')",
+            "declarations": {
+              "/var/lib/klever/workspace/Branches-and-Tags-Processing/linux-stable/drivers/ata/pata_arasan_cf.c": {
+                "emg_alias_arasan_cf_pm_ops": "struct dev_pm_ops *emg_alias_arasan_cf_pm_ops = & arasan_cf_pm_ops;\n"
+              },
+              "environment model": {
+                "emg_alias_arasan_cf_pm_ops": "extern struct dev_pm_ops *emg_alias_arasan_cf_pm_ops;\n",
+                "emg_runtime_enabled": "int emg_runtime_enabled = 0;\n",
+                "emg_runtime_status": "int emg_runtime_lowpower = 1;\n",
+                "emg_wrapper_arasan_cf_resume": "extern int emg_wrapper_arasan_cf_resume(struct device *);\n",
+                "emg_wrapper_arasan_cf_suspend": "extern int emg_wrapper_arasan_cf_suspend(struct device *);\n"
+              }
+            },
+            "definitions": {
+              "/var/lib/klever/workspace/Branches-and-Tags-Processing/linux-stable/drivers/ata/pata_arasan_cf.c": {
+                "emg_wrapper_arasan_cf_resume": [
+                  "/* EMG_WRAPPER emg_wrapper_arasan_cf_resume */\n",
+                  "int emg_wrapper_arasan_cf_resume(struct device *arg0) {\n",
+                  "\treturn arasan_cf_resume(arg0);\n",
+                  "}\n",
+                  "\n"
+                ],
+                "emg_wrapper_arasan_cf_suspend": [
+                  "/* EMG_WRAPPER emg_wrapper_arasan_cf_suspend */\n",
+                  "int emg_wrapper_arasan_cf_suspend(struct device *arg0) {\n",
+                  "\treturn arasan_cf_suspend(arg0);\n",
+                  "}\n",
+                  "\n"
+                ]
+              }
+            },
+            "headers": [
+              "linux/device.h",
+              "linux/pm.h"
+            ],
+            "labels": {
+              "device": {
+                "declaration": "struct device *device"
+              },
+              "ret": {
+                "declaration": "int ret",
+                "value": "ldv_undef_int()"
+              }
+            },
+            "peers": {
+              "platform/platform_instance_arasan_cf_driver": [
+                "pm_deregister",
+                "pm_register"
+              ]
+            },
+            "process": "(!pm_register).(<suspend>.(<ok>.<resume>|<bad>)).(pm_deregister)"
+          },
+          "main/process": {
+            "actions": {
+              "arasan_cf_driver_exit": {
+                "comment": "Exit the module before its unloading with 'arasan_cf_driver_exit' function.",
+                "statements": [
+                  "emg_arasan_cf_driver_exit();"
+                ],
+                "trace relevant": true
+              },
+              "arasan_cf_driver_init": {
+                "comment": "Initialize the module after insmod with 'arasan_cf_driver_init' function.",
+                "statements": [
+                  "%ret% = emg_arasan_cf_driver_init();",
+                  "%ret% = ldv_post_init(%ret%);"
+                ],
+                "trace relevant": true,
+                "savepoints": {
+                  "demo": {
+                    "comment": "The savepoint added for demonstrating purposes.",
+                    "statements": []
+                  }
+                }
+              },
+              "init_failed_0": {
+                "comment": "Failed to initialize the module.",
+                "condition": [
+                  "%ret% != 0"
+                ]
+              },
+              "init_success_0": {
+                "comment": "Module has been initialized.",
+                "condition": [
+                  "%ret% == 0"
+                ]
+              }
+            },
+            "category": "entry_point",
+            "comment": "Initialize or exit module.",
+            "declarations": {
+              "environment model": {
+                "arasan_cf_driver_exit": "extern void emg_arasan_cf_driver_exit(void);\n",
+                "arasan_cf_driver_init": "extern int emg_arasan_cf_driver_init(void);\n"
+              }
+            },
+            "definitions": {
+              "/var/lib/klever/workspace/Branches-and-Tags-Processing/linux-stable/drivers/ata/pata_arasan_cf.c": {
+                "arasan_cf_driver_exit": [
+                  "/* EMG_WRAPPER emg_arasan_cf_driver_exit */\n",
+                  "void emg_arasan_cf_driver_exit(void) {\n",
+                  "\tarasan_cf_driver_exit();\n",
+                  "}\n"
+                ],
+                "arasan_cf_driver_init": [
+                  "/* EMG_WRAPPER emg_arasan_cf_driver_init */\n",
+                  "int emg_arasan_cf_driver_init(void) {\n",
+                  "\treturn arasan_cf_driver_init();\n",
+                  "}\n"
+                ]
+              }
+            },
+            "labels": {
+              "ret": {
+                "declaration": "int ret"
+              }
+            },
+            "peers": {},
+            "process": "<arasan_cf_driver_init>.(<init_success_0>.<arasan_cf_driver_exit>|<init_failed_0>)"
+          }
+        },
+        "functions models": {
+          "__platform_driver_register": {
+            "actions": {
+              "assign": {
+                "comment": "Get platform_driver structure argument.",
+                "statements": [
+                  "%platform_driver% = $ARG1;"
+                ]
+              },
+              "fail": {
+                "comment": "Fail to register a driver for platform-level device.",
+                "statements": [
+                  "return ldv_undef_int_negative();"
+                ]
+              },
+              "register": {
+                "comment": "Register platform_driver callbacks.",
+                "parameters": [
+                  "%platform_driver%"
+                ],
+                "trace relevant": true
+              },
+              "success": {
+                "comment": "Successfully registered a driver for platform-level device.",
+                "statements": [
+                  "return 0;"
+                ]
+              }
+            },
+            "category": "functions models",
+            "comment": "Register a driver for platform-level device. (Relevant to 'arasan_cf_driver')",
+            "declarations": {
+              "/var/lib/klever/workspace/Branches-and-Tags-Processing/linux-stable/drivers/ata/pata_arasan_cf.c": {
+                "emg_alias_arasan_cf_driver": "struct platform_driver *emg_alias_arasan_cf_driver = & arasan_cf_driver;\n"
+              },
+              "environment model": {
+                "emg_alias_arasan_cf_driver": "extern struct platform_driver *emg_alias_arasan_cf_driver;\n"
+              }
+            },
+            "headers": [
+              "linux/platform_device.h"
+            ],
+            "labels": {
+              "platform_driver": {
+                "declaration": "struct platform_driver *platform_driver",
+                "value": "emg_alias_arasan_cf_driver"
+              }
+            },
+            "peers": {
+              "platform/platform_instance_arasan_cf_driver": [
+                "register"
+              ]
+            },
+            "process": "<assign>.[register].<success>|<fail>"
+          },
+          "platform_driver_unregister": {
+            "actions": {
+              "assign": {
+                "comment": "Get 'platform_driver' argument.",
+                "statements": [
+                  "%platform_driver% = $ARG1;"
+                ]
+              },
+              "deregister": {
+                "comment": "Deregister 'platform_driver' callbacks.",
+                "parameters": [
+                  "%platform_driver%"
+                ],
+                "trace relevant": true
+              }
+            },
+            "category": "functions models",
+            "comment": "Unregister a driver for platform-level device. (Relevant to 'arasan_cf_driver')",
+            "headers": [
+              "linux/platform_device.h"
+            ],
+            "labels": {
+              "platform_driver": {
+                "declaration": "struct platform_driver *platform_driver",
+                "value": "emg_alias_arasan_cf_driver"
+              }
+            },
+            "peers": {
+              "platform/platform_instance_arasan_cf_driver": [
+                "deregister"
+              ]
+            },
+            "process": "<assign>.[deregister]"
+          }
+        },
+        "main process": null,
+        "name": "0"
+      }
+    }
+  ]
+}
