@@ -2,14 +2,21 @@
   "project": "Linux",
   "build base": "linux/loadable kernel modules sample",
   "targets": [
-    "drivers/ata/pata_arasan_cf.ko",
-    "drivers/idle/i7300_idle.ko",
-    "drivers/uwb/hwa-rc.ko"
+    "drivers/ata/pata_arasan_cf.ko"
   ],
   "requirement specifications": [
-    "arch:mm:ioremap",
-    "drivers:clk1",
-    "kernel:locking:mutex",
-    "memory safety"
-  ]
+    "drivers:clk1"
+  ],
+  "generators options": [
+    {"genericManual": {}}
+  ],
+  "select scenarios": {
+    "cover scenarios": {
+      "platform/platform_instance_arasan_cf_driver": {"savepoints only":  true},
+      "pm/pm_ops_scenario_arasan_cf_pm_ops": {}
+    }
+  },
+  "scenario separation": "linear",
+  "single environment model per fragment": false,
+  "specifications set": "3.14"
 }
