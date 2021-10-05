@@ -286,7 +286,6 @@ def double_init_model():
         "actions": {
             "register_c1p1": {
                 "parameters": [],
-                "require": {"c2/p2": {"include": ["register_c2p2"]}},
                 "savepoints": {
                     "s1": {"statements": []}
                 }
@@ -916,9 +915,44 @@ def test_combine_free_and_dependent_processes(logger, model_with_independent_pro
         assert scenario.name in names
 
 
+# todo: ?
 def test_double_sender_model(logger, double_init_model):
     spec = {
-        "cover scenarios": {"c1/p1": {"savepoints only": True}, "c1/p2": {"savepoints only": True}, "c2/p2": {}}
+        "cover scenarios": {
+            "c1/p1": {"savepoints only": True},
+            "c1/p2": {"savepoints only": True},
+            "c2/p2": {}
+        }
+    }
+    processes_to_scenarios, models = _obtain_linear_model(logger, double_init_model, spec)
+    attributes = {str(m.attributes): m for m in models}
+    pass
+
+
+# todo: ?
+def test_double_sender_model_full_list(logger, double_init_model):
+    spec = {
+        "cover scenarios": {
+            "c1/p1": {"savepoints only": True},
+            "c1/p2": {"savepoints only": True},
+            "c2/p1": {},
+            "c2/p2": {}
+        }
+    }
+    processes_to_scenarios, models = _obtain_linear_model(logger, double_init_model, spec)
+    attributes = {str(m.attributes): m for m in models}
+    pass
+
+
+# todo: p2c2 should be for each c1p1
+def test_double_sender_model_with_all_sends(logger, double_init_model):
+    spec = {
+        "cover scenarios": {
+            "c1/p1": {"savepoints only": True},
+            "c1/p2": {"savepoints only": True},
+            "c2/p1": {"savepoints only": True},
+            "c2/p2": {}
+        }
     }
     processes_to_scenarios, models = _obtain_linear_model(logger, double_init_model, spec)
     attributes = {str(m.attributes): m for m in models}
