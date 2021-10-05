@@ -176,6 +176,7 @@ def process_transitive_dependencies(processes: set, process: Process):
     todo = [str(process)]
     while todo:
         p_name = todo.pop()
+        processed.add(p_name)
         p = processes_map[p_name]
         deps = process_dependencies(p)
         for required_name in deps:
