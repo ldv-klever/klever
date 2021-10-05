@@ -561,7 +561,7 @@ class FunctionModels:
         if isinstance(self.signature, Pointer):
             if self._conf.get('disable ualloc') and func == 'UALLOC':
                 func = 'ALLOC'
-            if func == 'ALLOC' and self._conf.get('allocate with sizeof', True):
+            if func != 'UALLOC' and self._conf.get('allocate with sizeof', True):
                 size = 'sizeof({})'.format(self.signature.points.to_string('', typedef='complex_and_params'))
 
             return "%{}%{} = {}({})".format(label_name, suffix, self.mem_function_map[func], size)
