@@ -44,7 +44,7 @@ tokens = (
     'BLOCK_CLOSE',
     'COMMA',
     'DOTS',
-    'BIT_SIZE_DELEMITER',
+    'BIT_SIZE_DELIMITER',
     'NUMBER',
     'END',
     'IDENTIFIER',
